@@ -102,6 +102,22 @@ export default (): RouteRecordRaw[] => [
         component: () => import('@views/riak-manage/apply/Index.vue'),
       },
       {
+        name: 'MongoDBSharedClusterApply',
+        path: 'mongodb-shared-cluster-apply',
+        meta: {
+          navName: t('申请MongoDB分片集群部署'),
+        },
+        component: () => import('@views/mongodb-manage/apply/shared-cluster-apply/Index.vue'),
+      },
+      {
+        name: 'MongoDBReplicaSetApply',
+        path: 'mongodb-replica-set-apply',
+        meta: {
+          navName: t('申请MongoDB副本集部署'),
+        },
+        component: () => import('@views/mongodb-manage/apply/replica-set-apply/Index.vue'),
+      },
+      {
         name: 'SelfServiceCreateDbModule',
         path: 'create-db-module/:type/:bk_biz_id/',
         meta: {

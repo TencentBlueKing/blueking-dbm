@@ -10,6 +10,8 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+
+import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 import MongodbModel from '@services/model/mongodb/mongodb';
 import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
 import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
@@ -53,7 +55,8 @@ export function getMongoList(params: {
 export function getMongoClusterDetails(params: {
   cluster_id: number
 }) {
-  return http.get<MongodbDetailModel>(`${path}/${params.cluster_id}/`).then(data => new MongodbDetailModel(data));
+  return http.get<MongodbDetailModel>(`${path}/${params.cluster_id}/`)
+    .then(data => new MongodbDetailModel(data));
 }
 
 /**
@@ -120,10 +123,23 @@ export function getMongoRoleList(params: {
   return http.get<string[]>(`${path}/get_instance_role/`, params);
 }
 
+/**
+ * 导出Mongo集群数据为 excel 文件
+ */
+export function exportMongodbClusterToExcel(params: { cluster_ids?: number[] }) {
+  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+}
 
 /**
  * 导出Mongo实例数据为 excel 文件
  */
 export function exportMongodbInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 获取业务拓扑树
+ */
+export function getMongoDBResourceTree(params: { cluster_type: string }) {
+  return http.get<BizConfTopoTreeModel[]>(`/apis/mongodb/bizs/${currentBizId}/resource_tree/`, params);
 }

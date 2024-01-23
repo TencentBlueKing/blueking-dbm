@@ -113,7 +113,8 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       https: isHttps,
-      port: 9999,
+      port: 8088,
+      host: '127.0.0.1',
     },
   };
 });

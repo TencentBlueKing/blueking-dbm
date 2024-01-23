@@ -10,6 +10,13 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+
+import { TicketTypes } from '@common/const';
+
+import { utcDisplayTime } from '@utils';
+
+import { t } from '@locales/index';
+
 interface MongoInstance {
   bk_biz_id: number;
   bk_cloud_id: number;
@@ -21,15 +28,51 @@ interface MongoInstance {
   phase: string;
   port: number;
   role?: string;
-  spec_config: string;
+  spec_config: {
+    id: number,
+    cpu: {
+      max: number,
+      min: number
+    },
+    mem: {
+      max: number,
+      min: number
+    },
+    qps: {
+      max: number,
+      min: number
+    },
+    name: string,
+    count: number,
+    device_class: string[],
+    storage_spec: {
+      size: number,
+      type: string,
+      mount_point: string
+    }[]
+  }
   status: string;
 }
 
 export default class MongodbDetail {
+  static operationIconMap: Record<string, string> = {
+    [TicketTypes.MONGODB_ENABLE]: 'qiyongzhong',
+    [TicketTypes.MONGODB_DISABLE]: 'jinyongzhong',
+    [TicketTypes.MONGODB_DESTROY]: 'shanchuzhong',
+  };
+
+  static operationTextMap: Record<string, string> = {
+    [TicketTypes.MONGODB_ENABLE]: t('启用任务进行中'),
+    [TicketTypes.MONGODB_DISABLE]: t('禁用任务进行中'),
+    [TicketTypes.MONGODB_DESTROY]: t('删除任务进行中'),
+  };
+
   bk_biz_id: number;
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_access_port: number;
+  cluster_alias: string;
   cluster_entry_details: {
     cluster_entry_type: string;
     role: string;
@@ -172,6 +215,8 @@ export default class MongodbDetail {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.cluster_alias = payload.cluster_alias;
+    this.cluster_access_port = payload.cluster_access_port;
     this.cluster_entry_details = payload.cluster_entry_details;
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
@@ -196,5 +241,39 @@ export default class MongodbDetail {
     this.slave_domain = payload.slave_domain;
     this.spec_config = payload.spec_config;
     this.status = payload.status;
+  }
+
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.operations[0];
+    if (operation.status !== 'RUNNING') {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  get operationDisabled() {
+    if (!this.isClusterNormal) {
+      return true;
+    }
+
+    if (this.operationRunningStatus) {
+      return true;
+    }
+    return false;
+  }
+
+  get isClusterNormal() {
+    return this.status === 'normal';
+  }
+
+  get masterDomainDisplayName() {
+    return `${this.master_domain}:27071`;
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 }

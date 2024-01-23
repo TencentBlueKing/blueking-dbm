@@ -25,7 +25,8 @@ export enum DBTypes {
   PULSAR = 'pulsar',
   INFLUXDB = 'influxdb',
   SPIDER = 'spider',
-  RIAK = 'riak'
+  RIAK = 'riak',
+  MONGODB = 'mongodb'
 }
 export type DBTypesValues = `${DBTypes}`
 
@@ -52,6 +53,7 @@ export enum ClusterTypes {
   TENDIS_PLUS_INSTANCE = 'TendisplusInstance',
   REDIS_CLUSTER = 'RedisCluster',
   TENDIS_PLUS_CLUSTER = 'TendisplusCluster',
+  MONGODB = 'mongodb',
   MONGO_REPLICA_SET = 'MongoReplicaSet',
   MONGO_SHARED_CLUSTER = 'MongoShardedCluster',
   RIAK = 'riak',
@@ -125,6 +127,12 @@ export const clusterTypeInfos = {
   },
   [ClusterTypes.TENDBCLUSTER]: {
     dbType: DBTypes.MYSQL,
+  },
+  [ClusterTypes.MONGO_REPLICA_SET]: {
+    dbType: DBTypes.MONGODB,
+  },
+  [ClusterTypes.MONGO_SHARED_CLUSTER]: {
+    dbType: DBTypes.MONGODB,
   },
 };
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;
@@ -270,7 +278,14 @@ export enum TicketTypes {
   RIAK_CLUSTER_SCALE_IN = 'RIAK_CLUSTER_SCALE_IN', // Riak 集群缩容
   RIAK_CLUSTER_REBOOT = 'RIAK_CLUSTER_REBOOT', // Riak 节点重启
   MONGODB_DISABLE = 'MONGODB_DISABLE', // mongodb禁用
-  MONGODB_INSTANCE_RELOAD = 'MONGODB_INSTANCE_RELOAD'// mongodb重启
+  MONGODB_INSTANCE_RELOAD = 'MONGODB_INSTANCE_RELOAD', // mongodb重启
+  MONGODB_SHARD_APPLY = 'MONGODB_SHARD_APPLY', // MongoDB 分片式集群部署申请
+  MONGODB_REPLICASET_APPLY = 'MONGODB_REPLICASET_APPLY', // MongoDB 副本集部署申请
+  MONGODB_ENABLE = 'MONGODB_ENABLE', // MongoDB 集群启用
+  MONGODB_DESTROY = 'MONGODB_DESTROY', // MongoDB 集群删除
+  MONGODB_SCALE_UPDOWN = 'MONGODB_SCALE_UPDOWN', // MongoDB 分片式集群单个容量变更
+  MONGODB_AUTHORIZE_RULES = 'MONGODB_AUTHORIZE_RULES', // MongoDB 集群授权
+  MONGODB_EXCEL_AUTHORIZE_RULES = 'MONGODB_EXCEL_AUTHORIZE_RULES' // MongoDB 导入授权
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -342,6 +357,16 @@ export const bigDataType = {
     name: t('Riak集群部署'),
     type: ClusterTypes.RIAK,
   },
+  [TicketTypes.MONGODB_SHARD_APPLY]: {
+    id: TicketTypes.MONGODB_SHARD_APPLY,
+    name: t('MongoDB分片集群部署'),
+    type: ClusterTypes.MONGO_SHARED_CLUSTER,
+  },
+  [TicketTypes.MONGODB_REPLICASET_APPLY]: {
+    id: TicketTypes.MONGODB_REPLICASET_APPLY,
+    name: t('MongoDB副本集部署'),
+    type: ClusterTypes.MONGO_REPLICA_SET,
+  },
 };
 
 /** all service tickets */
@@ -410,7 +435,9 @@ export enum UserPersonalSettings {
   SPIDER_TOOLBOX_FAVOR = 'SPIDER_TOOLBOX_FAVOR_1',
   SPIDER_TOOLBOX_MENUS = 'SPIDER_TOOLBOX_MENUS_1',
   SERVICE_APPLY_FAVOR = 'SERVICE_APPLY_FAVOR',
-  MONGODB_INSTANCE_TABLE_SETTINGS = 'MONGODB_INSTANCE_TABLE_SETTINGS'
+  MONGODB_INSTANCE_TABLE_SETTINGS = 'MONGODB_INSTANCE_TABLE_SETTINGS',
+  MONGODB_REPLICA_SET_SETTINGS = 'MONGODB_REPLICA_SET_SETTINGS',
+  MONGODB_SHARED_CLUSTER_SETTINGS = 'MONGODB_SHARED_CLUSTER_SETTINGS',
 }
 
 /**
@@ -469,6 +496,7 @@ export enum LocalStorageKeys {
 export enum AccountTypes {
   MYSQL = 'mysql',
   TENDBCLUSTER = 'tendbcluster',
+  MONGODB = 'mongodb',
 }
 export type AccountTypesValues = `${AccountTypes}`
 

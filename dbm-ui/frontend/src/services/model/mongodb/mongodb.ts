@@ -10,7 +10,15 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-import { PipelineStatus } from '@common/const';
+
+import dayjs from 'dayjs';
+
+import {
+  PipelineStatus,
+  TicketTypes,
+} from '@common/const';
+
+import { t } from '@locales/index';
 
 interface MongoInstance {
   bk_biz_id: number;
@@ -23,17 +31,50 @@ interface MongoInstance {
   phase: string;
   port: number;
   spec_config: {
-    spec_config: string;
-    spec_id: number;
-  };
-  status: string;
+    id: number,
+    cpu: {
+      max: number,
+      min: number
+    },
+    mem: {
+      max: number,
+      min: number
+    },
+    qps: {
+      max: number,
+      min: number
+    },
+    name: string,
+    count: number,
+    device_class: string[],
+    storage_spec: {
+      size: number,
+      type: string,
+      mount_point: string
+    }[]
+  }
+  status: 'running' | 'unavailable';
 }
 
 export default class Mongodb {
+  static operationIconMap: Record<string, string> = {
+    [TicketTypes.MONGODB_ENABLE]: 'qiyongzhong',
+    [TicketTypes.MONGODB_DISABLE]: 'jinyongzhong',
+    [TicketTypes.MONGODB_DESTROY]: 'shanchuzhong',
+  };
+
+  static operationTextMap: Record<string, string> = {
+    [TicketTypes.MONGODB_ENABLE]: t('启用任务进行中'),
+    [TicketTypes.MONGODB_DISABLE]: t('禁用任务进行中'),
+    [TicketTypes.MONGODB_DESTROY]: t('删除任务进行中'),
+  };
+
   bk_biz_id: number;
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_access_port: number;
+  cluster_alias: string;
   cluster_name: string;
   cluster_type: string;
   create_at: string;
@@ -57,7 +98,7 @@ export default class Mongodb {
     phase: string;
     port: number;
     spec_config: string;
-    status: string;
+    status: 'running' | 'unavailable';
   }[];
   operations: {
     cluster_id: number;
@@ -83,6 +124,8 @@ export default class Mongodb {
     this.bk_cloud_name = payload.bk_cloud_name;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.cluster_access_port = payload.cluster_access_port;
+    this.cluster_alias = payload.cluster_alias;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
@@ -105,5 +148,74 @@ export default class Mongodb {
 
   get isOnline() {
     return this.phase === 'online';
+  }
+
+  get isNewRow() {
+    if (!this.create_at) {
+      return '';
+    }
+    const createDay = dayjs(this.create_at);
+    const today = dayjs();
+    return today.diff(createDay, 'hour') <= 24;
+  }
+
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.operations[0];
+    if (operation.status !== 'RUNNING') {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  get operationStatusText() {
+    return Mongodb.operationTextMap[this.operationRunningStatus];
+  }
+
+  get operationStatusIcon() {
+    return Mongodb.operationIconMap[this.operationRunningStatus];
+  }
+
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.operations[0];
+    if (operation.status !== 'RUNNING') {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
+
+  get operationDisabled() {
+    if (!this.isClusterNormal) {
+      return true;
+    }
+
+    if (this.operationRunningStatus) {
+      return true;
+    }
+    return false;
+  }
+
+  get isClusterNormal() {
+    return this.status === 'normal';
+  }
+
+  get masterDomainDisplayName() {
+    return `${this.master_domain}:${this.cluster_access_port}`;
+  }
+
+  get isOfflineOperationRunning() {
+    return ([
+      TicketTypes.MONGODB_ENABLE,
+      TicketTypes.MONGODB_DESTROY,
+    ] as string[]).includes(this.operationRunningStatus);
+  }
+
+  get isDisabled() {
+    return !this.isOnline && !this.isOfflineOperationRunning;
   }
 }

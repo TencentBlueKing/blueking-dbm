@@ -205,6 +205,18 @@
           name: redisType[TicketTypes.REDIS_CLUSTER_APPLY].name,
           icon: 'redis',
         },
+        {
+          routeName: 'MongoDBSharedClusterApply',
+          id: bigDataType[TicketTypes.MONGODB_SHARD_APPLY].id,
+          name: bigDataType[TicketTypes.MONGODB_SHARD_APPLY].name,
+          icon: 'redis',
+        },
+        {
+          routeName: 'MongoDBReplicaSetApply',
+          id: bigDataType[TicketTypes.MONGODB_REPLICASET_APPLY].id,
+          name: bigDataType[TicketTypes.MONGODB_REPLICASET_APPLY].name,
+          icon: 'redis',
+        },
       ],
     },
     {
