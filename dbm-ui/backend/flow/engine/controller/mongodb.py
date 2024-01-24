@@ -9,8 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_backup import MongoBackupFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_exec_script import MongoExecScriptFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoFakeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_restart import MongoRestartInstanceFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_user import MongoUserFlow
 from backend.flow.engine.controller.base import BaseController
 
@@ -65,3 +67,19 @@ class MongoDBController(BaseController):
 
         flow = MongoUserFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_cluster_user_flow(False)
+
+    def exec_script(self):
+        """
+        执行脚本
+        """
+
+        flow = MongoExecScriptFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_exec_script_flow()
+
+    def instance_restart(self):
+        """
+        实例重启
+        """
+
+        flow = MongoRestartInstanceFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_instance_restart_flow()

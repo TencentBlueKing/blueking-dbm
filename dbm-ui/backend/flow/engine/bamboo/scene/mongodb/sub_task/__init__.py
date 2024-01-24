@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from .deinstall import deinstall
 from .exec_script import exec_script
+from .instance_restart import instance_restart
 from .mongos_install import mongos_install
 from .replicaset_install import replicaset_install
 from .user import user
