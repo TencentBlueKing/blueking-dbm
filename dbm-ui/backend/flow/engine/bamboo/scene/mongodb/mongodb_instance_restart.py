@@ -12,13 +12,13 @@ import logging.config
 from typing import Dict, Optional
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.engine.bamboo.scene.mongodb.sub_task import exec_script
+from backend.flow.engine.bamboo.scene.mongodb.sub_task import instance_restart
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")
 
 
-class MongoExecScriptFlow(object):
+class MongoRestartInstanceFlow(object):
     """MongoDB执行脚本flow"""
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -33,19 +33,22 @@ class MongoExecScriptFlow(object):
         self.get_kwargs = ActKwargs()
         self.get_kwargs.payload = data
 
-    def multi_cluster_exec_script_flow(self):
+    def multi_instance_restart_flow(self):
         """
-        multi cluster execute script流程
+        multi instance restart流程
         """
 
         # 创建流程实例
         pipeline = Builder(root_id=self.root_id, data=self.data)
 
+        # 计算获取执行主机
+        self.get_kwargs.get_restart_info_by_hosts()
+
         # 执行脚本——并行
         sub_pipelines = []
-        for cluster_id in self.data["cluster_ids"]:
-            sub_pipline = exec_script(
-                root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, cluster_id=cluster_id
+        for instances_info in self.get_kwargs.payload["instances_by_ip"]:
+            sub_pipline = instance_restart(
+                root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, instances_info=instances_info
             )
             sub_pipelines.append(sub_pipline)
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
