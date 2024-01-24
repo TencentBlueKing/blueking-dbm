@@ -387,6 +387,10 @@ func (task *MakeSyncTask) createSyncConfigFile() {
 	if task.RowData.KeyBlackRegex != "" && !task.IsMatchAny(task.RowData.KeyBlackRegex) {
 		keyBlackRegex = task.RowData.KeyBlackRegex
 	}
+	var fullsyncDelKeysFirst string = "no"
+	if task.IsKeysExistsRewrite() {
+		fullsyncDelKeysFirst = "yes"
+	}
 	sampleData := string(sampleBytes)
 	sampleData = strings.ReplaceAll(sampleData, "{{SYNC_PORT}}", strconv.Itoa(task.RowData.SyncerPort))
 	// sampleData = strings.ReplaceAll(sampleData, "{{SYNC_LOG_FILE}}", task.SyncLogFile)
@@ -398,6 +402,7 @@ func (task *MakeSyncTask) createSyncConfigFile() {
 	sampleData = strings.ReplaceAll(sampleData, "{{DST_PASSWORD}}", task.GetDstRedisPasswd())
 	sampleData = strings.ReplaceAll(sampleData, "{{KEY_WHITE_REGEX}}", keyWhiteRegex)
 	sampleData = strings.ReplaceAll(sampleData, "{{KEY_BLACK_REGEX}}", keyBlackRegex)
+	sampleData = strings.ReplaceAll(sampleData, "{{FULLSYNC_DEL_KEYS_FIRST}}", fullsyncDelKeysFirst)
 	// 如果目标集群是域名,则redis-sync需要先解析域名中的 proxy ips,而后连接;该行为通过 proxy-enable 参数控制
 	proxyEnable := "no"
 	if util.IsDbDNS(task.GetDstRedisAddr()) {
