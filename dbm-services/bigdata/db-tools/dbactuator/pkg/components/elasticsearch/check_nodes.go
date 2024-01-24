@@ -55,7 +55,7 @@ func (d *CheckEsNodeComp) CheckEsNodes() (err error) {
 
 	e := esutil.EsInsObject{
 		Host:     d.Params.Host,
-		HttpPort: d.Params.HTTPPort,
+		HTTPPort: d.Params.HTTPPort,
 		UserName: d.Params.Username,
 		Password: d.Params.Password,
 	}

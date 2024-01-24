@@ -53,7 +53,7 @@ func (d *CheckEsHealthComp) CheckEsHealth() (err error) {
 		iPort, _ := strconv.Atoi(port)
 		e := esutil.EsInsObject{
 			Host:     localIP,
-			HttpPort: iPort,
+			HTTPPort: iPort,
 			UserName: username,
 			Password: password,
 		}

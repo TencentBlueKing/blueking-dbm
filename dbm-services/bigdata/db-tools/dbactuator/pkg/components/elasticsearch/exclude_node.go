@@ -47,7 +47,7 @@ func (d *ExcludeEsNodeComp) Init() (err error) {
 func (d *ExcludeEsNodeComp) ExcludeEsNode() (err error) {
 	e := esutil.EsInsObject{
 		Host:     d.Params.Host,
-		HttpPort: d.Params.HTTPPort,
+		HTTPPort: d.Params.HTTPPort,
 		UserName: d.Params.Username,
 		Password: d.Params.Password,
 	}
@@ -77,7 +77,7 @@ func (d *ExcludeEsNodeComp) ExcludeEsNode() (err error) {
 func (d *ExcludeEsNodeComp) CheckShards() (err error) {
 	e := esutil.EsInsObject{
 		Host:     d.Params.Host,
-		HttpPort: d.Params.HTTPPort,
+		HTTPPort: d.Params.HTTPPort,
 		UserName: d.Params.Username,
 		Password: d.Params.Password,
 	}

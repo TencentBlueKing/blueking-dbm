@@ -18,21 +18,21 @@ import (
 // EsInsObject TODO
 type EsInsObject struct {
 	Host     string `json:"host"`      // es实例ip
-	HttpPort int    `json:"http_port"` // es实例http端口
+	HTTPPort int    `json:"http_port"` // es实例http端口
 	UserName string `json:"username"`  // es实例用户名
 	Password string `json:"password"`  // es实例密码
 }
 
 // Node TODO
 type Node struct {
-	Ip          string `json:"ip"`
+	IP          string `json:"ip"`
 	InstanceNum int    `json:"instance_num"`
 }
 
 // Allocation TODO
 type Allocation struct {
 	Node   string `json:"node"`
-	Ip     string `json:"ip"`
+	IP     string `json:"ip"`
 	Shards string `json:"shards"`
 }
 
@@ -40,7 +40,7 @@ type Allocation struct {
 func (o EsInsObject) Conn() (*elasticsearch.Client, error) {
 	return elasticsearch.NewClient(
 		elasticsearch.Config{
-			Addresses: []string{fmt.Sprintf("http://%s:%d", o.Host, o.HttpPort)},
+			Addresses: []string{fmt.Sprintf("http://%s:%d", o.Host, o.HTTPPort)},
 			Username:  o.UserName,
 			Password:  o.Password,
 		})
@@ -136,20 +136,24 @@ func (o EsInsObject) CheckEmpty(nodes []string) error {
 
 // CheckEmptyOnetime TODO
 func (o EsInsObject) CheckEmptyOnetime(nodes []string) (sum int, ok bool, err error) {
-	esclient, err := o.Conn()
 
 	ok = false
+	sum = 0
+
+	esclient, err := o.Conn()
 	if err != nil {
 		logger.Error("es连接失败", err)
-		return sum, ok, err
+		return -1, ok, err
 	}
 
 	req := esapi.CatAllocationRequest{
-		NodeID: nodes, // 过滤特定的的nodes
+		NodeID: nodes,  // 过滤特定的的nodes
+		Format: "json", // 输出格式为json
 	}
 	res, err := req.Do(context.Background(), esclient)
 	if err != nil {
-		logger.Info("cat api失败", err)
+		logger.Error("cat api失败", err)
+		return -1, ok, err
 	}
 
 	defer res.Body.Close()
@@ -158,11 +162,11 @@ func (o EsInsObject) CheckEmptyOnetime(nodes []string) (sum int, ok bool, err er
 	logger.Info("allocations", resBody)
 
 	var allocations []Allocation
-	if err := json.NewDecoder(res.Body).Decode(&allocations); err != nil {
+	if err = json.NewDecoder(res.Body).Decode(&allocations); err != nil {
 		logger.Error("Error parsing the response body: %s", err)
+		return -1, ok, err
 	}
 
-	sum = 0
 	for _, allocation := range allocations {
 		logger.Info("allocations: %v", allocation)
 		if allocation.Node == "UNASSIGNED" {
@@ -191,7 +195,7 @@ func (o EsInsObject) CheckNodes(nodes []Node) (ok bool, err error) {
 	// ip列表
 	ips := make([]string, 0)
 	for _, n := range nodes {
-		ips = append(ips, n.Ip)
+		ips = append(ips, n.IP)
 		totalIns += n.InstanceNum
 	}
 	logger.Info("扩容的机器列表 %v", ips)
