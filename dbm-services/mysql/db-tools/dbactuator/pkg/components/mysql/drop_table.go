@@ -1,6 +1,13 @@
 package mysql
 
 import (
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -8,12 +15,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil/identifiertrans"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"io/fs"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -184,6 +185,36 @@ func (d *DropTableComp) preCheckInnodb(innerName string, info *tableInfo) (err e
 	)
 	if err != nil {
 		return err
+	}
+
+	/*
+		有两种情况会返回多行
+		1. like 'db/t%', 数据库中有 t, t1, t2 表, 这种情况是不对的
+		2. like 'db/t%', t 是个分区表
+
+		每一行都满足分区表模式就是对的, 否则重新查, 不用 like
+	*/
+	if len(res) > 1 {
+		isPartitionTablePattern := regexp.MustCompile(fmt.Sprintf(`%s/%s#[pP]#.*`, info.tableSchema, info.tableName))
+		for _, row := range res {
+			// 发现非分区表模式, 改成等值查询
+			if !isPartitionTablePattern.MatchString(row.Name) {
+				err := d.db.Select(
+					&res,
+					fmt.Sprintf(
+						`SELECT TABLE_ID, NAME, SPACE, SPACE_TYPE FROM INFORMATION_SCHEMA.%s WHERE NAME = ?`,
+						d.innodbSysTables),
+					fmt.Sprintf("%s/%s",
+						identifiertrans.TablenameToFilename(info.tableSchema),
+						identifiertrans.TablenameToFilename(info.tableName)),
+				)
+				if err != nil {
+					return err
+				}
+				break
+			}
+		}
+
 	}
 
 	for _, row := range res {
