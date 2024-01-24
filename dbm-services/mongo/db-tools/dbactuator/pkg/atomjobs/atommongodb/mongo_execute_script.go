@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -27,6 +27,7 @@ type ExecScriptConfParams struct {
 	Script        string `json:"script" validate:"required"`
 	Type          string `json:"type" validate:"required"` // cluster：执行脚本为传入的mongos replicaset：执行脚本为指定节点
 	Secondary     bool   `json:"secondary"`                // 复制集是否在secondary节点执行script
+	ScriptName    string `json:"scriptName"`               // 脚本名称
 	AdminUsername string `json:"adminUsername" validate:"required"`
 	AdminPassword string `json:"adminPassword" validate:"required"`
 	RepoUrl       string `json:"repoUrl"`      // 制品库url
@@ -50,6 +51,7 @@ type ExecScript struct {
 	ScriptDir      string
 	ScriptContent  string
 	ScriptFilePath string
+	ResultFileName string
 	ResultFilePath string
 	ConfParams     *ExecScriptConfParams
 }
@@ -119,7 +121,9 @@ func (e *ExecScript) Init(runtime *jobruntime.JobGenericRuntime) error {
 	e.Mongo = filepath.Join(e.BinDir, "mongodb", "bin", "mongo")
 	e.ScriptDir = filepath.Join("/", "home", e.OsUser, e.runtime.UID)
 	e.ScriptFilePath = filepath.Join(e.ScriptDir, strings.Join([]string{"script", "js"}, "."))
-	e.ResultFilePath = filepath.Join(e.ScriptDir, strings.Join([]string{"result", "txt"}, "."))
+	e.ResultFileName = strings.Join([]string{
+		e.ConfParams.ScriptName, strings.Join([]string{"result", "txt"}, ".")}, "_")
+	e.ResultFilePath = filepath.Join(e.ScriptDir, e.ResultFileName)
 	e.runtime.Logger.Info("init successfully")
 
 	// 复制集获取执行脚本的IP端口 默认为primary节点 可以指定secondary节点
@@ -278,11 +282,12 @@ func (e *ExecScript) uploadFile() error {
 	}
 	e.runtime.Logger.Info("start to upload result file")
 	// url
-	url := strings.Join([]string{e.ConfParams.RepoUrl, e.ConfParams.RepoProject, e.ConfParams.RepoRepo,
-		e.ConfParams.RepoPath, e.runtime.UID, "result.txt"}, "/")
+	url := strings.Join([]string{e.ConfParams.RepoUrl, "generic", e.ConfParams.RepoProject, e.ConfParams.RepoRepo,
+		e.ConfParams.RepoPath, e.ResultFileName}, "/")
+	e.runtime.Logger.Info("upload file url: %s", url)
 
 	// 生成请求body内容
-	file, err := ioutil.ReadFile(e.ResultFilePath)
+	file, err := os.ReadFile(e.ResultFilePath)
 	if err != nil {
 		e.runtime.Logger.Error("get result file content fail, error:%s", err)
 		return fmt.Errorf("get result file content fail, error:%s", err)
@@ -309,14 +314,14 @@ func (e *ExecScript) uploadFile() error {
 
 	// 执行请求
 	response, err := http.DefaultClient.Do(request)
-	defer response.Body.Close()
 	if err != nil {
 		e.runtime.Logger.Error("request server for uploading result file fail, error:%s", err)
 		return fmt.Errorf("request server for uploading result file fail, error:%s", err)
 	}
+	defer response.Body.Close()
 
 	// 解析响应
-	resp, err := ioutil.ReadAll(response.Body)
+	resp, err := io.ReadAll(response.Body)
 	if err != nil {
 		e.runtime.Logger.Error("read data from response fail, error:%s", err)
 		return fmt.Errorf("read data from response fail, error:%s", err)

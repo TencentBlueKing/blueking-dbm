@@ -14,16 +14,17 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.flow.consts import MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
-def exec_script(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, cluster_id: int) -> SubBuilder:
+def instance_restart(
+    root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, instances_info: dict
+) -> SubBuilder:
     """
-    单个cluster执行脚本流程
+    单个instance 重启流程
     """
 
     # 获取变量
@@ -32,25 +33,26 @@ def exec_script(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs
     # 创建子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
-    # 获取信息
-    admin_user = MongoDBManagerUser.DbaUser.value
-    sub_get_kwargs.get_cluster_info_user(cluster_id=cluster_id, admin_user=admin_user)
-
     # 介质下发
+    sub_get_kwargs.get_file_path()
+    sub_get_kwargs.payload["db_version"] = instances_info["instances"][0]["db_version"]
+    sub_get_kwargs.payload["hosts"] = instances_info["hosts"]
     kwargs = sub_get_kwargs.get_send_media_kwargs()
     sub_pipeline.add_act(
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
     )
 
-    # 执行脚本
-    for script in sub_get_kwargs.payload["script_contents"]:
-        kwargs = sub_get_kwargs.get_exec_script_kwargs(cluster_id=cluster_id, admin_user=admin_user, script=script)
+    # 重启实例
+    for instance in instances_info["instances"]:
+        kwargs = sub_get_kwargs.get_instance_restart_kwargs(host=instances_info["hosts"][0], instance=instance)
         sub_pipeline.add_act(
-            act_name=_("MongoDB-cluster_id:{}-执行脚本".format(str(cluster_id))),
+            act_name=_(
+                "MongoDB-cluster_id:{}-ip:{}-port:{}--重启实例".format(
+                    instance["cluster_id"], instances_info["hosts"][0]["ip"], str(instance["port"])
+                )
+            ),
             act_component_code=ExecuteDBActuatorJobComponent.code,
             kwargs=kwargs,
         )
 
-    return sub_pipeline.build_sub_process(
-        sub_name=_("MongoDB--执行脚本--cluster_id:{}-{}".format(str(cluster_id), sub_get_kwargs.payload["hosts"][0]["ip"]))
-    )
+    return sub_pipeline.build_sub_process(sub_name=_("MongoDB--重启实例--ip:{}".format(instances_info["hosts"][0]["ip"])))
