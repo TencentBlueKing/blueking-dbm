@@ -46,7 +46,6 @@ def get_sqlserver_config(
     @param immutable_domain: 集群主域名
     @param db_version: 数据库版本
     @param db_module_id: db模块id
-    @param cluster_type: 集群类型
     """
     data = DBConfigApi.get_or_generate_instance_config(
         {
