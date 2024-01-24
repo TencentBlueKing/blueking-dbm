@@ -173,7 +173,7 @@ class NameSpaceEnum(str, StructuredEnum):
     Influxdb = EnumField("influxdb", _("Influxdb"))
     TenDBCluster = EnumField("tendbcluster", _("tendbcluster"))
     Riak = EnumField("riak", _("Riak"))
-    MongoDB = EnumField("mongodb", _("mongodb"))
+    MongoDBCommon = EnumField("mongodbcommon", _("mongodbcommon"))
 
 
 class ConfigTypeEnum(str, StructuredEnum):
@@ -430,6 +430,7 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     RemoveNs = EnumField("mongodb_remove_ns", _("mongodb_remove_ns"))
     Restore = EnumField("mongodb_restore", _("mongodb_restore"))
     PitRestore = EnumField("mongodb_pit_restore", _("mongodb_pit_restore"))
+    MongoRestart = EnumField("mongo_restart", _("mongo_restart"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -1268,8 +1269,6 @@ class MongoDBUserPrivileges(str, StructuredEnum):
     DbAdminAnyDatabaseRole = EnumField("dbAdminAnyDatabase", _("dbAdminAnyDatabase"))
     ReadWriteAnyDatabaseRole = EnumField("readWriteAnyDatabase", _("readWriteAnyDatabase"))
     ClusterAdminRole = EnumField("clusterAdmin", _("clusterAdmin"))
-    MongoDBInitSet = EnumField("mongodb_init_set", _("mongodb_init_set"))
-    MongoDBExtraUserCreate = EnumField("mongodb_extra_user_create", _("mongodb_extra_user_create"))
 
 
 class MongoDBTask(str, StructuredEnum):
