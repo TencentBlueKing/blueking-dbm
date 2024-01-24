@@ -93,3 +93,23 @@ class MongoDBDeleteUserView(FlowTestView):
         root_id = uuid.uuid1().hex
         MongoDBController(root_id=root_id, ticket_data=request.data).delete_user()
         return Response({"root_id": root_id})
+
+
+class MongoDBExecScriptView(FlowTestView):
+    """mongodb执行脚本"""
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).exec_script()
+        return Response({"root_id": root_id})
+
+
+class MongoDBInstanceRestartView(FlowTestView):
+    """mongodb重启实例"""
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).instance_restart()
+        return Response({"root_id": root_id})

@@ -26,7 +26,7 @@ type RestartConfParams struct {
 	Auth                     bool   `json:"auth"`                             // true->auth false->noauth
 	CacheSizeGB              int    `json:"cacheSizeGB"`                      // 可选，重启mongod的参数
 	MongoSConfDbOld          string `json:"mongoSConfDbOld"`                  // 可选，ip:port
-	MongoSConfDbNew          string `json:"MongoSConfDbNew"`                  // 可选，ip:port
+	MongoSConfDbNew          string `json:"mongoSConfDbNew"`                  // 可选，ip:port
 	AdminUsername            string `json:"adminUsername"`
 	AdminPassword            string `json:"adminPassword"`
 }

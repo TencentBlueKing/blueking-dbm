@@ -12,6 +12,8 @@ import os
 from dataclasses import dataclass
 from typing import Any, List, Optional
 
+from django.conf import settings
+
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
@@ -23,6 +25,7 @@ from backend.db_meta.models import Cluster
 from backend.db_meta.models.machine import Machine
 from backend.db_package.models import Package
 from backend.flow.consts import (
+    ConfigFileEnum,
     ConfigTypeEnum,
     MediumEnum,
     MongoDBActuatorActionEnum,
@@ -31,9 +34,10 @@ from backend.flow.consts import (
     MongoDBManagerUser,
     MongoDBTask,
     MongoDBUserPrivileges,
+    NameSpaceEnum,
 )
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.utils.mongodb import mongodb_password, mongodb_script_template
+from backend.flow.utils.mongodb import mongodb_script_template
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 
 
@@ -56,6 +60,12 @@ class ActKwargs:
         self.db_main_version: str = None
         # 备份所在目录
         self.file_path: str = None
+        # db配置
+        self.db_conf: dict = None
+        # db的os配置
+        self.os_conf: dict = None
+        # 安装包以及文件
+        self.pkg: Package = None
         # 管理员用户
         self.manager_users: list = [
             MongoDBManagerUser.DbaUser.value,
@@ -75,7 +85,7 @@ class ActKwargs:
                 "conf_file": conf_file,
                 "conf_type": conf_type,
                 "namespace": namespace,
-                "format": FormatType.MAP,
+                "format": FormatType.MAP.value,
             }
         )
         return data["content"]
@@ -88,13 +98,31 @@ class ActKwargs:
         # db大版本
         self.db_main_version = str(self.payload["db_version"].split(".")[0])
 
+    def get_mongodb_conf(self):
+        """获取db配置信息"""
+
+        self.db_conf = self.__get_define_config(
+            namespace=self.cluster_type,
+            conf_type=ConfigTypeEnum.DBConf.value,
+            conf_file="{}-{}".format("Mongodb", self.db_main_version),
+        )
+
+    def get_mongodb_os_conf(self):
+        """获取os配置信息"""
+
+        self.os_conf = self.__get_define_config(
+            namespace=NameSpaceEnum.MongoDBCommon.value,
+            conf_type=ConfigTypeEnum.Config.value,
+            conf_file=ConfigFileEnum.OsConf.value,
+        )
+
     def get_file_path(self):
         """安装文件存放路径"""
 
         self.file_path = self.__get_define_config(
-            namespace=self.cluster_type,
-            conf_type=ConfigTypeEnum.DBConf,
-            conf_file="{}-{}".format("Mongodb", self.db_main_version),
+            namespace=NameSpaceEnum.MongoDBCommon.value,
+            conf_type=ConfigTypeEnum.Config.value,
+            conf_file=ConfigFileEnum.OsConf.value,
         )["file_path"]
 
     def get_backup_dir(self):
@@ -106,6 +134,22 @@ class ActKwargs:
             conf_file="{}-{}".format("Mongodb", self.db_main_version),
         )
         return resp["backup_dir"]
+
+    def get_pkg(self):
+        self.pkg = Package.get_latest_package(
+            version=self.payload["db_version"], pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
+        )
+
+    @staticmethod
+    def get_password(ip: str, port: int, bk_cloud_id: int, username: str) -> str:
+        # 获取密码
+
+        result = MongoDBPassword().get_password_from_db(ip=ip, port=port, bk_cloud_id=bk_cloud_id, username=username)
+        if result["password"] is None:
+            raise ValueError(
+                "get password of user:{} from password service fail, error:{}".format(username, result["info"])
+            )
+        return result["password"]
 
     def get_send_media_kwargs(self) -> dict:
         """介质下发的kwargs"""
@@ -124,21 +168,11 @@ class ActKwargs:
         """os初始化的kwargs"""
 
         # 获取os配置
-        result = self.__get_define_config(
-            namespace=self.cluster_type,
-            conf_type=ConfigTypeEnum.DBConf,
-            conf_file="{}-{}".format("Mongodb", self.db_main_version),
-        )
+        self.get_mongodb_os_conf()
         # 获取os密码
-        password_info = mongodb_password.MongoDBPassword().get_password_from_db(
-            "0.0.0.0", 0, self.payload["hosts"][0]["bk_cloud_id"], result["user"]
-        )
-        if password_info["password"] is None:
-            raise ValueError(
-                "get password of os user:{} from password service fail, error:{}".format(
-                    result["user"], password_info["info"]
-                )
-            )
+        user = self.os_conf["user"]
+        password = self.get_password("0.0.0.0", 0, self.payload["hosts"][0]["bk_cloud_id"], user)
+
         return {
             "init_flag": True,
             "set_trans_data_dataclass": CommonContext.__name__,
@@ -149,13 +183,13 @@ class ActKwargs:
             "db_act_template": {
                 "action": MongoDBActuatorActionEnum.OsInit,
                 "file_path": self.file_path,
-                "user": result["user"],
-                "group": result["group"],
-                "data_dir": result["install_dir"],
-                "backup_dir": result["backup_dir"],
+                "user": user,
+                "group": self.os_conf["group"],
+                "data_dir": self.os_conf["install_dir"],
+                "backup_dir": self.os_conf["backup_dir"],
                 "payload": {
-                    "user": result["user"],
-                    "password": password_info["password"],
+                    "user": user,
+                    "password": password,
                 },
             },
         }
@@ -164,17 +198,11 @@ class ActKwargs:
         """复制集mongod安装的kwargs"""
 
         # 获取安装包名以及MD5值
-        pkg = Package.get_latest_package(
-            version=self.payload["db_version"], pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
-        )
+        self.get_pkg()
         # 获取配置
-        db_config = self.__get_define_config(
-            namespace=self.cluster_type,
-            conf_type=ConfigTypeEnum.DBConf,
-            conf_file="{}-{}".format("Mongodb", self.db_main_version),
-        )
-        db_config["cacheSizeGB"] = self.replicaset_info["cacheSizeGB"]
-        db_config["oplogSizeMB"] = self.replicaset_info["oplogSizeMB"]
+        self.get_mongodb_conf()
+        self.db_conf["cacheSizeGB"] = self.replicaset_info["cacheSizeGB"]
+        self.db_conf["oplogSizeMB"] = self.replicaset_info["oplogSizeMB"]
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -185,8 +213,8 @@ class ActKwargs:
                 "file_path": self.file_path,
                 "payload": {
                     "mediapkg": {
-                        "pkg": os.path.basename(pkg.path),
-                        "pkg_md5": pkg.md5,
+                        "pkg": os.path.basename(self.pkg.path),
+                        "pkg_md5": self.pkg.md5,
                     },
                     "ip": node["ip"],
                     "port": self.replicaset_info["port"],
@@ -197,7 +225,7 @@ class ActKwargs:
                     "keyFile": self.payload["key_file"],
                     "auth": True,
                     "clusterRole": cluster_role,
-                    "dbConfig": db_config,
+                    "dbConfig": self.db_conf,
                 },
             },
         }
@@ -205,15 +233,10 @@ class ActKwargs:
     def get_install_mongos_kwargs(self, node: dict) -> dict:
         """mongos安装"""
 
-        pkg = Package.get_latest_package(
-            version=self.payload["db_version"], pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
-        )
+        # 获取安装包名以及MD5值
+        self.get_pkg()
         # 获取配置
-        db_config = self.__get_define_config(
-            namespace=self.cluster_type,
-            conf_type=ConfigTypeEnum.DBConf,
-            conf_file="{}-{}".format("Mongodb", self.db_main_version),
-        )
+        self.get_mongodb_conf()
         # 获取configDB配置
         config_db = [
             "{}:{}".format(node["ip"], str(self.payload["config"]["port"])) for node in self.payload["config"]["nodes"]
@@ -228,8 +251,8 @@ class ActKwargs:
                 "file_path": self.file_path,
                 "payload": {
                     "mediapkg": {
-                        "pkg": os.path.basename(pkg.path),
-                        "pkg_md5": pkg.md5,
+                        "pkg": os.path.basename(self.pkg.path),
+                        "pkg_md5": self.pkg.md5,
                     },
                     "ip": node["ip"],
                     "port": self.mongos_info["port"],
@@ -240,7 +263,7 @@ class ActKwargs:
                     "keyFile": self.payload["key_file"],
                     "auth": True,
                     "configDB": config_db,
-                    "dbConfig": db_config,
+                    "dbConfig": self.db_conf,
                 },
             },
         }
@@ -561,17 +584,13 @@ class ActKwargs:
             instance_type = MongoDBInstanceType.MongoS
 
         # 获取用户密码
-        result = MongoDBPassword().get_password_from_db(
-            ip=exec_ip, port=port, bk_cloud_id=bk_cloud_id, username=admin_user
-        )
-        if result["info"] is not None:
-            raise ValueError("get password of {} fail, error:{}".format(admin_user, result["info"]))
+        password = self.get_password(ip=exec_ip, port=port, bk_cloud_id=bk_cloud_id, username=admin_user)
         self.payload["db_version"] = cluster_info.major_version
         self.payload["hosts"] = [{"ip": exec_ip, "bk_cloud_id": bk_cloud_id}]
         self.payload["bk_cloud_id"] = bk_cloud_id
         self.payload["port"] = port
         self.payload["instance_type"] = instance_type
-        self.payload["admin_password"] = result["password"]
+        self.payload["admin_password"] = password
         # db大版本
         self.db_main_version = str(self.payload["db_version"].split(".")[0])
         # 获取file_path
@@ -625,9 +644,14 @@ class ActKwargs:
                 },
             }
 
-    def get_exec_script_kwargs(self, cluster_id: int, admin_user: str) -> dict:
+    def get_exec_script_kwargs(self, cluster_id: int, admin_user: str, script: dict) -> dict:
         """执行脚本"""
 
+        db_type = ""
+        if self.cluster_type == ClusterType.MongoReplicaSet.value:
+            db_type = "replicaset"
+        elif self.cluster_type == ClusterType.MongoShardedCluster.value:
+            db_type = "cluster"
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -639,16 +663,17 @@ class ActKwargs:
                 "payload": {
                     "ip": self.payload["hosts"][0]["ip"],
                     "port": self.payload["port"],
-                    "script": self.payload["script"],
-                    "Type": self.payload["instance_type"],
+                    "script": script["script_content"],
+                    "scriptName": script["script_name"],
+                    "Type": db_type,
                     "secondary": False,
                     "adminUsername": admin_user,
                     "adminPassword": self.payload["admin_password"],
-                    "repoUrl": self.payload["fileserver"]["url"],
-                    "repoUsername": self.payload["fileserver"]["username"],
-                    "repoToken": self.payload["fileserver"]["password"],
-                    "repoProject": self.payload["fileserver"]["project"],
-                    "repoRepo": self.payload["fileserver"]["bucket"],
+                    "repoUrl": settings.BKREPO_ENDPOINT_URL,
+                    "repoUsername": settings.BKREPO_USERNAME,
+                    "repoToken": settings.BKREPO_PASSWORD,
+                    "repoProject": settings.BKREPO_PROJECT,
+                    "repoRepo": settings.BKREPO_BUCKET,
                     "repoPath": self.payload["rules"][self.payload["cluster_ids"].index(cluster_id)]["path"],
                 },
             },
@@ -725,6 +750,7 @@ class ActKwargs:
 
     def get_mongo_deinstall_kwargs(self, node_info: dict, instance_type: str, nodes_info) -> dict:
         """卸载mongo"""
+
         nodes = []
         for node in nodes_info:
             nodes.append(node["ip"])
@@ -828,6 +854,74 @@ class ActKwargs:
                 }
                 replace_replicaset.append(cluster_info)
         # for ip_info in self.payload["cluster"]:
+
+    def get_restart_info_by_hosts(self):
+        """获取所有需要restart的主机信息"""
+
+        # 去重主机
+        hosts = []
+        for info in self.payload["infos"]:
+            host_info = {"ip": info["ip"], "bk_cloud_id": info["bk_cloud_id"]}
+            if host_info not in hosts:
+                hosts.append(host_info)
+
+        # 获取主机对应的实例
+        instances_by_ip = []
+        for host in hosts:
+            instances = []
+            for info in self.payload["infos"]:
+                if info["ip"] == host["ip"] and info["bk_cloud_id"] == host["bk_cloud_id"]:
+                    instances.append(
+                        {
+                            "cluster_id": info["cluster_id"],
+                            "db_version": info["db_version"],
+                            "port": info["port"],
+                            "role": info["role"],
+                        }
+                    )
+            instances_by_ip.append(
+                {
+                    "hosts": [{"ip": host["ip"], "bk_cloud_id": host["bk_cloud_id"]}],
+                    "instances": instances,
+                }
+            )
+        self.payload["instances_by_ip"] = instances_by_ip
+
+    def get_instance_restart_kwargs(self, host: dict, instance: dict) -> dict:
+        """重启实例的kwargs"""
+
+        # 获取信息
+        ip = host["ip"]
+        bk_cloud_id = host["bk_cloud_id"]
+        port = instance["port"]
+        username = MongoDBManagerUser.DbaUser.value
+        if instance["role"] == MongoDBInstanceType.MongoS:
+            instance_type = MongoDBInstanceType.MongoS.value
+        else:
+            instance_type = MongoDBInstanceType.MongoD.value
+        # 获取密码
+        password = self.get_password(ip=ip, port=port, bk_cloud_id=bk_cloud_id, username=username)
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": bk_cloud_id,
+            "exec_ip": ip,
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.MongoRestart,
+                "file_path": self.file_path,
+                "payload": {
+                    "ip": ip,
+                    "port": instance["port"],
+                    "instanceType": instance_type,
+                    "auth": True,
+                    "cacheSizeGB": 0,
+                    "mongoSConfDbOld": "",
+                    "mongoSConfDbNew": "",
+                    "adminUsername": username,
+                    "adminPassword": password,
+                },
+            },
+        }
 
 
 @dataclass()
