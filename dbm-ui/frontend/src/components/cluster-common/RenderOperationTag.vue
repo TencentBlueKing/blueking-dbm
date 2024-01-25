@@ -102,11 +102,11 @@
   .render-cluster-opration-tag {
     display: inline-block;
     margin-right: 4px;
-    font-size: 0;
+    height: 16px !important;
 
     .tag-placeholder {
       display: inline-block;
-      font-size: 0;
+      height: 16px !important;
     }
 
     .db-svg-icon {

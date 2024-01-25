@@ -228,6 +228,14 @@ export default class TendbCluster {
     return this.phase === 'online';
   }
 
+  get isOffline() {
+    return this.phase === 'offline';
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find(item => item.ticket_type === TendbCluster.TENDBCLUSTER_ENABLE));
+  }
+
   get masterDomainDisplayName() {
     const port = this.spider_master[0]?.port;
     const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;

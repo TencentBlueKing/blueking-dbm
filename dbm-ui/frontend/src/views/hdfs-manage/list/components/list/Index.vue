@@ -446,7 +446,7 @@
           ];
           if (!checkClusterOnline(data)) {
             return [
-            <auth-button
+              <auth-button
                 text
                 theme="primary"
                 action-id="hdfs_enable_disable"
@@ -472,11 +472,10 @@
             ];
           }
           return [
-            <OperationBtnStatusTips
-              data={data}
-              class="mr8">
+            <OperationBtnStatusTips data={data}>
               <auth-button
                 text
+                class="mr8"
                 theme="primary"
                 action-id="hdfs_scale_up"
                 permission={data.permission.hdfs_scale_up}
@@ -486,11 +485,10 @@
                 { t('扩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              class="mr8">
+            <OperationBtnStatusTips data={data}>
               <auth-button
                 text
+                class="mr8"
                 theme="primary"
                 action-id="hdfs_shrink"
                 permission={data.permission.hdfs_shrink}
@@ -500,11 +498,10 @@
                 { t('缩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              class="mr8">
+            <OperationBtnStatusTips data={data}>
               <auth-button
                 text
+                class="mr8"
                 theme="primary"
                 action-id="hdfs_enable_disable"
                 permission={data.permission.hdfs_enable_disable}

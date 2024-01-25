@@ -207,6 +207,10 @@ export default class Es {
     return false;
   }
 
+  get isStarting() {
+    return Boolean(this.operations.find(item => item.ticket_type === Es.ES_ENABLE));
+  }
+
   get isOnline() {
     return this.phase === 'online';
   }

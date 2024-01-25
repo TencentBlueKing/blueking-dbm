@@ -236,9 +236,10 @@
                   { t('添加节点') }
                 </bk-button>
               </OperationBtnStatusTips>
-              <OperationBtnStatusTips data={data} class="ml-16">
+              <OperationBtnStatusTips data={data}>
                 <bk-button
                   text
+                  class="ml-16"
                   theme="primary"
                   disabled={data.operationDisabled}
                   onClick={() => handleDeleteNodes(data)}
@@ -246,9 +247,10 @@
                   { t('删除节点') }
                 </bk-button>
               </OperationBtnStatusTips>
-              <OperationBtnStatusTips data={data} class="ml-16">
+              <OperationBtnStatusTips data={data}>
                 <bk-button
                   text
+                  class="ml-16"
                   theme="primary"
                   disabled={data.operationDisabled}
                   onclick={() => handlDisabled(data)}
@@ -262,15 +264,16 @@
                 <bk-button
                   text
                   theme="primary"
-                  disabled={data.operationDisabled}
+                  disabled={data.isStarting}
                   onclick={() => handleEnabled(data)}
                 >
                   { t('启用') }
                 </bk-button>
               </OperationBtnStatusTips>
-              <OperationBtnStatusTips data={data} class="ml-16">
+              <OperationBtnStatusTips data={data}>
                 <bk-button
                   text
+                  class="ml-16"
                   theme="primary"
                   disabled={data.operationDisabled}
                   onclick={() => handleDelete(data)}

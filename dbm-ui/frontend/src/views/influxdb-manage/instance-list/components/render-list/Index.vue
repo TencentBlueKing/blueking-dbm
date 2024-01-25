@@ -279,7 +279,7 @@
                 data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
               }
               <db-icon
-                v-show={!data.isOnline}
+                v-show={!data.isOnline && !data.isRebooting}
                 class="cluster-tag"
                 svg
                 type="yijinyong"
@@ -373,28 +373,34 @@
           }
           return (
             <>
-              <auth-button
-                class="mr-8"
-                loading={tableDataActionLoadingMap.value[data?.id]}
-                text
-                theme="primary"
-                action-id="influxdb_enable_disable"
-                permission={data.permission.influxdb_enable_disable}
-                resource={data.id}
-                onClick={() => handleEnable(data)}>
-                { t('启用') }
-              </auth-button>
-              <auth-button
-                class="mr-8"
-                loading={tableDataActionLoadingMap.value[data?.id]}
-                text
-                theme="primary"
-                action-id="influxdb_destroy"
-                permission={data.permission.influxdb_destroy}
-                resource={data.id}
-                onClick={() => handlDelete(data)}>
-                { t('删除') }
-              </auth-button>
+              <OperationBtnStatusTips data={data}>
+                <auth-button
+                  class="mr-8"
+                  loading={tableDataActionLoadingMap.value[data?.id]}
+                  text
+                  disabled={data.isStarting}
+                  theme="primary"
+                  action-id="influxdb_enable_disable"
+                  permission={data.permission.influxdb_enable_disable}
+                  resource={data.id}
+                  onClick={() => handleEnable(data)}>
+                  { t('启用') }
+                </auth-button>
+              </OperationBtnStatusTips>
+              <OperationBtnStatusTips data={data}>
+                <auth-button
+                  class="mr-8"
+                  loading={tableDataActionLoadingMap.value[data?.id]}
+                  text
+                  disabled={data.operationDisabled}
+                  theme="primary"
+                  action-id="influxdb_destroy"
+                  permission={data.permission.influxdb_destroy}
+                  resource={data.id}
+                  onClick={() => handlDelete(data)}>
+                  { t('删除') }
+                </auth-button>
+              </OperationBtnStatusTips>
             </>
           );
         },

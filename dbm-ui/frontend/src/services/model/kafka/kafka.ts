@@ -207,6 +207,14 @@ export default class Kafka {
     return this.phase === 'online';
   }
 
+  get isOffline() {
+    return this.phase === 'offline';
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find(item => item.ticket_type === Kafka.KAFKA_ENABLE));
+  }
+
   get domainDisplayName() {
     const port = this.broker[0]?.port;
     const displayName = port ? `${this.domain}:${port}` : this.domain;

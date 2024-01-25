@@ -282,7 +282,7 @@
                   data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
                 }
                 {
-                  data.phase === 'offline' && (
+                  data.isOffline && !data.isStarting && (
                     <db-icon
                       svg
                       type="yijinyong"
@@ -398,6 +398,7 @@
                   class="mr-8"
                   action-id="mysql_enable_disable"
                   permission={data.permission.mysql_enable_disable}
+                  disabled={data.operationDisabled}
                   resource={data.id}
                   onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
                   { t('禁用') }
@@ -412,6 +413,7 @@
                     class="mr-8"
                     action-id="mysql_enable_disable"
                     permission={data.permission.mysql_enable_disable}
+                    disabled={data.isStarting}
                     resource={data.id}
                     onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
                     { t('启用') }
@@ -424,6 +426,7 @@
                     class="mr-8"
                     action-id="mysql_destroy"
                     permission={data.permission.mysql_destroy}
+                    disabled={data.operationDisabled}
                     resource={data.id}
                     onClick={() => handleDeleteCluster(data)}>
                     { t('删除') }
@@ -505,7 +508,7 @@
 
   // 设置行样式
   const setRowClass = (row: TendbsingleModel) => {
-    const classList = [row.phase === 'offline' ? 'is-offline' : ''];
+    const classList = [row.isOffline ? 'is-offline' : ''];
     const newClass = isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '';
     classList.push(newClass);
     if (row.id === clusterId.value) {

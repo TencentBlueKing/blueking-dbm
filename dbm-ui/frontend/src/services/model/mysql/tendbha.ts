@@ -122,6 +122,14 @@ export default class Tendbha {
     return this.phase === 'online';
   }
 
+  get isOffline() {
+    return this.phase === 'offline';
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find(item => item.ticket_type === Tendbha.MYSQL_HA_ENABLE));
+  }
+
   get runningOperation() {
     const operateTicketTypes = Object.keys(Tendbha.operationTextMap);
     return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');

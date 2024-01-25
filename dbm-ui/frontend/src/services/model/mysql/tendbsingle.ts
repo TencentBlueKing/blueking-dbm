@@ -120,6 +120,14 @@ export default class Tendbsingle {
     return this.phase === 'online';
   }
 
+  get isOffline() {
+    return this.phase === 'offline';
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find(item => item.ticket_type === Tendbsingle.MYSQL_SINGLE_ENABLE));
+  }
+
   get masterDomainDisplayName() {
     const port = this.masters[0]?.port;
     const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;

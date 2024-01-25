@@ -200,10 +200,9 @@
     };
   });
   const isCN = computed(() => locale.value === 'zh-cn');
-  const checkClusterOnline = (data: EsModel) => data.phase === 'online';
 
   const getRowClass = (data: EsModel) => {
-    const classList = [checkClusterOnline(data) ? '' : 'is-offline'];
+    const classList = [data.isOnline ? '' : 'is-offline'];
     const newClass = isRecentDays(data.create_at, 24 * 3) ? 'is-new-row' : '';
     classList.push(newClass);
     if (data.id === clusterId.value) {
@@ -287,7 +286,7 @@
             data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
           }
           <db-icon
-            v-show={!checkClusterOnline(data)}
+            v-show={!data.isOnline && !data.isStarting}
             svg
             type="yijinyong"
             style="width: 38px; height: 16px; margin-left: 4px;" />
@@ -409,9 +408,9 @@
               { t('获取访问方式') }
             </auth-button>,
           ];
-          if (!checkClusterOnline(data)) {
+          if (!data.isOnline) {
             return [
-            <auth-button
+              <auth-button
                 text
                 theme="primary"
                 action-id="es_enable_disable"
@@ -436,11 +435,11 @@
             ];
           }
           return [
-            <OperationBtnStatusTips data={data}
-              class="mr8">
+            <OperationBtnStatusTips data={data}>
               <auth-button
                 text
                 theme="primary"
+                class="mr8"
                 action-id="es_scale_up"
                 permission={data.permission.es_scale_up}
                 resource={data.id}
@@ -449,12 +448,11 @@
                 { t('扩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              class="mr8">
+            <OperationBtnStatusTips data={data}>
               <auth-button
                 text
                 theme="primary"
+                class="mr8"
                 action-id="es_shrink"
                 permission={data.permission.es_shrink}
                 resource={data.id}
@@ -463,11 +461,10 @@
                 { t('缩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              class="mr8">
+            <OperationBtnStatusTips data={data}>
               <auth-button
                 text
+                class="mr8"
                 theme="primary"
                 action-id="es_enable_disable"
                 permission={data.permission.es_enable_disable}
