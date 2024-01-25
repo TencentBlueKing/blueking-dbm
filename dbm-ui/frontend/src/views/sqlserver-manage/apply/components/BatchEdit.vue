@@ -23,7 +23,11 @@
             <span class="batch-edit-domain-underline" />.{{ appName }}.db
           </p>
           <BkInput
+<<<<<<< HEAD
             v-model="stateValue"
+=======
+            v-model="stateValue.value"
+>>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
             class="batch-edit-domain-input"
             :placeholder="t('以小写英文字母开头_且只能包含小写英文字母_数字_连字符_多个换行分隔')"
             :rows="textareaRows"
@@ -31,7 +35,11 @@
           <p
             v-if="validateShow"
             class="batch-edit-domain-error">
+<<<<<<< HEAD
             {{ validateErrorTxt }}
+=======
+            {{ validateErrorTxt.value }}
+>>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
           </p>
         </div>
         <div class="batch-edit-footer">
@@ -94,7 +102,10 @@
   const stateOffsetWidth = ref(0);
   const validateShow = ref(false);
   const validateErrorTxt = ref('');
+<<<<<<< HEAD
   const validateResult = ref();
+=======
+>>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
 
   const { body } = document;
 
@@ -106,7 +117,11 @@
     return rows > 10 ? 10 : rows;
   });
 
+<<<<<<< HEAD
   watch(stateShow, (show) => {
+=======
+  watch(() => stateShow, (show) => {
+>>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
     nextTick(() => {
       if (moduleNameRef.value) {
         stateOffsetWidth.value = moduleNameRef.value.offsetWidth + 22;
@@ -125,7 +140,11 @@
     const newDomains = stateValue.value.split('\n');
     // 最大长度
     const maxlengthRes = newDomains.every(key => key.length <= 63);
+<<<<<<< HEAD
     if (!maxlengthRes) {
+=======
+    if (maxlengthRes === false) {
+>>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
       validateErrorTxt.value = errorTxt.maxlength;
       validateShow.value = true;
       return false;
@@ -145,19 +164,28 @@
     return !hasRepeat;
   };
 
+<<<<<<< HEAD
   watch(stateValue, (value) => {
     if (value) {
       validateResult.value = handleValidate();
     }
+=======
+  watch(() => stateValue.value, (value) => {
+    value && handleValidate();
+>>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   });
 
   /**
    * confirm batch edit
    */
   const handleConfirm = () => {
+<<<<<<< HEAD
     if (!validateResult.value) {
       return;
     }
+=======
+    handleValidate();
+>>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
     if (validateShow.value) {
       return;
     }

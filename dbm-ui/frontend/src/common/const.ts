@@ -56,8 +56,13 @@ export enum ClusterTypes {
   MONGO_REPLICA_SET = 'MongoReplicaSet',
   MONGO_SHARED_CLUSTER = 'MongoShardedCluster',
   RIAK = 'riak',
+<<<<<<< HEAD
   SQLSERVER_HA = 'sqlserver_ha',
   SQLSERVER_SINGLE = 'sqlserver_single',
+=======
+  SQLSERVER_HA = 'sqlserverha',
+  SQLSERVER_SINGLE = 'sqlserversingle',
+>>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
 }
 
 // 机器类型

@@ -32,19 +32,30 @@ export function getSingleClusterList(params: {
   limit?: number,
   offset?: number,
 }) {
+<<<<<<< HEAD
   return http.get<ListBase<SqlServerClusterListModel[]>>(`${path}/`, params)
     .then(data => ({
       ...data,
       results: data.results.map(item => new SqlServerClusterListModel(item)),
     }));
+=======
+  return http.get<ListBase<SqlServerClusterListModel[]>>(`${path}/`, params).then(data => ({
+    ...data,
+    results: data.results.map(item => new SqlServerClusterListModel(item)),
+  }));
+>>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
 }
 
 /**
  * 获取集群详情
  */
 export function getSingleClusterDetail(params: { cluster_id: number }) {
+<<<<<<< HEAD
   return http.get<SqlserverClusterDetailModel>(`${path}/${params.cluster_id}/`)
     .then(data => new SqlserverClusterDetailModel(data));
+=======
+  return http.get<SqlserverClusterDetailModel>(`${path}/${params.cluster_id}/`).then(data => new SqlserverClusterDetailModel(data));
+>>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
 }
 
 /**

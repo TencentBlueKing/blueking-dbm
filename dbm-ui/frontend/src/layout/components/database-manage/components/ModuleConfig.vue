@@ -126,7 +126,11 @@
         icon: 'mysql',
       },
       {
+<<<<<<< HEAD
         name: 'SqlServer',
+=======
+        name: 'SQLserver',
+>>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
         value: 'sqlserver',
         icon: 'mysql',
       },
