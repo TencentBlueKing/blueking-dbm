@@ -47,6 +47,11 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
     authorize_meta: AuthorizeMeta = MySQLAuthorizeMeta
     excel_authorize_meta: ExcelAuthorizeMeta = MySQLExcelAuthorizeMeta
 
+    def pre_check_rules(self, authorize: AuthorizeMeta, task_index: int = None, **kwargs) -> Dict:
+        pre_check_data = super().pre_check_rules(authorize, task_index, **kwargs)
+        pre_check_data["authorize_data"] = authorize.to_dict()
+        return pre_check_data
+
     def _pre_check_rules(self, authorize: AuthorizeMeta, **kwargs) -> Tuple[bool, str, Dict]:
         """前置校验的具体实现逻辑"""
         account_rules = [{"bk_biz_id": self.bk_biz_id, "dbname": dbname} for dbname in authorize.access_dbs]

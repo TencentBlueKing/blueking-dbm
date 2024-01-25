@@ -57,8 +57,8 @@ class MongoDBExcelAuthorizeMeta(BaseExcelAuthorizeMeta):
     def serialize_excel_data(cls, data: Dict) -> Dict:
         """将数据解析为权限excel data类的数据"""
         return {
-            AuthorizeExcelHeader.USER: data["user"],
+            AuthorizeExcelHeader.USER: data["username"],
             AuthorizeExcelHeader.TARGET_INSTANCES: EXCEL_DIVIDER.join(data["target_instances"]),
-            AuthorizeExcelHeader.ACCESS_DBS: EXCEL_DIVIDER.join([rule["db"] for rule in data["rule_sets"]]),
+            AuthorizeExcelHeader.ACCESS_DBS: EXCEL_DIVIDER.join(data["access_dbs"]),
             AuthorizeExcelHeader.ERROR: data["message"],
         }

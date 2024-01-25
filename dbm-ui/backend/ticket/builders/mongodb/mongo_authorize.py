@@ -21,13 +21,9 @@ from backend.ticket.builders.mongodb.base import BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class MongoDBAuthorizeDataSerializer(PreCheckAuthorizeRulesSerializer):
-    pass
-
-
 class MongoDBAuthorizeRulesSerializer(serializers.Serializer):
     authorize_uid = serializers.CharField(help_text=_("授权数据缓存uid"))
-    authorize_data = MongoDBAuthorizeDataSerializer(help_text=_("授权数据信息"), required=False)
+    authorize_data = serializers.ListSerializer(help_text=_("授权数据列表"), child=serializers.JSONField(), required=False)
 
     def validate(self, attrs):
         return attrs
@@ -41,7 +37,7 @@ class MongodbExcelAuthorizeRulesSerializer(serializers.Serializer):
     authorize_uid = serializers.CharField(help_text=_("授权数据缓存uid"))
     excel_url = serializers.CharField(help_text=_("用户输入的excel下载文件地址"))
     authorize_data_list = serializers.ListSerializer(
-        help_text=_("授权数据信息列表"), child=MongoDBExcelAuthorizeDataSerializer()
+        help_text=_("授权数据信息列表"), child=serializers.JSONField(), required=False
     )
 
 
