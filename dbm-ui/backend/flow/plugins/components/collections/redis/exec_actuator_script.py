@@ -118,6 +118,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
             "script_content": str(base64.b64encode(template.render(db_act_template).encode("utf-8")), "utf-8"),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
+            "timeout": 86400,
         }
 
         self.log_info(
