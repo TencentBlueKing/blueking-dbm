@@ -19,7 +19,7 @@ from backend.components.dbconfig import constants as dbconf_const
 from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule, Spec
-from backend.flow.engine.controller.mysql import MySQLController
+from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
@@ -27,12 +27,12 @@ from backend.ticket.constants import FlowRetryType, TicketType
 logger = logging.getLogger("root")
 
 
-class TenDBHAMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
+class TenDBClusterMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
     json_content = serializers.JSONField(help_text=_("元数据json内容"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     db_module_id = serializers.IntegerField(help_text=_("模块ID"))
-    proxy_spec_id = serializers.IntegerField(help_text=_("代理层规格ID"))
-    storage_spec_id = serializers.IntegerField(help_text=_("存储层规格ID"))
+    spider_spec_id = serializers.IntegerField(help_text=_("spider规格ID"))
+    remote_spec_id = serializers.IntegerField(help_text=_("remote规格ID"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -42,11 +42,6 @@ class TenDBHAMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
         self.__storage_spec = None
 
     def validate(self, attrs):
-        # 这里需要先做些检查
-        # 1. db module, proxy spec, storage spec 存在
-        # 2. 集群版本和字符集满足 db module 的要求
-        # 3. 集群机器配置符合 spec
-
         self.__validate_bk_biz_id_exists(attrs=attrs)
         self.__validate_db_module_id_exists(attrs=attrs)
         self.__validate_proxy_spec_id_exists(attrs=attrs)
@@ -66,8 +61,6 @@ class TenDBHAMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
         if not DBModule.objects.filter(db_module_id=db_module_id, bk_biz_id=bk_biz_id).exists():
             raise serializers.ValidationError(_("db_module_id: {} 不存在".format(db_module_id)))
 
-        # 省得多次请求 api 浪费时间
-        # 配置系统的特性: db module 没有配置时, 会返回一个默认的. version = 5.7, charset=utf8
         db_config = DBConfigApi.query_conf_item(
             {
                 "bk_biz_id": str(bk_biz_id),
@@ -75,7 +68,7 @@ class TenDBHAMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
                 "level_value": str(db_module_id),
                 "conf_file": dbconf_const.DEPLOY_FILE_NAME,
                 "conf_type": dbconf_const.ConfType.DEPLOY,
-                "namespace": ClusterType.TenDBHA,
+                "namespace": ClusterType.TenDBCluster,
                 "format": dbconf_const.FormatType.MAP,
             }
         )["content"]
@@ -84,22 +77,26 @@ class TenDBHAMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
         self.__module_charset = db_config.get("charset")
 
     def __validate_proxy_spec_id_exists(self, attrs):
-        proxy_spec_id = attrs["proxy_spec_id"]
-        if not Spec.objects.filter(spec_id=proxy_spec_id).exists():
-            raise serializers.ValidationError(_("proxy_spec_id: {} 不存在".format(proxy_spec_id)))
+        spider_spec_id = attrs["spider_spec_id"]
+        if not Spec.objects.filter(spec_id=spider_spec_id).exists():
+            raise serializers.ValidationError(_("spider_spec_id: {} 不存在".format(spider_spec_id)))
 
-        self.__proxy_spec = Spec.objects.get(spec_id=proxy_spec_id)  # .get_spec_info()
+        self.__proxy_spec = Spec.objects.get(spec_id=spider_spec_id)  # .get_spec_info()
 
     def __validate_storage_spec_id_exists(self, attrs):
-        storage_spec_id = attrs["storage_spec_id"]
-        if not Spec.objects.filter(spec_id=storage_spec_id).exists():
-            raise serializers.ValidationError(_("storage_spec_id: {} 不存在".format(storage_spec_id)))
+        remote_spec_id = attrs["remote_spec_id"]
+        if not Spec.objects.filter(spec_id=remote_spec_id).exists():
+            raise serializers.ValidationError(_("remote_spec_id: {} 不存在".format(remote_spec_id)))
 
-        self.__storage_spec = Spec.objects.get(spec_id=storage_spec_id)
+        self.__storage_spec = Spec.objects.get(spec_id=remote_spec_id)
 
     def __validate_file_content(self, attrs):
         # file_content = json.load(attrs["file"]).decode("utf-8")
-        for cluster_json in attrs["json_content"]:
+        logger.info("json_content: {}".format(attrs["json_content"]))
+        # tendbcluster 导出的文件数据结构和 tendbha 不太一样
+        # 这里是一个字典, tendbha 的是个 list
+        for cluster_json in attrs["json_content"].values():
+            logger.info("cluster_json: {}".format(cluster_json))
             self.__validate_cluster_json(cluster_json=cluster_json, attrs=attrs)
 
     def __validate_cluster_json(self, cluster_json, attrs):
@@ -107,18 +104,6 @@ class TenDBHAMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
         self.__validate_proxy_spec_match(cluster_json=cluster_json)
         self.__validate_storage_spec_match(cluster_json=cluster_json)
         self.__validate_cluster_disaster(cluster_json=cluster_json)
-        self.__validate_cluster_id(cluster_json=cluster_json)
-
-    @staticmethod
-    def __validate_cluster_id(cluster_json):
-        """
-        集群迁移 tendbha 集群 id 范围验证
-        在 dbm 中 scr tendbha 的 id 空间是 [100w, 200w)
-        详情可参考 <<scr/gcs 集群 id 预订>>
-        """
-        cluster_id = cluster_json["cluster_id"]
-        if not 1000000 <= cluster_id < 2000000:
-            raise serializers.ValidationError(_("{} 超出 scr mysql segment 范围".format(cluster_id)))
 
     @staticmethod
     def __validate_cluster_disaster(cluster_json):
@@ -134,7 +119,6 @@ class TenDBHAMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
 
         # db module 的 version = MySQL-5.7
         # 上报的版本是 5.7.20
-        # 这两个字符串有点难搞啊
         trans_cluster_version = "MySQL-{}".format(".".join(cluster_version.split(".")[:2]))
         logger.info("{} trans to {}".format(cluster_version, trans_cluster_version))
 
@@ -154,7 +138,15 @@ class TenDBHAMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
             )
 
     def __validate_proxy_spec_match(self, cluster_json):
-        proxies = cluster_json["proxies"]
+        """
+        只检查 spider master 的规格
+        """
+        proxies = (
+            cluster_json["master_spiders"]
+            # + cluster_json["slave_spiders"]
+            # + cluster_json["master_tmp_spiders"]
+            # + cluster_json["slave_tmp_spiders"]
+        )
         for ip in list(set([ele["ip"] for ele in proxies])):
             mj = list(filter(lambda e: e["IP"] == ip, cluster_json["machines"]))
             if not mj:
@@ -163,9 +155,13 @@ class TenDBHAMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
             self.__validate_machine_spec_match(machine_json=mj[0], spec_obj=self.__proxy_spec)
 
     def __validate_storage_spec_match(self, cluster_json):
-        slaves = cluster_json["slaves"]
-        ips = list(set([ele["ip"] for ele in slaves]))
-        ips.append(cluster_json["master"]["ip"])
+        remotes = []
+        for s in cluster_json["sets"]:
+            remotes.append(s["master"])
+            remotes.append(s["slave"])
+
+        ips = list(set([ele["ip"] for ele in remotes]))
+
         for ip in ips:
             mj = list(filter(lambda e: e["IP"] == ip, cluster_json["machines"]))
             if not mj:
@@ -230,15 +226,13 @@ class TenDBHAMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
                 )
 
 
-class TenDBHAMetadataImportFlowParamBuilder(builders.FlowParamBuilder):
-    """MySQL HA 备份执行单据参数"""
-
-    controller = MySQLController.mysql_ha_metadata_import_scene
+class TenDBClusterMetadataImportFlowParamBuilder(builders.FlowParamBuilder):
+    controller = SpiderController.metadata_import_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_HA_METADATA_IMPORT)
-class TenDBHAMetadataImportFlowBuilder(BaseMySQLTicketFlowBuilder):
-    serializer = TenDBHAMetadataImportDetailSerializer
-    inner_flow_builder = TenDBHAMetadataImportFlowParamBuilder
-    inner_flow_name = _("MySQL高可用元数据导入")
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_METADATA_IMPORT)
+class TenDBClusterMetadataImportFlowBuilder(BaseMySQLTicketFlowBuilder):
+    serializer = TenDBClusterMetadataImportDetailSerializer
+    inner_flow_builder = TenDBClusterMetadataImportFlowParamBuilder
+    inner_flow_name = _("TenDB Cluster 元数据导入")
     retry_type = FlowRetryType.MANUAL_RETRY

@@ -52,7 +52,7 @@ class BizChoiceField(CustomChoiceField):
         super().__init__(choices, **kwargs)
 
 
-class MySQLHaMetadataImportSerializer(serializers.Serializer):
+class TenDBHAMetadataImportSerializer(serializers.Serializer):
     file = serializers.FileField(help_text=_("元数据json文件"))
     bk_biz_id = BizChoiceField(help_text=_("业务"))
     db_module_id = MetadataImportDBModuleField(help_text=_("模块ID"), cluster_type=ClusterType.TenDBHA.value)
@@ -67,7 +67,7 @@ class MySQLHaMetadataImportSerializer(serializers.Serializer):
         return attrs
 
 
-class MySQLHaStandardSerializer(serializers.Serializer):
+class TenDBHAStandardizeSerializer(serializers.Serializer):
     bk_biz_id = BizChoiceField(help_text=_("业务ID"))
     file = serializers.FileField(help_text=_("域名列表文件"))
 
@@ -75,13 +75,36 @@ class MySQLHaStandardSerializer(serializers.Serializer):
         return attrs
 
 
-class TendbClusterStandardSerializer(serializers.Serializer):
+class TenDBClusterStandardizeSerializer(serializers.Serializer):
+    bk_biz_id = BizChoiceField(help_text=_("业务ID"))
+    file = serializers.FileField(help_text=_("域名列表文件"))
+
+    def validate(self, attrs):
+        return attrs
+
+
+class TenDBClusterMetadataImportSerializer(serializers.Serializer):
+    file = serializers.FileField(help_text=_("元数据json文件"))
+    bk_biz_id = BizChoiceField(help_text=_("业务"))
+    db_module_id = MetadataImportDBModuleField(help_text=_("模块ID"), cluster_type=ClusterType.TenDBCluster.value)
+    spider_spec_id = MetadataImportSpecField(
+        help_text=_("Spider规格ID"), cluster_type=ClusterType.TenDBCluster.value, machine_type=MachineType.SPIDER.value
+    )
+    remote_spec_id = MetadataImportSpecField(
+        help_text=_("Remote规格ID"), cluster_type=ClusterType.TenDBCluster.value, machine_type=MachineType.REMOTE.value
+    )
+
+    def validate(self, attrs):
+        return attrs
+
+
+class TenDBClusterAppendCTLSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), default=0)
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("待标准的集群列表"))
     use_stream = serializers.BooleanField(help_text=_("是否使用mydumper流式备份迁移"), required=False, default=False)
     drop_before = serializers.BooleanField(help_text=_("导入到tdbctl前,是否先删除"), required=False, default=False)
-    threads = serializers.IntegerField(help_text=_("业务ID"), required=False, default=0)
+    threads = serializers.IntegerField(help_text=_("mydumper 并发"), required=False, default=0)
     use_mydumper = serializers.BooleanField(help_text=_("是否使用mydumper,myloader迁移"), required=False, default=True)
 
     def validate(self, attrs):

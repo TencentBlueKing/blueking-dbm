@@ -329,7 +329,7 @@ func (m *MyDumper) buildCommand() (command string) {
 	} else {
 		command += fmt.Sprintf(" -o %s ", m.DumpDir)
 	}
-	command += " --events --routines --triggers --verbose "
+	command += " --events --routines --triggers --verbose=2 "
 	command += " --trx-consistency-only --long-query-retry-interval=10 "
 	if m.Options.NoData {
 		command += " --no-data "
@@ -340,6 +340,7 @@ func (m *MyDumper) buildCommand() (command string) {
 	if cmutil.IsNotEmpty(m.Options.Regex) {
 		command += fmt.Sprintf(` -x '%s'`, m.Options.Regex)
 	}
+	//logger.Info("mydumper command: %s", command)
 	return
 }
 
@@ -367,7 +368,7 @@ type MyLoaderOptions struct {
 func (m *MyLoader) buildCommand() (command string) {
 	command = fmt.Sprintf(`%s -h %s -P %d -u %s -p '%s' --set-names=%s `, m.BinPath, m.Host,
 		m.Port, m.User, m.Pwd, m.Charset)
-	command += " --enable-binlog --verbose "
+	command += " --enable-binlog --verbose=2 "
 	if m.Options.UseStream {
 		command += " --stream "
 	} else {

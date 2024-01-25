@@ -40,7 +40,7 @@ from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 logger = logging.getLogger("flow")
 
 
-class MigrateClusterFromGcsFlow(object):
+class AppendDeployCTLFlow(object):
     """
     migrate cluster from gcs
     1、追加部署中控
@@ -67,7 +67,7 @@ class MigrateClusterFromGcsFlow(object):
         self.cluster_type = ClusterType.TenDBCluster
         self.tdbctl_pass = ""
         self.tdbctl_user = ""
-        self.chartset = ""
+        self.charset = ""
         self.threads = 0
         self.bk_cloud_id = 0
         # stream mydumper & myloader 流式备份导入，否则退化成mysqldump方式
@@ -125,7 +125,8 @@ class MigrateClusterFromGcsFlow(object):
             )
         return info
 
-    def __get_tdbctl_port_by_spider_port(self, port: int):
+    @staticmethod
+    def __get_tdbctl_port_by_spider_port(port: int):
         return port + 1000
 
     def __get_origin_spider_sys_account(self, spider_ip: str, port: int):
@@ -180,13 +181,13 @@ class MigrateClusterFromGcsFlow(object):
             job_timeout=LONG_JOB_TIMEOUT,
         )
 
-        for cluser_id in cluster_ids:
+        for cluster_id in cluster_ids:
             try:
                 cluster_obj = Cluster.objects.get(
-                    pk=cluser_id, bk_biz_id=self.data["bk_biz_id"], cluster_type=self.cluster_type
+                    pk=cluster_id, bk_biz_id=self.data["bk_biz_id"], cluster_type=self.cluster_type
                 )
             except ObjectDoesNotExist:
-                raise ClusterNotExistException(cluster_type=self.cluster_type, cluster_id=cluser_id)
+                raise ClusterNotExistException(cluster_type=self.cluster_type, cluster_id=cluster_id)
 
             master_spiders = cluster_obj.proxyinstance_set.filter(
                 tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value
@@ -217,12 +218,12 @@ class MigrateClusterFromGcsFlow(object):
             self.tdbctl_user, self.tdbctl_pass = self.__get_origin_spider_sys_account(
                 leader_spider.machine.ip, leader_spider.port
             )
-            self.chartset = self.__get_spider_charset(leader_spider.machine.ip, leader_spider.port)
+            self.charset = self.__get_spider_charset(leader_spider.machine.ip, leader_spider.port)
             # 本地调试参数
             # self.tdbctl_user="xxx"
             # self.tdbctl_pass="xxx"
-            # self.chartset = "utf8"
-            # 给spider节点下发tdbctl介质
+            # self.charset = "utf8"
+            # 给spider节点下发tdbctl介质, 还一起下发了actor
             migrate_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             migrate_pipeline.add_act(
                 act_name=_("下发tdbCtl介质包"),
@@ -236,14 +237,29 @@ class MigrateClusterFromGcsFlow(object):
                 ),
             )
 
-            acts_list = []
+            acts_list = [
+                {
+                    "act_name": _("安装临时备份程序"),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(
+                        ExecActuatorKwargs(
+                            cluster={},  # 这个理论上应该没有用
+                            exec_ip=master_spider_ips,
+                            bk_cloud_id=int(self.data["bk_cloud_id"]),
+                            cluster_type=ClusterType.TenDBCluster.value,
+                            get_mysql_payload_func=MysqlActPayload.get_install_tmp_db_backup_payload.__name__,
+                        )
+                    ),
+                },
+            ]
+
             # 这里中控实例安装和spider机器复用的
             for ctl_ip in master_spider_ips:
                 exec_act_kwargs.exec_ip = ctl_ip
                 exec_act_kwargs.cluster = {
                     "immutable_domain": cluster_obj.immute_domain,
                     "ctl_port": ctl_port,
-                    "ctl_charset": self.chartset,
+                    "ctl_charset": self.charset,
                 }
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_append_deploy_ctl_payload.__name__
                 acts_list.append(

@@ -21,7 +21,8 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS
+from backend.db_package.models import Package
+from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS, MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder, SubProcess
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
@@ -32,8 +33,8 @@ from backend.flow.plugins.components.collections.mysql.cluster_standardize_trans
     ClusterStandardizeTransModuleComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.tendbha_instantiate_config import (
-    TendbHAInstantiateConfigComponent,
+from backend.flow.plugins.components.collections.mysql.mysql_cluster_instantiate_config import (
+    MySQLClusterInstantiateConfigComponent,
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
@@ -64,7 +65,9 @@ class MySQLHAStandardizeFlow(object):
         cluster_ids = self.data["infos"]["cluster_ids"]
         bk_biz_id = self.data["bk_biz_id"]
 
-        cluster_objects = Cluster.objects.filter(pk__in=cluster_ids, bk_biz_id=bk_biz_id)
+        cluster_objects = Cluster.objects.filter(
+            pk__in=cluster_ids, bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBHA.value
+        )
         if cluster_objects.count() != len(cluster_ids):
             raise DBMetaException(
                 message="input {} clusters, but found {}".format(len(cluster_ids), cluster_objects.count())
@@ -193,7 +196,7 @@ class MySQLHAStandardizeFlow(object):
                 root_id=self.root_id, data={**copy.deepcopy(self.data), "cluster_id": cluster.id}
             )
             cluster_pipe.add_act(
-                act_name=_("实例化配置"), act_component_code=TendbHAInstantiateConfigComponent.code, kwargs={}
+                act_name=_("实例化配置"), act_component_code=MySQLClusterInstantiateConfigComponent.code, kwargs={}
             )
             pipes.append(cluster_pipe.build_sub_process(sub_name=_("实例化 {} 配置".format(cluster.immute_domain))))
 
@@ -213,7 +216,7 @@ class MySQLHAStandardizeFlow(object):
                     ExecActuatorKwargs(
                         exec_ip=ip,
                         run_as_system_user=DBA_ROOT_USER,
-                        get_mysql_payload_func=MysqlActPayload.get_adopt_tendbha_proxy_payload.__name__,
+                        get_mysql_payload_func=MysqlActPayload.get_standardize_tendbha_proxy_payload.__name__,
                         bk_cloud_id=bk_cloud_id,
                     )
                 ),
@@ -259,21 +262,27 @@ class MySQLHAStandardizeFlow(object):
 
             # 同一机器所有集群的 major version 应该是一样的
             major_version = Cluster.objects.filter(storageinstance__machine__ip=ip).first().major_version
+            mysql_pkg = Package.get_latest_package(version=major_version, pkg_type=MediumEnum.MySQL)
+
             ports = StorageInstance.objects.filter(machine__ip=ip, bk_biz_id=self.data["bk_biz_id"]).values_list(
                 "port", flat=True
             )
 
             single_pipe.add_act(
-                act_name=_("系统库表权限标准化"),
+                act_name=_("实例标准化"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
                         exec_ip=ip,
                         run_as_system_user=DBA_ROOT_USER,
                         cluster_type=ClusterType.TenDBHA.value,
-                        cluster={"ports": list(ports), "version": major_version},
+                        cluster={
+                            "ports": list(ports),
+                            "mysql_pkg": {"name": mysql_pkg.name, "md5": mysql_pkg.md5},
+                            "version": major_version,
+                        },
                         bk_cloud_id=bk_cloud_id,
-                        get_mysql_payload_func=MysqlActPayload.get_adopt_tendbha_storage_payload.__name__,
+                        get_mysql_payload_func=MysqlActPayload.get_standardize_mysql_instance_payload.__name__,
                     )
                 ),
             )

@@ -20,9 +20,9 @@ from backend.utils.basic import generate_root_id
 logger = logging.getLogger("root")
 
 
-class MigrateSpiderClusterFromGcsView(FlowTestView):
+class AppendDeployCTLView(FlowTestView):
     """
-    api: /apis/v1/flow/scene/migrate_spider_cluster_from_gcs
+    api: /apis/v1/flow/scene/append_deploy_ctl
     """
 
     @staticmethod
@@ -33,5 +33,5 @@ class MigrateSpiderClusterFromGcsView(FlowTestView):
         logger.info("define root_id: {}".format(root_id))
 
         c = SpiderController(root_id=root_id, ticket_data=request.data)
-        c.migrate_spider_cluster_from_gcs()
+        c.append_deploy_ctl_scene()
         return Response({"root_id": root_id})

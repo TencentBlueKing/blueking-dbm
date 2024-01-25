@@ -73,3 +73,4 @@ class TenDBClusterSpiderRole(str, StructuredEnum):
     SPIDER_SLAVE = EnumField("spider_slave", _("spider_slave"))
     # 运维节点
     SPIDER_MNT = EnumField("spider_mnt", _("spider_mnt"))
+    SPIDER_SLAVE_MNT = EnumField("spider_slave_mnt", _("spider_slave_mnt"))
