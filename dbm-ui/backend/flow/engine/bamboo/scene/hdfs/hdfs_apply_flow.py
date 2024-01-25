@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.flow.consts import DnsOpType, HdfsRoleEnum, ManagerOpType, ManagerServiceType
+from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import sa_init_machine_sub_flow
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.hdfs.exceptions import ManualMachineCountException
@@ -75,6 +76,19 @@ class HdfsApplyFlow(object):
         # 获取机器资源 当前trans_data仅用于转模块
         hdfs_pipeline.add_act(
             act_name=_("获取机器信息"), act_component_code=GetHdfsResourceComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 增加机器初始化子流程
+        hdfs_pipeline.add_sub_pipeline(
+            sub_flow=sa_init_machine_sub_flow(
+                uid=self.data_with_role["uid"],
+                root_id=self.root_id,
+                bk_cloud_id=self.data_with_role["bk_cloud_id"],
+                bk_biz_id=self.data["bk_biz_id"],
+                init_ips=self.data_with_role["all_ips"],
+                idle_check_ips=self.data_with_role["all_ips"],
+                set_dns_ips=[],
+            )
         )
 
         # 修改act对应执行的IP

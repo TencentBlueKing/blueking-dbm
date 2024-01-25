@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.flow.consts import DnsOpType, MediumFileTypeEnum, PulsarRoleEnum
+from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import sa_init_machine_sub_flow
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.pulsar.pulsar_base_flow import PulsarBaseFlow, get_all_node_ips_in_ticket
@@ -66,6 +67,20 @@ class PulsarScaleUpFlow(PulsarBaseFlow):
         # 获取机器资源
         pulsar_pipeline.add_act(
             act_name=_("获取机器信息"), act_component_code=GetPulsarResourceComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 增加机器初始化子流程
+        all_new_ips = get_all_node_ips_in_ticket(self.base_flow_data)
+        pulsar_pipeline.add_sub_pipeline(
+            sub_flow=sa_init_machine_sub_flow(
+                uid=self.uid,
+                root_id=self.root_id,
+                bk_cloud_id=self.bk_cloud_id,
+                bk_biz_id=self.bk_biz_id,
+                init_ips=all_new_ips,
+                idle_check_ips=all_new_ips,
+                set_dns_ips=[],
+            )
         )
 
         act_kwargs.exec_ip = get_all_node_ips_in_ticket(data=self.base_flow_data)

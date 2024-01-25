@@ -19,6 +19,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.consts import ConfigTypeEnum, DnsOpType, HdfsRoleEnum, UserName
+from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import sa_init_machine_sub_flow
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.hdfs.exec_actuator_script import ExecuteHdfsActuatorScriptComponent
@@ -79,6 +80,21 @@ class HdfsScaleUpFlow(object):
         act_kwargs.exec_ip = (
             self.data_with_role["new_dn_ips"] + self.data_with_role["nn_ips"] + self.data_with_role["dn_ips"]
         )
+
+        # 增加机器初始化子流程
+        all_new_ips = self.data_with_role["new_dn_ips"]
+        hdfs_pipeline.add_sub_pipeline(
+            sub_flow=sa_init_machine_sub_flow(
+                uid=self.data_with_role["uid"],
+                root_id=self.root_id,
+                bk_cloud_id=self.data_with_role["bk_cloud_id"],
+                bk_biz_id=self.data["bk_biz_id"],
+                init_ips=all_new_ips,
+                idle_check_ips=all_new_ips,
+                set_dns_ips=[],
+            )
+        )
+
         hdfs_pipeline.add_act(
             act_name=_("下发hdfs介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
