@@ -20,7 +20,7 @@
     <BkInput
       v-bk-tooltips="{
         trigger: 'click',
-        placement: 'right',
+        placement: 'top',
         theme: 'light',
         content: clusterNamePlaceholder
       }"

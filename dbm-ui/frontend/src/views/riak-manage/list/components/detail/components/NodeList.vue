@@ -110,20 +110,18 @@
     <DbSideslider
       v-model:is-show="addNodeShow"
       quick-close
-      :title="t('添加节点【xx】', [clusterName])"
+      :title="t('添加节点【xx】', [data.cluster_name])"
       :width="960">
       <AddNodes
-        :id="clusterId"
-        :cloud-id="cloudId"
+        :data="data"
         @submit-success="fetchData" />
     </DbSideslider>
     <DbSideslider
       v-model:is-show="deleteNodeShow"
-      :title="t('删除节点【xx】', [clusterName])"
+      :title="t('删除节点【xx】', [data.cluster_name])"
       :width="960">
       <DeleteNodes
-        :id="clusterId"
-        :cloud-id="cloudId"
+        :data="data"
         @submit-success="fetchData" />
     </DbSideslider>
   </div>
@@ -165,9 +163,7 @@
   import DeleteNodes from '../../components/DeleteNodes.vue';
 
   interface Props {
-    clusterId: number;
-    clusterName: string;
-    cloudId: number;
+    data: RiakModel
   }
 
   const props = defineProps<Props>();
@@ -188,7 +184,7 @@
   const {
     pause: pauseFetchClusterDetail,
     resume: resumeFetchClusterDetail,
-  } = useTimeoutPoll(() => getRiakDetailRun({ id: props.clusterId }), 2000, {
+  } = useTimeoutPoll(() => getRiakDetailRun({ id: props.data.id }), 2000, {
     immediate: true,
   });
 
@@ -210,11 +206,12 @@
       render: ({ row }: { row: RiakNodeModel }) => {
         const content = <>
           {
-            row.isNewRow
-              && <MiniTag
+            row.isNewRow && (
+              <MiniTag
                 content='NEW'
                 theme='success'>
               </MiniTag>
+            )
           }
           <bk-button
             text
@@ -321,7 +318,7 @@
     .some((riakNode: RiakNodeModel) => !riakNode.isNodeNormal));
   const isTableSelected = computed(() => selected.value.length > 0);
 
-  watch(() => props.clusterId, () => {
+  watch(() => props.data.id, () => {
     nextTick(() => {
       pauseFetchClusterDetail();
       resumeFetchClusterDetail();
@@ -362,7 +359,7 @@
           bk_biz_id: currentBizId,
           ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_IN,
           details: {
-            cluster_id: props.clusterId,
+            cluster_id: props.data.id,
             bk_cloud_id: row.bk_cloud_id,
             nodes: [{
               ip: row.ip,
@@ -398,7 +395,7 @@
           ticket_type: TicketTypes.RIAK_CLUSTER_REBOOT,
           details: {
             bk_host_id: row.bk_host_id,
-            cluster_id: props.clusterId,
+            cluster_id: props.data.id,
           },
         })
           .then((createTicketResult) => {
@@ -451,7 +448,7 @@
       },
       {
         bk_biz_id: currentBizId,
-        cluster_id: props.clusterId,
+        cluster_id: props.data.id,
       },
     );
   };

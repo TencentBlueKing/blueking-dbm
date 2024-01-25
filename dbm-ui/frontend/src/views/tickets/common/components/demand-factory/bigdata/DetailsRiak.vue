@@ -63,41 +63,76 @@
     <strong class="ticket-details__info-title">{{ t('部署需求') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('资源规格') }}：</span>
-        <span class="ticket-details__item-value">
-          <BkPopover
-            placement="top"
-            theme="light">
-            <span
-              class="pb-2"
-              style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
-              {{ riakSpec?.spec_name }}（{{ `${riakSpec?.count} ${$t('台')}` }}）
-            </span>
-            <template #content>
-              <SpecInfos :data="riakSpec" />
-            </template>
-          </BkPopover>
-        </span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('节点数量') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.resource_spec.riak.count || '--' }}</span>
+        <span class="ticket-details__item-label">{{ t('服务器选择方式') }}：</span>
+        <span class="ticket-details__item-value">{{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }} </span>
       </div>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('备注') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
       </div>
+      <template v-if="isFromResourcePool">
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ t('资源规格') }}：</span>
+          <span class="ticket-details__item-value">
+            <BkPopover
+              placement="top"
+              theme="light">
+              <span
+                class="pb-2"
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                {{ riakSpec?.spec_name }}（{{ `${riakSpec?.count} ${t('台')}` }}）
+              </span>
+              <template #content>
+                <SpecInfos :data="riakSpec" />
+              </template>
+            </BkPopover>
+          </span>
+        </div>
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ t('节点数量') }}：</span>
+          <span class="ticket-details__item-value">{{ riakSpec?.count || '--' }}</span>
+        </div>
+      </template>
+      <template v-else>
+        <div class="ticket-details__item">
+          <span class="ticket-details__item-label">{{ t('Riak节点IP') }}：</span>
+          <span class="ticket-details__item-value">
+            <span
+              v-if="riakNodeCount > 0"
+              class="host-nums">
+              <BkButton
+                text
+                theme="primary"
+                @click="handleShowPreview">
+                <strong>{{ riakNodeCount }}</strong>
+              </BkButton>
+              {{ t('台') }}
+            </span>
+            <template v-else>--</template>
+          </span>
+        </div>
+      </template>
     </div>
+    <HostPreview
+      v-model:is-show="previewShow"
+      :fetch-nodes="getTicketHostNodes"
+      :fetch-params="fetchNodesParams"
+      :title="`【${firstLetterToUpper('riak')}】${t('主机预览')}`" />
   </div>
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { getTicketHostNodes } from '@services/source/ticket';
   import type {
     SpecInfo,
     TicketDetails,
   } from '@services/types/ticket';
+
+  import HostPreview from '@components/host-preview/HostPreview.vue';
+
+  import { firstLetterToUpper } from '@utils';
 
   import SpecInfos from '../../SpecInfos.vue';
 
@@ -110,8 +145,16 @@
       city_code: string
       city_name: string
       db_version: string
-      resource_spec: {
+      ip_source: string
+      resource_spec?: {
         riak: SpecInfo
+      },
+      nodes?: {
+        riak: {
+          ip: string,
+          bk_host_id: number,
+          bk_cloud_id: number
+        }[]
       }
     }>
   }
@@ -120,7 +163,21 @@
 
   const { t } = useI18n();
 
-  const riakSpec = computed(() => props.ticketDetails?.details.resource_spec.riak);
+  const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
+
+  const previewShow = ref(false);
+
+  const riakSpec = computed(() => props.ticketDetails?.details?.resource_spec?.riak || {} as SpecInfo);
+  const riakNodeCount = computed(() => props.ticketDetails.details?.nodes?.riak.length || 0);
+  const fetchNodesParams = computed(() => ({
+    bk_biz_id: props.ticketDetails.bk_biz_id,
+    id: props.ticketDetails.id,
+    role: 'riak',
+  }));
+
+  const handleShowPreview = () => {
+    previewShow.value = true;
+  };
 </script>
 
 <style lang="less" scoped>

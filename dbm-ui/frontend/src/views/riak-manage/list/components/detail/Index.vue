@@ -62,11 +62,9 @@
         :cluster-type="ClusterTypes.RIAK"
         :db-type="DBTypes.RIAK" />
       <NodeList
-        v-if="activePanelKey === 'nodeList'"
+        v-if="activePanelKey === 'nodeList' && data"
         :key="clusterId"
-        :cloud-id="data?.bk_cloud_id || 0"
-        :cluster-id="clusterId"
-        :cluster-name="data?.cluster_name || ''" />
+        :data="data" />
       <BaseInfo
         v-if="activePanelKey === 'info' && data"
         :data="data" />

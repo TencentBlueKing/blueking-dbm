@@ -57,8 +57,7 @@
       :title="t('添加节点【xx】', [detailData.cluster_name])"
       :width="960">
       <AddNodes
-        :id="detailData.id"
-        :cloud-id="detailData.bk_cloud_id"
+        :data="detailData"
         @submit-success="fetchData" />
     </DbSideslider>
     <DbSideslider
@@ -67,8 +66,7 @@
       :title="t('删除节点【xx】', [detailData.cluster_name])"
       :width="960">
       <DeleteNodes
-        :id="detailData.id"
-        :cloud-id="detailData.bk_cloud_id"
+        :data="detailData"
         @submit-success="fetchData" />
     </DbSideslider>
   </div>
@@ -76,6 +74,7 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
@@ -131,7 +130,45 @@
   } = useStretchLayout();
   const ticketMessage = useTicketMessage();
 
-  const columns = [
+  const serachData = [
+    {
+      name: 'ID',
+      id: 'id',
+    },
+    {
+      name: t('集群名'),
+      id: 'name',
+    },
+    {
+      name: t('创建人'),
+      id: 'creator',
+    },
+    {
+      name: 'IP',
+      id: 'ip',
+    },
+  ];
+
+  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const searchValues = ref<ISearchValue[]>([]);
+  const deployTime = ref<[string, string]>(['', '']);
+  const addNodeShow = ref(false);
+  const deleteNodeShow = ref(false);
+  const detailData = ref<RiakModel>();
+  const selected = shallowRef<RiakModel[]>([]);
+
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.id));
+
+  const searchIp = computed<string[]>(() => {
+    const ipObj = searchValues.value.find(item => item.id === 'ip');
+    if (ipObj && ipObj.values) {
+      return [ipObj.values[0].id];
+    }
+    return [];
+  });
+
+  const columns = computed(() => [
     {
       label: t('集群名称'),
       field: 'cluster_name',
@@ -202,6 +239,7 @@
       field: 'riak_node',
       render: ({ data }: { data: RiakModel }) => (
         <RenderNodeInstance
+          highlightIps={searchIp.value}
           role="riak_node"
           title={`【${data.cluster_name}】${t('节点')}`}
           clusterId={data.id}
@@ -212,6 +250,12 @@
           }))}
           dataSource={ getRiakInstanceList } />
       ),
+    },
+    {
+      label: t('创建人'),
+      field: 'creator',
+      width: 100,
+      render: ({ data }: { data: RiakModel }) => <span>{data.creator || '--'}</span>,
     },
     {
       label: t('部署时间'),
@@ -281,37 +325,7 @@
             </>
       ),
     },
-  ];
-
-  const serachData = [
-    {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: t('集群名'),
-      id: 'name',
-    },
-    {
-      name: t('创建人'),
-      id: 'creator',
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-    },
-  ];
-
-  const tableRef = ref<InstanceType<typeof DbTable>>();
-  const searchValues = ref([]);
-  const deployTime = ref(['', ''] as [string, string]);
-  const addNodeShow = ref(false);
-  const deleteNodeShow = ref(false);
-  const detailData = ref<RiakModel>();
-  const selected = shallowRef<RiakModel[]>([]);
-
-  const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map(item => item.id));
+  ]);
 
   watch(isStretchLayoutOpen, (newVal) => {
     emits('detailOpenChange', newVal);
@@ -502,6 +516,8 @@
 <style lang="less" scoped>
 .riak-list-container {
   height: 100%;
+  padding: 24px 0;
+  margin: 0 24px;
   overflow: hidden;
 
   .header-action {

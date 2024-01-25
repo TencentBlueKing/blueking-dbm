@@ -83,8 +83,7 @@
     :title="t('添加节点【xx】', [detailData.cluster_name])"
     :width="960">
     <AddNodes
-      :id="detailData.id"
-      :cloud-id="detailData.bk_cloud_id"
+      :data="detailData"
       @submit-success="handleSubmitSuccess" />
   </DbSideslider>
   <DbSideslider
@@ -92,8 +91,7 @@
     :title="t('删除节点【xx】', [detailData.cluster_name])"
     :width="960">
     <DeleteNodes
-      :id="detailData.id"
-      :cloud-id="detailData.bk_cloud_id"
+      :data="detailData"
       @submit-success="handleSubmitSuccess" />
   </DbSideslider>
 </template>

@@ -53,7 +53,9 @@
           v-model="formData.details.cluster_alias"
           :biz-id="formData.bk_biz_id"
           cluster-type="riak" />
-        <CloudItem v-model="formData.details.bk_cloud_id" />
+        <CloudItem
+          v-model="formData.details.bk_cloud_id"
+          @change="handleChangeCloud" />
       </DbCard>
       <RegionItem
         ref="regionItemRef"
@@ -89,30 +91,81 @@
       </DbCard>
       <DbCard :title="t('部署需求')">
         <BkFormItem
-          :label="t('资源规格')"
-          property="spec_id"
+          :label="t('服务器选择')"
+          property="details.ip_source"
           required>
-          <SpecSelector
-            ref="specRef"
-            v-model="formData.spec_id"
-            :biz-id="formData.bk_biz_id"
-            :cloud-id="formData.details.bk_cloud_id"
-            :cluster-type="ClusterTypes.RIAK"
-            machine-type="riak"
-            style="width: 435px;" />
+          <BkRadioGroup
+            v-model="formData.details.ip_source">
+            <BkRadioButton label="resource_pool">
+              {{ t('自动从资源池匹配') }}
+            </BkRadioButton>
+            <BkRadioButton label="manual_input">
+              {{ t('业务空闲机') }}
+            </BkRadioButton>
+          </BkRadioGroup>
         </BkFormItem>
-        <BkFormItem
-          :label="t('节点数量')"
-          property="nodes_num"
-          required>
-          <BkInput
-            v-model="formData.nodes_num"
-            clearable
-            :min="3"
-            show-clear-only-hover
-            style="width: 185px;"
-            type="number" />
-        </BkFormItem>
+        <Transition
+          mode="out-in"
+          name="dbm-fade">
+          <div
+            v-if="formData.details.ip_source === 'resource_pool'"
+            class="mb-24">
+            <BkFormItem
+              :label="t('资源规格')"
+              property="spec_id"
+              required>
+              <SpecSelector
+                ref="specRef"
+                v-model="formData.spec_id"
+                :biz-id="formData.bk_biz_id"
+                :cloud-id="formData.details.bk_cloud_id"
+                :cluster-type="ClusterTypes.RIAK"
+                machine-type="riak"
+                style="width: 435px;" />
+            </BkFormItem>
+            <BkFormItem
+              :label="t('节点数量')"
+              property="nodes_num"
+              required>
+              <BkInput
+                v-model="formData.nodes_num"
+                clearable
+                :min="3"
+                show-clear-only-hover
+                style="width: 185px;"
+                type="number" />
+            </BkFormItem>
+          </div>
+          <div
+            v-else
+            class="mb-24">
+            <BkFormItem
+              ref="nodesRef"
+              :label="t('服务器')"
+              property="details.nodes"
+              required>
+              <IpSelector
+                :biz-id="formData.bk_biz_id"
+                :cloud-info="cloudInfo"
+                :data="formData.details.nodes"
+                :disable-dialog-submit-method="disableHostSubmitMethods"
+                @change="handleProxyIpChange">
+                <template #desc>
+                  {{ t('至少n台', { n: 3 }) }}
+                </template>
+                <template #submitTips="{ hostList }">
+                  <I18nT
+                    keypath="至少n台_已选n台"
+                    style="font-size: 14px; color: #63656e;"
+                    tag="span">
+                    <span style="font-weight: bold; color: #2dcb56;"> 3 </span>
+                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                  </I18nT>
+                </template>
+              </IpSelector>
+            </BkFormItem>
+          </div>
+        </Transition>
         <BkFormItem :label="t('备注')">
           <BkInput
             v-model="formData.remark"
@@ -153,7 +206,10 @@
   import { useRequest } from 'vue-request';
 
   import { getModules } from '@services/source/cmdb';
-  import type { BizItem } from '@services/types';
+  import type {
+    BizItem,
+    HostDetails,
+  } from '@services/types';
 
   import {
     useApplyBase,
@@ -171,6 +227,7 @@
   import ClusterName from '@components/apply-items/ClusterName.vue';
   import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
+  import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   // 目前固定为此版本
   const dbVersionList = [2.2];
@@ -190,6 +247,7 @@
       cluster_alias: '',
       city_code: '',
       db_version: '2.2',
+      nodes: [] as HostDetails[],
       // http_port: 8087,
     },
   });
@@ -207,6 +265,11 @@
 
   const formRef = ref();
   const specRef = ref();
+  const nodesRef = ref();
+  const cloudInfo = ref({
+    id: '' as number | string,
+    name: '',
+  });
   const formData = reactive(genDefaultFormData());
 
   const {
@@ -228,7 +291,14 @@
     nodes_num: [
       {
         validator: (value: number) => value >= 3,
-        message: t('节点数至少为3台'),
+        message: t('节点数至少为n台', [3]),
+        trigger: 'change',
+      },
+    ],
+    'details.nodes': [
+      {
+        validator: (value: HostDetails[]) => value.length >= 3,
+        message: t('节点数至少为n台', [3]),
         trigger: 'change',
       },
     ],
@@ -253,6 +323,24 @@
     });
   };
 
+  const handleChangeCloud = (info: {
+    id: number | string,
+    name: string
+  }) => {
+    cloudInfo.value = info;
+
+    formData.details.nodes = [];
+  };
+
+  const disableHostSubmitMethods = (hostList: Array<HostDetails[]>) => (hostList.length < 3 ? t('至少n台', { n: 3 }) : false);
+
+  const handleProxyIpChange = (data: HostDetails[]) => {
+    formData.details.nodes = data;
+    if (formData.details.nodes.length > 0) {
+      nodesRef.value.clearValidate();
+    }
+  };
+
   const handleSubmit = () => {
     formRef.value.validate()
       .then(() => {
@@ -267,6 +355,11 @@
           details: {
             ...formData.details,
             db_module_name: moduleListValue[moduleIndex].name,
+          },
+        };
+
+        if (formData.details.ip_source === 'resource_pool') {
+          Object.assign(params.details, {
             resource_spec: {
               riak: {
                 count: formData.nodes_num,
@@ -274,9 +367,19 @@
                 ...specRef.value.getData(),
               },
             },
+          });
+        } else {
+          Object.assign(params.details, {
+            nodes: {
+              riak: formData.details.nodes.map(nodeItem => ({
+                ip: nodeItem.ip,
+                bk_host_id: nodeItem.host_id,
+                bk_cloud_id: nodeItem.cloud_id,
+              })),
+            },
+          });
+        }
 
-          },
-        };
         // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
         bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
       });
