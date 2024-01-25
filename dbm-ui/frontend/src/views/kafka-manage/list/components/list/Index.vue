@@ -153,9 +153,8 @@
 
 
   const dataSource = getKafkaList;
-  const checkClusterOnline = (data: KafkaModel) => data.phase === 'online';
   const getRowClass = (data: KafkaModel) => {
-    const classList = [checkClusterOnline(data) ? '' : 'is-offline'];
+    const classList = [data.isOnline ? '' : 'is-offline'];
     const newClass = isRecentDays(data.create_at, 24 * 3) ? 'is-new-row' : '';
     classList.push(newClass);
     if (data.id === clusterId.value) {
@@ -287,7 +286,7 @@
             data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
           }
           <db-icon
-            v-show={!checkClusterOnline(data)}
+            v-show={!data.isOnline && !data.isStarting}
             svg
             type="yijinyong"
             style="width: 38px; height: 16px; margin-left: 4px;" />
@@ -374,7 +373,7 @@
       render: ({ data }: {data: KafkaModel}) => {
         const renderAction = (theme = 'primary') => {
           const baseAction = [
-          <auth-button
+            <auth-button
               text
               theme="primary"
               action-id="kafka_view"
@@ -385,67 +384,74 @@
               { t('获取访问方式') }
             </auth-button>,
           ];
-          if (!checkClusterOnline(data)) {
+          if (!data.isOnline) {
             return [
-            <auth-button
+            <OperationBtnStatusTips data={data}>
+              <auth-button
                 text
                 theme="primary"
                 action-id="kafka_enable_disable"
                 permission={data.permission.kafka_enable_disable}
                 resource={data.id}
+                disabled={data.isStarting}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
-              </auth-button>,
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips data={data}>
               <auth-button
                 text
                 theme="primary"
                 action-id="kafka_destroy"
                 permission={data.permission.kafka_destroy}
+                disabled={data.operationDisabled}
                 resource={data.id}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleRemove(data)}>
                 { t('删除') }
-              </auth-button>,
+              </auth-button>
+            </OperationBtnStatusTips>,
               ...baseAction,
             ];
           }
           return [
             <OperationBtnStatusTips
               data={data}
-              class="mr8">
+              disabled={!data.isOffline}>
               <auth-button
                 text
+                class="mr8"
                 theme="primary"
                 action-id="kafka_scale_up"
                 permission={data.permission.kafka_scale_up}
                 resource={data.id}
-                disabled={data.operationDisabled}
+                disabled={data.isOffline}
                 onClick={() => handleShowExpansion(data)}>
                 { t('扩容') }
               </auth-button>
             </OperationBtnStatusTips>,
             <OperationBtnStatusTips
               data={data}
-              class="mr8">
+              disabled={!data.isOffline}>
               <auth-button
                 text
+                class="mr8"
                 theme="primary"
                 action-id="kafka_shrink"
                 permission={data.permission.kafka_shrink}
                 resource={data.id}
-                disabled={data.operationDisabled}
+                disabled={data.isOffline}
                 onClick={() => handleShowShrink(data)}>
                 { t('缩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              class="mr8">
+            <OperationBtnStatusTips data={data}>
               <auth-button
                 text
+                class="mr8"
                 theme="primary"
                 action-id="kafka_enable_disable"
                 permission={data.permission.kafka_enable_disable}

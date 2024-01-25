@@ -181,7 +181,7 @@
 
   // 设置行样式
   const setRowClass = (row: TendbhaModel) => {
-    const classList = [row.phase === 'offline' ? 'is-offline' : ''];
+    const classList = [row.isOffline ? 'is-offline' : ''];
     const newClass = isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '';
     classList.push(newClass);
     if (row.id === clusterId.value) {
@@ -333,11 +333,11 @@
                   data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
                 }
                 {
-                  data.phase === 'offline' && (
+                  data.isOffline && !data.isStarting && (
                     <db-icon
                       svg
                       type="yijinyong"
-                      class="cluster-tag"
+                      class="cluster-tag ml-4"
                       style="width: 38px; height: 16px;" />
                   )
                 }
@@ -534,7 +534,7 @@
                     <auth-button
                       text
                       theme="primary"
-                      disabled={Boolean(data.operationTicketId)}
+                      disabled={data.isStarting}
                       class="mr-8"
                       action-id="mysql_enable_disable"
                       permission={data.permission.mysql_enable_disable}

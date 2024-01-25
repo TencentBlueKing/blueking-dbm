@@ -278,11 +278,12 @@ export default class Redis {
     return utcDisplayTime(this.update_at);
   }
 
-  /**
-   * 已禁用
-   */
-  get isStoped() {
+  get isOffline() {
     return this.phase === 'offline';
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find(item => item.ticket_type === Redis.REDIS_PROXY_OPEN));
   }
 
   get runningOperation() {
