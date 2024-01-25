@@ -37,7 +37,7 @@ class MongoDBScriptExecFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_EXEC_SCRIPT_APPLY)
-class MongoReplicaSetApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+class MongoScriptExecApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBScriptExecDetailSerializer
     inner_flow_builder = MongoDBScriptExecFlowParamBuilder
     inner_flow_name = _("MongoDB 变更脚本执行执行")

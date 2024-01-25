@@ -300,8 +300,8 @@ class TicketType(str, StructuredEnum):
     RIAK_CLUSTER_REBOOT = EnumField("RIAK_CLUSTER_REBOOT", _("RIAK集群节点重启"))
 
     # MONGODB
-    MONGODB_REPLICASET_APPLY = EnumField("MONGODB_REPLICASET_APPLY", _("MongoDB副本集集群部署"))
-    MONGODB_SHARD_APPLY = EnumField("MONGODB_SHARD_APPLY", _("MongoDB分片集群部署"))
+    MONGODB_REPLICASET_APPLY = EnumField("MONGODB_REPLICASET_APPLY", _("MongoDB 副本集集群部署"))
+    MONGODB_SHARD_APPLY = EnumField("MONGODB_SHARD_APPLY", _("MongoDB 分片集群部署"))
     MONGODB_EXEC_SCRIPT_APPLY = EnumField("MONGODB_EXEC_SCRIPT_APPLY", _("MongoDB 变更脚本执行"))
     MONGODB_REMOVE_NS = EnumField("MONGODB_REMOVE_NS", _("MongoDB 清档"))
     MONGODB_FULL_BACKUP = EnumField("MONGODB_FULL_BACKUP", _("MongoDB 全库备份"))
@@ -318,6 +318,7 @@ class TicketType(str, StructuredEnum):
     MONGODB_CUTOFF = EnumField("MONGODB_CUTOFF", _("MongoDB 整机替换"))
     MONGODB_AUTHORIZE = EnumField("MONGODB_AUTHORIZE", _("MongoDB 授权"))
     MONGODB_EXCEL_AUTHORIZE = EnumField("MONGODB_EXCEL_AUTHORIZE", _("MongoDB Excel授权"))
+    MONGODB_RESTORE = EnumField("MONGODB_RESTORE", _("MongoDB 定点回档"))
 
     # 云区域组件
     CLOUD_SERVICE_APPLY = EnumField("CLOUD_SERVICE_APPLY", _("云区域服务部署"))
