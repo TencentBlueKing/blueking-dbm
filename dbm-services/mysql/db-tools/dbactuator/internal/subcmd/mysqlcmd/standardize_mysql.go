@@ -11,26 +11,26 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
-type AdoptScrTendbHAStorageAct struct {
+type StandardizeMySQLAct struct {
 	*subcmd.BaseOptions
-	Payload mysql.AdoptScrTenDBHAStorageComp
+	Payload mysql.StandardizeMySQLComp
 }
 
 const (
-	AdoptTendbHAStorage = "adopt-tendbha-storage"
+	StandardizeMySQLInstance = "standardize-mysql"
 )
 
-func NewAdoptScrTendbHAStorageCommand() *cobra.Command {
-	act := AdoptScrTendbHAStorageAct{
+func NewStandardizeMySQLCommand() *cobra.Command {
+	act := StandardizeMySQLAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 
 	cmd := &cobra.Command{
-		Use:   AdoptTendbHAStorage,
-		Short: "接管 tendbha 存储层",
+		Use:   StandardizeMySQLInstance,
+		Short: "接管 MySQL 实例",
 		Example: fmt.Sprintf(
 			`dbactuator mysql %s %s %s`,
-			AdoptTendbHAStorage, subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Payload.Example())),
+			StandardizeMySQLInstance, subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Payload.Example())),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validate())
 			util.CheckErr(act.Init())
@@ -41,11 +41,11 @@ func NewAdoptScrTendbHAStorageCommand() *cobra.Command {
 	return cmd
 }
 
-func (c *AdoptScrTendbHAStorageAct) Validate() (err error) {
+func (c *StandardizeMySQLAct) Validate() (err error) {
 	return c.BaseOptions.Validate()
 }
 
-func (c *AdoptScrTendbHAStorageAct) Init() (err error) {
+func (c *StandardizeMySQLAct) Init() (err error) {
 	if err = c.Deserialize(&c.Payload.Params); err != nil {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
 		return err
@@ -55,7 +55,7 @@ func (c *AdoptScrTendbHAStorageAct) Init() (err error) {
 	return nil
 }
 
-func (c *AdoptScrTendbHAStorageAct) Run() (err error) {
+func (c *StandardizeMySQLAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
 			FunName: "初始化",
@@ -78,6 +78,6 @@ func (c *AdoptScrTendbHAStorageAct) Run() (err error) {
 		logger.Error("run adopt scr tendbha storage failed: %s", err.Error())
 		return err
 	}
-	logger.Info("接管tendbha存储层完成")
+	logger.Info("接管 MySQL 实例完成")
 	return nil
 }

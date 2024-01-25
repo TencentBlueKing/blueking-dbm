@@ -5,6 +5,7 @@ use JSON qw(encode_json);
 
 my $items_config = LoadFile('items-config.yaml');
 
+print "DELETE FROM tb_config_name_def WHERE namespace = 'tendb' AND  conf_type = 'mysql_monitor' AND conf_file = 'items-config.yaml';" . "\n";
 foreach my $item (@$items_config) {
     my $item_value = encode_json($item);
     $item_value =~ s/"enable":"1"/"enable":true/;

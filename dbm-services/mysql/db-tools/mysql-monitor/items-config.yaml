@@ -223,7 +223,6 @@
   schedule: '@every 1m'
   machine_type:
   - spider
-  - proxy
   - remote
   - backend
   - single

@@ -51,7 +51,6 @@ class TenDBClusterStorageSet(ClusterStorageSetABS):
         StorageInstanceTuple,
         on_delete=models.PROTECT,
     )
-    # ss = models.OneToOneField(StorageInstance, on_delete=models.PROTECT)
     shard_id = models.PositiveIntegerField(default=0)
 
     class Meta:

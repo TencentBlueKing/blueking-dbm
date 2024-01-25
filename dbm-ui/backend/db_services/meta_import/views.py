@@ -21,16 +21,21 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.meta_import.constants import SWAGGER_TAG
 from backend.db_services.meta_import.serializers import (
-    MySQLHaMetadataImportSerializer,
-    MySQLHaStandardSerializer,
-    TendbClusterStandardSerializer,
+    TenDBClusterAppendCTLSerializer,
+    TenDBClusterMetadataImportSerializer,
+    TenDBClusterStandardizeSerializer,
+    TenDBHAMetadataImportSerializer,
+    TenDBHAStandardizeSerializer,
 )
 from backend.iam_app.handlers.drf_perm import RejectPermission
-from backend.ticket.builders.mysql.mysql_ha_metadata_import import MySQLHaMetadataImportDetailSerializer
-from backend.ticket.builders.mysql.mysql_ha_standardize import MysqlHaStandardizeDetailSerializer
+from backend.ticket.builders.mysql.mysql_ha_metadata_import import TenDBHAMetadataImportDetailSerializer
+from backend.ticket.builders.mysql.mysql_ha_standardize import TenDBHAStandardizeDetailSerializer
+from backend.ticket.builders.spider.metadata_import import TenDBClusterMetadataImportDetailSerializer
+from backend.ticket.builders.spider.mysql_spider_standardize import TenDBClusterStandardizeDetailSerializer
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
@@ -48,13 +53,13 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
         return []
 
     @common_swagger_auto_schema(
-        operation_summary=_("tendbha元数据导入"),
+        operation_summary=_("TenDB HA 元数据导入"),
         tags=[SWAGGER_TAG],
     )
     @action(
         methods=["POST"],
         detail=False,
-        serializer_class=MySQLHaMetadataImportSerializer,
+        serializer_class=TenDBHAMetadataImportSerializer,
         parser_classes=[MultiPartParser],
     )
     def tendbha_metadata_import(self, request, *args, **kwargs):
@@ -62,7 +67,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
         # 解析json文件
         data["json_content"] = json.loads(data.pop("file").read().decode("utf-8"))
         # 自动创建ticket
-        MySQLHaMetadataImportDetailSerializer(data=data).is_valid(raise_exception=True)
+        TenDBHAMetadataImportDetailSerializer(data=data).is_valid(raise_exception=True)
         Ticket.create_ticket(
             ticket_type=TicketType.MYSQL_HA_METADATA_IMPORT,
             creator=request.user.username,
@@ -73,13 +78,13 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
         return Response(data)
 
     @common_swagger_auto_schema(
-        operation_summary=_("tendbha标准化接入"),
+        operation_summary=_("TenDB HA 标准化接入"),
         tags=[SWAGGER_TAG],
     )
     @action(
         methods=["POST"],
         detail=False,
-        serializer_class=MySQLHaStandardSerializer,
+        serializer_class=TenDBHAStandardizeSerializer,
         parser_classes=[MultiPartParser],
     )
     def tendbha_standardize(self, request, *args, **kwargs):
@@ -89,11 +94,17 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
         for line in data.pop("file").readlines():
             domain_list.append(line.decode("utf-8").strip().rstrip("."))
 
-        cluster_ids = list(Cluster.objects.filter(immute_domain__in=domain_list).values_list("id", flat=True))
+        cluster_ids = list(
+            Cluster.objects.filter(immute_domain__in=domain_list, cluster_type=ClusterType.TenDBHA.value).values_list(
+                "id", flat=True
+            )
+        )
         logger.info("domains: {}, ids: {}".format(domain_list, cluster_ids))
 
         exists_domains = list(
-            Cluster.objects.filter(immute_domain__in=domain_list).values_list("immute_domain", flat=True)
+            Cluster.objects.filter(immute_domain__in=domain_list, cluster_type=ClusterType.TenDBHA.value).values_list(
+                "immute_domain", flat=True
+            )
         )
         diff = list(set(domain_list) - set(exists_domains))
         if diff:
@@ -103,7 +114,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
 
         data["infos"] = {"cluster_ids": data["cluster_ids"]}
         # 创建标准化ticket
-        MysqlHaStandardizeDetailSerializer(data=data).is_valid(raise_exception=True)
+        TenDBHAStandardizeDetailSerializer(data=data).is_valid(raise_exception=True)
         Ticket.create_ticket(
             ticket_type=TicketType.MYSQL_HA_STANDARDIZE,
             creator=request.user.username,
@@ -113,25 +124,94 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
         )
         return Response(data)
 
-    # tendbcluser api
     @common_swagger_auto_schema(
-        operation_summary=_("tendbcluster标准化接入"),
+        operation_summary=_("TenDB Cluster 元数据导入"),
         tags=[SWAGGER_TAG],
     )
     @action(
         methods=["POST"],
         detail=False,
-        serializer_class=TendbClusterStandardSerializer,
+        serializer_class=TenDBClusterMetadataImportSerializer,
+        parser_classes=[MultiPartParser],
+    )
+    def tendbcluster_metadata_import(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        data["json_content"] = json.loads(data.pop("file").read().decode("utf-8"))
+        TenDBClusterMetadataImportDetailSerializer(data=data).is_valid(raise_exception=True)
+        Ticket.create_ticket(
+            ticket_type=TicketType.TENDBCLUSTER_METADATA_IMPORT,
+            creator=request.user.username,
+            bk_biz_id=data["bk_biz_id"],
+            remark=self.tendbcluster_metadata_import.__name__,
+            details=data,
+        )
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("TenDB Cluster 集群标准化"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=TenDBClusterStandardizeSerializer,
         parser_classes=[MultiPartParser],
     )
     def tendbcluster_standardize(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
+
+        domain_list = []
+        for line in data.pop("file").readlines():
+            domain_list.append(line.decode("utf-8").strip().rstrip("."))
+
+        cluster_ids = list(
+            Cluster.objects.filter(
+                immute_domain__in=domain_list, cluster_type=ClusterType.TenDBCluster.value
+            ).values_list("id", flat=True)
+        )
+        logger.info("domains: {}, ids: {}".format(domain_list, cluster_ids))
+
+        exists_domains = list(
+            Cluster.objects.filter(
+                immute_domain__in=domain_list, cluster_type=ClusterType.TenDBCluster.value
+            ).values_list("immute_domain", flat=True)
+        )
+        diff = list(set(domain_list) - set(exists_domains))
+        if diff:
+            raise serializers.ValidationError(_("cluster {} not found".format(diff)))
+
+        data["cluster_ids"] = cluster_ids
+
+        data["infos"] = {"cluster_ids": data["cluster_ids"]}
         # 创建标准化ticket
+        TenDBClusterStandardizeDetailSerializer(data=data).is_valid(raise_exception=True)
         Ticket.create_ticket(
             ticket_type=TicketType.TENDBCLUSTER_STANDARDIZE,
             creator=request.user.username,
             bk_biz_id=data["bk_biz_id"],
             remark=self.tendbcluster_standardize.__name__,
+            details=data,
+        )
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("TenDB Cluster 追加部署中控"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=TenDBClusterAppendCTLSerializer,
+        parser_classes=[MultiPartParser],
+    )
+    def tendbcluster_append_deploy_ctl(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        # 创建标准化ticket
+        Ticket.create_ticket(
+            ticket_type=TicketType.TENDBCLUSTER_APPEND_DEPLOY_CTL,
+            creator=request.user.username,
+            bk_biz_id=data["bk_biz_id"],
+            remark=self.tendbcluster_append_deploy_ctl.__name__,
             details=data,
         )
         return Response(data)

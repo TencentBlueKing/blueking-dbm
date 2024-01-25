@@ -17,32 +17,27 @@ from django.utils.translation import ugettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
-from backend.flow.plugins.components.collections.mysql.mysql_ha_import_metadata import MySQLHAImportMetadataComponent
 from backend.flow.plugins.components.collections.mysql.mysql_ha_modify_cluster_phase import (
     MySQLHAModifyClusterPhaseComponent,
 )
-from backend.flow.utils.mysql.mysql_context_dataclass import MySQLHAImportMetadataContext
+from backend.flow.plugins.components.collections.spider.import_metadata import TenDBClusterImportMetadataComponent
+from backend.flow.utils.mysql.mysql_context_dataclass import TenDBClusterImportMetadataContext
 
 logger = logging.getLogger("flow")
 
 
-class TenDBHAMetadataImportFlow(object):
+class SpiderClusterMetadataImportFlow(object):
     def __init__(self, root_id: str, data: Optional[Dict]):
         self.root_id = root_id
         self.data = data
 
     def import_meta(self):
-        """
-        很多检查都前置了, 能走到这里可以认为基本没啥问题
-        尝试无脑导入
-        """
         import_pipe = Builder(root_id=self.root_id, data=self.data)
-
         import_pipe_sub = SubBuilder(root_id=self.root_id, data=self.data)
 
         import_pipe_sub.add_act(
             act_name=_("写入元数据"),
-            act_component_code=MySQLHAImportMetadataComponent.code,
+            act_component_code=TenDBClusterImportMetadataComponent.code,
             kwargs={**copy.deepcopy(self.data)},
         )
 
@@ -52,7 +47,7 @@ class TenDBHAMetadataImportFlow(object):
             act_name=_("修改集群状态"), act_component_code=MySQLHAModifyClusterPhaseComponent.code, kwargs={}
         )
 
-        import_pipe.add_sub_pipeline(sub_flow=import_pipe_sub.build_sub_process(sub_name=_("TenDBHA 元数据导入")))
+        import_pipe.add_sub_pipeline(sub_flow=import_pipe_sub.build_sub_process(sub_name=_("TenDB Cluster 元数据导入")))
 
-        logger.info(_("构建TenDBHA元数据导入流程成功"))
-        import_pipe.run_pipeline(init_trans_data_class=MySQLHAImportMetadataContext())
+        logger.info(_("构建TenDB Cluster元数据导入流程成功"))
+        import_pipe.run_pipeline(init_trans_data_class=TenDBClusterImportMetadataContext())

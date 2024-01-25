@@ -369,8 +369,8 @@ class DBActuatorActionEnum(str, StructuredEnum):
     MysqlOpenAreaDumpData = EnumField("open_area_dumpdata", _("Mysql开区导出库表数据"))
     MysqlOpenAreaImportData = EnumField("open_area_importdata", _("Mysql开区导入库表数据"))
     EnableTokudb = EnumField("enable-tokudb-engine", _("MySQL实例安装tokudb引擎"))
-    AdoptTendbHAStorage = EnumField("adopt-tendbha-storage", _("接管TendbHA 存储层"))
-    AdoptTendbHAProxy = EnumField("adopt-tendbha-proxy", _("接管TendbHA 接入层"))
+    StandardizeMySQLInstance = EnumField("standardize-mysql", _("标准化MySQL实例"))
+    StandardizeTenDBHAProxy = EnumField("standardize-proxy", _("标准化Proxy实例"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):

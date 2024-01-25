@@ -13,13 +13,12 @@ from pipeline.component_framework.component import Component
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
-from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.flow.consts import ConfigTypeEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 
-class TendbHAInstantiateConfigService(BaseService):
+class MySQLClusterInstantiateConfigService(BaseService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
@@ -35,7 +34,7 @@ class TendbHAInstantiateConfigService(BaseService):
                 "level_info": {"module": str(cluster_obj.db_module_id)},
                 "conf_file": cluster_obj.major_version,
                 "conf_type": ConfigTypeEnum.DBConf,
-                "namespace": ClusterType.TenDBHA.value,
+                "namespace": cluster_obj.cluster_type,
                 "format": FormatType.MAP_LEVEL,
                 "method": ReqType.GENERATE_AND_PUBLISH,
             }
@@ -45,7 +44,7 @@ class TendbHAInstantiateConfigService(BaseService):
         return True
 
 
-class TendbHAInstantiateConfigComponent(Component):
+class MySQLClusterInstantiateConfigComponent(Component):
     name = __name__
-    code = "tendbha_instantiate_config"
-    bound_service = TendbHAInstantiateConfigService
+    code = "mysql_cluster_instantiate_config"
+    bound_service = MySQLClusterInstantiateConfigService

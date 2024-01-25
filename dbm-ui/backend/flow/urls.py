@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 
 from django.conf.urls import url
 
+from backend.flow.views.append_deploy_ctl import AppendDeployCTLView
 from backend.flow.views.client_set_dns_server import ClientSetDnsServerSceneApiView
 from backend.flow.views.cloud_dbha_apply import CloudDBHAApplySceneApiView
 from backend.flow.views.cloud_dns_bind_apply import CloudDNSApplySceneApiView
@@ -51,7 +52,6 @@ from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
 from backend.flow.views.kafka_shrink import ShrinkKafkaSceneApiView
-from backend.flow.views.migrate_spider_cluster_from_gcs import MigrateSpiderClusterFromGcsView
 from backend.flow.views.migrate_views.es_fake_apply import FakeInstallEsSceneApiView
 from backend.flow.views.migrate_views.hdfs_fake_apply import FakeInstallHdfsSceneApiView
 from backend.flow.views.migrate_views.influxdb_fake_apply import FakeInstallInfluxdbSceneApiView
@@ -394,7 +394,7 @@ urlpatterns = [
     url("^scene/tendbha_standardize$", TenDBHAStandardizeView.as_view()),
     url("^scene/mysql_open_area$", MysqlOpenAreaSceneApiView.as_view()),
     # migrate
-    url("^scene/migrate_spider_cluster_from_gcs$", MigrateSpiderClusterFromGcsView.as_view()),
+    url("^scene/append_deploy_ctl$", AppendDeployCTLView.as_view()),
     # sqlserver
     url("^scene/sqlserver_single_apply$", SqlserverSingleApplySceneApiView.as_view()),
     url("^scene/sqlserver_ha_apply$", SqlserverHAApplySceneApiView.as_view()),

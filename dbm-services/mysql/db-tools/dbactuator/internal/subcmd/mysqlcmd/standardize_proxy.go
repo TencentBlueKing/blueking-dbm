@@ -9,22 +9,22 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
-type AdoptScrTendbHAProxyAct struct {
+type StandardizeProxyAct struct {
 	*subcmd.BaseOptions
-	Payload mysql.AdoptScrTenDBHAProxyComp
+	Payload mysql.StandardizeProxyComp
 }
 
 const (
-	AdoptTendbHAProxy = "adopt-tendbha-proxy"
+	StandardizeProxy = "standardize-proxy"
 )
 
-func NewAdoptScrTendbHAProxyCommand() *cobra.Command {
-	act := AdoptScrTendbHAProxyAct{
+func NewStandardizeProxyCommand() *cobra.Command {
+	act := StandardizeProxyAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 
 	cmd := &cobra.Command{
-		Use:   AdoptTendbHAProxy,
+		Use:   StandardizeProxy,
 		Short: "接管 tendbha 接入层",
 
 		Run: func(cmd *cobra.Command, args []string) {
@@ -37,11 +37,11 @@ func NewAdoptScrTendbHAProxyCommand() *cobra.Command {
 	return cmd
 }
 
-func (c *AdoptScrTendbHAProxyAct) Validate() (err error) {
+func (c *StandardizeProxyAct) Validate() (err error) {
 	return c.BaseOptions.Validate()
 }
 
-func (c *AdoptScrTendbHAProxyAct) Init() (err error) {
+func (c *StandardizeProxyAct) Init() (err error) {
 	//if err = c.Deserialize(&c.Payload.Params); err != nil {
 	//	logger.Error("DeserializeAndValidate err %s", err.Error())
 	//	return err
@@ -51,7 +51,7 @@ func (c *AdoptScrTendbHAProxyAct) Init() (err error) {
 	return nil
 }
 
-func (c *AdoptScrTendbHAProxyAct) Run() (err error) {
+func (c *StandardizeProxyAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
 			FunName: "清理就系统crontab",

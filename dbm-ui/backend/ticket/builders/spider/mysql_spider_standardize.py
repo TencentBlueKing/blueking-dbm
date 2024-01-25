@@ -13,22 +13,23 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
-from backend.flow.engine.controller.mysql import MySQLController
+from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
-class TenDBHAStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
-    class HAStandardizeDetailSerializer(serializers.Serializer):
+class TenDBClusterStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
+    class InnerDetailSerializer(serializers.Serializer):
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"))
 
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    infos = HAStandardizeDetailSerializer(help_text=_("标准化信息"))
+    infos = InnerDetailSerializer(help_text=_("标准化信息"))
 
     def validate(self, attrs):
+        self.__validate_clusters(attrs=attrs)
         return attrs
 
     def __validate_clusters(self, attrs):
@@ -40,40 +41,41 @@ class TenDBHAStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
                     _("{} 不是 [{}]{} 的集群".format(cluster_obj.immute_domain, app_obj.bk_biz_id, app_obj.db_app_abbr))
                 )
 
-            if cluster_obj.cluster_type != ClusterType.TenDBHA.value:
+            if cluster_obj.cluster_type != ClusterType.TenDBCluster.value:
                 raise serializers.ValidationError(
-                    _("{} 不是 {} 集群".format(cluster_obj.immute_domain, ClusterType.TenDBHA.value))
+                    _("{} 不是 {} 集群".format(cluster_obj.immute_domain, ClusterType.TenDBCluster.value))
                 )
 
             self.__validate_cluster_proxy(cluster_obj=cluster_obj, attrs=attrs)
-            self.__validate_cluster_master_storage(cluster_obj=cluster_obj, attrs=attrs)
-            self.__validate_cluster_slave_storage(cluster_obj=cluster_obj, attrs=attrs)
+            # self.__validate_cluster_master_storage(cluster_obj=cluster_obj, attrs=attrs)
+            # self.__validate_cluster_slave_storage(cluster_obj=cluster_obj, attrs=attrs)
 
     @staticmethod
     def __validate_cluster_proxy(cluster_obj: Cluster, attrs):
         if cluster_obj.proxyinstance_set.count() < 2:
             raise serializers.ValidationError(_("{} proxy 数量异常".format(cluster_obj.immute_domain)))
 
-    @staticmethod
-    def __validate_cluster_master_storage(cluster_obj: Cluster, attrs):
-        if cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value).count() != 1:
-            raise serializers.ValidationError(_("{} 存储 master 数量异常".format(cluster_obj.immute_domain)))
-
-    @staticmethod
-    def __validate_cluster_slave_storage(cluster_obj: Cluster, attrs):
-        if cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE.value).count() < 1:
-            raise serializers.ValidationError(_("{} 存储 slave 数量异常".format(cluster_obj.immute_domain)))
-
-
-class MysqlHaStandardizeFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MySQLController.mysql_ha_standardize_scene
+    #
+    # @staticmethod
+    # def __validate_cluster_master_storage(cluster_obj: Cluster, attrs):
+    #     if cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value).count() < 1:
+    #         raise serializers.ValidationError(_("{} 存储 master 数量异常".format(cluster_obj.immute_domain)))
+    #
+    # @staticmethod
+    # def __validate_cluster_slave_storage(cluster_obj: Cluster, attrs):
+    #     if cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE.value).count() < 1:
+    #         raise serializers.ValidationError(_("{} 存储 slave 数量异常".format(cluster_obj.immute_domain)))
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_HA_STANDARDIZE)
-class MysqlStandardizeFlowBuilder(BaseMySQLTicketFlowBuilder):
+class TenDBClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):
+    controller = SpiderController.tendbcluster_standardize_scene
+
+
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_STANDARDIZE)
+class TenDBClusterStandardizeFlowBuilder(BaseMySQLTicketFlowBuilder):
     """Mysql下架流程的构建基类"""
 
-    serializer = TenDBHAStandardizeDetailSerializer
-    inner_flow_builder = MysqlHaStandardizeFlowParamBuilder
+    serializer = TenDBClusterStandardizeDetailSerializer
+    inner_flow_builder = TenDBClusterStandardizeFlowParamBuilder
     inner_flow_name = _("MySQL高可用标准化")
     retry_type = FlowRetryType.MANUAL_RETRY

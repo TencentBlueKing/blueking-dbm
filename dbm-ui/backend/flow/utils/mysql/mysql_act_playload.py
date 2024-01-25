@@ -24,7 +24,7 @@ from backend.core import consts
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, MachineType
+from backend.db_meta.enums import InstanceInnerRole, MachineType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
@@ -1805,6 +1805,16 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
         cfg = self.__get_dbbackup_config()
+
+        machine = Machine.objects.get(ip=kwargs["ip"])
+        if machine.machine_type == MachineType.SPIDER.value:
+            role = machine.proxyinstance_set.first().tendbclusterspiderext.spider_role
+        elif machine.machine_type in [MachineType.REMOTE.value, MachineType.BACKEND.value, MachineType.SINGLE.value]:
+            # 原来的代码是下面把 role 写死了这个值, 所以保留原逻辑
+            role = InstanceInnerRole.MASTER.value
+        else:
+            raise DBMetaException(message=_("不支持的机器类型: {}".format(machine.machine_type)))
+
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.DeployDbbackup.value,
@@ -1817,12 +1827,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ports": [0],
                     "bk_cloud_id": int(self.bk_cloud_id),
                     "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
-                    "role": InstanceInnerRole.MASTER.value,
+                    "role": role,  # InstanceInnerRole.MASTER.value,
                     "configs": cfg["ini"],
                     "options": cfg["options"],
                     "cluster_address": {},
                     "cluster_id": {},
-                    "cluster_type": ClusterType.TenDBHA,
+                    "cluster_type": machine.cluster_type,  # ClusterType.TenDBHA,
                     "exec_user": self.ticket_data["created_by"],
                     "shard_value": {},
                     "untar_only": True,
@@ -1999,21 +2009,19 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
-    def get_adopt_tendbha_storage_payload(self, **kwargs):
-        db_version = self.cluster["version"]
+    def get_standardize_mysql_instance_payload(self, **kwargs):
         # 这个包其实没有用, 所以只要传包名, 不需要下发
         # 是因为复用了 mysql install actor 需要包名做条件分支
-        self.mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
-
+        # self.mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
         drs_account, dbha_account = self.get_super_account()
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.AdoptTendbHAStorage.value,
+            "action": DBActuatorActionEnum.StandardizeMySQLInstance.value,
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
-                    "pkg": self.mysql_pkg.name,
-                    "pkg_md5": self.mysql_pkg.md5,
+                    "pkg": self.cluster["mysql_pkg"]["name"],
+                    "pkg_md5": self.cluster["mysql_pkg"]["md5"],
                     "ip": kwargs["ip"],
                     "ports": self.cluster["ports"],
                     "mysql_version": self.cluster["version"],
@@ -2024,9 +2032,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         }
 
     @staticmethod
-    def get_adopt_tendbha_proxy_payload(**kwargs):
+    def get_standardize_tendbha_proxy_payload(**kwargs):
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.AdoptTendbHAProxy.value,
+            "action": DBActuatorActionEnum.StandardizeTenDBHAProxy.value,
             "payload": {"general": {}, "extend": {}},  # {"runtime_account": self.account},
         }

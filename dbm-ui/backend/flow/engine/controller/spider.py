@@ -9,8 +9,8 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.db_meta.enums import ClusterType
+from backend.flow.engine.bamboo.scene.spider.append_deploy_ctl_flow import AppendDeployCTLFlow
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
-from backend.flow.engine.bamboo.scene.spider.migrate_spider_cluster_from_gcs import MigrateClusterFromGcsFlow
 from backend.flow.engine.bamboo.scene.spider.remote_local_slave_recover import TenDBRemoteSlaveLocalRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
@@ -25,7 +25,9 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_disable_deploy impor
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_enable_deploy import SpiderClusterEnableFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_flashback import TenDBClusterFlashbackFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_full_backup import TenDBClusterFullBackupFlow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_metadata_import_flow import SpiderClusterMetadataImportFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_flow import TenDBRollBackDataFlow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_standardize_flow import SpiderClusterStandardizeFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_mnt import TenDBClusterReduceMNTFlow
@@ -210,9 +212,17 @@ class SpiderController(BaseController):
         flow = TenDBClusterReduceMNTFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reduce_spider_mnt()
 
-    def migrate_spider_cluster_from_gcs(self):
+    def append_deploy_ctl_scene(self):
         """
         转移spider cluster 从Gcs到dbm 系统需要的操作
         """
-        flow = MigrateClusterFromGcsFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = AppendDeployCTLFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run()
+
+    def tendbcluster_standardize_scene(self):
+        flow = SpiderClusterStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.standardize()
+
+    def metadata_import_scene(self):
+        flow = SpiderClusterMetadataImportFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.import_meta()

@@ -317,3 +317,8 @@ class MySQLFlashBackContext:
 @dataclass()
 class MySQLHAImportMetadataContext:
     cluster_ids: List = None
+
+
+@dataclass()
+class TenDBClusterImportMetadataContext:
+    cluster_ids: List = None

@@ -11,14 +11,14 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
-type AdoptScrTenDBHAStorageComp struct {
-	GeneralParam *components.GeneralParam      `json:"general"`
-	Params       *AdoptScrTenDBHAStorageParams `json:"extend"`
-	inner        *InstallMySQLComp             `json:"-"`
-	workers      map[int]*native.DbWorker      `json:"-"`
+type StandardizeMySQLComp struct {
+	GeneralParam *components.GeneralParam `json:"general"`
+	Params       *StandardizeMySQLParams  `json:"extend"`
+	inner        *InstallMySQLComp        `json:"-"`
+	workers      map[int]*native.DbWorker `json:"-"`
 }
 
-type AdoptScrTenDBHAStorageParams struct {
+type StandardizeMySQLParams struct {
 	components.Medium
 	IP           string            `json:"ip" validate:"required"`
 	Ports        []int             `json:"ports" validate:"required"`
@@ -26,7 +26,7 @@ type AdoptScrTenDBHAStorageParams struct {
 	DBHAAccount  AdditionalAccount `json:"dbha_account"`
 }
 
-func (c *AdoptScrTenDBHAStorageComp) Init() error {
+func (c *StandardizeMySQLComp) Init() error {
 	c.inner = &InstallMySQLComp{
 		GeneralParam: c.GeneralParam,
 		Params: &InstallMySQLParams{
@@ -89,7 +89,7 @@ func (c *AdoptScrTenDBHAStorageComp) Init() error {
 	return nil
 }
 
-func (c *AdoptScrTenDBHAStorageComp) ClearOldCrontab() error {
+func (c *StandardizeMySQLComp) ClearOldCrontab() error {
 	err := osutil.RemoveUserCrontab("mysql")
 	if err != nil {
 		logger.Error("clear mysql crontab failed: %s", err.Error())
@@ -99,7 +99,7 @@ func (c *AdoptScrTenDBHAStorageComp) ClearOldCrontab() error {
 	return nil
 }
 
-func (c *AdoptScrTenDBHAStorageComp) DropOldAccounts() error {
+func (c *StandardizeMySQLComp) DropOldAccounts() error {
 	accountsToDrop := []string{
 		c.GeneralParam.RuntimeAccountParam.MonitorUser,
 		c.GeneralParam.RuntimeAccountParam.MonitorAccessAllUser,
@@ -138,7 +138,7 @@ func (c *AdoptScrTenDBHAStorageComp) DropOldAccounts() error {
 	return nil
 }
 
-func (c *AdoptScrTenDBHAStorageComp) InitDefaultPrivAndSchema() error {
+func (c *StandardizeMySQLComp) InitDefaultPrivAndSchema() error {
 	err := c.inner.InitDefaultPrivAndSchemaWithResetMaster()
 	if err != nil {
 		logger.Error("init default priv and schema failed: %s", err.Error())
@@ -148,14 +148,14 @@ func (c *AdoptScrTenDBHAStorageComp) InitDefaultPrivAndSchema() error {
 	return nil
 }
 
-func (c *AdoptScrTenDBHAStorageComp) Example() interface{} {
-	return AdoptScrTenDBHAStorageComp{
+func (c *StandardizeMySQLComp) Example() interface{} {
+	return StandardizeMySQLComp{
 		GeneralParam: &components.GeneralParam{
 			RuntimeAccountParam: components.RuntimeAccountParam{
 				MySQLAccountParam: common.AccountMonitorExample,
 			},
 		},
-		Params: &AdoptScrTenDBHAStorageParams{
+		Params: &StandardizeMySQLParams{
 			Medium: components.Medium{
 				Pkg:    "mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz",
 				PkgMd5: "12345",
