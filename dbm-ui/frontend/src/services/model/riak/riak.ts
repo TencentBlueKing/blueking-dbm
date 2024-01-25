@@ -12,29 +12,34 @@
  */
 import dayjs from 'dayjs';
 
-import { TicketTypes } from '@common/const';
-
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
 export default class Riak {
+  static RIAK_CLUSTER_SCALE_OUT = 'RIAK_CLUSTER_SCALE_OUT';
+  static RIAK_CLUSTER_SCALE_IN = 'RIAK_CLUSTER_SCALE_IN';
+  static RIAK_CLUSTER_ENABLE = 'RIAK_CLUSTER_ENABLE';
+  static RIAK_CLUSTER_DISABLE = 'RIAK_CLUSTER_DISABLE';
+  static RIAK_CLUSTER_DESTROY = 'RIAK_CLUSTER_DESTROY';
+  static RIAK_CLUSTER_REBOOT = 'RIAK_CLUSTER_REBOOT';
+
   static operationIconMap: Record<string, string> = {
-    [TicketTypes.RIAK_CLUSTER_SCALE_OUT]: 'kuorongzhong',
-    [TicketTypes.RIAK_CLUSTER_SCALE_IN]: 'suorongzhong',
-    [TicketTypes.RIAK_CLUSTER_ENABLE]: 'qiyongzhong',
-    [TicketTypes.RIAK_CLUSTER_DISABLE]: 'jinyongzhong',
-    [TicketTypes.RIAK_CLUSTER_DESTROY]: 'shanchuzhong',
-    [TicketTypes.RIAK_CLUSTER_REBOOT]: 'zhongqizhong',
+    [Riak.RIAK_CLUSTER_SCALE_OUT]: 'kuorongzhong',
+    [Riak.RIAK_CLUSTER_SCALE_IN]: 'suorongzhong',
+    [Riak.RIAK_CLUSTER_ENABLE]: 'qiyongzhong',
+    [Riak.RIAK_CLUSTER_DISABLE]: 'jinyongzhong',
+    [Riak.RIAK_CLUSTER_DESTROY]: 'shanchuzhong',
+    [Riak.RIAK_CLUSTER_REBOOT]: 'zhongqizhong',
   };
 
   static operationTextMap: Record<string, string> = {
-    [TicketTypes.RIAK_CLUSTER_SCALE_OUT]: t('扩容任务进行中'),
-    [TicketTypes.RIAK_CLUSTER_SCALE_IN]: t('缩容任务进行中'),
-    [TicketTypes.RIAK_CLUSTER_ENABLE]: t('启用任务进行中'),
-    [TicketTypes.RIAK_CLUSTER_DISABLE]: t('禁用任务进行中'),
-    [TicketTypes.RIAK_CLUSTER_DESTROY]: t('删除任务进行中'),
-    [TicketTypes.RIAK_CLUSTER_REBOOT]: t('重启任务进行中'),
+    [Riak.RIAK_CLUSTER_SCALE_OUT]: t('扩容任务进行中'),
+    [Riak.RIAK_CLUSTER_SCALE_IN]: t('缩容任务进行中'),
+    [Riak.RIAK_CLUSTER_ENABLE]: t('启用任务进行中'),
+    [Riak.RIAK_CLUSTER_DISABLE]: t('禁用任务进行中'),
+    [Riak.RIAK_CLUSTER_DESTROY]: t('删除任务进行中'),
+    [Riak.RIAK_CLUSTER_REBOOT]: t('重启任务进行中'),
   };
 
   id: number;
@@ -161,8 +166,8 @@ export default class Riak {
 
   get isOfflineOperationRunning() {
     return ([
-      TicketTypes.RIAK_CLUSTER_ENABLE,
-      TicketTypes.RIAK_CLUSTER_DESTROY,
+      Riak.RIAK_CLUSTER_ENABLE,
+      Riak.RIAK_CLUSTER_DESTROY,
     ] as string[]).includes(this.operationRunningStatus);
   }
 
@@ -202,6 +207,10 @@ export default class Riak {
 
   get isOnline() {
     return this.phase === 'online';
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find(item => item.ticket_type === Riak.RIAK_CLUSTER_ENABLE));
   }
 
   get createAtDisplay() {

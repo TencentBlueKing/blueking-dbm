@@ -17,15 +17,18 @@ import { t } from '@locales/index';
 export default class InfluxDBInstance {
   static INFLUXDB_REBOOT = 'INFLUXDB_REBOOT';
   static INFLUXDB_REPLACE = 'INFLUXDB_REPLACE';
+  static INFLUXDB_ENABLE = 'INFLUXDB_ENABLE';
 
   static operationIconMap = {
     [InfluxDBInstance.INFLUXDB_REBOOT]: 'zhongqizhong',
     [InfluxDBInstance.INFLUXDB_REPLACE]: 'tihuanzong',
+    [InfluxDBInstance.INFLUXDB_ENABLE]: 'qiyongzhong',
   };
 
   static operationTextMap = {
     [InfluxDBInstance.INFLUXDB_REBOOT]: t('重启任务进行中'),
     [InfluxDBInstance.INFLUXDB_REPLACE]: t('替换任务进行中'),
+    [InfluxDBInstance.INFLUXDB_ENABLE]: t('启用任务进行中'),
   };
 
   bk_cloud_id: number;
@@ -144,6 +147,14 @@ export default class InfluxDBInstance {
 
   get isOnline() {
     return this.phase === 'online';
+  }
+
+  get isRebooting() {
+    return Boolean(this.operations.find(item => item.ticket_type === InfluxDBInstance.INFLUXDB_REBOOT));
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find(item => item.ticket_type === InfluxDBInstance.INFLUXDB_ENABLE));
   }
 
   get createAtDisplay() {

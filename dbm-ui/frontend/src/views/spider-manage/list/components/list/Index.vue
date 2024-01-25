@@ -351,7 +351,7 @@
               data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
             }
             {
-              !data.isOnline && (
+              data.isOffline && !data.isStarting && (
                 <db-icon
                 svg
                 type="yijinyong"
@@ -581,15 +581,13 @@
       render: ({ data }: IColumn) => {
         const getOperations = (theme = 'primary') => {
           const operations = [
-            <OperationBtnStatusTips
-              data={data}
-              class="mr8">
+            <OperationBtnStatusTips data={data}>
               <auth-button
                 text
+                class="mr-8"
                 theme={theme}
                 action-id="tendbcluster_node_rebalance"
                 disabled={data.operationDisabled}
-                class="mr-8"
                 onClick={() => handleShowCapacityChange(data)}>
                 { t('集群容量变更') }
               </auth-button>
@@ -602,6 +600,7 @@
                   text
                   theme={theme}
                   action-id="tendbcluster_enable_disable"
+                  disabled={data.isStarting}
                   permission={data.permission.tendbcluster_enable_disable}
                   resource={data.id}
                   class="mr-8"
@@ -611,14 +610,15 @@
               </OperationBtnStatusTips>,
               <OperationBtnStatusTips data={data}>
                 <auth-button
-                text
-                theme={theme}
-                action-id="tendbcluster_destroy"
-                permission={data.permission.tendbcluster_destroy}
-                resource={data.id}
-                class="mr-8"
-                onClick={() => handleDeleteCluster(data)}>
-                { t('删除') }
+                  text
+                  theme={theme}
+                  action-id="tendbcluster_destroy"
+                  disabled={data.operationDisabled}
+                  permission={data.permission.tendbcluster_destroy}
+                  resource={data.id}
+                  class="mr-8"
+                  onClick={() => handleDeleteCluster(data)}>
+                  { t('删除') }
               </auth-button>
               </OperationBtnStatusTips>,
             ]);
@@ -627,23 +627,29 @@
         };
         const getDropdownOperations = () => {
           const operations = [
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              disabled={!data.isOffline}>
               <auth-button
                 text
+                disabled={data.isOffline}
                 class="mr-8"
                 action-id="tendbcluster_spider_add_nodes"
                 onClick={() => handleShowScaleUp(data)}>
                 { t('扩容接入层') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              disabled={!data.isOffline}>
               <auth-button
-              text
-              class="mr-8"
-              action-id="tendbcluster_spider_reduce_nodes"
-              onClick={() => handleShowShrink(data)}>
-              { t('缩容接入层') }
-            </auth-button>
+                text
+                disabled={data.isOffline}
+                class="mr-8"
+                action-id="tendbcluster_spider_reduce_nodes"
+                onClick={() => handleShowShrink(data)}>
+                { t('缩容接入层') }
+              </auth-button>
             </OperationBtnStatusTips>,
           ];
           if (data.spider_mnt.length > 0) {
@@ -672,6 +678,7 @@
             <OperationBtnStatusTips data={data}>
               <auth-button
                 text
+                disabled={data.operationDisabled}
                 class="mr-8"
                 action-id="tendbcluster_enable_disable"
                 permission={data.permission.tendbcluster_enable_disable}
