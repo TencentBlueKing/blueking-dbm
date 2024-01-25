@@ -17,17 +17,17 @@ from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBTicketFlowBuilder,
+    BaseMongoOperateFlowParamBuilder,
     DBTableSerializer,
 )
-from backend.ticket.builders.mongodb.mongo_backup import MongoDBBackupFlowParamBuilder
 from backend.ticket.constants import TicketType
 
 
 class MongoDBClearDetailSerializer(BaseMongoDBOperateDetailSerializer):
     class ClearDetailSerializer(serializers.Serializer):
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        drop_index = serializers.BooleanField(help_text=_("是否删除索引"))
+        cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         drop_type = serializers.ChoiceField(help_text=_("删除类型"), choices=MongoDBDropType.get_choices())
+        drop_index = serializers.BooleanField(help_text=_("是否删除索引"))
         ns_filter = DBTableSerializer(help_text=_("库表选择器"))
 
     infos = serializers.ListSerializer(help_text=_("清档信息"), child=ClearDetailSerializer())
@@ -36,11 +36,12 @@ class MongoDBClearDetailSerializer(BaseMongoDBOperateDetailSerializer):
         return attrs
 
 
-class MongoDBClearFlowParamBuilder(builders.FlowParamBuilder):
+class MongoDBClearFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
     controller = MongoDBController.fake_scene
 
     def format_ticket_data(self):
-        MongoDBBackupFlowParamBuilder.add_cluster_type_info(self.ticket_data)
+        self.ticket_data["infos"] = self.scatter_cluster_id_info(self.ticket_data["infos"])
+        self.ticket_data["infos"] = self.add_cluster_type_info(self.ticket_data["infos"])
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_REMOVE_NS)
