@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
-from backend.flow.consts import MongoDBManagerUser, MongoDBUserPrivileges
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
@@ -50,8 +49,25 @@ class PrivilegeType:
             ALL_PRIVILEGES = EnumField("all privileges", _("all privileges"))
 
     class MongoDB:
-        USER = MongoDBUserPrivileges
-        MANAGER = MongoDBManagerUser
+        class USER(str, StructuredEnum):
+            READ = EnumField("Read", _("Read"))
+            READ_write = EnumField("readWrite", _("readWrite"))
+            READ_ANY_DATABASE = EnumField("readAnyDatabase", _("readAnyDatabase"))
+            READ_WRITE_ANY_DATABASE = EnumField("readWriteAnyDatabase", _("readWriteAnyDatabase"))
+
+        class MANAGER(str, StructuredEnum):
+            DBADMIN = EnumField("dbAdmin", _("dbAdmin"))
+            BACKUP = EnumField("backup", _("backup"))
+            RESTORE = EnumField("restore", _("restore"))
+            USER_ADMIN = EnumField("userAdmin", _("userAdmin"))
+            CLUSTER_ADMIN = EnumField("clusterAdmin", _("clusterAdmin"))
+            CLUSTER_MANAGER = EnumField("clusterManager", _("clusterManager"))
+            CLUSTER_MONITOR = EnumField("clusterMonitor", _("clusterMonitor"))
+            HOST_MANAGER = EnumField("hostManager", _("hostManager"))
+            USER_ADMIN_ANY_DATABASE = EnumField("userAdminAnyDatabase", _("userAdminAnyDatabase"))
+            DB_ADMIN_ANY_DATABASE = EnumField("dbAdminAnyDatabase", _("dbAdminAnyDatabase"))
+            DB_OWNER = EnumField("dbOwner", _("dbOwner"))
+            ROOT = EnumField("root", _("root"))
 
 
 class AccountType(str, StructuredEnum):

@@ -16,6 +16,7 @@ from django.core.cache import cache
 from django.http.response import HttpResponse
 
 from backend import env
+from backend.db_meta.enums import ClusterType
 from backend.db_services.dbpermission.constants import AUTHORIZE_DATA_EXPIRE_TIME
 from backend.db_services.dbpermission.db_authorize.dataclass import AuthorizeMeta, ExcelAuthorizeMeta
 from backend.db_services.dbpermission.db_authorize.models import AuthorizeRecord
@@ -67,7 +68,7 @@ class AuthorizeHandler(object):
             "pre_check": pre_check,
             "message": message,
             "authorize_uid": authorize_uid,
-            "authorize_data": authorize.to_dict(),
+            "authorize_data": authorize_data,
             "task_index": task_index,
         }
 
@@ -113,8 +114,9 @@ class AuthorizeHandler(object):
         # 缓存excel授权数据，删除线程中pre_check产生的缓存，并返回校验结果
         cache.delete_many(to_delete_cache_uid_list)
         authorize_uid = data_cache(key=None, data=to_cache_data_list, cache_time=AUTHORIZE_DATA_EXPIRE_TIME)
+        db_type = ClusterType.cluster_type_to_db_type(excel_authorize.cluster_type)
         excel_url = (
-            f"{env.BK_SAAS_HOST}/apis/mysql/bizs/{self.bk_biz_id}/permission/authorize"
+            f"{env.BK_SAAS_HOST}/apis/{db_type}/bizs/{self.bk_biz_id}/permission/authorize"
             f"/get_authorize_info_excel/?authorize_uid={authorize_uid}"
         )
 

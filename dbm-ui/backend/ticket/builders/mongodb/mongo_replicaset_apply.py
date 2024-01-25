@@ -17,7 +17,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
-from backend.ticket.builders.mongodb.base import BaseMongoDBTicketFlowBuilder
+from backend.ticket.builders.mongodb.base import BaseMongoDBOperateResourceParamBuilder, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
@@ -78,7 +78,7 @@ class MongoReplicaSetApplyFlowParamBuilder(builders.FlowParamBuilder):
         print(self.ticket_data)
 
 
-class MongoReplicaSetApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class MongoReplicaSetResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         pass
 
@@ -96,28 +96,32 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoReplicaSetApplyDetailSerializer
     inner_flow_builder = MongoReplicaSetApplyFlowParamBuilder
     inner_flow_name = _("MongoDB 副本集集群部署执行")
-    resource_batch_apply_builder = MongoReplicaSetApplyResourceParamBuilder
+    resource_batch_apply_builder = MongoReplicaSetResourceParamBuilder
 
-    def patch_ticket_detail(self):
-        # 补充资源池的申请参数
-        node_count = self.ticket.details["node_count"]
-        node_replica_count = self.ticket.details["node_replica_count"]
-        replica_count = self.ticket.details["replica_count"]
-        group_count = int(replica_count / node_replica_count)
-        self.ticket.details["infos"] = [
+    @classmethod
+    def get_replicaset_resource_spec(cls, ticket_data):
+        """获取副本集部署的资源池规格信息"""
+        # TODO: 为什么这样计算group_count？
+        group_count = int(ticket_data["replica_count"] / ticket_data["node_replica_count"])
+        infos = [
             {
-                "bk_cloud_id": self.ticket.details["bk_cloud_id"],
+                "bk_cloud_id": ticket_data["bk_cloud_id"],
                 "resource_spec": {
                     "mongo_machine_set": {
-                        "affinity": self.ticket.details["disaster_tolerance_level"],
-                        "location_spec": {"city": self.ticket.details["city_code"], "sub_zone_ids": []},
+                        "affinity": ticket_data["disaster_tolerance_level"],
+                        "location_spec": {"city": ticket_data["city_code"], "sub_zone_ids": []},
                         "group_count": group_count,
-                        "count": node_count,
-                        "spec_id": self.ticket.details["spec_id"],
+                        "count": ticket_data["node_count"],
+                        "spec_id": ticket_data["spec_id"],
                         "set_id": replica_set["set_id"],
                     }
                 },
             }
-            for replica_set in self.ticket.details["replica_sets"]
+            for replica_set in ticket_data["replica_sets"]
         ]
+        return infos
+
+    def patch_ticket_detail(self):
+        # 补充资源池的申请参数
+        self.ticket.details["infos"] = self.get_replicaset_resource_spec(self.ticket.details)
         self.ticket.save(update_fields=["details"])

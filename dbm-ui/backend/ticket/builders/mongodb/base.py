@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from contextlib import contextmanager
-from typing import List
+from typing import Dict, List
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
@@ -17,6 +17,7 @@ from rest_framework import serializers
 from backend.configuration.constants import AffinityEnum, DBType
 from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.flow.utils.mongodb.db_table_filter import MongoDbTableFilter
+from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
@@ -82,6 +83,26 @@ class BaseMongoDBOperateDetailSerializer(SkipToRepresentationMixin, serializers.
 
     def validate(self, attrs):
         return attrs
+
+
+class BaseMongoOperateFlowParamBuilder(builders.FlowParamBuilder):
+    @classmethod
+    def scatter_cluster_id_info(cls, infos):
+        """打散集群ID，拆成一个个的item"""
+        scattered_infos: List[Dict] = []
+        for info in infos:
+            cluster_ids = info.pop("cluster_ids")
+            scattered_infos.extend([{**info, "cluster_id": cluster_id} for cluster_id in cluster_ids])
+        return scattered_infos
+
+    @classmethod
+    def add_cluster_type_info(cls, infos):
+        """给每个info加上集群类型"""
+        cluster_ids = [info["cluster_id"] for info in infos]
+        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        for info in infos:
+            info["cluster_type"] = id__cluster[info["cluster_id"]].cluster_type
+        return infos
 
 
 class BaseMongoDBOperateResourceParamBuilder(BaseOperateResourceParamBuilder):
