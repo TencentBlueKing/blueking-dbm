@@ -20,7 +20,10 @@
         :class="{
           'is-unavailable': item.status === 'unavailable'
         }">
-        <span>{{ item.ip }}:{{ item.port }}</span>
+        <span :style="{ color: highlightIps.includes(item.ip) ? 'rgb(255 130 4)' : '#63656e' }">
+          {{ item.ip }}
+        </span>
+        <span>:{{ item.port }}</span>
         <span
           v-if="item.status === 'unavailable'"
           class="unavailable-flag">
@@ -124,6 +127,7 @@
     clusterId: number,
     originalList: Array<{ip: string, port: number, status: 'running' | 'unavailable'}>;
     dataSource: (params: any)=> Promise<any>,
+    highlightIps?: string[],
   }
 
   interface ITableData {
@@ -132,7 +136,9 @@
     role: string,
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    highlightIps: () => [],
+  });
 
   const maxRenderNum = 3;
 

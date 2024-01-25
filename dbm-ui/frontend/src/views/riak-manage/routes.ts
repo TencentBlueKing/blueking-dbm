@@ -34,6 +34,7 @@ const routes: RouteRecordRaw[] = [
         path: 'list',
         meta: {
           navName: t('Riak_集群管理'),
+          fullscreen: true,
         },
         component: () => import('@views/riak-manage/list/Index.vue'),
       },

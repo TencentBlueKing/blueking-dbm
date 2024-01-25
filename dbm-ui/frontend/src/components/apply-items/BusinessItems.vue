@@ -31,7 +31,7 @@
       v-model="state.appAbbr"
       v-bk-tooltips="{
         trigger: 'click',
-        placement: 'right',
+        placement: 'top',
         theme: 'light',
         content: dbAppAbbrPlaceholder
       }"

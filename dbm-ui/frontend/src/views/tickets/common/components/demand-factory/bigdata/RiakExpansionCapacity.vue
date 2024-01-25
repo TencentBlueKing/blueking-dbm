@@ -23,21 +23,33 @@
           <span class="ticket-details__item-label">{{ t('集群ID') }}：</span>
           <span class="ticket-details__item-value">{{ rowData?.clusterId || '--' }}</span>
         </div>
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ t('服务器选择方式') }}：</span>
-          <span class="ticket-details__item-value">{{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }} </span>
-        </div>
         <template v-if="isScaleUp">
           <div class="ticket-details__item">
-            <span class="ticket-details__item-label">{{ t('扩容规格') }}：</span>
-            <span class="ticket-details__item-value">{{ rowData?.specName || '--' }}</span>
+            <span class="ticket-details__item-label">{{ t('服务器选择方式') }}：</span>
+            <span class="ticket-details__item-value">{{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }} </span>
           </div>
-          <div class="ticket-details__item">
-            <span class="ticket-details__item-label">{{ t('扩容数量') }}：</span>
-            <span class="ticket-details__item-value">
-              {{ t('n台', [rowData?.count]) || '--' }}
-            </span>
-          </div>
+          <template v-if="isFromResourcePool">
+            <div class="ticket-details__item">
+              <span class="ticket-details__item-label">{{ t('扩容规格') }}：</span>
+              <span class="ticket-details__item-value">{{ rowData?.specName || '--' }}</span>
+            </div>
+            <div class="ticket-details__item">
+              <span class="ticket-details__item-label">{{ t('扩容数量') }}：</span>
+              <span class="ticket-details__item-value">
+                {{ t('n台', [rowData?.count]) || '--' }}
+              </span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="ticket-details__item table">
+              <span class="ticket-details__item-label">{{ t('已选IP') }}：</span>
+              <span class="ticket-details__item-value">
+                <BkTable
+                  :columns="tableColumns"
+                  :data="ipList" />
+              </span>
+            </div>
+          </template>
         </template>
       </div>
     </div>
@@ -65,12 +77,15 @@
           spec_id: number
         }
       },
-      nodes: Array<{
-        bk_biz_id: number
-        bk_cloud_id: number
-        bk_host_id: number
-        ip: string
-      }>
+      nodes?: {
+        riak: Array<{
+          bk_cloud_id: number
+          bk_host_id: number
+          ip: string,
+          alive: number,
+          bk_disk: number,
+        }>
+      }
     }>
   }
 
@@ -89,6 +104,24 @@
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
   const clusterId = props.ticketDetails.details.cluster_id;
   const clusterInfo = props.ticketDetails.details.clusters?.[clusterId] || {};
+
+  const tableColumns = [
+    {
+      label: t('节点 IP'),
+      field: 'ip',
+    },
+    {
+      label: t('Agent状态'),
+      field: 'alive',
+      render: ({ data }: { data: { alive: number } }) => <span>{data.alive === 1 ? t('正常') : t('异常')}</span>,
+    },
+    {
+      label: t('磁盘_GB'),
+      field: 'bk_disk',
+    },
+  ];
+
+  const ipList = computed(() => props.ticketDetails.details?.nodes?.riak || []);
 
   const { loading } = useRequest(getResourceSpecList, {
     defaultParams: [{
