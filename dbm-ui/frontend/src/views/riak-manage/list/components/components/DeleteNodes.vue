@@ -12,7 +12,7 @@
 -->
 <template>
   <div class="delete-nodes">
-    <NodeNumber :id="id" />
+    <NodeNumber :id="data.id" />
     <BkAlert
       v-if="normalCount <= 3"
       theme="warning"
@@ -30,6 +30,7 @@
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
+  import RiakModel from '@services/model/riak/riak';
   import RiakNodeModel from '@services/model/riak/riak-node';
   import { getRiakNodeList } from '@services/source/riak';
   import { createTicket } from '@services/source/ticket';
@@ -47,8 +48,7 @@
   import NodeNumber from './components/NodeNumber.vue';
 
   interface Props {
-    id: number
-    cloudId: number
+    data: RiakModel
   }
 
   interface Emits {
@@ -110,7 +110,7 @@
   const fetchData = () => {
     tableRef.value.fetchData({}, {
       bk_biz_id: currentBizId,
-      cluster_id: props.id,
+      cluster_id: props.data.id,
     });
   };
 
@@ -122,7 +122,7 @@
     submit() {
       return new Promise((resolve, reject) => {
         const params = {
-          id: props.id,
+          id: props.data.id,
           nodes: tableRef.value.bkTableRef.getSelection(),
         };
 
@@ -150,8 +150,8 @@
                 bk_biz_id: currentBizId,
                 ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_IN,
                 details: {
-                  cluster_id: props.id,
-                  bk_cloud_id: props.cloudId,
+                  cluster_id: props.data.id,
+                  bk_cloud_id: props.data.bk_cloud_id,
                   nodes: tableRef.value.bkTableRef.getSelection().map((nodeItem: RiakNodeModel) => ({
                     ip: nodeItem.ip,
                     bk_host_id: nodeItem.bk_host_id,
