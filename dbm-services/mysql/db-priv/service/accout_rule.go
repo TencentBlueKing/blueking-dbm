@@ -323,7 +323,7 @@ func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, db
 
 // ParaPreCheck 入参AccountRulePara检查
 func (m *AccountRulePara) ParaPreCheck() error {
-	ConstPrivType := []string{"dml", "ddl", "global"}
+	ConstPrivType := []string{"dml", "ddl", "global", "mongo_user", "mongo_manager"}
 	if m.BkBizId == 0 {
 		return errno.BkBizIdIsEmpty
 	}
