@@ -123,11 +123,7 @@ export default (): RouteRecordRaw[] => [
         meta: {
           navName: t('申请SQLServer单节点部署'),
         },
-<<<<<<< HEAD
         component: () => import('@views/sqlserver-manage/apply/SqlServer.vue'),
-=======
-        component: () => import('@views/sqlserver-manage/apply/Sqlserver.vue'),
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
       },
       {
         name: 'SqlServiceHaApply',
@@ -135,11 +131,7 @@ export default (): RouteRecordRaw[] => [
         meta: {
           navName: t('申请SQLServer主从部署'),
         },
-<<<<<<< HEAD
         component: () => import('@views/sqlserver-manage/apply/SqlServer.vue'),
-=======
-        component: () => import('@views/sqlserver-manage/apply/Sqlserver.vue'),
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
       },
       {
         name: 'SqlServerCreateDbModule',

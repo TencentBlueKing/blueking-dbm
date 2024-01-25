@@ -2,11 +2,7 @@ import dayjs from 'dayjs';
 
 import { t } from '@locales';
 
-<<<<<<< HEAD
 export default class SqlServerCluster {
-=======
-export default class SQLServerClusterList {
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   static statusMap: Record<string, string> = {
     running: t('正常'),
     unavailable: t('异常'),
@@ -38,11 +34,7 @@ export default class SQLServerClusterList {
   slave_enter: string;
   status: string;
 
-<<<<<<< HEAD
   constructor(payload: SqlServerCluster) {
-=======
-  constructor(payload: SQLServerClusterList) {
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
     this.belong_DB_module = payload.belong_DB_module;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -66,17 +58,11 @@ export default class SQLServerClusterList {
   }
 
   get dbStatusConfigureObj() {
-<<<<<<< HEAD
     const text = SqlServerCluster.statusMap[this.status] || '--';
     const theme = SqlServerCluster.themes[this.status] || 'danger';
     return {
       text,
       theme,
     };
-=======
-    const text = SQLServerClusterList.statusMap[this.status] || '--';
-    const theme = SQLServerClusterList.themes[this.status] || 'danger';
-    return { text, theme };
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   }
 }

@@ -125,11 +125,7 @@
       'DatabaseWhitelist',
       'ticketManage',
       'DBPasswordTemporaryModify',
-<<<<<<< HEAD
       'SqlServerManage',
-=======
-      'SqlserverManage',
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
     ],
     [menuEnum.observableManage]: [
       'DBHASwitchEvents',

@@ -12,11 +12,7 @@
   import Pulsar from './Pulsar.vue';
   import Redis from './Redis.vue';
   import Riak from './Riak.vue';
-<<<<<<< HEAD
   import SqlServer from './SqlServer.vue';
-=======
-  import SQLServer from './Sqlserver.vue';
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   import TendbCluster from './TendbCluster.vue';
 
   interface Props {
@@ -35,11 +31,7 @@
     redis: Redis,
     tendbCluster: TendbCluster,
     riak: Riak,
-<<<<<<< HEAD
     sqlserver: SqlServer,
-=======
-    sqlserver: SQLServer,
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   };
 
   const renderCom = computed(() => comMap[props.name as keyof typeof comMap]);

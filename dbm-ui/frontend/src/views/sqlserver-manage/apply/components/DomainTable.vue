@@ -10,11 +10,7 @@
 
 <script setup lang="tsx">
   import type { Column } from 'bkui-vue/lib/table/props';
-<<<<<<< HEAD
   import _ from 'lodash';
-=======
-  import { merge } from 'lodash';
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   import { useI18n } from 'vue-i18n';
 
   import type { HostDetails } from '@services/types';
@@ -24,11 +20,10 @@
   import BatchEdit from './BatchEdit.vue';
 
   interface IFormdata {
-<<<<<<< HEAD
     ticket_type: string;
     remark: string;
     details: {
-      db_app_abbr:string;
+      db_app_abbr: string;
       bk_cloud_id: number;
       city_code: string;
       db_module_id: number;
@@ -57,44 +52,12 @@
       disaster_tolerance_level: string;
     };
     bk_biz_id: number | string;
-=======
-    bk_biz_id: '' | number,
-    remark: string,
-    ticket_type: string,
-    details: {
-      bk_cloud_id:number,
-      city_code: string,
-      db_app_abbr: string,
-      spec: string,
-      db_module_id: null | number,
-      cluster_count: number,
-      inst_num: number,
-      start_sqlserver_port: number,
-      domains: Array<{ key:string }>,
-      ip_source: string,
-      nodes: {
-        backend: HostDetails[],
-      },
-      resource_spec:{
-        count: number,
-        spec_id: string,
-        location_spec: {
-          city: string,
-          sub_zone_ids:any [],
-        },
-      }
-    },
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   }
 
   interface Props {
     moduleName: string,
-<<<<<<< HEAD
     formData: IFormdata,
-=======
-    formdata: IFormdata,
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
-    isSqlserverSingle:boolean,
+    isSqlserverSingle: boolean,
   }
 
   const props = defineProps<Props>();
@@ -110,18 +73,12 @@
    * 没有 moduleName 和 appName 则不展示 table 数据
    */
   const tableData = computed(() => {
-<<<<<<< HEAD
     const {
       moduleName,
       formData,
     } = props;
     if (moduleName && (formData.details.db_app_abbr)) {
       return formData.details.domains;
-=======
-    const { moduleName, formdata } = props;
-    if (moduleName && (formdata.details.db_app_abbr)) {
-      return formdata.details.domains;
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
     }
     return [];
   });
@@ -174,21 +131,12 @@
             props.isSqlserverSingle ? t('域名') : t('主域名')
           }
           {
-<<<<<<< HEAD
             tableData.value.length !== 0
             && <BatchEdit
-                  v-bk-tooltips={ t('快捷编辑_可通过换行分隔_快速编辑多个域名') }
-                  moduleName={ props.moduleName }
-                  appName={ props.formData.details.db_app_abbr }
-=======
-            tableData.value.length === 0
-              ? null
-              : <BatchEdit
-                  v-bk-tooltips={ t('快捷编辑_可通过换行分隔_快速编辑多个域名') }
-                  moduleName={ props.moduleName }
-                  appName={ props.formdata.details.db_app_abbr }
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
-                  onChange={ handleBatchEditDomains } />
+              v-bk-tooltips={ t('快捷编辑_可通过换行分隔_快速编辑多个域名') }
+              moduleName={ props.moduleName }
+              appName={ props.formData.details.db_app_abbr }
+              onChange={ handleBatchEditDomains } />
           }
         </span>
       ),
@@ -206,11 +154,7 @@
     return columns;
   });
 
-<<<<<<< HEAD
   watch(() => props.formData.details.cluster_count, () => {
-=======
-  watch(() => props.formdata.details.cluster_count, () => {
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
     if (domainRefs.length > 1) {
       domainRefs.splice(0, domainRefs.length - 1);
     }
@@ -221,21 +165,13 @@
    */
   const handleBatchEditDomains = (realm: string[]) => {
     if (realm.length !== 0) {
-<<<<<<< HEAD
       const results = props.formData.details.domains;
-=======
-      const results = [...props.formdata.details.domains];
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
       results.forEach((item, index) => {
         if (realm[index]) {
           results[index].key = realm[index];
         }
       });
-<<<<<<< HEAD
       _.merge(domains, results);
-=======
-      merge(domains, results);
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
       // 校验域名信息
       nextTick(() => {
         domainRefs.forEach((item) => {
@@ -248,55 +184,52 @@
   /**
    * 编辑域名
    */
-  const  handleChangeDomain = (value: string) => {
+  const handleChangeDomain = (value: string) => {
     domains.value = [{ key: value }];
   };
 
   /**
    * 渲染域名编辑
    */
-  const  renderDomain = (rowIndex: number, isMain = false) => (
-      <div class="domain-address">
-        <span>{ props.moduleName }{ isMain ? 'db.' : 'dr.' }</span>
-        {
-          isMain
-            ? (
-              <bk-form-item
-                ref={ setDomainRef }
-                class="domain-address__item"
-                errorDisplayType="tooltips"
-                property={ `details.domains.${rowIndex}.key` }
-                key={ rowIndex }
-                rules={ domainRule }
-                label-width={ 0 }>
-                <bk-input
-                  style="width:260px"
-<<<<<<< HEAD
+  const renderDomain = (
+    rowIndex: number,
+    isMain = false,
+  ) => (
+  <div class="domain-address">
+    <span>{ props.moduleName }{ isMain ? 'db.' : 'dr.' }</span>
+    {
+      isMain
+        ? (
+          <bk-form-item
+            ref={ setDomainRef }
+            class="domain-address__item"
+            errorDisplayType="tooltips"
+            property={ `details.domains.${rowIndex}.key` }
+            key={ rowIndex }
+            rules={ domainRule }
+            label-width={ 0 }>
+            <bk-input
+              style="width:260px"
                   model-value={ props.formData.details.domains[rowIndex]?.key }
-=======
-                  model-value={ props.formdata.details.domains[rowIndex]?.key }
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
                   placeholder={ t('请输入') }
-                  v-bk-tooltips={{
-                    trigger: 'click',
-                    placement: 'top',
-                    theme: 'light',
-                    content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-                  }}
-                  onInput={ (value: string) => handleChangeDomain(value) }
-                />
-              </bk-form-item>
-            )
-<<<<<<< HEAD
-            : <span class="domain-address__placeholder">{ props.formData.details.domains[rowIndex]?.key }</span>
-      }
-      <span>{ `.${props.formData.details.db_app_abbr}.db` }</span>
-=======
-            : <span class="domain-address__placeholder">{ props.formdata.details.domains[rowIndex]?.key }</span>
-      }
-      <span>{ `.${props.formdata.details.db_app_abbr}.db` }</span>
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
-      </div>
+              v-bk-tooltips={{
+                trigger: 'click',
+                placement: 'top',
+                theme: 'light',
+                content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+              }}
+              onInput={ (value: string) => handleChangeDomain(value) }
+            />
+          </bk-form-item>
+        )
+        : <span class="domain-address__placeholder">
+          { props.formData.details.domains[rowIndex]?.key }
+          </span>
+    }
+      <span>
+      {`.${props.formData.details.db_app_abbr}.db`}
+      </span>
+  </div>
   );
 </script>
 

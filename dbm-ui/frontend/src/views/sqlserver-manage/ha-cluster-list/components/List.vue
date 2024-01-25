@@ -40,12 +40,10 @@
             </BkDropdownMenu>
           </template>
         </BkDropdown>
-        <BkButton
-          class="ml-8">
+        <BkButton class="ml-8">
           {{ t('批量授权') }}
         </BkButton>
-        <BkButton
-          class="ml-8">
+        <BkButton class="ml-8">
           {{ t('导入授权') }}
         </BkButton>
         <DropdownExportExcel
@@ -91,12 +89,8 @@
     useRouter,
   } from 'vue-router';
 
-<<<<<<< HEAD
   import SqlServerClusterModel from '@services/model/sqlserver/sqlserver-cluster';
-=======
-  import SqlServerClusterListModel from '@services/model/sqlserver/sqlserver-cluster-list';
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
-  import {  getHaClusterList } from '@services/source/sqlserveHaCluster';
+  import { getHaClusterList } from '@services/source/sqlserveHaCluster';
 
   import { useCopy } from '@hooks';
   import {
@@ -110,11 +104,7 @@
   import { ClusterTypes } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
-<<<<<<< HEAD
   import OperationBtnStatusTips from '@components/cluster-common/OperationStatusTips.vue';
-=======
-  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
@@ -127,7 +117,7 @@
 
   import type { SearchSelectValues } from '@types/bkui-vue';
 
-  interface copyListType{
+  interface copyListType {
     ip: string,
     name: string,
     port: number,
@@ -157,11 +147,7 @@
 
   const searchData = [
     {
-<<<<<<< HEAD
       name: t('实例'),
-=======
-      name: '实例',
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
       id: 'instance_address',
     },
     {
@@ -176,11 +162,7 @@
 
   const tableRef = ref();
   const isCopyDropdown = ref(false);
-<<<<<<< HEAD
   const selected = ref<SqlServerClusterModel[]>([]);
-=======
-  const selected = ref<SqlServerClusterListModel[]>([]);
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   const searchValues = ref<SearchSelectValues>([]);
   const isAnomalies = ref(false);
   const pagination = ref<IPagination>(useDefaultPagination());
@@ -226,39 +208,31 @@
       label: t('主访问入口'),
       field: 'master_enter',
       fixed: 'left',
-<<<<<<< HEAD
       render: ({ data }: { data: SqlServerClusterModel }) => (
-=======
-      render: ({ data }: { data: SqlServerClusterListModel }) => (
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
-        <div class = "domain">
-         <RenderTextEllipsisOneLine
-           onClick = { () => handleToDetails(data) }
-           text = { data.master_enter }>
-            <div style="display: flex; align-items: center;">
-              <db-icon
-                type="copy"
-                v-bk-tooltips={ t('复制主访问入口') }
-                onClick={ () => copy(data.master_enter) }/>
-              <db-icon
-                type="link"
-                v-bk-tooltips={ t('新开tab打开') }/>
-              <div class="text-overflow" v-overflow-tips>
-                {
-                  data.isNew
-<<<<<<< HEAD
-                  &&  <span
-=======
-                  && <span
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
-                       class="glob-new-tag cluster-tag ml-4"
-                       data-text="NEW"/>
-                }
-              </div>
+      <div class="domain">
+        <RenderTextEllipsisOneLine
+          onClick = { () => handleToDetails(data) }
+          text = { data.master_enter }>
+          <div style="display: flex; align-items: center;">
+            <db-icon
+              type="copy"
+              v-bk-tooltips={ t('复制主访问入口') }
+              onClick={ () => copy(data.master_enter) }/>
+            <db-icon
+              type="link"
+              v-bk-tooltips={ t('新开tab打开') }/>
+            <div class="text-overflow" v-overflow-tips>
+              {
+                data.isNew
+                && <span
+                  class="glob-new-tag cluster-tag ml-4"
+                  data-text="NEW"/>
+              }
             </div>
-         </RenderTextEllipsisOneLine>
-        </div>
-      ),
+          </div>
+        </RenderTextEllipsisOneLine>
+      </div>
+    ),
     },
     {
       label: t('从访问入口'),
@@ -277,11 +251,7 @@
       label: t('状态'),
       field: 'status',
       sort: true,
-<<<<<<< HEAD
       render: ({ data }: { data: SqlServerClusterModel }) => {
-=======
-      render: ({ data }: { data: SqlServerClusterListModel }) => {
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
         const { text, theme } = data.dbStatusConfigureObj;
         return <DbStatus theme={ theme }>{ text }</DbStatus>;
       },
@@ -289,17 +259,13 @@
     {
       label: t('实例'),
       field: 'instance_name',
-<<<<<<< HEAD
       render: ({ data }: { data: SqlServerClusterModel }) => (
-=======
-      render: ({ data }: { data: SqlServerClusterListModel }) => (
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
-        <RenderInstances
-          data={ data.proxies }
-          title={ t('【inst】实例预览', { inst: data.bk_cloud_name, title: 'Proxy' }) }
-          role="proxy"
-          clusterId={ data.id }/>
-      ),
+      <RenderInstances
+        data={ data.proxies }
+        title={ t('【inst】实例预览', { inst: data.bk_cloud_name, title: 'Proxy' }) }
+        role="proxy"
+        clusterId={ data.id }/>
+    ),
     },
     {
       label: t('所属DB模块'),
@@ -320,91 +286,59 @@
       field: 'operation',
       width: tableOperationWidth.value,
       fixed: 'right',
-<<<<<<< HEAD
       render: ({ data }: { data: SqlServerClusterModel }) => (
-       <>
-        <OperationBtnStatusTips  data={ data }>
-=======
-      render: ({ data }: { data: SqlServerClusterListModel }) => (
-       <>
-        <OperationStatusTips class="mr8">
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
+      <>
+        <OperationBtnStatusTips data={ data }>
           <bk-button
             text
             theme="primary"
             class="mr-8"
             onClick={ () => handleShowAuthorize([data]) }>
-             { t('授权') }
+            { t('授权') }
           </bk-button>
-<<<<<<< HEAD
-        </OperationBtnStatusTips>
-          {
-           <>
-            <OperationBtnStatusTips  data={ data }>
-=======
-        </OperationStatusTips>
-          {
-           <>
-            <OperationStatusTips class="mr8">
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
+        </OperationBtnStatusTips >
+        {
+          <>
+            <OperationBtnStatusTips data={data}>
               <bk-button
                 text
                 theme="primary"
                 class="mr-8">
-                 { t('禁用') }
+                {t('禁用')}
               </bk-button>
-<<<<<<< HEAD
             </OperationBtnStatusTips>
-            <OperationBtnStatusTips  data={ data }>
-=======
-            </OperationStatusTips>
-            <OperationStatusTips class="mr8">
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
+            <OperationBtnStatusTips data={ data }>
               <bk-button
                 text
                 theme="primary"
                 class="mr-8">
-                 { t('启用') }
+                { t('启用') }
               </bk-button>
-<<<<<<< HEAD
             </OperationBtnStatusTips>
-            <OperationBtnStatusTips  data={ data }>
-=======
-            </OperationStatusTips>
-            <OperationStatusTips class="mr8">
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
+            <OperationBtnStatusTips data={ data }>
               <bk-button
                 text
                 theme="primary"
                 class="mr-8">
-                 { t('重置') }
+                {t('重置')}
               </bk-button>
-<<<<<<< HEAD
             </OperationBtnStatusTips>
-            <OperationBtnStatusTips  data={ data }>
-=======
-            </OperationStatusTips>
-            <OperationStatusTips class="mr8">
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
+            <OperationBtnStatusTips data={ data }>
               <bk-button
                 text
                 theme="primary"
                 class="mr-8">
-                 { t('删除') }
+                { t('删除') }
               </bk-button>
-<<<<<<< HEAD
             </OperationBtnStatusTips>
-=======
-            </OperationStatusTips>
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
-           </>
-          }
-        </>
-       ),
+          </>
+        }
+      </>
+    ),
     },
   ];
 
-  const { data } =  useRequest(getHaClusterList);
+  const { data } = useRequest(getHaClusterList);
 
   const handleFetchTableData = () => {
     tableRef.value.fetchData({
@@ -416,26 +350,15 @@
 
   const handleCopy = (
     isInstance: boolean,
-<<<<<<< HEAD
     tableData: SqlServerClusterModel[],
-=======
-    tableData: SqlServerClusterListModel[],
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   ) => {
     const AllCopyList = tableData
       .reduce((
         acc: copyListType[],
-<<<<<<< HEAD
         item: SqlServerClusterModel,
       ) => acc.concat(item.proxies), []);
     if (AllCopyList.length) {
       copy(AllCopyList.map(item => `${item.ip}${isInstance ? `:${item.port}` : ''}`).join('\n'));
-=======
-        item: SqlServerClusterListModel,
-      ) => acc.concat(item.proxies), []);
-    if (AllCopyList.length) {
-      copy(AllCopyList.map((item: copyListType) => `${item.ip}${isInstance ? `:${item.port}` : ''}`).join('\n'));
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
     } else {
       messageWarn(isInstance ? t('没有可复制实例') : t('没有可复制IP'));
     }
@@ -456,20 +379,12 @@
   };
 
   const handleCopyAbnormal = (isInstance = false) => {
-<<<<<<< HEAD
-    const tableData  = (tableRef.value.getData() as SqlServerClusterModel[]).filter(item => item.status !== 'running');
-=======
-    const tableData  = (tableRef.value.getData() as SqlServerClusterListModel[]).filter(item => item.status !== 'running');
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
+    const tableData = (tableRef.value.getData() as SqlServerClusterModel[]).filter(item => item.status !== 'running');
     handleCopy(isInstance, tableData);
   };
 
   // 设置行样式
-<<<<<<< HEAD
   const setRowClass = (row: SqlServerClusterModel) => {
-=======
-  const setRowClass = (row: SqlServerClusterListModel) => {
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
     const classStack = [];
     if (row.isNew) {
       classStack.push('is-new-row');
@@ -483,11 +398,7 @@
   /**
    * 查看详情
    */
-<<<<<<< HEAD
   const handleToDetails = (data: SqlServerClusterModel) => {
-=======
-  const handleToDetails = (data: SqlServerClusterListModel) => {
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
     stretchLayoutSplitScreen();
     haClusterData.value = {
       clusterId: data.clusterId,
@@ -495,13 +406,8 @@
   };
 
   const handleSelection = (
-<<<<<<< HEAD
     data: SqlServerClusterModel,
     list: SqlServerClusterModel[],
-=======
-    data: SqlServerClusterListModel,
-    list: SqlServerClusterListModel[],
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   ) => {
     selected.value = list;
   };
@@ -536,7 +442,7 @@
 <style lang="less" scoped>
 @import "@styles/mixins.less";
 
-.sqlserver-ha-cluster-list{
+.sqlserver-ha-cluster-list {
   height: 100%;
   padding: 24px 0;
   margin: 0 24px;
@@ -546,7 +452,7 @@
     display: flex;
     flex-wrap: wrap;
 
-    .header-select{
+    .header-select {
       flex: 1;
       max-width: 320px;
       min-width: 320px;
@@ -562,7 +468,8 @@
       align-items: center;
     }
 
-    .db-icon-copy, .db-icon-link {
+    .db-icon-copy,
+    .db-icon-link {
       display: none;
       margin-left: 4px;
       color: @primary-color;
@@ -586,7 +493,9 @@
   }
 
   :deep(tr:hover) {
-    .db-icon-copy, .db-icon-link {
+
+    .db-icon-copy,
+    .db-icon-link {
       display: inline-block !important;
     }
   }

@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 export default class SqlServerClusterDetail {
-=======
-export default class SQLServerClusterDetail {
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
   bk_biz_id: number;
   bk_biz_name: string;
   bk_cloud_id: number;
@@ -61,11 +57,7 @@ export default class SQLServerClusterDetail {
   phase: string;
   status: string;
 
-<<<<<<< HEAD
   constructor(payload: SqlServerClusterDetail) {
-=======
-  constructor(payload: SQLServerClusterDetail) {
->>>>>>> e04cfea7539447ae66957742c99b90edb58f0d2e
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
