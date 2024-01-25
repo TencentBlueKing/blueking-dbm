@@ -79,7 +79,7 @@
     UserPersonalSettings,
   } from '@common/const';
 
-  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
 
@@ -158,14 +158,13 @@
               </bk-button>
             </div>
             {
-              data.operations.some(item => item.ticket_type === 'MONGODB_INSTANCE_RELOAD'
-                && item.status === 'RUNNING')
-                 ? <db-icon
-                     svg
-                     type="zhongqizhong"
-                     class="cluster-tag ml-8"
-                     style="width: 38px; height: 16px;" />
-                 : null
+              data.isRebooting && (
+                <db-icon
+                    svg
+                    type="zhongqizhong"
+                    class="cluster-tag ml-8"
+                    style="width: 38px; height: 16px;" />
+              )
             }
           </div>
       ),
@@ -238,22 +237,26 @@
         minWidth: 210,
         render: ({ data } : { data: MongodbInstanceModel }) => (
           <>
-            <OperationStatusTips class="mr8">
+            <OperationBtnStatusTips data={data}>
               <bk-button
                 text
+                class="mr8"
+                disabled={data.isRebooting}
                 theme='primary'
                 onClick={ () => handleChangeInstanceOnline(data, true) }>
                   { t('重启') }
               </bk-button>
-            </OperationStatusTips>
-            <OperationStatusTips style={{ display: 'none' }}>
+            </OperationBtnStatusTips>
+            <OperationBtnStatusTips data={data}>
               <bk-button
                 text
+                style={{ display: 'none' }}
                 theme='primary'
+                disabled={data.operationDisabled}
                 onClick={ () => handleChangeInstanceOnline(data, false) }>
                   { t('禁用') }
               </bk-button>
-            </OperationStatusTips>
+            </OperationBtnStatusTips>
           </>
           ),
       },

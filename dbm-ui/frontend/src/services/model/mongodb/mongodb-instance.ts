@@ -3,6 +3,25 @@ import dayjs from 'dayjs';
 import { t } from '@locales/index';
 
 export default class MongodbInstance {
+  static MONGODB_DISABLE = 'MONGODB_DISABLE';
+  static MONGODB_INSTANCE_RELOAD = 'MONGODB_INSTANCE_RELOAD';
+  static MONGODB_ENABLE = 'MONGODB_ENABLE';
+  static MONGODB_DESTROY = 'MONGODB_DESTROY';
+
+  static operationIconMap = {
+    [MongodbInstance.MONGODB_DISABLE]: 'jinyongzhong',
+    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: 'zhongqizhong',
+    [MongodbInstance.MONGODB_ENABLE]: 'qiyongzhong',
+    [MongodbInstance.MONGODB_DESTROY]: 'shanchuzhong',
+  };
+
+  static operationTextMap = {
+    [MongodbInstance.MONGODB_DISABLE]: t('禁用任务执行中'),
+    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: t('实例重启任务进行中'),
+    [MongodbInstance.MONGODB_ENABLE]: t('启用任务执行中'),
+    [MongodbInstance.MONGODB_DESTROY]: t('删除任务执行中'),
+  };
+
   static themes: Record<string, string> = {
     running: 'success',
   };
@@ -77,5 +96,56 @@ export default class MongodbInstance {
 
   get clusterTypeText() {
     return this.cluster_type === 'MongoReplicaSet' ? t('副本集') : t('分片集群');
+  }
+
+  get isRebooting() {
+    return Boolean(this.operations.find(item => item.ticket_type === MongodbInstance.MONGODB_INSTANCE_RELOAD));
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(MongodbInstance.operationTextMap);
+    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return MongodbInstance.operationTextMap[this.operationRunningStatus];
+  }
+
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return MongodbInstance.operationIconMap[this.operationRunningStatus];
+  }
+
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
+
+  get operationDisabled() {
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
   }
 }
