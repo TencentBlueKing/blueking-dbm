@@ -100,6 +100,10 @@ class PulsarBaseFlow(object):
         base_flow_data["cluster_type"] = ClusterType.Pulsar.value
         cluster = Cluster.objects.get(id=data["cluster_id"])
         self.cluster = cluster
+        self.bk_cloud_id = cluster.bk_cloud_id
+        self.cluster_id = cluster.id
+        self.domain = cluster.immute_domain
+
         base_flow_data["domain"] = cluster.immute_domain
         base_flow_data["cluster_name"] = cluster.name
         base_flow_data["db_version"] = cluster.major_version
@@ -122,6 +126,11 @@ class PulsarBaseFlow(object):
         base_flow_data["token"] = get_token_by_cluster(cluster, 0)
 
         base_flow_data["retention_time"] = int(dbconfig[PulsarRoleEnum.Broker]["defaultRetentionTimeInMinutes"])
+
+        # flow属性添加，保持与上架流程一致
+        self.port = base_flow_data["port"]
+        self.username = base_flow_data["username"]
+        self.password = base_flow_data["password"]
 
         # 扩容需要broker ip
         self.zk_ips = list(
