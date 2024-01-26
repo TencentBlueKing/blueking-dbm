@@ -117,6 +117,30 @@ export default (): RouteRecordRaw[] => [
         },
         component: () => import('@views/service-apply/create-db-module/Index.vue'),
       },
+      {
+        name: 'SqlServiceSingleApply',
+        path: 'sqlserver-single',
+        meta: {
+          navName: t('申请SQLServer单节点部署'),
+        },
+        component: () => import('@views/sqlserver-manage/apply/SqlServer.vue'),
+      },
+      {
+        name: 'SqlServiceHaApply',
+        path: 'sqlserver-ha',
+        meta: {
+          navName: t('申请SQLServer主从部署'),
+        },
+        component: () => import('@views/sqlserver-manage/apply/SqlServer.vue'),
+      },
+      {
+        name: 'SqlServerCreateDbModule',
+        path: 'sqlserver-create-db-module/:type/:bk_biz_id/',
+        meta: {
+          navName: t('新建模块'),
+        },
+        component: () => import('@views/service-apply/create-db-module/SqlServerCreateDbModule.vue'),
+      },
     ],
   },
 ];
