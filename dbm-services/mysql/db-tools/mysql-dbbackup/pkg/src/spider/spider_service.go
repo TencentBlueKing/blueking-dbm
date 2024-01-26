@@ -1,6 +1,7 @@
 package spider
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -232,11 +233,16 @@ func (b GlobalBackupModel) handleQuitTasks(db *sqlx.DB) {
 
 // handleOldTask 移除太久远的任务
 func (b GlobalBackupModel) handleOldTask(db *sqlx.DB) error {
-	sqlB := sq.Delete("").From(b.TableName()).
-		Where(fmt.Sprintf("CreatedAt < DATE_SUB(now(), INTERVAL %d DAY)", cst.SpiderRemoveOldTaskBeforeDays))
-	if _, err := sqlB.RunWith(db).Exec(); err != nil {
+	ctx := context.Background()
+	conn, err := db.DB.Conn(context.Background())
+	// 关闭 binlog 避免 slave 报错
+	if _, err = conn.ExecContext(ctx, "set session sql_log_bin=0"); err != nil {
 		return err
 	}
+
+	sqlStr := fmt.Sprintf("DELETE FROM %s WHERE CreatedAt < DATE_SUB(now(), INTERVAL %d DAY)",
+		b.TableName(), cst.SpiderRemoveOldTaskBeforeDays) // where host ?
+	_, _ = conn.ExecContext(ctx, sqlStr)
 	return nil
 }
 

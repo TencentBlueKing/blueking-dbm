@@ -13,6 +13,7 @@ from collections import defaultdict
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_periodic_task.constants import BACKUP_TASK_SUCCESS
 from backend.db_report.enums import MysqlBackupCheckSubType
 from backend.db_report.models import MysqlBackupCheckReport
 
@@ -63,21 +64,28 @@ def _check_binlog_backup(cluster_type):
                 c.immute_domain, start_time, end_time
             )
         )
+        # todo 需要获取集群的 master 分片实例，或者分片数
 
         items = backup.query_binlog_from_bklog(start_time, end_time)
         instance_binlogs = defaultdict(list)
         shard_binlog_stat = {}
         for i in items:
             instance = "{}:{}".format(i.get("mysql_host"), i.get("mysql_port"))
-            if i.get("mysql_role") == "master" and i.get("backup_status") == 4:
+            if i.get("backup_status") == BACKUP_TASK_SUCCESS:
                 instance_binlogs[instance].append(i.get("file_name"))
+            else:
+                instance_binlogs[instance].append("binlog.000001")  # 人为触发不连续
+
         backup.success = True
+        if not instance_binlogs:
+            backup.success = False
 
         for inst, binlogs in instance_binlogs.items():
             suffixes = [f.split(".", 1)[1] for f in binlogs]
             shard_binlog_stat[inst] = is_consecutive_strings(suffixes)
             if not shard_binlog_stat[inst]:
                 backup.success = False
+
         if not backup.success:
             MysqlBackupCheckReport.objects.create(
                 bk_biz_id=c.bk_biz_id,
