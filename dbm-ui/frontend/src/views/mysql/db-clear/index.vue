@@ -240,11 +240,13 @@
           property={`${index}.db_patterns`}>
           <bk-tag-input
             v-model={data.db_patterns}
+            allow-auto-match
             allow-create
             clearable={false}
             paste-fn={tagInputPasteFn}
             has-delete-icon
             collapse-tags
+            paste-fn={tagInputPasteFn}
             placeholder={t('请输入')}
             onClick={handleShowTips}
             v-clickoutside={handleHideTips}

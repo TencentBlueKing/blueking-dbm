@@ -60,10 +60,10 @@ export default class Dumper {
   ip: string;
   listen_port: number;
   need_transfer: true;
-  operation: {
+  operations: {
     ticket_type?: string;
     ticket_id?: number;
-  };
+  }[];
   phase: string;
   proc_type: string;
   protocol_type: string;
@@ -98,7 +98,7 @@ export default class Dumper {
     this.ip = payload.ip;
     this.listen_port = payload.listen_port;
     this.need_transfer = payload.need_transfer;
-    this.operation = payload.operation;
+    this.operations = payload.operations;
     this.phase = payload.phase;
     this.proc_type = payload.proc_type;
     this.protocol_type = payload.protocol_type;
@@ -113,7 +113,7 @@ export default class Dumper {
 
   // 操作中的状态
   get operationRunningStatus() {
-    return this.operation.ticket_type ?? '';
+    return this.operations[0]?.ticket_type ?? '';
   }
 
   // 操作中的状态描述文本
@@ -133,26 +133,30 @@ export default class Dumper {
 
   // 操作中的单据 ID
   get operationTicketId() {
-    return this.operation.ticket_id ?? 0;
+    return this.operations[0]?.ticket_id ?? 0;
   }
 
-  get isRunning() {
+  get isOnline() {
     return this.phase === 'online';
   }
 
   get isOperating() {
-    return Boolean(this.operation.ticket_type);
+    return Boolean(this.operationRunningStatus);
   }
 
   get isNew() {
     return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
   }
 
+  get isStarting() {
+    return this.operationRunningStatus === Dumper.TBINLOGDUMPER_ENABLE_NODES;
+  }
+
   get operationTagTip() {
     return ({
-      icon: Dumper.operationIconMap[this.operation?.ticket_type ?? ''],
-      tip: Dumper.operationTextMap[this.operation?.ticket_type ?? ''],
-      ticketId: this.operation?.ticket_id ?? 0,
+      icon: Dumper.operationIconMap[this.operations[0]?.ticket_type ?? ''],
+      tip: Dumper.operationTextMap[this.operations[0]?.ticket_type ?? ''],
+      ticketId: this.operations[0]?.ticket_id ?? 0,
     });
   }
 }
