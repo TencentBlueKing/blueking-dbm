@@ -166,6 +166,7 @@
   import RenderInstanceStatus from '@components/cluster-common/RenderInstanceStatus.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
     getSearchSelectorParams,
@@ -252,50 +253,53 @@
       },
       {
         label: t('实例'),
-        minWidth: 200,
+        minWidth: 300,
+        width: 300,
         fixed: 'left',
         field: 'instance',
         showOverflowTooltip: false,
         render: ({ data }: {data: InfluxDBInstanceModel}) => (
-          <div class="instance-box">
-            <div
-              class="instance-name text-overflow"
-              v-overflow-tips>
-              <router-link
-                to={{
-                  name: 'InfluxDBInstDetails',
-                  params: {
-                    instId: data.id,
-                  },
-                  query: {
-                    from: route.name as string,
-                  },
-                }}>
-                {data.instance_address}
-              </router-link>
-            </div>
-            <div class="cluster-tags">
-              {
-                data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-              }
-              <db-icon
-                v-show={!data.isOnline && !data.isRebooting}
-                class="cluster-tag"
-                svg
-                type="yijinyong"
-                style="width: 38px; height: 16px;" />
-              {
-                isRecentDays(data.create_at, 24 * 3)
-                  ? <span class="glob-new-tag cluster-tag" data-text="NEW" />
-                  : null
-              }
-            </div>
-            <db-icon
-              v-bk-tooltips={t('复制实例')}
-              class="mt-4"
-              type="copy"
-              onClick={() => copy(data.instance_address)} />
-          </div>
+          <TextOverflowLayout>
+            {{
+              default: () => (
+                <router-link
+                  to={{
+                    name: 'InfluxDBInstDetails',
+                    params: {
+                      instId: data.id,
+                    },
+                    query: {
+                      from: route.name as string,
+                    },
+                  }}>
+                  {data.instance_address}
+                </router-link>
+              ),
+              append: () => (
+                <>
+                  {
+                    data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                  }
+                  <db-icon
+                    v-show={!data.isOnline && !data.isRebooting}
+                    class="cluster-tag"
+                    svg
+                    type="yijinyong"
+                    style="width: 38px; height: 16px;" />
+                  {
+                    data.isNew && (
+                      <span class="glob-new-tag cluster-tag" data-text="NEW" />
+                    )
+                  }
+                  <db-icon
+                    v-bk-tooltips={t('复制实例')}
+                    class="mt-4"
+                    type="copy"
+                    onClick={() => copy(data.instance_address)} />
+                </>
+              ),
+            }}
+          </TextOverflowLayout>
         ),
       },
       {
@@ -311,10 +315,12 @@
       {
         label: t('创建人'),
         field: 'creator',
+        width: 100,
       },
       {
         label: t('部署时间'),
         field: 'create_at',
+        width: 200,
         render: ({ data }: {data: InfluxDBInstanceModel}) => <span>{data.createAtDisplay}</span>,
       },
       {

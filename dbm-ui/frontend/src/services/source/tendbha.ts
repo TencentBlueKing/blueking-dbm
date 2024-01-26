@@ -43,7 +43,7 @@ export function getTendbhaList(params: {
     .then(data => ({
       ...data,
       results: data.results.map(item => new TendbhaModel(Object.assign(item, {
-        permission: Object.assign(item.permission, data.permission),
+        permission: Object.assign({}, item.permission, data.permission),
       }))),
     }));
 }

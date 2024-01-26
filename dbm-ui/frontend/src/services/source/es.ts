@@ -33,7 +33,7 @@ export function getEsList(params: Record<string, any> & { bk_biz_id: number }) {
     .then(data => ({
       ...data,
       results: data.results.map((item: EsModel) => new EsModel(Object.assign(item, {
-        permission: Object.assign(item.permission, data.permission),
+        permission: Object.assign({}, item.permission, data.permission),
       }))),
     }));
 }

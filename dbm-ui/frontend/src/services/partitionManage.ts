@@ -12,7 +12,7 @@ export const getList = function (params: Record<string, any>) {
     .then(data => ({
       ...data,
       results: data.results.map(item => new PartitionModel(Object.assign(item, {
-        permission: Object.assign(data.permission, item.permission),
+        permission: Object.assign({}, data.permission, item.permission),
       }))),
     }));
 };
