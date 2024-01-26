@@ -290,13 +290,13 @@
             </bk-popover>
           )}
           <RenderOperationTag data={data.operationTagTip} />
-          {!data.isRunning && <MiniTag content={t('已禁用')} extCls='stoped-icon'/>}
+          {!data.isOnline && !data.isStarting && <MiniTag content={t('已禁用')} extCls='stoped-icon'/>}
           {data.isNew && <MiniTag theme='success' content="NEW" extCls='success-icon' />}
         </>;
         return (
           <div class="instance-box">
             <RenderTextEllipsisOneLine
-              key={data.operation.ticket_type}
+              key={data.operationTicketId}
               text={`${data.ip}:${data.listen_port}`}
               textStyle={{ color: '#63656E' }}>
               {content}
@@ -369,11 +369,11 @@
               class='mr-8'
               theme="primary"
               onClick={() => handleOpenOrCloseInstance(data)}>
-                { data.isRunning ? t('禁用') : t('启用') }
+                { data.isOnline ? t('禁用') : t('启用') }
             </bk-button>
             </span>
           </OperationBtnTip>
-          {!data.isRunning && (
+          {!data.isOnline && (
             <OperationBtnTip
               data={data}
               disabled={!data.isOperating}>
@@ -512,7 +512,7 @@
     if (data.isOperating) {
       return;
     }
-    if (data.isRunning) {
+    if (data.isOnline) {
       InfoBox({
         extCls: 'dumper-instance-infobox',
         infoType: 'warning',
@@ -643,7 +643,7 @@
     if (row.isNew) {
       rowClasses.push('is-new-row');
     }
-    if (!row.isRunning) {
+    if (!row.isOnline) {
       rowClasses.push('is-stoped');
     }
     return rowClasses.join(' ');
