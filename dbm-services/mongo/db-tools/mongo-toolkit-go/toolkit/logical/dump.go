@@ -161,12 +161,11 @@ func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter 
 
 func (m *MongoDumpHelper) dumpDbCol(outDir string, logFileName string,
 	dbName string, colList []string, excludeColList []string) (cmdLine string, err error) {
-	dumpCmd := mycmd.NewCmdBuilder().Append(m.MongoDumpBin).
-		Append("-u", m.User, "-p").
-		AppendPassword(m.Pass).
-		Append("--host", m.MongoHost.Host, "--port", m.MongoHost.Port,
-			fmt.Sprintf("--authenticationDatabase=%s", m.AuthDb),
-			"-d", dbName)
+	dumpCmd := mycmd.New(m.MongoDumpBin, "-u", m.User,
+		"-p", mycmd.Password(m.Pass),
+		"--host", m.MongoHost.Host, "--port", m.MongoHost.Port,
+		fmt.Sprintf("--authenticationDatabase=%s", m.AuthDb),
+		"-d", dbName)
 
 	if len(colList) == 1 {
 		dumpCmd.Append("--collection", colList[0])
@@ -186,12 +185,10 @@ func (m *MongoDumpHelper) dumpDbCol(outDir string, logFileName string,
 // LogicalDumpAll  全量逻辑备份
 func (m *MongoDumpHelper) LogicalDumpAll(outDir string, logFileName string) (cmdLine string, err error) {
 	//
-	dumpCmd := mycmd.NewCmdBuilder().Append(m.MongoDumpBin).
-		Append("-u", m.User, "-p").
-		AppendPassword(m.Pass).
-		Append("--host", m.MongoHost.Host, "--port", m.MongoHost.Port,
-			fmt.Sprintf("--authenticationDatabase=%s", m.AuthDb),
-			"-o", outDir, ">", path.Join(outDir, logFileName), "2>&1")
+	dumpCmd := mycmd.New(m.MongoDumpBin, "-u", m.User, "-p", mycmd.Password(m.Pass),
+		"--host", m.MongoHost.Host, "--port", m.MongoHost.Port,
+		fmt.Sprintf("--authenticationDatabase=%s", m.AuthDb),
+		"-o", outDir, ">", path.Join(outDir, logFileName), "2>&1")
 	_, _, _, err = dumpCmd.RunByBash(m.OsUser, time.Hour*24)
 	return dumpCmd.GetCmdLine(m.OsUser, true), errors.Wrap(err, "LogicalDump")
 }
@@ -219,10 +216,8 @@ func (m *MongoDumpHelper) Tar(dumpPath string, zip bool, delDumpPath bool) (tarP
 		tarArg = "cvf"
 		tarFile = fmt.Sprintf("%s.tar", dumpDirName)
 		tarPath = path.Join(path.Dir(dumpPath), tarFile)
-
 	}
-
-	tarCmd := mycmd.NewCmdBuilder().Append("cd", path.Dir(tarPath), "&&", "tar", tarArg, tarFile, dumpDirName)
+	tarCmd := mycmd.New("cd", path.Dir(tarPath), "&&", "tar", tarArg, tarFile, dumpDirName)
 	_, _, _, err = tarCmd.RunByBash("", time.Hour*24)
 	if err != nil {
 		return "", errors.Wrap(err, tarCmd.GetCmdLine("", true))

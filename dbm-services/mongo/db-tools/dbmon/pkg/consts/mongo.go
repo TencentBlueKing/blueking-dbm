@@ -27,7 +27,6 @@ const (
 // MongoBin 相关
 const (
 	mongoSubDirName = "mg"
-	MongoBin        = "/usr/local/mongodb/bin/mongo"
 	MongoToolKit    = "mongo-toolkit-go_Linux"
 )
 
@@ -39,6 +38,16 @@ func GetUsername() string {
 	}
 	return currentUser.Username
 }
+
+/*
+	目录结构
+	 /home/mysql/dbtools
+		mg/mongo-toolkit-go_Linux
+		mg/mongotools/mongodump...
+		mg/mongotools/mongorestore.100
+	1. mongo-toolkit-go_Linux 在 /home/mysql/dbtools/mg 下
+	2. mongodump, mongorestore 在 mongo-toolkit-go_Linux所在目录的 mongotools 下
+*/
 
 // GetDbToolDir 获取dbtool目录，在用户目录 dbtools/mg 下
 func GetDbToolDir(username string) string {

@@ -6,6 +6,7 @@ import (
 	"dbm-services/mongo/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 // BackupTaskOption TODO
@@ -38,15 +39,14 @@ func NewBackupTask() *BackupTask {
 
 // Do 执行任务
 func (task *BackupTask) Do(option *BackupTaskOption) error {
-	// cb := util.NewCmdBuilder()
-	cb := mycmd.NewCmdBuilder()
+
 	backupType := "AUTO"
 	reportFile, _, _ := consts.GetMongoBackupReportPath()
 
-	cb.Append(consts.GetDbTool(consts.MongoToolKit)).Append("backup", "--type", backupType).
-		Append("--host", option.Host).Append("--port", option.Port).
-		Append("--user", option.User).Append("--dir", option.BackupDir).
-		Append("--pass").AppendPassword(option.Password).
+	cb := mycmd.New(consts.GetDbTool(consts.MongoToolKit), "backup", "--type", backupType,
+		"--dir", option.BackupDir,
+		"--host", option.Host, "--port", option.Port,
+		"--user", option.User, "--pass", mycmd.Password(option.Password)).
 		Append("--fullFreq", strconv.Itoa(option.FullFreq), "--incrFreq", strconv.Itoa(option.IncrFreq)).
 		Append("--report-file", reportFile, "--labels", option.Labels)
 
@@ -61,7 +61,7 @@ func (task *BackupTask) Do(option *BackupTaskOption) error {
 	mylog.Logger.Info(fmt.Sprintf("cmdLine: %s", cmdLine))
 
 	// cmd, args := cb.GetCmd()
-	o, err := cb.Run2(3600 * 24)
+	o, err := cb.Run2(time.Hour * 24)
 	mylog.Logger.Info(
 		fmt.Sprintf("Exec %s cost %0.1f Seconds, stdout: %s, stderr %s",
 			cmdLine,

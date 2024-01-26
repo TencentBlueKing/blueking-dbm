@@ -253,7 +253,6 @@ func GetMongoDumpBin(version *mymongo.MongoVersion) (bin string, err error) {
 		}
 	default:
 		bin = fmt.Sprintf("mongodump.%s", MongoVersionV100) // 100.7
-
 	}
 
 	// Executable returns the path name for the executable that started the current process.
@@ -322,7 +321,7 @@ func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 
 	// $output_dir = "mongodump-$name-FULL-$nodeip-$port-$ymdh-$suffix";
 
-	var tarBin, tarArg, tarSuffix string = "tar", "cf", "tar"
+	var tarBin, tarArg, tarSuffix = "tar", "cf", "tar"
 	if !zip {
 		tarBin, tarArg, tarSuffix = "tar", "czf", "tar.gz"
 	}
@@ -412,7 +411,7 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	}
 	log.Debugf("DoCommand %s %s %s", "mv", originFile, oplogFile)
 
-	mvCmd := mycmd.NewCmdBuilder().Append("mv", originFile, oplogFile)
+	mvCmd := mycmd.New("mv", originFile, oplogFile)
 	if exitCode, _, stderr, err := mvCmd.Run(cmdMaxTimeout); exitCode != 0 || err != nil {
 		log.Fatalf("DoCommand Failed. cmd:%v stderr %s err %s", mvCmd.GetCmdLine("", false), stderr, err)
 	}

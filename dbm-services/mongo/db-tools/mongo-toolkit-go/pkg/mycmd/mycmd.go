@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os/exec"
 	"strings"
 	"time"
@@ -15,9 +16,16 @@ type arg struct {
 	isPwd bool
 }
 
+type Password string
+
 // CmdBuilder 用于生成给sh执行的命令行,支持标记密码参数，用于生成不带密码的命令行
 type CmdBuilder struct {
 	Args []arg
+}
+
+// New NewCmdBuilder and append v
+func New(v ...interface{}) *CmdBuilder {
+	return NewCmdBuilder().AppendArg(v...)
 }
 
 // NewCmdBuilder  New CmdBuilder
@@ -31,7 +39,24 @@ func (c *CmdBuilder) appendOne(v string, isPwd bool) *CmdBuilder {
 	return c
 }
 
-// Append Append arg
+// AppendArg Append interface arg
+func (c *CmdBuilder) AppendArg(v ...interface{}) *CmdBuilder {
+	for _, vv := range v {
+		switch vv.(type) {
+		case Password:
+			_ = c.appendOne(string(vv.(Password)), true)
+		case string:
+			_ = c.appendOne(vv.(string), false)
+		default:
+			// 只接受string和Password类型。 不应该出现其他类型
+			_ = c.appendOne(fmt.Sprintf("%v", vv), false)
+		}
+
+	}
+	return c
+}
+
+// Append Append string arg
 func (c *CmdBuilder) Append(v ...string) *CmdBuilder {
 	for _, vv := range v {
 		_ = c.appendOne(vv, false)
@@ -44,7 +69,8 @@ func (c *CmdBuilder) AppendPassword(v string) *CmdBuilder {
 	return c.appendOne(v, true)
 }
 
-// GetCmdLine Get cmd line
+// GetCmdLine Get cmd line with suUser
+// replacePassword 是否替换密码
 func (c *CmdBuilder) GetCmdLine(suUser string, replacePassword bool) string {
 	tmpSlice := make([]string, 0, len(c.Args))
 	for _, argItem := range c.Args {
@@ -59,6 +85,11 @@ func (c *CmdBuilder) GetCmdLine(suUser string, replacePassword bool) string {
 		return fmt.Sprintf(`su %s -c "%s"`, suUser, cmdLine)
 	}
 	return cmdLine
+}
+
+// GetCmdLine2 Get cmd line 2
+func (c *CmdBuilder) GetCmdLine2(replacePassword bool) string {
+	return c.GetCmdLine("", replacePassword)
 }
 
 // GetCmd Get cmd and args
@@ -89,7 +120,7 @@ func (c *CmdBuilder) Run2(timeout time.Duration) (*ExecResult, error) {
 	ctx := context.Background()
 	if timeout > 0 {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), timeout*time.Second)
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 	}
 	stdoutBuffer := bytes.Buffer{}
@@ -99,6 +130,29 @@ func (c *CmdBuilder) Run2(timeout time.Duration) (*ExecResult, error) {
 	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Stdout = ret.Stdout
 	cmd.Stderr = ret.Stderr
+	err := cmd.Run()
+	ret.End = time.Now()
+	ret.Cmdline = c.GetCmdLine("", false)
+	return ret, err
+
+}
+
+// Run3 Exec with timeout. and return ExecResult
+func (c *CmdBuilder) Run3(timeout time.Duration, stdout, stderr io.Writer) (*ExecResult, error) {
+	bin, args := c.GetCmd()
+	ctx := context.Background()
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+	}
+	stdoutBuffer := bytes.Buffer{}
+	stderrBuffer := bytes.Buffer{}
+	var ret = NewExecResult(&stdoutBuffer, &stderrBuffer)
+	ret.Start = time.Now()
+	cmd := exec.CommandContext(ctx, bin, args...)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 	err := cmd.Run()
 	ret.End = time.Now()
 	ret.Cmdline = c.GetCmdLine("", false)
