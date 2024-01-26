@@ -26,7 +26,7 @@ export function getWhitelist(params: Record<string, any> & { bk_biz_id: number }
     .then(data => ({
       ...data,
       results: data.results.map(item => new IpWhiteModel(Object.assign(item, {
-        permission: Object.assign(data.permission, item.permission),
+        permission: Object.assign({}, data.permission, item.permission),
       }))),
     }));
 }

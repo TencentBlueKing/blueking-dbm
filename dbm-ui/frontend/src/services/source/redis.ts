@@ -45,7 +45,7 @@ export function getRedisList(params: {
     .then(data => ({
       ...data,
       results: data.results.map(item => new RedisModel(Object.assign(item, {
-        permission: Object.assign(item.permission, data.permission),
+        permission: Object.assign({}, item.permission, data.permission),
       }))),
     }));
 }

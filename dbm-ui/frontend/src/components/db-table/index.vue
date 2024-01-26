@@ -340,6 +340,7 @@
             emits('requestSuccess', data);
           })
           .catch((error) => {
+            console.log('from dbtable error = ', error);
             tableData.value.results = [];
             pagination.count = 0;
             isAnomalies.value = true;

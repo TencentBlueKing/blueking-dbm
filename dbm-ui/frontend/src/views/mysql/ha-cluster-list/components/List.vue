@@ -321,6 +321,7 @@
       label: t('集群名称'),
       field: 'cluster_name',
       minWidth: 200,
+      width: 200,
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
@@ -478,7 +479,7 @@
     {
       label: t('创建时间'),
       field: 'create_at',
-      width: 160,
+      width: 200,
       render: ({ data }: ColumnData) => <span>{data.createAtDisplay || '--'}</span>,
     },
     {

@@ -38,7 +38,7 @@ export function getTendbsingleList(params: {
     .then(data => ({
       ...data,
       results: data.results.map(item => new TendbsingleModel(Object.assign(item, {
-        permission: Object.assign(item.permission, data.permission),
+        permission: Object.assign({}, item.permission, data.permission),
       }))),
     }));
 }

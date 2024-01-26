@@ -34,7 +34,7 @@ export function getPackages(params: {
     .then(data => ({
       ...data,
       results: data.results.map(item => new VersionFileModel(Object.assign(item, {
-        permission: data.permission,
+        permission: Object.assign({}, data.permission),
       }))),
     }));
 }
