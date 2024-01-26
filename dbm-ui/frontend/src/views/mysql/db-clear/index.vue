@@ -240,10 +240,12 @@
           property={`${index}.db_patterns`}>
           <bk-tag-input
             v-model={data.db_patterns}
+            allow-auto-match
             allow-create
             clearable={false}
             has-delete-icon
             collapse-tags
+            paste-fn={tagInputPasteFn}
             placeholder={t('请输入')}
             onClick={handleShowTips}
             v-clickoutside={handleHideTips}
@@ -270,6 +272,7 @@
             disabled={data.truncate_data_type === 'drop_database'}
             allow-create
             clearable={false}
+            paste-fn={tagInputPasteFn}
             has-delete-icon
             collapse-tags
             placeholder={t('请输入')}
@@ -292,6 +295,7 @@
             v-model={data.ignore_dbs}
             allow-create
             clearable={false}
+            paste-fn={tagInputPasteFn}
             has-delete-icon
             collapse-tags
             placeholder={t('请输入')}
@@ -316,6 +320,7 @@
             disabled={data.truncate_data_type === 'drop_database'}
             allow-create
             clearable={false}
+            paste-fn={tagInputPasteFn}
             has-delete-icon
             collapse-tags
             placeholder={t('请输入')}
@@ -326,6 +331,8 @@
       ),
     },
   ];
+
+  const tagInputPasteFn = (value: string) => value.split('\n').map(item => ({ id: item }));
 
   // 设置 target|source form-item
   const formItemRefs: Map<string, FormItemInstance> = reactive(new Map());

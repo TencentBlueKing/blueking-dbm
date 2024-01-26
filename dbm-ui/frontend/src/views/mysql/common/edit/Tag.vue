@@ -21,6 +21,7 @@
       :clearable="false"
       has-delete-icon
       :max-data="single ? 1 : -1"
+      :paste-fn="tagInputPasteFn"
       :placeholder="placeholder"
       @blur="handleBlur"
       @change="handleChange"
@@ -91,6 +92,8 @@
         emits('change', value);
       });
   };
+
+  const tagInputPasteFn = (value: string) => value.split('\n').map(item => ({ id: item }));
 
   const handleFocus = () => {
     emits('focus');

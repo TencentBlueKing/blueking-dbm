@@ -36,12 +36,16 @@
             :required="false"
             :width="300">
             <template #append>
-              <span
-                v-bk-tooltips="t('批量编辑')"
-                class="batch-edit-btn"
-                @click="() => handleShowBatchEdit('dumperId')">
-                <DbIcon type="bulk-edit" />
-              </span>
+              <BatchEditCommon
+                :config="batchDialogConfig"
+                @data-change="handleBatchInputChange">
+                <span
+                  v-bk-tooltips="t('批量编辑')"
+                  class="batch-edit-btn"
+                  @click="() => handleShowBatchEdit('dumperId')">
+                  <DbIcon type="bulk-edit" />
+                </span>
+              </BatchEditCommon>
             </template>
             <span>{{ t('部署dumper实例ID') }}</span>
           </RenderTableHeadColumn>
@@ -56,12 +60,16 @@
             :required="false"
             :width="220">
             <template #append>
-              <span
-                v-bk-tooltips="t('批量编辑')"
-                class="batch-edit-btn"
-                @click="() => handleShowBatchEdit('receiver')">
-                <DbIcon type="bulk-edit" />
-              </span>
+              <BatchEditCommon
+                :config="batchDialogConfig"
+                @data-change="handleBatchInputChange">
+                <span
+                  v-bk-tooltips="t('批量编辑')"
+                  class="batch-edit-btn"
+                  @click="() => handleShowBatchEdit('receiver')">
+                  <DbIcon type="bulk-edit" />
+                </span>
+              </BatchEditCommon>
             </template>
             <span>{{ t('接收端地址') }}</span>
           </RenderTableHeadColumn>
@@ -71,12 +79,16 @@
               :required="false"
               :width="220">
               <template #append>
-                <span
-                  v-bk-tooltips="t('批量编辑')"
-                  class="batch-edit-btn"
-                  @click="() => handleShowBatchEdit('account')">
-                  <DbIcon type="bulk-edit" />
-                </span>
+                <BatchEditCommon
+                  :config="batchDialogConfig"
+                  @data-change="handleBatchInputChange">
+                  <span
+                    v-bk-tooltips="t('批量编辑')"
+                    class="batch-edit-btn"
+                    @click="() => handleShowBatchEdit('account')">
+                    <DbIcon type="bulk-edit" />
+                  </span>
+                </BatchEditCommon>
               </template>
               <span>{{ t('账号') }}</span>
             </RenderTableHeadColumn>
@@ -85,12 +97,16 @@
               :required="false"
               :width="220">
               <template #append>
-                <span
-                  v-bk-tooltips="t('批量编辑')"
-                  class="batch-edit-btn"
-                  @click="() => handleShowBatchEdit('password')">
-                  <DbIcon type="bulk-edit" />
-                </span>
+                <BatchEditCommon
+                  :config="batchDialogConfig"
+                  @data-change="handleBatchInputChange">
+                  <span
+                    v-bk-tooltips="t('批量编辑')"
+                    class="batch-edit-btn"
+                    @click="() => handleShowBatchEdit('password')">
+                    <DbIcon type="bulk-edit" />
+                  </span>
+                </BatchEditCommon>
               </template>
               <span>{{ t('密码') }}</span>
             </RenderTableHeadColumn>
@@ -101,11 +117,15 @@
               :required="false"
               :width="220">
               <template #append>
-                <span
-                  class="batch-edit-btn"
-                  @click="() => handleShowBatchEdit('l5ModId')">
-                  <DbIcon type="bulk-edit" />
-                </span>
+                <BatchEditCommon
+                  :config="batchDialogConfig"
+                  @data-change="handleBatchInputChange">
+                  <span
+                    class="batch-edit-btn"
+                    @click="() => handleShowBatchEdit('l5ModId')">
+                    <DbIcon type="bulk-edit" />
+                  </span>
+                </BatchEditCommon>
               </template>
               <span>l5_modid</span>
             </RenderTableHeadColumn>
@@ -114,11 +134,15 @@
               :required="false"
               :width="220">
               <template #append>
-                <span
-                  class="batch-edit-btn"
-                  @click="() => handleShowBatchEdit('l5CmdId')">
-                  <DbIcon type="bulk-edit" />
-                </span>
+                <BatchEditCommon
+                  :config="batchDialogConfig"
+                  @data-change="handleBatchInputChange">
+                  <span
+                    class="batch-edit-btn"
+                    @click="() => handleShowBatchEdit('l5CmdId')">
+                    <DbIcon type="bulk-edit" />
+                  </span>
+                </BatchEditCommon>
               </template>
               <span>l5_cmdid</span>
             </RenderTableHeadColumn>
@@ -145,10 +169,6 @@
         </template>
       </RenderTable>
     </div>
-    <BatchEditCommon
-      v-model="isShowBatchEdit"
-      :config="batchDialogConfig"
-      @data-change="handleBatchInputChange" />
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
       :cluster-types="[ClusterTypes.TENDBHA]"
@@ -190,7 +210,6 @@
   const tableData = ref<IDataRow[]>([]);
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
-  const isShowBatchEdit = ref(false);
   const receiverType = ref('KAFKA');
   const batchDialogConfig = ref({
     type: 'text',
@@ -305,7 +324,6 @@
       title,
       placeholder,
     };
-    isShowBatchEdit.value = true;
   };
 
   const handleReceiverTypeChange = (type: string) => {
