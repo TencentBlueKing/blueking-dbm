@@ -6,7 +6,16 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/juju/ratelimit"
 )
+
+func RemoveFileWithRate(filePath string) error {
+	//minChunkInterval := 10 // ms
+	// 每秒填充50个令牌，相当于如果处理均匀大概20ms放一个
+	ratelimit.NewBucketWithRate(0.5, 100)
+	return nil
+}
 
 // TruncateFile remove file with io limit
 func TruncateFile(file string, bwlimitMB int) error {

@@ -321,6 +321,10 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 			return errors.Wrap(err, "write local_backup_report again")
 		}
 	}
+	// 也不记录 binlog
+	sqlStr = fmt.Sprintf("DELETE FROM %s WHERE backup_begin_time < DATE_SUB(now(), INTERVAL %d DAY)",
+		ModelBackupReport{}.TableName(), cst.SpiderRemoveOldTaskBeforeDays) // where host ?
+	_, _ = conn.ExecContext(ctx, sqlStr)
 	return nil
 }
 

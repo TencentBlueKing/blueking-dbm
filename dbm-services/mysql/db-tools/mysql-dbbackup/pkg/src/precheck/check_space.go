@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
@@ -16,9 +17,8 @@ import (
 
 // DeleteOldBackup Delete expired backup file
 func DeleteOldBackup(cnf *config.Public, expireDays int) error {
-	currTime := time.Now().Unix()
-	diffTime := expireDays * 24 * 3600
-
+	expireTime := time.Now().AddDate(0, 0, -1*expireDays)
+	logger.Log.Infof("try to remove old backup files before %s", expireTime)
 	dir, err := ioutil.ReadDir(cnf.BackupDir)
 	if err != nil {
 		logger.Log.Error("failed to read backupdir, err :", err)
@@ -34,16 +34,21 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 	hostName := strings.Replace(string(output), "\n", "", -1)
 
 	for _, fi := range dir {
-		fileTime := fi.ModTime().Unix()
-
-		filePrefixOld := fmt.Sprintf("%d_%s_%s", cnf.BkBizId, hostName, cnf.MysqlHost)
+		fileMatchOld := fmt.Sprintf("%s_%s", hostName, cnf.MysqlHost)
 		filePrefix := fmt.Sprintf("%d_%d_%s", cnf.BkBizId, cnf.ClusterId, cnf.MysqlHost)
-
-		if strings.HasPrefix(fi.Name(), filePrefix) || strings.HasPrefix(fi.Name(), filePrefixOld) {
-			if (currTime - fileTime) > int64(diffTime) {
-				if err = os.RemoveAll(filepath.Join(cnf.BackupDir, fi.Name())); err != nil {
-					logger.Log.Error("failed to remove file, err :", err)
-					return err
+		if fi.ModTime().Compare(expireTime) <= 0 {
+			if strings.HasPrefix(fi.Name(), filePrefix) || strings.Contains(fi.Name(), fileMatchOld) {
+				fileName := filepath.Join(cnf.BackupDir, fi.Name())
+				if fi.Size() > 4*1024*1024*1024 {
+					logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, 500)
+					if err = cmutil.TruncateFile(fileName, 500); err != nil {
+						return err
+					}
+				} else {
+					logger.Log.Info("remove old backup file ", fileName)
+					if err = os.RemoveAll(fileName); err != nil {
+						return err
+					}
 				}
 			}
 		}

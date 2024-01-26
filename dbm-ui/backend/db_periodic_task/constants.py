@@ -16,6 +16,8 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 MAX_QUERY_TASK_STATUS_TIMES = 5
 # 任务轮询间隔时间
 QUERY_TASK_STATUS_INTERVAL = 5
+# backup task status success
+BACKUP_TASK_SUCCESS = 4
 
 
 class PeriodicTaskType(str, StructuredEnum):
