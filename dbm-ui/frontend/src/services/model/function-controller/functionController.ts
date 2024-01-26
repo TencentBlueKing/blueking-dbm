@@ -16,7 +16,9 @@ export type MySQLFunctions = 'toolbox' | 'tendbsingle' | 'tendbha' | 'tendbclust
 export type RedisFunctions = 'PredixyTendisplusCluster' | 'TwemproxyRedisInstance' | 'TwemproxyTendisSSDInstance' | 'toolbox';
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
-export type FunctionKeys = AddonsFunctions | MySQLFunctions | RedisFunctions | BigdataFunctions | MonitorFunctions
+export type SqlServerFunctions = 'sqlserver'
+// eslint-disable-next-line max-len
+export type FunctionKeys = AddonsFunctions | MySQLFunctions | RedisFunctions | BigdataFunctions | MonitorFunctions | SqlServerFunctions
 
 export interface ControllerBaseInfo {
   is_enabled: boolean,
@@ -32,6 +34,7 @@ interface ControllerData {
   redis: ControllerItem<RedisFunctions>,
   bigdata: ControllerItem<BigdataFunctions>,
   monitor: ControllerItem<MonitorFunctions>,
+  sqlserver: ControllerItem<SqlServerFunctions>
 }
 
 export type ExtractedControllerDataKeys = Extract<keyof ControllerData, string>;
@@ -42,6 +45,7 @@ export default class FunctionController {
   redis: ControllerItem<RedisFunctions>;
   bigdata: ControllerItem<BigdataFunctions>;
   monitor: ControllerItem<MonitorFunctions>;
+  sqlserver: ControllerItem<SqlServerFunctions>;
 
   constructor(payload = {} as ControllerData) {
     this.addons = payload.addons;
@@ -49,6 +53,7 @@ export default class FunctionController {
     this.redis = payload.redis;
     this.bigdata = payload.bigdata;
     this.monitor = payload.monitor;
+    this.sqlserver = payload.sqlserver;
   }
 
   getFlatData<
