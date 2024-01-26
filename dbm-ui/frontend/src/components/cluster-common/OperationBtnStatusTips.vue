@@ -87,8 +87,8 @@
   };
 
   watch(() => props.data, () => {
-    if (props.data?.operationTicketId && !tippyIns) {
-      setTimeout(() => {
+    setTimeout(() => {
+      if (props.data?.operationTicketId && !props.disabled && !tippyIns) {
         tippyIns = tippy(rootRef.value as SingleTarget, {
           content: popRef.value,
           placement: 'top',
@@ -102,11 +102,11 @@
           zIndex: 999999,
           hideOnClick: true,
         });
-      });
-    }
-    if (!props.data?.operationTicketId) {
-      destroyTippy();
-    }
+      }
+      if (!props.data?.operationTicketId) {
+        destroyTippy();
+      }
+    });
   }, {
     immediate: true,
   });

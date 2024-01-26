@@ -10,7 +10,11 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-import { utcDisplayTime } from '@utils';
+
+import {
+  isRecentDays,
+  utcDisplayTime,
+} from '@utils';
 
 import { t } from '@locales/index';
 
@@ -88,6 +92,10 @@ export default class InfluxDBInstance {
 
   get ip() {
     return this.instance_address.replace(/:.*/, '');
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24 * 3);
   }
 
   get runningOperation() {
