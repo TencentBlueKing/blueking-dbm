@@ -13,28 +13,22 @@
 
   import type { TableProps } from '@/types/bkui-vue';
 
-  interface HostInfo {
-    ip: string,
-    bk_host_id: number,
-    bk_cloud_id: number
-  }
-
-  interface Nodes {
-    backend: Array<HostInfo>,
-  }
-
-  interface previewDataType{
-    domain:string,
-    slaveDomain:string,
-    disasterDefence:string,
-    deployStructure:string,
-    version:string,
-    charset:string,
-  }
-
   interface Props {
-    data?: previewDataType[],
-    nodes?: Nodes,
+    data?: {
+      domain:string,
+      slaveDomain:string,
+      disasterDefence:string,
+      deployStructure:string,
+      version:string,
+      charset:string,
+    }[],
+    nodes?:{
+      backend: {
+        ip: string,
+        bk_host_id: number,
+        bk_cloud_id: number
+      }[]
+    }
     isShowNodes?: boolean,
     isSingleType?: boolean,
     maxHeight?: number

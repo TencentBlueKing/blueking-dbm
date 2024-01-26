@@ -75,9 +75,9 @@
             :placeholder="t('请选择操作系统版本')">
             <BkOption
               v-for="item in operatingSystemVersionList"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value" />
+              :key="item"
+              :label="item"
+              :value="item" />
           </BkSelect>
         </BkFormItem>
         <BkFormItem
@@ -158,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-  import { merge } from 'lodash';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -246,9 +246,7 @@
     },
   });
 
-  const {
-    run: runSaveModuleDeploy,
-  } = useRequest(saveModulesDeployInfo, {
+  const { run: runSaveModuleDeploy } = useRequest(saveModulesDeployInfo, {
     manual: true,
   });
 
@@ -266,10 +264,10 @@
    * 提交表单
    */
   const handleSubmit = async () => {
-    const clusterType = String(route.query.cluster_type);
-    const bizId = Number(route.params.bk_biz_id);
     // 校验表单信息
     await createModuleFormRef.value.validate();
+    const clusterType = String(route.query.cluster_type);
+    const bizId = Number(route.params.bk_biz_id);
     // 创建模块-接口需替换
     runCreateModules({
       db_module_name: formData.module_name,
@@ -310,7 +308,7 @@
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
-        merge(formData, getFormData());
+        _.merge(formData, getFormData());
         nextTick(() => {
           window.changeConfirm = false;
         });

@@ -40,17 +40,21 @@
             </BkDropdownMenu>
           </template>
         </BkDropdown>
-        <BkButton class="ml-8">
+        <BkButton
+          class="ml-8"
+          @click="handleShowAuthorize(selected)">
           {{ t('批量授权') }}
         </BkButton>
-        <BkButton class="ml-8">
+        <BkButton
+          class="ml-8"
+          @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
         </BkButton>
         <DropdownExportExcel
           export-type="cluster"
           :has-selected="hasSelected"
           :ids="selectedIds"
-          type="sqlserversingle" />
+          type="sqlserver_single" />
       </div>
       <DbSearchSelect
         v-model="searchValues"
@@ -63,7 +67,7 @@
       <DbTable
         ref="tableRef"
         :columns="columns"
-        :data="data"
+        :data-source="getSingleClusterList"
         :is-anomalies="isAnomalies"
         :pagination="renderPagination"
         :pagination-extra="{ small: false }"
@@ -78,6 +82,10 @@
     :cluster-type="ClusterTypes.SQLSERVER_HA"
     :selected="authorizeSelected"
     @success="handleClearSelected" />
+  <!-- excel 导入授权 -->
+  <ExcelAuthorize
+    v-model:is-show="isShowExcelAuthorize"
+    :cluster-type="ClusterTypes.SQLSERVER_SINGLE" />
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
@@ -87,26 +95,39 @@
     useRouter,
   } from 'vue-router';
 
-  import SqlServerClusterModel from '@services/model/sqlserver/sqlserver-cluster';
-  import { getSingleClusterList } from '@services/source/sqlserverSingleCluster';
+  import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
+  import {
+    getSingleClusterList,
+    getSqlServerInstanceList,
+  } from '@services/source/sqlserverSingleCluster';
+  import { createTicket } from '@services/source/ticket';
 
   import {
     type IPagination,
     useCopy,
     useDefaultPagination,
+    useInfoWithIcon,
     useStretchLayout,
+    useTicketMessage,
   } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import {
+    ClusterTypes,
+    TicketTypes,
+    type TicketTypesStrings,
+  } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
-  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
+  import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+
+  import RenderOperationTag from '@views/mysql/common/RenderOperationTag.vue';
 
   import {
     getSearchSelectorParams,
@@ -129,7 +150,8 @@
 
   const router = useRouter();
   const route = useRoute();
-  const globalBizsStore = useGlobalBizs();
+  const { currentBizId } = useGlobalBizs();
+  const ticketMessage = useTicketMessage();
   const copy = useCopy();
 
   const {
@@ -159,10 +181,11 @@
 
   const tableRef = ref();
   const isCopyDropdown = ref(false);
-  const selected = ref<SqlServerClusterModel[]>([]);
+  const selected = ref<SqlServerSingleClusterModel[]>([]);
   const searchValues = ref<SearchSelectValues>([]);
   const isAnomalies = ref(false);
   const pagination = ref<IPagination>(useDefaultPagination());
+  const isShowExcelAuthorize = ref(false);
 
   /** 集群授权 */
   const authorizeShow = ref(false);
@@ -174,7 +197,7 @@
   }[]>([]);
 
   const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map(item => item.bk_host_id));
+  const selectedIds = computed(() => selected.value.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
 
   const tableOperationWidth = computed(() => {
@@ -187,32 +210,38 @@
   const columns = [
     {
       label: t('访问入口'),
-      field: 'master_enter',
+      field: 'master_domain',
       fixed: 'left',
-      render: ({ data }: { data: SqlServerClusterModel }) => (
-      <div class="domain">
-        <RenderTextEllipsisOneLine
-          onClick={ () => handleToDetails(data) }
-          text={ data.master_enter }>
-          <div style="display: flex; align-items: center;">
-            <db-icon
-              type="copy"
-              v-bk-tooltips={ t('复制主访问入口') }
-              onClick={ () => copy(data.master_enter) } />
-            <db-icon
-              type="link"
-              v-bk-tooltips={ t('新开tab打开') } />
-            <div class="text-overflow" v-overflow-tips>
+      render: ({ data }: { data: SqlServerSingleClusterModel }) => (
+        <div class="domain">
+          <RenderTextEllipsisOneLine
+            onClick={ () => handleToDetails(data) }
+            text={ data.master_domain }>
+            <div class="cluster-tags">
               {
-                data.isNew
-                && <span
-                  class="glob-new-tag cluster-tag ml-4"
-                  data-text="NEW" />
+                data.operations.map(item => <RenderOperationTag   class="cluster-tag" data={item} />)
               }
             </div>
-          </div>
-        </RenderTextEllipsisOneLine>
-      </div>
+            <div style="display: flex; align-items: center;">
+              <db-icon
+                type="copy"
+                v-bk-tooltips={ t('复制主访问入口') }
+                onClick={ () => copy(data.master_domain) } />
+              <db-icon
+                type="link"
+                v-bk-tooltips={ t('新开tab打开') } />
+              <div class="text-overflow" v-overflow-tips>
+                {
+                  data.isNew && (
+                    <span
+                    class="glob-new-tag cluster-tag ml-4"
+                    data-text="NEW" />
+                  )
+                }
+              </div>
+            </div>
+          </RenderTextEllipsisOneLine>
+        </div>
     ),
     },
     {
@@ -221,27 +250,31 @@
     },
     {
       label: t('管控区域'),
-      field: 'control_area',
+      field: 'bk_cloud_name',
     },
     {
       label: t('状态'),
       field: 'status',
       sort: true,
-      render: ({ data }: { data: SqlServerClusterModel }) => {
-        const { text, theme } = data.dbStatusConfigureObj;
+      render: ({ data }: { data: SqlServerSingleClusterModel }) => {
+        const {
+          text,
+          theme,
+        } = data.dbStatusConfigureObj;
         return <DbStatus theme={ theme }>{ text }</DbStatus>;
       },
     },
     {
       label: t('实例'),
       field: 'instance_name',
-      render: ({ data }: { data: SqlServerClusterModel }) => (
-      <RenderInstances
-        data={ data.proxies }
-        title={ t('【inst】实例预览', { inst: data.bk_cloud_name }) }
-        role="proxy"
-        clusterId={ data.id }
-      />
+      render: ({ data }: { data: SqlServerSingleClusterModel }) => (
+        <RenderInstances
+          data={ data.operations }
+          dataSource={ getSqlServerInstanceList }
+          title={ t('【inst】实例预览', { inst: data.bk_cloud_name }) }
+          role="proxy"
+          clusterId={ data.id }
+        />
     ),
     },
     {
@@ -263,25 +296,39 @@
       field: 'operation',
       width: tableOperationWidth.value,
       fixed: 'right',
-      render: ({ data }: { data: SqlServerClusterModel }) => (
-      <>
-        <OperationBtnStatusTips data={ data }>
-          <bk-button
-            text
-            theme="primary"
-            class="mr-8"
-            onClick={ () => handleShowAuthorize([data]) }>
-            { t('授权') }
-          </bk-button>
-        </OperationBtnStatusTips>
-        {
-          <>
+      render: ({ data }: { data: SqlServerSingleClusterModel }) => (
+        <>
+         {
+          data.phase === 'online' ? (
+           <>
+            <OperationBtnStatusTips data={ data }>
+             <bk-button
+               text
+               theme="primary"
+               class="mr-8"
+               onClick={ () => handleShowAuthorize([data]) }>
+                { t('授权') }
+             </bk-button>
+            </OperationBtnStatusTips>
+            <OperationBtnStatusTips data={ data }>
+             <bk-button
+                text
+                theme="primary"
+                class="mr-8"
+                onClick={ () => handleSwitchCluster(TicketTypes.SQLSERVER_SINGLE_DISABLE, data) }>
+             { t('禁用') }
+             </bk-button>
+            </OperationBtnStatusTips>
+           </>
+          ) : (
+           <>
             <OperationBtnStatusTips data={ data }>
               <bk-button
                 text
                 theme="primary"
-                class="mr-8">
-                { t('禁用') }
+                class="mr-8"
+                onClick={ () => handleSwitchCluster(TicketTypes.SQLSERVER_SINGLE_ENABLE, data) }>
+                 { t('启用') }
               </bk-button>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips data={ data }>
@@ -289,29 +336,23 @@
                 text
                 theme="primary"
                 class="mr-8">
-                { t('启用') }
+                 { t('重置') }
               </bk-button>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips data={ data }>
               <bk-button
                 text
                 theme="primary"
-                class="mr-8">
-                { t('重置') }
+                class="mr-8"
+                onClick={ () => handleDeleteCluster(data) }>
+                 { t('删除') }
               </bk-button>
             </OperationBtnStatusTips>
-            <OperationBtnStatusTips data={ data }>
-              <bk-button
-                text
-                theme="primary"
-                class="mr-8">
-                { t('删除') }
-              </bk-button>
-            </OperationBtnStatusTips>
-          </>
-        }
-      </>
-    ),
+           </>
+           )
+          }
+        </>
+      ),
     },
   ];
 
@@ -330,7 +371,87 @@
     };
   });
 
-  const { data } = useRequest(getSingleClusterList);
+
+  const { run: runCreateTicket } = useRequest(createTicket, { manual: true });
+
+  const { run: runDeleteTicket } = useRequest(createTicket, {
+    manual: true,
+    onSuccess(res) {
+      ticketMessage(res.id);
+    },
+  });
+
+  /**
+   * 集群启停
+   */
+  const handleSwitchCluster = (
+    type: TicketTypesStrings,
+    data: SqlServerSingleClusterModel,
+  ) => {
+    if (!type) return;
+
+    const isOpen = type === TicketTypes.SQLSERVER_SINGLE_ENABLE;
+    const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
+    useInfoWithIcon({
+      type: 'warnning',
+      title,
+      content: () => (
+        <div style="word-break: all;">
+          {
+            isOpen
+              ? <p>{ t('集群【name】启用后将恢复访问', { name: data.cluster_name })}</p>
+              : <p>{ t('集群【name】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { name: data.cluster_name }) }</p>
+          }
+        </div>
+      ),
+      onConfirm: () => {
+        runCreateTicket({
+          bk_biz_id: currentBizId,
+          ticket_type: type,
+          details: {
+            cluster_ids: [data.id],
+          },
+        });
+        return true;
+      },
+    });
+  };
+
+  /**
+   * 删除集群
+   */
+  const handleDeleteCluster = (data: SqlServerSingleClusterModel) => {
+    const { cluster_name: name } = data;
+    useInfoWithIcon({
+      type: 'warnning',
+      title: t('确定删除该集群'),
+      confirmTxt: t('删除'),
+      confirmTheme: 'danger',
+      content: () => (
+        <div style="word-break: all; text-align: left; padding-left: 16px;">
+          <p>{ t('集群【name】被删除后_将进行以下操作', { name }) }</p>
+          <p>{ t('1_删除xx集群', { name }) }</p>
+          <p>{ t('2_删除xx实例数据_停止相关进程', { name }) }</p>
+          <p>3. { t('回收主机') }</p>
+        </div>
+      ),
+      onConfirm: () => {
+        runDeleteTicket({
+          bk_biz_id: currentBizId,
+          ticket_type: TicketTypes.SQLSERVER_SINGLE_DESTROY,
+          details: {
+            cluster_ids: [data.id],
+          },
+        });
+        return false;
+      },
+    });
+  };
+
+  // excel 授权
+  const handleShowExcelAuthorize = () => {
+    isShowExcelAuthorize.value = true;
+  };
 
   const handleFetchTableData = () => {
     tableRef.value.fetchData({
@@ -342,14 +463,14 @@
 
   const handleCopy = (
     isInstance: boolean,
-    tableData: SqlServerClusterModel[],
+    tableData: SqlServerSingleClusterModel[],
   ) => {
     const AllCopyList = tableData
       .reduce((
         acc: copyListType[],
-        item: SqlServerClusterModel,
-      ) => acc.concat(item.proxies), []);
-    if (AllCopyList?.length) {
+        item: SqlServerSingleClusterModel,
+      ) => acc.concat(item.storages), []);
+    if (AllCopyList.length) {
       copy(AllCopyList.map(item => `${item.ip}${isInstance ? `:${item.port}` : ''}`).join('\n'));
     } else {
       messageWarn(isInstance ? t('没有可复制实例') : t('没有可复制IP'));
@@ -371,18 +492,18 @@
   };
 
   const handleCopyAbnormal = (isInstance = false) => {
-    const tableData = (tableRef.value.getData() as SqlServerClusterModel[]).filter(item => item.status !== 'running');
+    const tableData = (tableRef.value.getData() as SqlServerSingleClusterModel[]).filter(item => item.status !== 'running');
     handleCopy(isInstance, tableData);
   };
 
   // 设置行样式
-  const setRowClass = (row: SqlServerClusterModel) => {
+  const setRowClass = (row: SqlServerSingleClusterModel) => {
     const classStack = [];
     if (row.isNew) {
       classStack.push('is-new-row');
     }
     if (
-      singleClusterData.value && row.clusterId === singleClusterData.value.clusterId
+      singleClusterData.value && row.id === singleClusterData.value.clusterId
     ) {
       classStack.push('is-selected-row');
     }
@@ -390,8 +511,8 @@
   };
 
   const handleSelection = (
-    data: SqlServerClusterModel,
-    list: SqlServerClusterModel[],
+    data: SqlServerSingleClusterModel,
+    list: SqlServerSingleClusterModel[],
   ) => {
     selected.value = list;
   };
@@ -413,10 +534,10 @@
   /**
    * 查看详情
    */
-  const handleToDetails = (data: SqlServerClusterModel) => {
+  const handleToDetails = (data: SqlServerSingleClusterModel) => {
     stretchLayoutSplitScreen();
     singleClusterData.value = {
-      clusterId: data.clusterId,
+      clusterId: data.id,
     };
   };
 
@@ -427,7 +548,7 @@
     router.push({
       name: 'SqlServiceSingleApply',
       query: {
-        bizId: globalBizsStore.currentBizId,
+        bizId: currentBizId,
         from: String(route.name),
       },
     });

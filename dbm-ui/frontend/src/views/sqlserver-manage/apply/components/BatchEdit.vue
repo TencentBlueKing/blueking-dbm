@@ -8,7 +8,8 @@
     :width="540">
     <i
       class="db-icon-bulk-edit batch-edit-trigger"
-      @click="() =>stateShow = true" />
+      @click="() => stateShow = true" />
+
     <template #content>
       <div class="batch-edit-content">
         <p class="batch-edit-header">

@@ -14,8 +14,8 @@
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import SqlServerClusterListModel from '../model/sqlserver/sqlserver-cluster';
 import SqlServerClusterDetailModel from '../model/sqlserver/sqlserver-cluster-detail';
+import SqlServerClusterListModel from '../model/sqlserver/sqlserver-ha-cluster';
 import type {
   ListBase,
   ResourceTopo,
@@ -60,3 +60,10 @@ export function getHaClusterTopoGraph(params: { cluster_id: number }) {
 export function exportSqlServerHaClusterToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
 }
+
+/**
+ * 获取集群实例列表
+ */
+export const getSqlServerInstanceList = function () {
+  return http.get<ListBase<any[]>>(`${path}/list_instances/`);
+};

@@ -121,4 +121,6 @@ export const updateClusterEntryConfig = (params: {
 /**
  * 根据sqlserver 版本查询系统版本
  */
-export const getSqlServerSystemVersion = (params: { sqlserver_version: string }) => http.post<string[]>('/apis/version/list_sqlserver_system_version/', params);
+export const getSqlServerSystemVersion = (params: {
+  sqlserver_version: string
+ }) => http.get<string[]>('/apis/version/list_sqlserver_system_version/', params);

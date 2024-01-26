@@ -126,19 +126,20 @@
       },
       {
         label: () => (
-        <span>
+         <span>
           {
             props.isSqlserverSingle ? t('域名') : t('主域名')
           }
           {
-            tableData.value.length !== 0
-            && <BatchEdit
+            tableData.value.length !== 0 && (
+              <BatchEdit
               v-bk-tooltips={ t('快捷编辑_可通过换行分隔_快速编辑多个域名') }
               moduleName={ props.moduleName }
               appName={ props.formData.details.db_app_abbr }
               onChange={ handleBatchEditDomains } />
+              )
           }
-        </span>
+         </span>
       ),
         field: 'mainDomain',
         minWidth: 500,
@@ -195,11 +196,12 @@
     rowIndex: number,
     isMain = false,
   ) => (
-  <div class="domain-address">
-    <span>{ props.moduleName }{ isMain ? 'db.' : 'dr.' }</span>
-    {
-      isMain
-        ? (
+      <div class="domain-address">
+       <span>
+        { props.moduleName }{ isMain ? 'db.' : 'dr.' }
+       </span>
+        {
+         isMain ? (
           <bk-form-item
             ref={ setDomainRef }
             class="domain-address__item"
@@ -208,28 +210,30 @@
             key={ rowIndex }
             rules={ domainRule }
             label-width={ 0 }>
-            <bk-input
-              style="width:260px"
-              model-value={ props.formData.details.domains[rowIndex]?.key }
-              placeholder={ t('请输入') }
-              v-bk-tooltips={{
-                trigger: 'click',
-                placement: 'top',
-                theme: 'light',
-                content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-              }}
-              onInput={ (value: string) => handleChangeDomain(value) }
-            />
+             <bk-input
+               style="width:260px"
+               model-value={ props.formData.details.domains[rowIndex]?.key }
+               placeholder={ t('请输入') }
+               v-bk-tooltips={{
+                 trigger: 'click',
+                 placement: 'top',
+                 theme: 'light',
+                 content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+               }}
+               onInput={ (value: string) => handleChangeDomain(value) }
+             />
           </bk-form-item>
-        )
-        : <span class="domain-address__placeholder">
-          { props.formData.details.domains[rowIndex]?.key }
-          </span>
-    }
-      <span>
-      { `.${props.formData.details.db_app_abbr}.db` }
-      </span>
-  </div>
+          )
+          : (
+           <span class="domain-address__placeholder">
+             { props.formData.details.domains[rowIndex]?.key }
+           </span>
+          )
+        }
+       <span>
+        { `.${props.formData.details.db_app_abbr}.db` }
+       </span>
+      </div>
   );
 </script>
 

@@ -396,10 +396,7 @@
     'details.nodes.backend': [{
       message: t('请添加服务器'),
       trigger: 'change',
-      validator: () => {
-        const counts = formData.details.nodes.backend.length;
-        return counts !== 0;
-      },
+      validator: () => formData.details.nodes.backend.length !== 0,
     }],
   }));
 
@@ -540,8 +537,7 @@
     id: number | string,
     name: string
   }) => {
-    cloudInfo.value.id = info.id;
-    cloudInfo.value.name = info.name;
+    cloudInfo.value = info;
     formData.details.nodes.backend = [];
   };
 
@@ -614,7 +610,7 @@
   };
 
   // 获取 DM模块
-  watch(route.query, () =>  getModulesConfig(), {
+  watch(route.query, () => getModulesConfig(), {
     immediate: true,
   });
 

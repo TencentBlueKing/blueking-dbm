@@ -129,6 +129,12 @@ export const clusterTypeInfos = {
   [ClusterTypes.TENDBCLUSTER]: {
     dbType: DBTypes.MYSQL,
   },
+  [ClusterTypes.SQLSERVER_HA]: {
+    dbType: DBTypes.SQLSERVER,
+  },
+  [ClusterTypes.SQLSERVER_SINGLE]: {
+    dbType: DBTypes.SQLSERVER,
+  },
 };
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;
 
@@ -274,6 +280,12 @@ export enum TicketTypes {
   RIAK_CLUSTER_REBOOT = 'RIAK_CLUSTER_REBOOT', // Riak 节点重启
   SQLSERVER_SINGLE_APPLY = 'SQLSERVER_SINGLE_APPLY', // sqlserver单节点部署
   SQLSERVER_HA_APPLY = 'SQLSERVER_HA_APPLY', // sqlserver主从部署
+  SQLSERVER_HA_DISABLE = 'SQLSERVER_HA_DISABLE', // sqlserver主从 禁用
+  SQLSERVER_HA_ENABLE = 'SQLSERVER_HA_ENABLE', // sqlserver主从 启用
+  SQLSERVER_HA_DESTROY = 'SQLSERVER_HA_DESTROY', // sqlserver主从 删除
+  SQLSERVER_SINGLE_DESTROY = 'SQLSERVER_SINGLE_DESTROY', // sqlserver单节点 删除
+  SQLSERVER_SINGLE_DISABLE = 'SQLSERVER_SINGLE_DISABLE', // sqlserver单节点 禁用
+  SQLSERVER_SINGLE_ENABLE = 'SQLSERVER_SINGLE_ENABLE', // sqlserver单节点 启用
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 

@@ -3,8 +3,7 @@
     :min-left-width="368"
     name="sqlserverHaClusterList">
     <template #list>
-      <List
-        v-model:haClusterData="haClusterData" />
+      <List v-model:haClusterData="haClusterData" />
     </template>
     <template
       v-if="haClusterData"
@@ -20,6 +19,6 @@
   import List from './components/List.vue';
 
   const haClusterData = ref<{
-    clusterId:number
+    clusterId: number
   }>();
 </script>

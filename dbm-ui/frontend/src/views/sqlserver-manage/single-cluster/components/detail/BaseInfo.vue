@@ -25,7 +25,7 @@
 
   const { t } = useI18n();
 
-  const columns:InfoColumn[][] = [
+  const columns: InfoColumn[][] = [
     [
       {
         label: t('集群名称'),
