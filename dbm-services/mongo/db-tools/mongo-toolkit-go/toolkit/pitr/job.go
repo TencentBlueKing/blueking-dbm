@@ -44,71 +44,73 @@ func DoJob(option *BackupOption) {
 		bm.RemoveOldFileFirst()
 	}
 
-	lastFull, lastIncr, err := bm.GetLastBackup()
-	log.Debugf("GetLastBackup full:%+v incr:%+v err:%v", lastFull, lastIncr, err)
+	prevFull, lastIncr, err := bm.GetLastBackup()
+	log.Debugf("GetLastBackup full:%+v incr:%+v err:%v", prevFull, lastIncr, err)
 	now := time.Now()
 	// 检查是否可以跳过备份.
 	// 如果是AUTO。 它会根据上一次全备和增量备份的时间，来决定本次是全备还是增量备份，并修改option.BackupType
-	if canSkip(option, lastFull, lastIncr, now) {
+	if canSkip(option, prevFull, lastIncr, now) {
 		return
 	}
 
 	var lastBackup *BackupFileName
 	if BackupTypeFull == option.BackupType || lastIncr == nil {
-		lastBackup = lastFull
+		lastBackup = prevFull
 	} else {
 		lastBackup = lastIncr
 	}
 
 	log.Printf("lastBackup %+v", lastBackup)
-	result, err := DoBackup(option.MongoHost, option.BackupType, option.Dir, option.Zip, lastBackup, nil)
-	if err != nil || result == nil {
-		log.Errorf("backup failed %v %v", result, err)
+	currBackup, err := DoBackup(option.MongoHost, option.BackupType, option.Dir, option.Zip, lastBackup, nil)
+	if err != nil || currBackup == nil {
+		log.Errorf("backup failed %v %v", currBackup, err)
 		return
 	}
-	bm.Append(result) // 保存一次.meta文件，给result.FileName赋值
+	bm.Append(currBackup) // 保存一次.meta文件，给result.FileName赋值
 	// backup success. filename: 这是给dbmon接收的，格式不能改.
-	log.Printf("do %s backup success. filename:'%s'", option.BackupType, result.GetFullPath())
-
+	log.Printf("do %s backup success. filename:'%s'", option.BackupType, currBackup.GetFullPath())
 	// todo 如果备份系统返回TaskId失败怎么办？ 要写入另外一个文件。另外一段时间后再尝试重试.
 	// todo 提前检查 ReportFile 是否存在，是否可写
+	uploadFileAndAppendToReportFile(option, currBackup)
+	// 如果是全备，且之前有过全备，再将增量备份一次
+	backupIncrForPrevFull(option, bm, prevFull, currBackup)
+}
 
-	var task *backupsys.TaskInfo
-	task, err = sendToBackupSystem(option, result)
+func backupIncrForPrevFull(option *BackupOption, bm *BackupMetaV2,
+	prevFull, currBackup *BackupFileName) {
+	if !(option.BackupType == BackupTypeFull && prevFull != nil) {
+		return
+	}
+	lastIncr, _ := bm.GetLastIncr(prevFull)
+	if lastIncr == nil {
+		// 上一次全备并没有增量备份，这里，应该抛出一个事件
+		lastIncr = prevFull
+		log.Warnf("set lastInc to lastFull %+v", lastIncr)
+	}
+	incrResult, err := DoBackup(option.MongoHost, BackupTypeIncr, option.Dir, option.Zip, lastIncr, &currBackup.LastTs)
+	if incrResult != nil {
+		bm.Append(incrResult)
+		uploadFileAndAppendToReportFile(option, incrResult)
+	} else {
+		log.Errorf("incr backup failed %v %v", incrResult, err)
+	}
+}
+
+func uploadFileAndAppendToReportFile(option *BackupOption, result *BackupFileName) {
+	task, err := sendToBackupSystem(option, result)
 	if err == nil {
 		log.Infof("sendToBackupSystem file: %s, taskid: %s err:%v", task.FilePath, task.TaskId, err)
 	} else {
 		log.Errorf("sendToBackupSystem file: %s, err:%v", result.GetFullPath(), err)
 	}
-	err = appendToReportFile(option, result, task)
-	log.Infof("appendToReportFile file: %s err:%v", result.GetFullPath(), err)
 
-	// 如果是全备，且之前有过全备，再将增量备份一次
-	if !(option.BackupType == BackupTypeFull && lastFull != nil) {
-		return
-	}
-
-	lastIncr, _ = bm.GetLastIncr(lastFull)
-	if lastIncr == nil {
-		// 上一次全备并没有增量备份，这里，应该抛出一个事件
-		lastIncr = lastFull
-		log.Warnf("set lastInc to lastFull %+v", lastIncr)
-	}
-
-	incrResult, _ := DoBackup(option.MongoHost, BackupTypeIncr, option.Dir, option.Zip, lastIncr, &result.LastTs)
-	if incrResult != nil {
-		bm.Append(incrResult)
-		task, err = sendToBackupSystem(option, incrResult)
-		if err == nil {
-			log.Infof("sendToBackupSystem file: %s, taskid: %s err:%v", task.FilePath, task.TaskId, err)
-		} else {
-			log.Errorf("sendToBackupSystem file: %s, err:%v", result.GetFullPath(), err)
-		}
-		err = appendToReportFile(option, incrResult, task)
-		log.Infof("appendToReportFile file: %s err:%v", result.GetFullPath(), err)
+	if option.ReportFile == "" {
+		log.Infof("skip appendToReportFile because ReportFile is empty")
 	} else {
-		log.Errorf("incr backup failed %v %v", incrResult, err)
+		err = appendToReportFile(option, result, task)
+		log.Infof("appendToReportFile file: %s err:%v", result.GetFullPath(), err)
 	}
+
 }
 
 func getLastBackupTime(lastFull, lastIncr *BackupFileName, now time.Time) (lastFullStart, lastIncrStart time.Time) {
@@ -184,9 +186,6 @@ func sendToBackupSystem(option *BackupOption, backupRec *BackupFileName) (task *
 }
 
 func appendToReportFile(option *BackupOption, backupRec *BackupFileName, bsInfo *backupsys.TaskInfo) error {
-	if option.ReportFile == "" {
-		return nil
-	}
 	rec := report.NewBackupRecord()
 	rec.AppendFileInfo(backupRec.StartTime.Local().Format(time.RFC3339),
 		backupRec.EndTime.Local().Format(time.RFC3339),

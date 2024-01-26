@@ -2,6 +2,7 @@ package mongojob
 
 import (
 	"fmt"
+	"strconv"
 
 	"dbm-services/mongo/db-tools/dbmon/config"
 	"dbm-services/mongo/db-tools/dbmon/mylog"
@@ -17,7 +18,7 @@ func GetBkMonitorEventSender(beatConf *config.BkMonitorBeatConfig, serverConf *c
 	if err != nil {
 		return
 	}
-	msgH.SetBkBizID(serverConf.BkBizID).
+	msgH.SetBkBizID(strconv.Itoa(serverConf.BkBizID)).
 		SetBkCloudID(serverConf.BkCloudID).
 		SetApp(serverConf.App).
 		SetAppName(serverConf.AppName).
@@ -38,7 +39,7 @@ func GetBkMonitorMetricSender(conf *config.BkMonitorBeatConfig, serverConf *conf
 	if err != nil {
 		return
 	}
-	msgH.SetBkBizID(serverConf.BkBizID).
+	msgH.SetBkBizID(strconv.Itoa(serverConf.BkBizID)).
 		SetBkCloudID(serverConf.BkCloudID).
 		SetApp(serverConf.App).
 		SetAppName(serverConf.AppName).
@@ -59,7 +60,7 @@ func SendEvent(conf *config.BkMonitorBeatConfig, serverConf *config.ConfServerIt
 	)
 
 	if msgH != nil && err == nil {
-		err = msgH.SetBkBizID(serverConf.BkBizID).
+		err = msgH.SetBkBizID(strconv.Itoa(serverConf.BkBizID)).
 			SetBkCloudID(serverConf.BkCloudID).
 			SetApp(serverConf.App).
 			SetAppName(serverConf.AppName).

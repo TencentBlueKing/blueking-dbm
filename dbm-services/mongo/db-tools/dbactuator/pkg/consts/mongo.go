@@ -1,6 +1,7 @@
 package consts
 
 import (
+	"dbm-services/mongo/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongo/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"fmt"
 	"path"
@@ -17,7 +18,6 @@ const MongoVersionV36 = "3.6"
 const MongoVersionV40 = "4.0"
 const MongoVersionV42 = "4.2"
 const MongoVersionV100 = "100.7" // >= 4.4 https://www.mongodb.com/docs/database-tools/
-const MongoToolsDir = "/home/mysql/dbtools/mongotools"
 const MongoInstallDir = "/usr/local/mongodb"
 
 // GetMongodumpBin 根据版本号获取mongodump的二进制文件名
@@ -43,8 +43,7 @@ func GetMongodumpBin(version *mymongo.MongoVersion) (bin string, err error) {
 		bin = fmt.Sprintf("mongodump.%s", MongoVersionV100) // 100.7
 
 	}
-	// Executable returns the path name for the executable that started the current process.
-	bin = path.Join(MongoToolsDir, bin)
+	bin = path.Join(consts.GetDbToolDir(""), "mongotools", bin)
 	return
 }
 
@@ -63,8 +62,7 @@ func GetMongorestoreBin(version *mymongo.MongoVersion) (bin string, err error) {
 		bin = fmt.Sprintf("mongorestore.%s", MongoVersionV100) // 100.7
 
 	}
-	// Executable returns the path name for the executable that started the current process.
-	bin = path.Join(MongoToolsDir, bin)
+	bin = path.Join(consts.GetDbToolDir(""), "mongotools", bin)
 	return
 }
 
@@ -81,7 +79,6 @@ func GetMongoShellBin(version *mymongo.MongoVersion) (bin string, err error) {
 		bin = "mongo"
 	}
 
-	// Executable returns the path name for the executable that started the current process.
 	bin = path.Join(MongoInstallDir, "bin", bin)
 	return
 }
