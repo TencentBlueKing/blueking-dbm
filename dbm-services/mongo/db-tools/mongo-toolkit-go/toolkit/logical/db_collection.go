@@ -71,12 +71,12 @@ func GetDbCollection(ip, port, user, pass, authDb string, excludeSysDb bool) ([]
 		if excludeSysDb && mymongo.IsSysDb(dbName) {
 			continue
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-		colList, err := client.Database(dbName).ListCollectionNames(ctx, bson.M{})
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 120*time.Second)
+		colList, err := client.Database(dbName).ListCollectionNames(ctx2, bson.M{})
 		if err != nil {
 			return nil, errors.Wrap(err, "ListCollectionNames")
 		}
-		cancel()
+		cancel2()
 
 		var dbCol DbCollection
 		dbCol.Db = dbName

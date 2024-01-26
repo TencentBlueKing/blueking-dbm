@@ -7,8 +7,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"sort"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -222,33 +220,4 @@ func GetFileSize(filename string) (size int64, err error) {
 		return
 	}
 	return fileInfo.Size(), nil
-}
-
-// IntSliceInter 两个[]int 求交集
-func IntSliceInter(list01, list02 []int) []int {
-	m01 := make(map[int]bool)
-	m02 := make(map[int]bool)
-	for _, item01 := range list01 {
-		m01[item01] = true
-	}
-	for _, item02 := range list02 {
-		m02[item02] = true
-	}
-	ret := []int{}
-	for item01 := range m01 {
-		if _, ok := m02[item01]; ok == true {
-			ret = append(ret, item01)
-		}
-	}
-	sort.Ints(ret)
-	return ret
-}
-
-// IntSliceToString 将[]int join,返回一个字符串
-func IntSliceToString(src []int, seq string) string {
-	strList := []string{}
-	for _, item := range src {
-		strList = append(strList, strconv.Itoa(item))
-	}
-	return strings.Join(strList, seq)
 }

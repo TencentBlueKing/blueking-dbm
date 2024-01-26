@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"dbm-services/mongo/db-tools/mongo-toolkit-go/pkg/util"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -94,9 +95,11 @@ func _uploadFileOnce(file, tag string) (*TaskInfo, error) {
 		return nil, fmt.Errorf("file %s not exists", file)
 	}
 	if FileExists(BackupClient) == false {
-		return nil, fmt.Errorf("BackupClient %s is  not exists", BackupClient)
+		return nil, fmt.Errorf("BackupClient %s is not exists", BackupClient)
 	}
-	outBuf, errBuffer, err := DoCommand(60, BackupClient, "-n", "-f", absPath, "--with-md5", "-t", tag)
+	fileSize, _ := util.GetFileSize(absPath)
+	timeoutSecond := fileSize/1024/1024/1024 + 60 // --with-md5 会计算md5，所以超时时间要加长一点
+	outBuf, errBuffer, err := DoCommand(timeoutSecond, BackupClient, "-n", "-f", absPath, "--with-md5", "-t", tag)
 	if err != nil {
 		return nil, err
 	}
@@ -153,20 +156,11 @@ func (t *TaskInfo) SaveToFile() error {
 		return fmt.Errorf("empty file path")
 	}
 	taskInfoFile := t.GetInfoFilePath()
-	f, err := os.OpenFile(taskInfoFile, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
 	content, err := json.Marshal(t)
 	if err != nil {
 		return err
 	}
-	_, err = f.Write(content)
-	if err != nil {
-		return err
-	}
-	return nil
+	return os.WriteFile(taskInfoFile, content, 0644)
 }
 
 const TaskStatusDone = "4"

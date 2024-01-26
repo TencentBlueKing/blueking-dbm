@@ -18,8 +18,8 @@ func init() {
 
 // BkDbmLabel bk dbm label for Instance
 type BkDbmLabel struct {
-	BkBizID       string `json:"bk_biz_id" mapstructure:"bk_biz_id" yaml:"bk_biz_id" yaml:"bk_biz_id"`
 	BkCloudID     int64  `json:"bk_cloud_id" mapstructure:"bk_cloud_id" yaml:"bk_cloud_id"`
+	BkBizID       int    `json:"bk_biz_id" mapstructure:"bk_biz_id" yaml:"bk_biz_id" yaml:"bk_biz_id"`
 	App           string `json:"app" mapstructure:"app" yaml:"app"`
 	AppName       string `json:"app_name" mapstructure:"-" yaml:"app_name"`
 	ClusterDomain string `json:"cluster_domain" mapstructure:"cluster_domain" yaml:"cluster_domain"`
@@ -30,7 +30,7 @@ type BkDbmLabel struct {
 	MetaRole      string `json:"meta_role" mapstructure:"meta_role" yaml:"meta_role"` // m0,m1,backup...|mongos
 	ServerIP      string `json:"server_ip" mapstructure:"server_ip" yaml:"server_ip"`
 	ServerPort    int    `json:"server_port" mapstructure:"server_port" yaml:"server_port" yaml:"server_port"`
-	SetName       string `json:"setname" mapstructure:"setname" yaml:"setname" yaml:"set_name"`
+	SetName       string `json:"set_name" mapstructure:"set_name" yaml:"set_name" yaml:"set_name"`
 }
 
 // ParseBkDbmLabel 解析BkDbmLabel, 允许为空
