@@ -97,6 +97,7 @@ func (s *pitrRecoverJob) checkDstMongo() error {
 	}
 	var notEmptyDb []string
 	for _, db := range dbList {
+
 		if mymongo.IsSysDb(db) {
 			continue
 		}

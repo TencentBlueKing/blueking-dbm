@@ -94,7 +94,7 @@ func Restore(option *RestoreOption) {
 		}
 	}
 
-	restoreLog, err := helper.Restore(dstDir, option.Args.Oplog)
+	restoreLog, err := helper.Restore(dstDir, dstDir, option.Args.Oplog)
 	if err != nil {
 		log.Errorf("restore error: %s", err)
 		return
@@ -139,11 +139,11 @@ func NewMongoRestoreHelper(mongoHost *mymongo.MongoHost, restoreBin, user, pass,
 }
 
 // Restore do mongorestore
-func (m MongoRestoreHelper) Restore(dstDir string, oplog bool) (restoreLog string, err error) {
+// todo save log to file
+func (m MongoRestoreHelper) Restore(dstDir string, logDir string, oplog bool) (restoreLog string, err error) {
 	logFileName := "restore.log"
-	restoreLog = path.Join(dstDir, logFileName)
-	restoreCmd := mycmd.NewCmdBuilder().Append(m.Bin).
-		Append("-u", m.User, "-p").
+	restoreLog = path.Join(logDir, logFileName)
+	restoreCmd := mycmd.New(m.Bin, "-u", m.User, "-p").
 		AppendPassword(m.Pass).
 		Append("--host", m.MongoHost.Host, "--port", m.MongoHost.Port,
 			fmt.Sprintf("--authenticationDatabase=%s", m.AuthDb),
@@ -152,15 +152,19 @@ func (m MongoRestoreHelper) Restore(dstDir string, oplog bool) (restoreLog strin
 	if oplog {
 		restoreCmd.Append("--oplogReplay")
 	}
-	restoreCmd.Append(">", restoreLog, "2>&1")
 
-	_, _, _, err = restoreCmd.RunByBash("", time.Hour*24)
+	outFile, err := os.Create(restoreLog)
+	if err != nil {
+		return "", errors.Wrap(err, fmt.Sprintf("create %s failed", restoreLog))
+	}
+	defer outFile.Close()
+	_, err = restoreCmd.Run3(time.Hour*24, outFile, outFile)
 	if err != nil {
 		err = errors.Wrap(err, restoreCmd.GetCmdLine("", true))
 		return
 	}
-	return
 
+	return
 }
 
 /*
@@ -265,13 +269,13 @@ func UntarFile(resultFile string) (dstDir string, err error) {
 	resultFileBase := filepath.Base(resultFile)
 	var resultFileNoSuffix string
 
-	untarCmd := mycmd.NewCmdBuilder().Append("tar")
+	untarCmd := mycmd.New()
 	if strings.HasSuffix(resultFile, ".tar.gz") || strings.HasSuffix(resultFile, ".tgz") {
-		untarCmd.Append("zxf", resultFile, "-C", tmpPath)
+		untarCmd.Append("tar", "zxf", resultFile, "-C", tmpPath)
 		resultFileNoSuffix = strings.TrimSuffix(resultFileBase, ".tgz")
 		resultFileNoSuffix = strings.TrimSuffix(resultFileBase, ".tar.gz")
 	} else if strings.HasSuffix(resultFile, ".tar") {
-		untarCmd.Append("xf", resultFile, "-C", tmpPath)
+		untarCmd.Append("tar", "xf", resultFile, "-C", tmpPath)
 		resultFileNoSuffix = strings.TrimSuffix(resultFileBase, ".tar")
 	} else {
 		isDir, _ := pitr.IsDirectory(resultFile)
@@ -286,6 +290,7 @@ func UntarFile(resultFile string) (dstDir string, err error) {
 
 	_, err = untarCmd.Run2(time.Hour * 24)
 	if err != nil {
+		err = fmt.Errorf("cmd:%s return err %v", untarCmd.GetCmdLine2(true), err)
 		return
 	}
 

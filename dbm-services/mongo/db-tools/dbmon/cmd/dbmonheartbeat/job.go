@@ -3,6 +3,7 @@ package dbmonheartbeat
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 
 	"dbm-services/mongo/db-tools/dbmon/config"
@@ -59,7 +60,7 @@ func SendHeartBeat(conf *config.BkMonitorBeatConfig, serverConf *config.ConfServ
 	if err != nil {
 		return err
 	}
-	return msgH.SetBkBizID(serverConf.BkBizID).
+	return msgH.SetBkBizID(strconv.Itoa(serverConf.BkBizID)).
 		SetBkCloudID(serverConf.BkCloudID).
 		SetApp(serverConf.App).
 		SetAppName(serverConf.AppName).
