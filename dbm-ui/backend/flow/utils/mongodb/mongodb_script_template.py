@@ -16,6 +16,7 @@ mongodb_fast_execute_script_common_kwargs = {
     "is_param_sensitive": 0,
 }
 
+
 mongodb_actuator_template = """
 mkdir -p {{file_path}}/install/dbactuator-{{uid}}/logs
 cp {{file_path}}/install/mongo-dbactuator {{file_path}}/install/dbactuator-{{uid}}
@@ -25,8 +26,8 @@ chmod +x mongo-dbactuator
 --version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}
 """
 
-mongodb_script_template = {"mongodb_actuator_template": mongodb_actuator_template}
 
+mongodb_script_template = {"mongodb_actuator_template": mongodb_actuator_template}
 mongodb_os_init_actuator_template = """
 mkdir -p {{file_path}}/install/dbactuator-{{uid}}/logs
 cp {{file_path}}/install/mongo-dbactuator {{file_path}}/install/dbactuator-{{uid}}
@@ -36,6 +37,7 @@ chmod +x mongo-dbactuator
 --version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}  \
 --data_dir={{data_dir}}  --backup_dir={{backup_dir}} --user={{user}}  --group={{group}}
 """
+
 
 mongo_init_set_js_script = """
 db = db.getSiblingDB('admin');
@@ -56,6 +58,7 @@ if (v.match(/^3\\./)) {
     db.system.version.insert({ '_id' : 'authSchema', 'currentVersion' : 3 });
 }
 """
+
 
 mongo_extra_manager_user_create_js_script = """
 db = db.getSiblingDB('admin');
@@ -100,13 +103,25 @@ if (num == 0) {
 }
 """
 
+
 mongodb_actuator_template2 = """
+#!/bin/sh
+# mongodb actuator script
 mkdir -p {{file_path}}/install/dbactuator-{{uid}}/logs
-cp {{file_path}}/install/mongo-dbactuator {{file_path}}/install/dbactuator-{{uid}}
+# debug
+cp {{file_path}}/install/mongo-dbactuator.cyc {{file_path}}/install/dbactuator-{{uid}}/mongo-dbactuator
 cd {{file_path}}/install/dbactuator-{{uid}}
 chmod +x mongo-dbactuator
-./mongo-dbactuator --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
+
+if [ "{{sudo_account}}" != "root" ];then
+  chown {{sudo_account}} {{file_path}}/install/dbactuator-{{uid}} -R
+  su {{sudo_account}} -c "./mongo-dbactuator --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
+--version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}"
+else
+   echo "warning: user == root"
+  ./mongo-dbactuator --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
 --version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}
+fi
 """
 
 

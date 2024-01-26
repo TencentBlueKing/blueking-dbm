@@ -113,3 +113,18 @@ class MongoDBInstanceRestartView(FlowTestView):
         root_id = uuid.uuid1().hex
         MongoDBController(root_id=root_id, ticket_data=request.data).instance_restart()
         return Response({"root_id": root_id})
+
+
+class MongoRemoveNsApiView(FlowTestView):
+    """
+    Mongo RemoveNs Api
+    """
+
+    @staticmethod
+    def post(request):
+        """
+        RemoveNs
+        """
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).mongo_remove_ns()
+        return Response({"root_id": root_id})
