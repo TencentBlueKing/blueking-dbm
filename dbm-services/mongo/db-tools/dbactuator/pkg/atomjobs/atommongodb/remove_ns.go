@@ -2,9 +2,7 @@ package atommongodb
 
 import (
 	"context"
-	"dbm-services/mongo/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongo/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/mongo/db-tools/dbactuator/pkg/util"
 	"dbm-services/mongo/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongo/db-tools/mongo-toolkit-go/toolkit/logical"
 	"encoding/json"
@@ -302,11 +300,17 @@ func (s *removeNsJob) getNsList() (err error) {
 		if err != nil {
 			return errors.Wrap(err, "GetDbCollectionWithFilter")
 		}
+		// skip sys db
+		for _, v := range dbColList {
+			if mymongo.IsSysDb(v.Db) {
+				continue
+			}
+			s.tmp.NsList = append(s.tmp.NsList, v)
+		}
 
-		if len(dbColList) == 0 {
+		if len(s.tmp.NsList) == 0 {
 			return errors.Errorf("no matched db and col found")
 		}
-		s.tmp.NsList = dbColList
 		s.runtime.Logger.Info(fmt.Sprintf("getNsList:%+v", s.tmp.NsList))
 
 		return nil
@@ -316,7 +320,8 @@ func (s *removeNsJob) getNsList() (err error) {
 		if len(s.tmp.NsList) == 0 {
 			return errors.Errorf("no db and col found")
 		}
-		s.runtime.Logger.Info(fmt.Sprintf("getNsList:%+v", s.tmp.NsList))
+		s.runtime.Logger.Info(fmt.Sprintf("logical.GetDbCollection "+
+			":%+v", s.tmp.NsList))
 		return err
 	}
 }
@@ -354,23 +359,12 @@ func (s *removeNsJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 		"admin", s.ConfParams.AdminUsername, s.ConfParams.AdminPassword, "", s.ConfParams.IP)
 
 	// prepare mongo client and mongodump path
-	client, err := s.MongoInst.Connect()
+	_, err := s.MongoInst.Connect()
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("Connect to %s:%d failed", s.ConfParams.IP, s.ConfParams.Port))
 	}
 	s.runtime.Logger.Info(fmt.Sprintf("Connect to %s:%d success", s.ConfParams.IP, s.ConfParams.Port))
-	version, err := mymongo.GetMongoServerVersion(client)
-	if err != nil {
-		return errors.Wrap(err, "GetMongoServerVersion")
-	}
-	// Set Tools Path
-	s.MongoDump, err = consts.GetMongodumpBin(version)
-	if err != nil {
-		return errors.Wrap(err, "get mongodump")
-	}
-	if !util.FileExists(s.MongoDump) {
-		return errors.Errorf("mongodump not exists, path:%s", s.MongoDump)
-	}
+
 	return nil
 }
 

@@ -64,3 +64,24 @@ func FileLineCounter(filename string) (lineCnt uint64, err error) {
 		}
 	}
 }
+
+// GetLastLine 获取文件最后n行
+func GetLastLine(filename string, n int) (lines []string, err error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var line string
+	for scanner.Scan() {
+		line = scanner.Text()
+		lines = append(lines, line)
+		if len(lines) > n {
+			lines = lines[1:]
+		}
+	}
+	err = scanner.Err()
+	return
+}

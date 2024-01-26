@@ -27,6 +27,7 @@ var showversion = false
 var version string
 var githash string
 var buildstamp string
+var goversion string
 
 const progName = "bk-dbmon-mg"
 
@@ -44,12 +45,14 @@ var rootCmd = &cobra.Command{
 	Short: fmt.Sprintf(`bk-dbmon for mongodb
 Version: %s
 Githash: %s
-Buildstamp:%s`, version, githash, buildstamp),
+Buildstamp:%s
+GoVersion: %s`, version, githash, buildstamp, goversion),
 	Long: fmt.Sprintf(`mongodb local crontab job,include routine_backup,heartbeat etc.
 Wait each job finish,the job result would write to local file, and other program would report the result.
 Version: %s
 Githash: %s
-Buildstamp:%s`, version, githash, buildstamp),
+Buildstamp:%s
+GoVersion: %s`, version, githash, buildstamp, goversion),
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {

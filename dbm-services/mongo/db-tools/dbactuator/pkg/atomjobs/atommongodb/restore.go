@@ -1,7 +1,6 @@
 package atommongodb
 
 import (
-	"dbm-services/mongo/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongo/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongo/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongo/db-tools/dbactuator/pkg/util"
@@ -10,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
@@ -24,12 +24,11 @@ import (
 
 // restoreParam 备份任务参数，由前端传入
 type restoreParam struct {
-	common.MediaPkg `json:"mediapkg"`
-	IP              string `json:"ip"`
-	Port            int    `json:"port"`
-	AdminUsername   string `json:"adminUsername"`
-	AdminPassword   string `json:"adminPassword"`
-	InstanceType    string `json:"instanceType"`
+	IP            string `json:"ip"`
+	Port          int    `json:"port"`
+	AdminUsername string `json:"adminUsername"`
+	AdminPassword string `json:"adminPassword"`
+	InstanceType  string `json:"instanceType"`
 
 	Args struct {
 		SrcFile   string      `json:"srcFile"`
@@ -114,8 +113,9 @@ func (s *restoreJob) doLogicalRestore() error {
 		return errors.Wrap(err, "UntarFile")
 	}
 	log.Info("end untar file %s, dstDir %s", s.param.Args.SrcFile, dstDir)
+	dstDirWithDump := path.Join(dstDir, "dump")
 	// get DbCollection from Dir
-	dbColList, err := logical.GetDbCollectionFromDir(dstDir)
+	dbColList, err := logical.GetDbCollectionFromDir(dstDirWithDump)
 	if err != nil {
 		return errors.Wrap(err, "GetDbCollectionFromDir")
 	}
@@ -127,11 +127,23 @@ func (s *restoreJob) doLogicalRestore() error {
 	}
 
 	// 导入部分表时，要删除掉不需要的库和表文件.
-	s.removeNsByFilter(dbColList, dstDir)
+	s.removeNsByFilter(dbColList, dstDirWithDump)
 
-	restoreLog, err := helper.Restore(dstDir, s.param.Args.Oplog)
+	// 检查文件是否已存在.
+
+	// 2. 执行恢复，并将恢复日志写入到文件中.
+	restoreLog, err := helper.Restore(dstDirWithDump, dstDir, s.param.Args.Oplog)
 	if err != nil {
-		return errors.Wrap(err, "Restore")
+		lines, err2 := util.GetLastLine(restoreLog, 5)
+		if err2 != nil || len(lines) == 0 {
+			log.Error("restore failed. get restore log failed, err: %v", err2)
+		} else {
+			log.Error("restore failed. try to print last %d line of restore.log...", len(lines))
+			for _, line := range lines {
+				log.Error("restore.log %s", line)
+			}
+		}
+		return errors.Wrap(err, "RestoreFailed")
 	}
 
 	restoreSucc, restoreFailed, restoreErr := logical.CheckRestoreLog(restoreLog)
@@ -144,7 +156,7 @@ func (s *restoreJob) doLogicalRestore() error {
 		return errors.Errorf("%d document restore succ, %d document restore failed", restoreSucc, restoreFailed)
 	}
 
-	if err := os.RemoveAll(dstDir); err != nil {
+	if err := os.RemoveAll(dstDirWithDump); err != nil {
 		log.Error("remove %s failed %v", dstDir, err)
 		return errors.Wrap(err, fmt.Sprintf("remove %s failed", dstDir))
 	}
