@@ -31,7 +31,8 @@ const backupTypePhysical string = "physical" // 未实现
 
 // backupParams 备份任务参数，由前端传入
 type backupParams struct {
-	BkDbmLabel            config.BkDbmLabel `json:"bkDbmLabel"`
+	// 这个参数是不是可以从bk-dbmon.conf中获得？
+	BkDbmInstance         config.BkDbmLabel `json:"bk_dbm_instance"`
 	IP                    string            `json:"ip"`
 	Port                  int               `json:"port"`
 	AdminUsername         string            `json:"adminUsername"`
@@ -165,16 +166,22 @@ func (s *backupJob) doLogicalBackup() error {
 
 	tarFile := fmt.Sprintf("%s.tar", tmpDir)
 	tarPath := path.Join(path.Dir(tmpPath), tarFile)
+	if err = s.chdir(path.Dir(tmpPath)); err != nil {
+		return errors.Wrap(err, "chdir")
+	}
 
-	tarCmd := mycmd.NewCmdBuilder().Append(
-		"cd", path.Dir(tmpPath), "&&", "tar", "cvf", tarPath, tmpDir)
+	tarCmd := mycmd.New("tar", "cvf", tarPath, tmpDir)
 	var exitCode int
-	if exitCode, _, _, err = tarCmd.Run(time.Hour * 24); exitCode != 0 {
-		tarCmdLine := tarCmd.GetCmdLine(s.OsUser, true)
-		s.runtime.Logger.Error("exec cmd fail, cmd: %s, exitCode: %d error:%s", tarCmdLine, exitCode, err)
+	exitCode, _, _, err = tarCmd.Run(time.Hour * 24)
+	s.runtime.Logger.Info("exec cmd: %q, exitCode:%d, err:%v", tarCmd.GetCmdLine2(true), exitCode, err)
+	if exitCode != 0 {
 		return errors.Wrap(err, "tar")
 	}
+	if err = s.removeDir(tmpDir); err != nil {
+		return err
+	}
 	endTime = time.Now()
+
 	fSize, _ := util.GetFileSize(tarPath)
 	s.runtime.Logger.Info("backup file: %s size: %d", tarPath, fSize)
 
@@ -186,16 +193,25 @@ func (s *backupJob) doLogicalBackup() error {
 		s.runtime.Logger.Error("UploadFileToBackupSys Failed, err:%v", err)
 		return errors.Wrap(err, "UploadFileToBackupSys")
 	}
-	err = task.SaveToFile()
+	s.runtime.Logger.Info("BackupSys taskid %s", task.TaskId)
+	// 上报备份记录
 
+	err = task.SaveToFile()
 	rec := report.NewBackupRecord()
 	rec.AppendFileInfo(startTime.Local().Format(time.RFC3339),
 		endTime.Local().Format(time.RFC3339),
 		tarPath, tarFile, fSize)
-	rec.AppendMetaLabel(&s.ConfParams.BkDbmLabel)
+	rec.AppendMetaLabel(&s.ConfParams.BkDbmInstance)
 	rec.AppendBillSrc(s.runtime.UID, "todo", 1, 1)
 	rec.AppendBsInfo(task.TaskId, task.Tag)
-	return report.AppendObjectToFile(s.ReportFilePath, rec)
+	err = report.AppendObjectToFile(s.ReportFilePath, rec)
+	if err != nil {
+		s.runtime.Logger.Error("Add Record to BackupReport Failedreport file:%s, record %+v", s.ReportFilePath, err)
+		return errors.Wrap(err, "Add Record to BackupReport")
+	} else {
+		s.runtime.Logger.Info("Add Record to BackupReport Success, report file:%s, record %+v", s.ReportFilePath, rec)
+	}
+	return nil
 }
 
 func (s *backupJob) sendToBackupSystem() error {

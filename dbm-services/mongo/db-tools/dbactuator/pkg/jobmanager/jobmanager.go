@@ -100,12 +100,13 @@ func (m *JobGenericManager) RunAtomJobs() (err error) {
 		name := util.GetTypeName(runner)
 		m.runtime.Logger.Info(fmt.Sprintf("begin to run %s init", name))
 		if err = runner.Init(m.runtime); err != nil {
+			m.runtime.Logger.Error(fmt.Sprintf("runner %s init failed, err:%s", name, err))
 			return
 		}
 		m.runtime.Logger.Info(fmt.Sprintf("begin to run %s", name))
 		err = runner.Run()
 		if err != nil {
-			m.runtime.Logger.Info(fmt.Sprintf("runner %s run failed,err:%s", name, err))
+			m.runtime.Logger.Error(fmt.Sprintf("runner %s run failed,err: %s", name, err))
 			return
 		}
 		m.runtime.Logger.Info(fmt.Sprintf("finished run %s", name))

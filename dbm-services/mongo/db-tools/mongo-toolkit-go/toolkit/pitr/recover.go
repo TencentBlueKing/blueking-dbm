@@ -124,7 +124,7 @@ func UntarFull(backupFileDir string, file *BackupFileName) (fullTmpDir, subDirNa
 	}
 
 	var tarArg string
-	tarCmd := mycmd.NewCmdBuilder().Append("tar")
+	tarCmd := mycmd.New("tar")
 	if strings.HasSuffix(file.FileName, ".gz") {
 		gzip = false
 		tarArg = "zxf"
@@ -172,18 +172,18 @@ func DoMongoRestoreFULL(bin string, conn *mymongo.MongoHost, file *BackupFileNam
 	dumpDir := path.Join(fullTmpDir, subDirName, "dump")
 	restoreLogfile := path.Join(fullTmpDir, subDirName, "restore.log")
 
-	restoreCmd := mycmd.NewCmdBuilder().Append(bin).Append("--host",
-		conn.Host, "--port", conn.Port, "--authenticationDatabase", conn.AuthDb, "--oplogReplay")
+	restoreCmd := mycmd.New(bin, "--host", conn.Host, "--port", conn.Port,
+		"--authenticationDatabase", conn.AuthDb, "--oplogReplay")
 	if len(conn.User) > 0 {
-		restoreCmd.Append("-u", conn.User)
+		restoreCmd.AppendArg("-u", conn.User)
 	}
 	if len(conn.Pass) > 0 {
-		restoreCmd.Append("-p").AppendPassword(conn.Pass)
+		restoreCmd.AppendArg("-p", mycmd.Password(conn.Pass))
 	}
 	if gzip {
-		restoreCmd.Append("--gzip")
+		restoreCmd.AppendArg("--gzip")
 	}
-	restoreCmd.Append("--dir", dumpDir)
+	restoreCmd.AppendArg("--dir", dumpDir)
 	errReader, errWriter := io.Pipe()
 	var outBuf, errBuf bytes.Buffer
 	bgCmd := mycmd.NewExecCmdBg()

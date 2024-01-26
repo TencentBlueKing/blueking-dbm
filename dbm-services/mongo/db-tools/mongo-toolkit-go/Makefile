@@ -8,11 +8,13 @@ bscli:=bs-cli
 OS:= $(shell uname -s)
 
 VERSION=$(shell cat VERSION)
-BUILD=`date +%FT%T%z`
+BUILD=$(shell date +%FT%T%z)
 COMMIT_SHA1=`git rev-parse --short HEAD`
 GO_VERSION=$(shell go version)
 
+
 LDFLAGS=-ldflags "-X 'main.VERSION=${VERSION}' -X 'main.BuildDate=${BUILD}' -X 'main.CommitSha1=${COMMIT_SHA1}' -X 'main.GoVersion=${GO_VERSION}'"
+
 
 all: check build
 	@echo "all"
