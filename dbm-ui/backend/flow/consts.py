@@ -1169,6 +1169,7 @@ MssqlSystemVersionSupportMap = {
     ],
 }
 
+
 class SqlserverCharSet(str, StructuredEnum):
     """
     目前支持的Sqlserver的字符集
