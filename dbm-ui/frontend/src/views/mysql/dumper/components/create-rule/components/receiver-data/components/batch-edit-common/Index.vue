@@ -1,30 +1,32 @@
 <template>
-  <BkDialog
-    class="batch-edit-dialog"
-    :close-icon="false"
-    :is-show="isShow"
-    :quick-close="false"
-    theme="primary"
-    :title="t('批量编辑')"
+  <BkPopConfirm
+    trigger="click"
     width="330"
-    @closed="handleClose"
     @confirm="handleConfirm">
-    <div
-      class="title-spot edit-title"
-      style="font-weight: normal;">
-      {{ config.title }} <span class="required" />
-    </div>
-    <BkInput
-      v-if="isShowInput"
-      v-model="localValue"
-      class="input-box"
-      :min="1"
-      :placeholder="config.placeholder"
-      :type="config.type" />
-    <MultipleInput
-      v-if="config.type === 'textarea'"
-      ref="multipleInputRef" />
-  </BkDialog>
+    <slot />
+    <template #content>
+      <div class="dumper-batch-edit-common mb-12">
+        <div class="main-title mb-12">
+          {{ t('批量编辑') }}
+        </div>
+        <div
+          class="title-spot edit-title"
+          style="font-weight: normal;">
+          {{ config.title }} <span class="required" />
+        </div>
+        <BkInput
+          v-if="isShowInput"
+          v-model="localValue"
+          class="input-box"
+          :min="1"
+          :placeholder="config.placeholder"
+          :type="config.type" />
+        <MultipleInput
+          v-if="config.type === 'textarea'"
+          ref="multipleInputRef" />
+      </div>
+    </template>
+  </BkPopConfirm>
 </template>
 
 <script setup lang="ts">
@@ -48,18 +50,12 @@
 
   const emits = defineEmits<Emits>();
 
-  const isShow = defineModel<boolean>();
-
   const { t } = useI18n();
 
   const multipleInputRef = ref();
   const localValue = ref('');
 
   const isShowInput = computed(() => ['text', 'number', 'password'].includes(props.config.type));
-
-  const handleClose = () => {
-    isShow.value = false;
-  };
 
   const handleConfirm = () => {
     if (props.config.type === 'textarea') {
@@ -71,44 +67,27 @@
       emits('data-change', [localValue.value], false);
     }
     localValue.value = '';
-    isShow.value = false;
   };
 </script>
 
-<style lang="less" scoped>
-.batch-edit-dialog {
+<style lang="less">
+.dumper-batch-edit-common {
+  & + .bk-pop-confirm-footer {
+    button {
+      width: 72px;
+    }
+  }
+  .main-title {
+    font-weight: 700;
+    font-size: 12px;
+    color: #63656E;
+  }
   .edit-title {
     margin-bottom: 6px;
   }
 
   .input-box {
     height: 32px;
-  }
-
-  :deep(.bk-dialog-header) {
-    padding: 14px 16px 10px;
-
-    .bk-dialog-title {
-      font-size: 16px !important;
-      color: #313238;
-    }
-  }
-
-  :deep(.bk-modal-content) {
-    min-height: 20px;
-    padding: 0 16px 1px;
-  }
-
-  :deep(.bk-modal-footer) {
-    height: 38px;
-    padding: 0 16px;
-    background-color: #fff;
-    border-top: none;
-
-    button {
-      width: 72px;
-      height: 26px;
-    }
   }
 }
 </style>
