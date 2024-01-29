@@ -44,7 +44,7 @@ class Command(BaseCommand):
         call_command("sync_apigw_resources", file=resources_file_path)
 
         # 同步资源文档
-        if env.BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE:
+        if env.BK_APIGW_RESOURCE_DOCS_BASE_DIR:
             logger.info("call sync_resource_docs_by_archive with definition: %s" % definition_file_path)
             call_command("sync_resource_docs_by_archive", file=definition_file_path)
 

@@ -69,7 +69,9 @@ BK_APIGW_STATIC_VERSION = get_type_env(key="BK_APIGW_STATIC_VERSION", _type=str,
 BK_APIGW_MANAGER_MAINTAINERS = get_type_env(key="BK_APIGW_MANAGER_MAINTAINERS", _type=list, default=["admin"])
 BK_APIGW_STAGE_NAME = get_type_env(key="BK_APIGW_STAGE_NAME", _type=str, default="test")
 BK_APIGW_GRANT_APPS = get_type_env(key="BK_APIGW_GRANT_APPS", _type=list, default=[])
-BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE = get_type_env(key="BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE", _type=str)
+BK_APIGW_RESOURCE_DOCS_BASE_DIR = get_type_env(
+    key="BK_APIGW_RESOURCE_DOCS_BASE_DIR", _type=str, default="backend/docs/apigw"
+)
 
 ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="prod", _type=str)
 
