@@ -116,7 +116,7 @@ OS_CHN = {os_type: os_type if os_type == OsType.AIX else os_type.capitalize() fo
 BK_OS_TYPE = {"LINUX": "1", "WINDOWS": "2", "AIX": "3", "SOLARIS": "5"}
 
 # 默认云区域ID
-DEFAULT_CLOUD = int(env.get_type_env("DEFAULT_CLOUD", 0))
+DEFAULT_CLOUD = env.get_type_env("DEFAULT_CLOUD", 0, int)
 DEFAULT_CLOUD_NAME = env.get_type_env("DEFAULT_CLOUD_NAME", "直连区域")
 
 # cc默认模块类型

@@ -95,36 +95,41 @@ class QSearchHandler(object):
         if self.db_types:
             qs = Q(cluster_type__in=self.cluster_types) & qs
 
+        common_fields = {
+            "cluster_id": F("cluster__id"),
+            "cluster_domain": F("cluster__immute_domain"),
+            "cluster_name": F("cluster__name"),
+            "cluster_alias": F("cluster__alias"),
+            "major_version": F("cluster__major_version"),
+            "ip": F("machine__ip"),
+            "bk_host_id": F("machine__bk_host_id"),
+            "bk_cloud_id": F("machine__bk_cloud_id"),
+            "bk_idc_area": F("machine__bk_idc_area"),
+            "bk_idc_name": F("machine__bk_idc_name"),
+        }
+
         storage_objs = (
             StorageInstance.objects.prefetch_related("cluster", "machine")
             .filter(qs)
-            .annotate(
-                role=F("instance_role"),
-                cluster_id=F("cluster__id"),
-                cluster_domain=F("cluster__immute_domain"),
-                ip=F("machine__ip"),
-            )
+            .annotate(role=F("instance_role"), **common_fields)
         )
-        proxy_objs = ProxyInstance.objects.prefetch_related("cluster", "machine").annotate(
-            role=F("access_layer"),
-            cluster_id=F("cluster__id"),
-            cluster_domain=F("cluster__immute_domain"),
-            ip=F("machine__ip"),
+        proxy_objs = (
+            ProxyInstance.objects.prefetch_related("cluster", "machine")
+            .filter(qs)
+            .annotate(role=F("access_layer"), **common_fields)
         )
         fields = [
             "id",
             "name",
             "bk_biz_id",
-            "cluster_id",
-            "cluster_domain",
             "cluster_type",
             "role",
-            "ip",
             "port",
             "machine_type",
             "machine_id",
             "status",
             "phase",
+            *common_fields.keys(),
         ]
         return list(storage_objs[: self.limit].values(*fields)) + list(proxy_objs[: self.limit].values(*fields))
 
