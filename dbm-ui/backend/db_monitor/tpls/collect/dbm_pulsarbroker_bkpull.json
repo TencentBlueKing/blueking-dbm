@@ -26,7 +26,7 @@
         "period": 60,
         "password": false,
         "bk_username": "",
-        "metrics_url": "http://{{ target.host.bk_host_innerip }}:8080/metrics/"
+        "metrics_url": "http://{{ target.host.bk_host_innerip }}:{{ target.service.labels[\"metrics_port\"] }}/metrics/"
       },
       "target_node_type": "TOPO",
       "target_object_type": "SERVICE"
