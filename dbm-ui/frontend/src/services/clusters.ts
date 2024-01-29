@@ -118,9 +118,3 @@ export const updateClusterEntryConfig = (params: {
   }[]
 }) => http.post<{ cluster_id?: number }>('/apis/cluster_entry/refresh_cluster_domain/', params);
 
-/**
- * 根据sqlserver 版本查询系统版本
- */
-export const getSqlServerSystemVersion = (params: {
-  sqlserver_version: string
- }) => http.get<string[]>('/apis/version/list_sqlserver_system_version/', params);

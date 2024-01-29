@@ -174,6 +174,7 @@
   const {
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
+    handleOpenChange,
   } = useStretchLayout();
 
   const copy = useCopy();
@@ -268,7 +269,8 @@
               onClick={ () => copy(data.master_domain) }/>
             <db-icon
               type="link"
-              v-bk-tooltips={ t('新开tab打开') }/>
+              v-bk-tooltips={ t('新开tab打开') }
+              onClick={ () => handleToDetails(data, true) }/>
             <div class="text-overflow" v-overflow-tips>
               {
                 data.isNew
@@ -551,11 +553,17 @@
   /**
    * 查看详情
    */
-  const handleToDetails = (data: SqlServerHaClusterModel) => {
+  const handleToDetails = (
+    data: SqlServerHaClusterModel,
+    isAllSpread:boolean = false,
+  ) => {
     stretchLayoutSplitScreen();
     haClusterData.value = {
       clusterId: data.id,
     };
+    if (isAllSpread) {
+      handleOpenChange('left');
+    }
   };
 
   const handleSelection = (

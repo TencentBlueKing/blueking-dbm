@@ -54,7 +54,7 @@
               <BkLoading :loading="isModuleLoading">
                 <div v-if="levelConfigData && levelConfigData.conf_items.length">
                   <div
-                    v-for="(item, index) in levelConfigData?.conf_items"
+                    v-for="(item, index) in levelConfigData.conf_items"
                     :key="index"
                     class="apply-form-database-item">
                     <span class="apply-form-database-label">
@@ -319,7 +319,7 @@
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
 
-  const isSingleType = route.name === 'SqlServiceApplySingle';
+  const isSingleType = route.name === 'SqlServiceSingleApply';
   const clusterType = isSingleType ? 'sqlserver_single' : 'sqlserver_ha';
 
   const getDefaultformData = () => ({

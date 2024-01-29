@@ -23,6 +23,19 @@
         class="mb-16"
         :title="t('绑定数据库配置')">
         <BkFormItem
+          :label="t('数据库类型')"
+          property="mysql_type">
+          <BkTag
+            class="mysql-type-item"
+            theme="info"
+            type="stroke">
+            <template #icon>
+              <span class="db-icon-mysql mr-5" />
+            </template>
+            {{ ticketInfo.name }}
+          </BkTag>
+        </BkFormItem>
+        <BkFormItem
           :label="t('数据库版本')"
           property="version"
           required>
@@ -105,6 +118,7 @@
             <BkInput
               v-model="formData.maxSystemReservedMemory"
               class="item-input num-input"
+              disabled
               :min="1"
               :placeholder="t('请输入')"
               type="number" />
@@ -117,7 +131,9 @@
           :label="t('主从方式')"
           property="haMode"
           required>
-          <BkRadioGroup v-model="formData.haMode">
+          <BkRadioGroup
+            v-model="formData.haMode"
+            disabled>
             <BkRadio
               v-for="item in haModeList"
               :key="item.value"
@@ -127,17 +143,16 @@
           </BkRadioGroup>
         </BkFormItem>
       </DbCard>
-      <!-- <DbCard :title="t('参数配置')">
-        <BkLoading :loading="configState.loading">
+      <DbCard :title="t('参数配置')">
+        <BkLoading :loading="parameterTableLoading">
           <ParameterTable
             ref="parameterTableRef"
-            :data="configState.data.conf_items"
-            :is-anomalies="configState.isAnomalies"
+            :data="leaveConfigData?.conf_items"
+            :is-anomalies="parameterTableLoading"
             level="module"
-            :origin-data="configState.originConfItems"
-            :parameters="configState.parameters" />
+            @refresh="fetchLevelConfig" />
         </BkLoading>
-      </DbCard> -->
+      </DbCard>
     </DbForm>
     <template #action>
       <BkButton
@@ -162,15 +177,25 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getSqlServerSystemVersion } from '@services/clusters';
   import { createModules } from '@services/source/cmdb';
-  import { saveModulesDeployInfo } from '@services/source/configs';
+  import {
+    getLevelConfig,
+    saveModulesDeployInfo,
+  } from '@services/source/configs';
+  import { getSqlServerSystemVersion } from '@services/source/sqlserveHaCluster';
 
   import { useInfo } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
+  import {
+    sqlServerType,
+    type SqlServerTypeString,
+  } from '@common/const';
+
   import DeployVersion from '@components/apply-items/DeployVersion.vue';
+
+  import ParameterTable from '@views/db-configure/components/ParameterTable.vue';
 
   import { messageSuccess } from '@utils/message';
 
@@ -198,6 +223,10 @@
 
   const bizInfo = bizs.find(info => info.bk_biz_id === currentBizId) || { name: '' };
 
+  const ticketInfo = computed(() => sqlServerType[route.params.type as SqlServerTypeString]);
+
+  const paramBizId = Number(route.params.bk_biz_id);
+
   const rules = {
     module_name: [
       {
@@ -223,7 +252,7 @@
     camelCase: '', // 数据库配置
     character_set: '', // 字符集
     memoryAllocationRatio: '', // 内存分配比
-    maxSystemReservedMemory: '', // 最大系统保留内存
+    maxSystemReservedMemory: 32, // 最大系统保留内存
     operatingSystemVersion: '', // 操作系统版本
     haMode: '', // 主从方式
   });
@@ -246,19 +275,48 @@
     },
   });
 
+  const {
+    loading: parameterTableLoading,
+    run: runGetLevelConfig,
+    data: leaveConfigData,
+  } = useRequest(getLevelConfig, {
+    manual: true,
+  });
+
   const { run: runSaveModuleDeploy } = useRequest(saveModulesDeployInfo, {
     manual: true,
   });
 
-  const {
-    data: operatingSystemVersionList,
-  } = useRequest(getSqlServerSystemVersion, {
+  const { data: operatingSystemVersionList } = useRequest(getSqlServerSystemVersion, {
     defaultParams: [{
       sqlserver_version: 'MSSQL_Enterprise_2008',
     }],
   });
 
+  watch(() => formData.version, (version) => {
+    if (version) {
+      fetchLevelConfig();
+      if (Number(version.slice(-4)) > 2017) {
+        formData.haMode = 'alwaysOn';
+      } else {
+        formData.haMode = 'image';
+      }
+    }
+  }, { immediate: true });
+
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+
+  const fetchLevelConfig = () => {
+    const payload = {
+      bk_biz_id: paramBizId,
+      level_name: 'module',
+      level_value: Number(route.query.db_module_id),
+      meta_cluster_type: String(route.query.cluster_type),
+      conf_type: 'dbconf',
+      version: formData.version,
+    };
+    runGetLevelConfig(payload);
+  };
 
   /**
    * 提交表单
@@ -267,18 +325,17 @@
     // 校验表单信息
     await createModuleFormRef.value.validate();
     const clusterType = String(route.query.cluster_type);
-    const bizId = Number(route.params.bk_biz_id);
     // 创建模块-接口需替换
     runCreateModules({
       db_module_name: formData.module_name,
       cluster_type: clusterType,
-      id: bizId,
+      id: paramBizId,
     });
     const params = {
       level_name: 'module',
       version: 'deploy_info',
       conf_type: 'deploy',
-      bk_biz_id: bizId,
+      bk_biz_id: paramBizId,
       level_value: Number(route.query.db_module_id),
       meta_cluster_type: clusterType,
       conf_items: [

@@ -133,10 +133,10 @@
           {
             tableData.value.length !== 0 && (
               <BatchEdit
-              v-bk-tooltips={ t('快捷编辑_可通过换行分隔_快速编辑多个域名') }
-              moduleName={ props.moduleName }
-              appName={ props.formData.details.db_app_abbr }
-              onChange={ handleBatchEditDomains } />
+                v-bk-tooltips={ t('快捷编辑_可通过换行分隔_快速编辑多个域名') }
+                moduleName={ props.moduleName }
+                appName={ props.formData.details.db_app_abbr }
+                onChange={ handleBatchEditDomains } />
               )
           }
          </span>

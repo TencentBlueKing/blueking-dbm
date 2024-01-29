@@ -67,3 +67,8 @@ export function exportSqlServerHaClusterToExcel(params: { bk_host_ids?: number[]
 export const getSqlServerInstanceList = function () {
   return http.get<ListBase<any[]>>(`${path}/list_instances/`);
 };
+
+/**
+ * 根据sqlserver 版本查询系统版本
+ */
+export const getSqlServerSystemVersion = (params: { sqlserver_version: string }) => http.get<string[]>('/apis/version/list_sqlserver_system_version/', params);

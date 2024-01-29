@@ -162,6 +162,7 @@
   const {
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
+    handleOpenChange,
   } = useStretchLayout();
 
   const searchData = [
@@ -229,13 +230,14 @@
                 onClick={ () => copy(data.master_domain) } />
               <db-icon
                 type="link"
-                v-bk-tooltips={ t('新开tab打开') } />
+                v-bk-tooltips={ t('新开tab打开') }
+                onClick={ () => handleToDetails(data, true) }/>
               <div class="text-overflow" v-overflow-tips>
                 {
                   data.isNew && (
                     <span
-                    class="glob-new-tag cluster-tag ml-4"
-                    data-text="NEW" />
+                      class="glob-new-tag cluster-tag ml-4"
+                      data-text="NEW" />
                   )
                 }
               </div>
@@ -534,11 +536,17 @@
   /**
    * 查看详情
    */
-  const handleToDetails = (data: SqlServerSingleClusterModel) => {
+  const handleToDetails = (
+    data: SqlServerSingleClusterModel,
+    isAllSpread:boolean = false,
+  ) => {
     stretchLayoutSplitScreen();
     singleClusterData.value = {
       clusterId: data.id,
     };
+    if (isAllSpread) {
+      handleOpenChange('left');
+    }
   };
 
   /**
