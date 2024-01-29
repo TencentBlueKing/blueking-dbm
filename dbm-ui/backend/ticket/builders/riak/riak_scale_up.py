@@ -14,6 +14,7 @@ import logging
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.models import Cluster
+from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
@@ -35,6 +36,10 @@ class RiakScaleUpFlowParamBuilder(builders.FlowParamBuilder):
         cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
         self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
         self.ticket_data["db_version"] = cluster.major_version
+        # 如果是手动部署，剔除riak层级
+        if self.ticket_data["ip_source"] == IpSource.MANUAL_INPUT:
+            riak_nodes = self.ticket_data.pop("nodes")["riak"]
+            self.ticket_data["nodes"] = riak_nodes
 
 
 class RiakScaleUpResourceParamBuilder(BaseOperateResourceParamBuilder):

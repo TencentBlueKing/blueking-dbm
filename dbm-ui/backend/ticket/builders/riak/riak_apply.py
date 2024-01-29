@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import DBModule
+from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
@@ -55,7 +56,10 @@ class RiakApplyFlowParamBuilder(builders.FlowParamBuilder):
     controller = RiakController.riak_cluster_apply_scene
 
     def format_ticket_data(self):
-        pass
+        # 如果是手动部署，剔除riak层级
+        if self.ticket_data["ip_source"] == IpSource.MANUAL_INPUT:
+            riak_nodes = self.ticket_data.pop("nodes")["riak"]
+            self.ticket_data["nodes"] = riak_nodes
 
 
 class RiakApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
