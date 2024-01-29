@@ -34,6 +34,9 @@ class TicketSendMsgSerializer(serializers.Serializer):
     receiver__username = serializers.CharField(help_text=_("包含用户名，用户需在蓝鲸平台注册，多个以逗号分隔"), required=False)
     sender = serializers.CharField(help_text=_("发件人/企微机器人ID"), required=False)
     group_receiver = serializers.ListField(help_text=_("(机器人专用)接收者，可以传@all，或者会话id"), required=False)
+    mentioned_list = serializers.ListField(help_text=_("提醒群中的指定成员(@某个成员)，@all表示提醒所有人"), required=False)
+    mentioned_mobile_list = serializers.ListField(help_text=_("提醒手机号对应的群成员(@某个成员)，@all表示提醒所有人"), required=False)
+    visible_to_user = serializers.ListField(help_text=_("是否只给指定用户可见，默认给所有人可见"), required=False)
 
 
 class TicketDetailsSerializer(serializers.Serializer):
