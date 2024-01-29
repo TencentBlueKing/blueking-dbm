@@ -20,6 +20,14 @@ from backend.exceptions import ApiError
 logger = logging.getLogger("root")
 
 
+def get_dict_value(msg_info, key):
+    """
+    获取字典中某个key的值，如果不存在，则返回默认值
+    """
+    value = msg_info.pop(key, [])
+    return {key: value} if value else {}
+
+
 class CmsiHandler:
     """Cmsi发送信息常用处理函数"""
 
@@ -37,11 +45,19 @@ class CmsiHandler:
                 continue
             # 如果是机器人，则将发送内容放在wecom_robot下
             if msg_type == CmsiApi.MsgType.WECOM_ROBOT:
+                receiver = (
+                    {"receiver": msg_info["receiver__username"].split(",")} if msg_info["receiver__username"] else {}
+                )
                 msg_info["wecom_robot"] = {
                     "type": "text",
-                    "text": {"content": msg_info["content"]},
-                    "receiver": msg_info["receiver__username"].split(","),
-                    "group_receiver": msg_info["group_receiver"],
+                    "text": {
+                        "content": msg_info["content"],
+                        **get_dict_value(msg_info, "mentioned_list"),
+                        **get_dict_value(msg_info, "mentioned_mobile_list"),
+                    },
+                    **receiver,
+                    **get_dict_value(msg_info, "group_receiver"),
+                    **get_dict_value(msg_info, "visible_to_user"),
                 }
             # 推送消息
             try:
