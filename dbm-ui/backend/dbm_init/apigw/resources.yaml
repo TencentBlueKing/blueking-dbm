@@ -82,6 +82,31 @@ paths:
           userVerifiedRequired: false
         disabledStages: []
         descriptionEn:
+  /dbbase/common_query_cluster/:
+    get:
+      operationId: common_query_cluster
+      description: 查询集群通用信息
+      tags:
+      - cluster
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: get
+          path: /apis/dbbase/common_query_cluster/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
   /ipchooser/topo/query_host_topo_infos/:
     post:
       operationId: query_host_topo_infos
@@ -382,6 +407,56 @@ paths:
           userVerifiedRequired: false
         disabledStages: []
         descriptionEn:
+  /partition/:
+    post:
+      operationId: create_partition
+      description: 创建分区策略
+      tags:
+      - partition
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/partition/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /partition/{id}/:
+    put:
+      operationId: update_partition
+      description: 更新分区策略
+      tags:
+      - partition
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: put
+          path: /apis/partition/{id}/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
   /plugin/mysql/authorize/authorize_apply/:
     post:
       operationId: authorize_apply
@@ -507,6 +582,31 @@ paths:
           userVerifiedRequired: false
         disabledStages: []
         descriptionEn:
+  /tickets/fast_create_cloud_component/:
+    post:
+      operationId: fast_create_cloud_component
+      description: fast_create_cloud_component
+      tags:
+      - ticket
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        allowApplyPermission: false
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/tickets/fast_create_cloud_component/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
   /tickets/{id}/:
     get:
       operationId: retrieve_ticket
@@ -549,6 +649,31 @@ paths:
           type: HTTP
           method: get
           path: /apis/tickets/{id}/flows/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /tickets/{id}/process_todo/:
+    post:
+      operationId: process_todo
+      description: todo节点确认
+      tags:
+      - ticket
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/tickets/{id}/process_todo/
           matchSubpath: false
           timeout: 0
           upstreams: {}

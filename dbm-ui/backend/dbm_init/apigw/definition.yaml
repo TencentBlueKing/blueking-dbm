@@ -32,4 +32,4 @@ grant_permissions:
   {% endfor %}
 
 resource_docs:
-  archivefile: {{ settings.BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE }}
+  basedir: "{{ settings.BK_APIGW_RESOURCE_DOCS_BASE_DIR }}"
