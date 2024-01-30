@@ -253,7 +253,7 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	model.UpdatePhase(t.TaskId, model.Phase_LoadSchema)
 	stdout, stderr, err := t.DbPodSets.executeInPod(t.getLoadSchemaSQLCmd(t.Path, t.SchemaSQLFile),
 		containerName,
-		t.getExtmap())
+		t.getExtmap(), true)
 	sstdout += stdout.String() + "\n"
 	sstderr += stderr.String() + "\n"
 	if err != nil {
@@ -285,7 +285,7 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 		}
 		for idx, cmd := range t.getLoadSQLCmd(t.Path, e.SQLFile, realexcutedbs) {
 			sstdout += util.RemovePassword(cmd) + "\n"
-			stdout, stderr, err := t.DbPodSets.executeInPod(cmd, containerName, t.getExtmap())
+			stdout, stderr, err := t.DbPodSets.executeInPod(cmd, containerName, t.getExtmap(), false)
 			sstdout += stdout.String() + "\n"
 			sstderr += stderr.String() + "\n"
 			if err != nil {

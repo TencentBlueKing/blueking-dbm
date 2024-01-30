@@ -412,7 +412,8 @@ func getdownloadUrl(bkpath, file string) string {
 }
 
 // executeInPod TODO
-func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string) (stdout, stderr bytes.Buffer,
+func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string, noLogger bool) (stdout,
+	stderr bytes.Buffer,
 	err error) {
 	xlogger := logger.New(os.Stdout, true, logger.InfoLevel, extMap)
 	logger.Info("start exec...")
@@ -435,13 +436,20 @@ func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string
 		logger.Error("at remotecommand.NewSPDYExecutor %s", err.Error())
 		return bytes.Buffer{}, bytes.Buffer{}, err
 	}
+	// 导入表结构的时候不打印普通非关键日志
+
 	go func() {
 		buf := []byte{}
 		sc := bufio.NewScanner(reader)
 		sc.Buffer(buf, 2048*1024)
 		lineNumber := 1
 		for sc.Scan() {
-			xlogger.Info(sc.Text())
+			if !noLogger {
+				// 此方案打印的日志会在前端展示
+				xlogger.Info(sc.Text())
+			} else {
+				logger.Info(sc.Text())
+			}
 			lineNumber++
 		}
 		if err := sc.Err(); err != nil {
