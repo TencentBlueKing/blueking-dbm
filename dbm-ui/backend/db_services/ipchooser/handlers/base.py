@@ -13,6 +13,7 @@ import typing
 from backend.components import CCApi
 
 from .. import constants, types
+from ..constants import BK_OS_CODE__TYPE
 from ..query import resource
 
 
@@ -63,6 +64,7 @@ class BaseHandler:
                     "agent_id": host.get("bk_agent_id", ""),
                     "host_name": host.get("bk_host_name", ""),
                     "os_name": host.get("bk_os_type", ""),
+                    "os_type": BK_OS_CODE__TYPE.get(host.get("bk_os_type", ""), ""),
                     "alive": host.get("status"),
                     "cloud_area": {
                         "id": bk_cloud_id,
