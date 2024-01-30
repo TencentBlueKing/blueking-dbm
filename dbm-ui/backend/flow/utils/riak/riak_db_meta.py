@@ -77,21 +77,25 @@ class RiakDBMeta(object):
 
     def riak_scale_out(self) -> bool:
         ips = self.cluster.operate_nodes
-        machines = [
-            {"ip": ip, "bk_biz_id": int(self.ticket_data["bk_biz_id"]), "machine_type": MachineType.RIAK.value}
-            for ip in ips
-        ]
         spec_id, spec_config = 0, {}
         if "resource_spec" in self.ticket_data and self.ticket_data["resource_spec"].get("riak"):
             spec_id = self.ticket_data["resource_spec"]["riak"]["id"]
             spec_config = Spec.objects.get(spec_id=spec_id).get_spec_info()
+        machines = [
+            {
+                "ip": ip,
+                "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                "machine_type": MachineType.RIAK.value,
+                "spec_id": spec_id,
+                "spec_config": spec_config,
+            }
+            for ip in ips
+        ]
         instances = [
             {
                 "ip": ip,
                 "port": DEFAULT_RIAK_PORT,
                 "instance_role": InstanceRole.RIAK_NODE.value,
-                "spec_id": spec_id,
-                "spec_config": spec_config,
             }
             for ip in ips
         ]
