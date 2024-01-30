@@ -13,7 +13,6 @@ import typing
 from backend.components import CCApi
 
 from .. import constants, types
-from ..constants import BK_OS_CODE__TYPE
 from ..query import resource
 
 
@@ -63,8 +62,8 @@ class BaseHandler:
                     "cloud_vendor": host.get("bk_cloud_vendor", ""),
                     "agent_id": host.get("bk_agent_id", ""),
                     "host_name": host.get("bk_host_name", ""),
-                    "os_name": host.get("bk_os_type", ""),
-                    "os_type": BK_OS_CODE__TYPE.get(host.get("bk_os_type", ""), ""),
+                    "os_name": host.get("bk_os_name", ""),
+                    "os_type": host.get("bk_os_type", ""),
                     "alive": host.get("status"),
                     "cloud_area": {
                         "id": bk_cloud_id,
@@ -80,8 +79,8 @@ class BaseHandler:
                     "bk_cpu": host.get("bk_cpu"),
                     "bk_idc_name": host.get("idc_city_name"),
                     "bk_idc_id": host.get("idc_city_id"),
-                    # "bk_cpu_architecture": host["bk_cpu_architecture"],
-                    # "bk_cpu_module": host["bk_cpu_module"],
+                    "bk_cpu_architecture": host.get("bk_cpu_architecture"),
+                    "bk_cpu_module": host.get("bk_cpu_module"),
                 }
             )
 

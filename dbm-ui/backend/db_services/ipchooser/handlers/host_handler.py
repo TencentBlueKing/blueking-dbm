@@ -13,7 +13,7 @@ import typing
 from backend.components import CCApi
 
 from .. import constants, types
-from ..constants import ModeType
+from ..constants import CommonEnum, ModeType
 from ..query.resource import ResourceQueryHelper
 from .base import BaseHandler
 
@@ -40,22 +40,7 @@ class HostHandler:
         # 查询主机
         params = {
             "bk_biz_id": bk_biz_id,
-            "fields": [
-                "bk_host_id",
-                "bk_agent_id",
-                "bk_host_name",
-                "bk_os_type",
-                "bk_host_innerip",
-                "bk_host_innerip_v6",
-                "bk_cloud_id",
-                "idc_name",
-                "bk_mem",
-                "bk_cpu",
-                "bk_disk",
-                "bk_host_outerip",
-                "idc_city_id",
-                "idc_city_name",
-            ],
+            "fields": CommonEnum.DEFAULT_HOST_FIELDS.value,
             "host_property_filter": host_property_filter,
             # TODO: 搜到的条数大于1000，需要循环查询，该接口当前协议不做分页，可能需要循环查询
             "page": {"start": 0, "limit": 1000, "sort": "bk_host_id"},

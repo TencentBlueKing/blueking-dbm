@@ -28,7 +28,10 @@ class CommonEnum(EnhanceEnum):
         "bk_cloud_id",
         "bk_host_innerip",
         "bk_host_innerip_v6",
+        "bk_host_outerip",
+        "bk_cloud_vendor",
         "bk_host_name",
+        "bk_os_name",
         "bk_os_type",
         "bk_agent_id",
         "bk_cloud_vendor",
@@ -37,6 +40,9 @@ class CommonEnum(EnhanceEnum):
         "bk_cpu",
         "bk_cpu_architecture",
         "bk_cpu_module",
+        "idc_name",
+        "idc_city_id",
+        "idc_city_name",
         "operator",
     ]
 
