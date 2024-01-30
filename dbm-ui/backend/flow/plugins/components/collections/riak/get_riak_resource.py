@@ -40,6 +40,10 @@ class GetRiakResourceService(BaseService):
             or global_data["ticket_type"] == TicketType.RIAK_CLUSTER_SCALE_IN
         ) and len(ips) >= 1:
             trans_data.operate_nodes = ips
+        elif global_data["ticket_type"] == TicketType.RIAK_CLUSTER_MIGRATE:
+            trans_data.nodes = ips
+            trans_data.base_node = ips[0]
+            trans_data.operate_nodes = ips[1:]
         else:
             self.log_error(_("获取机器资源失败，新建集群至少选择3台机器，扩容或缩容至少选择1台机器"))
             return False
