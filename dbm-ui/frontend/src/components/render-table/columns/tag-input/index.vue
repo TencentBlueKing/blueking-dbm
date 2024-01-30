@@ -28,11 +28,11 @@
           collapse-tags
           has-delete-icon
           :max-data="single ? 1 : -1"
+          :paste-fn="tagInputPasteFn"
           :placeholder="placeholder"
           @blur="handleBlur"
           @change="handleChange"
-          @focus="handleFocus"
-          @keydown="handleKeyDown" />
+          @focus="handleFocus" />
         <div
           v-if="errorMessage"
           class="input-error">
@@ -100,7 +100,6 @@
   const isFocus = ref(false);
 
   let tippyIns: Instance | undefined;
-  let clipBoardData = '';
 
   const {
     message: errorMessage,
@@ -117,6 +116,8 @@
   }, {
     immediate: true,
   });
+
+  const tagInputPasteFn = (value: string) => value.split('\n').map(item => ({ id: item }));
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
@@ -142,24 +143,7 @@
     isFocus.value = false;
   };
 
-  const handleClipboardPaste = (e: ClipboardEvent) => {
-    const clipboard = e.clipboardData || window.clipboardData;
-    clipBoardData = clipboard.getData('text/plain');
-  };
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.ctrlKey && e.key === 'v') {
-      setTimeout(() => {
-        if (clipBoardData === '') {
-          return;
-        }
-        localValue.value = clipBoardData.split('\n');
-      });
-    }
-  };
-
   onMounted(() => {
-    window.addEventListener('paste', handleClipboardPaste);
     tippyIns = tippy(rootRef.value as SingleTarget, {
       content: popRef.value,
       placement: 'top',
@@ -182,7 +166,6 @@
       tippyIns.destroy();
       tippyIns = undefined;
     }
-    window.removeEventListener('paste', handleClipboardPaste);
   });
 
   defineExpose<Exposes>({
