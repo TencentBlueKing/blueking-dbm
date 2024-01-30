@@ -62,9 +62,10 @@ class ClusterSpecFilter(object):
         """系统自带的过滤：qps和分片数"""
         valid_specs: List[Dict[str, Any]] = []
         for spec in self.specs:
+            # 如果当前分片数不等于过滤分片数，忽略
             if self.filter_shard_num and spec["cluster_shard_num"] != self.filter_shard_num:
                 continue
-
+            # 如果qps范围没有存在交集，忽略
             if self.qps:
                 qps_range = {
                     "min": spec["machine_pair"] * spec["qps"]["min"],
@@ -104,6 +105,15 @@ class TenDBClusterSpecFilter(ClusterSpecFilter):
             cluster_shard_num = math.ceil(self.future_capacity / spec["capacity"])
             single_machine_shard_num = math.ceil(cluster_shard_num / spec["machine_pair"])
             spec["cluster_shard_num"] = single_machine_shard_num * spec["machine_pair"]
+
+    def custom_filter(self):
+        """tendbcluster要求集群分片数为2的幂次"""
+        valid_specs: List[Dict[str, Any]] = [
+            spec
+            for spec in self.specs
+            if spec["cluster_shard_num"] and (spec["cluster_shard_num"] & (spec["cluster_shard_num"] - 1)) == 0
+        ]
+        self.specs = valid_specs
 
 
 class RedisSpecFilter(ClusterSpecFilter):
