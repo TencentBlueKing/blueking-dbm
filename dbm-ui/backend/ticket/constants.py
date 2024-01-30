@@ -298,6 +298,7 @@ class TicketType(str, StructuredEnum):
     RIAK_CLUSTER_ENABLE = EnumField("RIAK_CLUSTER_ENABLE", _("Riak 集群启用"))
     RIAK_CLUSTER_DISABLE = EnumField("RIAK_CLUSTER_DISABLE", _("Riak 集群禁用"))
     RIAK_CLUSTER_REBOOT = EnumField("RIAK_CLUSTER_REBOOT", _("Riak 集群节点重启"))
+    RIAK_CLUSTER_MIGRATE = EnumField("RIAK_CLUSTER_MIGRATE", _("Riak 集群迁移"))
 
     # 云区域组件
     CLOUD_SERVICE_APPLY = EnumField("CLOUD_SERVICE_APPLY", _("云区域服务部署"))

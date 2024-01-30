@@ -12,6 +12,7 @@ from backend.flow.engine.bamboo.scene.riak.riak_cluster_apply_flow import RiakCl
 from backend.flow.engine.bamboo.scene.riak.riak_cluster_destroy_flow import RiakClusterDestroyFlow
 from backend.flow.engine.bamboo.scene.riak.riak_cluster_disable_flow import RiakClusterDisableFlow
 from backend.flow.engine.bamboo.scene.riak.riak_cluster_enable_flow import RiakClusterEnableFlow
+from backend.flow.engine.bamboo.scene.riak.riak_cluster_migrate_flow import RiakClusterMigrateFlow
 from backend.flow.engine.bamboo.scene.riak.riak_cluster_reboot_flow import RiakRebootFlow
 from backend.flow.engine.bamboo.scene.riak.riak_cluster_scale_in_flow import RiakClusterScaleInFlow
 from backend.flow.engine.bamboo.scene.riak.riak_cluster_scale_out_flow import RiakClusterScaleOutFlow
@@ -22,6 +23,13 @@ class RiakController(BaseController):
     """
     riak实例相关调用
     """
+
+    def riak_cluster_migrate_scene(self):
+        """
+        riak集群迁移场景
+        """
+        flow = RiakClusterMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.migrate_riak_cluster_flow()
 
     def riak_cluster_apply_scene(self):
         """

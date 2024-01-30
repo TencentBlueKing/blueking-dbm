@@ -62,6 +62,7 @@ from backend.flow.views.migrate_views.redis_migrate import (
     RedisClusterMigrateLoad,
     RedisClusterMigratePrecheck,
 )
+from backend.flow.views.migrate_views.riak_migrate import RiakClusterMigrateApiView
 from backend.flow.views.mysql_add_slave import AddMysqlSlaveSceneApiView
 from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
@@ -373,6 +374,7 @@ urlpatterns = [
     url(r"^scene/riak_cluster_enable$", RiakClusterEnableApiView.as_view()),
     url(r"^scene/riak_cluster_disable$", RiakClusterDisableApiView.as_view()),
     url(r"^scene/riak_reboot$", RiakRebootApiView.as_view()),
+    url(r"^scene/riak_cluster_migrate$", RiakClusterMigrateApiView.as_view()),
     # tendbcluster 切换类
     url(r"^scene/tendb_cluster_remote_switch$", RemoteSwitchSceneApiView.as_view()),
     url(r"^scene/tendb_cluster_remote_fail_over$", RemoteFailOverSceneApiView.as_view()),
