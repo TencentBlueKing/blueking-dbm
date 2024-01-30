@@ -242,6 +242,7 @@
             v-model={data.db_patterns}
             allow-create
             clearable={false}
+            paste-fn={tagInputPasteFn}
             has-delete-icon
             collapse-tags
             placeholder={t('请输入')}
@@ -270,6 +271,7 @@
             disabled={data.truncate_data_type === 'drop_database'}
             allow-create
             clearable={false}
+            paste-fn={tagInputPasteFn}
             has-delete-icon
             collapse-tags
             placeholder={t('请输入')}
@@ -292,6 +294,7 @@
             v-model={data.ignore_dbs}
             allow-create
             clearable={false}
+            paste-fn={tagInputPasteFn}
             has-delete-icon
             collapse-tags
             placeholder={t('请输入')}
@@ -316,6 +319,7 @@
             disabled={data.truncate_data_type === 'drop_database'}
             allow-create
             clearable={false}
+            paste-fn={tagInputPasteFn}
             has-delete-icon
             collapse-tags
             placeholder={t('请输入')}
@@ -326,6 +330,8 @@
       ),
     },
   ];
+
+  const tagInputPasteFn = (value: string) => value.split('\n').map(item => ({ id: item }));
 
   // 设置 target|source form-item
   const formItemRefs: Map<string, FormItemInstance> = reactive(new Map());
