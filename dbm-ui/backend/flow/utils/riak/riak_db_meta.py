@@ -36,8 +36,10 @@ class RiakDBMeta(object):
 
     def riak_cluster_apply(self) -> bool:
         ips = self.cluster.nodes
-        spec_id = self.ticket_data["resource_spec"]["riak"]["id"]
-        spec_config = Spec.objects.get(spec_id=spec_id).get_spec_info()
+        spec_id, spec_config = 0, {}
+        if "resource_spec" in self.ticket_data and self.ticket_data["resource_spec"].get("riak"):
+            spec_id = self.ticket_data["resource_spec"]["riak"]["id"]
+            spec_config = Spec.objects.get(spec_id=spec_id).get_spec_info()
         machines = [
             {
                 "ip": ip,
@@ -79,8 +81,19 @@ class RiakDBMeta(object):
             {"ip": ip, "bk_biz_id": int(self.ticket_data["bk_biz_id"]), "machine_type": MachineType.RIAK.value}
             for ip in ips
         ]
+        spec_id, spec_config = 0, {}
+        if "resource_spec" in self.ticket_data and self.ticket_data["resource_spec"].get("riak"):
+            spec_id = self.ticket_data["resource_spec"]["riak"]["id"]
+            spec_config = Spec.objects.get(spec_id=spec_id).get_spec_info()
         instances = [
-            {"ip": ip, "port": DEFAULT_RIAK_PORT, "instance_role": InstanceRole.RIAK_NODE.value} for ip in ips
+            {
+                "ip": ip,
+                "port": DEFAULT_RIAK_PORT,
+                "instance_role": InstanceRole.RIAK_NODE.value,
+                "spec_id": spec_id,
+                "spec_config": spec_config,
+            }
+            for ip in ips
         ]
         cluster = {
             "cluster_id": self.ticket_data["cluster_id"],
