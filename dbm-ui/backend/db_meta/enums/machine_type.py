@@ -37,9 +37,9 @@ class MachineType(str, StructuredEnum):
     HDFS_MASTER = EnumField("hdfs_master", _("hdfs_master"))
     HDFS_DATANODE = EnumField("hdfs_datanode", _("hdfs_datanode"))
 
-    MONGOS = EnumField("mongos", _("mongos"))
-    MONGODB = EnumField("mongodb", _("mongodb"))
-    MONOG_CONFIG = EnumField("mongo_config", _("mongo_config"))
+    MONGOS = EnumField("mongos", _("mongos"))  # mongos
+    MONGODB = EnumField("mongodb", _("mongodb"))  # member of shardsvr or replicaset
+    MONOG_CONFIG = EnumField("mongo_config", _("mongo_config"))  # member of shardedCluster's configsvr
 
     INFLUXDB = EnumField("influxdb", _("influxdb"))
 
