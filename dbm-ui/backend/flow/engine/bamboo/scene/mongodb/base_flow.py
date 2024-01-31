@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from typing import Dict, Optional
 
-from backend.flow.utils.mongodb.mongodb_dataclass import MongoDBCluster
+from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster
 
 
 def start():
@@ -37,10 +37,10 @@ class MongoBaseFlow(object):
 
     # 检查 cluster 和 输入中的bk_biz_id字段是否相同.
     @classmethod
-    def check_cluster(cls, cluster: MongoDBCluster, payload):
+    def check_cluster_valid(cls, cluster: MongoDBCluster, payload):
         if cluster is None:
-            raise Exception("row.cluster_domain is not exists.")
-        if str(cluster.bk_biz_id) != payload["bk_biz_id"]:
+            raise Exception("not exists")
+        if cluster.bk_biz_id != payload["bk_biz_id"]:
             raise Exception(
                 "bad bk_biz_id {} vs {} {} {}".format(
                     cluster.bk_biz_id, payload["bk_biz_id"], type(cluster.bk_biz_id), type(payload["bk_biz_id"])
