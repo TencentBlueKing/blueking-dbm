@@ -1,2 +1,0 @@
-#!/bin/bash
-bash /data/projects/blueking-dbm/dbm-ui/frontend/.husky/pre-push-bkcodeai $1 $2
