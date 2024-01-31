@@ -51,7 +51,7 @@ import getResourceManageRoutes from '@views/resource-manage/routes';
 import getRiakManage from '@views/riak-manage/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
 import getSpiderManageRoutes from '@views/spider-manage/routes';
-import getStaffSettingRoutes from '@views/staff-setting/routes';
+import getStaffManageRoutes from '@views/staff-manage/routes';
 import getTaskHistoryRoutes from '@views/task-history/routes';
 import getTemporaryPasswordModify from '@views/temporary-paassword-modify/routes';
 import getTicketFlowSettingRoutes from '@views/ticket-flow-setting/routes';
@@ -145,7 +145,7 @@ export default () => {
         ...getPulsarRoutes(bigdataController),
         ...getRedisRoutes(redisController),
         ...getSpiderManageRoutes(),
-        ...getStaffSettingRoutes(),
+        ...getStaffManageRoutes(),
         ...getTaskHistoryRoutes(),
         ...getTicketsRoutes(),
         ...getWhitelistRoutes(),

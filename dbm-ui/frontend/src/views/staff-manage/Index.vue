@@ -13,16 +13,16 @@
 
 <template>
   <BkLoading
-    class="staff-page"
-    :loading="state.loading">
+    class="staff-manage-page"
+    :loading="isLoading">
     <SmartAction :offset-target="getSmartActionOffsetTarget">
       <DbForm
         ref="staffFormRef"
         class="staff-setting"
         :label-width="168"
-        :model="state.admins">
+        :model="adminList">
         <DbCard
-          v-for="(item, index) of state.admins"
+          v-for="(item, index) of adminList"
           :key="item.db_type"
           class="mb-16"
           :title="item.db_type_display">
@@ -49,7 +49,7 @@
             v-if="!isPlatform"
             class="w-88"
             :disabled="isSubmitting"
-            @click="resetFormData()">
+            @click="handleReset">
             {{ $t('重置') }}
           </BkButton>
         </div>
@@ -59,7 +59,9 @@
 </template>
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import {
     getAdmins,
@@ -69,8 +71,6 @@
 
   import { useInfo } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import DbMemberSelector from '@components/db-member-selector/index.vue';
 
   const { t } = useI18n();
@@ -78,77 +78,83 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
+  const isPlatform = route.name === 'PlatformStaffManage';
+  const bizId = isPlatform ? 0 : window.PROJECT_CONFIG.BIZ_ID;
 
-  /**
-   * 获取当前业务 ID
-   */
-  const globalBizsStore = useGlobalBizs();
-  const bizId = computed(() => (isPlatform.value ? 0 : globalBizsStore.currentBizId));
+  const staffFormRef = ref();
+  const adminList = shallowRef<AdminItem[]>([]);
 
-  const state = reactive({
-    loading: false,
-    admins: [] as AdminItem[],
+  let adminListMemo:AdminItem[] = [];
+
+  const rules = [
+    {
+      validator: (value: string[]) => value.length > 0,
+      trigger: 'blur',
+      message: t('必填项'),
+    },
+  ];
+
+  const {
+    loading: isLoading,
+    run: getAdminsMethod,
+  } = useRequest(getAdmins, {
+    defaultParams: [
+      {
+        bk_biz_id: bizId,
+      },
+    ],
+    onSuccess(result) {
+      adminList.value = result;
+      adminListMemo = _.cloneDeep(result);
+    },
   });
-  const rules = [{ validator: (value: string[]) => value.length > 0, trigger: 'blur', message: t('必填项') }];
 
-  /**
-   * 获取人员列表
-   */
-  const fetchAdmins = (id: number) => {
-    state.loading = true;
-    getAdmins({ bk_biz_id: id })
-      .then((res) => {
-        state.admins = res;
-      })
-      .finally(() => {
-        state.loading = false;
+  const {
+    loading: isSubmitting,
+    run: updateAdminsMethod,
+  } = useRequest(updateAdmins, {
+    manual: true,
+    onSuccess() {
+      Message({
+        message: t('保存成功'),
+        theme: 'success',
       });
-  };
-  fetchAdmins(bizId.value);
+      getAdminsMethod({
+        bk_biz_id: bizId,
+      });
+      window.changeConfirm = false;
+    },
+  });
 
   /**
    * 编辑人员列表
    */
-  const isSubmitting = ref(false);
-  const staffFormRef = ref();
+
   const handleSubmit = async () => {
     const validate = await staffFormRef.value.validate()
       .then(() => true)
       .catch(() => false);
     if (!validate) return;
 
-    isSubmitting.value = true;
-    const params = {
-      bk_biz_id: bizId.value,
-      db_admins: state.admins,
-    };
-    updateAdmins(params)
-      .then(() => {
-        Message({
-          message: t('保存成功'),
-          theme: 'success',
-        });
-        window.changeConfirm = false;
-      })
-      .finally(() => {
-        isSubmitting.value = false;
-      });
+    updateAdminsMethod({
+      bk_biz_id: bizId,
+      db_admins: adminList.value,
+    });
   };
 
-  const resetFormData = () => new Promise(() => {
+  const handleReset = () => {
     useInfo({
       title: t('确认重置'),
       content: t('重置将会恢复上次保存的内容'),
       onConfirm: () => {
-        fetchAdmins(0);
+        adminList.value = adminListMemo;
         return true;
       },
     });
-  });
+  };
 </script>
 <style lang="less">
-  .staff-page{
+  .staff-manage-page{
     .bk-form-item {
       max-width: 690px;
     }

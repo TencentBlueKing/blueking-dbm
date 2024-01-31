@@ -44,7 +44,7 @@
           </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup :name="t('设置')">
-          <BkMenuItem key="DatabaseStaff">
+          <BkMenuItem key="StaffManage">
             <template #icon>
               <DbIcon type="db-config" />
             </template>
