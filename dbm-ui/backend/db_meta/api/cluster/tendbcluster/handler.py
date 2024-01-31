@@ -302,19 +302,19 @@ class TenDBClusterClusterHandler(ClusterHandler):
                 labels_dict={"instance_role": InstanceRole.REMOTE_SLAVE.value},
             )
 
-    def get_remote_address(self, role=TenDBBackUpLocation.MASTER) -> str:
+    def get_remote_address(self, role=TenDBBackUpLocation.REMOTE) -> str:
         """
         查询DRS访问远程数据库的地址，你默认查询remote的db
         """
-        role = (
+        proxy_role = (
             TenDBClusterSpiderRole.SPIDER_MASTER
-            if role in [TenDBBackUpLocation.MASTER, TenDBBackUpLocation.SLAVE]
+            if role == TenDBBackUpLocation.REMOTE
             else TenDBClusterSpiderRole.SPIDER_MNT
         )
 
-        inst = ProxyInstance.objects.filter(cluster=self.cluster, tendbclusterspiderext__spider_role=role)
+        inst = ProxyInstance.objects.filter(cluster=self.cluster, tendbclusterspiderext__spider_role=proxy_role)
         if not inst:
-            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的实例").format(self.cluster.name, role))
+            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的实例").format(self.cluster.name, proxy_role))
 
         return inst.first().ip_port
 
