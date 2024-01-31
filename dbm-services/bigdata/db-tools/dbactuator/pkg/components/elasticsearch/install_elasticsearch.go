@@ -2,9 +2,10 @@
 package elasticsearch
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"html/template"
 	"os"
 	"os/user"
 	"runtime"
@@ -19,8 +20,8 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
 
+	"github.com/ghodss/yaml"
 	"github.com/hashicorp/go-version"
-	"gopkg.in/yaml.v2"
 )
 
 // InstallEsComp TODO
@@ -29,7 +30,6 @@ type InstallEsComp struct {
 	Params       *InstallEsParams
 	ESYaml
 	ESConfig
-	KibanaYaml
 	RollBackContext rollback.RollBackObjects
 }
 
@@ -71,45 +71,26 @@ type ESConfig struct {
 // ESYaml TODO
 // elaticsearch.yml
 type ESYaml struct {
-	ClusterName                           string   `yaml:"cluster.name"` // cluster.name
-	NodeName                              string   `yaml:"node.name"`    // node.name
-	NodeAttrTag                           string   `yaml:"node.attr.tag"`
-	NetworkHost                           string   `yaml:"network.host"`         // network.host
-	NetworkPublishhost                    string   `yaml:"network.publish_host"` // network.publish_host
-	Nodedata                              bool     `yaml:"node.data"`            //  node.data
-	NodeIngest                            bool     `yaml:"node.ingest"`          // node.Ingest
-	NodeMaster                            bool     `yaml:"node.master"`          //  node.master
-	NodeMl                                bool     `yaml:"node.ml"`
-	HTTPPort                              int      `yaml:"http.port"`                 //  http.port
-	PathData                              string   `yaml:"path.data"`                 // path.data
-	PathLogs                              string   `yaml:"path.logs"`                 // path.logs
-	DiscoverySeedHosts                    []string `yaml:"discovery.seed_hosts,flow"` // discovery.seed_hosts
-	ClusterInitialMasterNodes             []string `yaml:"cluster.initial_master_nodes,flow"`
-	Processors                            int      `yaml:"processors"` // rrocessors
-	BootstrapMemoryLock                   bool     `yaml:"bootstrap.memory_lock"`
-	BootstrapSystemCallFilter             bool     `yaml:"bootstrap.system_call_filter"`
-	XpackMonitoringCollectionEnabled      bool     `yaml:"xpack.monitoring.collection.enabled"`
-	ClusterRoutingAllocationSameShardHost bool     `yaml:"cluster.routing.allocation.same_shard.host"`
-}
-
-// KibanaYaml TODO
-// kibana.yml for kibana 7
-type KibanaYaml struct {
-	ServerName                            string   `yaml:"server.name"`
-	ServerHost                            string   `yaml:"server.host"`
-	ServerBasePath                        string   `yaml:"server.basePath"`
-	ServerRewriteBasePath                 bool     `yaml:"server.rewriteBasePath"`
-	ElasticsearchHosts                    string   `yaml:"elasticsearch.hosts"`
-	ElasticsearchSslVerificationMode      string   `yaml:"elasticsearch.ssl.verificationMode"`
-	ElasticsearchUsername                 string   `yaml:"elasticsearch.username"`
-	ElasticsearchPassword                 string   `yaml:"elasticsearch.password"`
-	ElasticsearchRequestHeadersWhitelist  []string `yaml:"elasticsearch.requestHeadersWhitelist,flow"`
-	OpendistroSecurityMultitenancyEnabled bool     `yaml:"opendistro_security.multitenancy.enabled"`
-	OPSMultitenancyTenantsPreferred       []string `yaml:"opendistro_security.multitenancy.tenants.preferred,flow"`
-	OpendistroSecurityReadonlyModeRoles   []string `yaml:"opendistro_security.readonly_mode.roles,flow"`
-	OpendistroSecuritySessionKeepalive    bool     `yaml:"opendistro_security.session.keepalive"`
-	KXpackSecurityEnabled                 bool     `yaml:"xpack.security.enabled"`
-	XpackSpacesEnabled                    bool     `yaml:"xpack.spaces.enabled"`
+	ClusterName                           string `yaml:"cluster.name"` // cluster.name
+	NodeName                              string `yaml:"node.name"`    // node.name
+	NodeAttrTag                           string `yaml:"node.attr.tag"`
+	NetworkHost                           string `yaml:"network.host"`         // network.host
+	NetworkPublishhost                    string `yaml:"network.publish_host"` // network.publish_host
+	NodeData                              bool   `yaml:"node.data"`            //  node.data
+	NodeIngest                            bool   `yaml:"node.ingest"`          // node.Ingest
+	NodeMaster                            bool   `yaml:"node.master"`          //  node.master
+	NodeMl                                bool   `yaml:"node.ml"`
+	HTTPPort                              int    `yaml:"http.port"`            //  http.port
+	PathData                              string `yaml:"path.data"`            // path.data
+	PathLogs                              string `yaml:"path.logs"`            // path.logs
+	DiscoverySeedHosts                    string `yaml:"discovery.seed_hosts"` // discovery.seed_hosts
+	ClusterInitialMasterNodes             string `yaml:"cluster.initial_master_nodes"`
+	Processors                            int    `yaml:"processors"` // rrocessors
+	BootstrapMemoryLock                   bool   `yaml:"bootstrap.memory_lock"`
+	BootstrapSystemCallFilter             bool   `yaml:"bootstrap.system_call_filter"`
+	XpackMonitoringCollectionEnabled      bool   `yaml:"xpack.monitoring.collection.enabled"`
+	ClusterRoutingAllocationSameShardHost bool   `yaml:"cluster.routing.allocation.same_shard.host"`
+	DiscoveryZenPingUnicastHosts          string `yaml:"discovery.zen.ping.unicast.hosts"` // 兼容5.4
 }
 
 // RenderConfig 需要替换的配置值 Todo
@@ -180,7 +161,7 @@ func (i *InstallEsComp) InitEsDirs() error {
 mysql soft memlock unlimited
 mysql hard memlock unlimited`)
 	limitFile := "/etc/security/limits.d/es-nolock.conf"
-	if err := ioutil.WriteFile(limitFile, memlock, 0644); err != nil {
+	if err := os.WriteFile(limitFile, memlock, 0644); err != nil {
 		logger.Error("write %s failed, %v", limitFile, err)
 	}
 
@@ -206,7 +187,7 @@ sed -i '/esprofile/d' /etc/profile
 echo "source /data/esenv/esprofile" >>/etc/profile`, username, password))
 
 	scriptFile := "/data/esenv/init.sh"
-	if err := ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
+	if err := os.WriteFile(scriptFile, scripts, 0644); err != nil {
 		logger.Info("write %s failed, %v", scriptFile, err)
 	}
 
@@ -304,13 +285,13 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 	var (
 		nodeIP         = i.Params.Host
 		nodeName       = fmt.Sprintf("%s-%s_1", role, nodeIP)
-		version        = i.Params.EsVersion
+		ver            = i.Params.EsVersion
 		processors     = runtime.NumCPU() / instances
 		clusterName    = i.Params.ClusterName
-		masterIP       = strings.Split(i.Params.MasterIP, ",")
-		masterNodename = strings.Split(i.Params.MasterNodename, ",")
+		masterIP       = i.Params.MasterIP
+		masterNodename = i.Params.MasterNodename
 		port           = i.Params.HTTPPort
-		esBaseDir      = fmt.Sprintf("%s/elasticsearch-%s", cst.DefaulEsEnv, version)
+		esBaseDir      = fmt.Sprintf("%s/elasticsearch-%s", cst.DefaulEsEnv, ver)
 		esConfig       = i.Params.EsConfigs
 	)
 	isMaster, isData := esutil.GetTfByRole(role)
@@ -350,7 +331,7 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 				// /data -> /data/esdata1
 				tPaths[k] = fmt.Sprintf("%s/esdata%d", v, ins)
 				// create data dir
-				extraCmd := fmt.Sprintf(`mkdir -p %s; chown -R mysql %s`, tPaths[k], tPaths[k])
+				extraCmd = fmt.Sprintf(`mkdir -p %s; chown -R mysql %s`, tPaths[k], tPaths[k])
 				logger.Info("Doing create dir [%s]", extraCmd)
 				if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 					logger.Error("Command [%s] failed, message: [%s]", extraCmd, err)
@@ -360,7 +341,7 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 			esdataDir = strings.Join(tPaths, ",")
 		} else {
 			esdataDir = fmt.Sprintf("%s%d", pathData, ins)
-			extraCmd := fmt.Sprintf(`mkdir -p %s ;chown -R mysql  %s`, esdataDir, esdataDir)
+			extraCmd = fmt.Sprintf(`mkdir -p %s ;chown -R mysql  %s`, esdataDir, esdataDir)
 			if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 				logger.Error("Command [%s] failed: %s", extraCmd, err)
 				return err
@@ -371,7 +352,7 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 
 		// create log dir
 		eslogDir := fmt.Sprintf("%s%d", pathLog, ins)
-		extraCmd := fmt.Sprintf(`mkdir -p %s ;chown -R mysql  %s`, eslogDir, eslogDir)
+		extraCmd = fmt.Sprintf(`mkdir -p %s ;chown -R mysql  %s`, eslogDir, eslogDir)
 		if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 			logger.Error("Create logdir failed, command [%s]", eslogDir, err)
 			return err
@@ -393,13 +374,19 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 		}
 
 		logger.Info("开始渲染elasticsearch.yml")
-		i.ESYaml = ESYaml{
+		t, err := template.New("es template").Parse(string(esConfig))
+		if err != nil {
+			logger.Error("Parse elasticsearch.yml template failed, [%s]", err)
+			return err
+		}
+
+		y := ESYaml{
 			ClusterName:                           clusterName,
 			NodeName:                              nodeName,
 			NodeAttrTag:                           role,
 			NetworkHost:                           nodeIP,
 			NetworkPublishhost:                    nodeIP,
-			Nodedata:                              isData,
+			NodeData:                              isData,
 			NodeMaster:                            isMaster,
 			NodeMl:                                i.NodeMl,
 			NodeIngest:                            i.NodeIngest,
@@ -413,16 +400,26 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 			BootstrapSystemCallFilter:             i.BootstrapSystemCallFilter,
 			XpackMonitoringCollectionEnabled:      i.XpackMonitoringCollectionEnabled,
 			ClusterRoutingAllocationSameShardHost: true,
+			DiscoveryZenPingUnicastHosts:          masterIP,
 		}
 
-		data, err := yaml.Marshal(&i.ESYaml)
-		if err != nil {
-			logger.Error("生成yaml失败 ", err)
+		var buf bytes.Buffer
+		if err = t.Execute(&buf, y); err != nil {
+			logger.Error("渲染elasticsearch.yml模板失败, [%s]", err)
+			return err
 		}
+		logger.Info(buf.String())
+		// 转换成yaml
+		data, err := yaml.JSONToYAML(buf.Bytes())
+		if err != nil {
+			logger.Error("Converting json to yaml failed, %s", err)
+			return err
+		}
+		logger.Info("yaml: %s", string(data))
 
 		esYamlFile := fmt.Sprintf("%s/config/elasticsearch.yml", esLink)
 		esYamlFileAppend := fmt.Sprintf("%s/config/elasticsearch.yml.append", esLink)
-		if err = ioutil.WriteFile(esYamlFile, data, 0644); err != nil {
+		if err = os.WriteFile(esYamlFile, data, 0644); err != nil {
 			logger.Error("write %s failed, %v", esYamlFile, err)
 		}
 
@@ -433,32 +430,68 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 			logger.Error("%s execute failed, %v", extraCmd, err)
 			return err
 		}
+		// master格式: m1,m2,m3 -> [m1,m2,m3]
+		masterIPA := fmt.Sprintf("[%s]", masterIP)
+		masterNodenameA := fmt.Sprintf("[%s]", masterNodename)
+		v1, _ := version.NewVersion(ver)
+		v2, _ := version.NewVersion("7.0")
+		if v1.GreaterThan(v2) {
+			extraCmd = fmt.Sprintf(
+				`sed -i -e '/seed_hosts/s/%s/%s/' -e '/initial_master_nodes/s/%s/%s/' %s`, masterIP, masterIPA,
+				masterNodename, masterNodenameA, esYamlFile)
+		} else {
+			extraCmd = fmt.Sprintf(`sed -i -e '/zen.ping.unicast.hosts/s/%s/%s/' %s`, masterIP, masterIPA, esYamlFile)
+		}
+		logger.Info("Exec command [%s]", extraCmd)
+		if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+			logger.Error("%s execute failed, %v", extraCmd, err)
+			return err
+		}
+
+		// 如果节点是client, 增加 node.attr.node_type: client
+		if role == cst.EsClient {
+			extraCmd = fmt.Sprintf(`sed -i '/node.attr.node_type/d' %s ;
+			sed -i '$a node.attr.node_type: client' %s`, esYamlFile, esYamlFile)
+			logger.Info("Exec command [%s]", extraCmd)
+			if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+				logger.Error("%s execute failed, %v", extraCmd, err)
+				return err
+			}
+		}
 
 		logger.Info("生成jvm参数")
 		heapSize, err := esutil.GetInstHeapByIP(uint64(instances))
 		if err != nil {
-			logger.Error("生成heap失败 ", err)
+			logger.Error("生成heap失败,将采取的默认heapszie, %s", err)
 		}
 
-		jvmOp := esutil.GenerateHeapOption(heapSize)
-		heapSizeFile := fmt.Sprintf("%s/heap.options", cst.DefaultJvmOptionD)
-		if err = ioutil.WriteFile(heapSizeFile, jvmOp, 0644); err != nil {
-			logger.Error("write %s failed, %v", heapSizeFile, err)
+		// /data/esenv/es_{ins}/config/jvm.options
+		heapSizeFile := fmt.Sprintf("%s/config/jvm.options", esLink)
+		if err = esutil.SetHeapFile(heapSize, heapSizeFile); err != nil {
+			logger.Error("Changing jvm.options failed, %s", err)
+			return err
 		}
 
 		logger.Info("生成elasticsearch.ini文件")
 		esini := esutil.GenEsini(uint64(ins))
 		esiniFile := fmt.Sprintf("%s/elasticsearch%d.ini", cst.DefaultSupervisorConf, ins)
-		if err = ioutil.WriteFile(esiniFile, esini, 0644); err != nil {
+		if err = os.WriteFile(esiniFile, esini, 0644); err != nil {
 			logger.Error("write %s failed, %v", esiniFile, err)
 		}
 		port++
+	}
+
+	extraCmd = fmt.Sprintf("chown -R mysql %s", cst.DefaulEsEnv)
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("exec [%s] failed, %s", extraCmd, err.Error())
+		return err
 	}
 
 	if err := esutil.SupervisorctlUpdate(); err != nil {
 		logger.Error("supervisort update failed %v", err)
 		return err
 	}
+
 	// sleep 60s for wating es up
 	time.Sleep(60 * time.Second)
 	return nil
@@ -608,11 +641,18 @@ func (i *InstallEsComp) InstallSupervisor() (err error) {
  */
 func (i *InstallEsComp) InstallKibana() error {
 	// check package
-
-	ver := i.Params.EsVersion
-	v1, _ := version.NewVersion(ver)
-	v2, _ := version.NewVersion("7.0")
-	kibanaPkgDir := fmt.Sprintf("%s/kibana-%s-linux-x86_64", cst.DefaulEsEnv, ver)
+	k := esutil.KibanaParam{
+		BkBizID:     i.Params.BkBizID,
+		DbType:      i.Params.DbType,
+		ClusterName: i.Params.ClusterName,
+		ServiceType: i.Params.ServiceType,
+		Host:        i.Params.Host,
+		HTTPPort:    i.Params.HTTPPort,
+		Username:    i.Params.Username,
+		Password:    i.Params.Password,
+		Version:     i.Params.EsVersion,
+	}
+	kibanaPkgDir := fmt.Sprintf("%s/kibana-%s-linux-x86_64", cst.DefaulEsEnv, i.Params.EsVersion)
 	kibanaLink := fmt.Sprintf("%s/kibana", cst.DefaulEsEnv)
 	extraCmd := fmt.Sprintf("ln -sf %s %s", kibanaPkgDir, kibanaLink)
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
@@ -620,42 +660,19 @@ func (i *InstallEsComp) InstallKibana() error {
 		return err
 	}
 
-	if v1.GreaterThan(v2) {
-		i.KibanaYaml = KibanaYaml{
+	// 生成kibana.yml
 
-			ServerName: "kibana",
-			ServerHost: "0",
-			ServerBasePath: fmt.Sprintf("/%d/%s/%s/%s", i.Params.BkBizID, i.Params.DbType,
-				i.Params.ClusterName, i.Params.ServiceType), // {bk_biz_id}/{db_type}/{cluster_name}/{service_type}
-			ServerRewriteBasePath:                 false,
-			ElasticsearchHosts:                    fmt.Sprintf("http://%s:%d", i.Params.Host, i.Params.HTTPPort),
-			ElasticsearchSslVerificationMode:      "none",
-			ElasticsearchUsername:                 i.Params.Username,
-			ElasticsearchPassword:                 i.Params.Password,
-			ElasticsearchRequestHeadersWhitelist:  cst.KibanaWhiteList,
-			OpendistroSecurityMultitenancyEnabled: false,
-			OPSMultitenancyTenantsPreferred:       cst.Kibanatenancy,
-			OpendistroSecurityReadonlyModeRoles:   cst.KibanaRole,
-			OpendistroSecuritySessionKeepalive:    true,
-			KXpackSecurityEnabled:                 false,
-			XpackSpacesEnabled:                    false,
-		}
-		// 生成elasticsearch.yml
-		data, err := yaml.Marshal(&i.KibanaYaml)
-		if err != nil {
-			logger.Error("生成yaml失败 ", err)
-		}
-		kyaml := "/data/esenv/kibana/config/kibana.yml"
-		if err = ioutil.WriteFile(kyaml, data, 0644); err != nil {
-			logger.Error("write %s failed, %v", kyaml, err)
-		}
-
+	yamldata := k.GenKibanaYaml()
+	// 生成elasticsearch.yml
+	kyaml := "/data/esenv/kibana/config/kibana.yml"
+	if err := os.WriteFile(kyaml, yamldata, 0644); err != nil {
+		logger.Error("write %s failed, %v", kyaml, err)
 	}
 
 	// kibana.ini
 	data := esutil.GenKibanaini()
 	kini := "/data/esenv/supervisor/conf/kibana.ini"
-	if err := ioutil.WriteFile(kini, data, 0644); err != nil {
+	if err := os.WriteFile(kini, data, 0644); err != nil {
 		logger.Error("write %s failed, %v", kini, err)
 	}
 	if err := esutil.SupervisorctlUpdate(); err != nil {
@@ -675,55 +692,12 @@ func (i *InstallEsComp) InitGrant() (err error) {
 	host := i.Params.Host
 	version := i.Params.EsVersion
 
-	scripts := []byte(`
-	creater_user=$1
-	passwd=$2
-	local_ip=$3
-	version=$4
-	echo $local_ip
-	
-	cd /data/esenv/
-	esdirs=$(ls -F|grep 'es.*@'|awk -F @ '{print $1}')
-	
-	
-	if [[ $version == "7.10.2" ]]
-	then
-	userpasswd=$(sh /data/esenv/es_1/plugins/opendistro_security/tools/hash.sh -p "$passwd")
-	cd /data/esenv/es_1
-	
-	f1="./plugins/opendistro_security/securityconfig/internal_users.yml.tml"
-	f2="./plugins/opendistro_security/securityconfig/internal_users.yml"
-	[[ ! -e $f1 ]] && cp $f2 $f1
-	
-	cp $f1  $f2
-	
-					echo "
-$creater_user:
-  hash: \"$userpasswd\"
-  reserved: true
-  backend_roles:
-    - \"admin\"
-  description: \"admin user\"
-" >>  ./plugins/opendistro_security/securityconfig/internal_users.yml
-	
-	
-	cd /data/esenv/es_1/plugins/opendistro_security/tools
-	
-	JAVA_OPTS="-Xms128m -Xmx128m" sh /data/esenv/es_1/plugins/opendistro_security/tools/securityadmin.sh \
-		-h "$local_ip"  -p 9300  -cacert /data/esenv/es_1/config/root-ca.pem  \
-		-cert /data/esenv/es_1/config/admin.pem  -key /data/esenv/es_1/config/admin-key.pem  \
-		-dg -arc -nhnv -icl -ff -cd /data/esenv/es_1/plugins/opendistro_security/securityconfig
-	
-	else 
-			adminPassword=$(cat /data/esenv/es_1/config/es_passfile)
-					  curl -u "elastic:${adminPassword}" \
-		-XPOST "http://${local_ip}:9200/_xpack/security/user/${creater_user}/_password" \
-		-d'{"password":"'"${passwd}"'"}' -H "Content-Type: application/json"
-	fi`)
+	scripts := esutil.GenBoostScript()
 
 	scriptFile := "/data/esenv/boost.sh"
-	if err = ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
+	if err = os.WriteFile(scriptFile, scripts, 0644); err != nil {
 		logger.Error("write %s failed, %v", scriptFile, err)
+		return err
 	}
 
 	extraCmd := fmt.Sprintf("bash %s %s %s %s %s", scriptFile, username, password, host, version)
@@ -785,7 +759,7 @@ stdout_logfile_backups=10 ; # of stdout logfile backups (default 10)`)
 
 	exporterIni := "/data/esenv/supervisor/conf/node_exporter.ini"
 
-	if err = ioutil.WriteFile(exporterIni, data, 0644); err != nil {
+	if err = os.WriteFile(exporterIni, data, 0644); err != nil {
 		logger.Error("write %s failed, %v", exporterIni, err)
 	}
 

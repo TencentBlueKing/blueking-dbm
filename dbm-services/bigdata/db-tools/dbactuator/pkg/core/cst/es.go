@@ -49,6 +49,8 @@ const (
 	IsBootstrapSystemCall = false
 	// ES7102 TODO
 	ES7102 = "7.10.2"
+	// ES7142 TODO
+	ES7142 = "7.14.2"
 	// ESYmlAppend TODO
 	ESYmlAppend = "elasticsearch.yml.append"
 )

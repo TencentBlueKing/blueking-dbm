@@ -10,6 +10,8 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/esutil"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
+
+	"github.com/hashicorp/go-version"
 )
 
 // GenCerComp struct
@@ -30,16 +32,21 @@ func (d *GenCerComp) Init() (err error) {
 	return nil
 }
 
-// GenCer TODO
+// GenCer 生成证书
 func (d *GenCerComp) GenCer() (err error) {
-	if d.Params.EsVersion == cst.ES7102 {
-
-		logger.Info("Generating 7.10.1 certificate..")
+	ver := d.Params.EsVersion
+	v, _ := version.NewVersion(ver)
+	v7, _ := version.NewVersion(cst.ES7142)
+	switch {
+	// version less than 7.14.2,use searchguard or opensecurity
+	case v.LessThan(v7):
+		logger.Info("Generating sg/opens certificate..")
 		if err := d.GenCer710(); err != nil {
-			logger.Error("Generate certificate filaed, %s", err)
+			logger.Error("Generate sg/opens certificate filaed, %s", err)
 			return err
 		}
-	} else {
+	default:
+		// version >= 7.14.2,use xpack
 		logger.Info("Generating  certificate..")
 		if err := d.GenCer7(); err != nil {
 			logger.Error("Generate certificate filaed, %s", err)
@@ -134,8 +141,10 @@ func (d *GenCerComp) GenCer7() (err error) {
 	return nil
 }
 
-// GenCer710 func
+// GenCer710 searchgaurd/opensecurity
 func (d *GenCerComp) GenCer710() (err error) {
+	v, _ := version.NewVersion(d.Params.EsVersion)
+	v7, _ := version.NewVersion("7.0")
 
 	if err := os.Chdir(cst.DefaultPkgDir); err != nil {
 		logger.Error("Change dir to [tmp] failed %s", err)
@@ -188,9 +197,16 @@ root-ca-key.pem -CAcreateserial -sha256 -out node.pem -days 36500`
 
 	// Check file Todo, admin.pem  admin-key.pem  root-ca.pem  node.pem  node-key.pem
 	// elasticsearch.ym.append
-	if err := esutil.WriteCerToYaml710(cst.ESYmlAppend); err != nil {
-		logger.Error("Write elasticsearch.yml.append failed, msg %s", err)
-		return err
+	if v.GreaterThan(v7) {
+		if err := esutil.WriteCerToYaml710(cst.ESYmlAppend); err != nil {
+			logger.Error("Write elasticsearch.yml.append failed, msg %s", err)
+			return err
+		}
+	} else {
+		if err := esutil.WriteCerToYamlSG(cst.ESYmlAppend); err != nil {
+			logger.Error("Write elasticsearch.yml.append failed, msg %s", err)
+			return err
+		}
 	}
 
 	// copy file to tmp

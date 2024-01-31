@@ -9,6 +9,8 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
+
+	"github.com/hashicorp/go-version"
 )
 
 // PackCerComp struct
@@ -27,7 +29,6 @@ type PackCerParams struct {
 func (d *PackCerComp) Init() (err error) {
 	logger.Info("Generate certificate fake init")
 	return nil
-
 }
 
 // PackCer 710 for pack es certificate files
@@ -37,8 +38,10 @@ func (d *PackCerComp) Init() (err error) {
 // Finally, it will output the tar.gz package in /tmp, named es_cerfiles.tar.gz
 // And the transfer files to other nodes
 func (d *PackCerComp) PackCer() (err error) {
+	v, _ := version.NewVersion(d.Params.EsVersion)
+	v7, _ := version.NewVersion(cst.ES7142)
 	cerFiles := cst.CerFile
-	if d.Params.EsVersion == cst.ES7102 {
+	if v.LessThan(v7) {
 		cerFiles = cst.CerFile710
 	}
 	confDir := cst.DefaulEsConfigDir
