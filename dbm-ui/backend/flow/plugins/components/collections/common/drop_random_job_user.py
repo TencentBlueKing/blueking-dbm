@@ -77,8 +77,8 @@ class DropTempUserForClusterService(BaseService):
                 cmd = []
                 if instance["is_tdbctl"]:
                     cmd.append("set tc_admin = 0;")
-                self.log_info(f"the instance version is {instance.version}")
-                if mysql_version_parse(instance.version) > mysql_version_parse("5.7"):
+                self.log_info(f"the cluster version is {cluster.major_version}")
+                if mysql_version_parse(cluster.major_version) >= mysql_version_parse("5.7"):
                     cmd += [
                         f"drop user if exists `{user}`@`localhost`;",
                         f"drop user if exists `{user}`@`{instance['ip_port'].split(':')[0]}`;",
@@ -88,7 +88,6 @@ class DropTempUserForClusterService(BaseService):
                         f"drop user `{user}`@`localhost`;",
                         f"drop user `{user}`@`{instance['ip_port'].split(':')[0]}`;",
                     ]
-
                 resp = DRSApi.rpc(
                     {
                         "addresses": [instance["ip_port"]],
@@ -125,7 +124,8 @@ class DropTempUserForClusterService(BaseService):
                 raise ClusterNotExistException(
                     cluster_id=cluster_id, bk_biz_id=global_data["bk_biz_id"], message=_("集群不存在")
                 )
-            self.drop_jor_user(cluster=cluster, root_id=global_data["job_root_id"])
+            if not self.drop_jor_user(cluster=cluster, root_id=global_data["job_root_id"]):
+                return False
 
         return True
 
