@@ -104,10 +104,11 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
             if flow_info.data["status"] != StateType.FINISHED and details.get("ip_source") == IpSource.RESOURCE_POOL:
                 bk_biz_id = env.DBA_APP_BK_BIZ_ID
             # 更新flow_info
+            logger.warning("bk_host_ids: {}, bk_biz_id: {}".format(bk_host_ids, bk_biz_id))
             flow_info.data.update(bk_host_ids=bk_host_ids, bk_biz_id=bk_biz_id)
-        except Exception:
+        except Exception as e:
             # 如果没找到flow或者相关bk_host_id参数，则忽略
-            logger.info("can not find related host, root_id: {}".format(root_id))
+            logger.info("can not find related host, root_id: {} Exception: {} ".format(root_id, e))
 
         return Response({"flow_info": flow_info.data, **tree_states})
 

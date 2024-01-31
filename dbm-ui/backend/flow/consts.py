@@ -427,10 +427,10 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     AddUser = EnumField("add_user", _("add_user"))
     DeleteUser = EnumField("delete_user", _("delete_user"))
     MongoExecuteScript = EnumField("mongo_execute_script", _("mongo_execute_script"))
-    Backup = EnumField("mongodb_backup", _("mongodb_backup"))
-    RemoveNs = EnumField("mongodb_remove_ns", _("mongodb_remove_ns"))
-    Restore = EnumField("mongodb_restore", _("mongodb_restore"))
-    PitRestore = EnumField("mongodb_pit_restore", _("mongodb_pit_restore"))
+    Backup = EnumField("mongo_backup", _("mongo_backup"))
+    RemoveNs = EnumField("mongo_remove_ns", _("mongo_remove_ns"))
+    Restore = EnumField("mongo_restore", _("mongo_restore"))
+    PitRestore = EnumField("mongo_pit_restore", _("mongo_pit_restore"))
     MongoRestart = EnumField("mongo_restart", _("mongo_restart"))
 
 
