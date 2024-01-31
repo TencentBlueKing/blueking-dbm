@@ -48,7 +48,7 @@
                 </span>
               </BkMenuItem>
             </FunController>
-            <FunController
+            <!-- <FunController
               controller-id="notice_group"
               module-id="monitor">
               <BkMenuItem key="PlatMonitorAlarmGroup">
@@ -61,7 +61,7 @@
                   {{ t('告警组') }}
                 </span>
               </BkMenuItem>
-            </FunController>
+            </FunController> -->
           </BkMenuGroup>
         </FunController>
         <FunController module-id="monitor">

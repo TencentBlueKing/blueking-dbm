@@ -150,7 +150,7 @@
       'PlatformWhitelist',
       'PlatGlobalStrategy',
       'PlatRotateSet',
-      'PlatMonitorAlarmGroup',
+      // 'PlatMonitorAlarmGroup',
       'passwordManage',
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',

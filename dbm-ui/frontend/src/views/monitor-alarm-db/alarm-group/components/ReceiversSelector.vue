@@ -25,6 +25,21 @@
       :search-from-default-alternate="false"
       tag-clearable
       @remove-selected="handleRemoveSelected" />
+    <div
+      v-if="memberList.length > 0"
+      class="receivers-list">
+      <div
+        v-for="(memberItem, index) in memberList"
+        :key="index"
+        class="receivers-list-item">
+        <div class="receivers-list-label">
+          {{ memberItem.label }}
+        </div>
+        <div class="receivers-list-value">
+          {{ memberItem.value }}
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -39,6 +54,8 @@
   import { getUserList } from '@services/source/user';
 
   import dbIcon from '@components/db-icon';
+
+  type UserGroup = ServiceReturnType<typeof getUserGroupList>[number]
 
   interface Props {
     type: 'add' | 'edit' | 'copy' | '',
@@ -62,14 +79,52 @@
   });
 
   const { t } = useI18n();
-  const route = useRoute();
+  // const route = useRoute();
 
-  const isPlatform = route.matched[0]?.name === 'Platform';
+  // const isPlatform = route.matched[0]?.name === 'Platform';
   const modelValueOrigin = _.cloneDeep(modelValue.value);
   const itemMap: Record<string, RecipientItem> = {};
+  const userGroupMap: Record<string, Pick<UserGroup, 'display_name' | 'members'>> = {};
 
   const userSelectorRef = ref();
   const roleList = ref<RecipientItem[]>([]);
+
+  const memberList = computed(() => {
+    // 待列表数据查询结束后展示
+    if (loading.value) {
+      return [];
+    }
+
+    const userGroupList: {
+      label: string,
+      value: string,
+    }[] = [];
+    const userList: string[] = [];
+
+    modelValue.value.forEach((valueItem) => {
+      const userGroupMapItem = userGroupMap[valueItem];
+      if (userGroupMapItem) {
+        userGroupList.push({
+          label: userGroupMapItem.display_name,
+          value: userGroupMapItem.members.join('，'),
+        });
+      } else {
+        userList.push(valueItem);
+      }
+    });
+
+    if (userList.length > 0) {
+      return [
+        ...userGroupList,
+        {
+          label: t('其他'),
+          value: userList.join('，'),
+        },
+      ];
+    }
+
+    return userGroupList;
+  });
 
   // 获取用户组数据
   const { loading } = useRequest(getUserGroupList, {
@@ -84,6 +139,7 @@
           type: 'group',
         };
         itemMap[userGroupItem.id] = newUserGroupItem;
+        userGroupMap[userGroupItem.id] = userGroupItem;
         newUserGroupList.push(newUserGroupItem);
       });
 
@@ -92,7 +148,8 @@
   });
 
   const isClosable = (id: string) => {
-    if (isPlatform || props.type !== 'edit') {
+    // if (isPlatform || props.type !== 'edit') {
+    if (props.type !== 'edit') {
       return true;
     }
     return !(props.isBuiltIn && modelValueOrigin.includes(id));
@@ -181,6 +238,30 @@
   :deep(.user-selector-selected) {
     .built-in + .user-selector-selected-clear {
       display: none;
+    }
+  }
+
+  .receivers-list {
+    padding: 12px 16px;
+    background: #F5F7FA;
+
+    .receivers-list-item {
+      font-size: 12px;
+
+      &:not(:first-child) {
+        margin-top: 16px;
+      }
+    }
+
+    .receivers-list-label {
+      line-height: 20px;
+      color: #979BA5;
+    }
+
+    .receivers-list-value {
+      margin-top: 2px;
+      line-height: 16px;
+      color: #63656E;
     }
   }
 }
