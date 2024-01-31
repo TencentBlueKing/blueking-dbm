@@ -27,7 +27,7 @@
             class="render-row-icon"
             :type="getIconType(item.type)" />
         </template>
-        {{ item.displayName }}
+        {{ item.display_name }}
       </BkTag>
       <BkTag class="overflow-collapse-tag">
         +{{ overflowData.length }}
@@ -37,13 +37,17 @@
       <BkTag
         v-for="item in visibleData"
         :key="item.id"
+        v-bk-tooltips="{
+          disabled: item.type === 'user',
+          content: item.members.join('，')
+        }"
         class="render-row-item">
         <template #icon>
           <DbIcon
             class="render-row-icon"
             :type="getIconType(item.type)" />
         </template>
-        {{ item.displayName }}
+        {{ item.display_name }}
       </BkTag>
       <BkPopover
         v-if="overflowData.length > 0"
@@ -57,13 +61,17 @@
           <BkTag
             v-for="item in overflowData"
             :key="item.id"
+            v-bk-tooltips="{
+              disabled: item.type === 'user',
+              content: item.members.join('，')
+            }"
             class="render-row-item">
             <template #icon>
               <DbIcon
                 class="render-row-icon"
                 :type="getIconType(item.type)" />
             </template>
-            {{ item.displayName }}
+            {{ item.display_name }}
           </BkTag>
         </template>
       </BkPopover>
@@ -74,14 +82,12 @@
 <script setup lang="ts">
   import { debounce } from 'lodash';
 
+  import { getUserGroupList } from '@services/source/cmdb';
+
   import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
-    data: {
-      id: string,
-      displayName: string,
-      type: string
-    }[]
+    data: ServiceReturnType<typeof getUserGroupList>
   }
 
   const props = defineProps<Props>();

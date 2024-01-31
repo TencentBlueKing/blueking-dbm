@@ -34,14 +34,14 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/monitor-alarm-plat/rotation-setting/Index.vue'),
   },
-  {
-    name: 'PlatMonitorAlarmGroup',
-    path: 'alarm-group',
-    meta: {
-      navName: t('告警组'),
-    },
-    component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
-  },
+  // {
+  //   name: 'PlatMonitorAlarmGroup',
+  //   path: 'alarm-group',
+  //   meta: {
+  //     navName: t('告警组'),
+  //   },
+  //   component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
+  // },
 ];
 
 export default function getRoutes() {
