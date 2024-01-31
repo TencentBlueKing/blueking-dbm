@@ -47,7 +47,7 @@ export default class PulsarNode {
     this.node_count = payload.node_count || 0;
     this.role = payload.role;
     this.status = payload.status || 0;
-    this.permission = payload.permission;
+    this.permission = payload.permission || {};
   }
 
   get isBroker() {

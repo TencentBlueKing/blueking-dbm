@@ -46,7 +46,7 @@ export default class HdfsNode {
     this.node_count = payload.node_count || 0;
     this.role_set = payload.role_set;
     this.status = payload.status || 0;
-    this.permission = payload.permission;
+    this.permission = payload.permission || {};
   }
 
   get isDataNode() {

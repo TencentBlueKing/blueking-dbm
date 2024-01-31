@@ -147,7 +147,7 @@ export default class Pulsar {
     this.pulsar_bookkeeper = payload.pulsar_bookkeeper || [];
     this.pulsar_broker = payload.pulsar_broker || [];
     this.pulsar_zookeeper = payload.pulsar_zookeeper || [];
-    this.permission = payload.permission;
+    this.permission = payload.permission || {};
     this.region = payload.region;
     this.status = payload.status;
     this.update_at = payload.update_at;
