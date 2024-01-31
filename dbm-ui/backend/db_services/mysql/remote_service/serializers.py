@@ -20,16 +20,13 @@ from backend.db_services.mysql.remote_service.mock_data import (
     SHOW_DATABASES_RESPONSE_DATA,
     SHOW_TABLES_RESPONSE_DATA,
 )
-from backend.flow.consts import TenDBBackUpLocation
 from backend.ticket.builders.mysql.base import DBTableField
 
 
 class ShowDatabasesRequestSerializer(serializers.Serializer):
     class QueryClusterRoleDatabaseSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID列表"))
-        role = serializers.ChoiceField(
-            help_text=_("查询的备份角色"), choices=TenDBBackUpLocation.get_choices(), required=False
-        )
+        role = serializers.CharField(help_text=_("查询的备份角色"), required=False)
 
     # 支持两种模式查询 集群ID列表/集群角色信息列表
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(), required=False)
