@@ -615,14 +615,14 @@ func GenBoostScript() []byte {
 		}'
     else 
         if [[ $version > "7.0.0" ]];then
-	        userpasswd=$(sh /data/esenv/es_1/plugins/opendistro_security/tools/hash.sh -p "$passwd")
-	        cd /data/esenv/es_1
+			userpasswd=$(sh /data/esenv/es_1/plugins/opendistro_security/tools/hash.sh -p "$passwd")
+			cd /data/esenv/es_1
 	
-	        f1="./plugins/opendistro_security/securityconfig/internal_users.yml.tml"
-	        f2="./plugins/opendistro_security/securityconfig/internal_users.yml"
-	        [[ ! -e $f1 ]] && cp $f2 $f1
+			f1="./plugins/opendistro_security/securityconfig/internal_users.yml.tml"
+			f2="./plugins/opendistro_security/securityconfig/internal_users.yml"
+			[[ ! -e $f1 ]] && cp $f2 $f1
 	
-	        cp $f1  $f2
+			cp $f1  $f2
 	
 			echo "
 $creater_user:
@@ -634,12 +634,12 @@ $creater_user:
 " >>  ./plugins/opendistro_security/securityconfig/internal_users.yml
 	
 	
-	        cd /data/esenv/es_1/plugins/opendistro_security/tools
+		cd /data/esenv/es_1/plugins/opendistro_security/tools
 	
-	        JAVA_OPTS="-Xms128m -Xmx128m" sh /data/esenv/es_1/plugins/opendistro_security/tools/securityadmin.sh \
-		        -h "$local_ip"  -p 9300  -cacert /data/esenv/es_1/config/root-ca.pem  \
-		        -cert /data/esenv/es_1/config/admin.pem  -key /data/esenv/es_1/config/admin-key.pem  \
-		        -dg -arc -nhnv -icl -ff -cd /data/esenv/es_1/plugins/opendistro_security/securityconfig
+		JAVA_OPTS="-Xms128m -Xmx128m" sh /data/esenv/es_1/plugins/opendistro_security/tools/securityadmin.sh \
+			-h "$local_ip"  -p 9300  -cacert /data/esenv/es_1/config/root-ca.pem  \
+			-cert /data/esenv/es_1/config/admin.pem  -key /data/esenv/es_1/config/admin-key.pem  \
+			-dg -arc -nhnv -icl -ff -cd /data/esenv/es_1/plugins/opendistro_security/securityconfig
         else 
             if  [[ $version > "6.0.0" ]]; then
                 sgdir=/data/esenv/es_1/plugins/search-guard-6
