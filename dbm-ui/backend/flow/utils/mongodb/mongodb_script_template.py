@@ -103,7 +103,7 @@ if (num == 0) {
 }
 """
 
-
+# mongodb_actuator_template2 run dbactuator by sudo_account
 mongodb_actuator_template2 = """
 #!/bin/sh
 # mongodb actuator script
@@ -126,6 +126,9 @@ fi
 
 
 def make_script_common_kwargs(timeout=3600, exec_account="root", is_param_sensitive=0):
+    """
+    make_script_common_kwargs 生成脚本执行的公共参数
+    """
     return {
         "timeout": timeout,
         "account_alias": exec_account,
