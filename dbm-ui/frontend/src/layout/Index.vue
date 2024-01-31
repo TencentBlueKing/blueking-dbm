@@ -137,7 +137,7 @@
       'DbConfigure',
       'DBMonitorStrategy',
       'DBMonitorAlarmGroup',
-      'DatabaseStaff',
+      'StaffManage',
     ],
     [menuEnum.resourceManage]: [
       'ResourceSpec',
@@ -153,6 +153,7 @@
       'PlatMonitorAlarmGroup',
       'passwordManage',
       'PlatformTicketFlowSetting',
+      'PlatformStaffManage',
     ],
     [menuEnum.personalWorkbench]: [
       'SelfServiceMyTickets',
