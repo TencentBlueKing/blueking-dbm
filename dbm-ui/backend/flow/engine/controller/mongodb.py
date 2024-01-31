@@ -13,6 +13,8 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_exec_script import MongoEx
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoFakeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_restart import MongoRestartInstanceFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_remove_ns import MongoRemoveNsFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_restore import MongoRestoreFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_user import MongoUserFlow
 from backend.flow.engine.controller.base import BaseController
 
@@ -40,9 +42,17 @@ class MongoDBController(BaseController):
 
     def mongo_backup(self):
         """
-        发起备份任务
+        发起任务
         """
-        flow = MongoBackupFlow(root_id=self.root_id, data=self.ticket_data)
+        # Get Ticket Name. 以后再拆到url那边. 临时用法.
+        ticket_name = self.ticket_data["ticket_type"]
+        if ticket_name == "MONGODB_RESTORE":
+            flow = MongoRestoreFlow(root_id=self.root_id, data=self.ticket_data)
+        elif ticket_name == "MONGODB_FULL_BACKUP" or ticket_name == "MONGODB_PARTIAL_BACKUP":
+            flow = MongoBackupFlow(root_id=self.root_id, data=self.ticket_data)
+        else:
+            raise Exception("Unknown ticket name: %s" % ticket_name)
+
         flow.start()
 
     def fake_install(self):
@@ -83,3 +93,9 @@ class MongoDBController(BaseController):
 
         flow = MongoRestartInstanceFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_instance_restart_flow()
+
+    def mongo_remove_ns(self):
+        """
+        发起删除库表任务
+        """
+        MongoRemoveNsFlow(root_id=self.root_id, data=self.ticket_data).start()

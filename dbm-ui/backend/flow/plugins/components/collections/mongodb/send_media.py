@@ -28,22 +28,19 @@ logger = logging.getLogger("json")
 
 class ExecSendMediaOperation(BkJobService):
     """
-    NameServiceCreate服务
+    执行下发介质包
     """
 
     def _execute(self, data, parent_data) -> bool:
         """
-        执行创建名字服务功能的函数
-        global_data 单据全局变量，格式字典
         kwargs 私有变量
         """
 
         # 从流程节点中获取变量
-        kwargs = data.get_one_of_inputs("kwargs")
+        kwargs = data.get_inputs()["kwargs"]
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]
         node_id = kwargs["node_id"]
-        exec_ips = kwargs["exec_ips"]
 
         # 介质下发
         # 拼接fast_trans_file 接口请求参数
@@ -59,7 +56,7 @@ class ExecSendMediaOperation(BkJobService):
         payload["file_target_path"] = kwargs["file_target_path"]
         payload["target_server"]["ip_list"] = kwargs["ip_list"]
         self.log_info(_("[{}] 下发介质包参数：{}").format(node_name, payload))
-        FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
+        FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=kwargs["exec_ips"])
 
         # 请求传输
         resp = JobApi.fast_transfer_file(payload, raw=True)
@@ -73,6 +70,7 @@ class ExecSendMediaOperation(BkJobService):
 
     # 流程节点输入参数
     def inputs_format(self) -> List:
+        print("inputs_format", self.__class__.__name__, self.code)
         return [
             Service.InputItem(name="kwargs", key="kwargs", type="dict", required=True),
             Service.InputItem(name="global_data", key="global_data", type="dict", required=True),

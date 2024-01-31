@@ -9,22 +9,20 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import base64
-import json
 import logging
 import re
 from typing import List
 
 from django.utils.translation import ugettext as _
-from jinja2 import Environment
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.redis.redis_context_dataclass as flow_context
+import backend.flow.utils.mongodb.mongodb_dataclass as flow_context
 from backend import env
 from backend.components import JobApi
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
-from backend.flow.utils.mongodb.mongodb_script_template import make_script_common_kwargs, mongodb_actuator_template2
+from backend.flow.utils.mongodb.mongodb_script_template import make_script_common_kwargs
 
 logger = logging.getLogger("json")
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
@@ -45,10 +43,8 @@ class _ExecBkJobService(BkJobService):
            root_id:  db-actuator任务必须参数，做录入日志平台的条件
            node_id:  db-actuator任务必须参数，做录入日志平台的条件
            node_name: db-actuator任务必须参数，做录入日志平台的条件
-           get_redis_payload_func : 表示获取执行 redis的db-actuator 参数方法名称，对应RedisActPayload类
            exec_ip: 表示执行的ip节点
            get_trans_data_ip_name: 表示从上下文获取到执行ip的变量名，对应单据的获取到上下文dataclass类
-           cluster: 操作的集群名称
            extend_attr: 额外的字段数据，需要从RedisApplyContext中获取
         }
         """
@@ -56,27 +52,37 @@ class _ExecBkJobService(BkJobService):
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
 
+        self.log_info("_execute trans_data {} global_data {} kwargs {}".format(trans_data, global_data, kwargs))
         if trans_data is None or trans_data == "${trans_data}":
-            # 表示没有加载上下文内容，则在此添加
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+            self.log_info("now init trans_data {}".format(trans_data))
+
+        self.log_info("trans_data {}".format(trans_data))
 
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]
         node_id = kwargs["node_id"]
 
-        exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
-
+        ticket_ips = []
+        # get ip from bk_host_list
+        for v in kwargs["bk_host_list"]:
+            ticket_ips.append(v["ip"])
+        exec_ips = self.splice_exec_ips_list(ticket_ips=ticket_ips)
         self.log_info("exec_ips {}".format(exec_ips))
-        self.log_info("trans_data {}".format(trans_data))
-
         if not exec_ips:
             self.log_error(_("该节点获取到执行ip信息为空，请联系系统管理员{}").format(exec_ips))
             return False
 
-        target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
+        self.log_info("kwargs {}".format(kwargs))
+        self.log_info("data {}".format(data))
+
+        target_ip_info = kwargs["bk_host_list"]
         self.log_info("{} exec {}".format(target_ip_info, kwargs["node_name"]))
 
-        # 获取 actuator 组件所需要执行的参数,
+        # 获取 actuator 组件所需要执行的参数
+        """
+        jinja_env = Environment()
+        template = jinja_env.from_string(kwargs["script_content"])
         db_act_template = kwargs["db_act_template"]
         db_act_template["root_id"] = root_id
         db_act_template["node_id"] = node_id
@@ -85,30 +91,30 @@ class _ExecBkJobService(BkJobService):
         db_act_template["payload"] = str(
             base64.b64encode(json.dumps(db_act_template["payload"]).encode("utf-8")), "utf-8"
         )
+        """
+        # 这一段是为了替换脚本中的模板，但我们现在不需要替换，所以注释掉
 
-        FlowNode.objects.filter(root_id=kwargs["root_id"], node_id=node_id).update(hosts=exec_ips)
-
-        # 脚本内容
-        jinja_env = Environment()
-        template = jinja_env.from_string(mongodb_actuator_template2)
-        self.log_info("[{}] ready start task with body {} {}".format(node_name, "", template))
-
+        FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
+        # 拼接fast_execute_script 接口请求参数
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
-            "script_content": str(base64.b64encode(template.render(db_act_template).encode("utf-8")), "utf-8"),
+            "script_content": str(base64.b64encode(kwargs["script_content"].encode("utf-8")), "utf-8"),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
         }
 
         self.log_info("[{}] ready start task with body {} {}".format(node_name, "", body))
         resp = JobApi.fast_execute_script(
-            {**(make_script_common_kwargs(timeout=3600, exec_account="root")), **body}, raw=True
+            {**(make_script_common_kwargs(timeout=3600, exec_account=kwargs["exec_account"])), **body}, raw=True
         )
 
         # 传入调用结果，并单调监听任务状态
         data.outputs.ext_result = resp
         data.outputs.exec_ips = exec_ips
+        trans_data.set("step1", "step1")
+        data.outputs["trans_data"] = trans_data
+        self.log_info("[{}] set trans_data {} {}".format(node_name, "", trans_data))
         return True
 
     @staticmethod
@@ -123,7 +129,7 @@ class _ExecBkJobService(BkJobService):
         return [Service.OutputItem(name="exec_ips", key="exec_ips", type="list")]
 
 
-class ExecJobComponent2(Component):
+class MongoFastExecScriptComponent(Component):
     name = __name__
-    code = "MongoExecJobComponent2"
+    code = "MongoFastExecScript"
     bound_service = _ExecBkJobService
