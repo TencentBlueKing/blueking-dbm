@@ -11,6 +11,9 @@ import logging
 
 from backend.db_meta.api.cluster.sqlserverha.handler import SqlserverHAClusterHandler
 from backend.db_meta.api.cluster.sqlserversingle.handler import SqlserverSingleClusterHandler
+from backend.db_meta.enums import ClusterPhase, ClusterType
+from backend.db_meta.models import Cluster
+from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("flow")
 
@@ -68,3 +71,82 @@ class SqlserverDBMeta(object):
             sync_type=self.global_data["sync_type"],
         )
         return True
+
+    def sqlserver_ha_switch(self):
+        """
+        ha集群部署录入你元数据
+        """
+        SqlserverHAClusterHandler.switch_role(
+            cluster_ids=self.global_data["cluster_ids"],
+            old_master=Host(**self.global_data["master"]),
+            new_master=Host(**self.global_data["slave"]),
+        )
+        return True
+
+    def cluster_offline(self):
+        """
+        定义更新cluster集群的为offline 状态
+        """
+        Cluster.objects.filter(id=self.global_data["cluster_id"]).update(phase=ClusterPhase.OFFLINE)
+
+    def cluster_online(self):
+        """
+        定义更新cluster集群的为online 状态
+        """
+        Cluster.objects.filter(id=self.global_data["cluster_id"]).update(phase=ClusterPhase.ONLINE)
+
+    def cluster_reset(self):
+        """
+        定义集群重置元数据的过程
+        """
+        SqlserverHAClusterHandler.cluster_reset(
+            cluster_id=self.global_data["cluster_id"],
+            new_cluster_name=self.global_data["new_cluster_name"],
+            new_immutable_domain=self.global_data["new_immutable_domain"],
+            new_slave_domain=self.global_data.get("new_slave_domain", None),
+            creator=self.global_data["created_by"],
+        )
+        return True
+
+    def cluster_destroy(self):
+        """
+        定义集群下架时元数据的过程
+        """
+        cluster = Cluster.objects.get(id=self.global_data["cluster_id"])
+        if cluster.cluster_type == ClusterType.SqlserverHA:
+            SqlserverHAClusterHandler(bk_biz_id=self.global_data["bk_biz_id"], cluster_id=cluster.id).decommission()
+        else:
+            SqlserverSingleClusterHandler(
+                bk_biz_id=self.global_data["bk_biz_id"], cluster_id=cluster.id
+            ).decommission()
+
+        return True
+
+    def rebuild_in_new_slave(self):
+        """
+        定义机器维度，新机重建，变更集群元数据
+        """
+        def_resource_spec = {"sqlserver_ha": {"id": 0}}
+        SqlserverHAClusterHandler.switch_slave(
+            bk_biz_id=int(self.global_data["bk_biz_id"]),
+            cluster_ids=self.global_data["cluster_ids"],
+            old_slave_host=Host(**self.global_data["old_slave_host"]),
+            new_slave_host=Host(**self.global_data["new_slave_host"]),
+            creator=self.global_data["created_by"],
+            resource_spec=self.global_data.get("resource_spec", def_resource_spec),
+        )
+        return True
+
+    def add_slave(self):
+        """
+        定义机器维度，添加slave，变更集群元数据
+        """
+        def_resource_spec = {"sqlserver_ha": {"id": 0}}
+        SqlserverHAClusterHandler.add_slave(
+            bk_biz_id=int(self.global_data["bk_biz_id"]),
+            cluster_ids=self.global_data["cluster_ids"],
+            new_slave_host=Host(**self.global_data["new_slave_host"]),
+            creator=self.global_data["created_by"],
+            resource_spec=self.global_data.get("resource_spec", def_resource_spec),
+            is_stand_by=False,
+        )

@@ -71,7 +71,9 @@ class SqlserverActuatorScriptService(BkJobService):
         if is_dataclass(trans_data):
             trans_data = asdict(trans_data)
 
-        db_act_template = getattr(mssql_act_payload, kwargs["get_payload_func"])(ips=exec_ips, trans_data=trans_data)
+        db_act_template = getattr(mssql_act_payload, kwargs["get_payload_func"])(
+            ips=exec_ips, trans_data=trans_data, custom_params=kwargs.get("custom_params", {})
+        )
         db_act_template.update(
             {
                 "root_id": root_id,

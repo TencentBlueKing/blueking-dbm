@@ -11,9 +11,16 @@ specific language governing permissions and limitations under the License.
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from backend.flow.consts import DEFAULT_JOB_TIMEOUT, DEFAULT_SQLSERVER_PATH, MediumFileTypeEnum
+from backend.flow.consts import (
+    DEFAULT_JOB_TIMEOUT,
+    DEFAULT_SQLSERVER_PATH,
+    MediumFileTypeEnum,
+    SqlserverBackupJobExecMode,
+    SqlserverLoginExecMode,
+    SqlserverRestoreMode,
+)
+from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.validate import (
-    Host,
     ValidateHandler,
     validate_get_dbmeta_func,
     validate_get_payload_func,
@@ -32,11 +39,13 @@ class ExecActuatorKwargs(ValidateHandler):
     @attributes get_payload_func SqlserverActPayload类的获取参数方法名称
     @attributes exec_ips 执行的ip列表信息
     @attributes job_timeout # 隐性参数，调用job平台任务的操作时间，不传默认3600s
+    @attributes custom_params # 隐性参数，传入参数时作为额外参数传入，自定义拼接
     """
 
     get_payload_func: str = field(metadata={"validate": validate_get_payload_func})
     exec_ips: List[Host] = field(metadata={"validate": validate_hosts})
     job_timeout: int = DEFAULT_JOB_TIMEOUT
+    custom_params: dict = field(default_factory=dict)
 
 
 @dataclass()
@@ -83,3 +92,43 @@ class DBMetaOPKwargs:
     """
 
     db_meta_class_func: str = field(metadata={"validate": validate_get_dbmeta_func})
+
+
+@dataclass()
+class ExecBackupJobsKwargs:
+    """
+    定义执行exec_sqlserver_backup_job活动节点的私有变量结构体
+    @attributes cluster_id 集群id
+    @attributes exec_mode 操作类型
+    """
+
+    cluster_id: int
+    exec_mode: SqlserverBackupJobExecMode
+
+
+@dataclass()
+class RestoreForDoDrKwargs:
+    """
+    定义执行exec_sqlserver_backup_job活动节点的私有变量结构体
+    @attributes cluster_id 集群id
+    @attributes exec_mode 操作类型
+    """
+
+    cluster_id: int
+    backup_id: str
+    restore_dbs: list
+    restore_mode: SqlserverRestoreMode
+    exec_ips: List[Host] = field(metadata={"validate": validate_hosts})
+    job_timeout: int = DEFAULT_JOB_TIMEOUT
+
+
+@dataclass()
+class ExecLoginKwargs:
+    """
+    定义执行exec_sqlserver_login活动节点的私有变量结构体
+    @attributes cluster_id 集群id
+    @attributes exec_mode 操作类型
+    """
+
+    cluster_id: int
+    exec_mode: SqlserverLoginExecMode

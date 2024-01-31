@@ -178,3 +178,13 @@ type Instnace struct {
 	Host string `json:"host"`
 	Port int    `json:"port"`
 }
+
+// 执行切换sp的模板SQL
+var (
+	EXEC_SWITCH_SP_TMEP_SQL = `
+		declare @msg varchar(1000)
+		declare @exitcode int
+		exec @exitcode = MONITOR.DBO.%s @msg output
+		select @msg as msg, @exitcode as exitcode
+		`
+)

@@ -11,8 +11,11 @@
 package sqlserver
 
 import (
+	"database/sql"
 	"fmt"
+	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -34,14 +37,14 @@ type RestoreDBSForFullParam struct {
 	Host         string            `json:"host" validate:"required,ip" `       // 本地hostip
 	Port         int               `json:"port"  validate:"required,gt=0"`     // 需要操作的实例端口
 	RestoreInfos []FullRestoreInfo `json:"restore_infos"  validate:"required"` // 需要待恢复备份文件组
-	RestoreMode  string            `json:"RestoreMode"`                        // 隐藏参数，恢复模式
+	RestoreMode  string            `json:"restore_mode"`                       // 隐藏参数，恢复模式
 }
 
 // RestoreInfo 参数
 type FullRestoreInfo struct {
 	DBName       string `json:"db_name" validate:"required" `
 	TargetDBName string `json:"target_db_name"`
-	FullBakFile  string `json:"full_bak_file" validate:"required" `
+	FullBakFile  string `json:"bak_file" validate:"required" `
 }
 
 // FullBackupHeaderInfo todo
@@ -55,10 +58,10 @@ type FullBackupHeaderInfo struct {
 
 // FullBackupListInfo todo
 type FullBackupListInfo struct {
-	LogicalName   string `db:"LogicalName"`
-	PhysicalName  string `db:"PhysicalName"`
-	Type          string `db:"Type"`
-	FileGroupName string `db:"FileGroupName"`
+	LogicalName   string         `db:"LogicalName"`
+	PhysicalName  string         `db:"PhysicalName"`
+	Type          string         `db:"Type"`
+	FileGroupName sql.NullString `db:"FileGroupName"`
 }
 
 // 运行是需要的必须参数,可以提前计算
@@ -192,21 +195,35 @@ func (r *RestoreDBSForFullComp) DoRestoreForFullBackup() error {
 		for _, f := range infoArr {
 			randStr := osutil.GenerateRandomString(8)
 			newFileName := ""
+
+			directory := filepath.Dir(f.PhysicalName)
+			// 判断对应恢复的目录存不存在，如果不存在，则默认存在D:\gamedb\{port}
+			dir := osutil.WINSFile{FileName: directory}
+			err, check := dir.FileExists()
+			if err != nil {
+				return err
+			}
+			// 如果文件不存在
+			if !check {
+				logger.Warn("the folder is not exist, restore dir set D:\\gamedb\\%d", r.Params.Port)
+				directory = filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_DATA_NAME, strconv.Itoa(r.Params.Port))
+			}
+
 			switch {
-			case f.FileGroupName == "PRIMARY" && f.Type == "D":
+			case f.FileGroupName.String == "PRIMARY" && f.Type == "D":
 				// 代表是主文件组，默认就有
-				newFileName = fmt.Sprintf("%s_%s.mdf", info.DBName, randStr)
-			case f.FileGroupName != "PRIMARY" && f.Type == "D":
+				newFileName = filepath.Join(directory, fmt.Sprintf("%s_%s.mdf", info.DBName, randStr))
+			case f.FileGroupName.String != "PRIMARY" && f.Type == "D":
 				// 代表是辅助文件组，可选
-				newFileName = fmt.Sprintf("%s_%s.ndf", info.DBName, randStr)
+				newFileName = filepath.Join(directory, fmt.Sprintf("%s_%s.ndf", info.DBName, randStr))
 			case f.Type == "L":
 				// 代表是日志文件组，默认就有
-				newFileName = fmt.Sprintf("%s_%s.ldf", info.DBName, randStr)
+				newFileName = filepath.Join(directory, fmt.Sprintf("%s_%s.ldf", info.DBName, randStr))
 			default:
 				logger.Error(
 					"[%s] this FileGroupName [%s] and Type [%s] is not supported",
 					info.DBName,
-					f.FileGroupName,
+					f.FileGroupName.String,
 					f.Type,
 				)
 				isErr = true
@@ -230,7 +247,7 @@ func (r *RestoreDBSForFullComp) DoRestoreForFullBackup() error {
 			strings.Join(moveSQLs, ","),
 			r.RestoreMode); err != nil {
 			logger.Error("restroe db [%s->%s] error : [%v]", info.DBName, info.TargetDBName, err)
-			isErr = true
+			isGlobalErr = true
 		}
 	}
 	if isGlobalErr {

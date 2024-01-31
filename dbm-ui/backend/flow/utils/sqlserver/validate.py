@@ -13,23 +13,7 @@ from typing import List
 
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
-
-
-@dataclass
-class Host:
-    """
-    机器信息基类
-    @attributes ip 机器ip，ipv4格式
-    @attributes bk_cloud_id 机器所在云区域
-    """
-
-    __dataclass_fields__ = None
-    ip: str
-    bk_cloud_id: int
-
-    def __init__(self, **kwargs):
-        for field in Host.__dataclass_fields__:
-            setattr(self, field, kwargs.get(field))
+from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 
 @dataclass

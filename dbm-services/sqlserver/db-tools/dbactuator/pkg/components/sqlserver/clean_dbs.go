@@ -114,13 +114,20 @@ func (c *CleanDBSComp) PerCheck() error {
 		return fmt.Errorf("precheck error")
 	}
 	if len(c.RealDBS) == 0 {
-		return fmt.Errorf("no need to clean the databases , check")
+		logger.Warn("no need to clean the databases , check")
+		return nil
 	}
 	return nil
 }
 
 // DoCleanDBS 执行清档逻辑
 func (c *CleanDBSComp) DoCleanDBS() error {
+
+	if len(c.RealDBS) == 0 {
+		// 没有库可操作，正常退出
+		return nil
+	}
+
 	switch c.Params.CleanMode {
 	case "clean_tables":
 		if err := c.CleanTablesInDBS(); err != nil {

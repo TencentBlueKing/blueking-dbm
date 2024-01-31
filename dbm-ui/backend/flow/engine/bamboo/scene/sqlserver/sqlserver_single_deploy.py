@@ -22,8 +22,9 @@ from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDn
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import CreateDnsKwargs
 from backend.flow.utils.sqlserver.base_func import calc_install_ports
-from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DBMetaOPKwargs, Host
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
+from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.validate import SqlserverCluster
 
 logger = logging.getLogger("flow")
@@ -71,7 +72,6 @@ class SqlserverSingleApplyFlow(BaseFlow):
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
             # 安装实例
-            print(sub_flow_context["clusters"])
             sub_pipeline.add_sub_pipeline(
                 sub_flow=install_sqlserver_sub_flow(
                     uid=self.data["uid"],

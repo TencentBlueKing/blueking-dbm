@@ -101,3 +101,143 @@ class SqlserverCleanDBSSceneApiView(FlowTestView):
         test = SqlserverController(root_id=root_id, ticket_data=request.data)
         test.clean_dbs_scene()
         return Response({"root_id": root_id})
+
+
+class SqlserverHASwitchSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_ha_switch
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.ha_switch_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverHAFailOverSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_ha_fail_over
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.ha_fail_over_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverDBBuildSyncSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_build_db_sync
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.ha_build_db_sync_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverDisableSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_cluster_disable
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.cluster_disable_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverEnableSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_cluster_enable
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.cluster_enable_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverResetSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_cluster_reset
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.cluster_reset_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverDestroySceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_cluster_destroy
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.cluster_destroy_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverAddSlaveSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_add_slave
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.add_slave_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverRebuildInLocalSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_rebuild_in_local
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.slave_rebuild_in_local_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverRebuildInNewSlaveSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_rebuild_in_new_slave
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.slave_rebuild_in_new_slave_scene()
+        return Response({"root_id": root_id})

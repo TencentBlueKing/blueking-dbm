@@ -315,6 +315,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Riak = EnumField("riak", _("riak"))
     TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper"))
     Sqlserver = EnumField("sqlserver", _("sqlserer"))
+    Sqlserver_check = EnumField("check", _("sqlserer_check"))
 
 
 class DBActuatorActionEnum(str, StructuredEnum):
@@ -521,6 +522,18 @@ class SqlserverActuatorActionEnum(str, StructuredEnum):
     BackupDBS = EnumField("BackupDBS", _("备份数据库"))
     RenameDBS = EnumField("RenameDBS", _("备份数据库"))
     CleanDBS = EnumField("CleanDBS", _("数据库清档"))
+    RestoreDBSForFull = EnumField("RestoreDBSForFull", _("恢复全量备份文件"))
+    RestoreDBSForLog = EnumField("RestoreDBSForLog", _("恢复日志备份文件"))
+    RoleSwitch = EnumField("RoleSwitch", _("集群角色互切"))
+    CheckAbnormalDB = EnumField("CheckAbnormalDB", _("检查非正常的数据库信息"))
+    CheckInstProcess = EnumField("CheckInstProcess", _("检查实例连接情况"))
+    CloneLoginUsers = EnumField("CloneLoginUsers", _("实例间克隆用户"))
+    CloneJobs = EnumField("CloneJobs", _("实例间克隆定时作业"))
+    CloneLinkservers = EnumField("CloneLinkservers", _("实例间克隆linkservers"))
+    BuildDBMirroring = EnumField("BuildDBMirroring", _("建立数据库的镜像库关系"))
+    BuildAlwaysOn = EnumField("BuildAlwaysOn", _("建立Always-on通信"))
+    AddDBSInAlwaysOn = EnumField("AddDBSInAlwaysOn", _("数据库加入到Always-on可用组"))
+    Uninstall = EnumField("Uninstall", _("卸载sqlserver实例"))
 
 
 class RiakModuleId(int, StructuredEnum):
@@ -1115,3 +1128,31 @@ class SqlserverBackupMode(str, StructuredEnum):
 
     FULL_BACKUP = EnumField("full_backup", _("全量备份"))
     LOG_BACKUP = EnumField("log_backup", _("增量备份"))
+
+
+class SqlserverBackupJobExecMode(str, StructuredEnum):
+    """
+    Sqlserver例行备份操作方式
+    """
+
+    ENABLE = EnumField(1, _("启动"))
+    DISABLE = EnumField(0, _("关闭"))
+
+
+class SqlserverRestoreMode(str, StructuredEnum):
+    """
+    Sqlserver 恢复类型
+    """
+
+    FULL = EnumField("D", _("选择全量备份恢复"))
+    LOG = EnumField("L", _("选择日志备份恢复"))
+
+
+class SqlserverLoginExecMode(str, StructuredEnum):
+    """
+    Sqlserver账号操作方式
+    """
+
+    ENABLE = EnumField("enable", _("启动"))
+    DISABLE = EnumField("disable", _("关闭"))
+    DROP = EnumField("drop", _("删除"))

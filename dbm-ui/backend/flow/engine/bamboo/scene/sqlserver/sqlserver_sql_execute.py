@@ -24,8 +24,9 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
-from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs, Host
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
+from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("flow")
 

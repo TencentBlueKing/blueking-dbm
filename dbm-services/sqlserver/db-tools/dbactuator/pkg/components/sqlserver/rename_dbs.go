@@ -262,6 +262,8 @@ func (r *RenameDBSComp) DoRenameDBWithAlwayson() error {
 func DropOldDatabaseOnslave(dbname string, DRS []slaves) error {
 	var isErr bool
 	for _, slave := range DRS {
+		var dbSnapshots []string
+		var execDBSQLs []string
 		// 判断DB是否有相关请求
 		if !slave.Connet.CheckDBProcessExist(dbname) {
 			logger.Error(
@@ -284,8 +286,26 @@ func DropOldDatabaseOnslave(dbname string, DRS []slaves) error {
 			continue
 		}
 
+		// 查询数据库是否有关联的快照库
+		getSnapshots := fmt.Sprintf(
+			"select name from master.sys.databases where source_database_id = DB_ID('%s')",
+			dbname,
+		)
+		if err := slave.Connet.Queryx(&dbSnapshots, getSnapshots); err != nil {
+			return fmt.Errorf("get-db-snapshots failed %v", err)
+		}
+
+		// 如果有存在快照，则先删除快照库
+		if len(dbSnapshots) != 0 {
+			for _, snapshot := range dbSnapshots {
+				execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE %s;", snapshot))
+			}
+		}
+		// 拼接执行删除源库
+		execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE %s", dbname))
+
 		// 执行drop 从库
-		if _, err := slave.Connet.Exec(fmt.Sprintf("DROP DATABASE %s", dbname)); err != nil {
+		if _, err := slave.Connet.ExecMore(execDBSQLs); err != nil {
 			logger.Error(
 				"exec drop database [%s] in slave [%s:%s] failed: [%v]",
 				dbname,

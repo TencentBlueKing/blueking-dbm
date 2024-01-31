@@ -11,8 +11,8 @@
 package mirroring
 
 import (
+	"database/sql"
 	"fmt"
-	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
@@ -47,8 +47,8 @@ type CreateRunTimeCtx struct {
 
 // DataBaseMirroring todo
 type DataBaseMirroring struct {
-	MirroringState       int    `db:"mirroring_state"`
-	MirroringPartnerName string `db:"mirroring_partner_name"`
+	MirroringState       sql.NullInt16  `db:"mirroring_state"`
+	MirroringPartnerName sql.NullString `db:"mirroring_partner_name"`
 }
 
 // Init 初始化
@@ -69,8 +69,8 @@ func (c *CreateMirrorComp) Init() error {
 	if DRWork, err = sqlserver.NewDbWorker(
 		c.GeneralParam.RuntimeAccountParam.SAUser,
 		c.GeneralParam.RuntimeAccountParam.SAPwd,
-		c.Params.Host,
-		c.Params.Port,
+		c.Params.DRHost,
+		c.Params.DRPort,
 	); err != nil {
 		logger.Error("connenct by [%s:%d] failed,err:%s",
 			c.Params.Host, c.Params.Port, err.Error())
@@ -90,7 +90,7 @@ func (c *CreateMirrorComp) PreCheck() error {
 	for _, dbName := range c.Params.DBS {
 		var cnt int
 		checkCmd := fmt.Sprintf(
-			"select count(0) from master.sys.databases where is_read_only == 0 or state == 0 and name = '%s' ;",
+			"select count(0) from master.sys.databases where is_read_only = 0 or state = 0 and name = '%s' ;",
 			dbName,
 		)
 		if err := c.DB.Queryxs(&cnt, checkCmd); err != nil {
@@ -112,13 +112,13 @@ func (c *CreateMirrorComp) CreateEndPoint() error {
 
 	// 在DB执行create sql
 	if _, err := c.DB.Exec(sqlStr); err != nil {
-		logger.Error("exec create endpoint in DB [%s:%s] failed", c.Params.Host, c.Params.Port)
+		logger.Error("exec create endpoint in DB [%s:%d] failed", c.Params.Host, c.Params.Port)
 		return err
 	}
 
 	// 在DR执行create sql
 	if _, err := c.DR.Exec(sqlStr); err != nil {
-		logger.Error("exec create endpoint in DR [%s:%s] failed", c.Params.DRHost, c.Params.DRPort)
+		logger.Error("exec create endpoint in DR [%s:%d] failed", c.Params.DRHost, c.Params.DRPort)
 		return err
 	}
 
@@ -129,38 +129,51 @@ func (c *CreateMirrorComp) CreateEndPoint() error {
 func (c *CreateMirrorComp) CreateDBMirroring() error {
 	var isErr bool
 	for _, dbName := range c.ReadDBS {
-		var info []DataBaseMirroring
+		var ret int
 		checkSQL := fmt.Sprintf(
-			"select mirroring_state,mirroring_partner_name from master.sys.database_mirroring where database_id = DB_ID('%s')",
+			"select count(0) as cnt from master.sys.database_mirroring where database_id = DB_ID('%s') and mirroring_guid is not null",
 			dbName,
 		)
-		if err := c.DB.Queryx(&info, checkSQL); err != nil {
+		if err := c.DB.Queryxs(&ret, checkSQL); err != nil {
 			logger.Error("check db mirroring %s failed: %v", dbName, err)
 			isErr = true
 		}
-		if strings.Contains(info[0].MirroringPartnerName, fmt.Sprintf("%s:%d", c.Params.DRHost, c.ListenPort)) &&
-			(info[0].MirroringState != 0 && info[0].MirroringState != 1) {
-			// 认为这类DB建立好镜像库，不需要重新建立
-			continue
+		if ret != 0 {
+			// 认为这类DB之前有镜像配置，去掉
+			offSQL := []string{
+				fmt.Sprintf("ALTER DATABASE [%s] SET PARTNER OFF", dbName),
+			}
+			if _, err := c.DB.ExecMore(offSQL); err != nil {
+				logger.Error("exec [%s] SET PARTNER OFF in DB [%s:%d] failed", dbName, c.Params.DRHost, c.Params.DRPort)
+				isErr = true
+				continue
+			}
+			logger.Info("exec [%s] SET PARTNER OFF in DB [%s:%d] successfully", dbName)
 		}
+
+		// 建立关系
 		dbExecSQLs := []string{
-			fmt.Sprintf("ALTER DATABASE [%s] SET PARTNER OFF", dbName),
 			fmt.Sprintf("ALTER DATABASE [%s] SET PARTNER = 'TCP://%s:%d'", dbName, c.Params.DRHost, c.ListenPort),
 			fmt.Sprintf("ALTER DATABASE [%s] SET PARTNER SAFETY OFF", dbName),
 		}
 		drExecSQLs := []string{
 			fmt.Sprintf("ALTER DATABASE [%s] SET PARTNER = 'TCP://%s:%d'", dbName, c.Params.Host, c.ListenPort),
 		}
+
 		// 在dr执行
 		if _, err := c.DR.ExecMore(drExecSQLs); err != nil {
-			logger.Error("exec SET PARTNER in DR [%s:%s] failed", c.Params.DRHost, c.Params.DRPort)
+			logger.Error("exec [%s] SET PARTNER in DR [%s:%d] failed", dbName, c.Params.DRHost, c.Params.DRPort)
 			isErr = true
+			continue
 		}
+		logger.Info("exec [%s]  SET PARTNER in DR [%s:%d] successfully", dbName, c.Params.DRHost, c.Params.DRPort)
+
 		// 在db执行
 		if _, err := c.DB.ExecMore(dbExecSQLs); err != nil {
-			logger.Error("exec SET PARTNER in DB [%s:%s] failed", c.Params.Host, c.Params.Port)
-			return err
+			logger.Error("exec [%s] SET PARTNER in DB [%s:%d] failed", dbName, c.Params.Host, c.Params.Port)
+			continue
 		}
+		logger.Info("exec [%s] SET PARTNER in DB [%s:%d] successfully", dbName, c.Params.Host, c.Params.Port)
 
 	}
 	if isErr {

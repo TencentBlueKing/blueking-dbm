@@ -14,7 +14,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_package.models import Package
-from backend.flow.consts import DBActuatorTypeEnum, MediumEnum, SqlserverActuatorActionEnum
+from backend.flow.consts import DBActuatorTypeEnum, MediumEnum, SqlserverActuatorActionEnum, SqlserverBackupMode
 from backend.flow.utils.sqlserver.payload_handler import PayloadHandler
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos, get_sqlserver_config
 
@@ -121,8 +121,28 @@ class SqlserverActPayload(PayloadHandler):
                     "port": self.global_data["port"],
                     "backup_dbs": self.global_data["backup_dbs"],
                     "backup_type": self.global_data["backup_type"],
-                    "backup_id": self.global_data.get("backup_id", "backup_id"),
+                    "backup_id": self.global_data["backup_id"],
                     "is_set_full_model": self.global_data.get("is_set_full_model", False),
+                    "target_backup_dir": self.global_data.get("target_backup_dir", ""),
+                },
+            },
+        }
+
+    def get_backup_log_dbs_payload(self, **kwargs) -> dict:
+        """
+        执行数据库备份的payload, 日志备份专属，
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.BackupDBS.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "backup_dbs": self.global_data["backup_dbs"],
+                    "backup_type": SqlserverBackupMode.LOG_BACKUP.value,
+                    "backup_id": self.global_data["backup_id"],
                     "target_backup_dir": self.global_data.get("target_backup_dir", ""),
                 },
             },
@@ -165,6 +185,221 @@ class SqlserverActPayload(PayloadHandler):
                     "slaves": self.global_data["slaves"],
                     "clean_tables": self.global_data["clean_tables"],
                     "ignore_clean_tables": self.global_data["ignore_clean_tables"],
+                },
+            },
+        }
+
+    def get_switch_payload(self, **kwargs) -> dict:
+        """
+        执行互切或者故障转移的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.RoleSwitch.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "master_host": self.global_data["master_host"],
+                    "master_port": self.global_data["master_port"],
+                    "force": self.global_data["force"],
+                    "sync_mode": self.global_data["sync_mode"],
+                },
+            },
+        }
+
+    def get_check_abnormal_db_payload(self, **kwargs) -> dict:
+        """
+        检查实例是否存在非正常状态的数据
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver_check.value,
+            "action": SqlserverActuatorActionEnum.CheckAbnormalDB.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                },
+            },
+        }
+
+    def get_check_inst_process_payload(self, **kwargs) -> dict:
+        """
+        检查实例是否存在业务连接
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver_check.value,
+            "action": SqlserverActuatorActionEnum.CheckInstProcess.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                },
+            },
+        }
+
+    def get_clone_user_payload(self, **kwargs) -> dict:
+        """
+        实例之间克隆用户
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.CloneLoginUsers.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "source_host": self.global_data["source_host"],
+                    "source_port": self.global_data["source_port"],
+                },
+            },
+        }
+
+    def get_clone_jobs_payload(self, **kwargs) -> dict:
+        """
+        实例之间克隆作业
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.CloneJobs.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "source_host": self.global_data["source_host"],
+                    "source_port": self.global_data["source_port"],
+                },
+            },
+        }
+
+    def get_clone_linkserver_payload(self, **kwargs) -> dict:
+        """
+        实例之间克隆linkserver配置
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.CloneLinkservers.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "source_host": self.global_data["source_host"],
+                    "source_port": self.global_data["source_port"],
+                },
+            },
+        }
+
+    def get_restore_full_dbs_payload(self, **kwargs) -> dict:
+        """
+        恢复全量备份的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.RestoreDBSForFull.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "restore_infos": kwargs["custom_params"]["restore_infos"],
+                    "restore_mode": kwargs["custom_params"].get("restore_mode", ""),
+                },
+            },
+        }
+
+    def get_restore_log_dbs_payload(self, **kwargs) -> dict:
+        """
+        恢复增量备份的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.RestoreDBSForLog.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "restore_infos": kwargs["custom_params"]["restore_infos"],
+                    "restore_mode": kwargs["custom_params"].get("restore_mode", ""),
+                },
+            },
+        }
+
+    def get_build_database_mirroring(self, **kwargs) -> dict:
+        """
+        建立数据库级别镜像关系的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.BuildDBMirroring.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "dr_host": kwargs["custom_params"]["dr_host"],
+                    "dr_port": kwargs["custom_params"]["dr_port"],
+                    "dbs": kwargs["custom_params"]["dbs"],
+                },
+            },
+        }
+
+    def get_build_add_dbs_in_always_on(self, **kwargs) -> dict:
+        """
+        建立数据库加入always_on可用组的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.AddDBSInAlwaysOn.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "add_slaves": kwargs["custom_params"]["add_slaves"],
+                    "dbs": kwargs["custom_params"]["dbs"],
+                },
+            },
+        }
+
+    def get_build_always_on(self, **kwargs) -> dict:
+        """
+        建立实例加入always_on可用组的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.BuildAlwaysOn.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "add_slaves": kwargs["custom_params"]["add_slaves"],
+                    "group_name": kwargs["custom_params"]["group_name"],
+                    "is_first": kwargs["custom_params"].get("is_first", True),
+                },
+            },
+        }
+
+    def uninstall_sqlserver(self, **kwargs) -> dict:
+        """
+        卸载sqlserver的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.Uninstall.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "ports": self.global_data["custom_params"]["ports"],
+                    "force": self.global_data.get("force", False),
                 },
             },
         }

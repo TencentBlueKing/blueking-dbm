@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,24 +7,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from dataclasses import dataclass
 
-from . import (
-    es,
-    hdfs,
-    influxdb,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    riak,
-    sqlserverha,
-    sqlserversingle,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-)
-from .apis import domain_exists, query_instances
+
+@dataclass
+class Host:
+    """
+    机器信息基类
+    @attributes ip 机器ip，ipv4格式
+    @attributes bk_cloud_id 机器所在云区域
+    """
+
+    __dataclass_fields__ = None
+    ip: str
+    bk_cloud_id: int
+
+    def __init__(self, **kwargs):
+        for field in Host.__dataclass_fields__:
+            setattr(self, field, kwargs.get(field))

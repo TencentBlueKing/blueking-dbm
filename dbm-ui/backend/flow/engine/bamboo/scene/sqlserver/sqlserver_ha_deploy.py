@@ -15,15 +15,19 @@ from dataclasses import asdict
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterType
+from backend.flow.consts import SqlserverSyncMode
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import install_sqlserver_sub_flow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
+from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import CreateDnsKwargs
 from backend.flow.utils.sqlserver.base_func import calc_install_ports
-from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DBMetaOPKwargs, Host
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DBMetaOPKwargs, ExecActuatorKwargs
+from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
+from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.validate import SqlserverCluster
 
 logger = logging.getLogger("flow")
@@ -42,6 +46,7 @@ class SqlserverHAApplyFlow(BaseFlow):
         1：机器空闲检测（可选）
         2：下发安装介质包
         3：安装实例
+        3.1：部署AlwaysOn 可用组(可选，只有always on 集群部署)
         4：添加域名
         5：录入元数据、联动cmdb
         6：安装周边程序（可选）
@@ -86,7 +91,8 @@ class SqlserverHAApplyFlow(BaseFlow):
                     db_version=self.data["db_version"],
                 )
             )
-
+            # 集群维度
+            # 配置alwaysOn 可用组
             # 添加域名
             act_list = []
             for cluster in sub_flow_context["clusters"]:
@@ -97,6 +103,25 @@ class SqlserverHAApplyFlow(BaseFlow):
 
                 # 声明子流程
                 cluster_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(cluster_sub_flow_context))
+
+                # 判断是否配置alwaysOn可用组
+                if self.data["sync_type"] == SqlserverSyncMode.ALWAYS_ON:
+                    cluster_sub_pipeline.add_act(
+                        act_name=_("[{}]集群配置可用组".format(cluster.name)),
+                        act_component_code=SqlserverActuatorScriptComponent.code,
+                        kwargs=asdict(
+                            ExecActuatorKwargs(
+                                exec_ips=[Host(**info["mssql_master_host"])],
+                                get_payload_func=SqlserverActPayload.get_build_always_on.__name__,
+                                custom_params={
+                                    "add_slaves": [{"host": info["mssql_slave_host"]["ip"], "port": cluster["port"]}],
+                                    "group_name": cluster["immutable_domain"],
+                                    "is_first": True,
+                                },
+                            )
+                        ),
+                    )
+
                 cluster_sub_pipeline.add_parallel_acts(
                     acts_list=[
                         {
