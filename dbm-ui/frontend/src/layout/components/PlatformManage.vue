@@ -119,7 +119,7 @@
           </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup :name="t('设置')">
-          <BkMenuItem key="PlatformStaff">
+          <BkMenuItem key="PlatformStaffManage">
             <template #icon>
               <DbIcon type="dba-config" />
             </template>

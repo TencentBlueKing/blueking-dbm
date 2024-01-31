@@ -17,20 +17,21 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'DatabaseStaff',
-    path: 'staff',
+    name: 'StaffManage',
+    path: 'staff-manage',
     meta: {
       navName: t('DBA人员管理'),
       fullScreen: true,
     },
-    component: () => import('@views/staff-setting/index.vue'),
-  }, {
-    name: 'PlatformStaff',
-    path: 'staff',
+    component: () => import('@views/staff-manage/Index.vue'),
+  },
+  {
+    name: 'PlatformStaffManage',
+    path: 'platform-staff-manage',
     meta: {
       navName: t('DBA人员管理'),
     },
-    component: () => import('@views/staff-setting/index.vue'),
+    component: () => import('@views/staff-manage/Index.vue'),
   },
 ];
 
