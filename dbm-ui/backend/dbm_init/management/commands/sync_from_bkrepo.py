@@ -9,13 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from datetime import datetime
 
 from django.core.management.base import BaseCommand
 
 from backend.configuration.constants import DBType
 from backend.core.storages.storage import get_storage
 from backend.db_package.models import Package
+from backend.utils.time import str2datetime
 
 logger = logging.getLogger("root")
 
@@ -37,7 +37,7 @@ class Command(BaseCommand):
 
             for version in storage.listdir(pkg_type["fullPath"])[0]:
                 for media in storage.listdir(version["fullPath"])[1]:
-                    create_at = datetime.strptime(media["createdDate"], "%Y-%m-%dT%H:%M:%S.%f")
+                    create_at = str2datetime(media["createdDate"], aware_check=False)
                     logger.info(
                         "{}\t{}\t{}\t{}\t{}\t{}\t".format(
                             media["name"],

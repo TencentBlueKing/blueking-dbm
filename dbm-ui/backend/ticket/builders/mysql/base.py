@@ -123,10 +123,7 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
     def validate_cluster_type(self, attrs, cluster_type: ClusterType):
         """校验集群类型为高可用"""
         cluster_ids = fetch_cluster_ids(attrs)
-        if not CommonValidate.validate_cluster_type(cluster_ids, cluster_type):
-            raise serializers.ValidationError(
-                _("请保证所选集群{}都是{}集群").format(cluster_ids, ClusterType.get_choice_label(cluster_type))
-            )
+        CommonValidate.validate_cluster_type(cluster_ids, cluster_type)
 
     def validate_instance_related_clusters(
         self, attrs, instance_key: List[str], cluster_key: List[str], role: Union[AccessLayer, InstanceInnerRole]

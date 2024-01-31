@@ -13,7 +13,7 @@ import logging
 import re
 
 from backend import env
-from backend.components import DBConfigApi, MySQLPrivManagerApi
+from backend.components import DBConfigApi, DBPrivManagerApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.constants import IP_RE_PATTERN
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
@@ -63,7 +63,7 @@ class PayloadHandler(object):
         """
         获取proxy实例内置帐户密码
         """
-        data = MySQLPrivManagerApi.get_password(
+        data = DBPrivManagerApi.get_password(
             {
                 "instances": [DEFAULT_INSTANCE],
                 "users": [{"username": UserName.PROXY.value, "component": MySQLPrivComponent.PROXY.value}],
@@ -79,7 +79,7 @@ class PayloadHandler(object):
         """
         获取tbinlogdumper实例内置帐户密码
         """
-        data = MySQLPrivManagerApi.get_password(
+        data = DBPrivManagerApi.get_password(
             {
                 "instances": [DEFAULT_INSTANCE],
                 "users": [{"username": UserName.ADMIN.value, "component": MySQLPrivComponent.TBINLOGDUMPER.value}],
@@ -96,7 +96,7 @@ class PayloadHandler(object):
         """
         user_map = {}
         value_to_name = {member.value: member.name.lower() for member in UserName}
-        data = MySQLPrivManagerApi.get_password(
+        data = DBPrivManagerApi.get_password(
             {
                 "instances": [DEFAULT_INSTANCE],
                 "users": [
@@ -229,7 +229,7 @@ class PayloadHandler(object):
                 {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS.value},
             ],
         }
-        data = MySQLPrivManagerApi.get_password(query_params)
+        data = DBPrivManagerApi.get_password(query_params)
         ret = {"redis_password": "", "redis_proxy_admin_password": "", "redis_proxy_password": ""}
         for item in data["items"]:
             if (
@@ -298,17 +298,17 @@ class PayloadHandler(object):
         if redis_password and (not redis_password.isspace()):
             query_params["component"] = MySQLPrivComponent.REDIS.value
             query_params["password"] = base64.b64encode(redis_password.encode("utf-8")).decode("utf-8")
-            MySQLPrivManagerApi.modify_password(params=query_params)
+            DBPrivManagerApi.modify_password(params=query_params)
 
         if redis_proxy_password and (not redis_proxy_password.isspace()):
             query_params["component"] = MySQLPrivComponent.REDIS_PROXY.value
             query_params["password"] = base64.b64encode(redis_proxy_password.encode("utf-8")).decode("utf-8")
-            MySQLPrivManagerApi.modify_password(params=query_params)
+            DBPrivManagerApi.modify_password(params=query_params)
 
         if redis_proxy_admin_password and (not redis_proxy_admin_password.isspace()):
             query_params["component"] = MySQLPrivComponent.REDIS_PROXY_ADMIN.value
             query_params["password"] = base64.b64encode(redis_proxy_admin_password.encode("utf-8")).decode("utf-8")
-            MySQLPrivManagerApi.modify_password(params=query_params)
+            DBPrivManagerApi.modify_password(params=query_params)
 
         return True
 
@@ -372,7 +372,7 @@ class PayloadHandler(object):
                 {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS.value},
             ],
         }
-        MySQLPrivManagerApi.delete_password(delete_params)
+        DBPrivManagerApi.delete_password(delete_params)
 
     @staticmethod
     def redis_delete_password_by_cluster(cluster: Cluster):
@@ -395,7 +395,7 @@ class PayloadHandler(object):
         获取redis os内置帐户密码
         """
         user_map = {}
-        data = MySQLPrivManagerApi.get_password(
+        data = DBPrivManagerApi.get_password(
             {
                 "instances": [DEFAULT_INSTANCE],
                 "users": [
@@ -443,7 +443,7 @@ class PayloadHandler(object):
                 {"username": username, "component": cluster.cluster_type},
             ],
         }
-        data = MySQLPrivManagerApi.get_password(query_params)
+        data = DBPrivManagerApi.get_password(query_params)
         # 判断密码服务是否有对应item
         if not data["items"]:
             return ""

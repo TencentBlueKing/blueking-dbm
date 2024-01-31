@@ -16,11 +16,11 @@ from unittest.mock import patch
 import pytest
 from openpyxl.writer.excel import save_virtual_workbook
 
-from backend.db_services.mysql.permission.authorize.dataclass import AuthorizeMeta, ExcelAuthorizeMeta
-from backend.db_services.mysql.permission.authorize.handlers import AuthorizeHandler
+from backend.db_services.mysql.permission.authorize.dataclass import MySQLAuthorizeMeta, MySQLExcelAuthorizeMeta
+from backend.db_services.mysql.permission.authorize.handlers import MySQLAuthorizeHandler
 from backend.db_services.mysql.permission.constants import AUTHORIZE_EXCEL_HEADER
 from backend.tests.mock_data import constant
-from backend.tests.mock_data.components.mysql_priv_manager import MySQLPrivManagerApiMock
+from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.db_services.mysql.permission.authorize import AUTHORIZE_DATA, EXCEL_DATA_DICT__LIST
 from backend.utils.excel import ExcelHandler
 
@@ -37,22 +37,22 @@ class TestAuthorizeHandler:
     AuthorizeHandler的测试类
     """
 
-    handler = AuthorizeHandler(bk_biz_id=constant.BK_BIZ_ID)
+    handler = MySQLAuthorizeHandler(bk_biz_id=constant.BK_BIZ_ID)
 
-    @patch("backend.db_services.mysql.permission.authorize.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
+    @patch("backend.db_services.mysql.permission.authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_pre_check_rules(self, query_fixture):
-        authorize = AuthorizeMeta(**AUTHORIZE_DATA)
+        authorize = MySQLAuthorizeMeta(**AUTHORIZE_DATA)
         authorize_result = self.handler.pre_check_rules(authorize)
         assert authorize_result["pre_check"] is True
 
-    @patch("backend.db_services.mysql.permission.authorize.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
+    @patch("backend.db_services.mysql.permission.authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_pre_check_excel_rules(self, query_fixture):
         data_dict__list = EXCEL_DATA_DICT__LIST
         excel_bytes = save_virtual_workbook(ExcelHandler.serialize(data_dict__list, headers=AUTHORIZE_EXCEL_HEADER))
         excel = io.BytesIO(excel_bytes)
 
         excel_obj = namedtuple("ExcelObj", ["file"])(file=excel)
-        excel_authorize = ExcelAuthorizeMeta(authorize_file=excel_obj)
+        excel_authorize = MySQLExcelAuthorizeMeta(authorize_file=excel_obj)
         excel_authorize.authorize_excel_data = ExcelHandler.paser(excel_authorize.authorize_file.file)
 
         authorize_data_list = self.handler.pre_check_excel_rules(excel_authorize)

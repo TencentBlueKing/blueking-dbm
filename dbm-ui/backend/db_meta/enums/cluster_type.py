@@ -89,8 +89,11 @@ class ClusterType(str, StructuredEnum):
             ClusterType.Pulsar,
             ClusterType.Influxdb,
             ClusterType.TenDBCluster,
+            ClusterType.Riak,
         ]:
             db_type = cluster_type.lower()
+        elif cluster_type in [ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]:
+            db_type = DBType.MongoDB.value
         else:
             db_type = DBType.Redis.value
 

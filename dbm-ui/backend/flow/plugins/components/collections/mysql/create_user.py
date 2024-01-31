@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 
@@ -31,7 +31,7 @@ class CreateUserService(BaseService):
         data.outputs["trans_data"] = trans_data
 
         try:
-            MySQLPrivManagerApi.add_priv_without_account_rule(
+            DBPrivManagerApi.add_priv_without_account_rule(
                 params={
                     "bk_cloud_id": kwargs["bk_cloud_id"],
                     "bk_biz_id": global_data["bk_biz_id"],

@@ -23,7 +23,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     """
     graph = Graphic(node_id=Graphic.generate_graphic_id(cluster))
 
-    mongos_insts, nodes_group = graph.add_instance_nodes_with_machinetype(
+    mongos_insts, nodes_group = graph.add_instance_nodes_with_machine_type(
         cluster=cluster,
         roles=[
             InstanceRole.MONGO_M1,
@@ -40,7 +40,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         machine_type=MachineType.MONGODB,
         group_name=_("提供服务 节点"),
     )
-    _dummy, backup_group = graph.add_instance_nodes_with_machinetype(
+    _dummy, backup_group = graph.add_instance_nodes_with_machine_type(
         cluster=cluster, roles=InstanceRole.MONGO_BACKUP, machine_type=MachineType.MONGODB, group_name=_("Backup 节点")
     )
 
@@ -50,7 +50,6 @@ def scan_cluster(cluster: Cluster) -> Graphic:
 
     # 访问入口 ---->
     graph.add_line(source=entry_group, target=nodes_group, label=LineLabel.Access)
-
     graph.add_line(source=nodes_group, target=backup_group, label=LineLabel.Access)
 
     return graph

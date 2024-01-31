@@ -768,6 +768,11 @@ class MySQLBackupFileTagEnum(str, StructuredEnum):
     LONGDAY_DBFILE_3Y = EnumField("LONGDAY_DBFILE_3Y", _("长久存储-保留三年"))
 
 
+class MongoDBBackupFileTagEnum(str, StructuredEnum):
+    NORMAL_BACKUP = EnumField("normal_backup", _("常规备份(25天)"))
+    FOREVER_BACKUP = EnumField("forever_backup", _("长期备份(3年)"))
+
+
 class InstanceFuncAliasEnum(str, StructuredEnum):
     """
     定义实例对应的进程别名，用于注册服务实例
@@ -1249,9 +1254,28 @@ class MongoDBShardType(str, StructuredEnum):
     MongoShardSvr = EnumField("shardsvr", _("shardsvr"))
     MongoConfigSvr = EnumField("configsvr", _("configsvr"))
 
-
+ 
 class MongoBackupEnum(str, StructuredEnum):
     """ mongo 备份类型 """
 
     NORMAL_BACKUP = EnumField("normal_backup", _("常规备份"))
     FOREVER_BACKUP = EnumField("forever_backup", _("长期备份"))
+
+
+class MongoDBDropType(str, StructuredEnum):
+    """
+    定义mongodb清档的删除方式
+    """
+
+    DROP_COLLECTION = EnumField("drop_collection", _("直接删除表"))
+    RENAME_COLLECTION = EnumField("rename_collection", _("将表暂时重命名"))
+
+
+class MongoShardedClusterBackupType(str, StructuredEnum):
+    """
+    定义mongodb分片集群备份方式
+    """
+
+    MONGOS = EnumField("mongos", _("mongos"))
+    SHARD = EnumField("shard", _("shard"))
+

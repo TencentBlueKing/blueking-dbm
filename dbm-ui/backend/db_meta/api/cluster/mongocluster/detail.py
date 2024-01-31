@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 
 from backend.db_meta.api.cluster.base.graph import Graphic, LineLabel
-from backend.db_meta.enums import InstanceRole, MachineType
+from backend.db_meta.enums import AccessLayer, InstanceRole, MachineType
 from backend.db_meta.models import Cluster
 
 
@@ -31,10 +31,14 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     """
     graph = Graphic(node_id=Graphic.generate_graphic_id(cluster))
 
-    mongos_insts, mongos_group = graph.add_instance_nodes(
-        cluster=cluster, roles=InstanceRole.MONOGOS, group_name=_("Mongos 节点")
+    mongos_insts, mongos_group = graph.add_instance_nodes_with_machine_type(
+        cluster=cluster,
+        roles=AccessLayer.PROXY,
+        machine_type=MachineType.MONGOS,
+        group_name=_("Mongos 节点"),
+        inst_type="proxy",
     )
-    _dummy, configs_group = graph.add_instance_nodes_with_machinetype(
+    _dummy, configs_group = graph.add_instance_nodes_with_machine_type(
         cluster=cluster,
         roles=[
             InstanceRole.MONGO_M1,
@@ -51,7 +55,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         machine_type=MachineType.MONOG_CONFIG,
         group_name=_("ConfigServer 节点"),
     )
-    _dummy, shard_group = graph.add_instance_nodes_with_machinetype(
+    _dummy, shard_group = graph.add_instance_nodes_with_machine_type(
         cluster=cluster,
         roles=[
             InstanceRole.MONGO_M1,
@@ -68,7 +72,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         machine_type=MachineType.MONGODB,
         group_name=_("Shard 节点"),
     )
-    _dummy, backup_group = graph.add_instance_nodes_with_machinetype(
+    _dummy, backup_group = graph.add_instance_nodes_with_machine_type(
         cluster=cluster, roles=InstanceRole.MONGO_BACKUP, machine_type=MachineType.MONGODB, group_name=_("Backup 节点")
     )
 

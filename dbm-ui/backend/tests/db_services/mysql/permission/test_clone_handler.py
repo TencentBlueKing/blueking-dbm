@@ -21,7 +21,7 @@ from backend.db_services.mysql.permission.clone.dataclass import CloneMeta
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
 from backend.db_services.mysql.permission.constants import CLONE_CLIENT_EXCEL_HEADER
 from backend.tests.mock_data import constant
-from backend.tests.mock_data.components.mysql_priv_manager import MySQLPrivManagerApiMock
+from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.db_services.mysql.permission.clone import (
     CLONE_CLIENT_LIST_DATA,
     EXCEL_CLONE_CLIENT_LIST_DATA,
@@ -38,14 +38,14 @@ class TestCloneHandler:
 
     handler = CloneHandler(constant.BK_BIZ_ID, "admin", "client", "mysql")
 
-    @patch("backend.db_services.mysql.permission.clone.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
+    @patch("backend.db_services.mysql.permission.clone.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_pre_check_clone(self):
         clone = CloneMeta(**CLONE_CLIENT_LIST_DATA)
         clone_result = cache.get(self.handler.pre_check_clone(clone)["clone_uid"])
 
         assert len(clone_result) == 3
 
-    @patch("backend.db_services.mysql.permission.clone.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
+    @patch("backend.db_services.mysql.permission.clone.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_pre_check_excel_clone(self):
         data_dict__list = EXCEL_CLONE_CLIENT_LIST_DATA
         excel_bytes = save_virtual_workbook(ExcelHandler.serialize(data_dict__list, headers=CLONE_CLIENT_EXCEL_HEADER))

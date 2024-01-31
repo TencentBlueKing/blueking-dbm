@@ -14,7 +14,7 @@ import logging
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
@@ -46,7 +46,7 @@ class AddTempUserForClusterService(BaseService):
         """
 
         try:
-            MySQLPrivManagerApi.add_priv_without_account_rule(params)
+            DBPrivManagerApi.add_priv_without_account_rule(params)
             self.log_info(_("在[{}]创建添加账号成功").format(params["address"]))
         except Exception as e:  # pylint: disable=broad-except
             self.log_error(_("[{}]添加用户接口异常，相关信息: {}").format(params["address"], e))

@@ -22,7 +22,7 @@ from backend.configuration.models.function_controller import FunctionController
 from backend.configuration.models.ip_whitelist import IPWhitelist
 from backend.configuration.models.system import BizSettings, SystemSettings
 from backend.db_meta.enums import ClusterType
-from backend.db_services.mysql.permission.constants import AccountType
+from backend.db_services.dbpermission.constants import AccountType
 from backend.ticket.builders.common.field import DBTimezoneField
 
 

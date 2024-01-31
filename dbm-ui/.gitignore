@@ -87,6 +87,7 @@ venv/
 .ropeproject
 .DS_Store
 .idea
+.obsidian
 
 # Backups
 *~

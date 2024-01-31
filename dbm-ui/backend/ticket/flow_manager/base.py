@@ -164,7 +164,7 @@ class BaseTicketFlow(ABC):
         self.create_operate_records(object_key="cluster_id", record_model=ClusterOperateRecord, object_ids=obj_ids)
 
     def create_instance_operate_records(self):
-        """写入示例的操作记录"""
+        """写入实例的操作记录"""
         obj_ids = list(set(fetch_instance_ids(self.flow_obj.details) + fetch_instance_ids(self.ticket.details)))
         self.create_operate_records(object_key="instance_id", record_model=InstanceOperateRecord, object_ids=obj_ids)
 
