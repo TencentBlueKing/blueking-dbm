@@ -26,7 +26,7 @@ from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script 
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
-from backend.flow.utils.sqlserver.validate import Host
+from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("flow")
 

@@ -11,6 +11,7 @@ import logging
 
 from backend.db_meta.api.cluster.sqlserverha.handler import SqlserverHAClusterHandler
 from backend.db_meta.api.cluster.sqlserversingle.handler import SqlserverSingleClusterHandler
+from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("flow")
 
@@ -66,5 +67,16 @@ class SqlserverDBMeta(object):
             resource_spec=self.global_data.get("resource_spec", def_resource_spec),
             region=self.global_data["region"],
             sync_type=self.global_data["sync_type"],
+        )
+        return True
+
+    def sqlserver_ha_switch(self):
+        """
+        ha集群部署录入你元数据
+        """
+        SqlserverHAClusterHandler.switch_role(
+            cluster_ids=self.global_data["cluster_ids"],
+            old_master=Host(**self.global_data["master"]),
+            new_master=Host(**self.global_data["slave"]),
         )
         return True

@@ -178,7 +178,10 @@ from backend.flow.views.sql_semantic_check import SqlSemanticCheckSceneApiView
 from backend.flow.views.sqlserver import (
     SqlserverBackupDBSSceneApiView,
     SqlserverCleanDBSSceneApiView,
+    SqlserverDBBuildSyncSceneApiView,
     SqlserverHAApplySceneApiView,
+    SqlserverHAFailOverSceneApiView,
+    SqlserverHASwitchSceneApiView,
     SqlserverRenameDBSSceneApiView,
     SqlserverSingleApplySceneApiView,
     SqlserverSQLFileExecuteSceneApiView,
@@ -400,4 +403,7 @@ urlpatterns = [
     url("^scene/sqlserver_backup_dbs$", SqlserverBackupDBSSceneApiView.as_view()),
     url("^scene/sqlserver_rename_dbs$", SqlserverRenameDBSSceneApiView.as_view()),
     url("^scene/sqlserver_clean_dbs$", SqlserverCleanDBSSceneApiView.as_view()),
+    url("^scene/sqlserver_ha_switch$", SqlserverHASwitchSceneApiView.as_view()),
+    url("^scene/sqlserver_ha_fail_over$", SqlserverHAFailOverSceneApiView.as_view()),
+    url("^scene/sqlserver_build_db_sync$", SqlserverDBBuildSyncSceneApiView.as_view()),
 ]

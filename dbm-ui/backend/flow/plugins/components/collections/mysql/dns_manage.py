@@ -81,8 +81,11 @@ class MySQLDnsManageService(BaseService):
 
         elif dns_op_type == DnsOpType.UPDATE:
             # 更新域名方法
-            # todo 后续添加变更域名映射的逻辑
-            pass
+            result = dns_manage.update_domain(
+                old_instance=kwargs["old_instance"],
+                new_instance=kwargs["new_instance"],
+                update_domain_name=kwargs["update_domain_name"],
+            )
         else:
             self.log_error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(dns_op_type))
             return False

@@ -101,3 +101,45 @@ class SqlserverCleanDBSSceneApiView(FlowTestView):
         test = SqlserverController(root_id=root_id, ticket_data=request.data)
         test.clean_dbs_scene()
         return Response({"root_id": root_id})
+
+
+class SqlserverHASwitchSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_ha_switch
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.ha_switch_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverHAFailOverSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_ha_fail_over
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.ha_fail_over_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverDBBuildSyncSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_build_db_sync
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.ha_build_db_sync_scene()
+        return Response({"root_id": root_id})

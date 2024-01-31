@@ -12,6 +12,8 @@ import re
 from backend.components import DRSApi
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
+from backend.flow.consts import SqlserverBackupJobExecMode, SqlserverSyncMode
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 
 
@@ -86,3 +88,106 @@ def check_sqlserver_db_exist(cluster_id: int, check_db: str) -> bool:
     else:
         # 代表db不存在
         return False
+
+
+def get_no_sync_dbs(cluster_id: int) -> list:
+    """
+    获取没有同步的db列表
+    @param cluster_id 集群id
+    """
+
+    cluster = Cluster.objects.get(id=cluster_id)
+    # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
+    master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+    sync_mode = SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
+    if sync_mode == SqlserverSyncMode.MIRRORING:
+        # mirroring 模式
+        check_sql = """select name from  master.sys.databases
+where state=0 and is_read_only=0 and database_id > 4
+and name != 'Monitor' and database_id in
+(select database_id from master.sys.database_mirroring
+where mirroring_guid is null or mirroring_state<>4) and
+name not in (select name from Monitor.dbo.MIRRORING_FILTER)"""
+    elif sync_mode == SqlserverSyncMode.ALWAYS_ON:
+        # always_on 模式
+        check_sql = """select name from master.sys.databases
+where state=0 and is_read_only=0 and  database_id>4 and name != 'Monitor'
+and database_id not in(SELECT database_id from sys.dm_hadr_database_replica_states
+where is_local=0 and synchronization_state=1) and
+name not in (select name from Monitor.dbo.MIRRORING_FILTER)"""
+    else:
+        raise Exception(f"sync-mode [{sync_mode}] not support")
+
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [master_instance.ip_port],
+            "cmds": [check_sql],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{master_instance.ip_port}] get no-sync-dbs failed: {ret[0]['error_msg']}")
+    # 获取所有db名称
+    no_sync_db = [i["name"] for i in ret[0]["cmd_results"][0]["table_data"]]
+
+    return no_sync_db
+
+
+def exec_instance_backup_jobs(cluster_id, backup_jobs_type: SqlserverBackupJobExecMode) -> bool:
+    """
+    操作实例的例行备份作业
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
+    master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [master_instance.ip_port],
+            "cmds": [
+                f"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_FULL',@enabled={backup_jobs_type}",
+                f"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_LOG',@enabled={backup_jobs_type}",
+            ],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{master_instance.ip_port}] exec backup-jobs failed: {ret[0]['error_msg']}")
+
+    return True
+
+
+def get_backup_info_in_master(cluster_id: int, backup_id: str, db_name: str, backup_type: str):
+    """
+    查询对应数据库的本地备份记录
+    @param cluster_id: 操作的集群id
+    @param backup_id: 这次流程的备份id
+    @param db_name: db名称
+    @param backup_type: 备份类型
+    """
+    check_sql = f"""select top (1)
+b.database_name as name ,
+backup_finish_date ,
+a.physical_device_name as backup_file
+from msdb.dbo.backupmediafamily as a
+inner join msdb.dbo.backupset as b on a.media_set_id = b.media_set_id
+where a.physical_device_name like '%{backup_id}%' and database_name = '{db_name}' and b.type = '{backup_type}'
+order by backup_finish_date desc"""
+
+    cluster = Cluster.objects.get(id=cluster_id)
+    master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [master_instance.ip_port],
+            "cmds": [check_sql],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{master_instance.ip_port}] get-backup_db failed: {ret[0]['error_msg']}")
+
+    return ret[0]["cmd_results"][0]["table_data"]

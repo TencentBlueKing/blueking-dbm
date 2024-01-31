@@ -9,10 +9,14 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.db import transaction
+from django.db.transaction import atomic
 
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
+from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceInnerRole, InstanceRole, MachineType
+from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.sqlserver_module_operate import SqlserverCCTopoOperator
 
 
@@ -118,3 +122,67 @@ class SqlserverHAClusterHandler(ClusterHandler):
     def topo_graph(self):
         """「必须」提供集群关系拓扑图"""
         pass
+
+    @classmethod
+    def switch_role(cls, cluster_ids: list, old_master: Host, new_master: Host):
+        """
+        切换元信息，已机器维度去变更，关联的cluster都要处理
+        @param cluster_ids: 关联的cluster_id 列表
+        @param old_master: 旧的master机器
+        @param new_master: 新的master机器
+        """
+        with atomic():
+            for cluster_id in cluster_ids:
+                cluster = Cluster.objects.get(id=cluster_id)
+                old_master_storage_objs = cluster.storageinstance_set.get(machine__ip=old_master.ip)
+                new_master_storage_objs = cluster.storageinstance_set.get(machine__ip=new_master.ip)
+                other_slave_info = (
+                    StorageInstance.objects.filter(cluster=cluster, instance_inner_role=InstanceInnerRole.SLAVE)
+                    .exclude(machine__ip=new_master.ip)
+                    .all()
+                )
+
+                # 对换主从实例的角色信息
+                new_master_storage_objs.instance_role = InstanceRole.BACKEND_MASTER
+                new_master_storage_objs.instance_inner_role = InstanceInnerRole.MASTER
+                new_master_storage_objs.save(update_fields=["instance_role", "instance_inner_role"])
+
+                old_master_storage_objs.instance_role = InstanceRole.BACKEND_SLAVE
+                old_master_storage_objs.instance_inner_role = InstanceInnerRole.SLAVE
+                old_master_storage_objs.save(update_fields=["instance_role", "instance_inner_role"])
+
+                # 修改db-meta主从的映射关系
+                StorageInstanceTuple.objects.filter(
+                    ejector=old_master_storage_objs, receiver=new_master_storage_objs
+                ).update(ejector=new_master_storage_objs, receiver=old_master_storage_objs)
+
+                # 其他slave修复对应的映射关系
+                if other_slave_info:
+                    for other_slave in other_slave_info:
+                        StorageInstanceTuple.objects.filter(receiver=other_slave).update(
+                            ejector=new_master_storage_objs
+                        )
+
+                # 更新集群从域名的最新映射关系
+                master_entry_list = old_master_storage_objs.bind_entry.filter(role=ClusterEntryRole.MASTER_ENTRY).all()
+                for master_entry in master_entry_list:
+                    master_entry.storageinstance_set.remove(old_master_storage_objs)
+                    master_entry.storageinstance_set.add(new_master_storage_objs)
+
+                slave_entry_list = new_master_storage_objs.bind_entry.filter(role=ClusterEntryRole.SLAVE_ENTRY).all()
+                for slave_entry in slave_entry_list:
+                    slave_entry.storageinstance_set.remove(new_master_storage_objs)
+                    slave_entry.storageinstance_set.add(old_master_storage_objs)
+
+                cc_manage = CcManage(cluster.bk_biz_id)
+                # 切换新master服务实例角色标签
+                cc_manage.add_label_for_service_instance(
+                    bk_instance_ids=[new_master_storage_objs.bk_instance_id],
+                    labels_dict={"instance_role": InstanceRole.BACKEND_MASTER.value},
+                )
+
+                # 切换新slave服务实例角色标签
+                cc_manage.add_label_for_service_instance(
+                    bk_instance_ids=[old_master_storage_objs.bk_instance_id],
+                    labels_dict={"instance_role": InstanceRole.BACKEND_SLAVE.value},
+                )

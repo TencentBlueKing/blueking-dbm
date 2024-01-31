@@ -23,6 +23,7 @@ var sqlserverQueryParseCommands = []string{
 
 var sqlserverExecuteParseCommands = []string{
 	"insert",
+	"exec msdb.dbo.sp_update_job",
 }
 
 // SqlserverRPCEmbed sqlserver 实现
