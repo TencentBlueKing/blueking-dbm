@@ -39,7 +39,7 @@
       @request-success="handleRequestSuccess" />
     <DetailDialog
       v-model="detailDialogShow"
-      :biz-id="bizId"
+      :biz-id="currentBizId"
       :detail-data="detailData"
       :name-list="nameList"
       :type="detailType"
@@ -82,70 +82,61 @@
     return today.diff(createDay, 'hour') <= 24;
   };
 
-
   interface TableRenderData {
     data: NoticGroupModel
   }
 
   interface UserGroupMap {
-    [key: string]: {
-      id: string,
-      displayName: string,
-      type: string
-    }
+    [key: string]: ServiceReturnType<typeof getUserGroupList>[number]
   }
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-  const route = useRoute();
+  // const route = useRoute();
   const router = useRouter();
 
-  const isPlatform = route.name === 'PlatMonitorAlarmGroup';
+  // const isPlatform = route.name === 'PlatMonitorAlarmGroup';
 
-  const bizId = isPlatform ? 0 : currentBizId;
+  // const bizId = isPlatform ? 0 : currentBizId;
 
   const columns = [
     {
       label: t('告警组名称'),
       field: 'name',
       width: 240,
-      render: ({ data }: TableRenderData) => {
-        const isRenderTag = !isPlatform && data.is_built_in;
-
-        return (
-          <TextOverflowLayout>
-            {{
-              default: () => (
-                <bk-button
-                  text
-                  theme="primary"
-                  onClick={ () => handleOpenDetail('edit', data) }>
-                  {data.name}
-                </bk-button>
-              ),
-              append: () => (
-                <>
-                  {
-                    isRenderTag && (
-                      <MiniTag
-                        content={ t('内置') }
-                        class="ml-4" />
-                    )
-                  }
-                  {
-                    isNewUser(data.create_at) && (
-                      <MiniTag
-                        content='NEW'
-                        theme='success'
-                        class="ml-4" />
-                    )
-                  }
-                </>
-              ),
-            }}
-          </TextOverflowLayout>
-        );
-      },
+      render: ({ data }: TableRenderData) => (
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <bk-button
+                text
+                theme="primary"
+                onClick={ () => handleOpenDetail('edit', data) }>
+                {data.name}
+              </bk-button>
+            ),
+            append: () => (
+              <>
+                {
+                  data.is_built_in && (
+                    <MiniTag
+                      content={ t('内置') }
+                      class="ml-4" />
+                  )
+                }
+                {
+                  isNewUser(data.create_at) && (
+                    <MiniTag
+                      content='NEW'
+                      theme='success'
+                      class="ml-4" />
+                  )
+                }
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('通知对象'),
@@ -160,7 +151,9 @@
             }
             return {
               ...item,
-              displayName: item.id,
+              display_name: item.id,
+              logo: '',
+              members: [],
             };
           });
 
@@ -204,8 +197,8 @@
       label: t('操作'),
       width: 180,
       render: ({ data }: TableRenderData) => {
-        const tipDisabled = isPlatform || !data.is_built_in;
-        const btnDisabled = (!isPlatform && data.is_built_in) || data.used_count > 0;
+        const tipDisabled = !data.is_built_in;
+        const btnDisabled = data.is_built_in || data.used_count > 0;
         const tips = {
           disabled: tipDisabled,
           content: t('内置告警不支持删除'),
@@ -257,14 +250,12 @@
   const userGroupMap = shallowRef<UserGroupMap>({});
 
   useRequest(getUserGroupList, {
-    defaultParams: [{ bk_biz_id: bizId }],
+    defaultParams: [{ bk_biz_id: currentBizId }],
     onSuccess(userGroupList) {
-      userGroupMap.value = userGroupList.reduce((userGroupPrev, userGroup) => ({ ...userGroupPrev, [userGroup.id]: {
-        id: userGroup.id,
-        displayName: userGroup.display_name,
-        type: userGroup.type,
-      },
-      }), {} as UserGroupMap);
+      userGroupMap.value = userGroupList
+        .reduce((userGroupPrev, userGroup) => Object.assign({}, userGroupPrev, {
+          [userGroup.id]: userGroup,
+        }), {} as UserGroupMap);
     },
   });
 
@@ -272,7 +263,7 @@
     tableRef.value.fetchData({
       name: keyword.value,
     }, {
-      bk_biz_id: bizId,
+      bk_biz_id: currentBizId,
     });
   };
 

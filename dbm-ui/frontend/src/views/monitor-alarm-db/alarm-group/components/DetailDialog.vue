@@ -117,10 +117,10 @@
   });
 
   const { t } = useI18n();
-  const route = useRoute();
+  // const route = useRoute();
   const handleBeforeClose = useBeforeClose();
 
-  const isPlatform = route.matched[0]?.name === 'Platform';
+  // const isPlatform = route.matched[0]?.name === 'Platform';
   const titleMap: Record<string, string> = {
     add: t('新建告警组'),
     edit: t('编辑告警组'),
@@ -153,12 +153,7 @@
   });
 
   const loading = computed(() => insertLoading.value || updateLoading.value);
-  const editDisabled = computed(() => {
-    if (isPlatform) {
-      return false;
-    }
-    return props.type === 'edit' && props.detailData.is_built_in;
-  });
+  const editDisabled = computed(() => props.type === 'edit' && props.detailData.is_built_in);
   const sidesliderTitle = computed(() => `${titleMap[props.type]}`);
 
   const {
