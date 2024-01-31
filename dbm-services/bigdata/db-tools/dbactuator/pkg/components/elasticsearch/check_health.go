@@ -36,7 +36,7 @@ func (d *CheckEsHealthComp) Init() (err error) {
 func (d *CheckEsHealthComp) CheckEsHealth() (err error) {
 	username := os.Getenv("ES_USERNAME")
 	password := os.Getenv("ES_PASSWORD")
-	localIP, err := esutil.GetEsLocalIp()
+	localIP, err := esutil.GetEsLocalIP()
 	if err != nil {
 		logger.Error("get local ip failed, %s", err)
 		return err

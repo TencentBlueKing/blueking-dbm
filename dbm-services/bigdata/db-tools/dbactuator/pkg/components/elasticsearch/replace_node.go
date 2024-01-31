@@ -49,8 +49,10 @@ func (r *ReplaceEsNodeComp) ReplaceMasterNode() (err error) {
 	yamlPaths := fmt.Sprintf(`%s/es_*/config/elasticsearch.yml`, esenv)
 
 	extraCmd := fmt.Sprintf(
-		`sed -i -e '/discovery.seed_hosts/s/\[.*\]/%s/' -e '/cluster.initial_master_nodes/s/\[.*\]/%s/' %s`, seedHosts,
-		initMaster, yamlPaths)
+		`sed -i -e '/seed_hosts/s/\[.*\]/%s/' \ 
+		-e '/initial_master_nodes/s/\[.*\]/%s/' \
+		-e '/zen.ping.unicast.hosts/s/\[.*\]/%s/' %s`, seedHosts,
+		initMaster, seedHosts, yamlPaths)
 	logger.Info("更新master, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
