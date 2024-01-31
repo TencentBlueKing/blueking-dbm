@@ -32,7 +32,7 @@ type ClusterRoleSwitchParam struct {
 	Port       int    `json:"port"  validate:"required,gt=0"`        // 需要操作的实例端口,指的是新主端口
 	MasterHost string `json:"master_host" validate:"required,ip" `   // 当前master的ip
 	MasterPort int    `json:"master_port"  validate:"required,gt=0"` // 当前master的port
-	Force      bool   `json:"force" validate:"required"`             // 是否强制切换
+	Force      bool   `json:"force"`                                 // 是否强制切换
 	SyncMode   int    `json:"sync_mode" validate:"required"`         // 同步模式
 }
 
@@ -41,6 +41,12 @@ type switchRunTimeCtx struct {
 	MasterDB    *sqlserver.DbWorker
 	NewMasterDB *sqlserver.DbWorker
 	isEmpty     bool
+}
+
+// execResult todo
+type execResult struct {
+	Msg      string `db:"msg"`
+	ExitCode int    `db:"exitcode"`
 }
 
 // Init 初始化
@@ -66,8 +72,8 @@ func (c *ClusterRoleSwitchComp) Init() error {
 	if SdbWork, err = sqlserver.NewDbWorker(
 		c.GeneralParam.RuntimeAccountParam.SAUser,
 		c.GeneralParam.RuntimeAccountParam.SAPwd,
-		c.Params.MasterHost,
-		c.Params.MasterPort,
+		c.Params.Host,
+		c.Params.Port,
 	); err != nil {
 		// 如果从实例连接失败，则退出异常(无论是不是强制切换)
 		logger.Error("connenct by [%s:%d] failed,err:%s",
@@ -90,7 +96,7 @@ func (c *ClusterRoleSwitchComp) PreCheck() error {
 	}
 	// 检查是否空实例（没有业务数据库）
 	var checkDBS []string
-	if err := c.MasterDB.Queryxs(&checkDBS, cst.GET_BUSINESS_DATABASE); err != nil {
+	if err := c.MasterDB.Queryx(&checkDBS, cst.GET_BUSINESS_DATABASE); err != nil {
 		return fmt.Errorf("get db list failed %v", err)
 	}
 	if len(checkDBS) == 0 {
@@ -120,14 +126,14 @@ func (c *ClusterRoleSwitchComp) PreCheck() error {
 func (c *ClusterRoleSwitchComp) MirroringPreCheck() error {
 	var adnormalDBS []string
 	// 检测镜像库的异常情况
-	if err := c.MasterDB.Queryxs(&adnormalDBS, cst.CHECK_MIRRORING_ABNORMAL); err != nil {
+	if err := c.MasterDB.Queryx(&adnormalDBS, cst.CHECK_MIRRORING_ABNORMAL); err != nil {
 		return fmt.Errorf("check-mirroring-abnormal failed %v", err)
 	}
 	if len(adnormalDBS) != 0 {
 		return fmt.Errorf("detect databases with mirroring synchronization exceptions: %v", adnormalDBS)
 	}
 	// 检测延时落后大于1GB的镜像库
-	if err := c.MasterDB.Queryxs(&adnormalDBS, cst.CHECK_MIRRORING_DB_DELAY); err != nil {
+	if err := c.MasterDB.Queryx(&adnormalDBS, cst.CHECK_MIRRORING_DB_DELAY); err != nil {
 		return fmt.Errorf("check-mirroring-delay-1GB failed %v", err)
 	}
 	if len(adnormalDBS) != 0 {
@@ -155,21 +161,21 @@ func (c *ClusterRoleSwitchComp) AlwaysOnPreCheck() error {
 		return fmt.Errorf("alwayson replicates abnormal nodes: %d", checkCnt)
 	}
 	// 查看ALWAYSON情况下，数据库同步异常的情况
-	if err := c.MasterDB.Queryxs(&adnormalDBS, cst.CHECK_ALWAYSON_DB_ABNORMAL); err != nil {
+	if err := c.MasterDB.Queryx(&adnormalDBS, cst.CHECK_ALWAYSON_DB_ABNORMAL); err != nil {
 		return fmt.Errorf("check-alwayson-db-dbnormal  failed %v", err)
 	}
 	if len(adnormalDBS) != 0 {
 		return fmt.Errorf("alwayson db with replication exception %v", adnormalDBS)
 	}
 	// 查看ALWAYSON情况下，数据库没有配置同步的情况
-	if err := c.MasterDB.Queryxs(&adnormalDBS, cst.CHECK_ALWAYSON_DB_NO_DEPLOY); err != nil {
+	if err := c.MasterDB.Queryx(&adnormalDBS, cst.CHECK_ALWAYSON_DB_NO_DEPLOY); err != nil {
 		return fmt.Errorf("check-alwayson-db-no-deploy  failed %v", err)
 	}
 	if len(adnormalDBS) != 0 {
 		return fmt.Errorf("alwayson db with no-deploy %v", adnormalDBS)
 	}
 	// 查看ALWAYSON延时落后大于1GB的情况
-	if err := c.MasterDB.Queryxs(&adnormalDBS, cst.CHECK_ALWAYSON_DB_DELAY); err != nil {
+	if err := c.MasterDB.Queryx(&adnormalDBS, cst.CHECK_ALWAYSON_DB_DELAY); err != nil {
 		return fmt.Errorf("check-alwayson-db-delay  failed %v", err)
 	}
 	if len(adnormalDBS) != 0 {
@@ -185,40 +191,61 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 	// 根据不同场景做切换sp
 	if c.Params.Force {
 		// 强制切换（主故障切换）
-		execCmds := []string{"EXEC MONITOR.DBO.Sys_AutoSwitch_DrToDb"}
-		if _, err := c.NewMasterDB.ExecMore(execCmds); err != nil {
+		if err := execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_DrToDb"); err != nil {
 			return err
 		}
 
 	} else {
-		// 主从互切, mirroring 和 alwayson 处理方式不一样
-		execCmds := []string{"EXEC MONITOR.DBO.Sys_AutoSwitch_FailOver"}
-
-		// 拼装切换成功后的SQL
-		var successCmds []string
+		// 主从互切
 		switch c.Params.SyncMode {
 		case cst.MIRRORING:
-			successCmds = append(successCmds, "EXEC MONITOR.DBO.Sys_AutoSwitch_SafetyOff")
-			successCmds = append(successCmds, "EXEC MONITOR.DBO.Sys_AutoSwitch_Resume")
+			if err := execSwitchSP(c.MasterDB, "Sys_AutoSwitch_FailOver"); err != nil {
+				// 执行回滚操作
+				execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_FailOver")
+				return err
+			}
+
+			if err := execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_SafetyOff"); err != nil {
+				return err
+			}
+
+			if err := execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_Resume"); err != nil {
+				return err
+			}
+
 		case cst.ALWAYSON:
-			successCmds = append(successCmds, "EXEC MONITOR.DBO.Sys_AutoSwitch_Resume")
+			if err := execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_FailOver"); err != nil {
+				// 执行回滚操作
+				execSwitchSP(c.MasterDB, "Sys_AutoSwitch_FailOver")
+				return err
+			}
+			if err := execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_Resume"); err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf(
 				"this synchronization mode switch [%d] is not supported for the time being", c.Params.SyncMode,
 			)
 		}
-		if _, err := c.MasterDB.ExecMore(execCmds); err != nil {
-			// 失败尝试在新db做回滚操作
-			if _, err := c.NewMasterDB.ExecMore(execCmds); err != nil {
-				logger.Error("switch rollback error: %v", err)
-			}
-			return err
-		}
-		// 互切成功后执行剩余SP
-		if _, err := c.MasterDB.ExecMore(successCmds); err != nil {
-			return err
-		}
 
 	}
+	return nil
+}
+
+// exec_switch_sp todo
+func execSwitchSP(db *sqlserver.DbWorker, spName string) error {
+	cmd := fmt.Sprintf(cst.EXEC_SWITCH_SP_TMEP_SQL, spName)
+	logger.Info(cmd)
+	var ret []execResult
+	if err := db.Queryx(&ret, cmd); err != nil {
+		logger.Error("exec %s failed", spName)
+		return err
+	}
+	if ret[0].ExitCode != 1 {
+		logger.Error("exec %s failed", spName)
+		return fmt.Errorf(ret[0].Msg)
+	}
+	logger.Info(ret[0].Msg)
 	return nil
 }

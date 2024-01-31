@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,24 +7,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_master_slave_switch import SqlserverSwitchFlow
 
-from . import (
-    es,
-    hdfs,
-    influxdb,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    riak,
-    sqlserverha,
-    sqlserversingle,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-)
-from .apis import domain_exists, query_instances
+
+class SqlserverFailOverFlow(SqlserverSwitchFlow):
+    """
+    构建Sqlserver执行数据库强制切换的流程类
+    兼容跨云集群的执行
+    """
+
+    def run_flow(self):
+        # 开启强制模式
+        self.data["force"] = True
+        super().run_flow()

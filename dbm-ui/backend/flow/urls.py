@@ -177,10 +177,20 @@ from backend.flow.views.spider_slave_destroy import DestroySpiderSlaveClusterSce
 from backend.flow.views.spider_sql_import import SpiderSqlImportSceneApiView
 from backend.flow.views.sql_semantic_check import SqlSemanticCheckSceneApiView
 from backend.flow.views.sqlserver import (
+    SqlserverAddSlaveSceneApiView,
     SqlserverBackupDBSSceneApiView,
     SqlserverCleanDBSSceneApiView,
+    SqlserverDBBuildSyncSceneApiView,
+    SqlserverDestroySceneApiView,
+    SqlserverDisableSceneApiView,
+    SqlserverEnableSceneApiView,
     SqlserverHAApplySceneApiView,
+    SqlserverHAFailOverSceneApiView,
+    SqlserverHASwitchSceneApiView,
+    SqlserverRebuildInLocalSceneApiView,
+    SqlserverRebuildInNewSlaveSceneApiView,
     SqlserverRenameDBSSceneApiView,
+    SqlserverResetSceneApiView,
     SqlserverSingleApplySceneApiView,
     SqlserverSQLFileExecuteSceneApiView,
 )
@@ -402,4 +412,14 @@ urlpatterns = [
     url("^scene/sqlserver_backup_dbs$", SqlserverBackupDBSSceneApiView.as_view()),
     url("^scene/sqlserver_rename_dbs$", SqlserverRenameDBSSceneApiView.as_view()),
     url("^scene/sqlserver_clean_dbs$", SqlserverCleanDBSSceneApiView.as_view()),
+    url("^scene/sqlserver_ha_switch$", SqlserverHASwitchSceneApiView.as_view()),
+    url("^scene/sqlserver_ha_fail_over$", SqlserverHAFailOverSceneApiView.as_view()),
+    url("^scene/sqlserver_build_db_sync$", SqlserverDBBuildSyncSceneApiView.as_view()),
+    url("^scene/sqlserver_cluster_disable$", SqlserverDisableSceneApiView.as_view()),
+    url("^scene/sqlserver_cluster_enable$", SqlserverEnableSceneApiView.as_view()),
+    url("^scene/sqlserver_cluster_reset$", SqlserverResetSceneApiView.as_view()),
+    url("^scene/sqlserver_cluster_destroy$", SqlserverDestroySceneApiView.as_view()),
+    url("^scene/sqlserver_add_slave$", SqlserverAddSlaveSceneApiView.as_view()),
+    url("^scene/sqlserver_rebuild_in_local$", SqlserverRebuildInLocalSceneApiView.as_view()),
+    url("^scene/sqlserver_rebuild_in_new_slave$", SqlserverRebuildInNewSlaveSceneApiView.as_view()),
 ]

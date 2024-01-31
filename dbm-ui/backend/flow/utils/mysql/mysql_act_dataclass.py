@@ -186,6 +186,19 @@ class DeleteClusterDnsKwargs:
 
 
 @dataclass()
+class UpdateDnsRecordKwargs:
+    """
+    定义dns活动节点 根据实例，变更dns对应记录的专属参数
+    """
+
+    bk_cloud_id: int  # 操作的云区域id
+    old_instance: str  # 旧的实例信息，格式 ip#port
+    new_instance: str  # 新的实例信息，格式 ip#port
+    update_domain_name: str  # 变更的域名
+    dns_op_type: Optional[DnsOpType] = DnsOpType.UPDATE.value
+
+
+@dataclass()
 class PtTableSyncKwargs:
     """
     定义数据修复的活动节点专属参数

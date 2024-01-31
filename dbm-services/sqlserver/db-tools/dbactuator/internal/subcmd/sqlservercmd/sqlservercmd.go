@@ -45,6 +45,7 @@ func NewSQLserverCommand() *cobra.Command {
 				BackupDBSCommand(),
 				// restore dbs
 				RestoreDBSForFullCommand(),
+				RestoreDBSForLogCommand(),
 				// mirroring
 				BuildDBMirroringCommand(),
 				// alwayon

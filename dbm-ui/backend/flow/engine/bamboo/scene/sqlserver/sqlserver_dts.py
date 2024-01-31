@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -9,23 +8,18 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from . import (
-    es,
-    hdfs,
-    influxdb,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    riak,
-    sqlserverha,
-    sqlserversingle,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-)
-from .apis import domain_exists, query_instances
+
+from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
+
+
+class SqlserverDTSFlow(BaseFlow):
+    """
+    构建sqlserver数据迁移服务流程的抽象类
+    兼容跨云区域的场景支持
+    """
+
+    def run_flow(self):
+        """
+        定义集群数据迁移服务的流程
+        流程逻辑：
+        """
