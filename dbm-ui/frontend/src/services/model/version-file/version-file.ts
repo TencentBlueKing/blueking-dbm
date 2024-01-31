@@ -40,7 +40,7 @@ export default class VersionFile {
     this.update_at = payload.update_at;
     this.updater = payload.updater;
     this.version = payload.version;
-    this.permission = payload.permission;
+    this.permission = payload.permission || {};
   }
 
   get updateAtDisplay() {

@@ -152,7 +152,7 @@ export default class TendbCluster {
     this.machine_pair_cnt = payload.machine_pair_cnt;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
-    this.permission = payload.permission;
+    this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.region = payload.region;
     this.remote_db = payload.remote_db;
