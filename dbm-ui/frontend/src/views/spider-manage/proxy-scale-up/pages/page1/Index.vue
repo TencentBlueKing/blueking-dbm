@@ -166,12 +166,12 @@
       slaveCount,
       mntCount: item.spider_mnt.length,
       spec: {
-        ...item.cluster_spec,
-        name: item.cluster_spec.spec_name,
-        id: item.cluster_spec.spec_id,
+        ...item.spider_master[0].spec_config,
         count: 0,
       },
       targetNum: '',
+      spiderMasterList: item.spider_master,
+      spiderSlaveList: item.spider_slave,
     };
   };
 

@@ -48,6 +48,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import SpiderModel from '@services/model/spider/spider';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
@@ -69,6 +71,8 @@
     masterCount: number;
     slaveCount: number;
     mntCount: number; // 校验 spider_master + spider _mnt <=37
+    spiderMasterList: SpiderModel['spider_master'];
+    spiderSlaveList: SpiderModel['spider_slave'];
     spec?: SpecInfo;
     targetNum?: string;
     clusterType?: string;
@@ -86,7 +90,7 @@
   }
 
   // 创建表格数据
-  export const createRowData = () => ({
+  export const createRowData = (): IDataRow => ({
     rowKey: random(),
     isLoading: false,
     cluster: '',
@@ -96,6 +100,8 @@
     masterCount: 0,
     slaveCount: 0,
     mntCount: 0,
+    spiderMasterList: [],
+    spiderSlaveList: [],
   });
 
 </script>
@@ -134,8 +140,10 @@
   const handleChangeNodeType = (choosedLabel: string) => {
     let count = 0;
     if (choosedLabel === 'spider_master') {
+      currentSepc.value = props.data.spiderMasterList[0].spec_config;
       count = props.data.masterCount;
     } else {
+      currentSepc.value = props.data.spiderSlaveList[0].spec_config;
       count = props.data.slaveCount;
     }
     targetMin.value = count;
@@ -174,7 +182,7 @@
             spider_ip_list: {
               ...props.data.spec,
               ...targetNum,
-              spec_id: props.data.spec?.id ?? 0,
+              spec_id: currentSepc.value?.id ?? 0,
             },
           },
         };

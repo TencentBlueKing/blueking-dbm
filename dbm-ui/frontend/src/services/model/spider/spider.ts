@@ -96,6 +96,28 @@ export default class Spider {
     phase: string;
     port: number;
     status: string;
+    spec_config: {
+      count: number;
+      cpu: {
+        max: number;
+        min: number;
+      },
+      id: number;
+      mem: {
+        max: number;
+        min: number;
+      },
+      name: string;
+      qps: {
+        max: number;
+        min: number;
+      },
+      storage_spec: {
+        mount_point: string;
+        size: number;
+        type: string;
+      }[],
+    };
   }[];
   remote_dr: Spider['remote_db'];
   remote_shard_num: number;

@@ -173,12 +173,12 @@
     masterCount: item.spider_master.length,
     slaveCount: item.spider_slave.length,
     spec: {
-      ...item.cluster_spec,
-      name: item.cluster_spec.spec_name,
-      id: item.cluster_spec.spec_id,
+      ...item.spider_master[0].spec_config,
       count: 0,
     },
     targetNum: '',
+    spiderMasterList: item.spider_master,
+    spiderSlaveList: item.spider_slave,
   });
 
   // 批量选择
@@ -266,6 +266,7 @@
         infos,
       },
     };
+
     InfoBox({
       title: t('确认对n个集群缩容接入层？', { n: totalNum.value }),
       width: 480,

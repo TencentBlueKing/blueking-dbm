@@ -50,6 +50,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import SpiderModel from '@services/model/spider/spider';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
@@ -70,6 +72,8 @@
     nodeType: string;
     masterCount: number;
     slaveCount: number;
+    spiderMasterList: SpiderModel['spider_master'];
+    spiderSlaveList: SpiderModel['spider_slave'];
     spec?: SpecInfo;
     targetNum?: string;
   }
@@ -81,7 +85,7 @@
   }
 
   // 创建表格数据
-  export const createRowData = () => ({
+  export const createRowData = (): IDataRow => ({
     rowKey: random(),
     isLoading: false,
     cluster: '',
@@ -90,6 +94,8 @@
     nodeType: '',
     masterCount: 0,
     slaveCount: 0,
+    spiderMasterList: [],
+    spiderSlaveList: [],
   });
 
 </script>
