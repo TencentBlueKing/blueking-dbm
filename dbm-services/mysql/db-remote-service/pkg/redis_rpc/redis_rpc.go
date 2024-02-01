@@ -34,6 +34,18 @@ func (r *RedisRPCEmbed) IsQueryCommand(cmdArgs []string) bool {
 		if cmdArgs[0] == "cluster" && cmdArgs[1] == "slots" {
 			return true
 		}
+		if cmdArgs[0] == "cluster" && cmdArgs[1] == "keyslot" {
+			return true
+		}
+		if cmdArgs[0] == "cluster" && cmdArgs[1] == "getkeysinslot" {
+			return true
+		}
+		if cmdArgs[0] == "cluster" && cmdArgs[1] == "countkeysinslot" {
+			return true
+		}
+		if cmdArgs[0] == "getserver" {
+			return true
+		}
 		if (cmdArgs[0] == "confxx" || cmdArgs[0] == "config") && cmdArgs[1] == "get" {
 			return true
 		}
