@@ -66,13 +66,15 @@ func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (string, []M
 }
 
 func (g GlobalBackup) initializeBackup(backupServers []MysqlServer, dbw *mysqlconn.DbWorker) error {
+	createdAt := time.Now().Format(time.DateTime)
 	sqlI := sq.Insert(g.GlobalBackupModel.TableName()).
-		Columns("ServerName", "Wrapper", "Host", "Port", "ShardValue", "BackupId", "BackupStatus")
+		Columns("ServerName", "Wrapper", "Host", "Port", "ShardValue", "BackupId", "BackupStatus", "CreatedAt")
 	for _, s := range backupServers {
 		if strings.HasPrefix(s.ServerName, "SPT_SLAVE") {
-			sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId, StatusReplicated)
+			sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId,
+				StatusReplicated, createdAt)
 		} else {
-			sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId, StatusInit)
+			sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId, StatusInit, createdAt)
 		}
 	}
 	sqlStr, sqlArgs := sqlI.MustSql()

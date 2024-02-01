@@ -206,7 +206,7 @@ class TenDBClusterFullBackupFlow(object):
                         "backup_type": self.data["infos"]["backup_type"],
                         "ip": ip,
                         "port": dtl["port"],
-                        "backup_gsd": ["schema", "data"],
+                        "backup_gsd": ["all"],
                         "role": dtl["role"],
                         "shard_id": dtl["shard_id"],
                     },
