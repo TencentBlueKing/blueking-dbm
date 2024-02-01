@@ -254,6 +254,7 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 				MysqlPasswd:     bkpwd,
 				MysqlRole:       strings.ToLower(i.Params.Role),
 				BkBizId:         i.Params.BkBizId,
+				BkCloudId:       i.Params.BkCloudId,
 				ClusterAddress:  i.getInsDomainAddr(port),
 				ClusterId:       i.getInsClusterId(port),
 				ShardValue:      i.getInsShardValue(port),
