@@ -74,6 +74,8 @@ func init() {
 			KeyStep: 0}
 		RedisCommandTable["get"] = &RedisCmdMeta{Name: "get", Arity: 2, Sflags: readOnlyFlag, FirstKey: 1, LastKey: 1,
 			KeyStep: 1}
+		RedisCommandTable["getserver"] = &RedisCmdMeta{Name: "getserver", Arity: 2, Sflags: readOnlyFlag,
+			FirstKey: 1, LastKey: 1, KeyStep: 1}
 		RedisCommandTable["getex"] = &RedisCmdMeta{Name: "getex", Arity: -2, Sflags: writeFlag, FirstKey: 1, LastKey: 1,
 			KeyStep: 1}
 		RedisCommandTable["getdel"] = &RedisCmdMeta{Name: "getdel", Arity: 2, Sflags: writeFlag, FirstKey: 1, LastKey: 1,
