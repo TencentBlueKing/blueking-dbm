@@ -202,7 +202,7 @@
           <div class="text-overflow" v-overflow-tips>
             <router-link
               to={{
-                name: data.cluster_type === 'MongoReplicaSet' ? 'mongoDBReplicaSetList' : 'mongoDBSharedClusterList',
+                name: data.cluster_type === 'MongoReplicaSet' ? 'MongoDBReplicaSetList' : 'MongoDBSharedClusterList',
                 query: { name: data.cluster_name },
                  }}>
                 { data.cluster_name }

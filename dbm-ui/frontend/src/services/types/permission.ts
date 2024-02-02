@@ -203,7 +203,7 @@ export interface AccountRulePrivilege {
  */
 export interface AuthorizePreCheckData {
   access_dbs: string[],
-  source_ips: {
+  source_ips?: {
     bk_host_id?: number,
     ip: string
   }[],

@@ -16,6 +16,7 @@ import type { Ref } from 'vue';
 
 import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 import { getBigdataResourceTree } from '@services/source/bigdata';
+import { getMongoDBResourceTree } from '@services/source/mongodb';
 import { getMysqlResourceTree } from '@services/source/mysql';
 import { getRedisResourceTree } from '@services/source/redis';
 
@@ -44,6 +45,7 @@ export const useTreeData = (treeState: TreeState) => {
     bigdata: getBigdataResourceTree,
     redis: getRedisResourceTree,
     mysql: getMysqlResourceTree,
+    mongodb: getMongoDBResourceTree,
   };
 
   const activeTreeNode = computed(() => treeState.activeNode);
