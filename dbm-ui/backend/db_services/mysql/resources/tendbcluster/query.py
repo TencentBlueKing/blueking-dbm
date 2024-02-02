@@ -114,6 +114,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         if not cluster.tag_set.filter(name=SystemTagEnum.TEMPORARY.value).exists():
             return {}
 
+        # 获取回档单据
         ticket = (
             ClusterOperateRecord.objects.filter(
                 cluster_id=cluster.id, ticket__ticket_type=TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER
@@ -121,10 +122,15 @@ class ListRetrieveResource(query.ListRetrieveResource):
             .first()
             .ticket
         )
-        temporary_info = {
-            "source_cluster": Cluster.objects.get(id=ticket.details["cluster_id"]).immute_domain,
-            "ticket_id": ticket.id,
-        }
+
+        # 获取回档源集群信息，如果源集群已被卸载，则忽略
+        try:
+            source_cluster = Cluster.objects.get(id=ticket.details["cluster_id"])
+            domain = source_cluster.immute_domain
+        except Cluster.DoesNotExist:
+            domain = ""
+
+        temporary_info = {"source_cluster": domain, "ticket_id": ticket.id}
         return temporary_info
 
     @classmethod
