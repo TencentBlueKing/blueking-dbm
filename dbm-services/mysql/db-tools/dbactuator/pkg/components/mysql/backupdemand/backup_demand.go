@@ -14,13 +14,13 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
@@ -187,19 +187,17 @@ func (c *Component) GenerateBackupConfig() error {
 func (c *Component) DoBackup() error {
 	for _, port := range c.backupPort {
 		backupConfigPath := c.backupConfigPaths[port]
+		cmdArgs := []string{c.tools.MustGet(tools.ToolDbbackupGo), "dumpbackup", "--config", backupConfigPath}
+		logger.Info("backup command: %s", strings.Join(cmdArgs, " "))
 
-		cmd := exec.Command(c.tools.MustGet(tools.ToolDbbackupGo), []string{
-			"dumpbackup",
-			"--config", backupConfigPath,
-		}...)
+		_, errStr, err := cmutil.ExecCommand(false, "",
+			cmdArgs[0], cmdArgs[1:]...)
 
-		logger.Info("backup command: %s", cmd)
-		err := cmd.Run()
 		if err != nil {
-			logger.Error("execute %s failed: %s", cmd, err.Error())
+			logger.Error("execute %s failed: %s, msg:%s", cmdArgs, err.Error(), errStr)
 			return err
 		}
-		logger.Info("backup success")
+		logger.Info("backup success with %s", backupConfigPath)
 	}
 	return nil
 }
