@@ -17,14 +17,14 @@
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
-    :title="$t('导入授权')"
+    :title="t('导入授权')"
     :width="600">
     <div class="excel-authorize">
       <BkAlert
         class="mb-12"
         closable
         theme="warning"
-        :title="$t('重复的授权在导入过程中将会被忽略_不执行导入')" />
+        :title="t('重复的授权在导入过程中将会被忽略_不执行导入')" />
       <BkUpload
         ref="uploadRef"
         accept=".xlsx,.xls"
@@ -34,19 +34,19 @@
         :multiple="false"
         name="authorize_file"
         :size="2"
-        :url="uploadLink"
+        :url="apiInfo.uploadLink"
         with-credentials
         @delete="handleInitExcelData">
         <template #tip>
-          <p class="excel-authorize__tips">
-            {{ $t('支持Excel文件_文件小于2M_下载') }}
-            <a :href="excelState.downloadTemplate">{{ $t('模板文件') }}</a>
+          <p class="excel-authorize-tips">
+            {{ t('支持Excel文件_文件小于2M_下载') }}
+            <a :href="apiInfo.downloadTemplatePath">{{ t('模板文件') }}</a>
           </p>
         </template>
         <template #file="{ file }">
-          <div class="excel-authorize__file">
-            <i class="db-icon-excel" />
-            <div class="excel-authorize__file-text">
+          <div class="excel-authorize-file">
+            <DbIcon type="excel" />
+            <div class="excel-authorize-file-text">
               <div
                 v-overflow-tips
                 class="text-overflow">
@@ -54,13 +54,13 @@
               </div>
               <p
                 v-overflow-tips
-                class="text-overflow excel-authorize__file-status"
+                class="text-overflow excel-authorize-file-status"
                 :class="[
-                  { 'excel-authorize__file-status--fail': file.status === 'fail' }
+                  { 'excel-authorize-file-status--fail': file.status === 'fail' }
                 ]">
-                <i
+                <DbIcon
                   v-if="file.status === 'success'"
-                  class="db-icon-check-line" />
+                  type="check-line" />
                 {{ getFileStatusText(file) }}
               </p>
               <BkProgress
@@ -69,19 +69,21 @@
                 size="small"
                 :title-style="{ fontSize: '12px' }" />
             </div>
-            <div class="excel-authorize__file-operations">
+            <div class="excel-authorize-file-operations">
               <template v-if="file.status === 'fail'">
                 <a
                   v-if="file.response?.data?.excel_url && file.response?.data?.pre_check === false"
                   :href="file.response.data.excel_url">
-                  {{ $t('下载错误模板') }}
+                  {{ t('下载错误模板') }}
                 </a>
-                <i
-                  class="db-icon-refresh-2 excel-authorize__file-icon"
+                <DbIcon
+                  class="excel-authorize-file-icon"
+                  type="refresh-2"
                   @click="handleUploadRetry(file)" />
               </template>
-              <i
-                class="db-icon-delete excel-authorize__file-icon"
+              <DbIcon
+                class="excel-authorize-file-icon"
+                type="delete"
                 @click="handleUploadRemove(file)" />
             </div>
           </div>
@@ -95,12 +97,12 @@
         :loading="excelState.isLoading"
         theme="primary"
         @click="handleConfirmImport">
-        {{ $t('导入') }}
+        {{ t('导入') }}
       </BkButton>
       <BkButton
         :disabled="excelState.isLoading"
         @click="handleCloseUpload">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -122,6 +124,7 @@
   import { useGlobalBizs } from '@stores';
 
   import {
+    ClusterTypes,
     type ClusterTypesValues,
     TicketTypes,
     type TicketTypesStrings,
@@ -155,32 +158,50 @@
       excelUrl: '',
       authorizeDataList: [] as AuthorizePreCheckData[],
     },
-    downloadTemplate: `${basePath}cluster-authorize.xlsx`,
   });
   const uploadRef = ref();
-  const uploadLink = computed(() => `/apis/mysql/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`);
 
-  function handleInitExcelData() {
+  const apiInfo = computed(() => {
+    if ([ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER].includes(props.clusterType)) {
+      return {
+        uploadLink: `/apis/mongodb/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
+        downloadTemplatePath: `${basePath}mongo_cluster_authorize.xlsx`,
+      };
+    }
+
+    return {
+      uploadLink: `/apis/mysql/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
+      downloadTemplatePath: `${basePath}cluster-authorize.xlsx`,
+    };
+  });
+
+  const handleInitExcelData = () => {
     excelState.importable = false;
     excelState.precheck = {
       uid: '',
       excelUrl: '',
       authorizeDataList: [] as AuthorizePreCheckData[],
     };
-  }
+  };
 
-  function handleCloseUpload() {
+  const handleCloseUpload = () => {
     emits('update:isShow', false);
     handleInitExcelData();
-  }
+  };
 
-  function handleConfirmImport() {
+  const handleConfirmImport = () => {
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
       details: {
         authorize_uid: excelState.precheck.uid,
         excel_url: excelState.precheck.excelUrl,
-        authorize_data_list: excelState.precheck.authorizeDataList,
+        authorize_data_list: excelState.precheck.authorizeDataList.map((authorizeItem) => {
+          const authorizeItemCopy = { ...authorizeItem };
+          if ([ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER].includes(props.clusterType)) {
+            delete authorizeItemCopy.source_ips;
+          }
+          return authorizeItemCopy;
+        }),
       },
       remark: '',
       ticket_type: props.ticketType,
@@ -194,24 +215,24 @@
       .finally(() => {
         excelState.isLoading = false;
       });
-  }
+  };
 
   /**
    * 自定义文件上传返回结果
    */
-  function handleUploadResponse(res: BaseResponse<AuthorizePreCheckResult>) {
+  const handleUploadResponse = (res: BaseResponse<AuthorizePreCheckResult>) => {
     const result = res.code === 0 ? res.data.pre_check : false;
     excelState.importable = result;
     excelState.precheck.uid = res.data?.authorize_uid ?? '';
     excelState.precheck.excelUrl = res.data?.excel_url ?? '';
     excelState.precheck.authorizeDataList = res.data?.authorize_data_list ?? [];
     return result;
-  }
+  };
 
   /**
    * 获取上传文件返回结果提示文案
    */
-  function getFileStatusText(file: UploadFile) {
+  const getFileStatusText = (file: UploadFile) => {
     if (file.status === 'fail') {
       const { response } = file;
 
@@ -227,21 +248,21 @@
     }
 
     return t('上传成功');
-  }
+  };
 
   /**
    * 文件上传重试
    */
-  function handleUploadRetry(file: UploadFile) {
+  const handleUploadRetry = (file: UploadFile) => {
     uploadRef.value?.handleRetry(file);
-  }
+  };
 
   /**
    * 移除文件
    */
-  function handleUploadRemove(file: UploadFile) {
+  const handleUploadRemove = (file: UploadFile) => {
     uploadRef.value?.handleRemove(file);
-  }
+  };
 </script>
 
 <style lang="less" scoped>
@@ -251,11 +272,11 @@
   padding-bottom: 40px;
   font-size: @font-size-mini;
 
-  &__tips {
+  .excel-authorize-tips {
     padding-top: 4px;
   }
 
-  &__file {
+  .excel-authorize-file {
     overflow: hidden;
     font-size: @font-size-mini;
     flex: 1;
@@ -267,20 +288,20 @@
       color: @success-color;
     }
 
-    &-text {
+    .excel-authorize-file-text {
       flex: 1;
       overflow: hidden;
     }
 
-    &-status {
+    .excel-authorize-file-status {
       color: @success-color;
 
-      &--fail {
+      .excel-authorize-file-status--fail {
         color: @danger-color;
       }
     }
 
-    &-icon {
+    .excel-authorize-file-icon {
       margin-left: 12px;
       font-size: @font-size-normal;
       cursor: pointer;

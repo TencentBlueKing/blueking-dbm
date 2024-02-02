@@ -48,7 +48,10 @@
     exportKafkaClusterToExcel,
     exportKafkaInstanceToExcel,
   } from '@services/source/kafka';
-  import { exportMongodbInstanceToExcel } from '@services/source/mongodb';
+  import {
+    exportMongodbClusterToExcel,
+    exportMongodbInstanceToExcel,
+  } from '@services/source/mongodb';
   import {
     exportPulsarClusterToExcel,
     exportPulsarInstanceToExcel,
@@ -135,6 +138,7 @@
       instance: exportRiakInstanceToExcel,
     },
     mongodb: {
+      cluster: exportMongodbClusterToExcel,
       instance: exportMongodbInstanceToExcel,
     },
   };

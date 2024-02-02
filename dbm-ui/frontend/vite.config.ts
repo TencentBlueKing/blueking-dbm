@@ -27,7 +27,7 @@ const uniqueKey = `${new Date().getTime()}.1e78f18e-01c1-11ed-b939-0242ac120002`
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
-  const isHttps = process.argv.includes('--https');
+  const isHttps = mode === 'https';
 
   return {
     base: env.VITE_PUBLIC_PATH,
@@ -112,8 +112,8 @@ export default defineConfig(({ mode }) => {
       ],
     },
     server: {
-      https: isHttps,
-      port: 9999,
+      port: 8088,
+      host: '127.0.0.1',
     },
   };
 });

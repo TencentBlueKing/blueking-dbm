@@ -167,11 +167,11 @@
       field: 'cluster_name',
       showOverflowTooltip: true,
     },
-    {
-      label: t('所属模块'),
-      field: 'db_module_name',
-      showOverflowTooltip: true,
-    },
+    // {
+    //   label: t('所属模块'),
+    //   field: 'db_module_name',
+    //   showOverflowTooltip: true,
+    // },
     {
       label: t('管控区域'),
       field: 'bk_cloud_name',

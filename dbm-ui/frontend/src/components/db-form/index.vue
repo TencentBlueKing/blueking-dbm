@@ -99,7 +99,7 @@
   });
 
   defineExpose({
-    validate: (fields: string) => dbFormRef.value.validate(fields)
+    validate: (fields?: string | Array<string>) => dbFormRef.value.validate(fields)
       .catch((error: Error) => {
         const errorItemEl = dbFormRef.value.$el.querySelector('.bk-form-item.is-error');
         if (errorItemEl) {

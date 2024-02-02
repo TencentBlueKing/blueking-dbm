@@ -203,7 +203,7 @@
     onlyOneType?: boolean,
     // 控制显示集群类型 tab
     tabList?: string[],
-    clusterType?: string,
+    clusterTypes?: ClusterTypes[],
   }
 
   interface Emits {
@@ -217,7 +217,7 @@
     onlyOneType: false,
     // 控制显示集群类型 tab
     tabList: () => supportClusters,
-    clusterType: ClusterTypes.TENDBHA,
+    clusterTypes: () => [ClusterTypes.TENDBHA],
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>('isShow', {
@@ -227,7 +227,8 @@
   const { t } = useI18n();
 
   function initData() {
-    const clusterType = Object.keys(props.selected).find(key => props.selected[key].length > 0) || props.clusterType;
+    const clusterType = Object.keys(props.selected)
+      .find(key => props.selected[key].length > 0) || props.clusterTypes[0];
     return {
       curSelectdDataTab: clusterType,
       activeTab: clusterType,

@@ -88,6 +88,7 @@
   import { getEsTopoGraph } from '@services/source/es';
   import { getHdfsTopoGraph } from '@services/source/hdfs';
   import { getKafkaTopoGraph } from '@services/source/kafka';
+  import { getMongoClustersTopoGraph } from '@services/source/mongodb';
   import { getPulsarTopoGraph } from '@services/source/pulsar';
   import { getRedisTopoGraph } from '@services/source/redis';
   import { getRiakTopoGraph } from '@services/source/riak';
@@ -136,6 +137,7 @@
     tendbha: getTendbhaTopoGraph,
     tendbcluster: getSpiderTopoGraph,
     riak: getRiakTopoGraph,
+    mongodb: getMongoClustersTopoGraph,
   };
 
   /** 拓扑功能 */
