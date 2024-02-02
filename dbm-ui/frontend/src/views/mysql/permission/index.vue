@@ -68,6 +68,8 @@
   <ClusterAuthorize
     v-model="authorizeState.isShow"
     :access-dbs="authorizeState.dbs"
+    :account-type="AccountTypes.MYSQL"
+    :cluster-types="[ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA]"
     :user="authorizeState.user" />
   <!-- 账号信息 dialog -->
   <BkDialog
@@ -114,16 +116,18 @@
     deleteAccount,
     getPermissionRules,
   } from '@services/permission';
-  import type {
-    PermissionRuleInfo,
-  } from '@services/types/permission';
+  import type { PermissionRuleInfo } from '@services/types/permission';
 
   import {
     useInfoWithIcon,
     useTableMaxHeight,
   } from '@hooks';
 
-  import { OccupiedInnerHeight } from '@common/const';
+  import {
+    AccountTypes,
+    ClusterTypes,
+    OccupiedInnerHeight,
+  } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';

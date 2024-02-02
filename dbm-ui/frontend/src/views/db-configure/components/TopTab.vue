@@ -30,7 +30,7 @@
   import type {
     ControllerBaseInfo,
     ExtractedControllerDataKeys,
-    FunctionKeys,
+    FunctionTabId,
   } from '@services/model/function-controller/functionController';
 
   import { useFunController } from '@stores';
@@ -39,7 +39,7 @@
 
   interface TabItem {
     moduleId: ExtractedControllerDataKeys,
-    id: FunctionKeys,
+    id: FunctionTabId,
     name: string,
   }
 
@@ -109,15 +109,31 @@
       id: ClusterTypes.TENDBCLUSTER,
       name: 'TenDBCluster',
     },
+    {
+      moduleId: 'mongodb',
+      id: ClusterTypes.MONGO_REPLICA_SET,
+      name: t('Mongo复制'),
+    },
+    {
+      moduleId: 'mongodb',
+      id: ClusterTypes.MONGO_SHARED_CLUSTER,
+      name: t('Mongo分片'),
+    },
   ];
 
   const route = useRoute();
   const clusterType = computed(() => route.params.clusterType as string);
   const renderTabs = computed(() => tabs.filter((item) => {
     const data = funControllerStore.funControllerData[item.moduleId];
-    return data
-      && data.is_enabled
-      && (data.children as Record<FunctionKeys, ControllerBaseInfo>)?.[item.id]?.is_enabled;
+    const childItem = (data.children as Record<TabItem['id'], ControllerBaseInfo>)[item.id];
+
+    // 若有对应的模块子功能，判断是否开启
+    if (childItem) {
+      return data && data.is_enabled && childItem.is_enabled;
+    }
+
+    // 若无，则判断整个模块是否开启
+    return data && data.is_enabled;
   }));
   const initActive = clusterType.value ?? renderTabs.value[0].id;
   const active = ref(initActive);

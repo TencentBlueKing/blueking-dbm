@@ -26,18 +26,6 @@
         </div>
         <div>{{ currentSpec?.spec_name ? `${currentSpec?.spec_name}` : t('请先选择部署方案') }}</div>
       </div>
-      <!-- <div class="spec-box-item">
-        <div class="spec-box-item-label">
-          {{ t('当前容量') }} :
-        </div>
-        <div>{{ data?.cluster_capacity || 0 }} G</div>
-      </div>
-      <div class="spec-box-item">
-        <div class="spec-box-item-label">
-          {{ t('变更后容量') }} :
-        </div>
-        <div>{{ currentSpec?.cluster_capacity ? `${currentSpec.cluster_capacity}G` : t('请先选择部署方案') }}</div>
-      </div> -->
     </div>
     <DbForm
       form-type="vertical"
