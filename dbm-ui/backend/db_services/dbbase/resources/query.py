@@ -441,6 +441,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         """
         cluster_entry = cluster_entry_map.get(cluster.id, {})
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
         return {
             "id": cluster.id,
             "phase": cluster.phase,
@@ -457,7 +458,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "bk_biz_id": cluster.bk_biz_id,
             "bk_biz_name": AppCache.objects.get(bk_biz_id=cluster.bk_biz_id).bk_biz_name,
             "bk_cloud_id": cluster.bk_cloud_id,
-            "bk_cloud_name": cloud_info[str(cluster.bk_cloud_id)]["bk_cloud_name"],
+            "bk_cloud_name": bk_cloud_name,
             "major_version": cluster.major_version,
             "region": cluster.region,
             "db_module_name": db_module_names_map.get(cluster.db_module_id, ""),
@@ -594,6 +595,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
         """
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        bk_cloud_name = cloud_info.get(str(instance["machine__bk_cloud_id"]), {}).get("bk_cloud_name", "")
         return {
             "id": instance["id"],
             "cluster_id": instance["cluster__id"],
@@ -602,7 +604,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "version": instance["cluster__major_version"],
             "db_module_id": instance["cluster__db_module_id"],
             "bk_cloud_id": instance["machine__bk_cloud_id"],
-            "bk_cloud_name": cloud_info[str(instance["machine__bk_cloud_id"])]["bk_cloud_name"],
+            "bk_cloud_name": bk_cloud_name,
             "ip": instance["machine__ip"],
             "port": instance["port"],
             "instance_address": f"{instance['machine__ip']}{IP_PORT_DIVIDER}{instance['port']}",

@@ -16,6 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.api.cluster.tendbha.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
 
@@ -79,7 +80,12 @@ class ListRetrieveResource(query.ListRetrieveResource):
 
     @classmethod
     def _filter_instance_qs_hook(cls, storage_queryset, proxy_queryset, inst_fields, query_filters, query_params):
-        # mysql的storage角色取instance_inner_role
-        storage_queryset = storage_queryset.annotate(role=F("instance_inner_role")).filter(query_filters)
+        # mysql的storage角色取instance_inner_role，需要重新根据query_filters获取queryset
+        storage_queryset = (
+            StorageInstance.objects.select_related("machine")
+            .prefetch_related("cluster")
+            .annotate(role=F("instance_inner_role"))
+            .filter(query_filters)
+        )
         instance_queryset = storage_queryset.union(proxy_queryset).values(*inst_fields).order_by("-create_at")
         return instance_queryset

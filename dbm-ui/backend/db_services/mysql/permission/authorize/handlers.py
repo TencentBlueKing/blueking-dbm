@@ -221,9 +221,9 @@ class AuthorizeHandler(object):
         module_host_info: str = "",
         module_name_list: str = "",
         type: str = "",
+        call_from: str = "",
         operator: str = "",
     ):
-
         """直接授权，兼容gcs老的授权方式"""
 
         def parse_domain(raw_domain):
@@ -276,6 +276,7 @@ class AuthorizeHandler(object):
                 "app_id": app_detail["appid"],
                 "client_ip": source_ips,
                 "call_user": user,
+                "call_from": call_from or user,
                 "db_name": access_db,
                 "type": type,
                 "target_ip": target_instance,
