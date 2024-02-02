@@ -284,8 +284,8 @@ export enum TicketTypes {
   MONGODB_ENABLE = 'MONGODB_ENABLE', // MongoDB 集群启用
   MONGODB_DESTROY = 'MONGODB_DESTROY', // MongoDB 集群删除
   MONGODB_SCALE_UPDOWN = 'MONGODB_SCALE_UPDOWN', // MongoDB 分片式集群单个容量变更
-  MONGODB_AUTHORIZE_RULES = 'MONGODB_AUTHORIZE_RULES', // MongoDB 集群授权
-  MONGODB_EXCEL_AUTHORIZE_RULES = 'MONGODB_EXCEL_AUTHORIZE_RULES' // MongoDB 导入授权
+  MONGODB_AUTHORIZE = 'MONGODB_AUTHORIZE', // MongoDB 集群授权
+  MONGODB_EXCEL_AUTHORIZE = 'MONGODB_EXCEL_AUTHORIZE' // MongoDB 导入授权
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -357,6 +357,9 @@ export const bigDataType = {
     name: t('Riak集群部署'),
     type: ClusterTypes.RIAK,
   },
+};
+
+export const mongoType = {
   [TicketTypes.MONGODB_SHARD_APPLY]: {
     id: TicketTypes.MONGODB_SHARD_APPLY,
     name: t('MongoDB分片集群部署'),

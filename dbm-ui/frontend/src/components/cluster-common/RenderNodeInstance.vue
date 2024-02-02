@@ -275,7 +275,7 @@
 .cluster-node-instance-dialog {
   .bk-dialog-header {
     padding: 18px 24px 24px !important;
-    line-height: 1;
+    // line-height: 1;
   }
 
   .action-box {

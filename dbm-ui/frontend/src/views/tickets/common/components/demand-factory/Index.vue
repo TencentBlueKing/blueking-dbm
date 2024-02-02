@@ -37,6 +37,11 @@
   import RiakReboot from './bigdata/RiakReboot.vue';
   import InfluxdbOperations from './influxdb/Operations.vue';
   import InfluxdbReplace from './influxdb/Replace.vue';
+  import MongoAuthrizeRules from './mongodb/AuthorizeRules.vue';
+  import MongoDetailsClusterOperation from './mongodb/DetailsClusterOperation.vue';
+  import DetailsMongoDBReplicaSet from './mongodb/DetailsMongoDBReplicaSet.vue';
+  import DetailsMongoDBSharedCluster from './mongodb/DetailsMongoDBSharedCluster.vue';
+  import MongoScaleUpdown from './mongodb/ScaleUpdown.vue';
   import MySQLChecksum from './mysql/Checksum.vue';
   import MySQLClone from './mysql/Clone.vue';
   import MySQLClusterOperation from './mysql/ClusterOperation.vue';
@@ -222,6 +227,17 @@
     TicketTypes.REDIS_PLUGIN_DELETE_CLB,
   ];
 
+  const mongoClusterOprationTypes = [
+    TicketTypes.MONGODB_ENABLE,
+    TicketTypes.MONGODB_DISABLE,
+    TicketTypes.MONGODB_DESTROY,
+  ];
+
+  const mongoAuthorizeRulesTypes = [
+    TicketTypes.MONGODB_AUTHORIZE,
+    TicketTypes.MONGODB_EXCEL_AUTHORIZE,
+  ];
+
   // 单一情况映射表
   const SingleDemandMap = {
     [TicketTypes.ES_APPLY]: DetailsES,
@@ -281,6 +297,9 @@
     [TicketTypes.TENDBCLUSTER_PARTITION]: SpiderPartitionManage,
     [TicketTypes.RIAK_CLUSTER_APPLY]: DetailRiak,
     [TicketTypes.RIAK_CLUSTER_REBOOT]: RiakReboot,
+    [TicketTypes.MONGODB_SHARD_APPLY]: DetailsMongoDBSharedCluster,
+    [TicketTypes.MONGODB_REPLICASET_APPLY]: DetailsMongoDBReplicaSet,
+    [TicketTypes.MONGODB_SCALE_UPDOWN]: MongoScaleUpdown,
   };
 
   // 不同集群详情组件
@@ -347,6 +366,14 @@
     // dumper 节点状态变更
     if (dumperNodeStatusUpdateType.includes(ticketType)) {
       return DumperNodeStatusUpdate;
+    }
+    // mongo 启停删
+    if (mongoClusterOprationTypes.includes(ticketType)) {
+      return MongoDetailsClusterOperation;
+    }
+    // mongo 授权
+    if (mongoAuthorizeRulesTypes.includes(ticketType)) {
+      return MongoAuthrizeRules;
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];

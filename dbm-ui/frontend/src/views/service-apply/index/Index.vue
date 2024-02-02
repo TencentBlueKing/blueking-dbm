@@ -119,6 +119,7 @@
 
   import {
     bigDataType,
+    mongoType,
     mysqlType,
     redisType,
     TicketTypes,
@@ -204,6 +205,18 @@
           id: redisType[TicketTypes.REDIS_CLUSTER_APPLY].id,
           name: redisType[TicketTypes.REDIS_CLUSTER_APPLY].name,
           icon: 'redis',
+        },
+        {
+          routeName: 'MongoDBSharedClusterApply',
+          id: mongoType[TicketTypes.MONGODB_SHARD_APPLY].id,
+          name: mongoType[TicketTypes.MONGODB_SHARD_APPLY].name,
+          icon: 'mongo-db',
+        },
+        {
+          routeName: 'MongoDBReplicaSetApply',
+          id: mongoType[TicketTypes.MONGODB_REPLICASET_APPLY].id,
+          name: mongoType[TicketTypes.MONGODB_REPLICASET_APPLY].name,
+          icon: 'mongo-db',
         },
       ],
     },
