@@ -72,7 +72,8 @@
   <!-- 集群授权 -->
   <ClusterAuthorize
     v-model="authorizeState.isShow"
-    :cluster-type="ClusterTypes.TENDBSINGLE"
+    :account-type="AccountTypes.MYSQL"
+    :cluster-types="[ClusterTypes.TENDBSINGLE]"
     :selected="authorizeState.selected"
     @success="handleClearSelected" />
   <!-- excel 导入授权 -->
@@ -118,6 +119,7 @@
   } from '@stores';
 
   import {
+    AccountTypes,
     ClusterTypes,
     TicketTypes,
     type TicketTypesStrings,

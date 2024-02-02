@@ -10,6 +10,13 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+
+import { TicketTypes } from '@common/const';
+
+import { utcDisplayTime } from '@utils';
+
+import { t } from '@locales/index';
+
 interface MongoInstance {
   bk_biz_id: number;
   bk_cloud_id: number;
@@ -21,15 +28,51 @@ interface MongoInstance {
   phase: string;
   port: number;
   role?: string;
-  spec_config: string;
+  spec_config: {
+    id: number,
+    cpu: {
+      max: number,
+      min: number
+    },
+    mem: {
+      max: number,
+      min: number
+    },
+    qps: {
+      max: number,
+      min: number
+    },
+    name: string,
+    count: number,
+    device_class: string[],
+    storage_spec: {
+      size: number,
+      type: string,
+      mount_point: string
+    }[]
+  }
   status: string;
 }
 
 export default class MongodbDetail {
+  static operationIconMap: Record<string, string> = {
+    [TicketTypes.MONGODB_ENABLE]: 'qiyongzhong',
+    [TicketTypes.MONGODB_DISABLE]: 'jinyongzhong',
+    [TicketTypes.MONGODB_DESTROY]: 'shanchuzhong',
+  };
+
+  static operationTextMap: Record<string, string> = {
+    [TicketTypes.MONGODB_ENABLE]: t('启用任务进行中'),
+    [TicketTypes.MONGODB_DISABLE]: t('禁用任务进行中'),
+    [TicketTypes.MONGODB_DESTROY]: t('删除任务进行中'),
+  };
+
   bk_biz_id: number;
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_access_port: number;
+  cluster_alias: string;
   cluster_entry_details: {
     cluster_entry_type: string;
     role: string;
@@ -172,6 +215,8 @@ export default class MongodbDetail {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.cluster_alias = payload.cluster_alias;
+    this.cluster_access_port = payload.cluster_access_port;
     this.cluster_entry_details = payload.cluster_entry_details;
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
@@ -196,5 +241,102 @@ export default class MongodbDetail {
     this.slave_domain = payload.slave_domain;
     this.spec_config = payload.spec_config;
     this.status = payload.status;
+  }
+
+  get isOnline() {
+    return this.phase === 'online';
+  }
+
+  get isOffline() {
+    return this.phase === 'offline';
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find(item => item.ticket_type === TicketTypes.MONGODB_ENABLE));
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(MongodbDetail.operationTextMap);
+    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return MongodbDetail.operationTextMap[this.operationRunningStatus];
+  }
+
+  get operationStatusIcon() {
+    return MongodbDetail.operationIconMap[this.operationRunningStatus];
+  }
+
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
+
+  get operationDisabled() {
+    // 集群异常不支持操作
+    if (this.status === 'abnormal') {
+      return true;
+    }
+    // 被禁用的集群不支持操作
+    if (this.phase !== 'online') {
+      return true;
+    }
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
+  }
+
+  get isNormal() {
+    return this.status === 'normal';
+  }
+
+  get masterDomainDisplayName() {
+    return `${this.master_domain}:${this.cluster_access_port}`;
+  }
+
+  get isOfflineOperationRunning() {
+    return ([
+      TicketTypes.MONGODB_ENABLE,
+      TicketTypes.MONGODB_DESTROY,
+    ] as string[]).includes(this.operationRunningStatus);
+  }
+
+  get isDisabled() {
+    return !this.isOnline && !this.isOfflineOperationRunning;
+  }
+
+  get operationTagTips() {
+    return this.operations.map(item => ({
+      icon: MongodbDetail.operationIconMap[item.ticket_type],
+      tip: MongodbDetail.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 }

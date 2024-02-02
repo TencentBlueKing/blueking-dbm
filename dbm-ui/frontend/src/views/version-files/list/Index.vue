@@ -283,6 +283,19 @@
         },
       ],
     },
+    {
+      controller: {
+        moduleId: 'mongodb',
+      },
+      label: 'MongoDB',
+      name: DBTypes.MONGODB,
+      children: [
+        {
+          label: 'MongoDB',
+          name: DBTypes.MONGODB,
+        },
+      ],
+    },
   ];
 
   const renderTabs = tabs.filter((item) => {

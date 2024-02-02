@@ -331,8 +331,6 @@
       return;
     }
 
-    isLoading.value = true;
-
     getFilterClusterSpecRun({
       spec_cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
       spec_machine_type: MachineTypes.MONGODB,

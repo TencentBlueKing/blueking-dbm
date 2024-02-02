@@ -42,7 +42,8 @@
     <ClusterAuthorize
       v-model="authorizeShow"
       :access-dbs="authorizeDbs"
-      :cluster-type="ClusterTypes.TENDBCLUSTER"
+      :account-type="AccountTypes.TENDBCLUSTER"
+      :cluster-types="[ClusterTypes.TENDBCLUSTER]"
       :user="authorizeUser" />
     <ExcelAuthorize
       v-model="isShowExcelAuthorize"
@@ -55,7 +56,10 @@
 
   import { getPermissionRules } from '@services/permission';
 
-  import { ClusterTypes } from '@common/const';
+  import {
+    AccountTypes,
+    ClusterTypes,
+  } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
 

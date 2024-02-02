@@ -108,7 +108,7 @@
   <ClusterAuthorize
     v-model="clusterAuthorizeShow"
     :account-type="AccountTypes.TENDBCLUSTER"
-    :cluster-type="ClusterTypes.TENDBCLUSTER"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selected"
     :tab-list="[ClusterTypes.TENDBCLUSTER]"
     @success="handleClearSelected" />
