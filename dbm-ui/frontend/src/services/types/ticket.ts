@@ -117,6 +117,7 @@ export interface TicketResult {
  * 单据详情
  */
 export interface TicketDetails<T> {
+  [key: string]: number | string | boolean | TicketTypes | T,
   bk_biz_id: number,
   bk_biz_name: string,
   cost_time: number,

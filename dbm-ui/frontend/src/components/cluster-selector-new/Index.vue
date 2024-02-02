@@ -174,6 +174,7 @@
   }[];
 
   export type TabItem = TabListType[number];
+  export type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>
 
   interface Props {
     selected: Record<string, T[]>,
@@ -186,7 +187,6 @@
     (e: 'change', value: Props['selected']): void,
   }
 
-  type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>
 
   const props = defineProps<Props>();
 

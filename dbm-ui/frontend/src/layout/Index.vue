@@ -121,11 +121,11 @@
       'RedisManage',
       'SpiderManage',
       'RiakManage',
+      'MongoDBManage',
       'taskHistory',
       'DatabaseWhitelist',
       'ticketManage',
       'DBPasswordTemporaryModify',
-      'Mongodb',
     ],
     [menuEnum.observableManage]: [
       'DBHASwitchEvents',

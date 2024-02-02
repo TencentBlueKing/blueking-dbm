@@ -63,6 +63,8 @@
   <ClusterAuthorize
     v-model="authorizeState.isShow"
     :access-dbs="authorizeState.dbs"
+    :account-type="AccountTypes.MYSQL"
+    :cluster-types="[ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA]"
     :user="authorizeState.user" />
   <!-- 账号信息 dialog -->
   <BkDialog
@@ -103,16 +105,29 @@
   import { useI18n } from 'vue-i18n';
 
   import { deleteAccount } from '@services/permission';
-  import type { PermissionRuleAccount, PermissionRuleInfo  } from '@services/types/permission';
+  import type {
+    PermissionRuleAccount,
+    PermissionRuleInfo,
+  } from '@services/types/permission';
 
-  import { useInfoWithIcon, useTableMaxHeight } from '@hooks';
+  import {
+    useInfoWithIcon,
+    useTableMaxHeight,
+  } from '@hooks';
 
-  import { OccupiedInnerHeight } from '@common/const';
+  import {
+    AccountTypes,
+    ClusterTypes,
+    OccupiedInnerHeight,
+  } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
 
   import { dbOperations } from './common/const';
-  import type { PermissionRuleExtend, PermissionRulesState } from './common/types';
+  import type {
+    PermissionRuleExtend,
+    PermissionRulesState,
+  } from './common/types';
   import AccountDialog from './components/AccountDialog.vue';
   import CreateRuleSlider from './components/CreateRule.vue';
   import { usePermissionRules } from './hooks/usePermissionRules';
