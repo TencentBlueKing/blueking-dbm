@@ -42,6 +42,7 @@ WORKDIR /
 # Do all of this in one RUN to limit final image size.
 RUN set -ex &&  \
     apt-get update && \
+    apt-get install --allow-downgrades -y libc6=2.36-9+deb12u3 && \
     apt-get install -y --no-install-recommends \
      gcc gettext g++ pkg-config && \
     rm -rf /var/lib/apt/lists/*
@@ -58,6 +59,7 @@ FROM base AS base-app
 ## 安装运行时依赖
 RUN set -ex &&  \
     apt-get update && \
+    apt-get install --allow-downgrades -y libc6=2.36-9+deb12u3 && \
     apt-get install -y --no-install-recommends \
         gettext curl vim wget git && \
     rm -rf /var/lib/apt/lists/*
