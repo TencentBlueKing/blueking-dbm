@@ -16,37 +16,37 @@
     class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('所属业务') }}：</span>
+        <span class="ticket-details__item-label">{{ t('所属业务') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails.bk_biz_name }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('业务英文名') }}：</span>
+        <span class="ticket-details__item-label">{{ t('业务英文名') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails.db_app_abbr }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('SQL来源') }}：</span>
+        <span class="ticket-details__item-label">{{ t('SQL来源') }}：</span>
         <span class="ticket-details__item-value">{{ importModeType }}</span>
       </div>
       <div
         class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('SQL执行内容') }}：</span>
+        <span class="ticket-details__item-label">{{ t('SQL执行内容') }}：</span>
         <BkButton
           text
           theme="primary"
           @click="handleClickFile">
-          {{ $t('点击查看') }}
+          {{ t('点击查看') }}
         </BkButton>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('字符集') }}：</span>
+        <span class="ticket-details__item-label">{{ t('字符集') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails.details.charset }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('执行前备份') }}：</span>
+        <span class="ticket-details__item-label">{{ t('执行前备份') }}：</span>
         <span class="ticket-details__item-value">{{ isBackup }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('执行模式') }}：</span>
+        <span class="ticket-details__item-label">{{ t('执行模式') }}：</span>
         <span class="ticket-details__item-value sql-mode-execute">
           <i :class="ticketModeData.icon" />
           <span v-bk-tooltips="ticketModeData.tips">{{ ticketModeData.text }}</span>
@@ -55,7 +55,7 @@
       <div
         v-if="ticketDetails.details.ticket_mode.trigger_time"
         class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('执行时间') }}：</span>
+        <span class="ticket-details__item-label">{{ t('执行时间') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails.details.ticket_mode.trigger_time }}</span>
       </div>
     </div>
@@ -63,7 +63,7 @@
       <div
         v-if="clusterState.tableProps.data.length > 0"
         class="mysql-table__item">
-        <span>{{ $t('目标集群') }}：</span>
+        <span>{{ t('目标集群') }}：</span>
         <DBCollapseTable
           :show-icon="false"
           style="width: 800px;"
@@ -71,7 +71,7 @@
           :title="clusterState.clusterType" />
       </div>
       <div class="mysql-table__item">
-        <span>{{ $t('目标DB') }}：</span>
+        <span>{{ t('目标DB') }}：</span>
         <DbOriginalTable
           :columns="targetDB"
           :data="dataList"
@@ -80,7 +80,7 @@
       <div
         v-if="ticketDetails?.details?.backup?.length"
         class="mysql-table__item">
-        <span>{{ $t('备份设置') }}：</span>
+        <span>{{ t('备份设置') }}：</span>
         <DbOriginalTable
           :columns="backupConfig"
           :data="backupList"
@@ -91,8 +91,9 @@
       class="sql-log-sideslider"
       :is-show="isShow"
       render-directive="if"
-      :title="$t('执行SQL变更_内容详情')"
+      :title="t('执行SQL变更_内容详情')"
       :width="960"
+      :z-index="99999"
       @closed="handleClose">
       <div
         v-if="(uploadFileList.length > 1)"

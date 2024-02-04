@@ -82,6 +82,11 @@
 </script>
 <style lang="less">
   .inspection-manage-page {
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+    flex-direction: column;
+
     .list-type-box{
       background-color: #fff;
 
@@ -97,6 +102,8 @@
 
     .content-wrapper{
       padding: 20px;
+      flex: 1;
+      overflow-y: auto;
     }
   }
 </style>
