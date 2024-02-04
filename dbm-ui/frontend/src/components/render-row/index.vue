@@ -26,23 +26,29 @@
     </p>
     <BkTag
       v-if="overflowData.length > 0"
-      v-bk-tooltips="overflowData.join('\n')"
+      v-bk-tooltips="showAll ? data.join('\n') : overflowData.join('\n')"
       class="render-row-tag">
-      +{{ overflowData.length }}
+      {{ showAll ? t('共n个', [data.length]) : `+${overflowData.length}` }}
     </BkTag>
   </div>
 </template>
 
 <script setup lang="ts">
   import { debounce } from 'lodash';
+  import { useI18n } from 'vue-i18n';
 
   import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
-    data: string[]
+    data: string[],
+    showAll?: boolean,
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    showAll: false,
+  });
+
+  const { t } = useI18n();
 
   const rowRef = ref<HTMLDivElement>();
   const textRef = ref<HTMLParagraphElement>();
