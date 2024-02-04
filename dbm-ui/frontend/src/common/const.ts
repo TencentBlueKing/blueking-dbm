@@ -58,6 +58,7 @@ export enum ClusterTypes {
   RIAK = 'riak',
   SQLSERVER_HA = 'sqlserver_ha',
   SQLSERVER_SINGLE = 'sqlserver_single',
+  SQLSERVERCLUSTER = 'sqlserverCluster',
 }
 
 // 机器类型

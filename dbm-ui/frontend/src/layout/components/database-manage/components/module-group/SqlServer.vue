@@ -25,6 +25,20 @@
           </span>
         </BkMenuItem>
       </BkSubmenu>
+      <BkSubmenu
+        key="dataBasePermission"
+        :title="t('权限管理')">
+        <template #icon>
+          <DbIcon type="history" />
+        </template>
+        <BkMenuItem key="SqlServerPermissionRules">
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('授权规则') }}
+          </span>
+        </BkMenuItem>
+      </BkSubmenu>
     </BkMenuGroup>
   </FunController>
 </template>

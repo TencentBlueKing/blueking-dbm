@@ -1,8 +1,8 @@
-import dayjs from 'dayjs';
-
 import { t } from '@locales';
 
-export default class SqlServerHaCluster {
+import SqlServerBaseModel from './sqlserver-base';
+
+export default class SqlServerHaCluster extends SqlServerBaseModel {
   static SQLSERVER_HA_DISABLE = 'SQLSERVER_HA_DISABLE';
   static SQLSERVER_HA_DESTROY = 'SQLSERVER_HA_DESTROY';
   static SQLSERVER_HA_ENABLE = 'SQLSERVER_HA_ENABLE';
@@ -33,7 +33,6 @@ export default class SqlServerHaCluster {
   cluster_time_zone: string;
   cluster_type: string;
   cluster_type_name: string;
-  create_at: Date | string;
   creator: string;
   db_module_id: number;
   db_module_name: string;
@@ -120,6 +119,7 @@ export default class SqlServerHaCluster {
   updater: string;
 
   constructor(payload: SqlServerHaCluster) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -129,7 +129,6 @@ export default class SqlServerHaCluster {
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
-    this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
@@ -146,10 +145,6 @@ export default class SqlServerHaCluster {
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-  }
-
-  get isNew() {
-    return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
   }
 
   get dbStatusConfigureObj() {

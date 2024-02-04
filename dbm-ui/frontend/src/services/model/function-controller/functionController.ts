@@ -16,7 +16,7 @@ export type MySQLFunctions = 'toolbox' | 'tendbsingle' | 'tendbha' | 'tendbclust
 export type RedisFunctions = 'PredixyTendisplusCluster' | 'TwemproxyRedisInstance' | 'TwemproxyTendisSSDInstance' | 'toolbox';
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
-export type SqlServerFunctions = 'sqlserver'
+export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha';
 // eslint-disable-next-line max-len
 export type FunctionKeys = AddonsFunctions | MySQLFunctions | RedisFunctions | BigdataFunctions | MonitorFunctions | SqlServerFunctions
 

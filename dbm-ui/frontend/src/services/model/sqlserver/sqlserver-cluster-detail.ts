@@ -1,4 +1,6 @@
-export default class SqlServerClusterDetail {
+import SqlServerBaseModel from './sqlserver-base';
+
+export default class SqlServerClusterDetail extends SqlServerBaseModel {
   bk_biz_id: number;
   bk_biz_name: string;
   bk_cloud_id: number;
@@ -25,7 +27,6 @@ export default class SqlServerClusterDetail {
   }[];
   cluster_name: string;
   cluster_type: string;
-  create_at: string;
   creator: string;
   db_module_name: string;
   id: number;
@@ -58,6 +59,7 @@ export default class SqlServerClusterDetail {
   status: string;
 
   constructor(payload: SqlServerClusterDetail) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -65,7 +67,6 @@ export default class SqlServerClusterDetail {
     this.cluster_entry_details = payload.cluster_entry_details;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
-    this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.db_module_name = payload.db_module_name;
     this.id = payload.id;

@@ -1,6 +1,3 @@
-
-import dayjs from 'dayjs';
-
 import { t } from '@locales';
 
 export default class SqlServerSingleCluster {
@@ -35,7 +32,6 @@ export default class SqlServerSingleCluster {
   cluster_time_zone: string;
   cluster_type: string;
   cluster_type_name: string;
-  create_at: string;
   creator: string;
   db_module_id: number;
   db_module_name: string;
@@ -99,7 +95,6 @@ export default class SqlServerSingleCluster {
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
-    this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
@@ -115,10 +110,6 @@ export default class SqlServerSingleCluster {
     this.storages = payload.storages;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-  }
-
-  get isNew() {
-    return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
   }
 
   get dbStatusConfigureObj() {

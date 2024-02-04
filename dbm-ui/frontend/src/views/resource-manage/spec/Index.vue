@@ -250,6 +250,17 @@
         },
       ],
     },
+    {
+      moduleId: 'sqlserver',
+      label: 'SQLServer',
+      name: ClusterTypes.SQLSERVER_HA,
+      children: [
+        {
+          label: t('后端存储机型'),
+          name: 'sqlserver',
+        },
+      ],
+    },
   ];
 
   const curTab = ref<string>(ClusterTypes.TENDBSINGLE);

@@ -109,6 +109,11 @@
       id: ClusterTypes.TENDBCLUSTER,
       name: 'TenDBCluster',
     },
+    {
+      moduleId: 'sqlserver',
+      id: ClusterTypes.SQLSERVER_HA,
+      name: 'SQLServer',
+    },
   ];
 
   const route = useRoute();

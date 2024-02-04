@@ -24,6 +24,14 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/sqlserver-manage/single-cluster/Index.vue'),
       },
+      {
+        name: 'SqlServerPermissionRules',
+        path: 'sqlserver-permission-rules',
+        meta: {
+          navName: t('SQLServer_授权规则'),
+        },
+        component: () => import('@views/sqlserver-manage/permission/index.vue'),
+      },
     ],
   },
 ];
