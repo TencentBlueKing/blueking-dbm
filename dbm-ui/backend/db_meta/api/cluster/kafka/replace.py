@@ -14,6 +14,7 @@ from typing import List, Optional
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import InstanceRole
@@ -48,7 +49,7 @@ def replace(
         if not storage.machine.storageinstance_set.exists():
             # 将主机转移到待回收模块下
             logger.info(_("将主机{}转移到待回收").format(storage.machine.ip))
-            CcManage(storage.bk_biz_id).recycle_host([storage.machine.bk_host_id])
+            CcManage(storage.bk_biz_id, DBType.Kafka.value).recycle_host([storage.machine.bk_host_id])
             storage.machine.delete(keep_parents=True)
     cluster.storageinstance_set.remove(*old_storage_objs)
 

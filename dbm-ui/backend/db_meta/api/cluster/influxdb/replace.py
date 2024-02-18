@@ -45,7 +45,7 @@ def replace(
         GroupInstance.objects.get(instance_id=storage.id).delete()
         # 删除storage instance
         storage.delete(keep_parents=True)
-        cc_manage = CcManage(storage.bk_biz_id)
+        cc_manage = CcManage(storage.bk_biz_id, DBType.InfluxDB.value)
         if not storage.machine.storageinstance_set.exists():
             # 将主机转移到待回收模块下
             logger.info(_("将主机{}转移到待回收模块").format(storage.machine.ip))

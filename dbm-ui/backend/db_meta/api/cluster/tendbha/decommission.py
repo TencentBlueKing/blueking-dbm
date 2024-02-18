@@ -15,6 +15,7 @@ from django.utils.translation import ugettext as _
 
 from backend.components import MySQLPrivManagerApi
 from backend.components.mysql_partition.client import DBPartitionApi
+from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
@@ -26,7 +27,7 @@ logger = logging.getLogger("root")
 
 @transaction.atomic
 def decommission(cluster: Cluster):
-    cc_manage = CcManage(cluster.bk_biz_id)
+    cc_manage = CcManage(cluster.bk_biz_id, DBType.MySQL.value)
     for proxy in cluster.proxyinstance_set.all():
         proxy.delete(keep_parents=True)
         if not proxy.machine.proxyinstance_set.exists():
@@ -52,7 +53,7 @@ def decommission(cluster: Cluster):
         if not storage.machine.storageinstance_set.exists():
 
             # 这个 api 不需要检查返回值, 转移主机到待回收模块，转移模块这里会把服务实例删除
-            CcManage(storage.bk_biz_id).recycle_host([storage.machine.bk_host_id])
+            CcManage(storage.bk_biz_id, DBType.MySQL.value).recycle_host([storage.machine.bk_host_id])
             storage.machine.delete(keep_parents=True)
 
         else:

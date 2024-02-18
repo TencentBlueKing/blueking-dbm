@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Dict, List
+
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
@@ -52,12 +54,15 @@ class ClusterType(str, StructuredEnum):
     SqlserverHA = EnumField("sqlserver_ha", _("sqlserver主从版"))
 
     @classmethod
-    def db_type_to_cluster_type(cls, db_type):
+    def db_type_cluster_types_map(cls) -> Dict[str, List]:
+        """
+        :return: key为数据库类型的字符串，value为群类型列表
+        """
         return {
-            DBType.InfluxDB: [],
-            DBType.MySQL: [cls.TenDBSingle, cls.TenDBHA],
-            DBType.TenDBCluster: [cls.TenDBCluster],
-            DBType.Redis: [
+            DBType.InfluxDB.value: [ClusterType.Influxdb],
+            DBType.MySQL.value: [cls.TenDBSingle, cls.TenDBHA],
+            DBType.TenDBCluster.value: [cls.TenDBCluster],
+            DBType.Redis.value: [
                 cls.RedisCluster,
                 cls.TendisPredixyRedisCluster,
                 cls.TendisPredixyTendisplusCluster,
@@ -69,29 +74,29 @@ class ClusterType(str, StructuredEnum):
                 cls.TendisTendisplusInsance,
                 cls.TendisRedisCluster,
                 cls.TendisTendisplusCluster,
+                cls.TendisplusInstance,
+                cls.RedisInstance,
+                cls.TendisSSDInstance,
             ],
-            DBType.Es: [cls.Es],
-            DBType.Kafka: [cls.Kafka],
-            DBType.Hdfs: [cls.Hdfs],
-            DBType.Pulsar: [cls.Pulsar],
-            DBType.MongoDB: [cls.MongoShardedCluster, cls.MongoReplicaSet],
-            DBType.Riak: [cls.Riak],
-        }.get(db_type)
+            DBType.Es.value: [cls.Es],
+            DBType.Kafka.value: [cls.Kafka],
+            DBType.Hdfs.value: [cls.Hdfs],
+            DBType.Pulsar.value: [cls.Pulsar],
+            DBType.MongoDB.value: [cls.MongoShardedCluster, cls.MongoReplicaSet],
+            DBType.Riak.value: [cls.Riak],
+        }
+
+    @classmethod
+    def db_type_to_cluster_types(cls, db_type: str) -> List[str]:
+        """
+        根据数据库类型获取数据库集群类型列表
+        """
+        db_type_cluster_types_map = cls.db_type_cluster_types_map()
+        return db_type_cluster_types_map.get(db_type)
 
     @classmethod
     def cluster_type_to_db_type(cls, cluster_type):
-        if cluster_type in [ClusterType.TenDBSingle, ClusterType.TenDBHA]:
-            db_type = DBType.MySQL.value
-        elif cluster_type in [
-            ClusterType.Es,
-            ClusterType.Kafka,
-            ClusterType.Hdfs,
-            ClusterType.Pulsar,
-            ClusterType.Influxdb,
-            ClusterType.TenDBCluster,
-        ]:
-            db_type = cluster_type.lower()
-        else:
-            db_type = DBType.Redis.value
-
-        return db_type
+        for db_type, cluster_types in cls.db_type_cluster_types_map().items():
+            if cluster_type in cluster_types:
+                return db_type
+        raise ValueError(f"cluster_type:{cluster_type} dose not define db type")

@@ -16,6 +16,7 @@ from typing import Dict, List
 
 from django.db import transaction
 
+from backend.configuration.constants import DBType
 from backend.db_meta.api import common
 from backend.db_meta.enums import AccessLayer, ClusterMachineAccessTypeDefine, InstanceInnerRole
 from backend.db_meta.models import Cluster, ProxyInstance
@@ -108,7 +109,9 @@ def delete_proxies(cluster: Cluster, proxies: List[Dict]):
                     cluster.immute_domain, cluster_entry_obj.entry, proxy_objs
                 )
             )
-        CcManage(cluster.bk_biz_id).delete_service_instance(bk_instance_ids=[obj.bk_instance_id for obj in proxy_objs])
+        CcManage(cluster.bk_biz_id, DBType.Redis.value).delete_service_instance(
+            bk_instance_ids=[obj.bk_instance_id for obj in proxy_objs]
+        )
         # 修改表  db_meta_proxyinstance_storageinstance bUG Fixed
         for proxy_obj in proxy_objs:
             proxy_obj.storageinstance.clear()

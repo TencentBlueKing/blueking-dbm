@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Check hard code ip
       run: |
         RESULT=$(grep -nrE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' * | grep -v poetry.lock | grep -vE '\b[012345]\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'  | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -vE '192\.168\.[0-9]{1,3}\.[0-9]{1,3}') || true

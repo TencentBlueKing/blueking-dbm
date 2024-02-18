@@ -257,7 +257,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
         对已有的集群删除待卸载的spider节点
         """
         cluster = Cluster.objects.get(id=cluster_id)
-        cc_manage = CcManage(cluster.bk_biz_id)
+        cc_manage = CcManage(cluster.bk_biz_id, DBType.TenDBCluster.value)
         for info in spiders:
             # 同一台spider机器专属于一个集群
             spider = cluster.proxyinstance_set.get(machine__ip=info["ip"])
@@ -276,7 +276,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
         对已有集群的remote存储对进行切换记录
         """
         cluster = Cluster.objects.get(id=cluster_id)
-        cc_manage = CcManage(cluster.bk_biz_id)
+        cc_manage = CcManage(cluster.bk_biz_id, DBType.TenDBCluster.value)
         for switch_tuple in switch_tuples:
             # 理论上remote机器专属一套TenDB-Cluster集群
 

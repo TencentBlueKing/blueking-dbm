@@ -27,7 +27,7 @@ class InstallNodemanPluginService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
 
         # bk_cloud_id + ips 组合，在这里获取bk_host_id
-        if "ips" in kwargs:
+        if kwargs.get("ips"):
             ips = kwargs["ips"]
             bk_cloud_id = kwargs["bk_cloud_id"]
             # 获取对应的bk_host_id

@@ -16,7 +16,7 @@ from django.db import transaction
 
 from backend import env
 from backend.components import CCApi
-from backend.configuration.models import DBAdministrator, SystemSettings
+from backend.configuration.models import BizSettings, DBAdministrator
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, StorageInstance
 from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
@@ -37,11 +37,11 @@ class CcManage(object):
     在这里通过 hosting_biz_id 来决定真实操作 cmdb 的业务
     """
 
-    def __init__(self, bk_biz_id: int):
+    def __init__(self, bk_biz_id: int, db_type: str):
         # 业务
         self.bk_biz_id = bk_biz_id
         # 主机在 cmdb 上实际托管的业务（通常可能为 DBM 统一业务）
-        self.hosting_biz_id = SystemSettings.get_exact_hosting_biz(bk_biz_id)
+        self.hosting_biz_id = BizSettings.get_exact_hosting_biz(bk_biz_id, db_type)
 
     def get_or_create_set_module(
         self,
@@ -459,7 +459,7 @@ class CcManage(object):
             bk_module_obj.delete(keep_parents=True)
 
     @transaction.atomic
-    def delete_cluster_modules(self, db_type, cluster: Cluster):
+    def delete_cluster_modules(self, db_type: str, cluster: Cluster):
         """
         @param db_type: db组件类型
         @param cluster： 集群对象

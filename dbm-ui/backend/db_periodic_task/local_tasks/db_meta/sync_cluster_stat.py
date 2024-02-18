@@ -53,8 +53,6 @@ def query_cap(cluster_type, cap_key="used"):
     params["query_configs"][0]["promql"] = query_template[cap_key]
     series = BKMonitorV3Api.unify_query(params)["series"]
 
-    # print(cluster_type, cap_key, json.dumps(params, indent=2), json.dumps(series, indent=2))
-
     cluster_bytes = {}
     for serie in series:
         # 集群：cluster_domain | influxdb: instance_host
@@ -95,7 +93,6 @@ def query_cluster_capacity(cluster_type):
             continue
         cluster_cap_bytes[cluster]["total"] = used
 
-    # print(cluster_type, cluster_cap_bytes)
     return cluster_cap_bytes
 
 
@@ -123,7 +120,6 @@ def sync_cluster_stat_by_cluster_type(cluster_type):
             continue
         cap["in_use"] = round(cap["used"] * 100.0 / cap["total"], 2)
 
-    # print(cluster_stats)
     cache.set(f"{CACHE_CLUSTER_STATS}_{cluster_type}", json.dumps(cluster_stats))
 
 

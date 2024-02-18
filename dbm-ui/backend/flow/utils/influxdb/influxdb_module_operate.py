@@ -12,7 +12,7 @@ from dataclasses import asdict, dataclass
 from typing import List
 
 from backend.configuration.constants import DBType
-from backend.configuration.models import SystemSettings
+from backend.configuration.models import BizSettings
 from backend.constants import CommonInstanceLabels
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, ClusterMonitorTopo, StorageInstance
@@ -43,12 +43,12 @@ class InfluxdbCCTopoOperator:
         if len(bk_biz_ids) != 1:
             raise ValidationError("different cluster biz is not supporting")
         self.bk_biz_id = bk_biz_ids[0]
-        self.hosting_biz_id = SystemSettings.get_exact_hosting_biz(self.bk_biz_id)
+        self.hosting_biz_id = BizSettings.get_exact_hosting_biz(self.bk_biz_id, DBType.InfluxDB.value)
         self.is_bk_module_created = False
 
     def create_bk_module(self):
         for storage in self.storages:
-            CcManage(bk_biz_id=storage.bk_biz_id).get_or_create_set_module(
+            CcManage(bk_biz_id=storage.bk_biz_id, db_type=DBType.InfluxDB.value).get_or_create_set_module(
                 db_type=DBType.InfluxDB.value,
                 cluster_type=ClusterType.Influxdb.value,
                 bk_module_name=storage.machine.ip,
@@ -70,7 +70,9 @@ class InfluxdbCCTopoOperator:
                 bk_biz_id=self.hosting_biz_id, instance_id=ins.id, machine_type=machine_type
             ).bk_module_id
 
-            CcManage(ins.bk_biz_id).transfer_host_module([ins.machine.bk_host_id], [bk_module_id])
+            CcManage(ins.bk_biz_id, DBType.InfluxDB.value).transfer_host_module(
+                [ins.machine.bk_host_id], [bk_module_id]
+            )
 
             ins_labels = asdict(
                 InfluxDBInstanceLabels(
@@ -92,7 +94,7 @@ class InfluxdbCCTopoOperator:
                 )
             )
 
-            bk_instance_id = CcManage(ins.bk_biz_id).add_service_instance(
+            bk_instance_id = CcManage(ins.bk_biz_id, DBType.InfluxDB.value).add_service_instance(
                 bk_module_id=bk_module_id,
                 bk_host_id=ins.machine.bk_host_id,
                 listen_ip=ins.machine.ip,

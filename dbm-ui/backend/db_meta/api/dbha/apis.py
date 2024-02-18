@@ -18,6 +18,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
+from backend.configuration.constants import DBType
 from backend.constants import DEFAULT_BK_CLOUD_ID, IP_PORT_DIVIDER
 from backend.db_meta import flatten, meta_validator, request_validator
 from backend.db_meta.enums import (
@@ -336,7 +337,7 @@ def swap_ctl_role(payloads: List):
 
 @transaction.atomic
 def swap_cc_svr_instance_role(ins1_obj: StorageInstance, ins2_obj: StorageInstance):
-    cc_manage = CcManage(ins1_obj.bk_biz_id)
+    cc_manage = CcManage(ins1_obj.bk_biz_id, DBType.MySQL.value)
     # 切换新master服务实例角色标签
     cc_manage.add_label_for_service_instance(
         bk_instance_ids=[ins1_obj.bk_instance_id],

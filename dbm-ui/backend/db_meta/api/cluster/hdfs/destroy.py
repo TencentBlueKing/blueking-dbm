@@ -27,7 +27,7 @@ def destroy(cluster_id: int):
     """
 
     cluster = Cluster.objects.get(id=cluster_id)
-    cc_manage = CcManage(cluster.bk_biz_id)
+    cc_manage = CcManage(cluster.bk_biz_id, DBType.Hdfs.value)
 
     # 删除storage instance
     for storage in cluster.storageinstance_set.all():

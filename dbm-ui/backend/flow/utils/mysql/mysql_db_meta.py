@@ -158,7 +158,7 @@ class MySQLDBMeta(object):
 
         with atomic():
             # 绑定事务更新cmdb
-            # TODO 统一到CLusterHandler处理
+            # TODO 统一到ClusterHandler处理
             api.machine.create(
                 machines=machines,
                 creator=self.ticket_data["created_by"],
@@ -296,7 +296,9 @@ class MySQLDBMeta(object):
                     "users": [{"username": UserName.ADMIN.value, "component": MySQLPrivComponent.MYSQL.value}],
                 }
             )
-            CcManage(self.bk_biz_id).delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
+            CcManage(self.bk_biz_id, db_type=DBType.MySQL.value).delete_service_instance(
+                bk_instance_ids=[storage.bk_instance_id]
+            )
 
             # 删除实例元数据信息
             api.storage_instance.delete(
@@ -447,7 +449,7 @@ class MySQLDBMeta(object):
                     proxy.storageinstance.remove(master_storage_objs)
                     proxy.storageinstance.add(slave_storage_objs)
 
-                cc_manage = CcManage(self.bk_biz_id)
+                cc_manage = CcManage(self.bk_biz_id, db_type=DBType.MySQL.value)
                 # 切换新master服务实例角色标签
                 cc_manage.add_label_for_service_instance(
                     bk_instance_ids=[slave_storage_objs.bk_instance_id],
@@ -570,7 +572,7 @@ class MySQLDBMeta(object):
                     "users": [{"username": UserName.ADMIN.value, "component": MySQLPrivComponent.MYSQL.value}],
                 }
             )
-            cc_manage = CcManage(self.bk_biz_id)
+            cc_manage = CcManage(self.bk_biz_id, db_type=DBType.MySQL.value)
             cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
             storage = StorageInstance.objects.get(
                 machine__ip=self.cluster["master_ip"], port=self.cluster["backend_port"]
@@ -730,7 +732,9 @@ class MySQLDBMeta(object):
                     port_list=[master.port],
                 )
                 api.cluster.tendbha.remove_slave(cluster_id=cluster.id, target_slave_ip=old_slave.machine.ip)
-                CcManage(self.bk_biz_id).delete_service_instance(bk_instance_ids=[old_slave.bk_instance_id])
+                CcManage(self.bk_biz_id, db_type=DBType.MySQL.value).delete_service_instance(
+                    bk_instance_ids=[old_slave.bk_instance_id]
+                )
                 # 删除实例元数据信息
                 api.storage_instance.delete(
                     [
@@ -868,7 +872,7 @@ class MySQLDBMeta(object):
                     port=port,
                 )
                 # 删除port之前先注销实例级别监控
-                cc_manage = CcManage(storage.bk_biz_id)
+                cc_manage = CcManage(storage.bk_biz_id, db_type=DBType.MySQL.value)
                 cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
                 storage.delete()
 

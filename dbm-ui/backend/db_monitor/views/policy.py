@@ -201,7 +201,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
                 )
             )
 
-        clusters = Cluster.objects.filter(cluster_type__in=ClusterType.db_type_to_cluster_type(dbtype))
+        clusters = Cluster.objects.filter(cluster_type__in=ClusterType.db_type_to_cluster_types(dbtype))
 
         return Response(clusters.values_list("immute_domain", flat=True))
 
@@ -216,7 +216,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     def db_module_list(self, request, *args, **kwargs):
         dbtype = self.validated_data["dbtype"]
         return Response(
-            DBModule.objects.filter(cluster_type__in=ClusterType.db_type_to_cluster_type(dbtype)).values(
+            DBModule.objects.filter(cluster_type__in=ClusterType.db_type_to_cluster_types(dbtype)).values(
                 "db_module_id", "db_module_name"
             )
         )

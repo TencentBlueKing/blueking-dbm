@@ -33,7 +33,7 @@ class QSearchHandler(object):
         self.cluster_types = []
         if self.db_types:
             for db_type in self.db_types:
-                self.cluster_types.extend(ClusterType.db_type_to_cluster_type(db_type))
+                self.cluster_types.extend(ClusterType.db_type_to_cluster_types(db_type))
 
     def search(self, keyword: str):
         result = {}

@@ -9,17 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from typing import Dict, List
+from typing import List
 
 from django.db import transaction
-from django.utils.translation import ugettext as _
 
 from backend.constants import DEFAULT_TIME_ZONE
 from backend.db_meta import request_validator
-from backend.db_meta.api import common
 from backend.db_meta.enums import AccessLayer, InstanceStatus
 from backend.db_meta.models import Machine, ProxyInstance
-from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("flow")
 
@@ -82,38 +79,39 @@ def update(proxies):
         proxy_obj.save()
 
 
-@transaction.atomic
-def decommission(instances: List[Dict]):
-    """
-    1. 仅支持 下架实例不在任何一个集群
-    必要条件：
-        1. 不属于任何一个集群 ;属于集群的实例，需要走集群内下架接口
-
-    场景：
-        1. 上架了，但未添加到集群
-        2. 从集群内清理掉了 ；调用了 delete_proxies()
-    """
-    logger.info("user request decmmission instances {}".format(instances))
-    proxy_objs = common.filter_out_instance_obj(instances, ProxyInstance.objects.all())
-
-    _t = common.in_another_cluster(proxy_objs)
-    if _t:
-        raise Exception(_("proxy {} 在集群里边").format(_t))
-
-    _t = common.not_exists(instances, ProxyInstance.objects.all())
-    if _t:
-        raise Exception(_("proxy {} 不存在").format(_t))
-
-    for proxy_obj in proxy_objs:
-        logger.info("remove proxy {} ".format(proxy_obj))
-        CcManage(proxy_obj.bk_biz_id).delete_service_instance(bk_instance_ids=[proxy_obj.bk_instance_id])
-
-        # 需要检查， 是否该机器上所有实例都已经清理干净，
-        if len(ProxyInstance.objects.filter(machine__ip=proxy_obj.machine.ip).all()) > 0:
-            logger.info("ignore storage machine {} , another instance existed.".format(proxy_obj.machine))
-        else:
-            logger.info("proxy machine {}".format(proxy_obj.machine))
-            CcManage(
-                proxy_obj.bk_biz_id,
-            ).recycle_host([proxy_obj.machine.bk_host_id])
-            proxy_obj.machine.delete()
+# @transaction.atomic
+# def decommission(instances: List[Dict]):
+#     """
+#     TODO：没使用到？待删除
+#     1. 仅支持 下架实例不在任何一个集群
+#     必要条件：
+#         1. 不属于任何一个集群 ;属于集群的实例，需要走集群内下架接口
+#
+#     场景：
+#         1. 上架了，但未添加到集群
+#         2. 从集群内清理掉了 ；调用了 delete_proxies()
+#     """
+#     logger.info("user request decmmission instances {}".format(instances))
+#     proxy_objs = common.filter_out_instance_obj(instances, ProxyInstance.objects.all())
+#
+#     _t = common.in_another_cluster(proxy_objs)
+#     if _t:
+#         raise Exception(_("proxy {} 在集群里边").format(_t))
+#
+#     _t = common.not_exists(instances, ProxyInstance.objects.all())
+#     if _t:
+#         raise Exception(_("proxy {} 不存在").format(_t))
+#
+#     for proxy_obj in proxy_objs:
+#         logger.info("remove proxy {} ".format(proxy_obj))
+#         CcManage(proxy_obj.bk_biz_id).delete_service_instance(bk_instance_ids=[proxy_obj.bk_instance_id])
+#
+#         # 需要检查， 是否该机器上所有实例都已经清理干净，
+#         if len(ProxyInstance.objects.filter(machine__ip=proxy_obj.machine.ip).all()) > 0:
+#             logger.info("ignore storage machine {} , another instance existed.".format(proxy_obj.machine))
+#         else:
+#             logger.info("proxy machine {}".format(proxy_obj.machine))
+#             CcManage(
+#                 proxy_obj.bk_biz_id,
+#             ).recycle_host([proxy_obj.machine.bk_host_id])
+#             proxy_obj.machine.delete()

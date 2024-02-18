@@ -28,7 +28,6 @@ class Command(BaseCommand):
         parser.add_argument("version", type=int, help="版本号")
 
     def update_json_file(self, f, template_dict):
-        # print(f"update json file: {f.name}")
         f.seek(0)
         f.write(json.dumps(template_dict, indent=2))
         f.truncate()
