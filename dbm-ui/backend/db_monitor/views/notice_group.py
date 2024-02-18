@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from collections import Counter
 
 import django_filters
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import action
@@ -43,7 +43,11 @@ class MonitorGroupListFilter(django_filters.FilterSet):
         # 2. 指定告警组名字查询
         name = self.form.cleaned_data.get("name", "")
         if name:
-            queryset = queryset.filter(name__icontains=name)
+            subquery = queryset.filter(name__icontains=name, db_type=OuterRef("db_type")).order_by("-bk_biz_id")
+        else:
+            # 优先获取业务下的告警组，没有则有则返回平台告警组
+            subquery = queryset.filter(db_type=OuterRef("db_type")).order_by("-bk_biz_id")
+        queryset = queryset.filter(bk_biz_id=Subquery(subquery.values("bk_biz_id")[:1])).order_by("-update_at")
 
         # 3. 获取业务下指定 db 类型的告警组，如果业务
         db_type = self.form.cleaned_data.get("db_type")
