@@ -12,6 +12,7 @@ import logging
 
 from django.db import transaction
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.utils.cc_manage import CcManage
@@ -60,7 +61,7 @@ def switch_proxy(cluster_ids: list, target_proxy_ip: str, origin_proxy_ip: str, 
 
     # 回收proxy实例
     for cluster in clusters:
-        cc_manage = CcManage(cluster.bk_biz_id)
+        cc_manage = CcManage(cluster.bk_biz_id, DBType.MySQL.value)
         for proxy in ProxyInstance.objects.filter(cluster=cluster, machine__ip=origin_proxy_ip).all():
             proxy.delete(keep_parents=True)
             if not proxy.machine.proxyinstance_set.exists():

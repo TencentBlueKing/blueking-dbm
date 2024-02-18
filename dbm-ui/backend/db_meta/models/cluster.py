@@ -239,7 +239,7 @@ class Cluster(AuditedModel):
         """
         if self.cluster_type == ClusterType.TenDBSingle:
             return self.storageinstance_set.first().port
-        elif self.cluster_type in [ClusterType.TenDBHA, *ClusterType.db_type_to_cluster_type(DBType.Redis)]:
+        elif self.cluster_type in [ClusterType.TenDBHA, *ClusterType.db_type_to_cluster_types(DBType.Redis)]:
             return self.proxyinstance_set.first().port
         elif self.cluster_type == ClusterType.TenDBCluster:
             spider_master_filter = Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)

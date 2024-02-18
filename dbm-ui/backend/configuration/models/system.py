@@ -74,7 +74,6 @@ class SystemSettings(AbstractSettings):
     def init_default_settings(cls, *args, **kwargs):
         """初始化system的默认配置"""
         for setting in constants.DEFAULT_SETTINGS:
-            # logger.info("init_default_settings get_or_create_setting: {0}".format(setting))
             cls.objects.get_or_create(
                 defaults={
                     "type": setting[1],
@@ -116,19 +115,6 @@ class SystemSettings(AbstractSettings):
             desc=constants.SystemSettingsEnum.get_choice_label(key),
         )
 
-    @classmethod
-    def get_exact_hosting_biz(cls, bk_biz_id: int) -> int:
-        """
-        查询业务在 CMDB 准确托管的业务
-        DBM 管理的机器托管有两类
-        1. 全部托管到 DBA 业务下（env.DBA_APP_BK_BIZ_ID）
-        2. 全部托管到业务下
-        不支持混合的情况
-        """
-        if bk_biz_id in cls.get_setting_value(constants.SystemSettingsEnum.INDEPENDENT_HOSTING_BIZS.value, default=[]):
-            return bk_biz_id
-        return env.DBA_APP_BK_BIZ_ID
-
 
 class BizSettings(AbstractSettings):
     """业务配置表"""
@@ -159,3 +145,17 @@ class BizSettings(AbstractSettings):
             user=user,
             desc=constants.BizSettingsEnum.get_choice_label(key),
         )
+
+    @classmethod
+    def get_exact_hosting_biz(cls, bk_biz_id: int, db_type: str) -> int:
+        """
+        根据数据库类型 查询业务在 CMDB 准确托管的业务
+        DBM 管理的机器托管有两类
+        1. 支持 MySQL 托管在 DBA 平台业务下，Redis 独立托管在业务下
+        2. 全部托管到业务下
+        """
+        if db_type in cls.get_setting_value(
+            bk_biz_id, constants.BizSettingsEnum.INDEPENDENT_HOSTING_DB_TYPES.value, default=[]
+        ):
+            return bk_biz_id
+        return env.DBA_APP_BK_BIZ_ID

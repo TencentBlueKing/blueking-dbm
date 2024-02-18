@@ -84,7 +84,7 @@ def remove_cluster(cluster_id, job_clean=True, cc_clean=True):
             logger.error("drop_cluster job_clean exception: cluster_id=%s, %s", cluster_id, e)
 
     if cc_clean and cluster_bk_host_ids:
-        cc_manage = CcManage(cluster.bk_biz_id)
+        cc_manage = CcManage(cluster.bk_biz_id, cluster.db_type)
         try:
             cc_manage.recycle_host(list(cluster_bk_host_ids))
         except Exception as e:  # pylint: disable=broad-except

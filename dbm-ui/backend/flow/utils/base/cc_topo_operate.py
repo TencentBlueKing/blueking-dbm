@@ -15,7 +15,7 @@ from typing import Dict, List, Union
 
 from django.db.models import QuerySet
 
-from backend.configuration.models import SystemSettings
+from backend.configuration.models import BizSettings
 from backend.constants import CommonInstanceLabels
 from backend.db_meta.enums import AccessLayer
 from backend.db_meta.models import AppCache, Cluster, ClusterMonitorTopo, ProxyInstance, StorageInstance
@@ -50,7 +50,7 @@ class CCTopoOperator:
         if len(bk_biz_ids) != 1:
             raise ValidationError("different cluster biz is not supporting")
         self.bk_biz_id = bk_biz_ids[0]
-        self.hosting_biz_id = SystemSettings.get_exact_hosting_biz(self.bk_biz_id)
+        self.hosting_biz_id = BizSettings.get_exact_hosting_biz(self.bk_biz_id, self.db_type)
         self.is_bk_module_created = False
 
     def create_bk_module(self):
@@ -60,7 +60,7 @@ class CCTopoOperator:
         if self.db_type is None:
             raise NotImplementedError(f"{self.__module__}db_type is not define")
         for cluster in self.clusters:
-            CcManage(bk_biz_id=cluster.bk_biz_id).get_or_create_set_module(
+            CcManage(bk_biz_id=cluster.bk_biz_id, db_type=self.db_type).get_or_create_set_module(
                 db_type=self.db_type,
                 cluster_type=cluster.cluster_type,
                 bk_module_name=cluster.immute_domain,
@@ -95,7 +95,7 @@ class CCTopoOperator:
                 )
             )
             # 批量转移主机
-            CcManage(self.bk_biz_id).transfer_host_module(bk_host_ids, bk_module_ids, is_increment)
+            CcManage(self.bk_biz_id, self.db_type).transfer_host_module(bk_host_ids, bk_module_ids, is_increment)
             # 创建 CMDB 服务实例
             self.init_instances_service(machine_type, ins_list)
 
@@ -204,7 +204,7 @@ class CCTopoOperator:
         """
         inst_labels = self.generate_ins_labels(cluster, ins, instance_role)
 
-        bk_instance_id = CcManage(self.bk_biz_id).add_service_instance(
+        bk_instance_id = CcManage(self.bk_biz_id, self.db_type).add_service_instance(
             bk_module_id=bk_module_id,
             bk_host_id=ins.machine.bk_host_id,
             listen_ip=ins.machine.ip,

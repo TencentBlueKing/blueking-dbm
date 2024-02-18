@@ -19,6 +19,7 @@ from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta import api
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
@@ -500,7 +501,7 @@ class RedisDBMeta(object):
         """1.修改状态、2.切换角色"""
         self.instances_status_update()
         with atomic():
-            cc_manage = CcManage(self.cluster["bk_biz_id"])
+            cc_manage = CcManage(self.cluster["bk_biz_id"], db_type=DBType.Redis.value)
             for port in self.cluster["meta_update_ports"]:
                 old_master = StorageInstance.objects.get(machine__ip=self.cluster["meta_update_ip"], port=port)
                 old_slave = old_master.as_ejector.get().receiver
@@ -622,7 +623,7 @@ class RedisDBMeta(object):
                 act_kwargs.cluster["role_swap_host"].append({"new_ejector":new_host_master,"new_receiver":old_master})
         """
 
-        cc_manage = CcManage(self.cluster["bk_biz_id"])
+        cc_manage = CcManage(self.cluster["bk_biz_id"], db_type=DBType.Redis.value)
         with atomic():
             for ins in self.cluster["role_swap_ins"]:
                 ins1 = StorageInstance.objects.get(machine__ip=ins["new_receiver_ip"], port=ins["new_receiver_port"])

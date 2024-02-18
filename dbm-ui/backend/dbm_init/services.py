@@ -131,7 +131,7 @@ class Services:
                 if hasattr(JsonConfigFormat, f"custom_modify_{log_name}"):
                     bklog_params = JsonConfigFormat.custom_modify(bklog_params, f"custom_modify_{log_name}")
                 # 如果存在对应的环境变量设置了日志自定义的保留天数，则进行更新
-                retention = getattr(env, f"BKLOG_{log_name.upper()}_RETENTION", env.BKLOG_DEFAULT_RETENTION)
+                retention = getattr(env, f"BKLOG_{log_name.upper()}_RETENTION", "") or env.BKLOG_DEFAULT_RETENTION
                 bklog_params["retention"] = retention
                 # 自定义了 ES 存储集群，则指定 storage_cluster_id
                 if env.BKLOG_STORAGE_CLUSTER_ID:

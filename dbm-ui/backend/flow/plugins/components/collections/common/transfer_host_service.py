@@ -30,7 +30,7 @@ class TransferHostService(BaseService):
         bk_host_ids = kwargs["bk_host_ids"]
         update_host_properties = kwargs.get("update_host_properties", None)
         try:
-            cc_manage = CcManage(bk_biz_id=bk_biz_id)
+            cc_manage = CcManage(bk_biz_id=bk_biz_id, db_type="")
             cc_manage.transfer_host_module(
                 bk_host_ids=bk_host_ids, target_module_ids=bk_module_ids, update_host_properties=update_host_properties
             )

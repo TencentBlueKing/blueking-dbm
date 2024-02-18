@@ -38,7 +38,6 @@ class Command(BaseCommand):
             obj.pop(id_name, None)
 
     def update_json_file(self, f, template_dict):
-        # print(f"update json file: {f.name}")
         f.seek(0)
         f.write(json.dumps(template_dict, indent=2))
         f.truncate()
@@ -104,7 +103,6 @@ class Command(BaseCommand):
                             promql = query_config["promql"]
                             if metric_id != promql:
                                 query_config["metric_id"] = promql
-                            # print(f"found promql style rule: {template_name}")
                         else:
                             # 奇怪，监控新版阉割了name
                             metric_field = query_config.get("metric_field")

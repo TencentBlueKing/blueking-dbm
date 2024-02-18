@@ -116,13 +116,11 @@ def sync_plat_monitor_policy():
                 )
 
                 if deleted:
-                    # print("[sync_plat_monitor_policy] delete old alarm: %s " % policy_name)
                     logger.info("[sync_plat_monitor_policy] delete old alarm: %s " % policy_name)
                     synced_policy.delete()
                     continue
 
                 if synced_policy.version >= policy.version:
-                    # print("[sync_plat_monitor_policy] skip same version alarm: %s " % policy_name)
                     logger.info("[sync_plat_monitor_policy] skip same version alarm: %s " % policy_name)
                     continue
 
@@ -130,7 +128,6 @@ def sync_plat_monitor_policy():
                     setattr(policy, keeped_field, getattr(synced_policy, keeped_field))
 
                 policy.details["id"] = synced_policy.monitor_policy_id
-                # print("[sync_plat_monitor_policy] update bkm alarm policy: %s " % policy_name)
                 logger.info("[sync_plat_monitor_policy] update bkm alarm policy: %s " % policy_name)
             except MonitorPolicy.DoesNotExist:
                 logger.info("[sync_plat_monitor_policy] create bkm alarm policy: %s " % policy_name)

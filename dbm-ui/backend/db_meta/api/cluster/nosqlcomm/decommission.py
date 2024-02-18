@@ -16,7 +16,6 @@ from typing import Dict, List
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import DBType
 from backend.db_meta.api import common
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceStatus
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
@@ -48,7 +47,7 @@ def decommission_proxies(cluster: Cluster, proxies: List[Dict], is_all: bool = F
             raise Exception(_("非集群下架模式,不允许直接下架所有实例 {}"), remain_objs)
 
         machine_obj = defaultdict(dict)
-        cc_manage = CcManage(cluster.bk_biz_id)
+        cc_manage = CcManage(cluster.bk_biz_id, ClusterType.cluster_type_to_db_type(cluster.cluster_type))
         cc_manage.delete_service_instance(bk_instance_ids=[obj.bk_instance_id for obj in proxy_objs])
         for proxy_obj in proxy_objs:
             logger.info("cluster proxy {} for cluster {}".format(proxy_obj, cluster.immute_domain))
@@ -98,7 +97,7 @@ def decommission_backends(cluster: Cluster, backends: List[Dict], is_all: bool =
         2. 不允许直接下架RUNNING状态实例
     """
     logger.info("user request decmmission backends {} {}".format(cluster.immute_domain, backends))
-    cc_manage = CcManage(cluster.bk_biz_id)
+    cc_manage = CcManage(cluster.bk_biz_id, ClusterType.cluster_type_to_db_type(cluster.cluster_type))
     try:
         storage_objs = common.filter_out_instance_obj(backends, cluster.storageinstance_set.all())
         _t = common.not_exists(backends, storage_objs)
@@ -160,10 +159,8 @@ def decommission_cluster(cluster: Cluster):
             cluster_entry_obj.delete()
 
         logger.info("cluster {}".format(cluster.__dict__))
-        db_type = DBType.Redis.value
-        if cluster.cluster_type in (ClusterType.MongoReplicaSet.value, ClusterType.MongoShardedCluster.value):
-            db_type = DBType.MongoDB.value
-        CcManage(cluster.bk_biz_id).delete_cluster_modules(db_type=db_type, cluster=cluster)
+        db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+        CcManage(cluster.bk_biz_id, db_type).delete_cluster_modules(db_type=db_type, cluster=cluster)
         cluster.delete()
 
     except Exception as e:
@@ -198,7 +195,8 @@ def decommission_instances(ip: str, bk_cloud_id: int, ports: List) -> bool:
 
     if not keep_machine:
         logger.info(" machine {}".format(ip))
-        CcManage(machine_obj.bk_biz_id).recycle_host([machine_obj.bk_host_id])
+        db_type = ClusterType.cluster_type_to_db_type(machine_obj.cluster_type)
+        CcManage(machine_obj.bk_biz_id, db_type).recycle_host([machine_obj.bk_host_id])
         machine_obj.delete()
 
     return True

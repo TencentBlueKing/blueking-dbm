@@ -72,6 +72,7 @@ class BizSettingsEnum(str, StructuredEnum):
     """配置的枚举项，建议将业务配置都录入到这里方便统一管理"""
 
     OPEN_AREA_VARS = EnumField("OPEN_AREA_VARS", _("开区模板的渲染变量"))
+    INDEPENDENT_HOSTING_DB_TYPES = EnumField("INDEPENDENT_HOSTING_DB_TYPES", _("独立托管机器的数据库类型"))
 
 
 DEFAULT_DB_ADMINISTRATORS = ["admin"]

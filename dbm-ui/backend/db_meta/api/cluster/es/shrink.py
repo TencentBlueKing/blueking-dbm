@@ -14,6 +14,7 @@ from typing import List, Optional
 from django.db import transaction
 from django.db.models import Q
 
+from backend.configuration.constants import DBType
 from backend.db_meta import request_validator
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
@@ -41,7 +42,7 @@ def shrink(
         storage.delete(keep_parents=True)
         if not storage.machine.storageinstance_set.exists():
             # 这个 api 不需要检查返回值, 转移主机到待回收模块，转移模块这里会把服务实例删除
-            CcManage(storage.bk_biz_id).recycle_host([storage.machine.bk_host_id])
+            CcManage(storage.bk_biz_id, DBType.Es.value).recycle_host([storage.machine.bk_host_id])
             storage.machine.delete(keep_parents=True)
 
     # 修正entry到instance的关系

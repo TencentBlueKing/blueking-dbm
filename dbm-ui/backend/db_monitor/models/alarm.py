@@ -614,42 +614,25 @@ class MonitorPolicy(AuditedModel):
 
         self.local_save()
 
-    def patch_bk_biz_id(self, details, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
+    @staticmethod
+    def patch_bk_biz_id(details):
         """策略要跟随主机所属的cc业务，默认为dba业务"""
-        host_biz_id = SystemSettings.get_exact_hosting_biz(bk_biz_id)
-        details["bk_biz_id"] = host_biz_id
+        details["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
         return details
 
-    def patch_target_and_metric_id(self, details):
+    @staticmethod
+    def patch_target_and_metric_id(details):
         """监控目标/自定义事件和指标需要渲染
         metric_id: {bk_biz_id}_bkmoinitor_event_{event_data_id}
         """
 
-        bkm_dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
+        bkm_dbm_report: dict = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
 
         items = details["items"]
         # 事件类告警，无需设置告警目标，否则要求上报的数据必须携带服务实例id（告警目标匹配依据）
         for item in items:
             # 去掉目标范围，支持跨业务告警
             item["target"] = []
-            # 更新监控目标为db_type对应的cmdb拓扑
-            # item["target"] = (
-            #     [
-            #         [
-            #             {
-            #                 "field": "host_topo_node",
-            #                 "method": "eq",
-            #                 "value": [
-            #                     {"bk_inst_id": obj["bk_set_id"], "bk_obj_id": "set"}
-            #                     for obj in AppMonitorTopo.get_set_by_dbtype(db_type=self.db_type)
-            #                 ],
-            #             }
-            #         ]
-            #     ]
-            #     if self.alert_source == AlertSourceEnum.TIME_SERIES.value
-            #     else []
-            # )
-
             for query_config in item["query_configs"]:
                 # data_type_label: time_series | event(自定义上报，需要填充data_id)
                 if query_config["data_type_label"] != "event":

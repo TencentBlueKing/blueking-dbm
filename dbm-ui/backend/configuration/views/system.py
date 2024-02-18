@@ -94,9 +94,9 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                 "BK_DBM_URL": env.BK_SAAS_HOST,
                 "DBA_APP_BK_BIZ_ID": env.DBA_APP_BK_BIZ_ID,
                 "DBA_APP_BK_BIZ_NAME": AppCache.get_biz_name(env.DBA_APP_BK_BIZ_ID),
-                "CC_IDLE_MODULE_ID": CcManage(env.DBA_APP_BK_BIZ_ID).get_biz_internal_module(env.DBA_APP_BK_BIZ_ID)[
-                    IDLE_HOST_MODULE
-                ]["bk_module_id"],
+                "CC_IDLE_MODULE_ID": CcManage(env.DBA_APP_BK_BIZ_ID, "").get_biz_internal_module(
+                    env.DBA_APP_BK_BIZ_ID
+                )[IDLE_HOST_MODULE]["bk_module_id"],
                 "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value),
                 "AFFINITY": SystemSettings.get_setting_value(key=SystemSettingsEnum.AFFINITY.value),
             }

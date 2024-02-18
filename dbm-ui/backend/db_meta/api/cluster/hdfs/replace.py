@@ -13,6 +13,7 @@ from typing import List, Optional
 
 from django.db import transaction
 
+from backend.configuration.constants import DBType
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import InstanceRole
@@ -52,7 +53,7 @@ def replace(
         storage.delete(keep_parents=True)
         if not storage.machine.storageinstance_set.exists():
             # 将机器挪到 待回收模块
-            CcManage(storage.bk_biz_id).recycle_host([storage.machine.bk_host_id])
+            CcManage(storage.bk_biz_id, DBType.Hdfs.value).recycle_host([storage.machine.bk_host_id])
             storage.machine.delete(keep_parents=True)
     cluster.storageinstance_set.remove(*storage_objs)
     cluster.save()

@@ -13,6 +13,7 @@ from typing import List, Optional
 
 from django.db import transaction
 
+from backend.configuration.constants import DBType
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
@@ -39,10 +40,12 @@ def shrink(
         storage.delete(keep_parents=True)
         if not storage.machine.storageinstance_set.exists():
             # 将机器挪到待回收模块
-            CcManage(storage.bk_biz_id).recycle_host([storage.machine.bk_host_id])
+            CcManage(storage.bk_biz_id, DBType.Kafka.value).recycle_host([storage.machine.bk_host_id])
             storage.machine.delete(keep_parents=True)
         else:
-            CcManage(storage.bk_biz_id).delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
+            CcManage(storage.bk_biz_id, DBType.Kafka.value).delete_service_instance(
+                bk_instance_ids=[storage.bk_instance_id]
+            )
 
     cluster.storageinstance_set.remove(*storage_objs)
     cluster.save()
