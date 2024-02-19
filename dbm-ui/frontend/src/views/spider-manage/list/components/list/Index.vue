@@ -565,7 +565,7 @@
       label: t('创建时间'),
       field: 'create_at',
       width: 160,
-      render: ({ data }: IColumn) => <span>{data.create_at || '--'}</span>,
+      render: ({ data }: IColumn) => <span>{data.createAtDisplay || '--'}</span>,
     },
     {
       label: t('时区'),

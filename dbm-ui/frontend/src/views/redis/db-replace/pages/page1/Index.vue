@@ -266,6 +266,10 @@
     sortTableByCluster();
     const ipsArr = selected.value.idleHosts;
     selected.value.idleHosts = ipsArr.filter(item => ![removeIp, masterIp].includes(item.ip));
+    if (tableData.value.length === 0) {
+      tableData.value = [createRowData()];
+      return;
+    }
   };
 
   // 根据表格数据生成提交单据请求参数

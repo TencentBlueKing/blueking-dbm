@@ -269,7 +269,7 @@ export enum TicketTypes {
   RIAK_CLUSTER_SCALE_OUT = 'RIAK_CLUSTER_SCALE_OUT', // Riak 集群扩容
   RIAK_CLUSTER_SCALE_IN = 'RIAK_CLUSTER_SCALE_IN', // Riak 集群缩容
   RIAK_CLUSTER_REBOOT = 'RIAK_CLUSTER_REBOOT' // Riak 节点重启
- }
+}
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
 /**
@@ -415,7 +415,8 @@ export enum UserPersonalSettings {
  */
 export enum OccupiedInnerHeight {
   WITH_PAGINATION = 218,
-  NOT_PAGINATION = 202
+  NOT_PAGINATION = 202,
+  NOT_PAGINATION_WITH_TIP = 284,
 }
 
 /**

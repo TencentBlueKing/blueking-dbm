@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
 import {
   isRecentDays,
   utcDisplayTime,
@@ -144,8 +143,12 @@ export default class Partition {
     return this.status === Partition.STATUS_FAILED;
   }
 
-  get isEnabled() {
+  get isOnline() {
     return this.phase === 'online';
+  }
+
+  get isOffline() {
+    return this.phase === 'offline';
   }
 
   get executeTimeDisplay() {
