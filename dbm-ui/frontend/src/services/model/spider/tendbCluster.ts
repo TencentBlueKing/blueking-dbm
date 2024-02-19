@@ -13,6 +13,8 @@
 
 import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
+import { utcDisplayTime } from '@utils';
+
 import { t } from '@locales/index';
 
 export type InstanceSpecInfo = {
@@ -254,6 +256,10 @@ export default class TendbCluster {
       tip: TendbCluster.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 
   initOperations(payload = [] as TendbCluster['operations']) {
