@@ -179,6 +179,9 @@
 
   // 输入IP后查询详细信息
   const handleChangeHostIp = async (index: number, ip: string) => {
+    if (ip === tableData.value[index].ip) {
+      return;
+    }
     if (!ip) {
       const { ip } = tableData.value[index];
       ipMemo[ip] = false;
@@ -196,25 +199,25 @@
       return;
     }
     const data = ret[0];
-    if (data.instances.filter(item => item.status !== 'running').length > 0) {
-      const obj = {
-        rowKey: tableData.value[index].rowKey,
-        isLoading: false,
-        ip,
-        clusterId: data.cluster.id,
-        cluster: data.cluster?.immute_domain,
-        masters: data.instances.map(item => item.instance),
-        slave: data.slave_ip,
-      };
-      tableData.value[index] = obj;
-      ipMemo[ip]  = true;
-      selected.value.redis.push(Object.assign(data, {
-        cluster_id: obj.clusterId,
-        ip,
-      }));
-    } else {
-      tableData.value[index].ip = '';
-    }
+    // if (data.instances.filter(item => item.status !== 'running').length > 0) {
+    const obj = {
+      rowKey: tableData.value[index].rowKey,
+      isLoading: false,
+      ip,
+      clusterId: data.cluster.id,
+      cluster: data.cluster?.immute_domain,
+      masters: data.instances.map(item => item.instance),
+      slave: data.slave_ip,
+    };
+    tableData.value[index] = obj;
+    ipMemo[ip]  = true;
+    selected.value.redis.push(Object.assign(data, {
+      cluster_id: obj.clusterId,
+      ip,
+    }));
+    // } else {
+    //   tableData.value[index].ip = '';
+    // }
   };
 
   // 追加一个集群

@@ -29,6 +29,7 @@
     </div>
     <DbTable
       ref="tableRef"
+      class="partition-table"
       :columns="tableColumn"
       :data-source="getList"
       :row-class="getRowClass"
@@ -129,16 +130,25 @@
       field: 'id',
       fixed: true,
       render: ({ data }: {data: PartitionModel}) => (
-        <span>
+        <div class="id-container">
           <span>{data.id}</span>
           {
-          data.isNew && (
-            <span
-              class="glob-new-tag cluster-tag ml-4"
-              data-text="NEW" />
-          )
-        }
-        </span>
+            data.isNew && (
+              <span
+                class="glob-new-tag cluster-tag ml-4"
+                data-text="NEW" />
+            )
+          }
+          {
+            data.isOffline && (
+              <db-icon
+                svg
+                type="yijinyong"
+                class="cluster-tag ml-4"
+                style="width: 38px; height: 16px;" />
+            )
+          }
+        </div>
       ),
     },
     {
@@ -232,7 +242,7 @@
               </router-link>
             );
           }
-          if (!data.isEnabled) {
+          if (!data.isOnline) {
             return (
               <auth-button
                 theme="primary"
@@ -289,7 +299,7 @@
                 default: () => (
                   <>
                     {
-                      data.isEnabled && (
+                      data.isOnline && (
                         <auth-button
                           text
                           theme="primary"
@@ -331,7 +341,16 @@
     },
   ];
 
-  const getRowClass = (data: PartitionModel) => (data.isNew ? 'is-new-row' : '');
+  const getRowClass = (data: PartitionModel) => {
+    const classList: string[] = [];
+    if (data.isOffline) {
+      classList.push('is-offline');
+    }
+    if (data.isNew) {
+      classList.push('is-new-row');
+    }
+    return classList.join(' ');
+  };
 
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValues.value);
@@ -460,6 +479,13 @@
 
       &:hover{
         background: #dcdee5;
+      }
+    }
+
+    .partition-table {
+      .id-container {
+        display: flex;
+        align-items: center;
       }
     }
   }

@@ -281,7 +281,7 @@
                     data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
                   }
                   <db-icon
-                    v-show={!data.isOnline && !data.isRebooting}
+                    v-show={!data.isOnline && !data.isStarting}
                     class="cluster-tag"
                     svg
                     type="yijinyong"

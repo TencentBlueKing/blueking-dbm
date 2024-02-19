@@ -15,7 +15,6 @@
   <div class="permission-rules-page">
     <BkAlert
       class="permission-info-alert"
-      closable
       theme="info">
       <template #title>
         <p>
@@ -46,7 +45,6 @@
     </div>
     <BkLoading :loading="state.isLoading">
       <DbOriginalTable
-        class="permission-rules-table"
         :columns="columns"
         :data="state.data"
         :is-anomalies="state.isAnomalies"
@@ -207,7 +205,7 @@
 
   const rowExpandMap = shallowRef<Record<number, boolean>>({});
 
-  const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
+  const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION_WITH_TIP);
 
   const columns = [
     {
