@@ -777,7 +777,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 
 		// 初始化schema
 		if _, err := dbWork.ExecMore(initSQLs); err != nil {
-			logger.Error("flush privileges failed %v", err)
+			logger.Error("init %d schema failed for %v", port, err)
 			return err
 		}
 		version, err := dbWork.SelectVersion()
@@ -795,6 +795,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 				return err
 			}
 			initAccountSqls = i.generateDefaultSpiderAccount(version)
+			i.AvoidReset = true // spider 有可能没开 binlog，reset master 会报错
 		case strings.Contains(version, "tdbctl"):
 			// 对tdbctl 初始化权限
 			initAccountSqls = append(initAccountSqls, "set tc_admin = 0;")
@@ -811,7 +812,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 		}
 
 		if _, err := dbWork.ExecMore(initAccountSqls); err != nil {
-			logger.Error("flush privileges failed %v", err)
+			logger.Error("flush privileges failed for %d %v", port, err)
 			return err
 		}
 	}

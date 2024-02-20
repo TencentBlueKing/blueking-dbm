@@ -136,9 +136,14 @@ func reMigrateConfigPlat() error {
 
 	for i, sql := range sqlStrs {
 		if i == 0 {
-			if _, err := db.Exec(sql); err != nil {
+			if ret, err := db.Exec(sql); err != nil {
 				// 更新 migrate 元数据失败，退出，同时忽略本次 reMigrate 动作
 				return nil
+			} else {
+				if cnt, _ := ret.RowsAffected(); cnt == 0 { // reset
+					//_, _ = db.Exec("drop table if exists schema_migrations")
+					return nil
+				}
 			}
 			logger.Warnf("reset migrate to %d", migratespec.SensitiveMigVer)
 		} else {
