@@ -83,6 +83,7 @@ class TenDBClusterAddSpiderMNTFlow(object):
                     cluster=cluster,
                     add_spider_masters=sub_flow_context["spider_ip_list"],
                     root_id=self.root_id,
+                    uid=sub_flow_context["uid"],
                     parent_global_data=sub_flow_context,
                     is_add_spider_mnt=True,
                 )

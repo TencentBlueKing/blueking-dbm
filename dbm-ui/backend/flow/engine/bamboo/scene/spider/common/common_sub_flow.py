@@ -12,7 +12,6 @@ from dataclasses import asdict
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
-from backend import env
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
@@ -20,14 +19,13 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, TDBCTL_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow, init_machine_sub_flow
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent, SysInitComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_spider_routing import AddSpiderRoutingComponent
 from backend.flow.plugins.components.collections.spider.ctl_drop_routing import CtlDropRoutingComponent
@@ -58,6 +56,7 @@ from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
 
 def add_spider_slaves_sub_flow(
+    uid: int,
     cluster: Cluster,
     slave_domain: str,
     add_spider_slaves: list,
@@ -87,20 +86,17 @@ def add_spider_slaves_sub_flow(
 
     # 机器系统初始化
     exec_ips = [ip_info["ip"] for ip_info in add_spider_slaves]
-    sub_pipeline.add_act(
-        act_name=_("初始化机器"),
-        act_component_code=SysInitComponent.code,
-        kwargs={"exec_ip": exec_ips, "bk_cloud_id": cluster.bk_cloud_id},
-    )
-
-    # 判断是否需要执行按照MySQL Perl依赖
-    if env.YUM_INSTALL_PERL:
-        exec_act_kwargs.exec_ip = exec_ips
-        sub_pipeline.add_act(
-            act_name=_("安装MySQL Perl相关依赖"),
-            act_component_code=MySQLOsInitComponent.code,
-            kwargs=asdict(exec_act_kwargs),
+    # 初始新机器
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=init_machine_sub_flow(
+            uid=uid,
+            root_id=root_id,
+            bk_cloud_id=int(cluster.bk_cloud_id),
+            sys_init_ips=exec_ips,
+            init_check_ips=exec_ips,
+            yum_install_perl_ips=exec_ips,
         )
+    )
 
     # 阶段1 下发spider安装介质包
     sub_pipeline.add_act(
@@ -207,6 +203,7 @@ def add_spider_masters_sub_flow(
     cluster: Cluster,
     add_spider_masters: list,
     root_id: str,
+    uid: int,
     parent_global_data: dict,
     is_add_spider_mnt: bool,
 ):
@@ -234,21 +231,19 @@ def add_spider_masters_sub_flow(
         bk_cloud_id=cluster.bk_cloud_id,
     )
     # 机器系统初始化
-    exec_ips = [ip_info["ip"] for ip_info in add_spider_masters]
-    sub_pipeline.add_act(
-        act_name=_("初始化机器"),
-        act_component_code=SysInitComponent.code,
-        kwargs={"exec_ip": exec_ips, "bk_cloud_id": cluster.bk_cloud_id},
-    )
-    # 判断是否需要执行按照MySQL Perl依赖
-    if env.YUM_INSTALL_PERL:
-        exec_act_kwargs.exec_ip = exec_ips
-        sub_pipeline.add_act(
-            act_name=_("安装MySQL Perl相关依赖"),
-            act_component_code=MySQLOsInitComponent.code,
-            kwargs=asdict(exec_act_kwargs),
-        )
 
+    exec_ips = [ip_info["ip"] for ip_info in add_spider_masters]
+    # 初始新机器
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=init_machine_sub_flow(
+            uid=uid,
+            root_id=root_id,
+            bk_cloud_id=int(cluster.bk_cloud_id),
+            sys_init_ips=exec_ips,
+            init_check_ips=exec_ips,
+            yum_install_perl_ips=exec_ips,
+        )
+    )
     # 阶段1 下发spider安装介质包
     sub_pipeline.add_act(
         act_name=_("下发spider安装介质"),

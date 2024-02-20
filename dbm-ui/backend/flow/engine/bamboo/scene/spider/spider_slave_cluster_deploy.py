@@ -89,6 +89,7 @@ class TenDBSlaveClusterApplyFlow(object):
                     cluster=cluster,
                     add_spider_slaves=info["spider_slave_ip_list"],
                     root_id=self.root_id,
+                    uid=self.data["uid"],
                     parent_global_data=copy.deepcopy(sub_flow_context),
                     slave_domain=info["slave_domain"],
                 )

@@ -86,6 +86,7 @@ class MySQLHAApplyFlow(object):
             )
 
             clusters = []
+            bk_host_ids = []
             for number, cluster in enumerate(info["clusters"]):
                 # 分配部署proxy_port、mysql_port、ip 、cluster的关系
                 cluster["new_master_ip"] = info["mysql_ip_list"][0]["ip"]
@@ -96,6 +97,10 @@ class MySQLHAApplyFlow(object):
                 cluster["mysql_port"] = sub_flow_context["mysql_ports"][number]
                 cluster["proxy_port"] = sub_flow_context["proxy_ports"][number]
                 clusters.append(cluster)
+                bk_host_ids.append(info["mysql_ip_list"][0]["bk_host_id"])
+                bk_host_ids.append(info["mysql_ip_list"][1]["bk_host_id"])
+                bk_host_ids.append(info["proxy_ip_list"][0]["bk_host_id"])
+                bk_host_ids.append(info["proxy_ip_list"][1]["bk_host_id"])
             sub_flow_context["clusters"] = clusters
 
             # 声明子流程
@@ -116,6 +121,7 @@ class MySQLHAApplyFlow(object):
                     sys_init_ips=[ip_info["ip"] for ip_info in info["mysql_ip_list"] + info["proxy_ip_list"]],
                     init_check_ips=[ip_info["ip"] for ip_info in info["mysql_ip_list"] + info["proxy_ip_list"]],
                     yum_install_perl_ips=[ip_info["ip"] for ip_info in info["mysql_ip_list"] + info["proxy_ip_list"]],
+                    bk_host_ids=bk_host_ids,
                 )
             )
 

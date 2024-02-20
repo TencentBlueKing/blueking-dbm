@@ -105,6 +105,7 @@ class MySQLSingleApplyFlow(object):
             )
 
             # 初始新机器
+            # 初始新机器
             sub_pipeline.add_sub_pipeline(
                 sub_flow=init_machine_sub_flow(
                     uid=sub_flow_context["uid"],
