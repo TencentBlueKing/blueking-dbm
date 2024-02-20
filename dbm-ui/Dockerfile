@@ -10,7 +10,6 @@ FROM frontend-installer AS frontend-builder
 
 WORKDIR /frontend
 COPY frontend ./
-RUN npm install vite@latest
 ENV NODE_OPTIONS="--max_old_space_size=4096"
 RUN yarn build
 
@@ -48,7 +47,6 @@ WORKDIR /
 # Do all of this in one RUN to limit final image size.
 RUN set -ex &&  \
     apt-get update && \
-    apt-get install --allow-downgrades -y libc6=2.36-9+deb12u3 && \
     apt-get install -y --no-install-recommends \
     gcc gettext mariadb-client default-libmysqlclient-dev g++ pkg-config && \
     rm -rf /var/lib/apt/lists/*
@@ -70,7 +68,6 @@ FROM base AS base-app
 # 安装运行时依赖
 RUN set -ex &&  \
     apt-get update && \
-    apt-get install --allow-downgrades -y libc6=2.36-9+deb12u3 && \
     apt-get install -y --no-install-recommends \
         gettext curl iputils-ping procps vim default-libmysqlclient-dev && \
     rm -rf /var/lib/apt/lists/*
