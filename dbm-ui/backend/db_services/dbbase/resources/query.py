@@ -486,7 +486,13 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param offset: 分页查询, 当前页的偏移数
         @param filter_params_map: 过滤参数map
         """
-        query_filters = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        cluster_types = cls.cluster_types
+        if not cluster_types:
+            if query_params.get("type"):
+                cluster_types = [query_params.get("type")]
+            elif query_params.get("db_type"):
+                cluster_types = ClusterType.db_type_to_cluster_type(query_params["db_type"])
+        query_filters = Q(bk_biz_id=bk_biz_id, cluster_type__in=cluster_types)
 
         # 定义内置的过滤参数map
         inner_filter_params_map = {
@@ -594,6 +600,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
         """
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        bk_cloud_name = cloud_info.get(str(instance["machine__bk_cloud_id"]), {}).get("bk_cloud_name", "")
         return {
             "id": instance["id"],
             "cluster_id": instance["cluster__id"],
@@ -602,7 +609,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "version": instance["cluster__major_version"],
             "db_module_id": instance["cluster__db_module_id"],
             "bk_cloud_id": instance["machine__bk_cloud_id"],
-            "bk_cloud_name": cloud_info[str(instance["machine__bk_cloud_id"])]["bk_cloud_name"],
+            "bk_cloud_name": bk_cloud_name,
             "ip": instance["machine__ip"],
             "port": instance["port"],
             "instance_address": f"{instance['machine__ip']}{IP_PORT_DIVIDER}{instance['port']}",
