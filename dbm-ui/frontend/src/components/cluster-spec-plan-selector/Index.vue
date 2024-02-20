@@ -166,12 +166,13 @@
       trailing: true,
     },
     onSuccess({ max, min }) {
-      if (!max || !min) {
+      if (!max && !min) {
         sliderProps.max = 0;
         sliderProps.min = 0;
         sliderProps.disabled = true;
         return;
       }
+
       sliderProps.value = [min, max];
       sliderProps.max = max;
       sliderProps.min = min;
