@@ -16,7 +16,6 @@ from typing import Dict, List, Optional
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
-from backend import env
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
@@ -26,6 +25,7 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_repl_by_manual_input_sub_flow,
     build_surrounding_apps_sub_flow,
+    init_machine_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
     build_apps_for_spider_sub_flow,
@@ -33,7 +33,6 @@ from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
 )
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent, SysInitComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_system_user_in_cluster import (
     AddSystemUserInClusterComponent,
@@ -186,27 +185,25 @@ class TenDBClusterApplyFlow(object):
             cluster_type=ClusterType.TenDBCluster,
         )
 
-        # 机器系统初始化
-        exec_ips = [ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]]
-        deploy_pipeline.add_act(
-            act_name=_("初始化机器"),
-            act_component_code=SysInitComponent.code,
-            kwargs={
-                "exec_ip": exec_ips,
-                "bk_cloud_id": int(self.data["bk_cloud_id"]),
-            },
-        )
-        # 判断是否需要执行按照MySQL Perl依赖
-        if env.YUM_INSTALL_PERL:
-            exec_act_kwargs.exec_ip = [
-                ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]
-            ]
-            deploy_pipeline.add_act(
-                act_name=_("安装MySQL Perl相关依赖"),
-                act_component_code=MySQLOsInitComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
+        bk_host_ids = []
+        for spider in self.data["spider_ip_list"]:
+            bk_host_ids.append(spider["bk_host_id"])
+        for remote in self.data["mysql_ip_list"]:
+            bk_host_ids.append(remote["bk_host_id"])
 
+        deploy_pipeline.add_sub_pipeline(
+            sub_flow=init_machine_sub_flow(
+                uid=self.data["uid"],
+                root_id=self.root_id,
+                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                sys_init_ips=[ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]],
+                init_check_ips=[ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]],
+                yum_install_perl_ips=[
+                    ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]
+                ],
+                bk_host_ids=bk_host_ids,
+            )
+        )
         # 阶段1 并行分发安装文件
         deploy_pipeline.add_parallel_acts(
             acts_list=[
