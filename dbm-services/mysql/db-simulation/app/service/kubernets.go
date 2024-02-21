@@ -365,10 +365,6 @@ func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 	// 从中控dump的schema文件,默认是添加了tc_admin=0,需要删除
 	// 因为模拟执行是需要将中控进行sql转发
 	commands = append(commands, fmt.Sprintf("sed -i '/50720 SET tc_admin=0/d' %s", file))
-	// sed 's/CREATE definer=.*@.* PROCEDURE/CREATE definer=`root`@`localhost` PROCEDURE/gI'
-	// 需要处理存储过程、函数的definer，因为拉起的pod是root用户，所以需要将definer修改为root
-	commands = append(commands, fmt.Sprintf(
-		"sed -i 's/CREATE definer=.*@.* $/CREATE definer=`root`@`localhost` /gI' %s", file))
 	commands = append(commands, fmt.Sprintf("mysql -uroot -p%s --default-character-set=%s -vvv < %s", k.BaseInfo.RootPwd,
 		k.BaseInfo.Charset, file))
 	return strings.Join(commands, " && ")
