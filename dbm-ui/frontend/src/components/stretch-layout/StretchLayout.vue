@@ -46,7 +46,8 @@
 
   export const provideKey: InjectionKey<{
     isOpen: Ref<boolean>,
-    splitScreen: () => void
+    splitScreen: () => void,
+    handleOpenChange: (direction: string) => void,
   }> = Symbol.for('stretch-layout');
 </script>
 <script setup lang="ts">
@@ -116,6 +117,7 @@
       }
       handleOpenChange('left');
     },
+    handleOpenChange,
   });
 
   onMounted(() => {

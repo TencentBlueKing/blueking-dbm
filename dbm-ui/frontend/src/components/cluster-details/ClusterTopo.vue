@@ -92,6 +92,8 @@
   import { getRedisTopoGraph } from '@services/source/redis';
   import { getRiakTopoGraph } from '@services/source/riak';
   import { getSpiderTopoGraph } from '@services/source/spider';
+  import { getHaClusterTopoGraph } from '@services/source/sqlserveHaCluster';
+  import { getSingleClusterTopoGraph } from '@services/source/sqlserverSingleCluster';
   import { getTendbhaTopoGraph } from '@services/source/tendbha';
   import { getTendbsingleTopoGraph } from '@services/source/tendbsingle';
 
@@ -136,6 +138,8 @@
     tendbha: getTendbhaTopoGraph,
     tendbcluster: getSpiderTopoGraph,
     riak: getRiakTopoGraph,
+    sqlserver_ha: getHaClusterTopoGraph,
+    sqlserver_single: getSingleClusterTopoGraph,
   };
 
   /** 拓扑功能 */
