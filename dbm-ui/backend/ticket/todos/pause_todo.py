@@ -55,7 +55,7 @@ class ResourceReplenishTodo(todos.TodoActor):
 
         # 终止单据
         if action == ActionType.TERMINATE:
-            self.todo.set_failed(username, action)
+            self.todo.set_terminated(username, action)
             return
 
         # 尝试重新申请资源，申请成功则关闭todo单
