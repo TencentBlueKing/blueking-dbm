@@ -41,7 +41,8 @@ func (m *SecurityRulePara) AddSecurityRule(jsonPara string) error {
 	}
 	insertTime := time.Now()
 	// 添加规则
-	rule := &TbSecurityRules{Name: m.Name, Rule: m.Rule, Creator: m.Operator, CreateTime: insertTime}
+	rule := &TbSecurityRules{Name: m.Name, Rule: m.Rule, Creator: m.Operator, CreateTime: insertTime,
+		UpdateTime: insertTime}
 	err = DB.Self.Model(&TbSecurityRules{}).Create(&rule).Error
 	if err != nil {
 		return err

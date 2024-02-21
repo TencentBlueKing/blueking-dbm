@@ -67,14 +67,15 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 		}
 		psw = fmt.Sprintf(`{"sm4":"%s"}`, psw)
 	}
+	vtime := time.Now()
 	account = &TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User, Psw: psw, Creator: m.Operator,
-		CreateTime: time.Now(), Sid: m.Sid}
+		CreateTime: vtime, UpdateTime: vtime, Sid: m.Sid}
 	err = DB.Self.Model(&TbAccounts{}).Create(&account).Error
 	if err != nil {
 		return err
 	}
 
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
+	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: vtime}
 	AddPrivLog(log)
 	return nil
 }
@@ -233,7 +234,8 @@ func EncryptPswInDb(psw string) (string, error) {
 	}
 	var result Psw
 	// 获取2种密文：mysql_old_password,mysql_native_password，密码为 json 格式，新增加密方式，方便扩展
-	err := DBVersion56.Self.Table("user").Select("OLD_PASSWORD(?) AS old_psw,PASSWORD(?) AS psw", psw, psw).Take(&result).
+	err := DBVersion56.Self.Table("user").Select("OLD_PASSWORD(?) AS old_psw,PASSWORD(?) AS psw", psw,
+		psw).Take(&result).
 		Error
 
 	if err != nil {
