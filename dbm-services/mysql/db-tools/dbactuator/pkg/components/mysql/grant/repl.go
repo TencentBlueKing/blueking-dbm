@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
@@ -93,13 +94,22 @@ func (g *GrantReplComp) GrantRepl() (err error) {
 	}
 
 	for _, replHost := range g.Params.ReplHosts {
-		if err = native.DropUserIfExists(replUser, replHost, conn); err != nil {
-			return err
+		var grantSQL string
+		if cmutil.MySQLVersionParse(g.masterVersion) > cmutil.MySQLVersionParse("5.6") {
+			if err = native.DropUserIfExists(replUser, replHost, conn); err != nil {
+				return err
+			}
+			if err = native.CreateUserIfNotExists(replUser, replHost, replPass, conn); err != nil {
+				return err
+			}
+			grantSQL = fmt.Sprintf("GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%s`;", replUser, replHost)
+		} else {
+			// 兼容MySQL5.5 版本的授权
+			grantSQL = fmt.Sprintf("GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%s` IDENTIFIED BY '%s';",
+				replUser,
+				replHost,
+				replPass)
 		}
-		if err = native.CreateUserIfNotExists(replUser, replHost, replPass, conn); err != nil {
-			return err
-		}
-		grantSQL := fmt.Sprintf("GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%s`;", replUser, replHost)
 		if _, err = conn.ExecContext(ctx, grantSQL); err != nil {
 			return err
 		}
