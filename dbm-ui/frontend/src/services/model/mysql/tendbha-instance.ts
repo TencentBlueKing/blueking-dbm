@@ -11,9 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import {
-  utcDisplayTime,
-} from '@utils';
+import { utcDisplayTime } from '@utils';
 export default class tendbhaInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -23,6 +21,38 @@ export default class tendbhaInstance {
   cluster_type: string;
   create_at: string;
   db_module_id: number;
+  host_info: {
+    alive: number,
+    biz: {
+      id: number,
+      name: string,
+    },
+    cloud_area: {
+      id: number,
+      name: string,
+    },
+    cloud_id: number,
+    host_id: number,
+    host_name?: string,
+    ip: string,
+    ipv6: string,
+    meta: {
+      bk_biz_id: number,
+      scope_id: number,
+      scope_type: string
+    },
+    scope_id: string,
+    scope_type: string,
+    os_name: string,
+    bk_cpu?: number,
+    bk_disk?: number,
+    bk_mem?: number,
+    os_type: string,
+    agent_id: number,
+    cpu: string,
+    cloud_vendor: string,
+    bk_idc_name?: string,
+  };
   id: number;
   instance_address: string;
   ip: string;
@@ -63,6 +93,7 @@ export default class tendbhaInstance {
     this.cluster_type = payload.cluster_type || '';
     this.create_at = payload.create_at || '';
     this.db_module_id = payload.db_module_id || 0;
+    this.host_info = payload.host_info || {};
     this.id = payload.id || 0;
     this.instance_address = payload.instance_address || '';
     this.ip = payload.ip || '';

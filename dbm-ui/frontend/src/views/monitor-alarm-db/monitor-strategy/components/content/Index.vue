@@ -38,6 +38,7 @@
     :cluster-list="clusterList"
     :data="currentChoosedRow"
     :db-type="activeDbType"
+    :default-notify-id="defaultNotifyId"
     :existed-names="existedNames"
     :module-list="moduleList"
     :page-status="sliderPageType"
@@ -101,6 +102,7 @@
   const isTableLoading = ref(false);
   const existedNames = ref<string[]>([]);
   const showTipMap = ref<Record<string, boolean>>({});
+  const defaultNotifyId = ref(0);
 
   async function fetchHostNodes() {
     isTableLoading.value = true;
@@ -237,10 +239,19 @@
         if (data.notify_groups.length === 0) {
           return '--';
         }
-        const dataList = data.notify_groups.map(item => ({
-          id: `${item}`,
-          displayName: alarmGroupNameMap[item],
-        }));
+
+        const dataList: {
+          id: string,
+          displayName: string,
+        }[] = [];
+        data.notify_groups.forEach((id) => {
+          if (id in alarmGroupNameMap) {
+            dataList.push({
+              id: `${id}`,
+              displayName: alarmGroupNameMap[id],
+            });
+          }
+        });
         return <RenderNotifyGroup data={dataList} />;
       },
     },
@@ -350,13 +361,18 @@
   const { run: fetchAlarmGroupList } = useRequest(getAlarmGroupList, {
     manual: true,
     onSuccess: (res) => {
-      alarmGroupList.value = res.results.map((item) => {
-        alarmGroupNameMap[item.id] = item.name;
-        return ({
+      const groupList: SelectItem<number>[] = [];
+      res.results.forEach((item) => {
+        groupList.push({
           label: item.name,
           value: item.id,
         });
+        alarmGroupNameMap[item.id] = item.name;
+        if (item.db_type === props.activeDbType) {
+          defaultNotifyId.value = item.id;
+        }
       });
+      alarmGroupList.value = groupList;
       if (notifyGroupId !== undefined) {
         searchValue.value = [{
           id: 'notify_groups',
