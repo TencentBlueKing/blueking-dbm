@@ -35,6 +35,10 @@
           v-model:hostList="nodeInfoMap.datanode.hostList"
           v-model:nodeList="nodeInfoMap.datanode.nodeList"
           v-model:resourceSpec="nodeInfoMap.datanode.resourceSpec"
+          :cloud-info="{
+            id: data.bk_cloud_id,
+            name: data.bk_cloud_name
+          }"
           :data="nodeInfoMap.datanode"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />

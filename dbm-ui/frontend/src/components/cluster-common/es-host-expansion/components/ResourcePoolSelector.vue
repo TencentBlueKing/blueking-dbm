@@ -26,7 +26,10 @@
                   placement="right"
                   theme="light"
                   width="580">
-                  <div>{{ item.spec_name }}</div>
+                  <div style="display: flex; width: 100%; align-items: center;">
+                    <div>{{ item.spec_name }}</div>
+                    <BkTag style="margin-left: auto;">{{ specCountMap[item.spec_id] }}</BkTag>
+                  </div>
                   <template #content>
                     <SpecDetail :data="item" />
                   </template>
@@ -73,10 +76,12 @@
   import {
     computed,
     ref,
+    shallowRef,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import {
     fetchRecommendSpec,
     getResourceSpecList,
@@ -88,6 +93,10 @@
 
   interface Props {
     data: TExpansionNode,
+    cloudInfo: {
+      id: number,
+      name: string
+    },
   }
 
   interface Emits {
@@ -101,6 +110,7 @@
 
   const specId = ref(props.data.resourceSpec.spec_id);
   const machinePairCnt = ref(props.data.resourceSpec.count + props.data.originalHostList.length);
+  const specCountMap = shallowRef<Record<number, number>>({});
 
   const originalHostNums = computed(() => props.data.originalHostList.length);
 
@@ -129,6 +139,15 @@
   };
 
   const {
+    run: fetchSpecResourceCount,
+  } = useRequest(getSpecResourceCount, {
+    manual: true,
+    onSuccess(data) {
+      specCountMap.value = data;
+    },
+  });
+
+  const {
     loading: isResourceSpecLoading,
     data: resourceSpecList,
   } = useRequest(getResourceSpecList, {
@@ -138,6 +157,13 @@
         spec_machine_type: props.data.specMachineType,
       },
     ],
+    onSuccess(data) {
+      fetchSpecResourceCount({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: props.cloudInfo.id,
+        spec_ids: data.results.map(item => item.spec_id),
+      });
+    },
   });
 
   // 推荐规格

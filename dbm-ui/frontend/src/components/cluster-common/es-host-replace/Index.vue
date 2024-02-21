@@ -106,6 +106,7 @@
             <ResourcePoolSelector
               v-else
               v-model="resourceSpec"
+              :cloud-info="cloudInfo"
               :data="data"
               :error="ipSource !== 'manual_input' && isValidated && resourceSpec.spec_id < 1"
               @update:model-value="handleValueChange" />
@@ -159,6 +160,10 @@
   interface Props {
     data: TReplaceNode,
     ipSource: string,
+    cloudInfo: {
+      id: number,
+      name: string
+    },
     disableHostMethod?: (params: ServiceReturnType<typeof checkHost>[number]) => string | boolean
   }
 

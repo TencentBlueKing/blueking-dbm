@@ -44,8 +44,8 @@
     abnormal: t('异常'),
     normal: t('正常'),
   };
-  const statusIcon = computed(() => iconMap[props.data as keyof typeof iconMap]);
-  const statusText = computed(() => textMap[props.data as keyof typeof textMap]);
+  const statusIcon = computed(() => iconMap[props.data.toLocaleLowerCase() as keyof typeof iconMap]);
+  const statusText = computed(() => textMap[props.data.toLocaleLowerCase() as keyof typeof textMap]);
 </script>
 <style lang="less">
   .render-cluster-status {

@@ -20,10 +20,16 @@
           :label="item.spec_name"
           :value="item.spec_id">
           <BkPopover
+            :offset="20"
             placement="right"
             theme="light"
             width="580">
-            <div>{{ item.spec_name }}</div>
+            <div style="display: flex; width: 100%; align-items: center;">
+              <div>{{ item.spec_name }}</div>
+              <BkTag style="margin-left: auto;">
+                {{ specCountMap[item.spec_id] }}
+              </BkTag>
+            </div>
             <template #content>
               <SpecDetail :data="item" />
             </template>
@@ -41,6 +47,9 @@
 </template>
 <script setup lang="ts"
 generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|InfluxdbInstanceModel">
+  import {
+    shallowRef,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -49,6 +58,7 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
   import InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
+  import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import {
     fetchRecommendSpec,
     getResourceSpecList,
@@ -60,7 +70,11 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
 
   interface Props {
     data: TReplaceNode<T>,
-    error: boolean
+    error: boolean,
+    cloudInfo: {
+      id: number,
+      name: string
+    },
   }
 
   const props = defineProps<Props>();
@@ -70,6 +84,17 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
   });
 
   const { t } = useI18n();
+
+  const specCountMap = shallowRef<Record<number, number>>({});
+
+  const {
+    run: fetchSpecResourceCount,
+  } = useRequest(getSpecResourceCount, {
+    manual: true,
+    onSuccess(data) {
+      specCountMap.value = data;
+    },
+  });
 
   const {
     loading: isResourceSpecLoading,
@@ -81,6 +106,13 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
         spec_machine_type: props.data.specMachineType,
       },
     ],
+    onSuccess(data) {
+      fetchSpecResourceCount({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: props.cloudInfo.id,
+        spec_ids: data.results.map(item => item.spec_id),
+      });
+    },
   });
 
   const getDefaultParams = ():{

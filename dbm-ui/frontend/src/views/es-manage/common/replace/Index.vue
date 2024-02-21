@@ -35,6 +35,10 @@
           v-model:hostList="nodeInfoMap.hot.hostList"
           v-model:nodeList="nodeInfoMap.hot.nodeList"
           v-model:resourceSpec="nodeInfoMap.hot.resourceSpec"
+          :cloud-info="{
+            id: data.bk_cloud_id,
+            name: data.bk_cloud_name
+          }"
           :data="nodeInfoMap.hot"
           :disable-host-method="hotDisableHostMethod"
           :ip-source="ipSource"
@@ -51,6 +55,10 @@
           v-model:hostList="nodeInfoMap.cold.hostList"
           v-model:nodeList="nodeInfoMap.cold.nodeList"
           v-model:resourceSpec="nodeInfoMap.cold.resourceSpec"
+          :cloud-info="{
+            id: data.bk_cloud_id,
+            name: data.bk_cloud_name
+          }"
           :data="nodeInfoMap.cold"
           :disable-host-method="coldDisableHostMethod"
           :ip-source="ipSource"
@@ -67,6 +75,10 @@
           v-model:hostList="nodeInfoMap.client.hostList"
           v-model:nodeList="nodeInfoMap.client.nodeList"
           v-model:resourceSpec="nodeInfoMap.client.resourceSpec"
+          :cloud-info="{
+            id: data.bk_cloud_id,
+            name: data.bk_cloud_name
+          }"
           :data="nodeInfoMap.client"
           :disable-host-method="clientDisableHostMethod"
           :ip-source="ipSource"
