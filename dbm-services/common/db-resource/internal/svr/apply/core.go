@@ -203,7 +203,9 @@ func (c *PickerObject) Picker(cross_subzone bool) {
 			logger.Info(fmt.Sprintf("surplus %s,%d", subzone, len(c.PickeElements[subzone])))
 			logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
 			if c.pickerOne(subzone, false) {
-				delete(c.PickeElements, subzone)
+				if cross_subzone {
+					delete(c.PickeElements, subzone)
+				}
 			}
 			// 匹配资源完成
 			if c.PickerDone() {
