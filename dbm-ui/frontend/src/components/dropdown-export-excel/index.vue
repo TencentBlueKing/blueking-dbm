@@ -68,6 +68,8 @@
     exportSpiderClusterToExcel,
     exportSpiderInstanceToExcel,
   } from '@services/source/spider';
+  import { exportSqlServerHaClusterToExcel } from '@services/source/sqlserveHaCluster';
+  import { exportSqlServerSingleClusterToExcel } from '@services/source/sqlserverSingleCluster';
   import {
     exportTendbhaClusterToExcel,
     exportTendbhaInstanceToExcel,
@@ -78,7 +80,7 @@
   } from '@services/source/tendbsingle';
 
   interface Props {
-    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'riak' | 'mongodb';
+    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'riak' | 'mongodb' | 'sqlserver_ha' | 'sqlserver_single';
     ids?: number[];
     exportType?: 'cluster' | 'instance';
     hasSelected?: boolean;
@@ -140,6 +142,12 @@
     mongodb: {
       cluster: exportMongodbClusterToExcel,
       instance: exportMongodbInstanceToExcel,
+    },
+    sqlserver_ha: {
+      cluster: exportSqlServerHaClusterToExcel,
+    },
+    sqlserver_single: {
+      cluster: exportSqlServerSingleClusterToExcel,
     },
   };
 
