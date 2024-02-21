@@ -24,13 +24,15 @@ export type RedisFunctions =
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
 export type MongoFunctions = 'mongodb';
+export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha';
+// eslint-disable-next-line max-len
 export type FunctionKeys =
   | AddonsFunctions
   | MySQLFunctions
   | RedisFunctions
   | BigdataFunctions
   | MonitorFunctions
-  | MongoFunctions;
+  | SqlServerFunctions | MongoFunctions;
 export type FunctionTabId = FunctionKeys | ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER;
 
 export interface ControllerBaseInfo {
@@ -48,6 +50,7 @@ interface ControllerData {
   bigdata: ControllerItem<BigdataFunctions>;
   monitor: ControllerItem<MonitorFunctions>;
   mongodb: ControllerItem<MongoFunctions>;
+  sqlserver: ControllerItem<SqlServerFunctions>
 }
 
 export type ExtractedControllerDataKeys = Extract<keyof ControllerData, string>;
@@ -59,6 +62,7 @@ export default class FunctionController {
   bigdata: ControllerItem<BigdataFunctions>;
   monitor: ControllerItem<MonitorFunctions>;
   mongodb: ControllerItem<MongoFunctions>;
+  sqlserver: ControllerItem<SqlServerFunctions>;
 
   constructor(payload = {} as ControllerData) {
     this.addons = payload.addons;
@@ -67,6 +71,7 @@ export default class FunctionController {
     this.bigdata = payload.bigdata;
     this.monitor = payload.monitor;
     this.mongodb = payload.mongodb;
+    this.sqlserver = payload.sqlserver;
   }
 
   getFlatData<T extends FunctionKeys, K extends ExtractedControllerDataKeys>(key: K) {

@@ -19,6 +19,7 @@ import { getBigdataResourceTree } from '@services/source/bigdata';
 import { getMongoDBResourceTree } from '@services/source/mongodb';
 import { getMysqlResourceTree } from '@services/source/mysql';
 import { getRedisResourceTree } from '@services/source/redis';
+import { geSqlServerResourceTree } from '@services/source/sqlserverPermission';
 
 import { useGlobalBizs } from '@stores';
 
@@ -46,6 +47,7 @@ export const useTreeData = (treeState: TreeState) => {
     redis: getRedisResourceTree,
     mysql: getMysqlResourceTree,
     mongodb: getMongoDBResourceTree,
+    sqlserver: geSqlServerResourceTree,
   };
 
   const activeTreeNode = computed(() => treeState.activeNode);

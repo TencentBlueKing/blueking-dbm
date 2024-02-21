@@ -119,6 +119,11 @@
         value: 'tendbCluster',
         icon: 'mysql',
       },
+      {
+        name: 'SqlServer',
+        value: 'sqlserver',
+        icon: 'mysql',
+      },
     ],
     [t('NoSQL 数据库')]: [
       {

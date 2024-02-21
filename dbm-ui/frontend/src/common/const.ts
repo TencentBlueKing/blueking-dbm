@@ -26,7 +26,8 @@ export enum DBTypes {
   INFLUXDB = 'influxdb',
   SPIDER = 'spider',
   RIAK = 'riak',
-  MONGODB = 'mongodb',
+  MONGODB = 'mongodb',,
+  SQLSERVER = 'sqlserver'
 }
 export type DBTypesValues = `${DBTypes}`;
 
@@ -57,6 +58,8 @@ export enum ClusterTypes {
   MONGO_REPLICA_SET = 'MongoReplicaSet',
   MONGO_SHARED_CLUSTER = 'MongoShardedCluster',
   RIAK = 'riak',
+  SQLSERVER_HA = 'sqlserver_ha',
+  SQLSERVER_SINGLE = 'sqlserver_single',
 }
 
 // 机器类型
@@ -133,6 +136,12 @@ export const clusterTypeInfos = {
   },
   [ClusterTypes.MONGO_SHARED_CLUSTER]: {
     dbType: DBTypes.MONGODB,
+  },
+  [ClusterTypes.SQLSERVER_HA]: {
+    dbType: DBTypes.SQLSERVER,
+  },
+  [ClusterTypes.SQLSERVER_SINGLE]: {
+    dbType: DBTypes.SQLSERVER,
   },
 };
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;
@@ -286,6 +295,14 @@ export enum TicketTypes {
   MONGODB_SCALE_UPDOWN = 'MONGODB_SCALE_UPDOWN', // MongoDB 分片式集群单个容量变更
   MONGODB_AUTHORIZE = 'MONGODB_AUTHORIZE', // MongoDB 集群授权
   MONGODB_EXCEL_AUTHORIZE = 'MONGODB_EXCEL_AUTHORIZE', // MongoDB 导入授权
+  SQLSERVER_SINGLE_APPLY = 'SQLSERVER_SINGLE_APPLY', // sqlserver单节点部署
+  SQLSERVER_HA_APPLY = 'SQLSERVER_HA_APPLY', // sqlserver主从部署
+  SQLSERVER_HA_DISABLE = 'SQLSERVER_HA_DISABLE', // sqlserver主从 禁用
+  SQLSERVER_HA_ENABLE = 'SQLSERVER_HA_ENABLE', // sqlserver主从 启用
+  SQLSERVER_HA_DESTROY = 'SQLSERVER_HA_DESTROY', // sqlserver主从 删除
+  SQLSERVER_SINGLE_DESTROY = 'SQLSERVER_SINGLE_DESTROY', // sqlserver单节点 删除
+  SQLSERVER_SINGLE_DISABLE = 'SQLSERVER_SINGLE_DISABLE', // sqlserver单节点 禁用
+  SQLSERVER_SINGLE_ENABLE = 'SQLSERVER_SINGLE_ENABLE', // sqlserver单节点 启用
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -325,6 +342,26 @@ export const redisType = {
     dbType: DBTypes.REDIS,
   },
 };
+
+/**
+ * sqlserver tickets type info
+ */
+export const sqlServerType = {
+  [TicketTypes.SQLSERVER_SINGLE_APPLY]: {
+    id: TicketTypes.SQLSERVER_SINGLE_APPLY,
+    name: t('单节点部署'),
+    type: ClusterTypes.SQLSERVER_SINGLE,
+    dbType: DBTypes.SQLSERVER,
+  },
+  [TicketTypes.SQLSERVER_HA_APPLY]: {
+    id: TicketTypes.SQLSERVER_HA_APPLY,
+    name: t('主从部署'),
+    type: ClusterTypes.SQLSERVER_HA,
+    dbType: DBTypes.SQLSERVER,
+  },
+};
+
+export type SqlServerTypeString = keyof typeof sqlServerType
 
 export const bigDataType = {
   [TicketTypes.ES_APPLY]: {

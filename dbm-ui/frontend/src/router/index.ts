@@ -53,6 +53,7 @@ import getResourceManageRoutes from '@views/resource-manage/routes';
 import getRiakManage from '@views/riak-manage/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
 import getSpiderManageRoutes from '@views/spider-manage/routes';
+import getSqlServerRouters from '@views/sqlserver-manage/routes';
 import getStaffManageRoutes from '@views/staff-manage/routes';
 import getTaskHistoryRoutes from '@views/task-history/routes';
 import getTemporaryPasswordModify from '@views/temporary-paassword-modify/routes';
@@ -157,6 +158,7 @@ export default () => {
         ...getRiakManage(bigdataController),
         ...getTicketFlowSettingRoutes(),
         ...getMongoRoutes(mongdbController),
+        ...getSqlServerRouters(),
       ],
     },
     {
