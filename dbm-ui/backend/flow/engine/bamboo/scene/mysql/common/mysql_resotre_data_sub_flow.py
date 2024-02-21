@@ -232,6 +232,7 @@ def mysql_rollback_data_sub_flow(
         )
         exec_act_kwargs.exec_ip = cluster["rollback_ip"]
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_recover_binlog_payload.__name__
+        exec_act_kwargs.cluster = copy.deepcopy(cluster)
         sub_pipeline.add_act(
             act_name=_("定点恢复之前滚binlog{}".format(exec_act_kwargs.exec_ip)),
             act_component_code=ExecuteDBActuatorScriptComponent.code,

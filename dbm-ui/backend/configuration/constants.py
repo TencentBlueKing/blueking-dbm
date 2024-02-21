@@ -16,7 +16,8 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 PLAT_BIZ_ID = 0
 DBM_PASSWORD_SECURITY_NAME = "password"
 DBM_MYSQL_ADMIN_USER = "ADMIN"
-MYSQL_DATA_RESTORE_TIME = 172800
+# TODO: job超时时间最大为86400，后续考虑让job平台调大限制
+MYSQL_DATA_RESTORE_TIME = 86400
 MYSQL_USUAL_JOB_TIME = 7200
 
 

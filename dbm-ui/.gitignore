@@ -101,6 +101,7 @@ webpack-stats.json
 .vscode/
 .envrc
 .vimlocal
+.obsidian
 
 # markeditor
 .Archive

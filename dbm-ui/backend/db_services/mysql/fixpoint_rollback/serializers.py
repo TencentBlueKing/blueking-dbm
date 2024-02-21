@@ -33,6 +33,11 @@ class BackupLogMySQLResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.MYSQL_BACKUP_LOG_FROM_BKLOG}
 
 
+class BackupLocalLogMySQLResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.MYSQL_BACKUP_LOG_FROM_BKLOG}
+
+
 class BackupLogRollbackTimeSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     rollback_time = DBTimezoneField(help_text=_("回档时间"))

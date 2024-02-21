@@ -24,6 +24,7 @@ from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.db_services.mysql.fixpoint_rollback.serializers import (
+    BackupLocalLogMySQLResponseSerializer,
     BackupLogMySQLResponseSerializer,
     BackupLogRollbackTimeMySQLResponseSerializer,
     BackupLogRollbackTimeSerializer,
@@ -61,6 +62,18 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         end_time = datetime.now(timezone.utc)
         start_time = end_time - timedelta(days=validated_data["days"])
         logs = FixPointRollbackHandler(validated_data["cluster_id"]).query_backup_log_from_bklog(start_time, end_time)
+        return Response(logs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群的本地备份记录"),
+        query_serializer=BackupLogSerializer(),
+        responses={status.HTTP_200_OK: BackupLocalLogMySQLResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=BackupLogSerializer)
+    def query_backup_log_from_local(self, requests, *args, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        logs = FixPointRollbackHandler(validated_data["cluster_id"]).query_backup_log_from_local()
         return Response(logs)
 
     @common_swagger_auto_schema(

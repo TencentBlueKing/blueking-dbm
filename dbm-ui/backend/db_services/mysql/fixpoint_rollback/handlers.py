@@ -31,6 +31,7 @@ from backend.db_meta.models.cluster import Cluster
 from backend.db_services.mysql.fixpoint_rollback.constants import BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS
 from backend.exceptions import AppBaseException
 from backend.flow.consts import SUCCESS_LIST, DBActuatorActionEnum, DBActuatorTypeEnum, InstanceStatus, JobStatusEnum
+from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_backup_list
 from backend.flow.utils.script_template import dba_toolkit_actuator_template, fast_execute_script_common_kwargs
 from backend.utils.string import pascal_to_snake
 from backend.utils.time import compare_time, datetime2str, find_nearby_time
@@ -419,6 +420,7 @@ class FixPointRollbackHandler:
     def execute_backup_log_script(self) -> List[int]:
         """
         通过下发脚本查询集群的备份记录
+        TODO: Deprecated，后续将废弃从job获取备份记录，转而通过DRS从备份表中查询
         """
 
         target_ip_infos = self._get_ip_list()
@@ -445,6 +447,7 @@ class FixPointRollbackHandler:
         """
         根据job_instance_id查询执行状态并在执行完成后返回结果
         :param job_instance_id: job执行的实例id列表
+        TODO: Deprecated，后续将废弃从job获取备份记录，转而通过DRS从备份表中查询
         """
 
         job_status_payload = {
@@ -489,6 +492,19 @@ class FixPointRollbackHandler:
             "job_status": JobStatusEnum.get_choice_label(JobStatusEnum.SUCCESS.value),
             "message": "ok",
         }
+
+    def query_backup_log_from_local(self) -> List[Dict[str, Any]]:
+        """
+        查询集群本地的备份记录
+        """
+        # 获取集群所有正在运行中的master/slave实例
+        instances = self.cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING).values(
+            "machine__ip", "port"
+        )
+        instances = [f"{inst['machine__ip']}:{inst['port']}" for inst in instances]
+        # 查询集群本地的备份记录
+        local_backup_logs = get_local_backup_list(instances=instances, cluster=self.cluster)
+        return local_backup_logs
 
     def query_latest_backup_log(self, rollback_time: datetime, job_instance_id: int = None) -> Dict[str, Any]:
         if job_instance_id:
