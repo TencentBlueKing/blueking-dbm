@@ -504,6 +504,16 @@ class MySQLRestoreSlaveFlow(object):
                 cluster_type=cluster_model.cluster_type,
                 cluster=cluster,
             )
+
+            # 添加repl账户，可能会存在repl账户不存在的情况
+            exec_act_kwargs.exec_ip = master.machine.ip
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_grant_mysql_repl_user_payload.__name__
+            tendb_migrate_pipeline.add_act(
+                act_name=_("slave重建之新增repl帐户{}").format(exec_act_kwargs.exec_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
             tendb_migrate_pipeline.add_act(
                 act_name=_("slave重建之获取MASTER节点备份介质{}").format(exec_act_kwargs.exec_ip),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
