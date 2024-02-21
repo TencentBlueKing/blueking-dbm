@@ -2,7 +2,6 @@
 package handler
 
 import (
-	"dbm-services/mysql/db-partition/monitor"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -11,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-partition/monitor"
 
 	"dbm-services/mysql/db-partition/cron"
 
@@ -207,8 +208,8 @@ func UpdatePartitionsConfig(r *gin.Context) {
 		SendResponse(r, err, nil)
 		return
 	}
-	slog.Info(fmt.Sprintf("bk_biz_id: %d, immute_domain: %s, creator: %s", input.BkBizId, input.ImmuteDomain,
-		input.Creator))
+	slog.Info(fmt.Sprintf("bk_biz_id: %d, immute_domain: %s, updator: %s", input.BkBizId, input.ImmuteDomain,
+		input.Updator))
 	err := input.UpdatePartitionsConfig()
 	if err != nil {
 		slog.Error(err.Error())

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"dbm-services/mysql/db-partition/monitor"
 	"net/http"
 	"os"
 
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
+	"dbm-services/mysql/db-partition/monitor"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"

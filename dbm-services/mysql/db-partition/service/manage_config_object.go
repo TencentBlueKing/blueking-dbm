@@ -75,6 +75,7 @@ type CreatePartitionsInput struct {
 	TimeZone              string   `json:"time_zone"`
 	Creator               string   `json:"creator"`
 	Updator               string   `json:"updator"`
+	RemoteHashAlgorithm   string   `json:"remote_hash_algorithm"`
 }
 
 // DeletePartitionConfigByIds TODO
