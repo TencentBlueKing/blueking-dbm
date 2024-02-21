@@ -12,3 +12,6 @@ test*
 main
 partition
 
+.codecc
+.idea
+.vscode

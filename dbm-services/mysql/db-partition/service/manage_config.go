@@ -273,13 +273,22 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() (error, []int) {
 	}
 	reservedPartition := m.ExpireTime / m.PartitionTimeInterval
 	partitionType := 0
+	// 普通分区类型0 5 101
 	switch m.PartitionColumnType {
 	case "datetime":
-		partitionType = 0
+		if strings.EqualFold(m.RemoteHashAlgorithm, "range") {
+			partitionType = 4
+		} else {
+			partitionType = 0
+		}
 	case "timestamp":
 		partitionType = 5
 	case "int":
-		partitionType = 101
+		if strings.EqualFold(m.RemoteHashAlgorithm, "list") {
+			partitionType = 3
+		} else {
+			partitionType = 101
+		}
 	default:
 		return errors.New("请选择分区字段类型：datetime、timestamp或int"), []int{}
 	}
@@ -389,18 +398,32 @@ func (m *CreatePartitionsInput) UpdatePartitionsConfig() error {
 	for _, dblike := range m.DbLikes {
 		for _, tblike := range m.TbLikes {
 			var partitionConfig PartitionConfig
-			query := PartitionConfig{
-				BkBizId:      m.BkBizId,
-				ImmuteDomain: m.ImmuteDomain,
-				DbLike:       dblike,
-				TbLike:       tblike,
-			}
-			result2 := model.DB.Self.Table(tbName).Where(&query).First(&partitionConfig)
-			if result2.Error != nil {
-				slog.Error("create manage log err", result2.Error)
+			query := struct {
+				BkBizId      int64  `gorm:"column:bk_biz_id"`
+				ImmuteDomain string `gorm:"column:immute_domain"`
+				DbLike       string `gorm:"column:dblike"`
+				TbLike       string `gorm:"column:tblike"`
+			}{m.BkBizId, m.ImmuteDomain, dblike, tblike}
+			// 更新分区会先查到现有配置做字段对比
+			nowConfigResult := model.DB.Self.Table(tbName).Where(&query).First(&partitionConfig)
+			if nowConfigResult.Error != nil {
+				errResult := fmt.Sprintf("query:%+v err:%s", query, nowConfigResult.Error)
+				slog.Error(errResult)
+				errs = append(errs, errResult)
+				continue
 			} else {
 				CreateManageLog(tbName, logTbName, partitionConfig.ID, "Update", m.Updator)
 			}
+			// 对于不在页面的几种分区类型(1,3,4)，不允许修改字段值、字段类型和分区类型，只能改保留时间、分区间隔
+			if ContainsMap(Slice2Map([]int{1, 3, 4}), partitionConfig.PartitionType) {
+				if m.PartitionColumn != partitionConfig.PartitionColumn || m.PartitionColumnType !=
+					partitionConfig.PartitionColumnType {
+					return errors.New("非标准分区类型，不可修改分区字段和分区字段类型！")
+				}
+				// 分区类型不变，按照原配置
+				partitionType = partitionConfig.PartitionType
+			}
+			// 分区配置更新字段兼容普通分区与特殊分区
 			update_column_map := map[string]interface{}{
 				"partition_column":        m.PartitionColumn,
 				"partition_column_type":   m.PartitionColumnType,
@@ -592,4 +615,19 @@ func CreateManageLog(dbName string, logTbName string, id int, operate string, op
 	if logResult.Error != nil {
 		slog.Error("create manage log err", logResult.Error)
 	}
+}
+
+// Slice2Map TODO
+func Slice2Map(s []int) map[int]struct{} {
+	m := make(map[int]struct{})
+	for _, v := range s {
+		m[v] = struct{}{}
+	}
+	return m
+}
+
+// ContainsMap TODO
+func ContainsMap(m map[int]struct{}, i int) bool {
+	_, ok := m[i]
+	return ok
 }
