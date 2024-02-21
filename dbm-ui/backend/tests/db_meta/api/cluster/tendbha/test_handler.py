@@ -60,6 +60,15 @@ class TestHandler:
             size=0,
             md5="",
         )
+        Package.objects.create(
+            name="mysql-proxy-0.82.10.tar.gz",
+            version="latest",
+            pkg_type=PackageType.MySQLProxy.value,
+            db_type=DBType.MySQL.value,
+            path="",
+            size=0,
+            md5="",
+        )
         TenDBHAClusterHandler.create(
             **{
                 "bk_biz_id": constant.BK_BIZ_ID,

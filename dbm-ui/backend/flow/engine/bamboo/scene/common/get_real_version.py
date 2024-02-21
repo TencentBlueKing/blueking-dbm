@@ -25,3 +25,12 @@ def get_spider_real_version(package_name: str) -> str:
     获取到的真实版本为：3.7.8
     """
     return package_name.split("-")[-2]
+
+
+def get_proxy_real_version(package_name: str) -> str:
+    """
+    通过传入正确的spider介质包名称获取到对应的真实版本名称：
+    @param  package_name: 介质包名称 例子：mysql-proxy-0.82.10.tar.gz
+    获取到的真实版本为：0.82.10
+    """
+    return package_name.split("-")[-1].replace(".tar.gz", "")

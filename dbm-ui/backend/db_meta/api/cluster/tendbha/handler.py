@@ -23,7 +23,7 @@ from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
-from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
+from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_proxy_real_version
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 
 from .others import add_slaves, delete_slaves
@@ -86,6 +86,9 @@ class TenDBHAClusterHandler(ClusterHandler):
         # 录入机器对应的集群信息
         new_clusters = []
         mysql_pkg = Package.get_latest_package(version=major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
+        proxy_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLProxy)
+        proxy_real_ver = get_proxy_real_version(proxy_pkg.name)
+        mysql_real_ver = get_mysql_real_version(mysql_pkg.name)
 
         storage_objs = []
         proxy_objs = []
@@ -99,19 +102,27 @@ class TenDBHAClusterHandler(ClusterHandler):
                     "port": cluster["mysql_port"],
                     "instance_role": InstanceRole.BACKEND_MASTER.value,
                     "is_stand_by": True,  # 标记实例属于切换组实例
-                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                    "db_version": mysql_real_ver,  # 存储真正的版本号信息
                 },
                 {
                     "ip": cluster_ip_dict["new_slave_ip"],
                     "port": cluster["mysql_port"],
                     "instance_role": InstanceRole.BACKEND_SLAVE.value,
                     "is_stand_by": True,  # 标记实例属于切换组实例
-                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                    "db_version": mysql_real_ver,  # 存储真正的版本号信息
                 },
             ]
             proxies = [
-                {"ip": cluster_ip_dict["new_proxy_1_ip"], "port": cluster["proxy_port"]},
-                {"ip": cluster_ip_dict["new_proxy_2_ip"], "port": cluster["proxy_port"]},
+                {
+                    "ip": cluster_ip_dict["new_proxy_1_ip"],
+                    "port": cluster["proxy_port"],
+                    "version": proxy_real_ver,
+                },
+                {
+                    "ip": cluster_ip_dict["new_proxy_2_ip"],
+                    "port": cluster["proxy_port"],
+                    "version": proxy_real_ver,
+                },
             ]
             api.cluster.tendbha.create_precheck(bk_biz_id, name, immute_domain, db_module_id, slave_domain)
             storage_objs.extend(api.storage_instance.create(instances=storages, creator=creator, time_zone=time_zone))
