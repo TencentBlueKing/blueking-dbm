@@ -114,7 +114,7 @@
     flex-direction: column;
 
     & > *{
-      display: flex;
+      display: flex !important;
       height: 32px;
       justify-content: center;
       align-items: center;

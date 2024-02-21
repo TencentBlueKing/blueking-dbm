@@ -300,36 +300,35 @@
                   <>
                     {
                       data.isOnline && (
-                        <auth-button
+                        <auth-template
                           text
                           theme="primary"
                           action-id="mysql_partition_enable_disable"
                           permission={data.permission.mysql_partition_enable_disable}
                           onClick={() => handleDisable(data)}>
-                          { t('禁用') }
-                        </auth-button>
+                          <span>{ t('禁用') }</span>
+                        </auth-template>
                       )
                     }
-                    <auth-button
+                    <auth-template
                       text
                       theme="primary"
                       action-id="mysql_partition_create"
                       permission={data.permission.mysql_partition_create}
                       onClick={() => handleClone(data)}>
-                      { t('克隆') }
-                    </auth-button>
+                      <span>{ t('克隆') }</span>
+                    </auth-template>
                     <db-popconfirm
                       confirm-handler={() => handleRemove(data)}
                       content={t('删除操作无法撤回，请谨慎操作！')}
                       title={t('确认删除该分区策略？')}>
-                      <auth-button
+                      <auth-template
                         text
                         theme="primary"
                         action-id="mysql_partition_delete"
-                        permision={data.permission.mysql_partition_delete}
-                        onClick={() => handleRemove(data)}>
-                        { t('删除') }
-                      </auth-button>
+                        permision={data.permission.mysql_partition_delete}>
+                        <span>{ t('删除') }</span>
+                      </auth-template>
                     </db-popconfirm>
                   </>
                 ),
