@@ -97,6 +97,7 @@
             <ResourcePoolSelector
               v-else
               v-model="resourceSpec"
+              :cloud-info="cloudInfo"
               :data="data"
               :error="ipSource !== 'manual_input' && isValidated && resourceSpec.spec_id < 1"
               @update:model-value="handleValueChange" />
@@ -148,6 +149,10 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
   }
 
   interface Props {
+    cloudInfo: {
+      id: number,
+      name: string
+    },
     data: TReplaceNode<T>,
     ipSource: string,
     disableHostMethod?: (params: Props['data']['hostList'][0]) => string | boolean

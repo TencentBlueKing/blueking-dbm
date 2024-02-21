@@ -35,6 +35,10 @@
           v-model:hostList="nodeInfoMap.bookkeeper.hostList"
           v-model:nodeList="nodeInfoMap.bookkeeper.nodeList"
           v-model:resourceSpec="nodeInfoMap.bookkeeper.resourceSpec"
+          :cloud-info="{
+            id: data.bk_cloud_id,
+            name: data.bk_cloud_name
+          }"
           :data="nodeInfoMap.bookkeeper"
           :disable-host-method="bookkeeperDisableHostMethod"
           :ip-source="ipSource"
@@ -51,6 +55,10 @@
           v-model:hostList="nodeInfoMap.broker.hostList"
           v-model:nodeList="nodeInfoMap.broker.nodeList"
           v-model:resourceSpec="nodeInfoMap.broker.resourceSpec"
+          :cloud-info="{
+            id: data.bk_cloud_id,
+            name: data.bk_cloud_name
+          }"
           :data="nodeInfoMap.broker"
           :disable-host-method="brokerDisableHostMethod"
           :ip-source="ipSource"
@@ -67,6 +75,10 @@
           v-model:hostList="nodeInfoMap.zookeeper.hostList"
           v-model:nodeList="nodeInfoMap.zookeeper.nodeList"
           v-model:resourceSpec="nodeInfoMap.zookeeper.resourceSpec"
+          :cloud-info="{
+            id: data.bk_cloud_id,
+            name: data.bk_cloud_name
+          }"
           :data="nodeInfoMap.zookeeper"
           :disable-host-method="zookeeperDisableHostMethod"
           :ip-source="ipSource"
@@ -252,8 +264,8 @@
     return false;
   };
 
-  const handleRemoveNode = (bkHostId: number) => {
-    emits('removeNode', bkHostId);
+  const handleRemoveNode = (node: PulsarNodeModel) => {
+    emits('removeNode', node.bk_host_id);
   };
 
   defineExpose<Exposes>({

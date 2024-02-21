@@ -17,10 +17,10 @@
       {{ data.label }}
     </div>
     <BkForm form-type="vertical">
-      <BkFormItem :label="$t('期望容量')">
+      <BkFormItem :label="t('期望容量')">
         <div class="target-content-box">
           <div class="content-label">
-            {{ $t('扩容至') }}
+            {{ t('扩容至') }}
           </div>
           <div class="content-value">
             <div>
@@ -28,14 +28,14 @@
                 clearable
                 :min="data.totalDisk"
                 :model-value="targetDisk > 0 ? targetDisk : undefined"
-                :placeholder="$t('请输入')"
+                :placeholder="t('请输入')"
                 style="width: 156px; margin-right: 8px;"
                 type="number"
                 @change="handleTargetDiskChange" />
               <span>GB</span>
               <template v-if="targetDisk">
                 <span>
-                  {{ $t(', 共扩容') }}
+                  {{ t(', 共扩容') }}
                 </span>
                 <span
                   class="strong-num"
@@ -47,14 +47,14 @@
             </div>
             <div class="content-tips">
               <span>
-                {{ $t('当前容量') }}:
+                {{ t('当前容量') }}:
                 <span class="strong-num">
                   {{ data.totalDisk }}
                 </span>
                 GB
               </span>
               <span style="margin-left: 65px;">
-                <span>{{ $t('扩容后') }}:</span>
+                <span>{{ t('扩容后') }}:</span>
                 <template v-if="data.targetDisk">
                   <span class="strong-num">{{ data.targetDisk }}</span>
                   GB
@@ -69,9 +69,10 @@
           </div>
         </div>
       </BkFormItem>
-      <BkFormItem :label="$t('服务器')">
+      <BkFormItem :label="t('服务器')">
         <ResourcePoolSelector
           v-if="ipSource === 'resource_pool'"
+          :cloud-info="cloudInfo"
           :data="data"
           @change="handleResourcePoolChange" />
         <HostSelector
