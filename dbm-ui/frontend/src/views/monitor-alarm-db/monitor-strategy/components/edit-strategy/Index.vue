@@ -201,6 +201,7 @@
     alarmGroupNameMap: Record<string, string>,
     moduleList: SelectItem<string>[],
     clusterList: SelectItem<string>[],
+    defaultNotifyId: number,
     pageStatus?: string,
     existedNames?: string[];
   }
@@ -355,13 +356,16 @@
   });
 
   watch(() => props.data, (data) => {
-    if (data) {
+    if (data.id) {
       formModel.strategyName = data.name;
       formModel.notifyRules = _.cloneDeep(data.notify_rules);
-      formModel.notifyTarget = _.cloneDeep(data.notify_groups);
+      if (isReadonlyPage.value) {
+        // 内置策略，展示默认的告警组
+        formModel.notifyTarget = [props.defaultNotifyId];
+      } else {
+        formModel.notifyTarget = data.notify_groups.filter(id => id in props.alarmGroupNameMap);
+      }
     }
-  }, {
-    immediate: true,
   });
 
   const handleDeleteNotifyTargetItem = (id: number) => {

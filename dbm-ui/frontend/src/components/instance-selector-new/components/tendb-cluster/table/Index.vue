@@ -198,9 +198,8 @@
     {
       minWidth: 100,
       label: t('管控区域'),
-      field: 'cloud_area',
+      field: 'bk_cloud_name',
       showOverflowTooltip: true,
-      render: ({ data }: DataRow) => data.host_info?.cloud_area?.name || '--',
     },
     {
       minWidth: 100,

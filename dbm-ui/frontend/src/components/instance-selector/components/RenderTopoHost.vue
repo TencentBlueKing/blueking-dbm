@@ -41,16 +41,12 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import {
-    ref,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
   import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
   import type { ResourceInstance } from '@services/types';
-  import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
 
@@ -65,7 +61,7 @@
   import { activePanelInjectionKey } from './PanelTab.vue';
 
   interface TableItem {
-    data: InstanceInfos
+    data: TendbhaInstanceModel
   }
 
   interface Props {
@@ -115,7 +111,7 @@
     // 切换 tab 回显选中状态 \ 预览结果操作选中状态
     if (activePanel?.value && activePanel.value !== 'manualInput') {
       checkedMap.value = {};
-      const checkedList = props.lastValues[activePanel.value];
+      const checkedList = props.lastValues[activePanel.value as keyof InstanceSelectorValues];
       for (const item of checkedList) {
         checkedMap.value[item.instance_address] = item;
       }
@@ -180,8 +176,7 @@
     {
       minWidth: 100,
       label: t('管控区域'),
-      field: 'cloud_area',
-      render: ({ data }: TableItem) => data.host_info.cloud_area.name || '--',
+      field: 'bk_cloud_name',
     },
     {
       minWidth: 100,

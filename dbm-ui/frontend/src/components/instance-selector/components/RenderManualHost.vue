@@ -35,7 +35,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { InstanceInfos  } from '@services/types/clusters';
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -46,13 +46,13 @@
   import { ClusterTypes } from '@/common/const';
 
   interface TableItem {
-    data: InstanceInfos
+    data: TendbhaInstanceModel
   }
 
   interface Props {
     role?: string,
     lastValues: InstanceSelectorValues,
-    tableData: InstanceInfos[],
+    tableData: TendbhaInstanceModel[],
   }
 
   interface Emits {
@@ -65,7 +65,7 @@
   const { t } = useI18n();
   const tableSettings = getSettings(props.role);
 
-  const formatValue = (data: InstanceInfos) => ({
+  const formatValue = (data: TendbhaInstanceModel) => ({
     bk_host_id: data.bk_host_id,
     instance_address: data.instance_address,
     cluster_id: data.cluster_id,
@@ -142,8 +142,7 @@
     {
       minWidth: 100,
       label: t('管控区域'),
-      field: 'cloud_area',
-      render: ({ data }: TableItem) => data.host_info.cloud_area.name || '--',
+      field: 'bk_cloud_name',
     },
     {
       minWidth: 100,
@@ -220,7 +219,7 @@
     triggerChange();
   };
 
-  const handleTableSelectOne = (checked: boolean, data: InstanceInfos) => {
+  const handleTableSelectOne = (checked: boolean, data: TendbhaInstanceModel) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
       lastCheckMap[data.instance_address] = formatValue(data);
@@ -231,7 +230,7 @@
     triggerChange();
   };
 
-  const handleRowClick = (e: Event, data: InstanceInfos) => {
+  const handleRowClick = (e: Event, data: TendbhaInstanceModel) => {
     const checked = checkedMap.value[data.instance_address];
     handleTableSelectOne(!checked, data);
   };
