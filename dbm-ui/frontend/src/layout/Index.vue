@@ -2,6 +2,7 @@
   <BkNavigation
     :default-open="isSideMenuFlod"
     navigation-type="top-bottom"
+    :need-menu="needMenu"
     :side-title="t('数据库管理')"
     @toggle="handleCollapse">
     <template #side-header>
@@ -180,6 +181,7 @@
   });
   const contentTitle = computed(() => route.meta.navName);
   const isContendFullscreen = computed(() => Boolean(route.meta.fullscreen));
+  const needMenu = computed(() => route.name !== 'QuickSearch');
 
   // 解析路由分组
   watch(route, () => {

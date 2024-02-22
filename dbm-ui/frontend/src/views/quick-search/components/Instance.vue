@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :key="settingChangeKey">
     <DbCard
       v-for="item in renderData.dataList"
       :key="item.clusterType"
@@ -7,21 +7,32 @@
       mode="collapse"
       :title="item.clusterType">
       <template #desc>
-        <span>{{ t('共n条', { n: item.dataList.length }) }}</span>
+        <I18nT
+          class="ml-8"
+          keypath="共n条"
+          style="color: #63656E;"
+          tag="span">
+          <template #n>
+            <strong>{{ item.dataList.length }}</strong>
+          </template>
+        </I18nT>
         <BkButton
-          class="ml-16"
+          class="ml-8"
           text
           theme="primary"
           @click.stop="handleExport(item.clusterType, item.dataList)">
-          <DbIcon type="host-select export-button-icon" />
+          <DbIcon
+            class="export-button-icon"
+            type="daochu" />
           <span class="export-button-text">{{ t('导出') }}</span>
         </BkButton>
       </template>
       <DbOriginalTable
-        cell-class="custom-table-cell"
         class="search-result-table mt-14 mb-8"
         :columns="columnsMap[item.clusterType]"
-        :data="item.dataList" />
+        :data="item.dataList"
+        :settings="tableSetting"
+        @setting-change="updateTableSettings" />
     </DbCard>
   </div>
 </template>
@@ -35,15 +46,18 @@
   import {
     useCopy,
     useLocation,
+    useTableSettings,
   } from '@hooks';
 
   import {
     type ClusterInstStatus,
     clusterInstStatus,
+    UserPersonalSettings,
   } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { formatCluster } from '../common/utils';
 
@@ -60,6 +74,8 @@
   const { t } = useI18n();
   const copy = useCopy();
   const location = useLocation();
+
+  const settingChangeKey = ref(1);
 
   const renderData = computed(() => formatCluster<QuickSearchInstanceModel>(props.data));
   const columnsMap = computed(() => {
@@ -81,27 +97,35 @@
             label: t('主访问入口'),
             field: 'cluster_domain',
             width: 160,
-            render: ({ data }: { data: QuickSearchInstanceModel }) => <>
-              <bk-button
-                text
-                theme="primary"
-                onclick={() => handleToInstance(data)}>
-                <span>{data.cluster_domain}</span>
-              </bk-button>
-              <bk-button
-                class="copy-button ml-4"
-                text
-                theme="primary"
-                onclick={() => handleCopy(data.cluster_domain)}>
-                <db-icon type="copy" />
-              </bk-button>
-            </>,
+            render: ({ data }: { data: QuickSearchInstanceModel }) => (
+              <TextOverflowLayout>
+                {{
+                  default: () => (
+                    <bk-button
+                      text
+                      theme="primary"
+                      onclick={() => handleToInstance(data)}>
+                      <span>{data.cluster_domain}</span>
+                    </bk-button>
+                  ),
+                  append: () => (
+                    <bk-button
+                      class="ml-4"
+                      text
+                      theme="primary"
+                      onclick={() => handleCopy(data.cluster_domain)}>
+                      <db-icon type="copy" />
+                    </bk-button>
+                  ),
+                }}
+              </TextOverflowLayout>
+            ),
           },
-          // {
-          //   label: t('集群名称'),
-          //   field: 'cpu',
-          //   render: ({ data }: { data: QuickSearchInstanceModel }) => data || '--',
-          // },
+          {
+            label: t('集群名称'),
+            field: 'cluster_name',
+            render: ({ data }: { data: QuickSearchInstanceModel }) => data.cluster_name || '--',
+          },
           // {
           //   label: t('管控区域'),
           //   field: 'bk_idc_name',
@@ -110,6 +134,7 @@
           {
             label: t('状态'),
             field: 'bk_idc_name',
+            sort: true,
             render: ({ data }: { data: QuickSearchInstanceModel }) => {
               const info = clusterInstStatus[data.status as ClusterInstStatus] || clusterInstStatus.unavailable;
               return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
@@ -119,19 +144,25 @@
             label: t('实例'),
             field: 'instance',
             render: ({ data }: { data: QuickSearchInstanceModel }) => (
-              <>
-                <HightLightText
-                  keyWord={props.keyword}
-                  text={data.instance}
-                  highLightColor='#FF9C01' />
-                <bk-button
-                  class="copy-button ml-4"
-                  text
-                  theme="primary"
-                  onclick={() => handleCopy(data.instance)}>
-                  <db-icon type="copy" />
-                </bk-button>
-              </>
+              <TextOverflowLayout>
+                {{
+                  default: () => (
+                    <HightLightText
+                      keyWord={props.keyword}
+                      text={data.instance}
+                      highLightColor='#FF9C01' />
+                  ),
+                  append: () => (
+                    <bk-button
+                      class="ml-4"
+                      text
+                      theme="primary"
+                      onclick={() => handleCopy(data.instance)}>
+                      <db-icon type="copy" />
+                    </bk-button>
+                  ),
+                }}
+              </TextOverflowLayout>
             ),
           },
           {
@@ -162,22 +193,49 @@
     }, {} as Record<string, Array<Column>>);
   });
 
+  // 设置用户个人表头信息
+  const defaultSettings = {
+    fields: (Object.values(columnsMap.value)[0] || []).filter(item => item.field).map(item => ({
+      label: item.label,
+      field: item.field,
+      disabled: ['cluster_domain', 'instance'].includes(item.field as string),
+    })),
+    checked: [
+      'cluster_domain',
+      'cluster_name',
+      'bk_idc_name',
+      'instance',
+      'cluster_type',
+      'bk_biz_id',
+    ],
+  };
+
+  const {
+    settings: tableSetting,
+    updateTableSettings,
+  } = useTableSettings(UserPersonalSettings.QUICK_SEARCH_INSTANCE, defaultSettings);
+
+  watch(tableSetting, () => {
+    // 修改字段显示设置时，重新渲染所有表格。否则只有当前操作的表格会重新渲染
+    settingChangeKey.value = settingChangeKey.value + 1;
+  });
+
+
   const handleExport = (clusterType: string, dataList: QuickSearchInstanceModel[]) => {
-    // TODO 字段待后端提供
     const formatData = dataList.map(dataItem => ({
-      [t('主机ID')]: '',
-      [t('云区域ID')]: '',
+      [t('主机ID')]: String(dataItem.bk_host_id),
+      [t('云区域ID')]: String(dataItem.bk_cloud_id),
       [t('IP')]: dataItem.ip,
       [t('IP端口')]: String(dataItem.port),
       [t('实例角色')]: dataItem.role,
-      [t('城市')]: '',
-      [t('机房')]: '',
+      [t('城市')]: dataItem.bk_idc_area,
+      [t('机房')]: dataItem.bk_idc_name,
       [t('集群ID')]: dataItem.cluster_id,
-      [t('集群名称')]: '',
-      [t('集群别名')]: '',
+      [t('集群名称')]: dataItem.cluster_name,
+      [t('集群别名')]: dataItem.cluster_alias,
       [t('集群类型')]: dataItem.cluster_type,
       [t('主域名')]: dataItem.cluster_domain,
-      [t('主版本')]: '',
+      [t('主版本')]: dataItem.major_version,
     }));
     const colsWidths = [
       { width: 10 },
@@ -253,20 +311,6 @@
   .export-button-text {
     margin-left: 4px;
     font-size: 12px;
-  }
-
-  .search-result-table {
-    :deep(.custom-table-cell) {
-      .copy-button {
-        display: none;
-      }
-
-      &:hover {
-        .copy-button {
-          display: inline-block;
-        }
-      }
-    }
   }
 }
 </style>
