@@ -202,7 +202,7 @@
     {
       label: t('执行时间'),
       field: 'created_at',
-      render: ({ cell }: { cell: string }) => utcDisplayTime(cell),
+      render: ({ data }: { data: TaskFlowModel }) => data.createAtDisplay,
     },
     {
       label: t('耗时'),

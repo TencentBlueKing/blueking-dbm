@@ -1,25 +1,19 @@
 <template>
-  <BkLoading
-    :loading="loading"
+  <BkResizeLayout
+    class="quick-search"
+    collapsible
+    :initial-divide="320"
+    :max="500"
+    :min="300"
+    placement="right"
     style="height: 100%;">
-    <BkResizeLayout
-      class="quick-search"
-      collapsible
-      placement="right">
-      <template #main>
-        <div class="quick-search-head">
-          <div class="quick-search-search">
-            <BkInput
-              v-model="keyword"
-              class="head-input"
-              clearable>
-              <template #suffix>
-                <span class="input-icon suffix-icon">
-                  <DbIcon type="search" />
-                </span>
-              </template>
-            </BkInput>
-            <!-- <BkDropdown class="ml-8">
+    <template #main>
+      <div class="quick-search-head">
+        <div class="quick-search-search">
+          <SearchInput
+            v-model="keyword"
+            @search="handleSearch" />
+          <!-- <BkDropdown class="ml-8">
                 <BkButton
                   class="export-button"
                   size="large">
@@ -39,22 +33,25 @@
                   </BkDropdownMenu>
                 </template>
               </BkDropdown> -->
-          </div>
-          <BkTab
-            v-model:active="activeTab"
-            class="quick-search-tab"
-            type="unborder-card">
-            <BkTabPanel
-              v-for="item in panelList"
-              :key="item.name"
-              :label="item.label"
-              :name="item.name">
-              <template #label>
-                <div>{{ item.label }} ( {{ item.count }} )</div>
-              </template>
-            </BkTabPanel>
-          </BkTab>
-          <div class="tab-content">
+        </div>
+        <BkTab
+          v-model:active="activeTab"
+          class="quick-search-tab"
+          type="unborder-card">
+          <BkTabPanel
+            v-for="item in panelList"
+            :key="item.name"
+            :label="item.label"
+            :name="item.name">
+            <template #label>
+              <div>{{ item.label }} ( {{ item.count }} )</div>
+            </template>
+          </BkTabPanel>
+        </BkTab>
+        <div class="tab-content">
+          <BkLoading
+            class="tab-content-loading"
+            :loading="loading">
             <ScrollFaker>
               <KeepAlive>
                 <Component
@@ -65,22 +62,23 @@
                   :keyword="keyword" />
               </KeepAlive>
             </ScrollFaker>
-          </div>
+          </BkLoading>
         </div>
-      </template>
-      <template #aside>
-        <ScrollFaker class="tab-filter-options">
-          <FilterOptions
-            v-model="formData"
-            :biz-list="bizList"
-            db-options-expand />
-        </ScrollFaker>
-      </template>
-    </BkResizeLayout>
-  </BkLoading>
+      </div>
+    </template>
+    <template #aside>
+      <ScrollFaker class="tab-filter-options">
+        <FilterOptions
+          v-model="formData"
+          :biz-list="bizList"
+          db-options-expand />
+      </ScrollFaker>
+    </template>
+  </BkResizeLayout>
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -96,6 +94,7 @@
   import ClusterName from './components/ClusterName.vue';
   import Instance from './components/Instance.vue';
   import ResourcePool from './components/ResourcePool.vue';
+  import SearchInput from './components/SearchInput.vue';
   import Task from './components/Task.vue';
   import Ticket from './components/Ticket.vue';
 
@@ -121,6 +120,7 @@
   };
 
   const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
   const { bizs: bizList } = useGlobalBizs();
   const keyword = useDebouncedRef(route.query.keyword as string || '');
@@ -182,6 +182,9 @@
   ]);
 
   const renderComponent = computed(() => {
+    if (loading.value) {
+      return null;
+    }
     const activeComponent = comMap[activeTab.value as keyof typeof comMap];
     if (activeComponent) {
       return activeComponent;
@@ -190,6 +193,9 @@
   });
 
   const dataList = computed(() => {
+    if (loading.value) {
+      return [];
+    }
     const activeDataList = dataMap.value[activeTab.value as keyof typeof comMap];
     if (activeDataList) {
       return activeDataList;
@@ -220,8 +226,8 @@
     },
   });
 
-  watch([keyword, formData], ([newKeyword, newFormData]) => {
-    if (!newKeyword) {
+  const handleSearch = () => {
+    if (!keyword.value) {
       Object.assign(dataMap.value, {
         cluster_domain: [],
         cluster_name: [],
@@ -241,12 +247,26 @@
     }
 
     quickSearchRun({
-      ...newFormData,
-      keyword: newKeyword,
+      ...formData.value,
+      keyword: keyword.value.replace(/，/g, '\n'),
       limit: 1000,
     });
+  };
+
+  watch(keyword, (newKeyword, oldKeyword) => {
+    const newKeywordArr = newKeyword.replace(/，|\n/g, '\n').split('\n');
+    const oldKeywordArr = (oldKeyword || '').replace(/，|\n/g, '\n').split('\n');
+
+    if (!_.isEqual(newKeywordArr, oldKeywordArr) && !newKeyword.endsWith('\n')) {
+      handleSearch();
+    }
   }, {
     immediate: true,
+  });
+
+  watch(formData, () => {
+    handleSearch();
+  }, {
     deep: true,
   });
 
@@ -257,6 +277,18 @@
   // const handleExportAllHosts = () => {
 
   // };
+
+  defineExpose({
+    routerBack() {
+      if (!route.query.from) {
+        router.back();
+        return;
+      }
+      router.push({
+        name: route.query.from as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>
@@ -271,22 +303,6 @@
       display: flex;
       padding: 45px 0 32px;
       justify-content: center;
-
-      .head-input {
-        width: 600px;
-        height: 40px;
-      }
-
-      .input-icon {
-        padding-left: 6px;
-        font-size: 14px;
-        line-height: 38px;
-        color: #979BA5;
-      }
-
-      .suffix-icon {
-        padding-right: 6px;
-      }
 
       .export-button {
         height: 40px;
@@ -313,6 +329,18 @@
     .tab-content {
       height: calc(100% - 162px);
       background-color: #f5f7fa;
+
+      :deep(.tab-content-loading) {
+        height: 100%;
+
+        .bk-loading-mask {
+          z-index: 3 !important;
+        }
+
+        .bk-loading-indicator {
+          z-index: 3 !important;
+        }
+      }
 
       .tab-table {
         margin: 16px 24px;

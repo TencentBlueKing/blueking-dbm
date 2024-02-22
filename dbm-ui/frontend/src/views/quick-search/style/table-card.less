@@ -10,3 +10,17 @@
     padding-top: 0;
   }
 }
+
+.search-result-table {
+  :deep(.cell) {
+    .db-icon-copy {
+      display: none;
+    }
+  }
+
+  :deep(tr:hover) {
+    .db-icon-copy {
+      display: inline-block;
+    }
+  }
+}

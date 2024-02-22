@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :key="settingChangeKey">
     <DbCard
       v-for="item in renderData.dataList"
       :key="item.clusterType"
@@ -7,23 +7,32 @@
       mode="collapse"
       :title="item.clusterType">
       <template #desc>
-        <span>{{ t('共n条', { n: item.dataList.length }) }}</span>
+        <I18nT
+          class="ml-8"
+          keypath="共n条"
+          style="color: #63656E;"
+          tag="span">
+          <template #n>
+            <strong>{{ item.dataList.length }}</strong>
+          </template>
+        </I18nT>
         <BkButton
-          class="ml-16"
+          class="ml-8"
           text
           theme="primary"
           @click.stop="handleExport(item.clusterType, item.dataList)">
           <DbIcon
             class="export-button-icon"
-            type="host-select" />
+            type="daochu" />
           <span class="export-button-text">{{ t('导出') }}</span>
         </BkButton>
       </template>
       <DbOriginalTable
-        cell-class="custom-table-cell"
         class="search-result-table mt-14 mb-8"
         :columns="columnsMap[item.clusterType]"
-        :data="item.dataList" />
+        :data="item.dataList"
+        :settings="tableSetting"
+        @setting-change="updateTableSettings" />
     </DbCard>
   </div>
 </template>
@@ -37,10 +46,14 @@
   import {
     useCopy,
     useLocation,
+    useTableSettings,
   } from '@hooks';
+
+  import { UserPersonalSettings } from '@common/const';
 
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { exportExcelFile } from '@utils';
 
@@ -57,6 +70,8 @@
   const { t } = useI18n();
   const copy = useCopy();
   const location = useLocation();
+
+  const settingChangeKey = ref(1);
 
   const renderData = computed(() => formatCluster<QuickSearchClusterDomainModel>(props.data));
   const columnsMap = computed(() => {
@@ -79,24 +94,30 @@
             field: 'immute_domain',
             width: 160,
             render: ({ data }: { data: QuickSearchClusterDomainModel }) => (
-              <>
-                <bk-button
-                  text
-                  theme="primary"
-                  onclick={() => handleToCluster(data)}>
-                  <HightLightText
-                    keyWord={props.keyword}
-                    text={data.immute_domain}
-                    highLightColor='#FF9C01' />
-                </bk-button>
-                <bk-button
-                  class="copy-button ml-4"
-                  text
-                  theme="primary"
-                  onclick={() => handleCopy(data.immute_domain)}>
-                  <db-icon type="copy" />
-                </bk-button>
-              </>
+              <TextOverflowLayout>
+                {{
+                  default: () => (
+                    <bk-button
+                      text
+                      theme="primary"
+                      onclick={() => handleToCluster(data)}>
+                      <HightLightText
+                        keyWord={props.keyword}
+                        text={data.immute_domain}
+                        highLightColor='#FF9C01' />
+                    </bk-button>
+                  ),
+                  append: () => (
+                    <bk-button
+                      class="ml-4"
+                      text
+                      theme="primary"
+                      onclick={() => handleCopy(data.immute_domain)}>
+                      <db-icon type="copy" />
+                    </bk-button>
+                  ),
+                }}
+              </TextOverflowLayout>
             ),
           },
           {
@@ -112,7 +133,8 @@
           },
           {
             label: t('状态'),
-            field: 'bk_idc_name',
+            field: 'status',
+            sort: true,
             render: ({ data }: { data: QuickSearchClusterDomainModel }) => <RenderClusterStatus data={data.status} />,
           },
           // {
@@ -137,17 +159,48 @@
           {
             label: t('创建人'),
             field: 'creator',
+            sort: true,
             render: ({ data }: { data: QuickSearchClusterDomainModel }) => data.creator || '--',
           },
           {
             label: t('创建时间'),
             field: 'create_at',
             width: 150,
+            sort: true,
             render: ({ data }: { data: QuickSearchClusterDomainModel }) => data.createAtDisplay || '--',
           },
         ],
       });
     }, {} as Record<string, Array<Column>>);
+  });
+
+  // 设置用户个人表头信息
+  const defaultSettings = {
+    fields: (Object.values(columnsMap.value)[0] || []).filter(item => item.field).map(item => ({
+      label: item.label,
+      field: item.field,
+      disabled: item.field === 'immute_domain',
+    })),
+    checked: [
+      'immute_domain',
+      'name',
+      'bk_cloud_id',
+      'status',
+      'cluster_type',
+      'bk_biz_id',
+      'creator',
+      'create_at',
+    ],
+  };
+
+  const {
+    settings: tableSetting,
+    updateTableSettings,
+  } = useTableSettings(UserPersonalSettings.QUICK_SEARCH_CLUSTER_DOMAIN, defaultSettings);
+
+  watch(tableSetting, () => {
+    // 修改字段显示设置时，重新渲染所有表格。否则只有当前操作的表格会重新渲染
+    settingChangeKey.value = settingChangeKey.value + 1;
   });
 
   const handleExport = (clusterType: string, dataList: QuickSearchClusterDomainModel[]) => {
@@ -217,20 +270,6 @@
   .export-button-text {
     margin-left: 4px;
     font-size: 12px;
-  }
-
-  .search-result-table {
-    :deep(.custom-table-cell) {
-      .copy-button {
-        display: none;
-      }
-
-      &:hover {
-        .copy-button {
-          display: inline-block;
-        }
-      }
-    }
   }
 }
 </style>

@@ -1,5 +1,7 @@
 <template>
-  <span v-if="keywordMatch">
+  <span
+    v-if="keywordMatch"
+    class="highlight-text">
     <span>{{ keywordMatch[1] || '' }}</span>
     <span :style="{ color: highLightColor }">{{ keywordMatch[2] }}</span>
     <span>{{ keywordMatch[3] || '' }}</span>
@@ -26,3 +28,8 @@
   const keywordMatch = computed(() => props.text.match(new RegExp(`^(.*?)(${encodeRegexp(props.keyWord)})(.*)$`)));
 </script>
 
+<style lang="less" scoped>
+  .highlight-text > span {
+    display: inline;
+  }
+</style>

@@ -46,6 +46,7 @@
   import SearchHistory from './components/SearchHistory.vue';
 
   const { t } = useI18n();
+  const route = useRoute();
   const router = useRouter();
   const serach = useDebouncedRef('');
 
@@ -128,7 +129,10 @@
 
     const url = router.resolve({
       name: 'QuickSearch',
-      query,
+      query: {
+        ...query,
+        from: route.name as string,
+      },
     });
     window.open(url.href, '_blank');
   };

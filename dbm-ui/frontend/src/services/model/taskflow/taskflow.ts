@@ -12,6 +12,8 @@
  */
 import type { TicketTypesStrings } from '@common/const';
 
+import { utcDisplayTime } from '@utils';
+
 export default class TaskFlow {
   static STATUS_TEXT_MAP: Record<string, string> = {
     CREATED: '等待执行',
@@ -63,5 +65,9 @@ export default class TaskFlow {
 
   get statusTheme() {
     return TaskFlow.STATUS_THEME_MAP[this.status] || 'danger';
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.created_at) || '--';
   }
 }
