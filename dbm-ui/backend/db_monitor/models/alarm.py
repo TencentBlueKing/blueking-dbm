@@ -869,6 +869,7 @@ class MonitorPolicy(AuditedModel):
             {
                 "level": alg["level"],
                 "config": alg["config"],
+                "type": alg["type"],
                 "unit_prefix": alg["unit_prefix"],
             }
             # 这里假设item长度恒为1

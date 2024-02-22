@@ -148,7 +148,7 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
             method = serializers.ChoiceField(choices=OperatorEnum.get_choices())
             threshold = serializers.IntegerField()
 
-        type = serializers.ChoiceField(choices=DetectAlgEnum.get_choices())
+        type = serializers.ChoiceField(choices=DetectAlgEnum.get_choices(), required=False)
         level = serializers.ChoiceField(choices=AlertLevelEnum.get_choices())
         config = serializers.ListSerializer(
             child=serializers.ListField(child=TestRuleConfigSerializer()), allow_empty=False
