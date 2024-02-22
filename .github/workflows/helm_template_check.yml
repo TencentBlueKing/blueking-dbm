@@ -16,7 +16,7 @@ jobs:
   helm-check:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@4
+    - uses: actions/checkout@v4
     - name: helm-check
       run: |-
         cd ./helm-charts/bk-dbm
