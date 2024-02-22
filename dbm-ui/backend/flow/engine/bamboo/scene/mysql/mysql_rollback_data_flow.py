@@ -238,7 +238,7 @@ class MySQLRollbackDataFlow(object):
                 "backend_port": master.port,
             }
             sub_pipeline.add_act(
-                act_name=_("整机卸载前先删除元数据"),
+                act_name=_("卸载实例前先删除元数据"),
                 act_component_code=MySQLDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(

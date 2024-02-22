@@ -16,6 +16,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.db_package.models import Package
@@ -32,6 +33,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uni
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
+from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -42,6 +44,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
+    InstanceUserCloneKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
@@ -241,7 +244,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 cluster = {"uninstall_ip": self.data["old_slave_ip"], "cluster_ids": self.data["cluster_ids"]}
                 uninstall_svr_sub_pipeline.add_act(
-                    act_name=_("整机卸载前先删除元数据"),
+                    act_name=_("卸载实例前先删除元数据"),
                     act_component_code=MySQLDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(
@@ -342,6 +345,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 machine__ip=self.data["slave_ip"],
                 port=self.data["slave_port"],
             )
+            master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
             self.data["bk_biz_id"] = cluster_model.bk_biz_id
             self.data["bk_cloud_id"] = cluster_model.bk_cloud_id
             self.data["db_module_id"] = cluster_model.db_module_id
@@ -365,7 +369,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 kwargs=asdict(
                     DownloadMediaKwargs(
                         bk_cloud_id=cluster_model.bk_cloud_id,
-                        exec_ip=[target_slave.machine.ip],
+                        exec_ip=[target_slave.machine.ip, master.machine.ip],
                         file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                     )
                 ),
@@ -406,7 +410,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 kwargs=asdict(exec_act_kwargs),
             )
 
-            master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
             cluster = {
                 "cluster_id": cluster_model.id,
                 "master_ip": master.machine.ip,
@@ -423,6 +426,22 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 sub_flow=slave_recover_sub_flow(
                     root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
                 )
+            )
+
+            #  克隆权限
+            new_slave = "{}{}{}".format(self.data["new_slave_ip"], IP_PORT_DIVIDER, master.port)
+            old_master = "{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)
+            clone_data = [
+                {
+                    "source": old_master,
+                    "target": new_slave,
+                    "bk_cloud_id": cluster_model.bk_cloud_id,
+                }
+            ]
+            tendb_migrate_pipeline.add_act(
+                act_name=_("克隆权限"),
+                act_component_code=CloneUserComponent.code,
+                kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
             )
 
             cluster = {"storage_status": InstanceStatus.RUNNING.value, "storage_id": target_slave.id}

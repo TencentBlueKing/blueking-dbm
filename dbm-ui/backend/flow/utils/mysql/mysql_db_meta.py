@@ -686,7 +686,7 @@ class MySQLDBMeta(object):
                     "port": int(port),
                     "instance_role": InstanceRole.BACKEND_SLAVE.value,
                     "is_stand_by": False,  # 添加新建
-                    "db_version": self.cluster["package"],  # 存储真正的版本号信息
+                    "db_version": get_mysql_real_version(self.cluster["package"]),  # 存储真正的版本号信息
                 }
             )
             clusters.append(

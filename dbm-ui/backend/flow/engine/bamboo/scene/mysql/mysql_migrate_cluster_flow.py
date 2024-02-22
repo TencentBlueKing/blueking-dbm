@@ -396,7 +396,7 @@ class MySQLMigrateClusterFlow(object):
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 cluster = {"uninstall_ip": ip, "ports": self.data["ports"], "bk_cloud_id": self.data["bk_cloud_id"]}
                 uninstall_svr_sub_pipeline.add_act(
-                    act_name=_("整机卸载前先删除元数据"),
+                    act_name=_("卸载实例前先删除元数据"),
                     act_component_code=MySQLDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(

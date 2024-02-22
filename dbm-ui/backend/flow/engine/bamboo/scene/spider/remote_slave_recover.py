@@ -239,7 +239,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
             uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             ins_cluster = {"uninstall_ip": self.data["source_ip"], "cluster_id": cluster_info["cluster_id"]}
             uninstall_svr_sub_pipeline.add_act(
-                act_name=_("整机卸载前先删除元数据"),
+                act_name=_("卸载实例前先删除元数据"),
                 act_component_code=SpiderDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
