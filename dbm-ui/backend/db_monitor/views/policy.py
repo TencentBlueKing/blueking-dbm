@@ -129,39 +129,45 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         return context
 
     @common_swagger_auto_schema(
-        operation_summary=_("启用策略"), tags=[constants.SWAGGER_TAG],
-        request_body=serializers.MonitorPolicyEmptySerializer()
+        operation_summary=_("启用策略"),
+        tags=[constants.SWAGGER_TAG],
+        request_body=serializers.MonitorPolicyEmptySerializer(),
     )
     @action(methods=["POST"], detail=True)
     def enable(self, request, *args, **kwargs):
         return Response(self.get_object().enable())
 
     @common_swagger_auto_schema(
-        operation_summary=_("停用策略"), tags=[constants.SWAGGER_TAG],
-        request_body=serializers.MonitorPolicyEmptySerializer()
+        operation_summary=_("停用策略"),
+        tags=[constants.SWAGGER_TAG],
+        request_body=serializers.MonitorPolicyEmptySerializer(),
     )
     @action(methods=["POST"], detail=True)
     def disable(self, request, *args, **kwargs):
         return Response(self.get_object().disable())
 
     @common_swagger_auto_schema(
-        operation_summary=_("克隆策略"), tags=[constants.SWAGGER_TAG],
-        request_body=serializers.MonitorPolicyCloneSerializer()
+        operation_summary=_("克隆策略"),
+        tags=[constants.SWAGGER_TAG],
+        request_body=serializers.MonitorPolicyCloneSerializer(),
     )
     @action(methods=["POST"], detail=False, serializer_class=serializers.MonitorPolicyCloneSerializer)
     def clone_strategy(self, request, *args, **kwargs):
         return Response(MonitorPolicy.clone(self.validated_data, request.user.username))
 
     @common_swagger_auto_schema(
-        operation_summary=_("更新策略"), tags=[constants.SWAGGER_TAG],
-        request_body=serializers.MonitorPolicyUpdateSerializer()
+        operation_summary=_("更新策略"),
+        tags=[constants.SWAGGER_TAG],
+        request_body=serializers.MonitorPolicyUpdateSerializer(),
     )
     @action(methods=["POST"], detail=True, serializer_class=serializers.MonitorPolicyUpdateSerializer)
     def update_strategy(self, request, *args, **kwargs):
         return Response(self.get_object().update(self.validated_data, request.user.username))
 
     # @common_swagger_auto_schema(
-    #     operation_summary=_("恢复默认策略"), tags=[constants.SWAGGER_TAG], request_body=serializers.MonitorPolicyEmptySerializer()
+    #     operation_summary=_("恢复默认策略"),
+    #     tags=[constants.SWAGGER_TAG],
+    #     request_body=serializers.MonitorPolicyEmptySerializer()
     # )
     # @action(methods=["POST"], detail=True)
     # def reset(self, request, *args, **kwargs):
@@ -173,8 +179,11 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         query_serializer=serializers.ListClusterSerializer,
     )
     @action(
-        methods=["GET"], detail=False, serializer_class=serializers.ListClusterSerializer, pagination_class=None,
-        filter_class=None
+        methods=["GET"],
+        detail=False,
+        serializer_class=serializers.ListClusterSerializer,
+        pagination_class=None,
+        filter_class=None,
     )
     def cluster_list(self, request, *args, **kwargs):
         dbtype = self.validated_data["dbtype"]
@@ -196,8 +205,11 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         query_serializer=serializers.ListModuleSerializer,
     )
     @action(
-        methods=["GET"], detail=False, serializer_class=serializers.ListModuleSerializer, pagination_class=None,
-        filter_class=None
+        methods=["GET"],
+        detail=False,
+        serializer_class=serializers.ListModuleSerializer,
+        pagination_class=None,
+        filter_class=None,
     )
     def db_module_list(self, request, *args, **kwargs):
         dbtype = self.validated_data["dbtype"]
