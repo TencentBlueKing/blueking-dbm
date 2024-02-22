@@ -41,9 +41,6 @@ class BigdataManagerService(BaseService):
     ManagerOpType: CREATE / UPDATE / DELETE
     """
 
-    def __init__(self):
-        super(BigdataManagerService, self).__init__()
-
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
