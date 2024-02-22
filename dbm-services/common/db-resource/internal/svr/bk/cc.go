@@ -98,7 +98,7 @@ func NewClient() (*cc.Client, error) {
 
 // BatchQueryHostsInfo TODO
 func BatchQueryHostsInfo(bizId int, allhosts []string) (ccHosts []*cc.Host, nofoundHosts []string, err error) {
-	for _, hosts := range cmutil.SplitGroup(allhosts, int64(200)) {
+	for _, hosts := range cmutil.SplitGroup(allhosts, 200) {
 		err = cmutil.Retry(cmutil.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, func() error {
 			data, resp, err := cc.NewListBizHosts(EsbClient).QueryListBizHosts(&cc.ListBizHostsParam{
 				BkBizId: bizId,

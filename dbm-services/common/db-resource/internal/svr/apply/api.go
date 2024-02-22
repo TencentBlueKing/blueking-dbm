@@ -16,6 +16,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -88,10 +89,12 @@ func (c ApplyRequestInputParam) GetOperationInfo(requestId, mode string,
 		count += v.Count
 	}
 	for _, group := range data {
-		for _, host := range group.Data {
-			bkHostIds = append(bkHostIds, host.BkHostID)
-			ipList = append(ipList, host.IP)
-		}
+		bkHostIds = append(bkHostIds, lo.Map(group.Data, func(d model.TbRpDetail, _ int) int {
+			return d.BkHostID
+		})...)
+		ipList = append(ipList, lo.Map(group.Data, func(d model.TbRpDetail, _ int) string {
+			return d.IP
+		})...)
 	}
 	var desc string
 	bkHostIdsBytes, err := json.Marshal(bkHostIds)
