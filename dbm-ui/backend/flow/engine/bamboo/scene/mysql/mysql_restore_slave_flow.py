@@ -16,6 +16,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.db_package.models import Package
@@ -31,6 +32,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uni
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
+from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.slave_trans_flies import SlaveTransFileComponent
@@ -42,6 +44,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
+    InstanceUserCloneKwargs,
     P2PFileKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -322,7 +325,7 @@ class MySQLRestoreSlaveFlow(object):
                 # 需要下架的机器可能是坏的根本连接不上, 所以应该先清理元数据
                 cluster = {"uninstall_ip": self.data["old_slave_ip"], "cluster_ids": self.data["cluster_ids"]}
                 uninstall_svr_sub_pipeline.add_act(
-                    act_name=_("整机卸载前先删除元数据"),
+                    act_name=_("卸载实例前先删除元数据"),
                     act_component_code=MySQLDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(
@@ -560,13 +563,40 @@ class MySQLRestoreSlaveFlow(object):
                 kwargs=asdict(exec_act_kwargs),
             )
 
-            exec_act_kwargs.cluster = cluster
+            # 创建repl账号
+            cluster["target_ip"] = master.machine.ip
+            cluster["target_port"] = master.port
+            cluster["repl_ip"] = self.data["new_slave_ip"]
+            exec_act_kwargs.cluster = copy.deepcopy(cluster)
+            exec_act_kwargs.exec_ip = master.machine.ip
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
+            tendb_migrate_pipeline.add_act(
+                act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
             exec_act_kwargs.exec_ip = self.data["new_slave_ip"]
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_mysql_restore_slave_payload.__name__
             tendb_migrate_pipeline.add_act(
                 act_name=_("恢复新从节点数据{}:{}").format(exec_act_kwargs.exec_ip, master.port),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
+            )
+            #  克隆权限
+            new_slave = "{}{}{}".format(self.data["new_slave_ip"], IP_PORT_DIVIDER, master.port)
+            old_master = "{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)
+            clone_data = [
+                {
+                    "source": old_master,
+                    "target": new_slave,
+                    "bk_cloud_id": cluster_model.bk_cloud_id,
+                }
+            ]
+            tendb_migrate_pipeline.add_act(
+                act_name=_("克隆权限"),
+                act_component_code=CloneUserComponent.code,
+                kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
             )
             # ====
             tendb_migrate_pipeline.add_act(
