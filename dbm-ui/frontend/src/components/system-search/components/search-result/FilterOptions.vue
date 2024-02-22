@@ -28,16 +28,22 @@
       <div class="filter-title">
         {{ t('数据库组件') }}
       </div>
-      <BkCheckboxGroup
-        v-if="dbOptionsExpand"
-        v-model="modelValue.db_types">
+      <template v-if="dbOptionsExpand">
         <BkCheckbox
-          v-for="dbItem in dbList"
-          :key="dbItem.id"
-          :label="dbItem.id">
-          {{ dbItem.name }}
+          class="mb-16"
+          :model-value="isAllDbTypes"
+          @change="handleDbTypeAll">
+          {{ t('全部') }}
         </BkCheckbox>
-      </BkCheckboxGroup>
+        <BkCheckboxGroup v-model="modelValue.db_types">
+          <BkCheckbox
+            v-for="dbItem in dbList"
+            :key="dbItem.id"
+            :label="dbItem.id">
+            {{ dbItem.name }}
+          </BkCheckbox>
+        </BkCheckboxGroup>
+      </template>
       <BkSelect
         v-else
         v-model="modelValue.db_types"
@@ -62,7 +68,7 @@
       <div class="filter-title">
         {{ t('检索内容') }}
       </div>
-      <div>
+      <div class="pb-8">
         <BkCheckbox
           class="mb-16"
           :model-value="isAllResourceType"
@@ -147,31 +153,8 @@
     },
   ];
 
+  // name 需按字母序排序
   const dbList = [
-    {
-      id: 'mysql',
-      name: 'MySQL',
-    },
-    {
-      id: 'tendbcluster',
-      name: 'Tendb Cluster',
-    },
-    // {
-    //   id: 'mongodb',
-    //   name: 'MongoDB',
-    // },
-    {
-      id: 'influxDB',
-      name: 'influxDB',
-    },
-    {
-      id: 'pulsar',
-      name: 'Pulsar',
-    },
-    {
-      id: 'kafka',
-      name: 'Kafka',
-    },
     {
       id: 'es',
       name: 'ElasticSearch',
@@ -181,6 +164,22 @@
       name: 'HDFS',
     },
     {
+      id: 'influxDB',
+      name: 'influxDB',
+    },
+    {
+      id: 'kafka',
+      name: 'Kafka',
+    },
+    {
+      id: 'mysql',
+      name: 'MySQL',
+    },
+    {
+      id: 'pulsar',
+      name: 'Pulsar',
+    },
+    {
       id: 'redis',
       name: 'Redis',
     },
@@ -188,9 +187,18 @@
       id: 'riak',
       name: 'Riak',
     },
+    {
+      id: 'tendbcluster',
+      name: 'Tendb Cluster',
+    },
   ];
 
+  const isAllDbTypes = computed(() => modelValue.value.db_types.length === 0);
   const isAllResourceType = computed(() => modelValue.value.resource_types.length === 0);
+
+  const handleDbTypeAll = () => {
+    modelValue.value.db_types = [];
+  };
 
   const handleResourceTypeAll = () => {
     modelValue.value.resource_types = [];

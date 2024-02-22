@@ -122,6 +122,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-sql:before {
 	content: "\e1cb";
 }
+.db-icon-daochu:before {
+	content: "\e1ed";
+}
 .db-icon-version:before {
 	content: "\e156";
 }
@@ -592,4 +595,10 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-qianyizhong:before {
 	content: "\e1ea";
+}
+.db-icon-liucheng:before {
+	content: "\e1eb";
+}
+.db-icon-kejian:before {
+	content: "\e1ec";
 }
