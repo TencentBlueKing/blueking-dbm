@@ -16,6 +16,7 @@
           boundary: 'parent',
           disableTeleport: true
         }"
+        show-select-all
         size="small">
         <BkOption
           v-for="bizItem in bizList"
@@ -50,6 +51,7 @@
           boundary: 'parent',
           disableTeleport: true,
         }"
+        show-select-all
         size="small">
         <BkOption
           v-for="dbItem in dbList"
@@ -115,7 +117,6 @@
     filter_type: string,
   }>({
     required: true,
-    local: true,
   });
 
   const { t } = useI18n();

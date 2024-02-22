@@ -11,8 +11,8 @@
       clearable
       :placeholder="t('全站搜索 Ctrl + K')"
       type="search"
-      @click="handleClick"
-      @enter="handleEnter" />
+      @enter="handleEnter"
+      @focus="handleFocus" />
   </div>
   <div
     ref="popRef"
@@ -62,7 +62,7 @@
 
   let tippyIns:Instance | undefined;
 
-  const handleClick = () => {
+  const handleFocus = () => {
     if (isFocused.value) {
       return;
     }
@@ -99,7 +99,7 @@
     if (!event.ctrlKey || event.key !== 'k') {
       return;
     }
-    handleClick();
+    rootRef.value!.querySelector('input')!.focus();
   };
 
   const handleEnter = () => {
