@@ -141,7 +141,11 @@ class QSearchHandler(object):
         if self.bk_biz_ids:
             objs = objs.filter(bk_biz_id__in=self.bk_biz_ids)
 
-        results = list(objs[: self.limit].values("uid", "bk_biz_id", "ticket_type", "root_id", "status", "created_by"))
+        results = list(
+            objs[: self.limit].values(
+                "uid", "bk_biz_id", "ticket_type", "root_id", "status", "created_by", "created_at"
+            )
+        )
         # 补充 ticket_type_display
         for ticket in results:
             ticket["ticket_type_display"] = TicketType.get_choice_label(ticket["ticket_type"])
