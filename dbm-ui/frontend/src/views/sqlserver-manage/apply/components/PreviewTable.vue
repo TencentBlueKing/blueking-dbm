@@ -79,18 +79,18 @@
           render: () => {
             const hosts = props.nodes.backend;
             return (
-            <div class="host-list">
-              <div class="host-list-wrapper">
-                {
-                  hosts.map(item => (
-                    <div class="host-list-item">
-                      <strong class='host-list-tag host-list-tag-master'></strong>
-                      <span class="host-list-ip">{ item.ip }</span>
-                    </div>
-                  ))
-                }
+              <div class="host-list">
+                <div class="host-list-wrapper">
+                  {
+                    hosts.map(item => (
+                      <div class="host-list-item">
+                        <strong class='host-list-tag host-list-tag-master'></strong>
+                        <span class="host-list-ip">{ item.ip }</span>
+                      </div>
+                    ))
+                  }
+                </div>
               </div>
-            </div>
             );
           },
         });
@@ -127,7 +127,7 @@
     return haColumns;
   });
 
-  const setCellClass = ({ field }: { field: string }) => (['backend'].includes(field) ? 'host-td' : '');
+  const setCellClass = ({ field }: { field: string }) => ('backend' === field ? 'host-td' : '');
 
 </script>
 

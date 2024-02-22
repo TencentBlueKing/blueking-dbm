@@ -295,21 +295,16 @@
     }],
   });
 
-  watch(
-    () => formData.version, (version) => {
-      if (version) {
-        fetchLevelConfig();
-        if (Number(version.slice(-4)) > 2017) {
-          formData.haMode = 'alwaysOn';
-        } else {
-          formData.haMode = 'image';
-        }
+  watch(() => formData.version, (version) => {
+    if (version) {
+      fetchLevelConfig();
+      if (Number(version.slice(-4)) > 2017) {
+        formData.haMode = 'alwaysOn';
+      } else {
+        formData.haMode = 'image';
       }
-    },
-    {
-      immediate: true,
-    },
-  );
+    }
+  }, { immediate: true });
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 

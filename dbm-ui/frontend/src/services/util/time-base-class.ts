@@ -1,9 +1,9 @@
 import dayjs from 'dayjs';
 
-export default class SqlServerBase {
+export default class timeBaseClass {
   create_at: string;
 
-  constructor(payload: SqlServerBase) {
+  constructor(payload: timeBaseClass) {
     this.create_at = payload.create_at;
   }
 

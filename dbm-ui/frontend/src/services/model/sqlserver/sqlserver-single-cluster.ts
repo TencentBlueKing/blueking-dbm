@@ -1,8 +1,8 @@
+import TimeBaseClassModel from '@services/util/time-base-class';
+
 import { t } from '@locales';
 
-import SqlServerBaseModel from './sqlserver-base';
-
-export default class SqlServerSingleCluster extends SqlServerBaseModel {
+export default class SqlServerSingleCluster extends TimeBaseClassModel {
   static SQLSERVER_SINGLE_DESTROY = 'SQLSERVER_SINGLE_DESTROY';
   static SQLSERVER_SINGLE_DISABLE = 'SQLSERVER_SINGLE_DISABLE';
   static SQLSERVER_SINGLE_ENABLE = 'SQLSERVER_SINGLE_ENABLE';

@@ -378,7 +378,9 @@
   });
 
 
-  const { run: runCreateTicket } = useRequest(createTicket, { manual: true });
+  const { run: runCreateTicket } = useRequest(createTicket, {
+    manual: true,
+  });
 
   const { run: runDeleteTicket } = useRequest(createTicket, {
     manual: true,
@@ -478,7 +480,8 @@
     if (AllCopyList.length) {
       copy(AllCopyList.map(item => `${item.ip}${isInstance ? `:${item.port}` : ''}`).join('\n'));
     } else {
-      messageWarn(isInstance ? t('没有可复制实例') : t('没有可复制IP'));
+      const tipMessage = isInstance ? t('没有可复制实例') : t('没有可复制IP');
+      messageWarn(tipMessage);
     }
   };
 
