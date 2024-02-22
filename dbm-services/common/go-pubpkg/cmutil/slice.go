@@ -11,12 +11,11 @@
 package cmutil
 
 import (
-	"fmt"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/spf13/cast"
+	"github.com/samber/lo"
 )
 
 // FilterOutStringSlice 滤除scr中含有filters 里面元素的数组
@@ -25,12 +24,9 @@ import (
 //	@receiver filters
 //	@return dst
 func FilterOutStringSlice(src []string, filters []string) (dst []string) {
-	for _, v := range src {
-		if !StringsHas(filters, v) {
-			dst = append(dst, v)
-		}
-	}
-	return
+	return lo.FilterMap(src, func(item string, _ int) (string, bool) {
+		return item, !StringsHas(filters, item)
+	})
 }
 
 // StringsHas check the []string contains the given element
@@ -53,67 +49,24 @@ func StringsRemove(ss []string, s string) (ns []string) {
 
 // RemoveDuplicate 通过map主键唯一的特性过滤重复元素
 func RemoveDuplicate[T int | string](arr []T) []T {
-	resArr := make([]T, 0)
-	tmpMap := make(map[T]struct{})
-	for _, val := range arr {
-		// 判断主键为val的map是否存在
-		if _, ok := tmpMap[val]; !ok {
-			resArr = append(resArr, val)
-			tmpMap[val] = struct{}{}
-		}
-	}
-	return resArr
+	return lo.Uniq(arr)
 }
 
 // IntSliceToStrSlice TODO
-func IntSliceToStrSlice(elems []int) (dst []string) {
-	for _, v := range elems {
-		dst = append(dst, strconv.Itoa(v))
-	}
-	return dst
-}
-
-// IntsJoin join int slice to string
-func IntsJoin(intList []int, sep string) string {
-	strList := make([]string, len(intList))
-	for i, e := range intList {
-		strList[i] = cast.ToString(e)
-	}
-	fmt.Println("intsjoin: ", strList)
-	return strings.Join(strList, sep)
+func IntSliceToStrSlice(elems []int) []string {
+	return lo.Map(elems, func(ele int, _ int) string { return strconv.Itoa(ele) })
 }
 
 // SplitGroup 数组切割
 // 将数组laxiconid 按照 subGroupLength 切分成若干个数组
-func SplitGroup[T int | string](laxiconid []T, subGroupLength int64) [][]T {
-	max := int64(len(laxiconid))
-	var segmens = make([][]T, 0)
-	quantity := max / subGroupLength
-	remainder := max % subGroupLength
-	if quantity <= 1 {
-		segmens = append(segmens, laxiconid)
-		return segmens
-	}
-	i := int64(0)
-	for i = int64(0); i < quantity; i++ {
-		segmens = append(segmens, laxiconid[i*subGroupLength:(i+1)*subGroupLength])
-	}
-	if quantity == 0 || remainder != 0 {
-		segmens = append(segmens, laxiconid[i*subGroupLength:i*subGroupLength+remainder])
-	}
-	return segmens
+func SplitGroup[T int | string](laxiconid []T, subGroupLength int) [][]T {
+	return lo.Chunk(laxiconid, subGroupLength)
 }
 
 // StringsRemoveEmpty TODO
 // RemoveEmpty 过滤掉空字符串
 func StringsRemoveEmpty(elems []string) []string {
-	var result []string
-	for _, item := range elems {
-		if strings.TrimSpace(item) != "" {
-			result = append(result, strings.TrimSpace(item))
-		}
-	}
-	return result
+	return lo.Compact(elems)
 }
 
 // RemoveEmpty 过滤掉空字符串
@@ -148,42 +101,6 @@ func ElementNotInArry(ele string, arry []string) bool {
 		}
 	}
 	return true
-}
-
-// ArrayInGroupsOf TODO
-/*
-示例1：
-数组：[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]，正整数：2
-期望结果: [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
-调用: res:= arrayInGroupsOf(arr,2)
-*/
-func ArrayInGroupsOf(arr []string, num int64) [][]string {
-	max := int64(len(arr))
-	// 判断数组大小是否小于等于指定分割大小的值，是则把原数组放入二维数组返回
-	if max <= num {
-		return [][]string{arr}
-	}
-	// 获取应该数组分割为多少份
-	var quantity int64
-	if max%num == 0 {
-		quantity = max / num
-	} else {
-		quantity = (max / num) + 1
-	}
-	// 声明分割好的二维数组
-	var segments = make([][]string, 0)
-	// 声明分割数组的截止下标
-	var start, end, i int64
-	for i = 1; i <= quantity; i++ {
-		end = i * num
-		if i != quantity {
-			segments = append(segments, arr[start:end])
-		} else {
-			segments = append(segments, arr[start:])
-		}
-		start = i * num
-	}
-	return segments
 }
 
 // HasElem TODO

@@ -296,11 +296,6 @@ func (c *PickerObject) RollbackUnusedInstance() error {
 	return model.UpdateTbRpDetailStatusAtSelling(c.SatisfiedHostIds, model.Unused)
 }
 
-// GetReason TODO
-func (c *PickerObject) GetReason() (message string) {
-	return
-}
-
 // CampusNice TODO
 type CampusNice struct {
 	Campus string `json:"campus"`

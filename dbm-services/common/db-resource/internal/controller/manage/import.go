@@ -27,6 +27,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 
 	rf "github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 )
 
 // ImportMachParam TODO
@@ -63,13 +64,10 @@ func (p ImportMachParam) getOperationInfo(requestId string, hostIds json.RawMess
 	}
 }
 
-func (p ImportMachParam) getIps() (ips []string) {
-	for _, v := range p.Hosts {
-		if !cmutil.IsEmpty(v.Ip) {
-			ips = append(ips, v.Ip)
-		}
-	}
-	return
+func (p ImportMachParam) getIps() []string {
+	return lo.FilterMap(p.Hosts, func(item HostBase, _ int) (string, bool) {
+		return item.Ip, lo.IsNotEmpty(item.Ip)
+	})
 }
 
 func (p ImportMachParam) getIpsByCloudId() (ipMap map[int][]string) {
@@ -82,13 +80,10 @@ func (p ImportMachParam) getIpsByCloudId() (ipMap map[int][]string) {
 	return
 }
 
-func (p ImportMachParam) getHostIds() (hostIds []int) {
-	for _, v := range p.Hosts {
-		if v.HostId > 0 {
-			hostIds = append(hostIds, v.HostId)
-		}
-	}
-	return
+func (p ImportMachParam) getHostIds() []int {
+	return lo.FilterMap(p.Hosts, func(item HostBase, _ int) (int, bool) {
+		return item.HostId, item.HostId > 0
+	})
 }
 
 func (p *ImportMachParam) existCheck() (err error) {
@@ -133,17 +128,6 @@ func (c *MachineResourceHandler) Import(r *rf.Context) {
 		c.SendResponse(r, fmt.Errorf("all machines failed to query cmdb information"), resp, requestId)
 		return
 	}
-	// hostIds, err := json.Marshal(input.getHostIds())
-	// if err != nil {
-	// 	c.SendResponse(r, errno.ErrJSONMarshal.Add("input bkhostIds"), resp, requestId)
-	// 	return
-	// }
-	// iplist, err := json.Marshal(input.getIps())
-	// if err != nil {
-	// 	c.SendResponse(r, errno.ErrJSONMarshal.Add("input ips"), resp, requestId)
-	// 	return
-	// }
-	// task.RecordRsOperatorInfoChan <- input.getOperationInfo(requestId, hostIds, iplist)
 	c.SendResponse(r, err, resp, requestId)
 }
 
@@ -181,13 +165,12 @@ func (p ImportMachParam) transParamToBytes() (lableJson, bizJson, rstypes json.R
 }
 
 func (p ImportMachParam) getJobIpList() (ipList []bk.IPList) {
-	for _, host := range p.Hosts {
-		ipList = append(ipList, bk.IPList{
+	return lo.Map(p.Hosts, func(host HostBase, _ int) bk.IPList {
+		return bk.IPList{
 			IP:        host.Ip,
 			BkCloudID: host.BkCloudId,
-		})
-	}
-	return
+		}
+	})
 }
 
 // Doimport TODO
