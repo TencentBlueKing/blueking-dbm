@@ -14,6 +14,7 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoF
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_restart import MongoRestartInstanceFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_remove_ns import MongoRemoveNsFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_replace import MongoReplaceFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_restore import MongoRestoreFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_user import MongoUserFlow
 from backend.flow.engine.controller.base import BaseController
@@ -99,3 +100,11 @@ class MongoDBController(BaseController):
         发起删除库表任务
         """
         MongoRemoveNsFlow(root_id=self.root_id, data=self.ticket_data).start()
+
+    def machine_replace(self):
+        """
+        整机替换
+        """
+
+        flow = MongoReplaceFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_host_replace_flow()

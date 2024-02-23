@@ -20,7 +20,7 @@ class MongoDBPassword(object):
     """
 
     def __init__(self):
-        self.security_rule_name = MongoDBPasswordRule.RULE
+        self.security_rule_name = MongoDBPasswordRule.RULE.value
         self.component = MediumEnum.MongoDB.value
 
     @staticmethod
@@ -42,7 +42,7 @@ class MongoDBPassword(object):
             {"security_rule_name": self.security_rule_name},
             raw=True,
         )
-        if result["code"] != RequestResultCode.Success:
+        if result["code"] != RequestResultCode.Success.value:
             return {"password": None, "info": result["message"]}
         if self.base64_decode(result["data"])[0] == "-" or self.base64_decode(result["data"])[0:2] == "--":
             return {"password": self.base64_decode(result["data"]).replace("-", "!"), "info": None}
@@ -62,7 +62,7 @@ class MongoDBPassword(object):
             },
             raw=True,
         )
-        if result["code"] != RequestResultCode.Success:
+        if result["code"] != RequestResultCode.Success.value:
             return result["message"] + " " + result["data"]
 
     def delete_password_from_db(self, instances: list, usernames: list) -> str:
@@ -82,7 +82,7 @@ class MongoDBPassword(object):
             },
             raw=True,
         )
-        if result["code"] != RequestResultCode.Success:
+        if result["code"] != RequestResultCode.Success.value:
             return result["message"]
 
     def get_password_from_db(self, ip: str, port: int, bk_cloud_id: int, username: str) -> dict:
@@ -95,6 +95,6 @@ class MongoDBPassword(object):
             },
             raw=True,
         )
-        if result["code"] != RequestResultCode.Success:
+        if result["code"] != RequestResultCode.Success.value:
             return {"password": None, "info": result["message"]}
         return {"password": self.base64_decode(result["data"]["items"][0]["password"]), "info": None}

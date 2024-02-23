@@ -44,7 +44,6 @@ def user(
     )
 
     # 创建或删除用户
-    print("info:", info)
     kwargs = sub_get_kwargs.get_user_kwargs(create=create, admin_user=MongoDBManagerUser.DbaUser.value, info=info)
     if create:
         act_name = _("MongoDB-cluster_id:{}-创建用户:{}".format(str(cluster_id), info["username"]))
