@@ -53,6 +53,9 @@ def mongod_replace(
         cluster_name = sub_sub_get_kwargs.db_instance["seg_range"]
         sub_sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoShardedCluster.value
         sub_sub_get_kwargs.payload["set_id"] = sub_sub_get_kwargs.db_instance["seg_range"]
+        sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_key_file(
+            cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"]
+        )
         sub_sub_get_kwargs.payload["config_nodes"] = []
         sub_sub_get_kwargs.payload["shards_nodes"] = []
         sub_sub_get_kwargs.payload["mongos_nodes"] = []
@@ -83,10 +86,10 @@ def mongod_replace(
         cluster_name = sub_sub_get_kwargs.db_instance["cluster_name"]
         sub_sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoReplicaSet.value
         sub_sub_get_kwargs.payload["set_id"] = sub_sub_get_kwargs.db_instance["cluster_name"]
+        sub_sub_get_kwargs.replicaset_info["key_file"] = sub_sub_get_kwargs.get_key_file(
+            cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"]
+        )
     sub_sub_get_kwargs.replicaset_info["set_id"] = cluster_name
-    sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_key_file(
-        cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"]
-    )
     sub_sub_get_kwargs.replicaset_info["nodes"] = [
         {
             "ip": new_node["ip"],
