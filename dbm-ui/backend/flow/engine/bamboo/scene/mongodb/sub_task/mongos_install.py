@@ -14,7 +14,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.add_password_to_db import (
     ExecAddPasswordToDBOperationComponent,
@@ -36,7 +36,7 @@ def mongos_install(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwa
     # mongod安装——并行
     acts_list = []
     for node in sub_get_kwargs.mongos_info["nodes"]:
-        kwargs = sub_get_kwargs.get_install_mongos_kwargs(node=node)
+        kwargs = sub_get_kwargs.get_install_mongos_kwargs(node=node, replace=False)
         acts_list.append(
             {
                 "act_name": _("MongoDB-{}-mongos安装".format(node["ip"])),
@@ -48,7 +48,12 @@ def mongos_install(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwa
 
     # dba，appdba，monitor，monitor用户用户密码写入密码服务
     kwargs = sub_get_kwargs.get_add_password_to_db_kwargs(
-        usernames=[MediumEnum.DbaUser, MediumEnum.AppDbaUser, MediumEnum.MonitorUser, MediumEnum.AppMonitorUser],
+        usernames=[
+            MongoDBManagerUser.DbaUser,
+            MongoDBManagerUser.AppDbaUser,
+            MongoDBManagerUser.MonitorUser,
+            MongoDBManagerUser.AppMonitorUser,
+        ],
         info=sub_get_kwargs.mongos_info,
     )
     sub_pipeline.add_act(

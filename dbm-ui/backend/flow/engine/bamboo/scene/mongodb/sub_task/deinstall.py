@@ -15,7 +15,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MongoDBInstanceType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.delete_domain_from_dns import (
     ExecDeleteDomainFromDnsOperationComponent,
@@ -61,7 +61,9 @@ def deinstall(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, 
     if sub_get_kwargs.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
         # mongo卸载——并行
         acts_list = mongo_deinstall_parallel(
-            sub_get_kwargs=sub_get_kwargs, nodes=sub_get_kwargs.payload["nodes"], instance_type=MediumEnum.MongoD
+            sub_get_kwargs=sub_get_kwargs,
+            nodes=sub_get_kwargs.payload["nodes"],
+            instance_type=MongoDBInstanceType.MongoD.value,
         )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
     # cluster卸载
@@ -70,14 +72,16 @@ def deinstall(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, 
         acts_list = mongo_deinstall_parallel(
             sub_get_kwargs=sub_get_kwargs,
             nodes=sub_get_kwargs.payload["mongos_nodes"],
-            instance_type=MediumEnum.MongoS,
+            instance_type=MongoDBInstanceType.MongoS.value,
         )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
         # shard卸载——并行
         many_acts_list = []
         for shard_nodes in sub_get_kwargs.payload["shards_nodes"]:
             acts_list = mongo_deinstall_parallel(
-                sub_get_kwargs=sub_get_kwargs, nodes=shard_nodes["nodes"], instance_type=MediumEnum.MongoD
+                sub_get_kwargs=sub_get_kwargs,
+                nodes=shard_nodes["nodes"],
+                instance_type=MongoDBInstanceType.MongoD.value,
             )
             many_acts_list.extend(acts_list)
         sub_pipeline.add_parallel_acts(acts_list=many_acts_list)
@@ -85,7 +89,7 @@ def deinstall(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, 
         acts_list = mongo_deinstall_parallel(
             sub_get_kwargs=sub_get_kwargs,
             nodes=sub_get_kwargs.payload["config_nodes"],
-            instance_type=MediumEnum.MongoD,
+            instance_type=MongoDBInstanceType.MongoD.value,
         )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
