@@ -94,7 +94,7 @@ func (b *BuildAlwaysOnComp) Init() error {
 				i.Host, i.Port, err.Error())
 			return err
 		}
-		if SInfo, err = LWork.GetServerNameAndInstanceName(); err != nil {
+		if SInfo, err = DBWork.GetServerNameAndInstanceName(); err != nil {
 			return err
 		}
 
@@ -128,13 +128,13 @@ func (b *BuildAlwaysOnComp) CreateEndPoint() error {
 	if b.Params.IsFirst {
 		// 第一次建立需要在主节点操作
 		if _, err := b.DB.Exec(sqlStr); err != nil {
-			logger.Error("exec create endpoint in DB [%s:%s] failed", b.Params.Host, b.Params.Port)
+			logger.Error("exec create endpoint in DB [%s:%d] failed", b.Params.Host, b.Params.Port)
 			return err
 		}
 	}
 	for _, i := range b.DRS {
 		if _, err := i.Connet.Exec(sqlStr); err != nil {
-			logger.Error("exec create endpoint in DR [%s:%s] failed", i.Host, i.Port)
+			logger.Error("exec create endpoint in DR [%s:%d] failed", i.Host, i.Port)
 			return err
 		}
 	}

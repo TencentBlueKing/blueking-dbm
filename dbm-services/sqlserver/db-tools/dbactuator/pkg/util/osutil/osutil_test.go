@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/cst"
+	"github.com/artdarek/go-unzip"
 )
 
 func TestIsFileExist(t *testing.T) {
-	fmt.Printf("%s\\%s\\\\%d", cst.BASE_DATA_PATH, cst.MSSQL_DATA_NAME, 111)
+
+	uz := unzip.New("/data/sysbench-1.0.20.zip", "/data/test")
+	if err := uz.Extract(); err != nil {
+		fmt.Println(err)
+	}
 }

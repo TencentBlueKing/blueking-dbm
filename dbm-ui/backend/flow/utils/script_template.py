@@ -79,8 +79,8 @@ if (-not (Test-Path (Join-Path $targetDir "dbactuator.exe"))) {
     Copy-Item $sourceFile $targetDir
 }
 else {
-    $md5_1 = (Get-FileHash $sourceFile).Hash
-    $md5_2 = (Get-FileHash (Join-Path $targetDir "dbactuator.exe")).Hash
+    $md5_1 = (certutil -hashfile $sourceFile MD5)[1] -replace "\\s"
+    $md5_2 = (certutil -hashfile (Join-Path $targetDir "dbactuator.exe"))[1] -replace "\\s"
     if ($md5_1 -ne $md5_2) {
         if ((Get-Process | Where-Object { $_.Path -eq $sourceFile })) {
             Write-Host "wait 5s"

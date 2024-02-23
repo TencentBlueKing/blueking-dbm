@@ -10,8 +10,10 @@ specific language governing permissions and limitations under the License.
 import base64
 import logging
 
+from django.utils.crypto import get_random_string
+
 from backend.components import MySQLPrivManagerApi
-from backend.flow.consts import DEFAULT_INSTANCE, SqlserverComponent, SqlserverUserName
+from backend.flow.consts import DEFAULT_INSTANCE, MSSQL_ADMIN, MSSQL_EXPORTER, SqlserverComponent, SqlserverUserName
 
 logger = logging.getLogger("flow")
 
@@ -26,7 +28,51 @@ class PayloadHandler(object):
     @staticmethod
     def get_sqlserver_account():
         """
-        获取sqlserver实例内置帐户密码
+        获取sqlserver实例sa内置帐户密码，后续做单据的临时sa账号随机化 todo
+        """
+        user_map = {}
+        value_to_name = {member.value: member.name.lower() for member in SqlserverUserName}
+        data = MySQLPrivManagerApi.get_password(
+            {
+                "instances": [DEFAULT_INSTANCE],
+                "users": [
+                    {"username": SqlserverUserName.SA.value, "component": SqlserverComponent.SQLSERVER.value},
+                ],
+            }
+        )
+        for user in data["items"]:
+            user_map[value_to_name[user["username"]] + "_user"] = user["username"]
+            user_map[value_to_name[user["username"]] + "_pwd"] = base64.b64decode(user["password"]).decode("utf-8")
+
+        return user_map
+
+    @staticmethod
+    def get_init_system_account():
+        """
+        系统账号初始化
+        """
+        user_map = {}
+        value_to_name = {member.value: member.name.lower() for member in SqlserverUserName}
+        data = MySQLPrivManagerApi.get_password(
+            {
+                "instances": [DEFAULT_INSTANCE],
+                "users": [
+                    {"username": SqlserverUserName.MSSQL.value, "component": SqlserverComponent.SQLSERVER.value},
+                    {"username": SqlserverUserName.SQLSERVER.value, "component": SqlserverComponent.SQLSERVER.value},
+                ],
+            }
+        )
+        for user in data["items"]:
+            user_map[value_to_name[user["username"]] + "_user"] = user["username"]
+            user_map[value_to_name[user["username"]] + "_pwd"] = base64.b64decode(user["password"]).decode("utf-8")
+
+        return user_map
+
+    @staticmethod
+    def get_create_sqlserver_account():
+        """
+        获取sqlserver实例内置帐户密码，安装实例场景使用
+        todo 后续需要增加drs访问账号初始化
         """
         user_map = {}
         value_to_name = {member.value: member.name.lower() for member in SqlserverUserName}
@@ -37,13 +83,20 @@ class PayloadHandler(object):
                     {"username": SqlserverUserName.MSSQL.value, "component": SqlserverComponent.SQLSERVER.value},
                     {"username": SqlserverUserName.SQLSERVER.value, "component": SqlserverComponent.SQLSERVER.value},
                     {"username": SqlserverUserName.SA.value, "component": SqlserverComponent.SQLSERVER.value},
-                    {"username": SqlserverUserName.EXPORTER.value, "component": SqlserverComponent.SQLSERVER.value},
                 ],
             }
         )
         for user in data["items"]:
             user_map[value_to_name[user["username"]] + "_user"] = user["username"]
             user_map[value_to_name[user["username"]] + "_pwd"] = base64.b64decode(user["password"]).decode("utf-8")
+
+        # 随机生成exporter密码
+        user_map["exporter_user"] = MSSQL_EXPORTER
+        user_map["exporter_pwd"] = get_random_string(length=10)
+
+        # 随机生成admin密码
+        user_map["mssql_admin_user"] = MSSQL_ADMIN
+        user_map["mssql_admin_pwd"] = get_random_string(length=10)
 
         return user_map
 

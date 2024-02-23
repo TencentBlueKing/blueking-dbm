@@ -11,7 +11,7 @@ import re
 
 from backend.components import DRSApi
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import SqlserverBackupJobExecMode, SqlserverLoginExecMode, SqlserverSyncMode
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
@@ -248,3 +248,25 @@ on a.name=b.name where principal_id>4 and a.name not in('monitor') and a.name no
         raise Exception(f"[{master_instance.ip_port}] exec login-{exec_type} failed: {ret[0]['error_msg']}")
 
     return True
+
+
+def get_group_name(master_instance: StorageInstance, bk_cloud_id: int):
+    """
+    获取集群group_name名称
+    @param master_instance: master实例
+    @param bk_cloud_id: 云区域id
+    """
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": bk_cloud_id,
+            "addresses": [master_instance.ip_port],
+            "cmds": ["select name FROM master.sys.availability_groups;"],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{master_instance.ip_port}] get_group_name failed: {ret[0]['error_msg']}")
+
+    if len(ret[0]["cmd_results"][0]["table_data"]):
+        raise Exception(f"[{master_instance.ip_port}] get_group_name is null")
+    return ret[0]["cmd_results"][0]["table_data"][0]["name"]

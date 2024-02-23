@@ -63,7 +63,7 @@ func (i *InitMachineForAlwaysOnComp) GetinstnaceNameAndHostName(host string, por
 		port,
 	); err != nil {
 		logger.Error("connenct by [%s:%d] failed,err:%s",
-			i.Params.Host, i.Params.Port, err.Error())
+			host, port, err.Error())
 		return err
 	}
 	if InsInfo, err = LWork.GetServerNameAndInstanceName(); err != nil {
@@ -118,14 +118,14 @@ func (i *InitMachineForAlwaysOnComp) AddItemKey() error {
 	for _, inst := range i.Members {
 		addItemExecCmds := []string{
 			fmt.Sprintf(
-				"New-ItemProperty -Path '%s' -Name %s -PropertyType String -Value 'DBMSSOCN,%s,%d' -Force ",
+				"REG ADD '%s' -v %s /t reg_sz /d 'DBMSSOCN,%s,%d' /f",
 				cst.WOW6432NODE_CONNECT_TO_KEY,
 				inst.InstanceName,
 				inst.InstanceName,
 				inst.Port,
 			),
 			fmt.Sprintf(
-				"New-ItemProperty -Path '%s' -Name %s -PropertyType String -Value 'DBMSSOCN,%s,%d' -Force ",
+				"REG ADD '%s' -v %s /t reg_sz /d 'DBMSSOCN,%s,%d' /f",
 				cst.MICROSOFT_CONNECT_TO_KEY,
 				inst.InstanceName,
 				inst.InstanceName,

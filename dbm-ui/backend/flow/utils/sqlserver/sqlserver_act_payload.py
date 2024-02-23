@@ -31,7 +31,7 @@ class SqlserverActPayload(PayloadHandler):
         return {
             "db_type": DBActuatorTypeEnum.Default.value,
             "action": SqlserverActuatorActionEnum.SysInit.value,
-            "payload": PayloadHandler.get_sqlserver_account(),
+            "payload": PayloadHandler.get_init_system_account(),
         }
 
     def get_install_sqlserver_payload(self, **kwargs) -> dict:
@@ -40,7 +40,9 @@ class SqlserverActPayload(PayloadHandler):
         """
         # 获取对应DB模块的信息
         db_module = get_module_infos(
-            bk_biz_id=int(self.global_data["bk_biz_id"]), db_module_id=int(self.global_data["db_module_id"])
+            bk_biz_id=int(self.global_data["bk_biz_id"]),
+            db_module_id=int(self.global_data["db_module_id"]),
+            cluster_type=self.global_data["cluster_type"],
         )
         # 获取安装包信息
         sqlserver_pkg = Package.get_latest_package(
@@ -62,6 +64,7 @@ class SqlserverActPayload(PayloadHandler):
                 immutable_domain=cluster["immutable_domain"],
                 db_module_id=int(self.global_data["db_module_id"]),
                 db_version=db_module["db_version"],
+                cluster_type=self.global_data["cluster_type"],
             )
 
         install_ports = self.global_data["install_ports"]
@@ -72,7 +75,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.Deploy.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": PayloadHandler.get_create_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "pkg": sqlserver_pkg.name,
@@ -368,7 +371,8 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
-    def get_build_always_on(self, **kwargs) -> dict:
+    @staticmethod
+    def get_build_always_on(**kwargs) -> dict:
         """
         建立实例加入always_on可用组的payload
         """
@@ -379,9 +383,28 @@ class SqlserverActPayload(PayloadHandler):
                 "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
-                    "port": self.global_data["port"],
+                    "port": kwargs["custom_params"]["port"],
                     "add_slaves": kwargs["custom_params"]["add_slaves"],
                     "group_name": kwargs["custom_params"]["group_name"],
+                    "is_first": kwargs["custom_params"].get("is_first", True),
+                },
+            },
+        }
+
+    @staticmethod
+    def get_init_machine_for_always_on(**kwargs) -> dict:
+        """
+        建立always_on可用组之前初始化机器的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.InitForAlwaysOn.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": kwargs["custom_params"]["port"],
+                    "add_members": kwargs["custom_params"]["add_members"],
                     "is_first": kwargs["custom_params"].get("is_first", True),
                 },
             },

@@ -29,6 +29,7 @@ import (
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
 
+	"github.com/artdarek/go-unzip"
 	"github.com/shirou/gopsutil/mem"
 )
 
@@ -80,6 +81,7 @@ type Cnf struct {
 }
 
 type installSQLServerConfig struct {
+	VersionYear    int
 	InstallDir     string
 	DataRootPath   string
 	BackupRootPath string
@@ -201,19 +203,19 @@ func (i *InstallSqlServerComp) CheckMssqlProcess() error {
 }
 
 // PreCheck 预检测，检测必要目录、进程、介质包的md5
-func (i *InstallSqlServerComp) PreCheck() error {
+func (i *InstallSqlServerComp) PreCheck() (err error) {
 	// 验证文件的md5值
-	if err := i.Params.Medium.Check(); err != nil {
+	if err = i.Params.Medium.Check(); err != nil {
 		logger.Error("md5 check failed %s", err.Error())
 		return err
 	}
 	// 检测机器是否存在必要目录
-	if err := i.CheckDataDir(); err != nil {
+	if err = i.CheckDataDir(); err != nil {
 		logger.Error("check datadir failed %s", err.Error())
 		return err
 	}
 	// 检测机器是否有启动mssql服务，如果有则退出，表示机器不属于干净机器
-	if err := i.CheckMssqlProcess(); err != nil {
+	if err = i.CheckMssqlProcess(); err != nil {
 		logger.Error("check mssql process failed %s", err.Error())
 		return err
 	}
@@ -273,19 +275,14 @@ func (i *InstallSqlServerComp) DecompressPkg() error {
 	switch {
 	case strings.Contains(i.Params.Pkg, ".7z"):
 		// 安装包属于7z文件包，选择7z的解压方式
-		_, err := osutil.StandardPowerShellCommand(
-			fmt.Sprintf(" & '%s' x -y %s -o%s  ", cst.SQLSERVER_UNZIP_TOOL, i.Params.GetAbsolutePath(), cst.BASE_DATA_PATH),
-		)
-		if err != nil {
+		if err := osutil.Extract7zArchive(i.Params.GetAbsolutePath(), cst.BASE_DATA_PATH); err != nil {
 			return err
 		}
 	case strings.Contains(i.Params.Pkg, ".zip"):
 		// 安装包属于zip文件包，选择zip的解压方式
-		_, err := osutil.StandardPowerShellCommand(
-			fmt.Sprintf("Expand-Archive -Path %s -DestinationPath %s", i.Params.GetAbsolutePath(), cst.BASE_DATA_PATH),
-		)
-		if err != nil {
-			return err
+		uz := unzip.New(i.Params.GetAbsolutePath(), cst.BASE_DATA_PATH)
+		if err := uz.Extract(); err != nil {
+			fmt.Println(err)
 		}
 	default:
 		return fmt.Errorf("[%s] Currently only supports decompression of .7z files and .zip files. check", i.Params.Pkg)
@@ -303,8 +300,9 @@ func (i *InstallSqlServerComp) SqlServerStartup() error {
 		"IMPORT-MODULE SERVERMANAGER",
 		"ADD-WINDOWSFEATURE TELNET-CLIENT",
 	}
+	// 可能低版本导入出现错误不支持，模块不重要，忽略操作
 	if _, err := osutil.StandardPowerShellCommands(cmds); err != nil {
-		return err
+		logger.Warn(err.Error())
 	}
 	// 遍历端口安装启动实例
 	for _, port := range i.InsPorts {
@@ -479,6 +477,52 @@ func (i *InstallSqlServerComp) InitInstanceBuffer() error {
 }
 
 // CreateExporterConf 创建exporter文件，每个端口有一份
+func (i *InstallSqlServerComp) InitUsers() (err error) {
+	for _, port := range i.InsPorts {
+		var dbWork *sqlserver.DbWorker
+		if dbWork, err = sqlserver.NewDbWorker(
+			i.GeneralParam.RuntimeAccountParam.SAUser,
+			i.GeneralParam.RuntimeAccountParam.SAPwd,
+			i.Params.Host,
+			port,
+		); err != nil {
+			logger.Error("connenct by %s failed,err:%s", port, err.Error())
+			return err
+		}
+		// 到最后回收db连接
+		defer dbWork.Stop()
+		// 初始化admin账号
+		if err := dbWork.CreateLoginUser(
+			i.GeneralParam.RuntimeAccountParam.MssqlAdminUser,
+			i.GeneralParam.RuntimeAccountParam.MssqlAdminPwd,
+			"sysadmin",
+		); err != nil {
+			logger.Error("init admin login failed %v", err)
+			return err
+		}
+		// 初始化mssql_exporter账号
+		if err := dbWork.CreateLoginUser(
+			i.GeneralParam.RuntimeAccountParam.MssqlExporterUser,
+			i.GeneralParam.RuntimeAccountParam.MssqlExporterPwd,
+			"public",
+		); err != nil {
+			logger.Error("init mssql_exporter failed %v", err)
+			return err
+		}
+		// mssql_exporter账号, 在系统库权限db_owner
+		if err := dbWork.AddPriv(
+			cst.SysDB,
+			i.GeneralParam.RuntimeAccountParam.MssqlExporterUser,
+		); err != nil {
+			logger.Error("init mssql_exporter failed %v", err)
+			return err
+		}
+
+	}
+	return nil
+}
+
+// 初始化账号
 func (i *InstallSqlServerComp) CreateExporterConf() error {
 	for _, port := range i.InsPorts {
 		if err := osutil.CreateExporterConf(
@@ -499,10 +543,10 @@ func (i *InstallSqlServerComp) CreateExporterConf() error {
 func WriteInitSQLFile() ([]string, error) {
 	var dealFiles []string
 	sqls := []string{
+		staticembed.SqlSettingFileName,
 		staticembed.MonitorFileName,
 		staticembed.BackupFileName,
 		staticembed.AutoSwitchFileName,
-		staticembed.SqlSettingFileName,
 	}
 
 	for _, sqlFile := range sqls {

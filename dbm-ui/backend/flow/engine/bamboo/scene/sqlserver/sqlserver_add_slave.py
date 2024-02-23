@@ -19,17 +19,16 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
+    build_always_on_sub_flow,
     install_sqlserver_sub_flow,
     sync_dbs_for_cluster_sub_flow,
 )
-from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
-from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DBMetaOPKwargs, ExecActuatorKwargs
-from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
-from backend.flow.utils.sqlserver.sqlserver_db_function import get_dbs_for_drs
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DBMetaOPKwargs
+from backend.flow.utils.sqlserver.sqlserver_db_function import get_dbs_for_drs, get_group_name
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
-from backend.flow.utils.sqlserver.validate import SqlserverCluster
+from backend.flow.utils.sqlserver.validate import SqlserverCluster, SqlserverInstance
 
 logger = logging.getLogger("flow")
 
@@ -108,27 +107,40 @@ class SqlserverAddSlaveFlow(BaseFlow):
             for cluster_id in info["cluster_ids"]:
                 cluster = Cluster.objects.get(id=cluster_id)
                 master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
-
+                slave_instances = cluster.storageinstance_set.filter(instance_role=InstanceRole.BACKEND_SLAVE)
                 cluster_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
+                # 计算集群slaves信息
+                slaves = [
+                    SqlserverInstance(host=s.machine.ip, port=s.port, bk_cloud_id=cluster.bk_cloud_id, is_new=False)
+                    for s in slave_instances
+                ]
+
+                # 添加新slave到slaves信息上
+                slaves.append(
+                    SqlserverInstance(
+                        host=info["new_slave_host"]["ip"],
+                        port=master_instance.port,
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        is_new=True,
+                    )
+                )
+
                 # 加入到集群的AlwaysOn可用组
-                cluster_sub_pipeline.add_act(
-                    act_name=_(
-                        "[{}]集群可用组添加新slave[{}:{}]".format(
-                            cluster.name, info["new_slave_host"]["ip"], master_instance.port
-                        )
-                    ),
-                    act_component_code=SqlserverActuatorScriptComponent.code,
-                    kwargs=asdict(
-                        ExecActuatorKwargs(
-                            exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
-                            get_payload_func=SqlserverActPayload.get_build_always_on.__name__,
-                            custom_params={
-                                "add_slaves": [{"host": info["new_slave_host"]["ip"], "port": master_instance.port}],
-                                "group_name": cluster.immute_domain,
-                            },
+                cluster_sub_pipeline.add_sub_pipeline(
+                    sub_flow=build_always_on_sub_flow(
+                        uid=self.data["uid"],
+                        root_id=self.root_id,
+                        master_instance=SqlserverInstance(
+                            host=master_instance.machine.ip,
+                            port=master_instance.port,
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            is_new=False,
                         ),
-                    ),
+                        slave_instances=slaves,
+                        cluster_name=cluster.name,
+                        group_name=get_group_name(master_instance, cluster.bk_cloud_id),
+                    )
                 )
 
                 # 数据库建立新的同步关系

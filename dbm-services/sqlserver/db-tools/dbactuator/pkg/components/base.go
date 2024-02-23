@@ -40,4 +40,12 @@ type RuntimeAccountParam struct {
 	MssqlExporterUser string `json:"exporter_user,omitempty"`
 	// mssql_exporter 密码
 	MssqlExporterPwd string `json:"exporter_pwd,omitempty"`
+	// admin 账号
+	MssqlAdminUser string `json:"mssql_admin_user,omitempty"`
+	// admin 密码
+	MssqlAdminPwd string `json:"mssql_admin_pwd,omitempty"`
+	// drs 账号
+	DRSUser string `json:"drs_user,omitempty"`
+	// drs 密码
+	DRSPwd string `json:"drs_pwd,omitempty"`
 }

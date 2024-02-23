@@ -239,6 +239,24 @@ func (h *DbWorker) EnableEndPoint(end_port int) (err error) {
 	return nil
 }
 
+// CreateLoginUser 定义添加账号
+func (h *DbWorker) CreateLoginUser(userName string, pwd string, loginRole string) (err error) {
+	cmd := fmt.Sprintf(cst.EXEC_INIT_LOGIN_SQL, userName, pwd, loginRole)
+	if _, err := h.Exec(cmd); err != nil {
+		return fmt.Errorf("create login [%s] failed %v", userName, err)
+	}
+	return nil
+}
+
+// CreateLoginUser 初始化账号添加权限，统一给db_owner
+func (h *DbWorker) AddPriv(dbname string, userName string) (err error) {
+	cmd := fmt.Sprintf(cst.EXEC_INIT_PRIV_SQL, dbname, userName)
+	if _, err := h.Exec(cmd); err != nil {
+		return fmt.Errorf("add priv login [%s] in db [%s] failed %v", userName, dbname, err)
+	}
+	return nil
+}
+
 // 操作全量恢复命令
 func (h *DbWorker) DBRestoreForFullBackup(dbname string, fullBakFile string, move string, restoreMode string) error {
 	var restoreSQL string

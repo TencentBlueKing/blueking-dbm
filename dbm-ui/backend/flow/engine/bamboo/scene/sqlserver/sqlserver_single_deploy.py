@@ -17,7 +17,10 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
-from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import install_sqlserver_sub_flow
+from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
+    install_sqlserver_sub_flow,
+    install_surrounding_apps_sub_flow,
+)
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import CreateDnsKwargs
@@ -115,6 +118,18 @@ class SqlserverSingleApplyFlow(BaseFlow):
                         db_meta_class_func=SqlserverDBMeta.sqlserver_single_apply.__name__,
                     )
                 ),
+            )
+
+            # 安装周边程序
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=install_surrounding_apps_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    bk_biz_id=int(self.data["bk_biz_id"]),
+                    bk_cloud_id=int(self.data["bk_cloud_id"]),
+                    master_host=[Host(**info["mssql_host"])],
+                    slave_host=[],
+                )
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("部署单节点集群")))

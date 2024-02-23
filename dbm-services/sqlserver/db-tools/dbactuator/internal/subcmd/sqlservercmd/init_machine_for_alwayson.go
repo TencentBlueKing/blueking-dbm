@@ -38,7 +38,7 @@ func InitMachineForAlwaysonCommand() *cobra.Command {
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:     "initForAlwayson",
+		Use:     "InitForAlwaysOn",
 		Short:   " 为alwayon做别名初始化",
 		Example: fmt.Sprintf(`dbactuator sqlserver InitMachineForAlwayson %s `, subcmd.CmdBaseExampleStr),
 		Run: func(cmd *cobra.Command, args []string) {

@@ -12,7 +12,7 @@ package osutil
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 
 	"dbm-services/common/go-pubpkg/logger"
 )
@@ -26,7 +26,7 @@ type WINSOSUser struct {
 
 // UserExists 定义判断windows系统用户是否存在的方法
 func (w *WINSOSUser) UserExists() bool {
-
+	reg := regexp.MustCompile(`[\p{C}]+`)
 	output, err := StandardPowerShellCommand(
 		fmt.Sprintf("(Get-WmiObject -Class Win32_UserAccount -Filter \"Name='%s'\").Name", w.User),
 	)
@@ -34,7 +34,7 @@ func (w *WINSOSUser) UserExists() bool {
 		logger.Error(err.Error())
 		return false
 	}
-	if strings.TrimSpace(string(output)) == w.User {
+	if reg.ReplaceAllString(output, "") == w.User {
 		return true
 	} else {
 		return false
@@ -51,7 +51,7 @@ func (w *WINSOSUser) AddGroupMember(groupName string) error {
 		return nil
 	}
 	_, err := StandardPowerShellCommand(
-		fmt.Sprintf("Add-LocalGroupMember -Group '%s' -Member '%s'", groupName, w.User),
+		fmt.Sprintf("net localgroup %s %s /add", groupName, w.User),
 	)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func (w *WINSOSUser) RemoveGroupMember(groupName string) error {
 		return nil
 	}
 	_, err := StandardPowerShellCommand(
-		fmt.Sprintf("Remove-LocalGroupMember -Group '%s' -Member '%s'", groupName, w.User),
+		fmt.Sprintf("net localgroup %s %s /delete", groupName, w.User),
 	)
 	if err != nil {
 		return err
@@ -81,13 +81,9 @@ func (w *WINSOSUser) RemoveGroupMember(groupName string) error {
 // CreateUser 定义创建系统用户的方法
 func (w *WINSOSUser) CreateUser(isTranAdmin bool) error {
 	// 创建账号，账号默认在内置的Users组
-
-	_, err := StandardPowerShellCommand(
-		fmt.Sprintf(
-			"New-LocalUser -Name '%s' -Password (ConvertTo-SecureString '%s' -AsPlainText -Force) -Description '%s'",
-			w.User, w.Pass, w.Comment),
-	)
-	if err != nil {
+	if _, err := StandardPowerShellCommand(
+		fmt.Sprintf("net user %s %s /add /comment:'%s' /passwordchg:no", w.User, w.Pass, w.Comment),
+	); err != nil {
 		return err
 	}
 	logger.Info(fmt.Sprintf("Create system user [%s] successfully", w.User))
@@ -106,7 +102,7 @@ func (w *WINSOSUser) DropUser() error {
 	// 创建账号，账号不存在默认不报错
 
 	_, err := StandardPowerShellCommand(
-		fmt.Sprintf("Remove-LocalUser -Name '%s' -ErrorAction SilentlyContinue", w.User),
+		fmt.Sprintf("net user %s /delete", w.User),
 	)
 	if err != nil {
 		return err
@@ -121,13 +117,7 @@ func (w *WINSOSUser) DropUser() error {
 func (w *WINSOSUser) SetUerPass() error {
 	// 创建账号，账号不存在默认不报错
 
-	_, err := StandardPowerShellCommand(
-		fmt.Sprintf(
-			"Set-LocalUser -Name '%s' -Password (ConvertTo-SecureString '%s' -AsPlainText -Force) ",
-			w.User,
-			w.Pass,
-		),
-	)
+	_, err := StandardPowerShellCommand(fmt.Sprintf("net user %s %s ", w.User, w.Pass))
 	if err != nil {
 		return err
 	}
@@ -139,9 +129,7 @@ func (w *WINSOSUser) SetUerPass() error {
 // IsExistInGroup 判断用户是否在某个用户组的方法
 func (w *WINSOSUser) IsExistInGroup(groupName string) bool {
 	output, err := StandardPowerShellCommand(
-		fmt.Sprintf(
-			"(Get-LocalGroupMember -group %s | Where-Object { $_.Name -like '*\\%s' -and $_.ObjectClass -eq 'User'}).Name",
-			groupName, w.User),
+		fmt.Sprintf("net localgroup %s | Where-Object { $_ -eq '%s' }", groupName, w.User),
 	)
 	if err != nil {
 		logger.Error(err.Error())

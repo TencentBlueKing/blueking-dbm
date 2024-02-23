@@ -531,6 +531,7 @@ class SqlserverActuatorActionEnum(str, StructuredEnum):
     CloneJobs = EnumField("CloneJobs", _("实例间克隆定时作业"))
     CloneLinkservers = EnumField("CloneLinkservers", _("实例间克隆linkservers"))
     BuildDBMirroring = EnumField("BuildDBMirroring", _("建立数据库的镜像库关系"))
+    InitForAlwaysOn = EnumField("InitForAlwaysOn", _("为Always-on做别名初始化"))
     BuildAlwaysOn = EnumField("BuildAlwaysOn", _("建立Always-on通信"))
     AddDBSInAlwaysOn = EnumField("AddDBSInAlwaysOn", _("数据库加入到Always-on可用组"))
     Uninstall = EnumField("Uninstall", _("卸载sqlserver实例"))
@@ -644,6 +645,15 @@ CHECKSUM_TABlE_PREFIX = "checksum_"
 
 # 定义单据生成随机账号的前缀
 ACCOUNT_PREFIX = "_temp_"
+
+# sqlserver系统账号列表
+SQLSERVER_SYSTEM_DBS = ["master", "msdb", "model", "tempdb", "Monitor"]
+
+# sqlserver的exporter账号名称
+MSSQL_EXPORTER = "mssql_exporter"
+
+# sqlserver的用户登录admin账号名称
+MSSQL_ADMIN = "dbm_admin"
 
 # tbinlogdumper连接kafka的global config的定义
 TBINLOGDUMPER_KAFKA_GLOBAL_CONF = {
@@ -994,7 +1004,6 @@ class SqlserverUserName(str, StructuredEnum):
     MSSQL = EnumField("mssql", _("mssql系统账号"))
     SQLSERVER = EnumField("sqlserver", _("sqlserver系统账号，进程启动"))
     SA = EnumField("sa", _("sa实例账号"))
-    EXPORTER = EnumField("mssql_exporter", _("exporter进程访问账号"))
 
 
 class SqlserverComponent(str, StructuredEnum):
