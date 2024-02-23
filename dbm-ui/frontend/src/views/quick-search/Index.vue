@@ -254,8 +254,8 @@
   };
 
   watch(keyword, (newKeyword, oldKeyword) => {
-    const newKeywordArr = newKeyword.replace(/，|\n/g, '\n').split('\n');
-    const oldKeywordArr = (oldKeyword || '').replace(/，|\n/g, '\n').split('\n');
+    const newKeywordArr = newKeyword.split(/，|\n/g);
+    const oldKeywordArr = (oldKeyword || '').split(/，|\n/g);
 
     if (!_.isEqual(newKeywordArr, oldKeywordArr) && !newKeyword.endsWith('\n')) {
       handleSearch();
@@ -314,16 +314,16 @@
     }
 
     .quick-search-tab {
-      border-bottom: none;
+      box-shadow: 0 2px 4px 0 #1919290d;
 
       :deep(.bk-tab-header) {
         justify-content: center;
+        border-bottom: none;
       }
 
       :deep(.bk-tab-content) {
         padding: 0 !important;
       }
-
     }
 
     .tab-content {
@@ -332,6 +332,7 @@
 
       :deep(.tab-content-loading) {
         height: 100%;
+        padding: 16px 0;
 
         .bk-loading-mask {
           z-index: 3 !important;
@@ -343,7 +344,7 @@
       }
 
       .tab-table {
-        margin: 16px 24px;
+        margin: 0 24px;
       }
     }
   }

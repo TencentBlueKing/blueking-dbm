@@ -18,6 +18,7 @@
       class="mt-14 mb-8"
       :columns="columns"
       :data="data"
+      :pagination="pagination"
       :settings="tableSetting"
       @setting-change="updateTableSettings" />
   </DbCard>
@@ -49,6 +50,11 @@
   const { t } = useI18n();
   const router = useRouter();
   const location = useLocation();
+
+  const pagination = ref({
+    count: props.data.length,
+    limit: 10,
+  });
 
   const filterMap = computed(() => {
     const currentBizNameMap = props.bizIdNameMap;
@@ -113,13 +119,10 @@
       label: t('业务'),
       field: 'bk_biz_id',
       filter: {
-        list: Object.entries(filterMap.value.bizNameMap).reduce((prevList, bizItem) => [...prevList, {
+        list: Object.entries(filterMap.value.bizNameMap).map(bizItem => ({
           value: Number(bizItem[0]),
           text: bizItem[1],
-        }], [] as {
-          value: number,
-          text: string
-        }[]),
+        })),
       },
       render: ({ data }: { data: TaskFlowModel }) => filterMap.value.bizNameMap[data.bk_biz_id] || '--',
     },

@@ -181,7 +181,8 @@
   });
   const contentTitle = computed(() => route.meta.navName);
   const isContendFullscreen = computed(() => Boolean(route.meta.fullscreen));
-  const needMenu = computed(() => route.name !== 'QuickSearch');
+  // 全局搜索结果页面不显示，点击顶部导航栏后显示并自动跳转
+  const needMenu = computed(() => !(route.name === 'QuickSearch' && menuType.value === ''));
 
   // 解析路由分组
   watch(route, () => {

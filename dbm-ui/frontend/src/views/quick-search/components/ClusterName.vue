@@ -1,7 +1,7 @@
 <template>
   <div :key="settingChangeKey">
     <DbCard
-      v-for="item in renderData.dataList"
+      v-for="(item, index) in renderData.dataList"
       :key="item.clusterType"
       class="search-result-cluster search-result-card"
       mode="collapse"
@@ -31,6 +31,7 @@
         class="search-result-table mt-14 mb-8"
         :columns="columnsMap[item.clusterType]"
         :data="item.dataList"
+        :pagination="pagination[index]"
         :settings="tableSetting"
         @setting-change="updateTableSettings" />
     </DbCard>
@@ -72,6 +73,10 @@
   const location = useLocation();
 
   const settingChangeKey = ref(1);
+  const pagination = ref<{
+    count: number,
+    limit: number
+  }[]>([]);
 
   const renderData = computed(() => formatCluster<QuickSearchClusterNameModel>(props.data));
   const columnsMap = computed(() => {
@@ -203,6 +208,15 @@
   watch(tableSetting, () => {
     // 修改字段显示设置时，重新渲染所有表格。否则只有当前操作的表格会重新渲染
     settingChangeKey.value = settingChangeKey.value + 1;
+  });
+
+  watch(renderData, (newRenderData) => {
+    pagination.value = newRenderData.dataList.map(dataItem => ({
+      count: dataItem.dataList.length,
+      limit: 10,
+    }));
+  }, {
+    immediate: true,
   });
 
   const handleExport = (clusterType: string, dataList: QuickSearchClusterNameModel[]) => {
