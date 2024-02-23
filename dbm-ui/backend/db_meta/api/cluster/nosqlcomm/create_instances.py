@@ -31,7 +31,7 @@ def create_mongo_mutil_instances(bk_biz_id, bk_cloud_id, machine_type, inst_pair
                     "bk_cloud_id": bk_cloud_id,
                     "machine_type": machine_type,
                     "spec_id": spec_config.get(machine_type, {}).get("spec_id", 0),
-                    "spec_config": spec_config.get(machine_type, {}),
+                    "spec_config": spec_config.get(machine_type, {}).get("spec_config", {}),
                 }
                 instances.append({"ip": storage["ip"], "port": storage["port"], "instance_role": storage["role"]})
                 # 找到主节点
