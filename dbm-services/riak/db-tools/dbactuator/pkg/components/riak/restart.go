@@ -32,7 +32,15 @@ func (i *RestartComp) Restart() error {
 	if err != nil {
 		logger.Error("execute shell [%s] error: %s", cmd, err.Error())
 		err = fmt.Errorf("execute shell [%s] error: %s", cmd, err.Error())
-		return err
+		// 当节点已经关闭，restart会失败，尝试start
+		logger.Info("restart failed, try to start")
+		errStart := Start()
+		if errStart != nil {
+			// 返回restart的报错
+			return err
+		} else {
+			return nil
+		}
 	}
 	time.Sleep(time.Minute)
 	logger.Info("restart riak success")

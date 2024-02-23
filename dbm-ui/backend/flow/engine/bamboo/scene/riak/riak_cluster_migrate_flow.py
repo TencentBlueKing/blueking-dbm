@@ -17,16 +17,19 @@ from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import ConfType, FormatType, LevelName, ReqType
+from backend.configuration.constants import DBType
 from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS, NameSpaceEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
     InstallNodemanPluginServiceComponent,
 )
 from backend.flow.plugins.components.collections.riak.exec_actuator_script import ExecuteRiakActuatorScriptComponent
 from backend.flow.plugins.components.collections.riak.get_riak_resource import GetRiakResourceComponent
 from backend.flow.plugins.components.collections.riak.riak_db_meta import RiakDBMetaComponent
+from backend.flow.plugins.components.collections.riak.trans_files import TransFileComponent
 from backend.flow.utils.common_act_dataclass import InstallNodemanPluginKwargs
-from backend.flow.utils.riak.riak_act_dataclass import DBMetaFuncKwargs
+from backend.flow.utils.riak.riak_act_dataclass import DBMetaFuncKwargs, DownloadMediaKwargs
 from backend.flow.utils.riak.riak_act_payload import RiakActPayload
 from backend.flow.utils.riak.riak_context_dataclass import ApplyManualContext, RiakActKwargs
 from backend.flow.utils.riak.riak_db_meta import RiakDBMeta
@@ -91,6 +94,18 @@ class RiakClusterMigrateFlow(object):
                     }
                 )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            sub_pipeline.add_act(
+                act_name=_("下发actuator以及riak介质"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        exec_ip=ips,
+                        file_list=GetFileList(db_type=DBType.Riak).riak_install_package(self.data["db_version"]),
+                    )
+                ),
+            )
 
             self._get_riak_config(cluster["domain"])
 
