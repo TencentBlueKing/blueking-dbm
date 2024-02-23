@@ -48,7 +48,11 @@ class MongoRestartInstanceFlow(object):
         sub_pipelines = []
         for instances_info in self.get_kwargs.payload["instances_by_ip"]:
             sub_pipline = instance_restart(
-                root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, instances_info=instances_info
+                root_id=self.root_id,
+                ticket_data=self.data,
+                sub_kwargs=self.get_kwargs,
+                instances_info=instances_info,
+                only_change_param=False,
             )
             sub_pipelines.append(sub_pipline)
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)

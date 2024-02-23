@@ -29,6 +29,7 @@ type RestartConfParams struct {
 	MongoSConfDbNew          string `json:"mongoSConfDbNew"`                  // 可选，ip:port
 	AdminUsername            string `json:"adminUsername"`
 	AdminPassword            string `json:"adminPassword"`
+	OnlyChangeParam          bool   `json:"onlyChangeParam"` // 是否只改变db相关参数，不重启进程
 }
 
 // MongoRestart 重启mongo进程
@@ -59,6 +60,12 @@ func (r *MongoRestart) Name() string {
 // Run 运行原子任务
 func (r *MongoRestart) Run() error {
 	// 修改配置文件参数
+	if r.ConfParams.OnlyChangeParam {
+		if err := r.changeParam(); err != nil {
+			return err
+		}
+		return nil
+	}
 	if err := r.changeParam(); err != nil {
 		return err
 	}
@@ -97,7 +104,7 @@ func (r *MongoRestart) Init(runtime *jobruntime.JobGenericRuntime) error {
 	r.runtime = runtime
 	r.runtime.Logger.Info("start to init")
 	r.BinDir = consts.UsrLocal
-	r.DataDir = consts.GetRedisDataDir()
+	r.DataDir = consts.GetMongoDataDir()
 	r.OsUser = consts.GetProcessUser()
 	r.OsGroup = consts.GetProcessUserGroup()
 	r.Mongo = filepath.Join(r.BinDir, "mongodb", "bin", "mongo")
