@@ -425,11 +425,13 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     AddUser = EnumField("add_user", _("add_user"))
     DeleteUser = EnumField("delete_user", _("delete_user"))
     MongoExecuteScript = EnumField("mongo_execute_script", _("mongo_execute_script"))
-    Backup = EnumField("mongo_backup", _("mongo_backup"))
-    RemoveNs = EnumField("mongo_remove_ns", _("mongo_remove_ns"))
-    Restore = EnumField("mongo_restore", _("mongo_restore"))
-    PitRestore = EnumField("mongo_pit_restore", _("mongo_pit_restore"))
+    Backup = EnumField("mongodb_backup", _("mongodb_backup"))
+    RemoveNs = EnumField("mongodb_remove_ns", _("mongodb_remove_ns"))
+    Restore = EnumField("mongodb_restore", _("mongodb_restore"))
+    PitRestore = EnumField("mongodb_pit_restore", _("mongodb_pit_restore"))
     MongoRestart = EnumField("mongo_restart", _("mongo_restart"))
+    MongoDReplace = EnumField("mongod_replace", _("mongod_replace"))
+    MongoDeInstall = EnumField("mongo_deinstall", _("mongo_deinstall"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -1024,13 +1026,6 @@ class MongoDBTotalCache(float, StructuredEnum):
     Cache_Percent = EnumField(0.65, _("cache_percent"))
 
 
-class MongoDBClusterDefaultPort(int, StructuredEnum):
-    """mongodb cluster默认端口"""
-
-    CONFIG_PORT = EnumField(28021, _("config_port"))
-    SHARD_START_PORT = EnumField(27001, _("shard_start_port"))
-
-
 class MongoDBDomainPrefix(str, StructuredEnum):
     """
     mongodb domain Prefix
@@ -1204,6 +1199,13 @@ class SqlserverBackupMode(str, StructuredEnum):
     LOG_BACKUP = EnumField("log_backup", _("增量备份"))
 
 
+class MongoDBClusterDefaultPort(int, StructuredEnum):
+    """mongodb cluster默认端口"""
+
+    CONFIG_PORT = EnumField(28021, _("config_port"))
+    SHARD_START_PORT = EnumField(27001, _("shard_start_port"))
+
+
 class MongoDBManagerUser(str, StructuredEnum):
     """mongodb 管理用户"""
 
@@ -1271,3 +1273,11 @@ class MongoShardedClusterBackupType(str, StructuredEnum):
 
     MONGOS = EnumField("mongos", _("mongos"))
     SHARD = EnumField("shard", _("shard"))
+
+
+class MongoOplogSizePercent(float, StructuredEnum):
+    """
+    oplog默认占机器磁盘的百分比
+    """
+
+    Oplog_Percent = EnumField(0.15, _("cache_percent"))

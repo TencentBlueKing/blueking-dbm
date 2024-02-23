@@ -11,10 +11,9 @@ specific language governing permissions and limitations under the License.
 import logging.config
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
-
+from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.engine.bamboo.scene.mongodb.sub_task import cluster_replace, replicaset_replace
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")
@@ -36,27 +35,35 @@ class MongoReplaceFlow(object):
         self.get_kwargs.payload = data
         self.get_kwargs.get_file_path()
 
-    def multi_replace_flow(self):
+    def multi_host_replace_flow(self):
         """
-        multi replicaset execute script流程
+        multi host replace流程
         """
 
         # 创建流程实例
         pipeline = Builder(root_id=self.root_id, data=self.data)
 
-        # 获取所有的根据主机ip获取cluster信息
-        self.get_kwargs.get_hosts_deinstall()
+        # 复制集整机替换——子流程并行
+        sub_pipelines = []
+        if self.data["infos"][ClusterType.MongoReplicaSet.value]:
+            for replicaset in self.data["infos"][ClusterType.MongoReplicaSet.value]:
+                sub_pipline = replicaset_replace(
+                    root_id=self.root_id,
+                    ticket_data=self.data,
+                    sub_kwargs=self.get_kwargs,
+                    info=replicaset,
+                    cluster_role="",
+                )
+                sub_pipelines.append(sub_pipline)
 
-        # 创建整机替换——并行
-        acts_list = []
-        for cluster_id in self.data["cluster_ids"]:
-            kwargs = self.get_kwargs.get_exec_script_kwargs(cluster_id=cluster_id)
-            acts_list.append(
-                {
-                    "act_name": _("MongoDB-{}-整机替换".format(str(cluster_id))),
-                    "act_component_code": ExecuteDBActuatorJobComponent.code,
-                    "kwargs": kwargs,
-                }
-            )
+        # cluster整机替换——子流程并行
+        if self.data["infos"][ClusterType.MongoShardedCluster.value]:
+            for cluster in self.data["infos"][ClusterType.MongoShardedCluster.value]:
+                sub_pipline = cluster_replace(
+                    root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, info=cluster
+                )
+                sub_pipelines.append(sub_pipline)
+        pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
         # 运行流程
         pipeline.run_pipeline()

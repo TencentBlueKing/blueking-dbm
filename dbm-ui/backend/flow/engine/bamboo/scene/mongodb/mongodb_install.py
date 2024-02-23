@@ -116,6 +116,9 @@ class MongoDBInstallFlow(object):
         # 下发介质和os初始化
         self.prepare_job(pipeline=pipeline)
 
+        # 保存keyfile到dbconfig
+        self.get_kwargs.cluster_save_key_file()
+
         # 密码服务获取管理用户密码 shard，config的密码保持一致
         kwargs = self.get_kwargs.get_get_manager_password_kwargs()
         pipeline.add_act(
