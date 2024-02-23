@@ -18,17 +18,19 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.consts import SqlserverSyncMode
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
-from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import install_sqlserver_sub_flow
+from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
+    build_always_on_sub_flow,
+    install_sqlserver_sub_flow,
+    install_surrounding_apps_sub_flow,
+)
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
-from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import CreateDnsKwargs
 from backend.flow.utils.sqlserver.base_func import calc_install_ports
-from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DBMetaOPKwargs, ExecActuatorKwargs
-from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
-from backend.flow.utils.sqlserver.validate import SqlserverCluster
+from backend.flow.utils.sqlserver.validate import SqlserverCluster, SqlserverInstance
 
 logger = logging.getLogger("flow")
 
@@ -106,20 +108,27 @@ class SqlserverHAApplyFlow(BaseFlow):
 
                 # 判断是否配置alwaysOn可用组
                 if self.data["sync_type"] == SqlserverSyncMode.ALWAYS_ON:
-                    cluster_sub_pipeline.add_act(
-                        act_name=_("[{}]集群配置可用组".format(cluster.name)),
-                        act_component_code=SqlserverActuatorScriptComponent.code,
-                        kwargs=asdict(
-                            ExecActuatorKwargs(
-                                exec_ips=[Host(**info["mssql_master_host"])],
-                                get_payload_func=SqlserverActPayload.get_build_always_on.__name__,
-                                custom_params={
-                                    "add_slaves": [{"host": info["mssql_slave_host"]["ip"], "port": cluster["port"]}],
-                                    "group_name": cluster["immutable_domain"],
-                                    "is_first": True,
-                                },
-                            )
-                        ),
+                    cluster_sub_pipeline.add_sub_pipeline(
+                        sub_flow=build_always_on_sub_flow(
+                            uid=self.data["uid"],
+                            root_id=self.root_id,
+                            master_instance=SqlserverInstance(
+                                host=info["mssql_master_host"]["ip"],
+                                port=cluster["port"],
+                                bk_cloud_id=self.data["bk_cloud_id"],
+                                is_new=True,
+                            ),
+                            slave_instances=[
+                                SqlserverInstance(
+                                    host=info["mssql_slave_host"]["ip"],
+                                    port=cluster["port"],
+                                    bk_cloud_id=self.data["bk_cloud_id"],
+                                    is_new=True,
+                                )
+                            ],
+                            cluster_name=cluster["name"],
+                            group_name=cluster["immutable_domain"],
+                        )
                     )
 
                 cluster_sub_pipeline.add_parallel_acts(
@@ -150,7 +159,9 @@ class SqlserverHAApplyFlow(BaseFlow):
                         },
                     ]
                 )
-                act_list.append(cluster_sub_pipeline.build_sub_process(sub_name=_("部署单节点集群")))
+                act_list.append(
+                    cluster_sub_pipeline.build_sub_process(sub_name=_("部署HA集群[{}]".format(cluster["name"])))
+                )
 
             # 拼接集群维度的子流程
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=act_list)
@@ -164,6 +175,18 @@ class SqlserverHAApplyFlow(BaseFlow):
                         db_meta_class_func=SqlserverDBMeta.sqlserver_ha_apply.__name__,
                     )
                 ),
+            )
+
+            # 安装周边程序
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=install_surrounding_apps_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    bk_biz_id=int(self.data["bk_biz_id"]),
+                    bk_cloud_id=int(self.data["bk_cloud_id"]),
+                    master_host=[Host(**info["mssql_master_host"])],
+                    slave_host=[Host(**info["mssql_slave_host"])],
+                )
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("部署主从集群")))

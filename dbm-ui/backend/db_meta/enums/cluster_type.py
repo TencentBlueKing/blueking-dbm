@@ -84,6 +84,7 @@ class ClusterType(str, StructuredEnum):
             DBType.Pulsar.value: [cls.Pulsar],
             DBType.MongoDB.value: [cls.MongoShardedCluster, cls.MongoReplicaSet],
             DBType.Riak.value: [cls.Riak],
+            DBType.Sqlserver.value: [cls.SqlserverHA, cls.SqlserverSingle],
         }
 
     @classmethod

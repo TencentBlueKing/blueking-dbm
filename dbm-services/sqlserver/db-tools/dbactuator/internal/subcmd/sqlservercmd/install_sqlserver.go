@@ -128,6 +128,10 @@ func (d *DeploySqlServerAct) Run() (err error) {
 			FunName: "初始化实例",
 			Func:    d.BaseService.InitDB,
 		},
+		{
+			FunName: "初始化账号",
+			Func:    d.BaseService.InitUsers,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

@@ -15,6 +15,8 @@ const (
 	Environment = "enviroment"
 	// Test TODO
 	Test = "test"
+	// 自定义系统库名称
+	SysDB = "Monitor"
 )
 
 const (
@@ -74,8 +76,8 @@ const (
 
 // 定义一些部署alwayon专用的注册表信息
 const (
-	WOW6432NODE_CONNECT_TO_KEY = "HKLM:\\SOFTWARE\\Wow6432Node\\Microsoft\\MSSQLServer\\Client\\ConnectTo"
-	MICROSOFT_CONNECT_TO_KEY   = "HKLM:\\SOFTWARE\\Microsoft\\MSSQLServer\\Client\\ConnectTo"
+	WOW6432NODE_CONNECT_TO_KEY = "HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\MSSQLServer\\Client\\ConnectTo"
+	MICROSOFT_CONNECT_TO_KEY   = "HKLM\\SOFTWARE\\Microsoft\\MSSQLServer\\Client\\ConnectTo"
 )
 
 // 定义安装之前需要的清理的注册表信息
@@ -187,4 +189,39 @@ var (
 		exec @exitcode = MONITOR.DBO.%s @msg output
 		select @msg as msg, @exitcode as exitcode
 		`
+)
+
+// 初始化账号SQL模板
+var (
+	EXEC_INIT_LOGIN_SQL = `
+	USE [master]
+	DECLARE @username NVARCHAR(50) = '%s'
+	DECLARE @pwd NVARCHAR(50) = '%s'
+	DECLARE @role NVARCHAR(50) = '%s'
+	DECLARE @sql NVARCHAR(MAX)
+	set @sql ='
+	use master
+	IF SUSER_SID('''+@username+''') IS NOT NULL
+	DROP LOGIN ' +@username+ '
+	CREATE LOGIN ['+@username+'] WITH PASSWORD = N'''+@pwd+''', DEFAULT_DATABASE = [master], CHECK_POLICY = OFF;'
+	IF @role <> 'public'
+	set @sql = @sql + '
+	EXEC master.sys.sp_addsrvrolemember @loginame = ' +@username+', @rolename = N'''+@role+''';'
+	EXEC(@sql)
+	`
+)
+
+// 添加权限SQL模板,这里统一给db_owner权限
+var (
+	EXEC_INIT_PRIV_SQL = `
+	USE [%s]
+	DECLARE @username NVARCHAR(50) = '%s'
+	DECLARE @sql NVARCHAR(MAX)
+	set @sql='
+	IF DATABASE_PRINCIPAL_ID('''+@username+''') IS NOT NULL
+	DROP USER '+@username+';
+	CREATE USER '+@username+' FOR LOGIN '+@username+' WITH DEFAULT_SCHEMA = [dbo];
+	EXEC SP_ADDROLEMEMBER N''db_owner'',N'''+@username+''';'
+	EXEC(@sql)
+	`
 )

@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 from dataclasses import asdict
 from typing import List
 
@@ -25,6 +26,7 @@ from backend.flow.consts import (
 )
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_backup_job import (
@@ -32,6 +34,7 @@ from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_backup
 )
 from backend.flow.plugins.components.collections.sqlserver.restore_for_do_dr import RestoreForDoDrComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import UpdateDnsRecordKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     DownloadMediaKwargs,
@@ -42,7 +45,7 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
 from backend.flow.utils.sqlserver.sqlserver_host import Host
-from backend.flow.utils.sqlserver.validate import SqlserverCluster
+from backend.flow.utils.sqlserver.validate import SqlserverCluster, SqlserverInstance
 
 
 def install_sqlserver_sub_flow(
@@ -493,3 +496,128 @@ def sync_dbs_for_cluster_sub_flow(
     )
 
     return sub_pipeline.build_sub_process(sub_name=sub_flow_name)
+
+
+def install_surrounding_apps_sub_flow(
+    uid: str,
+    root_id: str,
+    bk_biz_id: int,
+    bk_cloud_id: int,
+    slave_host: List[Host],
+    master_host: List[Host],
+    is_install_backup_client: bool = True,
+):
+    """
+    安装sqlserver的周边程序的通用子流程, 暂时不能跨业务, 不能跨云区域
+    @param uid: 单据id
+    @param root_id: 主流程的id
+    @param bk_biz_id: 业务id
+    @param bk_cloud_id: 云区域id
+    @param slave_host: 从实例列表
+    @param master_host: 主实例列表
+    @param is_install_backup_client 是不是安装backup_client
+    """
+    # 构建子流程global_data
+    global_data = {
+        "uid": uid,
+        "root_id": str,
+    }
+
+    # 声明子流程
+    sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
+
+    acts_list = []
+    if is_install_backup_client:
+        acts_list.append(
+            {
+                "act_name": _("安装backup-client工具"),
+                "act_component_code": DownloadBackupClientComponent.code,
+                "kwargs": asdict(
+                    DownloadBackupClientKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        bk_biz_id=bk_biz_id,
+                        download_host_list=list(
+                            filter(
+                                None, list(set([host.ip for host in master_host] + [host.ip for host in slave_host]))
+                            )
+                        ),
+                    )
+                ),
+            }
+        )
+    if len(acts_list) == 0:
+        raise Exception(_("install_surrounding_apps_sub_flow的子流程列表为空"))
+
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    return sub_pipeline.build_sub_process(sub_name=_("部署sqlserver周边程序"))
+
+
+def build_always_on_sub_flow(
+    uid: str,
+    root_id: str,
+    master_instance: SqlserverInstance,
+    slave_instances: List[SqlserverInstance],
+    cluster_name: str,
+    group_name: str,
+):
+    """
+    建立集群always_on可用组的子流程
+    @param uid: 单据id
+    @param root_id: 主流程id
+    @param master_instance: 集群主实例
+    @param slave_instances: 集群从实例
+    @param cluster_name: 集群名称
+    @param group_name: 可用组名称
+    """
+    global_data = {
+        "uid": uid,
+    }
+
+    # 声明子流程
+    sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
+
+    # 为配置AlwaysOn可用组，对所有新加入的机器做对应初始化
+    acts_list = []
+    cluster_instances = [master_instance] + slave_instances
+    for inst in cluster_instances:
+        add_instances = copy.deepcopy(cluster_instances)
+        add_instances.remove(inst)
+        acts_list.append(
+            {
+                "act_name": _("[{}]为alwaysOn做别名初始化".format(inst.host)),
+                "act_component_code": SqlserverActuatorScriptComponent.code,
+                "kwargs": asdict(
+                    ExecActuatorKwargs(
+                        exec_ips=[Host(ip=inst.host, bk_cloud_id=inst.bk_cloud_id)],
+                        get_payload_func=SqlserverActPayload.get_init_machine_for_always_on.__name__,
+                        custom_params={
+                            "port": inst.port,
+                            "add_members": [asdict(s) for s in add_instances],
+                            "is_first": inst.is_new,
+                        },
+                    )
+                ),
+            }
+        )
+
+    sub_pipeline.add_parallel_acts(acts_list)
+
+    # 在主实例配置AlwaysOn可用组
+    sub_pipeline.add_act(
+        act_name=_("[{}]集群配置可用组".format(cluster_name)),
+        act_component_code=SqlserverActuatorScriptComponent.code,
+        kwargs=asdict(
+            ExecActuatorKwargs(
+                exec_ips=[Host(ip=master_instance.host, bk_cloud_id=master_instance.bk_cloud_id)],
+                get_payload_func=SqlserverActPayload.get_build_always_on.__name__,
+                custom_params={
+                    "port": master_instance.port,
+                    "add_slaves": [asdict(s) for s in slave_instances],
+                    "group_name": group_name,
+                    "is_first": master_instance.is_new,
+                },
+            )
+        ),
+    )
+
+    return sub_pipeline.build_sub_process(sub_name=_("集群[{}]建立AlwaysOn可用组".format(cluster_name)))

@@ -10,14 +10,16 @@ specific language governing permissions and limitations under the License.
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
+from backend.db_meta.enums import ClusterType
 from backend.flow.consts import ConfigTypeEnum, SqlserverVersion
 
 
-def get_module_infos(bk_biz_id: int, db_module_id: int) -> dict:
+def get_module_infos(bk_biz_id: int, db_module_id: int, cluster_type: ClusterType) -> dict:
     """
     根据业务id和模块id，通过bk—config获取模块信息
     @param bk_biz_id: 业务id
     @param db_module_id: db模块id
+    @param cluster_type: 集群类型
     """
     data = DBConfigApi.query_conf_item(
         {
@@ -26,7 +28,7 @@ def get_module_infos(bk_biz_id: int, db_module_id: int) -> dict:
             "level_value": str(db_module_id),
             "conf_file": "deploy_info",
             "conf_type": "deploy",
-            "namespace": "sqlserver",
+            "namespace": cluster_type,
             "format": FormatType.MAP,
         }
     )["content"]
@@ -34,10 +36,7 @@ def get_module_infos(bk_biz_id: int, db_module_id: int) -> dict:
 
 
 def get_sqlserver_config(
-    bk_biz_id: int,
-    immutable_domain: str,
-    db_version: SqlserverVersion,
-    db_module_id: int,
+    bk_biz_id: int, immutable_domain: str, db_version: SqlserverVersion, db_module_id: int, cluster_type: ClusterType
 ) -> dict:
     """
     生成并获取sqlserver实例配置,集群级别配置
@@ -46,6 +45,7 @@ def get_sqlserver_config(
     @param immutable_domain: 集群主域名
     @param db_version: 数据库版本
     @param db_module_id: db模块id
+    @param cluster_type: 集群类型
     """
     data = DBConfigApi.get_or_generate_instance_config(
         {
@@ -55,7 +55,7 @@ def get_sqlserver_config(
             "level_info": {"module": str(db_module_id)},
             "conf_file": db_version,
             "conf_type": ConfigTypeEnum.DBConf,
-            "namespace": "sqlserver",
+            "namespace": cluster_type,
             "format": FormatType.MAP_LEVEL,
             "method": ReqType.GENERATE_AND_PUBLISH,
         }

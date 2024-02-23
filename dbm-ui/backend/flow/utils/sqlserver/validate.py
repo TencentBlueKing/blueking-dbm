@@ -23,12 +23,14 @@ class SqlserverInstance:
     @attributes ip 实例ip，ipv4格式
     @attributes port 实例端口
     @attributes bk_cloud_id 机器所在云区域
+    @attributes is_new 是否是这次加入的
     """
 
     __dataclass_fields__ = None
-    ip: str
+    host: str
     port: int
     bk_cloud_id: int
+    is_new: bool
 
     def __init__(self, **kwargs):
         for field in SqlserverInstance.__dataclass_fields__:
