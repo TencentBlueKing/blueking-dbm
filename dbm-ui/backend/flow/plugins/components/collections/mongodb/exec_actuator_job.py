@@ -19,12 +19,13 @@ from jinja2 import Environment
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.redis.redis_context_dataclass as flow_context
+import backend.flow.utils.mongodb.mongodb_dataclass as flow_context
 from backend import env
 from backend.components import JobApi
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MongoDBManagerUser
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
+from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_script_template import (
     mongodb_actuator_template,
     mongodb_fast_execute_script_common_kwargs,
@@ -57,6 +58,7 @@ class ExecuteDBActuatorJobService(BkJobService):
            extend_attr: 额外的字段数据，需要从RedisApplyContext中获取
         }
         """
+
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
@@ -87,26 +89,26 @@ class ExecuteDBActuatorJobService(BkJobService):
                     kwargs["db_act_template"]["payload"]["adminUsername"]
                 ]
                 kwargs["db_act_template"]["payload"]["script"].replace(
-                    "{{appdba_pwd}}", trans_data[kwargs["set_name"]][MediumEnum.AppDbaUser]
+                    "{{appdba_pwd}}", trans_data[kwargs["set_name"]][MongoDBManagerUser.AppDbaUser]
                 )
                 kwargs["db_act_template"]["payload"]["script"].replace(
-                    "{{monitor_pwd}}", trans_data[kwargs["set_name"]][MediumEnum.MonitorUser]
+                    "{{monitor_pwd}}", trans_data[kwargs["set_name"]][MongoDBManagerUser.MonitorUser]
                 )
                 kwargs["db_act_template"]["payload"]["script"].replace(
-                    "{{appmonitor_pwd}}", trans_data[kwargs["set_name"]][MediumEnum.AppMonitorUser]
+                    "{{appmonitor_pwd}}", trans_data[kwargs["set_name"]][MongoDBManagerUser.AppMonitorUser]
                 )
             else:
                 kwargs["db_act_template"]["payload"]["adminPassword"] = trans_data[
                     kwargs["db_act_template"]["payload"]["adminUsername"]
                 ]
                 kwargs["db_act_template"]["payload"]["script"].replace(
-                    "{{appdba_pwd}}", trans_data[MediumEnum.AppDbaUser]
+                    "{{appdba_pwd}}", trans_data[MongoDBManagerUser.AppDbaUser]
                 )
                 kwargs["db_act_template"]["payload"]["script"].replace(
-                    "{{monitor_pwd}}", trans_data[MediumEnum.MonitorUser]
+                    "{{monitor_pwd}}", trans_data[MongoDBManagerUser.MonitorUser]
                 )
                 kwargs["db_act_template"]["payload"]["script"].replace(
-                    "{{appmonitor_pwd}}", trans_data[MediumEnum.AppMonitorUser]
+                    "{{appmonitor_pwd}}", trans_data[MongoDBManagerUser.AppMonitorUser]
                 )
 
         # 进行db初始设置获，从上游流程节点获取密码
@@ -125,6 +127,16 @@ class ExecuteDBActuatorJobService(BkJobService):
             kwargs["db_act_template"]["payload"]["adminPassword"] = trans_data[
                 kwargs["db_act_template"]["payload"]["adminUsername"]
             ]
+
+        # 替换mongos安装新的mongos获取configDB配置
+        mongos_replace_install = kwargs.get("mongos_replace_install", False)
+        if mongos_replace_install:
+            act_kwargs = ActKwargs()
+            act_kwargs.payload = {}
+            act_kwargs.get_cluster_info_deinstall(cluster_id=kwargs["cluster_id"])
+            config_db = ["{}:{}".format(node["ip"], str(node["port"])) for node in act_kwargs.payload["config_nodes"]]
+            if mongos_replace_install:
+                kwargs["db_act_template"]["payload"]["configDB"] = config_db
 
         # 拼接节点执行ip所需要的信息，ip信息统一用list处理拼接
         if kwargs["get_trans_data_ip_var"]:

@@ -128,3 +128,15 @@ class MongoRemoveNsApiView(FlowTestView):
         root_id = uuid.uuid1().hex
         MongoDBController(root_id=root_id, ticket_data=request.data).mongo_remove_ns()
         return Response({"root_id": root_id})
+
+
+class MongoDBReplaceView(FlowTestView):
+    """
+    mongodb整机替换
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).machine_replace()
+        return Response({"root_id": root_id})
