@@ -14,7 +14,7 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.mongodb.mongodb_dataclass as flow_context
+# import backend.flow.utils.mongodb.mongodb_dataclass as flow_context
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 
@@ -38,16 +38,19 @@ class ExecAddPasswordToDBOperation(BaseService):
         trans_data = data.get_one_of_inputs("trans_data")
         usernames = kwargs["usernames"]
 
-        if trans_data is None or trans_data == "${trans_data}":
-            # 表示没有加载上下文内容，则在此添加
-            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+        # if trans_data is None or trans_data == "${trans_data}":
+        #     # 表示没有加载上下文内容，则在此添加
+        #     trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         # 把密码写入db
         for username in usernames:
-            if kwargs["set_name"]:
-                password = trans_data[kwargs["set_name"]][username]
+            if kwargs.get("create", True):
+                if kwargs["set_name"]:
+                    password = trans_data[kwargs["set_name"]][username]
+                else:
+                    password = trans_data[username]
             else:
-                password = trans_data[username]
+                password = kwargs["passwords"][username]
             result = MongoDBPassword().save_password_to_db(
                 instances=kwargs["nodes"], username=username, password=password, operator=kwargs["operator"]
             )

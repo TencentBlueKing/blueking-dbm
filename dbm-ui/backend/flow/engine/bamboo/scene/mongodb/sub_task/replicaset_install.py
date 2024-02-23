@@ -66,6 +66,8 @@ def replicaset_install(
     )
 
     if not cluster:
+        # 保存keyfile到dbconfig
+        sub_get_kwargs.set_save_key_file()
         # 密码服务获取管理用户密码
         kwargs = sub_get_kwargs.get_get_manager_password_kwargs()
         sub_pipeline.add_act(

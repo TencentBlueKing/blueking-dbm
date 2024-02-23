@@ -15,6 +15,18 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBClusterDefaultPort, MongoDBDomainPrefix, MongoDBTotalCache
 
 
+def get_cache_size(memory_size: int, cache_percent: float, num: int) -> int:
+    """计算内存大小 gb"""
+
+    return int(memory_size * cache_percent / num / 1024)
+
+
+def get_oplog_size(disk_size: int, oplog_percent: float, num: int) -> int:
+    """计算oplog大小 mb"""
+
+    return int(disk_size * 1024 * oplog_percent / num)
+
+
 def machine_order_by_tolerance(disaster_tolerance_level: str, machine_set: list) -> list:
     """通过容灾级别获取机器顺序"""
 
@@ -53,22 +65,19 @@ def replicase_calc(payload: dict, payload_clusters: dict, app: str, domain_prefi
     port = payload["start_port"]
     oplog_percent = payload["oplog_percent"] / 100
     data_disk = "/data1"
-    # 计算cacheSizeGB和oplogSizeMB  bk_mem:MB  ["/data1"]["size"]:GB
-    avg_mem_size_gb = int(
-        payload["infos"][0]["mongo_machine_set"][0]["bk_mem"]
-        * MongoDBTotalCache.Cache_Percent
-        / node_replica_count
-        / 1024
+    avg_mem_size_gb = get_cache_size(
+        memory_size=payload["infos"][0]["mongo_machine_set"][0]["bk_mem"],
+        cache_percent=MongoDBTotalCache.Cache_Percent,
+        num=node_replica_count,
     )
     if payload["infos"][0]["mongo_machine_set"][0]["storage_device"].get("/data1"):
         data_disk = "/data1"
     elif payload["infos"][0]["mongo_machine_set"][0]["storage_device"].get("/data"):
         data_disk = "/data"
-    oplog_size_mb = int(
-        payload["infos"][0]["mongo_machine_set"][0]["storage_device"].get(data_disk)["size"]
-        * 1024
-        * oplog_percent
-        / node_replica_count
+    oplog_size_mb = get_oplog_size(
+        disk_size=payload["infos"][0]["mongo_machine_set"][0]["storage_device"].get(data_disk)["size"],
+        oplog_percent=oplog_percent,
+        num=node_replica_count,
     )
     # 分配机器
     for index, info in enumerate(payload["infos"]):
@@ -120,11 +129,15 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
     shard_port_not_use = [payload["proxy_port"], config_port]
 
     # 计算configCacheSizeGB，shardCacheSizeGB，oplogSizeMB
-    shard_avg_mem_size_gb = int(
-        payload["nodes"]["mongodb"][0][0]["bk_mem"] * MongoDBTotalCache.Cache_Percent / node_replica_count / 1024
+    shard_avg_mem_size_gb = get_cache_size(
+        memory_size=payload["nodes"]["mongodb"][0][0]["bk_mem"],
+        cache_percent=MongoDBTotalCache.Cache_Percent,
+        num=node_replica_count,
     )
-    config_mem_size_gb = int(
-        payload["nodes"]["mongo_config"][0]["bk_mem"] * MongoDBTotalCache.Cache_Percent / node_replica_count / 1024
+    config_mem_size_gb = get_cache_size(
+        memory_size=payload["nodes"]["mongo_config"][0]["bk_mem"],
+        cache_percent=MongoDBTotalCache.Cache_Percent,
+        num=node_replica_count,
     )
     # shard oplogSizeMB
     data_disk = "/data1"
@@ -132,11 +145,10 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
         data_disk = "/data1"
     elif payload["nodes"]["mongodb"][0][0]["storage_device"].get("/data"):
         data_disk = "/data"
-    shard_oplog_size_mb = int(
-        payload["nodes"]["mongodb"][0][0]["storage_device"].get(data_disk)["size"]
-        * 1024
-        * oplog_percent
-        / node_replica_count
+    shard_oplog_size_mb = get_oplog_size(
+        disk_size=payload["nodes"]["mongodb"][0][0]["storage_device"].get(data_disk)["size"],
+        oplog_percent=oplog_percent,
+        num=node_replica_count,
     )
     # config oplogSizeMB
     if payload["nodes"]["mongo_config"][0]["storage_device"].get("/data1"):
@@ -228,8 +240,8 @@ def calculate_cluster(payload: dict) -> dict:
     payload_clusters["ticket_type"] = payload["ticket_type"]
     payload_clusters["cluster_type"] = payload["cluster_type"]
     payload_clusters["city"] = payload["city_code"]
-    payload_clusters["app"] = payload["db_app_abbr"]
-    app = payload["db_app_abbr"]
+    payload_clusters["app"] = payload["bk_app_abbr"]
+    app = payload["bk_app_abbr"]
     payload_clusters["db_version"] = payload["db_version"]
     cluster_type = payload["cluster_type"]
 

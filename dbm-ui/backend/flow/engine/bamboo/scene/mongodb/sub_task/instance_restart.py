@@ -21,7 +21,7 @@ from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
 def instance_restart(
-    root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, instances_info: dict
+    root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, instances_info: dict, only_change_param: bool
 ) -> SubBuilder:
     """
     单个instance 重启流程
@@ -44,7 +44,15 @@ def instance_restart(
 
     # 重启实例
     for instance in instances_info["instances"]:
-        kwargs = sub_get_kwargs.get_instance_restart_kwargs(host=instances_info["hosts"][0], instance=instance)
+        kwargs = sub_get_kwargs.get_instance_restart_kwargs(
+            host=instances_info["hosts"][0],
+            instance=instance,
+            cache_size_gb=0,
+            mongos_conf_db_old="",
+            mongos_conf_db_new="",
+            cluster_id=0,
+            only_change_param=only_change_param,
+        )
         sub_pipeline.add_act(
             act_name=_(
                 "MongoDB-cluster_id:{}-ip:{}-port:{}--重启实例".format(

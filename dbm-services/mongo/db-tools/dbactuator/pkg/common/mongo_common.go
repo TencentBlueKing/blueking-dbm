@@ -486,7 +486,7 @@ func GetNodeInfo(mongoBin string, ip string, port int, username string, password
 // AuthRsStepDown 主备切换
 func AuthRsStepDown(mongoBin string, ip string, port int, username string, password string) (bool, error) {
 	cmd := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"rs.stepDown()\"",
+		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"rs.stepDown()\" >> /dev/null",
 		mongoBin, username, password, ip, port)
 	_, _ = util.RunBashCmd(
 		cmd,

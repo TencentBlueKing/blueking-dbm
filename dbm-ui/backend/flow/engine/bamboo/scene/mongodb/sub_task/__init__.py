@@ -9,9 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+
+from .cluster_replace import cluster_replace
 from .deinstall import deinstall
 from .exec_script import exec_script
 from .instance_restart import instance_restart
+from .mongod_replace import mongod_replace
 from .mongos_install import mongos_install
+from .mongos_replace import mongos_replace
 from .replicaset_install import replicaset_install
+from .replicaset_replace import replicaset_replace
 from .user import user

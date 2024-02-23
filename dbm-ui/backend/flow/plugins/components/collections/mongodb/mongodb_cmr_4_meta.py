@@ -198,7 +198,7 @@ class CMRMongoDBMetaService(BaseService):
                 # mongos 关系建立 [M1] / 只有mongodb 才有 ； mongo_config没有
                 if (
                     old_obj.machine_type == MachineType.MONGODB.value
-                    and cluster.cluter_type == ClusterType.MongoShardedCluster.value
+                    and cluster.cluster_type == ClusterType.MongoShardedCluster.value
                 ):
                     tmp_proxy_objs = list(old_obj.proxyinstance_set.all())
                     new_obj.proxyinstance_set.add(*tmp_proxy_objs)
@@ -252,11 +252,13 @@ class CMRMongoDBMetaService(BaseService):
 
         # 创建实例
         api.machine.create(machines=machines, bk_cloud_id=cluster.bk_cloud_id, creator=created_by)
-        api.proxy_instance.create(proxies=proxies, status=InstanceStatus.RUNNING.value, creator=created_by)
+        proxy_objs = api.proxy_instance.create(
+            proxies=proxies, status=InstanceStatus.RUNNING.value, creator=created_by
+        )
 
         # 新增 mongos 到集群
         self.add_proxies(cluster, proxies)
-        MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(proxies)
+        MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(proxy_objs)
 
         # # 删除老 mongos
         api.cluster.nosqlcomm.decommission_proxies(cluster, proxies=old_proxies, is_all=False)
@@ -291,7 +293,7 @@ class CMRMongoDBMetaService(BaseService):
 
             # 修改表 db_meta_proxyinstance_bind_entry
             for cluster_entry_obj in cluster.clusterentry_set.all():
-                cluster_entry_obj.proxyinstance_set.add(proxy_objs)
+                cluster_entry_obj.proxyinstance_set.add(*proxy_objs)
                 logger.info(
                     "cluster {} entry {} add proxyinstance {}".format(
                         cluster.immute_domain, cluster_entry_obj.entry, proxy_objs
