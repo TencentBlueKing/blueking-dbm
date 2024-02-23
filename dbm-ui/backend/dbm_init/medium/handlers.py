@@ -9,7 +9,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import hashlib
 import json
 import logging
 import os
@@ -153,14 +152,15 @@ class MediumHandler:
                     file_path_bkrepo = file_path.split(file_path.rsplit("/", 4)[0])[1]
                     print("upload file: %s -> %s", file_path, file_path_bkrepo)
                     with open(file_path, "rb") as f:
-                        # 如果当前版本不存在，则更新介质
-                        if not self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1]:
-                            self.storage.save(file_path_bkrepo, f)
-                        # 如果文件md5不相等，则更新介质
-                        bkrepo_file_md5 = self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1][0]["md5"]
-                        pkg_file_md5 = hashlib.md5(f.read()).hexdigest()
-                        if bkrepo_file_md5 != pkg_file_md5:
-                            self.storage.save(file_path_bkrepo, f)
+                        # # 如果当前版本不存在，则更新介质
+                        # if not self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1]:
+                        #     self.storage.save(file_path_bkrepo, f)
+                        # # 如果文件md5不相等，则更新介质
+                        # bkrepo_file_md5 = self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1][0]["md5"]
+                        # pkg_file_md5 = hashlib.md5(f.read()).hexdigest()
+                        # if bkrepo_file_md5 != pkg_file_md5:
+                        # TODO：这里执行 f.read() 后再进行 storage.save 会导致上传到 bkrepo 的文件为空，待进一步排查
+                        self.storage.save(file_path_bkrepo, f)
 
     def sync_from_bkrepo(self, db_type):
         """将制品库文件同步到dbm"""
