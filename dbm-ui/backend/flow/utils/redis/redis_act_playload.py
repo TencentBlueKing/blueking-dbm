@@ -59,6 +59,7 @@ from backend.ticket.constants import TicketType
 logger = logging.getLogger("flow")
 apply_list = [
     TicketType.REDIS_SINGLE_APPLY.value,
+    TicketType.REDIS_INS_APPLY.value,
     TicketType.REDIS_CLUSTER_APPLY.value,
     TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value,
     TicketType.REDIS_CLUSTER_TYPE_UPDATE.value,
@@ -147,6 +148,8 @@ class RedisActPayload(object):
             self.proxy_version = ConfigFileEnum.Predixy
 
     def __get_define_config(self, namespace: str, conf_file: str, conf_type: str) -> Any:
+        if conf_file is None:
+            return
         """获取一些全局的参数配置"""
         data = DBConfigApi.query_conf_item(
             params={
@@ -1086,14 +1089,44 @@ class RedisActPayload(object):
             self.redis_pkg = Package.get_latest_package(
                 version=db_version, pkg_type=MediumEnum.Redis, db_type=DBType.Redis
             )
-        elif cluster_type == ClusterType.TendisPredixyTendisplusCluster:
+        elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
             self.redis_pkg = Package.get_latest_package(
                 version=db_version, pkg_type=MediumEnum.TendisPlus, db_type=DBType.Redis
             )
-        elif cluster_type == ClusterType.TwemproxyTendisSSDInstance:
+        elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
             self.redis_pkg = Package.get_latest_package(
                 version=db_version, pkg_type=MediumEnum.TendisSsd, db_type=DBType.Redis
             )
+        elif cluster_type == ClusterType.TendisPredixyRedisCluster.value:
+            self.redis_pkg = Package.get_latest_package(
+                version=db_version, pkg_type=MediumEnum.Redis, db_type=DBType.Redis
+            )
+        elif cluster_type == ClusterType.TendisRedisInstance.value:
+            self.redis_pkg = Package.get_latest_package(
+                version=db_version, pkg_type=MediumEnum.Redis, db_type=DBType.Redis
+            )
+        else:
+            raise Exception("unknown cluster type:" + cluster_type)
+
+    # redis批量建立主从关系（单实例上架）
+    def redis_init_batch_replicate(self, **kwargs) -> dict:
+        """
+        各实例的密码可能不一样
+        [{
+            "master_ip":
+            "master_port":
+            "master_auth":
+            "slave_ip":
+            "slave_port":
+            "slave_password"
+        }]
+        """
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Replicaof.value,
+            "payload": {"replica_pairs": params["replica_pairs"]},
+        }
 
     # redis批量建立主从关系 (兼容单实例)
     def get_redis_batch_replicate(self, **kwargs) -> dict:
@@ -1196,10 +1229,10 @@ class RedisActPayload(object):
                 "data_dirs": ConfigDefaultEnum.DATA_DIRS,
                 "ports": [],
                 "redis_conf_configs": redis_conf,
-                "inst_num": params["inst_num"],
                 # 以下为流程中需要补充的参数
                 "ip": params["exec_ip"],
-                "start_port": int(params["start_port"]),
+                # "inst_num": params["inst_num"],
+                # "start_port": int(params["start_port"]),
             },
         }
 

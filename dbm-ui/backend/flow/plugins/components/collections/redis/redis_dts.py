@@ -43,12 +43,12 @@ from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisD
 from backend.db_services.redis.redis_dts.util import get_safe_regex_pattern
 from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_cluster_protocal
 from backend.flow.consts import GB, MB, StateType
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisClusterShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDataFlow
-from backend.flow.engine.bamboo.scene.redis.tendis_plus_apply_flow import TendisPlusApplyFlow
+from backend.flow.engine.bamboo.scene.redis.redis_predixy_cluster_apply_flow import TendisPlusApplyFlow
+from backend.flow.engine.bamboo.scene.redis.redis_twemproxy_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.models import FlowTree
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.redis.redis_cluster_nodes import (
@@ -948,13 +948,13 @@ class NewDstClusterInstallJobAndWatchStatus(BaseService):
         root_id = generate_root_id()
         if ticket_data["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
             flow = TendisPlusApplyFlow(root_id=root_id, data=ticket_data)
-            flow.deploy_tendisplus_cluster_flow()
+            flow.deploy_predixy_cluster_flow()
         elif ticket_data["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
             flow = RedisClusterApplyFlow(root_id=root_id, data=ticket_data)
-            flow.deploy_redis_cluster_flow()
+            flow.deploy_twemproxy_cluster_flow()
         elif ticket_data["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
             flow = RedisClusterApplyFlow(root_id=root_id, data=ticket_data)
-            flow.deploy_redis_cluster_flow()
+            flow.deploy_twemproxy_cluster_flow()
         else:
             raise Exception("cluster_type:{} is not support".format(ticket_data["cluster_type"]))
 
