@@ -18,6 +18,7 @@
       class="search-result-table mt-14 mb-8"
       :columns="columns"
       :data="data"
+      :pagination="pagination"
       :settings="tableSetting"
       @setting-change="updateTableSettings" />
   </DbCard>
@@ -49,6 +50,11 @@
 
   const { t } = useI18n();
   const copy = useCopy();
+
+  const pagination = ref({
+    count: props.data.length,
+    limit: 10,
+  });
 
   const filterMap = computed(() => {
     const currentBizNameMap = props.bizIdNameMap;
@@ -128,13 +134,10 @@
       field: 'for_bizs',
       width: 100,
       filter: {
-        list: Object.entries(filterMap.value.bizNameMap).reduce((prevList, bizItem) => [...prevList, {
+        list: Object.entries(filterMap.value.bizNameMap).map(bizItem => ({
           value: Number(bizItem[0]),
           text: bizItem[1],
-        }], [] as {
-          value: number,
-          text: string
-        }[]),
+        })),
         filterFn: (checked: number[], row: DbResourceModel) => {
           if (checked.length === 0) {
             return true;
