@@ -49,6 +49,10 @@ func (m *BkBizId) QueryAccountRule() ([]*AccountRuleSplitUser, int64, error) {
 		if err != nil {
 			return nil, count, err
 		}
+		// 没有查到帐号规则
+		if len(acountList) == 0 {
+			return nil, count, nil
+		}
 		for _, id := range acountList {
 			accountIds = fmt.Sprintf("%d,%s", id.AccountId, accountIds)
 		}

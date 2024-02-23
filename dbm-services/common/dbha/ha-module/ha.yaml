@@ -9,6 +9,7 @@ agent_conf:
   active_db_type: [
     "tendbha:backend",
     "tendbha:proxy",
+    "riak"
   ]
   city: "3"
   campus: "深圳"
@@ -58,6 +59,8 @@ db_conf:
     proxy_pass: "proxy-conn-pass"
     timeout: 10
   redis:
+    timeout: 10
+  riak:
     timeout: 10
 password_conf:
   host: "bind-api-host"

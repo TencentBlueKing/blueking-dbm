@@ -10,6 +10,7 @@ data:
       active_db_type: [
         "tendbha:backend",
         "tendbha:proxy",
+        "riak"
       ]
       city: "3"
       campus: "深圳"
@@ -57,6 +58,8 @@ data:
         proxy_pass: "proxy-conn-pass"
         timeout: 10
       redis:
+      riak:
+        timeout: 10
     dns:
       bind_conf:
         host: "bind-api-host"

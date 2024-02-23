@@ -56,6 +56,8 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 				}
 				AddString(&addSqls, sql)
 				if tb.Phase == online {
+					// 启用的分区规则，会执行删除历史分区
+					// 禁用的分区规则，会新增分区，但是不会删除历史分区
 					sql, err = tb.GetDropPartitionSql()
 					if err != nil {
 						slog.Error("msg", "GetDropPartitionSql error", err)
@@ -642,7 +644,7 @@ func CreatePartitionTicket(check Checker, objects []PartitionObject, zoneOffset 
 		zone, date, scheduler, "", ExecuteAsynchronous, check.ClusterType)
 }
 
-// NeedPartition TODO
+// NeedPartition 获取需要实施的分区规则
 func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate string) ([]*Checker, error) {
 	var configTb, logTb string
 	var all, doNothing []*Checker
@@ -657,10 +659,11 @@ func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate
 		return nil, errors.New("不支持的db类型")
 	}
 	vzone := fmt.Sprintf("%+03d:00", zoneOffset)
+	// 集群被offline时，其分区规则也被禁用，规则不会被定时任务执行
 	vsql := fmt.Sprintf(
 		"select id as config_id, bk_biz_id, cluster_id, immute_domain, port, bk_cloud_id,"+
-			" '%s' as cluster_type from `%s`.`%s` where time_zone='%s' order by 2,3;",
-		clusterType, viper.GetString("db.name"), configTb, vzone)
+			" '%s' as cluster_type from `%s`.`%s` where time_zone='%s' and phase in ('%s','%s') order by 2,3;",
+		clusterType, viper.GetString("db.name"), configTb, vzone, online, offline)
 	slog.Info(vsql)
 	err := model.DB.Self.Raw(vsql).Scan(&all).Error
 	if err != nil {
