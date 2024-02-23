@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging.config
 from dataclasses import asdict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName

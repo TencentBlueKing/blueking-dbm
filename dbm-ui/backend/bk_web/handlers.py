@@ -14,7 +14,7 @@ from typing import Optional
 
 from django.conf import settings
 from django.http import Http404, JsonResponse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import exceptions, status
 
 from backend.exceptions import AppBaseException, ErrorCode

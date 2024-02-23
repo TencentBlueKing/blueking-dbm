@@ -13,7 +13,7 @@ import json
 import re
 from typing import Any, List, Optional, Tuple, Union
 
-from django.utils.translation import ugettext
+from django.utils.translation import gettext
 
 MIN_FORMAT_JSON_LENGTH = 30
 
@@ -170,7 +170,7 @@ def format_json_string(msg: str) -> str:
 def i18n_str(string):
     # 翻译字符串
     if isinstance(string, str):
-        return ugettext(string)
+        return gettext(string)
 
     return string
 

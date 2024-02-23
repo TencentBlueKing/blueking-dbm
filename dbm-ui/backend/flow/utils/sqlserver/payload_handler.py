@@ -13,39 +13,29 @@ from typing import Tuple
 
 from django.utils.crypto import get_random_string
 
-from backend import env
 from backend.components import DBPrivManagerApi
-from backend.core.encrypt.constants import AsymmetricCipherConfigType
-from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import ExtensionType
-from backend.db_proxy.models import DBExtension
 from backend.flow.consts import DEFAULT_INSTANCE, MSSQL_ADMIN, MSSQL_EXPORTER, SqlserverComponent, SqlserverUserName
+from backend.flow.utils.base.payload_handler import PayloadHandler as BasePayloadHandler
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
 
 logger = logging.getLogger("flow")
 
 
-class PayloadHandler(object):
+class PayloadHandler(BasePayloadHandler):
     def __init__(self, global_data: dict):
         """
         @param global_data 流程/子流程全局信息
         """
         self.global_data = global_data
 
-    @staticmethod
-    def get_sqlserver_drs_account(bk_cloud_id: int):
+    @classmethod
+    def get_sqlserver_drs_account(cls, bk_cloud_id: int):
         """
         获取sqlserver在drs的admin账号密码
         """
-        if env.DRS_USERNAME:
-            return {"drs_user": env.DRS_USERNAME, "drs_pwd": env.DRS_PASSWORD}
-
-        bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
-        drs = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.DRS)
-        return {
-            "drs_user": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["user"]),
-            "drs_pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
-        }
+        drs_account = cls.get_extension_super_account(bk_cloud_id, ExtensionType.DRS)
+        return {"drs_user": drs_account["user"], "drs_pwd": drs_account["pwd"]}
 
     def get_sqlserver_account(self):
         """

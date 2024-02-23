@@ -14,7 +14,7 @@ import os
 from typing import Any, List
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import DBConfigApi

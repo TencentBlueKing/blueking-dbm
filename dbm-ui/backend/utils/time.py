@@ -15,7 +15,7 @@ from typing import List, Optional, Union
 
 from dateutil.parser import parse as time_parse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.constants import DATE_PATTERN, DATETIME_PATTERN
 from backend.exceptions import ValidationError

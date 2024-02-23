@@ -12,7 +12,7 @@ import json
 from collections import defaultdict
 from typing import Any, Dict, List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from ...env import BK_IAM_SYSTEM_ID
 from .actions import _all_actions

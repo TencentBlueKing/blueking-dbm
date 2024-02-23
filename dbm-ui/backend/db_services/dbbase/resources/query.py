@@ -17,7 +17,7 @@ import attr
 from django.db.models import F, Prefetch, Q, QuerySet
 from django.http import HttpResponse
 from django.utils.http import urlquote
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, ClusterType
@@ -320,10 +320,9 @@ class BaseListRetrieveResource(CommonQueryResourceMixin):
         raise NotImplementedError
 
     @classmethod
-    @abc.abstractmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:
         """查询集群拓扑图. 具体方法在子类中实现"""
-        raise NotImplementedError
+        return {}
 
     @classmethod
     def get_fields(cls) -> List[Dict[str, str]]:

@@ -32,14 +32,4 @@ class DbRemoteServiceApiMock(object):
                 "error_msg": "",
             }
         ]
-        if len(addresses) > 1:
-            # 添加一个带错误的返回
-            err_return_address = addresses[1]
-            results.append(
-                {
-                    "address": err_return_address,
-                    "cmd_results": None,
-                    "error_msg": f"connect to {err_return_address} failed: dial tcp {err_return_address}: i/o timeout",
-                }
-            )
         return results

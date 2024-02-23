@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import itertools
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from .exception import DbTableFilterValidateException
 from .tools import build_exclude_regexp, build_include_regexp, glob_check, replace_glob

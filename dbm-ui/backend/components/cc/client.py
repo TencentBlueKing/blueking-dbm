@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from ..base import BaseApi
 from ..domains import CC_APIGW_DOMAIN
@@ -24,7 +24,7 @@ class _CCApi(BaseApi):
         HOST_NOT_BELONG_MODULE = 1110056
         CUSTOM_FIELD_ALREADY_EXISTS = 1101107
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.list_hosts_without_biz = self.generate_data_api(
             method="POST",
             url="list_hosts_without_biz/",

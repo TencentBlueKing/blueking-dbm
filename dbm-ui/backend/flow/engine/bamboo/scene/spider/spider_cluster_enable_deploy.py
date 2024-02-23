@@ -12,7 +12,7 @@ import copy
 from dataclasses import asdict
 from typing import Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterEntryRole
 from backend.db_meta.exceptions import ClusterNotExistException

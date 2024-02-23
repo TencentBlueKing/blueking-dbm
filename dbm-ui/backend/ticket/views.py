@@ -15,7 +15,7 @@ from typing import Dict, List
 from django.db import transaction
 from django.db.models import Q
 from django.forms.models import model_to_dict
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
 from rest_framework.decorators import action

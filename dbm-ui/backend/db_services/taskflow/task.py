@@ -13,7 +13,7 @@ from typing import Any, Union
 
 from bamboo_engine.api import EngineAPIResult
 from celery import shared_task
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.eri.signals import post_set_state
 
 from backend.db_meta.exceptions import ClusterExclusiveOperateException

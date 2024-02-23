@@ -177,3 +177,7 @@ class DBConfigApiMock(object):
     def get_instance_config(cls, *args, **kwargs):
         instance_config_data = cls.query_conf_item(*args, **kwargs)
         return instance_config_data
+
+    @classmethod
+    def upsert_conf_item(cls, *args, **kwargs):
+        return

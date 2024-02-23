@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 from time import sleep
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from pipeline.component_framework.component import Component
 
 from backend.components import DBConfigApi, DBPrivManagerApi, DRSApi

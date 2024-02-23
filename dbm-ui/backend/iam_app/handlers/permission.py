@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 
 from blueapps.account.models import User
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from iam import IAM, DummyIAM, MultiActionRequest, ObjectSet, Request, Resource, Subject, make_expression
 from iam.apply.models import (
     ActionWithoutResources,

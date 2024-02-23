@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from typing import Dict
 
 from django.db.models import F, Q, Value
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.db_meta.enums import ClusterType, InstanceRole

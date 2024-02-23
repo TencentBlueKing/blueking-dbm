@@ -10,18 +10,20 @@ specific language governing permissions and limitations under the License.
 
 import base64
 import logging
-import re
+from typing import Dict
+
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import DBConfigApi, DBPrivManagerApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
-from backend.constants import IP_RE_PATTERN
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
+from backend.db_services.ipchooser.constants import DEFAULT_CLOUD
 from backend.flow.consts import DEFAULT_INSTANCE, ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, UserName
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
 from backend.ticket.constants import TicketType
@@ -51,7 +53,6 @@ class PayloadHandler(object):
         self.account = self.get_mysql_account()
         self.proxy_account = self.get_proxy_account()
 
-        # todo 后面可能优化这个问题
         if self.ticket_data.get("module"):
             self.db_module_id = self.ticket_data["module"]
         elif self.cluster and self.cluster.get("db_module_id"):
@@ -129,88 +130,70 @@ class PayloadHandler(object):
         return user_map
 
     @staticmethod
-    def __get_super_account_bypass():
-        """
-        旁路逻辑：获取环境变量中的access_hosts, 用户名和密码
-        """
-        access_hosts = env.TEST_ACCESS_HOSTS or re.compile(IP_RE_PATTERN).findall(env.DRS_APIGW_DOMAIN)
-        drs_account_data = {
-            "access_hosts": access_hosts,
-            "user": env.DRS_USERNAME,
-            "pwd": env.DRS_PASSWORD,
-        }
+    def get_extension_super_account(bk_cloud_id: int, extension_type: ExtensionType) -> Dict[str, str]:
+        """获取扩展服务超级账号"""
+        # 若已部署，则从数据库中读取返回
+        extension = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=extension_type)
+        cipher_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
+        if extension:
+            return {
+                "access_hosts": DBExtension.get_extension_access_hosts(
+                    bk_cloud_id=bk_cloud_id, extension_type=extension_type
+                ),
+                "pwd": AsymmetricHandler.decrypt(name=cipher_cloud_name, content=extension.details["pwd"]),
+                "user": AsymmetricHandler.decrypt(name=cipher_cloud_name, content=extension.details["user"]),
+            }
+        # 若未部署相关扩展服务，且非直连区域，则要求进行部署
+        if bk_cloud_id != DEFAULT_CLOUD:
+            raise Exception(_("此云区域(bk_cloud_id:{})未部署相关套件{}".format(bk_cloud_id, extension_type)))
 
-        access_hosts = env.TEST_ACCESS_HOSTS or re.compile(IP_RE_PATTERN).findall(env.DBHA_APIGW_DOMAIN_LIST)
-        dbha_account_data = {
-            "access_hosts": access_hosts,
-            "user": env.DBHA_USERNAME,
-            "pwd": env.DBHA_PASSWORD,
-        }
-
-        return drs_account_data, dbha_account_data
+        # 直连区域，考虑是容器化部署的通过环境变量获取
+        if extension_type == ExtensionType.DRS:
+            return {
+                "access_hosts": env.DEFAULT_CLOUD_DRS_ACCESS_HOSTS,
+                "user": env.DRS_USERNAME,
+                "pwd": env.DRS_PASSWORD,
+            }
+        elif extension_type == ExtensionType.DBHA:
+            return {
+                "access_hosts": env.DEFAULT_CLOUD_DBHA_ACCESS_HOSTS,
+                "user": env.DBHA_USERNAME,
+                "pwd": env.DBHA_PASSWORD,
+            }
+        else:
+            raise NotImplementedError(_("不支持{}类型扩展的账号获取").format(extension_type))
 
     def get_super_account(self):
         """
         获取mysql机器系统管理账号信息
         """
-
-        if env.DRS_USERNAME and env.DBHA_USERNAME:
-            return self.__get_super_account_bypass()
-
-        bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(self.bk_cloud_id)
-        drs = DBExtension.get_latest_extension(bk_cloud_id=self.bk_cloud_id, extension_type=ExtensionType.DRS)
-        drs_account_data = {
-            "access_hosts": DBExtension.get_extension_access_hosts(
-                bk_cloud_id=self.bk_cloud_id, extension_type=ExtensionType.DRS
-            ),
-            "pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
-            "user": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["user"]),
-        }
-
-        dbha = DBExtension.get_latest_extension(bk_cloud_id=self.bk_cloud_id, extension_type=ExtensionType.DBHA)
-        dbha_account_data = {
-            "access_hosts": DBExtension.get_extension_access_hosts(
-                bk_cloud_id=self.bk_cloud_id, extension_type=ExtensionType.DBHA
-            ),
-            "pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=dbha.details["pwd"]),
-            "user": AsymmetricHandler.decrypt(name=bk_cloud_name, content=dbha.details["user"]),
-        }
-
+        drs_account_data = self.get_extension_super_account(self.bk_cloud_id, ExtensionType.DRS)
+        dbha_account_data = self.get_extension_super_account(self.bk_cloud_id, ExtensionType.DBHA)
         return drs_account_data, dbha_account_data
 
     @staticmethod
     def redis_get_cluster_pass_from_dbconfig(cluster: Cluster):
-        proxy_conf = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster.bk_biz_id),
-                "level_name": LevelName.CLUSTER.value,
-                "level_value": cluster.immute_domain,
-                "level_info": {"module": str(cluster.db_module_id)},
-                "conf_file": cluster.proxy_version,
-                "conf_type": ConfigTypeEnum.ProxyConf,
-                "namespace": cluster.cluster_type,
-                "format": FormatType.MAP,
-            }
-        )
-        proxy_content = proxy_conf.get("content", {})
+        def _redis_get_cluster_config(conf_file, conf_type):
+            config = DBConfigApi.query_conf_item(
+                params={
+                    "bk_biz_id": str(cluster.bk_biz_id),
+                    "level_name": LevelName.CLUSTER.value,
+                    "level_value": cluster.immute_domain,
+                    "level_info": {"module": str(cluster.db_module_id)},
+                    "conf_file": conf_file,
+                    "conf_type": conf_type,
+                    "namespace": cluster.cluster_type,
+                    "format": FormatType.MAP,
+                }
+            )
+            return config.get("content", {})
 
-        redis_conf = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster.bk_biz_id),
-                "level_name": LevelName.CLUSTER.value,
-                "level_value": cluster.immute_domain,
-                "level_info": {"module": str(cluster.db_module_id)},
-                "conf_file": cluster.major_version,
-                "conf_type": ConfigTypeEnum.DBConf,
-                "namespace": cluster.cluster_type,
-                "format": FormatType.MAP,
-            }
-        )
-        redis_content = redis_conf.get("content", {})
+        proxy_conf = _redis_get_cluster_config(cluster.proxy_version, ConfigTypeEnum.ProxyConf)
+        redis_conf = _redis_get_cluster_config(cluster.major_version, ConfigTypeEnum.DBConf)
         return {
-            "redis_password": redis_content.get("requirepass", ""),
-            "redis_proxy_password": proxy_content.get("password", ""),
-            "redis_proxy_admin_password": proxy_content.get("predixy_admin_passwd", ""),
+            "redis_password": redis_conf.get("requirepass", ""),
+            "redis_proxy_password": proxy_conf.get("password", ""),
+            "redis_proxy_admin_password": proxy_conf.get("predixy_admin_passwd", ""),
         }
 
     @staticmethod

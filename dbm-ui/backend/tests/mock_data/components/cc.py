@@ -10,8 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 
-from backend.components import CCApi
 from backend.tests.mock_data import constant
+from backend.tests.mock_data.utils import raw_response
 
 MOCK_SEARCH_BUSINESS_RETURN = {"info": [{"bk_biz_id": constant.BK_BIZ_ID, "bk_biz_name": "蓝鲸"}], "count": 1}
 MOCK_SEARCH_SET_RETURN = {"info": [{"bk_set_id": constant.BK_SET_ID, "bk_set_name": "mock集群"}], "count": 1}
@@ -148,7 +148,7 @@ MOCK_CLOUD_AREA = [
 ]
 
 
-class CCApiMock(CCApi):
+class CCApiMock:
     """
     cc的mock接口
     """
@@ -182,6 +182,11 @@ class CCApiMock(CCApi):
             list_service_instance_detail_return or self.list_service_instance_detail_return
         )
         self.search_object_attribute_return = search_object_attribute_return or self.search_object_attribute_return
+
+    class ErrorCode:
+        HOST_NOT_BELONG_BIZ = 1113002
+        HOST_NOT_BELONG_MODULE = 1110056
+        CUSTOM_FIELD_ALREADY_EXISTS = 1101107
 
     def search_business(self, *args, **kwargs):
         return self.search_business_return
@@ -235,6 +240,7 @@ class CCApiMock(CCApi):
         return {}
 
     @staticmethod
+    @raw_response
     def create_biz_custom_field(*args, **kwargs):
         return {}
 

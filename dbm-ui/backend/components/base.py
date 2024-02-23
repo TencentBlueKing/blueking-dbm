@@ -20,7 +20,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import translation
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from urllib3.exceptions import ConnectTimeoutError
 
 from backend import env

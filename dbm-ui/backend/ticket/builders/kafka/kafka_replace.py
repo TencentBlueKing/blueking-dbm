@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.flow.engine.controller.kafka import KafkaController
 from backend.ticket import builders

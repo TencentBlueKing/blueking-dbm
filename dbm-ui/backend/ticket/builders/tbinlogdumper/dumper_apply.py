@@ -13,7 +13,7 @@ from collections import defaultdict
 
 from django.db.models import Q
 from django.db.transaction import atomic
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums.extra_process_type import ExtraProcessType

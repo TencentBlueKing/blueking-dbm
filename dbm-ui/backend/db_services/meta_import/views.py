@@ -11,8 +11,7 @@ specific language governing permissions and limitations under the License.
 import json
 import logging
 
-from django.utils.translation import ugettext_lazy as _
-from rest_framework import serializers
+from django.utils.translation import gettext_lazy as _
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
@@ -23,14 +22,9 @@ from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_services.meta_import import serializers
 from backend.db_services.meta_import.constants import SWAGGER_TAG
-from backend.db_services.meta_import.serializers import (
-    TenDBClusterAppendCTLSerializer,
-    TenDBClusterMetadataImportSerializer,
-    TenDBClusterStandardizeSerializer,
-    TenDBHAMetadataImportSerializer,
-    TenDBHAStandardizeSerializer,
-)
+from backend.exceptions import ValidationError
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
 from backend.ticket.builders.mysql.mysql_ha_metadata_import import TenDBHAMetadataImportDetailSerializer
 from backend.ticket.builders.mysql.mysql_ha_standardize import TenDBHAStandardizeDetailSerializer
@@ -53,6 +47,16 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
             return []
         return [RejectPermission()]
 
+    @common_swagger_auto_schema(operation_summary=_("通用元数据导入"), tags=[SWAGGER_TAG])
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=serializers.GeneralMetadataImportSerializer,
+    )
+    def general_metadata_import(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(data)
+
     @common_swagger_auto_schema(
         operation_summary=_("TenDB HA 元数据导入"),
         tags=[SWAGGER_TAG],
@@ -60,7 +64,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
     @action(
         methods=["POST"],
         detail=False,
-        serializer_class=TenDBHAMetadataImportSerializer,
+        serializer_class=serializers.TenDBHAMetadataImportSerializer,
         parser_classes=[MultiPartParser],
     )
     def tendbha_metadata_import(self, request, *args, **kwargs):
@@ -85,7 +89,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
     @action(
         methods=["POST"],
         detail=False,
-        serializer_class=TenDBHAStandardizeSerializer,
+        serializer_class=serializers.TenDBHAStandardizeSerializer,
         parser_classes=[MultiPartParser],
     )
     def tendbha_standardize(self, request, *args, **kwargs):
@@ -109,7 +113,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
         )
         diff = list(set(domain_list) - set(exists_domains))
         if diff:
-            raise serializers.ValidationError(_("cluster {} not found".format(diff)))
+            raise ValidationError(_("cluster {} not found".format(diff)))
 
         data["cluster_ids"] = cluster_ids
 
@@ -132,7 +136,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
     @action(
         methods=["POST"],
         detail=False,
-        serializer_class=TenDBClusterMetadataImportSerializer,
+        serializer_class=serializers.TenDBClusterMetadataImportSerializer,
         parser_classes=[MultiPartParser],
     )
     def tendbcluster_metadata_import(self, request, *args, **kwargs):
@@ -155,7 +159,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
     @action(
         methods=["POST"],
         detail=False,
-        serializer_class=TenDBClusterStandardizeSerializer,
+        serializer_class=serializers.TenDBClusterStandardizeSerializer,
         parser_classes=[MultiPartParser],
     )
     def tendbcluster_standardize(self, request, *args, **kwargs):
@@ -179,7 +183,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
         )
         diff = list(set(domain_list) - set(exists_domains))
         if diff:
-            raise serializers.ValidationError(_("cluster {} not found".format(diff)))
+            raise ValidationError(_("cluster {} not found".format(diff)))
 
         data["cluster_ids"] = cluster_ids
 
@@ -202,7 +206,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
     @action(
         methods=["POST"],
         detail=False,
-        serializer_class=TenDBClusterAppendCTLSerializer,
+        serializer_class=serializers.TenDBClusterAppendCTLSerializer,
         parser_classes=[MultiPartParser],
     )
     def tendbcluster_append_deploy_ctl(self, request, *args, **kwargs):

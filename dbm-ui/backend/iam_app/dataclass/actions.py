@@ -12,7 +12,7 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass
 from typing import Dict, List, Union
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from iam import Action
 
 from backend.configuration.constants import DBType

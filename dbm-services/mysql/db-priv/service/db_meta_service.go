@@ -14,6 +14,7 @@ const mysql string = "mysql" // 包含tendbha和tendbsingle
 const tendbha string = "tendbha"
 const tendbsingle string = "tendbsingle"
 const tendbcluster string = "tendbcluster"
+const MySQLOnK8S string = "MySQLOnK8S"
 const machineTypeBackend string = "backend"
 const machineTypeSingle string = "single"
 const machineTypeRemote string = "remote"

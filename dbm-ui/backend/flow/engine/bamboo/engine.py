@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 from bamboo_engine import api, builder, states
 from bamboo_engine.api import EngineAPIResult
 from bamboo_engine.builder import Data
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from backend.flow.engine.bamboo.builder import Builder

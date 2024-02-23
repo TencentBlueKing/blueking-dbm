@@ -13,7 +13,7 @@ from dataclasses import asdict
 from typing import Dict, Optional
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components.db_remote_service.client import DRSApi
 from backend.configuration.constants import DBType

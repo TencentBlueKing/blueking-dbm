@@ -13,7 +13,7 @@ import json
 from django.core.cache import cache
 from django.db.models import Q
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django_filters import rest_framework as filters
 from rest_framework import status
 from rest_framework.decorators import action

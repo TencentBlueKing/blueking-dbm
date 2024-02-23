@@ -5,7 +5,7 @@ import os
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.core.consts import BK_PKG_INSTALL_PATH

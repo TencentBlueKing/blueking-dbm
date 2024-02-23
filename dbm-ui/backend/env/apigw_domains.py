@@ -40,7 +40,6 @@ BACKUP_APIGW_DOMAIN = get_type_env(key="BACKUP_APIGW_DOMAIN", _type=str, default
 SLOW_QUERY_PARSER_DOMAIN = get_type_env(
     key="SLOW_QUERY_PARSER_DOMAIN", _type=str, default="http://bk-dbm-slow-query-parser-service"
 )
-DBHA_APIGW_DOMAIN_LIST = get_type_env(key="DBHA_APIGW_DOMAIN_LIST", _type=list, default=[])
 # todo 备份服务器已经设置好mysql密码。后续需要获取mysql随机账号
 BACKUP_DOWNLOAD_USER = get_type_env(key="BACKUP_DOWNLOAD_USER", _type=str, default="mysql")
 BACKUP_DOWNLOAD_USER_PWD = get_type_env(key="BACKUP_DOWNLOAD_USER", _type=str, default="")

@@ -12,7 +12,7 @@ import copy
 import logging.config
 from dataclasses import asdict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME
 from backend.db_meta.models import Cluster

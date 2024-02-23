@@ -181,7 +181,6 @@ class NameSpaceEnum(str, StructuredEnum):
 
 class ConfigTypeEnum(str, StructuredEnum):
     InitUser = EnumField("init_user", _("初始化帐户"))
-    MySQLAndUser = EnumField("mysql#user", _("实例和帐户"))
     OSConf = EnumField("osconf", _("系统配置"))
     DBConf = EnumField("dbconf", _("实例配置"))
     Config = EnumField("config", _("默认配置"))

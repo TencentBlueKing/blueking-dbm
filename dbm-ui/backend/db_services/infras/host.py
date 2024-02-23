@@ -12,7 +12,7 @@ import collections
 from typing import Dict, List
 
 import humanize
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.models import LogicalCity
 from backend.db_services.dbbase.constants import IpSource

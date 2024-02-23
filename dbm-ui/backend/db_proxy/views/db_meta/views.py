@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -396,6 +396,22 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
     def tendbsingle_biz_clusters(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         data = api.priv_manager.tendbsingle.biz_clusters(**validated_data)
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[dbmeta]priv_manager查询MySQLONK8s集群信息"),
+        request_body=TendbInstancesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=TendbInstancesSerializer,
+        url_path="dbmeta/priv_manager/MySQLOnK8S/cluster_instances",
+    )
+    def mysqlonk8s_cluster_instances(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        data = api.priv_manager.mysql_on_k8s.cluster_instances(validated_data.get("entry_name"))
         return Response(data)
 
     @common_swagger_auto_schema(

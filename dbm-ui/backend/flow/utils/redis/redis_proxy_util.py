@@ -15,7 +15,7 @@ import re
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType

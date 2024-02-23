@@ -92,7 +92,7 @@ class DBPrivManagerApiMock(object):
 
     @classmethod
     @raw_response
-    def modify_user_password(cls, *args, **kwargs):
+    def modify_password(cls, *args, **kwargs):
         return True
 
     @classmethod

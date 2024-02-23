@@ -225,7 +225,7 @@ class TranslateAdder(NodeTranslateMixin, ast.NodeTransformer):
         node.body.insert(
             0,
             ast.ImportFrom(
-                module=NodeTranslateInit.ImportPath, names=[ast.alias(name="ugettext", asname="_")], level=0
+                module=NodeTranslateInit.ImportPath, names=[ast.alias(name="gettext", asname="_")], level=0
             ),
         )
         return node
@@ -388,9 +388,9 @@ class LanguageFinder:
                             f'{quote}{sentence["key"]}{quote}', f'_({quote}{sentence["key"]}{quote})'
                         )
 
-                    # 导入翻译函数包, 默认为ugettext, TODO: 做成一个参数传递?
+                    # 导入翻译函数包, 默认为gettext, TODO: 做成一个参数传递?
                     if getattr(translate_nodes, "language_flag", False):
-                        file_lines.insert(1, f"from {NodeTranslateInit.ImportPath} import ugettext as _\n")
+                        file_lines.insert(1, f"from {NodeTranslateInit.ImportPath} import gettext as _\n")
 
                     with open(each_file, "w") as f:
                         f.write("".join(file_lines))

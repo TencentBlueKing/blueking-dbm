@@ -21,6 +21,12 @@ class ClusterType(str, StructuredEnum):
     TenDBHA = EnumField("tendbha", _("tendbha"))
     TenDBCluster = EnumField("tendbcluster", _("tendbcluster"))
 
+    MySQLOnK8S = EnumField("MySQLOnK8S", _("MySQLOnK8S"))
+    RedisOnK8S = EnumField("RedisOnK8S", _("RedisOnK8S"))
+    RedisClusterOnK8S = EnumField("RedisClusterOnK8S", _("RedisClusterOnK8S"))
+    MongoDBOnK8S = EnumField("MongoDBOnK8S", _("MongoDBOnK8S"))
+    EsOnK8S = EnumField("EsOnK8S", _("EsOnK8S"))
+
     RedisCluster = EnumField("redis", _("Redis"))
     TendisPredixyRedisCluster = EnumField("PredixyRedisCluster", _("Redis集群"))
     TendisPredixyTendisplusCluster = EnumField("PredixyTendisplusCluster", _("Tendisplus存储版集群"))
@@ -62,7 +68,7 @@ class ClusterType(str, StructuredEnum):
         """
         return {
             DBType.InfluxDB.value: [ClusterType.Influxdb],
-            DBType.MySQL.value: [cls.TenDBSingle, cls.TenDBHA],
+            DBType.MySQL.value: [cls.TenDBSingle, cls.TenDBHA, cls.MySQLOnK8S],
             DBType.TenDBCluster.value: [cls.TenDBCluster],
             DBType.Redis.value: [
                 cls.RedisCluster,

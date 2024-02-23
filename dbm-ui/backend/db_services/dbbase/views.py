@@ -12,7 +12,7 @@ from collections import defaultdict
 from typing import Dict, List, Set, Union
 
 from django.db.models import Q
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response

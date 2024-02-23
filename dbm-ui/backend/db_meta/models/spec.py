@@ -10,12 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 import json
 import logging
+import os.path
 from collections import defaultdict
 from typing import Dict, List
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import AffinityEnum, SystemSettingsEnum
@@ -184,7 +186,7 @@ class Spec(AuditedModel):
         for spec in Spec.objects.all():
             spec_namespace__name[spec.spec_cluster_type][spec.spec_machine_type].append(spec.spec_name)
 
-        with open("backend/db_meta/init/spec_init.json", "r") as f:
+        with open(os.path.join(settings.BASE_DIR, "backend/db_meta/init/spec_init.json"), "r") as f:
             system_spec_init_map = json.loads(f.read())
 
         to_init_specs: List[Spec] = []

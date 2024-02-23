@@ -14,7 +14,7 @@ from typing import Dict, List
 
 from django.db import models
 from django.forms import model_to_dict
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.bk_web.models import AuditedModel
@@ -35,6 +35,7 @@ class ClusterEntry(AuditedModel):
     cluster = models.ForeignKey(Cluster, on_delete=models.PROTECT)
     cluster_entry_type = models.CharField(max_length=64, choices=ClusterEntryType.get_choices(), default="")
     entry = models.CharField(max_length=200, unique=True, default="")
+    access_port = models.IntegerField(_("端口"), help_text=_("数据库服务的端口"), default=0)
 
     forward_to = models.ForeignKey(
         "self",

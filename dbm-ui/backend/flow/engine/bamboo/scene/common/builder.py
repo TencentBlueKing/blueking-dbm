@@ -26,7 +26,7 @@ from bamboo_engine.builder import (
     Var,
 )
 from django.utils import translation
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from backend.flow.models import FlowNode, FlowTree, StateType

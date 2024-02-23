@@ -75,6 +75,10 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
+livenessProbe: {}
+
+readinessProbe: {}
+
 nodeSelector: {}
 
 tolerations: []
@@ -86,7 +90,7 @@ envs:
   DRS_MYSQL_ADMIN_PASSWORD: gcs_admin_password
   DRS_MYSQL_ADMIN_USER: gcs_admin
   DRS_PROXY_ADMIN_PASSWORD: gcs_admin_password
-  DRS_PROXY_ADMIN_USER: gcs_admin
+  DRS_PROXY_ADMIN_USER: proxy
   DRS_PORT: 80
   DRS_LOG_JSON: true # 是否使用 json 格式日志
   DRS_LOG_CONSOLE: true # 是否在 stdout 打印日志

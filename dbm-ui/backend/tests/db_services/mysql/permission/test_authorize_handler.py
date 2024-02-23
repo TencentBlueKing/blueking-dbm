@@ -21,7 +21,7 @@ from backend.db_services.mysql.permission.authorize.dataclass import MySQLAuthor
 from backend.db_services.mysql.permission.authorize.handlers import MySQLAuthorizeHandler
 from backend.db_services.mysql.permission.constants import AUTHORIZE_EXCEL_HEADER
 from backend.tests.mock_data import constant
-from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
+from backend.tests.mock_data.components.dbpriv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.db_services.mysql.permission.authorize import AUTHORIZE_DATA, EXCEL_DATA_DICT__LIST
 from backend.utils.excel import ExcelHandler
 

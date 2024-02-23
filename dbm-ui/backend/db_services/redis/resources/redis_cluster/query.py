@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 
 from django.db.models import QuerySet
 from django.forms import model_to_dict
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler

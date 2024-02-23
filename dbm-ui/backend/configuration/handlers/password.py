@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Any, Dict, List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django_celery_beat.schedulers import ModelEntry
 
 from backend.components import DBPrivManagerApi

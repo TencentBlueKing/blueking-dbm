@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.db import transaction
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components.mysql_partition.client import DBPartitionApi
 from backend.configuration.constants import DBType

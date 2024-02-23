@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from enum import Enum
 from typing import Dict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.utils import env
 from backend.utils.basic import choices_to_namedtuple, tuple_choices
