@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from backend.flow.engine.bamboo.scene.redis.redis_add_dts_server import RedisAddDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.redis_backend_scale import RedisBackendScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_add_slave import RedisClusterAddSlaveFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_backup import RedisClusterBackupFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import RedisClusterDataCopyFlow
@@ -31,18 +30,20 @@ from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDat
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_dbmon import RedisDbmonSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDataFlow
+from backend.flow.engine.bamboo.scene.redis.redis_instance_apply_flow import RedisInstanceApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_delete import RedisKeysDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_extract import RedisKeysExtractFlow
 from backend.flow.engine.bamboo.scene.redis.redis_predixy_config_servers_rewrite import (
     RedisPredixyConfigServersRewriteFlow,
 )
+from backend.flow.engine.bamboo.scene.redis.redis_predixy_cluster_apply_flow import TendisPlusApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_remove_dts_server import RedisRemoveDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.redis_reupload_old_backup_records import RedisReuploadOldBackupRecordsFlow
 from backend.flow.engine.bamboo.scene.redis.redis_slots_migrate import RedisSlotsMigrateFlow
+from backend.flow.engine.bamboo.scene.redis.redis_twemproxy_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.singele_redis_shutdown import SingleRedisShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.single_proxy_shutdown import SingleProxyShutdownFlow
-from backend.flow.engine.bamboo.scene.redis.tendis_plus_apply_flow import TendisPlusApplyFlow
 from backend.flow.engine.controller.base import BaseController
 
 
@@ -51,19 +52,26 @@ class RedisController(BaseController):
     redis实例相关调用
     """
 
-    def redis_cluster_apply_scene(self):
+    def twemproxy_cluster_apply_scene(self):
         """
-        redis集群部署场景
+        redis twemproxy集群部署场景
         """
         flow = RedisClusterApplyFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.deploy_redis_cluster_flow()
+        flow.deploy_twemproxy_cluster_flow()
 
-    def tendisplus_apply_scene(self):
+    def predixy_cluster_apply_scene(self):
         """
-        redis集群部署场景
+        redis cluster + predixy 集群部署场景
         """
         flow = TendisPlusApplyFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.deploy_tendisplus_cluster_flow()
+        flow.deploy_predixy_cluster_flow()
+
+    def redis_instance_apply_scene(self):
+        """
+        redis 主从部署场景
+        """
+        flow = RedisInstanceApplyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.deploy_redis_instance_flow()
 
     def redis_keys_extract(self):
         """

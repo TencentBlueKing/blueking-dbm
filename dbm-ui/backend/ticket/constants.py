@@ -215,6 +215,7 @@ class TicketType(str, StructuredEnum):
     REDIS_PLUGIN_CREATE_POLARIS = EnumField("REDIS_PLUGIN_CREATE_POLARIS", _("Redis 创建Polaris"))
     REDIS_PLUGIN_DELETE_POLARIS = EnumField("REDIS_PLUGIN_DELETE_POLARIS", _("Redis 删除Polaris"))
     REDIS_SINGLE_APPLY = EnumField("REDIS_SINGLE_APPLY", _("Redis 单节点部署"))
+    REDIS_INS_APPLY = EnumField("REDIS_INS_APPLY", _("Redis 主从节点部署"))
     REDIS_CLUSTER_APPLY = EnumField("REDIS_CLUSTER_APPLY", _("Redis 集群部署"))
     REDIS_KEYS_EXTRACT = EnumField("REDIS_KEYS_EXTRACT", _("Redis 提取 Key"))
     REDIS_KEYS_DELETE = EnumField("REDIS_KEYS_DELETE", _("Redis 删除 key"))

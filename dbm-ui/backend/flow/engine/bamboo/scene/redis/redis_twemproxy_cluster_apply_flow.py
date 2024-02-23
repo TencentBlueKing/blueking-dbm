@@ -121,9 +121,9 @@ class RedisClusterApplyFlow(object):
                 twemproxy_server_shards[slave_ip][slave_inst] = "{}-{}".format(begin_seg, end_seg)
         return servers, twemproxy_server_shards
 
-    def deploy_redis_cluster_flow(self):
+    def deploy_twemproxy_cluster_flow(self):
         """
-        部署Redis集群
+        部署twemproxy+Redis集群
         """
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
         act_kwargs = ActKwargs()
@@ -266,7 +266,7 @@ class RedisClusterApplyFlow(object):
             "immute_domain": self.data["domain_name"],
             "created_by": self.data["created_by"],
             "region": self.data.get("city_code", ""),
-            "meta_func_name": RedisDBMeta.redis_make_cluster.__name__,
+            "meta_func_name": RedisDBMeta.redis_segment_make_cluster.__name__,
             "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
         }
         redis_pipeline.add_act(
@@ -326,7 +326,7 @@ class RedisClusterApplyFlow(object):
         act_kwargs.exec_ip = proxy_ips
         acts_list.append(
             {
-                "act_name": _("注册域名"),
+                "act_name": _("proxy注册域名"),
                 "act_component_code": RedisDnsManageComponent.code,
                 "kwargs": {**asdict(act_kwargs), **asdict(dns_kwargs)},
             }

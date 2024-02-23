@@ -119,9 +119,9 @@ class RedisClusterApplyDetailSerializer(serializers.Serializer):
 
 class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
     controllers = {
-        ClusterType.TendisTwemproxyRedisInstance: RedisController.redis_cluster_apply_scene,
-        ClusterType.TendisPredixyTendisplusCluster: RedisController.tendisplus_apply_scene,
-        ClusterType.TwemproxyTendisSSDInstance: RedisController.redis_cluster_apply_scene,
+        ClusterType.TendisTwemproxyRedisInstance: RedisController.twemproxy_cluster_apply_scene,
+        ClusterType.TendisPredixyTendisplusCluster: RedisController.predixy_cluster_apply_scene,
+        ClusterType.TwemproxyTendisSSDInstance: RedisController.twemproxy_cluster_apply_scene,
     }
 
     def build_controller_info(self) -> dict:

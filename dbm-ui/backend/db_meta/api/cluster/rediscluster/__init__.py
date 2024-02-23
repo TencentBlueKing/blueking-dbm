@@ -9,13 +9,5 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import gettext_lazy as _
-
-from blue_krill.data_types.enum import EnumField, StructuredEnum
-
-
-class ClusterEntryRole(str, StructuredEnum):
-    MASTER_ENTRY = EnumField("master_entry", _("master_entry"))
-    SLAVE_ENTRY = EnumField("slave_entry", _("slave_entry"))
-    PROXY_ENTRY = EnumField("proxy_entry", _("proxy_entry"))
-    NODE_ENTRY = EnumField("node_entry", _("node_entry"))
+from .create import create
+from .detail import scan_cluster

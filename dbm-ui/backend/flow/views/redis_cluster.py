@@ -12,7 +12,6 @@ import logging
 
 from rest_framework.response import Response
 
-from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.views.base import FlowTestView
 from backend.utils.basic import generate_root_id
@@ -20,7 +19,7 @@ from backend.utils.basic import generate_root_id
 logger = logging.getLogger("root")
 
 
-class InstallRedisCacheClusterSceneApiView(FlowTestView):
+class InstallTwemproxyClusterSceneApiView(FlowTestView):
     """
      api: /apis/v1/flow/scene/install_redis_cache_cluster_apply
     params:
@@ -66,20 +65,23 @@ class InstallRedisCacheClusterSceneApiView(FlowTestView):
     @staticmethod
     def post(request):
         root_id = generate_root_id()
-        if request.data["cluster_type"] == ClusterType.TendisPredixyRedisCluster:
-            RedisController(root_id=root_id, ticket_data=request.data).tendisplus_apply_scene()
-        elif request.data["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
-            RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_apply_scene()
-        elif request.data["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
-            RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_apply_scene()
+        RedisController(root_id=root_id, ticket_data=request.data).twemproxy_cluster_apply_scene()
         return Response({"root_id": root_id})
 
 
-class InstallTendisplusClusterSceneApiView(FlowTestView):
+class InstallPredixyClusterSceneApiView(FlowTestView):
     @staticmethod
     def post(request):
         root_id = generate_root_id()
-        RedisController(root_id=root_id, ticket_data=request.data).tendisplus_apply_scene()
+        RedisController(root_id=root_id, ticket_data=request.data).predixy_cluster_apply_scene()
+        return Response({"root_id": root_id})
+
+
+class InstallRedisInstanceSceneApiView(FlowTestView):
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_instance_apply_scene()
         return Response({"root_id": root_id})
 
 

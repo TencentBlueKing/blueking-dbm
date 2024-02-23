@@ -86,9 +86,9 @@ class TendisPlusApplyFlow(object):
                 servers.append("{}:{}".format(ip, port))
         return servers
 
-    def deploy_tendisplus_cluster_flow(self):
+    def deploy_predixy_cluster_flow(self):
         """
-        部署Tendisplus集群
+        部署predixy+cluster架构集群
         """
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
         act_kwargs = ActKwargs()
@@ -223,6 +223,7 @@ class TendisPlusApplyFlow(object):
             "proxy_port": self.data["proxy_port"],
             "bk_biz_id": self.data["bk_biz_id"],
             "bk_cloud_id": self.data["bk_cloud_id"],
+            "cluster_type": self.data["cluster_type"],
             "cluster_name": self.data["cluster_name"],
             "cluster_alias": self.data["cluster_alias"],
             "db_version": self.data["db_version"],
@@ -233,7 +234,7 @@ class TendisPlusApplyFlow(object):
             "inst_num": ins_num,
             "start_port": DEFAULT_REDIS_START_PORT,
             "new_master_ips": master_ips,
-            "meta_func_name": RedisDBMeta.tendisplus_make_cluster.__name__,
+            "meta_func_name": RedisDBMeta.redis_origin_make_cluster.__name__,
             "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
         }
         redis_pipeline.add_act(
@@ -280,13 +281,28 @@ class TendisPlusApplyFlow(object):
         # 添加域名
         dns_kwargs = DnsKwargs(
             dns_op_type=DnsOpType.CREATE,
+            add_domain_name="nodes." + self.data["domain_name"],
+            dns_op_exec_port=DEFAULT_REDIS_START_PORT,
+        )
+
+        act_kwargs.exec_ip = master_ips + slave_ips
+        acts_list.append(
+            {
+                "act_name": _("nodes注册域名"),
+                "act_component_code": RedisDnsManageComponent.code,
+                "kwargs": {**asdict(act_kwargs), **asdict(dns_kwargs)},
+            }
+        )
+
+        dns_kwargs = DnsKwargs(
+            dns_op_type=DnsOpType.CREATE,
             add_domain_name=self.data["domain_name"],
             dns_op_exec_port=self.data["proxy_port"],
         )
         act_kwargs.exec_ip = proxy_ips
         acts_list.append(
             {
-                "act_name": _("注册域名"),
+                "act_name": _("proxy注册域名"),
                 "act_component_code": RedisDnsManageComponent.code,
                 "kwargs": {**asdict(act_kwargs), **asdict(dns_kwargs)},
             }

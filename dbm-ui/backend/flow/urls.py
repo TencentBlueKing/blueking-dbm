@@ -116,8 +116,9 @@ from backend.flow.views.pulsar_reboot import RebootPulsarSceneApiView
 from backend.flow.views.pulsar_replace import ReplacePulsarSceneApiView
 from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
 from backend.flow.views.redis_cluster import (
-    InstallRedisCacheClusterSceneApiView,
-    InstallTendisplusClusterSceneApiView,
+    InstallPredixyClusterSceneApiView,
+    InstallRedisInstanceSceneApiView,
+    InstallTwemproxyClusterSceneApiView,
     RedisAddDtsServerSceneApiView,
     RedisBackendScaleSceneApiView,
     RedisClusterAddSlaveApiView,
@@ -211,9 +212,11 @@ from backend.flow.views.tendb_ha_standardize import TenDBHAStandardizeView
 
 urlpatterns = [
     #  redis api url begin
-    url(r"^scene/install_redis_cache_cluster_apply$", InstallRedisCacheClusterSceneApiView.as_view()),
-    url(r"^scene/install_redis_ssd_cluster_apply$", InstallRedisCacheClusterSceneApiView.as_view()),
-    url(r"^scene/install_tendisplus_cluster_apply$", InstallTendisplusClusterSceneApiView.as_view()),
+    url(r"^scene/install_redis_cache_cluster_apply$", InstallTwemproxyClusterSceneApiView.as_view()),
+    url(r"^scene/install_redis_ssd_cluster_apply$", InstallTwemproxyClusterSceneApiView.as_view()),
+    url(r"^scene/install_tendisplus_cluster_apply$", InstallPredixyClusterSceneApiView.as_view()),
+    url(r"^scene/install_redis_cluster_apply$", InstallPredixyClusterSceneApiView.as_view()),
+    url(r"^scene/install_redis_instance_apply$", InstallRedisInstanceSceneApiView.as_view()),
     url(r"^scene/redis_keys_extract$", RedisKeysExtractSceneApiView.as_view()),
     url(r"^scene/redis_keys_delete$", RedisKeysDeleteSceneApiView.as_view()),
     url(r"^scene/redis_backup$", RedisClusterBackupSceneApiView.as_view()),

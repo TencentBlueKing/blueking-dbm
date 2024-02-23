@@ -43,7 +43,7 @@ def create(
     disaster_tolerance_level: str = "",
 ):
     """
-    注册 TendisplusCluster 集群
+    注册 TendisPredixyRedisCluster 集群
     规则:
     1. 所有实例不能属于任何集群
     2. predixy 不能有已绑定的后端
@@ -69,7 +69,7 @@ def create(
             name=name,
             alias=alias,
             major_version=major_version,
-            cluster_type=ClusterType.TendisPredixyTendisplusCluster.value,
+            cluster_type=ClusterType.TendisPredixyRedisCluster.value,
             db_module_id=db_module_id,
             immute_domain=immute_domain,
             creator=creator,
@@ -129,31 +129,31 @@ def create(
 
     # 更新 db module && cluster_type.
     for proxy_obj in proxy_objs:
-        proxy_obj.cluster_type = ClusterType.TendisPredixyTendisplusCluster
+        proxy_obj.cluster_type = ClusterType.TendisPredixyRedisCluster
         proxy_obj.save(update_fields=["cluster_type"])
 
         m = proxy_obj.machine
-        m.cluster_type = ClusterType.TendisPredixyTendisplusCluster
+        m.cluster_type = ClusterType.TendisPredixyRedisCluster
         m.save(update_fields=["cluster_type"])
 
     # 更新 master，slave 模块ID 和集群类型
     slave_objs = []
     for storage_obj in storage_objs:
-        storage_obj.cluster_type = ClusterType.TendisPredixyTendisplusCluster
+        storage_obj.cluster_type = ClusterType.TendisPredixyRedisCluster
         storage_obj.save(update_fields=["cluster_type"])
 
         m = storage_obj.machine
-        m.cluster_type = ClusterType.TendisPredixyTendisplusCluster
+        m.cluster_type = ClusterType.TendisPredixyRedisCluster
         m.save(update_fields=["cluster_type"])
 
         # update slave ..
         slave = storage_obj.as_ejector.get().receiver
         slave_objs.append(slave)
         slave_machine = slave.machine
-        slave.cluster_type = ClusterType.TendisPredixyTendisplusCluster
+        slave.cluster_type = ClusterType.TendisPredixyRedisCluster
         slave.save(update_fields=["cluster_type"])
 
-        slave_machine.cluster_type = ClusterType.TendisPredixyTendisplusCluster
+        slave_machine.cluster_type = ClusterType.TendisPredixyRedisCluster
         slave_machine.save(update_fields=["cluster_type"])
 
     cc_topo_operator = RedisCCTopoOperator(cluster)

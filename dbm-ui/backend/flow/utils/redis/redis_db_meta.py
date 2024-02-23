@@ -23,6 +23,7 @@ from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta import api
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
+from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
@@ -180,6 +181,74 @@ class RedisDBMeta(object):
         cluster.save()
         return True
 
+    def redis_install_append(self) -> bool:
+        """
+        Redis单实例级别上架
+        需要判断machine表是否已写入过
+        {
+            "cluster_type"
+            "master_ip":xxx,
+            "slave_ip":xxx,
+            "ports": [],
+            "spec_config",
+            "spec_id"
+        }
+        """
+        machines, ins = [], []
+        for port in self.cluster["ports"]:
+            ins.append(
+                {"ip": self.cluster["master_ip"], "port": port, "instance_role": InstanceRole.REDIS_MASTER.value}
+            )
+            ins.append({"ip": self.cluster["slave_ip"], "port": port, "instance_role": InstanceRole.REDIS_SLAVE.value})
+
+        ips = [self.cluster["master_ip"], self.cluster["slave_ip"]]
+        m = Machine.objects.filter(ip__in=ips).values("ip")
+        if len(m) != 2:
+            if "cluster_type" in self.ticket_data:
+                cluster_type = self.ticket_data["cluster_type"]
+            else:
+                cluster_type = self.cluster["cluster_type"]
+
+            if is_redis_instance_type(cluster_type):
+                machine_type = MachineType.TENDISCACHE.value
+            elif is_tendisssd_instance_type(cluster_type):
+                machine_type = MachineType.TENDISSSD.value
+            elif is_tendisplus_instance_type(cluster_type):
+                machine_type = MachineType.TENDISPLUS.value
+            else:
+                machine_type = ""
+
+            machines.append(
+                {
+                    "bk_biz_id": self.ticket_data["bk_biz_id"],
+                    "ip": self.cluster["master_ip"],
+                    "machine_type": machine_type,
+                    "spec_id": self.cluster["spec_id"],
+                    "spec_config": self.cluster["spec_config"],
+                }
+            )
+            machines.append(
+                {
+                    "bk_biz_id": self.ticket_data["bk_biz_id"],
+                    "ip": self.cluster["slave_ip"],
+                    "machine_type": machine_type,
+                    "spec_id": self.cluster["spec_id"],
+                    "spec_config": self.cluster["spec_config"],
+                }
+            )
+        with atomic():
+            ins_status = InstanceStatus.RUNNING
+            if self.cluster.get("ins_status"):
+                ins_status = self.cluster["ins_status"]
+            if "bk_cloud_id" in self.ticket_data:
+                bk_cloud_id = self.ticket_data["bk_cloud_id"]
+            else:
+                bk_cloud_id = self.cluster["bk_cloud_id"]
+            if len(machines) != 0:
+                api.machine.create(machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=bk_cloud_id)
+            api.storage_instance.create(instances=ins, creator=self.ticket_data["created_by"], status=ins_status)
+        return True
+
     def redis_install(self) -> bool:
         """
         Redis实例上架、单机器级别。
@@ -250,6 +319,35 @@ class RedisDBMeta(object):
             api.storage_instance.create(instances=ins, creator=self.ticket_data["created_by"], status=ins_status)
         return True
 
+    def replicaof_ins(self) -> bool:
+        """
+        单实例上架主从关系
+        "bacth_pairs": [
+            {
+                "master_ip":xxx,
+                "master_port":xxx,
+                "slave_ip":xxx,
+                "slave_port":xxx,
+            }
+        ]
+        """
+        replic_tuple = []
+        for pair in self.cluster["bacth_pairs"]:
+            replic_tuple.append(
+                {
+                    "ejector": {
+                        "ip": pair["master_ip"],
+                        "port": pair["master_port"],
+                    },
+                    "receiver": {
+                        "ip": pair["slave_ip"],
+                        "port": pair["slave_port"],
+                    },
+                }
+            )
+        api.storage_instance_tuple.create(replic_tuple, creator=self.cluster["created_by"])
+        return True
+
     def replicaof(self) -> bool:
         """
         批量配置主从关系,传参为cluster。 主要是在安装时使用
@@ -313,9 +411,9 @@ class RedisDBMeta(object):
         api.storage_instance_tuple.create(replic_tuple, creator=self.cluster["created_by"])
         return True
 
-    def redis_make_cluster(self) -> bool:
+    def redis_segment_make_cluster(self) -> bool:
         """
-        建立集群关系
+        twemproxy和redis实例关系关联
         """
         proxy_port = self.cluster["proxy_port"]
         proxies = [{"ip": proxy_ip, "port": proxy_port} for proxy_ip in self.cluster["new_proxy_ips"]]
@@ -326,45 +424,32 @@ class RedisDBMeta(object):
             ip, port = ip_port.split(IP_PORT_DIVIDER)
             storages.append({"ip": ip, "port": port, "seg_range": seg_range})
         if self.cluster["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
-            TendisCacheClusterHandler.create(
-                **{
-                    "bk_biz_id": self.cluster["bk_biz_id"],
-                    "bk_cloud_id": self.cluster["bk_cloud_id"],
-                    "name": self.cluster["cluster_name"],
-                    "alias": self.cluster["cluster_alias"],
-                    "major_version": self.cluster["db_version"],
-                    "immute_domain": self.cluster["immute_domain"],
-                    "db_module_id": DEFAULT_DB_MODULE_ID,
-                    "proxies": proxies,
-                    "storages": storages,
-                    "creator": self.cluster["created_by"],
-                    "region": self.cluster.get("region", ""),
-                    "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
-                }
-            )
+            handler = TendisCacheClusterHandler
         elif self.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
-            TendisSSDClusterHandler.create(
-                **{
-                    "bk_biz_id": self.cluster["bk_biz_id"],
-                    "bk_cloud_id": self.cluster["bk_cloud_id"],
-                    "name": self.cluster["cluster_name"],
-                    "alias": self.cluster["cluster_alias"],
-                    "major_version": self.cluster["db_version"],
-                    "immute_domain": self.cluster["immute_domain"],
-                    "db_module_id": DEFAULT_DB_MODULE_ID,
-                    "proxies": proxies,
-                    "storages": storages,
-                    "creator": self.cluster["created_by"],
-                    "region": self.cluster.get("region", ""),
-                    "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
-                }
-            )
-
+            handler = TendisSSDClusterHandler
+        else:
+            raise Exception("unknown cluster type")
+        handler.create(
+            **{
+                "bk_biz_id": self.cluster["bk_biz_id"],
+                "bk_cloud_id": self.cluster["bk_cloud_id"],
+                "name": self.cluster["cluster_name"],
+                "alias": self.cluster["cluster_alias"],
+                "major_version": self.cluster["db_version"],
+                "immute_domain": self.cluster["immute_domain"],
+                "db_module_id": DEFAULT_DB_MODULE_ID,
+                "proxies": proxies,
+                "storages": storages,
+                "creator": self.cluster["created_by"],
+                "region": self.cluster.get("region", ""),
+                "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
+            }
+        )
         return True
 
-    def tendisplus_make_cluster(self) -> bool:
+    def redis_origin_make_cluster(self) -> bool:
         """
-        tendisplus建立集群关系
+        cluster node模式建立集群关系
         """
         proxy_port = self.cluster["proxy_port"]
         proxies = [{"ip": proxy_ip, "port": proxy_port} for proxy_ip in self.cluster["new_proxy_ips"]]
@@ -377,8 +462,13 @@ class RedisDBMeta(object):
             for n in range(0, inst_num):
                 port = master_start_port + n
                 storages.append({"ip": ip, "port": port})
-
-        TendisPlusClusterHandler.create(
+        if self.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+            handler = TendisPlusClusterHandler
+        elif self.cluster["cluster_type"] == ClusterType.TendisPredixyRedisCluster.value:
+            handler = RedisClusterHandler
+        else:
+            raise Exception("unknown cluster type")
+        handler.create(
             **{
                 "bk_biz_id": self.cluster["bk_biz_id"],
                 "bk_cloud_id": self.cluster["bk_cloud_id"],
@@ -422,6 +512,10 @@ class RedisDBMeta(object):
             ).decommission()
         elif self.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
             TendisSSDClusterHandler(
+                bk_biz_id=self.ticket_data["bk_biz_id"], cluster_id=self.ticket_data["cluster_id"]
+            ).decommission()
+        elif self.cluster["cluster_type"] == ClusterType.TendisPredixyRedisCluster.value:
+            RedisClusterHandler(
                 bk_biz_id=self.ticket_data["bk_biz_id"], cluster_id=self.ticket_data["cluster_id"]
             ).decommission()
 
@@ -1000,3 +1094,32 @@ class RedisDBMeta(object):
         更新dba
         """
         DBAdministrator.upsert_biz_admins(self.ticket_data["bk_biz_id"], self.cluster["db_admins"])
+
+    def storageinstance_bind_entry(self) -> bool:
+        """
+        机器上架元数据写入,这里只是单纯的上架，不会加入集群
+        """
+        machines = []
+        proxies = []
+        machine_type = self.cluster["machine_type"]
+        for ip in self.cluster["new_proxy_ips"]:
+            machines.append(
+                {
+                    "bk_biz_id": self.cluster["bk_biz_id"],
+                    "ip": ip,
+                    "machine_type": machine_type,
+                    "spec_id": self.cluster["spec_id"],
+                    "spec_config": self.cluster["spec_config"],
+                }
+            )
+            proxies.append({"ip": ip, "port": self.cluster["port"]})
+
+        with atomic():
+            ins_status = InstanceStatus.RUNNING
+            if self.cluster.get("ins_status"):
+                ins_status = self.cluster["ins_status"]
+            api.machine.create(
+                machines=machines, creator=self.cluster["created_by"], bk_cloud_id=self.cluster["bk_cloud_id"]
+            )
+            api.proxy_instance.create(proxies=proxies, creator=self.cluster["created_by"], status=ins_status)
+        return True

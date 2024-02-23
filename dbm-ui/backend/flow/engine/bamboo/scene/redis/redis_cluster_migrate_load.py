@@ -230,6 +230,25 @@ class RedisClusterMigrateLoadFlow(object):
                 ),
             )
 
+            # 安装插件
+            acts_list = []
+            for plugin_name in DEPENDENCIES_PLUGINS:
+                acts_list.append(
+                    {
+                        "act_name": _("安装[{}]插件".format(plugin_name)),
+                        "act_component_code": InstallNodemanPluginServiceComponent.code,
+                        "kwargs": asdict(
+                            InstallNodemanPluginKwargs(
+                                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                                ips=cluster["master_ips"] + cluster["slave_ips"] + cluster["proxy_ips"],
+                                plugin_name=plugin_name,
+                            )
+                        ),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+            # 安装插件 end
+
             # ./dbactuator_redis --atom-job-list="sys_init"
             act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
             sub_pipeline.add_act(
@@ -411,7 +430,7 @@ class RedisClusterMigrateLoadFlow(object):
                 "immute_domain": params["clusterinfo"]["immute_domain"],
                 "created_by": self.data["created_by"],
                 "region": params["clusterinfo"]["region"],
-                "meta_func_name": RedisDBMeta.redis_make_cluster.__name__,
+                "meta_func_name": RedisDBMeta.redis_segment_make_cluster.__name__,
                 "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
             }
             sub_pipeline.add_act(
@@ -509,25 +528,6 @@ class RedisClusterMigrateLoadFlow(object):
             )
             sub_pipeline.add_parallel_acts(acts_list)
             # 写配置文件 end
-
-            # 安装插件
-            acts_list = []
-            for plugin_name in DEPENDENCIES_PLUGINS:
-                acts_list.append(
-                    {
-                        "act_name": _("安装[{}]插件".format(plugin_name)),
-                        "act_component_code": InstallNodemanPluginServiceComponent.code,
-                        "kwargs": asdict(
-                            InstallNodemanPluginKwargs(
-                                bk_cloud_id=int(self.data["bk_cloud_id"]),
-                                ips=cluster["master_ips"] + cluster["slave_ips"] + cluster["proxy_ips"],
-                                plugin_name=plugin_name,
-                            )
-                        ),
-                    }
-                )
-            sub_pipeline.add_parallel_acts(acts_list=acts_list)
-            # 安装插件 end
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("{}迁移子任务").format(params["clusterinfo"]["immute_domain"]))
