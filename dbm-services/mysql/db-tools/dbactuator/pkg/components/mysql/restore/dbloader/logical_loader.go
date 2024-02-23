@@ -77,6 +77,14 @@ func (l *LogicalLoader) PreLoad() error {
 		return errors.Wrap(err, "目标实例连接失败")
 	}
 	defer dbWorker.Stop()
+	if _, err = dbWorker.Exec("set global init_connect=''"); err != nil { // 禁用 init_connect，这里为了兼容跑一次置空
+		return err
+	}
+	if len(l.Databases) == 1 && l.Databases[0] == "*" { // 如果全库导入，删掉 infodba_schema 库（确保备份会导出 infodba_schema）
+		if _, err = dbWorker.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", native.INFODBA_SCHEMA)); err != nil {
+			return errors.WithMessage(err, "fail to run drop database if exists infodba_schema")
+		}
+	}
 	return nil
 }
 
