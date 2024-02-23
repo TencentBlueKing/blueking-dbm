@@ -267,6 +267,10 @@ class ActKwargs:
         self.get_mongodb_conf()
         self.db_conf["cacheSizeGB"] = self.replicaset_info["cacheSizeGB"]
         self.db_conf["oplogSizeMB"] = self.replicaset_info["oplogSizeMB"]
+        if cluster_role:
+            key_file = self.payload["key_file"]
+        else:
+            key_file = self.replicaset_info["key_file"]
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -286,7 +290,7 @@ class ActKwargs:
                     "instanceType": MongoDBInstanceType.MongoD,
                     "app": self.payload["app"],
                     "setId": self.replicaset_info["set_id"],
-                    "keyFile": self.payload["key_file"],
+                    "keyFile": key_file,
                     "auth": True,
                     "clusterRole": cluster_role,
                     "dbConfig": self.db_conf,
@@ -983,7 +987,7 @@ class ActKwargs:
             # 目标ip
             hosts.append({"ip": info["target"]["ip"], "bk_cloud_id": info["target"]["bk_cloud_id"]})
             # db版本
-            self.payload["db_version"] = info["mongodb"][0]["db_version"]
+            self.payload["db_version"] = info["instances"][0]["db_version"]
             self.db_main_version = self.payload["db_version"].split(".")[0]
 
         elif mongodb_type == ClusterType.MongoShardedCluster.value:
