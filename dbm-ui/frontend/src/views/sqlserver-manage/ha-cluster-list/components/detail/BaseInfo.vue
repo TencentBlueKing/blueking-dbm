@@ -11,9 +11,9 @@
 
   import { getHaClusterDetail } from '@services/source/sqlserveHaCluster';
 
-  import
-    EditInfo,
-    { type InfoColumn } from '@components/editable-info/index.vue';
+  import EditInfo, {
+    type InfoColumn,
+  } from '@components/editable-info/index.vue';
 
   interface Props {
     haClusterData:{
