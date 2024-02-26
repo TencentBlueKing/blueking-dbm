@@ -39,6 +39,43 @@ MYSQL_AUTHORIZE_TICKET_DATA = {
     "ticket_type": "MYSQL_AUTHORIZE_RULES",
 }
 
+MYSQL_PERMISSION_ACCOUNT = {
+    "items": [
+        {
+            "account": {
+                "bk_biz_id": 3,
+                "user": "admin",
+                "creator": "admin",
+                "create_time": "2023-08-07T21:34:30Z",
+                "account_id": 1,
+            },
+            "rules": [
+                {
+                    "account_id": 1,
+                    "bk_biz_id": 3,
+                    "creator": "",
+                    "create_time": "2023-08-10T07:09:36Z",
+                    "rule_id": 4,
+                    "dbname": "ddddd",
+                    "priv": "select,insert,update,delete",
+                }
+            ],
+        }
+    ]
+}
+MYSQL_ITSM_AUTHORIZE_TICKET_DATA = [
+    {
+        "user": "admin",
+        "index": 0,
+        "message": "",
+        "operator": "admin",
+        "bk_biz_id": 3,
+        "source_ips": ["127.0.0.1"],
+        "cluster_type": "tendbha",
+        "account_rules": [{"dbname": "ddddd", "bk_biz_id": 3}],
+    }
+]
+
 MYSQL_SINGLE_APPLY_TICKET_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "remark": "",
@@ -57,6 +94,78 @@ MYSQL_SINGLE_APPLY_TICKET_DATA = {
         "disaster_tolerance_level": "same_city_cross_zone",
     },
 }
+
+MYSQL_TENDBHA_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": "MYSQL_HA_APPLY",
+    "remark": "",
+    "details": {
+        "bk_cloud_id": 0,
+        "city_code": "南京",
+        "db_app_abbr": "blueking",
+        "spec": "SA2.SMALL4",
+        "db_module_id": 1,
+        "cluster_count": 1,
+        "charset": "",
+        "mysql_port": 20000,
+        "proxy_port": 10000,
+        "domains": [{"key": "kio"}],
+        "disaster_tolerance_level": "SAME_SUBZONE_CROSS_SWTICH",
+        "resource_spec": {
+            "proxy": {
+                "affinity": "CROS_SUBZONE",
+                "location_spec": {"city": "default", "sub_zone_ids": []},
+                "spec_name": "spec_redis",
+                "spec_id": 1,
+                "count": 1,
+                "spec_cluster_type": "TwemproxyRedisInstance",
+                "spec_machine_type": "tendisssd",
+            }
+        },
+    },
+}
+
+APPLY_RESOURCE_RETURN_DATA = {
+    "proxy": [
+        {
+            "ip": "127.0.0.1",
+            "bk_host_id": 2000058793,
+            "bk_cloud_id": 0,
+            "bk_biz_id": BK_BIZ_ID,
+            "bk_cpu": 2000058793,
+            "bk_mem": 2000058793,
+        },
+        {
+            "ip": "127.0.0.1",
+            "bk_host_id": 2000058794,
+            "bk_cloud_id": 0,
+            "bk_biz_id": 2000058793,
+            "bk_cpu": 2000058793,
+            "bk_mem": 2000058793,
+        },
+    ],
+    "backend": [
+        {
+            "master": {
+                "ip": "127.0.0.1",
+                "bk_host_id": 2000058795,
+                "bk_biz_id": BK_BIZ_ID,
+                "bk_cpu": 2000058793,
+                "bk_mem": 2000058793,
+                "bk_cloud_id": 0,
+            },
+            "slave": {
+                "ip": "127.0.0.1",
+                "bk_host_id": 2000058796,
+                "bk_biz_id": BK_BIZ_ID,
+                "bk_cpu": 2000058793,
+                "bk_mem": 2000058793,
+                "bk_cloud_id": 0,
+            },
+        },
+    ],
+}
+
 
 SQL_IMPORT_DATA = {
     "bk_biz_id": BK_BIZ_ID,
@@ -95,7 +204,7 @@ DB_MODULE_DATA = {
     "updater": "admin",
     "update_at": "2022-07-29 07:09:46",
     "bk_biz_id": constant.BK_BIZ_ID,
-    "db_module_name": "blueking_module",
+    "db_module_name": "blueking-module",
     "db_module_id": 1,
     "cluster_type": ClusterType.TenDBSingle,
 }
