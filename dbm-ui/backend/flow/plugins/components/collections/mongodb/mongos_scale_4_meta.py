@@ -153,7 +153,7 @@ class MongosScaleMetaService(BaseService):
 
             # 修改表 db_meta_proxyinstance_bind_entry
             for cluster_entry_obj in cluster.clusterentry_set.all():
-                cluster_entry_obj.proxyinstance_set.add(proxy_objs)
+                cluster_entry_obj.proxyinstance_set.add(*proxy_objs)
                 logger.info(
                     "cluster {} entry {} add proxyinstance {}".format(
                         cluster.immute_domain, cluster_entry_obj.entry, proxy_objs
