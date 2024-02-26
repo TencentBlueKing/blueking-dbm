@@ -40,9 +40,6 @@
         ref="tableRef"
         :columns="columns"
         :data-source="getMongoInstancesList"
-        :is-anomalies="isAnomalies"
-        :pagination="renderPagination"
-        :pagination-extra="{ small: false }"
         :row-class="setRowClass"
         selectable
         :settings="settings"
@@ -65,8 +62,6 @@
   import { createTicket } from '@services/source/ticket';
 
   import {
-    type IPagination,
-    useDefaultPagination,
     useStretchLayout,
     useTableSettings,
     useTicketMessage,
@@ -123,7 +118,6 @@
   } = useStretchLayout();
 
   const tableRef = ref();
-  const isAnomalies = ref(false);
   const isInstanceDropdown = ref(false);
 
   const roleListType = ref<{
@@ -133,7 +127,6 @@
 
   const searchValues = ref([]);
   const selected = ref<MongodbInstanceModel[]>([]);
-  const pagination = ref<IPagination>(useDefaultPagination());
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.bk_host_id));
@@ -266,21 +259,6 @@
       list.pop();
     }
     return list;
-  });
-
-  const renderPagination = computed(() => {
-    if (pagination.value.count < 10) {
-      return false;
-    }
-    if (!isStretchLayoutOpen.value) {
-      return { ...pagination.value };
-    }
-    return {
-      ...pagination.value,
-      small: true,
-      align: 'left',
-      layout: ['total', 'limit', 'list'],
-    };
   });
 
   const searchData = computed(() => [

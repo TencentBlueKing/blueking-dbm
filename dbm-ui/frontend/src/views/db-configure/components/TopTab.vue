@@ -112,12 +112,12 @@
     {
       moduleId: 'mongodb',
       id: ClusterTypes.MONGO_REPLICA_SET,
-      name: t('Mongo复制'),
+      name: t('Mongo副本集'),
     },
     {
       moduleId: 'mongodb',
       id: ClusterTypes.MONGO_SHARED_CLUSTER,
-      name: t('Mongo分片'),
+      name: t('Mongo分片集'),
     },
   ];
 
