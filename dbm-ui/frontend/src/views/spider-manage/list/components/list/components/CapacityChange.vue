@@ -28,6 +28,7 @@
         property: 'specId',
         required: true
       }"
+      :shard-num="data.cluster_shard_num"
       @change="handlePlanChange" />
     <BkFormItem
       class="mt-24"
