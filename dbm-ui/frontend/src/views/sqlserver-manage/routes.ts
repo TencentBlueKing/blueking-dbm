@@ -1,6 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router';
 
 import { t } from '@locales/index';
+
 const routes: RouteRecordRaw[] = [
   {
     name: 'SqlServerManage',
@@ -23,6 +24,14 @@ const routes: RouteRecordRaw[] = [
           fullscreen: true,
         },
         component: () => import('@views/sqlserver-manage/single-cluster/Index.vue'),
+      },
+      {
+        name: 'SqlServerPermissionRules',
+        path: 'permission-rules',
+        meta: {
+          navName: t('授权规则'),
+        },
+        component: () => import('@views/sqlserver-manage/permission/Index.vue'),
       },
     ],
   },
