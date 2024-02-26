@@ -105,7 +105,15 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 	// global:
 	// 		(1)非常规权限：file, trigger, event, create routine, alter routine, replication client，replication slave
 	// 		(2)所有权限： all privileges (如果选择这个权限，其他权限不可选)
-	ConstPrivType := []string{"dml", "ddl", "global"}
+	// for sqlserver:
+	// dml: db_datawriter, db_datareader
+	// owner: db_owner
+	var ConstPrivType []string
+	if *m.ClusterType == sqlserver {
+		ConstPrivType = []string{"dml", "owner"}
+	} else {
+		ConstPrivType = []string{"dml", "ddl", "global"}
+	}
 
 	err = m.ParaPreCheck()
 	if err != nil {
@@ -171,7 +179,12 @@ func (m *AccountRulePara) ModifyAccountRule(jsonPara string) error {
 		err         error
 	)
 
-	ConstPrivType := []string{"dml", "ddl", "global"}
+	var ConstPrivType []string
+	if *m.ClusterType == sqlserver {
+		ConstPrivType = []string{"dml", "owner"}
+	} else {
+		ConstPrivType = []string{"dml", "ddl", "global"}
+	}
 
 	err = m.ParaPreCheck()
 	if err != nil {
@@ -325,7 +338,13 @@ func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, db
 
 // ParaPreCheck 入参AccountRulePara检查
 func (m *AccountRulePara) ParaPreCheck() error {
-	ConstPrivType := []string{"dml", "ddl", "global", "mongo_user", "mongo_manager"}
+	var ConstPrivType []string
+	if *m.ClusterType == sqlserver {
+		ConstPrivType = []string{"dml", "owner"}
+	} else {
+		ConstPrivType = []string{"dml", "ddl", "global", "mongo_user", "mongo_manager"}
+	}
+
 	if m.BkBizId == 0 {
 		return errno.BkBizIdIsEmpty
 	}

@@ -21,10 +21,15 @@ func OneAddressExecuteSqlBasic(vtype string, queryRequest QueryRequest) (oneAddr
 	c := util.NewClientByHosts(host)
 
 	var url string
-	if vtype == "mysql" {
+	switch vtype {
+	case "mysql":
 		url = "mysql/rpc/"
-	} else if vtype == "proxy" {
+	case "proxy":
 		url = "proxy-admin/rpc/"
+	case "sqlserver":
+		url = "sqlserver/rpc/"
+	default:
+		return result, fmt.Errorf("vtype not suppurt [%s]", vtype)
 	}
 
 	apiResp, err := c.Do(http.MethodPost, url, queryRequest)
@@ -70,6 +75,15 @@ func OneAddressExecuteSql(queryRequest QueryRequest) (oneAddressResult, error) {
 // OneAddressExecuteProxySql TODO
 func OneAddressExecuteProxySql(queryRequest QueryRequest) (oneAddressResult, error) {
 	result, err := OneAddressExecuteSqlBasic("proxy", queryRequest)
+	if err != nil {
+		return result, err
+	}
+	return result, nil
+}
+
+// OneAddressExecuteSqlserverSql TODO
+func OneAddressExecuteSqlserverSql(queryRequest QueryRequest) (oneAddressResult, error) {
+	result, err := OneAddressExecuteSqlBasic("sqlserver", queryRequest)
 	if err != nil {
 		return result, err
 	}
