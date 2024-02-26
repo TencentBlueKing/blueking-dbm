@@ -252,7 +252,7 @@
     },
     {
       moduleId: 'mongodb',
-      label: t('Mongo复制'),
+      label: t('Mongo副本集'),
       name: ClusterTypes.MONGO_REPLICA_SET,
       children: [
         {
@@ -263,7 +263,7 @@
     },
     {
       moduleId: 'mongodb',
-      label: t('Mongo分片'),
+      label: t('Mongo分片集'),
       name: ClusterTypes.MONGO_SHARED_CLUSTER,
       children: [
         {
