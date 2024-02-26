@@ -18,19 +18,10 @@ import { useGlobalBizs } from '@stores';
 import http from './http';
 import type { ListBase } from './types';
 
-// 通过下发脚本到机器获取集群备份记录
-export const executeBackupLogScript = function (params: {
-  cluster_id: number
-}) {
-  const { currentBizId } = useGlobalBizs();
-
-  return http.get<number>(`/apis/mysql/bizs/${currentBizId}/fixpoint_rollback/execute_backup_log_script/`, params);
-};
-
 // 通过日志平台获取集群备份记录
 export const queryBackupLogFromBklog = function (params: {
-   cluster_id: number
-  }) {
+  cluster_id: number
+}) {
   const { currentBizId } = useGlobalBizs();
 
   return http.get<{
@@ -38,20 +29,6 @@ export const queryBackupLogFromBklog = function (params: {
     backup_time: string,
     mysql_role: string
   }[]>(`/apis/mysql/bizs/${currentBizId}/fixpoint_rollback/query_backup_log_from_bklog/`, params);
-};
-
-// 根据job id查询任务执行状态和执行结果
-export const queryBackupLogJob = function (params: {
-  cluster_id: number,
-  job_instance_id: number
-}) {
-  const { currentBizId } = useGlobalBizs();
-
-  return http.get<{
-    backup_logs: Array<any>,
-    job_status: string,
-    message: string
-  }>(`/apis/mysql/bizs/${currentBizId}/fixpoint_rollback/query_backup_log_job/`, params);
 };
 
 // 查询小于回档时间点最近的备份记录
