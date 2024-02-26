@@ -44,7 +44,7 @@
           <div
             v-overflow-tips
             class="content">
-            {{ data.source_cluster.immute_domain }}
+            {{ data.source_cluster.immute_domain ?? '--' }}
           </div>
         </div>
         <div class="info-item">
@@ -118,7 +118,6 @@
             v-model="formModel.binlog_pos"
             :min="1"
             type="number" />
-          <!-- <NumberInput v-model="formModel.binlog_pos" /> -->
         </BkFormItem>
       </BkForm>
     </div>
@@ -143,6 +142,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import DumperInstanceModel from '@services/model/dumper/dumper';
   import { createTicket } from '@services/source/ticket';
 
   import {
@@ -153,10 +153,6 @@
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
-
-  import type { DumperInstanceModel } from '../Index.vue';
-
-  // import NumberInput from './NumberInput.vue';
 
   interface Props {
     data: DumperInstanceModel,

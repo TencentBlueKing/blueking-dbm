@@ -67,7 +67,7 @@ export default class Dumper {
   phase: string;
   proc_type: string;
   protocol_type: string;
-  source_cluster?: {
+  source_cluster: {
     bk_cloud_id: number;
     cluster_type: string;
     id: number;
@@ -102,7 +102,7 @@ export default class Dumper {
     this.phase = payload.phase;
     this.proc_type = payload.proc_type;
     this.protocol_type = payload.protocol_type;
-    this.source_cluster = payload.source_cluster;
+    this.source_cluster = payload.source_cluster || {};
     this.target_address = payload.target_address;
     this.target_port = payload.target_port;
     this.update_at = payload.update_at;

@@ -389,7 +389,7 @@
               </span>
             </OperationBtnTip>
           )}
-          {data.need_transfer && (
+          {data.need_transfer && data.source_cluster.immute_domain && (
             <OperationBtnTip
               data={data}
               disabled={!data.isOperating}>
