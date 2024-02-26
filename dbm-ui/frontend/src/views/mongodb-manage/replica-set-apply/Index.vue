@@ -33,7 +33,9 @@
           ref="regionItemRef"
           v-model="formData.details.city_code" />
         <DbCard :title="t('数据库部署信息')">
-          <AffinityItem v-model="formData.details.disaster_tolerance_level" />
+          <AffinityItem
+            v-model="formData.details.disaster_tolerance_level"
+            default-value="SAME_SUBZONE_CROSS_SWTICH" />
           <BkFormItem
             :label="t('MongoDB版本')"
             property="details.db_version"
@@ -58,7 +60,8 @@
             <BkInput
               v-model="formData.details.start_port"
               clearable
-              :min="1"
+              :max="28999"
+              :min="27000"
               show-clear-only-hover
               style="width: 185px;"
               type="number" />
@@ -236,7 +239,7 @@
         domain: string,
         name: string,
       }>,
-      start_port: 25501,
+      start_port: 27001,
       node_count: 3,
       replica_count: 1,
       node_replica_count: 1,

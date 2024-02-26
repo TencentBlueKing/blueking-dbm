@@ -33,6 +33,11 @@
 
   import { useSystemEnviron } from '@stores';
 
+  interface Props {
+    defaultValue?: string
+  }
+
+  const props = defineProps<Props>();
   const modelValue = defineModel<string>({
     default: '',
   });
@@ -48,7 +53,12 @@
 
   watch(() => affinityList, (list) => {
     if (list && list.length > 0) {
-      modelValue.value = list[0].value;
+      if (props.defaultValue) {
+        const index = list.findIndex(affinityItem => affinityItem.value === props.defaultValue);
+        modelValue.value = index > -1 ? props.defaultValue : list[0].value;
+      } else {
+        modelValue.value = list[0].value;
+      }
     }
   }, {
     immediate: true,
