@@ -8,11 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Any, Dict, List
+
 from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.api.cluster.tendbsingle.detail import scan_cluster
+from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
 
@@ -38,8 +42,31 @@ class ListRetrieveResource(query.ListRetrieveResource):
         return graph
 
     @classmethod
+    def _to_cluster_representation(
+        cls,
+        cluster: Cluster,
+        db_module_names_map: Dict[int, str],
+        cluster_entry_map: Dict[int, Dict[str, str]],
+        cluster_operate_records_map: Dict[int, List],
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """将集群对象转为可序列化的 dict 结构"""
+        masters = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.ORPHAN]
+        cluster_role_info = {"masters": masters}
+        cluster_info = super()._to_cluster_representation(
+            cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map
+        )
+        cluster_info.update(cluster_role_info)
+        return cluster_info
+
+    @classmethod
     def _filter_instance_qs_hook(cls, storage_queryset, proxy_queryset, inst_fields, query_filters, query_params):
-        # mysql单节点的storage角色取instance_inner_role，没有proxy信息
-        storage_queryset = storage_queryset.annotate(role=F("instance_inner_role")).filter(query_filters)
+        # mysql单节点没有proxy信息
+        storage_queryset = (
+            StorageInstance.objects.select_related("machine")
+            .prefetch_related("cluster")
+            .annotate(role=F("instance_inner_role"))
+            .filter(query_filters)
+        )
         instance_queryset = storage_queryset.values(*inst_fields).order_by("-create_at")
         return instance_queryset
