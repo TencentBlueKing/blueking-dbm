@@ -50,16 +50,14 @@
   import _ from 'lodash';
   import {
     computed,
-    onBeforeUnmount,
     ref,
     watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import {
-    executeBackupLogScript,
     queryBackupLogFromBklog,
-    queryBackupLogJob,
+    queryBackupLogFromLoacal,
   } from '@services/source/fixpointRollback';
 
   import { useTimeZoneFormat } from '@hooks';
@@ -113,8 +111,6 @@
     },
   ];
 
-  let isUnmount = false;
-
   const localRollbackTimeRef = ref();
   const localBackupidRef = ref();
   const localBackupType = ref('record');
@@ -130,44 +126,16 @@
   const fetchLogData = () => {
     logRecordList.value = [];
     logRecordListMemo = [];
-    if (props.backupSource === 'local') {
-      executeBackupLogScript({
-        cluster_id: props.clusterId,
-      }).then((data) => {
-        const fetchData = () => {
-          if (isUnmount) {
-            return;
-          }
-          queryBackupLogJob({
-            cluster_id: props.clusterId,
-            job_instance_id: data,
-          }).then((data) => {
-            if (data.job_status === 'RUNNING') {
-              setTimeout(() => {
-                fetchData();
-              }, 2000);
-              return;
-            }
-            logRecordList.value = (data.backup_logs || []).map(item => ({
-              id: item.backup_id,
-              name: `${item.mysql_role} ${item.backup_time}`,
-            }));
-            logRecordListMemo = data.backup_logs;
-          });
-        };
-        fetchData();
-      });
-    } else {
-      queryBackupLogFromBklog({
-        cluster_id: props.clusterId,
-      }).then((data) => {
-        logRecordList.value = data.map(item => ({
-          id: item.backup_id,
-          name: `${item.mysql_role} ${item.backup_time}`,
-        }));
-        logRecordListMemo = data;
-      });
-    }
+    const queryBackupLog = props.backupSource === 'local' ? queryBackupLogFromLoacal : queryBackupLogFromBklog;
+    queryBackupLog({
+      cluster_id: props.clusterId,
+    }).then((dataList) => {
+      logRecordList.value = dataList.map(item => ({
+        id: item.backup_id,
+        name: `${item.mysql_role} ${item.backup_time}`,
+      }));
+      logRecordListMemo = dataList;
+    });
   };
 
   watch(() => [props.backupSource, props.clusterId], () => {
@@ -192,10 +160,6 @@
     localBackupType.value = props.rollbackTime ? 'time' : 'record';
   }, {
     immediate: true,
-  });
-
-  onBeforeUnmount(() => {
-    isUnmount = true;
   });
 
   defineExpose<Exposes>({
