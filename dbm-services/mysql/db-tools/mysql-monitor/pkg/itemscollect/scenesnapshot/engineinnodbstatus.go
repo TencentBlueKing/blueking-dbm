@@ -19,7 +19,7 @@ type engineInnodbStatus struct {
 var engineInnodbStatusName = "engine-innodb-status"
 
 func engineInnodbStatusScene(db *sqlx.DB) error {
-	err := tarball.DeleteOld(engineInnodbStatusName, sceneBase, 2)
+	err := tarball.DeleteOld(engineInnodbStatusName, sceneBase, 1)
 	if err != nil {
 		return err
 	}
