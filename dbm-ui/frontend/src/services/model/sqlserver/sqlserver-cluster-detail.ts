@@ -1,6 +1,6 @@
-import SqlServerBaseModel from './sqlserver-base';
+import TimeBaseClassModel from '@services/util/time-base-class';
 
-export default class SqlServerClusterDetail extends SqlServerBaseModel {
+export default class SqlServerClusterDetail extends TimeBaseClassModel {
   bk_biz_id: number;
   bk_biz_name: string;
   bk_cloud_id: number;

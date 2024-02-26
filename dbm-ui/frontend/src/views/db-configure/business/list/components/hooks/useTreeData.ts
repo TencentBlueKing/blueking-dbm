@@ -18,7 +18,7 @@ import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 import { getBigdataResourceTree } from '@services/source/bigdata';
 import { getMysqlResourceTree } from '@services/source/mysql';
 import { getRedisResourceTree } from '@services/source/redis';
-import { geSqlServerResourceTree } from '@services/source/sqlserverPermission';
+import { geSqlserverResourceTree } from '@services/source/sqlserver';
 
 import { useGlobalBizs } from '@stores';
 
@@ -45,7 +45,7 @@ export const useTreeData = (treeState: TreeState) => {
     bigdata: getBigdataResourceTree,
     redis: getRedisResourceTree,
     mysql: getMysqlResourceTree,
-    sqlserver: geSqlServerResourceTree,
+    sqlserver: geSqlserverResourceTree,
   };
 
   const activeTreeNode = computed(() => treeState.activeNode);

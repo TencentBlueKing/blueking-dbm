@@ -1,8 +1,8 @@
+import TimeBaseClassModel from '@services/util/time-base-class';
+
 import { t } from '@locales';
 
-import SqlServerBaseModel from './sqlserver-base';
-
-export default class SqlServerHaCluster extends SqlServerBaseModel {
+export default class SqlServerHaCluster extends TimeBaseClassModel {
   static SQLSERVER_HA_DESTROY = 'SQLSERVER_HA_DESTROY';
   static SQLSERVER_HA_DISABLE = 'SQLSERVER_HA_DISABLE';
   static SQLSERVER_HA_ENABLE = 'SQLSERVER_HA_ENABLE';
