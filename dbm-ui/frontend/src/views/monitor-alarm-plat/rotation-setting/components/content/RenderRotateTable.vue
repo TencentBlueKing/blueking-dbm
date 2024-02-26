@@ -31,15 +31,14 @@
     DutyCustomItem,
     DutyCycleItem,
   } from '@services/model/monitor/duty-rule';
+  import DutyRuleModel from '@services/model/monitor/duty-rule';
 
   import MiniTag from '@components/mini-tag/index.vue';
 
   import { getDiffDays } from '@utils';
 
-  import type { RowData as TableRowData } from './Index.vue';
-
   interface Props {
-    data: TableRowData
+    data: DutyRuleModel
   }
 
   interface RowData {

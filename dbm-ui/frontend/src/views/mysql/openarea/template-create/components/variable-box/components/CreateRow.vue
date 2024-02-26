@@ -52,7 +52,6 @@
   const { t } = useI18n();
 
   const list = defineModel<IVariable[]>('list', {
-    local: true,
     required: true,
   });
 

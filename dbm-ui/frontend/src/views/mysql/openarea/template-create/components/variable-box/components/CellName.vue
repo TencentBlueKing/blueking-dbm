@@ -54,7 +54,6 @@
   const modelValue = defineModel<string>({
     default: '',
     required: true,
-    local: true,
   });
   const { t } = useI18n();
 

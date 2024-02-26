@@ -101,7 +101,7 @@
     immediate: true,
   });
 
-  const handleMasterHostChange = (data: IHostData) => {
+  const handleMasterHostChange = (data?: IHostData) => {
     localMasterData.value = data;
   };
 

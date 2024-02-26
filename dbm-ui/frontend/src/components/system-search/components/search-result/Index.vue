@@ -22,7 +22,7 @@
               :key="resultType">
               <RenderResult
                 :biz-id-name-map="bizIdNameMap"
-                :data="serachResult[resultType]"
+                :data="(serachResult[resultType as keyof typeof serachResult])"
                 :key-word="modelValue"
                 :name="resultType" />
             </template>
@@ -53,6 +53,7 @@
   } from '@stores';
 
   import FilterOptions from './FilterOptions.vue';
+  import useKeyboard from './hooks/use-keyboard';
   import RenderResult from './render-result/Index.vue';
 
   interface Expose {
@@ -61,7 +62,6 @@
 
   const modelValue = defineModel<string>({
     default: '',
-    local: true,
   });
 
   const {
@@ -69,6 +69,7 @@
   } = useGlobalBizs();
 
   const { t } = useI18n();
+  useKeyboard();
 
 
   const isSearchEmpty = ref(false);

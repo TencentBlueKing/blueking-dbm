@@ -241,7 +241,7 @@
       field: 'effective_time',
       showOverflowTooltip: true,
       width: 180,
-      render: ({ data }: { data: RowData }) => <span>{data.effectiveTimeDisplay}</span>,
+      render: ({ data }: { data: DutyRuleModel }) => <span>{data.effectiveTimeDisplay}</span>,
     },
     {
       label: t('更新时间'),
@@ -249,7 +249,7 @@
       showOverflowTooltip: true,
       sort: true,
       width: 180,
-      render: ({ data }: { data: RowData }) => <span>{data.updateAtDisplay}</span>,
+      render: ({ data }: { data: DutyRuleModel }) => <span>{data.updateAtDisplay}</span>,
     },
     {
       label: t('更新人'),

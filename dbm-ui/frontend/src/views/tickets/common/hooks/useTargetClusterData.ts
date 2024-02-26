@@ -35,7 +35,7 @@ import { getSearchSelectorParams } from '@utils';
 export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthorizationDetails>) {
   const { t } = useI18n();
   // const globalBizsStore = useGlobalBizs();
-  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleListByBizId>> = {
+  const apiMap = {
     [ClusterTypes.TENDBSINGLE]: getTendbsingleListByBizId,
     [ClusterTypes.TENDBHA]: getTendbhaListByBizId,
     spider: getSpiderResources,
@@ -84,7 +84,7 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
       ...listState.pagination.getFetchParams(),
       ...getSearchSelectorParams(listState.filters.search),
     };
-    apiMap[type](params)
+    apiMap[type as keyof typeof apiMap](params)
       .then((res) => {
         listState.pagination.count = res.count;
         listState.data = res.results;

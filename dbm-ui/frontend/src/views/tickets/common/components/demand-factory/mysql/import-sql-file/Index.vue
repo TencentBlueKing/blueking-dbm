@@ -164,7 +164,7 @@
     table_patterns: [],
   }
 
-  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleList>> = {
+  const apiMap = {
     [ClusterTypes.TENDBSINGLE]: getTendbsingleList,
     [ClusterTypes.TENDBHA]: getTendbhaList,
     [ClusterTypes.TENDBCLUSTER]: getSpiderResources,
@@ -377,7 +377,7 @@
         cluster_ids: clusterId,
         ...paginationParams,
       };
-      apiMap[clusterType](params)
+      apiMap[clusterType as keyof typeof apiMap](params)
         .then((res) => {
           res.results.forEach((item) => {
             clusterState.tableProps.data.push(Object.assign({
