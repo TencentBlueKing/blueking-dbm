@@ -94,16 +94,13 @@
     },
   });
 
-  watch(
-    () => props.singleClusterData, () => {
-      runGetMonitorUrls({
-        bk_biz_id: currentBizId,
-        cluster_type: ClusterTypes.SQLSERVER_SINGLE,
-        cluster_id: props.singleClusterData.clusterId,
-      });
-    },
-    { immediate: true },
-  );
+  watch(() => props.singleClusterData, () => {
+    runGetMonitorUrls({
+      bk_biz_id: currentBizId,
+      cluster_type: ClusterTypes.SQLSERVER_SINGLE,
+      cluster_id: props.singleClusterData.clusterId,
+    });
+  }, { immediate: true });
 </script>
 
 <style lang="less" scoped>

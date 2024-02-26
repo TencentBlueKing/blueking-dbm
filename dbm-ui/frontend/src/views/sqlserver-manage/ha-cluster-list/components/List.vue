@@ -237,7 +237,9 @@
     return 100;
   });
 
-  const { run: runCreateTicket } = useRequest(createTicket, { manual: true });
+  const { run: runCreateTicket } = useRequest(createTicket, {
+    manual: true,
+  });
 
   const { run: runDeleteTicket } = useRequest(createTicket, {
     manual: true,
@@ -436,10 +438,11 @@
     }, [] as copyListType[]);
 
     if (copyList.length) {
-      const instances = copyList.map(item => (isInstance ? `${item.instance}` : `${item.ip}`));
+      const instances = copyList.map(item => (isInstance ? item.instance : item.ip));
       copy(instances.join('\n'));
     } else {
-      messageWarn(isInstance ? t('没有可复制实例') : t('没有可复制IP'));
+      const tipMessage = isInstance ? t('没有可复制实例') : t('没有可复制IP');
+      messageWarn(tipMessage);
     }
   };
 
@@ -557,7 +560,7 @@
    */
   const handleToDetails = (
     data: SqlServerHaClusterModel,
-    isAllSpread:boolean = false,
+    isAllSpread = false,
   ) => {
     stretchLayoutSplitScreen();
     haClusterData.value = {

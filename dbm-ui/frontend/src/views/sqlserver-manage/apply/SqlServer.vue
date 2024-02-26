@@ -27,7 +27,7 @@
               :input-search="false"
               style="display: inline-block;">
               <BkOption
-                v-for="(item) in moduleList"
+                v-for="item in moduleList"
                 :key="item.db_module_id"
                 :label="item.name"
                 :value="item.db_module_id" />
