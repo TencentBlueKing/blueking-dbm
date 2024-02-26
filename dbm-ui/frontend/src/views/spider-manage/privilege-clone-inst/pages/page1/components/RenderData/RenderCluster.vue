@@ -43,9 +43,7 @@
 
   const inputRef = ref();
 
-  const clusterData = defineModel<SpiderModel>('clusterData', {
-    local: true,
-  });
+  const clusterData = defineModel<SpiderModel>('clusterData');
 
   const {
     loading: isLoading,

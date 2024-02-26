@@ -153,14 +153,14 @@
       showOverflowTooltip: true,
       sort: true,
       width: 180,
-      render: ({ data }: { data: RowData }) => <span>{data.updateAtDisplay}</span>,
+      render: ({ data }: { data: MonitorPolicyModel }) => <span>{data.updateAtDisplay}</span>,
     },
     {
       label: t('更新人'),
       field: 'updater',
       showOverflowTooltip: true,
       width: 150,
-      render: ({ data }: {data: RowData}) => <span>{data.updater || '--'}</span>,
+      render: ({ data }: {data: MonitorPolicyModel}) => <span>{data.updater || '--'}</span>,
     },
     {
       label: t('启停'),

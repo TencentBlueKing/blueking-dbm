@@ -108,13 +108,13 @@
   </div>
 </template>
 <script setup lang="tsx"
-generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|InfluxdbInstanceModel">
+generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|InfluxDBInstanceModel">
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type EsNodeModel from '@services/model/es/es-node';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import type InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
+  import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
   import { checkHost } from '@services/source/ipchooser';

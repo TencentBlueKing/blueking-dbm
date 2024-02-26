@@ -91,9 +91,7 @@
     inheritAttrs: false,
   });
 
-  const defaultValue = defineModel<Props['defaultValue']>('defaultValue', {
-    local: true,
-  });
+  const defaultValue = defineModel<Props['defaultValue']>('defaultValue');
 
   const { t } = useI18n();
 

@@ -183,7 +183,6 @@
 
   const modelValue = defineModel<string[]>({
     default: [],
-    local: true,
   });
 
   const isShow = ref(false);
