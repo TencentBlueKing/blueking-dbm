@@ -73,8 +73,8 @@
     clusterType: string,
     machineType: string,
     cloudId: number,
+    shardNum: number,
     planFormItemProps?: Partial<FormItemProps>,
-    shardNum?: number,
   }
   interface Emits{
     (e: 'change', modelValue: number, data: RedisClusterSpecModel): void
@@ -263,6 +263,7 @@
       capacity: localCapacity.value,
       future_capacity: localFutureCapacity.value,
       qps: { min, max },
+      shard_num: props.shardNum,
     });
   };
 
