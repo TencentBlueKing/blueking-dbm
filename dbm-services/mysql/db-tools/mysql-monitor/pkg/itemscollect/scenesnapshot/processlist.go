@@ -45,7 +45,7 @@ func queryProcesslist(db *sqlx.DB) (res []*mysqlProcess, err error) {
 }
 
 func processListScene(db *sqlx.DB) error {
-	err := tarball.DeleteOld(processListName, sceneBase, 2)
+	err := tarball.DeleteOld(processListName, sceneBase, 1)
 	if err != nil {
 		return err
 	}
