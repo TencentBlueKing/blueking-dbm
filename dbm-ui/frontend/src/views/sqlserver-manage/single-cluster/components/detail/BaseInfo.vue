@@ -79,12 +79,9 @@
     data,
   } = useRequest(getSingleClusterDetail, { manual: true });
 
-  watch(
-    () => props.singleClusterData, () => {
-      if (props.singleClusterData) {
-        fetchInstDetails({ cluster_id: props.singleClusterData.clusterId });
-      }
-    },
-    { immediate: true },
-  );
+  watch(() => props.singleClusterData, () => {
+    if (props.singleClusterData) {
+      fetchInstDetails({ cluster_id: props.singleClusterData.clusterId });
+    }
+  }, { immediate: true });
 </script>
