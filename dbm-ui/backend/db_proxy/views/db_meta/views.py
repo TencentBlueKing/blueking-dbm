@@ -17,6 +17,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta import api
 from backend.db_meta.api import dbha as DBHA
 from backend.db_meta.api.cluster import nosqlcomm as NOSQLMETA
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import BKCity
 from backend.db_proxy.constants import SWAGGER_TAG
 from backend.db_proxy.views.db_meta.serializers import (
@@ -395,4 +396,42 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
     def tendbsingle_biz_clusters(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         data = api.priv_manager.tendbsingle.biz_clusters(**validated_data)
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[dbmeta]priv_manager查询SqlserverHA集群信息"),
+        request_body=TendbInstancesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=TendbInstancesSerializer,
+        url_path="dbmeta/priv_manager/sqlserver_ha/cluster_instances",
+    )
+    def sqlserver_ha_cluster_instances(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        data = api.priv_manager.sqlserver.cluster_instances(
+            immute_domain=validated_data.get("entry_name"),
+            cluster_type=ClusterType.SqlserverHA.value,
+        )
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[dbmeta]priv_manager查询SqlserverSingle集群信息"),
+        request_body=TendbInstancesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=TendbInstancesSerializer,
+        url_path="dbmeta/priv_manager/sqlserver_single/cluster_instances",
+    )
+    def sqlserver_single_cluster_instances(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        data = api.priv_manager.sqlserver.cluster_instances(
+            immute_domain=validated_data.get("entry_name"),
+            cluster_type=ClusterType.SqlserverSingle.value,
+        )
         return Response(data)

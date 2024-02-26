@@ -15,6 +15,7 @@ from rest_framework.decorators import api_view
 from rest_framework.request import Request
 
 from backend.db_meta import api
+from backend.db_meta.enums import ClusterType
 
 
 @swagger_auto_schema(methods=["get"])
@@ -265,4 +266,48 @@ def tendbsingle_biz_clusters(request: Request):
             }
         )
     except Exception as e:  # pylint: disable=broad-except
+        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+
+
+# sqlserver_single
+@swagger_auto_schema(methods=["get"])
+@csrf_exempt
+# @login_exempt
+@api_view(["GET"])
+# @permission_classes([AllowAny])
+def sqlserver_single_cluster_instances(request: Request):
+    try:
+        return JsonResponse(
+            {
+                "msg": "",
+                "code": 0,
+                "data": api.priv_manager.sqlserver.cluster_instances(
+                    entry_name=request.query_params.get("entry_name"),
+                    cluster_type=ClusterType.SqlserverSingle.value,
+                ),
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+
+
+# sqlserver_single
+@swagger_auto_schema(methods=["get"])
+@csrf_exempt
+# @login_exempt
+@api_view(["GET"])
+# @permission_classes([AllowAny])
+def sqlserver_ha_cluster_instances(request: Request):
+    try:
+        return JsonResponse(
+            {
+                "msg": "",
+                "code": 0,
+                "data": api.priv_manager.sqlserver.cluster_instances(
+                    entry_name=request.query_params.get("entry_name"),
+                    cluster_type=ClusterType.SqlserverHA.value,
+                ),
+            }
+        )
+    except Exception as e:
         return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})

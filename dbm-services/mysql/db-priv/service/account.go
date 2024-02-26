@@ -29,7 +29,7 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 	if m.User == "" || m.Psw == "" {
 		return errno.PasswordOrAccountNameNull
 	}
-	if (*m.ClusterType == "sqlserver_single" || *m.ClusterType == "sqlserver_ha") && m.Sid == "" {
+	if *m.ClusterType == sqlserver && m.Sid == "" {
 		return errno.SqlserverSidNull
 	}
 	if m.ClusterType == nil {

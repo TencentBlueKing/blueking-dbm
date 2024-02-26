@@ -22,6 +22,12 @@ const machineTypeSpider string = "spider"
 const backendSlave string = "backend_slave"
 const running string = "running"
 const tdbctl string = "tdbctl"
+const sqlserver string = "sqlserver"
+const sqlserverHA string = "sqlserver_ha"
+const sqlserverSingle string = "sqlserver_single"
+const backendMaster string = "backend_master"
+const orphan string = "orphan"
+const sqlserverSysDB string = "Monitor"
 
 // GetAllClustersInfo TODO
 /*
