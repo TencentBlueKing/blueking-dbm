@@ -102,4 +102,16 @@ if env.SERVICE_ONLY:
             views.priv_manager.tendbsingle_biz_clusters,
             name="priv_manager-tendbsingle-biz_clusters",
         ),
+        # priv manager sqlserver_single
+        path(
+            "priv_manager/sqlserver_single/cluster_instances",
+            views.priv_manager.sqlserver_single_cluster_instances,
+            name="priv-manager-sqlserver-single-cluster_instances",
+        ),
+        # priv manager sqlserver_ha
+        path(
+            "priv_manager/sqlserver_ha/cluster_instances",
+            views.priv_manager.sqlserver_ha_cluster_instances,
+            name="priv-manager-sqlserver_ha-cluster_instances",
+        ),
     ]

@@ -52,6 +52,11 @@ func (m *PrivTaskPara) AddPrivDryRun() (PrivTaskPara, error) {
 
 // AddPriv 使用账号规则，新增权限
 func (m *PrivTaskPara) AddPriv(jsonPara string) error {
+	if m.ClusterType == sqlserverHA || m.ClusterType == sqlserverSingle || m.ClusterType == sqlserver {
+		// 走sqlserver授权逻辑
+		return m.AddPrivForSqlserver(jsonPara)
+	}
+
 	slog.Info(fmt.Sprintf("PrivTaskPara:%v", m))
 	var errMsg, successMsg Err
 	var wg sync.WaitGroup

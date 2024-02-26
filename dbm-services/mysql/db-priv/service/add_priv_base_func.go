@@ -25,6 +25,9 @@ func GetAccountRuleInfo(bkBizId int64, clusterType string, user, dbname string) 
 	if clusterType == tendbha || clusterType == tendbsingle {
 		clusterType = mysql
 	}
+	if clusterType == sqlserverHA || clusterType == sqlserverSingle {
+		clusterType = sqlserver
+	}
 	err := DB.Self.Table("tb_accounts").Where(&TbAccounts{BkBizId: bkBizId, ClusterType: clusterType, User: user}).
 		Take(&account).Error
 	if errors2.Is(err, gorm.ErrRecordNotFound) {

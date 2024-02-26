@@ -22,6 +22,7 @@ var sqlserverQueryParseCommands = []string{
 }
 
 var sqlserverExecuteParseCommands = []string{
+	"use",
 	"insert",
 	"exec msdb.dbo.sp_update_job",
 	"drop login",
@@ -29,6 +30,8 @@ var sqlserverExecuteParseCommands = []string{
 	"create login",
 	"create user",
 	"drop user",
+	"alter authorization",
+	"exec sp_addrolemember",
 }
 
 // SqlserverRPCEmbed sqlserver 实现
