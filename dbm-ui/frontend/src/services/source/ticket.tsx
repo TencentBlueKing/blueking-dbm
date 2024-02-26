@@ -264,6 +264,7 @@ export function queryTicketFlowDescribe(params: {
     ticket_type: string;
     ticket_type_display: string;
     updater: string;
+    update_at: string;
   }[]>(`${path}/query_ticket_flow_describe/`, params).then(data => ({
     count: data.length,
     results: data,

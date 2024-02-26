@@ -246,7 +246,6 @@
             paste-fn={tagInputPasteFn}
             has-delete-icon
             collapse-tags
-            paste-fn={tagInputPasteFn}
             placeholder={t('请输入')}
             onClick={handleShowTips}
             v-clickoutside={handleHideTips}

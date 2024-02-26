@@ -29,6 +29,7 @@ interface MySQLClusterInfos {
   alias: string,
   bk_biz_id: number,
   bk_cloud_id: number,
+  bk_cloud_name: string,
   cluster_name: string,
   cluster_type: string,
   creator: string,

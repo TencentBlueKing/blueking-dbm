@@ -7,7 +7,6 @@
       <BkSelect
         v-model="modelValue.bk_biz_ids"
         behavior="simplicity"
-        collapse-tags
         filterable
         multiple
         :placeholder="t('全部')"
@@ -49,7 +48,6 @@
         v-else
         v-model="modelValue.db_types"
         behavior="simplicity"
-        collapse-tags
         filterable
         multiple
         :placeholder="t('全部')"
@@ -215,7 +213,7 @@
       }
 
       & ~ .filter-item{
-        margin-top: 16px;
+        margin-top: 24px;
       }
     }
 

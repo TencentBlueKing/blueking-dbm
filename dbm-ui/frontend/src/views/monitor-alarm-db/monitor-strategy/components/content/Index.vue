@@ -489,7 +489,6 @@
       title: t('确认删除该策略？'),
       subTitle: t('将会删除所有内容，请谨慎操作！'),
       width: 400,
-      zIndex: 999999,
       onConfirm: () => {
         runDeletePolicy({ id: data.id });
       } });

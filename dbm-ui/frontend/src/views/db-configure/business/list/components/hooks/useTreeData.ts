@@ -62,7 +62,7 @@ export const useTreeData = (treeState: TreeState) => {
     value: treeState.search,
     match: treeSearchMatch,
     resultType: 'tree',
-    openResultNode: false,
+    showChildNodes: false,
   }));
   const treeSearchMatch = (searchValue: string, value: string) => value.indexOf(searchValue) > -1;
 

@@ -105,7 +105,8 @@
       id: number,
       domain: string,
     },
-    startTime: [string, string],
+    startTime: string,
+    endTime: string,
     databases: string[],
     tables: string[],
     databasesIgnore: string[],
@@ -269,12 +270,18 @@
               return str.split(',');
             };
 
+            const [
+              roolbackTime,
+              endTime,
+            ] = startTime.split(/ +~ +/);
+
             resultList.push({
               clusterData: {
                 id: realDataMap[item.domain],
                 domain: item.domain,
               },
-              startTime: startTime.split(/ +~ +/) as [string, string],
+              startTime: roolbackTime,
+              endTime,
               databases: getListValue(databases),
               tables: getListValue(tables),
               databasesIgnore: getListValue(databasesIgnore),
@@ -303,7 +310,7 @@
             ...clusterErrorList.map(item => getInputTextList([item])),
             ...resultList.map(item => [
               item.clusterData.domain,
-              item.startTime.join(' ~ '),
+              [item.startTime, item.endTime].join(' ~ '),
               renderListValue(item.databases),
               renderListValue(item.tables),
               renderListValue(item.databasesIgnore),
