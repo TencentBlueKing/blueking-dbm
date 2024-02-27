@@ -9,11 +9,11 @@ const (
 const (
 
 	// MongoTypeShardedCluster TODO
-	MongoTypeShardedCluster = "ShardedCluster"
+	MongoTypeShardedCluster = "MongoShardedCluster"
 	// MongoTypeReplicaSet TODO
-	MongoTypeReplicaSet = "ReplicaSet"
+	MongoTypeReplicaSet = "MongoReplicaSet"
 	// MongoTypeStandalone TODO
-	MongoTypeStandalone = "Standalone"
+	MongoTypeStandalone = "MongoStandalone"
 )
 
 // time layout

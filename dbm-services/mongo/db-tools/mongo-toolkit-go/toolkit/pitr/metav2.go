@@ -206,20 +206,25 @@ func (b *BackupMetaV2) GetMetaFileName() string {
 	return path.Join(b.MetaDir, MetaFileName)
 }
 
+func parseUint32(s string) (uint32, error) {
+	v, err := strconv.ParseUint(s, 10, 32)
+	return uint32(v), err
+
+}
 func splitTs(ts string) (*TS, error) {
 	fs := strings.Split(ts, "|")
 	if len(fs) != 2 {
 		return nil, fmt.Errorf("splitTs failed, ts: %s", ts)
 	}
-	ts1, err := strconv.ParseInt(fs[0], 10, 64)
+	ts1, err := parseUint32(fs[0])
 	if err != nil {
 		return nil, fmt.Errorf("splitTs failed, ts: %s, err: %v", ts, err)
 	}
-	ts2, err := strconv.ParseInt(fs[1], 10, 64)
+	ts2, err := parseUint32(fs[1])
 	if err != nil {
 		return nil, fmt.Errorf("splitTs failed, ts: %s, err: %v", ts, err)
 	}
-	return &TS{uint32(ts1), uint32(ts2)}, nil
+	return &TS{ts1, ts2}, nil
 }
 
 func parseOplogPosLine(line string) (row *BackupFileName, err error) {
