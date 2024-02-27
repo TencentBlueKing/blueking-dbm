@@ -24,7 +24,7 @@ from jinja2 import Environment
 
 from backend import env
 from backend.components import JobApi
-from backend.components.bklog.client import BKLogApi
+from backend.components.bklog.handler import BKLogHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.cluster import Cluster
@@ -33,7 +33,6 @@ from backend.exceptions import AppBaseException
 from backend.flow.consts import SUCCESS_LIST, DBActuatorActionEnum, DBActuatorTypeEnum, InstanceStatus, JobStatusEnum
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_backup_list
 from backend.flow.utils.script_template import dba_toolkit_actuator_template, fast_execute_script_common_kwargs
-from backend.utils.string import pascal_to_snake
 from backend.utils.time import compare_time, datetime2str, find_nearby_time
 
 
@@ -130,35 +129,9 @@ class FixPointRollbackHandler:
 
         return backup_logs
 
-    def _get_log_from_bklog(
-        self, collector: str, start_time: datetime, end_time: datetime, query_string="*"
-    ) -> List[Dict]:
-        """
-        从日志平台获取对应采集项的日志
-        @param collector: 采集项名称
-        @param start_time: 开始时间
-        @param end_time: 结束时间
-        @param query_string: 过滤条件
-        """
-        resp = BKLogApi.esquery_search(
-            {
-                "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.{collector}",
-                "start_time": datetime2str(start_time),
-                "end_time": datetime2str(end_time),
-                # 这里需要精确查询集群域名，所以可以通过log: "key: \"value\""的格式查询
-                "query_string": query_string,
-                "start": 0,
-                "size": 1000,
-                "sort_list": [["dtEventTimeStamp", "asc"], ["gseIndex", "asc"], ["iterationIndex", "asc"]],
-            },
-            use_admin=True,
-        )
-        backup_logs = []
-        for hit in resp["hits"]["hits"]:
-            raw_log = json.loads(hit["_source"]["log"])
-            backup_logs.append({pascal_to_snake(key): value for key, value in raw_log.items()})
-
-        return backup_logs
+    @staticmethod
+    def _get_log_from_bklog(collector: str, start_time: datetime, end_time: datetime, query_string="*") -> List[Dict]:
+        return BKLogHandler.query_logs(collector, start_time, end_time, query_string)
 
     @staticmethod
     def _format_backup_for_tendb(raw_log: Dict[str, Any], backup_log: Dict[str, Any]) -> Dict[str, Any]:
@@ -187,6 +160,7 @@ class FixPointRollbackHandler:
         backup_log["backup_begin_time"] = min(backup_log["backup_begin_time"], raw_log["backup_begin_time"])
         backup_log["backup_end_time"] = min(backup_log["backup_end_time"], raw_log["backup_end_time"])
         backup_log["backup_time"] = max(backup_log["backup_time"], raw_log["consistent_backup_time"])
+        return backup_log
 
     def aggregate_tendb_dbbackup_logs(self, backup_logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """

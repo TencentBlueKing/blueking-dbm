@@ -24,6 +24,7 @@ from backend.iam_app.views.cluster_provider import (
     MySQLResourceProvider,
     PulsarClusterResourceProvider,
     RedisClusterResourceProvider,
+    SQLServerClusterResourceProvider,
     TendbClusterResourceProvider,
 )
 from backend.iam_app.views.dbtype_provider import DBTypeResourceProvider
@@ -50,6 +51,7 @@ dispatcher.register(r"kafka", KafkaClusterResourceProvider())
 dispatcher.register(r"pulsar", PulsarClusterResourceProvider())
 dispatcher.register(r"dbtype", DBTypeResourceProvider())
 dispatcher.register(r"mongodb", MongoDBClusterResourceProvider())
+dispatcher.register(r"sqlserver", SQLServerClusterResourceProvider())
 dispatcher.register(r"monitor_policy", MonitorPolicyResourceProvider())
 dispatcher.register(r"duty_rule", DutyRuleResourceProvider())
 dispatcher.register(r"openarea_config", OpenareaConfigResourceProvider())

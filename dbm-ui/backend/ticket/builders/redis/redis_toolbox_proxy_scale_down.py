@@ -39,7 +39,7 @@ class ProxyScaleDownParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.PROXY_SCALE_DOWN, iam=ActionEnum.REDIS_PROXY_SCALE_DOWN)
+@builders.BuilderFactory.register(TicketType.REDIS_PROXY_SCALE_DOWN, iam=ActionEnum.REDIS_PROXY_SCALE_DOWN)
 class ProxyScaleDownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = ProxyScaleDownDetailSerializer
     inner_flow_builder = ProxyScaleDownParamBuilder

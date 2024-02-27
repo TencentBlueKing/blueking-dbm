@@ -64,4 +64,4 @@ class MysqlOpenAreaParamBuilder(builders.FlowParamBuilder):
 class MysqlOpenAreaFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlOpenAreaDetailSerializer
     inner_flow_builder = MysqlOpenAreaParamBuilder
-    inner_flow_name = _("分区执行")
+    inner_flow_name = _("MySQL 开区执行")

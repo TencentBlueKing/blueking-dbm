@@ -265,6 +265,14 @@ class MongoDBResourceMeta(ClusterResourceMeta):
 
 
 @dataclass
+class SQLServerResourceMeta(ClusterResourceMeta):
+    """sqlserver集群resource 属性定义"""
+
+    id: str = "sqlserver"
+    name: str = _("SQLServer集群")
+
+
+@dataclass
 class InstanceResourceMeta(ClusterResourceMeta):
     """实例resource 属性定义"""
 
@@ -439,6 +447,7 @@ class ResourceEnum:
     PULSAR = PulsarResourceMeta()
     RIAK = RiakResourceMeta()
     MONGODB = MongoDBResourceMeta()
+    SQLSERVER = SQLServerResourceMeta()
     DBTYPE = DBTypeResourceMeta()
     MONITOR_POLICY = MonitorPolicyResourceMeta()
     GLOBAL_MONITOR_POLICY = GlobalMonitorPolicyResourceMeta()
@@ -460,13 +469,8 @@ class ResourceEnum:
     @classmethod
     def cluster_type_to_resource_meta(cls, cluster_type):
         """集群类型与资源的映射"""
-        if cluster_type in [ClusterType.TenDBSingle, ClusterType.TenDBHA]:
-            return cls.MYSQL
-        if cluster_type in ClusterType.redis_cluster_types():
-            return cls.REDIS
-        if cluster_type in [ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]:
-            return cls.MONGODB
-        return getattr(cls, cluster_type.upper(), None)
+        db_type = ClusterType.cluster_type_to_db_type(cluster_type)
+        return getattr(cls, db_type.upper(), None)
 
     @classmethod
     def instance_type_to_resource_meta(cls, instance_role):

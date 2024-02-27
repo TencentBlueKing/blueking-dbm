@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.flow.consts import SqlserverCleanMode
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
@@ -24,6 +25,7 @@ class SQLServerClearDetailSerializer(SQLServerBaseOperateDetailSerializer):
         clean_dbs = serializers.ListField(help_text=_("清档db列表"), child=serializers.CharField())
         clean_tables = serializers.ListField(help_text=_("清档表"), child=serializers.CharField())
         ignore_clean_tables = serializers.ListField(help_text=_("忽略表"), required=False, default=[])
+        clear_mode = serializers.ChoiceField(help_text=_("清档类型"), choices=SqlserverCleanMode.get_choices())
 
     is_safe = serializers.BooleanField(help_text=_("安全模式"), required=False, default=True)
     infos = serializers.ListSerializer(help_text=_("清档信息列表"), child=ClearDataInfoSerializer())
