@@ -24,11 +24,11 @@ func ParseMongoVersion(version string) (*MongoVersion, error) {
 	if len(versionArray) != 3 {
 		return nil, fmt.Errorf("bad version:%s", version)
 	}
-	major, err := strconv.ParseInt(versionArray[0], 10, 64)
+	major, err := strconv.ParseInt(versionArray[0], 10, 32)
 	if err != nil {
 		return nil, fmt.Errorf("bad version:%s", version)
 	}
-	minor, err := strconv.ParseInt(versionArray[1], 10, 64)
+	minor, err := strconv.ParseInt(versionArray[1], 10, 32)
 	if err != nil {
 		return nil, fmt.Errorf("bad version:%s", version)
 	}

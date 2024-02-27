@@ -10,17 +10,25 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// 备份
-// 1. 分析参数，确定要备份的库和表
-// 2. 执行备份
-// 3. 上报备份记录
-// 4. 上报到备份系统，等待备份系统完成
+// BsTaskArg 备份任务，作为参数传入
+type BsTaskArg struct {
+	TaskId   string `json:"task_id"`
+	FileName string `json:"file_name"`
+}
+
+// 回档
+// 1. 将备份文件解压到临时目录.
+// 2. 检查目标MongoDB中，没有要恢复的库和表.
+// 3. 执行恢复，并将恢复日志写入到文件中.
+// 4. 检查恢复日志，如果有错误，返回错误.
+// 5. 删除临时目录
 
 // restoreParam 备份任务参数，由前端传入
 type restoreParam struct {
@@ -31,10 +39,11 @@ type restoreParam struct {
 	InstanceType  string `json:"instanceType"`
 
 	Args struct {
-		SrcFile   string      `json:"srcFile"`
-		IsPartial bool        `json:"isPartial"` // 为true时，备份指定库和表
-		Oplog     bool        `json:"oplog"`     // 是否备份oplog，只有在IsPartial为false可为true
-		NsFilter  NsFilterArg `json:"nsFilter"`
+		RecoverDir string      `json:"RecoverDir"` // /data/dbbak/recover_mg/
+		SrcFile    []BsTaskArg `json:"srcFile"`    // 目前只需要1个文件，但是为了兼容，还是使用数组.
+		IsPartial  bool        `json:"isPartial"`  // 为true时，备份指定库和表
+		Oplog      bool        `json:"oplog"`      // 是否备份oplog，只有在IsPartial为false可为true
+		NsFilter   NsFilterArg `json:"nsFilter"`
 	} `json:"Args"`
 }
 
@@ -102,17 +111,18 @@ func (s *restoreJob) doLogicalRestore() error {
 	helper := logical.NewMongoRestoreHelper(s.MongoInst, s.MongoRestoreBin, s.param.AdminUsername,
 		s.param.AdminPassword, "admin", s.OsUser)
 
-	fileSize, err := util.GetFileSize(s.param.Args.SrcFile)
+	srcFilePath := filepath.Join(s.param.Args.RecoverDir, s.param.Args.SrcFile[0].FileName)
+	fileSize, err := util.GetFileSize(srcFilePath)
 	if err != nil {
 		return errors.Wrap(err, "GetFileSize")
 	}
 
-	log.Info("start untar file %s, fileSize %d", s.param.Args.SrcFile, fileSize)
-	dstDir, err := logical.UntarFile(s.param.Args.SrcFile)
+	log.Info("start untar file %s, fileSize %d", srcFilePath, fileSize)
+	dstDir, err := logical.UntarFile(srcFilePath)
 	if err != nil {
 		return errors.Wrap(err, "UntarFile")
 	}
-	log.Info("end untar file %s, dstDir %s", s.param.Args.SrcFile, dstDir)
+	log.Info("end untar file %s, dstDir %s", srcFilePath, dstDir)
 	dstDirWithDump := path.Join(dstDir, "dump")
 	// get DbCollection from Dir
 	dbColList, err := logical.GetDbCollectionFromDir(dstDirWithDump)
@@ -230,6 +240,11 @@ func (s *restoreJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 		return err
 	}
 
+	if util.FileExists(s.param.Args.RecoverDir) == false {
+		return errors.New("recover dir is empty")
+	}
+
+	// prepare mongo client and mongodump path
 	s.MongoInst = mymongo.NewMongoHost(
 		s.param.IP, fmt.Sprintf("%d", s.param.Port),
 		"admin", s.param.AdminUsername, s.param.AdminPassword, "", s.param.IP)
