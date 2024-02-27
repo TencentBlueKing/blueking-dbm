@@ -98,7 +98,7 @@ func _uploadFileOnce(file, tag string) (*TaskInfo, error) {
 		return nil, fmt.Errorf("BackupClient %s is not exists", BackupClient)
 	}
 	fileSize, _ := util.GetFileSize(absPath)
-	timeoutSecond := fileSize/1024/1024/1024 + 60 // --with-md5 会计算md5，所以超时时间要加长一点
+	timeoutSecond := fileSize/1024/1024/100 + 180 // --with-md5 会计算md5. 每秒100M
 	outBuf, errBuffer, err := DoCommand(timeoutSecond, BackupClient, "-n", "-f", absPath, "--with-md5", "-t", tag)
 	if err != nil {
 		return nil, err
