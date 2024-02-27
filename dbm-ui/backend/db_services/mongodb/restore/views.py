@@ -20,14 +20,14 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.mongodb.restore.constants import BACKUP_LOG_RANGE_DAYS
 from backend.db_services.mongodb.restore.handlers import MongoDBRestoreHandler
 from backend.db_services.mongodb.restore.serializers import BackupLogRollbackTimeSerializer
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/mongodb/restore"
 
 
 class MongoDBRestoreViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("通过日志平台获取集群单据备份记录"),

@@ -10,9 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.db_services.dbpermission.db_account.views import BaseDBAccountViewSet
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
 class DBAccountViewSet(BaseDBAccountViewSet):
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
