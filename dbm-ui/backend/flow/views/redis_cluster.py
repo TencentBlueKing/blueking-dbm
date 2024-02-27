@@ -232,7 +232,7 @@ class RedisProxyScaleSceneApiView(FlowTestView):
         "uid":"2022051612120001",
         "bk_biz_id": 3,
         "created_by":"xxxx",
-        "ticket_type":"PROXY_SCALE_UP/PROXY_SCALE_DOWN",
+        "ticket_type":"REDIS_PROXY_SCALE_UP/REDIS_PROXY_SCALE_DOWN",
         "infos": [
           {
             "cluster_id": 1,

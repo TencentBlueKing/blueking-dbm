@@ -17,14 +17,14 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.sqlserver.sql_import.handlers import SQLHandler
 from backend.db_services.sqlserver.sql_import.serializers import SQLUploadSerializer
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/sqlserver/sql_import"
 
 
 class SQLImportViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("sql文件导入"),

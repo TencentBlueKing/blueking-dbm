@@ -303,7 +303,7 @@ class RedisProxyScaleFlow(object):
         redis_pipeline.run_pipeline()
 
     def redis_proxy_scale_flow(self):
-        if self.data["ticket_type"] == TicketType.PROXY_SCALE_DOWN.value:
+        if self.data["ticket_type"] == TicketType.REDIS_PROXY_SCALE_DOWN.value:
             self.redis_proxy_scale_down_flow()
         else:
             self.redis_proxy_scale_up_flow()

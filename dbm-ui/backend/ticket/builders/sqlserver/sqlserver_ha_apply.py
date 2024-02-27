@@ -20,6 +20,7 @@ from backend.db_services.cmdb.biz import get_db_app_abbr
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import DEFAULT_SQLSERVER_PORT
 from backend.flow.engine.controller.sqlserver import SqlserverController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.sqlserver.sqlserver_single_apply import (
     SQLServerSingleApplyDetailSerializer,
@@ -106,7 +107,9 @@ class SQLServerHaApplyResourceParamBuilder(SQLServerSingleApplyResourceParamBuil
         next_flow.save(update_fields=["details"])
 
 
-@BuilderFactory.register(TicketType.SQLSERVER_HA_APPLY, is_apply=True, cluster_type=ClusterType.SqlserverHA)
+@BuilderFactory.register(
+    TicketType.SQLSERVER_HA_APPLY, is_apply=True, cluster_type=ClusterType.SqlserverHA, iam=ActionEnum.SQLSERVER_APPLY
+)
 class SQLServerHAApplyFlowBuilder(SQLServerSingleApplyFlowBuilder):
     serializer = SQLServerHAApplyDetailSerializer
     inner_flow_builder = SQLServerHAApplyFlowParamBuilder

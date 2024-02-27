@@ -12,8 +12,8 @@ import pytest
 
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import ProxyInstance, StorageInstance
+from backend.db_services.dbbase.dataclass import DBInstance
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
-from backend.db_services.mysql.dataclass import DBInstance
 
 pytestmark = pytest.mark.django_db
 
