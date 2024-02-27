@@ -16,6 +16,7 @@ from unittest.mock import patch
 import pytest
 from openpyxl.writer.excel import save_virtual_workbook
 
+from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.permission.authorize.dataclass import MySQLAuthorizeMeta, MySQLExcelAuthorizeMeta
 from backend.db_services.mysql.permission.authorize.handlers import MySQLAuthorizeHandler
 from backend.db_services.mysql.permission.constants import AUTHORIZE_EXCEL_HEADER
@@ -52,7 +53,7 @@ class TestAuthorizeHandler:
         excel = io.BytesIO(excel_bytes)
 
         excel_obj = namedtuple("ExcelObj", ["file"])(file=excel)
-        excel_authorize = MySQLExcelAuthorizeMeta(authorize_file=excel_obj)
+        excel_authorize = MySQLExcelAuthorizeMeta(authorize_file=excel_obj, cluster_type=ClusterType.TenDBHA)
         excel_authorize.authorize_excel_data = ExcelHandler.paser(excel_authorize.authorize_file.file)
 
         authorize_data_list = self.handler.pre_check_excel_rules(excel_authorize)
