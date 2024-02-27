@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// BackupTaskOption TODO
+// BackupTaskOption 备份任务参数
 type BackupTaskOption struct {
 	// TaskName 任务名称
 	TaskName string `json:"task_name"`
@@ -28,7 +28,7 @@ type BackupTaskOption struct {
 	Labels             string `json:"labels"`
 }
 
-// BackupTask TODO
+// BackupTask 备份任务
 type BackupTask struct {
 }
 
@@ -38,6 +38,9 @@ func NewBackupTask() *BackupTask {
 }
 
 // Do 执行任务
+// 组装命令行，调用MongoToolKit执行备份任务，返回错误
+// 调用MongoToolKit执行备份任务的原因是，MongoToolKit已经实现了备份的逻辑，不需要重复实现
+// 也可实现备份时可重启dbmon，但目前没有实现
 func (task *BackupTask) Do(option *BackupTaskOption) error {
 
 	backupType := "AUTO"
@@ -53,14 +56,15 @@ func (task *BackupTask) Do(option *BackupTaskOption) error {
 	if option.SendToBs {
 		cb.Append("--send-to-bs")
 	}
+
 	if option.RemoveOldFileFirst {
 		cb.Append("--remove-old-file-first")
 	}
 
-	cmdLine := cb.GetCmdLine("", false)
+	// dbmon的日志不上传Es，可以打印密码.
+	cmdLine := cb.GetCmdLine2(false)
 	mylog.Logger.Info(fmt.Sprintf("cmdLine: %s", cmdLine))
 
-	// cmd, args := cb.GetCmd()
 	o, err := cb.Run2(time.Hour * 24)
 	mylog.Logger.Info(
 		fmt.Sprintf("Exec %s cost %0.1f Seconds, stdout: %s, stderr %s",

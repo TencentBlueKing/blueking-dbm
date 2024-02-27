@@ -4,6 +4,7 @@ package sendwarning
 // 消息有两类，Event事件消息和TimeSeries时序消息
 import (
 	"dbm-services/mongo/db-tools/dbmon/mylog"
+	"dbm-services/mongo/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -68,15 +69,16 @@ func (bm *BkMonitorEventSender) SendEventMsg(dataId int64, token string, eventNa
 	bm.SetEventCreateTime()
 
 	tempBytes, _ := json.Marshal(bm)
-	sendCmd := fmt.Sprintf(
-		`%s -report -report.bk_data_id %d -report.type agent  -report.message.kind event -report.agent.address %s -report.message.body '%s'`,
-		bm.ToolBkMonitorBeat, bm.DataID, bm.AgentAddress, string(tempBytes))
-	mylog.Logger.Info(sendCmd)
-	_, err = util.RunBashCmdNoLog(sendCmd, "", nil, 20*time.Second)
-	if err != nil {
-		return
-	}
-	return nil
+	sendCmd := mycmd.New(bm.ToolBkMonitorBeat,
+		"-report", "-report.bk_data_id", bm.DataID,
+		"-report.type", "agent",
+		"-report.message.kind", "event",
+		"-report.agent.address", bm.AgentAddress,
+		"-report.message.body", string(tempBytes))
+
+	mylog.Logger.Info(sendCmd.GetCmdLine("", false))
+	_, err = sendCmd.Run2(20 * time.Second)
+	return
 }
 
 // SendTimeSeriesMsg dbmon心跳上报. "mongo_dbmon_heart_beat"
@@ -92,11 +94,14 @@ func (bm *BkMonitorEventSender) SendTimeSeriesMsg(dataId int64, token string, ta
 	metrics[metricName] = val
 	bm.Data[0].Metrics = metrics
 	tempBytes, _ := json.Marshal(bm)
-	sendCmd := fmt.Sprintf(
-		`%s -report -report.bk_data_id %d -report.type agent  -report.message.kind timeseries -report.agent.address %s -report.message.body '%s'`,
-		bm.ToolBkMonitorBeat, bm.DataID, bm.AgentAddress, string(tempBytes))
-	mylog.Logger.Info(sendCmd)
-	_, err = util.RunBashCmdNoLog(sendCmd, "", nil, 20*time.Second)
+	sendCmd := mycmd.New(bm.ToolBkMonitorBeat,
+		"-report", "-report.bk_data_id", bm.DataID,
+		"-report.type", "agent",
+		"-report.message.kind", "timeseries",
+		"-report.agent.address", bm.AgentAddress,
+		"-report.message.body", string(tempBytes))
+	mylog.Logger.Info(sendCmd.GetCmdLine("", false))
+	_, err = sendCmd.Run2(20 * time.Second)
 	return
 }
 
