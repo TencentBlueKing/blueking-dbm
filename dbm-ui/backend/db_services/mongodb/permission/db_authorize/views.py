@@ -24,7 +24,7 @@ from backend.db_services.mongodb.permission.db_authorize.serializers import (
     MongoDBPreCheckAuthorizeRulesResponseSerializer,
     MongoDBPreCheckAuthorizeRulesSerializer,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/permission/authorize"
 
@@ -36,7 +36,7 @@ class DBAuthorizeViewSet(BaseDBAuthorizeViewSet):
     excel_authorize_meta = MongoDBExcelAuthorizeMeta
 
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("规则前置检查"),

@@ -15,6 +15,7 @@ from collections import defaultdict
 from typing import Dict, List
 
 from django.db import transaction
+from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
@@ -47,7 +48,7 @@ class MongosShutdownMetaService(BaseService):
             proxy_objs = common.filter_out_instance_obj(proxies, cluster.proxyinstance_set.all())
             _t = common.not_exists(proxies, proxy_objs)
             if _t:
-                raise Exception("{} 存在不是本集群的实例下架列表".format(_t))
+                raise Exception(_("{} 存在不是本集群的实例下架列表").format(_t))
 
             machine_obj, cc_manage = defaultdict(dict), CcManage(cluster.bk_biz_id)
             cc_manage.delete_service_instance(bk_instance_ids=[obj.bk_instance_id for obj in proxy_objs])

@@ -87,7 +87,7 @@ class TestTicketFlow:
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
     @patch(
-        "backend.db_services.mysql.permission.db_account.handlers.MySQLPrivManagerApi.list_account_rules",
+        "backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi.list_account_rules",
         return_value=MYSQL_PERMISSION_ACCOUNT,
     )
     def test_authorize_ticket_flow(
