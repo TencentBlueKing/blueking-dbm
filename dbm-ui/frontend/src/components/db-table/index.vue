@@ -122,6 +122,8 @@
     containerHeight?: number,
     // 是否开启远程分页
     remotePagination?: boolean,
+    // 是否允许行点击选中
+    allowRowClickSelect?: boolean,
   }
 
   interface Emits {
@@ -152,6 +154,7 @@
     releateUrlQuery: false,
     containerHeight: undefined,
     remotePagination: true,
+    allowRowClickSelect: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -208,9 +211,9 @@
       return (
         <span v-bk-tooltips={tips}>
           <bk-checkbox
-            style="pointer-events: none;"
             label={true}
             disabled={selectDisabled}
+            onChange={() => handleSelecteRow(data)}
             modelValue={Boolean(rowSelectMemo.value[_.get(data, props.primaryKey)])} />
         </span>
       );
@@ -445,10 +448,33 @@
 
   // 选中单行
   const handleRowClick = (event: MouseEvent, data: any) => {
+    if (!props.allowRowClickSelect) {
+      return;
+    }
     const targetElement = event.target as HTMLElement;
     if (/bk-button/.test(targetElement.className)) {
       return;
     }
+    if (!props.selectable) {
+      return;
+    }
+    if (props.disableSelectMethod(data)) {
+      return;
+    }
+    const selectMap = { ...rowSelectMemo.value };
+    if (!selectMap[_.get(data, props.primaryKey)]) {
+      selectMap[_.get(data, props.primaryKey)] = data;
+    } else {
+      delete selectMap[_.get(data, props.primaryKey)];
+      isWholeChecked.value = false;
+    }
+    rowSelectMemo.value = selectMap;
+
+    triggerSelection();
+  };
+
+  // 勾选单行
+  const handleSelecteRow = (data: any) => {
     if (!props.selectable) {
       return;
     }
