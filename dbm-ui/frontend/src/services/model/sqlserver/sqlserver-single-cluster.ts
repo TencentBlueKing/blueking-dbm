@@ -1,6 +1,19 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+*/
+
 import TimeBaseClassModel from '@services/util/time-base-class';
 
-import { t } from '@locales';
+import { t } from '@locales/index';
 
 export default class SqlServerSingleCluster extends TimeBaseClassModel {
   static SQLSERVER_SINGLE_DESTROY = 'SQLSERVER_SINGLE_DESTROY';
@@ -39,6 +52,19 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   id: number;
   major_version: string;
   master_domain: string;
+  masters: {
+    bk_biz_id: number,
+    bk_cloud_id: number,
+    bk_host_id: number,
+    bk_instance_id: number,
+    instance: string,
+    ip: string,
+    name: string,
+    phase: string,
+    port: number,
+    spec_config: Record<'id', number>,
+    status: string,
+  }[];
   operations: Array<{
     cluster_id: number,
     flow_id: number,
@@ -103,6 +129,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
+    this.masters = payload.masters;
     this.operations = payload.operations;
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
@@ -145,6 +172,10 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     return SqlServerSingleCluster.operationTextMap[this.operationRunningStatus];
   }
 
+  get operationStatusIcon() {
+    return SqlServerSingleCluster.operationIconMap[this.operationRunningStatus];
+  }
+
   // 操作中的单据 ID
   get operationTicketId() {
     if (this.operations.length < 1) {
@@ -155,5 +186,29 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
       return 0;
     }
     return operation.ticket_id;
+  }
+
+  get operationDisabled() {
+    // 集群异常不支持操作
+    if (this.status === 'abnormal') {
+      return true;
+    }
+    // 被禁用的集群不支持操作
+    if (this.phase !== 'online') {
+      return true;
+    }
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
+  }
+
+  get operationTagTips() {
+    return this.operations.map(item => ({
+      icon: SqlServerSingleCluster.operationIconMap[item.ticket_type],
+      tip: SqlServerSingleCluster.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
   }
 }

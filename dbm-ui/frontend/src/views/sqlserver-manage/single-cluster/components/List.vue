@@ -40,11 +40,19 @@
             </BkDropdownMenu>
           </template>
         </BkDropdown>
-        <BkButton
-          class="ml-8"
-          @click="handleShowAuthorize(selected)">
-          {{ t('批量授权') }}
-        </BkButton>
+        <span
+          v-bk-tooltips="{
+            disabled: hasSelected,
+            content: t('请选择集群')
+          }"
+          class="inline-block">
+          <BkButton
+            class="ml-8"
+            :disabled="!hasSelected"
+            @click="handleShowAuthorize(selected)">
+            {{ t('批量授权') }}
+          </BkButton>
+        </span>
         <BkButton
           class="ml-8"
           @click="handleShowExcelAuthorize">
@@ -133,8 +141,6 @@
     messageWarn,
   } from '@utils';
 
-  import type { SearchSelectValues } from '@types/bkui-vue';
-
   interface copyListType {
     ip: string,
     name: string,
@@ -180,7 +186,7 @@
   const tableRef = ref();
   const isCopyDropdown = ref(false);
   const selected = ref<SqlServerSingleClusterModel[]>([]);
-  const searchValues = ref<SearchSelectValues>([]);
+  const searchValues = ref([]);
   const isAnomalies = ref(false);
   const pagination = ref<IPagination>(useDefaultPagination());
   const isShowExcelAuthorize = ref(false);
@@ -217,10 +223,10 @@
             text={ data.master_domain }>
             <div class="cluster-tags">
               {
-                data.operations.map(item => (
+                data.operationTagTips.map(item => (
                   <RenderOperationTag
                     class="cluster-tag"
-                    data={ item } />
+                    data={item} />
                 ))
               }
             </div>
@@ -274,7 +280,7 @@
       field: 'instance_name',
       render: ({ data }: { data: SqlServerSingleClusterModel }) => (
         <RenderInstances
-          data={ data.operations }
+          data={ data.masters }
           dataSource={ getSqlServerInstanceList }
           title={ t('【inst】实例预览', { inst: data.bk_cloud_name }) }
           role="proxy"

@@ -83,7 +83,9 @@
       <template v-else>
         {{ t('新增规格') }}
       </template>
-      <BkTag theme="info">
+      <BkTag
+        class="ml-4"
+        theme="info">
         {{ clusterTypeLabel }}
       </BkTag>
     </template>

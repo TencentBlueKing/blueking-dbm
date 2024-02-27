@@ -88,6 +88,8 @@ export enum MachineTypes {
   PULSAR_BOOKKEEPER = 'pulsar_bookkeeper',
   PULSAR_BROKER = 'pulsar_broker',
   RIAK = 'riak',
+  SQLSERVER_HA = 'sqlserver_ha',
+  SQLSERVER_SINGLE = 'sqlserver_single',
 }
 
 export type ClusterTypesValues = keyof typeof clusterTypeInfos;
@@ -449,7 +451,8 @@ export enum UserPersonalSettings {
   QUICK_SEARCH_CLUSTER_NAME = 'QUICK_SEARCH_CLUSTER_NAME',
   QUICK_SEARCH_INSTANCE = 'QUICK_SEARCH_INSTANCE',
   QUICK_SEARCH_RESOURCE_POOL = 'QUICK_SEARCH_RESOURCE_POOL',
-  QUICK_SEARCH_TASK = 'QUICK_SEARCH_TASK'
+  QUICK_SEARCH_TASK = 'QUICK_SEARCH_TASK',
+  SQLSERVER_HA_INSTANCE_SETTINGS = 'SQLSERVER_HA_INSTANCE_SETTINGS',
 }
 
 /**

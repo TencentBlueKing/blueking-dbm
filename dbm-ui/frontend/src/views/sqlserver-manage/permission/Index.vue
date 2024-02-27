@@ -37,7 +37,7 @@
       <DbOriginalTable
         class="permission-rules-table"
         :columns="columns"
-        :data="data"
+        :data="sqlserverPermissionRulesData?.results || []"
         :max-height="tableMaxHeight"
         :row-class="setRowClass"
         @refresh="runAccountRulesList" />
@@ -96,12 +96,9 @@
 </template>
 
 <script setup lang="tsx">
+  import BkButton from 'bkui-vue/lib/button';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
 
   import SqlserverPermissionModel from '@services/model/sqlserver/sqlserver-permission';
   import {
@@ -118,13 +115,14 @@
   import { OccupiedInnerHeight } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
+  import MiniTag from '@components/mini-tag/index.vue';
 
   import { messageSuccess } from '@utils';
 
   import AccountDialog from './components/AccountDialog.vue';
   import CreateRuleSlider from './components/CreateRule.vue';
 
-  interface PermissionRuleExtend extends SqlserverPermissionModel{
+  interface PermissionRuleExtend extends SqlserverPermissionModel {
     isExpand: boolean
   }
 
@@ -138,8 +136,6 @@
   }
 
   const { t } = useI18n();
-  const router = useRouter();
-  const route = useRoute();
 
   const columns = [
     {
@@ -152,30 +148,32 @@
           onClick={ () => handleToggleExpand(data) }>
             {
               data.rules.length > 1 && (
-                <i
-                  class={ ['db-icon-down-shape user-icon', { 'user-icon-expand': data.isExpand }] } />
+                <Db-Icon
+                  type='down-shape'
+                  class={ ['user-icon', { 'user-icon-expand': data.isExpand }] } />
               )
             }
             <div class="user-name">
-              <a
-                v-overflow-tips
-                class="user-name-text text-overflow"
-                href="javascript:"
-                onClick={ () => handleViewAccount(data) }>
-                  { data.account.user }
-              </a>
+              <bk-button
+                text
+                theme="primary"
+                class="user-name-text"
+                onClick={() => handleViewAccount(data)}>
+                  {data.account.user}
+              </bk-button>
               {
                 data.isNew && (
-                  <span
-                    class="glob-new-tag mr-4"
-                    data-text="NEW" />
+                  <MiniTag
+                    theme="success"
+                    content="NEW"
+                    class="ml-4" />
                 )
               }
               <bk-button
-                class="add-rule"
+                class="add-rule ml-4"
                 size="small"
-                onClick={ () => handleShowCreateRule(data) }>
-                 { t('新建规则') }
+                onClick={() => handleShowCreateRule(data)}>
+                 {t('新建规则')}
               </bk-button>
             </div>
         </div>
@@ -222,22 +220,6 @@
           </div>
         ))
       ),
-    },
-    {
-      label: t('授权实例'),
-      field: 'account_id',
-      sort: true,
-      render: ({ data }: { data: PermissionRuleExtend }) => getRenderList(data).map(rule => (
-        <div class="permission-rules-cell">
-          <a
-            v-overflow-tips
-            class="user-name-text text-overflow"
-            href="javascript:"
-            onClick={ () => handleGoToAuthorize(data, rule) }>
-              { rule.account_id }
-          </a>
-        </div>
-      )),
     },
     {
       label: t('操作'),
@@ -336,7 +318,7 @@
   const authorizeDbs = ref();
 
   const {
-    data,
+    data: sqlserverPermissionRulesData,
     mutate,
     loading: isLoading,
     run: runAccountRulesList,
@@ -376,9 +358,7 @@
     if (data.rules.length <= 1) {
       return;
     }
-    Object.assign(data, {
-      isExpand: !data.isExpand,
-    });
+    Object.assign(data, { isExpand: !data.isExpand });
   };
 
   const handleDeleteAccount = (data: PermissionRuleExtend) => {
@@ -416,20 +396,6 @@
     authorizeUser.value = data.account.user;
     authorizeDbs.value = [item.access_db];
   };
-
-  const handleGoToAuthorize = (
-    data: PermissionRuleExtend,
-    item: PermissionRuleItemType,
-  ) => {
-    router.push({
-      name: 'xxx',
-      query: {
-        from: String(route.name),
-        bizId: data.account.bk_biz_id,
-        accountId: item.account_id,
-      },
-    });
-  };
 </script>
 
 <style lang="less" scoped>
@@ -458,7 +424,6 @@
     .flex-center();
 
     .user-name-text {
-      margin-right: 16px;
       font-weight: bold;
     }
 

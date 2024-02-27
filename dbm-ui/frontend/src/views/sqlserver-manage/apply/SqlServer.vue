@@ -39,8 +39,8 @@
                     class="create-module"
                     text
                     @click="handleCreateModule">
-                    <span class="db-icon-plus-circle" />
-                    {{ t('新建模块') }}
+                    <DbIcon type="plus-circle" />
+                    <span class="ml-4">{{ t('新建模块') }}</span>
                   </BkButton>
                 </p>
               </template>

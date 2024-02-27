@@ -109,6 +109,16 @@
       id: ClusterTypes.TENDBCLUSTER,
       name: 'TenDBCluster',
     },
+    {
+      moduleId: 'sqlserver',
+      id: ClusterTypes.SQLSERVER_SINGLE,
+      name: t('SQLServer单节点'),
+    },
+    {
+      moduleId: 'sqlserver',
+      id: ClusterTypes.SQLSERVER_HA,
+      name: t('SQLServer主从'),
+    },
   ];
 
   const route = useRoute();

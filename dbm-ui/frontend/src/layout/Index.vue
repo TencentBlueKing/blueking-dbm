@@ -125,6 +125,7 @@
       'RedisManage',
       'SpiderManage',
       'RiakManage',
+      'SqlServerManage',
       'taskHistory',
       'DatabaseWhitelist',
       'ticketManage',
