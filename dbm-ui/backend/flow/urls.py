@@ -86,6 +86,7 @@ from backend.flow.views.mysql_open_area import MysqlOpenAreaSceneApiView
 from backend.flow.views.mysql_partition import MysqlPartitionSceneApiView
 from backend.flow.views.mysql_proxy_add import AddMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_switch import SwitchMySQLProxySceneApiView
+from backend.flow.views.mysql_proxy_upgrade import UpgradeMySQLProxySceneApiView
 from backend.flow.views.mysql_pt_table_sync import MySQLPtTableSyncApiView
 from backend.flow.views.mysql_restore_local_remote import RestoreMysqlLocalRemoteSceneApiView
 from backend.flow.views.mysql_restore_local_slave import RestoreMysqlLocalSlaveSceneApiView
@@ -271,6 +272,7 @@ urlpatterns = [
     url(r"^scene/import_sqlfile$", ImportSQLFileSceneApiView.as_view()),
     url(r"^scene/switch_mysql_proxy$", SwitchMySQLProxySceneApiView.as_view()),
     url(r"^scene/add_mysql_proxy$", AddMySQLProxySceneApiView.as_view()),
+    url(r"^scene/upgrade_mysql_proxy$", UpgradeMySQLProxySceneApiView.as_view()),
     url(r"^scene/install_influxdb$", InstallInfluxdbSceneApiView.as_view()),
     url(r"^scene/enable_influxdb$", EnableInfluxdbSceneApiView.as_view()),
     url(r"^scene/disable_influxdb$", DisableInfluxdbSceneApiView.as_view()),

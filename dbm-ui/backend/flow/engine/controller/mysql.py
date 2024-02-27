@@ -33,6 +33,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpe
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQLProxyClusterAddFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_upgrade import MySQLProxyLocalUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_random_password import MySQLRandomizePassword
 from backend.flow.engine.bamboo.scene.mysql.mysql_rename_database_flow import MySQLRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_restore_slave_flow import MySQLRestoreSlaveFlow
@@ -547,3 +548,29 @@ class MySQLController(BaseController):
     def mysql_ha_metadata_import_scene(self):
         flow = TenDBHAMetadataImportFlow(root_id=self.root_id, data=self.ticket_data)
         flow.import_meta()
+
+    def mysql_proxy_upgrade_scene(self):
+        """
+        添加mysql_proxy实例场景(新flow编排)
+        ticket_data 参数结构体样例
+        {
+        "uid": "2022051612120001",
+        "created_by": "xxx",
+        "bk_biz_id": "152",
+        "ticket_type": "MYSQL_PROXY_UPGRADE",
+        "new_proxy_version": "mysql-proxy-0.82.13.tar.gz",
+        "proxy_ip_list":[
+                {
+                    "bk_cloud_id: 0,
+                    "ip":"1.1.1.1",
+                }
+                {
+                    "bk_cloud_id: 0,
+                    "ip":"2.2.2.2",
+                }
+            ]
+        }
+        """
+
+        flow = MySQLProxyLocalUpgradeFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.upgrade_mysql_proxy_flow()
