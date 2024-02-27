@@ -29,7 +29,7 @@ from backend.db_services.dbpermission.db_authorize.serializers import (
     PreCheckExcelAuthorizeRulesResponseSerializer,
     PreCheckExcelAuthorizeRulesSerializer,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/permission/authorize"
 
@@ -41,7 +41,7 @@ class DBAuthorizeViewSet(viewsets.SystemViewSet):
     excel_authorize_meta = ExcelAuthorizeMeta
 
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     def _view_common_handler(
         self,
