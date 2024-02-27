@@ -457,6 +457,7 @@
         fetchHostNodes();
         fetchClusers({
           dbtype: type,
+          bk_biz_id: currentBizId,
         });
         fetchAlarmGroupList({
           bk_biz_id: currentBizId,
