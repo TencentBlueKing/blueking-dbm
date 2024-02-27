@@ -23,7 +23,7 @@ type BkDbmLabel struct {
 	App           string `json:"app" mapstructure:"app" yaml:"app"`
 	AppName       string `json:"app_name" mapstructure:"-" yaml:"app_name"`
 	ClusterDomain string `json:"cluster_domain" mapstructure:"cluster_domain" yaml:"cluster_domain"`
-	ClusterId     string `json:"cluster_id" mapstructure:"cluster_id" yaml:"cluster_id"`
+	ClusterId     int64  `json:"cluster_id" mapstructure:"cluster_id" yaml:"cluster_id"`
 	ClusterName   string `json:"cluster_name" mapstructure:"cluster_name" yaml:"cluster_name"`
 	ClusterType   string `json:"cluster_type" mapstructure:"cluster_type" yaml:"cluster_type"`
 	RoleType      string `json:"role_type" mapstructure:"role_type" yaml:"role_type"` // shardsvr,mongos,configsvr

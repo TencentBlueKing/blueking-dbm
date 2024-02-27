@@ -211,7 +211,7 @@ func DecodeFileV0INCR(filename string) (*BackupFileName, error) {
 		return nil, fmt.Errorf("bad format: LastTs (%s %s)err:%v", fields[fn-1], "0", err)
 	}
 
-	if vv, err := strconv.ParseUint(fields[fn-2], 10, 64); err != nil {
+	if vv, err := strconv.ParseUint(fields[fn-2], 10, 32); err != nil {
 		return nil, fmt.Errorf("bad format: V0IncrSeq:%v", err)
 	} else {
 		bfn.V0IncrSeq = uint32(vv)

@@ -70,10 +70,9 @@ func ParseHexAddr(host string) (ip string, port int, err error) {
 	if err != nil {
 		return "", 0, err
 	}
-
 	ip = InetNtoA(n)
 
-	n2, err := strconv.ParseUint(fs[1], 16, 32)
+	n2, err := strconv.ParseInt(fs[1], 16, 32)
 	if err != nil {
 		return "", 0, err
 	}
@@ -86,27 +85,6 @@ func ParseHexAddr(host string) (ip string, port int, err error) {
 const ProcNetTcpPath = "/proc/net/tcp"
 const ESTABLISHED = 1
 const LISTEN = 10
-
-/*
-	ProcNetTcp
-读取/proc/net/tcp文件
-sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
-0: 0100007F:1B1E 00000000:0000 0A 00000000:00000000 00:00000000
-    -- 00000000     0        0 442153839 1 ffff880101899500 100 0 0 10 0
-    TCP_ESTABLISHED(1),
-    TCP_SYN_SENT,
-    TCP_SYN_RECV,
-    TCP_FIN_WAIT1,
-    TCP_FIN_WAIT2,
-    TCP_TIME_WAIT,
-    TCP_CLOSE,
-	TCP_CLOSE_WAIT,
-    TCP_LAST_ACK,
-    TCP_LISTEN,
-    TCP_CLOSING,     Now a valid state
-	TCP_NEW_SYN_RECV,
-	TCP_MAX_STATES   Leave at the end!
-*/
 
 // ProcNetTcp 读取/proc/net/tcp文件
 func ProcNetTcp(input []byte) (rows []NetTcp, err error) {
@@ -127,8 +105,6 @@ func ProcNetTcp(input []byte) (rows []NetTcp, err error) {
 	for scanner.Scan() {
 		nLine++
 		line := scanner.Text()
-		//	fmt.Printf("%d %s\n", nLine, line)
-		// skip first line
 		row := NetTcp{}
 		row.Fields = strings.Fields(line)
 
@@ -145,7 +121,6 @@ func ProcNetTcp(input []byte) (rows []NetTcp, err error) {
 		row.RemoteHost, row.RemotePort, err = ParseHexAddr(row.Fields[2])
 		v, _ := strconv.ParseUint(row.Fields[3], 16, 8)
 		row.St = int(v)
-		// fmt.Printf("row %+v\n", row)
 		rows = append(rows, row)
 	}
 	return rows, nil

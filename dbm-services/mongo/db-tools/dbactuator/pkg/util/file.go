@@ -9,13 +9,22 @@ import (
 	"os"
 )
 
-// FileExists 检查目录是否已经存在
+// FileExists 检查path是否已经存在
 func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
 		return os.IsExist(err)
 	}
 	return true
+}
+
+// DirExists 检查目录是否已经存在
+func DirExists(path string) bool {
+	f, err := os.Stat(path)
+	if err != nil {
+		return os.IsExist(err)
+	}
+	return f.IsDir()
 }
 
 // GetFileMd5 求文件md5sum值
