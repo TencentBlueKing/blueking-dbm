@@ -116,6 +116,16 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
         ]
 
+    def mysql_proxy_upgrade_package(self, version: str) -> list:
+        """
+        mysql_proxy 升级需要的安装包列表
+        """
+        proxy_pkg = Package.get_latest_package(version=version, pkg_type=MediumEnum.MySQLProxy)
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{proxy_pkg.path}",
+        ]
+
     def riak_install_package(self, db_version: str) -> list:
         """
         riak安装需要的安装包列表

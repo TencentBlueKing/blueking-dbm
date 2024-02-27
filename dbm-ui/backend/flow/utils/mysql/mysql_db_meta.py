@@ -20,7 +20,7 @@ from backend.db_meta import api
 from backend.db_meta.api.cluster.tendbha.handler import TenDBHAClusterHandler
 from backend.db_meta.api.cluster.tendbsingle.handler import TenDBSingleClusterHandler
 from backend.db_meta.enums import ClusterPhase, InstanceInnerRole, InstanceRole, InstanceStatus, MachineType
-from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
@@ -901,3 +901,12 @@ class MySQLDBMeta(object):
                 api.machine.delete(
                     machines=[self.cluster["uninstall_ip"]], bk_cloud_id=int(self.ticket_data["bk_cloud_id"])
                 )
+
+    def update_proxy_instance_version(self):
+        """
+        升级后更新proxy版本信息
+        """
+        with atomic():
+            ProxyInstance.objects.filter(
+                machine__ip=self.cluster["proxy_ip"],
+            ).update(version=self.cluster["version"])

@@ -68,6 +68,7 @@ func (p *UpgradeProxyComp) Init() (err error) {
 	p.adminUser = p.GeneralParam.RuntimeAccountParam.ProxyAdminUser
 	p.adminPwd = p.GeneralParam.RuntimeAccountParam.ProxyAdminPwd
 	p.proxyAdminConns = make(map[Port]*native.ProxyAdminDbWork)
+	p.proxyBackend = make(map[Port]string)
 	p.installPath = cst.UsrLocal
 	if err = p.connAllProxyAdminPorts(); err != nil {
 		return err

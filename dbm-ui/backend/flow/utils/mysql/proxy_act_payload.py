@@ -75,6 +75,26 @@ class ProxyActPayload(object):
             },
         }
 
+    def get_proxy_upgrade_payload(self, **kwargs) -> dict:
+        """
+        local upgrade mysql proxy
+        """
+        proxy_pkg = Package.get_latest_package(version=self.cluster["version"], pkg_type=MediumEnum.MySQLProxy)
+        return {
+            "db_type": DBActuatorTypeEnum.Proxy.value,
+            "action": DBActuatorActionEnum.Upgrade.value,
+            "payload": {
+                "general": {"runtime_account": self.proxy_account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "ports": self.cluster["proxy_ports"],
+                    "force": False,
+                    "pkg": proxy_pkg.name,
+                    "pkg_md5": proxy_pkg.md5,
+                },
+            },
+        }
+
     def get_set_proxy_backends(self, **kwargs) -> dict:
         """
         拼接proxy配置后端实例的payload参数
