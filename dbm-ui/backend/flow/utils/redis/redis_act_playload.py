@@ -66,15 +66,15 @@ apply_list = [
 ]
 global_list = [TicketType.REDIS_KEYS_DELETE.value]
 proxy_scale_list = [
-    TicketType.PROXY_SCALE_UP.value,
-    TicketType.PROXY_SCALE_DOWN.value,
+    TicketType.REDIS_PROXY_SCALE_UP.value,
+    TicketType.REDIS_PROXY_SCALE_DOWN.value,
 ]
 redis_scale_list = [TicketType.REDIS_SCALE_UPDOWN.value, TicketType.REDIS_SLOTS_MIGRATE.value]
 cutoff_list = [
     TicketType.REDIS_CLUSTER_CUTOFF.value,
     TicketType.REDIS_CLUSTER_ADD_SLAVE.value,
 ]
-migrate_list = [TicketType.TENDIS_META_MITRATE.value]
+migrate_list = [TicketType.REDIS_TENDIS_META_MITRATE.value]
 tool_list = [TicketType.REDIS_DATA_STRUCTURE.value, TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value]
 twemproxy_cluster_type_list = [
     ClusterType.TendisTwemproxyRedisInstance.value,

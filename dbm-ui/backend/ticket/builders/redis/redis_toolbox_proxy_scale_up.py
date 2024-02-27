@@ -58,7 +58,7 @@ class ProxyScaleUpResourceParamBuilder(BaseOperateResourceParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.PROXY_SCALE_UP, is_apply=True, iam=ActionEnum.REDIS_PROXY_SCALE_UP)
+@builders.BuilderFactory.register(TicketType.REDIS_PROXY_SCALE_UP, is_apply=True, iam=ActionEnum.REDIS_PROXY_SCALE_UP)
 class ProxyScaleUpFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = ProxyScaleUpDetailSerializer
     inner_flow_builder = ProxyScaleUpParamBuilder

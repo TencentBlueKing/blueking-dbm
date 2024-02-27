@@ -30,14 +30,23 @@ from backend.db_services.dbpermission.db_account.serializers import (
     QueryAccountRulesSerializer,
     UpdateAccountSerializer,
 )
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission
 
 SWAGGER_TAG = "db_services/permission/account"
 
 
 class BaseDBAccountViewSet(viewsets.SystemViewSet):
+    db_type = None
+
     def _get_custom_permissions(self):
-        return [DBManagePermission()]
+        if self.action not in ["create_account", "delete_account", "add_account_rule"]:
+            return [DBManagePermission()]
+
+        account_type = self.request.data.get("account_type", self.db_type)
+        account_action = getattr(ActionEnum, f"{account_type}_{self.action}".upper())
+        return [ResourceActionPermission([account_action], ResourceEnum.BUSINESS)]
 
     def _view_common_handler(
         self, request, bk_biz_id: int, meta: Union[Type[AccountMeta], Type[AccountRuleMeta]], func: str

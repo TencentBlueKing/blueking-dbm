@@ -55,7 +55,7 @@ class RedisDataStructureTaskDeleteParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(
-    TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE, iam=ActionEnum.REDIS_DATA_STRUCTURE_MANAGE
+    TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE, iam=ActionEnum.REDIS_DATA_STRUCTURE_TASK_DELETE
 )
 class RedisDataStructureTaskDeleteFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisDataStructureTaskDeleteDetailSerializer

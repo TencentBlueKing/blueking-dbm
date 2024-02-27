@@ -48,7 +48,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         **kwargs,
     ) -> Dict[str, Any]:
         """将集群对象转为可序列化的 dict 结构"""
-        storages = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.MASTER]
+        storages = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.ORPHAN]
         cluster_role_info = {"storages": storages}
         cluster_info = super()._to_cluster_representation(
             cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map

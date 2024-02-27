@@ -25,6 +25,7 @@ from backend.db_services.mysql.constants import DEFAULT_ORIGIN_MYSQL_PORT, SERVE
 from backend.exceptions import ValidationError
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.sqlserver.base import (
@@ -191,7 +192,10 @@ class SQLServerSingleApplyResourceParamBuilder(SQLServerBaseOperateResourceParam
 
 
 @builders.BuilderFactory.register(
-    TicketType.SQLSERVER_SINGLE_APPLY, is_apply=True, cluster_type=ClusterType.SqlserverSingle
+    TicketType.SQLSERVER_SINGLE_APPLY,
+    is_apply=True,
+    cluster_type=ClusterType.SqlserverSingle,
+    iam=ActionEnum.SQLSERVER_APPLY,
 )
 class SQLServerSingleApplyFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerSingleApplyDetailSerializer

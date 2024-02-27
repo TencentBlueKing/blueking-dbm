@@ -19,7 +19,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ActionNotExistError
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import TicketEnumField, TicketType
 
 
 @dataclass
@@ -40,6 +40,9 @@ class ActionMeta(Action):
 
     def __post_init__(self):
         super(ActionMeta, self).__init__(id=self.id)
+        self.related_actions = self.related_actions or []
+        self.related_resource_types = self.related_resource_types or []
+        # 单据工具箱初始化
         if self.is_ticket_action:
             self.__ticket_tool_action_init__()
 
@@ -54,7 +57,7 @@ class ActionMeta(Action):
         self.related_resource_types = self.related_resource_types or [getattr(ResourceEnum, group.upper())]
         self.related_actions = self.related_actions or []
         self.group = DBType.get_choice_label(group)
-        self.subgroup = self.subgroup or _("工具箱")
+        self.subgroup = str(self.subgroup or _("工具箱"))
 
     def to_json(self):
         content = asdict(self)
@@ -88,6 +91,7 @@ class ActionMeta(Action):
         return content
 
 
+# fmt: off
 class ActionEnum:
     """action 枚举类"""
 
@@ -167,6 +171,17 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    MYSQL_CLIENT_CLONE_RULES = ActionMeta(
+        id="mysql_client_clone_rules",
+        name=_("MySQL 客户端克隆"),
+        name_en="mysql_client_clone_rules",
+        type="execute",
+        related_actions=[MYSQL_VIEW.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MySQL"),
+        subgroup=_("集群管理"),
+    )
+
     MYSQL_DESTROY = ActionMeta(
         id="mysql_destroy",
         name=_("MySQL 集群删除"),
@@ -211,235 +226,11 @@ class ActionEnum:
         subgroup=_("权限管理"),
     )
 
-    MYSQL_AUTHORIZE_RULES = ActionMeta(
-        id="mysql_authorize",
-        name=_("MySQL 授权"),
-        name_en="MySQL Authorize",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("权限管理"),
-    )
-
     MYSQL_EXCEL_AUTHORIZE_RULES = ActionMeta(
-        id="mysql_excel_authorize",
-        name=_("MySQL 导入授权"),
-        name_en="MySQL Excel Authorize",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
+        id=TicketType.MYSQL_EXCEL_AUTHORIZE_RULES.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("MySQL"),
         subgroup=_("权限管理"),
-    )
-
-    MYSQL_IMPORT_SQLFILE = ActionMeta(
-        id="mysql_import_sqlfile",
-        name=_("MySQL 变更SQL执行"),
-        name_en="mysql_import_sqlfile",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("SQL 任务"),
-    )
-
-    MYSQL_HA_RENAME_DATABASE = ActionMeta(
-        id="mysql_ha_rename_database",
-        name=_("MySQL DB重命名"),
-        name_en="mysql_ha_rename_database",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("SQL 任务"),
-    )
-
-    MYSQL_CLIENT_CLONE_RULES = ActionMeta(
-        id="mysql_client_clone_rules",
-        name=_("MySQL 客户端权限克隆"),
-        name_en="MySQL Client Clone Rules",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("MySQL"),
-        subgroup=_("权限克隆"),
-    )
-
-    MYSQL_INSTANCE_CLONE_RULES = ActionMeta(
-        id="mysql_instance_clone_rules",
-        name=_("MySQL DB实例权限克隆"),
-        name_en="MySQL Instance Clone Rules",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("权限克隆"),
-    )
-
-    MYSQL_RESTORE_LOCAL_SLAVE = ActionMeta(
-        id="mysql_restore_local_slave",
-        name=_("MySQL 原地重建"),
-        name_en="MySQL Restore local slave",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("集群维护"),
-    )
-
-    MYSQL_RESTORE_SLAVE = ActionMeta(
-        id="mysql_restore_slave",
-        name=_("MySQL 新机从建"),
-        name_en="mysql_restore_slave",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("集群维护"),
-    )
-
-    MYSQL_ADD_SLAVE = ActionMeta(
-        id="mysql_add_slave",
-        name=_("MySQL 添加从库"),
-        name_en="mysql_add_slave",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("集群维护"),
-    )
-
-    MYSQL_MIGRATE_CLUSTER = ActionMeta(
-        id="mysql_migrate_cluster",
-        name=_("MySQL 克隆主从"),
-        name_en="mysql_migrate_cluster",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("集群维护"),
-    )
-
-    MYSQL_MASTER_SLAVE_SWITCH = ActionMeta(
-        id="mysql_master_slave_switch",
-        name=_("MySQL 主从互切"),
-        name_en="mysql_master_slave_switch",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("集群维护"),
-    )
-
-    MYSQL_PROXY_SWITCH = ActionMeta(
-        id="mysql_proxy_switch",
-        name=_("MySQL 替换proxy"),
-        name_en="master_proxy_switch",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("集群维护"),
-    )
-
-    MYSQL_PROXY_ADD = ActionMeta(
-        id="mysql_proxy_add",
-        name=_("MySQL 添加proxy"),
-        name_en="master_proxy_add",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("集群维护"),
-    )
-
-    MYSQL_MASTER_FAIL_OVER = ActionMeta(
-        id="mysql_master_fail_over",
-        name=_("MySQL 主故障切换"),
-        name_en="master_master_fail_over",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("集群维护"),
-    )
-
-    MYSQL_HA_FULL_BACKUP = ActionMeta(
-        id="mysql_ha_full_backup",
-        name=_("MySQL 全库备份"),
-        name_en="mysql_ha_full_backup",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("备份"),
-    )
-
-    MYSQL_HA_DB_TABLE_BACKUP = ActionMeta(
-        id="mysql_ha_db_table_backup",
-        name=_("MySQL 库表备份"),
-        name_en="mysql_ha_db_table_backup",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("备份"),
-    )
-
-    MYSQL_HA_TRUNCATE_DATA = ActionMeta(
-        id="mysql_ha_truncate_date",
-        name=_("MySQL 清档"),
-        name_en="mysql_ha_truncate_date",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("数据处理"),
-    )
-
-    MYSQL_CHECKSUM = ActionMeta(
-        id="mysql_checksum",
-        name=_("MySQL 数据校验修复"),
-        name_en="mysql_checksum",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("数据处理"),
-    )
-
-    MYSQL_FLASHBACK = ActionMeta(
-        id="mysql_flashback",
-        name=_("MySQL 闪回"),
-        name_en="mysql_flashback",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("回档"),
-    )
-
-    MYSQL_ROLLBACK_CLUSTER = ActionMeta(
-        id="mysql_rollback_cluster",
-        name=_("MySQL 定点回档"),
-        name_en="mysql_rollback_cluster",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("回档"),
-    )
-
-    MYSQL_PARTITION = ActionMeta(
-        id="mysql_partition",
-        name=_("MySQL 分区策略执行"),
-        name_en="mysql_partition",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("分区管理"),
+        is_ticket_action=True
     )
 
     MYSQL_PARTITION_CREATE = ActionMeta(
@@ -484,17 +275,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MySQL"),
         subgroup=_("分区管理"),
-    )
-
-    MYSQL_OPENAREA = ActionMeta(
-        id="mysql_open_area",
-        name=_("MySQL 开区"),
-        name_en="mysql_open_area",
-        type="execute",
-        related_actions=[MYSQL_VIEW.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("克隆开区"),
     )
 
     MYSQL_OPENAREA_CONFIG_CREATE = ActionMeta(
@@ -607,6 +387,17 @@ class ActionEnum:
         subgroup=_("Dumper管理"),
     )
 
+    TENDBCLUSTER_VIEW = ActionMeta(
+        id="tendbcluster_view",
+        name=_("TendbCluster 集群查看"),
+        name_en="tendbcluster_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("TendbCluster"),
+        subgroup=_("集群管理"),
+    )
+
     TENDBCLUSTER_CREATE_ACCOUNT = ActionMeta(
         id="tendbcluster_account_create",
         name=_("TendbCluster 账号创建"),
@@ -640,37 +431,33 @@ class ActionEnum:
         subgroup=_("权限管理"),
     )
 
-    TENDBCLUSTER_VIEW = ActionMeta(
-        id="tendbcluster_view",
-        name=_("TendbCluster 集群查看"),
-        name_en="tendbcluster_view",
-        type="view",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+    TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = ActionMeta(
+        id="tendb_excel_authorize_rules",
+        name=_("TendbCluster Excel授权"),
+        name_en="tendb_excel_authorize_rules",
+        related_resource_types=[ResourceEnum.BUSINESS],
         group=_("TendbCluster"),
-        subgroup=_("集群管理"),
+        subgroup=_("权限管理"),
     )
 
-    TENDBCLUSTER_CHECKSUM = ActionMeta(
-        id="tendbcluster_checksum",
-        name=_("TendbCluster 数据校验修复"),
-        name_en="tendbcluster_checksum",
+    TENDBCLUSTER_CLIENT_CLONE_RULES = ActionMeta(
+        id="tendb_cluster_client_clone_rules",
+        name=_("TendbCluster 客户端克隆权限"),
+        name_en="tendb_cluster_client_clone_rules",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("TendbCluster"),
+        subgroup=_("权限管理"),
+    )
+
+    TENDBCLUSTER_INSTANCE_CLONE_RULES = ActionMeta(
+        id="tendb_instance_clone_rules",
+        name=_("TendbCluster DB实例权限克隆"),
+        name_en="tendb_instance_clone_rules",
         type="execute",
         related_actions=[TENDBCLUSTER_VIEW.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TendbCluster"),
-        subgroup=_("数据处理"),
-    )
-
-    TENDBCLUSTER_OPENAREA = ActionMeta(
-        id="tendbcluster_open_area",
-        name=_("TendbCluster 开区"),
-        name_en="tendbcluster_open_area",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("克隆开区"),
+        subgroup=_("权限克隆"),
     )
 
     TENDBCLUSTER_OPENAREA_CONFIG_CREATE = ActionMeta(
@@ -704,17 +491,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG],
         group=_("TendbCluster"),
         subgroup=_("克隆开区"),
-    )
-
-    TENDBCLUSTER_PARTITION = ActionMeta(
-        id="tendbcluster_partition",
-        name=_("TendbCluster 分区管理"),
-        name_en="tendbcluster_partition",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("分区管理"),
     )
 
     TENDBCLUSTER_PARTITION_CREATE = ActionMeta(
@@ -761,147 +537,11 @@ class ActionEnum:
         subgroup=_("分区管理"),
     )
 
-    TENDBCLUSTER_DB_TABLE_BACKUP = ActionMeta(
-        id="tendbcluster_db_table_backup",
-        name=_("TendbCluster 库表备份"),
-        name_en="tendbcluster_db_table_backup",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("备份"),
-    )
-
-    TENDBCLUSTER_RENAME_DATABASE = ActionMeta(
-        id="tendbcluster_rename_database",
-        name=_("TendbCluster DB重命名"),
-        name_en="tendbcluster_rename_database",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("SQL 任务"),
-    )
-
-    TENDBCLUSTER_TRUNCATE_DATABASE = ActionMeta(
-        id="tendbcluster_truncate_database",
-        name=_("TendbCluster 清档"),
-        name_en="tendbcluster_truncate_database",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("数据处理"),
-    )
-
-    TENDBCLUSTER_MASTER_FAIL_OVER = ActionMeta(
-        id="tendbcluster_master_fail_over",
-        name=_("TendbCluster 主故障切换"),
-        name_en="tendbcluster_master_fail_over",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("集群维护"),
-    )
-
-    TENDBCLUSTER_MASTER_SLAVE_SWITCH = ActionMeta(
-        id="tendbcluster_master_slave_switch",
-        name=_("TendbCluster 主从互切"),
-        name_en="tendbcluster_master_slave_switch",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("集群维护"),
-    )
-
-    TENDBCLUSTER_IMPORT_SQLFILE = ActionMeta(
-        id="tendbcluster_import_sqlfile",
-        name=_("TendbCluster 变更SQL执行"),
-        name_en="tendbcluster_import_sqlfile",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("SQL 任务"),
-    )
-
-    TENDBCLUSTER_SPIDER_ADD_NODES = ActionMeta(
-        id="tendbcluster_spider_add_nodes",
-        name=_("TendbCluster 扩容接入层"),
-        name_en="tendbcluster_spider_add_nodes",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("集群维护"),
-    )
-
-    TENDBCLUSTER_SPIDER_REDUCE_NODES = ActionMeta(
-        id="tendbcluster_spider_reduce_nodes",
-        name=_("TendbCluster 缩容接入层"),
-        name_en="tendbcluster_spider_reduce_nodes",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("集群维护"),
-    )
-
-    TENDBCLUSTER_SPIDER_MNT_APPLY = ActionMeta(
-        id="tendbcluster_spider_mnt_apply",
-        name=_("TendbCluster 添加运维节点"),
-        name_en="tendbcluster_spider_mnt_apply",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("运维 Spider 管理"),
-    )
-
-    TENDBCLUSTER_SPIDER_MNT_DESTROY = ActionMeta(
-        id="tendbcluster_spider_mnt_destroy",
-        name=_("TendbCluster 下架运维节点"),
-        name_en="tendbcluster_spider_mnt_destroy",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("运维 Spider 管理"),
-    )
-
-    TENDBCLUSTER_SPIDER_SLAVE_APPLY = ActionMeta(
-        id="tendbcluster_spider_slave_apply",
-        name=_("TendbCluster 部署只读接入层"),
-        name_en="tendbcluster_spider_slave_apply",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("访问入口"),
-    )
-
-    TENDBCLUSTER_SPIDER_SLAVE_DESTROY = ActionMeta(
-        id="tendb_spider_slave_destroy",
-        name=_("TendbCluster 下架只读接入层"),
-        name_en="tendb_spider_slave_destroy",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("访问入口"),
-    )
-
     TENDBCLUSTER_APPLY = ActionMeta(
-        id="tendbcluster_apply",
-        name=_("TendbCluster 集群部署"),
-        name_en="tendbcluster_apply",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
+        id=TicketType.TENDBCLUSTER_APPLY.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TendbCluster"),
         subgroup=_("集群管理"),
+        is_ticket_action=True
     )
 
     TENDBCLUSTER_ENABLE_DISABLE = ActionMeta(
@@ -915,114 +555,15 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    TENDBCLUSTER_DESTROY = ActionMeta(
-        id="tendbcluster_destroy",
-        name=_("TendbCluster 集群删除"),
-        name_en="tendbcluster_destroy",
+    TENDBCLUSTER_SPIDER_SLAVE_DESTROY = ActionMeta(
+        id="tendb_spider_slave_destroy",
+        name=_("TendbCluster 下架只读接入层"),
+        name_en="tendb_spider_slave_destroy",
         type="execute",
         related_actions=[TENDBCLUSTER_VIEW.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TendbCluster"),
-        subgroup=_("集群管理"),
-    )
-
-    TENDBCLUSTER_TEMPORARY_DESTROY = ActionMeta(
-        id="tendbcluster_temporary_destroy",
-        name=_("TendbCluster 临时集群删除"),
-        name_en="tendbcluster_temporary_destroy",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("集群管理"),
-    )
-
-    TENDBCLUSTER_NODE_REBALANCE = ActionMeta(
-        id="tendbcluster_node_rebalance",
-        name=_("TendbCluster 集群容量变更"),
-        name_en="tendbcluster_node_rebalance",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("集群维护"),
-    )
-
-    TENDBCLUSTER_FULL_BACKUP = ActionMeta(
-        id="tendbcluster_full_backup",
-        name=_("TendbCluster 全库备份"),
-        name_en="tendbcluster_full_backup",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("备份"),
-    )
-
-    TENDBCLUSTER_ROLLBACK_CLUSTER = ActionMeta(
-        id="tendbcluster_rollback_cluster",
-        name=_("TendbCluster 定点构造"),
-        name_en="tendbcluster_rollback_cluster",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("回档"),
-    )
-
-    TENDBCLUSTER_FLASHBACK = ActionMeta(
-        id="tendbcluster_flashback",
-        name=_("TendbCluster 闪回"),
-        name_en="tendbcluster_flashback",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("回档"),
-    )
-
-    TENDBCLUSTER_CLIENT_CLONE_RULES = ActionMeta(
-        id="tendbcluster_cluster_clone_rules",
-        name=_("TendbCluster 客户端权限克隆"),
-        name_en="tendbcluster_cluster_clone_rules",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TendbCluster"),
-        subgroup=_("权限克隆"),
-    )
-
-    TENDBCLUSTER_INSTANCE_CLONE_RULES = ActionMeta(
-        id="tendb_instance_clone_rules",
-        name=_("TendbCluster DB实例权限克隆"),
-        name_en="tendb_instance_clone_rules",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("权限克隆"),
-    )
-
-    TENDBCLUSTER_AUTHORIZE_RULES = ActionMeta(
-        id="tendbcluster_authorize_rules",
-        name=_("TendbCluster 授权"),
-        name_en="tendbcluster_authorize_rules",
-        type="execute",
-        related_actions=[TENDBCLUSTER_VIEW.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
-        subgroup=_("权限管理"),
-    )
-
-    TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = ActionMeta(
-        id="tendb_excel_authorize_rules",
-        name=_("TendbCluster 导入授权"),
-        name_en="tendb_excel_authorize_rules",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TendbCluster"),
-        subgroup=_("权限管理"),
+        subgroup=_("访问入口"),
     )
 
     REDIS_VIEW = ActionMeta(
@@ -1032,17 +573,6 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_CLUSTER_APPLY = ActionMeta(
-        id="redis_cluster_apply",
-        name=_("Redis 集群部署"),
-        name_en="redis_cluster_apply",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
         group=_("Redis"),
         subgroup=_("集群管理"),
     )
@@ -1058,290 +588,11 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    REDIS_DESTROY = ActionMeta(
-        id="redis_destroy",
-        name=_("Redis 集群删除"),
-        name_en="redis_destroy",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_KEYS_EXTRACT = ActionMeta(
-        id="redis_keys_extract",
-        name=_("Redis 提取 Key"),
-        name_en="redis_keys_extract",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_KEYS_DELETE = ActionMeta(
-        id="redis_keys_delete",
-        name=_("Redis 删除 key"),
-        name_en="redis_keys_delete",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_BACKUP = ActionMeta(
-        id="redis_backup",
-        name=_("Redis 集群备份"),
-        name_en="redis_backup",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_PURGE = ActionMeta(
-        id="redis_purge",
-        name=_("Redis 集群清档"),
-        name_en="redis_purge",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_PLUGIN_CREATE_CLB = ActionMeta(
-        id="redis_plugin_create_clb",
-        name=_("Redis 创建CLB"),
-        name_en="redis_plugin_create_clb",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_PLUGIN_DELETE_CLB = ActionMeta(
-        id="redis_plugin_delete_clb",
-        name=_("Redis 删除CLB"),
-        name_en="redis_plugin_delete_clb",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_PLUGIN_DNS_BIND_CLB = ActionMeta(
-        id="redis_plugin_dns_bind_clb",
-        name=_("Redis 域名绑定CLB"),
-        name_en="redis_plugin_dns_bind_clb",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_PLUGIN_DNS_UNBIND_CLB = ActionMeta(
-        id="redis_plugin_dns_unbind_clb",
-        name=_("Redis 域名解绑CLB"),
-        name_en="redis_plugin_dns_unbind_clb",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_PLUGIN_CREATE_POLARIS = ActionMeta(
-        id="redis_plugin_create_polaris",
-        name=_("Redis 创建Polaris"),
-        name_en="redis_plugin_create_polaris",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_PLUGIN_DELETE_POLARIS = ActionMeta(
-        id="redis_plugin_delete_polaris",
-        name=_("Redis 删除Polaris"),
-        name_en="redis_plugin_delete_polaris",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群管理"),
-    )
-
-    REDIS_CLUSTER_AUTOFIX = ActionMeta(
-        id="redis_cluster_autofix",
-        name=_("Redis 故障自愈"),
-        name_en="redis_cluster_autofix",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群维护"),
-    )
-
-    REDIS_CLUSTER_INSTANCE_SHUTDOWN = ActionMeta(
-        id="redis_cluster_instance_shutdown",
-        name=_("Redis 故障自愈-实例下架"),
-        name_en="redis_cluster_instance_shutdown",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群维护"),
-    )
-
-    REDIS_SCALE_UPDOWN = ActionMeta(
-        id="redis_scale_updown",
-        name=_("Redis 集群容量变更"),
-        name_en="redis_scale_updown",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群维护"),
-    )
-
-    REDIS_PROXY_SCALE_UP = ActionMeta(
-        id="redis_proxy_scale_up",
-        name=_("Redis 扩容接入层"),
-        name_en="redis_proxy_scale_up",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群维护"),
-    )
-
-    REDIS_PROXY_SCALE_DOWN = ActionMeta(
-        id="redis_proxy_scale_down",
-        name=_("Redis 缩容接入层"),
-        name_en="redis_proxy_scale_down",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群维护"),
-    )
-
-    REDIS_CLUSTER_SHARD_NUM_UPDATE = ActionMeta(
-        id="redis_cluster_shard_num_update",
-        name=_("Redis 集群分片数变更"),
-        name_en="redis_cluster_shard_num_update",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群维护"),
-    )
-
-    REDIS_CLUSTER_TYPE_UPDATE = ActionMeta(
-        id="redis_cluster_type_update",
-        name=_("Redis 集群类型变更"),
-        name_en="redis_cluster_type_update",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群维护"),
-    )
-
-    REDIS_MASTER_SLAVE_SWITCH = ActionMeta(
-        id="redis_master_slave_switch",
-        name=_("Redis 主从切换"),
-        name_en="redis_master_slave_switch",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群维护"),
-    )
-
-    REDIS_CLUSTER_ADD_SLAVE = ActionMeta(
-        id="redis_cluster_add_slave",
-        name=_("Redis 重建从库"),
-        name_en="redis_cluster_add_slave",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群维护"),
-    )
-
-    REDIS_CLUSTER_CUTOFF = ActionMeta(
-        id="redis_cluster_cutoff",
-        name=_("Redis 整机替换"),
-        name_en="redis_cluster_cutoff",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("集群维护"),
-    )
-
-    REDIS_DATA_STRUCTURE = ActionMeta(
-        id="redis_data_structure",
-        name=_("Redis 定点构造"),
-        name_en="redis_data_structure",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("数据构造"),
-    )
-
-    REDIS_DATA_STRUCTURE_MANAGE = ActionMeta(
-        id="redis_data_structure_manage",
-        name=_("Redis 数据构造记录管理"),
-        name_en="redis_data_structure_manage",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("Redis"),
-        subgroup=_("数据构造"),
-    )
-
-    REDIS_CLUSTER_ROLLBACK_DATA_COPY = ActionMeta(
-        id="redis_cluster_rollback_data_copy",
-        name=_("Redis 以构造实例恢复"),
-        name_en="redis_cluster_rollback_data_copy",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("数据构造"),
-    )
-
-    REDIS_CLUSTER_DATA_COPY = ActionMeta(
-        id="redis_cluster_data_copy",
-        name=_("Redis 数据复制"),
-        name_en="redis_cluster_data_copy",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.REDIS],
-        group=_("Redis"),
-        subgroup=_("数据传输"),
-    )
-
     INFLUXDB_APPLY = ActionMeta(
-        id="influxdb_apply",
-        name=_("InfluxDB 实例部署"),
-        name_en="influxdb_apply",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
+        id=TicketType.INFLUXDB_APPLY.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("InfluxDB"),
         subgroup=_("实例管理"),
+        is_ticket_action=True
     )
 
     INFLUXDB_VIEW = ActionMeta(
@@ -1355,45 +606,12 @@ class ActionEnum:
         subgroup=_("实例管理"),
     )
 
-    INFLUXDB_REBOOT = ActionMeta(
-        id="influxdb_reboot",
-        name=_("InfluxDB 实例重启"),
-        name_en="influxdb_reboot",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.INFLUXDB],
-        group=_("InfluxDB"),
-        subgroup=_("实例管理"),
-    )
-
     INFLUXDB_ENABLE_DISABLE = ActionMeta(
         id="influxdb_enable_disable",
         name=_("InfluxDB 实例禁用启用"),
         name_en="influxdb_enable_disable",
         type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.INFLUXDB],
-        group=_("InfluxDB"),
-        subgroup=_("实例管理"),
-    )
-
-    INFLUXDB_DESTROY = ActionMeta(
-        id="influxdb_destroy",
-        name=_("InfluxDB 实例删除"),
-        name_en="influxdb_destroy",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.INFLUXDB],
-        group=_("InfluxDB"),
-        subgroup=_("实例管理"),
-    )
-
-    INFLUXDB_REPLACE = ActionMeta(
-        id="influxdb_replace",
-        name=_("InfluxDB 实例替换"),
-        name_en="influxdb_replace",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
+        related_actions=[INFLUXDB_VIEW.id],
         related_resource_types=[ResourceEnum.INFLUXDB],
         group=_("InfluxDB"),
         subgroup=_("实例管理"),
@@ -1421,80 +639,14 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    ES_SCALE_UP = ActionMeta(
-        id="es_scale_up",
-        name=_("ES 集群扩容"),
-        name_en="es_scale_up",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
-        subgroup=_("集群管理"),
-    )
-
-    ES_SHRINK = ActionMeta(
-        id="es_shrink",
-        name=_("ES 集群缩容"),
-        name_en="es_shrink",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
-        subgroup=_("集群管理"),
-    )
-
-    ES_REBOOT = ActionMeta(
-        id="es_reboot",
-        name=_("ES 集群节点重启"),
-        name_en="es_reboot",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
-        subgroup=_("集群管理"),
-    )
-
-    ES_REPLACE = ActionMeta(
-        id="es_replace",
-        name=_("ES 集群实例替换"),
-        name_en="es_replace",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
-        subgroup=_("集群管理"),
-    )
-
     ES_ENABLE_DISABLE = ActionMeta(
         id="es_enable_disable",
         name=_("ES 集群禁用启用"),
         name_en="es_enable_disable",
         type="execute",
-        related_actions=[DB_MANAGE.id],
+        related_actions=[ES_VIEW.id],
         related_resource_types=[ResourceEnum.ES],
         group=_("ES"),
-        subgroup=_("集群管理"),
-    )
-
-    ES_DESTROY = ActionMeta(
-        id="es_destroy",
-        name=_("ES 集群删除"),
-        name_en="es_destroy",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
-        subgroup=_("集群管理"),
-    )
-
-    KAFKA_APPLY = ActionMeta(
-        id="kafka_apply",
-        name=_("Kafka 集群部署"),
-        name_en="kafka_apply",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("Kafka"),
         subgroup=_("集群管理"),
     )
 
@@ -1509,48 +661,11 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    KAFKA_SCALE_UP = ActionMeta(
-        id="kafka_scale_up",
-        name=_("Kafka 集群扩容"),
-        name_en="kafka_scale_up",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.KAFKA],
-        group=_("Kafka"),
+    KAFKA_APPLY = ActionMeta(
+        id=TicketType.KAFKA_APPLY.lower(),
+        related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
-    )
-
-    KAFKA_SHRINK = ActionMeta(
-        id="kafka_shrink",
-        name=_("Kafka 集群缩容"),
-        name_en="kafka_shrink",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.KAFKA],
-        group=_("Kafka"),
-        subgroup=_("集群管理"),
-    )
-
-    KAFKA_REBOOT = ActionMeta(
-        id="kafka_reboot",
-        name=_("Kafka 集群节点重启"),
-        name_en="kafka_reboot",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.KAFKA],
-        group=_("Kafka"),
-        subgroup=_("集群管理"),
-    )
-
-    KAFKA_REPLACE = ActionMeta(
-        id="kafka_replace",
-        name=_("Kafka 集群实例替换"),
-        name_en="kafka_replace",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.KAFKA],
-        group=_("Kafka"),
-        subgroup=_("集群管理"),
+        is_ticket_action=True
     )
 
     KAFKA_ENABLE_DISABLE = ActionMeta(
@@ -1564,26 +679,11 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    KAFKA_DESTROY = ActionMeta(
-        id="kafka_destroy",
-        name=_("Kafka 集群删除"),
-        name_en="kafka_destroy",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.KAFKA],
-        group=_("Kafka"),
-        subgroup=_("集群管理"),
-    )
-
     HDFS_APPLY = ActionMeta(
-        id="hdfs_apply",
-        name=_("HDFS 集群部署"),
-        name_en="hdfs_apply",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
+        id=TicketType.HDFS_APPLY.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("HDFS"),
         subgroup=_("集群管理"),
+        is_ticket_action=True
     )
 
     HDFS_VIEW = ActionMeta(
@@ -1591,50 +691,6 @@ class ActionEnum:
         name=_("HDFS 集群详情查看"),
         name_en="hdfs_view",
         type="view",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.HDFS],
-        group=_("HDFS"),
-        subgroup=_("集群管理"),
-    )
-
-    HDFS_SCALE_UP = ActionMeta(
-        id="hdfs_scale_up",
-        name=_("HDFS 集群扩容"),
-        name_en="hdfs_scale_up",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.HDFS],
-        group=_("HDFS"),
-        subgroup=_("集群管理"),
-    )
-
-    HDFS_SHRINK = ActionMeta(
-        id="hdfs_shrink",
-        name=_("HDFS 集群缩容"),
-        name_en="hdfs_shrink",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.HDFS],
-        group=_("HDFS"),
-        subgroup=_("集群管理"),
-    )
-
-    HDFS_REBOOT = ActionMeta(
-        id="hdfs_reboot",
-        name=_("HDFS 集群节点重启"),
-        name_en="hdfs_reboot",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.HDFS],
-        group=_("HDFS"),
-        subgroup=_("集群管理"),
-    )
-
-    HDFS_REPLACE = ActionMeta(
-        id="hdfs_replace",
-        name=_("HDFS 集群实例替换"),
-        name_en="hdfs_replace",
-        type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.HDFS],
         group=_("HDFS"),
@@ -1652,26 +708,11 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    HDFS_DESTROY = ActionMeta(
-        id="hdfs_destroy",
-        name=_("HDFS 集群删除"),
-        name_en="hdfs_destroy",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.HDFS],
-        group=_("HDFS"),
-        subgroup=_("集群管理"),
-    )
-
     PULSAR_APPLY = ActionMeta(
-        id="pulsar_apply",
-        name=_("Pulsar 集群部署"),
-        name_en="pulsar_apply",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
+        id=TicketType.PULSAR_APPLY.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("Pulsar"),
         subgroup=_("集群管理"),
+        is_ticket_action=True
     )
 
     PULSAR_VIEW = ActionMeta(
@@ -1679,50 +720,6 @@ class ActionEnum:
         name=_("Pulsar 集群详情查看"),
         name_en="pulsar_view",
         type="view",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.PULSAR],
-        group=_("Pulsar"),
-        subgroup=_("集群管理"),
-    )
-
-    PULSAR_SCALE_UP = ActionMeta(
-        id="pulsar_scale_up",
-        name=_("Pulsar 集群扩容"),
-        name_en="pulsar_scale_up",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.PULSAR],
-        group=_("Pulsar"),
-        subgroup=_("集群管理"),
-    )
-
-    PULSAR_SHRINK = ActionMeta(
-        id="pulsar_shrink",
-        name=_("Pulsar 集群缩容"),
-        name_en="pulsar_shrink",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.PULSAR],
-        group=_("Pulsar"),
-        subgroup=_("集群管理"),
-    )
-
-    PULSAR_REBOOT = ActionMeta(
-        id="pulsar_reboot",
-        name=_("Pulsar 集群节点重启"),
-        name_en="pulsar_reboot",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.PULSAR],
-        group=_("Pulsar"),
-        subgroup=_("集群管理"),
-    )
-
-    PULSAR_REPLACE = ActionMeta(
-        id="pulsar_replace",
-        name=_("Pulsar 集群实例替换"),
-        name_en="pulsar_replace",
-        type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.PULSAR],
         group=_("Pulsar"),
@@ -1740,26 +737,11 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    PULSAR_DESTROY = ActionMeta(
-        id="pulsar_destroy",
-        name=_("Pulsar 集群删除"),
-        name_en="pulsar_destroy",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.PULSAR],
-        group=_("Pulsar"),
-        subgroup=_("集群管理"),
-    )
-
-    RIAK_APPLY = ActionMeta(
-        id="riak_apply",
-        name=_("Riak 集群部署"),
-        name_en="riak_apply",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
+    RIAK_CLUSTER_APPLY = ActionMeta(
+        id=TicketType.RIAK_CLUSTER_APPLY.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("Riak"),
         subgroup=_("集群管理"),
+        is_ticket_action=True
     )
 
     RIAK_VIEW = ActionMeta(
@@ -1773,65 +755,10 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    RIAK_SCALE_UP = ActionMeta(
-        id="riak_scale_up",
-        name=_("Riak 集群扩容"),
-        name_en="riak_scale_up",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.RIAK],
-        group=_("Riak"),
-        subgroup=_("集群管理"),
-    )
-
-    RIAK_SHRINK = ActionMeta(
-        id="riak_shrink",
-        name=_("Riak 集群缩容"),
-        name_en="riak_shrink",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.RIAK],
-        group=_("Riak"),
-        subgroup=_("集群管理"),
-    )
-
-    RIAK_REBOOT = ActionMeta(
-        id="riak_reboot",
-        name=_("Riak 集群节点重启"),
-        name_en="riak_reboot",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.RIAK],
-        group=_("Riak"),
-        subgroup=_("集群管理"),
-    )
-
-    RIAK_REPLACE = ActionMeta(
-        id="riak_replace",
-        name=_("Riak 集群实例替换"),
-        name_en="riak_replace",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.RIAK],
-        group=_("Riak"),
-        subgroup=_("集群管理"),
-    )
-
     RIAK_ENABLE_DISABLE = ActionMeta(
         id="riak_enable_disable",
         name=_("Riak 集群禁用启用"),
         name_en="riak_enable_disable",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.RIAK],
-        group=_("Riak"),
-        subgroup=_("集群管理"),
-    )
-
-    RIAK_DESTROY = ActionMeta(
-        id="riak_destroy",
-        name=_("Riak 集群删除"),
-        name_en="riak_destroy",
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.RIAK],
@@ -1850,50 +777,15 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    MONGODB_REPLICASET_APPLY = ActionMeta(
-        id=TicketType.MONGODB_REPLICASET_APPLY.lower(),
+    MONGODB_APPLY = ActionMeta(
+        id="mongodb_apply",
+        name=_("MongoDB 部署"),
+        name_en="mongodb_apply",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MongoDB"),
         subgroup=_("集群管理"),
-        is_ticket_action=True,
-    )
-
-    MONGODB_SHARD_APPLY = ActionMeta(
-        id=TicketType.MONGODB_SHARD_APPLY.lower(),
-        related_resource_types=[ResourceEnum.BUSINESS],
-        subgroup=_("集群管理"),
-        is_ticket_action=True,
-    )
-
-    MONGODB_EXEC_SCRIPT_APPLY = ActionMeta(
-        id=TicketType.MONGODB_EXEC_SCRIPT_APPLY.lower(), subgroup=_("脚本任务"), is_ticket_action=True
-    )
-
-    MONGODB_REMOVE_NS = ActionMeta(id=TicketType.MONGODB_REMOVE_NS.lower(), subgroup=_("数据处理"), is_ticket_action=True)
-
-    MONGODB_FULL_BACKUP = ActionMeta(
-        id=TicketType.MONGODB_FULL_BACKUP.lower(), subgroup=_("备份"), is_ticket_action=True
-    )
-
-    MONGODB_BACKUP = ActionMeta(id=TicketType.MONGODB_BACKUP.lower(), subgroup=_("备份"), is_ticket_action=True)
-
-    MONGODB_ADD_MONGOS = ActionMeta(
-        id=TicketType.MONGODB_ADD_MONGOS.lower(), subgroup=_("集群维护"), is_ticket_action=True
-    )
-
-    MONGODB_REDUCE_MONGOS = ActionMeta(
-        id=TicketType.MONGODB_REDUCE_MONGOS.lower(), subgroup=_("集群维护"), is_ticket_action=True
-    )
-
-    MONGODB_ADD_SHARD_NODES = ActionMeta(
-        id=TicketType.MONGODB_ADD_SHARD_NODES.lower(), subgroup=_("集群维护"), is_ticket_action=True
-    )
-
-    MONGODB_REDUCE_SHARD_NODES = ActionMeta(
-        id=TicketType.MONGODB_REDUCE_SHARD_NODES.lower(), subgroup=_("集群维护"), is_ticket_action=True
-    )
-
-    MONGODB_SCALE_UPDOWN = ActionMeta(
-        id=TicketType.MONGODB_SCALE_UPDOWN.lower(), subgroup=_("集群维护"), is_ticket_action=True
     )
 
     MONGODB_ENABLE_DISABLE = ActionMeta(
@@ -1907,32 +799,98 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    MONGODB_DESTROY = ActionMeta(id=TicketType.MONGODB_DESTROY.lower(), subgroup=_("集群管理"), is_ticket_action=True)
-
-    MONGODB_INSTANCE_RELOAD = ActionMeta(
-        id=TicketType.MONGODB_INSTANCE_RELOAD.lower(), subgroup=_("集群管理"), is_ticket_action=True
-    )
-
-    MONGODB_CUTOFF = ActionMeta(id=TicketType.MONGODB_CUTOFF.lower(), subgroup=_("集群维护"), is_ticket_action=True)
-
-    MONGODB_RESTORE = ActionMeta(id=TicketType.MONGODB_RESTORE.lower(), subgroup=_("集群维护"), is_ticket_action=True)
-
-    MONGODB_AUTHORIZE = ActionMeta(
-        id=TicketType.MONGODB_AUTHORIZE.lower(),
+    MONGODB_CREATE_ACCOUNT = ActionMeta(
+        id="mongodb_account_create",
+        name=_("MongoDB 账号创建"),
+        name_en="mongodb_account_create",
+        type="create",
         related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MongoDB"),
         subgroup=_("权限管理"),
-        is_ticket_action=True,
     )
 
-    MONGODB_EXCEL_AUTHORIZE = ActionMeta(
-        id=TicketType.MONGODB_EXCEL_AUTHORIZE.lower(),
+    MONGODB_DELETE_ACCOUNT = ActionMeta(
+        id="mongodb_delete_create",
+        name=_("MongoDB 账号删除"),
+        name_en="mongodb_delete_create",
+        type="delete",
         related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MongoDB"),
         subgroup=_("权限管理"),
-        is_ticket_action=True,
     )
 
-    MONGODB_TEMPORARY_DESTROY = ActionMeta(
-        id=TicketType.MONGODB_TEMPORARY_DESTROY.lower(), subgroup=_("集群维护"), is_ticket_action=True
+    MONGODB_ADD_ACCOUNT_RULE = ActionMeta(
+        id="mongodb_add_account_rule",
+        name=_("MongoDB 账号规则创建"),
+        name_en="mongodb_add_account_rule",
+        type="create",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MongoDB"),
+        subgroup=_("权限管理"),
+    )
+
+    SQLSERVER_VIEW = ActionMeta(
+        id="sqlserver_view",
+        name=_("SQLServer 集群详情查看"),
+        name_en="sqlserver_view",
+        type="view",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("集群管理"),
+    )
+
+    SQLSERVER_APPLY = ActionMeta(
+        id="sqlserver_apply",
+        name=_("SQLServer 部署"),
+        name_en="sqlserver_apply",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("SQLServer"),
+        subgroup=_("集群管理"),
+    )
+
+    SQLSERVER_CREATE_ACCOUNT = ActionMeta(
+        id="sqlserver_account_create",
+        name=_("SQLServer 账号创建"),
+        name_en="sqlserver_account_create",
+        type="create",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("SQLServer"),
+        subgroup=_("权限管理"),
+    )
+
+    SQLSERVER_DELETE_ACCOUNT = ActionMeta(
+        id="sqlserver_delete_create",
+        name=_("SQLServer 账号删除"),
+        name_en="sqlserver_delete_create",
+        type="delete",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("SQLServer"),
+        subgroup=_("权限管理"),
+    )
+
+    SQLSERVER_ADD_ACCOUNT_RULE = ActionMeta(
+        id="sqlserver_add_account_rule",
+        name=_("SQLServer 账号规则创建"),
+        name_en="sqlserver_add_account_rule",
+        type="create",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("SQLServer"),
+        subgroup=_("权限管理"),
+    )
+
+    SQLSERVER_ENABLE_DISABLE = ActionMeta(
+        id="sqlserver_enable_disable",
+        name=_("SQLServer 集群禁用和启用"),
+        name_en="sqlserver_enable_disable",
+        type="execute",
+        related_actions=[SQLSERVER_VIEW.id],
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("集群管理"),
     )
 
     RESOURCE_POLL_MANAGE = ActionMeta(
@@ -2419,13 +1377,8 @@ class ActionEnum:
     @classmethod
     def cluster_type_to_view(cls, cluster_type):
         """集群类型与集群详情操作的映射"""
-        if cluster_type in [ClusterType.TenDBSingle, ClusterType.TenDBHA]:
-            return cls.MYSQL_VIEW
-        if cluster_type in ClusterType.redis_cluster_types():
-            return cls.REDIS_VIEW
-        if cluster_type in [ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]:
-            return cls.MONGODB_VIEW
-        return getattr(cls, f"{cluster_type.upper()}_VIEW")
+        db_type = ClusterType.cluster_type_to_db_type(cluster_type)
+        return getattr(cls, f"{db_type.upper()}_VIEW")
 
     @classmethod
     def instance_type_to_instance_action(cls, instance_role):
@@ -2460,5 +1413,22 @@ class ActionEnum:
         ]
         return actions
 
+
+# fmt: on
+def register_ticket_iam_actions():
+    """ 将单据动作注册到IAM动作类中"""
+    for ticket_type in TicketType.get_values():
+        ticket_enum = TicketType.__field_members__[ticket_type]
+        # 如果单据类型要求不注册iam，则忽略
+        if not isinstance(ticket_enum, TicketEnumField) or not ticket_enum.register_iam:
+            continue
+
+        ticket_action = ActionMeta(id=ticket_type.lower(), subgroup=ticket_enum.subgroup, is_ticket_action=True)
+        # 优先以定义为准，否则自动注册
+        if not getattr(ActionEnum, ticket_type.upper(), None):
+            setattr(ActionEnum, ticket_type.upper(), ticket_action)
+
+
+register_ticket_iam_actions()
 
 _all_actions = {action.id: action for action in ActionEnum.__dict__.values() if isinstance(action, ActionMeta)}

@@ -15,6 +15,7 @@ from typing import Dict, List
 from django.db import models
 from django.utils.translation import ugettext as _
 from iam.resource.provider import ListResult
+from iam.resource.utils import Page
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
@@ -77,19 +78,30 @@ class ClusterResourceProvider(BaseResourceProvider, CommonProviderMixin):
             page=page,
         )
 
+    def _list_instance_with_cluster_type(
+        self,
+        obj_model: models.Model,
+        condition: Dict,
+        value_list: List[str],
+        page: Page,
+        cluster_type__label: Dict[str, str],
+    ):
+        """集群资源展示的时候加上类型标识"""
+        queryset = obj_model.objects.filter(**condition)[page.slice_from : page.slice_to]
+        results = []
+        for cluster in queryset:
+            cluster_type_label = cluster_type__label.get(cluster.cluster_type, cluster.cluster_type)
+            results.append({"id": cluster.id, "display_name": f"[{cluster_type_label}]{cluster.immute_domain}"})
+        return ListResult(results=results, count=len(results))
+
 
 class MySQLResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.MYSQL
     cluster_types: ClusterType = [ClusterType.TenDBSingle, ClusterType.TenDBHA]
 
     def _list_instance(self, obj_model: models.Model, condition: Dict, value_list: List[str], page):
-        # mysql资源展示的时候加上类型
-        queryset = obj_model.objects.filter(**condition)[page.slice_from : page.slice_to]
-        results = []
-        for mysql in queryset:
-            cluster_type = _("[单节点]") if mysql.cluster_type == ClusterType.TenDBSingle else _("[高可用]")
-            results.append({"id": mysql.id, "display_name": f"{cluster_type}{mysql.immute_domain}"})
-        return ListResult(results=results, count=len(results))
+        cluster_type__label = {ClusterType.TenDBSingle: _("单节点"), ClusterType.TenDBHA: _("高可用")}
+        return super()._list_instance_with_cluster_type(obj_model, condition, value_list, page, cluster_type__label)
 
 
 class TendbClusterResourceProvider(ClusterResourceProvider):
@@ -132,10 +144,14 @@ class MongoDBClusterResourceProvider(ClusterResourceProvider):
     cluster_types: ClusterType = [ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]
 
     def _list_instance(self, obj_model: models.Model, condition: Dict, value_list: List[str], page):
-        # mongodb资源展示的时候加上类型
-        queryset = obj_model.objects.filter(**condition)[page.slice_from : page.slice_to]
-        results: List[Dict[str, str]] = []
-        for cluster in queryset:
-            cluster_type = _("[副本集]") if cluster.cluster_type == ClusterType.MongoReplicaSet else _("[分片集]")
-            results.append({"id": cluster.id, "display_name": f"{cluster_type}{cluster.immute_domain}"})
-        return ListResult(results=results, count=len(results))
+        cluster_type__label = {ClusterType.MongoReplicaSet: _("副本集"), ClusterType.MongoShardedCluster: _("分片集")}
+        return super()._list_instance_with_cluster_type(obj_model, condition, value_list, page, cluster_type__label)
+
+
+class SQLServerClusterResourceProvider(MySQLResourceProvider):
+    resource_meta: ResourceMeta = ResourceEnum.SQLSERVER
+    cluster_types: ClusterType = [ClusterType.SqlserverHA, ClusterType.SqlserverSingle]
+
+    def _list_instance(self, obj_model: models.Model, condition: Dict, value_list: List[str], page):
+        cluster_type__label = {ClusterType.SqlserverSingle: _("单节点"), ClusterType.SqlserverHA: _("高可用")}
+        return super()._list_instance_with_cluster_type(obj_model, condition, value_list, page, cluster_type__label)

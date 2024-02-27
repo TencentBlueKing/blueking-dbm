@@ -13,10 +13,36 @@ from typing import Dict, List
 
 from backend.components import DRSApi
 from backend.db_meta.enums import InstanceRole
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import SqlserverBackupJobExecMode, SqlserverLoginExecMode, SqlserverSyncMode
-from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
+
+
+def sqlserver_match_dbs(
+    dbs: List[str],
+    db_patterns: List[str],
+    ignore_db_patterns: List[str] = None,
+):
+    """
+    根据库表正则去匹配库
+    @param dbs: 待匹配库
+    @param db_patterns: 库正则
+    @param ignore_db_patterns: 忽略库正则
+    """
+    # 拼接匹配正则
+    db_filter = DbTableFilter(
+        include_db_patterns=db_patterns,
+        include_table_patterns=[""],
+        exclude_db_patterns=ignore_db_patterns,
+        exclude_table_patterns=[""],
+    )
+    db_filter.inject_system_dbs(["Monitor"])
+    db_filter_pattern = re.compile(db_filter.db_filter_regexp())
+
+    # 获取过滤后db
+    real_dbs = [db_name for db_name in dbs if db_filter_pattern.match(db_name)]
+    return real_dbs
 
 
 def get_dbs_for_drs(cluster_id: int, db_list: list, ignore_db_list: list) -> list:
@@ -26,7 +52,6 @@ def get_dbs_for_drs(cluster_id: int, db_list: list, ignore_db_list: list) -> lis
     @param db_list: 匹配db的正则列表
     @param ignore_db_list: 忽略db的正则列表
     """
-    real_dbs = []
     cluster = Cluster.objects.get(id=cluster_id)
     # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
     master_instance = cluster.storageinstance_set.get(
@@ -48,22 +73,7 @@ def get_dbs_for_drs(cluster_id: int, db_list: list, ignore_db_list: list) -> lis
     # 获取所有db名称
     all_dbs = [i["name"] for i in ret[0]["cmd_results"][0]["table_data"]]
     # TODO: 上面流程可以简化调用 self.get_cluster_database([cluster_id])[cluster_id]
-
-    # 拼接匹配正则
-    db_filter = DbTableFilter(
-        include_db_patterns=db_list,
-        include_table_patterns=[""],
-        exclude_db_patterns=ignore_db_list,
-        exclude_table_patterns=[""],
-    )
-    db_filter.inject_system_dbs(["Monitor"])
-    db_filter_pattern = re.compile(db_filter.db_filter_regexp())
-
-    # 获取过滤后db
-    for db_name in all_dbs:
-        if db_filter_pattern.match(db_name):
-            real_dbs.append(db_name)
-
+    real_dbs = sqlserver_match_dbs(all_dbs, db_list, ignore_db_list)
     return real_dbs
 
 
@@ -251,6 +261,7 @@ on a.name=b.name where principal_id>4 and a.name not in('monitor') and a.name no
         raise Exception(f"[{master_instance.ip_port}] exec login-{exec_type} failed: {ret[0]['error_msg']}")
 
     return True
+
 
 def get_group_name(master_instance: StorageInstance, bk_cloud_id: int):
     """

@@ -17,14 +17,14 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.sqlserver.cluster.handlers import ClusterServiceHandler
 from backend.db_services.sqlserver.cluster.serializers import GetDBForDrsResponseSerializer, GetDBForDrsSerializer
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/sqlserver/cluster"
 
 
 class ClusterViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("通过库表匹配查询db"),
