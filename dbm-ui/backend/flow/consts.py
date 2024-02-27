@@ -372,6 +372,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     EnableTokudb = EnumField("enable-tokudb-engine", _("MySQL实例安装tokudb引擎"))
     StandardizeMySQLInstance = EnumField("standardize-mysql", _("标准化MySQL实例"))
     StandardizeTenDBHAProxy = EnumField("standardize-proxy", _("标准化Proxy实例"))
+    Upgrade = EnumField("upgrade", _("本地升级"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
