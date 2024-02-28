@@ -109,6 +109,11 @@
         </BkSelect>
       </BkFormItem>
       <BkFormItem :label="t('权限明细')">
+        <BkAlert
+          v-if="clusterType === ClusterTypes.TENDBHA"
+          class="mb-16 mt-10"
+          theme="warning"
+          :title="t('注意_对从库授权时仅会授予select权限')" />
         <DbOriginalTable
           :columns="columns"
           :data="selectedRules"
