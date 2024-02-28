@@ -43,6 +43,12 @@ def user(
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
     )
 
+    # 创建原子任务执行目录
+    kwargs = sub_get_kwargs.get_create_dir_kwargs()
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+    )
+
     # 创建或删除用户
     kwargs = sub_get_kwargs.get_user_kwargs(create=create, admin_user=MongoDBManagerUser.DbaUser.value, info=info)
     if create:

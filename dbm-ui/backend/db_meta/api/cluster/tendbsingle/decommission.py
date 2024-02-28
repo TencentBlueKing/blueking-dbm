@@ -12,8 +12,8 @@ import logging
 
 from django.db import transaction
 
-from backend.configuration.constants import DBType
 from backend.components import DBPrivManagerApi
+from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.consts import MySQLPrivComponent, UserName
 from backend.flow.utils.cc_manage import CcManage

@@ -60,6 +60,12 @@ def cluster_replace(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
     )
 
+    # 创建原子任务执行目录
+    kwargs = sub_get_kwargs.get_create_dir_kwargs()
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+    )
+
     # 进行shard和config替换——并行
     sub_sub_pipelines = []
     # 替换config 以ip为维度

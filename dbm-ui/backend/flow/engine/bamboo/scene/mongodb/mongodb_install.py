@@ -61,6 +61,12 @@ class MongoDBInstallFlow(object):
             act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
         )
 
+        # 创建原子任务执行目录
+        kwargs = self.get_kwargs.get_create_dir_kwargs()
+        pipeline.add_act(
+            act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+        )
+
         # 机器初始化——job的api可以多个IP并行执行
         kwargs = self.get_kwargs.get_os_init_kwargs()
         pipeline.add_act(

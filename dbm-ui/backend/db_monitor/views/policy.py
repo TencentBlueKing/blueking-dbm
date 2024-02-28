@@ -21,7 +21,6 @@ from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
-
 from backend.db_monitor import serializers
 
 from ...configuration.constants import PLAT_BIZ_ID, DBType

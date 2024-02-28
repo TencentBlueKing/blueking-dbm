@@ -18,9 +18,9 @@ from backend.db_services.mysql.permission.authorize.dataclass import (
     MySQLAuthorizeMeta,
     MySQLExcelAuthorizeMeta,
 )
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.db_services.mysql.permission.authorize.handlers import MySQLAuthorizeHandler
 from backend.db_services.mysql.permission.authorize.serializers import GetHostInAuthorizeSerializer
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/permission/authorize"
 

@@ -15,6 +15,7 @@ from django.utils.translation import ugettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task import deinstall
+from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
@@ -46,6 +47,12 @@ class MongoDBDeInstallFlow(object):
         kwargs = self.get_kwargs.get_send_media_kwargs()
         pipeline.add_act(
             act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
+        )
+
+        # 创建原子任务执行目录
+        kwargs = self.get_kwargs.get_create_dir_kwargs()
+        pipeline.add_act(
+            act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
         )
 
     def multi_cluster_deinstall_flow(self):
