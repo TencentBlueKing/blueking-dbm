@@ -46,11 +46,9 @@ type MysqlUpgradeComp struct {
 type MysqlUpgradeParam struct {
 	Host  string `json:"host"  validate:"required,ip"`
 	Ports []int  `json:"ports"`
-	//  mysql-5.7.20-linux-x86_64-tdbctl-2.4.3
-	NewVersion string `json:"newVersion"`
 	components.Medium
 	// 是否强制升级
-	IsForce bool `json:"isForce"`
+	IsForce bool `json:"is_force"`
 	// 只做升级检查
 	Run bool `json:"run"`
 }
@@ -78,10 +76,9 @@ type upgradeRtx struct {
 func (c *MysqlUpgradeComp) Example() interface{} {
 	comp := MysqlUpgradeComp{
 		Params: MysqlUpgradeParam{
-			Host:       "127.0.0.1",
-			Ports:      []int{3306, 3307},
-			NewVersion: "mysql-5.7.20-linux-x86_64-tdbctl-2.4.3",
-			Run:        false,
+			Host:  "127.0.0.1",
+			Ports: []int{3306, 3307},
+			Run:   false,
 		},
 		GeneralParam: &components.GeneralParam{
 			RuntimeAccountParam: components.RuntimeAccountParam{
@@ -101,12 +98,12 @@ func (m *MysqlUpgradeComp) Init() (err error) {
 	m.adminUser = m.GeneralParam.RuntimeAccountParam.AdminUser
 	m.adminPwd = m.GeneralParam.RuntimeAccountParam.AdminPwd
 	m.newVersion = VersionInfo{
-		Version:       m.Params.NewVersion,
-		MysqlVersion:  cmutil.MySQLVersionParse(m.Params.NewVersion),
-		TmysqlVersion: cmutil.TmysqlVersionParse(m.Params.NewVersion),
+		Version:       m.Params.Pkg,
+		MysqlVersion:  cmutil.MySQLVersionParse(m.Params.Pkg),
+		TmysqlVersion: cmutil.TmysqlVersionParse(m.Params.Pkg),
 	}
 	if m.newVersion.MysqlVersion <= 0 {
-		return fmt.Errorf("mysql version %s is invalid", m.Params.NewVersion)
+		return fmt.Errorf("mysql version %s is invalid", m.Params.Pkg)
 	}
 	for _, port := range m.Params.Ports {
 		dbConn, err := native.InsObject{
