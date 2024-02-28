@@ -14,6 +14,7 @@ from typing import Dict, List, Tuple
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from backend import env
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_monitor.models import DutyRule, MonitorPolicy
@@ -28,7 +29,7 @@ __cache_resource_attr: Dict[str, List[Tuple]] = defaultdict(list)
 
 
 def post_save_grant_iam(resource_meta, model, instance, creator, created):
-    if not created or not creator:
+    if not created or not creator or env.BK_IAM_SKIP:
         return
 
     resource = resource_meta.create_instance(getattr(instance, resource_meta.lookup_field))

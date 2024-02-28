@@ -12,9 +12,8 @@ import logging
 
 from django.utils.crypto import get_random_string
 
-from backend.flow.consts import MSSQL_ADMIN, MSSQL_EXPORTER
 from backend.components import DBPrivManagerApi
-from backend.flow.consts import DEFAULT_INSTANCE, SqlserverComponent, SqlserverUserName
+from backend.flow.consts import DEFAULT_INSTANCE, MSSQL_ADMIN, MSSQL_EXPORTER, SqlserverComponent, SqlserverUserName
 
 logger = logging.getLogger("flow")
 

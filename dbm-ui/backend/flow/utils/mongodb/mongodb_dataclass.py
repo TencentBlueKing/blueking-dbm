@@ -226,6 +226,21 @@ class ActKwargs:
             "file_target_path": self.file_path + "/install",
         }
 
+    def get_create_dir_kwargs(self) -> dict:
+        """创建dbactuator执行目录的kwargs"""
+
+        return {
+            "create_dir": True,
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": self.payload["hosts"][0]["bk_cloud_id"],
+            "exec_ip": self.payload["hosts"],
+            "db_act_template": {
+                "file_path": self.file_path,
+                "payload": {},
+            },
+        }
+
     def get_os_init_kwargs(self) -> dict:
         """os初始化的kwargs"""
 

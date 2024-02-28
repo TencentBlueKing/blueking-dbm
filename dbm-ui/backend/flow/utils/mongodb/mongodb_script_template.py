@@ -17,9 +17,13 @@ mongodb_fast_execute_script_common_kwargs = {
 }
 
 
-mongodb_actuator_template = """
+mongodb_create_actuator_dir_template = """
 mkdir -p {{file_path}}/install/dbactuator-{{uid}}/logs
 cp {{file_path}}/install/mongo-dbactuator {{file_path}}/install/dbactuator-{{uid}}
+"""
+
+
+mongodb_actuator_template = """
 cd {{file_path}}/install/dbactuator-{{uid}}
 chmod +x mongo-dbactuator
 ./mongo-dbactuator --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
@@ -29,8 +33,6 @@ chmod +x mongo-dbactuator
 
 mongodb_script_template = {"mongodb_actuator_template": mongodb_actuator_template}
 mongodb_os_init_actuator_template = """
-mkdir -p {{file_path}}/install/dbactuator-{{uid}}/logs
-cp {{file_path}}/install/mongo-dbactuator {{file_path}}/install/dbactuator-{{uid}}
 cd {{file_path}}/install/dbactuator-{{uid}}
 chmod +x mongo-dbactuator
 ./mongo-dbactuator --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
