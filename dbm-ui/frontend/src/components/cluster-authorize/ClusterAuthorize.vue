@@ -159,6 +159,7 @@
             :data="selectedRules"
             :empty-text="t('请选择访问DB')" />
         </BkFormItem>
+      </template>
     </DbForm>
     <template #footer>
       <BkButton
