@@ -167,7 +167,10 @@ export const resetPolicy = (params: { id: number }) => http.post<void>(`/apis/mo
 export const deletePolicy = (params: { id: number }) => http.delete<null | Record<string, any>>(`/apis/monitor/policy/${params.id}/`);
 
 // 根据db类型查询集群列表
-export const getClusterList = (params: { dbtype: string }) => http.get<string[]>('/apis/monitor/policy/cluster_list/', params);
+export const getClusterList = (params: {
+  dbtype: string,
+  bk_biz_id: number,
+}) => http.get<string[]>('/apis/monitor/policy/cluster_list/', params);
 
 // 根据db类型查询模块列表
 export const getDbModuleList = (params: { dbtype: string }) => http.get<{
