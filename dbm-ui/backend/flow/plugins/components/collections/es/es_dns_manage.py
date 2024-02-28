@@ -29,8 +29,8 @@ class EsDnsManageService(BaseService):
     定义es集群域名管理的活动节点,目前只支持添加域名、删除域名
     """
 
-    def __init__(self):
-        super(EsDnsManageService, self).__init__()
+    def __init__(self, name=None):
+        super(EsDnsManageService, self).__init__(name)
         self.order_list = [
             ESRoleEnum.CLIENT.value,
             ESRoleEnum.HOT.value,
