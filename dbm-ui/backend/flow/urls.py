@@ -112,6 +112,7 @@ from backend.flow.views.mysql_single_destroy import (
 )
 from backend.flow.views.mysql_single_rename_database import MySQLSingleRenameDatabaseView
 from backend.flow.views.mysql_single_truncate_data import MySQLSingleTruncateDataView
+from backend.flow.views.mysql_upgrade import UpgradeMySQLSceneApiView
 from backend.flow.views.name_service import (
     ClbCreateSceneApiView,
     ClbDeleteSceneApiView,
@@ -283,6 +284,10 @@ urlpatterns = [
     url(r"^scene/multi_instance_restart$", MongoDBInstanceRestartView.as_view()),
     url(r"^scene/multi_hosts_replace$", MongoDBReplaceView.as_view()),
     # mongodb end
+    # mysql upgrade
+    url(r"^scene/upgrade_mysql_proxy$", UpgradeMySQLProxySceneApiView.as_view()),
+    url(r"^scene/upgrade_mysql$", UpgradeMySQLSceneApiView.as_view()),
+    # mysql
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),
     url(r"^scene/install_mysql_ha_apply$", InstallMySQLHASceneApiView.as_view()),
     url(r"^scene/destroy_mysql_ha$", DestroyMySQLHASceneApiView.as_view()),
@@ -297,7 +302,6 @@ urlpatterns = [
     url(r"^scene/import_sqlfile$", ImportSQLFileSceneApiView.as_view()),
     url(r"^scene/switch_mysql_proxy$", SwitchMySQLProxySceneApiView.as_view()),
     url(r"^scene/add_mysql_proxy$", AddMySQLProxySceneApiView.as_view()),
-    url(r"^scene/upgrade_mysql_proxy$", UpgradeMySQLProxySceneApiView.as_view()),
     url(r"^scene/install_influxdb$", InstallInfluxdbSceneApiView.as_view()),
     url(r"^scene/enable_influxdb$", EnableInfluxdbSceneApiView.as_view()),
     url(r"^scene/disable_influxdb$", DisableInfluxdbSceneApiView.as_view()),

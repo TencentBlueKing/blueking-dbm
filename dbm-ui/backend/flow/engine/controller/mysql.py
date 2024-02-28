@@ -44,6 +44,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MyS
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_disable_flow import MySQLSingleDisableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_enable_flow import MySQLSingleEnableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_truncate_flow import MySQLTruncateFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import MySQLLocalUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.pt_table_sync import PtTableSyncFlow
 from backend.flow.engine.controller.base import BaseController
 
@@ -574,3 +575,28 @@ class MySQLController(BaseController):
 
         flow = MySQLProxyLocalUpgradeFlow(root_id=self.root_id, data=self.ticket_data)
         flow.upgrade_mysql_proxy_flow()
+
+    def mysql_upgrade_scene(self):
+        """
+        mysql实例本地升级场景(新flow编排)
+        ticket_data 参数结构体样例
+        {
+        "uid": "2022051612120001",
+        "created_by": "xxx",
+        "bk_biz_id": "152",
+        "ticket_type": "MYSQL_UPGRADE",
+        "new_mysql_version": "MySQL-5.7",
+        "mysql_ip_list":[
+                {
+                    "bk_cloud_id: 0,
+                    "ip":"1.1.1.1",
+                }
+                {
+                    "bk_cloud_id: 0,
+                    "ip":"2.2.2.2",
+                }
+            ]
+        }
+        """
+        flow = MySQLLocalUpgradeFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.upgrade_mysql_flow()
