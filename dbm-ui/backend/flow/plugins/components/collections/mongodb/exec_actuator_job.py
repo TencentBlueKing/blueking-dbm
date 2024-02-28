@@ -28,6 +28,7 @@ from backend.flow.plugins.components.collections.common.base_service import BkJo
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_script_template import (
     mongodb_actuator_template,
+    mongodb_create_actuator_dir_template,
     mongodb_fast_execute_script_common_kwargs,
     mongodb_os_init_actuator_template,
 )
@@ -170,6 +171,8 @@ class ExecuteDBActuatorJobService(BkJobService):
         template = jinja_env.from_string(mongodb_actuator_template)
         if kwargs.get("init_flag", False):
             template = jinja_env.from_string(mongodb_os_init_actuator_template)
+        elif kwargs.get("create_dir", False):
+            template = jinja_env.from_string(mongodb_create_actuator_dir_template)
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",

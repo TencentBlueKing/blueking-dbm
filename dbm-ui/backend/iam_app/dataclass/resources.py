@@ -455,7 +455,7 @@ class ResourceEnum:
             return cls.MYSQL
         if cluster_type in ClusterType.redis_cluster_types():
             return cls.REDIS
-        return getattr(cls, cluster_type.upper())
+        return getattr(cls, cluster_type.upper(), None)
 
     @classmethod
     def instance_type_to_resource_meta(cls, instance_role):

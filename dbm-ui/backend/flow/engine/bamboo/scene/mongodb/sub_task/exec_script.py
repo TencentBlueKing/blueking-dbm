@@ -42,6 +42,12 @@ def exec_script(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
     )
 
+    # 创建原子任务执行目录
+    kwargs = sub_get_kwargs.get_create_dir_kwargs()
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+    )
+
     # 执行脚本
     for script in sub_get_kwargs.payload["script_contents"]:
         kwargs = sub_get_kwargs.get_exec_script_kwargs(cluster_id=cluster_id, admin_user=admin_user, script=script)

@@ -42,6 +42,12 @@ def instance_restart(
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
     )
 
+    # 创建原子任务执行目录
+    kwargs = sub_get_kwargs.get_create_dir_kwargs()
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+    )
+
     # 重启实例
     for instance in instances_info["instances"]:
         kwargs = sub_get_kwargs.get_instance_restart_kwargs(

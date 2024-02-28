@@ -9,10 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.db_services.dbpermission.constants import AccountType
+from backend.db_services.dbpermission.db_account.views import BaseDBAccountViewSet
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission
-from backend.db_services.dbpermission.db_account.views import BaseDBAccountViewSet
 
 
 class DBAccountViewSet(BaseDBAccountViewSet):
