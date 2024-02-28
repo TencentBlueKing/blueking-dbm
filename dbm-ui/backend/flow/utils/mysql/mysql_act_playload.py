@@ -2013,6 +2013,27 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def get_mysql_upgrade_payload(self, **kwargs) -> dict:
+        """
+        local upgrade mysql proxy
+        """
+        proxy_pkg = Package.get_latest_package(version=self.cluster["version"], pkg_type=MediumEnum.MySQL)
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.Upgrade.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "ports": self.cluster["ports"],
+                    "force": False,
+                    "pkg": proxy_pkg.name,
+                    "pkg_md5": proxy_pkg.md5,
+                    "run": self.cluster["run"],
+                },
+            },
+        }
+
     def get_standardize_mysql_instance_payload(self, **kwargs):
         # 这个包其实没有用, 所以只要传包名, 不需要下发
         # 是因为复用了 mysql install actor 需要包名做条件分支
