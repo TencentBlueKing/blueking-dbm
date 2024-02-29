@@ -13,6 +13,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
+from django.db.models import Q
 from django.utils.translation import ugettext as _
 
 from backend import env
@@ -225,18 +226,24 @@ class MongoDBRestoreHandler(object):
         return cluster_id__backup_logs
 
     @classmethod
-    def query_restore_record(cls, bk_biz_id: int, limit: int, offset: int):
+    def query_restore_record(cls, bk_biz_id: int, limit: int, offset: int, filters: Q = None):
         """
         查询MongoDB回档临时集群的记录
         @param bk_biz_id: 业务ID
         @param limit: 单页限制
         @param offset: 单页起始
+        @param filters: 过滤参数
         """
+        filters = filters or Q()
         # 查询临时集群信息
-        temp_clusters = Cluster.objects.prefetch_related("storageinstance_set", "proxyinstance_set").filter(
-            bk_biz_id=bk_biz_id,
-            cluster_type__in=[ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet],
-            tag__name=SystemTagEnum.TEMPORARY,
+        temp_clusters = (
+            Cluster.objects.prefetch_related("storageinstance_set", "proxyinstance_set")
+            .filter(
+                bk_biz_id=bk_biz_id,
+                cluster_type__in=[ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet],
+                tag__name=SystemTagEnum.TEMPORARY,
+            )
+            .filter(filters)
         )
         temp_clusters_count = temp_clusters.count()
         temp_clusters = temp_clusters[offset : limit + offset]
