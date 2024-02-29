@@ -121,6 +121,7 @@
       'SpiderManage',
       'RiakManage',
       'MongoDBManage',
+      'SqlServerManage',
       'taskHistory',
       'DatabaseWhitelist',
       'ticketManage',

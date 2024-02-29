@@ -25,14 +25,14 @@ export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' |
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
 export type MongoFunctions = 'mongodb';
 export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha';
-// eslint-disable-next-line max-len
 export type FunctionKeys =
   | AddonsFunctions
   | MySQLFunctions
   | RedisFunctions
   | BigdataFunctions
   | MonitorFunctions
-  | SqlServerFunctions | MongoFunctions;
+  | SqlServerFunctions
+  | MongoFunctions;
 export type FunctionTabId = FunctionKeys | ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER;
 
 export interface ControllerBaseInfo {

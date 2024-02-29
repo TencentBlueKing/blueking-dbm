@@ -39,6 +39,7 @@
     mount_point: string,
     size: string | number,
     type: string,
+    isSystemDrive?: boolean
   }
 
   interface TableColumnData {
@@ -76,7 +77,12 @@
 
     return [
       {
-        validator: (value: string) => /data(\d)*/.test(value),
+        validator: (value: string) => {
+          if (data.isSystemDrive) {
+            return true;
+          }
+          return /data(\d)*/.test(value);
+        },
         message: t('输入需符合正则_regx', { regx: '/data(\\d)*/' }),
         trigger: 'blur',
       },
@@ -131,13 +137,13 @@
           <div
             v-bk-tooltips={{
               content: t('不支持修改'),
-              disabled: !props.isEdit,
+              disabled: !props.isEdit && !data.isSystemDrive,
             }}>
             <bk-input
               class="large-size"
               v-model={data.mount_point}
               placeholder="/data123"
-              disabled={props.isEdit} />
+              disabled={props.isEdit || data.isSystemDrive} />
           </div>
         </bk-form-item>
       ),
@@ -201,7 +207,7 @@
       field: '',
       label: t('操作'),
       width: 80,
-      render: ({ index }: TableColumnData) => (
+      render: ({ data, index }: TableColumnData) => (
         <div class="opertaions">
           <bk-button
             text
@@ -209,12 +215,18 @@
             onClick={() => handleAdd(index)}>
             <db-icon type="plus-fill" />
           </bk-button>
-          <bk-button
-            text
-            disabled={tableData.value.length === 1 || props.isEdit}
-            onClick={() => handleRemove(index)}>
-            <db-icon type="minus-fill" />
-          </bk-button>
+          <span
+            v-bk-tooltips={{
+              content: t('C,D 盘无法删除'),
+              disabled: !data.isSystemDrive,
+            }}>
+            <bk-button
+              text
+              disabled={tableData.value.length === 1 || props.isEdit || data.isSystemDrive}
+              onClick={() => handleRemove(index)}>
+              <db-icon type="minus-fill" />
+            </bk-button>
+          </span>
         </div>
       ),
     },

@@ -14,7 +14,7 @@
   import type { TableProps } from '@/types/bkui-vue';
 
   interface Props {
-    data?: {
+    data: {
       domain:string,
       slaveDomain:string,
       disasterDefence:string,
@@ -22,7 +22,7 @@
       version:string,
       charset:string,
     }[],
-    nodes?:{
+    nodes:{
       backend: {
         ip: string,
         bk_host_id: number,
@@ -84,7 +84,7 @@
                   {
                     hosts.map(item => (
                       <div class="host-list-item">
-                        <strong class='host-list-tag host-list-tag-master'></strong>
+                        <span class='host-list-tag host-list-tag-master'></span>
                         <span class="host-list-ip">{ item.ip }</span>
                       </div>
                     ))
@@ -172,6 +172,7 @@
         height: 16px;
         margin-right: 4px;
         font-size: @font-size-mini;
+        font-weight: bolder;
         line-height: 16px;
         text-align: center;
 

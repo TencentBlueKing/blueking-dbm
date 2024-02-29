@@ -2,12 +2,13 @@
   <BkPopover
     v-model:is-show="stateShow"
     :boundary="body"
-    class="batch-edit"
+    ext-cls="sqlserver-domain-batch-edit"
     theme="light"
     trigger="manual"
     :width="540">
-    <i
-      class="db-icon-bulk-edit batch-edit-trigger"
+    <DbIcon
+      class="sqlserver-domain-batch-edit-trigger"
+      type="bulk-edit"
       @click="() => stateShow = true" />
 
     <template #content>
@@ -33,9 +34,9 @@
             :rows="textareaRows"
             type="textarea" />
           <p
-            v-if="validateShow"
+            v-if="validateErrorText"
             class="batch-edit-domain-error">
-            {{ validateErrorTxt }}
+            {{ validateErrorText }}
           </p>
         </div>
         <div class="batch-edit-footer">
@@ -64,8 +65,8 @@
   import { nameRegx } from '@common/regex';
 
   interface Props {
-    moduleName?: string,
-    appName?: string,
+    moduleName: string,
+    appName: string,
   }
 
   interface Emits {
@@ -76,29 +77,18 @@
     moduleName: '',
     appName: '',
   });
-
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-
-  const errorTxt = {
-    rule: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-    repeat: t('输入域名重复'),
-    maxlength: t('最大长度为m', { m: 63 }),
-  };
-
 
   /**
    * 获取输入框 arrow 偏移量
    */
   const moduleNameRef = ref<HTMLSpanElement>();
-
   const stateShow = ref(false);
   const stateValue = ref('');
   const stateOffsetWidth = ref(0);
-  const validateShow = ref(false);
-  const validateErrorTxt = ref('');
-  const validateResult = ref();
+  const validateErrorText = ref('');
 
   const { body } = document;
 
@@ -118,7 +108,14 @@
     });
     if (!show) {
       stateValue.value = '';
-      validateShow.value = false;
+    }
+  });
+
+  watch(stateValue, (value) => {
+    if (value) {
+      handleValidate();
+    } else {
+      validateErrorText.value = '';
     }
   });
 
@@ -128,41 +125,29 @@
   const handleValidate = () => {
     const newDomains = stateValue.value.split('\n');
     // 最大长度
-    const maxlengthRes = newDomains.every(key => key.length <= 63);
-    if (!maxlengthRes) {
-      validateErrorTxt.value = errorTxt.maxlength;
-      validateShow.value = true;
-      return false;
+    if (!newDomains.every(key => key.length <= 63)) {
+      validateErrorText.value = t('最大长度为m', { m: 63 });
+      return;
     }
-
-    const validate = newDomains.every(key => nameRegx.test(key));
-    if (!validate) {
-      validateErrorTxt.value = errorTxt.rule;
-      validateShow.value = !validate;
-      return validate;
+    // 格式
+    if (!newDomains.every(key => nameRegx.test(key))) {
+      validateErrorText.value = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
+      return;
     }
     // 校验名称是否重复
-    const uniqDomains = _.uniq(newDomains);
-    const hasRepeat = newDomains.length !== uniqDomains.length;
-    validateErrorTxt.value = errorTxt.repeat;
-    validateShow.value = hasRepeat;
-    return !hasRepeat;
-  };
-
-  watch(stateValue, (value) => {
-    if (value) {
-      validateResult.value = handleValidate();
+    if (newDomains.length !== _.uniq(newDomains).length) {
+      validateErrorText.value = t('输入域名重复');
+      return;
     }
-  });
+
+    validateErrorText.value = '';
+  };
 
   /**
    * confirm batch edit
    */
   const handleConfirm = () => {
-    if (!validateResult.value) {
-      return;
-    }
-    if (validateShow.value) {
+    if (validateErrorText.value) {
       return;
     }
 
@@ -180,13 +165,7 @@
 </script>
 
 <style lang="less" scoped>
-.batch-edit {
-  .batch-edit-trigger {
-    margin-left: 5px;
-    color: @primary-color;
-    cursor: pointer;
-  }
-
+.sqlserver-domain-batch-edit {
   .batch-edit-content {
     padding: 9px 2px;
   }
@@ -279,4 +258,12 @@
     }
   }
 }
+</style>
+
+<style lang="less">
+  .sqlserver-domain-batch-edit-trigger {
+    margin-left: 4px;
+    color: @primary-color;
+    cursor: pointer;
+  }
 </style>

@@ -173,7 +173,7 @@
   }[];
 
   export type TabItem = TabListType[number];
-  export type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>
+  export type TabConfig = Omit<TabItem, 'id' | 'tableContent' | 'resultContent'>
 
   interface Props {
     selected: Record<string, T[]>,
