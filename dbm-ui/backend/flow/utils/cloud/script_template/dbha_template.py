@@ -20,6 +20,7 @@ log_conf:
   log_compress: true
 agent_conf:
   active_db_type: [
+    "riak",
     "tendbha",
     "tendbcluster",
     "TwemproxyRedisInstance",
@@ -85,6 +86,8 @@ db_conf:
     timeout: 10
   redis:
     timeout: 10
+  riak:
+    timeout: 10
 name_services:
   dns_conf:
     host: "{{nginx_domain}}"
@@ -146,6 +149,7 @@ log_conf:
   log_compress: true
 agent_conf:
   active_db_type: [
+    "riak",
     "tendbha",
     "tendbcluster",
     "TwemproxyRedisInstance",
@@ -210,6 +214,8 @@ db_conf:
     proxy_pass: "{{proxy_password}}"
     timeout: 10
   redis:
+    timeout: 10
+  riak:
     timeout: 10
 name_services:
   dns_conf:
