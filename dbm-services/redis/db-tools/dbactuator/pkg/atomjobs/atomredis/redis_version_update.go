@@ -370,6 +370,11 @@ func (job *RedisVersionUpdate) checkAndBackupRedis(port int) (err error) {
 
 func (job *RedisVersionUpdate) stopRedis(port int) (err error) {
 	stopScript := filepath.Join(consts.UsrLocal, "redis", "bin", "stop-redis.sh")
+	_, err = os.Stat(stopScript)
+	if err != nil && os.IsNotExist(err) {
+		job.runtime.Logger.Info("%s not exist", stopScript)
+		return nil
+	}
 	// 先执行 stop-redis.sh 脚本,再检查端口是否还在使用
 	job.runtime.Logger.Info(fmt.Sprintf("su %s -c \"%s\"",
 		consts.MysqlAaccount, stopScript+" "+strconv.Itoa(port)+" xxxx"))

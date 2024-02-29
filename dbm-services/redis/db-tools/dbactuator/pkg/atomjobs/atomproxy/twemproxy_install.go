@@ -354,74 +354,9 @@ func myFindFirstMountPoint(paths ...string) (string, error) {
 	return "", nil
 }
 
-// getDataDir 1，如果存在 /data
-//   - /data是一个文件或者指向文件的link 返回错误.
-//
-// 2，如果不存在/data 目录，但存在/data1 MountPoint
-//
-//	mkdir -p /data1/data
-//	ln -s /data1/data /
-//
-// 3，如果不存在 /data 目录，也不存在/data1 MountPoint
-//
-//	mkdir -p /data
-func getDataDir(dataPath string, dirs []string, userGroup string) (dataDir, dataDirReal string, err error) {
-	dataFileInfo, err := os.Stat(dataPath)
-	// data 存在
-	if err == nil {
-		if !dataFileInfo.IsDir() {
-			// data存在，又不是目录，返回错误.
-			return "", "", errors.Errorf("%s is not a dir or link to dir", dataPath)
-		}
-		dataDir = dataPath
-		dataDirReal = dataPath
-		err = nil
-		if dataFileInfo.Mode()&os.ModeSymlink == os.ModeSymlink {
-			dataDirReal, err = filepath.EvalSymlinks(dataDir)
-		}
-		return
-	}
-	// 存在未知错误
-	if !os.IsNotExist(err) {
-		return "", "", err
-	}
-
-	// 这里如果有错误，可能存在权限访问的异常，应该中止任务
-	firstMp, err := myFindFirstMountPoint(dirs...)
-	if err != nil {
-		return "", "", err
-	}
-
-	if firstMp == "" {
-		if err = mkDir(dataPath); err != nil {
-			return "", "", err
-		}
-		return dataPath, dataPath, nil
-	}
-
-	firstMpData := filepath.Join(firstMp, "data")
-
-	cmdLine := fmt.Sprintf(`mkdir -p %s
-ln -s %s %s`, firstMpData, firstMpData, dataPath)
-
-	if _, err = util.RunBashCmd(cmdLine,
-		"", nil, 10*time.Second); err != nil {
-		return "", "", err
-	}
-	_ = chownDir(firstMpData, userGroup)
-	return
-
-}
-
 // getRealDataDir 确认redis Data Dir
 func (ti *twemproxyInstall) getRealDataDir() error {
-	// 搞2次，第1次会尝试创建/data, 第2次还不行，就真的不行了.
-	_, _, _ = getDataDir(consts.DataPath, []string{consts.Data1Path}, ti.GetUserGroup())
-	data, realData, err := getDataDir(consts.DataPath, []string{consts.Data1Path}, ti.GetUserGroup())
-	if err != nil {
-		return err
-	}
-	ti.runtime.Logger.Info("getDataDir success. dataDir:%s realDataDir:%s", data, realData)
+	data := consts.GetRedisDataDir()
 	ti.RealDataDir = getPathWitChRoot(ti.Chroot, data, twemproxyDir)
 	return nil
 }

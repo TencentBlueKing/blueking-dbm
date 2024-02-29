@@ -13,6 +13,7 @@ from .access_manager import AccessManagerAtomJob
 from .predixy_config_servers_rewrite import ClusterPredixyConfigServersRewriteAtomJob
 from .proxy_install import ProxyBatchInstallAtomJob
 from .proxy_uninstall import ProxyUnInstallAtomJob
+from .proxy_upgrade import ClusterProxysUpgradeAtomJob
 from .redis_cluster_master_rep import RedisClusterMasterReplaceJob
 from .redis_cluster_slave_rep import RedisClusterSlaveReplaceJob, StorageRepLink
 from .redis_dbmon import ClusterDbmonInstallAtomJob, ClusterIPsDbmonInstallAtomJob

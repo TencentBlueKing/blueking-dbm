@@ -117,6 +117,7 @@ class RedisDtsContext:
     job_id: int = None  # 代表dts job id,对应表tb_tendis_dts_job
     task_ids: list = None  # 代表dts task id列表,对应表tb_tendis_dts_task
     tendis_backup_info: list = None  # 执行备份后的信息
+    resolv_content: dict = field(default_factory=dict)
 
 
 @dataclass()
