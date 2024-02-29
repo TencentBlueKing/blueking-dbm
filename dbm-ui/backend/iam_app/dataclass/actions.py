@@ -15,9 +15,11 @@ from typing import Dict, List, Union
 from django.utils.translation import ugettext as _
 from iam import Action
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ActionNotExistError
+from backend.ticket.constants import TicketType
 
 
 @dataclass
@@ -25,20 +27,38 @@ class ActionMeta(Action):
     """action 属性定义"""
 
     id: str  # 动作ID
-    name: str  # 动作名称
-    name_en: str  # 动作英文名称
-    type: str  # 动作类型
+    name: str = ""  # 动作名称
+    name_en: str = ""  # 动作英文名称
+    type: str = "execute"  # 动作类型
     related_resource_types: List[ResourceMeta] = None  # 关联资源类型
     related_actions: List = None  # 关联动作
     version: str = "1"  # 版本
     group: str = ""  # 动作隶属组
     subgroup: str = ""  # 动作隶属子组
 
+    is_ticket_action: bool = False  # 表示该动作是单据工具箱
+
     def __post_init__(self):
         super(ActionMeta, self).__init__(id=self.id)
+        if self.is_ticket_action:
+            self.__ticket_tool_action_init__()
+
+    def __ticket_tool_action_init__(self):
+        """单据工具箱action的初始化"""
+        ticket_type = self.id.upper()
+        group = TicketType.get_db_type_by_ticket(ticket_type)
+
+        self.name = str(TicketType.get_choice_label(ticket_type))
+        self.name_en = ticket_type
+        self.type = "execute"
+        self.related_resource_types = self.related_resource_types or [getattr(ResourceEnum, group.upper())]
+        self.related_actions = self.related_actions or []
+        self.group = DBType.get_choice_label(group)
+        self.subgroup = self.subgroup or _("工具箱")
 
     def to_json(self):
         content = asdict(self)
+        content.pop("is_ticket_action")
         content.update(
             {
                 "description": self.name,
@@ -1819,6 +1839,102 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    MONGODB_VIEW = ActionMeta(
+        id="mongodb_view",
+        name=_("Mongodb 集群详情查看"),
+        name_en="mongodb_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+    )
+
+    MONGODB_REPLICASET_APPLY = ActionMeta(
+        id=TicketType.MONGODB_REPLICASET_APPLY.lower(),
+        related_resource_types=[ResourceEnum.BUSINESS],
+        subgroup=_("集群管理"),
+        is_ticket_action=True,
+    )
+
+    MONGODB_SHARD_APPLY = ActionMeta(
+        id=TicketType.MONGODB_SHARD_APPLY.lower(),
+        related_resource_types=[ResourceEnum.BUSINESS],
+        subgroup=_("集群管理"),
+        is_ticket_action=True,
+    )
+
+    MONGODB_EXEC_SCRIPT_APPLY = ActionMeta(
+        id=TicketType.MONGODB_EXEC_SCRIPT_APPLY.lower(), subgroup=_("脚本任务"), is_ticket_action=True
+    )
+
+    MONGODB_REMOVE_NS = ActionMeta(id=TicketType.MONGODB_REMOVE_NS.lower(), subgroup=_("数据处理"), is_ticket_action=True)
+
+    MONGODB_FULL_BACKUP = ActionMeta(
+        id=TicketType.MONGODB_FULL_BACKUP.lower(), subgroup=_("备份"), is_ticket_action=True
+    )
+
+    MONGODB_BACKUP = ActionMeta(id=TicketType.MONGODB_BACKUP.lower(), subgroup=_("备份"), is_ticket_action=True)
+
+    MONGODB_ADD_MONGOS = ActionMeta(
+        id=TicketType.MONGODB_ADD_MONGOS.lower(), subgroup=_("集群维护"), is_ticket_action=True
+    )
+
+    MONGODB_REDUCE_MONGOS = ActionMeta(
+        id=TicketType.MONGODB_REDUCE_MONGOS.lower(), subgroup=_("集群维护"), is_ticket_action=True
+    )
+
+    MONGODB_ADD_SHARD_NODES = ActionMeta(
+        id=TicketType.MONGODB_ADD_SHARD_NODES.lower(), subgroup=_("集群维护"), is_ticket_action=True
+    )
+
+    MONGODB_REDUCE_SHARD_NODES = ActionMeta(
+        id=TicketType.MONGODB_REDUCE_SHARD_NODES.lower(), subgroup=_("集群维护"), is_ticket_action=True
+    )
+
+    MONGODB_SCALE_UPDOWN = ActionMeta(
+        id=TicketType.MONGODB_SCALE_UPDOWN.lower(), subgroup=_("集群维护"), is_ticket_action=True
+    )
+
+    MONGODB_ENABLE_DISABLE = ActionMeta(
+        id="mongodb_enable_disable",
+        name=_("MongoDB 集群禁用启用"),
+        name_en="mongodb_enable_disable",
+        type="execute",
+        related_actions=[MONGODB_VIEW.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+    )
+
+    MONGODB_DESTROY = ActionMeta(id=TicketType.MONGODB_DESTROY.lower(), subgroup=_("集群管理"), is_ticket_action=True)
+
+    MONGODB_INSTANCE_RELOAD = ActionMeta(
+        id=TicketType.MONGODB_INSTANCE_RELOAD.lower(), subgroup=_("集群管理"), is_ticket_action=True
+    )
+
+    MONGODB_CUTOFF = ActionMeta(id=TicketType.MONGODB_CUTOFF.lower(), subgroup=_("集群维护"), is_ticket_action=True)
+
+    MONGODB_RESTORE = ActionMeta(id=TicketType.MONGODB_RESTORE.lower(), subgroup=_("集群维护"), is_ticket_action=True)
+
+    MONGODB_AUTHORIZE = ActionMeta(
+        id=TicketType.MONGODB_AUTHORIZE.lower(),
+        related_resource_types=[ResourceEnum.BUSINESS],
+        subgroup=_("权限管理"),
+        is_ticket_action=True,
+    )
+
+    MONGODB_EXCEL_AUTHORIZE = ActionMeta(
+        id=TicketType.MONGODB_EXCEL_AUTHORIZE.lower(),
+        related_resource_types=[ResourceEnum.BUSINESS],
+        subgroup=_("权限管理"),
+        is_ticket_action=True,
+    )
+
+    MONGODB_TEMPORARY_DESTROY = ActionMeta(
+        id=TicketType.MONGODB_TEMPORARY_DESTROY.lower(), subgroup=_("集群维护"), is_ticket_action=True
+    )
+
     RESOURCE_POLL_MANAGE = ActionMeta(
         id="resource_pool_manage",
         name=_("资源池管理"),
@@ -2307,6 +2423,8 @@ class ActionEnum:
             return cls.MYSQL_VIEW
         if cluster_type in ClusterType.redis_cluster_types():
             return cls.REDIS_VIEW
+        if cluster_type in [ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]:
+            return cls.MONGODB_VIEW
         return getattr(cls, f"{cluster_type.upper()}_VIEW")
 
     @classmethod

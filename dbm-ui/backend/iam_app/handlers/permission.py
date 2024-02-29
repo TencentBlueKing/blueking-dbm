@@ -539,8 +539,9 @@ class Permission(object):
     @classmethod
     def decorator_permission_field(
         cls,
-        actions: List[ActionMeta],
-        resource_meta: ResourceMeta,
+        actions: List[ActionMeta] = None,
+        action_filed: Callable = lambda item: None,
+        resource_meta: ResourceMeta = None,
         id_field: Callable = lambda item: item["id"],
         data_field: Callable = lambda data_list: data_list,
         always_allowed: Callable = lambda item: False,
@@ -550,10 +551,17 @@ class Permission(object):
             @wraps(view_func)
             def wrapped_view(*args, **kwargs):
                 response = view_func(*args, **kwargs)
+
+                kwargs = {**args[1].data, **args[1].query_params.dict(), "view_class": args[0], **kwargs}
+                perm_actions = actions or action_filed(kwargs)
+                if not perm_actions:
+                    return response
+
+                perm_resource_meta = resource_meta or perm_actions[0].related_resource_types[0]
                 return cls.insert_permission_field(
                     response,
-                    actions,
-                    resource_meta,
+                    perm_actions,
+                    perm_resource_meta,
                     id_field,
                     data_field,
                     always_allowed,
@@ -566,16 +574,25 @@ class Permission(object):
 
     @classmethod
     def decorator_external_permission_field(
-        cls, actions: List[ActionMeta], resource_meta: Union[ResourceMeta, None], param_field: Callable
+        cls,
+        actions: List[ActionMeta] = None,
+        action_filed: Callable = lambda item: None,
+        param_field: Callable = lambda item: None,
+        resource_meta: Union[ResourceMeta, None] = None,
     ):
         def wrapper(view_func):
             @wraps(view_func)
             def wrapped_view(*args, **kwargs):
                 response = view_func(*args, **kwargs)
-                # 补充request信息和视图类为kwargs
+
                 kwargs = {**args[1].data, **args[1].query_params.dict(), "view_class": args[0], **kwargs}
-                resource = None if resource_meta is None else param_field(kwargs)
-                return cls.insert_external_permission_field(response, actions, resource_meta, resource)
+                perm_actions = actions or action_filed(kwargs)
+                if not perm_actions:
+                    return response
+
+                action_resource_meta = resource_meta or perm_actions[0].related_resource_types[0]
+                resource = None if not action_resource_meta else param_field(kwargs)
+                return cls.insert_external_permission_field(response, perm_actions, action_resource_meta, resource)
 
             return wrapped_view
 

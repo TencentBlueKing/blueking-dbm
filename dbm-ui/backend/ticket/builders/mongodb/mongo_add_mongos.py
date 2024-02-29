@@ -31,7 +31,7 @@ class MongoDBAddMongosDetailSerializer(BaseMongoDBOperateDetailSerializer):
         role = serializers.CharField(help_text=_("接入层角色"), required=False, default=MachineType.MONGOS)
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
 
-    is_safe = serializers.BooleanField(help_text=_("是否做安全检测"))
+    is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
@@ -47,7 +47,7 @@ class MongoDBAddMongosFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.fake_scene
 
     def format_ticket_data(self):
-        MongoDBBackupFlowParamBuilder.add_cluster_type_info(self.ticket_data)
+        MongoDBBackupFlowParamBuilder.add_cluster_type_info(self.ticket_data["infos"])
 
 
 class MongoDBAddMongosResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):

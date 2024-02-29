@@ -257,6 +257,14 @@ class RiakResourceMeta(ClusterResourceMeta):
 
 
 @dataclass
+class MongoDBResourceMeta(ClusterResourceMeta):
+    """mongodb集群resource 属性定义"""
+
+    id: str = "mongodb"
+    name: str = _("Mongodb集群")
+
+
+@dataclass
 class InstanceResourceMeta(ClusterResourceMeta):
     """实例resource 属性定义"""
 
@@ -430,6 +438,7 @@ class ResourceEnum:
     HDFS = HdfsResourceMeta()
     PULSAR = PulsarResourceMeta()
     RIAK = RiakResourceMeta()
+    MONGODB = MongoDBResourceMeta()
     DBTYPE = DBTypeResourceMeta()
     MONITOR_POLICY = MonitorPolicyResourceMeta()
     GLOBAL_MONITOR_POLICY = GlobalMonitorPolicyResourceMeta()
@@ -455,6 +464,8 @@ class ResourceEnum:
             return cls.MYSQL
         if cluster_type in ClusterType.redis_cluster_types():
             return cls.REDIS
+        if cluster_type in [ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]:
+            return cls.MONGODB
         return getattr(cls, cluster_type.upper(), None)
 
     @classmethod
