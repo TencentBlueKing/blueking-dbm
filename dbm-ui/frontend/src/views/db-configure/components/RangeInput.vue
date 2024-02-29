@@ -28,11 +28,9 @@
       :class="[{ 'is-focus': isShow }]"
       @click="handleShow">
       <template v-if="showPlaceholder">
-        <span style="color: #c4c6cc;">{{ $t('请设置范围值') }}</span>
+        <span style="color: #c4c6cc">{{ $t('请设置范围值') }}</span>
       </template>
-      <template v-else>
-        {{ min }}～{{ max }}
-      </template>
+      <template v-else> {{ min }}～{{ max }} </template>
     </div>
     <template #content>
       <div
@@ -149,7 +147,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .range-input__text {
     width: 100%;

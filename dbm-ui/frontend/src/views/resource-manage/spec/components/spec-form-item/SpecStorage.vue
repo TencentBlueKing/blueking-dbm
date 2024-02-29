@@ -15,7 +15,7 @@
   <div
     class="spec-mem spec-form-item"
     :class="{
-      'not-required': !isRequired
+      'not-required': !isRequired,
     }">
     <div class="spec-form-item__label">
       {{ $t('磁盘') }}
@@ -254,7 +254,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "./specFormItem.less";
+  @import './specFormItem.less';
 
   :deep(.bk-table-body) {
     .cell {

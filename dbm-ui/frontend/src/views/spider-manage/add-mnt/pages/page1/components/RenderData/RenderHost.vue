@@ -24,14 +24,18 @@
       trigger="manual">
       <div
         class="content-box"
-        :class="{'is-empty': !clusterData, 'is-error': Boolean(errorMessage)}">
+        :class="{ 'is-empty': !clusterData, 'is-error': Boolean(errorMessage) }">
         <span
           v-if="localHostList.length === 0"
-          class="placehold">{{ t('请选择主机') }}</span>
+          class="placehold">
+          {{ t('请选择主机') }}
+        </span>
         <span
           v-else
           ref="contentRef"
-          class="content-text">{{ localHostList.map(item => item.ip).join(',  ') }}</span>
+          class="content-text">
+          {{ localHostList.map((item) => item.ip).join(',  ') }}
+        </span>
         <BkPopover
           v-if="!!clusterData && showEditIcon"
           :content="t('从业务拓扑选择')"
@@ -71,7 +75,7 @@
     button-text=""
     :cloud-info="{
       id: clusterData.bk_cloud_id,
-      name: clusterData.bk_cloud_name
+      name: clusterData.bk_cloud_name,
     }"
     :data="localHostList"
     service-mode="all"
@@ -89,15 +93,17 @@
   import useValidtor from './useValidtor';
 
   interface Props {
-    clusterData?: SpiderModel
+    clusterData?: SpiderModel;
   }
 
   interface Exposes {
-    getValue: () => Promise<{ spider_ip_list: {
-      bk_host_id: number,
-      ip: string,
-      bk_cloud_id: number
-    }[]}>
+    getValue: () => Promise<{
+      spider_ip_list: {
+        bk_host_id: number;
+        ip: string;
+        bk_cloud_id: number;
+      }[];
+    }>;
   }
 
   defineProps<Props>();
@@ -119,22 +125,23 @@
     },
   ];
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(rules);
+  const { message: errorMessage, validator } = useValidtor(rules);
 
-  watch(localHostList, (list) => {
-    if (list.length > 0) {
-      validator(localHostList.value).finally(() => {
-        setTimeout(() => {
-          isOverflow.value =  contentRef.value.clientWidth < contentRef.value.scrollWidth;
+  watch(
+    localHostList,
+    (list) => {
+      if (list.length > 0) {
+        validator(localHostList.value).finally(() => {
+          setTimeout(() => {
+            isOverflow.value = contentRef.value.clientWidth < contentRef.value.scrollWidth;
+          });
         });
-      });
-    }
-  }, {
-    deep: true,
-  });
+      }
+    },
+    {
+      deep: true,
+    },
+  );
 
   const handleControlShowEdit = (isShow: boolean) => {
     showEditIcon.value = isShow;
@@ -150,138 +157,133 @@
 
   defineExpose<Exposes>({
     getValue() {
-      const formatHost = (hostList: HostDetails[]) => hostList.map(item => ({
-        bk_host_id: item.host_id,
-        ip: item.ip,
-        bk_cloud_id: item.cloud_area.id,
-      }));
-
-      return validator(localHostList.value)
-        .then(() => Promise.resolve({
-          spider_ip_list: formatHost(localHostList.value),
+      const formatHost = (hostList: HostDetails[]) =>
+        hostList.map((item) => ({
+          bk_host_id: item.host_id,
+          ip: item.ip,
+          bk_cloud_id: item.cloud_area.id,
         }));
+
+      return validator(localHostList.value).then(() =>
+        Promise.resolve({
+          spider_ip_list: formatHost(localHostList.value),
+        }),
+      );
     },
   });
 </script>
 <style lang="less" scoped>
-.render-host-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-
-  .content-box {
+  .render-host-box {
     position: relative;
     display: flex;
-    width: 100%;
-    height: 42px;
     align-items: center;
-    padding: 0 25px 0 17px;
     overflow: hidden;
-    border: solid transparent 1px;
 
-    &:hover {
-      cursor: pointer;
-      border-color: #a3c5fd;
-
-      .edit-btn-inner {
-        background-color: #F0F1F5;
-      }
-    }
-
-    .placehold {
-      color: #C4C6CC;
-    }
-
-    .content-text {
-      flex: 1;
+    .content-box {
+      position: relative;
+      display: flex;
+      width: 100%;
+      height: 42px;
+      align-items: center;
+      padding: 0 25px 0 17px;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .edit-btn{
-      position: absolute;
-      right: 5px;
-      z-index: 999;
-      display: flex;
-      width: 24px;
-      height: 40px;
-      align-items: center;
-
-      .edit-btn-inner {
-        display: flex;
-        width: 24px;
-        height: 24px;
-        cursor: pointer;
-        border-radius: 2px;
-        align-items: center;
-        justify-content: center;
-
-        .select-icon {
-          font-size: 16px;
-          color: #979BA5;
-        }
-
-        &:hover {
-          background: #F0F1F5;
-
-          .select-icon {
-            color: #3A84FF;
-          }
-
-        }
-      }
-    }
-
-    .input-error {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      padding-right: 35px;
-      font-size: 14px;
-      color: #ea3636;
-      align-items: center;
-      justify-content: flex-end;
-    }
-  }
-
-  .is-empty {
-    background-color: #fafbfd;
-    border: none;
-
-    :hover {
-      border: none;
-    }
-  }
-
-  .is-error {
-    background-color: #fff1f1;
-
-  }
-
-
-  .host-input{
-    flex: 1;
-
-    :deep(.inner-input) {
-      padding-right: 24px;
-      background-color: #fff;
       border: solid transparent 1px;
 
       &:hover {
-        background-color: #fafbfd;
+        cursor: pointer;
         border-color: #a3c5fd;
+
+        .edit-btn-inner {
+          background-color: #f0f1f5;
+        }
       }
 
+      .placehold {
+        color: #c4c6cc;
+      }
 
+      .content-text {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .edit-btn {
+        position: absolute;
+        right: 5px;
+        z-index: 999;
+        display: flex;
+        width: 24px;
+        height: 40px;
+        align-items: center;
+
+        .edit-btn-inner {
+          display: flex;
+          width: 24px;
+          height: 24px;
+          cursor: pointer;
+          border-radius: 2px;
+          align-items: center;
+          justify-content: center;
+
+          .select-icon {
+            font-size: 16px;
+            color: #979ba5;
+          }
+
+          &:hover {
+            background: #f0f1f5;
+
+            .select-icon {
+              color: #3a84ff;
+            }
+          }
+        }
+      }
+
+      .input-error {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        padding-right: 35px;
+        font-size: 14px;
+        color: #ea3636;
+        align-items: center;
+        justify-content: flex-end;
+      }
     }
 
-    &:hover {
-      cursor: pointer;
+    .is-empty {
+      background-color: #fafbfd;
+      border: none;
+
+      :hover {
+        border: none;
+      }
+    }
+
+    .is-error {
+      background-color: #fff1f1;
+    }
+
+    .host-input {
+      flex: 1;
+
+      :deep(.inner-input) {
+        padding-right: 24px;
+        background-color: #fff;
+        border: solid transparent 1px;
+
+        &:hover {
+          background-color: #fafbfd;
+          border-color: #a3c5fd;
+        }
+      }
+
+      &:hover {
+        cursor: pointer;
+      }
     }
   }
-
-
-}
 </style>

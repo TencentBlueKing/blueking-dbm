@@ -23,10 +23,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { netIp } from '@common/regex';
@@ -36,7 +33,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>
+    getValue: (field: string) => Promise<string>;
   }
 
   const { t } = useI18n();
@@ -58,14 +55,18 @@
     },
   ];
 
-  watch(() => modelValue.value, () => {
-    if (!modelValue.value) {
-      return;
-    }
-    localValue.value = `${modelValue.value.bk_cloud_id}:${modelValue.value.ip}`;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => modelValue.value,
+    () => {
+      if (!modelValue.value) {
+        return;
+      }
+      localValue.value = `${modelValue.value.bk_cloud_id}:${modelValue.value.ip}`;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string) => {
     const [bkCloudId, ip] = value.split(':');
@@ -75,20 +76,17 @@
     };
   };
 
-
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => {
-          if (!modelValue.value) {
-            return Promise.reject();
-          }
-          return ({
-            source: modelValue.value.ip,
-            bk_cloud_id: modelValue.value.bk_cloud_id,
-          });
-        });
+      return editRef.value.getValue().then(() => {
+        if (!modelValue.value) {
+          return Promise.reject();
+        }
+        return {
+          source: modelValue.value.ip,
+          bk_cloud_id: modelValue.value.bk_cloud_id,
+        };
+      });
     },
   });
 </script>

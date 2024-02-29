@@ -57,15 +57,13 @@
       </BkFormItem>
     </div>
   </BkForm>
-  <div class="title-spot cycle-table-box mt-24">
-    {{ t('轮值起止时间') }}<span class="required" />
-  </div>
+  <div class="title-spot cycle-table-box mt-24">{{ t('轮值起止时间') }}<span class="required" /></div>
   <BkDatePicker
     ref="datePickerRef"
     append-to-body
     :clearable="false"
     :model-value="dateTimeRange"
-    style="width:100%;"
+    style="width: 100%"
     type="daterange"
     @change="handlerChangeDatetime" />
   <div class="cycle-time-select-box">
@@ -443,110 +441,108 @@
       };
     },
   });
-
 </script>
 <style lang="less" scoped>
-.cycle-table-box {
-  margin-bottom: 6px;
-  font-weight: normal;
-  color: #63656E;
-}
+  .cycle-table-box {
+    margin-bottom: 6px;
+    font-weight: normal;
+    color: #63656e;
+  }
 
-.cycle-title-tip {
-  position: absolute;
-  top: -32px;
-  left: 60px;
-  font-size: 12px;
-  color: #979BA5;
-}
+  .cycle-title-tip {
+    position: absolute;
+    top: -32px;
+    left: 60px;
+    font-size: 12px;
+    color: #979ba5;
+  }
 
-.cycle-duty-box {
-  display: flex;
-  width: 100%;
-  justify-content: space-between;
-
-  .bk-form-item  {
+  .cycle-duty-box {
     display: flex;
-    width: 420px;
-    flex-direction: column;
-    gap: 6px;
+    width: 100%;
+    justify-content: space-between;
 
-    .input-item {
-      height: 32px;
+    .bk-form-item {
+      display: flex;
+      width: 420px;
+      flex-direction: column;
+      gap: 6px;
 
-      :deep(.bk-input--number-control) {
-        display: none;
+      .input-item {
+        height: 32px;
+
+        :deep(.bk-input--number-control) {
+          display: none;
+        }
+      }
+
+      :deep(.suffix-slot) {
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+        background: #fafbfd;
+        border-left: 1px solid #c4c6cc;
+      }
+    }
+  }
+
+  .cycle-time-select-box {
+    display: flex;
+    width: 100%;
+    padding: 16px;
+    margin-top: 12px;
+    background: #f5f7fa;
+    border-radius: 2px;
+    gap: 8px;
+
+    .select-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .icon {
+        font-size: 18px;
+        cursor: pointer;
+      }
+
+      .time-select {
+        display: flex;
+        width: 100%;
+        align-items: center;
+      }
+    }
+  }
+
+  .cycle-preview-box {
+    width: 100%;
+    padding: 12px 16px;
+    margin-top: 16px;
+    background: #f5f7fa;
+    border-radius: 2px;
+
+    .title {
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #63656e;
+    }
+
+    .table-box {
+      :deep(.peoples) {
+        display: flex;
+        flex-wrap: wrap;
       }
     }
 
-    :deep(.suffix-slot) {
-      width: 30px;
-      height: 30px;
-      line-height: 30px;
-      text-align: center;
-      background: #FAFBFD;
-      border-left: 1px solid #C4C6CC;
-    }
-  }
-}
-
-.cycle-time-select-box {
-  display: flex;
-  width: 100%;
-  padding: 16px;
-  margin-top: 12px;
-  background: #F5F7FA;
-  border-radius: 2px;
-  gap: 8px;
-
-  .select-item {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    .icon {
-      font-size: 18px;
-      cursor: pointer;
-    }
-
-    .time-select {
-      display: flex;
+    .more-tip {
       width: 100%;
-      align-items: center;
-    }
-
-  }
-}
-
-.cycle-preview-box {
-  width: 100%;
-  padding: 12px 16px;
-  margin-top: 16px;
-  background: #F5F7FA;
-  border-radius: 2px;
-
-  .title {
-    margin-bottom: 10px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #63656E;
-  }
-
-  .table-box {
-    :deep(.peoples) {
-      display: flex;
-      flex-wrap: wrap;
+      height: 42px;
+      padding-left: 16px;
+      font-size: 12px;
+      line-height: 42px;
+      color: #63656e;
+      background: #fff;
     }
   }
-
-  .more-tip {
-    width: 100%;
-    height: 42px;
-    padding-left: 16px;
-    font-size: 12px;
-    line-height: 42px;
-    color: #63656E;
-    background: #FFF;
-  }
-}
 </style>

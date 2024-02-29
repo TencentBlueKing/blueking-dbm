@@ -77,10 +77,7 @@
 </template>
 
 <script setup lang="ts">
-  import {
-    Eye,
-    Unvisible,
-  } from 'bkui-vue/lib/icon';
+  import { Eye, Unvisible } from 'bkui-vue/lib/icon';
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -123,16 +120,8 @@
     return result.value.password || '--';
   });
 
-
   const handleCopy = (type: string) => {
-    const {
-      cluster_name,
-      domain,
-      access_port,
-      username,
-      password,
-      token,
-    } = result.value;
+    const { cluster_name, domain, access_port, username, password, token } = result.value;
     // eslint-disable-next-line camelcase
     const domainPort = `${domain}:${access_port}`;
     let passwordToken = password;
@@ -140,31 +129,30 @@
       passwordToken = `${password} ${token}`;
     }
     switch (type) {
-    case 'cluster_name':
-      copy(cluster_name);
-      break;
-    case 'domain':
-      copy(domainPort);
-      break;
-    case 'username':
-      copy(username);
-      break;
-    case 'password':
-      copy(passwordToken);
-      break;
-    default:
-      // 复制全部
-      // eslint-disable-next-line no-case-declarations, camelcase
-      const content = `${t('集群名称')}: ${cluster_name}\n${t('域名')}: ${domainPort}\n${t('账号')}: ${username}\n${t('密码')}: ${passwordToken}`;
-      copy(content);
-      break;
+      case 'cluster_name':
+        copy(cluster_name);
+        break;
+      case 'domain':
+        copy(domainPort);
+        break;
+      case 'username':
+        copy(username);
+        break;
+      case 'password':
+        copy(passwordToken);
+        break;
+      default:
+        // 复制全部
+        // eslint-disable-next-line no-case-declarations, camelcase
+        const content = `${t('集群名称')}: ${cluster_name}\n${t('域名')}: ${domainPort}\n${t('账号')}: ${username}\n${t('密码')}: ${passwordToken}`;
+        copy(content);
+        break;
     }
   };
 
   const handlePasswordToggle = () => {
     isShowPassword.value = !isShowPassword.value;
   };
-
 </script>
 
 <style lang="less">

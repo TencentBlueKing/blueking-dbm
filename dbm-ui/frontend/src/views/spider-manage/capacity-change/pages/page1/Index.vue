@@ -110,10 +110,7 @@
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -121,10 +118,10 @@
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   const formData = reactive({
     need_checksum: false,
@@ -190,22 +187,24 @@
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
-      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== domain);
     }
   };
 
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'TENDBCLUSTER_NODE_REBALANCE',
-        remark: '',
-        details: {
-          ...formData,
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }))
+      .then((data) =>
+        createTicket({
+          ticket_type: 'TENDBCLUSTER_NODE_REBALANCE',
+          remark: '',
+          details: {
+            ...formData,
+            infos: data,
+          },
+          bk_biz_id: currentBizId,
+        }),
+      )
       .then((data) => {
         window.changeConfirm = false;
         router.push({
@@ -234,14 +233,14 @@
   .spider-manage-capacity-change-page {
     padding-bottom: 20px;
 
-    .form-block{
-      .bk-form-label{
+    .form-block {
+      .bk-form-label {
         font-size: 12px;
         font-weight: bold;
         color: #313238;
       }
 
-      .repair-mode-block{
+      .repair-mode-block {
         flex-direction: column;
 
         .item-box {

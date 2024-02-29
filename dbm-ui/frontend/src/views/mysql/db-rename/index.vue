@@ -14,12 +14,15 @@
 <template>
   <SuccessView
     v-if="ticketId"
-    :steps="[{
-      title: $t('单据审批'),
-      status: 'loading',
-    }, {
-      title: $t('DB重命名_执行'),
-    }]"
+    :steps="[
+      {
+        title: $t('单据审批'),
+        status: 'loading',
+      },
+      {
+        title: $t('DB重命名_执行'),
+      },
+    ]"
     :ticket-id="ticketId"
     :title="$t('DB重命名任务提交成功')"
     @close="handleCloseSuccess" />
@@ -32,7 +35,7 @@
     <div class="db-rename-operations">
       <BkButton
         class="db-rename-batch"
-        @click="() => isShowBatchInput = true">
+        @click="() => (isShowBatchInput = true)">
         <DbIcon type="add" />
         {{ $t('批量录入') }}
       </BkButton>
@@ -52,7 +55,7 @@
       :false-label="false">
       <span
         class="inline-block"
-        style=" margin-top: -2px;border-bottom: 1px dashed #979ba5;">
+        style="margin-top: -2px; border-bottom: 1px dashed #979ba5">
         {{ $t('忽略业务连接') }}
       </span>
     </BkCheckbox>

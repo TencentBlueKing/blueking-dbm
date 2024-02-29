@@ -21,12 +21,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { computed, ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -37,15 +32,15 @@
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   interface Props {
-    clusterId: number
+    clusterId: number;
   }
 
   interface Emits {
-    (e: 'clusterChange', value: SpiderModel): void
+    (e: 'clusterChange', value: SpiderModel): void;
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>
+    getValue: (field: string) => Promise<string>;
   }
 
   const props = defineProps<Props>();
@@ -54,11 +49,11 @@
   const { t } = useI18n();
 
   const editRef = ref();
-  const bkNetList = shallowRef<{bk_cloud_id: number, bk_cloud_name: string}[]>([]);
+  const bkNetList = shallowRef<{ bk_cloud_id: number; bk_cloud_name: string }[]>([]);
   const localBkNetId = ref<number>();
 
   const localValue = computed(() => {
-    const target = _.find(bkNetList.value, item => item.bk_cloud_id === localBkNetId.value);
+    const target = _.find(bkNetList.value, (item) => item.bk_cloud_id === localBkNetId.value);
     if (target) {
       return target.bk_cloud_name;
     }
@@ -72,19 +67,14 @@
     },
   ];
 
-  const {
-    loading: isLoading,
-  } = useRequest(getCloudList, {
+  const { loading: isLoading } = useRequest(getCloudList, {
     initialData: [],
     onSuccess(data) {
       bkNetList.value = data;
     },
   });
 
-  const {
-    loading: isClusterDataLoading,
-    run: fetchClusetrData,
-  } = useRequest(getSpiderDetail, {
+  const { loading: isClusterDataLoading, run: fetchClusetrData } = useRequest(getSpiderDetail, {
     manual: true,
     onSuccess(data) {
       localBkNetId.value = data.bk_cloud_id;
@@ -92,23 +82,25 @@
     },
   });
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchClusetrData({
-        id: props.clusterId,
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (props.clusterId) {
+        fetchClusetrData({
+          id: props.clusterId,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => ({
-          bk_cloud_id: localBkNetId.value,
-        }));
+      return editRef.value.getValue().then(() => ({
+        bk_cloud_id: localBkNetId.value,
+      }));
     },
   });
 </script>

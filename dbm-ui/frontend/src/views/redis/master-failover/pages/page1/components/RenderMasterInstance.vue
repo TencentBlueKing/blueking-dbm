@@ -17,11 +17,11 @@
       class="render-role-box"
       :class="{
         'default-display': data.length === 0,
-        'is-error': Boolean(errorMessage)
+        'is-error': Boolean(errorMessage),
       }">
       <span
         v-if="data.length === 0"
-        style="color: #c4c6cc;">
+        style="color: #c4c6cc">
         {{ $t('输入主库后自动生成') }}
       </span>
       <template v-else>
@@ -52,11 +52,11 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<void>
+    getValue: () => Promise<void>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => ([]),
+    data: () => [],
     isLoading: false,
   });
 
@@ -72,39 +72,37 @@
       return Promise.resolve();
     },
   });
-
 </script>
 <style lang="less" scoped>
-
-.is-error {
-  background-color: #fff0f1 !important;
-}
-
-.render-role-box {
-  position: relative;
-  min-height: 42px;
-  padding: 10px 16px;
-  overflow: hidden;
-  line-height: 20px;
-  color: #63656e;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  .input-error {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    padding-right: 10px;
-    font-size: 14px;
-    color: #ea3636;
-    align-items: center;
+  .is-error {
+    background-color: #fff0f1 !important;
   }
-}
 
-.default-display {
-  cursor: not-allowed;
-  background: #FAFBFD;
-}
+  .render-role-box {
+    position: relative;
+    min-height: 42px;
+    padding: 10px 16px;
+    overflow: hidden;
+    line-height: 20px;
+    color: #63656e;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    .input-error {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      padding-right: 10px;
+      font-size: 14px;
+      color: #ea3636;
+      align-items: center;
+    }
+  }
+
+  .default-display {
+    cursor: not-allowed;
+    background: #fafbfd;
+  }
 </style>

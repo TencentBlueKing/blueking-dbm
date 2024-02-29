@@ -5,10 +5,10 @@
     <BkButton
       v-bk-tooltips="{
         content: text,
-        disabled: !isOverflow
+        disabled: !isOverflow,
       }"
       class="text-main"
-      :style="[{'flex': isOverflow ? 1 : 'none'}, textStyle]"
+      :style="[{ flex: isOverflow ? 1 : 'none' }, textStyle]"
       text
       theme="primary"
       @click.stop="handleClickText">
@@ -25,12 +25,12 @@
   import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
-    text?: string,
-    textStyle?: Record<string, string>
+    text?: string;
+    textStyle?: Record<string, string>;
   }
 
   interface Emits {
-    (e: 'click'): void,
+    (e: 'click'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -44,7 +44,8 @@
     clearTimeout(timer);
     timer = setTimeout(() => {
       // eslint-disable-next-line max-len
-      isOverflow.value = rowRef.value.scrollWidth > rowRef.value.clientWidth || mainRef.value.scrollWidth > mainRef.value.clientWidth;
+      isOverflow.value =
+        rowRef.value.scrollWidth > rowRef.value.clientWidth || mainRef.value.scrollWidth > mainRef.value.clientWidth;
     });
   }
 
@@ -54,12 +55,15 @@
 
   let timer = 0;
 
-  watch(() => props.text, () => {
-    checkOveflow();
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => props.text,
+    () => {
+      checkOveflow();
+    },
+    {
+      immediate: true,
+    },
+  );
 
   useResizeObserver(mainRef, checkOveflow);
 
@@ -68,31 +72,31 @@
   };
 </script>
 <style lang="less">
-.text-ellipsis-one-line-box {
-  display: flex;
-  width: 100%;
-  align-items: center;
+  .text-ellipsis-one-line-box {
+    display: flex;
+    width: 100%;
+    align-items: center;
 
-  .text-main {
-    margin-right: 4px;
-    overflow: hidden;
-    // flex: 1;
-
-    .bk-button-text {
-      display: inline-block;
-      width: 100%;
+    .text-main {
+      margin-right: 4px;
       overflow: hidden;
+      // flex: 1;
 
-      .text {
+      .bk-button-text {
+        display: inline-block;
         width: 100%;
-        height: 18px;
         overflow: hidden;
-        line-height: 18px;
-        text-align: left;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+
+        .text {
+          width: 100%;
+          height: 18px;
+          overflow: hidden;
+          line-height: 18px;
+          text-align: left;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
       }
     }
   }
-}
 </style>

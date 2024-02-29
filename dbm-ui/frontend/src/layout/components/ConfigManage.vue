@@ -81,6 +81,4 @@
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'DbConfigure');
 
   const styles = useMenuStyles(menuBoxRef);
-
 </script>
-

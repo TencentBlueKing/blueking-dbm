@@ -23,9 +23,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-  } from 'vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getHostTopoInfos } from '@services/source/ipchooser';
@@ -36,28 +34,21 @@
 
   import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
-
   interface Props {
-    modelValue?: string,
-    disabled?: boolean,
-    cloudId: null | number
-    domain?: string
+    modelValue?: string;
+    disabled?: boolean;
+    cloudId: null | number;
+    domain?: string;
   }
 
   interface Exposes {
-    getValue: () => Promise<Array<string>>
+    getValue: () => Promise<Array<string>>;
   }
 
   const props = defineProps<Props>();
 
-  const {
-    t,
-    locale,
-  } = useI18n();
-  const {
-    currentBizId,
-    currentBizInfo,
-  } = useGlobalBizs();
+  const { t, locale } = useI18n();
+  const { currentBizId, currentBizInfo } = useGlobalBizs();
 
   const inputRef = ref();
   const localValue = ref();
@@ -66,52 +57,54 @@
 
   let errorMessage = t('IP不存在');
 
-
   const rules = [
     {
       validator: (value: string) => ipv4.test(value),
       message: t('IP格式不正确'),
     },
     {
-      validator: (value: string) => getHostTopoInfos({
-        filter_conditions: {
-          bk_host_innerip: [value],
-          mode: 'idle_only',
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        if (data.hosts_topo_info.length < 1) {
-          const bizName = isCN.value ? currentBizInfo?.name || '--' : currentBizInfo?.english_name || '--';
-          errorMessage = t('IP不在x业务空闲机模块', { name: bizName });
-          return false;
-        }
-        const hostData = data.hosts_topo_info.find(item => item.bk_cloud_id === props.cloudId);
-        if (!hostData) {
-          errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
-            ip: value,
-            cluster: props.domain,
-          });
-          return false;
-        }
-        return true;
-      }),
+      validator: (value: string) =>
+        getHostTopoInfos({
+          filter_conditions: {
+            bk_host_innerip: [value],
+            mode: 'idle_only',
+          },
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          if (data.hosts_topo_info.length < 1) {
+            const bizName = isCN.value ? currentBizInfo?.name || '--' : currentBizInfo?.english_name || '--';
+            errorMessage = t('IP不在x业务空闲机模块', { name: bizName });
+            return false;
+          }
+          const hostData = data.hosts_topo_info.find((item) => item.bk_cloud_id === props.cloudId);
+          if (!hostData) {
+            errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
+              ip: value,
+              cluster: props.domain,
+            });
+            return false;
+          }
+          return true;
+        }),
       message: () => errorMessage,
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    localValue.value = props.modelValue;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      localValue.value = props.modelValue;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value
-        .getValue()
-        .then(() => ({
-          rollback_ip: localValue.value,
-        }));
+      return inputRef.value.getValue().then(() => ({
+        rollback_ip: localValue.value,
+      }));
     },
   });
 </script>

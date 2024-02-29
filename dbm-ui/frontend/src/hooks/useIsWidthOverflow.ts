@@ -9,8 +9,9 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { useResizeObserver } from '@vueuse/core';
+
 export function useIsWidthOverflow<T extends Ref<any> | ComputedRef<any>>(
   domRef: Ref<HTMLDivElement>,
   watchVariable: T,
@@ -25,14 +26,17 @@ export function useIsWidthOverflow<T extends Ref<any> | ComputedRef<any>>(
 
   useResizeObserver(domRef, checkOverflow);
 
-  watch(watchVariable, () => {
-    setTimeout(() => {
-      checkOverflow();
-    });
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    watchVariable,
+    () => {
+      setTimeout(() => {
+        checkOverflow();
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   return { isOverflow };
 }

@@ -38,7 +38,7 @@
             <div style="padding: 20px 0 20px 8px; margin-left: auto">
               <DbIcon
                 v-if="favorIdMap[id]"
-                style="color: #ffb848;"
+                style="color: #ffb848"
                 type="star-fill"
                 @click.stop="handleUnfavor(id)" />
               <DbIcon
@@ -88,7 +88,7 @@
                     </span>
                   </div>
                   <template #content>
-                    <img v-bind="child.tipImgProps">
+                    <img v-bind="child.tipImgProps" />
                   </template>
                 </BkPopover>
               </div>
@@ -103,10 +103,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import type {
     ExtractedControllerDataKeys,
@@ -115,16 +112,9 @@
 
   import { useFullscreenStyle } from '@hooks';
 
-  import { useUserProfile  } from '@stores';
+  import { useUserProfile } from '@stores';
 
-  import {
-    bigDataType,
-    mongoType,
-    mysqlType,
-    redisType,
-    TicketTypes,
-    UserPersonalSettings,
-  } from '@common/const';
+  import { bigDataType, mongoType, mysqlType, redisType, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import { makeMap } from '@utils';
 
@@ -135,20 +125,20 @@
   import singleTipImg from '@/images/architecture-02.png';
 
   interface IService {
-    id: ExtractedControllerDataKeys,
-    groupName?: string,
-    name: string,
+    id: ExtractedControllerDataKeys;
+    groupName?: string;
+    name: string;
     children: Array<{
-      id: TicketTypes,
-      routeName: string,
-      name: string,
-      icon: string,
-      controllerId?: FunctionKeys,
+      id: TicketTypes;
+      routeName: string;
+      name: string;
+      icon: string;
+      controllerId?: FunctionKeys;
       tipImgProps?: {
-        width: number,
-        src: string,
-      },
-    }>
+        width: number;
+        src: string;
+      };
+    }>;
   }
 
   const route = useRoute();
@@ -282,22 +272,24 @@
     },
   ];
 
-  const serviceIdMap = Object.values(services).reduce((result, groupItem) => {
-    groupItem.children.forEach((item) => {
-      Object.assign(result, {
-        [item.id]: item,
+  const serviceIdMap = Object.values(services).reduce(
+    (result, groupItem) => {
+      groupItem.children.forEach((item) => {
+        Object.assign(result, {
+          [item.id]: item,
+        });
       });
-    });
-    return result;
-  }, {} as Record<string, IService['children'][number]>);
+      return result;
+    },
+    {} as Record<string, IService['children'][number]>,
+  );
 
   const lastFavorIdMap = makeMap(userProfile.profile[UserPersonalSettings.SERVICE_APPLY_FAVOR] || []);
   const rootRef = ref<HTMLElement>();
   const rootStyle = useFullscreenStyle(rootRef);
-  const historyCacheIdList = ref<string[]>(_.sortBy(
-    JSON.parse(localStorage.getItem(localHistroyKey) || '[]'),
-    item => lastFavorIdMap[item],
-  ));
+  const historyCacheIdList = ref<string[]>(
+    _.sortBy(JSON.parse(localStorage.getItem(localHistroyKey) || '[]'), (item) => lastFavorIdMap[item]),
+  );
   const favorIdMap = shallowRef({ ...lastFavorIdMap });
 
   const handleApply = (item: IService['children'][0]) => {
@@ -333,123 +325,122 @@
   };
 </script>
 <style lang="less">
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.service-apply-page {
-  .history-list{
-    display: flex;
-
-    .history-item{
+  .service-apply-page {
+    .history-list {
       display: flex;
-      width: 250px;
-      height: 56px;
-      padding: 0 16px;
-      margin-right: 16px;
-      overflow: hidden;
-      font-size: 12px;
-      color: #63656E;
-      cursor: pointer;
-      background: #F5F7FA;
-      border-radius: 2px;
-      transition: all .1s;
-      align-items: center;
 
-      &:hover{
-        background: #F0F1F5;
+      .history-item {
+        display: flex;
+        width: 250px;
+        height: 56px;
+        padding: 0 16px;
+        margin-right: 16px;
+        overflow: hidden;
+        font-size: 12px;
+        color: #63656e;
+        cursor: pointer;
+        background: #f5f7fa;
+        border-radius: 2px;
+        transition: all 0.1s;
+        align-items: center;
 
-        .favor-btn{
-          opacity: 100%;
+        &:hover {
+          background: #f0f1f5;
+
+          .favor-btn {
+            opacity: 100%;
+          }
+        }
+
+        .item-icon {
+          display: flex;
+          flex: 0 0 32px;
+          width: 32px;
+          height: 32px;
+          margin-right: 8px;
+          background: #eaebf0;
+          border-radius: 50%;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .item-text {
+          height: 16px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .favor-btn {
+          opacity: 0%;
+          transform: all 0.1s;
         }
       }
+    }
 
-      .item-icon{
+    .apply-collapse {
+      margin-bottom: 16px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .apply-collapse-count {
+        height: 16px;
+        margin-left: 4px;
+        line-height: 16px;
+        color: @gray-color;
+      }
+    }
+
+    .apply-collapse-content {
+      display: flex;
+
+      .group-name {
         display: flex;
-        flex: 0 0 32px;
-        width: 32px;
-        height: 32px;
-        margin-right: 8px;
-        background: #EAEBF0;
-        border-radius: 50%;
+        width: 100px;
+        height: 40px;
+        margin-right: 16px;
+        font-size: 12px;
+        font-weight: bold;
+        color: #313238;
+        background: #eaebf0;
+        border-radius: 2px;
         align-items: center;
         justify-content: center;
       }
-
-      .item-text{
-        height: 16px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .favor-btn{
-        opacity: 0%;
-        transform: all .1s;
-      }
-    }
-  }
-
-  .apply-collapse {
-    margin-bottom: 16px;
-
-    &:last-child {
-      margin-bottom: 0;
     }
 
-    .apply-collapse-count {
-      height: 16px;
-      margin-left: 4px;
-      line-height: 16px;
-      color: @gray-color;
-    }
-
-  }
-
-  .apply-collapse-content {
-    display: flex;
-
-    .group-name{
-      display: flex;
-      width: 100px;
-      height: 40px;
+    .apply-item {
+      width: 290px;
+      padding: 0 16px;
       margin-right: 16px;
-      font-size: 12px;
-      font-weight: bold;
-      color: #313238;
-      background: #EAEBF0;
+      font-size: @font-size-mini;
+      line-height: 40px;
+      cursor: pointer;
+      background-color: #f5f7fa;
       border-radius: 2px;
-      align-items: center;
-      justify-content: center;
-    }
-  }
-
-  .apply-item {
-    width: 290px;
-    padding: 0 16px;
-    margin-right: 16px;
-    font-size: @font-size-mini;
-    line-height: 40px;
-    cursor: pointer;
-    background-color: #F5F7FA;
-    border-radius: 2px;
-
-    .apply-item-icon {
-      width: 24px;
-      height: 24px;
-      margin-right: 8px;
-      font-size: @font-size-large;
-      line-height: 24px;
-      background-color: #eaebf0;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    &:hover {
-      background-color: @bg-dark-gray;
 
       .apply-item-icon {
-        background-color: @bg-disable;
+        width: 24px;
+        height: 24px;
+        margin-right: 8px;
+        font-size: @font-size-large;
+        line-height: 24px;
+        background-color: #eaebf0;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      &:hover {
+        background-color: @bg-dark-gray;
+
+        .apply-item-icon {
+          background-color: @bg-disable;
+        }
       }
     }
   }
-}
 </style>

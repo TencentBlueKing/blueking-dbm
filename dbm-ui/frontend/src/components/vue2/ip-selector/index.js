@@ -9,21 +9,11 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import {
-  h,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from 'vue';
+import { h, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-import {
-  Component,
-  merge,
-  Vue2,
-} from '@blueking/ip-selector/dist/vue2.6.x.esm';
+import { Component, merge, Vue2 } from '@blueking/ip-selector/dist/vue2.6.x.esm';
 
 export default function (options) {
   merge(options);
@@ -41,10 +31,13 @@ export default function (options) {
         Object.keys(props).forEach((propName) => {
           const newValue = props[propName];
           if (Object.prototype.toString.call(newValue) === '[object Object]') {
-            const v = Object.keys(newValue).reduce((result, item) => ({
-              ...result,
-              [item]: newValue[item],
-            }), {});
+            const v = Object.keys(newValue).reduce(
+              (result, item) => ({
+                ...result,
+                [item]: newValue[item],
+              }),
+              {},
+            );
             // eslint-disable-next-line no-underscore-dangle
             app._props[propName] = Object.freeze(v);
           } else if (Object.prototype.toString.call(newValue) === '[object Array]') {
@@ -59,11 +52,15 @@ export default function (options) {
 
       const propWatchStack = [];
       Object.keys(props).forEach((propName) => {
-        const unwatch = watch(() => props[propName], () => {
-          syncProps();
-        }, {
-          immediate: true,
-        });
+        const unwatch = watch(
+          () => props[propName],
+          () => {
+            syncProps();
+          },
+          {
+            immediate: true,
+          },
+        );
         propWatchStack.push(unwatch);
       });
 
@@ -80,7 +77,7 @@ export default function (options) {
       });
 
       onBeforeUnmount(() => {
-        propWatchStack.forEach(unwatch => unwatch());
+        propWatchStack.forEach((unwatch) => unwatch());
         app.$el.parentNode.removeChild(app.$el);
         app.$destroy();
         app = null;

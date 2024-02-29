@@ -15,9 +15,8 @@
   <div class="ticket-details__info">
     <div
       class="ticket-details__item"
-      style="align-items: flex-start;">
-      <span
-        class="ticket-details__item-label">{{ t('需求信息') }}：</span>
+      style="align-items: flex-start">
+      <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
       <span class="ticket-details__item-value">
         <DbOriginalTable
           :columns="columns"
@@ -52,12 +51,12 @@
   import type { SpiderMasterSlaveSwitchDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<SpiderMasterSlaveSwitchDetails>
+    ticketDetails: TicketDetails<SpiderMasterSlaveSwitchDetails>;
   }
 
   interface RowData {
-    masterIp: string,
-    slaveIp: string,
+    masterIp: string;
+    slaveIp: string;
   }
 
   const props = defineProps<Props>();
@@ -88,8 +87,7 @@
       showOverflowTooltip: true,
     },
   ];
-
 </script>
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

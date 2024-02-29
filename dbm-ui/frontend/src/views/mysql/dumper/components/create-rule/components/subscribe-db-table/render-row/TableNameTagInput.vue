@@ -30,26 +30,26 @@
   import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
 
   interface Exposes {
-    getValue: () => Promise<string[]>
+    getValue: () => Promise<string[]>;
   }
 
   const { t } = useI18n();
 
   const tagRef = ref();
-  const localValue  = ref<string[]>([]);
+  const localValue = ref<string[]>([]);
 
   const rules = [
     {
-      validator: (value: string []) => value && value.length > 0,
+      validator: (value: string[]) => value && value.length > 0,
       message: t('不能为空'),
     },
     {
-      validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
+      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
       message: t('% 不允许单独使用'),
       trigger: 'change',
     },
     {
-      validator: (value: string []) => _.some(value, item => /^[a-zA-Z0-9_%]+$/.test(item)),
+      validator: (value: string[]) => _.some(value, (item) => /^[a-zA-Z0-9_%]+$/.test(item)),
       message: t('不合法的输入'),
       trigger: 'change',
     },
@@ -61,13 +61,12 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return tagRef.value.getValue()
-        .then(() => {
-          if (!localValue.value) {
-            return Promise.reject();
-          }
-          return localValue.value;
-        });
+      return tagRef.value.getValue().then(() => {
+        if (!localValue.value) {
+          return Promise.reject();
+        }
+        return localValue.value;
+      });
     },
   });
 </script>

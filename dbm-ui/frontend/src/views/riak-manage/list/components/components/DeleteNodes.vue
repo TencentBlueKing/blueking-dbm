@@ -181,7 +181,7 @@
 </script>
 
 <style lang="less" scoped>
-.delete-nodes {
-  padding: 0 40px 24px;
-}
+  .delete-nodes {
+    padding: 0 40px 24px;
+  }
 </style>

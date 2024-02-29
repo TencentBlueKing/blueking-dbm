@@ -241,7 +241,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .publish-record {
     height: 100%;
@@ -281,4 +281,3 @@
     }
   }
 </style>
-

@@ -15,7 +15,7 @@
   <div class="sql-execute-sql-file-list">
     <div class="file-list-title">
       <span>{{ $t('文件列表') }}</span>
-      <span style="font-size: 12px; font-weight: normal;color: #979ba5;">
+      <span style="font-size: 12px; font-weight: normal; color: #979ba5">
         {{ $t('按顺序执行') }}
       </span>
     </div>
@@ -34,38 +34,39 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
 
   import { getSQLFilename } from '@utils';
 
   interface Props {
-    modelValue: string,
-    data: Array<string>,
+    modelValue: string;
+    data: Array<string>;
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: string): void,
+    (e: 'update:modelValue', value: string): void;
   }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const localList = ref<Array<Record<'id'|'name', string>>>([]);
+  const localList = ref<Array<Record<'id' | 'name', string>>>([]);
 
-  watch(() => props.data, () => {
-    localList.value = props.data.map(fileName => ({
-      id: fileName,
-      name: fileName,
-    }));
-    const fileName = localList.value[0].name;
-    emits('update:modelValue', fileName);
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      localList.value = props.data.map((fileName) => ({
+        id: fileName,
+        name: fileName,
+      }));
+      const fileName = localList.value[0].name;
+      emits('update:modelValue', fileName);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClick = (fileName: string) => {
     emits('update:modelValue', fileName);

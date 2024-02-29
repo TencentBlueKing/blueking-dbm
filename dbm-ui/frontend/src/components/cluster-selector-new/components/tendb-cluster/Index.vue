@@ -27,7 +27,7 @@
       :is-anomalies="isAnomalies"
       :is-searching="searchSelectValue.length > 0"
       :max-height="528"
-      :pagination="pagination.count < 10 ? false: pagination"
+      :pagination="pagination.count < 10 ? false : pagination"
       remote-pagination
       row-style="cursor: pointer;"
       @page-limit-change="handleTableLimitChange"
@@ -335,27 +335,26 @@
 </script>
 
 <style lang="less" scoped>
-.table-box {
-  :deep(.cluster-name-box) {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    overflow: hidden;
-
-    .cluster-name {
-      width: auto;
-      margin-right: 8px;
+  .table-box {
+    :deep(.cluster-name-box) {
+      display: flex;
+      width: 100%;
+      align-items: center;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
 
-    .tag-box {
-      height: 16px;
-      color: #3A84FF;
-      border-radius: 8px !important;
+      .cluster-name {
+        width: auto;
+        margin-right: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tag-box {
+        height: 16px;
+        color: #3a84ff;
+        border-radius: 8px !important;
+      }
     }
   }
-}
 </style>
-

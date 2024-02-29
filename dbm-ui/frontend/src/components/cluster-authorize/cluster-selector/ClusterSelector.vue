@@ -70,10 +70,14 @@
                     class="text-overflow">
                     <span
                       v-if="item.isMaster !== undefined && item.isMaster"
-                      class="master-icon">{{ t('主') }}</span>
+                      class="master-icon">
+                      {{ t('主') }}
+                    </span>
                     <span
                       v-else
-                      class="slave-icon">{{ t('从') }}</span>
+                      class="slave-icon">
+                      {{ t('从') }}
+                    </span>
                     <span class="ml-6">{{ item.master_domain }}</span>
                   </span>
                   <i
@@ -136,7 +140,7 @@
                 :is-searching="state.search.length > 0"
                 :pagination="{
                   ...state.pagination,
-                  small: true
+                  small: true,
                 }"
                 remote-pagination
                 row-style="cursor: pointer;"
@@ -516,115 +520,170 @@
 </script>
 
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.master-icon {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  line-height: 20px;
-  color: #3A84FF;
-  text-align: center;
-  background: #F0F5FF;
-  border-radius: 2px;
-}
-
-.slave-icon {
-  .master-icon();
-
-  color: #1CAB88;
-  background: #F2FFF4;
-}
-
-.cluster-selector {
-  font-size: @font-size-mini;
-
-  :deep(.bk-modal-header) {
-    display: none;
+  .master-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    color: #3a84ff;
+    text-align: center;
+    background: #f0f5ff;
+    border-radius: 2px;
   }
 
-  :deep(.bk-modal-content) {
-    padding: 0;
+  .slave-icon {
+    .master-icon();
+
+    color: #1cab88;
+    background: #f2fff4;
   }
 
-  &__tabs {
-    height: 42px;
+  .cluster-selector {
     font-size: @font-size-mini;
-    line-height: 42px;
-    background-color: #fafbfd;
-    border-bottom: 1px solid @border-disable;
-    .flex-center();
 
-    .tabs__item {
-      min-width: 200px;
-      margin-bottom: -1px;
-      text-align: center;
-      cursor: pointer;
-      border: 1px solid @border-disable;
-      border-top: 0;
-      border-left: 0;
-      border-bottom-color: transparent;
-
-      &--active {
-        background-color: @bg-white;
-        border-bottom-color: @border-white;
-      }
+    :deep(.bk-modal-header) {
+      display: none;
     }
-  }
 
-  &__content {
-    height: 585px;
-    padding: 16px 24px 0;
-
-    :deep(.bk-pagination-small-list) {
-      order: 3;
-      flex: 1;
-      justify-content: flex-end;
+    :deep(.bk-modal-content) {
+      padding: 0;
     }
-  }
 
-  &__result {
-    height: 100%;
-    padding: 12px 24px;
-    font-size: @font-size-mini;
-    background-color: #f5f6fa;
-
-    .result__title {
-      padding-bottom: 16px;
+    &__tabs {
+      height: 42px;
+      font-size: @font-size-mini;
+      line-height: 42px;
+      background-color: #fafbfd;
+      border-bottom: 1px solid @border-disable;
       .flex-center();
 
-      > span {
-        flex: 1;
-        font-size: @font-size-normal;
-        color: @title-color;
-      }
-
-      .result__dropdown {
-        font-size: 0;
-        line-height: 20px;
-      }
-
-      .result__trigger {
-        display: block;
-        font-size: 18px;
-        color: @gray-color;
+      .tabs__item {
+        min-width: 200px;
+        margin-bottom: -1px;
+        text-align: center;
         cursor: pointer;
+        border: 1px solid @border-disable;
+        border-top: 0;
+        border-left: 0;
+        border-bottom-color: transparent;
 
-        &:hover {
-          background-color: @bg-disable;
-          border-radius: 2px;
+        &--active {
+          background-color: @bg-white;
+          border-bottom-color: @border-white;
         }
       }
     }
 
-    .result__item {
-      padding: 0 12px;
-      margin-bottom: 2px;
-      line-height: 32px;
-      background-color: @bg-white;
-      border-radius: 2px;
-      justify-content: space-between;
-      .flex-center();
+    &__content {
+      height: 585px;
+      padding: 16px 24px 0;
+
+      :deep(.bk-pagination-small-list) {
+        order: 3;
+        flex: 1;
+        justify-content: flex-end;
+      }
+    }
+
+    &__result {
+      height: 100%;
+      padding: 12px 24px;
+      font-size: @font-size-mini;
+      background-color: #f5f6fa;
+
+      .result__title {
+        padding-bottom: 16px;
+        .flex-center();
+
+        > span {
+          flex: 1;
+          font-size: @font-size-normal;
+          color: @title-color;
+        }
+
+        .result__dropdown {
+          font-size: 0;
+          line-height: 20px;
+        }
+
+        .result__trigger {
+          display: block;
+          font-size: 18px;
+          color: @gray-color;
+          cursor: pointer;
+
+          &:hover {
+            background-color: @bg-disable;
+            border-radius: 2px;
+          }
+        }
+      }
+
+      .result__item {
+        padding: 0 12px;
+        margin-bottom: 2px;
+        line-height: 32px;
+        background-color: @bg-white;
+        border-radius: 2px;
+        justify-content: space-between;
+        .flex-center();
+
+        .master-icon {
+          .master-icon();
+        }
+
+        .slave-icon {
+          .slave-icon();
+        }
+
+        .result__remove {
+          display: none;
+          font-size: @font-size-large;
+          font-weight: bold;
+          color: @gray-color;
+          cursor: pointer;
+
+          &:hover {
+            color: @default-color;
+          }
+        }
+
+        &:hover {
+          .result__remove {
+            display: block;
+          }
+        }
+      }
+    }
+
+    &__button {
+      width: 88px;
+    }
+  }
+
+  .tab-tips {
+    padding: 9px 0 17px;
+    color: @default-color;
+    text-align: right;
+
+    h4 {
+      font-size: @font-size-large;
+      font-weight: normal;
+      color: @title-color;
+      text-align: left;
+    }
+
+    p {
+      padding: 8px 0 16px;
+      text-align: left;
+    }
+  }
+
+  .table-box {
+    :deep(.domain-column) {
+      font-size: 12px;
 
       .master-icon {
         .master-icon();
@@ -633,61 +692,6 @@
       .slave-icon {
         .slave-icon();
       }
-
-      .result__remove {
-        display: none;
-        font-size: @font-size-large;
-        font-weight: bold;
-        color: @gray-color;
-        cursor: pointer;
-
-        &:hover {
-          color: @default-color;
-        }
-      }
-
-      &:hover {
-        .result__remove {
-          display: block;
-        }
-      }
     }
   }
-
-  &__button {
-    width: 88px;
-  }
-}
-
-.tab-tips {
-  padding: 9px 0 17px;
-  color: @default-color;
-  text-align: right;
-
-  h4 {
-    font-size: @font-size-large;
-    font-weight: normal;
-    color: @title-color;
-    text-align: left;
-  }
-
-  p {
-    padding: 8px 0 16px;
-    text-align: left;
-  }
-}
-
-.table-box {
-  :deep(.domain-column) {
-    font-size: 12px;
-
-    .master-icon {
-      .master-icon();
-    }
-
-    .slave-icon {
-      .slave-icon();
-    }
-  }
-}
 </style>

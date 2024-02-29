@@ -13,28 +13,27 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.cluster"
         :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.nodeType"
         :is-loading="data.isLoading"
         :placeholder="$t('输入集群后自动生成')" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSpec
         ref="sepcRef"
         :data="data.spec"
         :is-loading="data.isLoading"
         :select-list="data.specList" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetNumber
         ref="numRef"
         :data="data.targetNum"
@@ -79,16 +78,16 @@
     targetNum: number;
   }
 
-  export  interface InfoItem {
-    cluster_id: number,
-    bk_cloud_id: number,
-    target_proxy_count: number,
+  export interface InfoItem {
+    cluster_id: number;
+    bk_cloud_id: number;
+    target_proxy_count: number;
     resource_spec: {
       proxy: {
-        spec_id: number,
-        count: number
-      }
-    }
+        spec_id: number;
+        count: number;
+      };
+    };
   }
 
   // 创建表格数据
@@ -101,27 +100,26 @@
     nodeType: '',
     specList: [],
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    inputedClusters?: string[],
+    data: IDataRow;
+    removeable: boolean;
+    inputedClusters?: string[];
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    inputedClusters: () => ([]),
+    inputedClusters: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -164,5 +162,4 @@
       });
     },
   });
-
 </script>

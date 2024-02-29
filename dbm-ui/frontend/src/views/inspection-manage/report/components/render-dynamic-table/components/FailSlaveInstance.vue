@@ -22,9 +22,9 @@
         </div>
         <div class="wrapper-right">
           <div class="header">
-            {{ activeItem?.master_ip }}:{{ activeItem?.port }}（主）
-            ->
-            {{ activeItem?.ip }}:{{ activeItem?.port }}（从）
+            {{ activeItem?.master_ip }}:{{ activeItem?.port }}（主） -> {{ activeItem?.ip }}:{{
+              activeItem?.port
+            }}（从）
           </div>
           <BkTable :columns="tableColumns" />
         </div>
@@ -35,11 +35,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
-  import {
-    computed,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { computed, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -54,7 +50,7 @@
   const { t } = useI18n();
 
   interface Props {
-    id: number
+    id: number;
   }
   const modelValue = defineModel<boolean>({
     default: false,
@@ -64,10 +60,10 @@
   const activeKey = ref(0);
   const instanceList = shallowRef<ServiceReturnType<typeof getChecksumInstance>['results']>([]);
 
-  const activeItem = computed(() => _.find(instanceList.value, item => item.id === activeKey.value));
+  const activeItem = computed(() => _.find(instanceList.value, (item) => item.id === activeKey.value));
   const renderList = computed(() => {
     const rule = new RegExp(encodeRegexp(searchKey.value), 'i');
-    return instanceList.value.filter(item => rule.test(item.ip));
+    return instanceList.value.filter((item) => rule.test(item.ip));
   });
 
   const tableColumns = [
@@ -79,10 +75,7 @@
     },
   ];
 
-  const {
-    loading: isLoading,
-    run: fetchInstanceList,
-  } = useRequest(getChecksumInstance, {
+  const { loading: isLoading, run: fetchInstanceList } = useRequest(getChecksumInstance, {
     manual: true,
     onSuccess(data) {
       instanceList.value = data.results;
@@ -108,70 +101,70 @@
   };
 </script>
 <style lang="less">
-.inspection-instance-detail {
-  display: flex;
+  .inspection-instance-detail {
+    display: flex;
 
-  .wrapper-left{
-    height: calc(100vh - 52px);
-    padding: 16px;
-    background-color: #F5F7FA;
-    flex: 0 0 320px;
+    .wrapper-left {
+      height: calc(100vh - 52px);
+      padding: 16px;
+      background-color: #f5f7fa;
+      flex: 0 0 320px;
 
-    .instance-list{
-      height: calc(100% - 60px);
-      margin-top: 12px;
-      overflow-y: auto;
-    }
+      .instance-list {
+        height: calc(100% - 60px);
+        margin-top: 12px;
+        overflow-y: auto;
+      }
 
-    .instance-item{
-      display: flex;
-      height: 32px;
-      padding: 0 12px;
-      font-size: 12px;
-      color: #63656E;
-      cursor: pointer;
-      background: #fff;
-      border: 1px solid transparent;
-      border-radius: 2px;
-      align-items: center;
-      transition: all .1s;
-
-      & ~ .instance-item{
-        margin-top: 8px;
+      .instance-item {
+        display: flex;
+        height: 32px;
+        padding: 0 12px;
         font-size: 12px;
-      }
+        color: #63656e;
+        cursor: pointer;
+        background: #fff;
+        border: 1px solid transparent;
+        border-radius: 2px;
+        align-items: center;
+        transition: all 0.1s;
 
-      &:hover{
-        border-color: #3A84FF;
-      }
+        & ~ .instance-item {
+          margin-top: 8px;
+          font-size: 12px;
+        }
 
-      &.active{
+        &:hover {
+          border-color: #3a84ff;
+        }
+
+        &.active {
+          font-weight: bold;
+          color: #3a84ff;
+          border-color: #3a84ff;
+        }
+      }
+    }
+
+    .wrapper-right {
+      padding: 24px;
+      background: #fff;
+
+      .header {
+        display: flex;
+        height: 36px;
+        padding: 0 24px;
+        font-size: 12px;
         font-weight: bold;
-        color: #3A84FF;
-        border-color: #3A84FF;
+        color: #63656e;
+        background: #f0f1f5;
+        border-radius: 2px;
+        align-items: center;
+      }
+
+      .bk-table .bk-table-head table thead th {
+        background: #fafbfd;
       }
     }
   }
-
-  .wrapper-right{
-    padding: 24px;
-    background: #fff;
-
-    .header{
-      display: flex;
-      height: 36px;
-      padding: 0 24px;
-      font-size: 12px;
-      font-weight: bold;
-      color: #63656E;
-      background: #F0F1F5;
-      border-radius: 2px;
-      align-items: center;
-    }
-
-    .bk-table .bk-table-head table thead th{
-      background: #FAFBFD;
-    }
-  }
-}
 </style>

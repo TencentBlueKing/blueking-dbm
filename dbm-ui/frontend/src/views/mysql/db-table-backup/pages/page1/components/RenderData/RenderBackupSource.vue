@@ -27,11 +27,11 @@
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
 
   interface Props {
-    modelValue: string
+    modelValue: string;
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<Record<string, string>>;
   }
 
   const props = defineProps<Props>();
@@ -66,21 +66,24 @@
   const editSelectRef = ref();
   const localValue = ref('');
 
-  watch(() => props.modelValue, () => {
-    localValue.value = props.modelValue;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      localValue.value = props.modelValue;
+    },
+    {
+      immediate: true,
+    },
+  );
   const handleChange = (value: string) => {
     localValue.value = value;
   };
 
   defineExpose<Exposes>({
     getValue() {
-      return editSelectRef.value.getValue()
-        .then(() => ({
-          backup_on: localValue.value,
-        }));
+      return editSelectRef.value.getValue().then(() => ({
+        backup_on: localValue.value,
+      }));
     },
   });
 </script>

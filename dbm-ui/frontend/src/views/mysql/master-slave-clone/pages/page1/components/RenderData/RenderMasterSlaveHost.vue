@@ -15,7 +15,7 @@
   <div
     class="render-master-slave-box"
     :class="{
-      'is-repeat': isRepeat
+      'is-repeat': isRepeat,
     }">
     <TableEditInput
       ref="inputRef"
@@ -33,11 +33,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    watch,
-  } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getHostTopoInfos } from '@services/source/ipchooser';
@@ -52,18 +48,18 @@
 
   import type { IHostData } from './Row.vue';
 
-  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number]
+  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
 
   interface Props {
-    masterHost?: IHostData,
-    slaveHost?: IHostData,
-    domain?: string,
-    disabled: boolean,
-    cloudId: null | number
+    masterHost?: IHostData;
+    slaveHost?: IHostData;
+    domain?: string;
+    disabled: boolean;
+    cloudId: null | number;
   }
 
   interface Exposes {
-    getValue: () => Promise<IHostData>
+    getValue: () => Promise<IHostData>;
   }
 
   const props = defineProps<Props>();
@@ -81,14 +77,14 @@
   const inputRef = ref();
   const localIpText = ref('');
 
-  let masterHostMemo  = {} as HostTopoInfo;
+  let masterHostMemo = {} as HostTopoInfo;
   let slaveHostMemo = {} as HostTopoInfo;
   let errorMessage = t('IP不存在');
 
   const rules = [
     {
       validator: (value: string) => {
-        const ipList = _.filter(value.split(splitReg), item => _.trim(item)) as Array<string>;
+        const ipList = _.filter(value.split(splitReg), (item) => _.trim(item)) as Array<string>;
         return ipList.length === 2;
       },
       message: t('请输入2台IP'),
@@ -96,7 +92,7 @@
     {
       validator: (value: string) => {
         const ipList = value.split(splitReg) as Array<string>;
-        return _.every(ipList, item => ipv4.test(_.trim(item)));
+        return _.every(ipList, (item) => ipv4.test(_.trim(item)));
       },
       message: t('IP格式不正确'),
     },
@@ -118,19 +114,17 @@
           bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.hosts_topo_info.length < 2) {
-            const existIps = data.hosts_topo_info.map(item => item.ip);
-            const ips = [masterIp, slaveIp].filter(ip => !existIps.includes(ip));
+            const existIps = data.hosts_topo_info.map((item) => item.ip);
+            const ips = [masterIp, slaveIp].filter((ip) => !existIps.includes(ip));
             errorMessage = t('ips不在空闲机中', { ips: ips.join('、') });
             return false;
           }
 
-          const qualifiedHosts = data.hosts_topo_info.filter(item => item.bk_cloud_id === props.cloudId);
+          const qualifiedHosts = data.hosts_topo_info.filter((item) => item.bk_cloud_id === props.cloudId);
           if (qualifiedHosts.length !== 2) {
-            const qualifiedIps = qualifiedHosts.map(item => item.ip);
+            const qualifiedIps = qualifiedHosts.map((item) => item.ip);
             errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
-              ip: [masterIp, slaveIp]
-                .filter(ip => !qualifiedIps.includes(ip))
-                .join(', '),
+              ip: [masterIp, slaveIp].filter((ip) => !qualifiedIps.includes(ip)).join(', '),
               cluster: props.domain,
             });
             return false;
@@ -138,7 +132,7 @@
 
           // IP 有效
           singleHostSelectMemo[instanceKey] = {};
-          data.hosts_topo_info.forEach(((item) => {
+          data.hosts_topo_info.forEach((item) => {
             if (item.ip === masterIp && item.bk_cloud_id === props.cloudId) {
               masterHostMemo = item;
               singleHostSelectMemo[instanceKey][genHostKey(masterHostMemo)] = true;
@@ -146,7 +140,7 @@
               slaveHostMemo = item;
               singleHostSelectMemo[instanceKey][genHostKey(slaveHostMemo)] = true;
             }
-          }));
+          });
           return true;
         });
       },
@@ -157,12 +151,14 @@
         const otherHostSelectMemo = { ...singleHostSelectMemo };
         delete otherHostSelectMemo[instanceKey];
 
-        const otherAllSelectHostMap = Object.values(otherHostSelectMemo).reduce((result, selectItem) => ({
-          ...result,
-          ...selectItem,
-        }), {} as Record<string, boolean>);
-        if (otherAllSelectHostMap[genHostKey(masterHostMemo)]
-          || otherAllSelectHostMap[genHostKey(slaveHostMemo)]) {
+        const otherAllSelectHostMap = Object.values(otherHostSelectMemo).reduce(
+          (result, selectItem) => ({
+            ...result,
+            ...selectItem,
+          }),
+          {} as Record<string, boolean>,
+        );
+        if (otherAllSelectHostMap[genHostKey(masterHostMemo)] || otherAllSelectHostMap[genHostKey(slaveHostMemo)]) {
           return false;
         }
 
@@ -181,19 +177,22 @@
   });
 
   // 同步外部主从机器
-  watch(() => [props.masterHost, props.slaveHost], () => {
-    const ipStack = [];
-    if (props.masterHost) {
-      ipStack.push(props.masterHost.ip);
-    }
-    if (props.slaveHost) {
-      ipStack.push(props.slaveHost.ip);
-    }
-    localIpText.value = ipStack.join(';');
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => [props.masterHost, props.slaveHost],
+    () => {
+      const ipStack = [];
+      if (props.masterHost) {
+        ipStack.push(props.masterHost.ip);
+      }
+      if (props.slaveHost) {
+        ipStack.push(props.slaveHost.ip);
+      }
+      localIpText.value = ipStack.join(';');
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
@@ -203,12 +202,12 @@
         bk_cloud_id: item.bk_cloud_id,
         ip: item.ip,
       });
-      return inputRef.value
-        .getValue()
-        .then(() => Promise.resolve({
+      return inputRef.value.getValue().then(() =>
+        Promise.resolve({
           new_master: formatHost(masterHostMemo),
           new_slave: formatHost(slaveHostMemo),
-        }));
+        }),
+      );
     },
   });
 </script>
@@ -259,7 +258,7 @@
     .popover-host-item {
       padding: 2px 20px 2px 0;
 
-      &:nth-child(n+2) {
+      &:nth-child(n + 2) {
         border-top: 1px solid #dcdee5;
       }
     }

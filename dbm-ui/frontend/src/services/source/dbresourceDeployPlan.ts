@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import DeployPlanModel from '@services/model/db-resource/DeployPlan';
 
@@ -21,17 +21,11 @@ const path = '/apis/dbresource/deploy_plan';
 /**
  * 查询部署方案列表
  */
-export function fetchDeployPlan(params: {
-  cluster_type: string,
-  limit: number,
-  offset: number,
-  name?: string
-}) {
-  return http.get<ListBase<DeployPlanModel[]>>(`${path}/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map(item => new DeployPlanModel(item)),
-    }));
+export function fetchDeployPlan(params: { cluster_type: string; limit: number; offset: number; name?: string }) {
+  return http.get<ListBase<DeployPlanModel[]>>(`${path}/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new DeployPlanModel(item)),
+  }));
 }
 
 /**

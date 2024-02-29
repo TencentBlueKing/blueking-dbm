@@ -251,6 +251,8 @@
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
+  const isEmpty = computed(() => !Object.values(lastValues).some((values) => values.length > 0));
+  provide(activePanelInjectionKey, panelTabActive);
 
   const tabListMap: Record<string, PanelListType> = {
     [ClusterTypes.REDIS]: [

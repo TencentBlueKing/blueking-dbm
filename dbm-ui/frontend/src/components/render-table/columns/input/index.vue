@@ -18,7 +18,8 @@
     :class="{
       'is-error': Boolean(errorMessage),
       'is-disabled': disabled,
-      'is-password': isPassword}">
+      'is-password': isPassword,
+    }">
     <BkInput
       v-model="localValue"
       class="input-box"
@@ -166,94 +167,92 @@
   });
 </script>
 <style lang="less" scoped>
-.is-error {
-  :deep(input) {
-    background-color: #fff0f1;
-  }
-
-  :deep(.bk-input--number-control) {
-    display: none !important;
-  }
-
-  :deep(.bk-input--suffix-icon) {
-    display: none !important;
-  }
-}
-
-.is-disabled {
-  :deep(input) {
-    cursor: not-allowed !important;
-    border: none !important;
-  }
-
-  :deep(.bk-input--number-control) {
-    background-color: #fafbfd;
-  }
-}
-
-.is-password {
-  :deep(.bk-input--text) {
-    padding-right: 25px;
-  }
-
-  :deep(.bk-input--suffix-icon) {
-    position: absolute;
-    right: 1px;
-    display: flex;
-    height: 40px;
-    justify-content: center;
-    padding: 0 5px;
-    background: transparent;
-  }
-
-}
-
-.table-edit-input {
-  position: relative;
-  display: block;
-  height: 42px;
-  cursor: pointer;
-  background: #fff;
-
-  .input-box {
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    background: inherit;
-    border: none;
-    outline: none;
-
+  .is-error {
     :deep(input) {
-      padding-left: 16px;
-      border: 1px solid transparent;
-      border-radius: 0;
-
-      &:hover {
-        cursor: pointer;
-        background-color: #fafbfd;
-        border: 1px solid #a3c5fd;
-      }
-
-      &:focus {
-        border-color: #3a84ff;
-
-      }
+      background-color: #fff0f1;
     }
 
     :deep(.bk-input--number-control) {
+      display: none !important;
+    }
+
+    :deep(.bk-input--suffix-icon) {
+      display: none !important;
+    }
+  }
+
+  .is-disabled {
+    :deep(input) {
+      cursor: not-allowed !important;
+      border: none !important;
+    }
+
+    :deep(.bk-input--number-control) {
+      background-color: #fafbfd;
+    }
+  }
+
+  .is-password {
+    :deep(.bk-input--text) {
+      padding-right: 25px;
+    }
+
+    :deep(.bk-input--suffix-icon) {
       position: absolute;
       right: 1px;
+      display: flex;
+      height: 40px;
+      justify-content: center;
+      padding: 0 5px;
       background: transparent;
     }
   }
 
-  .error-icon {
-    position: absolute;
-    top: 14px;
-    right: 10px;
-    display: flex;
-    font-size: 14px;
-    color: #ea3636;
+  .table-edit-input {
+    position: relative;
+    display: block;
+    height: 42px;
+    cursor: pointer;
+    background: #fff;
+
+    .input-box {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      background: inherit;
+      border: none;
+      outline: none;
+
+      :deep(input) {
+        padding-left: 16px;
+        border: 1px solid transparent;
+        border-radius: 0;
+
+        &:hover {
+          cursor: pointer;
+          background-color: #fafbfd;
+          border: 1px solid #a3c5fd;
+        }
+
+        &:focus {
+          border-color: #3a84ff;
+        }
+      }
+
+      :deep(.bk-input--number-control) {
+        position: absolute;
+        right: 1px;
+        background: transparent;
+      }
+    }
+
+    .error-icon {
+      position: absolute;
+      top: 14px;
+      right: 10px;
+      display: flex;
+      font-size: 14px;
+      color: #ea3636;
+    }
   }
-}
 </style>

@@ -9,18 +9,14 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import TendbsingleInstanceModel from '@services/model/mysql/tendbha-instance';
 import TendbsingleModel from '@services/model/mysql/tendbsingle';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type {
-  ListBase,
-  ResourceItem,
-  ResourceTopo,
-} from '../types';
+import type { ListBase, ResourceItem, ResourceTopo } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -29,28 +25,28 @@ const path = `/apis/mysql/bizs/${currentBizId}/tendbsingle_resources`;
 /**
  * 查询资源列表
  */
-export function getTendbsingleList(params: {
-  limit: number,
-  offset: number,
-  cluster_ids?: number[] | number,
-}) {
-  return http.get<ListBase<TendbsingleModel[]>>(`${path}/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map(item => new TendbsingleModel(Object.assign(item, {
-        permission: Object.assign({}, item.permission, data.permission),
-      }))),
-    }));
+export function getTendbsingleList(params: { limit: number; offset: number; cluster_ids?: number[] | number }) {
+  return http.get<ListBase<TendbsingleModel[]>>(`${path}/`, params).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item) =>
+        new TendbsingleModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
+  }));
 }
 
 /**
  * 根据业务 ID 查询资源列表
  */
 export function getTendbsingleListByBizId(params: {
-  bk_biz_id: number,
-  limit?: number,
-  offset?: number,
-  cluster_ids?: number[] | number,
+  bk_biz_id: number;
+  limit?: number;
+  offset?: number;
+  cluster_ids?: number[] | number;
 }) {
   return http.get<ListBase<ResourceItem[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/tendbsingle_resources/`, params);
 }
@@ -59,66 +55,67 @@ export function getTendbsingleListByBizId(params: {
  * 查询表格信息
  */
 export function getTendbsingleTableFields() {
-  return http.get<{
-    key: string,
-    name: string,
-  }[]>(`${path}/get_table_fields/`);
+  return http.get<
+    {
+      key: string;
+      name: string;
+    }[]
+  >(`${path}/get_table_fields/`);
 }
 
 /**
  * 获取集群实例列表
  */
 export function getTendbsingleInstanceList(params: Record<string, any>) {
-  return http.get<ListBase<TendbsingleInstanceModel[]>>(`${path}/list_instances/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map((item: TendbsingleInstanceModel) => new TendbsingleInstanceModel(item)),
-    }));
+  return http.get<ListBase<TendbsingleInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item: TendbsingleInstanceModel) => new TendbsingleInstanceModel(item)),
+  }));
 }
 
 /**
  * 集群实例详情
  */
 interface InstanceDetails {
-  bk_cloud_id: number,
-  bk_cpu: number,
-  bk_disk: number,
-  bk_host_id: number,
-  bk_host_innerip: string,
-  bk_mem: number,
-  bk_os_name: string,
-  cluster_id: number,
-  cluster_type: string,
-  create_at: string,
-  idc_city_id: string,
-  idc_city_name: string,
-  idc_id: number,
-  instance_address: string,
-  master_domain: string,
-  net_device_id: string,
-  rack: string,
-  rack_id: number,
-  role: string,
-  slave_domain: string,
-  status: string,
-  sub_zone: string,
-  db_module_id: number,
-  cluster_type_display: string,
-  bk_idc_name: string,
-  bk_cloud_name: string,
-  db_version: string,
-  version?: string
+  bk_cloud_id: number;
+  bk_cpu: number;
+  bk_disk: number;
+  bk_host_id: number;
+  bk_host_innerip: string;
+  bk_mem: number;
+  bk_os_name: string;
+  cluster_id: number;
+  cluster_type: string;
+  create_at: string;
+  idc_city_id: string;
+  idc_city_name: string;
+  idc_id: number;
+  instance_address: string;
+  master_domain: string;
+  net_device_id: string;
+  rack: string;
+  rack_id: number;
+  role: string;
+  slave_domain: string;
+  status: string;
+  sub_zone: string;
+  db_module_id: number;
+  cluster_type_display: string;
+  bk_idc_name: string;
+  bk_cloud_name: string;
+  db_version: string;
+  version?: string;
 }
 
 /**
  * 获取集群实例详情
  */
 export function retrieveTendbsingleInstance(params: {
-  bk_biz_id: number,
-  type: string,
-  instance_address: string,
-  cluster_id?: number
-  dbType: string
+  bk_biz_id: number;
+  type: string;
+  instance_address: string;
+  cluster_id?: number;
+  dbType: string;
 }) {
   return http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
 }

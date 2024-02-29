@@ -15,7 +15,7 @@
   <div class="config-details">
     <BkLoading
       :loading="loading"
-      style="height: 100%;"
+      style="height: 100%"
       :z-index="12">
       <DetailsBase
         class="config-details-content"
@@ -31,30 +31,27 @@
 </template>
 
 <script setup lang="ts">
-
-  import {
-    getConfigBaseDetails,
-    getLevelConfig,
-  } from '@services/source/configs';
+  import { getConfigBaseDetails, getLevelConfig } from '@services/source/configs';
 
   import { ConfLevels } from '@common/const';
 
   import DetailsBase from '@views/db-configure/components/DetailsBase.vue';
 
-  type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>
+  type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>;
 
   interface Props {
-    data?: ServiceReturnType<typeof getLevelConfig>
-    loading?: boolean,
-    fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>,
+    data?: ServiceReturnType<typeof getLevelConfig>;
+    loading?: boolean;
+    fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => ({
-      conf_items: [] as NonNullable<Props['data']>['conf_items'],
-    } as NonNullable<Props['data']>),
+    data: () =>
+      ({
+        conf_items: [] as NonNullable<Props['data']>['conf_items'],
+      }) as NonNullable<Props['data']>,
     loading: false,
-    fetchParams: () => ({} as PlatConfDetailsParams),
+    fetchParams: () => ({}) as PlatConfDetailsParams,
   });
 
   const route = useRoute();
@@ -69,13 +66,13 @@
   }));
 
   // 更新基础信息
-  function handleUpdateInfo({ key, value }: { key: string, value: string }) {
+  function handleUpdateInfo({ key, value }: { key: string; value: string }) {
     Object.assign(props.data, { [key]: value });
   }
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .config-details {
     height: 100%;

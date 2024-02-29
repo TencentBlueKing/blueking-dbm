@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { SearchOption } from 'bkui-vue/lib/tree/props';
 import type { Ref } from 'vue';
@@ -75,7 +75,7 @@ export const useTreeData = (treeState: TreeState) => {
   const handleSelectedTreeNode = (
     node: any,
     status: any,
-    { __is_open: isOpen, __is_selected: isSelected }: { __is_open: boolean, __is_selected: boolean },
+    { __is_open: isOpen, __is_selected: isSelected }: { __is_open: boolean; __is_selected: boolean },
   ) => {
     // eslint-disable-next-line no-param-reassign
     treeState.activeNode = node;
@@ -95,17 +95,21 @@ export const useTreeData = (treeState: TreeState) => {
     }
   };
 
-  watch(() => treeState.activeNode, (node) => {
-    if (node) {
-      // set route query info
-      router.replace({
-        query: {
-          treeId: (node as TreeData).treeId,
-          parentId: (node as TreeData).parentId,
-        },
-      });
-    }
-  }, { immediate: true, deep: true });
+  watch(
+    () => treeState.activeNode,
+    (node) => {
+      if (node) {
+        // set route query info
+        router.replace({
+          query: {
+            treeId: (node as TreeData).treeId,
+            parentId: (node as TreeData).parentId,
+          },
+        });
+      }
+    },
+    { immediate: true, deep: true },
+  );
 
   /**
    * selected default tree node
@@ -171,26 +175,29 @@ export const useTreeData = (treeState: TreeState) => {
       });
   };
 
-  watch(() => clusterType, (val, old) => {
-    if (val && val.value !== old?.value) {
-      const value = val.value as ClusterTypeInfos;
-      const { dbType } = clusterTypeInfos[value];
-      const isBigdata = [
-        ClusterTypes.ES,
-        ClusterTypes.KAFKA,
-        ClusterTypes.HDFS,
-        ClusterTypes.INFLUXDB,
-        ClusterTypes.PULSAE,
-      ].includes(value);
-      fetchBusinessTopoTree(isBigdata ? 'bigdata' : dbType);
-    }
-  }, { immediate: true });
+  watch(
+    () => clusterType,
+    (val, old) => {
+      if (val && val.value !== old?.value) {
+        const value = val.value as ClusterTypeInfos;
+        const { dbType } = clusterTypeInfos[value];
+        const isBigdata = [
+          ClusterTypes.ES,
+          ClusterTypes.KAFKA,
+          ClusterTypes.HDFS,
+          ClusterTypes.INFLUXDB,
+          ClusterTypes.PULSAE,
+        ].includes(value);
+        fetchBusinessTopoTree(isBigdata ? 'bigdata' : dbType);
+      }
+    },
+    { immediate: true },
+  );
 
   function createModule() {
     if (clusterType?.value) {
-      const type = clusterType.value === ClusterTypes.TENDBSINGLE
-        ? TicketTypes.MYSQL_SINGLE_APPLY
-        : TicketTypes.MYSQL_HA_APPLY;
+      const type =
+        clusterType.value === ClusterTypes.TENDBSINGLE ? TicketTypes.MYSQL_SINGLE_APPLY : TicketTypes.MYSQL_HA_APPLY;
       router.push({
         name: 'SelfServiceCreateDbModule',
         params: {
@@ -205,7 +212,9 @@ export const useTreeData = (treeState: TreeState) => {
    * 格式化拓扑树节点数据
    */
   function formatTreeData(data: BizConfTopoTreeModel[], parentId: string): TreeData[] {
-    if (data.length === 0) return [];
+    if (data.length === 0) {
+      return [];
+    }
 
     return data.map((item) => {
       const treeId = `${item.obj_id}-${item.instance_id}`;

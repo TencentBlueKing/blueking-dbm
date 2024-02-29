@@ -9,21 +9,15 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import {
-  type Ref,
-  ref,
-} from 'vue';
+import { type Ref, ref } from 'vue';
 
 import { encodeRegexp } from '@utils';
 
 import { useDebouncedRef } from './useDebouncedRef';
 
-export function useLocalPagination<T>(
-  originalData: Ref<Array<T>>,
-  callback: (rule: RegExp, data: T) => boolean,
-) {
+export function useLocalPagination<T>(originalData: Ref<Array<T>>, callback: (rule: RegExp, data: T) => boolean) {
   const pagination = reactive({
     count: 0,
     current: 1,
@@ -48,10 +42,9 @@ export function useLocalPagination<T>(
 
   const isShowPagination = ref(false);
 
-  const data = computed(() => serachList.value.slice(
-    (pagination.current - 1) * pagination.limit,
-    pagination.limit * pagination.current,
-  ));
+  const data = computed(() =>
+    serachList.value.slice((pagination.current - 1) * pagination.limit, pagination.limit * pagination.current),
+  );
 
   const handlePaginationCurrentChange = (current: number) => {
     pagination.current = current;
@@ -63,12 +56,16 @@ export function useLocalPagination<T>(
   watch(searchKey, () => {
     pagination.current = 1;
   });
-  watch(serachList, (list) => {
-    pagination.count = list.length;
-    isShowPagination.value = list.length > 0 && list.length > pagination.limit;
-  }, {
-    immediate: true,
-  });
+  watch(
+    serachList,
+    (list) => {
+      pagination.count = list.length;
+      isShowPagination.value = list.length > 0 && list.length > pagination.limit;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   return {
     data,

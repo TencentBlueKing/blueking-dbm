@@ -35,7 +35,7 @@
     </div>
     <div
       class="table-wrapper"
-      :class="{'is-shrink-table': isStretchLayoutOpen}">
+      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
       <DbTable
         ref="tableRef"
         :columns="columns"
@@ -744,39 +744,37 @@
       handleToDetails(Number(route.query.id));
     }
   });
-
 </script>
 <style lang="less" scoped>
-.settings-sideslider {
-  :deep(.bk-modal-content) {
-    height: 100%;
-  }
-}
-
-.hdfs-list-page {
-  :deep(.cell) {
-    line-height: normal !important;
-
-    .domain {
-      display: flex;
-      align-items: center;
-    }
-
-    .db-icon-edit {
-      display: none;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-
-  }
-
-  :deep(tr:hover) {
-    .db-icon-edit {
-      display: inline-block !important;
+  .settings-sideslider {
+    :deep(.bk-modal-content) {
+      height: 100%;
     }
   }
-}
+
+  .hdfs-list-page {
+    :deep(.cell) {
+      line-height: normal !important;
+
+      .domain {
+        display: flex;
+        align-items: center;
+      }
+
+      .db-icon-edit {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+    }
+
+    :deep(tr:hover) {
+      .db-icon-edit {
+        display: inline-block !important;
+      }
+    }
+  }
 </style>
 <style lang="less">
   .hdfs-list-page {

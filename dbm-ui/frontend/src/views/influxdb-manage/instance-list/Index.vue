@@ -40,15 +40,15 @@
 </script>
 
 <style lang="less">
-.influxdb-instance-page {
-  height: 100%;
+  .influxdb-instance-page {
+    height: 100%;
 
-  .bk-resize-layout-aside {
-    border: 0;
+    .bk-resize-layout-aside {
+      border: 0;
 
-    &::after {
-      display: none;
+      &::after {
+        display: none;
+      }
     }
   }
-}
 </style>

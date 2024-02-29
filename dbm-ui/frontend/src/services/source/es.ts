@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import EsModel from '@services/model/es/es';
 import EsInstanceModel from '@services/model/es/es-instance';
@@ -29,13 +29,17 @@ const path = `/apis/bigdata/bizs/${currentBizId}/es/es_resources`;
  * 获取集群列表
  */
 export function getEsList(params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<EsModel[]>>(`${path}/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map((item: EsModel) => new EsModel(Object.assign(item, {
-        permission: Object.assign({}, item.permission, data.permission),
-      }))),
-    }));
+  return http.get<ListBase<EsModel[]>>(`${path}/`, params).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item: EsModel) =>
+        new EsModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
+  }));
 }
 
 /**
@@ -49,11 +53,10 @@ export function getEsTableFields() {
  * 获取实例列表
  */
 export function getEsInstanceList(params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<EsInstanceModel[]>>(`${path}/list_instances/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map((item: EsInstanceModel) => new EsInstanceModel(item)),
-    }));
+  return http.get<ListBase<EsInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new EsInstanceModel(item)),
+  }));
 }
 
 /**
@@ -67,8 +70,7 @@ export function retrieveEsInstance(params: { bk_biz_id: number }) {
  * 获取集群详情
  */
 export function getEsDetail(params: { id: number }) {
-  return http.get<EsModel>(`${path}/${params.id}/`)
-    .then(data => new EsModel(data));
+  return http.get<EsModel>(`${path}/${params.id}/`).then((data) => new EsModel(data));
 }
 
 /**
@@ -89,24 +91,31 @@ export function getEsTopoGraph(params: { cluster_id: number }) {
  * 获取 ES 集群访问密码
  */
 export function getEsPassword(params: { cluster_id: number }) {
-  return http.get<EsPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
-    .then(data => new EsPasswordModel(data));
+  return http
+    .get<EsPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
+    .then((data) => new EsPasswordModel(data));
 }
 
 /**
  * 获取 ES 集群节点列表信息
  */
-export function getEsNodeList(params: Record<string, any> & {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
-  return http.get<ListBase<Array<EsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map(item => new EsNodeModel(Object.assign(item, {
-        permission: data.permission,
-      }))),
-    }));
+export function getEsNodeList(
+  params: Record<string, any> & {
+    bk_biz_id: number;
+    cluster_id: number;
+  },
+) {
+  return http.get<ListBase<Array<EsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item) =>
+        new EsNodeModel(
+          Object.assign(item, {
+            permission: data.permission,
+          }),
+        ),
+    ),
+  }));
 }
 
 /**

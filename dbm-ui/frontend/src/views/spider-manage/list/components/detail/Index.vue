@@ -13,7 +13,7 @@
 
 <template>
   <div
-    v-bkloading="{loading: isLoading}"
+    v-bkloading="{ loading: isLoading }"
     class="spider-details-page">
     <BkTab
       v-model:active="activePanelKey"
@@ -77,9 +77,9 @@
   }
 
   interface PanelItem {
-    label: string,
-    name: string,
-    link: string,
+    label: string;
+    name: string;
+    link: string;
   }
 
   const props = defineProps<Props>();
@@ -93,14 +93,11 @@
   const monitorPanelList = ref<PanelItem[]>([]);
 
   const activePanel = computed(() => {
-    const targetPanel = monitorPanelList.value.find(item => item.name === activePanelKey.value);
+    const targetPanel = monitorPanelList.value.find((item) => item.name === activePanelKey.value);
     return targetPanel;
   });
 
-  const {
-    loading: isLoading,
-    run: fetchResourceDetails,
-  } = useRequest(getSpiderDetails, {
+  const { loading: isLoading, run: fetchResourceDetails } = useRequest(getSpiderDetails, {
     manual: true,
     onSuccess(data) {
       clusterData.value = data;
@@ -111,7 +108,7 @@
     manual: true,
     onSuccess(res) {
       if (res.urls.length > 0) {
-        monitorPanelList.value = res.urls.map(item => ({
+        monitorPanelList.value = res.urls.map((item) => ({
           label: item.view,
           name: item.view,
           link: item.url,
@@ -120,43 +117,46 @@
     },
   });
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchResourceDetails({
-        id: props.clusterId,
-      });
-      runGetMonitorUrls({
-        bk_biz_id: currentBizId,
-        cluster_type: ClusterTypes.TENDBCLUSTER,
-        cluster_id: props.clusterId,
-      });
-    }
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => props.clusterId,
+    () => {
+      if (props.clusterId) {
+        fetchResourceDetails({
+          id: props.clusterId,
+        });
+        runGetMonitorUrls({
+          bk_biz_id: currentBizId,
+          cluster_type: ClusterTypes.TENDBCLUSTER,
+          cluster_id: props.clusterId,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>
-.spider-details-page {
-  height: 100%;
-  background-color: #fff;
+  .spider-details-page {
+    height: 100%;
+    background-color: #fff;
 
-  .content-tabs {
-    :deep(.bk-tab-content) {
-      padding: 0;
+    .content-tabs {
+      :deep(.bk-tab-content) {
+        padding: 0;
+      }
+    }
+
+    .content-wrapper {
+      height: calc(100vh - 168px);
+      padding: 0 24px;
+      overflow: auto;
+    }
+
+    .status-box {
+      display: flex;
+      align-items: center;
     }
   }
-
-  .content-wrapper {
-    height: calc(100vh - 168px);
-    padding: 0 24px;
-    overflow: auto;
-  }
-
-  .status-box {
-    display: flex;
-    align-items: center;
-  }
-}
 </style>

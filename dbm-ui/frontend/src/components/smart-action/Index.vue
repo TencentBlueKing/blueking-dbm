@@ -38,12 +38,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    onBeforeUnmount,
-    onMounted,
-    ref,
-  } from 'vue';
+  import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
   interface Props {
     offsetTarget?: () => Element | null;
@@ -98,11 +93,7 @@
     if (!placeholderRef.value) {
       return;
     }
-    const {
-      height,
-      top,
-      left,
-    } = placeholderRef.value.getBoundingClientRect();
+    const { height, top, left } = placeholderRef.value.getBoundingClientRect();
     isFixed.value = height + top + 25 > window.innerHeight;
     paddingLeft.value = left;
     setTimeout(() => {
@@ -130,7 +121,6 @@
       window.removeEventListener('resize', smartPosition);
     });
   });
-
 </script>
 <style lang="less" scoped>
   .smart {

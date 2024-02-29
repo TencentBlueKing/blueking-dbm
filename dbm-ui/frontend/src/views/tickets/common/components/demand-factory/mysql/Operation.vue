@@ -23,7 +23,7 @@
             href="javascript:"
             @click="handleAccessSource">
             <strong>{{ authorizeData?.source_ips.length }}</strong>
-            <span style="color: #63656e;">{{ $t('台') }}</span>
+            <span style="color: #63656e">{{ $t('台') }}</span>
           </a>
         </span>
       </div>
@@ -34,7 +34,7 @@
             href="javascript:"
             @click="handleTargetCluster">
             <strong>{{ authorizeData?.target_instances.length }}</strong>
-            <span style="color: #63656e;">{{ $t('个') }}（{{ clusterType }}）</span>
+            <span style="color: #63656e">{{ $t('个') }}（{{ clusterType }}）</span>
           </a>
         </span>
       </div>
@@ -44,7 +44,7 @@
       </div>
       <div
         class="ticket-details__item"
-        style="overflow: visible;">
+        style="overflow: visible">
         <span class="ticket-details__item-label">{{ $t('访问DB') }}：</span>
         <span>
           <BkTag
@@ -60,7 +60,7 @@
       <DbOriginalTable
         :columns="columns"
         :data="state.accessData"
-        style="width: 800px;" />
+        style="width: 800px" />
     </div>
   </div>
   <div
@@ -198,11 +198,10 @@
   function handleTargetCluster() {
     previewTargetCluster.isShow = true;
   }
-
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
   .mysql-table {
     display: flex;

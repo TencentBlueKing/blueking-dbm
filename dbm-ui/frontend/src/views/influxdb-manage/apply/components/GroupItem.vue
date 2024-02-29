@@ -31,12 +31,12 @@
         :label="item.name"
         :value="item.id" />
       <template #extension>
-        <div style="flex: 1; text-align: center;">
+        <div style="flex: 1; text-align: center">
           <span
             v-if="!isCreateMode"
             v-bk-tooltips="{
               content: t('请选择业务'),
-              disabled: !!bizId
+              disabled: !!bizId,
             }"
             class="inline-block">
             <BkButton
@@ -90,25 +90,25 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import {
-    createGroup,
-    getGroupList,
-  } from '@services/source/influxdbGroup';
+  import { createGroup, getGroupList } from '@services/source/influxdbGroup';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
   import { nameRegx } from '@common/regex';
 
   interface Emits {
-    (e: 'update:model-value', value: number): void,
-    (e: 'change', value: {
-      id: number,
-      name: string
-    }): void,
+    (e: 'update:model-value', value: number): void;
+    (
+      e: 'change',
+      value: {
+        id: number;
+        name: string;
+      },
+    ): void;
   }
 
   interface Props {
-    modelValue: number | string,
-    bizId: number | string,
+    modelValue: number | string;
+    bizId: number | string;
   }
 
   const props = defineProps<Props>();
@@ -122,17 +122,25 @@
   const groupList = shallowRef<Array<InfluxDBGroupItem>>([]);
   const isLoading = ref(false);
 
-  watch(() => props.modelValue, () => {
-    localGroupId.value = props.modelValue;
-  }, { immediate: true });
+  watch(
+    () => props.modelValue,
+    () => {
+      localGroupId.value = props.modelValue;
+    },
+    { immediate: true },
+  );
 
-  watch(() => props.bizId, (id) => {
-    if (id) {
-      fetchGroupList();
-    } else {
-      groupList.value = [];
-    }
-  }, { immediate: true });
+  watch(
+    () => props.bizId,
+    (id) => {
+      if (id) {
+        fetchGroupList();
+      } else {
+        groupList.value = [];
+      }
+    },
+    { immediate: true },
+  );
 
   const fetchGroupList = (id?: number) => {
     isLoading.value = true;
@@ -141,7 +149,7 @@
         groupList.value = data.results;
 
         const groupId = Number(route.query.groupId);
-        if (isInit && groupId && groupList.value.find(item => item.id === groupId)) {
+        if (isInit && groupId && groupList.value.find((item) => item.id === groupId)) {
           handleChangeId(groupId);
           return;
         }
@@ -161,7 +169,7 @@
 
   const handleChangeId = (id: number) => {
     emits('update:model-value', id);
-    emits('change', { id, name: groupList.value.find(item => item.id === id)?.name ?? '' });
+    emits('change', { id, name: groupList.value.find((item) => item.id === id)?.name ?? '' });
   };
 
   // 新建分组功能
@@ -194,23 +202,24 @@
   };
 
   const handleConfirm = () => {
-    if (isCreating.value) return;
+    if (isCreating.value) {
+      return;
+    }
 
-    formRef.value.validate()
-      .then(() => {
-        isCreating.value = true;
-        createGroup({
-          name: createState.name,
-          bk_biz_id: Number(props.bizId),
+    formRef.value.validate().then(() => {
+      isCreating.value = true;
+      createGroup({
+        name: createState.name,
+        bk_biz_id: Number(props.bizId),
+      })
+        .then((data) => {
+          fetchGroupList(data.id);
+          handleClose();
         })
-          .then((data) => {
-            fetchGroupList(data.id);
-            handleClose();
-          })
-          .finally(() => {
-            isCreating.value = false;
-          });
-      });
+        .finally(() => {
+          isCreating.value = false;
+        });
+    });
   };
 
   const handleToggleSelector = (isShow: boolean) => {
@@ -221,38 +230,38 @@
 </script>
 
 <style lang="less" scoped>
-.create-group {
-  flex: 1;
-  padding-left: 8px;
+  .create-group {
+    flex: 1;
+    padding-left: 8px;
 
-  :deep(.bk-form-content) {
-    display: flex;
-    width: 100%;
-    align-items: center;
+    :deep(.bk-form-content) {
+      display: flex;
+      width: 100%;
+      align-items: center;
 
-    .bk-form-error-tips {
-      right: 62px;
+      .bk-form-error-tips {
+        right: 62px;
+      }
+    }
+
+    .create-input {
+      width: unset;
+      flex: 1;
+    }
+
+    .create-button {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .create-button-confirm {
+      margin-left: 8px;
+    }
+
+    .create-button-close {
+      margin: 0 2px;
+      font-size: 24px;
+      color: #c4c6cc;
     }
   }
-
-  .create-input {
-    width: unset;
-    flex: 1;
-  }
-
-  .create-button {
-    font-size: 18px;
-    flex-shrink: 0;
-  }
-
-  .create-button-confirm {
-    margin-left: 8px;
-  }
-
-  .create-button-close {
-    margin: 0 2px;
-    font-size: 24px;
-    color: #c4c6cc;
-  }
-}
 </style>

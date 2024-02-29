@@ -27,7 +27,7 @@
 <script lang="ts">
   export enum OnlineSwitchType {
     USER_CONFIRM = 'user_confirm',
-    NO_CONFIRM = 'no_confirm'
+    NO_CONFIRM = 'no_confirm',
   }
 </script>
 <script setup lang="ts">
@@ -40,7 +40,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   defineProps<Props>();
@@ -74,9 +74,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return selectRef.value.getValue().then(() => localValue.value);
     },
   });
 </script>

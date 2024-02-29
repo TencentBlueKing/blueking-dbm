@@ -15,7 +15,7 @@
   <div
     class="render-slave-box"
     :class="{
-      'is-disabled': !clusterId || scope === 'all'
+      'is-disabled': !clusterId || scope === 'all',
     }">
     <div v-if="scope === 'all'">
       {{ t('全部') }}
@@ -29,7 +29,7 @@
       </div>
       <div
         v-if="localSlaveInstanceList.length < 1"
-        style="color:#c4c6cc;"
+        style="color: #c4c6cc"
         @click="handleShowBatchSelector">
         {{ t('请选择') }}
       </div>
@@ -59,14 +59,14 @@
   } from '@components/instance-selector/Index.vue';
 
   interface Props {
-    clusterId: number,
-    scope: string,
+    clusterId: number;
+    scope: string;
   }
   interface Emits {
-    (e: 'change', value: string[]): void
+    (e: 'change', value: string[]): void;
   }
   interface Exposes {
-    getValue: () => Promise<string[]>
+    getValue: () => Promise<string[]>;
   }
 
   const props = defineProps<Props>();
@@ -79,17 +79,21 @@
   const localSlaveInstanceList = shallowRef<string[]>([]);
 
   const tabListConfig = {
-    [ClusterTypes.TENDBCLUSTER]: [{
-      name: t('主库故障主机'),
-      topoConfig: {
-        filterClusterId: props.clusterId,
-      },
-      tableConfig: {
-        firsrColumn: {
-          label: 'slave', field: 'instance_address', role: 'remote_slave',
+    [ClusterTypes.TENDBCLUSTER]: [
+      {
+        name: t('主库故障主机'),
+        topoConfig: {
+          filterClusterId: props.clusterId,
+        },
+        tableConfig: {
+          firsrColumn: {
+            label: 'slave',
+            field: 'instance_address',
+            role: 'remote_slave',
+          },
         },
       },
-    }],
+    ],
   } as unknown as Record<ClusterTypes, PanelListType>;
 
   // 批量选择
@@ -98,11 +102,15 @@
   };
 
   // 批量选择
+<<<<<<< HEAD
   const handelInstanceSelectorChange = (payload: InstanceSelectorValues<IValue>) => {
     localSlaveInstanceList.value = payload.tendbcluster.map(item => item.instance_address);
+=======
+  const handelInstanceSelectorChange = (payload: InstanceSelectorValues) => {
+    localSlaveInstanceList.value = payload.tendbcluster.map((item) => item.instance_address);
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     emits('change', [...localSlaveInstanceList.value]);
   };
-
 
   defineExpose<Exposes>({
     getValue() {
@@ -114,19 +122,19 @@
   });
 </script>
 <style lang="less" scoped>
-  .render-slave-box{
+  .render-slave-box {
     position: relative;
     padding: 0 16px;
     cursor: pointer;
 
-    &.is-disabled{
+    &.is-disabled {
       pointer-events: none;
       cursor: not-allowed;
       background-color: #fafbfd;
     }
 
-    &:hover{
-      .edit-btn{
+    &:hover {
+      .edit-btn {
         display: flex;
       }
     }
@@ -138,7 +146,7 @@
       white-space: nowrap;
     }
 
-    .edit-btn{
+    .edit-btn {
       position: absolute;
       inset: 0;
       display: none;
@@ -146,7 +154,7 @@
       align-items: center;
       background-color: rgb(250 251 253 / 70%);
 
-      &:hover{
+      &:hover {
         color: #3a84ff;
       }
     }

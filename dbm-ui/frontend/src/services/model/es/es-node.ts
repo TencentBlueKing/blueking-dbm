@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 export default class EsNode {
   static ROLE_MASTER = 'es_master';
@@ -30,7 +30,10 @@ export default class EsNode {
   node_count: number;
   role: string;
   status: number;
-  permission: Record<'es_view' | 'es_enable_disable' | 'es_destroy' | 'es_scale_up' | 'es_shrink' | 'es_replace' | 'es_reboot', boolean>;
+  permission: Record<
+    'es_view' | 'es_enable_disable' | 'es_destroy' | 'es_scale_up' | 'es_shrink' | 'es_replace' | 'es_reboot',
+    boolean
+  >;
 
   constructor(payload = {} as EsNode) {
     this.bk_cloud_id = payload.bk_cloud_id;

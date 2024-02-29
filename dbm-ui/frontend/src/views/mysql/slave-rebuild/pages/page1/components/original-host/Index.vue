@@ -22,7 +22,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -82,16 +82,17 @@
 
   import { ClusterTypes } from '@common/const';
 
+<<<<<<< HEAD
   import InstanceSelector, {
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
+=======
+  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -100,7 +101,7 @@
   const isShowInstanceSelecotr = ref(false);
   const rowRefs = ref([] as InstanceType<typeof RenderDataRow>[]);
   const backupSource = ref('local');
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedIntances = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
@@ -129,6 +130,7 @@
     isShowInstanceSelecotr.value = true;
   };
 
+<<<<<<< HEAD
   const handleInstancesChange = (selected: InstanceSelectorValues<TendbhaInstanceModel>) => {
     selectedIntances.value = selected;
     const newList: IDataRow[] = [];
@@ -149,6 +151,21 @@
         instanceMemo[instance] = true;
       }
     });
+=======
+  const handleInstancesChange = (selected: InstanceSelectorValues) => {
+    const newList = selected[ClusterTypes.TENDBHA].map((instanceData) =>
+      createRowData({
+        slave: {
+          bkCloudId: instanceData.bk_cloud_id,
+          bkHostId: instanceData.bk_host_id,
+          ip: instanceData.ip,
+          port: instanceData.port,
+          instanceAddress: instanceData.instance_address,
+          clusterId: instanceData.cluster_id,
+        },
+      }),
+    );
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
@@ -157,7 +174,6 @@
     }
     window.changeConfirm = true;
   };
-
 
   // 追加一个行
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
@@ -182,28 +198,30 @@
 
   const handleSubmit = () => {
     isSubmitting.value = true;
-    Promise.all(rowRefs.value.map(item => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'MYSQL_RESTORE_LOCAL_SLAVE',
-        remark: '',
-        details: {
-          backup_source: backupSource.value,
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
+    Promise.all(rowRefs.value.map((item) => item.getValue()))
+      .then((data) =>
+        createTicket({
+          ticket_type: 'MYSQL_RESTORE_LOCAL_SLAVE',
+          remark: '',
+          details: {
+            backup_source: backupSource.value,
+            infos: data,
+          },
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
 
-        router.push({
-          name: 'MySQLSlaveRebuild',
-          params: {
-            page: 'success',
-          },
-          query: {
-            ticketId: data.id,
-          },
-        });
-      }))
+          router.push({
+            name: 'MySQLSlaveRebuild',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });
@@ -232,7 +250,7 @@
       margin-top: 16px;
     }
 
-    .item-block{
+    .item-block {
       margin-top: 24px;
     }
   }

@@ -102,7 +102,7 @@
         :model="localValueMemo"
         name="hosts"
         @change="handleChange" />
-      <div style="flex: 2; display: flex; align-items: flex-end;">
+      <div style="flex: 2; display: flex; align-items: flex-end">
         <div class="action-box">
           <BkButton
             class="ml-8 w-88"
@@ -136,12 +136,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    onActivated,
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { onActivated, ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import ComFactory from '../com-factory/Index.vue';
@@ -149,7 +144,7 @@
   import CollectSearchParams from './components/CollectSearchParams.vue';
 
   interface Props {
-    modelValue: Record<string, any>
+    modelValue: Record<string, any>;
   }
   interface Emits {
     (e: 'update:modelValue', params: Record<string, any>): void;
@@ -165,29 +160,36 @@
   const inputRef = shallowRef<Record<string, typeof ComFactory>>({});
   const localValueMemo = shallowRef<Record<string, any>>({});
 
-  const initInputRefCallback =  (com: typeof ComFactory, name: string) => {
+  const initInputRefCallback = (com: typeof ComFactory, name: string) => {
     inputRef.value[name] = com;
   };
 
   // 同步外部值的改动
-  watch(() => props.modelValue, () => {
-    localValueMemo.value = { ...props.modelValue };
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      localValueMemo.value = { ...props.modelValue };
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 提交搜索，更新外部值
-  const handleSubmit = _.debounce(() => {
-    Promise.all(Object.values(inputRef.value).map(inputItem => inputItem.getValue()))
-      .then(() => {
+  const handleSubmit = _.debounce(
+    () => {
+      Promise.all(Object.values(inputRef.value).map((inputItem) => inputItem.getValue())).then(() => {
         emits('update:modelValue', {
           ...localValueMemo.value,
         });
         emits('submit');
       });
-  }, 200, {
-    trailing: true,
-  });
+    },
+    200,
+    {
+      trailing: true,
+    },
+  );
 
   // 搜索项值改变，临时缓存
   const handleChange = (name: string, value: any) => {
@@ -203,7 +205,7 @@
   const handleClear = () => {
     localValueMemo.value = {};
     emits('update:modelValue', {});
-    Object.values(inputRef.value).map(inputItem => inputItem.reset());
+    Object.values(inputRef.value).map((inputItem) => inputItem.reset());
     handleSubmit();
   };
 
@@ -219,7 +221,7 @@
 
   onActivated(() => {
     // 组件激活时需要校验一次值
-    Promise.all(Object.values(inputRef.value).map(inputItem => inputItem.getValue()));
+    Promise.all(Object.values(inputRef.value).map((inputItem) => inputItem.getValue()));
   });
 </script>
 <style lang="less" scoped>

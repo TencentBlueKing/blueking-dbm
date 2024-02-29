@@ -15,7 +15,7 @@
   <div
     class="render-cluster-width-relate-cluster"
     :class="{
-      'is-editing': isShowEdit
+      'is-editing': isShowEdit,
     }">
     <TableEditInput
       v-show="isShowEdit"
@@ -54,23 +54,23 @@
         </div>
       </div>
     </div>
-    <div style="display: none;">
+    <div style="display: none">
       <div
         ref="popRef"
-        style="padding: 9px 7px;">
+        style="padding: 9px 7px">
         <BkLoading
           v-if="isShowRelateMemo"
           :loading="isRelateLoading">
-          <div style="margin-bottom: 8px; font-size: 12px; line-height: 16px;">
-            <span style="font-weight: bold; color: #313238;">同机关联集群</span>
-            <span style="color: #63656e;">（{{ relateClusterTips }}）</span>
+          <div style="margin-bottom: 8px; font-size: 12px; line-height: 16px">
+            <span style="font-weight: bold; color: #313238">同机关联集群</span>
+            <span style="color: #63656e">（{{ relateClusterTips }}）</span>
           </div>
-          <div style="max-height: 300px; overflow: auto;">
+          <div style="max-height: 300px; overflow: auto">
             <template v-if="relatedClusterList.length > 0">
               <div
                 v-for="item in relatedClusterList"
                 :key="item.id"
-                style="padding: 8px 0;">
+                style="padding: 8px 0">
                 <BkCheckbox
                   :lbale="item.id"
                   :model-value="Boolean(realateCheckedMap[item.id])"
@@ -81,7 +81,7 @@
             </template>
             <p
               v-else
-              style="color: #63656e;">
+              style="color: #63656e">
               无同机关联集群
             </p>
           </div>

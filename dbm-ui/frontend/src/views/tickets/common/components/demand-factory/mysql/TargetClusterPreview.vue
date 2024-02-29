@@ -144,11 +144,10 @@
     });
   }
   fetchModules();
-
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .cluster-preview-dialog {
     width: 80%;

@@ -22,7 +22,7 @@
         <TargetCluster v-model="formData.cluster_ids" />
         <TargetDb
           v-model="formData.execute_db_infos"
-          style="margin-top: 16px;" />
+          style="margin-top: 16px" />
         <SqlFile
           :key="resetFormKey"
           ref="sqlFileRef"
@@ -35,25 +35,13 @@
           required>
           <BkSelect
             v-model="formData.charset"
-            style="width: 360px;">
-            <BkOption value="default">
-              default
-            </BkOption>
-            <BkOption value="utf8mb4">
-              utf8mb4
-            </BkOption>
-            <BkOption value="utf8">
-              utf8
-            </BkOption>
-            <BkOption value="latin1">
-              latin1
-            </BkOption>
-            <BkOption value="gbk">
-              gbk
-            </BkOption>
-            <BkOption value="gb2312">
-              gb2312
-            </BkOption>
+            style="width: 360px">
+            <BkOption value="default"> default </BkOption>
+            <BkOption value="utf8mb4"> utf8mb4 </BkOption>
+            <BkOption value="utf8"> utf8 </BkOption>
+            <BkOption value="latin1"> latin1 </BkOption>
+            <BkOption value="gbk"> gbk </BkOption>
+            <BkOption value="gb2312"> gb2312 </BkOption>
           </BkSelect>
         </BkFormItem>
         <Backup v-model="formData.backup" />
@@ -63,7 +51,7 @@
     <template #action>
       <span
         v-bk-tooltips="{
-          ...submitButtonTips
+          ...submitButtonTips,
         }">
         <BkButton
           class="w-88"
@@ -88,24 +76,15 @@
   </SmartAction>
 </template>
 <script lang="ts">
-  import {
-    reactive,
-    ref,
-  } from 'vue';
+  import { reactive, ref } from 'vue';
 
   export const updateFilePath = ref('');
 </script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
-  import {
-    querySemanticData,
-    semanticCheck,
-  } from '@services/source/sqlImport';
+  import { querySemanticData, semanticCheck } from '@services/source/sqlImport';
 
   import { useGlobalBizs } from '@stores';
 
@@ -158,9 +137,7 @@
       bk_biz_id: currentBizId,
       root_id: rootId,
     }).then((data) => {
-      const {
-        semantic_data: semanticData,
-      } = data;
+      const { semantic_data: semanticData } = data;
       Object.assign(formData, {
         charset: semanticData.charset,
         import_mode: semanticData.import_mode,
@@ -196,7 +173,8 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
 
-    formRef.value.validate()
+    formRef.value
+      .validate()
       .then(() => {
         semanticCheck({
           ...formData,

@@ -36,8 +36,9 @@
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
+
   interface Props {
-    collapse?: boolean
+    collapse?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -51,7 +52,7 @@
   };
 </script>
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .collapse {
     width: 100%;
@@ -83,7 +84,6 @@
     .collapse-content {
       padding-top: 16px;
     }
-
   }
 
   .collapse-active {

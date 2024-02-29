@@ -1,6 +1,4 @@
-import {
-  utcDisplayTime,
-} from '@utils';
+import { utcDisplayTime } from '@utils';
 
 export default class VersionFile {
   allow_biz_ids: number[];
@@ -20,7 +18,7 @@ export default class VersionFile {
   updater: string;
   version: string;
   permission: {
-    package_manage: boolean
+    package_manage: boolean;
   };
 
   constructor(payload = {} as VersionFile) {

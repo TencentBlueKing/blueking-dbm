@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { RedisClusterTypes } from '@services/model/redis/redis';
 import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
 
@@ -24,7 +24,7 @@ interface CommonNode {
 }
 
 interface StorageNode extends CommonNode {
-  instance_role: string
+  instance_role: string;
 }
 
 export default class RedisClusterNodeByFilter {
@@ -42,9 +42,9 @@ export default class RedisClusterNodeByFilter {
     redis_slave_count: number;
     region: string;
     capacity: {
-      used: string,
-      total: string
-    }
+      used: string;
+      total: string;
+    };
   };
   proxy: CommonNode[];
   storage: StorageNode[];

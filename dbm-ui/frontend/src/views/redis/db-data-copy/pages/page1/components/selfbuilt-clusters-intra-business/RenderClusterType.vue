@@ -26,7 +26,7 @@
 </template>
 <script lang="ts">
   export enum ClusterType {
-    REDIS_INSTANCE= 'RedisInstance', // 主从版
+    REDIS_INSTANCE = 'RedisInstance', // 主从版
     REDIS_CLUSTER = 'RedisCluster', // 集群版
   }
 </script>
@@ -41,7 +41,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -78,9 +78,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return selectRef.value.getValue().then(() => localValue.value);
     },
   });
 </script>

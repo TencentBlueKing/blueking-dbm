@@ -9,19 +9,20 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { useGlobalBizs } from '@stores';
 
 import http from './http';
-import type {
-  ListBase,
-  ResourceInstance,
-} from './types';
+import type { ListBase, ResourceInstance } from './types';
 
 const { currentBizId } = useGlobalBizs();
 
 /**
  * 获取单节点实例列表
  */
-export const getSingleInstances = (params: Record<string, any>) => http.get<ListBase<ResourceInstance[]>>(`/apis/mysql/bizs/${currentBizId}/tendbsingle_resources/list_instances/`, params);
+export const getSingleInstances = (params: Record<string, any>) =>
+  http.get<ListBase<ResourceInstance[]>>(
+    `/apis/mysql/bizs/${currentBizId}/tendbsingle_resources/list_instances/`,
+    params,
+  );

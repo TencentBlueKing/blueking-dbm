@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import http from './http';
 import type {
@@ -30,7 +30,8 @@ export const checkHost = (params: CheckIpParams) => http.post<HostDetails[]>('/a
 /**
  * 根据主机关键信息获取机器详情信息
  */
-export const getHostDetails = (params: FetchHostDetailsParams) => http.post<HostDetails[]>('/apis/ipchooser/host/details/', params);
+export const getHostDetails = (params: FetchHostDetailsParams) =>
+  http.post<HostDetails[]>('/apis/ipchooser/host/details/', params);
 
 /**
  * 获取自定义配置，比如表格列字段及顺序
@@ -45,7 +46,8 @@ export const updateIpSelectorSettings = (params: any) => http.post('/apis/ipchoo
 /**
  * 根据多个拓扑节点与搜索条件批量分页查询所包含的主机 ID 信息
  */
-export const getHostIdInfos = (params: FetchHostInfosParams) => http.post('/apis/ipchooser/topo/query_host_id_infos/', params);
+export const getHostIdInfos = (params: FetchHostInfosParams) =>
+  http.post('/apis/ipchooser/topo/query_host_id_infos/', params);
 
 /**
  * 根据多个拓扑节点与搜索条件批量分页查询所包含的主机信息
@@ -61,16 +63,17 @@ export const getHostTopo = (params: FetchHostTopoParams) => http.post('/apis/ipc
  * 查询主机拓扑信息
  */
 export const getHostTopoInfos = (params: {
-  bk_biz_id: number,
+  bk_biz_id: number;
   filter_conditions: {
-    bk_host_innerip?: string[],
-    bk_host_id?: string[],
-    mode?: string
-  }
-}) => http.post<{
-  total: number,
-  hosts_topo_info: Array<HostTopoInfo>
-}>('/apis/ipchooser/topo/query_host_topo_infos/', params);
+    bk_host_innerip?: string[];
+    bk_host_id?: string[];
+    mode?: string;
+  };
+}) =>
+  http.post<{
+    total: number;
+    hosts_topo_info: Array<HostTopoInfo>;
+  }>('/apis/ipchooser/topo/query_host_topo_infos/', params);
 
 /**
  * 获取管控区域列表

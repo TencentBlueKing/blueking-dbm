@@ -309,51 +309,49 @@
   const handleClearSearch = () => {
     searchValue.value = [];
   };
-
 </script>
 <style lang="less" scoped>
-.global-strategy-type-content {
-  display: flex;
-  flex-direction: column;
+  .global-strategy-type-content {
+    display: flex;
+    flex-direction: column;
 
-  .input-box {
-    width: 600px;
-    height: 32px;
-    margin-bottom: 16px;
+    .input-box {
+      width: 600px;
+      height: 32px;
+      margin-bottom: 16px;
+    }
+
+    :deep(.table-box) {
+      .strategy-title {
+        display: flex;
+
+        .name {
+          margin-left: 8px;
+        }
+      }
+
+      .notify-box {
+        display: inline-block;
+        height: 22px;
+        padding: 2.5px 5px;
+        background: #f0f1f5;
+        border-radius: 2px;
+
+        .dba {
+          margin-left: 8px;
+        }
+      }
+
+      .operate-box {
+        display: flex;
+        align-items: center;
+      }
+
+      .is-new {
+        td {
+          background-color: #f3fcf5 !important;
+        }
+      }
+    }
   }
-
-  :deep(.table-box) {
-    .strategy-title {
-      display: flex;
-
-      .name {
-        margin-left: 8px;
-      }
-    }
-
-    .notify-box {
-      display: inline-block;
-      height: 22px;
-      padding: 2.5px 5px;
-      background: #F0F1F5;
-      border-radius: 2px;
-
-      .dba {
-        margin-left: 8px;
-      }
-    }
-
-    .operate-box {
-      display: flex;
-      align-items: center;
-    }
-
-    .is-new {
-      td {
-        background-color: #f3fcf5 !important;
-      }
-    }
-  }
-
-}
 </style>

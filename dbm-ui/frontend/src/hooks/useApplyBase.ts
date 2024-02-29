@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { Message } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
@@ -22,10 +22,7 @@ import { useInfo } from '@hooks';
 
 import { useMainViewStore } from '@stores';
 
-import {
-  serviceTicketTypes,
-  type ServiceTicketTypeStrings,
-} from '@common/const';
+import { serviceTicketTypes, type ServiceTicketTypeStrings } from '@common/const';
 
 /**
  * 申请服务基础信息设置
@@ -49,13 +46,16 @@ export const useApplyBase = () => {
   /**
    * 设置导航名称
    */
-  watch(() => route.params.type, (value, old) => {
-    if (value && value !== old) {
-      const info = serviceTicketTypes[value as ServiceTicketTypeStrings];
-      mainViewStore.breadCrumbsTitle = info ? t('申请xx', [info.name]) : t('申请服务');
-    }
-  }, { immediate: true });
-
+  watch(
+    () => route.params.type,
+    (value, old) => {
+      if (value && value !== old) {
+        const info = serviceTicketTypes[value as ServiceTicketTypeStrings];
+        mainViewStore.breadCrumbsTitle = info ? t('申请xx', [info.name]) : t('申请服务');
+      }
+    },
+    { immediate: true },
+  );
 
   /**
    * 取消申请
@@ -77,11 +77,12 @@ export const useApplyBase = () => {
         createAppAbbr({
           id: formdata.bk_biz_id as number,
           db_app_abbr: appAbbr,
-        }).then(() => {
-          bizState.hasEnglishName = true;
-          bizState.info.english_name = appAbbr;
-          handleCreateTicket(formdata);
         })
+          .then(() => {
+            bizState.hasEnglishName = true;
+            bizState.info.english_name = appAbbr;
+            handleCreateTicket(formdata);
+          })
           .catch(() => {
             baseState.isSubmitting = false;
           });

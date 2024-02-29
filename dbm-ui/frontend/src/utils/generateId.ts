@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 /**
  * 生成随机ID
@@ -18,7 +18,8 @@
  */
 export function generateId(prefix = '', length = 6) {
   let d = new Date().getTime();
-  const uuid = new Array(length).fill('x')
+  const uuid = new Array(length)
+    .fill('x')
     .join('')
     .replace(/[xy]/g, (c) => {
       const r = (d + Math.random() * 16) % 16 | 0;

@@ -24,7 +24,7 @@
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: t('请选择集群')
+            content: t('请选择集群'),
           }"
           class="inline-block">
           <AuthButton
@@ -56,7 +56,7 @@
     </div>
     <div
       class="table-wrapper"
-      :class="{'is-shrink-table': isStretchLayoutOpen}">
+      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
       <DbTable
         ref="tableRef"
         :columns="columns"
@@ -658,133 +658,133 @@
 </script>
 
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.mysql-single-cluster-list-page {
-  height: 100%;
-  padding: 24px 0;
-  margin: 0 24px;
-  overflow: hidden;
+  .mysql-single-cluster-list-page {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
+    overflow: hidden;
 
-  .operation-box{
-    display: flex;
-    flex-wrap: wrap;
+    .operation-box {
+      display: flex;
+      flex-wrap: wrap;
 
-    .bk-search-select {
-      order: 2;
-      flex: 1;
-      max-width: 320px;
-      min-width: 320px;
-      margin-left: auto;
-    }
-  }
-
-  .table-wrapper {
-    background-color: white;
-
-    .bk-table {
-      height: 100% !important;
-    }
-
-    .bk-table-body {
-      max-height: calc(100% - 100px);
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
+      .bk-search-select {
+        order: 2;
+        flex: 1;
+        max-width: 320px;
+        min-width: 320px;
+        margin-left: auto;
       }
     }
-  }
 
-  :deep(.cell) {
-    line-height: normal !important;
+    .table-wrapper {
+      background-color: white;
 
-    .domain {
-      display: flex;
-      align-items: center;
-    }
+      .bk-table {
+        height: 100% !important;
+      }
 
-    .db-icon-copy, .db-icon-edit {
-      display: none;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
+      .bk-table-body {
+        max-height: calc(100% - 100px);
+      }
 
-    .operations-more {
-      .db-icon-more {
-        display: block;
-        font-size: @font-size-normal;
-        font-weight: bold;
-        color: @default-color;
-        cursor: pointer;
-
-        &:hover {
-          background-color: @bg-disable;
-          border-radius: 2px;
+      .is-shrink-table {
+        .bk-table-body {
+          overflow: hidden auto;
         }
       }
     }
-  }
 
-  :deep(tr:hover) {
-    .db-icon-copy, .db-icon-edit {
-      display: inline-block !important;
-    }
-  }
+    :deep(.cell) {
+      line-height: normal !important;
 
-  :deep(.is-offline) {
-    a {
-      color: @gray-color;
-    }
+      .domain {
+        display: flex;
+        align-items: center;
+      }
 
-    .cell {
-      color: @disable-color;
-    }
-  }
-}
-</style>
-<style lang="less">
+      .db-icon-copy,
+      .db-icon-edit {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
+      }
 
-.cluster-name-container {
-  display: flex;
-  align-items: center;
-  padding: 8px 0;
-  overflow: hidden;
+      .operations-more {
+        .db-icon-more {
+          display: block;
+          font-size: @font-size-normal;
+          font-weight: bold;
+          color: @default-color;
+          cursor: pointer;
 
-  .cluster-name {
-    .bk-button {
-      display: inline-block;
-      width: 100%;
-      overflow: hidden;
-
-      .bk-button-text {
-        display: inline-block;
-        width: 100%;
-        overflow: hidden;
-        line-height: 15px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+          &:hover {
+            background-color: @bg-disable;
+            border-radius: 2px;
+          }
+        }
       }
     }
 
-    &__alias {
-      color: @light-gray;
+    :deep(tr:hover) {
+      .db-icon-copy,
+      .db-icon-edit {
+        display: inline-block !important;
+      }
+    }
+
+    :deep(.is-offline) {
+      a {
+        color: @gray-color;
+      }
+
+      .cell {
+        color: @disable-color;
+      }
     }
   }
-
-  .cluster-tags {
+</style>
+<style lang="less">
+  .cluster-name-container {
     display: flex;
-    max-width: 150px;
-    margin-left: 4px;
     align-items: center;
+    padding: 8px 0;
+    overflow: hidden;
 
-    .cluster-tag {
-      margin: 2px 0;
-      flex-shrink: 0;
+    .cluster-name {
+      .bk-button {
+        display: inline-block;
+        width: 100%;
+        overflow: hidden;
+
+        .bk-button-text {
+          display: inline-block;
+          width: 100%;
+          overflow: hidden;
+          line-height: 15px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      &__alias {
+        color: @light-gray;
+      }
+    }
+
+    .cluster-tags {
+      display: flex;
+      max-width: 150px;
+      margin-left: 4px;
+      align-items: center;
+
+      .cluster-tag {
+        margin: 2px 0;
+        flex-shrink: 0;
+      }
     }
   }
-
-}
 </style>

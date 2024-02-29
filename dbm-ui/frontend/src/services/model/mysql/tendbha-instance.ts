@@ -9,9 +9,10 @@
  * Unless required by applicable law or agreed to in writing; software distributed under the License is distributed
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { utcDisplayTime } from '@utils';
+
 export default class tendbhaInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -22,36 +23,36 @@ export default class tendbhaInstance {
   create_at: string;
   db_module_id: number;
   host_info: {
-    alive: number,
+    alive: number;
     biz: {
-      id: number,
-      name: string,
-    },
+      id: number;
+      name: string;
+    };
     cloud_area: {
-      id: number,
-      name: string,
-    },
-    cloud_id: number,
-    host_id: number,
-    host_name?: string,
-    ip: string,
-    ipv6: string,
+      id: number;
+      name: string;
+    };
+    cloud_id: number;
+    host_id: number;
+    host_name?: string;
+    ip: string;
+    ipv6: string;
     meta: {
-      bk_biz_id: number,
-      scope_id: number,
-      scope_type: string
-    },
-    scope_id: string,
-    scope_type: string,
-    os_name: string,
-    bk_cpu?: number,
-    bk_disk?: number,
-    bk_mem?: number,
-    os_type: string,
-    agent_id: number,
-    cpu: string,
-    cloud_vendor: string,
-    bk_idc_name?: string,
+      bk_biz_id: number;
+      scope_id: number;
+      scope_type: string;
+    };
+    scope_id: string;
+    scope_type: string;
+    os_name: string;
+    bk_cpu?: number;
+    bk_disk?: number;
+    bk_mem?: number;
+    os_type: string;
+    agent_id: number;
+    cpu: string;
+    cloud_vendor: string;
+    bk_idc_name?: string;
   };
   id: number;
   instance_address: string;
@@ -66,20 +67,20 @@ export default class tendbhaInstance {
     cpu: {
       max: number;
       min: number;
-    },
+    };
     device_class: string[];
     id: number;
     mem: {
       max: number;
       min: number;
-    },
+    };
     name: string;
     qps: Record<any, any>;
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    }[]
+    }[];
   };
   status: string;
   version: string;

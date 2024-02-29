@@ -21,7 +21,7 @@
       :rules="rules">
       <BkButton @click="handleShowClusterSelector">
         <DbIcon
-          style="margin-right: 3px;"
+          style="margin-right: 3px"
           type="add" />
         <span>{{ $t('添加目标集群') }}</span>
       </BkButton>
@@ -43,11 +43,11 @@
 </template>
 <script lang="tsx">
   export interface IClusterData {
-    id: number,
-    cluster_name: string,
-    status: string,
-    master_domain: string,
-    cluster_type: string
+    id: number;
+    cluster_name: string;
+    status: string;
+    master_domain: string;
+    cluster_type: string;
   }
 </script>
 <script setup lang="tsx">

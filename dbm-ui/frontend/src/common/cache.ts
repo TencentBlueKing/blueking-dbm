@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import _ from 'lodash';
 
@@ -22,7 +22,9 @@ export const routerCache = {
   },
   getItem(key: string) {
     const cache = localStorage.getItem(routerCache.key);
-    if (cache === null) return '';
+    if (cache === null) {
+      return '';
+    }
 
     const cacheMap = JSON.parse(cache);
     if (_.isPlainObject(cacheMap)) {
@@ -64,6 +66,6 @@ export const systemSearchCache = {
   },
   getItem(): string[] {
     const value = JSON.parse(localStorage.getItem(systemSearchCache.key) || '[]');
-    return _.isArray(value) ? _.filter(_.uniq(value), item => _.trim(item)) : [];
+    return _.isArray(value) ? _.filter(_.uniq(value), (item) => _.trim(item)) : [];
   },
 };

@@ -30,11 +30,10 @@
 
   import { listPackages } from '@services/source/package';
 
-
   interface Props {
-    queryKey: string,
-    dbType: string,
-    placeholder?: string,
+    queryKey: string;
+    dbType: string;
+    placeholder?: string;
   }
 
   const props = defineProps<Props>();
@@ -53,24 +52,27 @@
     manual: true,
   });
 
-  watch(() => [props.queryKey, props.dbType], () => {
-    fetchData({
-      query_key: props.queryKey,
-      db_type: props.dbType,
-    });
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => [props.queryKey, props.dbType],
+    () => {
+      fetchData({
+        query_key: props.queryKey,
+        db_type: props.dbType,
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less">
-.version-selector-wrapper {
-  position: relative;
-  display: inline-block;
+  .version-selector-wrapper {
+    position: relative;
+    display: inline-block;
 
-  .item-input {
-    width: 435px;
+    .item-input {
+      width: 435px;
+    }
   }
-}
 </style>

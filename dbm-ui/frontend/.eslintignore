@@ -3,3 +3,4 @@ dist/
 public/
 src/types/auto-imports.d.ts
 patch/
+lib/

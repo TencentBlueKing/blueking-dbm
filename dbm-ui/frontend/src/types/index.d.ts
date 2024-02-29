@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { TablePropTypes } from 'bkui-vue/lib/table/props';
 import type { Router } from 'vue-router';
@@ -20,14 +20,14 @@ declare global {
   interface Window {
     changeConfirm: boolean | 'popover';
     login: {
-      showLogin: ({ src, width, height }) => void
-      hideLogin: () => void,
-      isShow: boolean
-    },
+      showLogin: ({ src, width, height }) => void;
+      hideLogin: () => void;
+      isShow: boolean;
+    };
     permission: {
-      show: (permission: Permission) => void,
-      isShow: boolean
-    }
+      show: (permission: Permission) => void;
+      isShow: boolean;
+    };
   }
   interface Element {
     _bk_overflow_tips_: any;
@@ -35,7 +35,7 @@ declare global {
   }
 
   interface FocusEvent {
-    sourceCapabilities: any
+    sourceCapabilities: any;
   }
 
   interface DragEvent {
@@ -44,22 +44,21 @@ declare global {
     };
     relatedTarget: {
       innerText: string;
-    } | null
+    } | null;
   }
 
   type ClusterTableProps = {
-    -readonly [K in keyof TablePropTypes]: TablePropTypes[K]
-  }
+    -readonly [K in keyof TablePropTypes]: TablePropTypes[K];
+  };
 
-  type BKTagTheme = 'success' | 'info' | 'warning' | 'danger' | undefined
+  type BKTagTheme = 'success' | 'info' | 'warning' | 'danger' | undefined;
 }
 
 declare module 'pinia' {
   interface PiniaCustomProperties {
-    router: Router
+    router: Router;
   }
 }
 
 // export {} 将其标记为外部模块，模块是至少包含1个导入或导出语句的文件，我们必须这样做才能扩展全局范围
-export { };
-
+export {};

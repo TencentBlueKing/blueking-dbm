@@ -14,17 +14,21 @@
       <div
         id="timezone-picker-trigger"
         class="timezone-picker-trigger-box"
-        :class="{'timezone-picker-trigger-box-active': isActive}"
+        :class="{ 'timezone-picker-trigger-box-active': isActive }"
         @click="handleClickTriggerBox">
         <div class="diaplay-content">
           <span class="option-name">{{ isBrowserTimezone ? t('浏览器时区') : '' }} {{ selected.label }}</span>
           <span
             v-show="selected.country"
             v-overflow-tips
-            class="option-country">{{ selected.country }}, {{ selected.abbreviation }}</span>
+            class="option-country">
+            {{ selected.country }}, {{ selected.abbreviation }}
+          </span>
           <span
             v-show="selected.utc"
-            class="option-utc">{{ selected.utc }}</span>
+            class="option-utc">
+            {{ selected.utc }}
+          </span>
         </div>
         <DbIcon
           class="down-icon"
@@ -47,7 +51,9 @@
             <span class="option-name">{{ t('浏览器时区') }} {{ item.label }}</span>
             <span
               v-overflow-tips
-              class="option-country">{{ item.country }}, {{ item.abbreviation }}</span>
+              class="option-country">
+              {{ item.country }}, {{ item.abbreviation }}
+            </span>
             <span class="option-utc">{{ item.utc }}</span>
           </div>
         </Option>
@@ -71,7 +77,9 @@
               <span class="option-name">{{ item.label }}</span>
               <span
                 v-overflow-tips
-                class="option-country">{{ item.country }}, {{ item.abbreviation }}</span>
+                class="option-country">
+                {{ item.country }}, {{ item.abbreviation }}
+              </span>
               <span class="option-utc">{{ item.utc }}</span>
             </div>
           </Option>
@@ -99,7 +107,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: string, info: TimezoneItem): void
+    (e: 'change', value: string, info: TimezoneItem): void;
   }
 
   interface TimeZoneGroup {
@@ -118,7 +126,7 @@
         {
           label: 'Africa/Abidjan',
           searchIndex:
-            'africa/abidjan|gmt|utc|burkina faso|bf|cote d\'ivoire|ci|ghana|gh|gambia|gm|guinea|gn|iceland|is|mali|ml|mauritania|mr|saint helena|sh|sierra leone|sl|senegal|sn|togo|tg',
+            "africa/abidjan|gmt|utc|burkina faso|bf|cote d'ivoire|ci|ghana|gh|gambia|gm|guinea|gn|iceland|is|mali|ml|mauritania|mr|saint helena|sh|sierra leone|sl|senegal|sn|togo|tg",
           value: 'Africa/Abidjan',
         },
         { label: 'Africa/Accra', searchIndex: 'africa/accra|gmt|utc|ghana|gh', value: 'Africa/Accra' },
@@ -162,7 +170,11 @@
           searchIndex: 'africa/dar_es_salaam|eat|utc+03:00|tanzania|tz',
           value: 'Africa/Dar_es_Salaam',
         },
-        { label: 'Africa/Djibouti', searchIndex: 'africa/djibouti|eat|utc+03:00|djibouti|dj', value: 'Africa/Djibouti' },
+        {
+          label: 'Africa/Djibouti',
+          searchIndex: 'africa/djibouti|eat|utc+03:00|djibouti|dj',
+          value: 'Africa/Djibouti',
+        },
         { label: 'Africa/Douala', searchIndex: 'africa/douala|wat|utc+01:00|cameroon|cm', value: 'Africa/Douala' },
         {
           label: 'Africa/El_Aaiun',
@@ -170,7 +182,11 @@
           value: 'Africa/El_Aaiun',
         },
         { label: 'Africa/Freetown', searchIndex: 'africa/freetown|gmt|utc|sierra leone|sl', value: 'Africa/Freetown' },
-        { label: 'Africa/Gaborone', searchIndex: 'africa/gaborone|cat|utc+02:00|botswana|bw', value: 'Africa/Gaborone' },
+        {
+          label: 'Africa/Gaborone',
+          searchIndex: 'africa/gaborone|cat|utc+02:00|botswana|bw',
+          value: 'Africa/Gaborone',
+        },
         { label: 'Africa/Harare', searchIndex: 'africa/harare|cat|utc+02:00|zimbabwe|zw', value: 'Africa/Harare' },
         {
           label: 'Africa/Johannesburg',
@@ -279,7 +295,11 @@
           searchIndex: 'america/antigua|ast|utc-04:00|antigua and barbuda|ag',
           value: 'America/Antigua',
         },
-        { label: 'America/Araguaina', searchIndex: 'america/araguaina||utc-03:00|brazil|br', value: 'America/Araguaina' },
+        {
+          label: 'America/Araguaina',
+          searchIndex: 'america/araguaina||utc-03:00|brazil|br',
+          value: 'America/Araguaina',
+        },
         {
           label: 'America/Argentina/Buenos_Aires',
           searchIndex: 'america/argentina/buenos_aires||utc-03:00|argentina|ar',
@@ -341,8 +361,16 @@
           value: 'America/Argentina/Ushuaia',
         },
         { label: 'America/Aruba', searchIndex: 'america/aruba|ast|utc-04:00|aruba|aw', value: 'America/Aruba' },
-        { label: 'America/Asuncion', searchIndex: 'america/asuncion||utc-03:00|paraguay|py', value: 'America/Asuncion' },
-        { label: 'America/Atikokan', searchIndex: 'america/atikokan|est|utc-05:00|canada|ca', value: 'America/Atikokan' },
+        {
+          label: 'America/Asuncion',
+          searchIndex: 'america/asuncion||utc-03:00|paraguay|py',
+          value: 'America/Asuncion',
+        },
+        {
+          label: 'America/Atikokan',
+          searchIndex: 'america/atikokan|est|utc-05:00|canada|ca',
+          value: 'America/Atikokan',
+        },
         { label: 'America/Bahia', searchIndex: 'america/bahia||utc-03:00|brazil|br', value: 'America/Bahia' },
         {
           label: 'America/Bahia_Banderas',
@@ -361,7 +389,11 @@
           searchIndex: 'america/blanc-sablon|ast|utc-04:00|canada|ca',
           value: 'America/Blanc-Sablon',
         },
-        { label: 'America/Boa_Vista', searchIndex: 'america/boa_vista||utc-04:00|brazil|br', value: 'America/Boa_Vista' },
+        {
+          label: 'America/Boa_Vista',
+          searchIndex: 'america/boa_vista||utc-04:00|brazil|br',
+          value: 'America/Boa_Vista',
+        },
         { label: 'America/Bogota', searchIndex: 'america/bogota||utc-05:00|colombia|co', value: 'America/Bogota' },
         { label: 'America/Boise', searchIndex: 'america/boise|mdt|utc-06:00|united states|us', value: 'America/Boise' },
         {
@@ -434,7 +466,11 @@
           searchIndex: 'america/dominica|ast|utc-04:00|dominica|dm',
           value: 'America/Dominica',
         },
-        { label: 'America/Edmonton', searchIndex: 'america/edmonton|mdt|utc-06:00|canada|ca', value: 'America/Edmonton' },
+        {
+          label: 'America/Edmonton',
+          searchIndex: 'america/edmonton|mdt|utc-06:00|canada|ca',
+          value: 'America/Edmonton',
+        },
         { label: 'America/Eirunepe', searchIndex: 'america/eirunepe||utc-05:00|brazil|br', value: 'America/Eirunepe' },
         {
           label: 'America/El_Salvador',
@@ -446,7 +482,11 @@
           searchIndex: 'america/fort_nelson|mst|utc-07:00|canada|ca',
           value: 'America/Fort_Nelson',
         },
-        { label: 'America/Fortaleza', searchIndex: 'america/fortaleza||utc-03:00|brazil|br', value: 'America/Fortaleza' },
+        {
+          label: 'America/Fortaleza',
+          searchIndex: 'america/fortaleza||utc-03:00|brazil|br',
+          value: 'America/Fortaleza',
+        },
         {
           label: 'America/Glace_Bay',
           searchIndex: 'america/glace_bay|adt|utc-03:00|canada|ca',
@@ -552,7 +592,11 @@
           value: 'America/Los_Angeles',
         },
         { label: 'America/Maceio', searchIndex: 'america/maceio||utc-03:00|brazil|br', value: 'America/Maceio' },
-        { label: 'America/Managua', searchIndex: 'america/managua|cst|utc-06:00|nicaragua|ni', value: 'America/Managua' },
+        {
+          label: 'America/Managua',
+          searchIndex: 'america/managua|cst|utc-06:00|nicaragua|ni',
+          value: 'America/Managua',
+        },
         { label: 'America/Manaus', searchIndex: 'america/manaus||utc-04:00|brazil|br', value: 'America/Manaus' },
         {
           label: 'America/Marigot',
@@ -569,7 +613,11 @@
           searchIndex: 'america/matamoros|cdt|utc-05:00|mexico|mx',
           value: 'America/Matamoros',
         },
-        { label: 'America/Mazatlan', searchIndex: 'america/mazatlan|mst|utc-07:00|mexico|mx', value: 'America/Mazatlan' },
+        {
+          label: 'America/Mazatlan',
+          searchIndex: 'america/mazatlan|mst|utc-07:00|mexico|mx',
+          value: 'America/Mazatlan',
+        },
         {
           label: 'America/Menominee',
           searchIndex: 'america/menominee|cdt|utc-05:00|united states|us',
@@ -680,7 +728,11 @@
         },
         { label: 'America/Recife', searchIndex: 'america/recife||utc-03:00|brazil|br', value: 'America/Recife' },
         { label: 'America/Regina', searchIndex: 'america/regina|cst|utc-06:00|canada|ca', value: 'America/Regina' },
-        { label: 'America/Resolute', searchIndex: 'america/resolute|cdt|utc-05:00|canada|ca', value: 'America/Resolute' },
+        {
+          label: 'America/Resolute',
+          searchIndex: 'america/resolute|cdt|utc-05:00|canada|ca',
+          value: 'America/Resolute',
+        },
         {
           label: 'America/Rio_Branco',
           searchIndex: 'america/rio_branco||utc-05:00|brazil|br',
@@ -693,19 +745,31 @@
           searchIndex: 'america/santo_domingo|ast|utc-04:00|dominican republic|do',
           value: 'America/Santo_Domingo',
         },
-        { label: 'America/Sao_Paulo', searchIndex: 'america/sao_paulo||utc-03:00|brazil|br', value: 'America/Sao_Paulo' },
+        {
+          label: 'America/Sao_Paulo',
+          searchIndex: 'america/sao_paulo||utc-03:00|brazil|br',
+          value: 'America/Sao_Paulo',
+        },
         {
           label: 'America/Scoresbysund',
           searchIndex: 'america/scoresbysund||utc|greenland|gl',
           value: 'America/Scoresbysund',
         },
-        { label: 'America/Sitka', searchIndex: 'america/sitka|akdt|utc-08:00|united states|us', value: 'America/Sitka' },
+        {
+          label: 'America/Sitka',
+          searchIndex: 'america/sitka|akdt|utc-08:00|united states|us',
+          value: 'America/Sitka',
+        },
         {
           label: 'America/St_Barthelemy',
           searchIndex: 'america/st_barthelemy|ast|utc-04:00|saint barthelemy|bl',
           value: 'America/St_Barthelemy',
         },
-        { label: 'America/St_Johns', searchIndex: 'america/st_johns|ndt|utc-02:30|canada|ca', value: 'America/St_Johns' },
+        {
+          label: 'America/St_Johns',
+          searchIndex: 'america/st_johns|ndt|utc-02:30|canada|ca',
+          value: 'America/St_Johns',
+        },
         {
           label: 'America/St_Kitts',
           searchIndex: 'america/st_kitts|ast|utc-04:00|saint kitts and nevis|kn',
@@ -758,7 +822,11 @@
           searchIndex: 'america/whitehorse|mst|utc-07:00|canada|ca',
           value: 'America/Whitehorse',
         },
-        { label: 'America/Winnipeg', searchIndex: 'america/winnipeg|cdt|utc-05:00|canada|ca', value: 'America/Winnipeg' },
+        {
+          label: 'America/Winnipeg',
+          searchIndex: 'america/winnipeg|cdt|utc-05:00|canada|ca',
+          value: 'America/Winnipeg',
+        },
         {
           label: 'America/Yakutat',
           searchIndex: 'america/yakutat|akdt|utc-08:00|united states|us',
@@ -853,7 +921,7 @@
         {
           label: 'Asia/Bangkok',
           searchIndex:
-            'asia/bangkok||utc+07:00|christmas island|cx|cambodia|kh|lao people\'s democratic republic|la|thailand|th|viet nam|vn',
+            "asia/bangkok||utc+07:00|christmas island|cx|cambodia|kh|lao people's democratic republic|la|thailand|th|viet nam|vn",
           value: 'Asia/Bangkok',
         },
         { label: 'Asia/Barnaul', searchIndex: 'asia/barnaul||utc+07:00|russian federation|ru', value: 'Asia/Barnaul' },
@@ -879,8 +947,16 @@
         { label: 'Asia/Dushanbe', searchIndex: 'asia/dushanbe||utc+05:00|tajikistan|tj', value: 'Asia/Dushanbe' },
         { label: 'Asia/Famagusta', searchIndex: 'asia/famagusta|eest|utc+03:00|cyprus|cy', value: 'Asia/Famagusta' },
         { label: 'Asia/Gaza', searchIndex: 'asia/gaza|eest|utc+03:00|palestine, state of|ps', value: 'Asia/Gaza' },
-        { label: 'Asia/Hebron', searchIndex: 'asia/hebron|eest|utc+03:00|palestine, state of|ps', value: 'Asia/Hebron' },
-        { label: 'Asia/Ho_Chi_Minh', searchIndex: 'asia/ho_chi_minh||utc+07:00|viet nam|vn', value: 'Asia/Ho_Chi_Minh' },
+        {
+          label: 'Asia/Hebron',
+          searchIndex: 'asia/hebron|eest|utc+03:00|palestine, state of|ps',
+          value: 'Asia/Hebron',
+        },
+        {
+          label: 'Asia/Ho_Chi_Minh',
+          searchIndex: 'asia/ho_chi_minh||utc+07:00|viet nam|vn',
+          value: 'Asia/Ho_Chi_Minh',
+        },
         { label: 'Asia/Hong_Kong', searchIndex: 'asia/hong_kong|hkt|utc+08:00|hong kong|hk', value: 'Asia/Hong_Kong' },
         { label: 'Asia/Hovd', searchIndex: 'asia/hovd||utc+07:00|mongolia|mn', value: 'Asia/Hovd' },
         { label: 'Asia/Irkutsk', searchIndex: 'asia/irkutsk||utc+08:00|russian federation|ru', value: 'Asia/Irkutsk' },
@@ -895,7 +971,11 @@
         },
         { label: 'Asia/Karachi', searchIndex: 'asia/karachi|pkt|utc+05:00|pakistan|pk', value: 'Asia/Karachi' },
         { label: 'Asia/Kathmandu', searchIndex: 'asia/kathmandu||utc+05:45|nepal|np', value: 'Asia/Kathmandu' },
-        { label: 'Asia/Khandyga', searchIndex: 'asia/khandyga||utc+09:00|russian federation|ru', value: 'Asia/Khandyga' },
+        {
+          label: 'Asia/Khandyga',
+          searchIndex: 'asia/khandyga||utc+09:00|russian federation|ru',
+          value: 'Asia/Khandyga',
+        },
         { label: 'Asia/Kolkata', searchIndex: 'asia/kolkata|ist|utc+05:30|india|in', value: 'Asia/Kolkata' },
         {
           label: 'Asia/Krasnoyarsk',
@@ -941,7 +1021,11 @@
           searchIndex: 'asia/riyadh||utc+03:00|antarctica|aq|kuwait|kw|saudi arabia|sa|yemen|ye',
           value: 'Asia/Riyadh',
         },
-        { label: 'Asia/Sakhalin', searchIndex: 'asia/sakhalin||utc+11:00|russian federation|ru', value: 'Asia/Sakhalin' },
+        {
+          label: 'Asia/Sakhalin',
+          searchIndex: 'asia/sakhalin||utc+11:00|russian federation|ru',
+          value: 'Asia/Sakhalin',
+        },
         { label: 'Asia/Samarkand', searchIndex: 'asia/samarkand||utc+05:00|uzbekistan|uz', value: 'Asia/Samarkand' },
         { label: 'Asia/Seoul', searchIndex: 'asia/seoul|kst|utc+09:00|korea|kr', value: 'Asia/Seoul' },
         { label: 'Asia/Shanghai', searchIndex: 'asia/shanghai|cst|utc+08:00|china|cn', value: 'Asia/Shanghai' },
@@ -966,12 +1050,20 @@
         { label: 'Asia/Thimphu', searchIndex: 'asia/thimphu||utc+06:00|bhutan|bt', value: 'Asia/Thimphu' },
         { label: 'Asia/Tokyo', searchIndex: 'asia/tokyo|jst|utc+09:00|japan|jp', value: 'Asia/Tokyo' },
         { label: 'Asia/Tomsk', searchIndex: 'asia/tomsk||utc+07:00|russian federation|ru', value: 'Asia/Tomsk' },
-        { label: 'Asia/Ulaanbaatar', searchIndex: 'asia/ulaanbaatar||utc+08:00|mongolia|mn', value: 'Asia/Ulaanbaatar' },
+        {
+          label: 'Asia/Ulaanbaatar',
+          searchIndex: 'asia/ulaanbaatar||utc+08:00|mongolia|mn',
+          value: 'Asia/Ulaanbaatar',
+        },
         { label: 'Asia/Urumqi', searchIndex: 'asia/urumqi||utc+06:00|antarctica|aq|china|cn', value: 'Asia/Urumqi' },
-        { label: 'Asia/Ust-Nera', searchIndex: 'asia/ust-nera||utc+10:00|russian federation|ru', value: 'Asia/Ust-Nera' },
+        {
+          label: 'Asia/Ust-Nera',
+          searchIndex: 'asia/ust-nera||utc+10:00|russian federation|ru',
+          value: 'Asia/Ust-Nera',
+        },
         {
           label: 'Asia/Vientiane',
-          searchIndex: 'asia/vientiane||utc+07:00|lao people\'s democratic republic|la',
+          searchIndex: "asia/vientiane||utc+07:00|lao people's democratic republic|la",
           value: 'Asia/Vientiane',
         },
         {
@@ -1119,7 +1211,8 @@
         },
         {
           label: 'Europe/Berlin',
-          searchIndex: 'europe/berlin|cest|utc+02:00|germany|de|denmark|dk|norway|no|sweden|se|svalbard and jan mayen|sj',
+          searchIndex:
+            'europe/berlin|cest|utc+02:00|germany|de|denmark|dk|norway|no|sweden|se|svalbard and jan mayen|sj',
           value: 'Europe/Berlin',
         },
         {
@@ -1137,9 +1230,21 @@
           searchIndex: 'europe/bucharest|eest|utc+03:00|romania|ro',
           value: 'Europe/Bucharest',
         },
-        { label: 'Europe/Budapest', searchIndex: 'europe/budapest|cest|utc+02:00|hungary|hu', value: 'Europe/Budapest' },
-        { label: 'Europe/Busingen', searchIndex: 'europe/busingen|cest|utc+02:00|germany|de', value: 'Europe/Busingen' },
-        { label: 'Europe/Chisinau', searchIndex: 'europe/chisinau|eest|utc+03:00|moldova|md', value: 'Europe/Chisinau' },
+        {
+          label: 'Europe/Budapest',
+          searchIndex: 'europe/budapest|cest|utc+02:00|hungary|hu',
+          value: 'Europe/Budapest',
+        },
+        {
+          label: 'Europe/Busingen',
+          searchIndex: 'europe/busingen|cest|utc+02:00|germany|de',
+          value: 'Europe/Busingen',
+        },
+        {
+          label: 'Europe/Chisinau',
+          searchIndex: 'europe/chisinau|eest|utc+03:00|moldova|md',
+          value: 'Europe/Chisinau',
+        },
         {
           label: 'Europe/Copenhagen',
           searchIndex: 'europe/copenhagen|cest|utc+02:00|denmark|dk',
@@ -1151,7 +1256,11 @@
           searchIndex: 'europe/gibraltar|cest|utc+02:00|gibraltar|gi',
           value: 'Europe/Gibraltar',
         },
-        { label: 'Europe/Guernsey', searchIndex: 'europe/guernsey|bst|utc+01:00|guernsey|gg', value: 'Europe/Guernsey' },
+        {
+          label: 'Europe/Guernsey',
+          searchIndex: 'europe/guernsey|bst|utc+01:00|guernsey|gg',
+          value: 'Europe/Guernsey',
+        },
         {
           label: 'Europe/Helsinki',
           searchIndex: 'europe/helsinki|eest|utc+03:00|aland islands|ax|finland|fi',
@@ -1169,7 +1278,11 @@
           searchIndex: 'europe/kaliningrad|eet|utc+02:00|russian federation|ru',
           value: 'Europe/Kaliningrad',
         },
-        { label: 'Europe/Kirov', searchIndex: 'europe/kirov|msk|utc+03:00|russian federation|ru', value: 'Europe/Kirov' },
+        {
+          label: 'Europe/Kirov',
+          searchIndex: 'europe/kirov|msk|utc+03:00|russian federation|ru',
+          value: 'Europe/Kirov',
+        },
         { label: 'Europe/Kyiv', searchIndex: 'europe/kyiv|eest|utc+03:00|ukraine|ua', value: 'Europe/Kyiv' },
         { label: 'Europe/Lisbon', searchIndex: 'europe/lisbon|west|utc+01:00|portugal|pt', value: 'Europe/Lisbon' },
         {
@@ -1202,7 +1315,11 @@
           value: 'Europe/Moscow',
         },
         { label: 'Europe/Oslo', searchIndex: 'europe/oslo|cest|utc+02:00|norway|no', value: 'Europe/Oslo' },
-        { label: 'Europe/Paris', searchIndex: 'europe/paris|cest|utc+02:00|france|fr|monaco|mc', value: 'Europe/Paris' },
+        {
+          label: 'Europe/Paris',
+          searchIndex: 'europe/paris|cest|utc+02:00|france|fr|monaco|mc',
+          value: 'Europe/Paris',
+        },
         {
           label: 'Europe/Podgorica',
           searchIndex: 'europe/podgorica|cest|utc+02:00|montenegro|me',
@@ -1219,7 +1336,11 @@
           searchIndex: 'europe/rome|cest|utc+02:00|italy|it|san marino|sm|holy see (vatican city state)|va',
           value: 'Europe/Rome',
         },
-        { label: 'Europe/Samara', searchIndex: 'europe/samara||utc+04:00|russian federation|ru', value: 'Europe/Samara' },
+        {
+          label: 'Europe/Samara',
+          searchIndex: 'europe/samara||utc+04:00|russian federation|ru',
+          value: 'Europe/Samara',
+        },
         {
           label: 'Europe/San_Marino',
           searchIndex: 'europe/san_marino|cest|utc+02:00|san marino|sm',
@@ -1311,7 +1432,11 @@
           searchIndex: 'indian/maldives||utc+05:00|maldives|mv|french southern territories|tf',
           value: 'Indian/Maldives',
         },
-        { label: 'Indian/Mauritius', searchIndex: 'indian/mauritius||utc+04:00|mauritius|mu', value: 'Indian/Mauritius' },
+        {
+          label: 'Indian/Mauritius',
+          searchIndex: 'indian/mauritius||utc+04:00|mauritius|mu',
+          value: 'Indian/Mauritius',
+        },
         { label: 'Indian/Mayotte', searchIndex: 'indian/mayotte|eat|utc+03:00|mayotte|yt', value: 'Indian/Mayotte' },
         { label: 'Indian/Reunion', searchIndex: 'indian/reunion||utc+04:00|reunion|re', value: 'Indian/Reunion' },
       ],
@@ -1330,7 +1455,11 @@
           searchIndex: 'pacific/bougainville||utc+11:00|papua new guinea|pg',
           value: 'Pacific/Bougainville',
         },
-        { label: 'Pacific/Chatham', searchIndex: 'pacific/chatham||utc+13:45|new zealand|nz', value: 'Pacific/Chatham' },
+        {
+          label: 'Pacific/Chatham',
+          searchIndex: 'pacific/chatham||utc+13:45|new zealand|nz',
+          value: 'Pacific/Chatham',
+        },
         {
           label: 'Pacific/Chuuk',
           searchIndex: 'pacific/chuuk||utc+10:00|micronesia (federated states of)|fm',
@@ -1411,7 +1540,11 @@
           value: 'Pacific/Pago_Pago',
         },
         { label: 'Pacific/Palau', searchIndex: 'pacific/palau||utc+09:00|palau|pw', value: 'Pacific/Palau' },
-        { label: 'Pacific/Pitcairn', searchIndex: 'pacific/pitcairn||utc-08:00|pitcairn|pn', value: 'Pacific/Pitcairn' },
+        {
+          label: 'Pacific/Pitcairn',
+          searchIndex: 'pacific/pitcairn||utc-08:00|pitcairn|pn',
+          value: 'Pacific/Pitcairn',
+        },
         {
           label: 'Pacific/Pohnpei',
           searchIndex: 'pacific/pohnpei||utc+11:00|micronesia (federated states of)|fm',
@@ -1444,7 +1577,11 @@
             'pacific/tarawa||utc+12:00|kiribati|ki|marshall islands|mh|tuvalu|tv|united states outlying islands|um|wallis and futuna|wf',
           value: 'Pacific/Tarawa',
         },
-        { label: 'Pacific/Tongatapu', searchIndex: 'pacific/tongatapu||utc+13:00|tonga|to', value: 'Pacific/Tongatapu' },
+        {
+          label: 'Pacific/Tongatapu',
+          searchIndex: 'pacific/tongatapu||utc+13:00|tonga|to',
+          value: 'Pacific/Tongatapu',
+        },
         {
           label: 'Pacific/Wake',
           searchIndex: 'pacific/wake||utc+12:00|united states outlying islands|um',
@@ -1463,21 +1600,24 @@
     const list = searchIndex.split('|');
     return {
       abbreviation: list[1].toLocaleUpperCase(),
-      country: (list[3] || '').replace(/(\b\w)/g, v => v.toLocaleUpperCase()),
+      country: (list[3] || '').replace(/(\b\w)/g, (v) => v.toLocaleUpperCase()),
       countryCode: list[4] || '',
       utc: list[2].toLocaleUpperCase(),
     };
   };
 
-  const getTimezoneInfoByValue = (value: string) => timezoneDetails.reduce((pre: any, group: TimeZoneGroup) => {
-    if (pre?.label === value) return pre;
-    return group.options.find(option => option.label === value);
-  }, {}) as TimezoneItem;
+  const getTimezoneInfoByValue = (value: string) =>
+    timezoneDetails.reduce((pre: any, group: TimeZoneGroup) => {
+      if (pre?.label === value) {
+        return pre;
+      }
+      return group.options.find((option) => option.label === value);
+    }, {}) as TimezoneItem;
 
   const getTimezoneDetails = () => {
     const browserTimeZone = dayjs.tz.guess();
     const defaultTimezoneList: TimezoneItem[] = [];
-    const list: TimeZoneGroup[] = timezoneList.map(group => ({
+    const list: TimeZoneGroup[] = timezoneList.map((group) => ({
       label: group.label,
       options: group.options.map((option) => {
         const info = {
@@ -1514,14 +1654,18 @@
 
   const isBrowserTimezone = computed(() => selected.value?.label === timezoneData.value[0].options[0].label);
 
-  watch(localValue, (val) => {
-    const info = getTimezoneInfoByValue(val);
-    selected.value = info;
-    timeZoneStore.update(info);
-    emits('change', val, info);
-  }, {
-    immediate: true,
-  });
+  watch(
+    localValue,
+    (val) => {
+      const info = getTimezoneInfoByValue(val);
+      selected.value = info;
+      timeZoneStore.update(info);
+      emits('change', val, info);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClickTriggerBox = () => {
     isActive.value = !isActive.value;
@@ -1533,10 +1677,12 @@
 
   const handleSearch = (keyword: string, timezone: TimezoneItem) => {
     const searchKey = new RegExp(encodeRegexp(keyword.toLowerCase()), 'i');
-    return searchKey.test(timezone.label?.toLowerCase())
-      || searchKey.test(timezone.country?.toLowerCase())
-      || searchKey.test(timezone.abbreviation?.toLowerCase())
-      || searchKey.test(timezone.utc?.toLowerCase());
+    return (
+      searchKey.test(timezone.label?.toLowerCase()) ||
+      searchKey.test(timezone.country?.toLowerCase()) ||
+      searchKey.test(timezone.abbreviation?.toLowerCase()) ||
+      searchKey.test(timezone.utc?.toLowerCase())
+    );
   };
 
   const checkClickTrigger = (e: any) => {
@@ -1553,111 +1699,106 @@
   onBeforeUnmount(() => {
     window.removeEventListener('click', checkClickTrigger);
   });
-
 </script>
 <style lang="less" scoped>
-.timezone-picker-trigger-box {
-  display: flex;
-  width: 100%;
-  height: 32px;
-  padding: 0 9px;
-  cursor: pointer;
-  border: 1px solid #C4C6CC;
-  border-radius: 2px;
-  align-items: center;
+  .timezone-picker-trigger-box {
+    display: flex;
+    width: 100%;
+    height: 32px;
+    padding: 0 9px;
+    cursor: pointer;
+    border: 1px solid #c4c6cc;
+    border-radius: 2px;
+    align-items: center;
 
-  &:hover {
-    border-color: #A3C5FD;
+    &:hover {
+      border-color: #a3c5fd;
+    }
+
+    .diaplay-content {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      overflow: hidden;
+
+      .option-name {
+        font-weight: 400;
+        color: #313238;
+      }
+
+      .option-country {
+        margin-left: 8px;
+        overflow: hidden;
+        color: #979ba5;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .option-utc {
+        height: 20px;
+        padding: 0 8px;
+        margin-left: 8px;
+        line-height: 20px;
+        color: #63656e;
+        border: 1px solid #dcdee5;
+        border-radius: 2px;
+      }
+    }
+
+    .down-icon {
+      font-size: 14px;
+    }
   }
 
-  .diaplay-content {
+  .timezone-picker-trigger-box-active {
+    border-color: #3a84ff !important;
+
+    .down-icon {
+      transform: rotate(-180deg);
+      transition: all 0.5s;
+    }
+  }
+
+  .timezone-picker-option {
     display: flex;
     align-items: center;
-    flex: 1;
-    overflow: hidden;
+    width: 100%;
+    color: #63656e;
 
     .option-name {
-      font-weight: 400;
-      color: #313238;
+      flex: 1;
     }
 
     .option-country {
-      margin-left: 8px;
+      width: 100%;
+      margin-left: 6px;
       overflow: hidden;
-      color: #979BA5;
+      color: #999;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .option-utc {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       height: 20px;
       padding: 0 8px;
-      margin-left: 8px;
-      line-height: 20px;
-      color: #63656E;
-      border: 1px solid #DCDEE5;
+      background: #f0f1f5;
       border-radius: 2px;
     }
-
   }
 
-  .down-icon {
-    font-size: 14px;
+  .timezone-picker-option-selected {
+    color: #3a84ff;
+
+    .option-country {
+      color: #699df4;
+    }
+
+    .option-utc {
+      color: white;
+      background-color: #699df4;
+    }
   }
-}
-
-.timezone-picker-trigger-box-active {
-  border-color: #3A84FF !important;
-
-
-  .down-icon {
-    transform: rotate(-180deg);
-    transition: all 0.5s;
-  }
-}
-
-.timezone-picker-option {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  color: #63656e;
-
-  .option-name {
-    flex: 1;
-  }
-
-  .option-country {
-    width: 100%;
-    margin-left: 6px;
-    overflow: hidden;
-    color: #999;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .option-utc {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 20px;
-    padding: 0 8px;
-    background: #f0f1f5;
-    border-radius: 2px;
-  }
-}
-
-.timezone-picker-option-selected {
-  color: #3a84ff;
-
-  .option-country {
-    color: #699df4;
-  }
-
-  .option-utc {
-    color: white;
-    background-color: #699df4;
-  }
-}
-
-
 </style>

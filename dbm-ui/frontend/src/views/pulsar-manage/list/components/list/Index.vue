@@ -26,7 +26,7 @@
       type="pulsar" />
     <div
       class="table-wrapper"
-      :class="{'is-shrink-table': isStretchLayoutOpen}">
+      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
       <DbTable
         ref="tableRef"
         :columns="columns"
@@ -693,7 +693,7 @@
     .table-wrapper {
       background-color: white;
 
-      .cluster-name-box{
+      .cluster-name-box {
         display: flex;
         align-items: center;
 
@@ -779,7 +779,6 @@
         color: @primary-color;
         cursor: pointer;
       }
-
     }
 
     :deep(tr:hover) {

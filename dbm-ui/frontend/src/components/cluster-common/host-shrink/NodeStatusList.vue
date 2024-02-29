@@ -38,7 +38,7 @@
     </div>
   </div>
 </template>
-<script setup lang="ts" generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel">
+<script setup lang="ts" generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel">
   import { useI18n } from 'vue-i18n';
 
   import type EsNodeModel from '@services/model/es/es-node';
@@ -50,13 +50,13 @@
 
   interface Props {
     list: Array<{
-      key: string,
-      label: string
-    }>,
-    nodeInfo: Record<string, TShrinkNode<T>>,
+      key: string;
+      label: string;
+    }>;
+    nodeInfo: Record<string, TShrinkNode<T>>;
   }
   interface Exposes {
-    validate: () => boolean
+    validate: () => boolean;
   }
 
   const props = defineProps<Props>();
@@ -67,11 +67,15 @@
 
   const { t } = useI18n();
 
-
-  const validateStatusMemo = reactive(props.list.reduce((result, item) => ({
-    ...result,
-    [item.key]: false,
-  }), {} as Record<string, boolean>));
+  const validateStatusMemo = reactive(
+    props.list.reduce(
+      (result, item) => ({
+        ...result,
+        [item.key]: false,
+      }),
+      {} as Record<string, boolean>,
+    ),
+  );
 
   const handleSelect = (value: string) => {
     validateStatusMemo[modelValue.value] = true;
@@ -80,8 +84,8 @@
 
   defineExpose<Exposes>({
     validate() {
-      Object.keys(validateStatusMemo).forEach(key => validateStatusMemo[key] = true);
-      return Object.values(props.nodeInfo).some(nodeData => nodeData.nodeList.length > 0);
+      Object.keys(validateStatusMemo).forEach((key) => (validateStatusMemo[key] = true));
+      return Object.values(props.nodeInfo).some((nodeData) => nodeData.nodeList.length > 0);
     },
   });
 </script>
@@ -117,7 +121,7 @@
         margin-top: 4px;
       }
 
-      .node-item-name{
+      .node-item-name {
         padding-right: 8px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -125,17 +129,17 @@
       }
     }
 
-    .empty-tips{
+    .empty-tips {
       margin-left: auto;
       font-weight: normal;
-      color: #C4C6CC;
+      color: #c4c6cc;
       flex: 0 0 auto;
     }
 
-    .disk-tips{
+    .disk-tips {
       margin-left: auto;
       font-weight: normal;
-      color: #63656E;
+      color: #63656e;
       flex: 0 0 auto;
     }
   }

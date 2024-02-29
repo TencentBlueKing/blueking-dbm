@@ -24,8 +24,7 @@
     </div>
   </BkLoading>
 </template>
-<script lang="ts">
-</script>
+<script lang="ts"></script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -36,18 +35,18 @@
   interface Props {
     data: IDataRow['dbVersion'];
     selectList?: {
-      value: string,
-      label: string,
+      value: string;
+      label: string;
     }[];
     isLoading?: boolean;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    selectList: () => ([]),
+    selectList: () => [],
     isLoading: false,
   });
 
@@ -63,13 +62,17 @@
     },
   ];
 
-  watch(() => props.data, (version) => {
-    if (version) {
-      localValue.value = version;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (version) => {
+      if (version) {
+        localValue.value = version;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string) => {
     localValue.value = value;
@@ -77,9 +80,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return selectRef.value.getValue().then(() => localValue.value);
     },
   });
 </script>

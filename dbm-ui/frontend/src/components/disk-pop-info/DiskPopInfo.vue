@@ -25,17 +25,19 @@
   import DbResourceModel from '@services/model/db-resource/DbResource';
 
   interface Props {
-    data: DbResourceModel['storage_device']
+    data: DbResourceModel['storage_device'];
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const tableData = computed(() => Object.keys(props.data).map(key => ({
-    ...props.data[key],
-    mounted_point: key,
-  })));
+  const tableData = computed(() =>
+    Object.keys(props.data).map((key) => ({
+      ...props.data[key],
+      mounted_point: key,
+    })),
+  );
 
   const tableColumns = [
     {

@@ -13,27 +13,25 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSourceCluster
         ref="sourceClusterRef"
         :data="data.srcCluster"
         @input-finish="handleSrcClusterInputFinish" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderClusterType
         ref="clusterTypeRef"
         :data="data.clusterType"
         :is-loading="data.isLoading" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderAccessCode
         ref="sccessCodeRef"
         :dst-cluster="targetCluster"
         :src-cluster="data.srcCluster" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         ref="targetClusterRef"
         :data="data.targetClusterId"
@@ -41,14 +39,13 @@
         :select-list="clusterList"
         @select-change="handleInputTargetCluster" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
         required />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderKeyRelated
         ref="excludeKeyRef"
         :data="data.excludeKey"
@@ -64,7 +61,9 @@
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
-  import RenderTargetCluster, { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
+  import RenderTargetCluster, {
+    type SelectItem,
+  } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { SelfbuiltClusterToIntraInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import { random } from '@utils';
@@ -95,22 +94,21 @@
     includeKey: ['*'],
     excludeKey: [],
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
     clusterList: SelectItem[];
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<SelfbuiltClusterToIntraInfoItem>
+    getValue: () => Promise<SelfbuiltClusterToIntraInfoItem>;
   }
 
   const props = defineProps<Props>();
@@ -154,14 +152,7 @@
         includeKeyRef.value.getValue(),
         excludeKeyRef.value.getValue(),
       ]).then((data) => {
-        const [
-          srcCluster,
-          clusterType,
-          password,
-          targetClusterId,
-          includeKey,
-          excludeKey,
-        ] = data;
+        const [srcCluster, clusterType, password, targetClusterId, includeKey, excludeKey] = data;
         return {
           src_cluster: srcCluster,
           dst_cluster: targetClusterId,
@@ -173,5 +164,4 @@
       });
     },
   });
-
 </script>

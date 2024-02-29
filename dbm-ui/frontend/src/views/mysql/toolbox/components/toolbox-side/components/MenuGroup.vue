@@ -25,7 +25,7 @@
           <div
             class="toolbox-side-item"
             :class="{
-              'toolbox-side-item--active': item.id === activeViewName
+              'toolbox-side-item--active': item.id === activeViewName,
             }"
             @click="handleRouterChange(item.id)">
             <div class="toolbox-side-left">
@@ -67,9 +67,9 @@
   import TaskCount from './TaskCount.vue';
 
   interface Props {
-    id: string,
-    draggable: boolean,
-    activeViewName: string,
+    id: string;
+    draggable: boolean;
+    activeViewName: string;
   }
 
   const props = defineProps<Props>();
@@ -83,7 +83,7 @@
     required: true,
   });
 
-  const currentConfig = _.find(MenuConfig, item => item.id === props.id) as (typeof MenuConfig)[number];
+  const currentConfig = _.find(MenuConfig, (item) => item.id === props.id) as (typeof MenuConfig)[number];
 
   const handleRouterChange = (routerName: string) => {
     router.push({
@@ -101,14 +101,15 @@
       lastFavorMap[routerName] = true;
       successMessage = t('收藏成功');
     }
-    userProfileStore.updateProfile({
-      label: UserPersonalSettings.MYSQL_TOOLBOX_FAVOR,
-      values: Object.keys(lastFavorMap),
-    }).then(() => {
-      messageSuccess(successMessage);
-      favorMap.value = lastFavorMap;
-      eventBus.emit('MYSQL_TOOLBOX_CHANGE');
-    });
+    userProfileStore
+      .updateProfile({
+        label: UserPersonalSettings.MYSQL_TOOLBOX_FAVOR,
+        values: Object.keys(lastFavorMap),
+      })
+      .then(() => {
+        messageSuccess(successMessage);
+        favorMap.value = lastFavorMap;
+        eventBus.emit('MYSQL_TOOLBOX_CHANGE');
+      });
   };
 </script>
-

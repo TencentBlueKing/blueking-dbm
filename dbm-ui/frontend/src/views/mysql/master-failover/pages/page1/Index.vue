@@ -19,8 +19,7 @@
         theme="info"
         :title="$t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
       <div class="page-action-box">
-        <BkButton
-          @click="handleShowBatchEntry">
+        <BkButton @click="handleShowBatchEntry">
           <DbIcon type="add" />
           {{ $t('批量录入') }}
         </BkButton>
@@ -33,7 +32,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -85,10 +84,7 @@
 </template>
 
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -97,21 +93,20 @@
 
   import { useGlobalBizs } from '@stores';
 
+<<<<<<< HEAD
   import { ClusterTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
+=======
+  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
-  import BatchEntry, {
-    type IValue as IBatchEntryValue,
-  } from './components/BatchEntry.vue';
+  import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -119,9 +114,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.masterData
-      && !firstRow.slaveData
-      && !firstRow.clusterData;
+    return !firstRow.masterData && !firstRow.slaveData && !firstRow.clusterData;
   };
 
   const router = useRouter();
@@ -131,7 +124,7 @@
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isShowBatchEntry = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedIps = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
@@ -142,6 +135,7 @@
     is_check_delay: false,
   });
 
+<<<<<<< HEAD
   const tabListConfig = {
     [ClusterTypes.TENDBHA]: [
       {
@@ -151,6 +145,18 @@
   } as unknown as Record<ClusterTypes, PanelListType>;
 
   let ipMemo = {} as Record<string, boolean>;
+=======
+  const panelList = [
+    {
+      id: 'tendbha',
+      title: t('故障主库主机'),
+    },
+    {
+      id: 'manualInput',
+      title: t('手动输入'),
+    },
+  ];
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
   // 批量录入
   const handleShowBatchEntry = () => {
@@ -158,7 +164,7 @@
   };
   // 批量录入
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
-    const newList = list.map(item => createRowData(item));
+    const newList = list.map((item) => createRowData(item));
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -172,24 +178,28 @@
     isShowMasterInstanceSelector.value = true;
   };
   // Master 批量选择
+<<<<<<< HEAD
   const handelMasterProxyChange = (data: InstanceSelectorValues<TendbhaInstanceModel>) => {
     selectedIps.value = data;
     const newList = [] as IDataRow [];
+=======
+  const handelMasterProxyChange = (data: InstanceSelectorValues) => {
+    const ipMemo = {} as Record<string, boolean>;
+    const newList = [] as IDataRow[];
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     data.tendbha.forEach((proxyData) => {
-      const {
-        bk_host_id,
-        bk_cloud_id,
-        instance_address: instanceAddress,
-      } = proxyData;
+      const { bk_host_id, bk_cloud_id, instance_address: instanceAddress } = proxyData;
       const [ip] = instanceAddress.split(':');
       if (!ipMemo[ip]) {
-        newList.push(createRowData({
-          masterData: {
-            bk_host_id,
-            bk_cloud_id,
-            ip,
-          },
-        }));
+        newList.push(
+          createRowData({
+            masterData: {
+              bk_host_id,
+              bk_cloud_id,
+              ip,
+            },
+          }),
+        );
         ipMemo[ip] = true;
       }
     });
@@ -222,27 +232,29 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'MYSQL_MASTER_FAIL_OVER',
-        remark: '',
-        details: {
-          ...formData,
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
+      .then((data) =>
+        createTicket({
+          ticket_type: 'MYSQL_MASTER_FAIL_OVER',
+          remark: '',
+          details: {
+            ...formData,
+            infos: data,
+          },
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
 
-        router.push({
-          name: 'MySQLMasterFailover',
-          params: {
-            page: 'success',
-          },
-          query: {
-            ticketId: data.id,
-          },
-        });
-      }))
+          router.push({
+            name: 'MySQLMasterFailover',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });
@@ -260,7 +272,7 @@
   .master-failover-page {
     padding-bottom: 20px;
 
-    .item-block{
+    .item-block {
       margin-top: 24px;
     }
 

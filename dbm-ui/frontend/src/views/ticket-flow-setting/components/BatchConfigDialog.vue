@@ -31,11 +31,11 @@
   import { messageSuccess } from '@utils';
 
   interface Props {
-    ticketTypes: string[]
+    ticketTypes: string[];
   }
 
   interface Emits {
-    (e: 'success'): void
+    (e: 'success'): void;
   }
 
   const props = defineProps<Props>();
@@ -52,7 +52,6 @@
       value: 'need_itsm',
       label: t('单据审批'),
       checked: false,
-
     },
     {
       value: 'need_manual_confirm',
@@ -61,9 +60,7 @@
     },
   ]);
 
-  const {
-    run: runUpdateTicketFlowConfig,
-  } = useRequest(updateTicketFlowConfig, {
+  const { run: runUpdateTicketFlowConfig } = useRequest(updateTicketFlowConfig, {
     manual: true,
     onSuccess: (data) => {
       if (!data) {
@@ -75,12 +72,15 @@
   });
 
   const handleConfirmBatchEdit = _.debounce(() => {
-    const configs = configList.reduce((results, item) => {
-      Object.assign(results, {
-        [item.value]: item.checked,
-      });
-      return results;
-    }, {} as Record<string, boolean>);
+    const configs = configList.reduce(
+      (results, item) => {
+        Object.assign(results, {
+          [item.value]: item.checked,
+        });
+        return results;
+      },
+      {} as Record<string, boolean>,
+    );
     const params = {
       ticket_types: props.ticketTypes,
       configs,
@@ -90,23 +90,23 @@
 </script>
 
 <style lang="less" scoped>
-.ticket-flow-batch-config-dialog {
-  :deep(.bk-dialog-header) {
-    padding: 16px 24px 28px;
-  }
+  .ticket-flow-batch-config-dialog {
+    :deep(.bk-dialog-header) {
+      padding: 16px 24px 28px;
+    }
 
-  :deep(.ticket-flow-batch-config) {
-    .desc-text {
-      margin-bottom: 32px;
-      font-size: 14px;
-      color: #313238;
+    :deep(.ticket-flow-batch-config) {
+      .desc-text {
+        margin-bottom: 32px;
+        font-size: 14px;
+        color: #313238;
+      }
+    }
+
+    :deep(.bk-dialog-footer) {
+      .bk-button {
+        width: 64px;
+      }
     }
   }
-
-  :deep(.bk-dialog-footer) {
-    .bk-button {
-      width: 64px;
-    }
-  }
-}
 </style>

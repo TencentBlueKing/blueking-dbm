@@ -63,23 +63,23 @@
     <strong class="ticket-details__info-title">{{ $t('需求信息') }}</strong>
     <div
       class="ticket-details__list"
-      style="max-width: unset;">
+      style="max-width: unset">
       <div
         class="ticket-details__item"
-        style="max-width: 500px;">
+        style="max-width: 500px">
         <span class="ticket-details__item-label">{{ $t('数量') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.details?.cluster_count }}</span>
       </div>
       <div
         class="ticket-details__item"
-        style="max-width: 500px;">
+        style="max-width: 500px">
         <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
       </div>
       <div
         v-if="ticketDetails?.details?.ip_source === 'resource_pool'"
         class="ticket-details__item whole"
-        style="max-width: 1000px;">
+        style="max-width: 1000px">
         <div
           v-if="isSingleType"
           class="ticket-details__item">
@@ -90,7 +90,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
                 {{ singleSpec?.spec_name }}（{{ `${singleSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -100,8 +100,7 @@
           </span>
         </div>
         <template v-else>
-          <div
-            class="ticket-details__item">
+          <div class="ticket-details__item">
             <span class="ticket-details__item-label">{{ $t('Proxy存储资源规格') }}：</span>
             <span class="ticket-details__item-value">
               <BkPopover
@@ -109,7 +108,7 @@
                 theme="light">
                 <span
                   class="pb-2"
-                  style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                  style="cursor: pointer; border-bottom: 1px dashed #979ba5">
                   {{ proxySpec?.spec_name }}（{{ `${proxySpec?.count} ${$t('台')}` }}）
                 </span>
                 <template #content>
@@ -126,7 +125,7 @@
                 theme="light">
                 <span
                   class="pb-2"
-                  style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                  style="cursor: pointer; border-bottom: 1px dashed #979ba5">
                   {{ backendSpec?.spec_name }}（{{ `${backendSpec?.count} ${$t('台')}` }}）
                 </span>
                 <template #content>
@@ -137,8 +136,7 @@
           </div>
         </template>
       </div>
-      <div
-        class="ticket-details__item table">
+      <div class="ticket-details__item table">
         <span class="ticket-details__item-label">{{ $t('集群设置') }}：</span>
         <span class="ticket-details__item-value">
           <PreviewTable
@@ -164,19 +162,14 @@
 
   import { useSystemEnviron } from '@stores';
 
-  import {
-    mysqlType,
-    type MysqlTypeString,
-    TicketTypes,
-  } from '@common/const';
+  import { mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
 
   import PreviewTable from '@views/mysql/apply/components/PreviewTable.vue';
 
   import SpecInfos from '../../SpecInfos.vue';
 
-
-  interface Props{
-    ticketDetails: TicketDetails<MySQLDetails>
+  interface Props {
+    ticketDetails: TicketDetails<MySQLDetails>;
   }
 
   const props = defineProps<Props>();
@@ -197,23 +190,25 @@
   /**
    * preview table data
    */
-  const tableData = computed(() => (props.ticketDetails?.details?.domains || []).map((item: any) => {
-    const { details } = props.ticketDetails;
-    return ({
-      domain: item.master,
-      slaveDomain: item.slave,
-      disasterDefence: t('同城跨园区'),
-      deployStructure: mysqlType[props.ticketDetails.ticket_type as MysqlTypeString].name,
-      version: details?.db_version,
-      charset: details?.charset,
-      spec: details?.spec_display,
-    });
-  }));
+  const tableData = computed(() =>
+    (props.ticketDetails?.details?.domains || []).map((item: any) => {
+      const { details } = props.ticketDetails;
+      return {
+        domain: item.master,
+        slaveDomain: item.slave,
+        disasterDefence: t('同城跨园区'),
+        deployStructure: mysqlType[props.ticketDetails.ticket_type as MysqlTypeString].name,
+        version: details?.db_version,
+        charset: details?.charset,
+        spec: details?.spec_display,
+      };
+    }),
+  );
 
   const affinity = computed(() => {
     const level = props.ticketDetails?.details?.disaster_tolerance_level;
     if (level && affinityList) {
-      return affinityList.find(item => item.value === level)?.label;
+      return affinityList.find((item) => item.value === level)?.label;
     }
     return '--';
   });
@@ -221,13 +216,12 @@
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {
       const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find(item => item.city_code === cityCode)?.city_name;
+      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
       cityName.value = name ?? '--';
     },
   });
-
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

@@ -28,21 +28,19 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getClusterTablesNameList,
-  } from '@services/source/remoteService';
+  import { getClusterTablesNameList } from '@services/source/remoteService';
 
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
-    clusterId: number,
-    sourceDb?: string,
+    clusterId: number;
+    sourceDb?: string;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      schema_tblist: string[]
-    }>
+      schema_tblist: string[];
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -55,16 +53,27 @@
 
   const editRef = ref<InstanceType<typeof TableEditSelect>>();
 
-  const dbNameList = shallowRef<{value: string, label: string}[]>([]);
+  const dbNameList = shallowRef<{ value: string; label: string }[]>([]);
 
+<<<<<<< HEAD
   const {
     loading: isLoading,
     run: fetchList,
   } = useRequest(getClusterTablesNameList, {
+=======
+  const rules = [
+    {
+      validator: (value: string[]) => value.length > 0,
+      message: t('克隆表结构不能为空'),
+    },
+  ];
+
+  const { loading: isLoading, run: fetchList } = useRequest(getClusterTablesNameList, {
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     manual: true,
     onSuccess(data) {
       const [{ table_data: tableData }] = data;
-      dbNameList.value = tableData[props.sourceDb as string].map(item => ({
+      dbNameList.value = tableData[props.sourceDb as string].map((item) => ({
         value: item,
         label: item,
       }));
@@ -73,6 +82,7 @@
     },
   });
 
+<<<<<<< HEAD
   const rules = [
     {
       validator: (value: string[]) => value.length > 0,
@@ -103,7 +113,33 @@
         .then(() => ({
           schema_tblist: modelValue.value.length === dbNameList.value.length ? ['*all*'] : modelValue.value,
         }));
+=======
+  watch(
+    () => props.sourceDb,
+    () => {
+      if (!props.sourceDb) {
+        return;
+      }
+      fetchList({
+        cluster_db_infos: [
+          {
+            cluster_id: props.clusterId,
+            dbs: [props.sourceDb],
+          },
+        ],
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  defineExpose<Exposes>({
+    getValue() {
+      return (editRef.value as InstanceType<typeof TableEditSelect>).getValue().then(() => ({
+        schema_tblist: modelValue.value,
+      }));
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     },
   });
 </script>
-

@@ -14,14 +14,14 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
           @id-change="handleClusterIdChange"
           @input-create="handleCreate" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="fromDatabaseRef"
           check-exist
@@ -30,7 +30,7 @@
           :placeholder="$t('请输入单个源 DB 名')"
           single />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="toDatabaseRef"
           :cluster-id="localClusterId"
@@ -53,11 +53,11 @@
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
-      id: number,
-      domain: string,
-    },
-    fromDatabase?: string,
-    toDatabase?: string,
+      id: number;
+      domain: string;
+    };
+    fromDatabase?: string;
+    toDatabase?: string;
   }
 
   // 创建表格数据
@@ -67,23 +67,22 @@
     fromDatabase: data.fromDatabase,
     toDatabase: data.toDatabase,
   });
-
 </script>
 <script setup lang="ts">
   import RenderCluster from './RenderCluster.vue';
   import RenderDbName from './RenderDbName.vue';
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -96,25 +95,34 @@
 
   const localClusterId = ref(0);
 
-  watch(() => props.data, () => {
-    if (props.data.clusterData) {
-      localClusterId.value = props.data.clusterData.id;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.clusterData) {
+        localClusterId.value = props.data.clusterData.id;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
   };
 
   const handleCreate = (list: Array<string>) => {
-    emits('add', list.map(domain => createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-      },
-    })));
+    emits(
+      'add',
+      list.map((domain) =>
+        createRowData({
+          clusterData: {
+            id: 0,
+            domain,
+          },
+        }),
+      ),
+    );
   };
 
   const handleAppend = () => {
@@ -134,11 +142,7 @@
         clusterRef.value.getValue(),
         fromDatabaseRef.value.getValue('from_database'),
         toDatabaseRef.value.getValue('to_database'),
-      ]).then(([
-        clusterData,
-        backupLocalData,
-        dbPatternsData,
-      ]) => ({
+      ]).then(([clusterData, backupLocalData, dbPatternsData]) => ({
         ...clusterData,
         ...backupLocalData,
         ...dbPatternsData,
@@ -146,4 +150,3 @@
     },
   });
 </script>
-

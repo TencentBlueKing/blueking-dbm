@@ -16,7 +16,7 @@
     <DbIcon
       svg
       :type="statusIcon" />
-    <span style="margin-left: 4px;">
+    <span style="margin-left: 4px">
       {{ statusText }}
     </span>
   </div>

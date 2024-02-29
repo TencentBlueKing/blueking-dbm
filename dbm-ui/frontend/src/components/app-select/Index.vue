@@ -15,11 +15,11 @@
         resource-type="BUSINESS">
         <div class="db-app-select-item">
           <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
-          <div style="margin-left: auto;">
+          <div style="margin-left: auto">
             <DbIcon
               v-if="favorBizIdMap[data.bk_biz_id]"
               class="unfavor-btn"
-              style="color: #ffb848;"
+              style="color: #ffb848"
               type="star-fill"
               @click.stop="handleUnfavor(data.bk_biz_id)" />
             <DbIcon
@@ -32,11 +32,11 @@
         <template #forbid>
           <div class="db-app-select-item no-permission">
             <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
-            <div style="margin-left: auto;">
+            <div style="margin-left: auto">
               <DbIcon
                 v-if="favorBizIdMap[data.bk_biz_id]"
                 class="unfavor-btn"
-                style="color: #ffb848;"
+                style="color: #ffb848"
                 type="star-fill"
                 @click.stop="handleUnfavor(data.bk_biz_id)" />
               <DbIcon
@@ -177,25 +177,25 @@
   };
 </script>
 <style lang="less">
-.db-app-select-item{
-  display: flex;
-  align-items: center;
-  width: 100%;
+  .db-app-select-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
 
-  &:hover{
-    .favor-btn{
-      opacity: 100%;
+    &:hover {
+      .favor-btn {
+        opacity: 100%;
+      }
+    }
+
+    .favor-btn {
+      opacity: 0%;
+      transition: all 0.1s;
     }
   }
 
-  .favor-btn{
-    opacity: 0%;
-    transition: all .1s;
+  .tippy-box[data-theme='bk-app-select-menu'] {
+    border: none !important;
+    box-shadow: 0 2px 3px 0 rgb(0 0 0 / 10%) !important;
   }
-}
-
-.tippy-box[data-theme="bk-app-select-menu"]{
-  border: none !important;
-  box-shadow: 0 2px 3px 0 rgb(0 0 0 / 10%) !important;
-}
 </style>

@@ -9,11 +9,8 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
-import {
-  isRecentDays,
-  utcDisplayTime,
-} from '@utils';
+ */
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -30,8 +27,8 @@ type Node = {
   name: string;
   phase: string;
   port: number;
-  status: 'running' | 'unavailable'
-}
+  status: 'running' | 'unavailable';
+};
 
 export default class Pulsar {
   static PULSAR_SCALE_UP = 'PULSAR_SCALE_UP';
@@ -74,24 +71,24 @@ export default class Pulsar {
   cluster_type_name: string;
   cluster_time_zone: string;
   cluster_entry_details: {
-    cluster_entry_type: string,
-    entry: string,
-    role: string,
+    cluster_entry_type: string;
+    entry: string;
+    role: string;
     target_details: {
-      app: string,
-      bk_cloud_iduid: number,
-      dns_str: string,
-      domain_name: string,
-      domain_typeuid: number,
-      ip: string,
-      last_change_time: string,
-      manager: string,
-      port: number,
-      remark: string,
-      start_time: string,
-      status: string,
-      uid: number,
-    }[]
+      app: string;
+      bk_cloud_iduid: number;
+      dns_str: string;
+      domain_name: string;
+      domain_typeuid: number;
+      ip: string;
+      last_change_time: string;
+      manager: string;
+      port: number;
+      remark: string;
+      start_time: string;
+      status: string;
+      uid: number;
+    }[];
   }[];
   create_at: string;
   creator: string;
@@ -99,12 +96,12 @@ export default class Pulsar {
   id: number;
   major_version: string;
   operations: Array<{
-    cluster_id: number,
-    flow_id: number,
-    status: string,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
+    cluster_id: number;
+    flow_id: number;
+    status: string;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
   }>;
   phase: string;
   pulsar_bookkeeper: Node[];
@@ -158,7 +155,7 @@ export default class Pulsar {
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(Pulsar.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态
@@ -231,7 +228,7 @@ export default class Pulsar {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: Pulsar.operationIconMap[item.ticket_type],
       tip: Pulsar.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,

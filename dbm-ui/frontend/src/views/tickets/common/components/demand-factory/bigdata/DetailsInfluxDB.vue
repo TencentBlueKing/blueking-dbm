@@ -41,8 +41,7 @@
   <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('数据库部署信息') }}</strong>
     <div class="ticket-details__list">
-      <div
-        class="ticket-details__item">
+      <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('容灾要求') }}：</span>
         <span class="ticket-details__item-value">{{ affinity }}</span>
       </div>
@@ -71,8 +70,7 @@
         </div>
       </template>
       <template v-if="ticketDetails?.details?.ip_source === 'resource_pool'">
-        <div
-          class="ticket-details__item">
+        <div class="ticket-details__item">
           <span class="ticket-details__item-label">{{ $t('规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
@@ -80,7 +78,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
                 {{ influxdbSpec?.spec_name }}（{{ `${influxdbSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -123,34 +121,33 @@
   import SpecInfos, { type SpecInfo } from '../../SpecInfos.vue';
 
   interface TicketDetails {
-    id: number,
-    bk_biz_id: number,
-    remark: string,
-    ticket_type: string,
-    bk_biz_name: string,
-    db_app_abbr: string,
+    id: number;
+    bk_biz_id: number;
+    remark: string;
+    ticket_type: string;
+    bk_biz_name: string;
+    db_app_abbr: string;
     details: {
-      group_name: string,
-      bk_cloud_id: string,
-      ip_source: string,
-      db_app_abbr: string,
-      city_code: string,
-      db_version: string,
-      port: number,
-      group_id: string,
-      disaster_tolerance_level: string,
+      group_name: string;
+      bk_cloud_id: string;
+      ip_source: string;
+      db_app_abbr: string;
+      city_code: string;
+      db_version: string;
+      port: number;
+      group_id: string;
+      disaster_tolerance_level: string;
       nodes: {
-        influxdb: [],
-      },
+        influxdb: [];
+      };
       resource_spec: {
-        influxdb: SpecInfo,
-      },
-    },
-
+        influxdb: SpecInfo;
+      };
+    };
   }
 
   interface Props {
-    ticketDetails: TicketDetails
+    ticketDetails: TicketDetails;
   }
 
   const props = defineProps<Props>();
@@ -165,7 +162,7 @@
   const affinity = computed(() => {
     const level = props.ticketDetails?.details?.disaster_tolerance_level;
     if (level && affinityList) {
-      return affinityList.find(item => item.value === level)?.label;
+      return affinityList.find((item) => item.value === level)?.label;
     }
     return '--';
   });
@@ -173,7 +170,7 @@
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {
       const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find(item => item.city_code === cityCode)?.city_name;
+      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
       cityName.value = name ?? '--';
     },
   });
@@ -208,5 +205,5 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

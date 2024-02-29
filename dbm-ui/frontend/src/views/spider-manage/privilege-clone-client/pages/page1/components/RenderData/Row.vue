@@ -14,21 +14,21 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderSource
           ref="sourceRef"
           v-model="localSource" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderModule
           ref="moduleRef"
           :model-value="data.module"
           :source="localSource" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCloudArea :source="localSource" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTarget
           ref="targetRef"
           :model-value="data.target"
@@ -54,11 +54,11 @@
   export interface IDataRow {
     rowKey: string;
     source?: {
-      bk_cloud_id: number,
-      ip: string,
-    },
-    module?: string,
-    target: string[]
+      bk_cloud_id: number;
+      ip: string;
+    };
+    module?: string;
+    target: string[];
   }
 
   // 创建表格数据
@@ -71,16 +71,16 @@
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -93,13 +93,17 @@
 
   const localSource = ref<IDataRow['source']>();
 
-  watch(() => props.data, () => {
-    if (props.data) {
-      localSource.value = props.data.source;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data) {
+        localSource.value = props.data.source;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleAppend = () => {
     emits('add', [createRowData()]);

@@ -27,14 +27,14 @@
       </BkButton>
       <BkDropdown
         class="mr-8"
-        @hide="() => isCopyDropdown = false"
-        @show="() => isCopyDropdown = true">
+        @hide="() => (isCopyDropdown = false)"
+        @show="() => (isCopyDropdown = true)">
         <BkButton>
           {{ t('复制IP') }}
           <DbIcon
             class="action-copy-icon"
             :class="{
-              'action-copy-icon--avtive': isCopyDropdown
+              'action-copy-icon--avtive': isCopyDropdown,
             }"
             type="up-big" />
         </BkButton>
@@ -47,7 +47,7 @@
               <BkButton
                 v-bk-tooltips="{
                   content: t('暂无异常IP'),
-                  disabled: isAbnormalNodeExits
+                  disabled: isAbnormalNodeExits,
                 }"
                 :disabled="!isAbnormalNodeExits"
                 text
@@ -59,7 +59,7 @@
               <BkButton
                 v-bk-tooltips="{
                   content: t('请先勾选IP'),
-                  disabled: isTableSelected
+                  disabled: isTableSelected,
                 }"
                 :disabled="!isTableSelected"
                 text
@@ -466,70 +466,70 @@
 </script>
 
 <style>
-.info-box-cluster-name {
-  color: #313238;
-}
+  .info-box-cluster-name {
+    color: #313238;
+  }
 </style>
 
 <style lang="less" scoped>
-.riak-detail-node-list {
-  padding: 24px 0;
+  .riak-detail-node-list {
+    padding: 24px 0;
 
-  .action-box {
-    display: flex;
-    margin-bottom: 16px;
-
-    .action-box-search {
-      width: 360px;
-      margin-left: auto;
-    }
-  }
-
-  .action-copy-icon {
-    margin-left: 6px;
-    color: #979ba5;
-    transform: rotateZ(180deg);
-    transition: all 0.2s;
-
-    &--avtive {
-      transform: rotateZ(0);
-    }
-  }
-
-  :deep(.node-list-table) {
-    .is-new-row {
-      td {
-        background-color: #F3FCF5 !important;
-      }
-    }
-
-    .status-label {
-      width: 38px;
-      height: 16px;
-      margin-right: 4px;
-      flex-shrink: 0;
-    }
-
-    tr .db-icon-copy {
-      display: none;
-    }
-
-    tr:hover .db-icon-copy {
-      display: inline-block;
-    }
-
-    .cpu-use-rate {
+    .action-box {
       display: flex;
-      align-items: center;
+      margin-bottom: 16px;
 
-      .cpu-rate {
-        font-weight: 700;
+      .action-box-search {
+        width: 360px;
+        margin-left: auto;
+      }
+    }
+
+    .action-copy-icon {
+      margin-left: 6px;
+      color: #979ba5;
+      transform: rotateZ(180deg);
+      transition: all 0.2s;
+
+      &--avtive {
+        transform: rotateZ(0);
+      }
+    }
+
+    :deep(.node-list-table) {
+      .is-new-row {
+        td {
+          background-color: #f3fcf5 !important;
+        }
       }
 
-      .cpu-num {
-        color: #979BA5
+      .status-label {
+        width: 38px;
+        height: 16px;
+        margin-right: 4px;
+        flex-shrink: 0;
+      }
+
+      tr .db-icon-copy {
+        display: none;
+      }
+
+      tr:hover .db-icon-copy {
+        display: inline-block;
+      }
+
+      .cpu-use-rate {
+        display: flex;
+        align-items: center;
+
+        .cpu-rate {
+          font-weight: 700;
+        }
+
+        .cpu-num {
+          color: #979ba5;
+        }
       }
     }
   }
-}
 </style>

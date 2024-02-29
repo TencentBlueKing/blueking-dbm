@@ -13,13 +13,12 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div
-      class="render-cluster-box">
+    <div class="render-cluster-box">
       {{ data?.domain }}
       <span
         v-if="!data?.domain"
         key="empty"
-        style="color: #c4c6cc;">
+        style="color: #c4c6cc">
         {{ $t('选择主机后自动生成') }}
       </span>
     </div>
@@ -34,7 +33,6 @@
   }
 
   defineProps<Props>();
-
 </script>
 <style lang="less" scoped>
   .render-cluster-box {

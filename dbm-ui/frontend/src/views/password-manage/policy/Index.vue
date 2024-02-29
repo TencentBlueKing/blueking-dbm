@@ -63,7 +63,9 @@
           <p class="mb-8">
             <span
               class="password-policy-text mr-8"
-              style="padding: 0;">N = </span>
+              style="padding: 0">
+              N =
+            </span>
             <BkInput
               v-model="formData.exclude_continuous_rule.limit"
               class="password-policy-number"
@@ -119,10 +121,7 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    getPasswordPolicy,
-    updatePasswordPolicy,
-  } from '@services/permission';
+  import { getPasswordPolicy, updatePasswordPolicy } from '@services/permission';
 
   import { useInfo } from '@hooks';
 

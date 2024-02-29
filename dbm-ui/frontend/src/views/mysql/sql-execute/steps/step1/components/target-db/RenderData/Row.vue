@@ -14,13 +14,13 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="dbnamesRef"
           :model-value="data.dbnames"
           @change="handleDbnamesChange" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="ignoreDbnamesRef"
           :model-value="data.ignore_dbnames"
@@ -37,7 +37,7 @@
           <div
             class="action-btn"
             :class="{
-              disabled: removeable
+              disabled: removeable,
             }"
             @click="handleRemove">
             <DbIcon type="minus-fill" />
@@ -49,10 +49,11 @@
 </template>
 <script lang="ts">
   import { random } from '@utils';
+
   export interface IDataRow {
     rowKey: string;
-    dbnames: string [],
-    ignore_dbnames: string [],
+    dbnames: string[];
+    ignore_dbnames: string[];
   }
 
   // 创建表格数据
@@ -63,25 +64,22 @@
   });
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-  } from 'vue';
+  import { ref } from 'vue';
 
   import RenderDbName from './RenderDbName.vue';
 
-
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: IDataRow): void,
-    (e: 'remove'): void,
-    (e: 'change', value: IDataRow): void,
+    (e: 'add', params: IDataRow): void;
+    (e: 'remove'): void;
+    (e: 'change', value: IDataRow): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<IDataRow>
+    getValue: () => Promise<IDataRow>;
   }
 
   const props = defineProps<Props>();
@@ -123,42 +121,38 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        dbnamesRef.value.getValue(),
-        ignoreDbnamesRef.value.getValue(),
-      ]).then(() => ({
+      return Promise.all([dbnamesRef.value.getValue(), ignoreDbnamesRef.value.getValue()]).then(() => ({
         rowKey: props.data.rowKey,
         dbnames: dbnames.value,
         ignore_dbnames: ignoreDbnames.value,
       }));
     },
   });
-
 </script>
 <style lang="less" scoped>
-.action-box {
-  display: flex;
-  align-items: center;
-
-  .action-btn {
+  .action-box {
     display: flex;
-    font-size: 14px;
-    color: #c4c6cc;
-    cursor: pointer;
-    transition: all 0.15s;
+    align-items: center;
 
-    &:hover {
-      color: #979ba5;
-    }
+    .action-btn {
+      display: flex;
+      font-size: 14px;
+      color: #c4c6cc;
+      cursor: pointer;
+      transition: all 0.15s;
 
-    &.disabled {
-      color: #dcdee5;
-      cursor: not-allowed;
-    }
+      &:hover {
+        color: #979ba5;
+      }
 
-    & ~ .action-btn {
-      margin-left: 18px;
+      &.disabled {
+        color: #dcdee5;
+        cursor: not-allowed;
+      }
+
+      & ~ .action-btn {
+        margin-left: 18px;
+      }
     }
   }
-}
 </style>

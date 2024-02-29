@@ -21,9 +21,9 @@
         {{ item.master_domain }}
       </div>
       <span
-        v-if="(relatedClusterList.length < 1)"
+        v-if="relatedClusterList.length < 1"
         key="empty"
-        style="color: #c4c6cc;">
+        style="color: #c4c6cc">
         {{ $t('输入主库后自动生成') }}
       </span>
     </div>

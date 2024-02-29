@@ -30,22 +30,14 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    onMounted,
-    provide,
-    ref,
-  } from 'vue';
+  import { onMounted, provide, ref } from 'vue';
 
   import useColumnResize from './hooks/useColumnResize';
 
   const tableRef = ref();
   const tableColumnResizeRef = ref();
 
-  const  {
-    initColumnWidth,
-    handleMouseDown,
-    handleMouseMove,
-  } = useColumnResize(tableRef, tableColumnResizeRef);
+  const { initColumnWidth, handleMouseDown, handleMouseMove } = useColumnResize(tableRef, tableColumnResizeRef);
 
   onMounted(() => {
     initColumnWidth();
@@ -112,7 +104,7 @@
         font-size: 12px;
         line-height: 40px;
         color: #ea3636;
-        content: "*";
+        content: '*';
       }
     }
 

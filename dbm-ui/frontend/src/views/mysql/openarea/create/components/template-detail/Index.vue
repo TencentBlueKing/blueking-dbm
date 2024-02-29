@@ -1,5 +1,5 @@
 <template>
-  <div style="padding: 20px 16px;">
+  <div style="padding: 20px 16px">
     <BkTable
       :columns="columns"
       :data="data.config_rules" />

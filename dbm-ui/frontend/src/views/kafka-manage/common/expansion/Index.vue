@@ -43,7 +43,7 @@
           v-model:targetDisk="nodeInfoMap[nodeType].targetDisk"
           :cloud-info="{
             id: data.bk_cloud_id,
-            name: data.bk_cloud_name
+            name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
           :ip-source="ipSource" />
@@ -299,11 +299,11 @@
     color: #63656e;
     background: #f5f7fa;
 
-    .ip-srouce-box{
+    .ip-srouce-box {
       display: flex;
       margin-bottom: 16px;
 
-      .bk-radio-button{
+      .bk-radio-button {
         flex: 1;
         background: #fff;
       }

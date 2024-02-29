@@ -65,13 +65,13 @@
 
 <script setup lang="ts">
   interface Emits {
-    (e: 'close'): void
+    (e: 'close'): void;
   }
 
   interface Props {
-    title: string,
-    ticketId: number,
-    steps: Array<{ title: string, status?: string }>
+    title: string;
+    ticketId: number;
+    steps: Array<{ title: string; status?: string }>;
   }
 
   const props = defineProps<Props>();
@@ -141,7 +141,7 @@
           width: 100%;
           height: 1px;
           background-color: #d8d8d8;
-          content: "";
+          content: '';
         }
 
         &:first-child {
@@ -190,7 +190,7 @@
                 border: 1px solid @border-primary;
                 border-top-color: white;
                 border-radius: 50%;
-                content: "";
+                content: '';
                 animation: success-spin 1.5s linear infinite;
               }
             }
@@ -205,7 +205,11 @@
   }
 
   @keyframes success-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 </style>

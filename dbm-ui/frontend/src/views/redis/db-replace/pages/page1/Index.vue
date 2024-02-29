@@ -27,7 +27,7 @@
           ref="rowRefs"
           :data="item"
           :inputed-ips="inputedIps"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
           @remove="handleRemove(index)" />

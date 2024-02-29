@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { type ComponentInternalInstance } from 'vue';
 
 import { useGlobalBizs } from '@stores';
@@ -17,8 +17,8 @@ import { useGlobalBizs } from '@stores';
 interface TopoTreeData {
   id: number;
   name: string;
-  obj: 'biz' | 'cluster',
-  count: number,
+  obj: 'biz' | 'cluster';
+  count: number;
   children: Array<TopoTreeData>;
 }
 
@@ -29,9 +29,9 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
   const { currentBizId, currentBizInfo } = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
-      getTopoList: (params: any) => Promise<any>,
-      countFunc?: (data: T) => number
-    },
+      getTopoList: (params: any) => Promise<any>;
+      countFunc?: (data: T) => number;
+    };
   };
 
   const isLoading = ref(false);
@@ -50,35 +50,39 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
       offset: 0,
       limit: -1,
     };
-    return currentInstance.proxy.getTopoList(params).then((data) => {
-      const countFn = currentInstance.proxy?.countFunc;
-      const formatData = data.map((item: T) => ({ ...item, count: countFn ? countFn(item) : item.remote_db.length }));
-      const children = formatData.map((item: T) => ({
-        id: item.id,
-        name: item.master_domain,
-        obj: 'cluster',
-        count: item.count,
-        children: [],
-      }));
-      treeData.value = filterClusterId.value ? children : [
-        {
-          name: currentBizInfo?.display_name || '--',
-          id: currentBizId,
-          obj: 'biz',
-          count: formatData.reduce((count: number, item: any) => count + item.count, 0),
-          children,
-        },
-      ];
-      setTimeout(() => {
-        if (data.length > 0) {
-          const [firstNode] = treeData.value;
-          selectClusterId.value = firstNode.id;
-          const [firstRawNode] = treeRef.value.getData().data;
-          treeRef.value.setOpen(firstRawNode);
-          treeRef.value.setSelect(firstRawNode);
-        }
-      });
-    })
+    return currentInstance.proxy
+      .getTopoList(params)
+      .then((data) => {
+        const countFn = currentInstance.proxy?.countFunc;
+        const formatData = data.map((item: T) => ({ ...item, count: countFn ? countFn(item) : item.remote_db.length }));
+        const children = formatData.map((item: T) => ({
+          id: item.id,
+          name: item.master_domain,
+          obj: 'cluster',
+          count: item.count,
+          children: [],
+        }));
+        treeData.value = filterClusterId.value
+          ? children
+          : [
+              {
+                name: currentBizInfo?.display_name || '--',
+                id: currentBizId,
+                obj: 'biz',
+                count: formatData.reduce((count: number, item: any) => count + item.count, 0),
+                children,
+              },
+            ];
+        setTimeout(() => {
+          if (data.length > 0) {
+            const [firstNode] = treeData.value;
+            selectClusterId.value = firstNode.id;
+            const [firstRawNode] = treeRef.value.getData().data;
+            treeRef.value.setOpen(firstRawNode);
+            treeRef.value.setSelect(firstRawNode);
+          }
+        });
+      })
       .finally(() => {
         isLoading.value = false;
       });

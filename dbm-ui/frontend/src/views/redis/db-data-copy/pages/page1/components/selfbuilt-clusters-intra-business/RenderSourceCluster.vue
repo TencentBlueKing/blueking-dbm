@@ -31,15 +31,15 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['srcCluster']
+    data?: IDataRow['srcCluster'];
   }
 
   interface Emits {
-    (e: 'inputFinish', value: string): void
+    (e: 'inputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -72,7 +72,6 @@
   defineExpose<Exposes>({
     getValue: () => Promise.resolve(localValue.value),
   });
-
 </script>
 <style lang="less" scoped>
   .render-host-box {

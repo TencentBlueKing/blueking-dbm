@@ -27,35 +27,33 @@
   </div>
 </template>
 <script setup lang="ts">
-  import ClusterRelatedTaskItem, {
-    type Props as TaskItem,
-  } from './Item.vue';
+  import ClusterRelatedTaskItem, { type Props as TaskItem } from './Item.vue';
 
   interface Props {
-    data?: TaskItem['data'][]
+    data?: TaskItem['data'][];
   }
 
   defineProps<Props>();
 </script>
 <style lang="less" scoped>
-.task-panel {
-  display: flex;
-  width: 100%;
-  max-height: 400px;
-  overflow: hidden;
-  flex-direction: column;
+  .task-panel {
+    display: flex;
+    width: 100%;
+    max-height: 400px;
+    overflow: hidden;
+    flex-direction: column;
 
-  .title {
-    height: 16px;
-    margin-bottom: 8px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #313238;
-  }
+    .title {
+      height: 16px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #313238;
+    }
 
-  .content-list {
-    flex: 1;
-    overflow-y: auto;
+    .content-list {
+      flex: 1;
+      overflow-y: auto;
+    }
   }
-}
 </style>

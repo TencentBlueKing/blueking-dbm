@@ -7,7 +7,7 @@
       <BkInput
         :min="1"
         :model-value="modelValue.capacity"
-        style="width: 314px;"
+        style="width: 314px"
         type="number"
         @blur="handleBlurCapacity"
         @change="handleChangeCapacity"
@@ -21,7 +21,7 @@
       <BkInput
         :min="Number(modelValue.capacity)"
         :model-value="modelValue.future_capacity"
-        style="width: 314px;"
+        style="width: 314px"
         type="number"
         @blur="handleBlurCapacity"
         @change="handleChangeFutureCapacity"
@@ -41,7 +41,7 @@
         show-between-label
         show-input
         show-tip
-        style="width: 800px;font-size: 12px;" />
+        style="width: 800px; font-size: 12px" />
     </BkFormItem>
     <BkFormItem
       ref="specRef"
@@ -49,7 +49,7 @@
       property="details.resource_spec.backend_group.spec_id"
       required>
       <DbOriginalTable
-        v-bkloading="{loading: isLoading}"
+        v-bkloading="{ loading: isLoading }"
         class="custom-edit-table"
         :columns="columns"
         :data="renderSpecs"
@@ -57,7 +57,7 @@
         <template #empty>
           <p
             v-if="!sliderProps.value[1]"
-            style="width: 100%; line-height: 128px; text-align: center;">
+            style="width: 100%; line-height: 128px; text-align: center">
             <DbIcon
               class="mr-4"
               type="attention" />
@@ -67,7 +67,7 @@
             v-else
             :description="t('无匹配的资源规格_请先修改容量及QPS设置')"
             scene="part"
-            style="font-size: 12px;"
+            style="font-size: 12px"
             type="empty" />
         </template>
       </DbOriginalTable>
@@ -342,7 +342,7 @@
   .redis-backend-spec {
     max-width: 1200px;
     padding: 24px 24px 24px 10px;
-    background-color: #F5F7FA;
+    background-color: #f5f7fa;
     border-radius: 2px;
 
     .input-desc {

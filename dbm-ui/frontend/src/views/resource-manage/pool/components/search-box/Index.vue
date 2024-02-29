@@ -27,11 +27,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    computed,
-    onMounted,
-    ref,
-  } from 'vue';
+  import { computed, onMounted, ref } from 'vue';
 
   import { useUrlSearch } from '@hooks';
 
@@ -40,10 +36,10 @@
   import FieldTag from './components/field-tag/Index.vue';
   import { isValueEmpty } from './components/utils';
 
-  interface Emits{
+  interface Emits {
     (e: 'change', value: Record<string, any>): void;
   }
-  interface Expose{
+  interface Expose {
     clearValue: () => void;
   }
 
@@ -54,9 +50,7 @@
     tag: FieldTag,
   } as Record<string, any>;
 
-  const {
-    getSearchParams,
-  } = useUrlSearch();
+  const { getSearchParams } = useUrlSearch();
   const urlSearchParams = getSearchParams();
 
   const renderStatus = ref('input');
@@ -87,31 +81,34 @@
   };
   // 提交搜索
   const handleSubmit = () => {
-    const result = Object.keys(searchParams.value).reduce((result, key) => {
-      const value = searchParams.value[key];
-      const config = fieldConfig[key];
+    const result = Object.keys(searchParams.value).reduce(
+      (result, key) => {
+        const value = searchParams.value[key];
+        const config = fieldConfig[key];
 
-      if (isValueEmpty(value)) {
-        return result;
-      }
+        if (isValueEmpty(value)) {
+          return result;
+        }
 
-      if (config.type === 'array' && value.length > 0) {
+        if (config.type === 'array' && value.length > 0) {
+          return {
+            ...result,
+            [key]: value.join(','),
+          };
+        }
+        if (config.type === 'rang' && value.length > 0) {
+          return {
+            ...result,
+            [key]: `${value[0]}-${value[1]}`,
+          };
+        }
         return {
           ...result,
-          [key]: value.join(','),
+          [key]: value,
         };
-      }
-      if (config.type === 'rang' && value.length > 0) {
-        return {
-          ...result,
-          [key]: `${value[0]}-${value[1]}`,
-        };
-      }
-      return {
-        ...result,
-        [key]: value,
-      };
-    }, {} as Record<string, string>);
+      },
+      {} as Record<string, string>,
+    );
 
     emits('change', result);
   };
@@ -127,31 +124,30 @@
       handleSubmit();
     },
   });
-
 </script>
 <style lang="less">
-.resource-pool-search-box {
-  position: relative;
-  padding: 20px 0;
-  font-size: 12px;
-  color: #63656e;
-  background: #fff;
-  box-shadow: 0 2px 4px 0 #1919290d;
+  .resource-pool-search-box {
+    position: relative;
+    padding: 20px 0;
+    font-size: 12px;
+    color: #63656e;
+    background: #fff;
+    box-shadow: 0 2px 4px 0 #1919290d;
 
-  .toggle-btn {
-    position: absolute;
-    bottom: -16px;
-    left: 50%;
-    display: flex;
-    width: 64px;
-    height: 16px;
-    color: #fff;
-    cursor: pointer;
-    background: #dcdee5;
-    border-radius: 0 0 4px 4px;
-    transform: translateX(-50%);
-    align-items: center;
-    justify-content: center;
+    .toggle-btn {
+      position: absolute;
+      bottom: -16px;
+      left: 50%;
+      display: flex;
+      width: 64px;
+      height: 16px;
+      color: #fff;
+      cursor: pointer;
+      background: #dcdee5;
+      border-radius: 0 0 4px 4px;
+      transform: translateX(-50%);
+      align-items: center;
+      justify-content: center;
+    }
   }
-}
 </style>

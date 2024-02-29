@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { useI18n } from 'vue-i18n';
@@ -17,18 +17,12 @@ import { useI18n } from 'vue-i18n';
 import { getResourcesByBizId as getSpiderResources } from '@services/source/spider';
 import { getTendbhaListByBizId } from '@services/source/tendbha';
 import { getTendbsingleListByBizId } from '@services/source/tendbsingle';
-import type {
-  ResourceItem,
-  SearchFilterItem,
-} from '@services/types';
+import type { ResourceItem, SearchFilterItem } from '@services/types';
 import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
 
 import { useDefaultPagination } from '@hooks';
 
-import {
-  ClusterTypes,
-  DBTypes,
-} from '@common/const';
+import { ClusterTypes, DBTypes } from '@common/const';
 
 import { getSearchSelectorParams } from '@utils';
 
@@ -54,17 +48,21 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
   /**
    * search select 过滤参数
    */
-  const searchSelectData = computed(() => [{
-    name: t('域名'),
-    id: 'domain',
-  }, {
-    name: t('集群'),
-    id: 'cluster_name',
-  }, {
-    name: t('所属DB模块'),
-    id: 'db_module_id',
-    children: listState.dbModuleList,
-  }]);
+  const searchSelectData = computed(() => [
+    {
+      name: t('域名'),
+      id: 'domain',
+    },
+    {
+      name: t('集群'),
+      id: 'cluster_name',
+    },
+    {
+      name: t('所属DB模块'),
+      id: 'db_module_id',
+      children: listState.dbModuleList,
+    },
+  ]);
 
   /**
    * 获取目标集群列表
@@ -72,9 +70,10 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
   function fetchCluster() {
     listState.isLoading = true;
 
-    const type = ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBCLUSTER
-      ? 'spider'
-      : ticketDetails?.details?.authorize_data?.cluster_type;
+    const type =
+      ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBCLUSTER
+        ? 'spider'
+        : ticketDetails?.details?.authorize_data?.cluster_type;
 
     const params = {
       dbType: DBTypes.MYSQL,

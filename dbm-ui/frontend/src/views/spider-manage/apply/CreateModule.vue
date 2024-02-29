@@ -88,12 +88,12 @@
         type="capsule">
         <BkRadioButton
           label="tendbcluster"
-          style="width: 200px;">
+          style="width: 200px">
           {{ t('MySQL参数配置') }}
         </BkRadioButton>
         <BkRadioButton
           label="spider"
-          style="width: 200px;">
+          style="width: 200px">
           {{ t('Spider参数配置') }}
         </BkRadioButton>
       </BkRadioGroup>
@@ -159,14 +159,16 @@
   const spiderTableRef = ref();
   const isBindSuccessfully = ref(false);
   const disabledSubmit = computed(() => {
-    if (isBindSuccessfully.value === false) return false;
+    if (isBindSuccessfully.value === false) {
+      return false;
+    }
     return !mysqlTableRef.value?.hasChange?.() && !spiderTableRef.value?.hasChange?.();
   });
   // 业务信息
   const bizId = computed(() => Number(route.params.bizId));
-  const bizInfo = computed(() => globalBizsStore.bizs.find(info => info.bk_biz_id ===  bizId.value) || { name: '' });
+  const bizInfo = computed(() => globalBizsStore.bizs.find((info) => info.bk_biz_id === bizId.value) || { name: '' });
   // 模块信息
-  const moduleId =  ref(Number(route.params.db_module_id) ?? '');
+  const moduleId = ref(Number(route.params.db_module_id) ?? '');
   const isNewModule = computed(() => !route.params.db_module_id);
   const isReadonly = computed(() => (isNewModule.value ? !!moduleId.value : true));
 
@@ -220,10 +222,9 @@
       cluster_type: 'tendbcluster',
     };
 
-    return createModules(params)
-      .then((res) => {
-        moduleId.value = res.db_module_id;
-      });
+    return createModules(params).then((res) => {
+      moduleId.value = res.db_module_id;
+    });
   };
 
   // 绑定数据库配置
@@ -256,10 +257,9 @@
         },
       ],
     };
-    return saveModulesDeployInfo(params)
-      .then(() => {
-        isBindSuccessfully.value = true;
-      });
+    return saveModulesDeployInfo(params).then(() => {
+      isBindSuccessfully.value = true;
+    });
   };
 
   /**
@@ -272,18 +272,16 @@
       // 校验表单信息
       await Promise.all([
         formRef.value.validate(),
-        mysqlTableRef.value.validate()
-          .catch((e: any) => {
-            messageError(t('请确保MySQL参数配置填写正确'));
-            return Promise.reject(e);
-          }),
-        spiderTableRef.value.validate()
-          .catch((e: any) => {
-            nextTick(() => {
-              messageError(t('请确保Spider参数配置填写正确'));
-            });
-            return Promise.reject(e);
-          }),
+        mysqlTableRef.value.validate().catch((e: any) => {
+          messageError(t('请确保MySQL参数配置填写正确'));
+          return Promise.reject(e);
+        }),
+        spiderTableRef.value.validate().catch((e: any) => {
+          nextTick(() => {
+            messageError(t('请确保Spider参数配置填写正确'));
+          });
+          return Promise.reject(e);
+        }),
       ]);
 
       // 新建模块或已经新建成功则不执行创建
@@ -297,10 +295,7 @@
       }
 
       // 绑定参数配置
-      await Promise.all([
-        mysqlTableRef.value.bindConfigParameters(),
-        spiderTableRef.value.bindConfigParameters(),
-      ]);
+      await Promise.all([mysqlTableRef.value.bindConfigParameters(), spiderTableRef.value.bindConfigParameters()]);
 
       Message({
         message: isNewModule.value ? t('创建DB模块并绑定数据库配置成功') : t('绑定配置成功'),
@@ -334,7 +329,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins";
+  @import '@styles/mixins';
 
   .create-module-loading {
     height: 100%;

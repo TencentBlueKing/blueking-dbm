@@ -124,8 +124,8 @@
   };
 </script>
 <style lang="less">
-  .render-dynamic-table{
-    & ~ .render-dynamic-table{
+  .render-dynamic-table {
+    & ~ .render-dynamic-table {
       margin-top: 16px;
     }
   }

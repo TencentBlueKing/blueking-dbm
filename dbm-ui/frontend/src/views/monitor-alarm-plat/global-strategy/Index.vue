@@ -75,22 +75,20 @@
   ];
 
   const activeTab = ref(tabs[0].value);
-
 </script>
 <style lang="less">
-.monitor-alart-global-strategy-page{
-  .top-tabs{
-    background: #fff;
-    box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+  .monitor-alart-global-strategy-page {
+    .top-tabs {
+      background: #fff;
+      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-    .bk-tab-content{
-      display: none;
+      .bk-tab-content {
+        display: none;
+      }
+    }
+
+    .global-strategy-content {
+      padding: 24px;
     }
   }
-
-  .global-strategy-content {
-    padding: 24px;
-  }
-}
-
 </style>

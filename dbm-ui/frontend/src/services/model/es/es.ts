@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -27,8 +27,8 @@ type Node = {
   name: string;
   phase: string;
   port: number;
-  status: 'running' | 'unavailable'
-}
+  status: 'running' | 'unavailable';
+};
 
 export default class Es {
   static ES_SCALE_UP = 'ES_SCALE_UP';
@@ -70,24 +70,24 @@ export default class Es {
   cluster_type_name: string;
   cluster_time_zone: string;
   cluster_entry_details: {
-    cluster_entry_type: string,
-    entry: string,
-    role: string,
+    cluster_entry_type: string;
+    entry: string;
+    role: string;
     target_details: {
-      app: string,
-      bk_cloud_iduid: number,
-      dns_str: string,
-      domain_name: string,
-      domain_typeuid: number,
-      ip: string,
-      last_change_time: string,
-      manager: string,
-      port: number,
-      remark: string,
-      start_time: string,
-      status: string,
-      uid: number,
-    }[]
+      app: string;
+      bk_cloud_iduid: number;
+      dns_str: string;
+      domain_name: string;
+      domain_typeuid: number;
+      ip: string;
+      last_change_time: string;
+      manager: string;
+      port: number;
+      remark: string;
+      start_time: string;
+      status: string;
+      uid: number;
+    }[];
   }[];
   create_at: string;
   creator: string;
@@ -99,22 +99,22 @@ export default class Es {
   id: number;
   major_version: string;
   operations: Array<{
-    cluster_id: number,
-    flow_id: number,
-    status: string,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
+    cluster_id: number;
+    flow_id: number;
+    status: string;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
   }>;
   permission: {
-    es_view: boolean,
-    es_enable_disable: boolean,
-    es_destroy: boolean,
-    es_scale_up: boolean,
-    es_shrink: boolean,
-    es_replace: boolean,
-    es_reboot: boolean,
-    access_entry_edit: boolean,
+    es_view: boolean;
+    es_enable_disable: boolean;
+    es_destroy: boolean;
+    es_scale_up: boolean;
+    es_shrink: boolean;
+    es_replace: boolean;
+    es_reboot: boolean;
+    access_entry_edit: boolean;
   };
   phase: 'online' | 'offline';
   region: string;
@@ -157,7 +157,7 @@ export default class Es {
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(Es.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态
@@ -208,7 +208,7 @@ export default class Es {
   }
 
   get isStarting() {
-    return Boolean(this.operations.find(item => item.ticket_type === Es.ES_ENABLE));
+    return Boolean(this.operations.find((item) => item.ticket_type === Es.ES_ENABLE));
   }
 
   get isOnline() {
@@ -230,7 +230,7 @@ export default class Es {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: Es.operationIconMap[item.ticket_type],
       tip: Es.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,

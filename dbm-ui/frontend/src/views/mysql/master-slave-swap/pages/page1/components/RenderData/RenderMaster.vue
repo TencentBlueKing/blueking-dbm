@@ -26,10 +26,7 @@
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { checkMysqlInstances } from '@services/source/instances';
@@ -45,24 +42,23 @@
 
   import type { IHostData } from './Row.vue';
 
-
   interface Props {
-    modelValue?: IHostData
+    modelValue?: IHostData;
   }
 
   interface Emits {
-    (e: 'change', value: IHostData): void
+    (e: 'change', value: IHostData): void;
   }
 
   interface IValue {
-    bk_biz_id: number,
-    bk_host_id: number,
-    ip: string,
-    bk_cloud_id: number,
+    bk_biz_id: number;
+    bk_host_id: number;
+    ip: string;
+    bk_cloud_id: number;
   }
 
   interface Exposes {
-    getValue: () => Promise<IValue>
+    getValue: () => Promise<IValue>;
   }
 
   const props = defineProps<Props>();
@@ -87,27 +83,31 @@
       message: t('IP格式不正确'),
     },
     {
-      validator: () => checkMysqlInstances({
-        bizId: currentBizId,
-        instance_addresses: [localValue.value],
-      }).then((data) => {
-        if (data.length > 0) {
-          const [currentInstanceData] = data;
-          localProxyData = currentInstanceData;
-          return true;
-        }
-        return false;
-      }),
+      validator: () =>
+        checkMysqlInstances({
+          bizId: currentBizId,
+          instance_addresses: [localValue.value],
+        }).then((data) => {
+          if (data.length > 0) {
+            const [currentInstanceData] = data;
+            localProxyData = currentInstanceData;
+            return true;
+          }
+          return false;
+        }),
       message: t('目标主库不存在'),
     },
     {
       validator: () => {
         const otherHostSelectMemo = { ...singleHostSelectMemo };
         delete otherHostSelectMemo[instanceKey];
-        const otherAllSelectHostMap = Object.values(otherHostSelectMemo).reduce((result, selectItem) => ({
-          ...result,
-          ...selectItem,
-        }), {} as Record<string, boolean>);
+        const otherAllSelectHostMap = Object.values(otherHostSelectMemo).reduce(
+          (result, selectItem) => ({
+            ...result,
+            ...selectItem,
+          }),
+          {} as Record<string, boolean>,
+        );
         if (otherAllSelectHostMap[genHostKey(localProxyData)]) {
           return false;
         }
@@ -118,14 +118,17 @@
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue.ip;
-    }
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localValue.value = props.modelValue.ip;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
@@ -135,11 +138,9 @@
         ip: item.ip,
         bk_cloud_id: item.bk_cloud_id,
       });
-      return editRef.value
-        .getValue()
-        .then(() => ({
-          master_ip: formatHost(localProxyData),
-        }));
+      return editRef.value.getValue().then(() => ({
+        master_ip: formatHost(localProxyData),
+      }));
     },
   });
 </script>

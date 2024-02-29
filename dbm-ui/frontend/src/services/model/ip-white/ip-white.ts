@@ -1,6 +1,4 @@
-import {
-  utcDisplayTime,
-} from '@utils';
+import { utcDisplayTime } from '@utils';
 
 export default class ipWhite {
   bk_biz_id: number;

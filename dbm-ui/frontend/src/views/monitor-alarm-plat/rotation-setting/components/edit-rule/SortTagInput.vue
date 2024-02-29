@@ -51,7 +51,7 @@
           v-model="localValue"
           :placeholder="$t('请输入')"
           @input="handleInputChange"
-          @keyup.enter="handleClickEnter">
+          @keyup.enter="handleClickEnter" />
       </div>
     </template>
     <BkOption
@@ -217,58 +217,57 @@
   });
 </script>
 <style lang="less" scoped>
-.sort-tag-input {
-  display: flex;
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #C4C6CC;
-  border-radius: 2px;
-  flex-wrap: wrap;
-  gap: 5px;
-
-  .tag-box {
+  .sort-tag-input {
     display: flex;
-    height: 22px;
-    padding: 0 4px;
-    font-size: 12px;
-    background: #F0F1F5;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #c4c6cc;
     border-radius: 2px;
-    transition: 0.5s all;
-    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
 
-    .split-line {
-      display: inline-block;
-      width: 2px;
+    .tag-box {
+      display: flex;
       height: 22px;
-      margin-left: -8px;
-      background-color: #3a84ff;
+      padding: 0 4px;
+      font-size: 12px;
+      background: #f0f1f5;
+      border-radius: 2px;
+      transition: 0.5s all;
+      align-items: center;
+
+      .split-line {
+        display: inline-block;
+        width: 2px;
+        height: 22px;
+        margin-left: -8px;
+        background-color: #3a84ff;
+      }
+
+      .drag-icon {
+        font-size: 18px;
+        cursor: pointer;
+      }
+
+      .close-icon {
+        font-size: 20px;
+        cursor: pointer;
+      }
+
+      .name {
+        margin: 0 4px;
+      }
     }
 
-    .drag-icon {
-      font-size: 18px;
-      cursor: pointer;
+    input {
+      font-size: 12px;
+      border: none;
+      outline: none;
+      flex: 1;
     }
 
-    .close-icon {
-      font-size: 20px;
-      cursor: pointer;
-    }
-
-    .name {
-      margin: 0 4px;
+    &:hover {
+      border: 1px solid #3a84ff;
     }
   }
-
-  input {
-    font-size: 12px;
-    border: none;
-    outline: none;
-    flex:1;
-  }
-
-  &:hover {
-    border: 1px solid #3a84ff;
-  }
-}
-
 </style>

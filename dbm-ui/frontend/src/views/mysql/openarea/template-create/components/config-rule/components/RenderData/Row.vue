@@ -14,32 +14,32 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderSourceDb
           ref="sourceDbRef"
           v-model="localRowData.source_db"
           :cluster-id="clusterId" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderSchmalTable
           ref="schmalTableRef"
           v-model="localRowData.schema_tblist"
           :cluster-id="clusterId"
           :source-db="localRowData.source_db" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableData
           ref="tableDataRef"
           v-model="localRowData.data_tblist"
           :cluster-id="clusterId"
           :source-db="localRowData.source_db" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTargetDbPattern
           ref="targetDbPatternRef"
           v-model="localRowData.target_db_pattern" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderPrivData
           ref="privDataRef"
           v-model="localRowData.priv_data"
@@ -74,8 +74,8 @@
   import RenderTableData from './RenderTableData.vue';
   import RenderTargetDbPattern from './RenderTargetDbPattern.vue';
 
-  export interface IData{
-    source_db: string,
+  export interface IData {
+    source_db: string;
     schema_tblist: string[];
     data_tblist: string[];
     target_db_pattern: string;
@@ -87,18 +87,18 @@
   }
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    clusterId: number
+    data: IDataRow;
+    removeable: boolean;
+    clusterId: number;
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<Required<IData>>
+  interface Exposes {
+    getValue: () => Promise<Required<IData>>;
   }
 
   const props = defineProps<Props>();
@@ -113,11 +113,15 @@
 
   const localRowData = reactive(createRowData());
 
-  watch(() => props.data, () => {
-    Object.assign(localRowData, props.data);
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      Object.assign(localRowData, props.data);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleAppend = () => {
     emits('add', [createRowData()]);
@@ -138,13 +142,7 @@
         (tableDataRef.value as InstanceType<typeof RenderTableData>).getValue(),
         (targetDbPatternRef.value as InstanceType<typeof RenderTargetDbPattern>).getValue(),
         (privDataRef.value as InstanceType<typeof RenderPrivData>).getValue(),
-      ]).then(([
-        sourceDbData,
-        schmalTableData,
-        tableDataData,
-        targetDbPatternData,
-        privDataData,
-      ]) => ({
+      ]).then(([sourceDbData, schmalTableData, tableDataData, targetDbPatternData, privDataData]) => ({
         ...sourceDbData,
         ...schmalTableData,
         ...tableDataData,

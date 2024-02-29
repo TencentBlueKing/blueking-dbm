@@ -1,6 +1,5 @@
 <template>
-  <BkOption
-    v-bind="attrs">
+  <BkOption v-bind="attrs">
     <template v-if="slots.default">
       <slot />
     </template>
@@ -10,16 +9,13 @@
   </BkOption>
 </template>
 <script setup lang="ts">
-  import {
-    useAttrs,
-    useSlots,
-  } from 'vue';
+  import { useAttrs, useSlots } from 'vue';
 
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    permission?: boolean | string,
-    actionId: string,
-    resource?: string | number,
+    permission?: boolean | string;
+    actionId: string;
+    resource?: string | number;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -32,7 +28,6 @@
 
   const attrs = useAttrs();
   const slots = useSlots();
-
 </script>
 <style lang="less" scoped>
   .auth-option-disabled {

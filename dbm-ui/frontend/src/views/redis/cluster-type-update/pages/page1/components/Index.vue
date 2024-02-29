@@ -56,7 +56,7 @@
             :content="$t('将会部署新的集群以进行集群变更')"
             placement="top"
             theme="dark">
-            <span style="border-bottom: 1px dashed #979BA5;">{{ $t('部署方案') }}</span>
+            <span style="border-bottom: 1px dashed #979ba5">{{ $t('部署方案') }}</span>
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
@@ -72,7 +72,7 @@
             :content="$t('后端存储实例与 Proxy 的关系切换')"
             placement="top"
             theme="dark">
-            <span style="border-bottom: 1px dashed #979BA5;">{{ $t('切换模式') }}</span>
+            <span style="border-bottom: 1px dashed #979ba5">{{ $t('切换模式') }}</span>
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
@@ -92,8 +92,8 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  interface Emits{
-    (e: 'showMasterBatchSelector'): void
+  interface Emits {
+    (e: 'showMasterBatchSelector'): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -103,12 +103,11 @@
   };
 </script>
 <style lang="less">
-.render-data {
-  .batch-edit-btn {
-    margin-left: 4px;
-    color: #3a84ff;
-    cursor: pointer;
+  .render-data {
+    .batch-edit-btn {
+      margin-left: 4px;
+      color: #3a84ff;
+      cursor: pointer;
+    }
   }
-}
-
 </style>

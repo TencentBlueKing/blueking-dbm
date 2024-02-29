@@ -79,11 +79,7 @@
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type InfoItem,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
   type RedisModel = ServiceReturnType<typeof getRedisList>['results'][number];
 
@@ -92,13 +88,13 @@
   const { t } = useI18n();
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
   const versionsMap = ref<Record<string, string[]>>({});
-  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
-  const inputedClusters = computed(() => tableData.value.map(item => item.targetCluster));
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.targetCluster)).length);
+  const inputedClusters = computed(() => tableData.value.map((item) => item.targetCluster));
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.targetCluster)).length);
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -184,7 +180,7 @@
     if (result.results.length < 1) {
       return;
     }
-    const list = result.results.filter(item => item.master_domain === domain);
+    const list = result.results.filter((item) => item.master_domain === domain);
     if (list.length === 0) {
       return;
     }
@@ -206,14 +202,14 @@
     delete domainMemo[targetCluster];
     const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
     // eslint-disable-next-line max-len
-    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== targetCluster);
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter((item) => item.master_domain !== targetCluster);
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<InfoItem>
-    }) => item.getValue()));
+    const infos = await Promise.all<InfoItem[]>(
+      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+    );
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_SCALE_UPDOWN,
@@ -227,18 +223,19 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisCapacityChange',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'RedisCapacityChange',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .catch((e) => {
             // 目前后台还未调通
             console.error('submit capacity change ticket error: ', e);
@@ -246,7 +243,8 @@
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   const handleReset = () => {

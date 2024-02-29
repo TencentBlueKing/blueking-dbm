@@ -126,5 +126,4 @@
       }, [] as RowData[]);
     },
   });
-
 </script>

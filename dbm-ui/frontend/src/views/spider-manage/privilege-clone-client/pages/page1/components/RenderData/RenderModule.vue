@@ -31,11 +31,11 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    source?: IDataRow['source']
+    source?: IDataRow['source'];
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<Record<string, string>>;
   }
 
   const props = defineProps<Props>();
@@ -46,10 +46,7 @@
   const editSelectRef = ref();
   const localValue = ref('');
 
-  const {
-    loading: isLoading,
-    run: fetchHostTopoInfo,
-  } = useRequest(getHostTopoInfos, {
+  const { loading: isLoading, run: fetchHostTopoInfo } = useRequest(getHostTopoInfos, {
     manual: true,
     onSuccess(data) {
       if (data.hosts_topo_info.length > 0) {
@@ -60,27 +57,30 @@
     },
   });
 
-  watch(() => props.source, () => {
-    if (!props.source) {
-      localValue.value = '';
-      return;
-    }
-    fetchHostTopoInfo({
-      bk_biz_id: currentBizId,
-      filter_conditions: {
-        bk_host_innerip: [`${props.source.bk_cloud_id}:${props.source.ip}`],
-      },
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.source,
+    () => {
+      if (!props.source) {
+        localValue.value = '';
+        return;
+      }
+      fetchHostTopoInfo({
+        bk_biz_id: currentBizId,
+        filter_conditions: {
+          bk_host_innerip: [`${props.source.bk_cloud_id}:${props.source.ip}`],
+        },
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return editSelectRef.value.getValue()
-        .then(() => ({
-          module: localValue.value,
-        }));
+      return editSelectRef.value.getValue().then(() => ({
+        module: localValue.value,
+      }));
     },
   });
 </script>

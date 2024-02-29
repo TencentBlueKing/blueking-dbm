@@ -272,15 +272,13 @@
             trigger="manual"
             placement="bottom"
             onConfirm={() => handleClickConfirm(data)}
-            onCancel={() => handleCancelConfirm(data)}
-          >
+            onCancel={() => handleCancelConfirm(data)}>
             <bk-switcher
               size="small"
               disabled={isInner}
               v-model={data.is_enabled}
               theme="primary"
-              onChange={() => handleChangeSwitch(data)}
-            />
+              onChange={() => handleChangeSwitch(data)}/>
           </bk-pop-confirm>
         );
       },
@@ -536,54 +534,53 @@
     currentChoosedRow.value = {} as MonitorPolicyModel;
     window.changeConfirm = false;
   };
-
 </script>
 <style lang="less" scoped>
-.monitor-strategy-type-content {
-  display: flex;
-  flex-direction: column;
+  .monitor-strategy-type-content {
+    display: flex;
+    flex-direction: column;
 
-  .input-box {
-    width: 600px;
-    height: 32px;
-    margin-bottom: 16px;
-  }
-
-  :deep(.table-box) {
-    .targets-box {
-      display: flex;
-      width: 100%;
-      flex-flow: column wrap;
-      padding: 5px 15px;
+    .input-box {
+      width: 600px;
+      height: 32px;
+      margin-bottom: 16px;
     }
 
-    .operate-box {
-      display: flex;
-      gap: 15px;
-      justify-content: flex-end;
-      align-items: center;
+    :deep(.table-box) {
+      .targets-box {
+        display: flex;
+        width: 100%;
+        flex-flow: column wrap;
+        padding: 5px 15px;
+      }
 
-      .operations-more {
-        .icon {
-          font-size:18px;
-          color:#63656E;
-          cursor: pointer;
+      .operate-box {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        align-items: center;
+
+        .operations-more {
+          .icon {
+            font-size: 18px;
+            color: #63656e;
+            cursor: pointer;
+          }
+        }
+      }
+
+      .is-new {
+        td {
+          background-color: #f3fcf5 !important;
         }
       }
     }
-
-    .is-new {
-      td {
-        background-color: #f3fcf5 !important;
-      }
-    }
   }
-}
 </style>
 <style lang="less">
-.monitor-alarm-danger-box {
-  .bk-tag {
-    cursor: pointer;
+  .monitor-alarm-danger-box {
+    .bk-tag {
+      cursor: pointer;
+    }
   }
-}
 </style>

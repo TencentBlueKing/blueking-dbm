@@ -27,10 +27,10 @@
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
-    clusterData?: SpiderModel
+    clusterData?: SpiderModel;
   }
   interface Exposes {
-    getValue: () => Promise<any>
+    getValue: () => Promise<any>;
   }
 
   defineProps<Props>();

@@ -19,7 +19,7 @@
     :rules="rules"
     @change="handleChange">
     <template #tip>
-      <p style="font-weight: bold;">
+      <p style="font-weight: bold">
         {{ $t('可使用通配符进行提取，如：') }}
       </p>
       <p>{{ $t('*Key$ ：提取以 Key 结尾的 key，包括 Key') }}</p>
@@ -34,14 +34,14 @@
   import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
 
   interface Props {
-    data: string [],
-    required?: boolean
+    data: string[];
+    required?: boolean;
   }
   interface Emits {
-    (e: 'change', value: string[]): void
+    (e: 'change', value: string[]): void;
   }
   interface Exposes {
-    getValue: () => Promise<string []>
+    getValue: () => Promise<string[]>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -53,7 +53,7 @@
   const { t } = useI18n();
   const rules = [
     {
-      validator: (value: string []) => {
+      validator: (value: string[]) => {
         if (!props.required) {
           return true;
         }

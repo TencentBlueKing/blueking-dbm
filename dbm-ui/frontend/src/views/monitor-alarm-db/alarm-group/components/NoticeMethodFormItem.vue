@@ -26,7 +26,7 @@
         <BkButton
           v-bk-tooltips="{
             content: t('已配置全天24小时生效时段，无需额外添加生效时段'),
-            disabled: addPanelTipDiabled
+            disabled: addPanelTipDiabled,
           }"
           class="add-panel-button"
           :disabled="!addPanelTipDiabled"
@@ -43,10 +43,12 @@
         :name="item.name">
         <template #label>
           <BkTimePicker
-            :ref="(el: TimePickerRef) => {
-              setTimePickerRef(el, index)
-              return void 0
-            }"
+            :ref="
+              (el: TimePickerRef) => {
+                setTimePickerRef(el, index);
+                return void 0;
+              }
+            "
             append-to-body
             format="HH:mm"
             :open="item.open"
@@ -67,7 +69,7 @@
                   @click.stop="handleTabDelete(index)">
                   <DbIcon type="delete" />
                 </BkButton>
-              </bkbutton>
+              </BkButton>
             </template>
           </BkTimePicker>
         </template>
@@ -84,13 +86,13 @@
                   class="table-row-item table-row-head-item"
                   :class="{
                     'table-row-type': headItem.type,
-                    'table-row-input': headItem.input
+                    'table-row-input': headItem.input,
                   }">
                   <img
                     v-if="headItem.icon"
                     height="20"
                     :src="`data:image/png;base64,${headItem.icon}`"
-                    width="20">
+                    width="20" />
                   <span
                     class="ml-4"
                     :class="{ 'label-bold': headItem.bold }">
@@ -102,8 +104,7 @@
                 v-for="(dataItem, dataIndex) in item.dataList"
                 :key="dataIndex"
                 class="table-row table-content-row">
-                <div
-                  class="table-row-item table-row-type">
+                <div class="table-row-item table-row-type">
                   <div
                     class="table-row-type-text"
                     :class="[`table-row-type-text-${dataItem.type}`]">
@@ -132,7 +133,7 @@
       </BkTabPanel>
     </BkTab>
     <div
-      :class="{'notice-mothod-open-mask': isTimePickerOpen}"
+      :class="{ 'notice-mothod-open-mask': isTimePickerOpen }"
       @click="handleOpenMackClick" />
   </BkFormItem>
 </template>
@@ -677,7 +678,7 @@
     .panel-item-table {
       width: 100%;
       overflow: auto;
-      border: 1px solid #DCDEE5;
+      border: 1px solid #dcdee5;
       border-bottom: none;
       border-radius: 2px;
 
@@ -688,19 +689,19 @@
           display: flex;
           min-width: 120px;
           padding: 0 12px;
-          border-bottom: 1px solid #DCDEE5;
+          border-bottom: 1px solid #dcdee5;
           flex: 1;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
 
           &:not(:last-child) {
-            border-right: 1px solid #DCDEE5;
+            border-right: 1px solid #dcdee5;
           }
         }
 
         .table-row-head-item {
-          background-color: #FAFBFD;
+          background-color: #fafbfd;
         }
 
         .table-row-type {
@@ -755,7 +756,7 @@
       left: 0;
       z-index: 1;
       width: 100%;
-      height: 100%
+      height: 100%;
     }
   }
 </style>

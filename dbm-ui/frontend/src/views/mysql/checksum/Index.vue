@@ -26,7 +26,7 @@
       :title="t('数据校验修复_对集群的主库和从库进行数据一致性校验和修复_其中MyISAM引擎库表不会被校验和修复')" />
     <BkButton
       class="checksum-batch"
-      @click="() => isShowBatchInput = true">
+      @click="() => (isShowBatchInput = true)">
       <i class="db-icon-add" />
       {{ t('批量录入') }}
     </BkButton>
@@ -48,13 +48,13 @@
           property="timing"
           required>
           <div class="time-box">
-            <TimeZonePicker style="width: 350px;" />
+            <TimeZonePicker style="width: 350px" />
             <BkDatePicker
               v-model="formdata.timing"
               class="not-seconds-date-picker ml-8"
               :disabled-date="disabledDate"
               :placeholder="t('请选择xx', [t('定时执行时间')])"
-              style="width: 360px;"
+              style="width: 360px"
               type="datetime" />
           </div>
         </BkFormItem>
@@ -66,7 +66,7 @@
             v-model="formdata.runtime_hour"
             :max="168"
             :min="24"
-            style="width: 200px;"
+            style="width: 200px"
             type="number" />
         </BkFormItem>
         <BkFormItem
@@ -139,7 +139,7 @@
   <div
     v-show="isShowInputTips"
     ref="popRef"
-    style=" font-size: 12px; line-height: 24px;color: #63656e;">
+    style="font-size: 12px; line-height: 24px; color: #63656e">
     <p>{{ t('匹配任意长度字符串_如a_不允许独立使用') }}</p>
     <p>{{ t('匹配任意单一字符_如a_d') }}</p>
     <p>{{ t('专门指代ALL语义_只能独立使用') }}</p>

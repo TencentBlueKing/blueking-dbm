@@ -35,8 +35,8 @@
 
 <script setup lang="ts">
   interface Props {
-    theme?: 'default' | 'warning' | 'success' | 'danger' | 'loading' | string,
-    type?: 'fill' | 'linear' | string,
+    theme?: 'default' | 'warning' | 'success' | 'danger' | 'loading' | string;
+    type?: 'fill' | 'linear' | string;
   }
 
   const props = withDefaults(defineProps<Props>(), {

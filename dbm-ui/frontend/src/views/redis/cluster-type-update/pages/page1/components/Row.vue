@@ -13,33 +13,33 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.srcCluster"
         :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.srcClusterType"
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetClusterType
         ref="targetClusterTypeRef"
         :exclude-type="data.clusterType"
         :is-loading="data.isLoading"
         @change="handleClusterTypeChange" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.currentSepc"
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderDeployPlan
         ref="deployPlanRef"
         :data="data.deployPlan"
@@ -48,15 +48,14 @@
         :row-data="data"
         :target-cluster-type="selectClusterType" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetClusterVersion
         ref="versionRef"
         :data="data.dbVersion"
         :is-loading="data.isLoading"
         :select-list="versionList" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.switchMode"
         :is-loading="data.isLoading"
@@ -98,61 +97,61 @@
       cpu: {
         max: number;
         min: number;
-      },
+      };
       id: number;
       mem: {
         max: number;
         min: number;
-      },
+      };
       qps: {
         max: number;
         min: number;
-      },
-    },
+      };
+    };
     proxy: {
       id: number;
       count: number;
-    },
+    };
     targetClusterType?: string;
     currentCapacity?: {
-      used: number,
-      total: number,
+      used: number;
+      total: number;
     };
     deployPlan?: {
       used: number;
       current: number;
       total: number;
-    },
+    };
     backendGroup?: {
       id: number;
       count: number;
-    },
+    };
     targetShardNum?: number;
   }
 
   export interface InfoItem {
-    src_cluster: number,
-    current_cluster_type: string,
-    current_shard_num: number,
-    current_spec_id: number,
-    target_cluster_type: string,
-    db_version: string,
-    cluster_shard_num: number,
-    online_switch_type:'user_confirm',
-    capacity: number,
-    future_capacity: number,
+    src_cluster: number;
+    current_cluster_type: string;
+    current_shard_num: number;
+    current_spec_id: number;
+    target_cluster_type: string;
+    db_version: string;
+    cluster_shard_num: number;
+    online_switch_type: 'user_confirm';
+    capacity: number;
+    future_capacity: number;
     resource_spec: {
       proxy: {
-        spec_id: number,
-        count: number,
-        affinity: AffinityType,
-      },
+        spec_id: number;
+        count: number;
+        affinity: AffinityType;
+      };
       backend_group: {
-        spec_id: number,
-        count: number, // 机器组数
-        affinity: AffinityType,
-      },
-    }
+        spec_id: number;
+        count: number; // 机器组数
+        affinity: AffinityType;
+      };
+    };
   }
 
   // 创建表格数据
@@ -189,28 +188,27 @@
       count: 0,
     },
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
     clusterTypesMap: Record<string, string[]>;
     inputedClusters?: string[];
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    inputedClusters: () => ([]),
+    inputedClusters: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -223,7 +221,7 @@
 
   const versionList = computed(() => {
     if (props.clusterTypesMap && selectClusterType.value in props.clusterTypesMap) {
-      return props.clusterTypesMap[selectClusterType.value].map(item => ({
+      return props.clusterTypesMap[selectClusterType.value].map((item) => ({
         value: item,
         label: item,
       }));
@@ -259,7 +257,7 @@
         deployPlanRef.value.getValue(),
       ]).then((data: [string, string, ExposeValue]) => {
         const [targetClusterType, version, deployData] = data;
-        return ({
+        return {
           src_cluster: props.data.clusterId,
           current_cluster_type: props.data.clusterType,
           current_shard_num: props.data.currentShardNum,
@@ -282,7 +280,7 @@
               affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
             },
           },
-        });
+        };
       });
     },
   });

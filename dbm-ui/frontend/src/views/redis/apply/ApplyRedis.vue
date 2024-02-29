@@ -67,7 +67,7 @@
                     <p>{{ item.tipContent.desc }}</p>
                     <img
                       :src="item.tipContent.img"
-                      width="550">
+                      width="550" />
                   </div>
                 </template>
               </BkPopover>
@@ -127,10 +127,10 @@
                   <template #submitTips="{ hostList }">
                     <I18nT
                       keypath="至少n台_已选n台"
-                      style="font-size: 14px; color: #63656e;"
+                      style="font-size: 14px; color: #63656e"
                       tag="span">
-                      <span style="font-weight: bold; color: #2dcb56;"> 2 </span>
-                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                      <span style="font-weight: bold; color: #2dcb56"> 2 </span>
+                      <span style="font-weight: bold; color: #3a84ff"> {{ hostList.length }} </span>
                     </I18nT>
                   </template>
                 </IpSelector>
@@ -148,7 +148,7 @@
                       v-model="state.formdata.details.proxy_port"
                       :max="65535"
                       :min="1025"
-                      style="width: 120px;"
+                      style="width: 120px"
                       type="number" />
                     <span class="ml-16">{{ t('从n起', { n: state.formdata.details.proxy_port }) }}</span>
                   </BkFormItem>
@@ -172,10 +172,10 @@
                   <template #submitTips="{ hostList }">
                     <I18nT
                       keypath="至少n台_已选n台"
-                      style="font-size: 14px; color: #63656e;"
+                      style="font-size: 14px; color: #63656e"
                       tag="span">
-                      <span style="font-weight: bold; color: #2dcb56;"> 1 </span>
-                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                      <span style="font-weight: bold; color: #2dcb56"> 1 </span>
+                      <span style="font-weight: bold; color: #3a84ff"> {{ hostList.length }} </span>
                     </I18nT>
                   </template>
                 </IpSelector>
@@ -198,10 +198,10 @@
                   <template #submitTips="{ hostList }">
                     <I18nT
                       keypath="至少n台_已选n台"
-                      style="font-size: 14px; color: #63656e;"
+                      style="font-size: 14px; color: #63656e"
                       tag="span">
-                      <span style="font-weight: bold; color: #2dcb56;"> 1 </span>
-                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                      <span style="font-weight: bold; color: #2dcb56"> 1 </span>
+                      <span style="font-weight: bold; color: #3a84ff"> {{ hostList.length }} </span>
                     </I18nT>
                   </template>
                 </IpSelector>
@@ -215,7 +215,7 @@
                   :key="capSpecsKey"
                   v-bk-tooltips="{
                     disabled: !disableCapSpecs,
-                    content: t('请确保Master和Slave的机器数量至少1台且机器数要相等')
+                    content: t('请确保Master和Slave的机器数量至少1台且机器数要相等'),
                   }"
                   class="item-input">
                   <BkSelect
@@ -258,7 +258,7 @@
                       :cloud-id="state.formdata.details.bk_cloud_id"
                       :cluster-type="typeInfos.cluster_type"
                       :machine-type="typeInfos.machine_type"
-                      style="width: 314px;" />
+                      style="width: 314px" />
                   </BkFormItem>
                   <BkFormItem
                     :label="t('数量')"
@@ -268,7 +268,7 @@
                       v-model="state.formdata.details.resource_spec.proxy.count"
                       :min="2"
                       type="number" />
-                    <span class="input-desc">{{ t('至少n台', {n: 2}) }}</span>
+                    <span class="input-desc">{{ t('至少n台', { n: 2 }) }}</span>
                   </BkFormItem>
                 </div>
               </BkFormItem>
@@ -290,7 +290,7 @@
               v-model="state.formdata.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
-              style="width: 655px;"
+              style="width: 655px"
               type="textarea" />
           </BkFormItem>
         </DbCard>
@@ -323,19 +323,13 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import type { RedisFunctions } from '@services/model/function-controller/functionController';
   import { getCapSpecs } from '@services/source/infras';
-  import type {
-    BizItem,
-    HostDetails,
-  } from '@services/types';
+  import type { BizItem, HostDetails } from '@services/types';
 
-  import { useApplyBase, useInfo  } from '@hooks';
+  import { useApplyBase, useInfo } from '@hooks';
 
   import { useFunController } from '@stores';
 
@@ -357,24 +351,18 @@
 
   import { redisClusterTypes, redisIpSources } from './common/const';
 
-  type CapSepcs = ServiceReturnType<typeof getCapSpecs>[number]
+  type CapSepcs = ServiceReturnType<typeof getCapSpecs>[number];
 
   type Version = {
-    value: string,
-    label: string,
-  }
+    value: string;
+    label: string;
+  };
 
   const route = useRoute();
   const router = useRouter();
 
   // 基础设置
-  const {
-    baseState,
-    bizState,
-    handleCancel,
-    handleCreateAppAbbr,
-    handleCreateTicket,
-  } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const { t } = useI18n();
   const funControllerStore = useFunController();
@@ -382,7 +370,7 @@
   const slaveRef = ref();
   const specProxyRef = ref();
   const specBackendRef = ref();
-  const capSpecsKey  = ref(generateId('CLUSTER_APPLAY_CAP_'));
+  const capSpecsKey = ref(generateId('CLUSTER_APPLAY_CAP_'));
   const regionItemRef = ref();
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -391,7 +379,7 @@
     const values = Object.values(redisClusterTypes);
     const redisController = funControllerStore.funControllerData.redis;
 
-    return values.filter(item => redisController.children[item.id as RedisFunctions].is_enabled);
+    return values.filter((item) => redisController.children[item.id as RedisFunctions].is_enabled);
   });
 
   const cloudInfo = reactive({
@@ -407,11 +395,13 @@
   });
 
   const rules = {
-    'details.cluster_name': [{
-      message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-      trigger: 'blur',
-      validator: (val: string) => nameRegx.test(val),
-    }],
+    'details.cluster_name': [
+      {
+        message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+        trigger: 'blur',
+        validator: (val: string) => nameRegx.test(val),
+      },
+    ],
     'details.nodes.proxy': [
       {
         message: t('Proxy数量至少为2台'),
@@ -423,20 +413,16 @@
       {
         message: t('Master数量至少为1台_且机器数要和Slave相等'),
         trigger: 'change',
-        validator: (value: HostDetails[]) => (
-          value.length > 0
-          && state.formdata.details.nodes.slave.length === value.length
-        ),
+        validator: (value: HostDetails[]) =>
+          value.length > 0 && state.formdata.details.nodes.slave.length === value.length,
       },
     ],
     'details.nodes.slave': [
       {
         message: t('Slave数量至少为1台_且机器数要和Master相等'),
         trigger: 'change',
-        validator: (value: HostDetails[]) => (
-          value.length > 0
-          && state.formdata.details.nodes.master.length === value.length
-        ),
+        validator: (value: HostDetails[]) =>
+          value.length > 0 && state.formdata.details.nodes.master.length === value.length,
       },
     ],
   };
@@ -444,7 +430,9 @@
   const disableCapSpecs = computed(() => {
     const { master, slave } = state.formdata.details.nodes;
     // 资源池模式不需要判断
-    if (!isManualInput.value) return false;
+    if (!isManualInput.value) {
+      return false;
+    }
     return master.length === 0 || master.length !== slave.length;
   });
   const typeInfos = computed(() => {
@@ -551,7 +539,7 @@
     })
       .then((res) => {
         state.capSpecs = res;
-        const suggestItem = res.find(item => item.selected);
+        const suggestItem = res.find((item) => item.selected);
         if (suggestItem) {
           state.formdata.details.cap_key = suggestItem.cap_key;
         } else if (res.length > 0) {
@@ -592,7 +580,7 @@
   /**
    * 变更所属管控区域
    */
-  function handleChangeCloud(info: {id: number | string, name: string}) {
+  function handleChangeCloud(info: { id: number | string; name: string }) {
     cloudInfo.id = info.id;
     cloudInfo.name = info.name;
 
@@ -623,10 +611,14 @@
     slave: (hostList: Array<any>) => (hostList.length >= 1 ? false : t('至少n台', { n: 1 })),
   };
 
-  const makeMapByHostId = (hostList: HostDetails[]) => hostList.reduce((result, item) => ({
-    ...result,
-    [item.host_id]: true,
-  }), {} as Record<number, boolean>);
+  const makeMapByHostId = (hostList: HostDetails[]) =>
+    hostList.reduce(
+      (result, item) => ({
+        ...result,
+        [item.host_id]: true,
+      }),
+      {} as Record<number, boolean>,
+    );
 
   // proxy、master、slave 互斥
   function proxyDisableHostMethod(data: any) {
@@ -702,7 +694,7 @@
    * 格式化 IP 提交格式
    */
   function formatNodes(hosts: HostDetails[]) {
-    return hosts.map(host => ({
+    return hosts.map((host) => ({
       ip: host.ip,
       bk_host_id: host.host_id,
       bk_cloud_id: host.cloud_id,
@@ -797,7 +789,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/applyInstance.less";
+  @import '@styles/applyInstance.less';
 
   .apply-instance {
     :deep(.item-input) {
@@ -821,7 +813,7 @@
     .resource-pool-item {
       width: 655px;
       padding: 24px 0;
-      background-color: #F5F7FA;
+      background-color: #f5f7fa;
       border-radius: 2px;
 
       .bk-form-item {

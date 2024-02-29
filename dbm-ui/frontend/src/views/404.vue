@@ -14,7 +14,7 @@
 <template>
   <div class="app-exception">
     <div class="app-exception-content">
-      <img src="@images/404.png">
+      <img src="@images/404.png" />
       <p class="app-exception-text">
         {{ t('没找到页面') }}
       </p>

@@ -23,44 +23,52 @@
 
   import type { ResourceRedisItem } from '@services/types/clusters';
 
-  import EditInfo, {
-    type InfoColumn,
-  } from '@components/editable-info/index.vue';
+  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
   interface Props {
-    data: ResourceRedisItem
+    data: ResourceRedisItem;
   }
 
   defineProps<Props>();
 
   const { t } = useI18n();
 
-  const columns:InfoColumn[][] = [
-    [{
-      label: t('集群名称'),
-      key: 'cluster_name',
-    }, {
-      label: t('集群别名'),
-      key: 'cluster_alias',
-    }, {
-      label: t('域名'),
-      key: 'master_domain',
-    }],
-    [{
-      label: t('架构版本'),
-      key: 'cluster_type_name',
-    }, {
-      label: t('数据库版本'),
-      key: 'major_version',
-    }, {
-      label: t('地域'),
-      key: 'region',
-    }, {
-      label: t('创建人'),
-      key: 'creator',
-    }, {
-      label: t('创建时间'),
-      key: 'create_at',
-    }],
+  const columns: InfoColumn[][] = [
+    [
+      {
+        label: t('集群名称'),
+        key: 'cluster_name',
+      },
+      {
+        label: t('集群别名'),
+        key: 'cluster_alias',
+      },
+      {
+        label: t('域名'),
+        key: 'master_domain',
+      },
+    ],
+    [
+      {
+        label: t('架构版本'),
+        key: 'cluster_type_name',
+      },
+      {
+        label: t('数据库版本'),
+        key: 'major_version',
+      },
+      {
+        label: t('地域'),
+        key: 'region',
+      },
+      {
+        label: t('创建人'),
+        key: 'creator',
+      },
+      {
+        label: t('创建时间'),
+        key: 'create_at',
+      },
+    ],
   ];
 </script>

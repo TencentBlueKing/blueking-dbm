@@ -86,13 +86,10 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
-  import RedisDSTHistoryJobModel  from '@services/model/redis/redis-dst-history-job';
+  import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
   import { getRedisList } from '@services/source/redis';
 
-  import {
-    ClusterTypes,
-    LocalStorageKeys,
-  } from '@common/const';
+  import { ClusterTypes, LocalStorageKeys } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
@@ -103,24 +100,21 @@
 
   import { destroyLocalStorage } from '../../Index.vue';
 
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './Row.vue';
 
   interface Props {
     clusterList: SelectItem[];
   }
 
   interface Exposes {
-    getValue: () => Promise<IntraBusinessToThirdInfoItem[]>,
-    resetTable: () => void
+    getValue: () => Promise<IntraBusinessToThirdInfoItem[]>;
+    resetTable: () => void;
   }
 
   defineProps<Props>();
 
   const emits = defineEmits<{
-    'change-table-available': [status: boolean]
+    'change-table-available': [status: boolean];
   }>();
 
   const { t } = useI18n();
@@ -129,27 +123,31 @@
   const isShowClusterSelector = ref(false);
   const rowRefs = ref();
 
-  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
-  const tableAvailable = computed(() => tableData.value.findIndex(item => Boolean(item.srcCluster)) > -1);
-  const inputedClusters = computed(() => tableData.value.map(item => item.srcCluster));
+  const tableAvailable = computed(() => tableData.value.findIndex((item) => Boolean(item.srcCluster)) > -1);
+  const inputedClusters = computed(() => tableData.value.map((item) => item.srcCluster));
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
       disabledRowConfig: {
-        handler: (data: RedisModel) => data.redis_slave.filter(item => item.status !== 'running').length > 0,
+        handler: (data: RedisModel) => data.redis_slave.filter((item) => item.status !== 'running').length > 0,
         tip: t('slave 状态异常，无法选择'),
       },
-      columnStatusFilter: (data: RedisModel) => data.redis_slave.filter(item => item.status !== 'running').length === 0,
+      columnStatusFilter: (data: RedisModel) =>
+        data.redis_slave.filter((item) => item.status !== 'running').length === 0,
     },
   };
 
   // 集群域名是否已存在表格的映射表
   let domainMemo = {} as Record<string, boolean>;
 
-  watch(() => tableAvailable.value, (status) => {
-    emits('change-table-available', status);
-  });
+  watch(
+    () => tableAvailable.value,
+    (status) => {
+      emits('change-table-available', status);
+    },
+  );
 
   onMounted(() => {
     checkandRecoverDataListFromLocalStorage();
@@ -161,19 +159,20 @@
       return;
     }
     const item = JSON.parse(r) as RedisDSTHistoryJobModel;
-    tableData.value = [{
-      rowKey: item.src_cluster,
-      isLoading: false,
-      srcCluster: item.src_cluster,
-      srcClusterId: item.src_cluster_id,
-      targetCluster: item.dst_cluster,
-      includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
-      excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
-      password: '',
-    }];
+    tableData.value = [
+      {
+        rowKey: item.src_cluster,
+        isLoading: false,
+        srcCluster: item.src_cluster,
+        srcClusterId: item.src_cluster_id,
+        targetCluster: item.dst_cluster,
+        includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
+        excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
+        password: '',
+      },
+    ];
     destroyLocalStorage();
   };
-
 
   // 检测列表是否为空
   const checkListEmpty = (list: IDataRow[]) => {
@@ -188,7 +187,6 @@
     isShowClusterSelector.value = true;
   };
 
-
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     tableData.value.splice(index + 1, 0, ...appendList);
@@ -200,7 +198,7 @@
     tableData.value.splice(index, 1);
     delete domainMemo[srcCluster];
     const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
-    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== srcCluster);
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter((item) => item.master_domain !== srcCluster);
   };
 
   const generateTableRow = (item: RedisModel) => ({
@@ -216,7 +214,7 @@
   });
 
   // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+  const handelClusterChange = async (selected: { [key: string]: Array<RedisModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
@@ -252,7 +250,7 @@
     if (result.results.length < 1) {
       return;
     }
-    const list = result.results.filter(item => item.master_domain === domain);
+    const list = result.results.filter((item) => item.master_domain === domain);
     if (list.length === 0) {
       return;
     }
@@ -264,9 +262,10 @@
   };
 
   defineExpose<Exposes>({
-    getValue: () => Promise.all<IntraBusinessToThirdInfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<IntraBusinessToThirdInfoItem>
-    }) => item.getValue())),
+    getValue: () =>
+      Promise.all<IntraBusinessToThirdInfoItem[]>(
+        rowRefs.value.map((item: { getValue: () => Promise<IntraBusinessToThirdInfoItem> }) => item.getValue()),
+      ),
     resetTable: () => {
       tableData.value = [createRowData()];
       selectedClusters.value[ClusterTypes.REDIS] = [];
@@ -275,12 +274,11 @@
   });
 </script>
 <style lang="less">
-.render-data {
-  .batch-edit-btn {
-    margin-left: 4px;
-    color: #3a84ff;
-    cursor: pointer;
+  .render-data {
+    .batch-edit-btn {
+      margin-left: 4px;
+      color: #3a84ff;
+      cursor: pointer;
+    }
   }
-}
-
 </style>

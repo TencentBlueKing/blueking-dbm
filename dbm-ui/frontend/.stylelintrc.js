@@ -9,43 +9,38 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 module.exports = {
-  extends: [
-    'stylelint-config-standard',
-  ],
-  plugins: [
-    'stylelint-order',
-  ],
+  extends: ['stylelint-config-standard'],
+  plugins: ['stylelint-order'],
   rules: {
     'media-feature-range-notation': 'prefix',
-    'function-no-unknown': [true, {
-      ignoreFunctions: [
-        'extend',
-      ]
-    }],
-    'at-rule-no-unknown': [true, {
-      ignoreAtRules: [
-        'function',
-        'if',
-        'each',
-        'include',
-        'mixin',
-        'define-mixin',
-        'extend',
-      ],
-    }],
-    'selector-pseudo-class-no-unknown': [true, {
-      ignorePseudoClasses: ['/deep/'],
-    }],
+    'function-no-unknown': [
+      true,
+      {
+        ignoreFunctions: ['extend'],
+      },
+    ],
+    'at-rule-no-unknown': [
+      true,
+      {
+        ignoreAtRules: ['function', 'if', 'each', 'include', 'mixin', 'define-mixin', 'extend'],
+      },
+    ],
+    'selector-pseudo-class-no-unknown': [
+      true,
+      {
+        ignorePseudoClasses: ['/deep/'],
+      },
+    ],
     'import-notation': 'string',
     'selector-class-pattern': '^[a-z][a-z0-9_-]+$',
     'alpha-value-notation': 'percentage',
     'no-descending-specificity': null,
     'selector-id-pattern': null,
-    indentation: 2,
-    'order/properties-order': [ // 指定声明块内属性的字母顺序
+    'order/properties-order': [
+      // 指定声明块内属性的字母顺序
       'position',
       'top',
       'right',
@@ -202,6 +197,6 @@ module.exports = {
     {
       files: ['*.vue', './**/*.vue'],
       customSyntax: 'postcss-html',
-    }
-  ]
+    },
+  ],
 };

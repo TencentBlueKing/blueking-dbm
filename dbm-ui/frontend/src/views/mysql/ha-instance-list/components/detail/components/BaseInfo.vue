@@ -162,18 +162,18 @@
 </script>
 
 <style lang="less" scoped>
-.base-info {
-  box-shadow: unset;
+  .base-info {
+    box-shadow: unset;
 
-  :deep(.inline-item) {
-    display: flex;
-    align-items: center;
+    :deep(.inline-item) {
+      display: flex;
+      align-items: center;
 
-    .db-icon-link {
-      color: @primary-color;
-      cursor: pointer;
-      flex-shrink: 0;
+      .db-icon-link {
+        color: @primary-color;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
     }
   }
-}
 </style>

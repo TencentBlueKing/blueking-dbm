@@ -7,13 +7,8 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    onBeforeUnmount,
-    ref,
-  } from 'vue';
-  import {
-    useRoute,
-  } from 'vue-router';
+  import { onBeforeUnmount, ref } from 'vue';
+  import { useRoute } from 'vue-router';
 
   import ApplyDataModel from '@services/model/iam/apply-data';
 
@@ -41,11 +36,15 @@
     }
   });
 
-  watch(route, () => {
-    needApplyPermission.value = false;
-  }, {
-    immediate: true,
-  });
+  watch(
+    route,
+    () => {
+      needApplyPermission.value = false;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handlePermissionPage = (data: any) => {
     needApplyPermission.value = true;
@@ -60,6 +59,6 @@
 </script>
 <style lang="less">
   .dbm-router-view {
-    display: block
+    display: block;
   }
 </style>

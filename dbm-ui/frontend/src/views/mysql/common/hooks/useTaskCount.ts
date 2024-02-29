@@ -9,20 +9,13 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-
-import tippy, {
-  type Instance,
-  type SingleTarget,
-} from 'tippy.js';
+import tippy, { type Instance, type SingleTarget } from 'tippy.js';
 import { useRouter } from 'vue-router';
 
 import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
-import {
-  deleteUserSemanticTasks,
-  getUserSemanticTasks,
-} from '@services/source/sqlImport';
+import { deleteUserSemanticTasks, getUserSemanticTasks } from '@services/source/sqlImport';
 
 import { useGlobalBizs, useSQLTaskCount } from '@stores';
 
@@ -86,16 +79,16 @@ export const useTaskCount = (clusterType: string) => {
 
   fetchData();
 
-  const {
-    pause,
-    resume,
-  } = useTimeoutPoll(fetchData, 10000);
+  const { pause, resume } = useTimeoutPoll(fetchData, 10000);
 
-  watch(() => taskCountStore.isPolling, () => {
-    if (taskCountStore.isPolling === false) {
-      fetchData();
-    }
-  });
+  watch(
+    () => taskCountStore.isPolling,
+    () => {
+      if (taskCountStore.isPolling === false) {
+        fetchData();
+      }
+    },
+  );
 
   const handleRevokeTask = (taskData: UserSemanticTaskModel) => {
     deleteUserSemanticTasks({

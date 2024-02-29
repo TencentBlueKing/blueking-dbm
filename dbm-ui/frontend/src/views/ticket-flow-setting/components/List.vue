@@ -17,7 +17,7 @@
       <span
         v-bk-tooltips="{
           disabled: hasSelected,
-          content: t('请选择单据')
+          content: t('请选择单据'),
         }"
         class="inline-block">
         <BkButton
@@ -295,88 +295,85 @@
   const handleClearSearch = () => {
     searchValue.value = [];
   };
-
 </script>
 <style lang="less" scoped>
-.ticket-flow-list-content {
-  display: flex;
-  padding: 24px;
-  flex-direction: column;
-
-  .top-operation {
+  .ticket-flow-list-content {
     display: flex;
-    width: 100%;
-    height: 32px;
-    justify-content: space-between;
-    margin-bottom: 16px;
+    padding: 24px;
+    flex-direction: column;
 
-    .input-box {
-      width: 600px;
+    .top-operation {
+      display: flex;
+      width: 100%;
       height: 32px;
+      justify-content: space-between;
       margin-bottom: 16px;
+
+      .input-box {
+        width: 600px;
+        height: 32px;
+        margin-bottom: 16px;
+      }
+    }
+
+    :deep(.table-box) {
+      .strategy-title {
+        display: flex;
+
+        .name {
+          margin-left: 8px;
+        }
+      }
+
+      .notify-box {
+        display: inline-block;
+        height: 22px;
+        padding: 2.5px 5px;
+        background: #f0f1f5;
+        border-radius: 2px;
+
+        .dba {
+          margin-left: 8px;
+        }
+      }
+
+      .operate-box {
+        display: flex;
+        align-items: center;
+      }
+
+      .is-new {
+        td {
+          background-color: #f3fcf5 !important;
+        }
+      }
     }
   }
-
-
-  :deep(.table-box) {
-    .strategy-title {
-      display: flex;
-
-      .name {
-        margin-left: 8px;
-      }
-    }
-
-    .notify-box {
-      display: inline-block;
-      height: 22px;
-      padding: 2.5px 5px;
-      background: #F0F1F5;
-      border-radius: 2px;
-
-      .dba {
-        margin-left: 8px;
-      }
-    }
-
-    .operate-box {
-      display: flex;
-      align-items: center;
-    }
-
-    .is-new {
-      td {
-        background-color: #f3fcf5 !important;
-      }
-    }
-  }
-
-}
 </style>
 
 <style lang="less">
-.ticket-flow-change-node-box {
-  .item-box {
-    display: flex;
-    width: 100%;
+  .ticket-flow-change-node-box {
+    .item-box {
+      display: flex;
+      width: 100%;
 
-    .title {
-      width: 60px
-    }
-
-    .content {
-      flex: 1;
-      height: auto;
-
-      .add-node {
-        color: #FF9C01;
+      .title {
+        width: 60px;
       }
 
-      .delete-node {
-        color: #EA3636;
-        text-decoration:line-through;
+      .content {
+        flex: 1;
+        height: auto;
+
+        .add-node {
+          color: #ff9c01;
+        }
+
+        .delete-node {
+          color: #ea3636;
+          text-decoration: line-through;
+        }
       }
     }
   }
-}
 </style>

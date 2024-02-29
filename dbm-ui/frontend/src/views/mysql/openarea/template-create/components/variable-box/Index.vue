@@ -7,13 +7,12 @@
       {{ t('变量') }}
     </div>
     <div
-      v-bkloading="{isLoading}"
+      v-bkloading="{ isLoading }"
       class="wrapper">
       <BkAlert
         class="mb-16"
         :title="t('可以在命名范式与 xxx 中使用')" />
-      <RenderTable
-        class="mt16">
+      <RenderTable class="mt16">
         <template
           v-for="(item, index) in variableList"
           :key="`${item.name}#${index}`">
@@ -47,18 +46,16 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    messageSuccess,
-  } from '@utils';
+  import { messageSuccess } from '@utils';
 
   import CreateRow from './components/CreateRow.vue';
   import RenderRow from './components/Row.vue';
   import RenderTable from './components/Table.vue';
 
   export interface IVariable {
-    name: string,
-    desc: string,
-    builtin: boolean,
+    name: string;
+    desc: string;
+    builtin: boolean;
   }
 
   const OPEN_AREA_VARS_KEY = 'OPEN_AREA_VARS';
@@ -71,19 +68,14 @@
   });
   const variableList = shallowRef<IVariable[]>([]);
 
-  const {
-    loading: isLoading,
-    run: fetchVariableList,
-  } = useRequest(getBizSettingList, {
+  const { loading: isLoading, run: fetchVariableList } = useRequest(getBizSettingList, {
     manual: true,
     onSuccess(data) {
-      variableList.value = _.sortBy(data[OPEN_AREA_VARS_KEY], item => !item.builtin);
+      variableList.value = _.sortBy(data[OPEN_AREA_VARS_KEY], (item) => !item.builtin);
     },
   });
 
-  const {
-    run: deleteVariableMethod,
-  } = useRequest(updateVariable<'delete'>, {
+  const { run: deleteVariableMethod } = useRequest(updateVariable<'delete'>, {
     manual: true,
     onSuccess() {
       messageSuccess(t('删除成功'));
@@ -141,18 +133,18 @@
     z-index: 99;
     width: 600px;
     background-color: #fff;
-    box-shadow: -1px 0 0 0 #DCDEE5;
+    box-shadow: -1px 0 0 0 #dcdee5;
 
-    .bk-table{
-      .bk-table-body{
-        tr{
-          .copy-btn{
+    .bk-table {
+      .bk-table-body {
+        tr {
+          .copy-btn {
             cursor: pointer;
             opacity: 0%;
           }
 
-          &:hover{
-            .copy-btn{
+          &:hover {
+            .copy-btn {
               color: #3a84ff;
               opacity: 100%;
               transition: 0.1s;
@@ -162,36 +154,36 @@
       }
     }
 
-    .title{
+    .title {
       display: flex;
       height: 52px;
       padding-left: 24px;
-      box-shadow: inset 0 -1px 0 0 #DCDEE5;
+      box-shadow: inset 0 -1px 0 0 #dcdee5;
       align-items: center;
     }
 
-    .wrapper{
+    .wrapper {
       padding: 16px;
 
-      .action-btn{
+      .action-btn {
         display: inline-flex;
         font-size: 14px;
         color: #c4c6cc;
         cursor: pointer;
-        transition: all .15s;
+        transition: all 0.15s;
 
-        &:hover{
+        &:hover {
           color: #979ba5;
         }
 
-        &.is-disabled{
+        &.is-disabled {
           color: #dcdee5;
           cursor: not-allowed;
         }
       }
     }
 
-    .close-btn{
+    .close-btn {
       position: absolute;
       top: 5px;
       right: 5px;
@@ -205,8 +197,7 @@
       align-items: center;
       justify-content: center;
 
-
-      &:hover{
+      &:hover {
         background-color: #f0f1f5;
       }
     }

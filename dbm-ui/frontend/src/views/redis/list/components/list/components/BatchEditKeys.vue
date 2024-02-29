@@ -21,7 +21,7 @@
     :width="540">
     <i
       class="db-icon-bulk-edit batch-edit__trigger"
-      @click="() => state.isShow = true" />
+      @click="() => (state.isShow = true)" />
     <template #content>
       <div class="batch-edit__content">
         <p class="batch-edit__header">
@@ -64,11 +64,11 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    title?: string
+    title?: string;
   }
 
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: string): void;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -99,27 +99,35 @@
     return !isEmpty;
   };
 
-  watch(() => state.isShow, (show) => {
-    if (show === false) {
-      state.value = '';
-      validateState.isShow = false;
-    } else {
-      nextTick(() => {
-        textareaRef.value?.focus?.();
-      });
-    }
-  });
+  watch(
+    () => state.isShow,
+    (show) => {
+      if (show === false) {
+        state.value = '';
+        validateState.isShow = false;
+      } else {
+        nextTick(() => {
+          textareaRef.value?.focus?.();
+        });
+      }
+    },
+  );
 
-  watch(() => state.value, (value) => {
-    value && handleValidate();
-  });
+  watch(
+    () => state.value,
+    (value) => {
+      value && handleValidate();
+    },
+  );
 
   /**
    * confirm batch edit
    */
   const handleConfirm = () => {
     handleValidate();
-    if (validateState.isShow === true) return;
+    if (validateState.isShow === true) {
+      return;
+    }
 
     emits('change', state.value);
     handleCancel();

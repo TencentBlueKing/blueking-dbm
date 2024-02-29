@@ -18,14 +18,14 @@
       'is-focused': isFocused,
       'is-disabled': disabled,
       'is-readonly': readonly,
-      'is-error': Boolean(errorMessage)
+      'is-error': Boolean(errorMessage),
     }">
     <div
       ref="inputRef"
       class="inner-input"
       :class="{
         ['is-error']: Boolean(errorMessage),
-        ['is-single']: !isFocused
+        ['is-single']: !isFocused,
       }"
       contenteditable="true"
       :spellcheck="false"
@@ -316,7 +316,7 @@
 
         br {
           white-space: nowrap;
-          content: "\A";
+          content: '\A';
         }
       }
     }

@@ -24,7 +24,7 @@
           keypath="共n条"
           tag="span">
           <template #n>
-            <strong style="color: #3a84ff;">{{ count }}</strong>
+            <strong style="color: #3a84ff">{{ count }}</strong>
           </template>
         </I18nT>
       </slot>
@@ -41,7 +41,6 @@
 </template>
 
 <script setup lang="ts">
-
   interface Props {
     collapse: boolean;
     count: number;
@@ -53,9 +52,12 @@
     collapse: props.collapse,
   });
 
-  watch(() => props.collapse, () => {
-    state.collapse = props.collapse;
-  });
+  watch(
+    () => props.collapse,
+    () => {
+      state.collapse = props.collapse;
+    },
+  );
 
   function handleToggle() {
     state.collapse = !state.collapse;
@@ -63,7 +65,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .collapse-mini {
     margin-top: 16px;

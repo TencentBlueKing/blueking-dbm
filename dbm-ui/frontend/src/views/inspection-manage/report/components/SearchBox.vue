@@ -33,7 +33,7 @@
         </BkSelect>
       </BkFormItem>
     </BkForm>
-    <div style="padding: 0 12px;">
+    <div style="padding: 0 12px">
       <BkButton
         theme="primary"
         @click="handleSubmit">
@@ -55,8 +55,11 @@
 
   import { queryAllTypeCluster } from '@services/dbbase';
 
+<<<<<<< HEAD
   import { useUrlSearch } from '@hooks';
 
+=======
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
   interface Emits {
     (e: 'change', value: Record<string, any>): void;
   }
@@ -70,25 +73,29 @@
     status: '',
   });
 
-  const filterInvalidValue = (params: Record<string, any>) => Object.keys(params).reduce((result, item) => {
-    if (params[item]) {
-      return Object.assign(result, {
-        [item]: params[item],
-      });
-    }
-    return result;
-  }, {});
+  const filterInvalidValue = (params: Record<string, any>) =>
+    Object.keys(params).reduce((result, item) => {
+      if (params[item]) {
+        return Object.assign(result, {
+          [item]: params[item],
+        });
+      }
+      return result;
+    }, {});
 
   const { t } = useI18n();
   const { getSearchParams } = useUrlSearch();
 
   const formData = reactive(genDefaultData());
 
+<<<<<<< HEAD
   const serachParams = getSearchParams();
   Object.keys(formData).forEach((key) => {
     formData[key as keyof typeof formData] = serachParams[key];
   });
 
+=======
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
   const { data: clusterList } = useRequest(queryAllTypeCluster, {
     defaultParams: [
       {
@@ -97,17 +104,24 @@
     ],
   });
 
+<<<<<<< HEAD
   const handleDateChange = (value: [string, string]) => {
     [formData.create_at__gte, formData.create_at__lte] = value;
   };
 
+=======
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
   const handleSubmit = () => {
     emits(
       'change',
       filterInvalidValue({
         ...formData,
+<<<<<<< HEAD
         create_at__gte: formData.create_at__gte ? dayjs(formData.create_at__gte).format('YYYY-MM-DD HH:mm:ss') : '',
         create_at__lte: formData.create_at__lte ? dayjs(formData.create_at__lte).format('YYYY-MM-DD HH:mm:ss') : '',
+=======
+        create_at: formData.create_at ? dayjs(formData.create_at).format('YYYY-MM-DD') : '',
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
       }),
     );
   };
@@ -121,16 +135,16 @@
     padding: 16px 12px 36px;
     background: #fff;
 
-    .bk-form{
+    .bk-form {
       display: flex;
 
-      .bk-form-item{
+      .bk-form-item {
         flex: 1;
         padding: 0 12px;
       }
     }
 
-    .bk-date-picker{
+    .bk-date-picker {
       width: 100%;
     }
   }

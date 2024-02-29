@@ -56,5 +56,4 @@
       field: 'instance_num',
     });
   }
-
 </script>

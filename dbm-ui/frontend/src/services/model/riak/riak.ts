@@ -56,46 +56,46 @@ export default class Riak {
   cluster_type: string;
   cluster_type_name: string;
   operations: Array<{
-    cluster_id: number,
-    flow_id: number,
-    operator: string,
-    status: string,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
+    cluster_id: number;
+    flow_id: number;
+    operator: string;
+    status: string;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
   }>;
   riak_node: Array<{
-    name: string
-    ip: string
-    port: number
-    instance: string
-    status: 'running' | 'unavailable'
-    phase: string
-    bk_instance_id: number
-    bk_host_id: number
-    bk_cloud_id: number
+    name: string;
+    ip: string;
+    port: number;
+    instance: string;
+    status: 'running' | 'unavailable';
+    phase: string;
+    bk_instance_id: number;
+    bk_host_id: number;
+    bk_cloud_id: number;
     spec_config: {
-      id: number,
+      id: number;
       cpu: {
-        max: number,
-        min: number
-      },
+        max: number;
+        min: number;
+      };
       mem: {
-        max: number,
-        min: number
-      },
+        max: number;
+        min: number;
+      };
       qps: {
-        max: number,
-        min: number
-      },
-      name: string,
-      device_class: Array<unknown>,
+        max: number;
+        min: number;
+      };
+      name: string;
+      device_class: Array<unknown>;
       storage_spec: Array<{
-        size: number,
-        type: string,
-        mount_point: string
-      }>
-    },
+        size: number;
+        type: string;
+        mount_point: string;
+      }>;
+    };
   }>;
   domain: string;
   creator: string;
@@ -146,7 +146,7 @@ export default class Riak {
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(Riak.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   get operationRunningStatus() {
@@ -169,10 +169,7 @@ export default class Riak {
   }
 
   get isOfflineOperationRunning() {
-    return ([
-      Riak.RIAK_CLUSTER_ENABLE,
-      Riak.RIAK_CLUSTER_DESTROY,
-    ] as string[]).includes(this.operationRunningStatus);
+    return ([Riak.RIAK_CLUSTER_ENABLE, Riak.RIAK_CLUSTER_DESTROY] as string[]).includes(this.operationRunningStatus);
   }
 
   get isDisabled() {
@@ -214,7 +211,7 @@ export default class Riak {
   }
 
   get isStarting() {
-    return Boolean(this.operations.find(item => item.ticket_type === Riak.RIAK_CLUSTER_ENABLE));
+    return Boolean(this.operations.find((item) => item.ticket_type === Riak.RIAK_CLUSTER_ENABLE));
   }
 
   get createAtDisplay() {
@@ -222,7 +219,7 @@ export default class Riak {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: Riak.operationIconMap[item.ticket_type],
       tip: Riak.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,

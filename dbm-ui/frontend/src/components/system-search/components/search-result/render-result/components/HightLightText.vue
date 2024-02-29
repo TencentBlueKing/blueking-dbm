@@ -16,9 +16,9 @@
   import { encodeRegexp } from '@utils';
 
   interface Props {
-    keyWord: string,
-    text: string,
-    highLightColor?: string
+    keyWord: string;
+    text: string;
+    highLightColor?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {

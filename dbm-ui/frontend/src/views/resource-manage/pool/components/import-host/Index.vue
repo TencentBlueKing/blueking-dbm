@@ -41,7 +41,7 @@
         <span
           v-bk-tooltips="{
             disabled: hostSelectList.length > 1,
-            content: t('请选择主机')
+            content: t('请选择主机'),
           }">
           <BkButton
             :disabled="hostSelectList.length < 1"
@@ -61,10 +61,7 @@
   </BkDialog>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type ImportHostModel from '@services/model/db-resource/import-host';
@@ -79,8 +76,8 @@
     isShow: boolean;
   }
   interface Emits {
-    (e: 'update:isShow', value: boolean): void,
-    (e: 'change'): void
+    (e: 'update:isShow', value: boolean): void;
+    (e: 'change'): void;
   }
 
   defineProps<Props>();
@@ -100,21 +97,24 @@
 
   const handleSubmit = () => {
     isSubmiting.value = true;
-    formRef.value.getValue()
-      .then((data: any) => importResource({
-        for_bizs: data.for_bizs,
-        resource_types: data.resource_types,
-        hosts: hostSelectList.value.map(item => ({
-          ip: item.ip,
-          host_id: item.host_id,
-          bk_cloud_id: item.cloud_id,
-        })),
-      }).then(() => {
-        window.changeConfirm = false;
-        messageSuccess(t('操作成功'));
-        handleCancel();
-        emits('change');
-      }))
+    formRef.value
+      .getValue()
+      .then((data: any) =>
+        importResource({
+          for_bizs: data.for_bizs,
+          resource_types: data.resource_types,
+          hosts: hostSelectList.value.map((item) => ({
+            ip: item.ip,
+            host_id: item.host_id,
+            bk_cloud_id: item.cloud_id,
+          })),
+        }).then(() => {
+          window.changeConfirm = false;
+          messageSuccess(t('操作成功'));
+          handleCancel();
+          emits('change');
+        }),
+      )
       .finally(() => {
         isSubmiting.value = false;
       });

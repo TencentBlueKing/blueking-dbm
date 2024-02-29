@@ -16,7 +16,7 @@
     <div
       class="left-box"
       :style="{
-        display: flowList.length === 0 ? 'none' : 'block'
+        display: flowList.length === 0 ? 'none' : 'block',
       }">
       <div
         v-show="flowList.length > 0"
@@ -29,7 +29,7 @@
       </div>
       <template v-if="flowList.length > 0">
         <div
-          v-for="index in flowList.length -1"
+          v-for="index in flowList.length - 1"
           :key="index"
           class="item-box other">
           <div class="item">
@@ -67,7 +67,7 @@
         <div class="operate-box">
           <i
             class="db-icon-plus-fill icon plus"
-            :class="{'no-active-icon': disabled || !bizObj.activeAdd}"
+            :class="{ 'no-active-icon': disabled || !bizObj.activeAdd }"
             @click="() => handleClickPlusItem(-1, bizObj.activeAdd)" />
         </div>
       </div>
@@ -75,7 +75,7 @@
         v-for="(item, index) in flowList"
         :key="item.title"
         class="item-box other"
-        :class="{'custom': item.isCustom}">
+        :class="{ custom: item.isCustom }">
         <span class="left-bar" />
         <div class="title-box">
           <BkSelect
@@ -122,11 +122,11 @@
           <template v-if="!item.isCustom">
             <i
               class="db-icon-plus-fill icon plus"
-              :class="{'no-active-icon': !item.activeAdd}"
+              :class="{ 'no-active-icon': !item.activeAdd }"
               @click="() => handleClickPlusItem(index, item.activeAdd)" />
             <i
               class="db-icon-minus-fill icon minus"
-              :class="{'no-active-icon': !item.activeMinus}"
+              :class="{ 'no-active-icon': !item.activeMinus }"
               @click="handleClickMinusItem(index)" />
           </template>
         </div>
@@ -448,206 +448,201 @@
       flowList.value = initFlowList();
     },
   });
-
 </script>
 <style lang="less" scoped>
-.monitor-targets-box {
-  display: flex;
-  width: 100%;
+  .monitor-targets-box {
+    display: flex;
+    width: 100%;
 
-  .left-box {
-    width: 60px;
+    .left-box {
+      width: 60px;
 
-    .item-box {
-      position: relative;
-      width: 44px;
-      height: 22px;
-      margin-top: 31px;
-      font-size: 12px;
-      line-height: 22px;
-      color: #3A84FF;
-      text-align: center;
-      background: #EDF4FF;
-      border-radius: 2px;
+      .item-box {
+        position: relative;
+        width: 44px;
+        height: 22px;
+        margin-top: 31px;
+        font-size: 12px;
+        line-height: 22px;
+        color: #3a84ff;
+        text-align: center;
+        background: #edf4ff;
+        border-radius: 2px;
 
-      .top-bar {
-        position: absolute;
-        top: -16px;
-        left: 20px;
-        width: 0;
-        height: 16px;
-        border-left: 1px solid #C4C6CC;
-      }
+        .top-bar {
+          position: absolute;
+          top: -16px;
+          left: 20px;
+          width: 0;
+          height: 16px;
+          border-left: 1px solid #c4c6cc;
+        }
 
-      .bottom-bar {
-        position: absolute;
-        bottom: -15px;
-        left: 20px;
-        width: 0;
-        height: 15px;
-        border-left: 1px solid #C4C6CC;
-      }
-    }
-
-    .other {
-      margin-top: 31px;
-    }
-  }
-
-  .right-box {
-    flex: 1;
-
-    .biz {
-      .content {
-        background-color: #FAFBFD;
-
-        :deep(.bk-input) {
-          border-left-width: 0;
-          border-bottom-left-radius: 0;
-          border-top-left-radius: 0;
+        .bottom-bar {
+          position: absolute;
+          bottom: -15px;
+          left: 20px;
+          width: 0;
+          height: 15px;
+          border-left: 1px solid #c4c6cc;
         }
       }
 
+      .other {
+        margin-top: 31px;
+      }
     }
 
-    .item-box {
-      position: relative;
-      display: flex;
-      width: 100%;
-      height: 32px;
+    .right-box {
+      flex: 1;
 
-
-      .left-bar {
-        position: absolute;
-        top: 15px;
-        left: -40px;
-        width: 40px;
-        height: 0;
-        border-bottom: 1px solid #C4C6CC;
-      }
-
-      .title-box {
-        display: flex;
-        width: 80px;
-        height: 32px;
-        background: #FAFBFD;
-        align-items: center;
-        justify-content: space-between;
-
-        .title-select {
-          width: 100%;
+      .biz {
+        .content {
+          background-color: #fafbfd;
 
           :deep(.bk-input) {
-            border-radius: 2px 0 0 2px;
+            border-left-width: 0;
+            border-bottom-left-radius: 0;
+            border-top-left-radius: 0;
           }
         }
       }
 
-      .content {
-        flex: 1;
+      .item-box {
+        position: relative;
+        display: flex;
+        width: 100%;
+        height: 32px;
 
-        .is-focus {
+        .left-bar {
+          position: absolute;
+          top: 15px;
+          left: -40px;
+          width: 40px;
+          height: 0;
+          border-bottom: 1px solid #c4c6cc;
+        }
+
+        .title-box {
+          display: flex;
+          width: 80px;
+          height: 32px;
+          background: #fafbfd;
+          align-items: center;
+          justify-content: space-between;
+
+          .title-select {
+            width: 100%;
+
+            :deep(.bk-input) {
+              border-radius: 2px 0 0 2px;
+            }
+          }
+        }
+
+        .content {
+          flex: 1;
+
+          .is-focus {
+            :deep(.bk-select-tag) {
+              border-left-color: #3a84ff;
+
+              &:hover {
+                border-left-color: #3a84ff;
+              }
+            }
+          }
+
+          :deep(.bk-input) {
+            outline: none;
+          }
+
           :deep(.bk-select-tag) {
-            border-left-color: #3a84ff;
+            width: 100%;
+            min-height: 32px;
+            overflow: hidden;
+            border-left-color: transparent;
+            border-bottom-left-radius: 0;
+            border-top-left-radius: 0;
 
             &:hover {
-              border-left-color: #3a84ff;
+              border-left-color: #a4a2a2;
+            }
+
+            .bk-select-tag-wrapper {
+              height: auto;
+              max-height: 100px;
+              overflow-y: auto;
             }
           }
 
-        }
+          .content-custom {
+            display: flex;
+            width: 100%;
 
-        :deep(.bk-input) {
-          outline: none;
-        }
+            .condition {
+              width: 60px;
+              height: 32px;
+              line-height: 32px;
+              text-align: center;
+              border: 1px solid #c4c6cc;
+              border-right: none;
+            }
 
-        :deep(.bk-select-tag) {
-          width: 100%;
-          min-height: 32px;
-          overflow: hidden;
-          border-left-color: transparent;
-          border-bottom-left-radius: 0;
-          border-top-left-radius: 0;
+            .bk-tag-input {
+              flex: 1;
 
-          &:hover {
-            border-left-color: #a4a2a2;
-          }
-
-
-          .bk-select-tag-wrapper {
-            height: auto;
-            max-height: 100px;
-            overflow-y: auto;
+              :deep(.bk-tag-input-trigger) {
+                border-radius: 0;
+              }
+            }
           }
         }
 
-        .content-custom {
+        .operate-box {
           display: flex;
-          width: 100%;
+          width: 85px;
+          align-items: center;
+          padding-left: 12px;
 
-          .condition {
-            width: 60px;
-            height: 32px;
-            line-height: 32px;
-            text-align: center;
-            border: 1px solid #C4C6CC;
-            border-right: none;
+          .plus {
+            margin-right: 12px;
           }
 
-          .bk-tag-input {
-            flex: 1;
+          .icon {
+            font-size: 18px;
+            color: #979ba5;
+            cursor: pointer;
+          }
 
-            :deep(.bk-tag-input-trigger) {
-              border-radius: 0;
-            }
+          .active-icon {
+            color: #979ba5;
+          }
+
+          .no-active-icon {
+            color: #c4c6cc;
           }
         }
       }
 
-      .operate-box {
-        display: flex;
-        width: 85px;
-        align-items: center;
-        padding-left: 12px;
-
-        .plus {
-          margin-right: 12px;
-        }
-
-        .icon {
-          font-size: 18px;
-          color: #979BA5;
-          cursor: pointer;
-        }
-
-        .active-icon {
-          color: #979BA5;
-        }
-
-        .no-active-icon {
-          color: #C4C6CC;
-        }
+      .other {
+        margin-top: 21px;
       }
-    }
 
-    .other {
-      margin-top: 21px;
-    }
+      .custom {
+        .title-box {
+          width: auto;
+          min-width: 80px;
+          padding: 0 8px;
+          background: #f5f7fa;
+          border: none;
+          justify-content: center;
 
-    .custom {
-      .title-box {
-        width: auto;
-        min-width: 80px;
-        padding: 0 8px;
-        background: #F5F7FA;
-        border: none;
-        justify-content: center;
-
-        span {
-          font-size: 12px;
+          span {
+            font-size: 12px;
+          }
         }
       }
     }
   }
-}
 </style>

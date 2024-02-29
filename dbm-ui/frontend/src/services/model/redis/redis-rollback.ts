@@ -9,8 +9,9 @@
  * Unless required by applicable law or agreed to in writing; software distributed under the License is distributed
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { utcDisplayTime } from '@utils';
+
 export default class RedisRollback {
   // 0:未销毁 1:已销毁 2: 销毁中
   static NOT_DESTROYED = 0;
@@ -53,7 +54,7 @@ export default class RedisRollback {
       size: number;
       type: string;
       mount_point: string;
-    }[]
+    }[];
   };
   temp_instance_range: string[];
   temp_cluster_type: string;

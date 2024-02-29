@@ -178,5 +178,4 @@
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'PlatformVersionFiles');
 
   const styles = useMenuStyles(menuBoxRef);
-
 </script>

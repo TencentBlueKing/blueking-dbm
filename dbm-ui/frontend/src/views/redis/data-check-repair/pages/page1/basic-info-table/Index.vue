@@ -67,38 +67,31 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  import RenderDataRow, {
-    type IDataRow,
-    type InfoItem,
-  } from './Row.vue';
+  import RenderDataRow, { type IDataRow, type InfoItem } from './Row.vue';
 
   interface Props {
-    tableData: IDataRow[]
+    tableData: IDataRow[];
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem[]>
+    getValue: () => Promise<InfoItem[]>;
   }
 
   defineProps<Props>();
 
-
   const rowRefs = ref();
 
-
   defineExpose<Exposes>({
-    getValue: () => Promise.all<InfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<InfoItem>
-    }) => item.getValue())),
+    getValue: () =>
+      Promise.all<InfoItem[]>(rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue())),
   });
 </script>
 <style lang="less">
-.render-data {
-  .batch-edit-btn {
-    margin-left: 4px;
-    color: #3a84ff;
-    cursor: pointer;
+  .render-data {
+    .batch-edit-btn {
+      margin-left: 4px;
+      color: #3a84ff;
+      cursor: pointer;
+    }
   }
-}
-
 </style>

@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 export default class HdfsNode {
   static ROLE_DATA_NODE = 'hdfs_datanode';
@@ -30,7 +30,16 @@ export default class HdfsNode {
   node_count: number;
   role_set: Array<string>;
   status: number;
-  permission: Record<'hdfs_view' | 'hdfs_enable_disable' | 'hdfs_destroy' | 'hdfs_scale_up' | 'hdfs_shrink' | 'hdfs_replace' | 'hdfs_reboot', boolean>;
+  permission: Record<
+    | 'hdfs_view'
+    | 'hdfs_enable_disable'
+    | 'hdfs_destroy'
+    | 'hdfs_scale_up'
+    | 'hdfs_shrink'
+    | 'hdfs_replace'
+    | 'hdfs_reboot',
+    boolean
+  >;
 
   constructor(payload = {} as HdfsNode) {
     this.bk_cloud_id = payload.bk_cloud_id;

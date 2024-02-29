@@ -119,44 +119,43 @@
       account_type: 'mysql',
     });
   });
-
 </script>
 <style lang="less">
   .openarea-template-detail-priv-rule {
     min-height: 624px;
     padding-bottom: 24px;
 
-    .account-box{
-      .flod-flag{
+    .account-box {
+      .flod-flag {
         display: inline-block;
         margin-right: 4px;
         cursor: pointer;
-        transition: all .1s;
+        transition: all 0.1s;
 
-        &.is-flod{
+        &.is-flod {
           transform: rotateZ(-90deg);
         }
       }
     }
 
-    .cell-privilege{
-      .cell{
+    .cell-privilege {
+      .cell {
         padding: 0 !important;
         margin-left: -16px;
 
-        .inner-row{
+        .inner-row {
           padding-left: 32px !important;
         }
       }
     }
 
-    .inner-row{
+    .inner-row {
       display: flex;
       height: 40px;
       align-items: center;
 
-      &~.inner-row{
-        border-top: 1px solid #DCDEE5;
+      & ~ .inner-row {
+        border-top: 1px solid #dcdee5;
       }
     }
   }

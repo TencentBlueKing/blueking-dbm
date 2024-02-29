@@ -36,16 +36,13 @@
   import { useI18n } from 'vue-i18n';
 
   import RenderData from './RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './RenderData/Row.vue';
 
   interface Props {
-    modelValue: Array<IDataRow>
+    modelValue: Array<IDataRow>;
   }
   interface Emits {
-    (e: 'update:modelValue', value: Array<IDataRow>): void
+    (e: 'update:modelValue', value: Array<IDataRow>): void;
   }
 
   const props = defineProps<Props>();
@@ -64,15 +61,19 @@
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue.length < 1) {
-      emit('update:modelValue', [createRowData()]);
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue.length < 1) {
+        emit('update:modelValue', [createRowData()]);
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  const handleChange = (data:IDataRow, index: number) => {
+  const handleChange = (data: IDataRow, index: number) => {
     const result = [...props.modelValue];
     result.splice(index, 1, data);
     formItemRef.value.clearValidate();

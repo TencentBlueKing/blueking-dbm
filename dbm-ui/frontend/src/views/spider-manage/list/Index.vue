@@ -34,7 +34,5 @@
   import Detail from './components/detail/Index.vue';
   import List from './components/list/Index.vue';
 
-
   const clusterId = ref();
-
 </script>

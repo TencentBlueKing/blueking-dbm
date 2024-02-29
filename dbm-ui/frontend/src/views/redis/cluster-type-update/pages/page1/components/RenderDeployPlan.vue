@@ -26,7 +26,7 @@
     :is-show="showChooseClusterTargetPlan"
     :show-title-tag="false"
     :title="t('选择集群类型变更部署方案')"
-    @click-cancel="() => showChooseClusterTargetPlan = false"
+    @click-cancel="() => (showChooseClusterTargetPlan = false)"
     @click-confirm="handleChoosedTargetCapacity" />
 </template>
 <script setup lang="ts">
@@ -45,11 +45,11 @@
   import type { IDataRow } from './Row.vue';
 
   export interface ExposeValue {
-    spec_id: number,
-    count: number,
-    target_shard_num: number,
-    capacity: number,
-    future_capacity: number,
+    spec_id: number;
+    count: number;
+    target_shard_num: number;
+    capacity: number;
+    future_capacity: number;
   }
 
   interface Props {
@@ -60,7 +60,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<ExposeValue>
+    getValue: () => Promise<ExposeValue>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -106,13 +106,20 @@
 
   // 点击部署方案
   const handleClickSelect = () => {
-    if (!props.targetClusterType) return;
+    if (!props.targetClusterType) {
+      return;
+    }
     const { rowData } = props;
     if (rowData.srcCluster) {
       const { specConfig } = rowData;
       const obj = {
         targetCluster: rowData.srcCluster,
-        currentSepc: t('cpus核memsGB_disksGB_QPS:qps', { cpus: specConfig.cpu.max, mems: specConfig.mem.max, disks: rowData.currentCapacity?.total, qps: specConfig.qps.max }),
+        currentSepc: t('cpus核memsGB_disksGB_QPS:qps', {
+          cpus: specConfig.cpu.max,
+          mems: specConfig.mem.max,
+          disks: rowData.currentCapacity?.total,
+          qps: specConfig.qps.max,
+        }),
         capacity: { total: rowData.currentCapacity?.total ?? 1, used: 0 },
         clusterType: props.targetClusterType as RedisClusterTypes,
         shardNum: rowData.currentShardNum,
@@ -124,20 +131,17 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => localValue.value);
+      return selectRef.value.getValue().then(() => localValue.value);
     },
   });
-
 </script>
 <style lang="less" scoped>
-.capacity-box {
-  display: flex;
-  padding: 10px 16px;
-  line-height: 20px;
-  color: #63656e;
-  justify-content: space-between;
-  align-items: center;
-}
+  .capacity-box {
+    display: flex;
+    padding: 10px 16px;
+    line-height: 20px;
+    color: #63656e;
+    justify-content: space-between;
+    align-items: center;
+  }
 </style>

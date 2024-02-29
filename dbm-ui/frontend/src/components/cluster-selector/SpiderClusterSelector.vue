@@ -68,7 +68,9 @@
                   class="result__item">
                   <span
                     v-overflow-tips
-                    class="text-overflow">{{ clusterItem.master_domain }}</span>
+                    class="text-overflow">
+                    {{ clusterItem.master_domain }}
+                  </span>
                   <i
                     class="db-icon-close result__remove"
                     @click="handleSelecteRow(clusterItem, false)" />
@@ -127,7 +129,7 @@
                 :height="528"
                 :is-anomalies="isAnomalies"
                 :is-searching="searchSelectValue.length > 0"
-                :pagination="pagination.count < 10 ? false: pagination"
+                :pagination="pagination.count < 10 ? false : pagination"
                 remote-pagination
                 row-style="cursor: pointer;"
                 @clear-search="handleClearSearch"
@@ -505,7 +507,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .cluster-selector {
     font-size: @font-size-mini;
@@ -559,12 +561,12 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            flex:1;
+            flex: 1;
           }
 
           .tag-box {
             height: 16px;
-            color: #3A84FF;
+            color: #3a84ff;
             border-radius: 8px !important;
           }
         }

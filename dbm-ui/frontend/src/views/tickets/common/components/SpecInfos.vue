@@ -11,7 +11,7 @@
     </div>
     <div
       class="info"
-      style="align-items: start;">
+      style="align-items: start">
       <span class="info-title">{{ $t('磁盘') }}：</span>
       <span class="info-value">
         <DbOriginalTable
@@ -28,26 +28,26 @@
   import { useI18n } from 'vue-i18n';
 
   export interface SpecInfo {
-    spec_id: number,
-    spec_name: string,
-    count: number,
+    spec_id: number;
+    spec_name: string;
+    count: number;
     cpu: {
-      max: number,
-      min: number
+      max: number;
+      min: number;
     };
     mem: {
-      max: number,
-      min: number
+      max: number;
+      min: number;
     };
     storage_spec: {
-      mount_point: string,
-      size: number,
-      type: string,
+      mount_point: string;
+      size: number;
+      type: string;
     }[];
   }
 
   interface Props {
-    data: SpecInfo
+    data: SpecInfo;
   }
 
   defineProps<Props>();
@@ -71,31 +71,31 @@
 </script>
 
 <style lang="less" scoped>
-.info-wrapper {
-  width: 530px;
-  padding: 9px 2px;
-  font-size: 12px;
-  color: @default-color;
+  .info-wrapper {
+    width: 530px;
+    padding: 9px 2px;
+    font-size: 12px;
+    color: @default-color;
 
-  .info {
-    display: flex;
-    align-items: center;
-    line-height: 32px;
-  }
+    .info {
+      display: flex;
+      align-items: center;
+      line-height: 32px;
+    }
 
-  .info-name {
-    display: inline-block;
-    padding-bottom: 12px;
-  }
+    .info-name {
+      display: inline-block;
+      padding-bottom: 12px;
+    }
 
-  .info-title {
-    width: 80px;
-    text-align: right;
-    flex-shrink: 0;
-  }
+    .info-title {
+      width: 80px;
+      text-align: right;
+      flex-shrink: 0;
+    }
 
-  .info-value {
-    color: @title-color;
+    .info-value {
+      color: @title-color;
+    }
   }
-}
 </style>

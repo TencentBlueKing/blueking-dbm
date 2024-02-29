@@ -14,24 +14,24 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderSource
           ref="sourceRef"
           v-model:cluser-id="localClusterId"
           :model-value="data.source" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           v-model:clusterData="localClusterData"
           :cluster-id="localClusterId" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderModule
           ref="moduleRef"
           :cluster-data="localClusterData" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTarget
           ref="targetRef"
           :cloud-id="localClusterId"
@@ -48,21 +48,21 @@
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import {  random } from '@utils';
+  import { random } from '@utils';
 
   export interface IProxyData {
-    cluster_id: number,
-    bk_host_id: number,
-    bk_cloud_id: number,
-    port: number,
-    ip: string,
-    instance_address: string
+    cluster_id: number;
+    bk_host_id: number;
+    bk_cloud_id: number;
+    port: number;
+    ip: string;
+    instance_address: string;
   }
 
   export interface IDataRow {
     rowKey: string;
-    source?: IProxyData,
-    target?: IProxyData
+    source?: IProxyData;
+    target?: IProxyData;
   }
 
   // 创建表格数据
@@ -71,7 +71,6 @@
     source: data.source,
     target: data.target,
   });
-
 </script>
 <script setup lang="ts">
   import type SpiderModel from '@services/model/spider/spider';
@@ -82,16 +81,16 @@
   import RenderTarget from './RenderTarget.vue';
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -106,13 +105,17 @@
   const localClusterId = ref(0);
   const localClusterData = ref<SpiderModel>();
 
-  watch(() => props.data, () => {
-    if (props.data.source) {
-      localClusterId.value = props.data.source.cluster_id;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.source) {
+        localClusterId.value = props.data.source.cluster_id;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(localClusterId, () => {
     localClusterData.value = undefined;

@@ -52,7 +52,9 @@
             class="result-item">
             <span
               v-overflow-tips
-              class="text-overflow">{{ item.instance_address }}</span>
+              class="text-overflow">
+              {{ item.instance_address }}
+            </span>
             <DbIcon
               type="close result-item-remove"
               @click="handleRemove(key, index)" />
@@ -74,7 +76,7 @@
   import CollapseMini from '../components/CollapseMini.vue';
 
   interface Props {
-    lastValues: InstanceSelectorValues
+    lastValues: InstanceSelectorValues;
   }
 
   interface Emits {
@@ -89,7 +91,7 @@
   const copy = useCopy();
 
   const keys = computed(() => Object.keys(props.lastValues) as InstanceSelectorKeys[]);
-  const isEmpty = computed(() => !keys.value.some(key => props.lastValues[key].length > 0));
+  const isEmpty = computed(() => !keys.value.some((key) => props.lastValues[key].length > 0));
 
   const handleClear = () => {
     emits('change', {
@@ -116,7 +118,7 @@
 
     const instanceAddressArr = keys.value.reduce((instanceAddressArrPrev, lastValuesKey) => {
       const lastValues = props.lastValues[lastValuesKey];
-      return [...instanceAddressArrPrev, ...lastValues.map(lastValue => lastValue.instance_address)];
+      return [...instanceAddressArrPrev, ...lastValues.map((lastValue) => lastValue.instance_address)];
     }, [] as string[]);
 
     copy(instanceAddressArr.join('\n'));

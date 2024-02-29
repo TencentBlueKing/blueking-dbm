@@ -21,14 +21,14 @@
   </div>
   <div
     ref="popRef"
-    style="width: 280px; padding: 15px 10px;">
-    <div style="font-size: 16px; line-height: 20px; color: #313238;">
+    style="width: 280px; padding: 15px 10px">
+    <div style="font-size: 16px; line-height: 20px; color: #313238">
       {{ title }}
     </div>
-    <div style="margin-top: 10px; font-size: 12px; color: #63656e;">
+    <div style="margin-top: 10px; font-size: 12px; color: #63656e">
       {{ content }}
     </div>
-    <div style="margin-top: 16px; text-align: right;">
+    <div style="margin-top: 16px; text-align: right">
       <BkButton
         class="mr8"
         :loading="isConfirmLoading"
@@ -46,23 +46,15 @@
   </div>
 </template>
 <script setup lang="ts">
-  import tippy, {
-    type Instance,
-    type Placement,
-    type SingleTarget,
-  } from 'tippy.js';
-  import {
-    onBeforeUnmount,
-    onMounted,
-    ref,
-  } from 'vue';
+  import tippy, { type Instance, type Placement, type SingleTarget } from 'tippy.js';
+  import { onBeforeUnmount, onMounted, ref } from 'vue';
 
   interface Props {
-    title: string,
-    content: string,
-    placement?: Placement,
-    confirmHandler: () => Promise<any>,
-    cancelHandler?: () => Promise<any>,
+    title: string;
+    content: string;
+    placement?: Placement;
+    confirmHandler: () => Promise<any>;
+    cancelHandler?: () => Promise<any>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -143,7 +135,7 @@
     display: inline-block;
   }
 
-  .tippy-box[data-theme~="db-popconfirm-theme"] {
+  .tippy-box[data-theme~='db-popconfirm-theme'] {
     background-color: #fff;
     border: 1px solid #dcdee5 !important;
     border-radius: 2px !important;
@@ -167,8 +159,8 @@
       }
     }
 
-    &[data-placement^="top-end"]{
-      & > .tippy-arrow{
+    &[data-placement^='top-end'] {
+      & > .tippy-arrow {
         right: -6px;
         left: unset !important;
       }

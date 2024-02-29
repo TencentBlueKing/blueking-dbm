@@ -29,7 +29,7 @@
       v-model:active="activePanel"
       type="unborder-card">
       <BkTabPanel
-        v-for="(item) in panels"
+        v-for="item in panels"
         :key="item.name"
         :label="item.label"
         :name="item.name" />
@@ -49,19 +49,16 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getDumperConfigDetail,
-    listDumperConfig,
-  } from '@services/source/dumper';
+  import { getDumperConfigDetail, listDumperConfig } from '@services/source/dumper';
 
   import InstanceList from './components/instance-list/Index.vue';
   import RuleList from './components/RuleList.vue';
 
   interface Props {
-    data: DumperConfig | null
+    data: DumperConfig | null;
   }
 
-  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number]
+  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number];
 
   const props = defineProps<Props>();
 
@@ -75,133 +72,134 @@
     { name: 'rule', label: t('订阅规则') },
   ];
 
-  const {
-    loading,
-    run: runGetDumperConfigDetail,
-  } = useRequest(getDumperConfigDetail, {
+  const { loading, run: runGetDumperConfigDetail } = useRequest(getDumperConfigDetail, {
     manual: true,
     onSuccess: (res) => {
       activeGroup.value = res;
     },
   });
 
-  watch(() => props.data, () => {
-    if (props.data?.id) {
-      runGetDumperConfigDetail({ id: props.data.id });
-      return;
-    }
-    activePanel.value = 'instance';
-    activeGroup.value = null;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data?.id) {
+        runGetDumperConfigDetail({ id: props.data.id });
+        return;
+      }
+      activePanel.value = 'instance';
+      activeGroup.value = null;
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>
-.dumper-render-list {
-  height: 100%;
-  padding: 24px;
-  background-color: white;
+  .dumper-render-list {
+    height: 100%;
+    padding: 24px;
+    background-color: white;
 
-  :deep(.bk-tab-content) {
-    display: none;
-  }
-
-  tr {
-    &:hover {
-      .db-icon-copy {
-        display: inline-block;
-      }
-    }
-  }
-
-  .instances-view-header {
-    display: flex;
-    height: 20px;
-    margin-bottom: 16px;
-    color: @title-color;
-    align-items: center;
-
-    .instances-view-header-icon {
-      font-size: 18px;
-      color: @gray-color;
-    }
-  }
-
-  .instances-view-operations {
-    display: flex;
-    align-items: center;
-    padding: 16px 0;
-
-    .instances-view-operations-right {
-      flex: 1;
-      display: flex;
-      justify-content: flex-end;
+    :deep(.bk-tab-content) {
+      display: none;
     }
 
-    .bk-button {
-      margin-right: 8px;
-    }
-
-    .dropdown-button {
-      .dropdown-button-icon {
-        margin-left: 6px;
-        transition: all 0.2s;
-      }
-
-      &.active:not(.is-disabled) {
-        .dropdown-button-icon {
-          transform: rotate(180deg);
+    tr {
+      &:hover {
+        .db-icon-copy {
+          display: inline-block;
         }
       }
     }
-  }
 
-  .instance-box {
-    display: flex;
-    align-items: flex-start;
-    padding: 8px 0;
-    overflow: hidden;
-
-    .instance-name {
-      line-height: 20px;
-    }
-
-    .cluster-tags {
+    .instances-view-header {
       display: flex;
-      margin-left: 4px;
+      height: 20px;
+      margin-bottom: 16px;
+      color: @title-color;
       align-items: center;
-      flex-wrap: wrap;
+
+      .instances-view-header-icon {
+        font-size: 18px;
+        color: @gray-color;
+      }
     }
 
-    .cluster-tag {
-      margin: 2px;
-      flex-shrink: 0;
+    .instances-view-operations {
+      display: flex;
+      align-items: center;
+      padding: 16px 0;
+
+      .instances-view-operations-right {
+        flex: 1;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .bk-button {
+        margin-right: 8px;
+      }
+
+      .dropdown-button {
+        .dropdown-button-icon {
+          margin-left: 6px;
+          transition: all 0.2s;
+        }
+
+        &.active:not(.is-disabled) {
+          .dropdown-button-icon {
+            transform: rotate(180deg);
+          }
+        }
+      }
     }
 
-    .db-icon-copy {
-      display: none;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
+    .instance-box {
+      display: flex;
+      align-items: flex-start;
+      padding: 8px 0;
+      overflow: hidden;
+
+      .instance-name {
+        line-height: 20px;
+      }
+
+      .cluster-tags {
+        display: flex;
+        margin-left: 4px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .cluster-tag {
+        margin: 2px;
+        flex-shrink: 0;
+      }
+
+      .db-icon-copy {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+    }
+
+    .is-offline {
+      a {
+        color: @gray-color;
+      }
+
+      .cell {
+        color: @disable-color;
+      }
     }
   }
 
-  .is-offline {
-    a {
-      color: @gray-color;
-    }
-
-    .cell {
+  .bk-dropdown-item {
+    &.is-disabled {
       color: @disable-color;
+      cursor: not-allowed;
     }
   }
-}
-
-.bk-dropdown-item {
-  &.is-disabled {
-    color: @disable-color;
-    cursor: not-allowed;
-  }
-}
 </style>

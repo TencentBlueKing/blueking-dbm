@@ -19,9 +19,7 @@
       :min="1"
       type="number"
       @change="handleChange" />
-    <div class="ml-12 mr-12">
-      至
-    </div>
+    <div class="ml-12 mr-12">至</div>
     <BkInput
       v-model="max"
       :disabled="Boolean(model.spec_id)"
@@ -31,17 +29,14 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
 
   interface Props {
-    defaultValue?: [number, number],
+    defaultValue?: [number, number];
     model: Record<string, any>;
   }
   interface Emits {
-    (e: 'change', value: Props['defaultValue']): void
+    (e: 'change', value: Props['defaultValue']): void;
   }
 
   const props = defineProps<Props>();
@@ -52,32 +47,38 @@
   const min = ref();
   const max = ref();
 
-  watch(() => props.defaultValue, () => {
-    if (props.defaultValue) {
-      [min.value, max.value] = props.defaultValue;
-    } else {
-      min.value = '';
-      max.value = '';
-    }
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => props.defaultValue,
+    () => {
+      if (props.defaultValue) {
+        [min.value, max.value] = props.defaultValue;
+      } else {
+        min.value = '';
+        max.value = '';
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = () => {
     emits('change', [min.value, max.value]);
   };
 
-  watch(() => props.model, () => {
-    if (props.model.spec_id && min.value && max.value) {
-      min.value = '';
-      max.value = '';
-      handleChange();
-    }
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => props.model,
+    () => {
+      if (props.model.spec_id && min.value && max.value) {
+        min.value = '';
+        max.value = '';
+        handleChange();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less">
   .search-item-cpu {

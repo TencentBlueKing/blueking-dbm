@@ -20,7 +20,7 @@
         <td
           v-if="index === 0"
           :rowspan="localBackupInfos.length"
-          style="padding: 0;">
+          style="padding: 0">
           <RenderCluster
             ref="clusterRefs"
             :model-value="data.clusterData"
@@ -29,7 +29,7 @@
         <td
           v-if="index === 0"
           :rowspan="localBackupInfos.length"
-          style="padding: 0;">
+          style="padding: 0">
           <RenderScope
             ref="scopeRefs"
             :cluster-id="localClusterId"
@@ -39,7 +39,7 @@
         <td
           v-if="index === 0"
           :rowspan="localBackupInfos.length"
-          style="padding: 0;">
+          style="padding: 0">
           <RenderSlave
             ref="slaveRefs"
             :cluster-id="localClusterId"
@@ -49,7 +49,7 @@
         </td>
         <td
           name="master"
-          style="padding: 0;">
+          style="padding: 0">
           <RenderMaster
             ref="masterRefs"
             :cluster-id="localClusterId"
@@ -57,26 +57,26 @@
             :scope="localScope"
             :slave="backupInfoItem.slave" />
         </td>
-        <td style="padding: 0;">
+        <td style="padding: 0">
           <RenderDbName
             ref="dbPatternsRefs"
             :cluster-id="localClusterId"
             :model-value="backupInfoItem.dbPatterns" />
         </td>
-        <td style="padding: 0;">
+        <td style="padding: 0">
           <RenderDbName
             ref="ignoreDbsRefs"
             v-model:model-value="backupInfoItem.ignoreDbs"
             :cluster-id="localClusterId"
             :required="false" />
         </td>
-        <td style="padding: 0;">
+        <td style="padding: 0">
           <RenderTableName
             ref="tablePatternsRefs"
             :cluster-id="localClusterId"
             :model-value="backupInfoItem.tablePatterns" />
         </td>
-        <td style="padding: 0;">
+        <td style="padding: 0">
           <RenderIgnoreTables
             ref="ignoreTablesRefs"
             :cluster-id="localClusterId"
@@ -94,23 +94,23 @@
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import { random  } from '@utils';
+  import { random } from '@utils';
 
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
-      id: number,
-      domain: string,
-    },
-    scope: string,
+      id: number;
+      domain: string;
+    };
+    scope: string;
     backupInfos: {
-      slave: string,
-      master: string,
-      dbPatterns?: string [],
-      ignoreDbs?: string [],
-      tablePatterns?: string [],
-      ignoreTables?: string [],
-    }[],
+      slave: string;
+      master: string;
+      dbPatterns?: string[];
+      ignoreDbs?: string[];
+      tablePatterns?: string[];
+      ignoreTables?: string[];
+    }[];
   }
 
   const createBackupInfo = (data = {} as Partial<IDataRow['backupInfos'][0]>) => ({
@@ -124,15 +124,14 @@
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => {
-    const backupInfos = data.backupInfos ? data.backupInfos[0] : {} as IDataRow['backupInfos'][0];
-    return ({
+    const backupInfos = data.backupInfos ? data.backupInfos[0] : ({} as IDataRow['backupInfos'][0]);
+    return {
       rowKey: random(),
       clusterData: data.clusterData,
       scope: data.scope || '',
       backupInfos: [createBackupInfo(backupInfos)],
-    });
+    };
   };
-
 </script>
 <script setup lang="ts">
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
@@ -144,18 +143,17 @@
   import RenderScope from './RenderScope.vue';
   import RenderSlave from './RenderSlave.vue';
 
-
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -175,19 +173,23 @@
   const localBackupInfos = ref<IDataRow['backupInfos']>([]);
   const localScope = ref('');
 
-  watch(() => props.data, () => {
-    if (props.data.clusterData) {
-      localClusterId.value = props.data.clusterData.id;
-    }
-    if (props.data.scope) {
-      localScope.value = props.data.scope;
-    }
-    if (props.data.backupInfos) {
-      localBackupInfos.value = props.data.backupInfos;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.clusterData) {
+        localClusterId.value = props.data.clusterData.id;
+      }
+      if (props.data.scope) {
+        localScope.value = props.data.scope;
+      }
+      if (props.data.backupInfos) {
+        localBackupInfos.value = props.data.backupInfos;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
@@ -203,20 +205,29 @@
       localBackupInfos.value = [createBackupInfo()];
       return;
     }
-    const localBackupInfosSlaveInstanceMap = localBackupInfos.value.reduce((result, item) => Object.assign({}, result, {
-      [item.slave]: item,
-    }), {} as Record<string, IDataRow['backupInfos'][0]>);
-    localBackupInfos.value = slaveInstanceList.reduce((result, slaveInstanceItem) => {
-      if (localBackupInfosSlaveInstanceMap[slaveInstanceItem]) {
-        result.push(localBackupInfosSlaveInstanceMap[slaveInstanceItem]);
-      } else {
-        result.push(createBackupInfo({
-          slave: slaveInstanceItem,
-        }));
-      }
+    const localBackupInfosSlaveInstanceMap = localBackupInfos.value.reduce(
+      (result, item) =>
+        Object.assign({}, result, {
+          [item.slave]: item,
+        }),
+      {} as Record<string, IDataRow['backupInfos'][0]>,
+    );
+    localBackupInfos.value = slaveInstanceList.reduce(
+      (result, slaveInstanceItem) => {
+        if (localBackupInfosSlaveInstanceMap[slaveInstanceItem]) {
+          result.push(localBackupInfosSlaveInstanceMap[slaveInstanceItem]);
+        } else {
+          result.push(
+            createBackupInfo({
+              slave: slaveInstanceItem,
+            }),
+          );
+        }
 
-      return result;
-    }, [] as IDataRow['backupInfos']);
+        return result;
+      },
+      [] as IDataRow['backupInfos'],
+    );
   };
 
   const handleRemove = () => {
@@ -237,35 +248,36 @@
         Promise.all(tablePatternsRefs.value.map((item: any) => item.getValue('table_patterns'))),
         Promise.all(ignoreDbsRefs.value.map((item: any) => item.getValue('ignore_dbs'))),
         Promise.all(ignoreTablesRefs.value.map((item: any) => item.getValue('ignore_tables'))),
-      ]).then(([
-        clusterList,
-        scopeList,
-        slaveList,
-        masterList,
-        dbPatternsList,
-        tablePatternsList,
-        ignoreDbsList,
-        ignoreTablesList,
-      ]) => {
-        const slaveListResult = slaveList[0] as string[];
+      ]).then(
+        ([
+          clusterList,
+          scopeList,
+          slaveList,
+          masterList,
+          dbPatternsList,
+          tablePatternsList,
+          ignoreDbsList,
+          ignoreTablesList,
+        ]) => {
+          const slaveListResult = slaveList[0] as string[];
 
-        return {
-          ...clusterList[0],
-          ...scopeList[0],
-          backup_infos: slaveListResult.reduce((result, item, index) => {
-            result.push({
-              slave: slaveListResult[index],
-              ...masterList[index],
-              ...dbPatternsList[index],
-              ...tablePatternsList[index],
-              ...ignoreDbsList[index],
-              ...ignoreTablesList[index],
-            });
-            return result;
-          }, [] as any[]),
-        };
-      });
+          return {
+            ...clusterList[0],
+            ...scopeList[0],
+            backup_infos: slaveListResult.reduce((result, item, index) => {
+              result.push({
+                slave: slaveListResult[index],
+                ...masterList[index],
+                ...dbPatternsList[index],
+                ...tablePatternsList[index],
+                ...ignoreDbsList[index],
+                ...ignoreTablesList[index],
+              });
+              return result;
+            }, [] as any[]),
+          };
+        },
+      );
     },
   });
 </script>
-

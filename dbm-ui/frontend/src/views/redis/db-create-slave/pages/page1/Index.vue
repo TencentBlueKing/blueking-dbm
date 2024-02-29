@@ -17,7 +17,9 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('重建从库：通过整机替换来实现从库实例的重建，即对应主机上的所有从库实例均会被重建，理论上不影响业务')" />
+        :title="
+          t('重建从库：通过整机替换来实现从库实例的重建，即对应主机上的所有从库实例均会被重建，理论上不影响业务')
+        " />
       <RenderData
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
@@ -27,7 +29,7 @@
           ref="rowRefs"
           :data="item"
           :inputed-ips="inputedIps"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
           @remove="handleRemove(index)" />

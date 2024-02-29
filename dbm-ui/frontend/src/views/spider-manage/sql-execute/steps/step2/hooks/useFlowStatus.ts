@@ -9,14 +9,11 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import {
-  onBeforeUnmount,
-  ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 
 import { getTaskflowDetails } from '@services/source/taskflow';
-
 
 export default function (rootId: string) {
   const status = ref('RUNNING');
@@ -25,7 +22,8 @@ export default function (rootId: string) {
   const statusText = computed(() => {
     if (['RUNNING', 'CREATED'].includes(status.value)) {
       return 'pending';
-    } if (status.value === 'FINISHED') {
+    }
+    if (status.value === 'FINISHED') {
       return 'successed';
     }
     return 'failed';

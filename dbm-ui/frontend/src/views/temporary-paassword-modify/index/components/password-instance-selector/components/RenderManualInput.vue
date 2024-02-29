@@ -70,7 +70,7 @@
             <BkButton
               class="w-88"
               size="small"
-              @click="() => manualInputValues = ''">
+              @click="() => (manualInputValues = '')">
               {{ t('清空') }}
             </BkButton>
           </div>

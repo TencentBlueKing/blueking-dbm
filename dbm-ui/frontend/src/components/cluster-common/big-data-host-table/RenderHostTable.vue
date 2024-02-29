@@ -19,7 +19,7 @@
       <BkInput
         v-model="searchKey"
         :placeholder="$t('请输入IP')"
-        style="width: 320px; margin-left: auto;" />
+        style="width: 320px; margin-left: auto" />
     </div>
     <div>
       <div
@@ -27,7 +27,7 @@
         @click="handleToggleShowTable">
         <div class="header-text">
           <i class="db-icon-down-shape" />
-          <span style="padding-left: 5px;">
+          <span style="padding-left: 5px">
             <span v-if="searchKey">{{ $t('已筛选') }}</span>
             <span v-else>{{ $t('共') }}</span>
             <span class="ip-num">{{ serachList.length }}</span>

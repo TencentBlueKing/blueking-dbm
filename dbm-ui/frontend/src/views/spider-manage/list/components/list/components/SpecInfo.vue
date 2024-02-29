@@ -17,7 +17,7 @@
         </div>
         <div
           class="info"
-          style="align-items: start;">
+          style="align-items: start">
           <span class="info-title">{{ $t('磁盘') }}：</span>
           <span class="info-value">
             <DbOriginalTable
@@ -38,7 +38,7 @@
   import { type InstanceSpecInfo } from '@services/model/spider/tendbCluster';
 
   interface Props {
-    data: InstanceSpecInfo
+    data: InstanceSpecInfo;
   }
 
   defineProps<Props>();
@@ -62,36 +62,36 @@
 </script>
 
 <style lang="less" scoped>
-.spec-name {
-  line-height: 18px;
-  border-bottom: 1px dashed #979797;
-}
-
-.info-wrapper {
-  width: 530px;
-  padding: 9px 2px;
-  font-size: 12px;
-  color: @default-color;
-
-  .info {
-    display: flex;
-    align-items: center;
-    line-height: 32px;
+  .spec-name {
+    line-height: 18px;
+    border-bottom: 1px dashed #979797;
   }
 
-  .info-name {
-    display: inline-block;
-    padding-bottom: 12px;
-  }
+  .info-wrapper {
+    width: 530px;
+    padding: 9px 2px;
+    font-size: 12px;
+    color: @default-color;
 
-  .info-title {
-    width: 60px;
-    text-align: right;
-    flex-shrink: 0;
-  }
+    .info {
+      display: flex;
+      align-items: center;
+      line-height: 32px;
+    }
 
-  .info-value {
-    color: @title-color;
+    .info-name {
+      display: inline-block;
+      padding-bottom: 12px;
+    }
+
+    .info-title {
+      width: 60px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .info-value {
+      color: @title-color;
+    }
   }
-}
 </style>

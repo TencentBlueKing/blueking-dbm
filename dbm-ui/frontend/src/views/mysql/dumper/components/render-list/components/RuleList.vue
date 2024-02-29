@@ -22,7 +22,7 @@
           v-model="search"
           :data="searchSelectData"
           :placeholder="t('请输入DB/表名')"
-          style="width: 500px;"
+          style="width: 500px"
           @change="handleLocalSearch" />
       </div>
     </div>
@@ -32,7 +32,7 @@
       :data="subscribeTableData" />
     <div
       class="row-title"
-      style="margin-top: 35px;margin-bottom: 16px;">
+      style="margin-top: 35px; margin-bottom: 16px">
       {{ t('数据源与接收端') }}
     </div>
     <BkTable
@@ -41,7 +41,7 @@
       :data="receiverTableData" />
     <div
       class="info-item"
-      style="margin-top: 20px;margin-bottom: 15px;">
+      style="margin-top: 20px; margin-bottom: 15px">
       {{ t('部署位置') }}：<span class="content">{{ t('集群Master所在主机') }}</span>
     </div>
   </div>
@@ -149,139 +149,138 @@
 </script>
 
 <style lang="less" scoped>
-.dumper-rule-list {
-  height: 100%;
-  background-color: white;
+  .dumper-rule-list {
+    height: 100%;
+    background-color: white;
 
-  .row-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: #313238;
-  }
-
-  .subscribe-table {
-    :deep(.table-names-box) {
-      display: flex;
-      width: 100%;
-      flex-wrap: wrap;
-      padding-top: 10px;
-      padding-bottom: 2px;
-
-      .name-item {
-        height: 22px;
-        padding: 0 8px;
-        margin-right: 4px;
-        margin-bottom: 8px;
-        line-height: 22px;
-        color: #63656E;
-        background: #F0F1F5;
-        border-radius: 2px;
-      }
-    }
-
-    :deep(th) {
-      .head-text {
-        color: #313238;
-      }
-    }
-  }
-
-  .info-item {
-    font-size: 12px;
-    color: #63656E;
-
-    .content {
+    .row-title {
+      font-size: 14px;
+      font-weight: 700;
       color: #313238;
     }
-  }
 
-  .rules-view-header {
-    display: flex;
-    height: 20px;
-    color: @title-color;
-    align-items: center;
+    .subscribe-table {
+      :deep(.table-names-box) {
+        display: flex;
+        width: 100%;
+        flex-wrap: wrap;
+        padding-top: 10px;
+        padding-bottom: 2px;
 
-    .rules-view-header-icon {
-      font-size: 18px;
-      color: @gray-color;
-    }
-  }
-
-  .rules-view-operations {
-    display: flex;
-    align-items: center;
-    padding: 16px 0;
-
-
-    .rules-view-operations-right {
-      flex: 1;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .bk-button {
-      margin-right: 8px;
-    }
-
-    .dropdown-button {
-      .dropdown-button-icon {
-        margin-left: 6px;
-        transition: all 0.2s;
+        .name-item {
+          height: 22px;
+          padding: 0 8px;
+          margin-right: 4px;
+          margin-bottom: 8px;
+          line-height: 22px;
+          color: #63656e;
+          background: #f0f1f5;
+          border-radius: 2px;
+        }
       }
 
-      &.active:not(.is-disabled) {
-        .dropdown-button-icon {
-          transform: rotate(180deg);
+      :deep(th) {
+        .head-text {
+          color: #313238;
         }
       }
     }
-  }
 
-  .instance-box {
-    display: flex;
-    align-items: flex-start;
-    padding: 8px 0;
-    overflow: hidden;
+    .info-item {
+      font-size: 12px;
+      color: #63656e;
 
-    .instance-name {
-      line-height: 20px;
+      .content {
+        color: #313238;
+      }
     }
 
-    .cluster-tags {
+    .rules-view-header {
       display: flex;
-      margin-left: 4px;
+      height: 20px;
+      color: @title-color;
       align-items: center;
-      flex-wrap: wrap;
+
+      .rules-view-header-icon {
+        font-size: 18px;
+        color: @gray-color;
+      }
     }
 
-    .cluster-tag {
-      margin: 2px;
-      flex-shrink: 0;
+    .rules-view-operations {
+      display: flex;
+      align-items: center;
+      padding: 16px 0;
+
+      .rules-view-operations-right {
+        flex: 1;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .bk-button {
+        margin-right: 8px;
+      }
+
+      .dropdown-button {
+        .dropdown-button-icon {
+          margin-left: 6px;
+          transition: all 0.2s;
+        }
+
+        &.active:not(.is-disabled) {
+          .dropdown-button-icon {
+            transform: rotate(180deg);
+          }
+        }
+      }
     }
 
-    .db-icon-copy {
-      display: none;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
+    .instance-box {
+      display: flex;
+      align-items: flex-start;
+      padding: 8px 0;
+      overflow: hidden;
+
+      .instance-name {
+        line-height: 20px;
+      }
+
+      .cluster-tags {
+        display: flex;
+        margin-left: 4px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .cluster-tag {
+        margin: 2px;
+        flex-shrink: 0;
+      }
+
+      .db-icon-copy {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+    }
+
+    .is-offline {
+      a {
+        color: @gray-color;
+      }
+
+      .cell {
+        color: @disable-color;
+      }
     }
   }
 
-  .is-offline {
-    a {
-      color: @gray-color;
-    }
-
-    .cell {
+  .bk-dropdown-item {
+    &.is-disabled {
       color: @disable-color;
+      cursor: not-allowed;
     }
   }
-}
-
-.bk-dropdown-item {
-  &.is-disabled {
-    color: @disable-color;
-    cursor: not-allowed;
-  }
-}
 </style>

@@ -19,7 +19,7 @@
         width: width + 'px',
         height: height + 'px',
       }">
-      <img :src="imgSrc">
+      <img :src="imgSrc" />
     </div>
     <div
       ref="viewportRef"
@@ -38,14 +38,14 @@
   import _ from 'lodash';
 
   interface Props {
-    viewportWidth?: number,
-    viewportHeight?: number,
-    width?: number,
-    height?: number
+    viewportWidth?: number;
+    viewportHeight?: number;
+    width?: number;
+    height?: number;
   }
 
   interface Emits {
-    (e: 'change', value: { left: number, top: number }): void
+    (e: 'change', value: { left: number; top: number }): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -60,7 +60,9 @@
   const viewportRef = ref<HTMLDivElement>();
 
   function moveViewport(left: number, top: number) {
-    if (!viewportRef.value) return;
+    if (!viewportRef.value) {
+      return;
+    }
 
     viewportRef.value.style.left = `${left}px`;
     viewportRef.value.style.top = `${top}px`;
@@ -70,7 +72,9 @@
     mouseDownEvent.stopPropagation();
     mouseDownEvent.preventDefault();
 
-    if (!viewportRef.value) return;
+    if (!viewportRef.value) {
+      return;
+    }
 
     const { offsetLeft, offsetTop } = viewportRef.value;
     // 获取 x 坐标和 y 坐标
@@ -85,7 +89,9 @@
       // 获取 x 坐标和 y 坐标
       const { clientX: endX, clientY: endY } = e;
 
-      if (startX === endX && startY === endY) return;
+      if (startX === endX && startY === endY) {
+        return;
+      }
       // 计算移动后的左偏移量和顶部的偏移量
       let left = endX - startX;
       let top = endY - startY;
@@ -117,7 +123,9 @@
    * 更新 canvas 绘制内容
    */
   function updateCanvas(el: HTMLElement, options: Options) {
-    if (!el) return;
+    if (!el) {
+      return;
+    }
 
     toPng(el, options).then((url: string) => {
       imgSrc.value = url;
@@ -145,7 +153,7 @@
       &::before {
         position: absolute;
         inset: 0;
-        content: "";
+        content: '';
       }
     }
 

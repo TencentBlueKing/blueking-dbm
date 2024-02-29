@@ -140,7 +140,6 @@
         .then(() => (localValue.value));
     },
   });
-
 </script>
 <style lang="less" scoped>
   .render-cluster-box {

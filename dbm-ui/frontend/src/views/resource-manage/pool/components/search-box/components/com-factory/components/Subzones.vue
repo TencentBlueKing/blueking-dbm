@@ -31,10 +31,10 @@
 
   interface Props {
     model: Record<string, any>;
-    defaultValue?: string[]
+    defaultValue?: string[];
   }
   interface Emits {
-    (e: 'change', value: Props['defaultValue']): void
+    (e: 'change', value: Props['defaultValue']): void;
   }
 
   const props = defineProps<Props>();
@@ -42,27 +42,27 @@
   defineOptions({
     inheritAttrs: false,
   });
-  const {
-    data,
-    run: fetchData,
-  } = useRequest(fetchSubzones, {
+  const { data, run: fetchData } = useRequest(fetchSubzones, {
     initialData: [],
     manual: true,
   });
 
-  watch(() => props.model, () => {
-    if (!props.model.city) {
-      return;
-    }
-    fetchData({
-      citys: props.model.city,
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.model,
+    () => {
+      if (!props.model.city) {
+        return;
+      }
+      fetchData({
+        citys: props.model.city,
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: Props['defaultValue']) => {
     emits('change', value);
   };
 </script>
-

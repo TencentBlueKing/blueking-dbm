@@ -15,7 +15,7 @@
   <div class="search-field-tag">
     <div class="header">
       <DbIcon
-        style="margin-right: 8px; font-size: 13px; color: #979ba5;"
+        style="margin-right: 8px; font-size: 13px; color: #979ba5"
         type="funnel" />
       <div>{{ t('搜索项：') }}</div>
     </div>
@@ -30,9 +30,7 @@
         @change="handleChange"
         @remove="handleRemove" />
     </div>
-    <div v-if="Object.keys(modelValue).length < 1">
-      --
-    </div>
+    <div v-if="Object.keys(modelValue).length < 1">--</div>
   </div>
 </template>
 <script setup lang="ts">
@@ -44,7 +42,7 @@
   import ValueTag from './ValueTag.vue';
 
   interface Props {
-    modelValue: Record<string, any>
+    modelValue: Record<string, any>;
   }
 
   interface Emits {

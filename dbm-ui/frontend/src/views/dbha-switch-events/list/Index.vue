@@ -19,7 +19,7 @@
         append-to-body
         clearable
         :placeholder="$t('请选择')"
-        style="width: 340px;"
+        style="width: 340px"
         type="datetimerange"
         @change="fetchTableData" />
     </div>
@@ -313,30 +313,30 @@
 </script>
 
 <style lang="less" scoped>
-.dbha-events {
-  .dbha-events-operations {
-    display: flex;
-    margin-bottom: 16px;
-  }
-}
-
-.log-sideslider {
-  :deep(.bk-modal-content) {
-    height: 100%;
-  }
-
-  .log-sideslider-header {
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-
-    .infos {
+  .dbha-events {
+    .dbha-events-operations {
       display: flex;
-      padding-right: 30px;
-      padding-left: 8px;
-      align-items: center;
-      flex-shrink: 0;
+      margin-bottom: 16px;
     }
   }
-}
+
+  .log-sideslider {
+    :deep(.bk-modal-content) {
+      height: 100%;
+    }
+
+    .log-sideslider-header {
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+
+      .infos {
+        display: flex;
+        padding-right: 30px;
+        padding-left: 8px;
+        align-items: center;
+        flex-shrink: 0;
+      }
+    }
+  }
 </style>

@@ -39,7 +39,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -103,10 +103,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => ({ spider_reduced_to_count: Number(localValue.value) }));
+      return editRef.value.getValue().then(() => ({ spider_reduced_to_count: Number(localValue.value) }));
     },
   });
-
 </script>

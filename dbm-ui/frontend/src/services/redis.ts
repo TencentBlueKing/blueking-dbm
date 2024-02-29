@@ -9,19 +9,17 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { useGlobalBizs } from '@stores';
 
 import http from './http';
-import type {
-  ListBase,
-  ResourceInstance,
-} from './types';
+import type { ListBase, ResourceInstance } from './types';
 
 const { currentBizId } = useGlobalBizs();
 
 /**
  * 获取 redis 实例列表
  */
-export const getRedisInstances = (params: Record<string, any>) => http.get<ListBase<ResourceInstance[]>>(`/apis/redis/bizs/${currentBizId}/redis_resources/list_instances/`, params);
+export const getRedisInstances = (params: Record<string, any>) =>
+  http.get<ListBase<ResourceInstance[]>>(`/apis/redis/bizs/${currentBizId}/redis_resources/list_instances/`, params);

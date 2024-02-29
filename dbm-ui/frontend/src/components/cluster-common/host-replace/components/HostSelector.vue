@@ -31,16 +31,16 @@
         <template #submitTips="{ hostList: resultHostList }">
           <I18nT
             keypath="需n台_已选n台"
-            style="font-size: 14px; color: #63656e;"
+            style="font-size: 14px; color: #63656e"
             tag="span">
             <span
               class="number"
-              style="color: #2dcb56;">
+              style="color: #2dcb56">
               {{ data.nodeList.length }}
             </span>
             <span
               class="number"
-              style="color: #3a84ff;">
+              style="color: #3a84ff">
               {{ resultHostList.length }}
             </span>
           </I18nT>
@@ -57,8 +57,10 @@
     </Teleport>
   </div>
 </template>
-<script setup lang="ts"
- generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|InfluxdbInstanceModel">
+<script
+  setup
+  lang="ts"
+  generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | InfluxdbInstanceModel">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -75,9 +77,9 @@
   import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
-    data: TReplaceNode<T>,
-    placehoderId: string,
-    disableHostMethod?: (params: Props['data']['hostList'][0]) => string | boolean
+    data: TReplaceNode<T>;
+    placehoderId: string;
+    disableHostMethod?: (params: Props['data']['hostList'][0]) => string | boolean;
   }
 
   const props = defineProps<Props>();
@@ -99,11 +101,8 @@
     return undefined;
   });
 
-  const disableDialogSubmitMethod = (hostList: Props['data']['hostList']) => (
-    hostList.length === props.data.nodeList.length
-      ? false
-      : t('需n台', { n: props.data.nodeList.length })
-  );
+  const disableDialogSubmitMethod = (hostList: Props['data']['hostList']) =>
+    hostList.length === props.data.nodeList.length ? false : t('需n台', { n: props.data.nodeList.length });
 
   const isShowIpSelector = ref(false);
 
@@ -114,12 +113,15 @@
 
   // 移除替换的主机
   const handleRemoveHost = (host: Props['data']['hostList'][0]) => {
-    modelValue.value = modelValue.value.reduce((result, item) => {
-      if (item.host_id !== host.host_id) {
-        result.push(item);
-      }
-      return result;
-    }, [] as Props['data']['hostList']);
+    modelValue.value = modelValue.value.reduce(
+      (result, item) => {
+        if (item.host_id !== host.host_id) {
+          result.push(item);
+        }
+        return result;
+      },
+      [] as Props['data']['hostList'],
+    );
   };
 
   const handleShowIpSelector = () => {
@@ -129,49 +131,48 @@
 <style lang="less" scoped>
   .replace-host-selector {
     font-size: 12px;
-    color: #63656E;
+    color: #63656e;
 
-    .selector-value{
+    .selector-value {
       height: 100%;
 
-      .data-row{
+      .data-row {
         display: flex;
         height: 42px;
         align-items: center;
         padding-left: 16px;
 
-        & ~ .data-row{
-          border-top: 1px solid #DCDEE5;
+        & ~ .data-row {
+          border-top: 1px solid #dcdee5;
         }
 
-        &:hover{
-          .data-row-remve-btn{
+        &:hover {
+          .data-row-remve-btn {
             opacity: 100%;
           }
         }
       }
 
-      .data-row-remve-btn{
+      .data-row-remve-btn {
         display: flex;
         width: 52px;
         height: 100%;
         margin-left: auto;
         font-size: 16px;
-        color: #3A84FF;
+        color: #3a84ff;
         cursor: pointer;
         opacity: 0%;
-        transition: all .15s;
+        transition: all 0.15s;
         justify-content: center;
         align-items: center;
       }
     }
 
-    .selector-box{
+    .selector-box {
       display: flex;
       align-items: center;
       justify-content: center;
       height: 100%;
     }
-
   }
 </style>

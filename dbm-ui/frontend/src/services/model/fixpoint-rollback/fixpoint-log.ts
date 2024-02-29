@@ -20,23 +20,23 @@ export default class FixpointLog {
         };
         slave: {
           ip: string;
-        }
+        };
       }[];
       spider: {
         ip: string;
-      }[]
-    },
+      }[];
+    };
     operations: {
-      cluster_id: number,
-      flow_id: number,
-      operator: number,
-      status: string,
-      ticket_id: number,
-      ticket_type: string,
-      title: string,
-    }[],
-    phase: string,
-    status: string,
+      cluster_id: number;
+      flow_id: number;
+      operator: number;
+      status: string;
+      ticket_id: number;
+      ticket_type: string;
+      title: string;
+    }[];
+    phase: string;
+    status: string;
   };
   ticket_id: number;
 

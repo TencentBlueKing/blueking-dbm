@@ -31,7 +31,7 @@
           <BkSelect
             v-model="formData.schedule_table.send_at.freq"
             :clearable="false"
-            style="width:86px">
+            style="width: 86px">
             <BkOption
               v-for="(item, index) in dateList"
               :key="index"
@@ -43,7 +43,7 @@
             v-model="formData.schedule_table.send_at.freq_values"
             :clearable="false"
             multiple
-            style="width:180px">
+            style="width: 180px">
             <BkOption
               v-for="(item, index) in weekdayList"
               :key="index"
@@ -69,7 +69,7 @@
             :clearable="false"
             :max="100"
             :min="1"
-            style="width:135px"
+            style="width: 135px"
             type="number">
             <template #prefix>
               <div class="prefix-box">
@@ -87,7 +87,7 @@
         <div class="content">
           <BkInput
             v-model="formData.schedule_table.qywx_id"
-            style="width:300px" />
+            style="width: 300px" />
           <!-- <DbIcon
             class="icon"
             type="attention-fill" /> -->
@@ -114,13 +114,13 @@
             :clearable="false"
             :max="14"
             :min="1"
-            style="width: 178px;"
+            style="width: 178px"
             type="number" />
           <div class="suffix-box">
             <BkSelect
               v-model="formData.person_duty.send_at.unit"
               :clearable="false"
-              style="width:58px">
+              style="width: 58px">
               <BkOption
                 v-for="(item, index) in periodList"
                 :key="index"
@@ -155,23 +155,17 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getDutyNoticeConfig,
-    updateDutyNoticeConfig,
-  } from '@services/monitor';
+  import { getDutyNoticeConfig, updateDutyNoticeConfig } from '@services/monitor';
 
-  import {
-    messageError,
-    messageSuccess,
-  } from '@utils';
+  import { messageError, messageSuccess } from '@utils';
 
   import SingleMonthDateRange from './components/SingleMonthDateRange.vue';
 
-  type DutyConfig = ServiceReturnType<typeof getDutyNoticeConfig>
+  type DutyConfig = ServiceReturnType<typeof getDutyNoticeConfig>;
 
   function initData(data?: DutyConfig) {
     if (!data) {
-      return ({
+      return {
         person_duty: {
           enable: false,
           send_at: {
@@ -189,7 +183,7 @@
           },
           send_day: 7,
         },
-      });
+      };
     }
     return data;
   }
@@ -282,90 +276,88 @@
 </script>
 
 <style lang="less" scoped>
+  .notification-setting-box {
+    padding: 14px 18px;
+    background: #fff;
+    border-radius: 2px;
+    box-shadow: 0 2px 4px 0 #1919290d;
 
-.notification-setting-box {
-  padding: 14px 18px;
-  background: #FFF;
-  border-radius: 2px;
-  box-shadow: 0 2px 4px 0 #1919290d;
-
-  .switch-box {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    margin-bottom: 14px;
-
-    .title {
-      margin-right: 8px;
-      color: #313238;
-    }
-  }
-
-  .item-box{
-    display: flex;
-    width: 100%;
-    margin-bottom: 16px;
-
-    .title {
-      width: 200px;
-      height: 32px;
-      margin-right: 22px;
-      line-height: 32px;
-      text-align: right;
-    }
-
-    .content {
-      flex: 1;
+    .switch-box {
       display: flex;
+      width: 100%;
       align-items: center;
-      gap: 8px;
+      margin-bottom: 14px;
 
-      .prefix-box {
-        width: 28px;
-        height: 30px;
-        line-height: 30px;
-        text-align: center;
-        background: #FAFBFD;
-        border-right: 1px solid #C4C6CC;
+      .title {
+        margin-right: 8px;
+        color: #313238;
+      }
+    }
+
+    .item-box {
+      display: flex;
+      width: 100%;
+      margin-bottom: 16px;
+
+      .title {
+        width: 200px;
+        height: 32px;
+        margin-right: 22px;
+        line-height: 32px;
+        text-align: right;
       }
 
-      .icon {
-        font-size: 18px;
-        color: #C4C6CC;
-        cursor: pointer;
+      .content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
 
-        &:hover {
-          color: #979BA5;
+        .prefix-box {
+          width: 28px;
+          height: 30px;
+          line-height: 30px;
+          text-align: center;
+          background: #fafbfd;
+          border-right: 1px solid #c4c6cc;
         }
-      }
 
-      .suffix-box {
-        margin-left: -8px;
+        .icon {
+          font-size: 18px;
+          color: #c4c6cc;
+          cursor: pointer;
 
-        :deep(.bk-input) {
-          height: 32px;
+          &:hover {
+            color: #979ba5;
+          }
         }
-      }
 
-      .time-pick {
-        position: relative;
-        width: 180px;
+        .suffix-box {
+          margin-left: -8px;
 
-        :deep(.bk-date-picker-dropdown) {
-          top: 36px !important;
-          left: 0 !important;
+          :deep(.bk-input) {
+            height: 32px;
+          }
+        }
+
+        .time-pick {
+          position: relative;
+          width: 180px;
+
+          :deep(.bk-date-picker-dropdown) {
+            top: 36px !important;
+            left: 0 !important;
+          }
         }
       }
     }
   }
-}
 
+  .notification-setting-footer {
+    margin: 32px 0 0 240px;
 
-.notification-setting-footer {
-  margin: 32px 0 0 240px;
-
-  .bk-button {
-    width: 88px;
+    .bk-button {
+      width: 88px;
+    }
   }
-}
 </style>

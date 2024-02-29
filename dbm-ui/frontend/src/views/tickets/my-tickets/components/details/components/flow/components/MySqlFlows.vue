@@ -13,7 +13,7 @@
 
 <template>
   <BkTimeline :list="flowTimeline">
-    <template #content="{content}">
+    <template #content="{ content }">
       <p v-if="content.flow_type === 'DESCRIBE_TASK'">
         {{ $t('执行完成_共执行') }}
         <span class="sql-count">{{ sqlFileTotal }}</span>
@@ -24,9 +24,7 @@
         {{ $t('个_失败') }}
         <span class="sql-count danger">{{ counts.fail }}</span>
         {{ $t('个') }}
-        <template v-if="content.summary">
-          ，{{ $t('耗时') }}：{{ getCostTimeDisplay(content.cost_time) }}，
-        </template>
+        <template v-if="content.summary"> ，{{ $t('耗时') }}：{{ getCostTimeDisplay(content.cost_time) }}， </template>
         <BkButton
           text
           theme="primary"
@@ -115,24 +113,24 @@
 </script>
 
 <style lang="less" scoped>
-:deep(.bk-modal-content) {
-  height: 100%;
-  padding: 15px;
-}
-
-.sql-count {
-  font-weight: 700;
-
-  &.success {
-    color: @success-color;
+  :deep(.bk-modal-content) {
+    height: 100%;
+    padding: 15px;
   }
 
-  &.warning {
-    color: @warning-color;
-  }
+  .sql-count {
+    font-weight: 700;
 
-  &.danger {
-    color: @danger-color;
+    &.success {
+      color: @success-color;
+    }
+
+    &.warning {
+      color: @warning-color;
+    }
+
+    &.danger {
+      color: @danger-color;
+    }
   }
-}
 </style>

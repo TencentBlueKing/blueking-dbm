@@ -35,7 +35,7 @@
         class="resize-trigger-button resize-trigger-left"
         @click="handleDirection('left')">
         <DbIcon
-          style="display: inline-block; transform:rotate(180deg)"
+          style="display: inline-block; transform: rotate(180deg)"
           type="right-big" />
       </span>
       <span
@@ -47,13 +47,10 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    onMounted,
-    ref,
-  } from 'vue';
+  import { onMounted, ref } from 'vue';
 
   interface Props {
-    showTrigger: boolean,
+    showTrigger: boolean;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -61,9 +58,9 @@
   });
 
   const emits = defineEmits<{
-    trigger: [isLeft: boolean],
-    change: [leftWidth: number],
-    open: [direction: string]
+    trigger: [isLeft: boolean];
+    change: [leftWidth: number];
+    open: [direction: string];
   }>();
 
   const rounds = [1, 2, 3, 4, 5];
@@ -111,104 +108,103 @@
   });
 </script>
 <style lang="less" scoped>
-.stretch-layout-resize {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  z-index: 999;
-  margin-left: 1px;
-
-  .resize-box {
+  .stretch-layout-resize {
     position: absolute;
     top: 0;
     bottom: 0;
-    left: -4px;
-    display: flex;
-    padding: 0 3px;
-    cursor: col-resize;
-    align-items: center;
+    z-index: 999;
+    margin-left: 1px;
 
-    .drag-line{
-      display: flex;
-      width: 3px;
-      height: 100%;
-      padding: 1px;
-
-      &::after{
-        width: 1px;
-        background: #eaebf0;
-        content: '';
-      }
-
-      &:hover{
-        z-index: 1;
-        background: #3a84ff;
-        transition: all .1s;
-
-        &::after{
-          background: transparent;
-        }
-      }
-    }
-
-    .drag-flag{
+    .resize-box {
       position: absolute;
-      margin-left: -3px;
-
-      .move-round {
-        width: 2px;
-        height: 2px;
-        margin-bottom: 3px;
-        background-color: #63656e;
-        border-radius: 50%;
-
-        &.move-square {
-          width: 2px;
-          height: 2px;
-          border-radius: 0%;
-          transform: rotate(45deg);
-          transform-origin: center;
-        }
-      }
-    }
-
-  }
-
-  .resize-trigger {
-    position: absolute;
-    top: 8px;
-    right: -16px;
-    display: flex;
-    align-items: center;
-
-    .resize-trigger-button {
+      top: 0;
+      bottom: 0;
+      left: -4px;
       display: flex;
-      width: 16px;
-      height: 28px;
-      font-size: 12px;
-      line-height: 28px;
-      color: #699df4;
-      cursor: pointer;
-      background-color: #fafbfd;
-      border: 1px solid #699df4;
-      justify-content: center;
+      padding: 0 3px;
+      cursor: col-resize;
       align-items: center;
 
-      &.resize-trigger-left {
-        margin-right: -1px;
-        border-radius: 4px 0 0 4px;
+      .drag-line {
+        display: flex;
+        width: 3px;
+        height: 100%;
+        padding: 1px;
+
+        &::after {
+          width: 1px;
+          background: #eaebf0;
+          content: '';
+        }
+
+        &:hover {
+          z-index: 1;
+          background: #3a84ff;
+          transition: all 0.1s;
+
+          &::after {
+            background: transparent;
+          }
+        }
       }
 
-      &.resize-trigger-right {
-        border-radius: 0 4px 4px 0;
-      }
+      .drag-flag {
+        position: absolute;
+        margin-left: -3px;
 
-      &:hover {
-        color: white;
-        background-color: #3a84ff;
-        border-color: #3a84ff;
+        .move-round {
+          width: 2px;
+          height: 2px;
+          margin-bottom: 3px;
+          background-color: #63656e;
+          border-radius: 50%;
+
+          &.move-square {
+            width: 2px;
+            height: 2px;
+            border-radius: 0%;
+            transform: rotate(45deg);
+            transform-origin: center;
+          }
+        }
+      }
+    }
+
+    .resize-trigger {
+      position: absolute;
+      top: 8px;
+      right: -16px;
+      display: flex;
+      align-items: center;
+
+      .resize-trigger-button {
+        display: flex;
+        width: 16px;
+        height: 28px;
+        font-size: 12px;
+        line-height: 28px;
+        color: #699df4;
+        cursor: pointer;
+        background-color: #fafbfd;
+        border: 1px solid #699df4;
+        justify-content: center;
+        align-items: center;
+
+        &.resize-trigger-left {
+          margin-right: -1px;
+          border-radius: 4px 0 0 4px;
+        }
+
+        &.resize-trigger-right {
+          border-radius: 0 4px 4px 0;
+        }
+
+        &:hover {
+          color: white;
+          background-color: #3a84ff;
+          border-color: #3a84ff;
+        }
       }
     }
   }
-}
 </style>

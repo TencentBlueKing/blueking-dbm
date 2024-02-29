@@ -49,13 +49,13 @@
   import PermissionRule from '@components/add-permission-rule-dialog/Index.vue';
 
   interface Props {
-    clusterId: number,
+    clusterId: number;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      priv_data: Array<number>
-    }>
+      priv_data: Array<number>;
+    }>;
   }
 
   defineProps<Props>();
@@ -86,11 +86,19 @@
       });
     },
   });
+<<<<<<< HEAD:dbm-ui/frontend/src/views/mysql/openarea/template-create/components/config-rule/components/RenderData/RenderPrivData.vue
   </script>
   <style lang="less" scoped>
     .priv-data-box{
       position: relative;
       padding: 0 16px;
+=======
+</script>
+<style lang="less" scoped>
+  .priv-data-box {
+    position: relative;
+    padding: 0 16px;
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408):dbm-ui/frontend/src/views/spider-manage/openarea-template-create/components/config-rule/components/RenderData/RenderPrivData/Index.vue
 
       .error-flag {
         position: absolute;
@@ -105,5 +113,10 @@
         align-items: center;
       }
     }
+<<<<<<< HEAD:dbm-ui/frontend/src/views/mysql/openarea/template-create/components/config-rule/components/RenderData/RenderPrivData.vue
   </style>
 
+=======
+  }
+</style>
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408):dbm-ui/frontend/src/views/spider-manage/openarea-template-create/components/config-rule/components/RenderData/RenderPrivData/Index.vue

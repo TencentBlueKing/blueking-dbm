@@ -41,18 +41,14 @@
           :disabled="editDisabled"
           :list="logRecordList"
           :rules="rules"
-          style="flex: 1;" />
+          style="flex: 1" />
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    watch,
-  } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -70,9 +66,9 @@
 
   interface Exposes {
     getValue: (field: string) => Promise<{
-      backupinfo?: any,
-      rollback_time?: string
-    }>
+      backupinfo?: any;
+      rollback_time?: string;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -113,18 +109,16 @@
   const localBackupid = ref('');
   const localRollbackTime = ref('');
 
-  const logRecordList = shallowRef<Array<{ id: string, name: string}>>([]);
+  const logRecordList = shallowRef<Array<{ id: string; name: string }>>([]);
 
   const editDisabled = computed(() => !props.clusterId);
 
-  let logRecordListMemo: {backup_id: string, backup_time: string}[] = [];
+  let logRecordListMemo: { backup_id: string; backup_time: string }[] = [];
 
-  const {
-    run: fetchBackupLogFromBklog,
-  } = useRequest(queryBackupLogFromBklog, {
+  const { run: fetchBackupLogFromBklog } = useRequest(queryBackupLogFromBklog, {
     manual: true,
     onSuccess(data) {
-      logRecordList.value = data.map(item => ({
+      logRecordList.value = data.map((item) => ({
         id: item.backup_id,
         name: item.backup_time,
       }));
@@ -144,37 +138,39 @@
     });
   };
 
-  watch(() => props.clusterId, () => {
-    localBackupid.value = '';
-    localRollbackTime.value = '';
+  watch(
+    () => props.clusterId,
+    () => {
+      localBackupid.value = '';
+      localRollbackTime.value = '';
 
-    if (props.rollbackTime) {
-      localRollbackTime.value = props.rollbackTime;
-      localBackupType.value = 'REMOTE_AND_TIME';
-    }
+      if (props.rollbackTime) {
+        localRollbackTime.value = props.rollbackTime;
+        localBackupType.value = 'REMOTE_AND_TIME';
+      }
 
-    fetchLogData();
-  }, {
-    immediate: true,
-  });
+      fetchLogData();
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
       if (localBackupType.value === 'REMOTE_AND_BACKUPID') {
-        return localBackupidRef.value.getValue()
-          .then(() => {
-            const backupInfo = _.find(logRecordListMemo, item => item.backup_id === localBackupid.value);
-            return ({
-              rollback_type: 'REMOTE_AND_BACKUPID',
-              backupinfo: backupInfo,
-            });
-          });
+        return localBackupidRef.value.getValue().then(() => {
+          const backupInfo = _.find(logRecordListMemo, (item) => item.backup_id === localBackupid.value);
+          return {
+            rollback_type: 'REMOTE_AND_BACKUPID',
+            backupinfo: backupInfo,
+          };
+        });
       }
-      return localRollbackTimeRef.value.getValue()
-        .then(() => ({
-          rollback_type: 'REMOTE_AND_TIME',
-          rollback_time: formatDateToUTC(localRollbackTime.value),
-        }));
+      return localRollbackTimeRef.value.getValue().then(() => ({
+        rollback_type: 'REMOTE_AND_TIME',
+        rollback_time: formatDateToUTC(localRollbackTime.value),
+      }));
     },
   });
 </script>

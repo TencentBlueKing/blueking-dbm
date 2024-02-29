@@ -17,16 +17,18 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')" />
-      <div class="title-spot mt-12 mb-10">
-        {{ $t('时区') }}<span class="required" />
-      </div>
-      <TimeZonePicker style="width: 450px;" />
+        :title="
+          $t(
+            '定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态',
+          )
+        " />
+      <div class="title-spot mt-12 mb-10">{{ $t('时区') }}<span class="required" /></div>
+      <TimeZonePicker style="width: 450px" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
-          v-for="(item) in tableData"
+          v-for="item in tableData"
           :key="item.rowKey"
           ref="rowRefs"
           :data="item" />
@@ -75,14 +77,9 @@
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
-  import BatchEntry, {
-    type IValue as IBatchEntryValue,
-  } from './components/BatchEntry.vue';
+  import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -90,10 +87,10 @@
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
   const isShowBatchEntry = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -104,12 +101,14 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.clusterData
-      && !firstRow.rollbackTime
-      && !firstRow.databases
-      && !firstRow.databasesIgnore
-      && !firstRow.tables
-      && !firstRow.tablesIgnore;
+    return (
+      !firstRow.clusterData &&
+      !firstRow.rollbackTime &&
+      !firstRow.databases &&
+      !firstRow.databasesIgnore &&
+      !firstRow.tables &&
+      !firstRow.tablesIgnore
+    );
   };
 
   // 批量选择
@@ -119,7 +118,7 @@
 
   // 批量选择
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
-    const newList = list.map(item => createRowData(item));
+    const newList = list.map((item) => createRowData(item));
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -129,7 +128,7 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChange = (selected: { [key: string]: Array<SpiderModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
@@ -158,23 +157,25 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'TENDBCLUSTER_ROLLBACK_CLUSTER',
-        remark: '',
-        details: data[0],
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
-        router.push({
-          name: 'spiderRollback',
-          params: {
-            page: 'success',
-          },
-          query: {
-            ticketId: data.id,
-          },
-        });
-      }))
+      .then((data) =>
+        createTicket({
+          ticket_type: 'TENDBCLUSTER_ROLLBACK_CLUSTER',
+          remark: '',
+          details: data[0],
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'spiderRollback',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

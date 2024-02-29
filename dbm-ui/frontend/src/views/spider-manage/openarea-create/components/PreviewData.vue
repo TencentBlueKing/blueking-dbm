@@ -148,6 +148,7 @@
     },
   });
 </script>
+<<<<<<< HEAD
 <style lang="less" scoped>
 .openarea-create-table {
   :deep(.rules-main) {
@@ -165,3 +166,5 @@
 }
 </style>
 
+=======
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)

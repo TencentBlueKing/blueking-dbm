@@ -19,7 +19,7 @@
       ref="textRef"
       class="text-overflow">
       <span
-        v-for="(text,index) in data"
+        v-for="(text, index) in data"
         :key="index">
         {{ text }} {{ index < data.length - 1 ? ' , ' : '' }}
       </span>

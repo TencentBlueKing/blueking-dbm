@@ -32,13 +32,13 @@
             class="mr8"
             :disabled="disabledConfirm"
             :loading="isLoading"
-            style="width: 102px;"
+            style="width: 102px"
             theme="primary"
             @click="handleConfirm">
             {{ confirmText || $t('提交') }}
           </BkButton>
           <BkButton
-            style="min-width: 64px;"
+            style="min-width: 64px"
             @click="handleCancle">
             {{ cancelText || $t('取消') }}
           </BkButton>
@@ -48,30 +48,26 @@
   </BkSideslider>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    useAttrs,
-    useSlots,
-    watch  } from 'vue';
+  import { ref, useAttrs, useSlots, watch } from 'vue';
 
   import { useModelProvider } from '@hooks';
 
   import { leaveConfirm } from '@utils';
 
   interface Props {
-    isShow: boolean,
-    showFooter?: boolean,
-    confirmText?: string,
-    cancelText?: string,
-    disabledConfirm?: boolean,
+    isShow: boolean;
+    showFooter?: boolean;
+    confirmText?: string;
+    cancelText?: string;
+    disabledConfirm?: boolean;
   }
 
-  interface Emits{
-    (e: 'update:isShow', isShow: boolean):void
+  interface Emits {
+    (e: 'update:isShow', isShow: boolean): void;
   }
   interface Exposes {
-    handleConfirm: () => void,
-    handleCancle: () => void,
+    handleConfirm: () => void;
+    handleCancle: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -90,14 +86,18 @@
   const isLoading = ref(false);
   let pageChangeConfirm: boolean | 'popover' = false;
 
-  watch(() => props.isShow, (isShow) => {
-    if (isShow) {
-      pageChangeConfirm = window.changeConfirm;
-      window.changeConfirm = 'popover';
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.isShow,
+    (isShow) => {
+      if (isShow) {
+        pageChangeConfirm = window.changeConfirm;
+        window.changeConfirm = 'popover';
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const getModelProvier = useModelProvider();
 

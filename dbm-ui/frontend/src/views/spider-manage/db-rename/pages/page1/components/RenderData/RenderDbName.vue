@@ -32,14 +32,14 @@
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   interface Props {
-    clusterId: number,
-    modelValue?: string,
-    placeholder?: string,
-    checkExist?: boolean
+    clusterId: number;
+    modelValue?: string;
+    placeholder?: string;
+    checkExist?: boolean;
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<string, string[]>>
+    getValue: (field: string) => Promise<Record<string, string[]>>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -71,8 +71,8 @@
         if (!props.checkExist) {
           return true;
         }
-        const clearDbList = _.filter(value, item => !/[*%]/.test(item));
-        if (clearDbList.length  < 1) {
+        const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
+        if (clearDbList.length < 1) {
           return true;
         }
         return checkClusterDatabase({
@@ -82,7 +82,7 @@
               db_names: [value],
             },
           ],
-        }).then(data => (data.length > 0 ? data[0].check_info[value] : false));
+        }).then((data) => (data.length > 0 ? data[0].check_info[value] : false));
       },
       message: t('DB 不存在'),
     },
@@ -93,26 +93,32 @@
   const localValue = ref(props.modelValue);
 
   // 集群改变时 DB 需要重置
-  watch(() => props.clusterId, () => {
-    localValue.value = '';
-  });
-
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue;
-    } else {
+  watch(
+    () => props.clusterId,
+    () => {
       localValue.value = '';
-    }
-  }, {
-    immediate: true,
-  });
+    },
+  );
+
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localValue.value = props.modelValue;
+      } else {
+        localValue.value = '';
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue(field: string) {
-      return inputRef.value.getValue()
-        .then(() => ({
-          [field]: localValue.value,
-        }));
+      return inputRef.value.getValue().then(() => ({
+        [field]: localValue.value,
+      }));
     },
   });
 </script>

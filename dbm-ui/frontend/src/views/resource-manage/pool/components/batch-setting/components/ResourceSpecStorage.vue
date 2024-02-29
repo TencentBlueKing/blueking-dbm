@@ -30,11 +30,10 @@
 </template>
 <script lang="tsx">
   export interface IStorageSpecItem {
-    mount_point: string,
-    size: number,
-    type: string,
+    mount_point: string;
+    size: number;
+    type: string;
   }
-
 </script>
 <script setup lang="tsx">
   import _ from 'lodash';
@@ -259,66 +258,65 @@
     });
 </script>
 <style lang="less">
-.resource-spec-storage-box {
-  .bk-table-body {
-    // stylelint-disable-next-line selector-class-pattern
-    &.__is-empty {
-      .bk-table-body-content {
-        padding-bottom: 0;
+  .resource-spec-storage-box {
+    .bk-table-body {
+      // stylelint-disable-next-line selector-class-pattern
+      &.__is-empty {
+        .bk-table-body-content {
+          padding-bottom: 0;
+        }
       }
-    }
 
-    .cell {
-      padding: 0 !important;
+      .cell {
+        padding: 0 !important;
 
-      .large-size {
-        height: 42px;
-
-        .bk-input {
+        .large-size {
           height: 42px;
-        }
-      }
 
-      .bk-form-error-tips {
-        top: 12px;
-      }
-    }
-
-    .opertaions {
-      .bk-button {
-        margin-left: 18px;
-        font-size: @font-size-normal;
-
-        &:not(.is-disabled) i {
-          color: @light-gray;
-
-          &:hover {
-            color: @gray-color;
+          .bk-input {
+            height: 42px;
           }
         }
 
-        &.is-disabled {
-          i {
-            color: @disable-color;
+        .bk-form-error-tips {
+          top: 12px;
+        }
+      }
+
+      .opertaions {
+        .bk-button {
+          margin-left: 18px;
+          font-size: @font-size-normal;
+
+          &:not(.is-disabled) i {
+            color: @light-gray;
+
+            &:hover {
+              color: @gray-color;
+            }
+          }
+
+          &.is-disabled {
+            i {
+              color: @disable-color;
+            }
           }
         }
       }
     }
-  }
 
-  .create-row {
-    display: flex;
-    height: 41px;
-    font-size: 16px;
-    flex: 1;
-    cursor: pointer;
-    justify-content: center;
-    align-items: center;
+    .create-row {
+      display: flex;
+      height: 41px;
+      font-size: 16px;
+      flex: 1;
+      cursor: pointer;
+      justify-content: center;
+      align-items: center;
 
-    &:hover {
-      color: #3a84ff;
+      &:hover {
+        color: #3a84ff;
+      }
     }
   }
-}
-
 </style>

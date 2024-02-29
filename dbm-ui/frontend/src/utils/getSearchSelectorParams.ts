@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 
@@ -21,9 +21,8 @@ import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 export function getSearchSelectorParams<T extends Record<string, any>>(data: ISearchValue[]): T {
   const params = {};
   data.forEach((value: ISearchValue) => {
-    Object.assign(params, { [value.id]: (value.values || []).map(item => item.id).join(',') });
+    Object.assign(params, { [value.id]: (value.values || []).map((item) => item.id).join(',') });
   });
 
   return params as T;
 }
-

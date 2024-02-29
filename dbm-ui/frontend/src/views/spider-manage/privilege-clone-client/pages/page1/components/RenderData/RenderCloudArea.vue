@@ -30,17 +30,14 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    source?: IDataRow['source']
+    source?: IDataRow['source'];
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const {
-    loading: isLoading,
-    data: bkNetList,
-  } = useRequest(getCloudList);
+  const { loading: isLoading, data: bkNetList } = useRequest(getCloudList);
 
   const localValue = computed(() => {
     if (!bkNetList.value || bkNetList.value.length < 1 || !props.source) {
@@ -48,9 +45,8 @@
     }
 
     const { source } = props;
-    const netData = _.find(bkNetList.value, item => item.bk_cloud_id === source.bk_cloud_id);
+    const netData = _.find(bkNetList.value, (item) => item.bk_cloud_id === source.bk_cloud_id);
 
     return netData ? netData.bk_cloud_name : '--';
   });
-
 </script>

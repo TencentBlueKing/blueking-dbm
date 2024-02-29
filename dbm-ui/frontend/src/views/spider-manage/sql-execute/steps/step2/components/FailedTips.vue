@@ -14,16 +14,14 @@
 <template>
   <div class="sql-execute-success">
     <div class="wrapper">
-      <span
-        class="success-flag">
-        <DbIcon
-          type="delete-fill" />
+      <span class="success-flag">
+        <DbIcon type="delete-fill" />
       </span>
     </div>
-    <div style="margin-top: 22px; font-size: 24px; line-height: 32px; color: #313238;">
+    <div style="margin-top: 22px; font-size: 24px; line-height: 32px; color: #313238">
       {{ t('模拟执行失败') }}
     </div>
-    <div style="margin-top: 8px; line-height: 32px; color: #313238;">
+    <div style="margin-top: 8px; line-height: 32px; color: #313238">
       {{ t('接下你可以直接_提交申请_或返回上一步修改重试') }}
     </div>
   </div>

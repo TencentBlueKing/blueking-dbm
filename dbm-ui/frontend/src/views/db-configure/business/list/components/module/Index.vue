@@ -15,7 +15,7 @@
   <div class="module-content">
     <BkLoading
       :loading="state.loading"
-      style="height: 100%;"
+      style="height: 100%"
       :z-index="12">
       <ConfigEmpty v-if="state.isEmpty" />
       <BkTab
@@ -58,25 +58,21 @@
    * 顶部 tabs
    */
   const activatedTab = ref('base');
-  const tabs = reactive([{
-    label: t('参数管理'),
-    name: 'base',
-  }, {
-    label: t('发布记录'),
-    name: 'publish',
-  }]);
+  const tabs = reactive([
+    {
+      label: t('参数管理'),
+      name: 'base',
+    },
+    {
+      label: t('发布记录'),
+      name: 'publish',
+    },
+  ]);
 
   const { state, fetchParams } = useBaseDetails();
   const publishParams = computed(() => {
     if (fetchParams.value) {
-      const {
-        meta_cluster_type,
-        conf_type,
-        version,
-        bk_biz_id,
-        level_name,
-        level_value,
-      } = fetchParams.value;
+      const { meta_cluster_type, conf_type, version, bk_biz_id, level_name, level_value } = fetchParams.value;
       return {
         meta_cluster_type,
         conf_type,
@@ -90,14 +86,7 @@
   });
   const configParams = computed(() => {
     if (fetchParams.value) {
-      const {
-        meta_cluster_type,
-        conf_type,
-        version,
-        bk_biz_id,
-        level_name,
-        level_value,
-      } = fetchParams.value;
+      const { meta_cluster_type, conf_type, version, bk_biz_id, level_name, level_value } = fetchParams.value;
       return {
         meta_cluster_type,
         conf_type,
@@ -112,7 +101,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/common.less";
+  @import '@styles/common.less';
 
   .module-content {
     height: calc(100% - 42px);

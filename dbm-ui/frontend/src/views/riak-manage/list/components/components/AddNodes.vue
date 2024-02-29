@@ -23,8 +23,7 @@
         :label="t('服务器选择')"
         property="ip_source"
         required>
-        <BkRadioGroup
-          v-model="formData.ip_source">
+        <BkRadioGroup v-model="formData.ip_source">
           <BkRadioButton label="resource_pool">
             {{ t('自动从资源池匹配') }}
           </BkRadioButton>
@@ -50,7 +49,7 @@
               :cloud-id="data.bk_cloud_id"
               :cluster-type="ClusterTypes.RIAK"
               machine-type="riak"
-              style="width: 100%;" />
+              style="width: 100%" />
           </BkFormItem>
           <BkFormItem
             :label="t('节点数量')"
@@ -77,7 +76,7 @@
               :biz-id="currentBizId"
               :cloud-info="{
                 id: data.bk_cloud_id,
-                name: data.bk_cloud_name
+                name: data.bk_cloud_name,
               }"
               :data="formData.nodes"
               :disable-dialog-submit-method="disableHostSubmitMethods"
@@ -88,10 +87,10 @@
               <template #submitTips="{ hostList }">
                 <I18nT
                   keypath="至少n台_已选n台"
-                  style="font-size: 14px; color: #63656e;"
+                  style="font-size: 14px; color: #63656e"
                   tag="span">
-                  <span style="font-weight: bold; color: #2dcb56;"> 1 </span>
-                  <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                  <span style="font-weight: bold; color: #2dcb56"> 1 </span>
+                  <span style="font-weight: bold; color: #3a84ff"> {{ hostList.length }} </span>
                 </I18nT>
               </template>
             </IpSelector>
@@ -113,10 +112,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -124,15 +120,15 @@
   import NodeNumber from './components/NodeNumber.vue';
 
   interface Props {
-    data: RiakModel
+    data: RiakModel;
   }
 
   interface Emits {
-    (e: 'submitSuccess'): void
+    (e: 'submitSuccess'): void;
   }
 
   interface Expose {
-    submit: () => Promise<boolean | void | undefined>
+    submit: () => Promise<boolean | void | undefined>;
   }
 
   const props = defineProps<Props>();
@@ -168,7 +164,8 @@
     nodes: [] as HostDetails[],
   });
 
-  const disableHostSubmitMethods = (hostList: Array<HostDetails[]>) => (hostList.length < 1 ? t('至少n台', { n: 1 }) : false);
+  const disableHostSubmitMethods = (hostList: Array<HostDetails[]>) =>
+    hostList.length < 1 ? t('至少n台', { n: 1 }) : false;
 
   const handleProxyIpChange = (data: HostDetails[]) => {
     formData.nodes = data;
@@ -203,7 +200,7 @@
       } else {
         Object.assign(params.details, {
           nodes: {
-            riak: formData.nodes.map(nodeItem => ({
+            riak: formData.nodes.map((nodeItem) => ({
               ip: nodeItem.ip,
               bk_host_id: nodeItem.host_id,
               bk_cloud_id: nodeItem.cloud_id,
@@ -214,11 +211,10 @@
         });
       }
 
-      return createTicket(params)
-        .then((createTicketResult) => {
-          ticketMessage(createTicketResult.id);
-          emits('submitSuccess');
-        });
+      return createTicket(params).then((createTicketResult) => {
+        ticketMessage(createTicketResult.id);
+        emits('submitSuccess');
+      });
     },
   });
 </script>

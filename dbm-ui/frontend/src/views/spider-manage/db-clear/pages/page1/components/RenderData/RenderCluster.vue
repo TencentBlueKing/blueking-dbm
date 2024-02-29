@@ -22,7 +22,6 @@
 </template>
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
-
 </script>
 <script setup lang="ts">
   import {

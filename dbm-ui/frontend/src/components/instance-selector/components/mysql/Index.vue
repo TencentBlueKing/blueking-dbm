@@ -59,7 +59,7 @@
           </div>
         </template>
         <template #main>
-          <div style="height: 570px;">
+          <div style="height: 570px">
             <RenderTopoHost
               :cluster-id="selectClusterId"
               :disabled-row-config="disabledRowConfig"
@@ -91,8 +91,8 @@
   interface TopoTreeData {
     id: number;
     name: string;
-    obj: 'biz' | 'cluster',
-    count: number,
+    obj: 'biz' | 'cluster';
+    count: number;
     children: Array<TopoTreeData>;
   }
 
@@ -113,12 +113,12 @@
     topoAlertContent?: TopoConfigType['topoAlertContent'],
     filterClusterId?: TopoConfigType['filterClusterId'], // 过滤的集群ID，单集群模式
     // eslint-disable-next-line vue/no-unused-properties
-    getTopoList: NonNullable<TopoConfigType['getTopoList']>
+    getTopoList: NonNullable<TopoConfigType['getTopoList']>;
     // eslint-disable-next-line vue/no-unused-properties
-    getTableList: NonNullable<TableConfigType['getTableList']>,
-    statusFilter?: TableConfigType['statusFilter'],
+    getTableList: NonNullable<TableConfigType['getTableList']>;
+    statusFilter?: TableConfigType['statusFilter'];
     // eslint-disable-next-line vue/no-unused-properties
-    countFunc?: TopoConfigType['countFunc'],
+    countFunc?: TopoConfigType['countFunc'];
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -139,13 +139,8 @@
   const TopoAlertContent = computed(() => (!isCloseAlert.value ? props.topoAlertContent : null));
   const filterClusterId = computed(() => props.filterClusterId);
 
-  const {
-    treeRef,
-    isLoading,
-    treeData,
-    selectClusterId,
-    fetchResources,
-  } = useTopoData<Record<string, any>>(filterClusterId);
+  const { treeRef, isLoading, treeData, selectClusterId, fetchResources } =
+    useTopoData<Record<string, any>>(filterClusterId);
 
   fetchResources();
 
@@ -155,13 +150,13 @@
     info: unknown,
     {
       __is_open: isOpen,
-      __is_selected: isSelected }:
-      {
-        __is_open: boolean,
-        __is_selected: boolean
-      },
+      __is_selected: isSelected,
+    }: {
+      __is_open: boolean;
+      __is_selected: boolean;
+    },
   ) => {
-    const rawNode = treeRef.value.getData().data.find((item: { id: number; }) => item.id === node.id);
+    const rawNode = treeRef.value.getData().data.find((item: { id: number }) => item.id === node.id);
     selectClusterId.value = node.id;
     if (!isOpen && !isSelected) {
       treeRef.value.setNodeOpened(rawNode, true);
@@ -186,7 +181,6 @@
   const handleCloseAlert = () => {
     isCloseAlert.value = true;
   };
-
 </script>
 <style lang="less">
   .instance-selector-topo {

@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import HdfsModel from '@services/model/hdfs/hdfs';
 import ClusterConfigXmlsModel from '@services/model/hdfs/hdfs-cluster-config-xmls';
@@ -30,13 +30,17 @@ const path = `/apis/bigdata/bizs/${currentBizId}/hdfs/hdfs_resources`;
  * 获取集群列表
  */
 export function getHdfsList(params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<HdfsModel[]>>(`${path}/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map((item: HdfsModel) => new HdfsModel(Object.assign(item, {
-        permission: Object.assign({}, item.permission, data.permission),
-      }))),
-    }));
+  return http.get<ListBase<HdfsModel[]>>(`${path}/`, params).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item: HdfsModel) =>
+        new HdfsModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
+  }));
 }
 
 /**
@@ -50,11 +54,10 @@ export function getHdfsTableFields() {
  * 获取实例列表
  */
 export function getHdfsInstanceList(params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<HdfsInstanceModel[]>>(`${path}/list_instances/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map((item: HdfsInstanceModel) => new HdfsInstanceModel(item)),
-    }));
+  return http.get<ListBase<HdfsInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item: HdfsInstanceModel) => new HdfsInstanceModel(item)),
+  }));
 }
 
 /**
@@ -67,8 +70,7 @@ export function retrieveHdfsInstance(params: { bk_biz_id: number }) {
  * 获取集群详情
  */
 export function getHdfsDetail(params: { id: number }) {
-  return http.get<HdfsModel>(`${path}/${params.id}/`)
-    .then(data => new HdfsModel(data));
+  return http.get<HdfsModel>(`${path}/${params.id}/`).then((data) => new HdfsModel(data));
 }
 
 /**
@@ -89,22 +91,24 @@ export function getHdfsXmls(params: { cluster_id: number }) {
  * 获取 Hdfs 集群访问密码
  */
 export function getHdfsPassword(params: { cluster_id: number }) {
-  return http.get<HdfsPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
-    .then(data => new HdfsPasswordModel(data));
+  return http
+    .get<HdfsPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
+    .then((data) => new HdfsPasswordModel(data));
 }
 
 /**
  * 获取 Hdfs 集群节点列表信息
  */
-export function getHdfsNodeList(params: Record<string, any> & {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
-  return http.get<ListBase<Array<HdfsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map((item: HdfsNodeModel) => new HdfsNodeModel(item)),
-    }));
+export function getHdfsNodeList(
+  params: Record<string, any> & {
+    bk_biz_id: number;
+    cluster_id: number;
+  },
+) {
+  return http.get<ListBase<Array<HdfsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item: HdfsNodeModel) => new HdfsNodeModel(item)),
+  }));
 }
 
 /**
@@ -120,4 +124,3 @@ export function exportHdfsClusterToExcel(params: { cluster_ids?: number[] }) {
 export function exportHdfsInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
 }
-

@@ -26,7 +26,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -82,16 +82,17 @@
 
   import { ClusterTypes } from '@common/const';
 
+<<<<<<< HEAD
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
   } from '@components/instance-selector/Index.vue';
+=======
+  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector-new/Index.vue';
+>>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -99,7 +100,7 @@
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedIps = shallowRef<InstanceSelectorValues<IValue>>({ tendbcluster: [] });
@@ -118,9 +119,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.masterData
-      && !firstRow.slaveData
-      && !firstRow.clusterData;
+    return !firstRow.masterData && !firstRow.slaveData && !firstRow.clusterData;
   };
 
   // Master 批量选择
@@ -131,11 +130,7 @@
   const handelMasterProxyChange = (data: InstanceSelectorValues<IValue>) => {
     selectedIps.value = data;
     const newList = data.tendbcluster.reduce((result, item) => {
-      const {
-        ip,
-        bk_host_id,
-        bk_cloud_id,
-      } = item;
+      const { ip, bk_host_id, bk_cloud_id } = item;
       if (!ipMemo[ip]) {
         const row = createRowData({
           masterData: {
@@ -173,34 +168,36 @@
     if (ip) {
       delete ipMemo[ip];
       const clustersArr = selectedIps.value.tendbcluster;
-      selectedIps.value.tendbcluster = clustersArr.filter(item => item.ip !== ip);
+      selectedIps.value.tendbcluster = clustersArr.filter((item) => item.ip !== ip);
     }
   };
 
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'TENDBCLUSTER_MASTER_SLAVE_SWITCH',
-        remark: '',
-        details: {
-          ...formData,
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
+      .then((data) =>
+        createTicket({
+          ticket_type: 'TENDBCLUSTER_MASTER_SLAVE_SWITCH',
+          remark: '',
+          details: {
+            ...formData,
+            infos: data,
+          },
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
 
-        router.push({
-          name: 'spiderMasterSlaveSwap',
-          params: {
-            page: 'success',
-          },
-          query: {
-            ticketId: data.id,
-          },
-        });
-      }))
+          router.push({
+            name: 'spiderMasterSlaveSwap',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });
@@ -218,7 +215,7 @@
   .spider-manage-master-slave-swap-page {
     padding-bottom: 20px;
 
-    .item-block{
+    .item-block {
       margin-top: 24px;
     }
   }

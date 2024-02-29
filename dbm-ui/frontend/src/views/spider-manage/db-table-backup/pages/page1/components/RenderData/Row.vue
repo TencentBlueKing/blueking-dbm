@@ -14,39 +14,39 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
           @id-change="handleClusterIdChange"
           @input-create="handleCreate" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderBackupLocal
           ref="backupLocalRef"
           :cluster-data="data.clusterData"
           :model-value="data.backupLocal" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="dbPatternsRef"
           :cluster-id="localClusterId"
           :model-value="data.dbPatterns" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableName
           ref="tablePatternsRef"
           :cluster-id="localClusterId"
           :model-value="data.tablePatterns" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="ignoreDbsRef"
           :cluster-id="localClusterId"
           :model-value="data.ignoreDbs"
           :required="false" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableName
           ref="ignoreTablesRef"
           :cluster-id="localClusterId"
@@ -64,17 +64,18 @@
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';
+
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
-      id: number,
-      domain: string,
-    },
-    backupLocal: string,
-    dbPatterns?: string [],
-    tablePatterns?: string [],
-    ignoreDbs?: string [],
-    ignoreTables?: string [],
+      id: number;
+      domain: string;
+    };
+    backupLocal: string;
+    dbPatterns?: string[];
+    tablePatterns?: string[];
+    ignoreDbs?: string[];
+    ignoreTables?: string[];
   }
 
   // 创建表格数据
@@ -87,7 +88,6 @@
     ignoreDbs: data.ignoreDbs,
     ignoreTables: data.ignoreTables,
   });
-
 </script>
 <script setup lang="ts">
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
@@ -97,16 +97,16 @@
   import RenderCluster from './RenderCluster.vue';
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -122,25 +122,34 @@
 
   const localClusterId = ref(0);
 
-  watch(() => props.data, () => {
-    if (props.data.clusterData) {
-      localClusterId.value = props.data.clusterData.id;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.clusterData) {
+        localClusterId.value = props.data.clusterData.id;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
   };
 
   const handleCreate = (list: Array<string>) => {
-    emits('add', list.map(domain => createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-      },
-    })));
+    emits(
+      'add',
+      list.map((domain) =>
+        createRowData({
+          clusterData: {
+            id: 0,
+            domain,
+          },
+        }),
+      ),
+    );
   };
 
   const handleAppend = () => {
@@ -163,14 +172,7 @@
         tablePatternsRef.value.getValue('table_patterns'),
         ignoreDbsRef.value.getValue('ignore_dbs'),
         ignoreTablesRef.value.getValue('ignore_tables'),
-      ]).then(([
-        clusterData,
-        backupLocalData,
-        dbPatternsData,
-        tablePatternsData,
-        ignoreDbsData,
-        ignoreTablesData,
-      ]) => ({
+      ]).then(([clusterData, backupLocalData, dbPatternsData, tablePatternsData, ignoreDbsData, ignoreTablesData]) => ({
         ...clusterData,
         ...backupLocalData,
         ...dbPatternsData,

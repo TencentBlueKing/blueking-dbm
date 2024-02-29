@@ -20,7 +20,7 @@
     <span
       v-bk-tooltips="{
         content: $t('不支持修改'),
-        disabled: !isEdit
+        disabled: !isEdit,
       }"
       class="inline-block">
       <BkInput
@@ -28,7 +28,7 @@
         :disabled="isEdit"
         :max="10000000"
         :min="1"
-        style="width: 140px;"
+        style="width: 140px"
         type="number"
         @change="handleLimitChange('min')" />
     </span>
@@ -36,7 +36,7 @@
     <span
       v-bk-tooltips="{
         content: $t('不支持修改'),
-        disabled: !isEdit
+        disabled: !isEdit,
       }"
       class="inline-block">
       <BkInput
@@ -44,7 +44,7 @@
         :disabled="isEdit"
         :max="10000000"
         :min="Number(modelValue.min) || 1"
-        style="width: 140px;"
+        style="width: 140px"
         type="number"
         @change="handleLimitChange('max')" />
     </span>
@@ -56,12 +56,12 @@
   import { useI18n } from 'vue-i18n';
 
   interface ModelValue {
-    max: number | string,
-    min: number | string,
+    max: number | string;
+    min: number | string;
   }
 
   interface Props {
-    isEdit: boolean
+    isEdit: boolean;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -74,7 +74,7 @@
   const qpsRules = [
     {
       required: true,
-      validator: (value: {max: number, min: number}) => value.max > 0 && value.min > 0,
+      validator: (value: { max: number; min: number }) => value.max > 0 && value.min > 0,
       message: t('请输入xx', ['QPS']),
     },
   ];
@@ -83,7 +83,9 @@
     const minValue = Number(modelValue.value.min);
     const maxValue = Number(modelValue.value.max);
 
-    if (!minValue || !maxValue) return;
+    if (!minValue || !maxValue) {
+      return;
+    }
 
     if (type === 'min' && minValue > maxValue) {
       modelValue.value.min = maxValue;

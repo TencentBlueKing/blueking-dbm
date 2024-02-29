@@ -21,12 +21,8 @@
         ref="tableRef"
         :table-data="tableData" />
     </div>
-    <div
-      class="main-title title-spot mb-18">
-      {{ $t('执行模式') }}<span class="required" />
-    </div>
-    <BkRadioGroup
-      v-model="executeMode">
+    <div class="main-title title-spot mb-18">{{ $t('执行模式') }}<span class="required" /></div>
+    <BkRadioGroup v-model="executeMode">
       <div class="radio-group">
         <BkRadio
           class="radio-item"
@@ -65,20 +61,14 @@
       </div>
     </BkRadioGroup>
     <template v-if="executeMode === ExecuteModes.SCHEDULED_EXECUTION">
-      <div
-        class="main-title title-spot mb-11">
-        {{ $t('指定执行时间') }}<span class="required" />
-      </div>
+      <div class="main-title title-spot mb-11">{{ $t('指定执行时间') }}<span class="required" /></div>
       <BkDatePicker
         v-model="specifyExecuteTime"
         class="date-picker"
         type="datetime" />
     </template>
 
-    <div
-      class="main-title title-spot mb-11">
-      {{ $t('指定停止时间') }}<span class="required" />
-    </div>
+    <div class="main-title title-spot mb-11">{{ $t('指定停止时间') }}<span class="required" /></div>
     <div class="overtime-box">
       <BkDatePicker
         v-model="specifyStopTime"
@@ -90,21 +80,14 @@
       </BkCheckbox>
     </div>
 
-    <div
-      class="main-title title-spot mb-15">
-      {{ $t('修复数据') }}<span class="required" />
-    </div>
+    <div class="main-title title-spot mb-15">{{ $t('修复数据') }}<span class="required" /></div>
     <BkSwitcher
       v-model="isRepairData"
-      style="width: 28px;"
+      style="width: 28px"
       theme="primary" />
-    <div
-      class="main-title title-spot mb-18">
-      {{ $t('修复模式') }}<span class="required" />
-    </div>
+    <div class="main-title title-spot mb-18">{{ $t('修复模式') }}<span class="required" /></div>
 
-    <BkRadioGroup
-      v-model="repairMode">
+    <BkRadioGroup v-model="repairMode">
       <div class="radio-group">
         <BkRadio
           class="radio-item"
@@ -159,7 +142,7 @@
           :disabled="isSubmitting">
           {{ $t('重置') }}
         </BkButton>
-      </dbpopconfirm>
+      </DbPopconfirm>
     </div>
   </div>
 </template>
@@ -175,37 +158,33 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { LocalStorageKeys, TicketTypes  } from '@common/const';
+  import { LocalStorageKeys, TicketTypes } from '@common/const';
 
   import { formatDatetime } from '@views/redis/common/utils';
 
   import BasicInfoTable from './basic-info-table/Index.vue';
-  import  {
-    type IDataRow,
-    type InfoItem,
-  } from './basic-info-table/Row.vue';
-
+  import { type IDataRow, type InfoItem } from './basic-info-table/Row.vue';
 
   enum ExecuteModes {
     AUTO_EXECUTION = 'auto_execution',
-    SCHEDULED_EXECUTION = 'scheduled_execution'
+    SCHEDULED_EXECUTION = 'scheduled_execution',
   }
 
   enum RepairModes {
     AUTO_REPAIR = 'auto_repair',
-    MANUAL_CONFIRM = 'manual_confirm'
+    MANUAL_CONFIRM = 'manual_confirm',
   }
 
   type SubmitType = SubmitTicket<TicketTypes, InfoItem[]> & {
     details: {
-      execute_mode: ExecuteModes, // 执行模式
-      specified_execution_time: string, // 定时执行,指定执行时间
-      check_stop_time: string, // 校验终止时间,
-      keep_check_and_repair: boolean, // 是否一直保持校验
-      data_repair_enabled: boolean, // 是否修复数据
-      repair_mode: RepairModes,
-    }
-  }
+      execute_mode: ExecuteModes; // 执行模式
+      specified_execution_time: string; // 定时执行,指定执行时间
+      check_stop_time: string; // 校验终止时间,
+      keep_check_and_repair: boolean; // 是否一直保持校验
+      data_repair_enabled: boolean; // 是否修复数据
+      repair_mode: RepairModes;
+    };
+  };
 
   const { t } = useI18n();
   const router = useRouter();
@@ -231,15 +210,17 @@
       return;
     }
     const item = JSON.parse(r) as RedisDSTHistoryJobModel;
-    tableData.value = [{
-      billId: item.bill_id,
-      srcCluster: item.src_cluster,
-      targetCluster: item.dst_cluster,
-      relateTicket: item.bill_id,
-      instances: t('全部'),
-      includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
-      excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
-    }];
+    tableData.value = [
+      {
+        billId: item.bill_id,
+        srcCluster: item.src_cluster,
+        targetCluster: item.dst_cluster,
+        relateTicket: item.bill_id,
+        instances: t('全部'),
+        includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
+        excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
+      },
+    ];
     setTimeout(() => {
       localStorage.removeItem(LocalStorageKeys.REDIS_DATA_CHECK_AND_REPAIR);
     });
@@ -248,13 +229,14 @@
 
   // 提交
   const handleSubmit = async () => {
-    const infos = await tableRef.value.getValue() as InfoItem[];
+    const infos = (await tableRef.value.getValue()) as InfoItem[];
     const params: SubmitType = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
       details: {
         execute_mode: executeMode.value,
-        specified_execution_time: executeMode.value === ExecuteModes.SCHEDULED_EXECUTION ? formatDatetime(specifyExecuteTime.value) : '',
+        specified_execution_time:
+          executeMode.value === ExecuteModes.SCHEDULED_EXECUTION ? formatDatetime(specifyExecuteTime.value) : '',
         check_stop_time: isKeepCheckAndRepair.value ? '' : formatDatetime(specifyStopTime.value),
         keep_check_and_repair: isKeepCheckAndRepair.value,
         data_repair_enabled: isRepairData.value,
@@ -267,25 +249,27 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisToolboxDataCheckRepair',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'RedisToolboxDataCheckRepair',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .catch((e) => {
             console.error('submit data check repair ticket error', e);
           })
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   // 重置
@@ -301,77 +285,74 @@
     });
     window.changeConfirm = false;
   };
-
 </script>
 
 <style lang="less" scoped>
-.redis-page {
-  display: flex;
-  padding: 24px;
-  margin-top: -4px;
-  overflow: hidden;
-  background-color: #fff;
-  flex-direction: column;
-
-  .main-title {
-    margin-top: 24px;
-  }
-
-  .date-picker {
-    width:360px;
-    margin-right: 12px;
-  }
-
-  .overtime-box {
+  .redis-page {
     display: flex;
-    width: 100%;
-    align-items: center;
-  }
+    padding: 24px;
+    margin-top: -4px;
+    overflow: hidden;
+    background-color: #fff;
+    flex-direction: column;
 
-  .bk-radio-group {
-    .radio-group {
+    .main-title {
+      margin-top: 24px;
+    }
+
+    .date-picker {
+      width: 360px;
+      margin-right: 12px;
+    }
+
+    .overtime-box {
       display: flex;
-      flex-direction: column;
+      width: 100%;
+      align-items: center;
+    }
 
-      .radio-item {
-        margin: 0;
-        align-items: flex-start;
+    .bk-radio-group {
+      .radio-group {
+        display: flex;
+        flex-direction: column;
 
-        .radio-item__content {
-          display: flex;
-          margin-left: 5px;
-          color: #63656E;
+        .radio-item {
+          margin: 0;
+          align-items: flex-start;
 
-          .img-box {
-            width: 18px;
-
-            img {
-              width: 18px;
-              object-fit: contain;
-            }
-          }
-
-          .title-box {
+          .radio-item__content {
             display: flex;
-            flex-direction: column;
+            margin-left: 5px;
+            color: #63656e;
 
-            .title {
-              margin-bottom: 4px;
-              font-weight: 700;
-              color: #63656E;
+            .img-box {
+              width: 18px;
+
+              img {
+                width: 18px;
+                object-fit: contain;
+              }
+            }
+
+            .title-box {
+              display: flex;
+              flex-direction: column;
+
+              .title {
+                margin-bottom: 4px;
+                font-weight: 700;
+                color: #63656e;
+              }
             }
           }
         }
       }
     }
+
+    .btns {
+      display: flex;
+      width: 100%;
+      margin-top: 32px;
+    }
   }
-
-  .btns {
-    display: flex;
-    width: 100%;
-    margin-top: 32px;
-  }
-}
-
-
 </style>

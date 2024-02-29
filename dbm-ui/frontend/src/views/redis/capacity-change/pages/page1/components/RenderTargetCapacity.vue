@@ -13,8 +13,7 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div
-      v-if="!localValue">
+    <div v-if="!localValue">
       <DisableSelect
         ref="selectRef"
         :is-disabled="isDisabled"
@@ -27,8 +26,7 @@
       v-else
       class="capacity-box"
       @click="handleClickSelect">
-      <div
-        class="content">
+      <div class="content">
         <!-- <span style="margin-right: 5px;">{{ t('磁盘') }}:</span>
         <BkProgress
           color="#2DCB56"
@@ -47,8 +45,11 @@
             '#EA3636' : '#2DCB56'}">{{ `(${changeObj.rate}%, ${changeObj.num}G)` }}</span> -->
         <span
           class="scale-percent"
-          :style="{color: localValue.cluster_capacity > Number(props.rowData?.targetCapacity?.current) ?
-            '#EA3636' : '#2DCB56'}">{{ `(${changeObj.num}G)` }}</span>
+          :style="{
+            color: localValue.cluster_capacity > Number(props.rowData?.targetCapacity?.current) ? '#EA3636' : '#2DCB56',
+          }">
+          {{ `(${changeObj.num}G)` }}
+        </span>
       </div>
     </div>
   </BkLoading>
@@ -57,7 +58,7 @@
     is-same-shard-num
     :is-show="showChooseClusterTargetPlan"
     :title="t('选择集群容量变更部署方案')"
-    @click-cancel="() => showChooseClusterTargetPlan = false"
+    @click-cancel="() => (showChooseClusterTargetPlan = false)"
     @click-confirm="handleChoosedTargetCapacity" />
 </template>
 <script setup lang="ts">
@@ -177,48 +178,47 @@
       });
     },
   });
-
 </script>
 <style lang="less" scoped>
-.capacity-box {
-  padding: 10px 16px;
-  overflow: hidden;
-  line-height: 20px;
-  color: #63656e;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
-  border: 1px solid transparent;
+  .capacity-box {
+    padding: 10px 16px;
+    overflow: hidden;
+    line-height: 20px;
+    color: #63656e;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 1px solid transparent;
 
-  &:hover {
-    background-color: #fafbfd;
-    border-color: #a3c5fd;
+    &:hover {
+      background-color: #fafbfd;
+      border-color: #a3c5fd;
+    }
+
+    .content {
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+      color: #63656e;
+
+      .percent {
+        margin-left: 4px;
+        font-size: 12px;
+        font-weight: bold;
+        color: #313238;
+      }
+
+      .spec {
+        margin-left: 2px;
+        font-size: 12px;
+        // color: #979BA5;
+      }
+
+      .scale-percent {
+        margin-left: 5px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+    }
   }
-
-  .content {
-    display: flex;
-    align-items: center;
-    font-size: 12px;
-    color: #63656E;
-
-    .percent {
-      margin-left: 4px;
-      font-size: 12px;
-      font-weight: bold;
-      color: #313238;
-    }
-
-    .spec {
-      margin-left: 2px;
-      font-size: 12px;
-      // color: #979BA5;
-    }
-
-    .scale-percent {
-      margin-left: 5px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-  }
-}
 </style>

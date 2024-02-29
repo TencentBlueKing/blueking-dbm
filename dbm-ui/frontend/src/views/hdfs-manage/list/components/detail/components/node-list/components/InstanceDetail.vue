@@ -13,7 +13,7 @@
 
 <template>
   <div class="cluster-node-list-box">
-    <div style="margin-bottom: 12px;">
+    <div style="margin-bottom: 12px">
       <BkButton
         :disabled="isBatchRestartDisabled || isRestartActionDisabled"
         :loading="isBatchRestartLoading"

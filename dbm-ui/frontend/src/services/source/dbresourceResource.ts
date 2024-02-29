@@ -9,19 +9,14 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import DbResourceModel from '@services/model/db-resource/DbResource';
 import ImportHostModel from '@services/model/db-resource/import-host';
 import OperationModel from '@services/model/db-resource/Operation';
 
-import http, {
-  type IRequestPayload,
-} from '../http';
-import type {
-  HostDetails,
-  ListBase,
-} from '../types';
+import http, { type IRequestPayload } from '../http';
+import type { HostDetails, ListBase } from '../types';
 
 const path = '/apis/dbresource/resource';
 
@@ -64,13 +59,13 @@ export function fetchSubzones(params: { citys: string }) {
  * 资源池导入
  */
 export function importResource(params: {
-  for_bizs: number[],
-  resource_types: string[],
+  for_bizs: number[];
+  resource_types: string[];
   hosts: Array<{
-    ip: string,
-    host_id: number,
-    bk_cloud_id: number
-  }>
+    ip: string;
+    host_id: number;
+    bk_cloud_id: number;
+  }>;
 }) {
   return http.post(`${path}/import/`, params);
 }
@@ -79,30 +74,26 @@ export function importResource(params: {
  * 资源池列表
  */
 export function fetchList(params: Record<string, any>, payload = {} as IRequestPayload) {
-  return http.post<ListBase<DbResourceModel[]>>(`${path}/list/`, params, payload)
-    .then(data => ({
-      ...data,
-      results: data.results.map(item => new DbResourceModel(item)),
-    }));
+  return http.post<ListBase<DbResourceModel[]>>(`${path}/list/`, params, payload).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new DbResourceModel(item)),
+  }));
 }
 
 /**
  * 获取DBA业务下的主机信息
  */
-export function fetchListDbaHost(params: {
-  limit: number,
-  offset: number,
-  search_content: string
-}) {
-  return http.get<{
-    total: number,
-    data: ImportHostModel[]
-  }>(`${path}/list_dba_hosts/`, {
-    search_content: params.search_content,
-    start: params.offset,
-    page_size: params.limit,
-  })
-    .then(data => ({
+export function fetchListDbaHost(params: { limit: number; offset: number; search_content: string }) {
+  return http
+    .get<{
+      total: number;
+      data: ImportHostModel[];
+    }>(`${path}/list_dba_hosts/`, {
+      search_content: params.search_content,
+      start: params.offset,
+      page_size: params.limit,
+    })
+    .then((data) => ({
       count: data.total,
       results: data.data,
     }));
@@ -120,25 +111,27 @@ export function fetchHostListByHostId(params: { bk_host_ids: string }) {
  */
 export function fetchImportTask() {
   return http.get<{
-    bk_biz_id: number,
-    task_ids: string[]
+    bk_biz_id: number;
+    task_ids: string[];
   }>(`${path}/query_import_tasks/`);
 }
 
 /**
  * 查询资源操作记录
  */
-export function fetchOperationList(params: {
-  limit: number,
-  offset: number,
-  begin_time: string,
-  end_time: string
-}, payload = {} as IRequestPayload) {
-  return http.get<ListBase<OperationModel[]>>(`${path}/query_operation_list/`, params, payload)
-    .then(data => ({
-      ...data,
-      results: data.results.map(item => new OperationModel(item)),
-    }));
+export function fetchOperationList(
+  params: {
+    limit: number;
+    offset: number;
+    begin_time: string;
+    end_time: string;
+  },
+  payload = {} as IRequestPayload,
+) {
+  return http.get<ListBase<OperationModel[]>>(`${path}/query_operation_list/`, params, payload).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new OperationModel(item)),
+  }));
 }
 
 /**
@@ -146,9 +139,9 @@ export function fetchOperationList(params: {
  */
 export function fetchResourceImportUrls() {
   return http.get<{
-    bk_cmdb_url: string,
-    bk_nodeman_url: string,
-    bk_scr_url: string
+    bk_cmdb_url: string;
+    bk_nodeman_url: string;
+    bk_scr_url: string;
   }>(`${path}/resource_import_urls/`);
 }
 
@@ -156,10 +149,10 @@ export function fetchResourceImportUrls() {
  * 获取规格主机数量
  */
 export function getSpecResourceCount(params: {
-  bk_biz_id: number,
-  resource_type?: string,
-  bk_cloud_id: number,
-  spec_ids: number[]
+  bk_biz_id: number;
+  resource_type?: string;
+  bk_cloud_id: number;
+  spec_ids: number[];
 }) {
   return http.post<Record<number, number>>(`${path}/spec_resource_count/`, params);
 }
@@ -168,12 +161,12 @@ export function getSpecResourceCount(params: {
  * 更新资源
  */
 export function updateResource(params: {
-  bk_host_ids: number[],
-  for_bizs: number[],
-  resource_types: string[],
-  set_empty_biz: boolean,
-  set_empty_resource_type: boolean,
-  storage_device: Record<string, { size: number, disk_type: string }>
+  bk_host_ids: number[];
+  for_bizs: number[];
+  resource_types: string[];
+  set_empty_biz: boolean;
+  set_empty_resource_type: boolean;
+  storage_device: Record<string, { size: number; disk_type: string }>;
 }) {
   return http.post(`${path}/update/`, params);
 }
@@ -181,9 +174,6 @@ export function updateResource(params: {
 /**
  * 获取操作系统类型
  */
-export function getOsTypeList(params: {
-  offset?: number,
-  limit?: number,
-}) {
+export function getOsTypeList(params: { offset?: number; limit?: number }) {
   return http.get<string[]>(`${path}/get_os_types/`, params);
 }

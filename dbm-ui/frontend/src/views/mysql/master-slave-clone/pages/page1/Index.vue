@@ -20,9 +20,8 @@
         :title="t('迁移主从：集群主从实例将成对迁移至新机器。默认迁移同机所有关联集群，也可迁移部分集群，迁移会下架旧实例')" />
       <div
         class="mt16"
-        style="display: flex;">
-        <BkButton
-          @click="handleShowBatchEntry">
+        style="display: flex">
+        <BkButton @click="handleShowBatchEntry">
           <DbIcon type="add" />
           {{ t('批量录入') }}
         </BkButton>
@@ -35,7 +34,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -86,10 +85,7 @@
 </template>
 
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -101,19 +97,14 @@
 
   import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
 
-  import BatchEntry, {
-    type IValue as IBatchEntryValue,
-  } from './components/BatchEntry.vue';
+  import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   interface IClusterData {
-    id: number,
-    master_domain: string
-    bk_cloud_id: number,
+    id: number;
+    master_domain: string;
+    bk_cloud_id: number;
   }
 
   // 检测列表是否为空
@@ -122,9 +113,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.clusterData
-      && !firstRow.masterHostData
-      && !firstRow.slaveHostData;
+    return !firstRow.clusterData && !firstRow.masterHostData && !firstRow.slaveHostData;
   };
 
   const clusterSelectorTabList = [ClusterTypes.TENDBHA];
@@ -136,7 +125,7 @@
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
   const isShowBatchEntry = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const backupSource = ref('local');
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
@@ -147,7 +136,7 @@
   };
   // 批量录入
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
-    const newList = list.map(item => createRowData(item));
+    const newList = list.map((item) => createRowData(item));
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -160,14 +149,16 @@
     isShowBatchSelector.value = true;
   };
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
-      clusterData: {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-        cloudId: clusterData.bk_cloud_id,
-      },
-    }));
+  const handelClusterChange = (selected: { [key: string]: Array<IClusterData> }) => {
+    const newList = selected[ClusterTypes.TENDBHA].map((clusterData) =>
+      createRowData({
+        clusterData: {
+          id: clusterData.id,
+          domain: clusterData.master_domain,
+          cloudId: clusterData.bk_cloud_id,
+        },
+      }),
+    );
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -191,27 +182,29 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'MYSQL_MIGRATE_CLUSTER',
-        remark: '',
-        details: {
-          infos: data,
-          backup_source: backupSource.value,
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
+      .then((data) =>
+        createTicket({
+          ticket_type: 'MYSQL_MIGRATE_CLUSTER',
+          remark: '',
+          details: {
+            infos: data,
+            backup_source: backupSource.value,
+          },
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
 
-        router.push({
-          name: 'MySQLMasterSlaveClone',
-          params: {
-            page: 'success',
-          },
-          query: {
-            ticketId: data.id,
-          },
-        });
-      }))
+          router.push({
+            name: 'MySQLMasterSlaveClone',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

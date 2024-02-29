@@ -36,4 +36,3 @@
 
   const clusterId = ref(0);
 </script>
-

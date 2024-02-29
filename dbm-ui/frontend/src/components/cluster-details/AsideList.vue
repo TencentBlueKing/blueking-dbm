@@ -30,9 +30,11 @@
             v-for="item of data"
             :key="item[showKey]"
             class="aside-container__item"
-            :class="[{
-              'aside-container__item--active': item[showKey] === activeItem[showKey]
-            }]"
+            :class="[
+              {
+                'aside-container__item--active': item[showKey] === activeItem[showKey],
+              },
+            ]"
             @click="handleClickItem(item)">
             <DbStatus :theme="getItemStatus(item)" />
             <span
@@ -73,27 +75,27 @@
 
 <script setup lang="ts">
   interface Props {
-    loading?: boolean,
-    data?:  { [key: string]: string }[],
-    activeItem?: Record<string, any>,
-    total?: number,
-    limit?: number,
-    showKey?: string,
-    placeholder?: string,
-    isAnomalies?: boolean,
+    loading?: boolean;
+    data?: { [key: string]: string }[];
+    activeItem?: Record<string, any>;
+    total?: number;
+    limit?: number;
+    showKey?: string;
+    placeholder?: string;
+    isAnomalies?: boolean;
   }
 
   interface Emits {
-    (e: 'searchEnter', value: string): void
-    (e: 'searchClear', value: string): void
-    (e: 'changePage', value: number): void
-    (e: 'itemSelected', value: { [key: string]: string }): void
+    (e: 'searchEnter', value: string): void;
+    (e: 'searchClear', value: string): void;
+    (e: 'changePage', value: number): void;
+    (e: 'itemSelected', value: { [key: string]: string }): void;
     // (e: 'returnPage'): void
   }
 
   const props = withDefaults(defineProps<Props>(), {
     loading: false,
-    data: () => ([]),
+    data: () => [],
     activeItem: () => ({}),
     total: 0,
     limit: 50,
@@ -116,16 +118,22 @@
   /**
    * 设置数据总数
    */
-  watch(() => props.total, (value: number) => {
-    state.pagination.count = value;
-  });
+  watch(
+    () => props.total,
+    (value: number) => {
+      state.pagination.count = value;
+    },
+  );
 
   /**
    * 设置每页数量
    */
-  watch(() => props.limit, (value: number) => {
-    state.pagination.limit = value;
-  });
+  watch(
+    () => props.limit,
+    (value: number) => {
+      state.pagination.limit = value;
+    },
+  );
 
   // 列表有数据 & 非搜索状态 & 列表非loading状态
   // const showReturnIcon = computed(() => props.data.length > 0 && !state.search && props.loading === false);
@@ -217,7 +225,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .aside-container {
     position: relative;

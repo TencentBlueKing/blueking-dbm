@@ -51,5 +51,4 @@
       field: 'repl_binlog_pos',
     },
   ];
-
 </script>

@@ -34,11 +34,11 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    slave?: IDataRow['slave']
+    slave?: IDataRow['slave'];
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<Record<string, string>>;
   }
 
   const props = defineProps<Props>();
@@ -49,40 +49,40 @@
   const editInputRef = ref();
   const localInstanceData = shallowRef<ServiceReturnType<typeof checkMysqlInstances>[0]>();
 
-  const {
-    loading: isLoading,
-    run: fetchCheckMysqlInstances,
-  } = useRequest(checkMysqlInstances, {
+  const { loading: isLoading, run: fetchCheckMysqlInstances } = useRequest(checkMysqlInstances, {
     manual: true,
     onSuccess(data) {
       [localInstanceData.value] = data;
     },
   });
 
-  watch(() => props.slave, () => {
-    if (!props.slave) {
-      localInstanceData.value = undefined;
-      return;
-    }
-    fetchCheckMysqlInstances({
-      bizId: currentBizId,
-      instance_addresses: [props.slave.instanceAddress],
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.slave,
+    () => {
+      if (!props.slave) {
+        localInstanceData.value = undefined;
+        return;
+      }
+      fetchCheckMysqlInstances({
+        bizId: currentBizId,
+        instance_addresses: [props.slave.instanceAddress],
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return editInputRef.value.getValue()
-        .then(() => {
-          if (!localInstanceData.value) {
-            return Promise.reject();
-          }
-          return {
-            cluster_id: localInstanceData.value.cluster_id,
-          };
-        });
+      return editInputRef.value.getValue().then(() => {
+        if (!localInstanceData.value) {
+          return Promise.reject();
+        }
+        return {
+          cluster_id: localInstanceData.value.cluster_id,
+        };
+      });
     },
   });
 </script>

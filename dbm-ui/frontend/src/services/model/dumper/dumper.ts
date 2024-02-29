@@ -9,10 +9,11 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import dayjs from 'dayjs';
 
 import { t } from '@locales/index';
+
 export default class Dumper {
   static TBINLOGDUMPER_REDUCE_NODES = 'TBINLOGDUMPER_REDUCE_NODES'; // 下架
   static TBINLOGDUMPER_SWITCH_NODES = 'TBINLOGDUMPER_SWITCH_NODES'; // 切换
@@ -153,10 +154,10 @@ export default class Dumper {
   }
 
   get operationTagTip() {
-    return ({
+    return {
       icon: Dumper.operationIconMap[this.operations[0]?.ticket_type ?? ''],
       tip: Dumper.operationTextMap[this.operations[0]?.ticket_type ?? ''],
       ticketId: this.operations[0]?.ticket_id ?? 0,
-    });
+    };
   }
 }

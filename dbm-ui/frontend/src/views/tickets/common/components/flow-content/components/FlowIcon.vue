@@ -41,7 +41,7 @@
   import type { FlowItem } from '@services/types/ticket';
 
   interface Props {
-    data: FlowItem
+    data: FlowItem;
   }
 
   const props = defineProps<Props>();
@@ -52,69 +52,73 @@
 </script>
 
 <style lang="less" scoped>
-.flow-icon {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  .flow-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 
-  &--loading {
-    position: relative;
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid #d8d8d8;
-    border-color: @border-primary;
-    border-radius: 50%;
-
-    &::after {
-      position: absolute;
-      top: 1px;
-      left: 1px;
-      width: 6px;
-      height: 6px;
-      border: 1px solid @border-primary;
-      border-top-color: white;
+    &--loading {
+      position: relative;
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #d8d8d8;
+      border-color: @border-primary;
       border-radius: 50%;
-      content: "";
-      animation: flow-success-spin 1.5s linear infinite;
+
+      &::after {
+        position: absolute;
+        top: 1px;
+        left: 1px;
+        width: 6px;
+        height: 6px;
+        border: 1px solid @border-primary;
+        border-top-color: white;
+        border-radius: 50%;
+        content: '';
+        animation: flow-success-spin 1.5s linear infinite;
+      }
+    }
+
+    .flow-icon-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background-color: #fff;
+      border: 2px solid #d8d8d8;
+      border-radius: 50%;
+
+      &--success {
+        background-color: #2dcb56;
+        border-color: #2dcb56;
+      }
+
+      &--fail {
+        background-color: #ea3636;
+        border-color: #ea3636;
+      }
+    }
+
+    .timer-icon {
+      font-size: 14px;
+      color: #d8d8d8;
+
+      &--success {
+        color: #2dcb56;
+      }
+
+      &--fail {
+        color: #ea3636;
+      }
     }
   }
 
-  .flow-icon-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    background-color: #fff;
-    border: 2px solid #d8d8d8;
-    border-radius: 50%;
-
-    &--success {
-      background-color: #2dcb56;
-      border-color: #2dcb56;
+  @keyframes flow-success-spin {
+    0% {
+      transform: rotate(0deg);
     }
-
-    &--fail {
-      background-color: #ea3636;
-      border-color: #ea3636;
+    100% {
+      transform: rotate(360deg);
     }
   }
-
-  .timer-icon {
-    font-size: 14px;
-    color: #d8d8d8;
-
-    &--success {
-      color: #2dcb56;
-    }
-
-    &--fail {
-      color: #ea3636;
-    }
-  }
-}
-
-@keyframes flow-success-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
 </style>

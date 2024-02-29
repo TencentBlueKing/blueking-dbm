@@ -13,12 +13,12 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderNodeType
         ref="nodeTypeRef"
         :choosed="choosedNodeType"
@@ -26,13 +26,12 @@
         :is-loading="data.isLoading"
         @change="handleChangeNodeType" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSpec
         :data="currentSepc"
         :is-loading="data.isLoading" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetNumber
         ref="numRef"
         :data="data.targetNum"
@@ -79,14 +78,14 @@
   }
 
   export interface InfoItem {
-    cluster_id: number,
-    add_spider_role: string,
+    cluster_id: number;
+    add_spider_role: string;
     resource_spec: {
       spider_ip_list: {
-        count: number,
-        spec_id: number,
-      } & Partial<SpecInfo>
-    }
+        count: number;
+        spec_id: number;
+      } & Partial<SpecInfo>;
+    };
   }
 
   // 创建表格数据
@@ -103,28 +102,27 @@
     spiderMasterList: [],
     spiderSlaveList: [],
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    choosedNodeType?: string[],
+    data: IDataRow;
+    removeable: boolean;
+    choosedNodeType?: string[];
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void,
-    (e: 'nodeTypeChoosed', label: string): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
+    (e: 'nodeTypeChoosed', label: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    choosedNodeType: () => ([]),
+    choosedNodeType: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -170,10 +168,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      return await Promise.all([
-        nodeTypeRef.value.getValue(),
-        numRef.value.getValue(),
-      ]).then((data) => {
+      return await Promise.all([nodeTypeRef.value.getValue(), numRef.value.getValue()]).then((data) => {
         const [nodetype, targetNum] = data;
         return {
           cluster_id: props.data.clusterId,
@@ -189,5 +184,4 @@
       });
     },
   });
-
 </script>

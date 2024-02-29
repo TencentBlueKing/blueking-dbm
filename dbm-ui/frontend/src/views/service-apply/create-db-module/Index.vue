@@ -135,20 +135,14 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    mysqlType,
-    type MysqlTypeString,
-  } from '@common/const';
+  import { mysqlType, type MysqlTypeString } from '@common/const';
 
   import DeployVersion from '@components/apply-items/DeployVersion.vue';
 
   import ParameterTable from '@views/db-configure/components/ParameterTable.vue';
-  import {
-    type DiffItem,
-    useDiff,
-  } from '@views/db-configure/hooks/useDiff';
+  import { type DiffItem, useDiff } from '@views/db-configure/hooks/useDiff';
 
-  type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number]
+  type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number];
 
   const { t } = useI18n();
 
@@ -170,7 +164,9 @@
   const isBindSuccessfully = ref(false);
   const paramsConfigDataStringify = ref('');
   const disabledSubmit = computed(() => {
-    if (isBindSuccessfully.value === false) return false;
+    if (isBindSuccessfully.value === false) {
+      return false;
+    }
     return paramsConfigDataStringify.value === JSON.stringify(configState.data.conf_items);
   });
   // 数据库类型信息
@@ -178,9 +174,9 @@
   const ticketInfo = computed(() => mysqlType[ticketType.value]);
   // 业务信息
   const bizId = computed(() => Number(route.params.bk_biz_id));
-  const bizInfo = computed(() => globalBizsStore.bizs.find(info => info.bk_biz_id ===  bizId.value) || { name: '' });
+  const bizInfo = computed(() => globalBizsStore.bizs.find((info) => info.bk_biz_id === bizId.value) || { name: '' });
   // 模块信息
-  const moduleId =  ref(Number(route.params.db_module_id) ?? '');
+  const moduleId = ref(Number(route.params.db_module_id) ?? '');
   const isNewModule = computed(() => !route.params.db_module_id);
   const isReadonly = computed(() => (isNewModule.value ? !!moduleId.value : true));
 
@@ -222,10 +218,7 @@
     loadingState.submit = true;
     try {
       // 校验表单信息
-      await Promise.all([
-        createModuleFormRef.value?.validate(),
-        parameterTableRef.value?.validate(),
-      ]);
+      await Promise.all([createModuleFormRef.value?.validate(), parameterTableRef.value?.validate()]);
 
       // 新建模块或已经新建成功则不执行创建
       if (!isReadonly.value) {
@@ -281,10 +274,9 @@
         },
       ],
     };
-    return saveModulesDeployInfo(params)
-      .then(() => {
-        isBindSuccessfully.value = true;
-      });
+    return saveModulesDeployInfo(params).then(() => {
+      isBindSuccessfully.value = true;
+    });
   }
 
   function resetFormData() {
@@ -370,18 +362,21 @@
       meta_cluster_type: ticketInfo.value.type,
       conf_type: 'dbconf',
       version: formData.version,
-    })
-      .then((res) => {
-        configState.parameters = res;
-      });
+    }).then((res) => {
+      configState.parameters = res;
+    });
   };
 
-  watch(() => formData.version, (version) => {
-    if (version) {
-      fetchConfigNames();
-      fetchLevelConfig();
-    }
-  }, { immediate: true });
+  watch(
+    () => formData.version,
+    (version) => {
+      if (version) {
+        fetchConfigNames();
+        fetchLevelConfig();
+      }
+    },
+    { immediate: true },
+  );
 
   /**
    * 绑定参数配置
@@ -391,7 +386,7 @@
     const { data } = useDiff(configState.data.conf_items, configState.originConfItems);
     const confItems = data.map((item: DiffItem) => {
       const type = item.status === 'delete' ? 'remove' : 'update';
-      const data = item.status === 'delete' ?  item.before : item.after;
+      const data = item.status === 'delete' ? item.before : item.after;
       return Object.assign(data, { op_type: type });
     });
 
@@ -434,8 +429,8 @@
   };
 
   // 范围选择
-  const handleChangeRange = (index: number,  { max, min }: { max: number, min: number }) => {
-    configState.data.conf_items[index].value_allowed = (min || max) ? `[${min || 0},${max || 0}]` : '';
+  const handleChangeRange = (index: number, { max, min }: { max: number; min: number }) => {
+    configState.data.conf_items[index].value_allowed = min || max ? `[${min || 0},${max || 0}]` : '';
   };
 
   // multipleEnums 变更
@@ -489,7 +484,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins";
+  @import '@styles/mixins';
 
   .create-module-loading {
     height: 100%;

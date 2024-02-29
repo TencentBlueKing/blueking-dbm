@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import http from '../http';
 
@@ -18,10 +18,6 @@ const path = '/apis/dbbase';
 /**
  * 查询集群名字是否重复
  */
-export function verifyDuplicatedClusterName(params: {
-  cluster_type: string,
-  name: string,
-  bk_biz_id: number
-}) {
+export function verifyDuplicatedClusterName(params: { cluster_type: string; name: string; bk_biz_id: number }) {
   return http.get<boolean>(`${path}/verify_duplicated_cluster_name/`, params);
 }

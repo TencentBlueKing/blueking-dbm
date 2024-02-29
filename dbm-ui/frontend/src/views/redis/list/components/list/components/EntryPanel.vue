@@ -19,13 +19,15 @@
             class="item-box">
             <div
               class="item-title"
-              :style="{width: isLongTitle ? '96px' : '65px'}">
+              :style="{ width: isLongTitle ? '96px' : '65px' }">
               {{ item.title }}：
             </div>
             <div class="item-content">
               <span
                 v-overflow-tips
-                class="text-overflow">{{ item.value }}</span>
+                class="text-overflow">
+                {{ item.value }}
+              </span>
               <DbIcon
                 class="icon"
                 type="copy"
@@ -54,9 +56,9 @@
   import { useGlobalBizs } from '@stores';
 
   interface Props {
-    entryType: 'clb' | 'polaris',
-    clusterId: number,
-    panelWidth?: number,
+    entryType: 'clb' | 'polaris';
+    clusterId: number;
+    panelWidth?: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -102,10 +104,7 @@
 
   const isLongTitle = computed(() => props.entryType === 'polaris');
 
-  const {
-    loading,
-    run: runGetClusterEntries,
-  } = useRequest(getClusterEntries, {
+  const { loading, run: runGetClusterEntries } = useRequest(getClusterEntries, {
     manual: true,
     onSuccess: (res) => {
       if (props.entryType === 'clb') {
@@ -133,50 +132,47 @@
 </script>
 
 <style lang="less">
-.redis-list-entry-panel-popover {
-  padding: 12px 16px !important;
+  .redis-list-entry-panel-popover {
+    padding: 12px 16px !important;
 
-  .redis-list-entry-panel {
-    display: flex;
-    width: 100%;
-    flex-direction: column;
-
-    .panel-title {
-      margin-bottom: 10px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #313238;
-    }
-
-    .item-box {
+    .redis-list-entry-panel {
       display: flex;
       width: 100%;
-      height: 28px;
-      align-items: center;
-      font-size: 12px;
+      flex-direction: column;
 
-      .item-title {
-        color: #63656E;
-        text-align: right;
+      .panel-title {
+        margin-bottom: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #313238;
       }
 
-      .item-content {
+      .item-box {
         display: flex;
-        overflow: hidden;
-        color: #313238;
-        flex: 1;
+        width: 100%;
+        height: 28px;
         align-items: center;
+        font-size: 12px;
 
-        .icon {
-          margin-left: 6px;
-          color: #3A84FF;
-          cursor: pointer;
+        .item-title {
+          color: #63656e;
+          text-align: right;
+        }
+
+        .item-content {
+          display: flex;
+          overflow: hidden;
+          color: #313238;
+          flex: 1;
+          align-items: center;
+
+          .icon {
+            margin-left: 6px;
+            color: #3a84ff;
+            cursor: pointer;
+          }
         }
       }
     }
   }
-}
-
-
 </style>
-

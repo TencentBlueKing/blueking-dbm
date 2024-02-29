@@ -18,8 +18,7 @@
       class="password-randomization"
       :label-width="260"
       :model="formData">
-      <BkFormItem
-        :label="t('MySQL 管理账号')">
+      <BkFormItem :label="t('MySQL 管理账号')">
         <span>{{ passwordVisible ? formData.password : unVisiblePassword }}</span>
         <DbIcon
           class="password-icon"
@@ -60,7 +59,7 @@
           :clearable="false"
           multiple
           :popover-options="{
-            extCls: 'password-randomization-date-selector-popover'
+            extCls: 'password-randomization-date-selector-popover',
           }">
           <BkOption
             v-for="(item, index) in monthOptions"
@@ -133,11 +132,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getPasswordPolicy,
-    modifyRandomCycle,
-    queryRandomCycle,
-  } from '@services/permission';
+  import { getPasswordPolicy, modifyRandomCycle, queryRandomCycle } from '@services/permission';
 
   const initData = () => ({
     typeValue: 'day',
@@ -146,7 +141,7 @@
     timeValue: '00:00',
   });
 
-  type PasswordPolicyRule = ServiceReturnType<typeof getPasswordPolicy>['rule']
+  type PasswordPolicyRule = ServiceReturnType<typeof getPasswordPolicy>['rule'];
 
   const { t } = useI18n();
 
@@ -157,12 +152,7 @@
       required: true,
       message: t('请选择'),
       validator() {
-        const {
-          typeValue,
-          weekValue,
-          monthValue,
-          timeValue,
-        } = formData.timeData;
+        const { typeValue, weekValue, monthValue, timeValue } = formData.timeData;
 
         if (typeValue === 'day') {
           return timeValue !== '';
@@ -180,8 +170,8 @@
   ];
 
   const POLICY_MAP: {
-    includeRule: Record<string, string>
-    excludeContinuousRule: Record<string, string>
+    includeRule: Record<string, string>;
+    excludeContinuousRule: Record<string, string>;
   } = {
     includeRule: {
       uppercase: t('大写字母'),
@@ -198,11 +188,10 @@
     },
   };
 
-  const monthOptions = new Array(31).fill('')
-    .map((_, index) => ({
-      label: `${index + 1}${t('号')}`,
-      value: `${index + 1}`,
-    }));
+  const monthOptions = new Array(31).fill('').map((_, index) => ({
+    label: `${index + 1}${t('号')}`,
+    value: `${index + 1}`,
+  }));
 
   const formRef = ref();
   const passwordVisible = ref(false);
@@ -257,24 +246,21 @@
     timeData: initData(),
   });
 
-  const complexity = reactive({} as {
-    includeRules: string,
-    excludeContinuousRules: string
-  });
+  const complexity = reactive(
+    {} as {
+      includeRules: string;
+      excludeContinuousRules: string;
+    },
+  );
 
   const unVisiblePassword = computed(() => '*'.repeat(formData.password.length));
   const typeValue = computed(() => formData.timeData.typeValue);
 
-  const {
-    data: passwordPolicyData,
-  } = useRequest(getPasswordPolicy, {
+  const { data: passwordPolicyData } = useRequest(getPasswordPolicy, {
     defaultParams: [{}, { permission: 'page' }],
     onSuccess(passwordPolicy) {
       const { rule } = passwordPolicy;
-      const {
-        includeRule,
-        excludeContinuousRule,
-      } = POLICY_MAP;
+      const { includeRule, excludeContinuousRule } = POLICY_MAP;
 
       const includeRules = Object.keys(includeRule).reduce((includeRulePrev, includeRuleKey) => {
         if (rule.include_rule[includeRuleKey as keyof PasswordPolicyRule['include_rule']]) {
@@ -284,14 +270,20 @@
         return includeRulePrev;
       }, [] as string[]);
 
-      const excludeContinuousRules = Object.keys(excludeContinuousRule)
-        .reduce((excludeContinuousRulePrev, excludeContinuousRuleKey) => {
-          if (rule.exclude_continuous_rule[excludeContinuousRuleKey as keyof PasswordPolicyRule['exclude_continuous_rule']]) {
+      const excludeContinuousRules = Object.keys(excludeContinuousRule).reduce(
+        (excludeContinuousRulePrev, excludeContinuousRuleKey) => {
+          if (
+            rule.exclude_continuous_rule[
+              excludeContinuousRuleKey as keyof PasswordPolicyRule['exclude_continuous_rule']
+            ]
+          ) {
             return [...excludeContinuousRulePrev, excludeContinuousRule[excludeContinuousRuleKey]];
           }
 
           return excludeContinuousRulePrev;
-        }, [] as string[]);
+        },
+        [] as string[],
+      );
 
       complexity.includeRules = includeRules.join('、');
       complexity.excludeContinuousRules = excludeContinuousRules.join('、');
@@ -301,12 +293,7 @@
   useRequest(queryRandomCycle, {
     defaultParams: [{}, { permission: 'page' }],
     onSuccess(randomCycle) {
-      const {
-        minute,
-        hour,
-        day_of_week: dayOfWeek,
-        day_of_month: dayOfMonth,
-      } = randomCycle.crontab;
+      const { minute, hour, day_of_week: dayOfWeek, day_of_month: dayOfMonth } = randomCycle.crontab;
       const formDataRes = initData();
 
       formDataRes.timeValue = `${hour}:${minute}`;
@@ -323,10 +310,7 @@
     },
   });
 
-  const {
-    run: modifyRandomCycleRun,
-    loading,
-  } = useRequest(modifyRandomCycle, {
+  const { run: modifyRandomCycleRun, loading } = useRequest(modifyRandomCycle, {
     manual: true,
     onSuccess() {
       if (submitType === 'reset') {
@@ -355,12 +339,7 @@
   const handleSubmit = async () => {
     await formRef.value.validate();
 
-    const {
-      typeValue,
-      weekValue,
-      monthValue,
-      timeValue,
-    } = formData.timeData;
+    const { typeValue, weekValue, monthValue, timeValue } = formData.timeData;
     const [hour, minute] = timeValue.split(':');
     const params: ServiceReturnType<typeof queryRandomCycle> = {
       crontab: {
@@ -386,7 +365,7 @@
   .password-randomization {
     padding: 32px 0;
     font-size: @font-size-mini;
-    background-color: #FFF;
+    background-color: #fff;
 
     .password-icon {
       margin-left: 4px;
@@ -421,15 +400,15 @@
 
     .complexity-box {
       display: inline-block;
-      border: 1px solid #DCDEE5;
+      border: 1px solid #dcdee5;
       border-radius: 2px;
 
       .complexity-head {
         padding-left: 16px;
         font-weight: 700;
-        color: #63656E;
-        background-color: #FAFBFD;
-        border-bottom: 1px solid #DCDEE5;
+        color: #63656e;
+        background-color: #fafbfd;
+        border-bottom: 1px solid #dcdee5;
       }
 
       .complexity-content {
@@ -447,7 +426,7 @@
             display: block;
             width: 4px;
             height: 4px;
-            background: #979BA5;
+            background: #979ba5;
             border-radius: 50%;
             content: '';
           }

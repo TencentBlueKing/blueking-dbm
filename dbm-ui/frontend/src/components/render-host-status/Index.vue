@@ -16,14 +16,15 @@
     <DbIcon
       svg
       :type="statusIcon" />
-    <span style="margin-left: 4px;">{{ statusText }}</span>
+    <span style="margin-left: 4px">{{ statusText }}</span>
   </div>
 </template>
 <script setup lang="ts">
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
+
   interface Props {
-    data: number
+    data: number;
   }
 
   const props = defineProps<Props>();

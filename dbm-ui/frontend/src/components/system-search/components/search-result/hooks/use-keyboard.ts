@@ -1,6 +1,4 @@
-import {
-  onBeforeUnmount,
-} from 'vue';
+import { onBeforeUnmount } from 'vue';
 
 export default () => {
   const handleKeydown = (event: KeyboardEvent) => {

@@ -80,153 +80,153 @@
 </script>
 
 <style lang="less" scoped>
-.mysql-toolbox-table {
-  border-top: 1px solid @disable-color;
+  .mysql-toolbox-table {
+    border-top: 1px solid @disable-color;
 
-  :deep(.bk-table-head) {
-    .db-icon-batch-host-select {
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
+    :deep(.bk-table-head) {
+      .db-icon-batch-host-select {
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
 
-      &:hover {
-        color: #1768ef;
-      }
-    }
-
-    .column-required {
-      position: relative;
-      display: inline-block;
-      padding-right: 8px;
-
-      &::after {
-        position: absolute;
-        top: 4px;
-        right: 0;
-        line-height: auto;
-        color: @danger-color;
-        content: "*";
-      }
-    }
-  }
-
-  :deep(.bk-table-body) {
-    .opertaions {
-      .bk-button {
-        margin-left: 18px;
-        font-size: @font-size-normal;
-
-        &:not(.is-disabled) i {
-          color: @light-gray;
-
-          &:hover {
-            color: @gray-color;
-          }
+        &:hover {
+          color: #1768ef;
         }
+      }
 
-        &.is-disabled {
-          i {
-            color: @disable-color;
-          }
+      .column-required {
+        position: relative;
+        display: inline-block;
+        padding-right: 8px;
+
+        &::after {
+          position: absolute;
+          top: 4px;
+          right: 0;
+          line-height: auto;
+          color: @danger-color;
+          content: '*';
         }
       }
     }
 
-    .cell {
-      padding: 0 !important;
+    :deep(.bk-table-body) {
+      .opertaions {
+        .bk-button {
+          margin-left: 18px;
+          font-size: @font-size-normal;
 
-      .placeholder {
-        padding: 0 12px;
-        color: @disable-color;
-        background-color: white;
-        user-select: none;
+          &:not(.is-disabled) i {
+            color: @light-gray;
+
+            &:hover {
+              color: @gray-color;
+            }
+          }
+
+          &.is-disabled {
+            i {
+              color: @disable-color;
+            }
+          }
+        }
       }
 
-      .bk-form-label {
-        display: none;
-      }
-
-      .bk-form-content {
-        margin-left: 0 !important;
-      }
-
-      .bk-form-error-tips {
-        top: 12px;
-      }
-
-      .bk-input {
-        height: 42px;
-      }
-
-      .bk-tag-input .bk-tag-input-trigger {
-        min-height: 42px;
+      .cell {
+        padding: 0 !important;
 
         .placeholder {
-          padding-left: 0;
-          line-height: 40px;
+          padding: 0 12px;
+          color: @disable-color;
+          background-color: white;
+          user-select: none;
         }
-      }
 
-      .bk-input:not(.is-focused),
-      .bk-tag-input .bk-tag-input-trigger:not(.active),
-      .bk-textarea:not(.is-focused),
-      .bk-select-input,
-      .bk-select-tag,
-      .db-textarea-display {
-        border-color: transparent;
-      }
-
-      .bk-select {
-        .angle-up {
+        .bk-form-label {
           display: none;
         }
 
-        &:hover {
-          .angle-up {
-            display: flex;
-          }
+        .bk-form-content {
+          margin-left: 0 !important;
         }
 
-        .bk-select-tag,
-        .bk-select-trigger {
+        .bk-form-error-tips {
+          top: 12px;
+        }
+
+        .bk-input {
+          height: 42px;
+        }
+
+        .bk-tag-input .bk-tag-input-trigger {
           min-height: 42px;
-        }
-      }
 
-      .bk-form-item.is-error {
-        .bk-input--text,
-        .bk-textarea textarea,
-        .bk-tag-input .bk-tag-input-trigger:not(.active),
-        .bk-tag-input .bk-tag-input-trigger:not(.active) .placeholder,
-        .bk-select-tag,
-        .db-textarea-display {
-          background-color: #fff0f1;
+          .placeholder {
+            padding-left: 0;
+            line-height: 40px;
+          }
         }
 
         .bk-input:not(.is-focused),
         .bk-tag-input .bk-tag-input-trigger:not(.active),
         .bk-textarea:not(.is-focused),
         .bk-select-input,
-        .bk-select-tag {
-          border-color: #fff0f1;
+        .bk-select-tag,
+        .db-textarea-display {
+          border-color: transparent;
         }
-      }
 
-      .bk-tag-input-trigger.disabled {
-        .placeholder {
-          background-color: #fafbfd;
+        .bk-select {
+          .angle-up {
+            display: none;
+          }
+
+          &:hover {
+            .angle-up {
+              display: flex;
+            }
+          }
+
+          .bk-select-tag,
+          .bk-select-trigger {
+            min-height: 42px;
+          }
         }
-      }
 
-      .bk-input:not(.is-disabled):hover,
-      .bk-tag-input .bk-tag-input-trigger:not(.disabled):hover,
-      .bk-textarea:hover,
-      .bk-select-input:hover,
-      .bk-select-tag:not(.is-disabled):hover,
-      .db-textarea-display:hover {
-        border-color: @border-primary;
+        .bk-form-item.is-error {
+          .bk-input--text,
+          .bk-textarea textarea,
+          .bk-tag-input .bk-tag-input-trigger:not(.active),
+          .bk-tag-input .bk-tag-input-trigger:not(.active) .placeholder,
+          .bk-select-tag,
+          .db-textarea-display {
+            background-color: #fff0f1;
+          }
+
+          .bk-input:not(.is-focused),
+          .bk-tag-input .bk-tag-input-trigger:not(.active),
+          .bk-textarea:not(.is-focused),
+          .bk-select-input,
+          .bk-select-tag {
+            border-color: #fff0f1;
+          }
+        }
+
+        .bk-tag-input-trigger.disabled {
+          .placeholder {
+            background-color: #fafbfd;
+          }
+        }
+
+        .bk-input:not(.is-disabled):hover,
+        .bk-tag-input .bk-tag-input-trigger:not(.disabled):hover,
+        .bk-textarea:hover,
+        .bk-select-input:hover,
+        .bk-select-tag:not(.is-disabled):hover,
+        .db-textarea-display:hover {
+          border-color: @border-primary;
+        }
       }
     }
   }
-}
 </style>

@@ -26,10 +26,10 @@
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
-    name: string
+    name: string;
   }
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<Record<string, string>>;
   }
 
   const props = defineProps<Props>();
@@ -48,12 +48,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return (editRef.value as InstanceType<typeof TableEditInput>)
-        .getValue()
-        .then(() => ({
-          [props.name]: localValue.value,
-        }));
+      return (editRef.value as InstanceType<typeof TableEditInput>).getValue().then(() => ({
+        [props.name]: localValue.value,
+      }));
     },
   });
 </script>
-

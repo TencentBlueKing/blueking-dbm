@@ -9,19 +9,17 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 export const bytePretty = (value: any) => {
   if (value === null || value === '' || value === 0) {
     return '0 Bytes';
   }
-  const unitArr = [
-    'Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB',
-  ];
+  const unitArr = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   let index = 0;
   const srcsize = parseFloat(value);
   index = Math.floor(Math.log(srcsize) / Math.log(1024));
-  let size = srcsize / (1024 ** index);
+  let size = srcsize / 1024 ** index;
   //  保留的小数位数
   size = parseFloat(size.toFixed(2));
   return `${size} ${unitArr[index]}`;

@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { getLevelConfig } from '@services/source/configs';
 
@@ -19,11 +19,11 @@ import type { ClusterTypesValues } from '@common/const';
  * 对应集群参数配置版本信息
  */
 export type ExtraConfListItem = {
-  version: string,
-  conf_type: string,
-  title: string,
-  loading: boolean,
-  data: ServiceReturnType<typeof getLevelConfig> | null
+  version: string;
+  conf_type: string;
+  title: string;
+  loading: boolean;
+  data: ServiceReturnType<typeof getLevelConfig> | null;
 };
 
 /**
@@ -35,8 +35,8 @@ export type ExtraParamertesCluster = Partial<Record<ClusterTypesValues, ExtraCon
  * 获取对应集群版本列表项信息
  */
 export type ConfType = {
-  confType: string,
-  name: string
+  confType: string;
+  name: string;
 };
 
 /**

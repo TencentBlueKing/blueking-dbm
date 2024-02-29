@@ -26,7 +26,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -77,10 +77,7 @@
   } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -88,7 +85,7 @@
 
   const rowRefs = ref();
   const isShowBatchInstanceSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedIps = shallowRef<InstanceSelectorValues<IValue>>({ tendbcluster: [] });
@@ -153,44 +150,46 @@
     if (ip) {
       delete ipMemo[ip];
       const clustersArr = selectedIps.value.tendbcluster;
-      selectedIps.value.tendbcluster = clustersArr.filter(item => item.instance_address !== ip);
+      selectedIps.value.tendbcluster = clustersArr.filter((item) => item.instance_address !== ip);
     }
   };
 
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => precheckPermissionClone({
-        bizId: currentBizId,
-        clone_type: 'instance',
-        clone_list: data,
-        clone_cluster_type: 'tendbcluster',
-      }).then((precheckResult) => {
-        if (!precheckResult.pre_check) {
-          return Promise.reject();
-        }
-        return createTicket({
-          ticket_type: 'TENDBCLUSTER_INSTANCE_CLONE_RULES',
-          remark: '',
-          details: {
-            ...precheckResult,
-            clone_type: 'instance',
-          },
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          window.changeConfirm = false;
+      .then((data) =>
+        precheckPermissionClone({
+          bizId: currentBizId,
+          clone_type: 'instance',
+          clone_list: data,
+          clone_cluster_type: 'tendbcluster',
+        }).then((precheckResult) => {
+          if (!precheckResult.pre_check) {
+            return Promise.reject();
+          }
+          return createTicket({
+            ticket_type: 'TENDBCLUSTER_INSTANCE_CLONE_RULES',
+            remark: '',
+            details: {
+              ...precheckResult,
+              clone_type: 'instance',
+            },
+            bk_biz_id: currentBizId,
+          }).then((data) => {
+            window.changeConfirm = false;
 
-          router.push({
-            name: 'spiderPrivilegeCloneInst',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
+            router.push({
+              name: 'spiderPrivilegeCloneInst',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
           });
-        });
-      }))
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

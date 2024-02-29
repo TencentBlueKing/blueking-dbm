@@ -31,15 +31,15 @@
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
-    modelValue: string,
-    clusterId?: number
+    modelValue: string;
+    clusterId?: number;
   }
-  interface Emits{
-    (e: 'change', value: string): void
+  interface Emits {
+    (e: 'change', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<Record<string, string>>;
   }
 
   const props = defineProps<Props>();
@@ -67,27 +67,33 @@
   const editSelectRef = ref();
   const localValue = ref('');
 
-  const {
-    run: fetchRemoteParis,
-  } = useRequest(getRemoteParis, {
+  const { run: fetchRemoteParis } = useRequest(getRemoteParis, {
     manual: true,
   });
 
-  watch(() => props.modelValue, () => {
-    localValue.value = props.modelValue;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      localValue.value = props.modelValue;
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchRemoteParis({
-        cluster_ids: [props.clusterId],
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (props.clusterId) {
+        fetchRemoteParis({
+          cluster_ids: [props.clusterId],
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string) => {
     localValue.value = value;
@@ -96,10 +102,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editSelectRef.value.getValue()
-        .then(() => ({
-          checksum_scope: localValue.value,
-        }));
+      return editSelectRef.value.getValue().then(() => ({
+        checksum_scope: localValue.value,
+      }));
     },
   });
 </script>

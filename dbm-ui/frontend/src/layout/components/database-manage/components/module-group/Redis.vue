@@ -38,15 +38,12 @@
   </FunController>
 </template>
 <script setup lang="ts">
-  import {
-    onBeforeUnmount,
-    shallowRef,
-  } from 'vue';
+  import { onBeforeUnmount, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { useEventBus } from '@hooks';
 
-  import { useUserProfile  } from '@stores';
+  import { useUserProfile } from '@stores';
 
   import { UserPersonalSettings } from '@common/const';
 
@@ -64,8 +61,8 @@
   const favorMeunMap = shallowRef<Record<string, boolean>>({});
 
   const renderToolboxMenu = () => {
-    toolboxMenuSortList.value = userProfile.profile[UserPersonalSettings.REDIS_TOOLBOX_MENUS]
-      || toolboxMenuConfig.map(item => item.id);
+    toolboxMenuSortList.value =
+      userProfile.profile[UserPersonalSettings.REDIS_TOOLBOX_MENUS] || toolboxMenuConfig.map((item) => item.id);
     favorMeunMap.value = makeMap(userProfile.profile[UserPersonalSettings.REDIS_TOOLBOX_FAVOR]);
   };
 

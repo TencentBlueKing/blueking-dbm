@@ -14,7 +14,7 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
@@ -22,7 +22,7 @@
           @id-change="handleClusterIdChange"
           @input-create="handleCreate" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderProxy
           ref="proxyRef"
           :cloud-id="cloudId"
@@ -40,7 +40,7 @@
           <div
             class="action-btn"
             :class="{
-              disabled: removeable
+              disabled: removeable,
             }"
             @click="handleRemove">
             <DbIcon type="minus-fill" />
@@ -54,19 +54,19 @@
   import { random } from '@utils';
 
   export interface IHostData {
-    bk_host_id: number,
-    bk_cloud_id: number,
-    ip: string,
+    bk_host_id: number;
+    bk_cloud_id: number;
+    ip: string;
   }
 
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
-      id: number,
-      domain: string,
-      cloudId: number | null
-    },
-    proxyIp?: IHostData
+      id: number;
+      domain: string;
+      cloudId: number | null;
+    };
+    proxyIp?: IHostData;
   }
 
   // 创建表格数据
@@ -77,26 +77,24 @@
   });
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-  } from 'vue';
+  import { ref } from 'vue';
 
   import RenderCluster from '@views/mysql/common/edit-field/ClusterWithRelateCluster.vue';
 
   import RenderProxy from './RenderProxy.vue';
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -109,26 +107,35 @@
   const localClusterId = ref(0);
   const cloudId = ref<number | null>(null);
 
-  watch(() => props.data, () => {
-    if (props.data.clusterData) {
-      localClusterId.value = props.data.clusterData.id;
-      cloudId.value = props.data.clusterData.cloudId;
-    }
-  }, {
-    immediate: true,
-  });
-  const handleClusterIdChange = (idData: { id: number, cloudId: number | null }) => {
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.clusterData) {
+        localClusterId.value = props.data.clusterData.id;
+        cloudId.value = props.data.clusterData.cloudId;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+  const handleClusterIdChange = (idData: { id: number; cloudId: number | null }) => {
     localClusterId.value = idData.id;
     cloudId.value = idData.cloudId;
   };
   const handleCreate = (list: Array<string>) => {
-    emits('add', list.map(domain => createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-        cloudId: null,
-      },
-    })));
+    emits(
+      'add',
+      list.map((domain) =>
+        createRowData({
+          clusterData: {
+            id: 0,
+            domain,
+            cloudId: null,
+          },
+        }),
+      ),
+    );
   };
 
   const handleAppend = () => {
@@ -144,10 +151,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        clusterRef.value.getValue(),
-        proxyRef.value.getValue(),
-      ]).then(([clusterData, proxyData]) => ({
+      return Promise.all([clusterRef.value.getValue(), proxyRef.value.getValue()]).then(([clusterData, proxyData]) => ({
         ...clusterData,
         ...proxyData,
       }));
@@ -155,29 +159,29 @@
   });
 </script>
 <style lang="less" scoped>
-    .action-box {
+  .action-box {
+    display: flex;
+    align-items: center;
+
+    .action-btn {
       display: flex;
-      align-items: center;
+      font-size: 14px;
+      color: #c4c6cc;
+      cursor: pointer;
+      transition: all 0.15s;
 
-      .action-btn {
-        display: flex;
-        font-size: 14px;
-        color: #c4c6cc;
-        cursor: pointer;
-        transition: all 0.15s;
+      &:hover {
+        color: #979ba5;
+      }
 
-        &:hover {
-          color: #979ba5;
-        }
+      &.disabled {
+        color: #dcdee5;
+        cursor: not-allowed;
+      }
 
-        &.disabled {
-          color: #dcdee5;
-          cursor: not-allowed;
-        }
-
-        & ~ .action-btn {
-          margin-left: 18px;
-        }
+      & ~ .action-btn {
+        margin-left: 18px;
       }
     }
+  }
 </style>

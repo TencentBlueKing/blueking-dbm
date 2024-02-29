@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 export const downloadUrl = (url: string) => {
   // 创建隐藏的可下载链接
@@ -30,4 +30,3 @@ export const downloadUrl = (url: string) => {
   // 然后移除
   document.body.removeChild(eleLink);
 };
-

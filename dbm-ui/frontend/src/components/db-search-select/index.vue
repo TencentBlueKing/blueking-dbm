@@ -31,13 +31,13 @@
   type SearchSelectProps = InstanceType<typeof SearchSelect>['$props'];
 
   interface Props {
-    data: SearchSelectProps['data'],
-    conditions?: SearchSelectProps['conditions'],
-    parseUrl?: boolean, // 是否从 URL 上面解析搜索值
+    data: SearchSelectProps['data'];
+    conditions?: SearchSelectProps['conditions'];
+    parseUrl?: boolean; // 是否从 URL 上面解析搜索值
   }
 
   interface Emits {
-    (e: 'change', value: SearchSelectProps['modelValue']): void,
+    (e: 'change', value: SearchSelectProps['modelValue']): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -59,7 +59,7 @@
     props.data?.forEach((item) => {
       if (_.has(searchParams, item.id)) {
         const searchValue = searchParams[item.id];
-        const child = (item.children || []).find(child => child.id === searchValue);
+        const child = (item.children || []).find((child) => child.id === searchValue);
         defaultValue.push({
           ...item,
           values: [
@@ -83,16 +83,20 @@
     modelValues.value = getDefaultValue();
   });
 
-  watch(modelValues, (values, oldValues) => {
-    // 处理组件触发键盘删除时即时为空也会返回新的[]导致一直触发change
-    if (oldValues && values?.length === 0 && oldValues?.length === 0) {
-      return;
-    }
+  watch(
+    modelValues,
+    (values, oldValues) => {
+      // 处理组件触发键盘删除时即时为空也会返回新的[]导致一直触发change
+      if (oldValues && values?.length === 0 && oldValues?.length === 0) {
+        return;
+      }
 
-    nextTick(() => {
-      emits('change', modelValues.value);
-    });
-  }, { immediate: true, deep: true });
+      nextTick(() => {
+        emits('change', modelValues.value);
+      });
+    },
+    { immediate: true, deep: true },
+  );
 </script>
 
 <style lang="less" scoped>

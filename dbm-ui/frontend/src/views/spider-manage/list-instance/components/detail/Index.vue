@@ -13,7 +13,7 @@
 
 <template>
   <div
-    v-bkloading="{loading: isLoading}"
+    v-bkloading="{ loading: isLoading }"
     class="instance-details">
     <BkTab
       v-model:active="activePanel"
@@ -48,9 +48,9 @@
 
   interface Props {
     instanceData?: {
-      instanceAddress: string,
-      clusterId: number
-    }
+      instanceAddress: string;
+      clusterId: number;
+    };
   }
 
   const props = defineProps<Props>();
@@ -63,44 +63,45 @@
     version: data.value?.version ?? '',
   }));
 
-  const {
-    loading: isLoading,
-    run: fetchInstDetails,
-  } = useRequest(getSpiderInstanceDetails, {
+  const { loading: isLoading, run: fetchInstDetails } = useRequest(getSpiderInstanceDetails, {
     manual: true,
     onSuccess(result) {
       data.value = result;
     },
   });
 
-  watch(() => props.instanceData, () => {
-    if (!props.instanceData) {
-      return;
-    }
-    fetchInstDetails({
-      instance_address: props.instanceData.instanceAddress,
-      cluster_id: props.instanceData.clusterId,
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.instanceData,
+    () => {
+      if (!props.instanceData) {
+        return;
+      }
+      fetchInstDetails({
+        instance_address: props.instanceData.instanceAddress,
+        cluster_id: props.instanceData.clusterId,
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>
-.instance-details {
-  height: 100%;
-  background: #fff;
+  .instance-details {
+    height: 100%;
+    background: #fff;
 
-  .content-tabs {
-    :deep(.bk-tab-content) {
-      padding: 0;
+    .content-tabs {
+      :deep(.bk-tab-content) {
+        padding: 0;
+      }
+    }
+
+    .content-wrapper {
+      height: 100%;
+      padding: 0 24px;
+      overflow: auto;
     }
   }
-
-  .content-wrapper {
-    height: 100%;
-    padding: 0 24px;
-    overflow: auto;
-  }
-}
 </style>

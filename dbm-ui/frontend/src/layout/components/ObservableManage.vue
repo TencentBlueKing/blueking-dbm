@@ -58,6 +58,4 @@
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'DBHASwitchEvents');
   const styles = useMenuStyles(menuBoxRef);
-
 </script>
-

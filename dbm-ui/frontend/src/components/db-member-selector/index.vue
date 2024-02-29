@@ -11,11 +11,10 @@
  * the specific language governing permissions and limitations under the License.
 -->
 
-
 <template>
   <div
     class="db-member-selector-wrapper"
-    :class="{'is-focus': isFocous}">
+    :class="{ 'is-focus': isFocous }">
     <BkSelect
       class="db-member-selector"
       :clearable="false"
@@ -46,10 +45,10 @@
 
   import { useCopy } from '@hooks';
 
-  type GetUsesParams = ServiceParameters<typeof getUserList>
+  type GetUsesParams = ServiceParameters<typeof getUserList>;
 
   interface Props {
-    collapseTags?: boolean
+    collapseTags?: boolean;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -62,7 +61,7 @@
   const copy = useCopy();
 
   const state = reactive({
-    list: [] as {username: string}[],
+    list: [] as { username: string }[],
   });
   const isFocous = ref(false);
 
@@ -72,7 +71,7 @@
   const fetchUseList = async (params: GetUsesParams = {}) => {
     await getUserList(params).then((res) => {
       // 过滤已经选中的用户
-      state.list = res.results.filter(item => !modelValue.value?.includes(item.username));
+      state.list = res.results.filter((item) => !modelValue.value?.includes(item.username));
     });
   };
   // 初始化加载
@@ -89,8 +88,8 @@
     modelValue.value = values;
   };
 
-  const handleFocus = () => isFocous.value = true;
-  const handleBlur = () => isFocous.value = false;
+  const handleFocus = () => (isFocous.value = true);
+  const handleBlur = () => (isFocous.value = false);
 
   const handleCopy = () => {
     copy(modelValue.value.join(';'));
@@ -98,35 +97,35 @@
 </script>
 
 <style lang="less" scoped>
-.db-member-selector-wrapper {
-  position: relative;
+  .db-member-selector-wrapper {
+    position: relative;
 
-  &:hover,
-  &.is-focus {
-    .db-member-selector-copy {
-      display: block;
+    &:hover,
+    &.is-focus {
+      .db-member-selector-copy {
+        display: block;
+      }
     }
   }
-}
 
-.db-member-selector-copy {
-  position: absolute;
-  top: 50%;
-  right: 2px;
-  z-index: 99;
-  display: none;
-  width: 20px;
-  height: 20px;
-  margin-top: -10px;
-  margin-right: 4px;
-  font-size: 16px;
-  line-height: 20px;
-  cursor: pointer;
-  background-color: white;
+  .db-member-selector-copy {
+    position: absolute;
+    top: 50%;
+    right: 2px;
+    z-index: 99;
+    display: none;
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+    margin-right: 4px;
+    font-size: 16px;
+    line-height: 20px;
+    cursor: pointer;
+    background-color: white;
 
-  &:hover {
-    color: @primary-color;
-    background-color: #e1ecff;
+    &:hover {
+      color: @primary-color;
+      background-color: #e1ecff;
+    }
   }
-}
 </style>

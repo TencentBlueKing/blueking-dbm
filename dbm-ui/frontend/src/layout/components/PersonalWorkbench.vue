@@ -53,6 +53,4 @@
     key: currentActiveKey,
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'serviceApply');
-
 </script>
-

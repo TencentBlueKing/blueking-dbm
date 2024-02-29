@@ -27,11 +27,11 @@
   import type { SpiderDisableDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<SpiderDisableDetails>
+    ticketDetails: TicketDetails<SpiderDisableDetails>;
   }
 
   interface RowData {
-    clusterName: string
+    clusterName: string;
   }
 
   const props = defineProps<Props>();
@@ -50,19 +50,24 @@
   ];
 
   const { loading } = useRequest(getSpiderListByBizId, {
-    defaultParams: [{
-      bk_biz_id: props.ticketDetails.bk_biz_id,
-      offset: 0,
-      limit: -1,
-    }],
+    defaultParams: [
+      {
+        bk_biz_id: props.ticketDetails.bk_biz_id,
+        offset: 0,
+        limit: -1,
+      },
+    ],
     onSuccess: (r) => {
       if (r.results.length < 1) {
         return;
       }
-      const clusterMap = r.results.reduce((obj, item) => {
-        Object.assign(obj, { [item.id]: item.master_domain });
-        return obj;
-      }, {} as Record<number, string>);
+      const clusterMap = r.results.reduce(
+        (obj, item) => {
+          Object.assign(obj, { [item.id]: item.master_domain });
+          return obj;
+        },
+        {} as Record<number, string>,
+      );
 
       tableData.value = list.reduce((results, clusterId) => {
         const obj = {
@@ -73,8 +78,7 @@
       }, [] as RowData[]);
     },
   });
-
 </script>
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

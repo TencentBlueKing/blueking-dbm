@@ -13,7 +13,7 @@
 
 <template>
   <div
-    v-bkloading="{loading: isLoading}"
+    v-bkloading="{ loading: isLoading }"
     class="riak-cluster-details">
     <BkTab
       v-model:active="activePanelKey"
@@ -28,8 +28,7 @@
       <BkTabPanel
         :label="t('基本信息')"
         name="info" />
-      <BkTabPanel
-        name="record">
+      <BkTabPanel name="record">
         <template #label>
           <div>
             <span>{{ t('变更记录') }}</span>
@@ -89,10 +88,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    DBTypes,
-  } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
@@ -107,7 +103,7 @@
   }
 
   interface Emits {
-    (e: 'detailChange', data: RiakModel): void
+    (e: 'detailChange', data: RiakModel): void;
   }
 
   const props = defineProps<Props>();
@@ -120,14 +116,13 @@
   const loadingCount = ref(0);
   const data = ref<RiakModel>();
 
-  const monitorPanelList = ref<Record<'label'|'name'|'link', string>[]>([]);
+  const monitorPanelList = ref<Record<'label' | 'name' | 'link', string>[]>([]);
 
-  const activePanel = computed(() => monitorPanelList.value.find(panelItem => panelItem.name === activePanelKey.value));
+  const activePanel = computed(() =>
+    monitorPanelList.value.find((panelItem) => panelItem.name === activePanelKey.value),
+  );
 
-  const {
-    loading: isLoading,
-    run: fetchResourceDetails,
-  } = useRequest(getRiakDetail, {
+  const { loading: isLoading, run: fetchResourceDetails } = useRequest(getRiakDetail, {
     manual: true,
     onSuccess(result) {
       data.value = result;
@@ -139,7 +134,7 @@
     manual: true,
     onSuccess(monitorUrlsResult) {
       if (monitorUrlsResult.urls.length > 0) {
-        monitorPanelList.value = monitorUrlsResult.urls.map(urlItem => ({
+        monitorPanelList.value = monitorUrlsResult.urls.map((urlItem) => ({
           label: urlItem.view,
           name: urlItem.view,
           link: urlItem.url,
@@ -148,21 +143,25 @@
     },
   });
 
-  watch(() => props.clusterId, () => {
-    if (!props.clusterId) {
-      return;
-    }
-    fetchResourceDetails({
-      id: props.clusterId,
-    });
-    runGetMonitorUrls({
-      bk_biz_id: currentBizId,
-      cluster_type: ClusterTypes.RIAK,
-      cluster_id: props.clusterId,
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (!props.clusterId) {
+        return;
+      }
+      fetchResourceDetails({
+        id: props.clusterId,
+      });
+      runGetMonitorUrls({
+        bk_biz_id: currentBizId,
+        cluster_type: ClusterTypes.RIAK,
+        cluster_id: props.clusterId,
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>
@@ -189,7 +188,7 @@
 
       :deep(.bk-loading-indicator) {
         scale: 0.8;
-        margin-right: -2px
+        margin-right: -2px;
       }
     }
   }

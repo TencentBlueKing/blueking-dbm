@@ -16,7 +16,7 @@
   import TendbCluster from './TendbCluster.vue';
 
   interface Props {
-    name: string
+    name: string;
   }
 
   const props = defineProps<Props>();
@@ -36,4 +36,3 @@
 
   const renderCom = computed(() => comMap[props.name as keyof typeof comMap]);
 </script>
-

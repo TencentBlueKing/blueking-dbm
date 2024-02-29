@@ -45,8 +45,7 @@
   <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('数据库部署信息') }}</strong>
     <div class="ticket-details__list">
-      <div
-        class="ticket-details__item">
+      <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('容灾要求') }}：</span>
         <span class="ticket-details__item-value">{{ affinity }}</span>
       </div>
@@ -109,7 +108,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
                 {{ bookkeeperSpec?.spec_name }}（{{ `${bookkeeperSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -126,7 +125,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
                 {{ zookeeperSpec?.spec_name }}（{{ `${zookeeperSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -143,7 +142,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
                 {{ brokerSpec?.spec_name }}（{{ `${brokerSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -204,43 +203,42 @@
   type ServiceKeys = 'bookkeeper' | 'zookeeper' | 'broker';
 
   interface TicketDetails {
-    id: number,
-    bk_biz_id: number,
-    remark: string,
-    ticket_type: string,
-    bk_biz_name: string,
-    db_app_abbr: string,
+    id: number;
+    bk_biz_id: number;
+    remark: string;
+    ticket_type: string;
+    bk_biz_name: string;
+    db_app_abbr: string;
     details: {
-      username: string,
-      password: string,
-      ip_source: string,
-      db_version: string,
-      retention_hours: number,
-      replication_num: number,
-      ack_quorum: number,
-      port: number,
-      partition_num: number,
-      cluster_name: string,
-      cluster_alias: string,
-      city_code: string,
-      db_app_abbr: string,
-      disaster_tolerance_level: string,
+      username: string;
+      password: string;
+      ip_source: string;
+      db_version: string;
+      retention_hours: number;
+      replication_num: number;
+      ack_quorum: number;
+      port: number;
+      partition_num: number;
+      cluster_name: string;
+      cluster_alias: string;
+      city_code: string;
+      db_app_abbr: string;
+      disaster_tolerance_level: string;
       nodes: {
-        zookeeper: [],
-        broker: [],
-        bookkeeper: [],
-      },
+        zookeeper: [];
+        broker: [];
+        bookkeeper: [];
+      };
       resource_spec: {
-        zookeeper: SpecInfo,
-        broker: SpecInfo,
-        bookkeeper: SpecInfo,
-      },
-    },
-
+        zookeeper: SpecInfo;
+        broker: SpecInfo;
+        bookkeeper: SpecInfo;
+      };
+    };
   }
 
   interface Props {
-    ticketDetails: TicketDetails
+    ticketDetails: TicketDetails;
   }
 
   const props = defineProps<Props>();
@@ -257,7 +255,7 @@
   const affinity = computed(() => {
     const level = props.ticketDetails?.details?.disaster_tolerance_level;
     if (level && affinityList) {
-      return affinityList.find(item => item.value === level)?.label;
+      return affinityList.find((item) => item.value === level)?.label;
     }
     return '--';
   });
@@ -265,7 +263,7 @@
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {
       const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find(item => item.city_code === cityCode)?.city_name;
+      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
       cityName.value = name ?? '--';
     },
   });
@@ -301,5 +299,5 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

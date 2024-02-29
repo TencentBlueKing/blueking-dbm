@@ -10,10 +10,10 @@
       filterable
       :input-search="false"
       :loading="isLoading"
-      style="display: inline-block;"
+      style="display: inline-block"
       @change="fetchLevelConfig">
       <BkOption
-        v-for="(item) in moduleList"
+        v-for="item in moduleList"
         :key="item.db_module_id"
         :label="item.name"
         :value="item.db_module_id" />
@@ -21,7 +21,7 @@
         <p
           v-bk-tooltips.top="{
             content: $t('请先选择所属业务'),
-            disabled: hasBizId
+            disabled: hasBizId,
           }">
           <BkButton
             class="create-module"
@@ -79,7 +79,7 @@
   import { getLevelConfig } from '@services/source/configs';
 
   interface Props {
-    bizId: number | string,
+    bizId: number | string;
   }
 
   const props = defineProps<Props>();
@@ -99,9 +99,13 @@
     manual: true,
   });
 
-  watch(() => props.bizId, (bizId) => {
-    bizId && fetchModuleList();
-  }, { immediate: true });
+  watch(
+    () => props.bizId,
+    (bizId) => {
+      bizId && fetchModuleList();
+    },
+    { immediate: true },
+  );
 
   // 获取模块列表
   const fetchModuleList = () => {
@@ -166,56 +170,56 @@
 </script>
 
 <style lang="less" scoped>
-.module-info {
-  width: 398px;
-  padding: 8px 12px;
-  margin-top: 16px;
-  font-size: @font-size-mini;
-  line-height: 20px;
-  background-color: @bg-gray;
-  border-radius: 2px;
+  .module-info {
+    width: 398px;
+    padding: 8px 12px;
+    margin-top: 16px;
+    font-size: @font-size-mini;
+    line-height: 20px;
+    background-color: @bg-gray;
+    border-radius: 2px;
 
-  .no-items {
-    text-align: center;
+    .no-items {
+      text-align: center;
 
-    .bind-module {
-      color: @primary-color;
-      cursor: pointer;
+      .bind-module {
+        color: @primary-color;
+        cursor: pointer;
+      }
+    }
+
+    .module-info-label {
+      display: inline-block;
+      min-width: 100px;
+      padding-right: 8px;
+      text-align: right;
+    }
+
+    .module-info-value {
+      color: @title-color;
     }
   }
 
-  .module-info-label {
-    display: inline-block;
-    min-width: 100px;
-    padding-right: 8px;
-    text-align: right;
+  .create-module {
+    display: block;
+    width: 100%;
+    padding: 0 8px;
+    text-align: left;
+
+    .db-icon-plus-circle {
+      margin-right: 4px;
+    }
+
+    &:hover:not(.is-disabled) {
+      color: @primary-color;
+    }
   }
 
-  .module-info-value {
-    color: @title-color;
-  }
-}
-
-.create-module {
-  display: block;
-  width: 100%;
-  padding: 0 8px;
-  text-align: left;
-
-  .db-icon-plus-circle {
-    margin-right: 4px;
-  }
-
-  &:hover:not(.is-disabled) {
+  .refresh-module {
+    margin-left: 8px;
+    font-size: @font-size-normal;
     color: @primary-color;
+    vertical-align: middle;
+    cursor: pointer;
   }
-}
-
-.refresh-module {
-  margin-left: 8px;
-  font-size: @font-size-normal;
-  color: @primary-color;
-  vertical-align: middle;
-  cursor: pointer;
-}
 </style>

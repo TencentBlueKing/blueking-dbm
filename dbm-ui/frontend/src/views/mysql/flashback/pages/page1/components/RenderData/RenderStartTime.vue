@@ -28,7 +28,7 @@
   import TableEditDateTime from '@views/spider-manage/common/edit/DateTime.vue';
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<'start_time', string>>
+    getValue: (field: string) => Promise<Record<'start_time', string>>;
   }
 
   const modelValue = defineModel<string>({
@@ -51,10 +51,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue()
-        .then(() => ({
-          start_time: formatDateToUTC(modelValue.value!),
-        }));
+      return editRef.value.getValue().then(() => ({
+        start_time: formatDateToUTC(modelValue.value!),
+      }));
     },
   });
 </script>

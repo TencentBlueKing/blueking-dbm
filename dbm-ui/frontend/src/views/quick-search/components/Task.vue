@@ -7,7 +7,7 @@
       <I18nT
         class="ml-8"
         keypath="共n条"
-        style="color: #63656E;"
+        style="color: #63656e"
         tag="span">
         <template #n>
           <strong>{{ data.length }}</strong>
@@ -201,5 +201,5 @@
 </script>
 
 <style lang="less" scoped>
-@import "../style/table-card.less";
+  @import '../style/table-card.less';
 </style>

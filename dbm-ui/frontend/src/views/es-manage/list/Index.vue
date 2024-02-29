@@ -23,7 +23,7 @@
       #right>
       <Detail :cluster-id="clusterId" />
     </template>
-  </stretchlayout>
+  </StretchLayout>
 </template>
 
 <script setup lang="ts">
@@ -36,4 +36,3 @@
 
   const clusterId = ref(0);
 </script>
-

@@ -15,11 +15,11 @@
   <div
     ref="rootRef"
     class="render-db-name"
-    :class="{'render-db-name-scroll': isFocus}">
+    :class="{ 'render-db-name-scroll': isFocus }">
     <span @click="handleShowTips">
       <div
         class="table-edit-tag"
-        :class="{['is-error']: Boolean(errorMessage),}">
+        :class="{ ['is-error']: Boolean(errorMessage) }">
         <BkTagInput
           v-model="localValue"
           allow-auto-match
@@ -42,10 +42,10 @@
         </div>
       </div>
     </span>
-    <div style="display: none;">
+    <div style="display: none">
       <div
         ref="popRef"
-        style=" font-size: 12px; line-height: 24px;color: #63656e;">
+        style="font-size: 12px; line-height: 24px; color: #63656e">
         <slot name="tip">
           <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
           <p>{{ t('？： 匹配任意单一字符，如 a%?%d') }}</p>
@@ -58,31 +58,26 @@
   </div>
 </template>
 <script setup lang="ts">
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
 
   import { t } from '@locales/index';
 
-  import useValidtor, {
-    type Rules,
-  } from '../../hooks/useValidtor';
+  import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
   interface Props {
-    placeholder?: string,
-    modelValue?: string [],
-    single?: boolean,
-    rules?: Rules
+    placeholder?: string;
+    modelValue?: string[];
+    single?: boolean;
+    rules?: Rules;
   }
 
   interface Emits {
-    (e: 'change', value: string []): void,
-    (e: 'update:modelValue', value: string []): void
+    (e: 'change', value: string[]): void;
+    (e: 'update:modelValue', value: string[]): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string[] | undefined>
+    getValue: () => Promise<string[] | undefined>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -101,33 +96,32 @@
 
   let tippyIns: Instance | undefined;
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { message: errorMessage, validator } = useValidtor(props.rules);
 
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localValue.value = props.modelValue;
+      } else {
+        localValue.value = [];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue;
-    } else {
-      localValue.value = [];
-    }
-  }, {
-    immediate: true,
-  });
-
-  const tagInputPasteFn = (value: string) => value.split('\n').map(item => ({ id: item }));
+  const tagInputPasteFn = (value: string) => value.split('\n').map((item) => ({ id: item }));
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
     nextTick(() => {
-      validator(localValue.value)
-        .then(() => {
-          window.changeConfirm = true;
-          emits('update:modelValue', value);
-          emits('change', value);
-        });
+      validator(localValue.value).then(() => {
+        window.changeConfirm = true;
+        emits('update:modelValue', value);
+        emits('change', value);
+      });
     });
   };
 
@@ -170,97 +164,94 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localValue.value)
-        .then(() => localValue.value);
+      return validator(localValue.value).then(() => localValue.value);
     },
   });
 </script>
 <style lang="less" scoped>
-.render-db-name {
-  display: block;
+  .render-db-name {
+    display: block;
 
-  :deep(.bk-tag-input-trigger) {
-    .tag-list {
-      height: 40px;
-    }
-  }
-
-}
-
-.render-db-name-scroll {
-  position: relative;
-  padding: 0;
-  margin: 0;
-
-  :deep(.bk-tag-input) {
-    position: absolute;
-    top: -21px;
-    z-index: 99;
-    width: 100%;
-
-    .bk-tag-input-trigger {
+    :deep(.bk-tag-input-trigger) {
       .tag-list {
-        height: auto;
-        max-height: 135px;
+        height: 40px;
       }
     }
-
   }
-}
-</style>
-<style lang="less">
-.table-edit-tag {
-  position: relative;
 
-  &.is-error {
-    .bk-tag-input {
+  .render-db-name-scroll {
+    position: relative;
+    padding: 0;
+    margin: 0;
+
+    :deep(.bk-tag-input) {
+      position: absolute;
+      top: -21px;
+      z-index: 99;
+      width: 100%;
+
       .bk-tag-input-trigger {
-        background: #fff0f1;
-
-        .placeholder {
-          line-height: 42px;
+        .tag-list {
+          height: auto;
+          max-height: 135px;
         }
       }
     }
   }
+</style>
+<style lang="less">
+  .table-edit-tag {
+    position: relative;
 
-  .bk-tag-input {
-    .bk-tag-input-trigger {
-      min-height: 42px;
-      border-color: transparent;
-      border-radius: 0;
+    &.is-error {
+      .bk-tag-input {
+        .bk-tag-input-trigger {
+          background: #fff0f1;
 
-      &:hover {
-        background-color: #fafbfd;
-        border-color: #a3c5fd !important;
-      }
-
-      &.active {
-        border-color: #3a84ff !important;
-      }
-
-      .tag-input {
-        background-color: transparent !important;
-      }
-
-      .placeholder {
-        top: 0;
-        height: 42px;
-        line-height: 42px;
+          .placeholder {
+            line-height: 42px;
+          }
+        }
       }
     }
-  }
 
-  .input-error {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    padding-right: 10px;
-    font-size: 14px;
-    color: #ea3636;
-    align-items: center;
+    .bk-tag-input {
+      .bk-tag-input-trigger {
+        min-height: 42px;
+        border-color: transparent;
+        border-radius: 0;
+
+        &:hover {
+          background-color: #fafbfd;
+          border-color: #a3c5fd !important;
+        }
+
+        &.active {
+          border-color: #3a84ff !important;
+        }
+
+        .tag-input {
+          background-color: transparent !important;
+        }
+
+        .placeholder {
+          top: 0;
+          height: 42px;
+          line-height: 42px;
+        }
+      }
+    }
+
+    .input-error {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      padding-right: 10px;
+      font-size: 14px;
+      color: #ea3636;
+      align-items: center;
+    }
   }
-}
 </style>

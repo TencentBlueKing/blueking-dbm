@@ -78,7 +78,7 @@
           required>
           <div
             class="control-box"
-            style="padding-bottom: 14px;">
+            style="padding-bottom: 14px">
             <SubscribeDbTable ref="subscribeDbTableRef" />
           </div>
         </BkFormItem>
@@ -132,8 +132,7 @@
         @click="handleConfirm">
         {{ t('提交') }}
       </BkButton>
-      <BkButton
-        @click="handleClose">
+      <BkButton @click="handleClose">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -374,153 +373,151 @@
     emits('cancel');
     isShow.value = false;
   }
-
 </script>
 
 <style lang="less" scoped>
-
-.header-main {
-  display: flex;
-  width: 100%;
-  overflow: hidden;
-  align-items: center;
-
-  .name {
-    width: auto;
-    max-width: 720px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.dumper-config-edit-box {
-  display: flex;
-  width: 100%;
-  padding: 24px 40px;
-  flex-direction: column;
-
-  .control-box {
-    padding: 24px 24px 0;
-    background-color: #F5F7FA;
-    border-radius: 2px;
-  }
-
-  .subscribe-table {
-    :deep(.table-names-box) {
-      display: flex;
-      width: 100%;
-      flex-wrap: wrap;
-      padding-top: 10px;
-      padding-bottom: 2px;
-
-      .name-item {
-        height: 22px;
-        padding: 0 8px;
-        margin-right: 4px;
-        margin-bottom: 8px;
-        line-height: 22px;
-        color: #63656E;
-        background: #F0F1F5;
-        border-radius: 2px;
-      }
-    }
-
-    :deep(th) {
-      .head-text {
-        color: #313238;
-      }
-    }
-  }
-
-  .edit-form {
-    // :deep(.bk-form-label) {
-    //   font-weight: 700;
-    // }
-
-    :deep(.deploy-place-radio) {
-      .bk-radio-label {
-        color: #63656e;
-      }
-    }
-  }
-
-  .item-title {
-    margin-bottom: 6px;
-    font-weight: normal;
-    color: #63656E;
-  }
-
-  .name-tip {
-    height: 20px;
-    margin-bottom: 6px;
-    font-size: 12px;
-    color: #EA3636;
-  }
-
-  .check-rules {
+  .header-main {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
+    width: 100%;
+    overflow: hidden;
+    align-items: center;
 
-    .title-icon {
-      display: flex;
-      width: 24px;
-      height: 24px;
-      font-size: 16px;
-      color: #3A84FF;
-      background-color: #F0F5FF;
-      border: none;
-      border-radius: 50%;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .icon-warn {
-      color: #FF9C01;
-      background-color: #FFF3E1;
-    }
-
-    .icon-dander {
-      color: #EA3636;
-      background-color: #FEE;
+    .name {
+      width: auto;
+      max-width: 720px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 
-  .notify-select {
-    :deep(.alarm-icon) {
-      font-size: 18px;
-      color: #979BA5;
+  .dumper-config-edit-box {
+    display: flex;
+    width: 100%;
+    padding: 24px 40px;
+    flex-direction: column;
+
+    .control-box {
+      padding: 24px 24px 0;
+      background-color: #f5f7fa;
+      border-radius: 2px;
     }
 
-    :deep(.notify-tag-box) {
-      display: flex;
-      height: 22px;
-      padding: 0 6px;
-      background: #F0F1F5;
-      border-radius: 2px;
-      align-items: center;
+    .subscribe-table {
+      :deep(.table-names-box) {
+        display: flex;
+        width: 100%;
+        flex-wrap: wrap;
+        padding-top: 10px;
+        padding-bottom: 2px;
 
-      .close-icon {
-        font-size: 14px;
-        color: #C4C6CC;
+        .name-item {
+          height: 22px;
+          padding: 0 8px;
+          margin-right: 4px;
+          margin-bottom: 8px;
+          line-height: 22px;
+          color: #63656e;
+          background: #f0f1f5;
+          border-radius: 2px;
+        }
+      }
+
+      :deep(th) {
+        .head-text {
+          color: #313238;
+        }
+      }
+    }
+
+    .edit-form {
+      // :deep(.bk-form-label) {
+      //   font-weight: 700;
+      // }
+
+      :deep(.deploy-place-radio) {
+        .bk-radio-label {
+          color: #63656e;
+        }
+      }
+    }
+
+    .item-title {
+      margin-bottom: 6px;
+      font-weight: normal;
+      color: #63656e;
+    }
+
+    .name-tip {
+      height: 20px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: #ea3636;
+    }
+
+    .check-rules {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+
+      .title-icon {
+        display: flex;
+        width: 24px;
+        height: 24px;
+        font-size: 16px;
+        color: #3a84ff;
+        background-color: #f0f5ff;
+        border: none;
+        border-radius: 50%;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .icon-warn {
+        color: #ff9c01;
+        background-color: #fff3e1;
+      }
+
+      .icon-dander {
+        color: #ea3636;
+        background-color: #fee;
+      }
+    }
+
+    .notify-select {
+      :deep(.alarm-icon) {
+        font-size: 18px;
+        color: #979ba5;
+      }
+
+      :deep(.notify-tag-box) {
+        display: flex;
+        height: 22px;
+        padding: 0 6px;
+        background: #f0f1f5;
+        border-radius: 2px;
+        align-items: center;
+
+        .close-icon {
+          font-size: 14px;
+          color: #c4c6cc;
+        }
       }
     }
   }
-}
 
-.create-module {
-  display: block;
-  width: 100%;
-  padding: 0 8px;
-  text-align: left;
+  .create-module {
+    display: block;
+    width: 100%;
+    padding: 0 8px;
+    text-align: left;
 
-  .db-icon-plus-circle {
-    margin-right: 4px;
+    .db-icon-plus-circle {
+      margin-right: 4px;
+    }
+
+    &:hover:not(.is-disabled) {
+      color: @primary-color;
+    }
   }
-
-  &:hover:not(.is-disabled) {
-    color: @primary-color;
-  }
-}
 </style>

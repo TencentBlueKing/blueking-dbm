@@ -1,12 +1,8 @@
-import {
-  createApp,
-} from 'vue';
+import { createApp } from 'vue';
 
 import type ApplyDataModel from '@services/model/iam/apply-data';
 
-import PermissionDialog, {
-  type CheckParams,
-} from '@components/apply-permission/dialog.vue';
+import PermissionDialog, { type CheckParams } from '@components/apply-permission/dialog.vue';
 
 import i18n from '@locales/index';
 
@@ -28,7 +24,8 @@ export const permissionDialog = (applyData?: ApplyDataModel, checkParams?: Check
         <PermissionDialog
           applyData={applyData}
           checkParams={checkParams}
-          onCancel={handleCancel} />
+          onCancel={handleCancel}
+        />
       );
     },
   });

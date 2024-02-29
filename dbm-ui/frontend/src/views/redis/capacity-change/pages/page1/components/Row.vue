@@ -20,55 +20,51 @@
         :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </FixedColumn> -->
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.targetCluster"
         :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.currentSepc"
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.shardNum"
         :is-loading="data.isLoading"
         placeholder="--" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.groupNum"
         :is-loading="data.isLoading"
         placeholder="--" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderCurrentCapacity
         :data="data.currentCapacity"
         :is-loading="data.isLoading" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCapacity
         ref="targetCapacityRef"
         :is-disabled="!data.targetCluster"
         :is-loading="data.isLoading"
         :row-data="data" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderSpecifyVersion
         ref="versionRef"
         :data="data.version"
         :is-loading="data.isLoading"
         :list="versionList" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderSwitchMode
         ref="switchModeRef"
         :is-loading="data.isLoading" />
@@ -104,20 +100,20 @@
     targetCluster: string;
     clusterId: number;
     bkCloudId: number;
-    sepcId: number,
+    sepcId: number;
     targetShardNum: number;
     targetGroupNum: number;
     shardNum?: number;
     groupNum?: number;
     currentSepc?: string;
     targetCapacity?: {
-      current: number,
-      used: number,
-      total: number,
+      current: number;
+      used: number;
+      total: number;
     };
     currentCapacity?: {
-      used: number,
-      total: number,
+      used: number;
+      total: number;
     };
     version?: string;
     clusterType?: RedisClusterTypes;
@@ -125,21 +121,21 @@
   }
 
   export interface InfoItem {
-    cluster_id: number,
-    bk_cloud_id: number,
-    db_version: string,
-    shard_num: number,
-    group_num: number,
-    online_switch_type: OnlineSwitchType,
-    capacity: number,
-    future_capacity: number,
+    cluster_id: number;
+    bk_cloud_id: number;
+    db_version: string;
+    shard_num: number;
+    group_num: number;
+    online_switch_type: OnlineSwitchType;
+    capacity: number;
+    future_capacity: number;
     resource_spec: {
       backend_group: {
-        spec_id: number,
-        count: number, // 机器组数
-        affinity: AffinityType, // 暂时固定 'CROS_SUBZONE',
-      }
-    }
+        spec_id: number;
+        count: number; // 机器组数
+        affinity: AffinityType; // 暂时固定 'CROS_SUBZONE',
+      };
+    };
   }
 
   // 创建表格数据
@@ -153,28 +149,27 @@
     targetShardNum: 0,
     targetGroupNum: 0,
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
     inputedClusters?: string[];
     versionsMap?: Record<string, string[]>;
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    inputedClusters: () => ([]),
+    inputedClusters: () => [],
     versionsMap: () => ({}),
   });
 
@@ -187,7 +182,7 @@
 
   const versionList = computed(() => {
     if (props.versionsMap && props.data.clusterType) {
-      return props.versionsMap[props.data.clusterType].map(item => ({
+      return props.versionsMap[props.data.clusterType].map((item) => ({
         value: item,
         label: item,
       }));
@@ -226,5 +221,4 @@
       });
     },
   });
-
 </script>

@@ -20,15 +20,11 @@
       <div
         v-if="type === 'copy'"
         class="detail-dialog-head">
-        <div class="detail-dialog-head-text">
-          {{ sidesliderTitle }}【
-        </div>
+        <div class="detail-dialog-head-text">{{ sidesliderTitle }}【</div>
         <div class="detail-dialog-head-name">
           {{ detailData.name }}
         </div>
-        <div class="detail-dialog-head-text">
-          】
-        </div>
+        <div class="detail-dialog-head-text">】</div>
       </div>
       <div v-else>
         {{ sidesliderTitle }}

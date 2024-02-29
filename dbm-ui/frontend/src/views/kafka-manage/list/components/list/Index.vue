@@ -35,7 +35,7 @@
     </div>
     <div
       class="table-wrapper"
-      :class="{'is-shrink-table': isStretchLayoutOpen}">
+      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
       <DbTable
         ref="tableRef"
         :columns="columns"
@@ -685,7 +685,6 @@
       handleToDetails(Number(route.query.id));
     }
   });
-
 </script>
 <style lang="less">
   .kafka-list-page {
@@ -785,7 +784,6 @@
         color: @primary-color;
         cursor: pointer;
       }
-
     }
 
     :deep(tr:hover) {

@@ -30,12 +30,9 @@
 <script setup lang="ts">
   import type { ExtractedControllerDataKeys } from '@services/model/function-controller/functionController';
 
-  import { useFunController  } from '@stores';
+  import { useFunController } from '@stores';
 
-  import {
-    ClusterTypes,
-    DBTypes,
-  } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import List from './components/List.vue';
 
@@ -88,28 +85,28 @@
   const curTab = ref<string>((route.query.spec_cluster_type as string) || ClusterTypes.TENDBSINGLE);
   const curChildTab = ref('');
 
-  const renderTabs = computed(() => tabs.filter((item) => {
-    const data = funControllerStore.funControllerData[item.moduleId as ExtractedControllerDataKeys];
-    return data && data.is_enabled;
-  }));
+  const renderTabs = computed(() =>
+    tabs.filter((item) => {
+      const data = funControllerStore.funControllerData[item.moduleId as ExtractedControllerDataKeys];
+      return data && data.is_enabled;
+    }),
+  );
 
   const handleChangeClusterType = (value: string) => {
     if (curTab.value !== value) {
       curChildTab.value = '';
     }
   };
-
 </script>
 <style lang="less">
-  .ticket-flow-list-page{
-    .bk-tab-content{
+  .ticket-flow-list-page {
+    .bk-tab-content {
       display: none;
     }
 
-    .top-tabs{
+    .top-tabs {
       background: #fff;
       box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
     }
-
   }
 </style>

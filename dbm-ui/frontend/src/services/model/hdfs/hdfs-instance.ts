@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { t } from '@locales/index';
 
@@ -34,13 +34,13 @@ export default class HdfsInstance {
   instance_name: string;
   restart_at: string;
   operations: Array<{
-    flow_id: number,
-    instance_id: number,
-    operator: string,
-    status: string,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
+    flow_id: number;
+    instance_id: number;
+    operator: string;
+    status: string;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
   }>;
   role: string;
   status: string;
@@ -101,7 +101,7 @@ export default class HdfsInstance {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: HdfsInstance.operationIconMap[item.ticket_type],
       tip: HdfsInstance.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,

@@ -18,7 +18,7 @@
       :key="item.id"
       class="tab-item"
       :class="{
-        active: modelValue === item.id
+        active: modelValue === item.id,
       }"
       @click="handleClick(item)">
       {{ item.name }}
@@ -34,7 +34,7 @@
     panelList: PanelListItem[];
   }
   interface Emits {
-    (e: 'change', value: PanelListItem): void
+    (e: 'change', value: PanelListItem): void;
   }
 
   defineProps<Props>();

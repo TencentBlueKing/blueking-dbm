@@ -43,10 +43,7 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getConfigBaseDetails } from '@services/source/configs';
 
@@ -56,9 +53,9 @@
   import PublishRecord from '../components/PublishRecord.vue';
 
   interface Props {
-    clusterType: string,
-    confType: string,
-    version: string,
+    clusterType: string;
+    confType: string;
+    version: string;
   }
 
   const props = defineProps<Props>();
@@ -85,13 +82,16 @@
     bk_biz_id: 0,
   }));
   // 顶部 tabs
-  const tabs = reactive([{
-    label: t('基础信息'),
-    name: 'base',
-  }, {
-    label: t('发布记录'),
-    name: 'publish',
-  }]);
+  const tabs = reactive([
+    {
+      label: t('基础信息'),
+      name: 'base',
+    },
+    {
+      label: t('发布记录'),
+      name: 'publish',
+    },
+  ]);
 
   /**
    * 获取集群通用默认配置 - dbconf
@@ -109,7 +109,7 @@
     });
 
   // 更新基础信息
-  const handleUpdateInfo = ({ key, value }: { key: string, value: string }) => {
+  const handleUpdateInfo = ({ key, value }: { key: string; value: string }) => {
     Object.assign(state.data, { [key]: value });
   };
 
@@ -129,14 +129,14 @@
 </script>
 
 <style lang="less">
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-  .configure-details-page{
-    .top-tabs{
+  .configure-details-page {
+    .top-tabs {
       background: #fff;
       box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-      .bk-tab-content{
+      .bk-tab-content {
         display: none;
       }
     }

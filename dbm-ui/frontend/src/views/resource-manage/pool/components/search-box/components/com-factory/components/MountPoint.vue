@@ -35,11 +35,11 @@
   import { fetchMountPoints } from '@services/source/dbresourceResource';
 
   interface Props {
-    defaultValue?: string,
+    defaultValue?: string;
     model: Record<string, any>;
   }
   interface Emits {
-    (e: 'change', value: Props['defaultValue']): void
+    (e: 'change', value: Props['defaultValue']): void;
   }
 
   const props = defineProps<Props>();
@@ -49,22 +49,23 @@
   });
   const { t } = useI18n();
 
-  const {
-    data,
-  } = useRequest(fetchMountPoints, {
+  const { data } = useRequest(fetchMountPoints, {
     initialData: [],
   });
 
-  watch(() => props.model, () => {
-    if (props.model.spec_id && props.defaultValue) {
-      handleChange('');
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.model,
+    () => {
+      if (props.model.spec_id && props.defaultValue) {
+        handleChange('');
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: Props['defaultValue']) => {
     emits('change', value);
   };
 </script>
-

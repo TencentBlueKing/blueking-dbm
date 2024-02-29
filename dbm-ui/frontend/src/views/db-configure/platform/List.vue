@@ -220,14 +220,14 @@
 </script>
 
 <style lang="less">
-  .platform-db-configure-page{
+  .platform-db-configure-page {
     height: calc(100vh - 150px);
 
     .conf-tabs {
       background: #fff;
       box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-      .bk-tab-content{
+      .bk-tab-content {
         display: none;
       }
     }
@@ -235,7 +235,7 @@
     .configure-content {
       padding: 24px;
 
-      .configure-content-table{
+      .configure-content-table {
         .table-header-type {
           line-height: 20px;
           border-bottom: 1px dashed @light-gray;
@@ -244,4 +244,3 @@
     }
   }
 </style>
-

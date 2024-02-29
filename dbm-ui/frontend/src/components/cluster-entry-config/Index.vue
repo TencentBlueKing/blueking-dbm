@@ -32,13 +32,13 @@
     <template #footer>
       <BkButton
         class="mr-8"
-        style="width: 64px;"
+        style="width: 64px"
         theme="primary"
         @click="handleConfirm">
         {{ t('保存') }}
       </BkButton>
       <BkButton
-        style="width: 64px;"
+        style="width: 64px"
         @click="handleClose">
         {{ t('取消') }}
       </BkButton>
@@ -187,25 +187,25 @@
 </script>
 
 <style lang="less" scoped>
-.entry-config-dialog {
-  :deep(.bk-dialog-header) {
-    padding: 18px 24px;
+  .entry-config-dialog {
+    :deep(.bk-dialog-header) {
+      padding: 18px 24px;
+    }
+
+    :deep(.bk-modal-close) {
+      font-size: 24px;
+    }
   }
 
-  :deep(.bk-modal-close) {
-    font-size: 24px;
+  .entry-config-table-box {
+    max-height: fit-content;
   }
-}
-
-.entry-config-table-box {
-  max-height:fit-content;
-}
 </style>
 <style lang="less">
-.entry-config-ips-column {
-  .cell {
-    padding: 0 !important;
-    line-height: normal !important;
+  .entry-config-ips-column {
+    .cell {
+      padding: 0 !important;
+      line-height: normal !important;
+    }
   }
-}
 </style>

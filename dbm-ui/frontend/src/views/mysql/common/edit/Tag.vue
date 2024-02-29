@@ -14,7 +14,7 @@
 <template>
   <div
     class="table-edit-tag"
-    :class="{['is-error']: Boolean(errorMessage),}">
+    :class="{ ['is-error']: Boolean(errorMessage) }">
     <BkTagInput
       v-model="localValue"
       allow-create
@@ -36,27 +36,22 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
 
-  import useValidtor, {
-    type Rules,
-  } from './hooks/useValidtor';
+  import useValidtor, { type Rules } from './hooks/useValidtor';
 
   interface Props {
-    modelValue?: string[],
-    placeholder?: string,
-    rules?: Rules,
-    single?: boolean,
+    modelValue?: string[];
+    placeholder?: string;
+    rules?: Rules;
+    single?: boolean;
   }
 
   interface Emits {
     (e: 'update:modelValue', value: Required<Props>['modelValue']): void;
     (e: 'change', value: Required<Props>['modelValue']): void;
     (e: 'focus'): void;
-    (e: 'blur'): void
+    (e: 'blur'): void;
   }
 
   interface Exposes {
@@ -74,26 +69,25 @@
 
   const localValue = ref<Props['modelValue']>(props.modelValue);
 
-  watch(() => props.modelValue, () => {
-    localValue.value = props.modelValue;
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      localValue.value = props.modelValue;
+    },
+  );
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { message: errorMessage, validator } = useValidtor(props.rules);
 
   const handleChange = (value: Required<Props>['modelValue']) => {
     localValue.value = value;
-    validator(localValue.value)
-      .then(() => {
-        window.changeConfirm = true;
-        emits('update:modelValue', value);
-        emits('change', value);
-      });
+    validator(localValue.value).then(() => {
+      window.changeConfirm = true;
+      emits('update:modelValue', value);
+      emits('change', value);
+    });
   };
 
-  const tagInputPasteFn = (value: string) => value.split('\n').map(item => ({ id: item }));
+  const tagInputPasteFn = (value: string) => value.split('\n').map((item) => ({ id: item }));
 
   const handleFocus = () => {
     emits('focus');
@@ -105,8 +99,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localValue.value)
-        .then(() => localValue.value);
+      return validator(localValue.value).then(() => localValue.value);
     },
   });
 </script>

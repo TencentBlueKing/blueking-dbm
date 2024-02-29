@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { HostDetails } from '../types';
 
@@ -17,43 +17,43 @@ import type { HostDetails } from '../types';
  * 资源实例信息
  */
 export interface ResourceInstance {
-  bk_cloud_id: number,
-  bk_cloud_name: string,
-  bk_host_id: number,
-  cluster_id: number,
-  cluster_name: string,
-  cluster_type: string,
-  create_at: string,
-  db_module_id: number,
-  host_info: HostDetails,
-  id: number,
-  instance_address: string,
-  ip: string,
-  master_domain: string,
-  port: number,
+  bk_cloud_id: number;
+  bk_cloud_name: string;
+  bk_host_id: number;
+  cluster_id: number;
+  cluster_name: string;
+  cluster_type: string;
+  create_at: string;
+  db_module_id: number;
+  host_info: HostDetails;
+  id: number;
+  instance_address: string;
+  ip: string;
+  master_domain: string;
+  port: number;
   related_clusters?: {
-    alias: string,
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    cluster_name: string,
-    cluster_type: string,
-    creator: string,
-    db_module_id: number,
-    id: number,
-    major_version: string,
-    master_domain: string,
-    phase: string,
-    region: string,
-    status: string,
-    time_zone: string
-    updater: string,
-  }[],
-  role: string,
-  slave_domain: string,
+    alias: string;
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    cluster_name: string;
+    cluster_type: string;
+    creator: string;
+    db_module_id: number;
+    id: number;
+    major_version: string;
+    master_domain: string;
+    phase: string;
+    region: string;
+    status: string;
+    time_zone: string;
+    updater: string;
+  }[];
+  role: string;
+  slave_domain: string;
   spec_config: {
-    id: number
-  }
-  status: string,
-  version: string,
-  permission: Record<string, boolean>
+    id: number;
+  };
+  status: string;
+  version: string;
+  permission: Record<string, boolean>;
 }

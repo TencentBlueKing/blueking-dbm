@@ -29,9 +29,7 @@
         </template>
         {{ item.display_name }}
       </BkTag>
-      <BkTag class="overflow-collapse-tag">
-        +{{ overflowData.length }}
-      </BkTag>
+      <BkTag class="overflow-collapse-tag"> +{{ overflowData.length }} </BkTag>
     </p>
     <p class="visible-content">
       <BkTag
@@ -39,7 +37,7 @@
         :key="item.id"
         v-bk-tooltips="{
           disabled: item.type === 'user',
-          content: item.members.join('，')
+          content: item.members.join('，'),
         }"
         class="render-row-item">
         <template #icon>
@@ -54,16 +52,14 @@
         placement="top"
         theme="light"
         width="400">
-        <BkTag class="overflow-collapse-tag">
-          +{{ overflowData.length }}
-        </BkTag>
+        <BkTag class="overflow-collapse-tag"> +{{ overflowData.length }} </BkTag>
         <template #content>
           <BkTag
             v-for="item in overflowData"
             :key="item.id"
             v-bk-tooltips="{
               disabled: item.type === 'user',
-              content: item.members.join('，')
+              content: item.members.join('，'),
             }"
             class="render-row-item">
             <template #icon>

@@ -55,7 +55,7 @@
       <span
         v-bk-tooltips="{
           content: $t('请选择实例'),
-          disabled: !isEmpty
+          disabled: !isEmpty,
         }"
         class="inline-block">
         <BkButton
@@ -77,7 +77,7 @@
 <script lang="ts">
   import type { ChoosedItem } from './components/RenderRedisHost.vue';
 
-  export type InstanceSelectorValues = { idleHosts: ChoosedItem[] }
+  export type InstanceSelectorValues = { idleHosts: ChoosedItem[] };
 
   export default {
     name: 'InstanceSelector',
@@ -92,17 +92,17 @@
 
   interface Props {
     isShow?: boolean;
-    panelList?: Array<PanelTypes>,
-    role?: string,
-    selected?: InstanceSelectorValues,
-    dbType?: string,
-    activeTab?: PanelTypes
-    isRadioMode?: boolean,
+    panelList?: Array<PanelTypes>;
+    role?: string;
+    selected?: InstanceSelectorValues;
+    dbType?: string;
+    activeTab?: PanelTypes;
+    isRadioMode?: boolean;
   }
 
   interface Emits {
-    (e: 'update:isShow', value: boolean): void,
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'update:isShow', value: boolean): void;
+    (e: 'change', value: InstanceSelectorValues): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -120,7 +120,7 @@
   const panelTabActive = ref<PanelTypes>(props.activeTab);
 
   const lastValues = reactive<InstanceSelectorValues>({ idleHosts: [] });
-  const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
+  const isEmpty = computed(() => !Object.values(lastValues).some((values) => values.length > 0));
   provide(activePanelInjectionKey, panelTabActive);
 
   const comMap = {
@@ -130,11 +130,14 @@
 
   const renderCom = computed(() => comMap[panelTabActive.value as keyof typeof comMap]);
 
-  watch(() => [props.isShow, props.selected], ([show, selected]) => {
-    if (show && selected) {
-      Object.assign(lastValues, selected);
-    }
-  });
+  watch(
+    () => [props.isShow, props.selected],
+    ([show, selected]) => {
+      if (show && selected) {
+        Object.assign(lastValues, selected);
+      }
+    },
+  );
 
   const handleChange = (values: InstanceSelectorValues) => {
     Object.assign(lastValues, values);
@@ -164,6 +167,5 @@
       padding: 0 !important;
       overflow-y: hidden !important;
     }
-
   }
 </style>

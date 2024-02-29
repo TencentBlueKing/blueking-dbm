@@ -21,7 +21,7 @@
         <I18nT keypath="已选n台">
           <span
             class="number"
-            style="color: #3A84FF">
+            style="color: #3a84ff">
             {{ hostList.length }}
           </span>
         </I18nT>
@@ -35,7 +35,7 @@
         <div
           class="host-action"
           :class="{
-            active: isShowHostActionPop
+            active: isShowHostActionPop,
           }"
           @click="handleShowHostAction">
           <DbIcon type="more" />
@@ -150,9 +150,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    reactive,
-  } from 'vue';
+  import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -165,13 +163,13 @@
   import { messageWarn } from '@utils';
 
   interface Props {
-    hostList: ImportHostModel[]
+    hostList: ImportHostModel[];
   }
-  interface Emits{
-    (e: 'update:hostList', value: Props['hostList']): void,
+  interface Emits {
+    (e: 'update:hostList', value: Props['hostList']): void;
   }
   interface Expose {
-    getValue: () => Promise<any>
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -189,15 +187,9 @@
     resource_types: [],
   });
 
-  const {
-    data: bizList,
-    loading: isBizListLoading,
-  } = useRequest(getBizs);
+  const { data: bizList, loading: isBizListLoading } = useRequest(getBizs);
 
-  const {
-    data: dbTypeList,
-    loading: isDbTypeListLoading,
-  } = useRequest(fetchDbTypeList);
+  const { data: dbTypeList, loading: isDbTypeListLoading } = useRequest(fetchDbTypeList);
 
   const handleShowHostAction = () => {
     isShowHostActionPop.value = true;
@@ -209,18 +201,21 @@
   };
   // 清空所有异常主机
   const handleRemoveAbnormal = () => {
-    const result = props.hostList.reduce((result, item) => {
-      if (item.alive !== 0) {
-        result.push(item);
-      }
-      return result;
-    }, [] as Props['hostList']);
+    const result = props.hostList.reduce(
+      (result, item) => {
+        if (item.alive !== 0) {
+          result.push(item);
+        }
+        return result;
+      },
+      [] as Props['hostList'],
+    );
     emits('update:hostList', result);
     isShowHostActionPop.value = false;
   };
   // 复制所有主机 IP
   const handleCopyAll = () => {
-    const ipList = props.hostList.map(item => item.ip);
+    const ipList = props.hostList.map((item) => item.ip);
     isShowHostActionPop.value = false;
     if (ipList.length < 1) {
       messageWarn(t('暂无可复制 IP'));
@@ -273,131 +268,129 @@
 
   defineExpose<Expose>({
     getValue() {
-      return formRef.value.validate()
-        .then(() => ({
-          for_bizs: isSetEmptyBiz.value ? [] : formData.for_bizs,
-          resource_types: isSetEmptyResourceType.value ? [] : formData.resource_types,
-        }));
+      return formRef.value.validate().then(() => ({
+        for_bizs: isSetEmptyBiz.value ? [] : formData.for_bizs,
+        resource_types: isSetEmptyResourceType.value ? [] : formData.resource_types,
+      }));
     },
   });
-
 </script>
 <style lang="less">
-.import-host-form-panel {
-  display: flex;
-  height: 100%;
-  background: #f5f6fa;
-  flex-direction: column;
-
-  .title {
-    padding: 12px 24px 0;
-    font-size: 14px;
-    line-height: 22px;
-    color: #313238;
-  }
-
-  .host-header {
+  .import-host-form-panel {
     display: flex;
-    padding: 0 24px;
-    margin-top: 14px;
-    margin-bottom: 4px;
-    line-height: 24px;
-    color: #63656e;
+    height: 100%;
+    background: #f5f6fa;
+    flex-direction: column;
 
-    .host-action {
+    .title {
+      padding: 12px 24px 0;
+      font-size: 14px;
+      line-height: 22px;
+      color: #313238;
+    }
+
+    .host-header {
       display: flex;
-      width: 20px;
-      height: 20px;
-      margin-left: auto;
-      cursor: pointer;
-      border-radius: 2px;
-      transition: all .15s;
-      align-items: center;
-      justify-content: center;
+      padding: 0 24px;
+      margin-top: 14px;
+      margin-bottom: 4px;
+      line-height: 24px;
+      color: #63656e;
 
-      &.active,
-      &:hover {
-        background: #E1ECFF;
+      .host-action {
+        display: flex;
+        width: 20px;
+        height: 20px;
+        margin-left: auto;
+        cursor: pointer;
+        border-radius: 2px;
+        transition: all 0.15s;
+        align-items: center;
+        justify-content: center;
+
+        &.active,
+        &:hover {
+          background: #e1ecff;
+        }
+      }
+    }
+
+    .host-list {
+      height: calc(100% - 290px);
+      padding: 0 24px;
+      overflow-y: auto;
+      font-size: 12px !important;
+
+      .host-item {
+        display: flex;
+        height: 32px;
+        padding: 0 12px;
+        line-height: 1;
+        color: #63656e;
+        background-color: #fff;
+        border-radius: 2px;
+        transition: all 0.15s;
+        align-items: center;
+
+        & ~ .host-item {
+          margin-top: 2px;
+        }
+
+        &:hover {
+          background-color: #e1ecff;
+
+          .action-box {
+            display: flex;
+          }
+        }
+
+        .action-box {
+          display: none;
+          margin-left: auto;
+          color: #3a84ff;
+          align-items: center;
+
+          i {
+            padding: 0 2px;
+            cursor: pointer;
+          }
+        }
+      }
+    }
+
+    .more-info-form {
+      padding: 15px 24px 30px;
+      margin-top: auto;
+      background: #fff;
+      box-shadow: 0 -2px 4px 0 #0000001a;
+    }
+
+    .com-input {
+      display: flex;
+
+      .bk-select {
+        flex: 1;
       }
     }
   }
 
-  .host-list {
-    height: calc(100% - 290px);
-    padding: 0 24px;
-    overflow-y: auto;
-    font-size: 12px !important;
+  [data-theme~='export-host-action-extends'] {
+    padding: 8px 0 !important;
 
-    .host-item {
+    .item {
       display: flex;
       height: 32px;
       padding: 0 12px;
-      line-height: 1;
+      font-size: 12px;
       color: #63656e;
-      background-color: #fff;
-      border-radius: 2px;
+      cursor: pointer;
       transition: all 0.15s;
       align-items: center;
 
-      & ~ .host-item {
-        margin-top: 2px;
-      }
-
       &:hover {
-        background-color: #e1ecff;
-
-        .action-box{
-          display: flex;
-        }
-      }
-
-      .action-box {
-        display: none;
-        margin-left: auto;
         color: #3a84ff;
-        align-items: center;
-
-        i {
-          padding: 0 2px;
-          cursor: pointer;
-        }
+        background-color: #e1ecff;
       }
     }
   }
-
-  .more-info-form {
-    padding: 15px 24px 30px;
-    margin-top: auto;
-    background: #fff;
-    box-shadow: 0 -2px 4px 0 #0000001a;
-  }
-
-  .com-input {
-    display: flex;
-
-    .bk-select {
-      flex: 1
-    }
-  }
-}
-
-[data-theme~="export-host-action-extends"] {
-  padding: 8px 0 !important;
-
-  .item {
-    display: flex;
-    height: 32px;
-    padding: 0 12px;
-    font-size: 12px;
-    color: #63656E;
-    cursor: pointer;
-    transition: all .15s;
-    align-items: center;
-
-    &:hover {
-      color: #3A84FF;
-      background-color: #E1ECFF;
-    }
-  }
-}
 </style>

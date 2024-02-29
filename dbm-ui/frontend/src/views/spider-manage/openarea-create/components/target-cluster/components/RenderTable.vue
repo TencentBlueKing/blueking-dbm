@@ -61,11 +61,11 @@
   import RenderTable from '@components/render-table/Index.vue';
 
   interface Props {
-    variableList: string[]
+    variableList: string[];
   }
 
-  interface Emits{
-    (e: 'batchSelectCluster'): void
+  interface Emits {
+    (e: 'batchSelectCluster'): void;
   }
 
   defineProps<Props>();

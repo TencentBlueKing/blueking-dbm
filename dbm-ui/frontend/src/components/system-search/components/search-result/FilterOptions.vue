@@ -13,7 +13,7 @@
         :popover-min-width="300"
         :popover-options="{
           boundary: 'parent',
-          disableTeleport: true
+          disableTeleport: true,
         }"
         show-select-all
         size="small">
@@ -106,8 +106,8 @@
   import { getBizs } from '@services/source/cmdb';
 
   interface Props {
-    bizList: ServiceReturnType<typeof getBizs>,
-    dbOptionsExpand?: boolean
+    bizList: ServiceReturnType<typeof getBizs>;
+    dbOptionsExpand?: boolean;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -115,10 +115,10 @@
   });
 
   const modelValue = defineModel<{
-    bk_biz_ids: number[],
-    db_types: string[],
-    resource_types: string[],
-    filter_type: string,
+    bk_biz_ids: number[];
+    db_types: string[];
+    resource_types: string[];
+    filter_type: string;
   }>({
     required: true,
   });
@@ -205,39 +205,39 @@
 </script>
 <style lang="less">
   .system-serach-filter-options {
-    .filter-item{
-      .filter-title{
+    .filter-item {
+      .filter-title {
         margin-bottom: 10px;
         line-height: 16px;
-        color: #979BA5;
+        color: #979ba5;
       }
 
-      & ~ .filter-item{
+      & ~ .filter-item {
         margin-top: 24px;
       }
     }
 
-    .bk-checkbox-group{
+    .bk-checkbox-group {
       display: block;
     }
 
-    .bk-checkbox{
+    .bk-checkbox {
       display: flex;
       margin-left: 0 !important;
 
-      & ~ .bk-checkbox{
+      & ~ .bk-checkbox {
         margin-top: 16px;
       }
     }
 
-    .bk-radio-group{
+    .bk-radio-group {
       display: block;
 
-      .bk-radio{
+      .bk-radio {
         display: block;
         margin-left: 0 !important;
 
-        & ~ .bk-radio{
+        & ~ .bk-radio {
           margin-top: 16px;
         }
       }

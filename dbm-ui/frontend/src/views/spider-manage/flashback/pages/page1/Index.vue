@@ -18,10 +18,8 @@
         closable
         theme="info"
         :title="t('闪回：通过 flashback 工具，对 row 格式的 binlog 做逆向操作')" />
-      <div class="title-spot mt-12 mb-10">
-        {{ t('时区') }}<span class="required" />
-      </div>
-      <TimeZonePicker style="width: 450px;" />
+      <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
+      <TimeZonePicker style="width: 450px" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -30,7 +28,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -81,10 +79,7 @@
   import { messageError } from '@utils';
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -92,10 +87,10 @@
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -106,11 +101,9 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.clusterData
-      && !firstRow.startTime
-      && !firstRow.databases
-      && !firstRow.tables
-      && !firstRow.tablesIgnore;
+    return (
+      !firstRow.clusterData && !firstRow.startTime && !firstRow.databases && !firstRow.tables && !firstRow.tablesIgnore
+    );
   };
 
   // 批量选择
@@ -119,7 +112,7 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChange = (selected: { [key: string]: Array<SpiderModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
@@ -159,41 +152,43 @@
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
-      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== domain);
     }
   };
 
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => checkFlashbackDatabase({
-        infos: data,
-      }).then((checkResult) => {
-        const checkResultError = _.find(checkResult, item => !!item.message);
-        if (checkResultError) {
-          messageError(checkResultError.message);
-          return;
-        }
-        return createTicket({
-          ticket_type: 'TENDBCLUSTER_FLASHBACK',
-          remark: '',
-          details: {
-            infos: data,
-          },
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'spiderFlashback',
-            params: {
-              page: 'success',
+      .then((data) =>
+        checkFlashbackDatabase({
+          infos: data,
+        }).then((checkResult) => {
+          const checkResultError = _.find(checkResult, (item) => !!item.message);
+          if (checkResultError) {
+            messageError(checkResultError.message);
+            return;
+          }
+          return createTicket({
+            ticket_type: 'TENDBCLUSTER_FLASHBACK',
+            remark: '',
+            details: {
+              infos: data,
             },
-            query: {
-              ticketId: data.id,
-            },
+            bk_biz_id: currentBizId,
+          }).then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'spiderFlashback',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
           });
-        });
-      }))
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

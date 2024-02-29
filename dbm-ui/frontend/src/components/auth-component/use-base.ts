@@ -1,7 +1,4 @@
-import {
-  computed,
-  onMounted,
-} from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRequest } from 'vue-request';
 
 import { simpleCheckAllowed } from '@services/source/iam';
@@ -9,9 +6,9 @@ import { simpleCheckAllowed } from '@services/source/iam';
 import { permissionDialog } from '@utils';
 
 export interface Props {
-  permission?: string | boolean,
-  actionId: string,
-  resource?: string | number,
+  permission?: string | boolean;
+  actionId: string;
+  resource?: string | number;
 }
 
 const withBizActionList = [
@@ -106,9 +103,8 @@ export default function (props: Props) {
     });
   };
 
-
   onMounted(() => {
-  // 初始没有权限信息，需要主动鉴权一次
+    // 初始没有权限信息，需要主动鉴权一次
     if (props.permission === 'normal') {
       checkPermission();
     }

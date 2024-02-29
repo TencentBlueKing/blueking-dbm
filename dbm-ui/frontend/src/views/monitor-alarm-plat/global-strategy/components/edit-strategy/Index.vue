@@ -19,7 +19,10 @@
     @closed="handleClose">
     <template #header>
       <div class="header-main">
-        {{ t('编辑策略') }}【<span class="name">{{ data.name }}</span>】
+        {{ t('编辑策略') }}
+        【
+        <span class="name">{{ data.name }}</span>
+        】
         <BkTag theme="info">
           {{ t('平台配置') }}
         </BkTag>
@@ -134,8 +137,7 @@
         </BkButton>
       </BkPopConfirm>
 
-      <BkButton
-        @click="handleClose">
+      <BkButton @click="handleClose">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -149,7 +151,7 @@
   import { useRequest } from 'vue-request';
 
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
-  import { updatePolicy  } from '@services/monitor';
+  import { updatePolicy } from '@services/monitor';
 
   import { useBeforeClose } from '@hooks';
 
@@ -158,11 +160,11 @@
   import { messageSuccess } from '@utils';
 
   interface Props {
-    data: MonitorPolicyModel,
+    data: MonitorPolicyModel;
   }
 
   interface Emits {
-    (e: 'success'): void
+    (e: 'success'): void;
   }
 
   const props = defineProps<Props>();
@@ -170,7 +172,7 @@
   const isShow = defineModel<boolean>();
 
   function generateRule(data: MonitorPolicyModel, level: number) {
-    const arr = data.test_rules.filter(item => item.level === level);
+    const arr = data.test_rules.filter((item) => item.level === level);
     return arr.length > 0 ? arr[0] : undefined;
   }
 
@@ -223,13 +225,17 @@
     },
   });
 
-  watch(() => props.data, (data) => {
-    if (data) {
-      formModel.notifyRules = _.cloneDeep(data.notify_rules);
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      if (data) {
+        formModel.notifyRules = _.cloneDeep(data.notify_rules);
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClickConfirmRecoverDefault = () => {
     formModel.notifyRules = _.cloneDeep(props.data.notify_rules);
@@ -249,7 +255,7 @@
     const reqParams = {
       targets: props.data.targets,
       custom_conditions: props.data.custom_conditions,
-      test_rules: testRules.filter(item => item && item.config.length !== 0),
+      test_rules: testRules.filter((item) => item && item.config.length !== 0),
       notify_rules: formModel.notifyRules,
       notify_groups: props.data.notify_groups,
     };
@@ -258,84 +264,85 @@
 
   async function handleClose() {
     const result = await handleBeforeClose();
-    if (!result) return;
+    if (!result) {
+      return;
+    }
     window.changeConfirm = false;
     isShow.value = false;
   }
-
 </script>
 
 <style lang="less" scoped>
-.header-main {
-  display: flex;
-  width: 100%;
-  overflow: hidden;
-  align-items: center;
-
-  .name {
-    width: auto;
-    max-width: 720px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.edit-strategy-main-box {
-  display: flex;
-  width: 100%;
-  padding: 24px 40px;
-  flex-direction: column;
-
-  .item-title {
-    margin-bottom: 6px;
-    font-weight: normal;
-    color: #63656E;
-  }
-
-  .check-rules {
+  .header-main {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
+    width: 100%;
+    overflow: hidden;
+    align-items: center;
 
-    .title-icon {
-      display: flex;
-      width: 24px;
-      height: 24px;
-      font-size: 16px;
-      color: #3A84FF;
-      background-color: #F0F5FF;
-      border: none;
-      border-radius: 50%;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .icon-warn {
-      color: #FF9C01;
-      background-color: #FFF3E1;
-    }
-
-    .icon-dander {
-      color: #EA3636;
-      background-color: #FEE;
+    .name {
+      width: auto;
+      max-width: 720px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 
-  .notify-select {
-    :deep(.notify-tag-box) {
-      display: flex;
-      height: 22px;
-      padding: 0 6px;
-      background: #F0F1F5;
-      border-radius: 2px;
-      align-items: center;
+  .edit-strategy-main-box {
+    display: flex;
+    width: 100%;
+    padding: 24px 40px;
+    flex-direction: column;
 
-      .close-icon {
-        font-size: 14px;
-        color: #C4C6CC;
+    .item-title {
+      margin-bottom: 6px;
+      font-weight: normal;
+      color: #63656e;
+    }
+
+    .check-rules {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+
+      .title-icon {
+        display: flex;
+        width: 24px;
+        height: 24px;
+        font-size: 16px;
+        color: #3a84ff;
+        background-color: #f0f5ff;
+        border: none;
+        border-radius: 50%;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .icon-warn {
+        color: #ff9c01;
+        background-color: #fff3e1;
+      }
+
+      .icon-dander {
+        color: #ea3636;
+        background-color: #fee;
+      }
+    }
+
+    .notify-select {
+      :deep(.notify-tag-box) {
+        display: flex;
+        height: 22px;
+        padding: 0 6px;
+        background: #f0f1f5;
+        border-radius: 2px;
+        align-items: center;
+
+        .close-icon {
+          font-size: 14px;
+          color: #c4c6cc;
+        }
       }
     }
   }
-}
 </style>

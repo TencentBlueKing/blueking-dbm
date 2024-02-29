@@ -13,9 +13,7 @@
 
 <template>
   <div class="spec-cpu spec-form-item mb-0">
-    <div class="spec-form-item__label">
-      CPU
-    </div>
+    <div class="spec-form-item__label">CPU</div>
     <div class="spec-form-item__content">
       <BkFormItem
         property="cpu.min"
@@ -23,7 +21,7 @@
         <span
           v-bk-tooltips="{
             content: $t('不支持修改'),
-            disabled: !isEdit
+            disabled: !isEdit,
           }"
           class="inline-block">
           <BkInput
@@ -32,7 +30,7 @@
             :max="256"
             :min="1"
             :show-control="false"
-            style="width: 80px;"
+            style="width: 80px"
             type="number"
             @change="handleLimitChange('min')" />
         </span>
@@ -44,7 +42,7 @@
         <span
           v-bk-tooltips="{
             content: $t('不支持修改'),
-            disabled: !isEdit
+            disabled: !isEdit,
           }"
           class="inline-block">
           <BkInput
@@ -53,7 +51,7 @@
             :max="256"
             :min="1"
             :show-control="false"
-            style="width: 80px;"
+            style="width: 80px"
             type="number"
             @change="handleLimitChange('max')" />
         </span>
@@ -65,12 +63,12 @@
 
 <script setup lang="ts">
   interface ModelValue {
-    max: number | string,
-    min: number | string,
+    max: number | string;
+    min: number | string;
   }
 
   interface Props {
-    isEdit: boolean
+    isEdit: boolean;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -82,7 +80,9 @@
     const minValue = Number(modelValue.value.min);
     const maxValue = Number(modelValue.value.max);
 
-    if (!minValue || !maxValue) return;
+    if (!minValue || !maxValue) {
+      return;
+    }
 
     if (type === 'min' && minValue > maxValue) {
       modelValue.value.min = maxValue;
@@ -96,7 +96,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "./specFormItem.less";
+  @import './specFormItem.less';
 
   .spec-cpu {
     &::after {

@@ -18,7 +18,7 @@
       :key="value"
       class="tab-item"
       :class="{
-        active: modelValue === value
+        active: modelValue === value,
       }"
       @click="handleClick(value)">
       {{ textMap[value] }}
@@ -31,7 +31,7 @@
   import { textMap } from '../common/utils';
 
   interface Props {
-    panelList: Array<PanelTypes>
+    panelList: Array<PanelTypes>;
   }
 
   defineProps<Props>();

@@ -19,7 +19,7 @@
     @after-show="isShow = true">
     <div
       class="locale-info"
-      :class="{ 'active': isShow }">
+      :class="{ active: isShow }">
       <DbIcon :type="$i18n.locale === 'en' ? 'en' : 'cn'" />
     </div>
     <template #content>
@@ -27,7 +27,7 @@
         <div
           class="item"
           :class="{
-            'active': $i18n.locale ==='en'
+            active: $i18n.locale === 'en',
           }"
           @click="handleSwitchLocale('en')">
           <DbIcon
@@ -37,7 +37,7 @@
         </div>
         <div
           class="item"
-          :class="{'active': $i18n.locale === 'zh-cn'}"
+          :class="{ active: $i18n.locale === 'zh-cn' }"
           @click="handleSwitchLocale('zh-cn')">
           <DbIcon
             class="mr-4"
@@ -60,10 +60,7 @@
   const isShow = ref(false);
 
   const handleSwitchLocale = (locale: string) => {
-    const {
-      BK_COMPONENT_API_URL,
-      BK_DOMAIN,
-    } = systemEnvironStore.urls;
+    const { BK_COMPONENT_API_URL, BK_DOMAIN } = systemEnvironStore.urls;
     const api = `${BK_COMPONENT_API_URL}/api/c/compapi/v2/usermanage/fe_update_user_language/`;
 
     const scriptId = 'jsonp-script';
@@ -97,7 +94,7 @@
     color: #979ba5;
     cursor: pointer;
     border-radius: 50%;
-    transition: background .15s;
+    transition: background 0.15s;
     align-items: center;
     justify-content: center;
 
@@ -110,7 +107,7 @@
 </style>
 
 <style lang="less">
-  .bk-popover[data-theme~="local-switch-menu-theme"]{
+  .bk-popover[data-theme~='local-switch-menu-theme'] {
     padding-right: 0 !important;
     padding-left: 0 !important;
 

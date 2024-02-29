@@ -25,7 +25,7 @@
       <span
         v-bk-tooltips="{
           content: t('请选择xx', [t('规格')]),
-          disabled: hasSelected
+          disabled: hasSelected,
         }">
         <BkButton
           class="w-88 mr-8"
@@ -37,7 +37,7 @@
       <span
         v-bk-tooltips="{
           content: t('请选择xx', [t('规格')]),
-          disabled: hasSelected
+          disabled: hasSelected,
         }"
         class="delete-button">
         <BkButton
@@ -51,7 +51,7 @@
         v-model="searchKey"
         clearable
         :placeholder="t('请输入xx', [t('规格名称')])"
-        style="width: 500px;"
+        style="width: 500px"
         type="search"
         @enter="fetchData()" />
     </div>
@@ -554,13 +554,13 @@
 </style>
 
 <style lange="less">
-.resource-machine-info-tips {
-  min-width: 280px;
-  padding: 9px 0 0;
-  color: #63656e;
+  .resource-machine-info-tips {
+    min-width: 280px;
+    padding: 9px 0 0;
+    color: #63656e;
 
-  .resource-machine-info__values {
-    margin: 6px 0;
+    .resource-machine-info__values {
+      margin: 6px 0;
+    }
   }
-}
 </style>

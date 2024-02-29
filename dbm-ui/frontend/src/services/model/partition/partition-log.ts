@@ -53,17 +53,11 @@ export default class PartitionLog {
   }
 
   get isFinished() {
-    return [
-      PartitionLog.STATUS_FINISHED,
-      PartitionLog.STATUS_SUCCEEDED,
-    ].includes(this.status);
+    return [PartitionLog.STATUS_FINISHED, PartitionLog.STATUS_SUCCEEDED].includes(this.status);
   }
 
   get isRunning() {
-    return [
-      PartitionLog.STATUS_READY,
-      PartitionLog.STATUS_RUNNING,
-    ].includes(this.status);
+    return [PartitionLog.STATUS_READY, PartitionLog.STATUS_RUNNING].includes(this.status);
   }
 
   get isFailed() {

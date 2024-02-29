@@ -16,7 +16,7 @@
     ref="itemRef"
     v-bk-tooltips="{
       disabled: !isShowToolTip,
-      content: list.join(',')
+      content: list.join(','),
     }"
     class="monitor-strategy-content-target">
     {{ titleText }}{{ props.title !== 'platform' ? ':' : '' }} {{ list.join(',') }}
@@ -29,13 +29,13 @@
   import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
-    title?: string,
-    list?: string[],
+    title?: string;
+    list?: string[];
   }
 
   const props = withDefaults(defineProps<Props>(), {
     title: '',
-    list: () => ([]),
+    list: () => [],
   });
 
   function checkOveflow() {
@@ -60,15 +60,14 @@
   const titleText = computed(() => (titleMap[props.title] === undefined ? props.title : titleMap[props.title]));
 
   useResizeObserver(itemRef, checkOveflow);
-
 </script>
 <style lang="less" scoped>
-.monitor-strategy-content-target {
-  width: 100%;
-  height: 20px;
-  overflow: hidden;
-  line-height: 20px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+  .monitor-strategy-content-target {
+    width: 100%;
+    height: 20px;
+    overflow: hidden;
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 </style>

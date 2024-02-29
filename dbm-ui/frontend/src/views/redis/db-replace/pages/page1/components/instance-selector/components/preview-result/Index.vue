@@ -96,7 +96,7 @@
   const copy = useCopy();
 
   const keys = computed(() => Object.keys(props.lastValues) as Keys[]);
-  const isEmpty = computed(() => !keys.value.some(key => props.lastValues[key].length > 0));
+  const isEmpty = computed(() => !keys.value.some((key) => props.lastValues[key].length > 0));
 
   const handleClear = () => {
     emits('change', {
@@ -126,89 +126,89 @@
     for (const key of keys.value) {
       instances.push(...props.lastValues[key]);
     }
-    copy(instances.map(item => item.ip).join('\n'));
+    copy(instances.map((item) => item.ip).join('\n'));
   };
 </script>
 <style lang="less">
-.instance-selector-preview-result {
-  display: flex;
-  height: 100%;
-  max-height: 625px;
-  padding: 12px 24px;
-  overflow: hidden;
-  font-size: @font-size-mini;
-  background-color: #f5f6fa;
-  flex-direction: column;
-
-  .header {
+  .instance-selector-preview-result {
     display: flex;
-    padding-bottom: 16px;
-    align-items: center;
-
-    > span {
-      flex: 1;
-      font-size: @font-size-normal;
-      color: @title-color;
-    }
-
-    .result__dropdown {
-      font-size: 0;
-      line-height: 20px;
-    }
-
-    .result__trigger {
-      display: block;
-      font-size: 18px;
-      color: @gray-color;
-      cursor: pointer;
-
-      &:hover {
-        background-color: @bg-disable;
-        border-radius: 2px;
-      }
-    }
-  }
-
-  .result-wrapper {
-    flex: 1;
-    display: flex;
+    height: 100%;
+    max-height: 625px;
+    padding: 12px 24px;
+    overflow: hidden;
+    font-size: @font-size-mini;
+    background-color: #f5f6fa;
     flex-direction: column;
-    overflow-y: auto;
 
-    .result-item {
+    .header {
       display: flex;
-      padding: 0 12px;
-      margin-bottom: 2px;
-      line-height: 32px;
-      background-color: @bg-white;
-      border-radius: 2px;
-      justify-content: space-between;
+      padding-bottom: 16px;
       align-items: center;
 
-      .result-item-remove {
-        display: none;
-        font-size: @font-size-large;
-        font-weight: bold;
+      > span {
+        flex: 1;
+        font-size: @font-size-normal;
+        color: @title-color;
+      }
+
+      .result__dropdown {
+        font-size: 0;
+        line-height: 20px;
+      }
+
+      .result__trigger {
+        display: block;
+        font-size: 18px;
         color: @gray-color;
         cursor: pointer;
 
         &:hover {
-          color: @default-color;
+          background-color: @bg-disable;
+          border-radius: 2px;
         }
       }
+    }
 
-      &:hover {
+    .result-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+
+      .result-item {
+        display: flex;
+        padding: 0 12px;
+        margin-bottom: 2px;
+        line-height: 32px;
+        background-color: @bg-white;
+        border-radius: 2px;
+        justify-content: space-between;
+        align-items: center;
+
         .result-item-remove {
-          display: block;
+          display: none;
+          font-size: @font-size-large;
+          font-weight: bold;
+          color: @gray-color;
+          cursor: pointer;
+
+          &:hover {
+            color: @default-color;
+          }
+        }
+
+        &:hover {
+          .result-item-remove {
+            display: block;
+          }
         }
       }
     }
   }
-}
 
-.result-item-role {
-  margin-left: 8px;
-  font-size: 12px;
-  color: #C4C6CC;
-}
+  .result-item-role {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #c4c6cc;
+  }
 </style>

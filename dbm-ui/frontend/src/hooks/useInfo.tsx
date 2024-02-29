@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { Button, Dialog } from 'bkui-vue';
 import _ from 'lodash';
 import { type ComponentInternalInstance, defineComponent, isVNode, type PropType } from 'vue';
@@ -17,19 +17,19 @@ import { type ComponentInternalInstance, defineComponent, isVNode, type PropType
 import { t } from '@locales/index';
 
 export interface InfoOptions {
-  width?: number | string,
-  extCls?: string
-  confirmTxt?: string
-  confirmTheme?: InstanceType<typeof Button>['$props']['theme']
-  cancelTxt?: string
-  title?: ComponentInternalInstance | (() => JSX.Element) | string
-  footer?: null | (() => JSX.Element)
-  content?: ComponentInternalInstance | (() => JSX.Element) | string
-  onConfirm?: () => boolean | Promise<boolean>
-  onCancel?: () => void
+  width?: number | string;
+  extCls?: string;
+  confirmTxt?: string;
+  confirmTheme?: InstanceType<typeof Button>['$props']['theme'];
+  cancelTxt?: string;
+  title?: ComponentInternalInstance | (() => JSX.Element) | string;
+  footer?: null | (() => JSX.Element);
+  content?: ComponentInternalInstance | (() => JSX.Element) | string;
+  onConfirm?: () => boolean | Promise<boolean>;
+  onCancel?: () => void;
   props?: {
-    [propName: string]: any
-  }
+    [propName: string]: any;
+  };
 }
 // eslint-disable-next-line vue/one-component-per-file
 const info = defineComponent({
@@ -92,7 +92,13 @@ const info = defineComponent({
       }
       const theme = state.options.confirmTheme || 'primary';
       return [
-        <Button theme={theme} class="mr-8" loading={state.loading} onClick={handler.onConfirm}>{state.options.confirmTxt || t('确定')}</Button>,
+        <Button
+          theme={theme}
+          class='mr-8'
+          loading={state.loading}
+          onClick={handler.onConfirm}>
+          {state.options.confirmTxt || t('确定')}
+        </Button>,
         <Button onClick={handler.onCancel}>{state.options.cancelTxt || t('取消')}</Button>,
       ];
     });
@@ -106,26 +112,22 @@ const info = defineComponent({
     return () => (
       <Dialog
         v-model:is-show={state.visible}
-        theme="primary"
-        header-align="center"
-        dialog-type="show"
+        theme='primary'
+        header-align='center'
+        dialog-type='show'
         class={['db-info-dialog', state.options.extCls ?? '']}
-        width={ state.options.width || 400}
-        height="auto"
+        width={state.options.width || 400}
+        height='auto'
         quick-close={false}
         esc-close={false}
         onClosed={handler.onCancel}
         {...state.options.props}>
         {{
-          header: () => (title.value),
+          header: () => title.value,
           default: () => (
-            <div class="db-info-dialog__main">
-              <div class="db-info-dialog__content">
-                {content.value}
-              </div>
-              <div class="db-info-dialog__footer">
-                {footer.value}
-              </div>
+            <div class='db-info-dialog__main'>
+              <div class='db-info-dialog__content'>{content.value}</div>
+              <div class='db-info-dialog__footer'>{footer.value}</div>
             </div>
           ),
         }}

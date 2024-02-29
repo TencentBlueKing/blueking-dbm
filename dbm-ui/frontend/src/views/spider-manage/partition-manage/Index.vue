@@ -40,13 +40,13 @@
       @setting-change="handleSettingChange" />
     <DryRun
       v-model="isShowDryRun"
-      :cluster-id="operationData?.cluster_id ||operationDryRunDataClusterId"
+      :cluster-id="operationData?.cluster_id || operationDryRunDataClusterId"
       :operation-dry-run-data="operationDryRunData"
       :partition-data="operationData" />
     <DbSideslider
       v-model:is-show="isShowOperation"
       :confirm-text="operationData && operationData.id ? t('提交') : t('保存并执行')"
-      :title="operationData ? operationData.id ? t('编辑分区策略') :t('克隆分区策略') : t('新建分区策略')"
+      :title="operationData ? (operationData.id ? t('编辑分区策略') : t('克隆分区策略')) : t('新建分区策略')"
       :width="1000">
       <PartitionOperation
         :data="operationData"
@@ -453,11 +453,11 @@
 </script>
 <style lang="less">
   .spider-manage-paritition-page {
-    .header-action{
+    .header-action {
       display: flex;
     }
 
-    .more-action{
+    .more-action {
       display: flex;
       width: 32px;
       height: 32px;
@@ -467,7 +467,7 @@
       align-items: center;
       justify-content: center;
 
-      &:hover{
+      &:hover {
         background: #dcdee5;
       }
     }

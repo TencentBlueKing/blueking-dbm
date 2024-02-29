@@ -56,8 +56,7 @@
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
-          <BkRadioGroup
-            v-model="formdata.details.ip_source">
+          <BkRadioGroup v-model="formdata.details.ip_source">
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -81,7 +80,7 @@
                 :cloud-info="cloudInfo"
                 :data="formdata.details.nodes.influxdb"
                 required
-                style="display: inline-block;"
+                style="display: inline-block"
                 @change="handleIpChange">
                 <template #desc>
                   {{ t('主机数数量即为实例数量_建议规格至少为2核4G') }}
@@ -105,7 +104,7 @@
                   :cloud-id="formdata.details.bk_cloud_id"
                   cluster-type="influxdb"
                   machine-type="influxdb"
-                  style="width: 314px;" />
+                  style="width: 314px" />
               </BkFormItem>
               <BkFormItem
                 :label="t('数量')"
@@ -127,7 +126,7 @@
             v-model="formdata.details.port"
             clearable
             :min="1"
-            style="width: 185px;"
+            style="width: 185px"
             type="number" />
         </BkFormItem>
         <BkFormItem :label="t('备注')">
@@ -135,7 +134,7 @@
             v-model="formdata.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
-            style="width: 655px;"
+            style="width: 655px"
             type="textarea" />
         </BkFormItem>
       </DbCard>
@@ -144,7 +143,7 @@
       <div>
         <BkButton
           :loading="baseState.isSubmitting"
-          style="width: 88px;"
+          style="width: 88px"
           theme="primary"
           @click="handleSubmit">
           {{ t('提交') }}
@@ -168,10 +167,7 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { checkHost } from '@services/source/ipchooser';
   import type { BizItem } from '@services/types';
@@ -201,13 +197,7 @@
   });
   const groupName = ref('');
 
-  const {
-    baseState,
-    bizState,
-    handleCreateAppAbbr,
-    handleCreateTicket,
-    handleCancel,
-  } = useApplyBase();
+  const { baseState, bizState, handleCreateAppAbbr, handleCreateTicket, handleCancel } = useApplyBase();
 
   const formdata = reactive(getInitFormdata());
   const formRef = ref();
@@ -247,14 +237,14 @@
   /**
    * 变更所属管控区域
    */
-  function handleChangeCloud(info: {id: number | string, name: string}) {
+  function handleChangeCloud(info: { id: number | string; name: string }) {
     cloudInfo.id = info.id;
     cloudInfo.name = info.name;
 
     formdata.details.nodes.influxdb = [];
   }
 
-  function handleChangeGroup({ name }: {name: string}) {
+  function handleChangeGroup({ name }: { name: string }) {
     groupName.value = name;
   }
 
@@ -264,58 +254,57 @@
   };
 
   const handleSubmit = () => {
-    formRef.value.validate()
-      .then(() => {
-        baseState.isSubmitting = true;
+    formRef.value.validate().then(() => {
+      baseState.isSubmitting = true;
 
-        const getDetails = () => {
-          const details: Record<string, any> = {
-            ...markRaw(formdata.details),
-            group_name: groupName.value,
-          };
-          const { cityName } = regionItemRef.value.getValue();
+      const getDetails = () => {
+        const details: Record<string, any> = {
+          ...markRaw(formdata.details),
+          group_name: groupName.value,
+        };
+        const { cityName } = regionItemRef.value.getValue();
 
-          if (formdata.details.ip_source === 'resource_pool') {
-            delete details.nodes;
-            return {
-              ...details,
-              resource_spec: {
-                influxdb: {
-                  ...details.resource_spec.influxdb,
-                  ...specRef.value.getData(),
-                  count: Number(details.resource_spec.influxdb.count),
-                  affinity: details.disaster_tolerance_level,
-                  location_spec: {
-                    city: cityName,
-                    sub_zone_ids: [],
-                  },
-                },
-              },
-            };
-          }
-
-          delete details.resource_spec;
+        if (formdata.details.ip_source === 'resource_pool') {
+          delete details.nodes;
           return {
             ...details,
-            nodes: {
-              influxdb: formdata.details.nodes.influxdb.map(item => ({
-                bk_host_id: item.host_id,
-                ip: item.ip,
-                bk_cloud_id: item.cloud_area.id,
-                bk_biz_id: item.biz.id,
-              })),
+            resource_spec: {
+              influxdb: {
+                ...details.resource_spec.influxdb,
+                ...specRef.value.getData(),
+                count: Number(details.resource_spec.influxdb.count),
+                affinity: details.disaster_tolerance_level,
+                location_spec: {
+                  city: cityName,
+                  sub_zone_ids: [],
+                },
+              },
             },
           };
-        };
+        }
 
-        const params = {
-          ...formdata,
-          details: getDetails(),
+        delete details.resource_spec;
+        return {
+          ...details,
+          nodes: {
+            influxdb: formdata.details.nodes.influxdb.map((item) => ({
+              bk_host_id: item.host_id,
+              ip: item.ip,
+              bk_cloud_id: item.cloud_area.id,
+              bk_biz_id: item.biz.id,
+            })),
+          },
         };
+      };
 
-        // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
-        bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
-      });
+      const params = {
+        ...formdata,
+        details: getDetails(),
+      };
+
+      // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
+      bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+    });
   };
 
   /**
@@ -350,58 +339,58 @@
 </script>
 
 <style lang="less" scoped>
-.apply-influxdb {
-  display: block;
+  .apply-influxdb {
+    display: block;
 
-  .db-card {
-    & ~ .db-card {
-      margin-top: 20px;
+    .db-card {
+      & ~ .db-card {
+        margin-top: 20px;
+      }
     }
-  }
 
-  :deep(.bk-radio-group) {
-    width: 435px;
+    :deep(.bk-radio-group) {
+      width: 435px;
 
-    .bk-radio-button {
-      flex: auto;
+      .bk-radio-button {
+        flex: auto;
+      }
     }
-  }
 
-  :deep(.item-input) {
-    width: 435px;
-  }
+    :deep(.item-input) {
+      width: 435px;
+    }
 
-  .service-item {
-    :deep(.bk-form-label) {
-      &::after {
-        content: "";
+    .service-item {
+      :deep(.bk-form-label) {
+        &::after {
+          content: '';
+        }
+      }
+    }
+
+    .input-desc {
+      padding-left: 12px;
+      font-size: 12px;
+      line-height: 20px;
+      color: #63656e;
+    }
+
+    .resource-pool-item {
+      width: 655px;
+      padding: 24px 0;
+      background-color: #f5f7fa;
+      border-radius: 2px;
+
+      :deep(.bk-form-item) {
+        .bk-form-label {
+          width: 120px !important;
+        }
+
+        .bk-form-content {
+          width: 314px;
+          margin-left: 120px !important;
+        }
       }
     }
   }
-
-  .input-desc {
-    padding-left: 12px;
-    font-size: 12px;
-    line-height: 20px;
-    color: #63656e;
-  }
-
-  .resource-pool-item {
-    width: 655px;
-    padding: 24px 0;
-    background-color: #F5F7FA;
-    border-radius: 2px;
-
-    :deep(.bk-form-item) {
-      .bk-form-label {
-        width: 120px !important;
-      }
-
-      .bk-form-content {
-        width: 314px;
-        margin-left: 120px !important;
-      }
-    }
-  }
-}
 </style>

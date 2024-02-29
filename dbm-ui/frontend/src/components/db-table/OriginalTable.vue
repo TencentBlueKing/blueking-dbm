@@ -33,12 +33,12 @@
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   interface Emits {
-    (e: 'refresh'): void,
-    (e: 'clearSearch'): void
+    (e: 'refresh'): void;
+    (e: 'clearSearch'): void;
   }
   interface Props {
-    isAnomalies?: boolean,
-    isSearching?: boolean,
+    isAnomalies?: boolean;
+    isSearching?: boolean;
   }
 
   withDefaults(defineProps<Props>(), {

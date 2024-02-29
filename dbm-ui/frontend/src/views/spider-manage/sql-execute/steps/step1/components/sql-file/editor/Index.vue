@@ -35,7 +35,7 @@
       :border="false"
       class="resize-wrapper"
       :class="{
-        'resize-disabled': isMessageListFolded
+        'resize-disabled': isMessageListFolded,
       }"
       :disabled="isMessageListFolded"
       :initial-divide="resizeLayoutInitialDivide"
@@ -45,7 +45,7 @@
       <template #main>
         <div
           ref="editorRef"
-          style="height: 100%;" />
+          style="height: 100%" />
       </template>
       <template #aside>
         <RenderMessageList
@@ -59,27 +59,20 @@
 <script setup lang="ts">
   import * as monaco from 'monaco-editor';
   import screenfull from 'screenfull';
-  import {
-    onBeforeUnmount,
-    onMounted,
-    ref,
-    watch,
-  } from 'vue';
+  import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-  import RenderMessageList, {
-    type IMessageList,
-  } from './MessageList.vue';
+  import RenderMessageList, { type IMessageList } from './MessageList.vue';
 
   interface Props {
-    modelValue: string,
-    title: string,
-    readonly?: boolean,
-    messageList: IMessageList
+    modelValue: string;
+    title: string;
+    readonly?: boolean;
+    messageList: IMessageList;
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: string): void
-    (e: 'change', value: string): void
+    (e: 'update:modelValue', value: string): void;
+    (e: 'change', value: string): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -97,12 +90,15 @@
 
   let editor: monaco.editor.IStandaloneCodeEditor;
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue !== editor.getValue()) {
-      editor.setValue(props.modelValue);
-      isMessageListFolded.value = true;
-    }
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue !== editor.getValue()) {
+        editor.setValue(props.modelValue);
+        isMessageListFolded.value = true;
+      }
+    },
+  );
 
   watch(isMessageListFolded, () => {
     if (isMessageListFolded.value) {
@@ -173,7 +169,6 @@
     screenfull.off('change', handleToggleScreenfull);
     window.removeEventListener('resize', handleReize);
   });
-
 </script>
 <style lang="less" scoped>
   .sql-execute-editor {

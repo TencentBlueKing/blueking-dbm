@@ -21,9 +21,7 @@
       <span
         class="pr-4"
         :style="{ color: highlightIps.includes(inst.ip) ? 'rgb(255 130 4)' : '#63656e' }">
-        <slot :data="inst">
-          {{ inst.ip }}:{{ inst.port }}
-        </slot>
+        <slot :data="inst"> {{ inst.ip }}:{{ inst.port }} </slot>
       </span>
       <BkTag v-if="inst.status === 'unavailable'">
         {{ $t('不可用') }}
@@ -33,8 +31,7 @@
           ext-cls="copy-popover"
           placement="top"
           theme="light">
-          <DbIcon
-            type="copy" />
+          <DbIcon type="copy" />
           <template #content>
             <BkButton
               class="copy-trigger"
@@ -109,10 +106,10 @@
 </template>
 <script lang="tsx">
   interface InstanceListData {
-    instance_address: string,
-    role: string,
-    status: string,
-    create_at: string
+    instance_address: string;
+    role: string;
+    status: string;
+    create_at: string;
   }
 </script>
 <script setup lang="tsx" generic="T extends InstanceListData">
@@ -279,77 +276,77 @@
 </script>
 
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.cluster-instances {
-  padding: 8px 0;
+  .cluster-instances {
+    padding: 8px 0;
 
-  .db-icon-copy {
-    display: none;
-    margin-top: 1px;
-    margin-left: 4px;
-    color: @primary-color;
-    vertical-align: text-top;
-    cursor: pointer;
-  }
+    .db-icon-copy {
+      display: none;
+      margin-top: 1px;
+      margin-left: 4px;
+      color: @primary-color;
+      vertical-align: text-top;
+      cursor: pointer;
+    }
 
-  .is-unavailable {
-    color: #c4c6cc;
+    .is-unavailable {
+      color: #c4c6cc;
 
-    .bk-tag {
-      height: 20px;
-      padding: 0 4px;
-      line-height: 20px;
+      .bk-tag {
+        height: 20px;
+        padding: 0 4px;
+        line-height: 20px;
+      }
+    }
+
+    &__more {
+      display: inline-block;
+      margin-top: 2px;
+    }
+
+    &-dialog {
+      width: 80%;
+      max-width: 1600px;
+      min-width: 1200px;
+    }
+
+    &-content {
+      &__operations {
+        .flex-center();
+      }
     }
   }
 
-  &__more {
+  .copy-trigger {
     display: inline-block;
-    margin-top: 2px;
-  }
+    padding: 0 4px;
+    font-size: 12px;
+    line-height: 24px;
+    vertical-align: middle;
+    border-radius: 2px;
 
-  &-dialog {
-    width: 80%;
-    max-width: 1600px;
-    min-width: 1200px;
-  }
-
-  &-content {
-    &__operations {
-      .flex-center();
+    &:hover {
+      background-color: #f0f1f5;
     }
   }
-}
 
-.copy-trigger {
-  display: inline-block;
-  padding: 0 4px;
-  font-size: 12px;
-  line-height: 24px;
-  vertical-align: middle;
-  border-radius: 2px;
-
-  &:hover {
-    background-color: #F0F1F5;
+  .copy-trigger-split {
+    display: inline-block;
+    width: 1px;
+    height: 18px;
+    margin: 0 4px;
+    vertical-align: middle;
+    background-color: #f0f1f5;
   }
-}
-
-.copy-trigger-split {
-  display: inline-block;
-  width: 1px;
-  height: 18px;
-  margin: 0 4px;
-  vertical-align: middle;
-  background-color: #F0F1F5;
-}
 </style>
 
 <style lang="less">
-.copy-popover {
-  padding: 4px 6px !important;
+  .copy-popover {
+    padding: 4px 6px !important;
 
-  .bk-pop2-arrow {
-    display: none;
+    .bk-pop2-arrow {
+      display: none;
+    }
   }
-}
 </style>

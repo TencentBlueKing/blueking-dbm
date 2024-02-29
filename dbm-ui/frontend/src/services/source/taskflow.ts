@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import TaskFlowModel from '@services/model/taskflow/taskflow';
 
@@ -40,37 +40,33 @@ export enum FlowTypes {
  * 查询任务列表参数
  */
 interface GetTaskflowParams {
-  bk_biz_id: number,
-  limit: number,
-  offset: number
-  root_id?: string,
-  uid?: number,
-  status?: string,
-  status__in?: string,
-  ticket_type?: string,
-  ticket_type__in?: string,
-  created_at__gte?: string,
-  created_at__lte?: string,
+  bk_biz_id: number;
+  limit: number;
+  offset: number;
+  root_id?: string;
+  uid?: number;
+  status?: string;
+  status__in?: string;
+  ticket_type?: string;
+  ticket_type__in?: string;
+  created_at__gte?: string;
+  created_at__lte?: string;
 }
 
 /**
  * 查询任务列表
  */
 export function getTaskflow(params: GetTaskflowParams) {
-  return http.get<ListBase<TaskFlowModel[]>>(`${path}/`, params)
-    .then(res => ({
-      ...res,
-      results: res.results.map(item => new TaskFlowModel(item)),
-    }));
+  return http.get<ListBase<TaskFlowModel[]>>(`${path}/`, params).then((res) => ({
+    ...res,
+    results: res.results.map((item) => new TaskFlowModel(item)),
+  }));
 }
 
 /**
  * 指定目录下载（返回下载链接）
  */
-export function getRedisFileUrls(params: {
-  root_id: string,
-  paths: string[]
-}) {
+export function getRedisFileUrls(params: { root_id: string; paths: string[] }) {
   return http.post<Record<string, string>>(`${path}/redis/download_dirs/`, params);
 }
 
@@ -78,21 +74,21 @@ export function getRedisFileUrls(params: {
  * 结果文件列表信息
  */
 interface KeyFileItem {
-  name: string,
-  size: number,
-  size_display: string,
-  domain: string,
-  created_time: string,
-  cluster_alias: string,
-  path: string,
-  cluster_id: number,
+  name: string;
+  size: number;
+  size_display: string;
+  domain: string;
+  created_time: string;
+  cluster_alias: string;
+  path: string;
+  cluster_id: number;
   files: {
-    size: string,
-    name: string,
-    md5: string,
-    full_path: string,
-    created_time: string,
-  }[]
+    size: string;
+    name: string;
+    md5: string;
+    full_path: string;
+    created_time: string;
+  }[];
 }
 
 /**
@@ -106,45 +102,45 @@ export function getKeyFiles(params: { rootId: string }) {
  * 任务流程节点数据
  */
 interface FlowItem {
-  id: string,
-  name: string | null,
-  incoming: string | string[],
-  outgoing: string | string[],
-  type: keyof typeof FlowTypes,
-  error_ignorable?: boolean,
-  optional?: boolean,
-  retryable?: boolean,
-  skippable?: boolean,
-  status?: 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED' | 'SKIPPED',
-  timeout?: number,
-  started_at?: number,
-  created_at?: number,
-  updated_at?: number,
+  id: string;
+  name: string | null;
+  incoming: string | string[];
+  outgoing: string | string[];
+  type: keyof typeof FlowTypes;
+  error_ignorable?: boolean;
+  optional?: boolean;
+  retryable?: boolean;
+  skippable?: boolean;
+  status?: 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED' | 'SKIPPED';
+  timeout?: number;
+  started_at?: number;
+  created_at?: number;
+  updated_at?: number;
   component?: {
-    code: string
-  },
-  pipeline?: FlowsData,
+    code: string;
+  };
+  pipeline?: FlowsData;
 }
 
 /**
  * 任务流程数据
  */
 interface FlowsData {
-  id: string,
-  data: any,
-  end_event: FlowItem,
-  start_event: FlowItem,
+  id: string;
+  data: any;
+  end_event: FlowItem;
+  start_event: FlowItem;
   flows: {
     [key: string]: {
-      id: string,
-      source: string,
-      target: string,
-      is_default: boolean
-    }
-  },
-  gateways: { [key: string]: FlowItem },
-  activities: { [key: string]: FlowItem },
-  flow_info: TaskFlowModel,
+      id: string;
+      source: string;
+      target: string;
+      is_default: boolean;
+    };
+  };
+  gateways: { [key: string]: FlowItem };
+  activities: { [key: string]: FlowItem };
+  flow_info: TaskFlowModel;
 }
 
 /**
@@ -157,39 +153,33 @@ export function getTaskflowDetails(params: { rootId: string }) {
 /**
  * 节点版本列表
  */
-export function getRetryNodeHistories(params: {
-  root_id: string,
-  node_id: string
-}) {
-  return http.get<{
-    started_time: string,
-    version: string,
-    cost_time: number
-  }[]>(`${path}/${params.root_id}/node_histories/`, params);
+export function getRetryNodeHistories(params: { root_id: string; node_id: string }) {
+  return http.get<
+    {
+      started_time: string;
+      version: string;
+      cost_time: number;
+    }[]
+  >(`${path}/${params.root_id}/node_histories/`, params);
 }
 
 /**
  * 节点日志
  */
-export function getNodeLog(params: {
-  root_id: string,
-  node_id: string,
-  version_id: string
-}) {
-  return http.get<{
-    timestamp: number,
-    message: string,
-    levelname: string,
-  }[]>(`${path}/${params.root_id}/node_log/`, params);
+export function getNodeLog(params: { root_id: string; node_id: string; version_id: string }) {
+  return http.get<
+    {
+      timestamp: number;
+      message: string;
+      levelname: string;
+    }[]
+  >(`${path}/${params.root_id}/node_log/`, params);
 }
 
 /**
  * 重试节点
  */
-export function retryTaskflowNode(params: {
-  root_id: string,
-  node_id: string
-}) {
+export function retryTaskflowNode(params: { root_id: string; node_id: string }) {
   return http.post<{ node_id: string }>(`${path}/${params.root_id}/retry_node/`, params);
 }
 
@@ -203,19 +193,13 @@ export function revokePipeline(params: { rootId: string }) {
 /**
  * 跳过节点
  */
-export function skipTaskflowNode(params: {
-  root_id: string,
-  node_id: string
-}) {
+export function skipTaskflowNode(params: { root_id: string; node_id: string }) {
   return http.post<{ node_id: string }>(`${path}/${params.root_id}/skip_node/`, params);
 }
 
 /**
  * 强制失败节点
  */
-export function forceFailflowNode(params: {
-  root_id: string,
-  node_id: string
-}) {
+export function forceFailflowNode(params: { root_id: string; node_id: string }) {
   return http.post<{ node_id: string }>(`${path}/${params.root_id}/force_fail_node/`, params);
 }

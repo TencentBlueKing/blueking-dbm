@@ -55,9 +55,7 @@
               <p
                 v-overflow-tips
                 class="text-overflow excel-authorize__file-status"
-                :class="[
-                  { 'excel-authorize__file-status--fail': file.status === 'fail' }
-                ]">
+                :class="[{ 'excel-authorize__file-status--fail': file.status === 'fail' }]">
                 <i
                   v-if="file.status === 'success'"
                   class="db-icon-check-line" />
@@ -245,46 +243,46 @@
 </script>
 
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.excel-authorize {
-  padding-bottom: 40px;
-  font-size: @font-size-mini;
-
-  &__tips {
-    padding-top: 4px;
-  }
-
-  &__file {
-    overflow: hidden;
+  .excel-authorize {
+    padding-bottom: 40px;
     font-size: @font-size-mini;
-    flex: 1;
-    .flex-center();
 
-    .db-icon-excel {
-      margin-right: 16px;
-      font-size: 26px;
-      color: @success-color;
+    &__tips {
+      padding-top: 4px;
     }
 
-    &-text {
-      flex: 1;
+    &__file {
       overflow: hidden;
-    }
+      font-size: @font-size-mini;
+      flex: 1;
+      .flex-center();
 
-    &-status {
-      color: @success-color;
+      .db-icon-excel {
+        margin-right: 16px;
+        font-size: 26px;
+        color: @success-color;
+      }
 
-      &--fail {
-        color: @danger-color;
+      &-text {
+        flex: 1;
+        overflow: hidden;
+      }
+
+      &-status {
+        color: @success-color;
+
+        &--fail {
+          color: @danger-color;
+        }
+      }
+
+      &-icon {
+        margin-left: 12px;
+        font-size: @font-size-normal;
+        cursor: pointer;
       }
     }
-
-    &-icon {
-      margin-left: 12px;
-      font-size: @font-size-normal;
-      cursor: pointer;
-    }
   }
-}
 </style>

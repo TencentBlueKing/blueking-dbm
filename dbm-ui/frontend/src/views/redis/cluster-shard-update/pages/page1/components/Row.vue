@@ -13,20 +13,20 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.srcCluster"
         :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.currentSepc"
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderDeployPlan
         ref="deployPlanRef"
         :data="data.deployPlan"
@@ -34,15 +34,14 @@
         :is-loading="data.isLoading"
         :row-data="data" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetClusterVersion
         ref="versionRef"
         :data="data.dbVersion"
         :is-loading="data.isLoading"
         :select-list="versionList" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.switchMode"
         :is-loading="data.isLoading"
@@ -81,25 +80,25 @@
       cpu: {
         max: number;
         min: number;
-      },
+      };
       id: number;
       mem: {
         max: number;
         min: number;
-      },
+      };
       qps: {
         max: number;
         min: number;
-      },
+      };
     };
     proxy: {
       id: number;
       count: number;
-    },
-    currentSepc?: string,
+    };
+    currentSepc?: string;
     currentCapacity?: {
-      used: number,
-      total: number,
+      used: number;
+      total: number;
     };
     deployPlan?: {
       capacity: number;
@@ -109,31 +108,31 @@
     backendGroup?: {
       id: number;
       count: number;
-    },
+    };
     targetShardNum?: number;
   }
 
-  export  interface InfoItem {
-    src_cluster: number,
-    current_shard_num: number,
-    current_spec_id: number,
-    cluster_shard_num: number,
-    db_version: string,
-    online_switch_type:'user_confirm',
-    capacity: number,
-    future_capacity: number,
+  export interface InfoItem {
+    src_cluster: number;
+    current_shard_num: number;
+    current_spec_id: number;
+    cluster_shard_num: number;
+    db_version: string;
+    online_switch_type: 'user_confirm';
+    capacity: number;
+    future_capacity: number;
     resource_spec: {
       proxy: {
-        spec_id: number,
-        count: number,
-        affinity: AffinityType,
-      },
+        spec_id: number;
+        count: number;
+        affinity: AffinityType;
+      };
       backend_group: {
-        spec_id: number,
-        count: number, // 机器组数
-        affinity: AffinityType,
-      },
-    }
+        spec_id: number;
+        count: number; // 机器组数
+        affinity: AffinityType;
+      };
+    };
   }
 
   // 创建表格数据
@@ -168,28 +167,27 @@
       count: 0,
     },
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    clusterTypesMap: Record<string, string[]>,
-    inputedClusters?: string[],
+    data: IDataRow;
+    removeable: boolean;
+    clusterTypesMap: Record<string, string[]>;
+    inputedClusters?: string[];
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    inputedClusters: () => ([]),
+    inputedClusters: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -200,14 +198,13 @@
 
   const versionList = computed(() => {
     if (props.clusterTypesMap && props.data.clusterType in props.clusterTypesMap) {
-      return props.clusterTypesMap[props.data.clusterType].map(item => ({
+      return props.clusterTypesMap[props.data.clusterType].map((item) => ({
         value: item,
         label: item,
       }));
     }
     return [];
   });
-
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);
@@ -227,35 +224,33 @@
   defineExpose<Exposes>({
     async getValue() {
       await clusterRef.value.getValue();
-      return await Promise.all([
-        versionRef.value.getValue(),
-        deployPlanRef.value.getValue(),
-      ]).then((data: [string, ExposeValue]) => {
-        const [version, deployData] = data;
-        return {
-          src_cluster: props.data.clusterId,
-          current_shard_num: props.data.currentShardNum,
-          current_spec_id: props.data.currentSpecId,
-          cluster_shard_num: deployData.target_shard_num,
-          db_version: version,
-          online_switch_type: 'user_confirm',
-          capacity: deployData.capacity,
-          future_capacity: deployData.future_capacity,
-          resource_spec: {
-            proxy: {
-              spec_id: props.data.proxy.id,
-              count: props.data.proxy.count,
-              affinity: AffinityType.CROS_SUBZONE,
+      return await Promise.all([versionRef.value.getValue(), deployPlanRef.value.getValue()]).then(
+        (data: [string, ExposeValue]) => {
+          const [version, deployData] = data;
+          return {
+            src_cluster: props.data.clusterId,
+            current_shard_num: props.data.currentShardNum,
+            current_spec_id: props.data.currentSpecId,
+            cluster_shard_num: deployData.target_shard_num,
+            db_version: version,
+            online_switch_type: 'user_confirm',
+            capacity: deployData.capacity,
+            future_capacity: deployData.future_capacity,
+            resource_spec: {
+              proxy: {
+                spec_id: props.data.proxy.id,
+                count: props.data.proxy.count,
+                affinity: AffinityType.CROS_SUBZONE,
+              },
+              backend_group: {
+                spec_id: deployData.spec_id,
+                count: deployData.count, // 机器组数
+                affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+              },
             },
-            backend_group: {
-              spec_id: deployData.spec_id,
-              count: deployData.count, // 机器组数
-              affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
-            },
-          },
-        };
-      });
+          };
+        },
+      );
     },
   });
-
 </script>

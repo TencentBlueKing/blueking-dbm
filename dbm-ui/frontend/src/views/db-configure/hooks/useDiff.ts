@@ -9,27 +9,24 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import _ from 'lodash';
 import type { ComputedRef } from 'vue';
 
 import { getLevelConfig } from '@services/source/configs';
 
-type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number]
+type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number];
 type DiffData = ComputedRef<ParameterConfigItem[]> | ParameterConfigItem[];
 
 export type DiffItem = {
-  name: string,
-  status: string,
-  before: ParameterConfigItem,
-  after: ParameterConfigItem,
+  name: string;
+  status: string;
+  before: ParameterConfigItem;
+  after: ParameterConfigItem;
 };
 
-export const useDiff = (
-  data: DiffData,
-  origin: DiffData,
-) => {
+export const useDiff = (data: DiffData, origin: DiffData) => {
   const state = reactive({
     count: {
       create: 0,
@@ -75,7 +72,7 @@ export const useDiff = (
       excludesMap[item.name] = true;
     }
     // 剩余对比项
-    const remainingData = cloneData.filter(item => excludesMap[item.conf_name] !== true);
+    const remainingData = cloneData.filter((item) => excludesMap[item.conf_name] !== true);
     // 发生变更 items
     const updated = _.differenceWith(remainingData, cloneOrigin, _.isEqual);
     state.count.update = updated.length;

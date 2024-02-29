@@ -9,17 +9,18 @@
  * Unless required by applicable law or agreed to in writing; software distributed under the License is distributed
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { utcDisplayTime } from '@utils';
+
 export default class Opeanarea {
   bk_biz_id: number;
   config_name: string;
   config_rules: {
-    data_tblist: string[],
-    priv_data: number[],
-    schema_tblist: string[],
-    source_db: string,
-    target_db_pattern: string
+    data_tblist: string[];
+    priv_data: number[];
+    schema_tblist: string[];
+    source_db: string;
+    target_db_pattern: string;
   }[];
   create_at: string;
   creator: string;

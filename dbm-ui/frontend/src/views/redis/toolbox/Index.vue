@@ -24,7 +24,7 @@
     <template #main>
       <div class="toolbox-page-wrapper">
         <div class="toolbox-page-title">
-          <span style="font-weight: bold;">{{ toolboxTitle }}</span>
+          <span style="font-weight: bold">{{ toolboxTitle }}</span>
           <BkTag
             class="ml-8"
             theme="info">
@@ -50,41 +50,45 @@
 
   const toolboxTitle = ref('');
 
-  watch(route, () => {
-    toolboxTitle.value = route.meta.navName as string;
-  }, {
-    immediate: true,
-  });
+  watch(
+    route,
+    () => {
+      toolboxTitle.value = route.meta.navName as string;
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less">
-.redis-manage-toolbox-page {
-  height: calc(100vh - 105px);
+  .redis-manage-toolbox-page {
+    height: calc(100vh - 105px);
 
-  & > .bk-resize-layout-aside {
-    z-index: 100;
+    & > .bk-resize-layout-aside {
+      z-index: 100;
 
-    &::after {
-      display: none;
+      &::after {
+        display: none;
+      }
+    }
+
+    .toolbox-page-wrapper {
+      height: 100%;
+      background-color: white;
+
+      .toolbox-page-title {
+        display: flex;
+        width: 100%;
+        height: 54px;
+        padding: 0 24px;
+        align-items: center;
+        font-size: 14px;
+        color: #313238;
+      }
+
+      .toolbox-content-wrapper {
+        height: calc(100% - 52px);
+      }
     }
   }
-
-  .toolbox-page-wrapper {
-    height: 100%;
-    background-color: white;
-
-    .toolbox-page-title {
-      display: flex;
-      width: 100%;
-      height: 54px;
-      padding: 0 24px;
-      align-items: center;
-      font-size: 14px;
-      color: #313238;
-    }
-
-    .toolbox-content-wrapper {
-      height: calc(100% - 52px);
-    }
-  }
-}
 </style>

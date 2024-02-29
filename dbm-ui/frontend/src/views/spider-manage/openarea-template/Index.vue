@@ -135,10 +135,10 @@
 </script>
 <style lang="less">
   .spider-openarea-page {
-    .header-action{
+    .header-action {
       display: flex;
 
-      .search-box{
+      .search-box {
         width: 390px;
         margin-left: auto;
       }
