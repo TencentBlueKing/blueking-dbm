@@ -569,6 +569,32 @@ class RedisClusterVersionUpdateOnlineApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class RedisClusterProxysUpgradeApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/redis_cluster_proxys_upgrade
+    params:
+    {
+        "bk_biz_id": 3,
+        "ticket_type":"REDIS_CLUSTER_PROXYS_UPGRADE",
+        "created_by":"admin",
+        "uid":"1111",
+        "infos": [
+          {
+            "cluster_id": 1,
+            "current_version_file": "twemproxy-0.4.1-v28.tar.gz",
+            "target_version_file": "twemproxy-0.4.1-v29.tar.gz",
+          }
+        ]
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_proxys_upgrade()
+        return Response({"root_id": root_id})
+
+
 class RedisClusterMigratePrecheck(FlowTestView):
     """
     集群迁移前置检查

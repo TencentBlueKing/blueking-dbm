@@ -412,6 +412,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     DATA_STRUCTURE = EnumField("data_structure", _("data_structure"))
     CLUSTER_MEET_CHECK = EnumField("clustermeet_checkfinish", _("clustermeet_checkfinish"))
     VERSION_UPDATE = EnumField("version_update", _("version_update"))
+    PROXY_VERSION_UPGRADE = EnumField("proxy_version_upgrade", _("proxy_version_upgrade"))
     CLUSTER_FAILOVER = EnumField("cluster_failover", _("cluster_failover"))
     SLOTS_MIGRATE = EnumField("migrate_slots", _("migrate_slots"))
     REUPLOAD_OLD_BACKUP_RECORDS = EnumField("reupload_old_backup_records", _("reupload_old_backup_records"))

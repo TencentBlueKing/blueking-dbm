@@ -60,7 +60,7 @@ func GetTwemproxyLocalConfFile(port int) (confFile string, err error) {
 	}
 	confFile = strings.TrimSpace(confFile)
 	if confFile == "" {
-		lsCmd := fmt.Sprintf(`ls %s/twemproxy*/%d/nutcracker.%d.yml|head -1`, consts.DataPath, port, port)
+		lsCmd := fmt.Sprintf(`ls %s/twemproxy*/%d/nutcracker.%d.yml|head -1`, consts.GetRedisDataDir(), port, port)
 		confFile, err = util.RunBashCmd(lsCmd, "", nil, 10*time.Second)
 		if err != nil {
 			return

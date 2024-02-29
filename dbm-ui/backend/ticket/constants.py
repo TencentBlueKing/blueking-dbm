@@ -260,6 +260,7 @@ class TicketType(str, StructuredEnum):
     REDIS_CLUSTER_VERSION_UPDATE_ONLINE = EnumField("REDIS_CLUSTER_VERSION_UPDATE_ONLINE", _("Redis 集群版本升级"))
     REDIS_CLUSTER_REINSTALL_DBMON = EnumField("REDIS_CLUSTER_REINSTALL_DBMON", _("Redis 集群重装DBMON"))
     REDIS_PREDIXY_CONFIG_SERVERS_REWRITE = EnumField("REDIS_PREDIXY_CONFIG_SERVERS_REWRITE", _("predixy配置重写"))
+    REDIS_CLUSTER_PROXYS_UPGRADE = EnumField("REDIS_CLUSTER_PROXYS_UPGRADE", _("Redis 集群proxys版本升级"))
 
     # 大数据
     KAFKA_APPLY = EnumField("KAFKA_APPLY", _("Kafka 集群部署"))
