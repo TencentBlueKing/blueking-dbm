@@ -163,7 +163,7 @@ func (job *TwemproxyOperate) DirBackup(execUser string, port int) error {
 	if job.params.Debug {
 		return nil
 	}
-	dataDir := getPathWitChRoot("", consts.DataPath, twemproxyDir)
+	dataDir := getPathWitChRoot("", consts.GetRedisDataDir(), twemproxyDir)
 	insDir := fmt.Sprintf("%s/%d", dataDir, port)
 	// 判断目录是否存在
 	job.runtime.Logger.Info("check twemproxy ins dir[%s] exists.", insDir)

@@ -173,7 +173,7 @@ func (job *RedisDtsOnlineSwitch) getDstProxyAddr() string {
 
 func (job *RedisDtsOnlineSwitch) getProxyConfigSaveDir(clusterType string, proxyPort int) string {
 	if consts.IsTwemproxyClusterType(clusterType) {
-		return fmt.Sprintf("%s/twemproxy-0.2.4/%d/", consts.DataPath, proxyPort)
+		return fmt.Sprintf("%s/twemproxy-0.2.4/%d/", consts.GetRedisDataDir(), proxyPort)
 	}
 	if consts.IsPredixyClusterType(clusterType) {
 		return fmt.Sprintf("%s/predixy/%d/", consts.GetRedisDataDir(), proxyPort)

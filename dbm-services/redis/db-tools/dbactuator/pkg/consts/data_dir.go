@@ -41,6 +41,10 @@ func IsMountPoint2(file string) bool {
 // 否则,如果环境变量 REDIS_DATA_DIR 不为空,则直接读取;
 // 否则,如果 /data1/redis 存在, 则 REDIS_DATA_DIR=/data1
 // 否则,如果 /data/redis, 则 REDIS_DATA_DIR=/data
+// 否则,如果 /data/twemproxy-0.2.4 存在, 则 REDIS_DATA_DIR=/data
+// 否则,如果 /data1/twemproxy-0.2.4, 则 REDIS_DATA_DIR=/data1
+// 否则,如果 /data/predixy 存在, 则 REDIS_DATA_DIR=/data
+// 否则,如果 /data1/predixy, 则 REDIS_DATA_DIR=/data1
 // 否则,如果 /data1 是挂载点, 则 REDIS_DATA_DIR=/data1
 // 否则,如果 /data 是挂载点, 则 REDIS_DATA_DIR=/data
 // 否则,REDIS_DATA_DIR=/data1
@@ -56,6 +60,18 @@ func SetRedisDataDir(dataDir string) (err error) {
 			} else if fileExists(filepath.Join(DataPath, "redis")) {
 				// /data/redis 存在
 				dataDir = DataPath
+			} else if fileExists(filepath.Join(DataPath, "twemproxy-0.2.4")) {
+				// /data/twemproxy-0.2.4 存在
+				dataDir = DataPath
+			} else if fileExists(filepath.Join(Data1Path, "twemproxy-0.2.4")) {
+				// /data1/twemproxy-0.2.4 存在
+				dataDir = Data1Path
+			} else if fileExists(filepath.Join(DataPath, "predixy")) {
+				// /data/predixy 存在
+				dataDir = DataPath
+			} else if fileExists(filepath.Join(Data1Path, "predixy")) {
+				// /data1/predixy 存在
+				dataDir = Data1Path
 			} else if IsMountPoint2(Data1Path) {
 				// /data1是挂载点
 				dataDir = Data1Path
@@ -91,6 +107,10 @@ fi
 // GetRedisDataDir 获取环境变量 REDIS_DATA_DIR,不为空直接返回,
 // 否则,如果目录 /data1/redis存在,返回 /data1;
 // 否则,如果目录 /data/redis存在,返回 /data;
+// 否则,如果目录 /data/twemproxy-0.2.4存在,返回 /data;
+// 否则,如果目录 /data1/twemproxy-0.2.4存在,返回 /data1;
+// 否则,如果目录 /data/predixy存在,返回 /data;
+// 否则,如果目录 /data1/predixy存在,返回 /data1;
 // 否则,返回 /data1
 func GetRedisDataDir() string {
 	dataDir := os.Getenv("REDIS_DATA_DIR")
@@ -101,6 +121,18 @@ func GetRedisDataDir() string {
 		} else if fileExists(filepath.Join(DataPath, "redis")) {
 			// /data/redis 存在
 			dataDir = DataPath
+		} else if fileExists(filepath.Join(DataPath, "twemproxy-0.2.4")) {
+			// /data/twemproxy-0.2.4 存在
+			dataDir = DataPath
+		} else if fileExists(filepath.Join(Data1Path, "twemproxy-0.2.4")) {
+			// /data1/twemproxy-0.2.4 存在
+			dataDir = Data1Path
+		} else if fileExists(filepath.Join(DataPath, "predixy")) {
+			// /data/predixy 存在
+			dataDir = DataPath
+		} else if fileExists(filepath.Join(Data1Path, "predixy")) {
+			// /data1/predixy 存在
+			dataDir = Data1Path
 		} else {
 			dataDir = Data1Path
 		}

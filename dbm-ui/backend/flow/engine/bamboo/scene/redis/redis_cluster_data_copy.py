@@ -12,6 +12,7 @@ import ast
 import base64
 import logging.config
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import asdict
 
 from django.db.models import Q
@@ -24,11 +25,7 @@ from backend.db_meta.enums import InstanceRole, InstanceStatus
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
-from backend.db_services.redis.redis_dts.constants import (
-    DTS_SWITCH_PREDIXY_PRECHECK,
-    DTS_SWITCH_TWEMPROXY_PRECHECK,
-    SERVERS_ADD_RESOLV_CONF,
-)
+from backend.db_services.redis.redis_dts.constants import DTS_SWITCH_PREDIXY_PRECHECK, DTS_SWITCH_TWEMPROXY_PRECHECK
 from backend.db_services.redis.redis_dts.enums import (
     DtsBillType,
     DtsCopyType,
@@ -57,6 +54,7 @@ from backend.db_services.redis.util import (
     is_twemproxy_proxy_type,
 )
 from backend.flow.consts import ConfigFileEnum, StateType, WriteContextOpType
+from backend.flow.engine.bamboo.scene.common.atom_jobs.set_dns_sub_job import set_dns_atom_job
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_dts import (
@@ -135,7 +133,9 @@ class RedisClusterDataCopyFlow(object):
             complete_redis_dts_kwargs_dst_data(self.__get_dts_biz_id(info), dts_copy_type, "", info, act_kwargs)
 
             # 获取云区域的dns nameserver
-            dns_nameserver = self.__get_dns_nameserver(act_kwargs.cluster["src"]["bk_cloud_id"])
+            sub_pipeline.add_act(
+                act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
+            )
 
             if (
                 dts_copy_type != DtsCopyType.COPY_TO_OTHER_SYSTEM
@@ -145,15 +145,25 @@ class RedisClusterDataCopyFlow(object):
 
             etc_hosts_param = get_etc_hosts_lines_and_ips(bk_biz_id, dts_copy_type, info, None)
 
-            # 添加/etc/resolv.conf
-            act_kwargs.exec_ip = etc_hosts_param["ip_list"]
-            act_kwargs.write_op = WriteContextOpType.APPEND.value
-            act_kwargs.cluster["shell_command"] = SERVERS_ADD_RESOLV_CONF.format(dns_nameserver)
-            sub_pipeline.add_act(
-                act_name=_("{}等添加域名解析").format(etc_hosts_param["ip_list"][0]),
-                act_component_code=ExecuteShellScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+            # 添加域名解析
+            dns_subs = []
+            bk_cloud_id = act_kwargs.cluster["src"]["bk_cloud_id"]
+            city_name = act_kwargs.cluster["src"]["cluster_city_name"]
+            for ip in etc_hosts_param["ip_list"]:
+                sub_build = set_dns_atom_job(
+                    root_id=self.root_id,
+                    ticket_data=self.data,
+                    act_kwargs=deepcopy(act_kwargs),
+                    param={
+                        "ip": ip,
+                        "bk_cloud_id": bk_cloud_id,
+                        "bk_biz_id": bk_biz_id,
+                        "bk_city": city_name,
+                        "force": 1,
+                    },
+                )
+                dns_subs.append(sub_build)
+            sub_pipeline.add_parallel_sub_pipeline(dns_subs)
 
             # 数据复制
             sub_pipeline.add_sub_pipeline(redis_dts_data_copy_atom_job(self.root_id, self.data, act_kwargs))
@@ -489,8 +499,6 @@ class RedisClusterDataCopyFlow(object):
                 data_copy_info,
                 act_kwargs,
             )
-            # 获取云区域的dns nameserver
-            dns_nameserver = self.__get_dns_nameserver(act_kwargs.cluster["src"]["bk_cloud_id"])
 
             redis_pipeline.add_act(
                 act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
@@ -515,15 +523,25 @@ class RedisClusterDataCopyFlow(object):
                     kwargs=asdict(act_kwargs),
                 )
 
-            # 添加/etc/resolv.conf
-            act_kwargs.exec_ip = etc_hosts_param["ip_list"]
-            act_kwargs.write_op = WriteContextOpType.APPEND.value
-            act_kwargs.cluster["shell_command"] = SERVERS_ADD_RESOLV_CONF.format(dns_nameserver)
-            redis_pipeline.add_act(
-                act_name=_("{}等添加域名解析").format(etc_hosts_param["ip_list"][0]),
-                act_component_code=ExecuteShellScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+            # 添加域名解析
+            dns_subs = []
+            bk_cloud_id = act_kwargs.cluster["src"]["bk_cloud_id"]
+            city_name = act_kwargs.cluster["src"]["cluster_city_name"]
+            for ip in etc_hosts_param["ip_list"]:
+                sub_build = set_dns_atom_job(
+                    root_id=self.root_id,
+                    ticket_data=self.data,
+                    act_kwargs=deepcopy(act_kwargs),
+                    param={
+                        "ip": ip,
+                        "bk_cloud_id": bk_cloud_id,
+                        "bk_biz_id": bk_biz_id,
+                        "bk_city": city_name,
+                        "force": 1,
+                    },
+                )
+                dns_subs.append(sub_build)
+            redis_pipeline.add_parallel_sub_pipeline(dns_subs)
 
             act_kwargs.cluster["info"] = data_copy_info
             redis_pipeline.add_sub_pipeline(redis_dts_data_copy_atom_job(self.root_id, self.data, act_kwargs))

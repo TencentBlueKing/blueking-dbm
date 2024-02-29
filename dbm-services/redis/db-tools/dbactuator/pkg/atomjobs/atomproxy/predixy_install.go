@@ -320,14 +320,6 @@ func (p *PredixyInstall) unTarAndCreateSoftLink() error {
 			p.runtime.Logger.Error(fmt.Sprintf("%s:chown untar directory fail, error:%s", p.Name(), err))
 			return errors.New(fmt.Sprintf("%s:chown untar directory fail, error:%s", p.Name(), err))
 		}
-		// 修改启动文件内容
-		if _, err := util.RunBashCmd(
-			fmt.Sprintf("sed -i \"s/\\/data/\\%s/g\" %s/predixy/bin/start_predixy.sh", p.DataDir, p.BinDir),
-			"", nil,
-			10*time.Second); err != nil {
-			p.runtime.Logger.Error(fmt.Sprintf("%s:modfiy start_predixy.sh fail, error:%s", p.Name(), err))
-			return errors.New(fmt.Sprintf("%s:modfiy start_predixy.sh fail, error:%s", p.Name(), err))
-		}
 		p.runtime.Logger.Info("create soft link of install package successfully")
 	}
 	return nil
