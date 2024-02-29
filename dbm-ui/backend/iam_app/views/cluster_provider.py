@@ -125,3 +125,17 @@ class PulsarClusterResourceProvider(ClusterResourceProvider):
 class RiakClusterResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.RIAK
     cluster_types: ClusterType = [ClusterType.Riak]
+
+
+class MongoDBClusterResourceProvider(ClusterResourceProvider):
+    resource_meta: ResourceMeta = ResourceEnum.MONGODB
+    cluster_types: ClusterType = [ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]
+
+    def _list_instance(self, obj_model: models.Model, condition: Dict, value_list: List[str], page):
+        # mongodb资源展示的时候加上类型
+        queryset = obj_model.objects.filter(**condition)[page.slice_from : page.slice_to]
+        results: List[Dict[str, str]] = []
+        for cluster in queryset:
+            cluster_type = _("[副本集]") if cluster.cluster_type == ClusterType.MongoReplicaSet else _("[分片集]")
+            results.append({"id": cluster.id, "display_name": f"{cluster_type}{cluster.immute_domain}"})
+        return ListResult(results=results, count=len(results))

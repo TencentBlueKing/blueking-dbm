@@ -56,15 +56,37 @@ def decorator_cluster_instance_permission_field(
 class ResourceViewSet(SystemViewSet):
     """资源查询基类"""
 
+    # 查询字段
     lookup_field = "cluster_id"
+    # 视图组件类型
     db_type = None
 
+    # 视图接口查询类，封装了对集群列表/详情 实例列表/详情 和拓扑图的处理函数
     query_class = ListRetrieveResource
+    # 集群列表serializer，主要是过滤参数
     query_serializer_class = None
+    # 实例列表serializer
     list_instances_slz = serializers.ListInstancesSerializer
+    # 实例详情serializer
     retrieve_instances_slz = serializers.RetrieveInstancesSerializer
-
+    # 分页
     pagination_class = ResourceLimitOffsetPagination
+
+    # 给集群列表数据嵌入权限字段
+    list_perm_actions = []
+    # 给实例列表数据嵌入权限字段
+    list_instance_perm_actions = []
+    # (可选)给集群列表数据嵌入全局权限字段
+    # 如果此变量不为空，需要实现_external_perm_param_field方法
+    list_external_perm_actions = []
+
+    @staticmethod
+    def _external_perm_param_field(kwargs):
+        """
+        全局权限字段资源的获取函数，默认不实现
+        kwargs包含了request.data, request.query_params和view_class
+        """
+        raise NotImplementedError
 
     def _get_custom_permissions(self):
         if self.detail or self.action in ["retrieve_instance"]:
@@ -75,6 +97,15 @@ class ResourceViewSet(SystemViewSet):
         """查询集群详情"""
         return Response(self.query_class.retrieve_cluster(bk_biz_id, cluster_id))
 
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        action_filed=lambda d: d["view_class"].list_perm_actions,
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["view_class"]._external_perm_param_field(d),
+        action_filed=lambda d: d["view_class"].list_external_perm_actions,
+    )
     def list(self, request, bk_biz_id: int):
         """查询集群列表"""
         query_params = self.params_validate(self.query_serializer_class)
@@ -82,9 +113,10 @@ class ResourceViewSet(SystemViewSet):
         return self.get_paginated_response(data)
 
     @action(methods=["GET"], detail=False, url_path="list_instances")
-    @decorator_cluster_instance_permission_field(
+    @Permission.decorator_permission_field(
         id_field=lambda d: d["cluster_id"],
         data_field=lambda d: d["results"],
+        action_filed=lambda d: d["view_class"].list_instance_perm_actions,
     )
     def list_instances(self, request, bk_biz_id: int):
         """查询实例列表"""

@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -32,7 +33,9 @@ class MongoDBEnableFlowParamBuilder(builders.FlowParamBuilder):
         pass
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_ENABLE, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(
+    TicketType.MONGODB_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.MONGODB_ENABLE_DISABLE
+)
 class MongoDBEnableApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBEnableDetailSerializer
     inner_flow_builder = MongoDBEnableFlowParamBuilder

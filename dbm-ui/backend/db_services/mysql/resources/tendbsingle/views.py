@@ -14,9 +14,7 @@ from rest_framework import status
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
 from backend.db_services.dbbase.resources import constants, serializers, viewsets
-from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
-from backend.iam_app.handlers.permission import Permission
 
 from . import yasg_slz
 from .query import ListRetrieveResource
@@ -73,21 +71,15 @@ class DBSingleViewSet(viewsets.ResourceViewSet):
     query_class = ListRetrieveResource
     query_serializer_class = serializers.ListMySQLResourceSLZ
 
-    @Permission.decorator_permission_field(
-        id_field=lambda d: d["id"],
-        data_field=lambda d: d["results"],
-        actions=[
-            ActionEnum.MYSQL_AUTHORIZE_RULES,
-            ActionEnum.MYSQL_ENABLE_DISABLE,
-            ActionEnum.MYSQL_DESTROY,
-            ActionEnum.MYSQL_VIEW,
-        ],
-        resource_meta=ResourceEnum.MYSQL,
-    )
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["view_class"].db_type,
-        actions=[ActionEnum.ACCESS_ENTRY_EDIT],
-        resource_meta=ResourceEnum.DBTYPE,
-    )
-    def list(self, request, bk_biz_id: int):
-        return super().list(request, bk_biz_id)
+    list_perm_actions = [
+        ActionEnum.MYSQL_AUTHORIZE_RULES,
+        ActionEnum.MYSQL_ENABLE_DISABLE,
+        ActionEnum.MYSQL_DESTROY,
+        ActionEnum.MYSQL_VIEW,
+    ]
+    list_instance_perm_actions = [ActionEnum.MYSQL_VIEW]
+    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
+
+    @staticmethod
+    def _external_perm_param_field(kwargs):
+        return kwargs["view_class"].db_type

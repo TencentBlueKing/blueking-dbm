@@ -20,6 +20,7 @@ from backend.iam_app.views.cluster_provider import (
     EsClusterResourceProvider,
     HdfsClusterResourceProvider,
     KafkaClusterResourceProvider,
+    MongoDBClusterResourceProvider,
     MySQLResourceProvider,
     PulsarClusterResourceProvider,
     RedisClusterResourceProvider,
@@ -48,6 +49,7 @@ dispatcher.register(r"hdfs", HdfsClusterResourceProvider())
 dispatcher.register(r"kafka", KafkaClusterResourceProvider())
 dispatcher.register(r"pulsar", PulsarClusterResourceProvider())
 dispatcher.register(r"dbtype", DBTypeResourceProvider())
+dispatcher.register(r"mongodb", MongoDBClusterResourceProvider())
 dispatcher.register(r"monitor_policy", MonitorPolicyResourceProvider())
 dispatcher.register(r"duty_rule", DutyRuleResourceProvider())
 dispatcher.register(r"openarea_config", OpenareaConfigResourceProvider())

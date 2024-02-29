@@ -10,16 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.decorators import method_decorator
 from rest_framework import status
-from rest_framework.decorators import action
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
 from backend.db_services.dbbase.resources import constants, serializers, viewsets
 from backend.db_services.mysql.resources.tendbcluster import yasg_slz
 from backend.db_services.mysql.resources.tendbcluster.query import ListRetrieveResource
-from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
-from backend.iam_app.handlers.permission import Permission
 
 
 @method_decorator(
@@ -73,32 +70,18 @@ class SpiderViewSet(viewsets.ResourceViewSet):
     query_serializer_class = serializers.ListMySQLResourceSLZ
     db_type = DBType.TenDBCluster
 
-    @Permission.decorator_permission_field(
-        id_field=lambda d: d["id"],
-        data_field=lambda d: d["results"],
-        actions=[
-            ActionEnum.TENDBCLUSTER_SPIDER_ADD_NODES,
-            ActionEnum.TENDBCLUSTER_SPIDER_REDUCE_NODES,
-            ActionEnum.TENDBCLUSTER_AUTHORIZE_RULES,
-            ActionEnum.TENDBCLUSTER_NODE_REBALANCE,
-            ActionEnum.TENDBCLUSTER_VIEW,
-        ],
-        resource_meta=ResourceEnum.TENDBCLUSTER,
-    )
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["view_class"].db_type,
-        actions=[ActionEnum.ACCESS_ENTRY_EDIT],
-        resource_meta=ResourceEnum.DBTYPE,
-    )
-    def list(self, request, bk_biz_id: int, *args, **kwargs):
-        return super().list(request, bk_biz_id)
+    list_perm_actions = [
+        ActionEnum.TENDBCLUSTER_SPIDER_ADD_NODES,
+        ActionEnum.TENDBCLUSTER_SPIDER_REDUCE_NODES,
+        ActionEnum.TENDBCLUSTER_AUTHORIZE_RULES,
+        ActionEnum.TENDBCLUSTER_NODE_REBALANCE,
+        ActionEnum.TENDBCLUSTER_VIEW,
+        ActionEnum.TENDBCLUSTER_ENABLE_DISABLE,
+        ActionEnum.TENDBCLUSTER_DESTROY,
+    ]
+    list_instance_perm_actions = [ActionEnum.TENDBCLUSTER_VIEW]
+    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
 
-    @Permission.decorator_permission_field(
-        id_field=lambda d: d["cluster_id"],
-        data_field=lambda d: d["results"],
-        actions=[ActionEnum.TENDBCLUSTER_VIEW],
-        resource_meta=ResourceEnum.TENDBCLUSTER,
-    )
-    @action(methods=["GET"], detail=False, url_path="list_instances")
-    def list_instances(self, request, bk_biz_id: int, *args, **kwargs):
-        return super().list_instances(request, bk_biz_id)
+    @staticmethod
+    def _external_perm_param_field(kwargs):
+        return kwargs["view_class"].db_type
