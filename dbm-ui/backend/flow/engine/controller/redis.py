@@ -21,6 +21,9 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_compair import
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_load import RedisClusterMigrateLoadFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_precheck import RedisClusterMigratePrecheckFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_proxy_version_upgrade import (
+    RedisProxyVersionUpgradeSceneFlow,
+)
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_auotfix import RedisClusterAutoFixSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr import RedisClusterCMRSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_mss import RedisClusterMSSSceneFlow
@@ -317,3 +320,10 @@ class RedisController(BaseController):
         """
         flow = RedisPredixyConfigServersRewriteFlow(root_id=self.root_id, data=self.ticket_data)
         flow.batch_clusters_predixy_config_servers_rewrite()
+
+    def redis_cluster_proxys_upgrade(self):
+        """
+        tendis 集群Proxy版本升级
+        """
+        flow = RedisProxyVersionUpgradeSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.batch_clusters_proxys_upgrade()

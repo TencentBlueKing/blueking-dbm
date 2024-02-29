@@ -2,6 +2,7 @@ package myredis
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -192,4 +193,43 @@ func GetPredixyInfoServersDecoded(ip string, port int, password string) (rets []
 		}
 	}
 	return rets, nil
+}
+
+// GetTwemproxyRunTimeVersion 获取twemproxy运行时版本
+func GetTwemproxyRunTimeVersion(ip string, port int) (version string, err error) {
+	addr := fmt.Sprintf("%s:%d", ip, port+1000)
+	cmd := "stats"
+	retData, err := util.NetCatTcpClient(addr, cmd)
+	if err != nil {
+		err = fmt.Errorf("NetCatTcpClient fail,err:%v,addr:%s,command:%s", err, addr, cmd)
+		mylog.Logger.Error(err.Error())
+		return "", err
+	}
+	map01 := make(map[string]interface{})
+	err = json.Unmarshal([]byte(retData), &map01)
+	if err != nil {
+		err = fmt.Errorf("json.Unmarshal fail,err:%v,retData:%s", err, retData)
+		mylog.Logger.Error(err.Error())
+		return "", err
+	}
+	version, _ = map01["version"].(string)
+	return
+}
+
+// GetPredixyRunTimeVersion 获取predixy运行时版本
+func GetPredixyRunTimeVersion(ip string, port int, password string) (version string, err error) {
+	predixyAddr := fmt.Sprintf("%s:%d", ip, port)
+	cli01, err := NewRedisClientWithTimeout(predixyAddr, password, 0,
+		consts.TendisTypeRedisInstance, 5*time.Second)
+	if err != nil {
+		return
+	}
+	defer cli01.Close()
+
+	// 执行info Proxy并解析结果
+	infoRet, err := cli01.Info("Proxy")
+	if err != nil {
+		return
+	}
+	return infoRet["Version"], nil
 }

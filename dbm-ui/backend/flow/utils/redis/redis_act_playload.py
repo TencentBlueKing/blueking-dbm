@@ -1846,6 +1846,31 @@ class RedisActPayload(object):
         logger.info(_("更新集群:{} redis配置 为 目标集群的配置,upsert_param:{}".format(cluster_map["cluster_domain"], upsert_param)))
         DBConfigApi.upsert_conf_item(upsert_param)
 
+    # redis proxy 原地升级
+    def redis_proxy_upgrade_online_payload(self, **kwargs) -> dict:
+        params = kwargs["params"]
+        proxy_pkg: Package = None
+        if is_twemproxy_proxy_type(params["cluster_type"]):
+            proxy_pkg = Package.get_latest_package(
+                version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
+            )
+        elif is_predixy_proxy_type(params["cluster_type"]):
+            proxy_pkg = Package.get_latest_package(
+                version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
+            )
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.PROXY_VERSION_UPGRADE.value,
+            "payload": {
+                "pkg": proxy_pkg.name,
+                "pkg_md5": proxy_pkg.md5,
+                "ip": params["ip"],
+                "port": params["port"],
+                "password": params["password"],
+                "cluster_type": params["cluster_type"],
+            },
+        }
+
     # redis cluster failover
     def redis_cluster_failover(self, **kwargs) -> dict:
         """
