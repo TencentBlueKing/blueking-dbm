@@ -42,7 +42,7 @@
             :loading="getModulesLoading"
             :placeholder="t('请选择xx', [t('DB模块名')])">
             <BkOption
-              v-for="(item) in moduleList"
+              v-for="item in moduleList"
               :key="item.db_module_id"
               :label="item.name"
               :value="item.db_module_id" />
@@ -70,7 +70,7 @@
             class="item-input"
             disabled
             :input-search="false"
-            style="width: 185px;">
+            style="width: 185px">
             <BkOption
               v-for="item in dbVersionList"
               :key="item"
@@ -94,8 +94,7 @@
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
-          <BkRadioGroup
-            v-model="formData.details.ip_source">
+          <BkRadioGroup v-model="formData.details.ip_source">
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -121,7 +120,7 @@
                 :cloud-id="formData.details.bk_cloud_id"
                 :cluster-type="ClusterTypes.RIAK"
                 machine-type="riak"
-                style="width: 435px;" />
+                style="width: 435px" />
             </BkFormItem>
             <BkFormItem
               :label="t('节点数量')"
@@ -132,7 +131,7 @@
                 clearable
                 :min="3"
                 show-clear-only-hover
-                style="width: 185px;"
+                style="width: 185px"
                 type="number" />
             </BkFormItem>
           </div>
@@ -156,10 +155,10 @@
                 <template #submitTips="{ hostList }">
                   <I18nT
                     keypath="至少n台_已选n台"
-                    style="font-size: 14px; color: #63656e;"
+                    style="font-size: 14px; color: #63656e"
                     tag="span">
-                    <span style="font-weight: bold; color: #2dcb56;"> 3 </span>
-                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                    <span style="font-weight: bold; color: #2dcb56"> 3 </span>
+                    <span style="font-weight: bold; color: #3a84ff"> {{ hostList.length }} </span>
                   </I18nT>
                 </template>
               </IpSelector>
@@ -171,7 +170,7 @@
             v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
-            style="width: 655px;"
+            style="width: 655px"
             type="textarea" />
         </BkFormItem>
       </DbCard>
@@ -180,7 +179,7 @@
       <div>
         <BkButton
           :loading="baseState.isSubmitting"
-          style="width: 88px;"
+          style="width: 88px"
           theme="primary"
           @click="handleSubmit">
           {{ t('提交') }}
@@ -206,20 +205,11 @@
   import { useRequest } from 'vue-request';
 
   import { getModules } from '@services/source/cmdb';
-  import type {
-    BizItem,
-    HostDetails,
-  } from '@services/types';
+  import type { BizItem, HostDetails } from '@services/types';
 
-  import {
-    useApplyBase,
-    useInfo,
-  } from '@hooks';
+  import { useApplyBase, useInfo } from '@hooks';
 
-  import {
-    ClusterTypes,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
@@ -255,13 +245,7 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const {
-    baseState,
-    bizState,
-    handleCreateAppAbbr,
-    handleCreateTicket,
-    handleCancel,
-  } = useApplyBase();
+  const { baseState, bizState, handleCreateAppAbbr, handleCreateTicket, handleCancel } = useApplyBase();
 
   const formRef = ref();
   const specRef = ref();
@@ -280,12 +264,15 @@
     manual: true,
   });
 
-  watch(() => formData.bk_biz_id, (value) => {
-    if (value) {
-      formData.details.db_module_id = '';
-      fetchModules(value);
-    }
-  });
+  watch(
+    () => formData.bk_biz_id,
+    (value) => {
+      if (value) {
+        formData.details.db_module_id = '';
+        fetchModules(value);
+      }
+    },
+  );
 
   const formRules = {
     nodes_num: [
@@ -323,16 +310,14 @@
     });
   };
 
-  const handleChangeCloud = (info: {
-    id: number | string,
-    name: string
-  }) => {
+  const handleChangeCloud = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
 
     formData.details.nodes = [];
   };
 
-  const disableHostSubmitMethods = (hostList: Array<HostDetails[]>) => (hostList.length < 3 ? t('至少n台', { n: 3 }) : false);
+  const disableHostSubmitMethods = (hostList: Array<HostDetails[]>) =>
+    hostList.length < 3 ? t('至少n台', { n: 3 }) : false;
 
   const handleProxyIpChange = (data: HostDetails[]) => {
     formData.details.nodes = data;
@@ -342,47 +327,46 @@
   };
 
   const handleSubmit = () => {
-    formRef.value.validate()
-      .then(() => {
-        baseState.isSubmitting = true;
+    formRef.value.validate().then(() => {
+      baseState.isSubmitting = true;
 
-        const { db_module_id: moduleId } = formData.details;
-        const moduleListValue = moduleList.value || [];
-        const moduleIndex = moduleListValue.findIndex(moduleItem => Number(moduleItem.db_module_id) === moduleId);
+      const { db_module_id: moduleId } = formData.details;
+      const moduleListValue = moduleList.value || [];
+      const moduleIndex = moduleListValue.findIndex((moduleItem) => Number(moduleItem.db_module_id) === moduleId);
 
-        const params = {
-          ...formData,
-          details: {
-            ...formData.details,
-            db_module_name: moduleListValue[moduleIndex].name,
+      const params = {
+        ...formData,
+        details: {
+          ...formData.details,
+          db_module_name: moduleListValue[moduleIndex].name,
+        },
+      };
+
+      if (formData.details.ip_source === 'resource_pool') {
+        Object.assign(params.details, {
+          resource_spec: {
+            riak: {
+              count: formData.nodes_num,
+              spec_id: formData.spec_id,
+              ...specRef.value.getData(),
+            },
           },
-        };
+        });
+      } else {
+        Object.assign(params.details, {
+          nodes: {
+            riak: formData.details.nodes.map((nodeItem) => ({
+              ip: nodeItem.ip,
+              bk_host_id: nodeItem.host_id,
+              bk_cloud_id: nodeItem.cloud_id,
+            })),
+          },
+        });
+      }
 
-        if (formData.details.ip_source === 'resource_pool') {
-          Object.assign(params.details, {
-            resource_spec: {
-              riak: {
-                count: formData.nodes_num,
-                spec_id: formData.spec_id,
-                ...specRef.value.getData(),
-              },
-            },
-          });
-        } else {
-          Object.assign(params.details, {
-            nodes: {
-              riak: formData.details.nodes.map(nodeItem => ({
-                ip: nodeItem.ip,
-                bk_host_id: nodeItem.host_id,
-                bk_cloud_id: nodeItem.cloud_id,
-              })),
-            },
-          });
-        }
-
-        // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
-        bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
-      });
+      // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
+      bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+    });
   };
 
   const handleReset = () => {

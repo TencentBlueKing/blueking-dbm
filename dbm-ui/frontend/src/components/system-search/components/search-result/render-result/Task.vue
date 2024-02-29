@@ -10,9 +10,7 @@
         <HightLightText
           :key-word="keyWord"
           :text="item.root_id" />
-        <div class="intro">
-          (任务ID)
-        </div>
+        <div class="intro">(任务ID)</div>
       </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
@@ -28,13 +26,13 @@
   import HightLightText from './components/HightLightText.vue';
 
   interface Props {
-    keyWord: string,
+    keyWord: string;
     data: {
-      bk_biz_id: number,
-      root_id: string,
-      ticket_type: string,
-    }[],
-    bizIdNameMap: Record<number, string>
+      bk_biz_id: number;
+      root_id: string;
+      ticket_type: string;
+    }[];
+    bizIdNameMap: Record<number, string>;
   }
 
   defineProps<Props>();
@@ -44,12 +42,14 @@
   const handleGo = (data: Props['data'][number]) => {
     systemSearchCache.appendItem(data.root_id);
 
-    location({
-      name: 'taskHistoryDetail',
-      params: {
-        root_id: data.root_id,
+    location(
+      {
+        name: 'taskHistoryDetail',
+        params: {
+          root_id: data.root_id,
+        },
       },
-    }, data.bk_biz_id);
+      data.bk_biz_id,
+    );
   };
 </script>
-

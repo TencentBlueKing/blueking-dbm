@@ -13,8 +13,7 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div
-      class="render-spec-box">
+    <div class="render-spec-box">
       <TableEditSelect
         ref="selectRef"
         v-model="localValue"
@@ -33,14 +32,13 @@
   import TableEditSelect, { type IListItem } from './SpecSelect.vue';
 
   interface Props {
-    selectList: IListItem[],
-    data?: IDataRow['spec'],
-    isLoading?: boolean,
+    selectList: IListItem[];
+    data?: IDataRow['spec'];
+    isLoading?: boolean;
   }
 
-
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = defineProps<Props>();
@@ -56,13 +54,17 @@
     },
   ];
 
-  watch(() => props.data?.id, (id) => {
-    if (id !== undefined) {
-      localValue.value = id;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data?.id,
+    (id) => {
+      if (id !== undefined) {
+        localValue.value = id;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: number) => {
     localValue.value = value;
@@ -70,20 +72,17 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => ({ spec_id: localValue.value }));
+      return selectRef.value.getValue().then(() => ({ spec_id: localValue.value }));
     },
   });
-
 </script>
 <style lang="less" scoped>
-.render-spec-box {
-  line-height: 20px;
-  color: #63656e;
-}
+  .render-spec-box {
+    line-height: 20px;
+    color: #63656e;
+  }
 
-.default-display {
-  background: #FAFBFD;
-}
+  .default-display {
+    background: #fafbfd;
+  }
 </style>

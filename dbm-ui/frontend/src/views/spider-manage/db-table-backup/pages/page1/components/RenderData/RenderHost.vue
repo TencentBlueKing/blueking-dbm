@@ -15,7 +15,7 @@
   <div
     class="render-host-box"
     :class="{
-      'is-repeat': isRepeat
+      'is-repeat': isRepeat,
     }">
     <TableEditInput
       ref="inputRef"
@@ -34,7 +34,7 @@
       class="conflict-flag">
       {{ t('冲突') }}
     </div>
-    <div style="display: none;">
+    <div style="display: none">
       <div
         ref="popRef"
         class="master-slave-clone-conflict-host-popover">
@@ -64,8 +64,6 @@
 </template>
 <script lang="ts">
   const singleHostSelectMemo: { [key: string]: Record<string, boolean> } = {};
-
-
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -329,7 +327,7 @@
     .popover-host-item {
       padding: 2px 20px 2px 0;
 
-      &:nth-child(n+2) {
+      &:nth-child(n + 2) {
         border-top: 1px solid #dcdee5;
       }
     }

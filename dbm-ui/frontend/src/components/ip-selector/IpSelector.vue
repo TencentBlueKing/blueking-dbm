@@ -73,7 +73,7 @@
     scrollable>
     <div
       v-if="cloudTips"
-      style="padding: 8px 16px;">
+      style="padding: 8px 16px">
       <BkAlert
         theme="info"
         :title="cloudTips" />
@@ -113,12 +113,7 @@
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import _ from 'lodash';
 
-  import {
-    checkHost,
-    getHostDetails,
-    getHosts,
-    getHostTopo,
-  } from '@services/source/ipchooser';
+  import { checkHost, getHostDetails, getHosts, getHostTopo } from '@services/source/ipchooser';
   import { getWhitelist } from '@services/source/whitelist';
   import type { HostDetails } from '@services/types';
 
@@ -135,11 +130,11 @@
 
   /** IP 选择器返回结果 */
   export type IPSelectorResult = {
-    dynamic_group_list: any[],
-    host_list: Array<HostDetails>,
-    node_list: any[],
-    dbm_whitelist: any[],
-  }
+    dynamic_group_list: any[];
+    host_list: Array<HostDetails>;
+    node_list: any[];
+    dbm_whitelist: any[];
+  };
 
   type IPSelectorResultKey = keyof IPSelectorResult;
 </script>
@@ -587,7 +582,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .db-ip-selector {
     &__operations {

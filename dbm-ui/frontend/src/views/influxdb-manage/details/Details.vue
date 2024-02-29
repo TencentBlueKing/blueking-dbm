@@ -80,9 +80,7 @@
   import { retrieveInfluxdbInstance } from '@services/source/influxdb';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
 
-  import {
-    useGlobalBizs,
-  } from '@stores';
+  import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
@@ -93,9 +91,9 @@
   import AsideList from './AsideList.vue';
 
   interface PanelItem {
-    label: string,
-    name: string,
-    link: string,
+    label: string;
+    name: string;
+    link: string;
   }
 
   const route = useRoute();
@@ -118,7 +116,9 @@
       theme: 'danger',
       text: t('异常'),
     };
-    if (!details.value) return info;
+    if (!details.value) {
+      return info;
+    }
 
     const { status } = details.value;
 
@@ -136,7 +136,7 @@
   });
 
   const activeMonitorPanel = computed(() => {
-    const targetPanel = monitorPanelList.value.find(item => item.name === activePanelKey.value);
+    const targetPanel = monitorPanelList.value.find((item) => item.name === activePanelKey.value);
     return targetPanel;
   });
 
@@ -177,7 +177,7 @@
     manual: true,
     onSuccess(res) {
       if (res.urls.length > 0) {
-        monitorPanelList.value = res.urls.map(item => ({
+        monitorPanelList.value = res.urls.map((item) => ({
           label: item.view,
           name: item.view,
           link: item.url,
@@ -186,17 +186,21 @@
     },
   });
 
-  watch(() => instInfo.id, (id) => {
-    if (id) {
-      runGetMonitorUrls({
-        bk_biz_id: currentBizId,
-        cluster_type: ClusterTypes.INFLUXDB,
-        instance_id: id,
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => instInfo.id,
+    (id) => {
+      if (id) {
+        runGetMonitorUrls({
+          bk_biz_id: currentBizId,
+          cluster_type: ClusterTypes.INFLUXDB,
+          instance_id: id,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const fetchInstanceDetails = () => {
     isLoading.value = true;
@@ -212,7 +216,7 @@
       });
   };
 
-  const handleChangeInstance = ({ id, instance }: {id:number, instance: string}) => {
+  const handleChangeInstance = ({ id, instance }: { id: number; instance: string }) => {
     instInfo.id = id;
     instInfo.address = instance;
     fetchInstanceDetails();
@@ -229,52 +233,50 @@
       });
     },
   });
-
-
 </script>
 <style lang="less">
-.influxdb-instance-detail {
-  height: 100%;
-
-  .bk-resize-layout-aside-content {
-    width: calc(100% + 1px);
-  }
-
-  .content-wrapper {
-    display: flex;
+  .influxdb-instance-detail {
     height: 100%;
-    overflow: hidden;
-    flex-direction: column;
-    align-items: center;
 
-    .db-card {
+    .bk-resize-layout-aside-content {
+      width: calc(100% + 1px);
+    }
+
+    .content-wrapper {
+      display: flex;
+      height: 100%;
+      overflow: hidden;
+      flex-direction: column;
+      align-items: center;
+
+      .db-card {
+        width: 100%;
+
+        &.baseinfo-box {
+          max-height: 188px;
+          flex-shrink: 0;
+        }
+      }
+    }
+
+    .tab-wrapper {
       width: 100%;
+      overflow: hidden;
+      background-color: white;
+      flex: 1;
 
-      &.baseinfo-box {
-        max-height: 188px;
-        flex-shrink: 0;
+      .bk-tab-header {
+        margin: 0 24px;
+      }
+
+      .bk-tab-content {
+        height: calc(100% - 42px);
+        padding: 0;
       }
     }
   }
 
-  .tab-wrapper {
-    width: 100%;
-    overflow: hidden;
-    background-color: white;
-    flex: 1;
-
-    .bk-tab-header {
-      margin: 0 24px;
-    }
-
-    .bk-tab-content {
-      height: calc(100% - 42px);
-      padding: 0;
-    }
+  .influxdb-instance-detail-status-box {
+    margin-left: 24px;
   }
-}
-
-.influxdb-instance-detail-status-box{
-  margin-left: 24px;
-}
 </style>

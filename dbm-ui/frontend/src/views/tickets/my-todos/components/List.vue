@@ -32,7 +32,7 @@
               <BkDropdownItem
                 v-for="item in filters"
                 :key="item.value"
-                :class="{'dropdown-item-active': item.value === state.filters.status}"
+                :class="{ 'dropdown-item-active': item.value === state.filters.status }"
                 @click="handleChangeStatus(item)">
                 {{ item.label }}
               </BkDropdownItem>
@@ -88,13 +88,15 @@
                 <RenderRow
                   class="info-item-value"
                   :data="item.related_object.objects"
-                  style="overflow: hidden;" />
+                  style="overflow: hidden" />
               </div>
               <div class="side-item-info is-single">
                 <span class="info-item-label">{{ t('业务') }}：</span>
                 <span
                   v-overflow-tips
-                  class="info-item-value text-overflow">{{ item.bk_biz_name }}</span>
+                  class="info-item-value text-overflow">
+                  {{ item.bk_biz_name }}
+                </span>
               </div>
               <div class="side-item-info">
                 <span>{{ t('申请人') }}： {{ item.creator }}</span>
@@ -381,168 +383,166 @@
 </script>
 
 <style lang="less" scoped>
-@import "@/styles/mixins.less";
+  @import '@/styles/mixins.less';
 
-.ticket-side {
-  flex-shrink: 0;
-  width: 320px;
-  height: 100%;
-  background-color: @white-color;
+  .ticket-side {
+    flex-shrink: 0;
+    width: 320px;
+    height: 100%;
+    background-color: @white-color;
 
-  .side-top {
-    padding: 16px;
-    border-bottom: 1px solid @border-disable;
-  }
-
-  .side-header {
-    .flex-center();
-
-    justify-content: space-between;
-    padding-bottom: 16px;
-    color: @title-color;
-  }
-
-  .status-trigger {
-    position: relative;
-    height: 32px;
-    padding: 0 24px 0 10px;
-    font-size: 12px;
-    line-height: 32px;
-    color: @default-color;
-    cursor: pointer;
-    background-color: #fff;
-
-    .status-trigger-icon {
-      position: absolute;
-      right: 6px;
-      font-size: 14px;
-      line-height: 32px;
-      color: @gray-color;
-      transition: all 0.3s;
-    }
-  }
-
-  .status-trigger:hover,
-  .is-status-active {
-    background-color: #f5f7fa;
-  }
-
-  .is-status-active {
-    .status-trigger-icon {
-      transform: rotate(180deg);
-    }
-  }
-
-  .side-main {
-    width: 100%;
-    height: calc(100% - 113px);
-  }
-
-  .side-list {
-    width: 100%;
-    height: calc(100% - 32px);
-
-    .bk-nested-loading {
-      width: 100%;
-      height: 100%;
-    }
-  }
-
-  .side-item {
-    position: relative;
-    padding: 16px;
-    font-size: @font-size-mini;
-    cursor: pointer;
-    border-bottom: 1px solid @border-disable;
-
-    .side-item-title {
-      display: flex;
-      align-items: center;
-      padding-bottom: 8px;
-      overflow: hidden;
-
-      :deep(.bk-tag) {
-        height: 16px;
-        padding: 0 4px;
-        margin: 0;
-
-        .bk-tag-text {
-          height: 16px;
-          line-height: 16px;
-          transform: scale(0.83, 0.83);
-        }
-
-      }
+    .side-top {
+      padding: 16px;
+      border-bottom: 1px solid @border-disable;
     }
 
-    .side-item-name {
-      padding-right: 8px;
-    }
-
-    .side-item-tag {
-      flex-shrink: 0;
-    }
-
-    .side-item-dot {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 6px;
-      height: 6px;
-      background-color: #ea3636;
-      border-radius: 50%;
-    }
-
-    .side-item-info {
+    .side-header {
       .flex-center();
 
       justify-content: space-between;
+      padding-bottom: 16px;
+      color: @title-color;
+    }
 
-      .info-item-label {
-        flex-shrink: 0;
+    .status-trigger {
+      position: relative;
+      height: 32px;
+      padding: 0 24px 0 10px;
+      font-size: 12px;
+      line-height: 32px;
+      color: @default-color;
+      cursor: pointer;
+      background-color: #fff;
+
+      .status-trigger-icon {
+        position: absolute;
+        right: 6px;
+        font-size: 14px;
+        line-height: 32px;
+        color: @gray-color;
+        transition: all 0.3s;
       }
+    }
 
-      .info-item-value {
-        flex-grow: 1;
+    .status-trigger:hover,
+    .is-status-active {
+      background-color: #f5f7fa;
+    }
+
+    .is-status-active {
+      .status-trigger-icon {
+        transform: rotate(180deg);
+      }
+    }
+
+    .side-main {
+      width: 100%;
+      height: calc(100% - 113px);
+    }
+
+    .side-list {
+      width: 100%;
+      height: calc(100% - 32px);
+
+      .bk-nested-loading {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    .side-item {
+      position: relative;
+      padding: 16px;
+      font-size: @font-size-mini;
+      cursor: pointer;
+      border-bottom: 1px solid @border-disable;
+
+      .side-item-title {
+        display: flex;
+        align-items: center;
+        padding-bottom: 8px;
+        overflow: hidden;
 
         :deep(.bk-tag) {
           height: 16px;
           padding: 0 4px;
           margin: 0;
-          line-height: 16px;
+
+          .bk-tag-text {
+            height: 16px;
+            line-height: 16px;
+            transform: scale(0.83, 0.83);
+          }
+        }
+      }
+
+      .side-item-name {
+        padding-right: 8px;
+      }
+
+      .side-item-tag {
+        flex-shrink: 0;
+      }
+
+      .side-item-dot {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 6px;
+        height: 6px;
+        background-color: #ea3636;
+        border-radius: 50%;
+      }
+
+      .side-item-info {
+        .flex-center();
+
+        justify-content: space-between;
+
+        .info-item-label {
+          flex-shrink: 0;
+        }
+
+        .info-item-value {
+          flex-grow: 1;
+
+          :deep(.bk-tag) {
+            height: 16px;
+            padding: 0 4px;
+            margin: 0;
+            line-height: 16px;
+          }
         }
       }
     }
-  }
 
-  .is-single {
-    justify-content: flex-start;
-    margin-bottom: 8px;
-  }
+    .is-single {
+      justify-content: flex-start;
+      margin-bottom: 8px;
+    }
 
-  .side-item:hover,
-  .side-item-active {
-    background-color: #EBF2FF;
+    .side-item:hover,
+    .side-item-active {
+      background-color: #ebf2ff;
 
-    .side-item-title {
-      .side-item-name  {
-        font-weight: 700;
-        color: #313238;
+      .side-item-title {
+        .side-item-name {
+          font-weight: 700;
+          color: #313238;
+        }
+
+        .bk-tag {
+          font-weight: 700;
+        }
       }
+    }
 
-      .bk-tag {
-        font-weight: 700;
+    .side-pagination {
+      padding: 2px 0;
+
+      :deep(.bk-pagination-limit) {
+        display: none;
       }
     }
   }
-
-
-  .side-pagination {
-    padding: 2px 0;
-
-    :deep(.bk-pagination-limit) {
-      display: none;
-    }
-  }
-}
 </style>

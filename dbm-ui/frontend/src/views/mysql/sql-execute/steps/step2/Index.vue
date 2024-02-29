@@ -28,7 +28,7 @@
       </div>
       <div
         class="layout-right"
-        style="width: 690px;">
+        style="width: 690px">
         <div class="log-header">
           <div>{{ $t('执行日志') }}</div>
           <div
@@ -38,32 +38,31 @@
               class="rotate-loading"
               svg
               type="sync-pending" />
-            <span style="padding-left: 4px; font-size: 12px;">{{ $t('执行中') }}</span>
+            <span style="padding-left: 4px; font-size: 12px">{{ $t('执行中') }}</span>
           </div>
           <div
             v-if="currentSelectFileData?.isFailed"
             class="log-status">
             <DbIcon
-              style="color: #ea3636;"
+              style="color: #ea3636"
               svg
               type="delete-fill" />
-            <span style="padding-left: 4px; font-size: 12px;">{{ $t('执行失败') }}</span>
+            <span style="padding-left: 4px; font-size: 12px">{{ $t('执行失败') }}</span>
           </div>
           <div
             v-if="currentSelectFileData?.isWaiting"
             class="log-status">
-            <span style="padding-left: 4px; font-size: 12px;">{{ $t('待执行') }}</span>
+            <span style="padding-left: 4px; font-size: 12px">{{ $t('待执行') }}</span>
           </div>
         </div>
-        <div style="height: calc(100vh - 476px);">
+        <div style="height: calc(100vh - 476px)">
           <RenderLog :data="renderLog" />
         </div>
       </div>
     </div>
     <div class="sql-execute-more-action-box">
       <template v-if="flowStatus === 'failed'">
-        <BkButton
-          @click="handleGoEdit">
+        <BkButton @click="handleGoEdit">
           {{ $t('返回修改') }}
         </BkButton>
         <BkButton
@@ -104,27 +103,15 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { ref, watch } from 'vue';
+  import { useRoute, useRouter } from 'vue-router';
 
-  import {
-    deleteUserSemanticTasks,
-    querySemanticData,
-    revokeSemanticCheck,
-  } from '@services/source/sqlImport';
+  import { deleteUserSemanticTasks, querySemanticData, revokeSemanticCheck } from '@services/source/sqlImport';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import RenderFileList, {
-    type IFileItem,
-  } from './components/render-file-list/Index.vue';
+  import RenderFileList, { type IFileItem } from './components/render-file-list/Index.vue';
   import StatusFailed from './components/render-status/Failed.vue';
   import StatusPending from './components/render-status/Pending.vue';
   import StatusSuccess from './components/render-status/Success.vue';
@@ -136,31 +123,22 @@
   const route = useRoute();
   const { currentBizId } = useGlobalBizs();
 
-  const {
-    rootId,
-    nodeId,
-  } = route.query as { rootId: string, nodeId: string };
+  const { rootId, nodeId } = route.query as { rootId: string; nodeId: string };
 
   const selectFileName = ref('');
   const fileImportMode = ref('');
   const ticketMode = ref('');
-  const fileNameList = ref<string []>([]);
+  const fileNameList = ref<string[]>([]);
   const isSubmiting = ref(false);
   const isRevokeing = ref(false);
   const isDeleteing = ref(false);
   const renderLog = shallowRef<any[]>([]);
 
   // 执行状态
-  const {
-    flowStatus,
-    ticketId: flowTicketId,
-  } = useFlowStatus(rootId);
+  const { flowStatus, ticketId: flowTicketId } = useFlowStatus(rootId);
 
   // 执行日志
-  const {
-    wholeLogList,
-    fileLogMap,
-  } = useLog(rootId, nodeId);
+  const { wholeLogList, fileLogMap } = useLog(rootId, nodeId);
 
   // 执行状态
   const renderStatusCom = computed(() => {
@@ -184,10 +162,9 @@
     }));
   });
 
-  const currentSelectFileData = computed(() => _.find(
-    fileDataList.value,
-    item => item.name === selectFileName.value,
-  ));
+  const currentSelectFileData = computed(() =>
+    _.find(fileDataList.value, (item) => item.name === selectFileName.value),
+  );
   // 本地文件需要显示文件列表
   const isShowFileList = computed(() => fileImportMode.value === 'file');
 
@@ -203,22 +180,26 @@
   });
 
   // 执行成功自动跳转
-  watch(flowStatus, () => {
-    if (flowStatus.value === 'successed') {
-      router.push({
-        name: 'MySQLExecute',
-        params: {
-          step: 'success',
-        },
-        query: {
-          ticketId: flowTicketId.value,
-          ticketMode: ticketMode.value,
-        },
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    flowStatus,
+    () => {
+      if (flowStatus.value === 'successed') {
+        router.push({
+          name: 'MySQLExecute',
+          params: {
+            step: 'success',
+          },
+          query: {
+            ticketId: flowTicketId.value,
+            ticketMode: ticketMode.value,
+          },
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const fetchSemanticData = () => {
     querySemanticData({
@@ -233,7 +214,7 @@
         return;
       }
       fileImportMode.value = data.import_mode;
-      fileNameList.value = data.semantic_data.execute_sql_files.map(item => item.replace(/[^_]+_/, ''));
+      fileNameList.value = data.semantic_data.execute_sql_files.map((item) => item.replace(/[^_]+_/, ''));
       ticketMode.value = data.semantic_data.ticket_mode.mode;
       // 默认选中第一个问题件
       [selectFileName.value] = fileNameList.value;
@@ -252,17 +233,18 @@
       },
       remark: '',
       ticket_type: 'MYSQL_IMPORT_SQLFILE',
-    }).then((data) => {
-      router.push({
-        name: 'MySQLExecute',
-        params: {
-          step: 'success',
-        },
-        query: {
-          ticketId: data.id,
-        },
-      });
     })
+      .then((data) => {
+        router.push({
+          name: 'MySQLExecute',
+          params: {
+            step: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      })
       .finally(() => {
         isSubmiting.value = false;
       });
@@ -287,11 +269,12 @@
     return revokeSemanticCheck({
       bk_biz_id: currentBizId,
       root_id: rootId,
-    }).then(() => {
-      router.push({
-        name: 'MySQLExecute',
-      });
     })
+      .then(() => {
+        router.push({
+          name: 'MySQLExecute',
+        });
+      })
       .finally(() => {
         isRevokeing.value = false;
       });
@@ -303,11 +286,12 @@
       bk_biz_id: currentBizId,
       task_ids: [rootId],
       cluster_type: 'mysql',
-    }).then(() => {
-      router.push({
-        name: 'MySQLExecute',
-      });
     })
+      .then(() => {
+        router.push({
+          name: 'MySQLExecute',
+        });
+      })
       .finally(() => {
         isDeleteing.value = false;
       });

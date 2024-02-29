@@ -45,8 +45,8 @@
   import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/mysql/common/render-table/Index.vue';
 
-  interface Emits{
-    (e: 'showMasterBatchSelector'): void,
+  interface Emits {
+    (e: 'showMasterBatchSelector'): void;
   }
 
   const emits = defineEmits<Emits>();

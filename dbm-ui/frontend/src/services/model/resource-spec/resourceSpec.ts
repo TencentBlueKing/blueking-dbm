@@ -9,23 +9,24 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { differenceInSeconds } from 'date-fns';
 
 import { utcDisplayTime } from '@utils';
+
 export default class ResourceSpec {
   cpu: {
-    max: number,
-    min: number
+    max: number;
+    min: number;
   };
   mem: {
-    max: number,
-    min: number
+    max: number;
+    min: number;
   };
   storage_spec: {
-    mount_point: string,
-    size: number,
-    type: string,
+    mount_point: string;
+    size: number;
+    type: string;
   }[];
   device_class: string[];
   create_at: string;
@@ -41,8 +42,8 @@ export default class ResourceSpec {
   is_refer: boolean;
   instance_num: number;
   qps: {
-    min: number,
-    max: number
+    min: number;
+    max: number;
   };
   permission: {
     spec_create: boolean;

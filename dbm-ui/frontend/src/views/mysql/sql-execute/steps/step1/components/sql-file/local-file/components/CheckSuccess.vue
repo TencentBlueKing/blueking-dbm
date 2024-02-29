@@ -17,9 +17,7 @@
     <span>{{ $t('检测通过') }}</span>
   </div>
 </template>
-<script setup lang="ts">
-
-</script>
+<script setup lang="ts"></script>
 <style lang="less">
   .sql-execute-upload-check-success {
     position: absolute;

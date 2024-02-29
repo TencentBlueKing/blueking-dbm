@@ -51,9 +51,9 @@
     font-size: 20px;
     align-items: center;
 
-    .route-btn{
+    .route-btn {
       padding-left: 8px;
-      color: #3A84FF;
+      color: #3a84ff;
       cursor: pointer;
     }
   }

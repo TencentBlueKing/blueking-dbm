@@ -32,32 +32,30 @@
       <div class="capacity-panel">
         <div class="panel-row">
           <div class="column">
-            <div class="title">
-              {{ t('当前资源规格') }}：
-            </div>
+            <div class="title">{{ t('当前资源规格') }}：</div>
             <div class="content">
               {{ data?.currentSepc }}
             </div>
           </div>
           <div class="column">
-            <div class="title">
-              {{ t('变更后的规格') }}：
-            </div>
+            <div class="title">{{ t('变更后的规格') }}：</div>
             <div class="content">
               <span v-if="targetSepc">{{ targetSepc }}</span>
               <span
                 v-else
-                style="color: #C4C6CC;">{{ t('请先选择部署方案') }}</span>
+                style="color: #c4c6cc">
+                {{ t('请先选择部署方案') }}
+              </span>
             </div>
           </div>
         </div>
         <div
           class="panel-row"
-          style="margin-top: 12px;">
+          style="margin-top: 12px">
           <div class="column">
             <div
               class="title"
-              style="min-width: 70px;">
+              style="min-width: 70px">
               {{ t('当前总容量') }}：
             </div>
             <div class="content">
@@ -76,7 +74,7 @@
           <div class="column">
             <div
               class="title"
-              style="min-width: 82px;">
+              style="min-width: 82px">
               {{ t('变更后总容量') }}：
             </div>
             <div class="content">
@@ -105,16 +103,16 @@
               </template>
               <span
                 v-else
-                style="color: #C4C6CC;">{{ t('请先选择部署方案') }}</span>
+                style="color: #c4c6cc">
+                {{ t('请先选择部署方案') }}
+              </span>
             </div>
           </div>
         </div>
       </div>
       <div class="select-group">
         <div class="select-box">
-          <div class="title-spot">
-            {{ targetCapacityTitle }}<span class="required" />
-          </div>
+          <div class="title-spot">{{ targetCapacityTitle }}<span class="required" /></div>
           <div class="input-box">
             <BkInput
               class="mb10 num-input"
@@ -123,16 +121,12 @@
               size="small"
               type="number"
               @blur="handleSearchClusterSpec"
-              @change="(value) => capacityNeed = Number(value)" />
-            <div class="uint">
-              G
-            </div>
+              @change="(value) => (capacityNeed = Number(value))" />
+            <div class="uint">G</div>
           </div>
         </div>
         <div class="select-box">
-          <div class="title-spot">
-            {{ futureCapacityTitle }}<span class="required" />
-          </div>
+          <div class="title-spot">{{ futureCapacityTitle }}<span class="required" /></div>
           <div class="input-box">
             <BkInput
               class="mb10 num-input"
@@ -141,10 +135,8 @@
               size="small"
               type="number"
               @blur="handleSearchClusterSpec"
-              @change="(value) => capacityFutureNeed = Number(value)" />
-            <div class="uint">
-              G
-            </div>
+              @change="(value) => (capacityFutureNeed = Number(value))" />
+            <div class="uint">G</div>
           </div>
           <div
             v-if="isShowGreaterTip"
@@ -154,9 +146,7 @@
         </div>
       </div>
       <div class="deploy-box">
-        <div class="title-spot">
-          {{ t('集群部署方案') }}<span class="required" />
-        </div>
+        <div class="title-spot">{{ t('集群部署方案') }}<span class="required" /></div>
         <BkLoading :loading="isTableLoading">
           <DbOriginalTable
             class="deploy-table"
@@ -167,7 +157,7 @@
             <template #empty>
               <p
                 v-if="!capacityNeed || !capacityFutureNeed"
-                style="width: 100%; line-height: 128px; text-align: center;">
+                style="width: 100%; line-height: 128px; text-align: center">
                 <DbIcon
                   class="mr-4"
                   type="attention" />
@@ -177,7 +167,7 @@
                 v-else
                 :description="t('无匹配的资源规格_请先修改容量设置')"
                 scene="part"
-                style="font-size: 12px;"
+                style="font-size: 12px"
                 type="empty" />
             </template>
           </DbOriginalTable>
@@ -454,151 +444,147 @@
 </script>
 
 <style lang="less" scoped>
-
-.positive {
-  color: #EA3636;
-}
-
-.negtive {
-  color: #2DCB56;
-}
-
-.main-box {
-  display: flex;
-  width: 100%;
-  padding: 24px 40px;
-  flex-direction: column;
-
-  .capacity-panel {
-    width: 880px;
-    padding: 16px;
-    margin-bottom: 24px;
-    background: #FAFBFD;
-
-    .panel-row {
-      display: flex;
-      width: 100%;
-
-      .column {
-        display: flex;
-        width: 50%;
-        align-items: center;
-
-        .title {
-          height: 18px;
-          font-size: 12px;
-          line-height: 18px;
-          letter-spacing: 0;
-          color: #63656E;
-          text-align: right;
-        }
-
-        .content {
-          flex:1;
-          display: flex;
-          font-size: 12px;
-          color: #63656E;
-
-          .percent {
-            margin-left: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #313238;
-          }
-
-          .spec {
-            margin-left: 2px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #63656E;
-          }
-
-          .scale-percent {
-            margin-left: 5px;
-            font-size: 12px;
-            font-weight: bold;
-          }
-        }
-      }
-    }
+  .positive {
+    color: #ea3636;
   }
 
-  .select-group {
-    position: relative;
+  .negtive {
+    color: #2dcb56;
+  }
+
+  .main-box {
     display: flex;
-    width: 880px;
-    gap: 38px;
+    width: 100%;
+    padding: 24px 40px;
+    flex-direction: column;
 
-    .select-box {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+    .capacity-panel {
+      width: 880px;
+      padding: 16px;
+      margin-bottom: 24px;
+      background: #fafbfd;
 
-      .input-box {
+      .panel-row {
         display: flex;
         width: 100%;
-        align-items: center;
 
-        .num-input {
-          height: 32px;
-        }
+        .column {
+          display: flex;
+          width: 50%;
+          align-items: center;
 
-        .uint {
-          margin-left: 12px;
-          font-size: 12px;
-          color: #63656E;
-        }
-      }
+          .title {
+            height: 18px;
+            font-size: 12px;
+            line-height: 18px;
+            letter-spacing: 0;
+            color: #63656e;
+            text-align: right;
+          }
 
-      .gt-tip {
-        position: absolute;
-        right: 252px;
-        bottom: -20px;
+          .content {
+            flex: 1;
+            display: flex;
+            font-size: 12px;
+            color: #63656e;
 
-        span {
-          font-size: 12px;
-          color: #EA3636;
+            .percent {
+              margin-left: 4px;
+              font-size: 12px;
+              font-weight: bold;
+              color: #313238;
+            }
+
+            .spec {
+              margin-left: 2px;
+              font-size: 12px;
+              font-weight: bold;
+              color: #63656e;
+            }
+
+            .scale-percent {
+              margin-left: 5px;
+              font-size: 12px;
+              font-weight: bold;
+            }
+          }
         }
       }
     }
-  }
 
-  .deploy-box {
-    margin-top: 24px;
+    .select-group {
+      position: relative;
+      display: flex;
+      width: 880px;
+      gap: 38px;
 
-    .deploy-table {
-      margin-top: 6px;
+      .select-box {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
 
-      :deep(.cluster-name) {
-        padding: 8px 0;
-        line-height: 16px;
+        .input-box {
+          display: flex;
+          width: 100%;
+          align-items: center;
 
-        &__alias {
-          color: @light-gray;
+          .num-input {
+            height: 32px;
+          }
+
+          .uint {
+            margin-left: 12px;
+            font-size: 12px;
+            color: #63656e;
+          }
+        }
+
+        .gt-tip {
+          position: absolute;
+          right: 252px;
+          bottom: -20px;
+
+          span {
+            font-size: 12px;
+            color: #ea3636;
+          }
         }
       }
+    }
 
-      :deep(.bk-form-label) {
-        display: none;
-      }
+    .deploy-box {
+      margin-top: 24px;
 
-      :deep(.bk-form-error-tips) {
-        top: 50%;
-        transform: translateY(-50%);
-      }
+      .deploy-table {
+        margin-top: 6px;
 
-      :deep(.regex-input) {
-        margin: 8px 0;
+        :deep(.cluster-name) {
+          padding: 8px 0;
+          line-height: 16px;
+
+          &__alias {
+            color: @light-gray;
+          }
+        }
+
+        :deep(.bk-form-label) {
+          display: none;
+        }
+
+        :deep(.bk-form-error-tips) {
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        :deep(.regex-input) {
+          margin: 8px 0;
+        }
       }
     }
+
+    .spec-title {
+      border-bottom: 1px dashed #979ba5;
+    }
   }
-
-  .spec-title {
-    border-bottom: 1px dashed #979BA5;
-  }
-
-}
-
-
 </style>

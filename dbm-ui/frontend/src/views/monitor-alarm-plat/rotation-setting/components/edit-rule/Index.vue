@@ -35,16 +35,13 @@
           :label="t('规则名称')"
           property="ruleName"
           required>
-          <BkInput
-            v-model="formModel.ruleName" />
+          <BkInput v-model="formModel.ruleName" />
         </BkFormItem>
       </BkForm>
       <div class="name-tip">
         {{ nameTip }}
       </div>
-      <div class="title-spot item-title">
-        {{ t('轮值方式') }}<span class="required" />
-      </div>
+      <div class="title-spot item-title">{{ t('轮值方式') }}<span class="required" /></div>
       <BkRadioGroup
         v-model="rotateType"
         type="card"
@@ -56,15 +53,12 @@
           {{ item.label }}
         </BkRadioButton>
       </BkRadioGroup>
-      <div class="title-spot item-title mt-24">
-        {{ t('轮值业务') }}<span class="required" />
-      </div>
+      <div class="title-spot item-title mt-24">{{ t('轮值业务') }}<span class="required" /></div>
       <BkRadioGroup
         v-model="bizType"
         class="rotate-biz">
         <div class="biz-box">
-          <BkRadio
-            :label="0">
+          <BkRadio :label="0">
             {{ t('全部业务') }}
           </BkRadio>
           <!-- <div class="biz-box-control">
@@ -140,8 +134,7 @@
         @click="handleConfirm">
         {{ t('确定') }}
       </BkButton>
-      <BkButton
-        @click="handleClose">
+      <BkButton @click="handleClose">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -363,65 +356,61 @@
     window.changeConfirm = false;
     isShow.value = false;
   }
-
 </script>
 
 <style lang="less" scoped>
-.rotation-edit-rule {
-  display: flex;
-  width: 100%;
-  padding: 24px 40px;
-  flex-direction: column;
-
-  .item-title {
-    margin-bottom: 6px;
-    font-weight: normal;
-    color: #63656E;
-  }
-
-
-  .name-tip {
-    height: 20px;
-    margin-bottom: 6px;
-    font-size: 12px;
-    color: #EA3636;
-  }
-
-  .rotate-biz {
+  .rotation-edit-rule {
+    display: flex;
     width: 100%;
+    padding: 24px 40px;
     flex-direction: column;
-    gap: 12px;
 
-    .biz-box {
-      display: flex;
+    .item-title {
+      margin-bottom: 6px;
+      font-weight: normal;
+      color: #63656e;
+    }
+
+    .name-tip {
+      height: 20px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: #ea3636;
+    }
+
+    .rotate-biz {
       width: 100%;
-      height: 54px;
-      padding-left: 17px;
-      background: #F5F7FA;
-      border-radius: 2px;
-      align-items: center;
+      flex-direction: column;
+      gap: 12px;
 
-      .biz-box-control {
+      .biz-box {
         display: flex;
         width: 100%;
-        margin-left: 36px;
+        height: 54px;
+        padding-left: 17px;
+        background: #f5f7fa;
+        border-radius: 2px;
         align-items: center;
 
-        .biz-select {
-          width: 710px;
-        }
-
-        .biz-box-append {
+        .biz-box-control {
           display: flex;
-          font-size: 12px;
-          color: #3A84FF;
+          width: 100%;
+          margin-left: 36px;
           align-items: center;
-          cursor: pointer;
+
+          .biz-select {
+            width: 710px;
+          }
+
+          .biz-box-append {
+            display: flex;
+            font-size: 12px;
+            color: #3a84ff;
+            align-items: center;
+            cursor: pointer;
+          }
         }
       }
     }
   }
-}
-
-
 </style>

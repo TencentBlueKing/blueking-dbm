@@ -23,7 +23,7 @@
       :clearable="false"
       :model-value="localValue"
       :placeholder="placeholder"
-      style="width: 100%;"
+      style="width: 100%"
       :type="type"
       v-bind="attrs"
       @change="handleChange"
@@ -38,21 +38,16 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    useAttrs,
-  } from 'vue';
+  import { ref, useAttrs } from 'vue';
 
-  import useValidtor, {
-    type Rules,
-  } from './hooks/useValidtor';
+  import useValidtor, { type Rules } from './hooks/useValidtor';
 
   interface Props {
-    modelValue?: [string, string] | string,
-    placeholder?: string,
-    rules?: Rules,
-    type?: any,
-    disabled?: boolean
+    modelValue?: [string, string] | string;
+    placeholder?: string;
+    rules?: Rules;
+    type?: any;
+    disabled?: boolean;
   }
 
   interface Emits {
@@ -78,19 +73,15 @@
 
   const localValue = ref(props.modelValue);
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { message: errorMessage, validator } = useValidtor(props.rules);
 
   const handleChange = (value: Required<Props>['modelValue']) => {
     localValue.value = value;
-    validator(localValue.value)
-      .then(() => {
-        window.changeConfirm = true;
-        emits('update:modelValue', localValue.value);
-        emits('change', localValue.value);
-      });
+    validator(localValue.value).then(() => {
+      window.changeConfirm = true;
+      emits('update:modelValue', localValue.value);
+      emits('change', localValue.value);
+    });
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -101,8 +92,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localValue.value)
-        .then(() => localValue.value);
+      return validator(localValue.value).then(() => localValue.value);
     },
   });
 </script>

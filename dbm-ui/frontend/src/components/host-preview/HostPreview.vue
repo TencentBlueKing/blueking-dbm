@@ -224,7 +224,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .host-preview-dialog {
     width: 80%;

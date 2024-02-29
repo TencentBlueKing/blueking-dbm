@@ -31,16 +31,13 @@
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderTable from './components/RenderTable.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
 
   interface Props {
-    variableList: string[]
+    variableList: string[];
   }
-  interface Exposes{
-    getValue: () => Promise<Record<string, any>[]>
+  interface Exposes {
+    getValue: () => Promise<Record<string, any>[]>;
   }
 
   defineProps<Props>();
@@ -56,7 +53,7 @@
 
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>([]);
   const isShowBatchSelector = ref(false);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({
     [ClusterTypes.TENDBCLUSTER]: [],
   });
 
@@ -67,7 +64,7 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChange = (selected: { [key: string]: Array<SpiderModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
@@ -107,8 +104,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all(rowRefs.value.map(item => item.getValue()));
+      return Promise.all(rowRefs.value.map((item) => item.getValue()));
     },
   });
 </script>
-

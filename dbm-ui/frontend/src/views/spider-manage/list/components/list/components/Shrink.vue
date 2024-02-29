@@ -12,7 +12,7 @@
         v-model="formdata.master"
         v-bk-tooltips="{
           content: t('可缩容数量已达上限_至少保留n台', { n: masterShrinkLimit.min }),
-          disabled: isAllowShrinkMaster
+          disabled: isAllowShrinkMaster,
         }"
         :disabled="!isAllowShrinkMaster"
         :max="masterShrinkLimit.max"
@@ -244,13 +244,13 @@
 </script>
 
 <style lang="less" scoped>
-.shrink-form {
-  padding: 28px 40px 24px;
+  .shrink-form {
+    padding: 28px 40px 24px;
 
-  .tips {
-    display: flex;
-    align-items: center;
-    font-size: 12px;
+    .tips {
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+    }
   }
-}
 </style>

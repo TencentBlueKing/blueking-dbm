@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
 
@@ -24,7 +24,7 @@ export function checkMysqlInstances(params: Record<'instance_addresses', Array<s
 }
 
 interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
-  spec_config: RedisClusterNodeByIpModel['spec_config']
+  spec_config: RedisClusterNodeByIpModel['spec_config'];
 }
 
 /**

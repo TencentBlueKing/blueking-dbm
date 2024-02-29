@@ -24,16 +24,15 @@
     ticketDetails: {
       details: {
         instance_list: {
-          bk_cloud_id: number,
-          bk_host_id: number,
-          instance_id: number,
-          ip: string,
-          port: number,
-        }
-      }
-    }
+          bk_cloud_id: number;
+          bk_host_id: number;
+          instance_id: number;
+          ip: string;
+          port: number;
+        };
+      };
+    };
   }
-
 
   const props = defineProps<Details>();
   const { t } = useI18n();

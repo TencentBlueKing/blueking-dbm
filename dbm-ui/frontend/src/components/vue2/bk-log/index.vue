@@ -27,7 +27,7 @@
 
 <script setup lang="tsx">
   interface Props {
-    appKey?: string
+    appKey?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -118,5 +118,5 @@
 </script>
 
 <style lang="less">
-  @import "./index.less";
+  @import './index.less';
 </style>

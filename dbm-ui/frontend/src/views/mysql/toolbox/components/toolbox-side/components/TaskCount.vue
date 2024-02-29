@@ -32,11 +32,11 @@
             type="loading" />
           <DbIcon
             v-else-if="item.isSucceeded"
-            style="color: #2dcb56;"
+            style="color: #2dcb56"
             type="check-circle-fill" />
           <DbIcon
             v-else
-            style="color: #ea3636;"
+            style="color: #ea3636"
             type="delete-fill" />
         </div>
         <div class="task-create-time">
@@ -71,70 +71,63 @@
 
   import { useTaskCount } from '@views/mysql/common/hooks/useTaskCount';
 
-  const {
-    rootRef,
-    popRef,
-    taskList,
-    taskCount,
-    handleRevokeTask,
-    handleGoTaskLog,
-  } = useTaskCount('mysql');
+  const { rootRef, popRef, taskList, taskCount, handleRevokeTask, handleGoTaskLog } = useTaskCount('mysql');
 </script>
 <style lang="less" scoped>
-.task-count {
-  height: 16px;
-  padding-right: 8px;
-  padding-left: 4px;
-  margin-left: 4px;
-  font-size: 12px;
-  line-height: 16px;
-  color: @primary-color;
-  background-color: white;
-  border-radius: 20px;
-
-  :deep(.bk-loading-size-mini) {
-    margin-right: 0;
-  }
-
-  :deep(.db-status) {
-    margin-top: -2px;
-    transform: scale(0.6);
-  }
-}
-
-.sql-execute-task-popover-list {
-  max-height: 280px;
-  padding: 12px 16px 12px 12px;
-  margin: -5px -9px;
-  overflow: auto;
-  font-size: 12px;
-  line-height: 24px;
-  color: #63656e;
-
-  .task-item {
-    display: flex;
-    align-items: center;
-    height: 24px;
-
-    &:hover {
-      color: #3a84ff;
-    }
-  }
-
-  .task-create-time {
-    padding-right: 16px;
-    padding-left: 8px;
-  }
-
-  .task-create-action {
-    display: flex;
+  .task-count {
+    height: 16px;
+    padding-right: 8px;
+    padding-left: 4px;
+    margin-left: 4px;
     font-size: 12px;
-    color: #3a84ff;
-    align-items: center;
+    line-height: 16px;
+    color: @primary-color;
+    background-color: white;
+    border-radius: 20px;
 
-    & > * {
-      cursor: pointer;
+    :deep(.bk-loading-size-mini) {
+      margin-right: 0;
+    }
+
+    :deep(.db-status) {
+      margin-top: -2px;
+      transform: scale(0.6);
     }
   }
-}
+
+  .sql-execute-task-popover-list {
+    max-height: 280px;
+    padding: 12px 16px 12px 12px;
+    margin: -5px -9px;
+    overflow: auto;
+    font-size: 12px;
+    line-height: 24px;
+    color: #63656e;
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      height: 24px;
+
+      &:hover {
+        color: #3a84ff;
+      }
+    }
+
+    .task-create-time {
+      padding-right: 16px;
+      padding-left: 8px;
+    }
+
+    .task-create-action {
+      display: flex;
+      font-size: 12px;
+      color: #3a84ff;
+      align-items: center;
+
+      & > * {
+        cursor: pointer;
+      }
+    }
+  }
 </style>

@@ -39,24 +39,19 @@
 <script setup lang="ts">
   import * as monaco from 'monaco-editor';
   import screenfull from 'screenfull';
-  import {
-    onBeforeUnmount,
-    onMounted,
-    ref,
-    watch,
-  } from 'vue';
+  import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
   import { getSQLFilename } from '@utils';
 
   interface Props {
-    modelValue: string,
-    title: string,
-    readonly?: boolean,
+    modelValue: string;
+    title: string;
+    readonly?: boolean;
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: string): void
-    (e: 'change', value: string): void
+    (e: 'update:modelValue', value: string): void;
+    (e: 'change', value: string): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -72,15 +67,19 @@
 
   let editor: monaco.editor.IStandaloneCodeEditor;
 
-  watch(() => props.modelValue, () => {
-    setTimeout(() => {
-      if (props.modelValue !== editor.getValue()) {
-        editor.setValue(props.modelValue);
-      }
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      setTimeout(() => {
+        if (props.modelValue !== editor.getValue()) {
+          editor.setValue(props.modelValue);
+        }
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleToggleScreenfull = () => {
     if (screenfull.isFullscreen) {
@@ -143,7 +142,6 @@
     screenfull.off('change', handleToggleScreenfull);
     window.removeEventListener('resize', handleReize);
   });
-
 </script>
 <style lang="less">
   .ticket-import-sql-file-render {

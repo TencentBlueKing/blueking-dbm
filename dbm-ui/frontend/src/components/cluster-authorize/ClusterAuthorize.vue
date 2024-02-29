@@ -59,7 +59,7 @@
           :operations="clusterState.operations"
           :table-props="{
             ...clusterState.tableProps,
-            columns: collapseTableColumns
+            columns: collapseTableColumns,
           }"
           :title="clusterTypeTitle" />
       </BkFormItem>
@@ -203,40 +203,21 @@
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import MongodbPermissonAccountModel from '@services/model/mongodb-permission/mongodb-permission-account';
-  import {
-    getPermissionRules,
-    preCheckAuthorizeRules,
-  } from '@services/permission';
+  import { getPermissionRules, preCheckAuthorizeRules } from '@services/permission';
   import { checkHost } from '@services/source/ipchooser';
   import { getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
   import { preCheckMongodbAuthorizeRules } from '@services/source/mongodbPermissionAuthorize';
   import { createTicket } from '@services/source/ticket';
   import { getWhitelist } from '@services/source/whitelist';
-  import type {
-    AuthorizePreCheckData,
-    PermissionRule,
-  } from '@services/types/permission';
+  import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
 
-  import {
-    useCopy,
-    useInfo,
-    useStickyFooter,
-    useTicketMessage,
-  } from '@hooks';
+  import { useCopy, useInfo, useStickyFooter, useTicketMessage } from '@hooks';
 
   import type { AccountTypesValues } from '@common/const';
-  import {
-    AccountTypes,
-    ClusterTypes,
-    TicketTypes,
-  } from '@common/const';
+  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelectorNew, {
-    type TabConfig,
-  } from '@components/cluster-selector-new/Index.vue';
-  import DBCollapseTable, {
-    type ClusterTableProps,
-  } from '@components/db-collapse-table/DBCollapseTable.vue';
+  import ClusterSelectorNew, { type TabConfig } from '@components/cluster-selector-new/Index.vue';
+  import DBCollapseTable, { type ClusterTableProps } from '@components/db-collapse-table/DBCollapseTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import AccountRulesTable from './accouter-rules-selector/components/AccountRulesTable.vue';

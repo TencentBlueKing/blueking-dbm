@@ -70,17 +70,10 @@
   import { Form } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { queryAllTypeCluster } from '@services/dbbase';
-  import {
-    create as createOpenarea,
-    getDetail,
-    update as updateOpenarea,
-  } from '@services/openarea';
+  import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/openarea';
 
   import { useGlobalBizs } from '@stores';
 
@@ -111,9 +104,7 @@
 
   const formData = reactive(genDefaultValue());
 
-  const {
-    data: clusterList,
-  } = useRequest(queryAllTypeCluster, {
+  const { data: clusterList } = useRequest(queryAllTypeCluster, {
     defaultParams: [
       {
         bk_biz_id: currentBizId,
@@ -124,10 +115,7 @@
   });
 
   // 编辑态获取模版详情
-  const {
-    loading: isDetailLoading,
-    run: fetchTemplateDetail,
-  } = useRequest(getDetail, {
+  const { loading: isDetailLoading, run: fetchTemplateDetail } = useRequest(getDetail, {
     manual: true,
     onSuccess(data) {
       formData.config_name = data.config_name;
@@ -159,13 +147,14 @@
         params.id = Number(route.params.id);
       }
       const handler = isEditMode ? updateOpenarea : createOpenarea;
-      handler(params).then(() => {
-        messageSuccess(isEditMode ? t('编辑成功') : t('新建成功'));
-        window.changeConfirm = false;
-        router.push({
-          name: 'mysqlOpenareaTemplate',
-        });
-      })
+      handler(params)
+        .then(() => {
+          messageSuccess(isEditMode ? t('编辑成功') : t('新建成功'));
+          window.changeConfirm = false;
+          router.push({
+            name: 'mysqlOpenareaTemplate',
+          });
+        })
         .finally(() => {
           isSubmiting.value = false;
         });

@@ -13,7 +13,7 @@
 
 <template>
   <div
-    v-bkloading="{loading: isLoading}"
+    v-bkloading="{ loading: isLoading }"
     class="kafka-detail-page">
     <BkTab
       v-model:active="activePanelKey"
@@ -84,9 +84,9 @@
   }
 
   interface PanelItem {
-    label: string,
-    name: string,
-    link: string,
+    label: string;
+    name: string;
+    link: string;
   }
 
   const props = defineProps<Props>();
@@ -98,7 +98,7 @@
   const monitorPanelList = ref<PanelItem[]>([]);
 
   const activePanel = computed(() => {
-    const targetPanel = monitorPanelList.value.find(item => item.name === activePanelKey.value);
+    const targetPanel = monitorPanelList.value.find((item) => item.name === activePanelKey.value);
     return targetPanel;
   });
 
@@ -114,7 +114,7 @@
     manual: true,
     onSuccess(res) {
       if (res.urls.length > 0) {
-        monitorPanelList.value = res.urls.map(item => ({
+        monitorPanelList.value = res.urls.map((item) => ({
           label: item.view,
           name: item.view,
           link: item.url,
@@ -123,20 +123,24 @@
     },
   });
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchResourceDetails({
-        id: props.clusterId,
-      });
-      runGetMonitorUrls({
-        bk_biz_id: currentBizId,
-        cluster_type: ClusterTypes.KAFKA,
-        cluster_id: props.clusterId,
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (props.clusterId) {
+        fetchResourceDetails({
+          id: props.clusterId,
+        });
+        runGetMonitorUrls({
+          bk_biz_id: currentBizId,
+          cluster_type: ClusterTypes.KAFKA,
+          cluster_id: props.clusterId,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less">
   .kafka-detail-page {

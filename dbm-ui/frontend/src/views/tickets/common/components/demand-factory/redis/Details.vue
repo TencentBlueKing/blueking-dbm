@@ -45,8 +45,7 @@
   <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('数据库部署信息') }}</strong>
     <div class="ticket-details__list">
-      <div
-        class="ticket-details__item">
+      <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('容灾要求') }}：</span>
         <span class="ticket-details__item-value">{{ affinity }}</span>
       </div>
@@ -121,8 +120,7 @@
         </div>
       </template>
       <template v-else>
-        <div
-          class="ticket-details__item">
+        <div class="ticket-details__item">
           <span class="ticket-details__item-label">{{ $t('Proxy存储资源规格') }}：</span>
           <span class="ticket-details__item-value">
             <BkPopover
@@ -130,7 +128,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
                 {{ proxySpec?.spec_name }}（{{ `${proxySpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -139,8 +137,7 @@
             </BkPopover>
           </span>
         </div>
-        <div
-          class="ticket-details__item whole mt-8">
+        <div class="ticket-details__item whole mt-8">
           <span class="ticket-details__item-label">{{ $t('集群部署方案') }}：</span>
           <span class="ticket-details__item-value">
             <DbOriginalTable
@@ -184,20 +181,20 @@
   import SpecInfos, { type SpecInfo } from '../../SpecInfos.vue';
 
   interface Details extends TicketDetailsRedis {
-    ip_source: string,
-    disaster_tolerance_level: string,
+    ip_source: string;
+    disaster_tolerance_level: string;
     resource_spec: {
-      proxy: SpecInfo,
+      proxy: SpecInfo;
       backend_group: {
-        count: number,
-        spec_id: string,
-        spec_info: RedisClusterSpecModel
-      },
-    },
+        count: number;
+        spec_id: string;
+        spec_info: RedisClusterSpecModel;
+      };
+    };
   }
 
-  interface Props{
-    ticketDetails: TicketDetails<Details>
+  interface Props {
+    ticketDetails: TicketDetails<Details>;
   }
 
   const props = defineProps<Props>();
@@ -228,7 +225,7 @@
   const affinity = computed(() => {
     const level = props.ticketDetails?.details?.disaster_tolerance_level;
     if (level && affinityList) {
-      return affinityList.find(item => item.value === level)?.label;
+      return affinityList.find((item) => item.value === level)?.label;
     }
     return '--';
   });
@@ -254,14 +251,14 @@
     {
       field: 'qps',
       label: t('集群QPS每秒'),
-      render: ({ data }: {data: RedisClusterSpecModel}) => data.qps.min * data.machine_pair,
+      render: ({ data }: { data: RedisClusterSpecModel }) => data.qps.min * data.machine_pair,
     },
   ];
 
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {
       const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find(item => item.city_code === cityCode)?.city_name;
+      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
       cityName.value = name ?? '--';
     },
   });
@@ -270,7 +267,9 @@
    * 获取申请容量内容
    */
   function getCapSpecDisplay() {
-    if (!props.ticketDetails?.details?.cap_spec) return '--';
+    if (!props.ticketDetails?.details?.cap_spec) {
+      return '--';
+    }
 
     const capSpecArr: string[] = props.ticketDetails?.details?.cap_spec.split(':');
     return `${capSpecArr[0]}(${(Number(capSpecArr[1]) / 1024).toFixed(2)} GB x ${capSpecArr[2]}${t('分片')})`;
@@ -280,7 +279,9 @@
    * 获取部署架构类型
    */
   function getClusterType() {
-    if (!props.ticketDetails?.details?.cluster_type) return '--';
+    if (!props.ticketDetails?.details?.cluster_type) {
+      return '--';
+    }
 
     return redisClusterTypes[props.ticketDetails.details.cluster_type as RedisClusterTypes]?.text || '--';
   }
@@ -289,7 +290,9 @@
    * 获取服务器类型
    */
   function getIpSource() {
-    if (!props.ticketDetails?.details?.ip_source) return '--';
+    if (!props.ticketDetails?.details?.ip_source) {
+      return '--';
+    }
 
     return redisIpSources[props.ticketDetails.details.ip_source as RedisIpSources]?.text || '--';
   }
@@ -313,5 +316,5 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

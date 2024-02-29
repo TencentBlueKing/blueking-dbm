@@ -26,7 +26,9 @@
       </span>
       <span
         v-else
-        class="content">{{ data }}</span>
+        class="content">
+        {{ data }}
+      </span>
       <div
         v-if="errorMessage"
         class="input-error">
@@ -53,28 +55,27 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<T>
+    getValue: () => Promise<T>;
   }
 
   const props = defineProps<Props>();
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { message: errorMessage, validator } = useValidtor(props.rules);
 
-  watch(() => props.data, (data) => {
-    if (data) {
-      validator(data);
-    }
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      if (data) {
+        validator(data);
+      }
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
       return validator(props.data).then(() => props.data as T);
     },
   });
-
 </script>
 <style lang="less" scoped>
   .is-error {
@@ -116,7 +117,7 @@
 
     .down-icon {
       font-size: 15px;
-      color: #979BA5;
+      color: #979ba5;
     }
 
     .input-error {
@@ -130,11 +131,10 @@
       color: #ea3636;
       align-items: center;
     }
-
   }
 
   .default-display {
     cursor: not-allowed;
-    background: #FAFBFD;
+    background: #fafbfd;
   }
 </style>

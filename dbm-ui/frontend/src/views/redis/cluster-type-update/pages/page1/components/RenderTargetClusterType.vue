@@ -24,8 +24,7 @@
     </div>
   </BkLoading>
 </template>
-<script lang="ts">
-</script>
+<script lang="ts"></script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -39,11 +38,11 @@
   }
 
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -57,7 +56,6 @@
 
   const selectRef = ref();
   const localValue = ref('');
-
 
   const selectList = [
     {
@@ -81,7 +79,7 @@
     },
   ];
 
-  const typeList = computed(() => selectList.filter(item => item.value !== props.excludeType));
+  const typeList = computed(() => selectList.filter((item) => item.value !== props.excludeType));
 
   const handleChange = (value: string) => {
     localValue.value = value;
@@ -90,9 +88,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return selectRef.value.getValue().then(() => localValue.value);
     },
   });
 </script>

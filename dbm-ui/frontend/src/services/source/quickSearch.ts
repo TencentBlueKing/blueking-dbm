@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import DbResourceModel from '@services/model/db-resource/DbResource';
 import QuickSearchClusterDomainModel from '@services/model/quiker-search/quick-search-cluster-domain';
@@ -25,28 +25,30 @@ import http from '../http';
  * 全局搜索
  */
 export function quickSearch(params: {
-  bk_biz_ids: number[],
-  db_types: string[],
-  resource_types: string[],
-  filter_type: string,
-  keyword: string
-  limit?: number
+  bk_biz_ids: number[];
+  db_types: string[];
+  resource_types: string[];
+  filter_type: string;
+  keyword: string;
+  limit?: number;
 }) {
-  return http.post<{
-    cluster_domain: QuickSearchClusterDomainModel[],
-    cluster_name: QuickSearchClusterNameModel[],
-    instance: QuickSearchInstanceModel[],
-    machine: QuickSearchMachineModel[],
-    resource_pool: DbResourceModel[]
-    task: TaskFlowModel[],
-    ticket: TicketModel[],
-  }>('/apis/quick_search/search/', params).then(res => ({
-    cluster_domain: (res.cluster_domain || []).map(item => new QuickSearchClusterDomainModel(item)),
-    cluster_name: (res.cluster_name || []).map(item => new QuickSearchClusterNameModel(item)),
-    instance: (res.instance || []).map(item => new QuickSearchInstanceModel(item)),
-    machine: (res.machine || []).map(item => new QuickSearchMachineModel(item)),
-    resource_pool: (res.resource_pool || []).map(item => new DbResourceModel(item)),
-    task: (res.task || []).map(item => new TaskFlowModel(item)),
-    ticket: (res.ticket || []).map(item => new TicketModel(item)),
-  }));
+  return http
+    .post<{
+      cluster_domain: QuickSearchClusterDomainModel[];
+      cluster_name: QuickSearchClusterNameModel[];
+      instance: QuickSearchInstanceModel[];
+      machine: QuickSearchMachineModel[];
+      resource_pool: DbResourceModel[];
+      task: TaskFlowModel[];
+      ticket: TicketModel[];
+    }>('/apis/quick_search/search/', params)
+    .then((res) => ({
+      cluster_domain: (res.cluster_domain || []).map((item) => new QuickSearchClusterDomainModel(item)),
+      cluster_name: (res.cluster_name || []).map((item) => new QuickSearchClusterNameModel(item)),
+      instance: (res.instance || []).map((item) => new QuickSearchInstanceModel(item)),
+      machine: (res.machine || []).map((item) => new QuickSearchMachineModel(item)),
+      resource_pool: (res.resource_pool || []).map((item) => new DbResourceModel(item)),
+      task: (res.task || []).map((item) => new TaskFlowModel(item)),
+      ticket: (res.ticket || []).map((item) => new TicketModel(item)),
+    }));
 }

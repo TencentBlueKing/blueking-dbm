@@ -34,11 +34,10 @@
       </RenderData>
       <div
         class="title-spot"
-        style="margin: 25px 0 12px;">
+        style="margin: 25px 0 12px">
         {{ t('写入类型') }}<span class="required" />
       </div>
-      <BkRadioGroup
-        v-model="writeType">
+      <BkRadioGroup v-model="writeType">
         <BkRadio
           v-for="item in writeTypeList"
           :key="item.value"
@@ -90,36 +89,29 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    LocalStorageKeys,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, LocalStorageKeys, TicketTypes } from '@common/const';
 
   import VisitEntrySelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type InfoItem,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
-  type SubmitTicketType = SubmitTicket<TicketTypes, InfoItem[]>
-    & { details: { dts_copy_type: string; write_mode: WriteModes } };
+  type SubmitTicketType = SubmitTicket<TicketTypes, InfoItem[]> & {
+    details: { dts_copy_type: string; write_mode: WriteModes };
+  };
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
   const rowRefs = ref();
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const writeType = ref(WriteModes.DELETE_AND_WRITE_TO_REDIS);
 
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
-  const selectedClusters = shallowRef<{[key: string]: Array<RedisRollbackModel>}>({ [ClusterTypes.REDIS]: [] });
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.srcCluster)).length);
-  const inputedClusters = computed(() => tableData.value.map(item => item.srcCluster));
+  const selectedClusters = shallowRef<{ [key: string]: Array<RedisRollbackModel> }>({ [ClusterTypes.REDIS]: [] });
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.srcCluster)).length);
+  const inputedClusters = computed(() => tableData.value.map((item) => item.srcCluster));
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
@@ -143,13 +135,16 @@
         },
       ],
       previewResultKey: 'temp_cluster_proxy',
-      searchSelectList: [{
-        name: t('访问入口'),
-        id: 'temp_cluster_proxy',
-      }, {
-        name: t('目标集群'),
-        id: 'prod_cluster',
-      }],
+      searchSelectList: [
+        {
+          name: t('访问入口'),
+          id: 'temp_cluster_proxy',
+        },
+        {
+          name: t('目标集群'),
+          id: 'prod_cluster',
+        },
+      ],
       searchPlaceholder: t('访问入口_目标集群'),
     },
   };
@@ -178,7 +173,7 @@
       return;
     }
     const dataList = JSON.parse(r) as RedisRollbackModel[];
-    tableData.value = dataList.map(item => ({
+    tableData.value = dataList.map((item) => ({
       rowKey: item.prod_cluster,
       isLoading: false,
       srcCluster: item.temp_cluster_proxy,
@@ -217,7 +212,7 @@
     tableData.value.splice(index, 1);
     delete domainMemo[srcCluster];
     const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
-    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.temp_cluster_proxy !== srcCluster);
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter((item) => item.temp_cluster_proxy !== srcCluster);
   };
 
   const generateTableRow = (item: RedisRollbackModel) => ({
@@ -232,7 +227,7 @@
   });
 
   // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<RedisRollbackModel>}) => {
+  const handelClusterChange = async (selected: { [key: string]: Array<RedisRollbackModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
@@ -272,7 +267,7 @@
     if (ret.results.length < 1) {
       return;
     }
-    const list = ret.results.filter(item => item.temp_cluster_proxy === domain);
+    const list = ret.results.filter((item) => item.temp_cluster_proxy === domain);
     if (list.length === 0) {
       return;
     }
@@ -285,9 +280,9 @@
 
   // 提交
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<InfoItem>
-    }) => item.getValue()));
+    const infos = await Promise.all<InfoItem[]>(
+      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+    );
     const params: SubmitTicketType = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
@@ -302,25 +297,27 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisRecoverFromInstance',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'RedisRecoverFromInstance',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .catch((e) => {
             console.error('recover from instance ticket error', e);
           })
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   // 重置
@@ -330,7 +327,6 @@
     domainMemo = {};
     window.changeConfirm = false;
   };
-
 </script>
 
 <style lang="less" scoped>

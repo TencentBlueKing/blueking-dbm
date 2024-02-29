@@ -13,35 +13,32 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSourceCluster
         ref="clusterRef"
         :data="data.srcCluster"
         :inputed="inputedClusters"
         @input-finish="handleInputFinish" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.targetCluster"
         :is-loading="data.isLoading"
         :placeholder="$t('输入访问入口后自动生成')" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.targetTime"
         :is-loading="data.isLoading"
         :placeholder="$t('输入访问入口后自动生成')" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
         required />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderKeyRelated
         ref="excludeKeyRef"
         :data="data.excludeKey" />
@@ -92,26 +89,25 @@
     key_black_regex: string;
     recovery_time_point: string;
   }
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    inputedClusters?: string[],
+    data: IDataRow;
+    removeable: boolean;
+    inputedClusters?: string[];
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    inputedClusters: () => ([]),
+    inputedClusters: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -138,14 +134,8 @@
   defineExpose<Exposes>({
     async getValue() {
       await clusterRef.value.getValue();
-      return await Promise.all([
-        includeKeyRef.value.getValue(),
-        excludeKeyRef.value.getValue(),
-      ]).then((data) => {
-        const [
-          includeKey,
-          excludeKey,
-        ] = data;
+      return await Promise.all([includeKeyRef.value.getValue(), excludeKeyRef.value.getValue()]).then((data) => {
+        const [includeKey, excludeKey] = data;
         return {
           src_cluster: props.data.srcCluster,
           dst_cluster: props.data.targetClusterId,
@@ -156,5 +146,4 @@
       });
     },
   });
-
 </script>

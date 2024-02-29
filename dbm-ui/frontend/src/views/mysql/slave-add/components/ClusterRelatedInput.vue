@@ -53,7 +53,7 @@
         </div>
         <template v-if="data.cluster_related.length > 0">
           <BkCheckboxGroup
-            :model-value="data.checked_related.map(item => item.id)"
+            :model-value="data.checked_related.map((item) => item.id)"
             @change="handleRelatedChange">
             <BkCheckbox
               v-for="item of data.cluster_related"
@@ -65,7 +65,7 @@
         </template>
         <p
           v-else
-          style="font-size: 14px;color: #63656e;">
+          style="font-size: 14px; color: #63656e">
           {{ $t('无同机关联集群') }}
         </p>
       </div>
@@ -81,47 +81,55 @@
   import type { TableItem } from '../common/types';
 
   interface Props {
-    data: TableItem,
-    placeholder?: string
+    data: TableItem;
+    placeholder?: string;
   }
   interface Emits {
-    (e: 'blur', evt: FocusEvent): void
-    (e: 'change-related', values: number[]): void
+    (e: 'blur', evt: FocusEvent): void;
+    (e: 'change-related', values: number[]): void;
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  let tippyInst:Instance;
+  let tippyInst: Instance;
   const inputRef = ref();
   const iconRef = ref();
   const relatedRef = ref();
   const isEdit = ref(true);
 
-  watch(() => props.data, () => {
-    isEdit.value = !props.data.cluster_id;
-  }, { immediate: true, deep: true });
+  watch(
+    () => props.data,
+    () => {
+      isEdit.value = !props.data.cluster_id;
+    },
+    { immediate: true, deep: true },
+  );
 
-  watch(isEdit, (mode) => {
-    setTimeout(() => {
-      if (!mode) {
-        tippyInst = dbTippy(iconRef.value.$el as SingleTarget, {
-          content: relatedRef.value,
-          placement: 'bottom-start',
-          appendTo: () => document.body,
-          theme: 'light',
-          maxWidth: 'none',
-          interactive: true,
-          arrow: true,
-          offset: [0, 8],
-          zIndex: 999999,
-          hideOnClick: true,
-        });
-      } else {
-        tippyInstDestroy();
-      }
-    });
-  }, { immediate: true });
+  watch(
+    isEdit,
+    (mode) => {
+      setTimeout(() => {
+        if (!mode) {
+          tippyInst = dbTippy(iconRef.value.$el as SingleTarget, {
+            content: relatedRef.value,
+            placement: 'bottom-start',
+            appendTo: () => document.body,
+            theme: 'light',
+            maxWidth: 'none',
+            interactive: true,
+            arrow: true,
+            offset: [0, 8],
+            zIndex: 999999,
+            hideOnClick: true,
+          });
+        } else {
+          tippyInstDestroy();
+        }
+      });
+    },
+    { immediate: true },
+  );
 
   onBeforeUnmount(() => {
     tippyInstDestroy();
@@ -144,7 +152,9 @@
 
   function handleBlur(e: FocusEvent) {
     emits('blur', e);
-    if (!props.data.cluster_id || !props.data.cluster_domain) return;
+    if (!props.data.cluster_id || !props.data.cluster_domain) {
+      return;
+    }
 
     isEdit.value = false;
   }
@@ -154,69 +164,69 @@
 </script>
 
 <style lang="less" scoped>
-.cluster-infos {
-  padding: 0 16px;
+  .cluster-infos {
+    padding: 0 16px;
 
-  .cluster-infos-current {
-    display: flex;
-    overflow: hidden;
-    line-height: 42px;
-    cursor: pointer;
-    align-items: center;
+    .cluster-infos-current {
+      display: flex;
+      overflow: hidden;
+      line-height: 42px;
+      cursor: pointer;
+      align-items: center;
 
-    .db-icon-associated {
-      width: 20px;
-      height: 20px;
-      margin-left: 4px;
-      line-height: 20px;
-      color: @primary-color;
-      text-align: center;
-      background-color: #e1ecff;
-      border-radius: 2px;
-      flex-shrink: 0;
-    }
-  }
-
-  .cluster-infos-related {
-    overflow: hidden;
-    font-size: @font-size-mini;
-    line-height: 22px;
-    color: @gray-color;
-
-    li {
-      &:last-child {
-        padding-bottom: 8px;
-      }
-
-      &::before {
-        display: inline-block;
+      .db-icon-associated {
         width: 20px;
-        height: 1px;
-        margin-right: 12px;
-        vertical-align: middle;
-        background-color: #979ba5;
-        content: "";
+        height: 20px;
+        margin-left: 4px;
+        line-height: 20px;
+        color: @primary-color;
+        text-align: center;
+        background-color: #e1ecff;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+    }
+
+    .cluster-infos-related {
+      overflow: hidden;
+      font-size: @font-size-mini;
+      line-height: 22px;
+      color: @gray-color;
+
+      li {
+        &:last-child {
+          padding-bottom: 8px;
+        }
+
+        &::before {
+          display: inline-block;
+          width: 20px;
+          height: 1px;
+          margin-right: 12px;
+          vertical-align: middle;
+          background-color: #979ba5;
+          content: '';
+        }
       }
     }
   }
-}
 
-.related-clusters {
-  padding-top: 4px;
+  .related-clusters {
+    padding-top: 4px;
 
-  .related-clusters-title {
-    padding-bottom: 8px;
+    .related-clusters-title {
+      padding-bottom: 8px;
 
-    strong {
-      color: @title-color;
+      strong {
+        color: @title-color;
+      }
+    }
+
+    .bk-checkbox {
+      display: flex;
+      padding-bottom: 8px;
+      margin-left: 0;
+      align-items: center;
     }
   }
-
-  .bk-checkbox {
-    display: flex;
-    padding-bottom: 8px;
-    margin-left: 0;
-    align-items: center;
-  }
-}
 </style>

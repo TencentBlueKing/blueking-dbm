@@ -21,9 +21,7 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import {
-    computed,
-    shallowRef  } from 'vue';
+  import { computed, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -36,11 +34,11 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    oldSlave?: IDataRow['oldSlave']
+    oldSlave?: IDataRow['oldSlave'];
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<Record<string, string>>;
   }
 
   const props = defineProps<Props>();
@@ -55,13 +53,10 @@
     if (localRelateClusterList.value?.length < 1) {
       return '';
     }
-    return localRelateClusterList.value.map(item => item.master_domain).join('\n');
+    return localRelateClusterList.value.map((item) => item.master_domain).join('\n');
   });
 
-  const {
-    loading: isLoading,
-    run: fetchCheckMysqlInstances,
-  } = useRequest(checkMysqlInstances, {
+  const { loading: isLoading, run: fetchCheckMysqlInstances } = useRequest(checkMysqlInstances, {
     manual: true,
     onSuccess(data) {
       const [instanceData] = data;
@@ -69,30 +64,33 @@
     },
   });
 
-  watch(() => props.oldSlave, () => {
-    localRelateClusterList.value = [];
-    if (!props.oldSlave) {
-      return;
-    }
-    fetchCheckMysqlInstances({
-      bizId: currentBizId,
-      instance_addresses: [props.oldSlave.ip],
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.oldSlave,
+    () => {
+      localRelateClusterList.value = [];
+      if (!props.oldSlave) {
+        return;
+      }
+      fetchCheckMysqlInstances({
+        bizId: currentBizId,
+        instance_addresses: [props.oldSlave.ip],
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return editInputRef.value.getValue()
-        .then(() => {
-          if (localRelateClusterList.value.length < 1) {
-            return Promise.reject();
-          }
-          return {
-            cluster_ids: localRelateClusterList.value.map(item => item.id),
-          };
-        });
+      return editInputRef.value.getValue().then(() => {
+        if (localRelateClusterList.value.length < 1) {
+          return Promise.reject();
+        }
+        return {
+          cluster_ids: localRelateClusterList.value.map((item) => item.id),
+        };
+      });
     },
   });
 </script>

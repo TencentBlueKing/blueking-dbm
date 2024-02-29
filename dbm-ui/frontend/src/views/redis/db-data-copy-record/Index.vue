@@ -36,9 +36,13 @@
     return Page1;
   });
 
-  watch(route, () => {
-    page.value = route.params.page as string;
-  }, {
-    immediate: true,
-  });
+  watch(
+    route,
+    () => {
+      page.value = route.params.page as string;
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>

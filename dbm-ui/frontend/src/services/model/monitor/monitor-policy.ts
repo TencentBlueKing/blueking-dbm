@@ -9,20 +9,21 @@
  * Unless required by applicable law or agreed to in writing; software distributed under the License is distributed
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import dayjs from 'dayjs';
 
 import { utcDisplayTime } from '@utils';
+
 export default class MonitorPolicy {
-  bk_biz_id: number;  // 所属业务，等于0则属于平台策略
+  bk_biz_id: number; // 所属业务，等于0则属于平台策略
   creator: string;
   create_at: string;
   custom_conditions: {
-    condition: string,
-    dimension_name: string,
-    key: string,
-    method: string,
-    value: string[],
+    condition: string;
+    dimension_name: string;
+    key: string;
+    method: string;
+    value: string[];
   }[];
   dispatch_group_id: number;
   db_type: string; // 所属db组件
@@ -40,21 +41,21 @@ export default class MonitorPolicy {
   policy_status: string; // 策略状态：valid(正常)|invalid（异常）
   parent_id: number;
   permission: {
-    global_monitor_policy_edit: boolean,
-    global_monitor_policy_start_stop: boolean,
-    monitor_policy_alarm_view: boolean,
-    monitor_policy_clone: boolean,
-    monitor_policy_delete: boolean,
-    monitor_policy_edit: boolean,
-    monitor_policy_start_stop: boolean,
+    global_monitor_policy_edit: boolean;
+    global_monitor_policy_start_stop: boolean;
+    monitor_policy_alarm_view: boolean;
+    monitor_policy_clone: boolean;
+    monitor_policy_delete: boolean;
+    monitor_policy_edit: boolean;
+    monitor_policy_start_stop: boolean;
   };
   sync_at: string;
   targets: {
     rule: {
       key: string; // 业务
-      value: string[];  // 业务列表
+      value: string[]; // 业务列表
     };
-    level: string;  // 业务级
+    level: string; // 业务级
   }[];
   target_level: string;
   target_priority: number;
@@ -68,7 +69,7 @@ export default class MonitorPolicy {
       method: string; // gt(大于)|gte(大于等于)|lt|lte|eq(等于)|neq(不等于)
       threshold: number;
     }[][];
-    unit_prefix: string;  // 单位，比如%，原样返回即可
+    unit_prefix: string; // 单位，比如%，原样返回即可
   }[];
   updater: string;
   update_at: string;

@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import SpiderModel from '@services/model/spider/spider';
 import TendbClusterModel from '@services/model/spider/tendbCluster';
@@ -18,10 +18,7 @@ import TendbInstanceModel from '@services/model/spider/tendbInstance';
 import { useGlobalBizs } from '@stores';
 
 import http from './http';
-import type {
-  ListBase,
-  ResourceInstance,
-} from './types';
+import type { ListBase, ResourceInstance } from './types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -29,13 +26,14 @@ const { currentBizId } = useGlobalBizs();
  * 获取 spider 集群列表
  */
 export function getSpiderList(params: Record<string, any> = {}) {
-  return http.get<{
-    count: number,
-    results: TendbClusterModel[]
-  }>(`/apis/mysql/bizs/${currentBizId}/spider_resources/`, params)
-    .then(res => ({
+  return http
+    .get<{
+      count: number;
+      results: TendbClusterModel[];
+    }>(`/apis/mysql/bizs/${currentBizId}/spider_resources/`, params)
+    .then((res) => ({
       ...res,
-      results: res.results.map(data => new TendbClusterModel(data)),
+      results: res.results.map((data) => new TendbClusterModel(data)),
     }));
 }
 
@@ -43,32 +41,33 @@ export function getSpiderList(params: Record<string, any> = {}) {
  * 获取 spider 集群详情
  * @param id 集群 ID
  */
-export const getSpiderDetails = (params: { id: number }) => http.get<TendbClusterModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/${params.id}/`);
+export const getSpiderDetails = (params: { id: number }) =>
+  http.get<TendbClusterModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/${params.id}/`);
 
 /**
  * 获取 spider 实例列表
  */
 export function getSpiderInstances(params: Record<string, any>) {
-  return http.get<ListBase<TendbInstanceModel[]>>(`/apis/mysql/bizs/${currentBizId}/spider_resources/list_instances/`, params)
-    .then(res => ({
+  return http
+    .get<ListBase<TendbInstanceModel[]>>(`/apis/mysql/bizs/${currentBizId}/spider_resources/list_instances/`, params)
+    .then((res) => ({
       ...res,
-      results: res.results.map(data => new TendbInstanceModel(data)),
+      results: res.results.map((data) => new TendbInstanceModel(data)),
     }));
 }
 
 /**
  * 获取 spider 实例详情
  */
-export const getSpiderInstanceDetails = (params: {
-  instance_address: string,
-  cluster_id: number
-}) => http.get<TendbInstanceModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/retrieve_instance/`, params);
+export const getSpiderInstanceDetails = (params: { instance_address: string; cluster_id: number }) =>
+  http.get<TendbInstanceModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/retrieve_instance/`, params);
 
 export const getList = function (params: Record<string, any>) {
   const { currentBizId } = useGlobalBizs();
 
-  return http.get<ListBase<SpiderModel[]>>(`/apis/mysql/bizs/${currentBizId}/spider_resources/`, params)
-    .then(data => ({
+  return http
+    .get<ListBase<SpiderModel[]>>(`/apis/mysql/bizs/${currentBizId}/spider_resources/`, params)
+    .then((data) => ({
       ...data,
       results: data.results.map((item: SpiderModel) => new SpiderModel(item)),
     }));
@@ -77,12 +76,16 @@ export const getList = function (params: Record<string, any>) {
 export const getDetail = function (params: { id: number }) {
   const { currentBizId } = useGlobalBizs();
 
-  return http.get<SpiderModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/${params.id}/`)
-    .then(data => new SpiderModel(data));
+  return http
+    .get<SpiderModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/${params.id}/`)
+    .then((data) => new SpiderModel(data));
 };
 
 /**
  * 获取集群实例列表
  */
-export const listSpiderResourceInstances = (params: { bk_biz_id: number } & Record<string, any>) => http.get<ListBase<ResourceInstance[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/spider_resources/list_instances/`, params);
-
+export const listSpiderResourceInstances = (params: { bk_biz_id: number } & Record<string, any>) =>
+  http.get<ListBase<ResourceInstance[]>>(
+    `/apis/mysql/bizs/${params.bk_biz_id}/spider_resources/list_instances/`,
+    params,
+  );

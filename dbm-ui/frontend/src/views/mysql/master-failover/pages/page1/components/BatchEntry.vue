@@ -14,7 +14,7 @@
 <template>
   <BkDialog
     :is-show="isShow"
-    :title="$t('主从互切_批量录入') "
+    :title="$t('主从互切_批量录入')"
     :width="705"
     @closed="handleClosed">
     <div class="master-failover-batch-entry">
@@ -22,7 +22,7 @@
         <table>
           <thead>
             <tr>
-              <th>{{ $t('主库主机') }} </th>
+              <th>{{ $t('主库主机') }}</th>
               <th>{{ $t('从库主机') }}</th>
             </tr>
           </thead>
@@ -46,7 +46,7 @@
         <BkInput
           v-model="localValue"
           :placeholder="placeholder"
-          style="height: 320px; margin: 12px 0 30px;"
+          style="height: 320px; margin: 12px 0 30px"
           type="textarea"
           @input="handleInputChange" />
       </div>
@@ -94,15 +94,15 @@
 <script lang="ts">
   export interface IValue {
     masterData: {
-      bk_host_id: number,
-      bk_cloud_id: number,
-      ip: string,
-    },
+      bk_host_id: number;
+      bk_cloud_id: number;
+      ip: string;
+    };
     slaveData: {
-      bk_cloud_id: number,
-      bk_host_id: number,
-      ip: string,
-    },
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    };
   }
 </script>
 <script setup lang="ts">
@@ -118,11 +118,11 @@
 
   import { execCopy } from '@/utils';
 
-  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number]
+  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
 
   interface IInputParse {
-    masterIp: string,
-    slaveIp: string,
+    masterIp: string;
+    slaveIp: string;
   }
 
   interface Props {
@@ -137,7 +137,7 @@
   defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const getInputTextList = (list: Array<IInputParse>) => list.map(item => `${item.masterIp} ${item.slaveIp}`);
+  const getInputTextList = (list: Array<IInputParse>) => list.map((item) => `${item.masterIp} ${item.slaveIp}`);
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -160,9 +160,8 @@
     emits('update:isShow', false);
   };
 
-
   const handleSubmit = () => {
-    const inputRecordList =  localValue.value.split('\n');
+    const inputRecordList = localValue.value.split('\n');
 
     const validList: Array<IInputParse> = [];
     const invalidList: Array<IInputParse> = [];
@@ -172,7 +171,7 @@
       if (!_.trim(recordItem)) {
         return;
       }
-      const ipList = recordItem.split(/ +/).filter(item => _.trim(item));
+      const ipList = recordItem.split(/ +/).filter((item) => _.trim(item));
       if (ipList.length !== 2) {
         errorList.push({
           masterIp: recordItem,
@@ -195,61 +194,55 @@
     });
 
     isChecking.value = true;
-    const allValidIpList = validList.reduce((result, item) => [
-      ...result,
-      item.masterIp,
-      item.slaveIp,
-    ], [] as string[]);
+    const allValidIpList = validList.reduce((result, item) => [...result, item.masterIp, item.slaveIp], [] as string[]);
     getHostTopoInfos({
       filter_conditions: {
         bk_host_innerip: allValidIpList,
       },
       bk_biz_id: currentBizId,
-    }).then((data) => {
-      const realDataMap = data.hosts_topo_info.reduce((result, item) => ({
-        ...result,
-        [item.ip]: item,
-      }), {} as Record<string, HostTopoInfo>);
-
-      const resultList: Array<IValue> = [];
-      const hostErrorList: Array<IInputParse> = [];
-
-      validList.forEach((inputData) => {
-        if (!realDataMap[inputData.masterIp] || !realDataMap[inputData.slaveIp]) {
-          hostErrorList.push(inputData);
-        } else {
-          const getValue = ({
-            bk_host_id,
-            bk_cloud_id,
-            ip,
-          }: HostTopoInfo) => ({
-            bk_host_id,
-            bk_cloud_id,
-            ip,
-          });
-          resultList.push({
-            masterData: getValue(realDataMap[inputData.masterIp]),
-            slaveData: getValue(realDataMap[inputData.slaveIp]),
-          });
-        }
-      });
-      inputInvalidStack.value = invalidList;
-      inputErrorStack.value = errorList;
-      inputHostErrorStack.value = hostErrorList;
-      if (invalidList.length < 1
-        && errorList.length < 1
-        && hostErrorList.length < 1) {
-        emits('change', resultList);
-        handleClosed();
-      } else {
-        localValue.value = _.filter([
-          ...invalidList.map(item => getInputTextList([item])),
-          ...errorList.map(item => getInputTextList([item])),
-          ...hostErrorList.map(item => getInputTextList([item])),
-          ...resultList.map(item => `${item.masterData.ip} ${item.slaveData.ip}`),
-        ]).join('\n');
-      }
     })
+      .then((data) => {
+        const realDataMap = data.hosts_topo_info.reduce(
+          (result, item) => ({
+            ...result,
+            [item.ip]: item,
+          }),
+          {} as Record<string, HostTopoInfo>,
+        );
+
+        const resultList: Array<IValue> = [];
+        const hostErrorList: Array<IInputParse> = [];
+
+        validList.forEach((inputData) => {
+          if (!realDataMap[inputData.masterIp] || !realDataMap[inputData.slaveIp]) {
+            hostErrorList.push(inputData);
+          } else {
+            const getValue = ({ bk_host_id, bk_cloud_id, ip }: HostTopoInfo) => ({
+              bk_host_id,
+              bk_cloud_id,
+              ip,
+            });
+            resultList.push({
+              masterData: getValue(realDataMap[inputData.masterIp]),
+              slaveData: getValue(realDataMap[inputData.slaveIp]),
+            });
+          }
+        });
+        inputInvalidStack.value = invalidList;
+        inputErrorStack.value = errorList;
+        inputHostErrorStack.value = hostErrorList;
+        if (invalidList.length < 1 && errorList.length < 1 && hostErrorList.length < 1) {
+          emits('change', resultList);
+          handleClosed();
+        } else {
+          localValue.value = _.filter([
+            ...invalidList.map((item) => getInputTextList([item])),
+            ...errorList.map((item) => getInputTextList([item])),
+            ...hostErrorList.map((item) => getInputTextList([item])),
+            ...resultList.map((item) => `${item.masterData.ip} ${item.slaveData.ip}`),
+          ]).join('\n');
+        }
+      })
       .finally(() => {
         isChecking.value = false;
       });
@@ -283,10 +276,9 @@
   const handleHighClusterError = () => {
     const $inputEl = inputRef.value.querySelector('textarea');
     $inputEl.focus();
-    const invalidText = [
-      ...getInputTextList(inputInvalidStack.value),
-      ...getInputTextList(inputErrorStack.value),
-    ].join('\n');
+    const invalidText = [...getInputTextList(inputInvalidStack.value), ...getInputTextList(inputErrorStack.value)].join(
+      '\n',
+    );
     const clusterErrorText = getInputTextList(inputHostErrorStack.value).join('\n');
 
     const startIndex = invalidText.length > 0 ? invalidText.length + 1 : 0;

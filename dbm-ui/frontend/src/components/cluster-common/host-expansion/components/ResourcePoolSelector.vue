@@ -10,7 +10,7 @@
           <span
             v-bk-tooltips="{
               content: t('请先设置期望容量'),
-              disabled:data.targetDisk > 0
+              disabled: data.targetDisk > 0,
             }">
             <BkSelect
               :disabled="data.targetDisk < 1"
@@ -28,9 +28,9 @@
                   placement="right"
                   theme="light"
                   width="580">
-                  <div style="display: flex; width: 100%; align-items: center;">
+                  <div style="display: flex; width: 100%; align-items: center">
                     <div>{{ item.spec_name }}</div>
-                    <BkTag style="margin-left: auto;">{{ specCountMap[item.spec_id] }}</BkTag>
+                    <BkTag style="margin-left: auto">{{ specCountMap[item.spec_id] }}</BkTag>
                   </div>
                   <template #content>
                     <SpecDetail :data="item" />
@@ -50,7 +50,7 @@
           <span
             v-bk-tooltips="{
               content: t('请先设置期望容量'),
-              disabled:data.targetDisk > 0
+              disabled: data.targetDisk > 0,
             }">
             <BkInput
               :disabled="data.targetDisk < 1"
@@ -65,9 +65,7 @@
     <div
       v-if="estimateCapacity > 0"
       class="disk-tips mt-16">
-      <span style="padding-right: 4px">
-        {{ t('预估容量（以最小配置计算）') }}:
-      </span>
+      <span style="padding-right: 4px"> {{ t('预估容量（以最小配置计算）') }}: </span>
       <span class="number">{{ estimateCapacity + data.totalDisk }}</span>
       <span>G</span>
     </div>
@@ -75,34 +73,27 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { computed, ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
-  import {
-    fetchRecommendSpec,
-    getResourceSpecList,
-  } from '@services/source/dbresourceSpec';
+  import { fetchRecommendSpec, getResourceSpecList } from '@services/source/dbresourceSpec';
 
   import SpecDetail from '@components/cluster-common/SpecDetailForPopover.vue';
 
   import type { TExpansionNode } from '../Index.vue';
 
   interface Props {
-    data: TExpansionNode,
+    data: TExpansionNode;
     cloudInfo: {
-      id: number,
-      name: string
-    },
+      id: number;
+      name: string;
+    };
   }
 
   interface Emits {
-    (e: 'change', value: TExpansionNode['resourceSpec'], expansionDisk: TExpansionNode['expansionDisk']): void,
+    (e: 'change', value: TExpansionNode['resourceSpec'], expansionDisk: TExpansionNode['expansionDisk']): void;
   }
 
   const props = defineProps<Props>();
@@ -121,7 +112,7 @@
     if (machinePairCnt.value < 1) {
       return 0;
     }
-    const currentSpec = _.find(resourceSpecList.value?.results, item => item.spec_id === specId.value);
+    const currentSpec = _.find(resourceSpecList.value?.results, (item) => item.spec_id === specId.value);
     if (!currentSpec) {
       return 0;
     }
@@ -129,19 +120,14 @@
     return storage * machinePairCnt.value;
   });
 
-  const {
-    run: fetchSpecResourceCount,
-  } = useRequest(getSpecResourceCount, {
+  const { run: fetchSpecResourceCount } = useRequest(getSpecResourceCount, {
     manual: true,
     onSuccess(data) {
       specCountMap.value = data;
     },
   });
 
-  const {
-    loading: isResourceSpecLoading,
-    data: resourceSpecList,
-  } = useRequest(getResourceSpecList, {
+  const { loading: isResourceSpecLoading, data: resourceSpecList } = useRequest(getResourceSpecList, {
     defaultParams: [
       {
         spec_cluster_type: props.data.specClusterType,
@@ -152,15 +138,13 @@
       fetchSpecResourceCount({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: props.cloudInfo.id,
-        spec_ids: data.results.map(item => item.spec_id),
+        spec_ids: data.results.map((item) => item.spec_id),
       });
     },
   });
 
   // 推荐规格
-  const {
-    loading: recommendSpecLoading,
-  } = useRequest(fetchRecommendSpec, {
+  const { loading: recommendSpecLoading } = useRequest(fetchRecommendSpec, {
     defaultParams: [
       {
         cluster_id: props.data.clusterId,
@@ -170,10 +154,14 @@
   });
 
   const triggerChange = () => {
-    emits('change', {
-      spec_id: specId.value,
-      count: Math.max(machinePairCnt.value - originalHostNums.value, 0),
-    }, estimateCapacity.value);
+    emits(
+      'change',
+      {
+        spec_id: specId.value,
+        count: Math.max(machinePairCnt.value - originalHostNums.value, 0),
+      },
+      estimateCapacity.value,
+    );
   };
 
   const handleSpecChange = (value: number) => {
@@ -190,29 +178,29 @@
   .expansion-resource-pool-selector {
     font-size: 12px;
 
-    .form-block{
+    .form-block {
       display: flex;
 
-      .form-block-title{
+      .form-block-title {
         margin-bottom: 6px;
         line-height: 20px;
 
-        .required-flag{
-          color: #EA3636;
+        .required-flag {
+          color: #ea3636;
         }
       }
 
-      .form-block-item{
+      .form-block-item {
         flex: 1;
 
-        & ~ .form-block-item{
+        & ~ .form-block-item {
           margin-left: 32px;
         }
       }
     }
 
-    .disk-tips{
-      color: #63656E;
+    .disk-tips {
+      color: #63656e;
     }
   }
 </style>

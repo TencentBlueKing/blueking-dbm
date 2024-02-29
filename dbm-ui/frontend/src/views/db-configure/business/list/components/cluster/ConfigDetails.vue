@@ -15,7 +15,7 @@
   <div class="config-details">
     <BkLoading
       :loading="loading"
-      style="height: 100%;"
+      style="height: 100%"
       :z-index="12">
       <div class="config-details__operations" />
       <DetailsBase
@@ -124,7 +124,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .config-details {
     &__operations {

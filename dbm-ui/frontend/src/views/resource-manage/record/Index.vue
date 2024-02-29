@@ -257,7 +257,7 @@
 
 <style lang="less">
   .resource-pool-operation-record-page {
-    .header-action{
+    .header-action {
       display: flex;
     }
   }

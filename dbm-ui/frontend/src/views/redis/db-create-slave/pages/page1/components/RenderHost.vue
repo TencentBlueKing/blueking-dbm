@@ -30,13 +30,12 @@
 
   import type { IDataRow } from './Row.vue';
 
-
   interface Props {
-    modelValue?: IDataRow['ip']
+    modelValue?: IDataRow['ip'];
   }
 
   interface Emits {
-    (e: 'onInputFinish', value: string): void
+    (e: 'onInputFinish', value: string): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -64,7 +63,6 @@
       emits('onInputFinish', value);
     });
   };
-
 </script>
 <style lang="less" scoped>
   .render-host-box {

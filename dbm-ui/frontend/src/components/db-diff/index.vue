@@ -122,7 +122,7 @@
 </script>
 
 <style lang="less">
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .bk-diff {
     padding: 24px;

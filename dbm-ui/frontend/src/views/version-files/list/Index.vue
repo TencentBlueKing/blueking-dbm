@@ -40,9 +40,7 @@
   } from '@services/model/function-controller/functionController';
   import { listPackageTypes } from '@services/source/package';
 
-  import {
-    useFunController,
-  } from '@stores';
+  import { useFunController } from '@stores';
 
   import { DBTypes } from '@common/const';
 
@@ -50,16 +48,16 @@
 
   interface TabItem {
     controller: {
-      moduleId: ExtractedControllerDataKeys,
-      id?: FunctionKeys
-    },
-    label: string,
-    name: string,
+      moduleId: ExtractedControllerDataKeys;
+      id?: FunctionKeys;
+    };
+    label: string;
+    name: string;
     children: {
-      label: string,
-      name: string,
-      controllerId?: FunctionKeys
-    }[]
+      label: string;
+      name: string;
+      controllerId?: FunctionKeys;
+    }[];
   }
 
   const { t } = useI18n();
@@ -302,8 +300,10 @@
     const { moduleId, id } = item.controller;
     const data = funControllerStore.funControllerData[moduleId];
     // 整个模块没有开启
-    if (data.is_enabled !== true) return false;
-    const children = (data.children as Record<FunctionKeys, ControllerBaseInfo>);
+    if (data.is_enabled !== true) {
+      return false;
+    }
+    const children = data.children as Record<FunctionKeys, ControllerBaseInfo>;
     // 模块中的功能没开启
     if (id && !children[id]?.is_enabled) {
       return false;
@@ -312,7 +312,9 @@
     // 处理 tab.children
     const tabChildren = item.children.filter((child) => {
       // 不需要校验功能是否开启
-      if (child.controllerId === undefined) return true;
+      if (child.controllerId === undefined) {
+        return true;
+      }
 
       return children[child.controllerId].is_enabled;
     });
@@ -326,20 +328,24 @@
   const tabActive = ref(renderTabs[0].name);
   const packageTypeMap = ref<Record<string, string[]>>({});
   const activeTabInfo = computed(() => {
-    const tabList = renderTabs.find(item => item.name === tabActive.value);
-    return tabList ? tabList : {
-      label: '',
-      name: '',
-    };
+    const tabList = renderTabs.find((item) => item.name === tabActive.value);
+    return tabList
+      ? tabList
+      : {
+          label: '',
+          name: '',
+        };
   });
 
   const pkgList = computed(() => packageTypeMap.value![tabActive.value] ?? []);
 
   useRequest(listPackageTypes, {
-    defaultParams: [{
-      offset: 0,
-      limit: -1,
-    }],
+    defaultParams: [
+      {
+        offset: 0,
+        limit: -1,
+      },
+    ],
     onSuccess(data) {
       packageTypeMap.value = data;
     },
@@ -347,11 +353,11 @@
 </script>
 <style lang="less">
   .version-files-view {
-    .top-tabs{
+    .top-tabs {
       background: #fff;
       box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-      .bk-tab-content{
+      .bk-tab-content {
         display: none;
       }
     }

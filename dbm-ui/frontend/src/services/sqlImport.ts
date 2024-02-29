@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -23,10 +23,7 @@ import UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task
 import http from './http';
 
 // sql 语法检测
-export const grammarCheck = function (params: {
-  bk_biz_id: number,
-  body: FormData
-}) {
+export const grammarCheck = function (params: { bk_biz_id: number; body: FormData }) {
   return axios({
     baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
     url: `/apis/mysql/bizs/${params.bk_biz_id}/sql_import/grammar_check/`,
@@ -37,63 +34,64 @@ export const grammarCheck = function (params: {
       'X-CSRFToken': Cookies.get('dbm_csrftoken'),
     },
     withCredentials: true,
-  }).then((data) => {
-    if (data.data.code !== 0) {
-      throw new Error(data.data.message);
-    }
-    return data.data.data;
   })
-    .then(data => Object.keys(data).reduce((result, key) => ({
-      ...result,
-      [key]: new GrammarCheckModel(data[key]),
-    }), {} as Record<string, GrammarCheckModel>));
+    .then((data) => {
+      if (data.data.code !== 0) {
+        throw new Error(data.data.message);
+      }
+      return data.data.data;
+    })
+    .then((data) =>
+      Object.keys(data).reduce(
+        (result, key) => ({
+          ...result,
+          [key]: new GrammarCheckModel(data[key]),
+        }),
+        {} as Record<string, GrammarCheckModel>,
+      ),
+    );
 };
 
 // sql 语义检测
-export const semanticCheck = function (params: {
-  bk_biz_id: number,
-  cluster_type: string
-}) {
+export const semanticCheck = function (params: { bk_biz_id: number; cluster_type: string }) {
   return http.post<SemanticCheckResultModel>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/semantic_check/`, params);
 };
 
 // 终止语义检测流程
-export const revokeSemanticCheck = function (params: {
-  bk_biz_id: number,
-  root_id: string
-}) {
+export const revokeSemanticCheck = function (params: { bk_biz_id: number; root_id: string }) {
   return http.post(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/revoke_semantic_check/`, params);
 };
 
 // 查询语义执行的数据
-export const querySemanticData = function (params: {
-  bk_biz_id: number,
-  root_id: string
-}) {
-  return http.post<QuerySemanticExecuteResultModel>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/query_semantic_data/`, params)
-    .then(data => ({
+export const querySemanticData = function (params: { bk_biz_id: number; root_id: string }) {
+  return http
+    .post<QuerySemanticExecuteResultModel>(
+      `/apis/mysql/bizs/${params.bk_biz_id}/sql_import/query_semantic_data/`,
+      params,
+    )
+    .then((data) => ({
       ...data,
       semantic_data: new SemanticDataModel(data.semantic_data),
     }));
 };
 
 // 获取用户语义检查任务列表
-export const getUserSemanticTasks = function (params: {
-  bk_biz_id: number,
-  cluster_type?: string
-}) {
+export const getUserSemanticTasks = function (params: { bk_biz_id: number; cluster_type?: string }) {
   const realParams = { ...params } as Record<string, any>;
   delete realParams.bk_biz_id;
 
-  return http.get<UserSemanticTaskModel[]>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/get_user_semantic_tasks/`, realParams)
-    .then(data => data.map(item => new UserSemanticTaskModel(item)));
+  return http
+    .get<
+      UserSemanticTaskModel[]
+    >(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/get_user_semantic_tasks/`, realParams)
+    .then((data) => data.map((item) => new UserSemanticTaskModel(item)));
 };
 
 // 删除语义检查任务
 export const deleteUserSemanticTasks = function (params: {
-  bk_biz_id: number,
-  task_ids: string[],
-  cluster_type: string,
+  bk_biz_id: number;
+  task_ids: string[];
+  cluster_type: string;
 }) {
   return http.delete<number>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/delete_user_semantic_tasks/`, params);
 };

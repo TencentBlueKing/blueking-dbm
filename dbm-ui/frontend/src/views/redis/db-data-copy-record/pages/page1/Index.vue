@@ -22,7 +22,7 @@
         v-model="searchValue"
         clearable
         :placeholder="t('请输入集群名称')"
-        style="width:500px;margin-bottom: 16px;"
+        style="width: 500px; margin-bottom: 16px"
         type="search"
         @clear="handleClickSearch"
         @enter="handleClickSearch" />
@@ -51,7 +51,7 @@
     <DataCopyTransferDetail
       :data="currentActiveRow"
       :is-show="isShowDataCopyTransferDetail"
-      @on-close="() => isShowDataCopyTransferDetail = false" />
+      @on-close="() => (isShowDataCopyTransferDetail = false)" />
     <!-- <BkDialog
       class="recopy-dialog"
       dialog-type="show"
@@ -479,116 +479,113 @@
   // const handleClickCancelRecopy = () => {
   //   showRecopyDialog.value = false;
   // };
-
-
 </script>
 
 <style lang="less" scoped>
-
-.table-box {
-  :deep(.key-tag) {
-    display: inline-flex;
-    height: 22px;
-    padding: 0 10px;
-    font-size: 12px;
-    line-height: 22px;
-    color: #63656E;
-    text-align: center;
-    background: #F0F1F5;
-    border-radius: 2px;
-  }
-}
-
-.normal-color {
-  td {
-    .cell {
-      color: #63656E !important;
-    }
-  }
-}
-
-.disable-color {
-  td {
-    .cell {
-      color: #C4C6CC !important;
-    }
-  }
-}
-
-.operate-box {
-  display: flex;
-  width: 180px;
-  justify-content: space-between;
-
-  span {
-    cursor: pointer;
-  }
-}
-
-.redis-struct-ins-page {
-  padding-bottom: 20px;
-
-  .top-operate {
-    display: flex;
-    width: 100%;
-    gap: 20px;
-    margin-top: 16px;
-
-    .time-picker {
-      width: 380px;
+  .table-box {
+    :deep(.key-tag) {
+      display: inline-flex;
+      height: 22px;
+      padding: 0 10px;
+      font-size: 12px;
+      line-height: 22px;
+      color: #63656e;
+      text-align: center;
+      background: #f0f1f5;
+      border-radius: 2px;
     }
   }
 
-  .buttons {
-    margin: 16px 0;
-  }
-
-  .page-action-box {
-    display: flex;
-    align-items: center;
-    margin-top: 16px;
-
-    .safe-action {
-      margin-left: auto;
-
-      .safe-action-text {
-        padding-bottom: 2px;
-        border-bottom: 1px dashed #979ba5;
+  .normal-color {
+    td {
+      .cell {
+        color: #63656e !important;
       }
     }
   }
-}
 
-.recopy-dialog {
-  :deep(.bk-modal-content) {
-    padding: 0 43px 24px;
+  .disable-color {
+    td {
+      .cell {
+        color: #c4c6cc !important;
+      }
+    }
   }
 
-  :deep(.bk-dialog-header) {
-    padding: 48px 24px 18px;
+  .operate-box {
+    display: flex;
+    width: 180px;
+    justify-content: space-between;
+
+    span {
+      cursor: pointer;
+    }
   }
-}
 
-.content-box {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
+  .redis-struct-ins-page {
+    padding-bottom: 20px;
 
-  .radios {
+    .top-operate {
+      display: flex;
+      width: 100%;
+      gap: 20px;
+      margin-top: 16px;
+
+      .time-picker {
+        width: 380px;
+      }
+    }
+
+    .buttons {
+      margin: 16px 0;
+    }
+
+    .page-action-box {
+      display: flex;
+      align-items: center;
+      margin-top: 16px;
+
+      .safe-action {
+        margin-left: auto;
+
+        .safe-action-text {
+          padding-bottom: 2px;
+          border-bottom: 1px dashed #979ba5;
+        }
+      }
+    }
+  }
+
+  .recopy-dialog {
+    :deep(.bk-modal-content) {
+      padding: 0 43px 24px;
+    }
+
+    :deep(.bk-dialog-header) {
+      padding: 48px 24px 18px;
+    }
+  }
+
+  .content-box {
     display: flex;
     width: 100%;
     flex-direction: column;
 
-    :deep(.bk-radio) {
-      margin: 12px 0;
+    .radios {
+      display: flex;
+      width: 100%;
+      flex-direction: column;
+
+      :deep(.bk-radio) {
+        margin: 12px 0;
+      }
+    }
+
+    .btn-box {
+      display: flex;
+      width: 100%;
+      justify-content: center;
+      margin-top: 22px;
     }
   }
-
-  .btn-box {
-    display: flex;
-    width: 100%;
-    justify-content: center;
-    margin-top: 22px;
-  }
-}
 </style>

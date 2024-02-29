@@ -29,8 +29,9 @@
         }">
         {{ $t('我的服务单') }}
       </RouterLink>
-    </I18nT>;
-    <br>
+    </I18nT>
+    ;
+    <br />
     <I18nT
       keypath="成功后，数据同步关系会一直保持，如需断开，请跳转至xx 断开同步"
       tag="span">
@@ -62,10 +63,7 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import RenderSuccess from '@components/ticket-success/Index.vue';
 

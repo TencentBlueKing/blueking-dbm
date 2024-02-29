@@ -49,7 +49,7 @@
       <span
         v-bk-tooltips="{
           content: t('请选择实例'),
-          disabled: !isEmpty
+          disabled: !isEmpty,
         }"
         class="inline-block">
         <BkButton
@@ -72,23 +72,19 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import {
-    defaultPanelList,
-    type InstanceSelectorValues,
-    type PanelTypes,
-  } from './common/types';
+  import { defaultPanelList, type InstanceSelectorValues, type PanelTypes } from './common/types';
   import PanelTab from './components/PanelTab.vue';
   import PreviewResult from './components/PreviewResult.vue';
   import RenderManualInput from './components/RenderManualInput.vue';
   import RenderTopo from './components/RenderTopo.vue';
 
   interface Props {
-    role?: string,
-    values?: InstanceSelectorValues
+    role?: string;
+    values?: InstanceSelectorValues;
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'change', value: InstanceSelectorValues): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -118,16 +114,18 @@
     tendbcluster: [],
   });
 
-  const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
-
+  const isEmpty = computed(() => !Object.values(lastValues).some((values) => values.length > 0));
 
   const renderCom = computed(() => comMap[panelTabActive.value as keyof typeof comMap]);
 
-  watch(() => isShow, (newVal) => {
-    if (newVal && props.values) {
-      Object.assign(lastValues, props.values);
-    }
-  });
+  watch(
+    () => isShow,
+    (newVal) => {
+      if (newVal && props.values) {
+        Object.assign(lastValues, props.values);
+      }
+    },
+  );
 
   const handleChange = (values: InstanceSelectorValues) => {
     Object.assign(lastValues, values);
@@ -159,7 +157,7 @@
 
     .bk-modal-content {
       max-height: calc(100% - 300px) !important;
-      padding: 0 !important
+      padding: 0 !important;
     }
   }
 </style>

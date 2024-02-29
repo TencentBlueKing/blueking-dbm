@@ -119,20 +119,19 @@
       isShowAllData.value = true;
     }
   };
-
 </script>
 <style lang="less" scoped>
-.render-rotate-table-title {
-  margin-top: 10px;
-  margin-bottom: 17px;
-  font-weight: 700;
-  color: #313238;
-}
-
-.render-rotate-table-box {
-  :deep(.peoples) {
-    display: flex;
-    flex-wrap: wrap;
+  .render-rotate-table-title {
+    margin-top: 10px;
+    margin-bottom: 17px;
+    font-weight: 700;
+    color: #313238;
   }
-}
+
+  .render-rotate-table-box {
+    :deep(.peoples) {
+      display: flex;
+      flex-wrap: wrap;
+    }
+  }
 </style>

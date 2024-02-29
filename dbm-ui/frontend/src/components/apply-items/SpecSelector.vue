@@ -19,7 +19,9 @@
             <span class="text-overflow">{{ item.spec_name }}</span>
             <span
               v-if="typeof item.count === 'number'"
-              class="spec-display-count">{{ item.count }}</span>
+              class="spec-display-count">
+              {{ item.count }}
+            </span>
           </div>
           <template #content>
             <div class="info-wrapper">
@@ -40,7 +42,7 @@
               </div>
               <div
                 class="info"
-                style="align-items: start;">
+                style="align-items: start">
                 <span class="info-title">{{ $t('磁盘') }}：</span>
                 <span class="info-value">
                   <DbOriginalTable
@@ -53,13 +55,15 @@
               <div
                 v-if="item.instance_num"
                 class="info"
-                style="align-items: start;">
+                style="align-items: start">
                 <span
                   v-overflow-tips="{
                     content: $t('每台主机实例数量'),
-                    zIndex: 99999
+                    zIndex: 99999,
                   }"
-                  class="info-title text-overflow">{{ $t('每台主机实例数量') }}：</span>
+                  class="info-title text-overflow"
+                  >{{ $t('每台主机实例数量') }}：</span
+                >
                 <span class="info-value">{{ item.instance_num }}</span>
               </div>
             </div>
@@ -86,19 +90,19 @@
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
   interface ResourceSpecData extends ResourceSpecModel {
-    count?: number,
+    count?: number;
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: number | string): void
+    (e: 'update:modelValue', value: number | string): void;
   }
 
   interface Props {
-    modelValue: number | string,
-    clusterType: string,
-    machineType: string,
-    bizId: number | string,
-    cloudId: number | string,
+    modelValue: number | string;
+    clusterType: string;
+    machineType: string;
+    bizId: number | string;
+    cloudId: number | string;
   }
 
   const props = defineProps<Props>();
@@ -131,11 +135,15 @@
     });
   };
 
-  watch([() => props.clusterType, () => props.machineType], () => {
-    if (props.clusterType && props.machineType) {
-      getData();
-    }
-  }, { immediate: true });
+  watch(
+    [() => props.clusterType, () => props.machineType],
+    () => {
+      if (props.clusterType && props.machineType) {
+        getData();
+      }
+    },
+    { immediate: true },
+  );
 
   const columns = [
     {
@@ -160,9 +168,9 @@
     getSpecResourceCount({
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
-      spec_ids: list.value.map(item => item.spec_id),
+      spec_ids: list.value.map((item) => item.spec_id),
     }).then((data) => {
-      list.value = list.value.map(item => ({
+      list.value = list.value.map((item) => ({
         ...item,
         name: item.spec_name,
         count: data[item.spec_id],
@@ -170,23 +178,24 @@
     });
   }, 100);
 
-  watch([
-    () => props.bizId,
-    () => props.cloudId,
-    data,
-  ], () => {
-    if (
-      typeof props.bizId === 'number'
-      && props.bizId > 0
-      && typeof props.cloudId === 'number'
-      && data.value?.results?.length) {
-      fetchSpecResourceCount();
-    }
-  }, { immediate: true, deep: true });
+  watch(
+    [() => props.bizId, () => props.cloudId, data],
+    () => {
+      if (
+        typeof props.bizId === 'number' &&
+        props.bizId > 0 &&
+        typeof props.cloudId === 'number' &&
+        data.value?.results?.length
+      ) {
+        fetchSpecResourceCount();
+      }
+    },
+    { immediate: true, deep: true },
+  );
 
   defineExpose({
     getData() {
-      const item = list.value.find(item => item.spec_id === props.modelValue);
+      const item = list.value.find((item) => item.spec_id === props.modelValue);
       if (item) {
         const { instance_num: instanceNum } = item;
         return {
@@ -203,73 +212,73 @@
 </script>
 
 <style lang="less" scoped>
-.spec-selector-wrapper {
-  position: relative;
-  display: inline-block;
+  .spec-selector-wrapper {
+    position: relative;
+    display: inline-block;
 
-  .spec-refresh-icon {
-    position: absolute;
-    top: 50%;
-    right: -24px;
-    color: @primary-color;
-    cursor: pointer;
-    transform: translateY(-50%);
-  }
-}
-
-.spec-display {
-  display: flex;
-  width: 100%;
-  flex: 1;
-  align-items: center;
-  justify-content: space-between;
-
-  &-count {
-    height: 16px;
-    min-width: 20px;
-    font-size: 12px;
-    line-height: 16px;
-    color: @gray-color;
-    text-align:center;
-    background-color: #F0F1F5;
-    border-radius: 2px;
-  }
-}
-
-.bk-select-option {
-  &.is-selected {
-    .spec-display-count {
-      color: white;
-      background-color: #A3C5FD;
+    .spec-refresh-icon {
+      position: absolute;
+      top: 50%;
+      right: -24px;
+      color: @primary-color;
+      cursor: pointer;
+      transform: translateY(-50%);
     }
   }
-}
 
-.info-wrapper {
-  width: 530px;
-  padding: 9px 2px;
-  font-size: 12px;
-  color: @default-color;
-
-  .info {
+  .spec-display {
     display: flex;
+    width: 100%;
+    flex: 1;
     align-items: center;
-    line-height: 32px;
+    justify-content: space-between;
+
+    &-count {
+      height: 16px;
+      min-width: 20px;
+      font-size: 12px;
+      line-height: 16px;
+      color: @gray-color;
+      text-align: center;
+      background-color: #f0f1f5;
+      border-radius: 2px;
+    }
   }
 
-  .info-name {
-    display: inline-block;
-    padding-bottom: 12px;
+  .bk-select-option {
+    &.is-selected {
+      .spec-display-count {
+        color: white;
+        background-color: #a3c5fd;
+      }
+    }
   }
 
-  .info-title {
-    width: 120px;
-    text-align: right;
-    flex-shrink: 0;
-  }
+  .info-wrapper {
+    width: 530px;
+    padding: 9px 2px;
+    font-size: 12px;
+    color: @default-color;
 
-  .info-value {
-    color: @title-color;
+    .info {
+      display: flex;
+      align-items: center;
+      line-height: 32px;
+    }
+
+    .info-name {
+      display: inline-block;
+      padding-bottom: 12px;
+    }
+
+    .info-title {
+      width: 120px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .info-value {
+      color: @title-color;
+    }
   }
-}
 </style>

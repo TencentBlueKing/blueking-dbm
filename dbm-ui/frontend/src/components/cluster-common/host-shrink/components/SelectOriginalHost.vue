@@ -28,36 +28,36 @@
         tag="span">
         <span
           class="number"
-          style="color: #3a84ff;">
+          style="color: #3a84ff">
           {{ Object.values(checkedNodeMap).length }}
         </span>
         <span
           class="number"
-          style="color: #2dcb56;">
+          style="color: #2dcb56">
           {{ selectNodeDiskTotal }}
         </span>
         <span
           class="number"
-          style="color: #63656e;">
+          style="color: #63656e">
           {{ targetDisk }}
         </span>
       </I18nT>
       <BkButton
-        style="width: 64px;"
+        style="width: 64px"
         theme="primary"
         @click="handleSubmit">
         {{ t('确定') }}
       </BkButton>
       <BkButton
         class="ml-8"
-        style="width: 64px;"
+        style="width: 64px"
         @click="handleClose">
         {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>
 </template>
-<script setup lang="tsx" generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel">
+<script setup lang="tsx" generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel">
   import  {
     computed,
     shallowRef,

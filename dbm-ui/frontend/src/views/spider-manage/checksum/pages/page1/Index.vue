@@ -39,7 +39,7 @@
           property="timing"
           required>
           <div class="time-box">
-            <TimeZonePicker style="width: 350px;" />
+            <TimeZonePicker style="width: 350px" />
             <BkDatePicker
               v-model="formData.timing"
               style="width: 360px"
@@ -147,10 +147,7 @@
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -159,7 +156,7 @@
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const formData = reactive({
     data_repair: {
@@ -172,7 +169,7 @@
   });
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -192,7 +189,7 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChange = (selected: { [key: string]: Array<SpiderModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
@@ -232,23 +229,25 @@
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
-      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== domain);
     }
   };
 
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'TENDBCLUSTER_CHECKSUM',
-        remark: '',
-        details: {
-          ...formData,
-          timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }))
+      .then((data) =>
+        createTicket({
+          ticket_type: 'TENDBCLUSTER_CHECKSUM',
+          remark: '',
+          details: {
+            ...formData,
+            timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
+            infos: data,
+          },
+          bk_biz_id: currentBizId,
+        }),
+      )
       .then((data) => {
         window.changeConfirm = false;
         router.push({
@@ -280,17 +279,17 @@
     .time-box {
       display: flex;
       align-items: center;
-      gap: 8px
+      gap: 8px;
     }
 
-    .form-block{
-      .bk-form-label{
+    .form-block {
+      .bk-form-label {
         font-size: 12px;
         font-weight: bold;
         color: #313238;
       }
 
-      .repair-mode-block{
+      .repair-mode-block {
         flex-direction: column;
 
         .item-box {

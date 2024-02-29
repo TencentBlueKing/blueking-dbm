@@ -35,10 +35,9 @@
           @click="deleteNodeShow = true">
           {{ t('删除节点') }}
         </BkButton>
-        <BkDropdown
-          class="ml-4">
+        <BkDropdown class="ml-4">
           <BkButton
-            class="more-button "
+            class="more-button"
             size="small">
             <DbIcon type="more" />
           </BkButton>
@@ -173,27 +172,27 @@
 </script>
 
 <style lang="less">
-.riak-breadcrumbs-box {
-  display: flex;
-  width: 100%;
-  margin-left: 8px;
-  font-size: 12px;
-  align-items: center;
-
-  .riak-breadcrumbs-box-status {
+  .riak-breadcrumbs-box {
     display: flex;
-    margin-left: 30px;
-    align-items: center;
-  }
-
-  .riak-breadcrumbs-box-button {
-    display: flex;
-    margin-left: auto;
+    width: 100%;
+    margin-left: 8px;
+    font-size: 12px;
     align-items: center;
 
-    .more-button {
-      padding: 3px 6px;
+    .riak-breadcrumbs-box-status {
+      display: flex;
+      margin-left: 30px;
+      align-items: center;
+    }
+
+    .riak-breadcrumbs-box-button {
+      display: flex;
+      margin-left: auto;
+      align-items: center;
+
+      .more-button {
+        padding: 3px 6px;
+      }
     }
   }
-}
 </style>

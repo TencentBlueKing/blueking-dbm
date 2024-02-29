@@ -9,9 +9,7 @@
         <HightLightText
           :key-word="keyWord"
           :text="item.name" />
-        <div class="intro">
-          (集群名, {{ item.immute_domain }})
-        </div>
+        <div class="intro">(集群名, {{ item.immute_domain }})</div>
       </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
@@ -27,15 +25,15 @@
   import HightLightText from './components/HightLightText.vue';
 
   interface Props {
-    keyWord: string,
+    keyWord: string;
     data: {
-      bk_biz_id: number,
-      cluster_type: string,
-      id: number,
-      immute_domain: string,
-      name: string
-    }[],
-    bizIdNameMap: Record<number, string>
+      bk_biz_id: number;
+      cluster_type: string;
+      id: number;
+      immute_domain: string;
+      name: string;
+    }[];
+    bizIdNameMap: Record<number, string>;
   }
 
   defineProps<Props>();
@@ -62,12 +60,14 @@
       return;
     }
 
-    location({
-      name: routerNameMap[data.cluster_type],
-      query: {
-        id: data.id,
+    location(
+      {
+        name: routerNameMap[data.cluster_type],
+        query: {
+          id: data.id,
+        },
       },
-    }, data.bk_biz_id);
+      data.bk_biz_id,
+    );
   };
 </script>
-

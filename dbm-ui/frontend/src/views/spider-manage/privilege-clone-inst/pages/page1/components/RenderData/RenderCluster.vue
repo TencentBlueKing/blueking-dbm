@@ -30,11 +30,11 @@
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
-    clusterId: number
+    clusterId: number;
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<Record<string, string>>;
   }
 
   const props = defineProps<Props>();
@@ -45,40 +45,40 @@
 
   const clusterData = defineModel<SpiderModel>('clusterData');
 
-  const {
-    loading: isLoading,
-    run: fetchClusetrData,
-  } = useRequest(getSpiderDetail, {
+  const { loading: isLoading, run: fetchClusetrData } = useRequest(getSpiderDetail, {
     manual: true,
     onSuccess(data) {
       clusterData.value = data;
     },
   });
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchClusetrData({
-        id: props.clusterId,
-      });
-    } else {
-      clusterData.value = undefined;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (props.clusterId) {
+        fetchClusetrData({
+          id: props.clusterId,
+        });
+      } else {
+        clusterData.value = undefined;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue()
-        .then(() => {
-          if (!clusterData.value) {
-            return Promise.reject();
-          }
-          return {
-            cluster_domain: clusterData.value.master_domain,
-            bk_cloud_id: clusterData.value.bk_cloud_id,
-          };
-        });
+      return inputRef.value.getValue().then(() => {
+        if (!clusterData.value) {
+          return Promise.reject();
+        }
+        return {
+          cluster_domain: clusterData.value.master_domain,
+          bk_cloud_id: clusterData.value.bk_cloud_id,
+        };
+      });
     },
   });
 </script>

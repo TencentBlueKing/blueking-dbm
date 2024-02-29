@@ -79,7 +79,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
                 {{ riakSpec?.spec_name }}（{{ `${riakSpec?.count} ${t('台')}` }}）
               </span>
               <template #content>
@@ -125,10 +125,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { getTicketHostNodes } from '@services/source/ticket';
-  import type {
-    SpecInfo,
-    TicketDetails,
-  } from '@services/types/ticket';
+  import type { SpecInfo, TicketDetails } from '@services/types/ticket';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
@@ -136,27 +133,27 @@
 
   import SpecInfos from '../../SpecInfos.vue';
 
-  interface Props{
+  interface Props {
     ticketDetails: TicketDetails<{
-      db_module_name: string
-      cluster_name: string
-      cluster_alias: string
-      bk_cloud_name: string
-      city_code: string
-      city_name: string
-      db_version: string
-      ip_source: string
+      db_module_name: string;
+      cluster_name: string;
+      cluster_alias: string;
+      bk_cloud_name: string;
+      city_code: string;
+      city_name: string;
+      db_version: string;
+      ip_source: string;
       resource_spec?: {
-        riak: SpecInfo
-      },
+        riak: SpecInfo;
+      };
       nodes?: {
         riak: {
-          ip: string,
-          bk_host_id: number,
-          bk_cloud_id: number
-        }[]
-      }
-    }>
+          ip: string;
+          bk_host_id: number;
+          bk_cloud_id: number;
+        }[];
+      };
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -167,7 +164,7 @@
 
   const previewShow = ref(false);
 
-  const riakSpec = computed(() => props.ticketDetails?.details?.resource_spec?.riak || {} as SpecInfo);
+  const riakSpec = computed(() => props.ticketDetails?.details?.resource_spec?.riak || ({} as SpecInfo));
   const riakNodeCount = computed(() => props.ticketDetails.details?.nodes?.riak.length || 0);
   const fetchNodesParams = computed(() => ({
     bk_biz_id: props.ticketDetails.bk_biz_id,
@@ -181,5 +178,5 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 export default class GrammarCheck {
   bancommand_warnings: Array<{
@@ -20,18 +20,18 @@ export default class GrammarCheck {
   }>;
   content: string;
   highrisk_warnings: Array<{
-    command: string,
-    line: number,
-    sqltext: string,
-    warn_info: string
+    command: string;
+    line: number;
+    sqltext: string;
+    warn_info: string;
   }>;
   raw_file_name: string;
   sql_path: string;
   syntax_fails: Array<{
-    error_code: number,
-    error_msg: string,
-    line: number,
-    sqltext: string
+    error_code: number;
+    error_msg: string;
+    line: number;
+    sqltext: string;
   }>;
 
   constructor(payload = {} as GrammarCheck) {
@@ -48,7 +48,7 @@ export default class GrammarCheck {
   }
 
   get messageList() {
-    const result: Array<{ type: 'warning' | 'error', line: number, message: string }> = [];
+    const result: Array<{ type: 'warning' | 'error'; line: number; message: string }> = [];
 
     this.bancommand_warnings.forEach((item) => {
       result.push({

@@ -13,29 +13,27 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSourceCluster
         ref="sourceClusterRef"
         :data="data.srcCluster"
         :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         ref="targetClusterRef"
         :data="data.targetClusterId"
         :is-loading="data.isLoading"
         :select-list="selectClusterList" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
         required />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderKeyRelated
         ref="excludeKeyRef"
         :data="data.excludeKey"
@@ -52,7 +50,9 @@
 
   import RenderSourceCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
-  import RenderTargetCluster, { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
+  import RenderTargetCluster, {
+    type SelectItem,
+  } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { InfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
   import { random } from '@utils';
@@ -77,28 +77,26 @@
     includeKey: ['*'],
     excludeKey: [],
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    clusterList: SelectItem[],
-    inputedClusters?: string[],
+    data: IDataRow;
+    removeable: boolean;
+    clusterList: SelectItem[];
+    inputedClusters?: string[];
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
-
   const props = withDefaults(defineProps<Props>(), {
-    inputedClusters: () => ([]),
+    inputedClusters: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -109,13 +107,17 @@
   const excludeKeyRef = ref();
   const selectClusterList = ref<SelectItem[]>([]);
 
-  watch(() => props.data.srcCluster, (cluster) => {
-    if (cluster) {
-      selectClusterList.value = props.clusterList.filter(item => item.label !== cluster);
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data.srcCluster,
+    (cluster) => {
+      if (cluster) {
+        selectClusterList.value = props.clusterList.filter((item) => item.label !== cluster);
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);
@@ -141,12 +143,7 @@
         includeKeyRef.value.getValue(),
         excludeKeyRef.value.getValue(),
       ]).then((data) => {
-        const [
-          srcClusterId,
-          targetClusterId,
-          includeKey,
-          excludeKey,
-        ] = data;
+        const [srcClusterId, targetClusterId, includeKey, excludeKey] = data;
         return {
           src_cluster: srcClusterId,
           dst_cluster: targetClusterId,
@@ -156,6 +153,4 @@
       });
     },
   });
-
 </script>
-

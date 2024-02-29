@@ -34,12 +34,8 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    Button as BkButton,
-  } from 'bkui-vue';
-  import {
-    ref,
-  } from 'vue';
+  import { Button as BkButton } from 'bkui-vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type ApplyDataModel from '@services/model/iam/apply-data';
@@ -47,7 +43,7 @@
   import RenderResult from './render-result.vue';
 
   interface Props {
-    data: ApplyDataModel
+    data: ApplyDataModel;
   }
 
   const props = defineProps<Props>();
@@ -63,7 +59,6 @@
   const handleApplyed = () => {
     window.location.reload();
   };
-
 </script>
 <style lang="less" scoped>
   .dbm-perimission-page {

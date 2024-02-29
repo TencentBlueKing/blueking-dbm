@@ -38,7 +38,7 @@
       <div
         class="scrollbar-inner"
         :style="{ height: `${boxState.contentScrollHeight}px` }">
-          &nbsp;
+        &nbsp;
       </div>
     </div>
     <div
@@ -51,17 +51,14 @@
       <div
         class="scrollbar-inner"
         :style="{ width: `${boxState.contentScrollWidth}px` }">
-&nbsp;
+        &nbsp;
       </div>
     </div>
   </div>
 </template>
 <script lang="ts">
   import _ from 'lodash';
-  import {
-    onMounted,
-    ref,
-  } from 'vue';
+  import { onMounted, ref } from 'vue';
 
   import useBoxState from './hooks/use-box-state';
   import useContent from './hooks/use-content';
@@ -70,14 +67,14 @@
 
   export interface IContext {
     $refs: {
-      scrollBox: any,
-      scrollContent: any
-    }
+      scrollBox: any;
+      scrollContent: any;
+    };
   }
 </script>
 <script setup lang="ts">
-  interface Props{
-    theme?: string
+  interface Props {
+    theme?: string;
   }
   withDefaults(defineProps<Props>(), {
     theme: 'light',
@@ -90,16 +87,9 @@
   const verticalScroll = ref();
   const horizontalScrollbar = ref();
 
-  const {
-    state: boxState,
-    initState,
-  } = useBoxState();
+  const { state: boxState, initState } = useBoxState();
 
-  const {
-    isContentScroll,
-    mouseenter: handleContentMouseenter,
-    mouseleave: handleContentMouseleave,
-  } = useContent();
+  const { isContentScroll, mouseenter: handleContentMouseenter, mouseleave: handleContentMouseleave } = useContent();
 
   const {
     isVerticalScroll,
@@ -107,19 +97,13 @@
     mouseleave: handleVerticalMouseleave,
   } = useVertical();
 
-  const {
-    mouseenter: handleHorizontalMouseenter,
-    mouseleave: handleHorizontalMouseleave,
-  } = useHorizotal();
+  const { mouseenter: handleHorizontalMouseenter, mouseleave: handleHorizontalMouseleave } = useHorizotal();
 
   // 初始化滚动状态
   const handleCalcScroller = _.throttle(initState, 100);
   // 内容区滚动
   const handleContentScroll = _.throttle((event) => {
-    const {
-      scrollTop,
-      scrollLeft,
-    } = event.target;
+    const { scrollTop, scrollLeft } = event.target;
     if (isContentScroll.value && verticalScroll.value) {
       verticalScroll.value.scrollTo(0, scrollTop);
     }
@@ -146,10 +130,7 @@
   });
 
   const getScroll = () => {
-    const {
-      scrollLeft,
-      scrollTop,
-    } = scrollContent.value;
+    const { scrollLeft, scrollTop } = scrollContent.value;
     return {
       scrollLeft,
       scrollTop,
@@ -166,7 +147,7 @@
     boxState,
   });
 </script>
-<style lang='less'>
+<style lang="less">
   .scroll-faker {
     position: relative;
     height: 100%;

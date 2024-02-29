@@ -9,19 +9,19 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import _ from 'lodash';
 
-export type CacheValue = Promise<any>
-export type CacheExpire = number | boolean
+export type CacheValue = Promise<any>;
+export type CacheExpire = number | boolean;
 
 export interface ICache {
   set: (name: string, value: CacheValue, expire: CacheExpire) => boolean;
   get: (name: string) => any;
   has: (name: string) => boolean;
-  delete: (name: string) => boolean
-  clear: () => boolean
+  delete: (name: string) => boolean;
+  clear: () => boolean;
 }
 
 export default class Cache implements ICache {

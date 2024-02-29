@@ -18,7 +18,9 @@
       :type="statusIcon" />
     <span
       v-if="showText"
-      style="margin-left: 4px;">{{ statusText }}</span>
+      style="margin-left: 4px">
+      {{ statusText }}
+    </span>
   </div>
 </template>
 <script setup lang="ts">

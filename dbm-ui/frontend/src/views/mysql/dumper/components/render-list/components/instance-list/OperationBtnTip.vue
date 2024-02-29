@@ -21,7 +21,7 @@
     <template #content>
       <I18nT
         keypath="xx_跳转_我的服务单_查看进度"
-        style="font-size: 12px; line-height: 16px; color: #63656e;"
+        style="font-size: 12px; line-height: 16px; color: #63656e"
         tag="div">
         <span>{{ data.operationBtnTipStatusText }}</span>
         <RouterLink
@@ -40,11 +40,11 @@
 </template>
 <script setup lang="ts">
   interface Props {
-    disabled: boolean,
+    disabled: boolean;
     data: {
-      operationBtnTipStatusText: string,
-      operationTicketId: number,
-    }
+      operationBtnTipStatusText: string;
+      operationTicketId: number;
+    };
   }
 
   defineProps<Props>();

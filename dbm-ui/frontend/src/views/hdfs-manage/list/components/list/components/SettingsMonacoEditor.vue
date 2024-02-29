@@ -15,14 +15,14 @@
   <div
     ref="editorRef"
     class="settings-editor"
-    style="height: 500px; margin-bottom: 24px;" />
+    style="height: 500px; margin-bottom: 24px" />
 </template>
 
 <script setup lang="ts">
   import * as monaco from 'monaco-editor';
 
   interface Props {
-    value: string
+    value: string;
   }
 
   const props = defineProps<Props>();
@@ -47,14 +47,17 @@
     editor.setValue(props.value);
   });
 
-  watch(() => props.value, () => {
-    editor.setValue(props.value);
-  });
+  watch(
+    () => props.value,
+    () => {
+      editor.setValue(props.value);
+    },
+  );
 </script>
 
 <style lang="less" scoped>
-.settings-editor {
-  padding: 12px 0;
-  background-color: #1e1e1e;
-}
+  .settings-editor {
+    padding: 12px 0;
+    background-color: #1e1e1e;
+  }
 </style>

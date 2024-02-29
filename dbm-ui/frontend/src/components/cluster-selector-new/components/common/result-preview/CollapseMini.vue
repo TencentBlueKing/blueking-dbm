@@ -26,7 +26,7 @@
           <I18nT
             keypath="共n个"
             tag="span">
-            <strong style="color: #3a84ff;">{{ count }}</strong>
+            <strong style="color: #3a84ff">{{ count }}</strong>
           </I18nT>
         </p>
       </slot>
@@ -66,9 +66,12 @@
     collapse: props.collapse,
   });
 
-  watch(() => props.collapse, () => {
-    state.collapse = props.collapse;
-  });
+  watch(
+    () => props.collapse,
+    () => {
+      state.collapse = props.collapse;
+    },
+  );
 
   const handleToggle = () => {
     state.collapse = !state.collapse;
@@ -76,7 +79,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .collapse-mini {
     margin-top: 16px;

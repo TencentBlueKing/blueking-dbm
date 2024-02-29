@@ -12,7 +12,7 @@
           <div class="data-row-edit-instance">
             <EditHostInstance
               :model-value="hostItem.instance_num"
-              @change="value => handleInstanceNumChange(value, hostItem)" />
+              @change="(value) => handleInstanceNumChange(value, hostItem)" />
           </div>
           <div
             class="data-row-remve-btn"
@@ -36,16 +36,16 @@
         <template #submitTips="{ hostList: resultHostList }">
           <I18nT
             keypath="需n台_已选n台"
-            style="font-size: 14px; color: #63656e;"
+            style="font-size: 14px; color: #63656e"
             tag="span">
             <span
               class="number"
-              style="color: #2dcb56;">
+              style="color: #2dcb56">
               {{ data.nodeList.length }}
             </span>
             <span
               class="number"
-              style="color: #3a84ff;">
+              style="color: #3a84ff">
               {{ resultHostList.length }}
             </span>
           </I18nT>
@@ -76,9 +76,9 @@
   import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
-    data: TReplaceNode,
-    placehoderId: string,
-    disableHostMethod?: (params: HostDetails) => string | boolean
+    data: TReplaceNode;
+    placehoderId: string;
+    disableHostMethod?: (params: HostDetails) => string | boolean;
   }
 
   const props = defineProps<Props>();
@@ -90,10 +90,11 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  const formatIpDataWidthInstance = (data: HostDetails[]) => data.map(item => ({
-    instance_num: 1,
-    ...item,
-  }));
+  const formatIpDataWidthInstance = (data: HostDetails[]) =>
+    data.map((item) => ({
+      instance_num: 1,
+      ...item,
+    }));
 
   const cloudInfo = computed(() => {
     const [firstItem] = props.data.nodeList;
@@ -106,11 +107,8 @@
     return undefined;
   });
 
-  const disableDialogSubmitMethod = (hostList: HostDetails[]) => (
-    hostList.length === props.data.nodeList.length
-      ? false
-      : t('需n台', { n: props.data.nodeList.length })
-  );
+  const disableDialogSubmitMethod = (hostList: HostDetails[]) =>
+    hostList.length === props.data.nodeList.length ? false : t('需n台', { n: props.data.nodeList.length });
 
   const isShowIpSelector = ref(false);
 
@@ -125,81 +123,87 @@
   };
 
   const handleInstanceNumChange = (value: number, hostData: Props['data']['hostList'][0]) => {
-    modelValue.value = modelValue.value.reduce((result, item) => {
-      if (item.host_id === hostData.host_id) {
-        result.push({
-          ...item,
-          instance_num: Number(value),
-        });
-      } else {
-        result.push(item);
-      }
-      return result;
-    }, [] as Props['data']['hostList']);
+    modelValue.value = modelValue.value.reduce(
+      (result, item) => {
+        if (item.host_id === hostData.host_id) {
+          result.push({
+            ...item,
+            instance_num: Number(value),
+          });
+        } else {
+          result.push(item);
+        }
+        return result;
+      },
+      [] as Props['data']['hostList'],
+    );
   };
 
   // 移除替换的主机
   const handleRemoveHost = (host: Props['data']['hostList'][0]) => {
-    modelValue.value = modelValue.value.reduce((result, item) => {
-      if (item.host_id !== host.host_id) {
-        result.push(item);
-      }
-      return result;
-    }, [] as Props['data']['hostList']);
+    modelValue.value = modelValue.value.reduce(
+      (result, item) => {
+        if (item.host_id !== host.host_id) {
+          result.push(item);
+        }
+        return result;
+      },
+      [] as Props['data']['hostList'],
+    );
   };
 </script>
 <style lang="less">
   .es-cluster-replace-host-selector {
     font-size: 12px;
-    color: #63656E;
+    color: #63656e;
 
-    .result-value{
+    .result-value {
       height: 100%;
 
-      .data-row{
+      .data-row {
         display: flex;
         height: 40px;
         align-items: center;
         padding-left: 16px;
 
-        & ~ .data-row{
-          border-top: 1px solid #DCDEE5;
+        & ~ .data-row {
+          border-top: 1px solid #dcdee5;
         }
 
-        &:hover{
-          .data-row-remve-btn{
+        &:hover {
+          .data-row-remve-btn {
             opacity: 100%;
           }
         }
       }
 
-      .data-row-remve-btn{
+      .data-row-remve-btn {
         display: flex;
         width: 52px;
         height: 100%;
         font-size: 16px;
-        color: #3A84FF;
+        color: #3a84ff;
         cursor: pointer;
         opacity: 0%;
-        transition: all .15s;
+        transition: all 0.15s;
         justify-content: center;
         align-items: center;
       }
 
-      .data-row-edit-instance{
+      .data-row-edit-instance {
         width: 100px;
         margin-left: auto;
         text-align: right;
       }
 
-      .es-cluster-node-edit-host-instance{
-        .bk-input--text{
+      .es-cluster-node-edit-host-instance {
+        .bk-input--text {
           text-align: right;
         }
       }
     }
 
-    .action-box{
+    .action-box {
       display: flex;
       align-items: center;
       justify-content: center;

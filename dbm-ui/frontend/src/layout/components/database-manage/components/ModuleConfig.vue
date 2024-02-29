@@ -32,7 +32,7 @@
               class="item"
               @click="handleSelect(item.value)">
               <DbIcon
-                style="margin-right: 8px; font-size: 16px; color: #979BA5"
+                style="margin-right: 8px; font-size: 16px; color: #979ba5"
                 :type="item.icon" />
               <span>{{ item.name }}</span>
               <BkCheckbox
@@ -53,17 +53,17 @@
             <Vuedraggable
               v-model="selectList"
               item-key="value">
-              <template #item="{element: item}">
+              <template #item="{ element: item }">
                 <div
                   v-if="configValueMap[item]"
                   class="result-item">
                   <DbIcon
                     class="mr-8"
-                    style="color: #979BA5; cursor: move;"
+                    style="color: #979ba5; cursor: move"
                     type="drag" />
                   <DbIcon
                     class="mr-8"
-                    style="font-size: 16px; color: #979BA5"
+                    style="font-size: 16px; color: #979ba5"
                     :type="configValueMap[item].icon" />
                   <span>{{ configValueMap[item].name }}</span>
                   <DbIcon
@@ -94,18 +94,12 @@
   </BkDialog>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import Vuedraggable from 'vuedraggable';
 
-  import {
-    getBizSettingList,
-    updateBizSetting,
-  } from '@services/system-setting';
+  import { getBizSettingList, updateBizSetting } from '@services/system-setting';
 
   import { messageSuccess } from '@utils';
 
@@ -176,10 +170,13 @@
     ],
   };
 
-  const configValueMap = Object.values(configMap).reduce((result, configItem) => {
-    configItem.forEach(item => Object.assign(result, { [item.value]: item }));
-    return result;
-  }, {} as Record<string, ValueOf<typeof configMap>[number]>);
+  const configValueMap = Object.values(configMap).reduce(
+    (result, configItem) => {
+      configItem.forEach((item) => Object.assign(result, { [item.value]: item }));
+      return result;
+    },
+    {} as Record<string, ValueOf<typeof configMap>[number]>,
+  );
 
   const modelValue = defineModel<string[]>({
     default: [],
@@ -189,15 +186,17 @@
   const isSubmiting = ref(false);
   const selectList = ref<string[]>([]);
 
-  watch(modelValue, () => {
-    selectList.value = [...modelValue.value];
-  }, {
-    immediate: true,
-  });
+  watch(
+    modelValue,
+    () => {
+      selectList.value = [...modelValue.value];
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  const {
-    loading: isLoading,
-  } = useRequest(getBizSettingList, {
+  const { loading: isLoading } = useRequest(getBizSettingList, {
     defaultParams: [
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -205,7 +204,8 @@
       },
     ],
     onSuccess(data) {
-      modelValue.value = data[DATABASE_MANAGE_MENU] && data[DATABASE_MANAGE_MENU].length > 0 ? data[DATABASE_MANAGE_MENU] : ['mysql'];
+      modelValue.value =
+        data[DATABASE_MANAGE_MENU] && data[DATABASE_MANAGE_MENU].length > 0 ? data[DATABASE_MANAGE_MENU] : ['mysql'];
     },
   });
 
@@ -229,10 +229,11 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       key: DATABASE_MANAGE_MENU,
       value: [...selectList.value],
-    }).then(() => {
-      modelValue.value = [...selectList.value];
-      messageSuccess(t('保存成功'));
     })
+      .then(() => {
+        modelValue.value = [...selectList.value];
+        messageSuccess(t('保存成功'));
+      })
       .finally(() => {
         isSubmiting.value = false;
       });
@@ -241,142 +242,140 @@
   const handleCancel = () => {
     isShow.value = false;
   };
-
 </script>
 <style lang="less">
-.navigation-database-module-config-btn{
-  display: flex;
-  height: 24px;
-  padding: 0 10px;
-  margin-top: 8px;
-  margin-right: 10px;
-  margin-left: 10px;
-  font-size: 14px;
-  color: #939EB5;
-  cursor: pointer;
-  background: #2C323F;
-  border-radius: 4px;
-  justify-content: center;
-  align-items: center;
-  transition: all .1s;
-
-  &:hover{
-    background: #363B48;
-  }
-}
-
-.navigation-database-module-config-dialog{
-  .bk-modal-header{
-    display: none;
-  }
-
-  .bk-modal-content{
-    padding: 0 !important;
-  }
-
-  .content-wrapper {
+  .navigation-database-module-config-btn {
     display: flex;
-  }
+    height: 24px;
+    padding: 0 10px;
+    margin-top: 8px;
+    margin-right: 10px;
+    margin-left: 10px;
+    font-size: 14px;
+    color: #939eb5;
+    cursor: pointer;
+    background: #2c323f;
+    border-radius: 4px;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.1s;
 
-  .select-wrapper{
-    flex: 1;
-
-    .select-header{
-      display: flex;
-      height: 48px;
-      padding-right: 50px;
-      padding-left: 24px;
-      margin-bottom: 24px;
-      align-items: center;
-
-      .title{
-        font-size: 20px;
-        color: #313238;
-      }
+    &:hover {
+      background: #363b48;
     }
   }
 
-  .select-list{
-    display: flex;
-    padding-bottom: 20px;
-    flex-wrap: wrap;
-    font-size: 14px;
-    color: #313238;
+  .navigation-database-module-config-dialog {
+    .bk-modal-header {
+      display: none;
+    }
 
-    .module-col{
-      flex: 0 0 25%;
-      padding: 0 15px;
-      margin-bottom: 24px;
-      border-radius: 2px;
+    .bk-modal-content {
+      padding: 0 !important;
+    }
 
-      .module-title{
-        padding-left: 8px;
-        margin-bottom: 10px;
-        font-weight: bold;
-        line-height: 1.5;
-      }
+    .content-wrapper {
+      display: flex;
+    }
 
-      .item{
+    .select-wrapper {
+      flex: 1;
+
+      .select-header {
         display: flex;
-        height: 32px;
-        padding: 0 8px;
-        cursor: pointer;
-        transition: .1s;
+        height: 48px;
+        padding-right: 50px;
+        padding-left: 24px;
+        margin-bottom: 24px;
         align-items: center;
 
-        &:hover{
-          background: #F0F1F5;
-        }
-
-        .bk-checkbox{
-          margin-left: auto;
+        .title {
+          font-size: 20px;
+          color: #313238;
         }
       }
     }
-  }
 
-  .result-wrapper{
-    font-size: 14px;
-    color:#63656E;
-    border-left: 1px solid #F0F1F5;
-    flex: 0 0 200px;
-
-    .result-header{
-      padding: 18px 16px 12px;
+    .select-list {
+      display: flex;
+      padding-bottom: 20px;
+      flex-wrap: wrap;
       font-size: 14px;
       color: #313238;
-    }
 
-    .result-item{
-      display: flex;
-      height: 36px;
-      padding-right: 10px;
-      padding-left: 16px;
-      cursor: default;
-      transition: .1s;
-      align-items: center;
+      .module-col {
+        flex: 0 0 25%;
+        padding: 0 15px;
+        margin-bottom: 24px;
+        border-radius: 2px;
 
-      &:hover{
-        background: #F5F7FA;
+        .module-title {
+          padding-left: 8px;
+          margin-bottom: 10px;
+          font-weight: bold;
+          line-height: 1.5;
+        }
 
-        .remove-btn{
-          opacity: 100%;
+        .item {
+          display: flex;
+          height: 32px;
+          padding: 0 8px;
+          cursor: pointer;
+          transition: 0.1s;
+          align-items: center;
+
+          &:hover {
+            background: #f0f1f5;
+          }
+
+          .bk-checkbox {
+            margin-left: auto;
+          }
         }
       }
     }
 
-    .remove-btn{
-      margin-left: auto;
-      font-size: 20px;
-      color: #979BA5;
-      cursor: pointer;
-      opacity: 0%;
+    .result-wrapper {
+      font-size: 14px;
+      color: #63656e;
+      border-left: 1px solid #f0f1f5;
+      flex: 0 0 200px;
 
-      &:hover{
-        color: #3a84ff;
+      .result-header {
+        padding: 18px 16px 12px;
+        font-size: 14px;
+        color: #313238;
+      }
+
+      .result-item {
+        display: flex;
+        height: 36px;
+        padding-right: 10px;
+        padding-left: 16px;
+        cursor: default;
+        transition: 0.1s;
+        align-items: center;
+
+        &:hover {
+          background: #f5f7fa;
+
+          .remove-btn {
+            opacity: 100%;
+          }
+        }
+      }
+
+      .remove-btn {
+        margin-left: auto;
+        font-size: 20px;
+        color: #979ba5;
+        cursor: pointer;
+        opacity: 0%;
+
+        &:hover {
+          color: #3a84ff;
+        }
       }
     }
   }
-}
-
 </style>

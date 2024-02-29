@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import RedisRollbackModel from '@services/model/redis/redis-rollback';
 
 import { useGlobalBizs } from '@stores';
@@ -21,15 +21,16 @@ const { currentBizId } = useGlobalBizs();
 
 const path = `/apis/redis/bizs/${currentBizId}/rollback`;
 
-export function getRollbackList(params?: {
-  bk_biz_id: number,
-  limit?: number;
-  offset?: number;
-  temp_cluster_proxy?: string; // ip:port
-} & Record<string, any>) {
-  return http.get<ListBase<RedisRollbackModel[]>>(`${path}/`, params)
-    .then(res => ({
-      ...res,
-      results: res.results.map(item => new RedisRollbackModel(item)),
-    }));
+export function getRollbackList(
+  params?: {
+    bk_biz_id: number;
+    limit?: number;
+    offset?: number;
+    temp_cluster_proxy?: string; // ip:port
+  } & Record<string, any>,
+) {
+  return http.get<ListBase<RedisRollbackModel[]>>(`${path}/`, params).then((res) => ({
+    ...res,
+    results: res.results.map((item) => new RedisRollbackModel(item)),
+  }));
 }

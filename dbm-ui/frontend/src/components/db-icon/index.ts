@@ -9,12 +9,9 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import {
-  defineComponent,
-  h,
-} from 'vue';
+import { defineComponent, h } from 'vue';
 
 import './style.css';
 
@@ -33,15 +30,19 @@ export default defineComponent({
 
   render() {
     if (this.svg) {
-      return h('svg', {
-        class: {
-          'db-svg-icon': true,
+      return h(
+        'svg',
+        {
+          class: {
+            'db-svg-icon': true,
+          },
         },
-      }, [
-        h('use', {
-          'xlink:href': `#db-icon-${this.type}`,
-        }),
-      ]);
+        [
+          h('use', {
+            'xlink:href': `#db-icon-${this.type}`,
+          }),
+        ],
+      );
     }
     const classes = {
       'bk-dbm': true,

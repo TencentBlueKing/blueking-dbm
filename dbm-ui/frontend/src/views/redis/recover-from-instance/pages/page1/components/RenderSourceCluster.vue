@@ -31,23 +31,22 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['srcCluster'],
+    data?: IDataRow['srcCluster'];
     inputed?: string[];
   }
 
   interface Emits {
-    (e: 'change', value: string): void
-    (e: 'inputFinish', value: string): void
+    (e: 'change', value: string): void;
+    (e: 'inputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
-
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
-    inputed: () => ([]),
+    inputed: () => [],
   });
   const emits = defineEmits<Emits>();
 
@@ -65,20 +64,27 @@
       message: t('访问入口格式不正确'),
     },
     {
-      validator: (value: string) => props.inputed.filter(item => item === value).length < 2,
+      validator: (value: string) => props.inputed.filter((item) => item === value).length < 2,
       message: t('目标访问入口重复'),
     },
   ];
 
-  watch(() => props.data, (data) => {
-    localValue.value = data;
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      localValue.value = data;
+    },
+  );
 
-  watch(() => localValue.value, () => {
-    emits('change', localValue.value);
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => localValue.value,
+    () => {
+      emits('change', localValue.value);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleInputFinish = (value: string) => {
     emits('inputFinish', value);
@@ -86,9 +92,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return editRef.value.getValue().then(() => localValue.value);
     },
   });
 </script>

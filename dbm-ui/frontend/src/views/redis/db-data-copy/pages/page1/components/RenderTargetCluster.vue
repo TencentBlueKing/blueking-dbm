@@ -41,15 +41,15 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   interface Emits {
-    (e: 'select-change', value: number): void
+    (e: 'select-change', value: number): void;
   }
 
   withDefaults(defineProps<Props>(), {
-    selectList: () => ([]),
+    selectList: () => [],
     isLoading: false,
   });
 
@@ -74,9 +74,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return selectRef.value.getValue().then(() => localValue.value);
     },
   });
 </script>

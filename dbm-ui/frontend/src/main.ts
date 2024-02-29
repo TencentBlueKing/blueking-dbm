@@ -9,8 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
-
+ */
 import bkuiVue from 'bkui-vue';
 import dayjs from 'dayjs';
 import tz from 'dayjs/plugin/timezone';
@@ -18,11 +17,7 @@ import utc from 'dayjs/plugin/utc';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 
-import {
-  useFunController,
-  useGlobalBizs,
-  useSystemEnviron,
-} from '@stores';
+import { useFunController, useGlobalBizs, useSystemEnviron } from '@stores';
 
 import { setGlobalComps } from '@common/importComps';
 
@@ -32,10 +27,11 @@ import App from './App.vue';
 import getRouter from './router';
 
 import '@blueking/ip-selector/dist/styles/vue2.6.x.css';
-import 'bkui-vue/dist/style.css';
-import '@styles/common.less';
 import '@lib/bk-icon/iconcool';
+import '@styles/common.less';
+import 'bkui-vue/dist/style.css';
 import { setGlobalDirectives } from '@/directives/index';
+
 import('tippy.js/dist/tippy.css');
 import('tippy.js/themes/light.css');
 
@@ -57,21 +53,11 @@ app.use(i18n);
 
 window.BKApp = app;
 
-const {
-  fetchFunController,
-} = useFunController();
-const {
-  fetchBizs,
-} = useGlobalBizs();
-const {
-  fetchSystemEnviron,
-} = useSystemEnviron();
+const { fetchFunController } = useFunController();
+const { fetchBizs } = useGlobalBizs();
+const { fetchSystemEnviron } = useSystemEnviron();
 
-Promise.all([
-  fetchFunController(),
-  fetchBizs(),
-  fetchSystemEnviron(),
-]).then(() => {
+Promise.all([fetchFunController(), fetchBizs(), fetchSystemEnviron()]).then(() => {
   app.use(getRouter());
 
   app.mount('#app');

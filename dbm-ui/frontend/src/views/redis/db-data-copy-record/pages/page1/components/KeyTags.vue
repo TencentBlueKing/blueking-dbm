@@ -15,7 +15,7 @@
   <div
     ref="tagsRef"
     class="key-tags"
-    :style="{padding: maxRow > 0 ? '5px 0' : 0}">
+    :style="{ padding: maxRow > 0 ? '5px 0' : 0 }">
     <div
       v-for="(item, index) in displayList"
       :key="index"
@@ -32,25 +32,24 @@
         <div
           v-for="(item, index) in overflowTagList"
           :key="index"
-          :style="{textAlign: 'center'}">
+          :style="{ textAlign: 'center' }">
           {{ item }}
         </div>
       </template>
-      <BkTag>
-        +{{ overflowNum }}
-      </BkTag>
+      <BkTag> +{{ overflowNum }} </BkTag>
     </BkPopover>
   </div>
 </template>
 <script setup lang="ts">
   import { useTagsOverflow } from '@hooks';
+
   interface Props {
     data?: string[];
-    maxRow?: number
+    maxRow?: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => ([]),
+    data: () => [],
     maxRow: 0, // 不限制行
   });
 
@@ -59,51 +58,51 @@
   const displayList = ref(props.data);
   const { overflowTagIndex } = useTagsOverflow(tagsRef, tagsList);
 
-  const overflowNum = computed(() => (overflowTagIndex.value === 0 ? 0 : (props.data.length - overflowTagIndex.value)));
+  const overflowNum = computed(() => (overflowTagIndex.value === 0 ? 0 : props.data.length - overflowTagIndex.value));
   const overflowTagList = computed(() => [...props.data.slice(overflowTagIndex.value)]);
   let rawList = '';
 
-  watch(() => props.data, (list) => {
-    const listStr = JSON.stringify(list);
-    if (rawList !== listStr) {
-      displayList.value = list;
-      rawList = listStr;
-    }
-  });
-
+  watch(
+    () => props.data,
+    (list) => {
+      const listStr = JSON.stringify(list);
+      if (rawList !== listStr) {
+        displayList.value = list;
+        rawList = listStr;
+      }
+    },
+  );
 
   watch(overflowTagIndex, (index) => {
     displayList.value = [...props.data.slice(0, index)];
   });
-
-
 </script>
 <style lang="less" scoped>
-.key-tags {
-  display: flex;
-  width: 100%;
-  max-height: 60px;
-  // padding: 5px 0;
-  flex-wrap: wrap;
-  gap: 5px;
+  .key-tags {
+    display: flex;
+    width: 100%;
+    max-height: 60px;
+    // padding: 5px 0;
+    flex-wrap: wrap;
+    gap: 5px;
 
-  .tag-item {
-    display: inline-flex;
-    height: 22px;
-    // padding: 0 10px;
-    // font-size: 12px;
-    // line-height: 22px;
-    // color: #63656E;
-    // text-align: center;
-    // background: #F0F1F5;
-    // border-radius: 2px;
+    .tag-item {
+      display: inline-flex;
+      height: 22px;
+      // padding: 0 10px;
+      // font-size: 12px;
+      // line-height: 22px;
+      // color: #63656E;
+      // text-align: center;
+      // background: #F0F1F5;
+      // border-radius: 2px;
+    }
+
+    .overflow-num {
+      .tag-item();
+
+      // display: block;
+      cursor: pointer;
+    }
   }
-
-  .overflow-num {
-    .tag-item();
-
-    // display: block;
-    cursor: pointer;
-  }
-}
 </style>

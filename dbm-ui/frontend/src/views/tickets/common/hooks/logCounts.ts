@@ -9,14 +9,11 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import {
-  getNodeLog,
-  getRetryNodeHistories,
-} from '@services/source/taskflow';
+import { getNodeLog, getRetryNodeHistories } from '@services/source/taskflow';
 
-export type ILogItem = ServiceReturnType<typeof getNodeLog>[number]
+export type ILogItem = ServiceReturnType<typeof getNodeLog>[number];
 
 /**
  * 计算执行文件成功、失败个数
@@ -39,19 +36,20 @@ export default function () {
       version_id: versionId,
       root_id: rootId,
       node_id: nodeId,
-    }).then((logData) => {
-      if (lastLogLength !== logData.length) {
-        wholeLogList.value = logData as ILogItem[];
-      }
-      lastLogLength = logData.length;
-
-      if (logTimer < 0) {
-        return;
-      }
-      logTimer = setTimeout(() => {
-        fetchLog(rootId, nodeId);
-      }, 2000);
     })
+      .then((logData) => {
+        if (lastLogLength !== logData.length) {
+          wholeLogList.value = logData as ILogItem[];
+        }
+        lastLogLength = logData.length;
+
+        if (logTimer < 0) {
+          return;
+        }
+        logTimer = setTimeout(() => {
+          fetchLog(rootId, nodeId);
+        }, 2000);
+      })
       .finally(() => {
         isLoading.value = false;
       });
@@ -63,42 +61,46 @@ export default function () {
     getRetryNodeHistories({
       root_id: rootId,
       node_id: nodeId,
-    }).then((data) => {
-      if (data.length > 0 && data[0].version) {
-        versionId = data[0].version;
-        fetchLog(rootId, nodeId);
-        clearTimeout(versionTimer);
-        return;
-      }
-
-      if (versionTimer < 0) {
-        return;
-      }
-      versionTimer = setTimeout(() => {
-        fetchVersion(rootId, nodeId);
-      }, 2000);
     })
+      .then((data) => {
+        if (data.length > 0 && data[0].version) {
+          versionId = data[0].version;
+          fetchLog(rootId, nodeId);
+          clearTimeout(versionTimer);
+          return;
+        }
+
+        if (versionTimer < 0) {
+          return;
+        }
+        versionTimer = setTimeout(() => {
+          fetchVersion(rootId, nodeId);
+        }, 2000);
+      })
       .catch(() => {
         isLoading.value = false;
       });
   };
 
-  watch(() => wholeLogList, () => {
-    const successLogs: any[] = [];
-    const failLogs: any[] = [];
-    wholeLogList.value.forEach((item) => {
-      if (item.message.match(fileStartReg)) {
-        successLogs.push(item);
-      }
-      if (item.message.match(fileEndReg)) {
-        failLogs.push(item);
-      }
-    });
-    const diffCounts = successLogs.length - failLogs.length;
-    counts.success =  successLogs.length - diffCounts;
-    counts.fail =  diffCounts === 0 ? 0 : diffCounts;
-  }, { immediate: true, deep: true });
-
+  watch(
+    () => wholeLogList,
+    () => {
+      const successLogs: any[] = [];
+      const failLogs: any[] = [];
+      wholeLogList.value.forEach((item) => {
+        if (item.message.match(fileStartReg)) {
+          successLogs.push(item);
+        }
+        if (item.message.match(fileEndReg)) {
+          failLogs.push(item);
+        }
+      });
+      const diffCounts = successLogs.length - failLogs.length;
+      counts.success = successLogs.length - diffCounts;
+      counts.fail = diffCounts === 0 ? 0 : diffCounts;
+    },
+    { immediate: true, deep: true },
+  );
 
   onBeforeUnmount(() => {
     clearTimeout(logTimer);

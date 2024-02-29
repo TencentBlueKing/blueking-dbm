@@ -58,16 +58,14 @@
 
   const { t } = useI18n();
 
-  const {
-    data,
-  } = useRequest(fetchResourceImportUrls);
+  const { data } = useRequest(fetchResourceImportUrls);
 </script>
 <style lang="less" scoped>
   .export-host-empty {
     width: 100%;
     font-size: 14px;
     line-height: 28px;
-    color: #63656E;
+    color: #63656e;
     text-align: center;
   }
 </style>

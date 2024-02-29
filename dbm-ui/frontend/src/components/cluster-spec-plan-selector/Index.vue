@@ -281,14 +281,14 @@
   .cluster-spec-plan-selector {
     display: block;
 
-    .capacity-box{
+    .capacity-box {
       display: flex;
 
-      .bk-form-item{
+      .bk-form-item {
         flex: 1;
 
-        &~.bk-form-item{
-          margin-left:40px;
+        & ~ .bk-form-item {
+          margin-left: 40px;
         }
       }
     }

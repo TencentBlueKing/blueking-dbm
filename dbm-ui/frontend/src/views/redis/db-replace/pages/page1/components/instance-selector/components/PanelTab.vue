@@ -18,7 +18,7 @@
       :key="value"
       class="tab-item"
       :class="{
-        active: modelValue === value
+        active: modelValue === value,
       }"
       @click="handleClick(value)">
       {{ textMap[value] }}
@@ -30,18 +30,19 @@
   import type { InjectionKey, Ref } from 'vue';
 
   import { textMap } from '../common/utils';
+
   export const defaultPanelList = ['idleHosts', 'manualInput'] as const;
-  export type PanelTypes = typeof defaultPanelList[number];
+  export type PanelTypes = (typeof defaultPanelList)[number];
   export const activePanelInjectionKey: InjectionKey<Ref<PanelTypes>> = Symbol('activePanel');
 </script>
 
 <script setup lang="ts">
   interface Props {
-    modelValue: string,
-    panelList?: Array<PanelTypes>
+    modelValue: string;
+    panelList?: Array<PanelTypes>;
   }
   interface Emits {
-    (e: 'update:modelValue', value: string): void
+    (e: 'update:modelValue', value: string): void;
   }
 
   const props = defineProps<Props>();

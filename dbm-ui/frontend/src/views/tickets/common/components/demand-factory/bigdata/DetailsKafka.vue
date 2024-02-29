@@ -45,8 +45,7 @@
   <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('数据库部署信息') }}</strong>
     <div class="ticket-details__list">
-      <div
-        class="ticket-details__item">
+      <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('容灾要求') }}：</span>
         <span class="ticket-details__item-value">{{ affinity }}</span>
       </div>
@@ -96,7 +95,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
                 {{ brokerSpec?.spec_name }}（{{ `${brokerSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -113,7 +112,7 @@
               theme="light">
               <span
                 class="pb-2"
-                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
                 {{ zookeeperSpec?.spec_name }}（{{ `${zookeeperSpec?.count} ${$t('台')}` }}）
               </span>
               <template #content>
@@ -127,13 +126,17 @@
         <span class="ticket-details__item-label">{{ $t('开启认证') }}：</span>
         <span
           v-overflow-tips
-          class="ticket-details__item-value">{{ security }}</span>
+          class="ticket-details__item-value">
+          {{ security }}
+        </span>
       </div>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
         <span
           v-overflow-tips
-          class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
+          class="ticket-details__item-value">
+          {{ ticketDetails?.remark || '--' }}
+        </span>
       </div>
     </div>
   </div>
@@ -163,17 +166,17 @@
   import SpecInfos, { type SpecInfo } from '../../SpecInfos.vue';
 
   interface Details extends TicketDetailsKafka {
-    ip_source: string,
-    disaster_tolerance_level: string,
+    ip_source: string;
+    disaster_tolerance_level: string;
     resource_spec: {
-      zookeeper: SpecInfo,
-      broker: SpecInfo,
-    },
-    no_security?: number,
+      zookeeper: SpecInfo;
+      broker: SpecInfo;
+    };
+    no_security?: number;
   }
 
-  interface Props{
-    ticketDetails: TicketDetails<Details>
+  interface Props {
+    ticketDetails: TicketDetails<Details>;
   }
 
   const props = defineProps<Props>();
@@ -189,7 +192,7 @@
   const affinity = computed(() => {
     const level = props.ticketDetails?.details?.disaster_tolerance_level;
     if (level && affinityList) {
-      return affinityList.find(item => item.value === level)?.label;
+      return affinityList.find((item) => item.value === level)?.label;
     }
     return '--';
   });
@@ -197,7 +200,7 @@
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {
       const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find(item => item.city_code === cityCode)?.city_name;
+      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
       cityName.value = name ?? '--';
     },
   });
@@ -232,5 +235,5 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

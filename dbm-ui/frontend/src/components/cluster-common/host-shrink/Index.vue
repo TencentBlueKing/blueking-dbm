@@ -41,17 +41,15 @@
                 :min="1"
                 :model-value="localTargetDisk > 0 ? localTargetDisk : undefined"
                 :placeholder="$t('请输入')"
-                style="width: 156px; margin-right: 8px;"
+                style="width: 156px; margin-right: 8px"
                 type="number"
                 @change="handleTargetDiskChange" />
               <span>GB</span>
               <template v-if="localTargetDisk > 0">
-                <span>
-                  , {{ $t('共缩容') }}
-                </span>
+                <span> , {{ $t('共缩容') }} </span>
                 <span
                   class="strong-num"
-                  style="color: #2dcb56;">
+                  style="color: #2dcb56">
                   {{ data.totalDisk - localTargetDisk }}
                 </span>
                 <span>GB</span>
@@ -63,7 +61,7 @@
                 <span class="strong-num">{{ data.totalDisk }}</span>
                 GB
               </span>
-              <span style="margin-left: 65px;">
+              <span style="margin-left: 65px">
                 <span>{{ $t('缩容后') }}:</span>
                 <span v-if="data.targetDisk">
                   <span class="strong-num">{{ localTargetDisk }}</span>
@@ -80,7 +78,7 @@
       <BkFormItem>
         <template #label>
           <span>{{ t('缩容的节点 IP') }}</span>
-          <span style="font-weight: normal; color: #979ba5;">
+          <span style="font-weight: normal; color: #979ba5">
             {{ t('（默认从节点列表选取，如不满足，可以手动添加）') }}
           </span>
         </template>
@@ -95,12 +93,12 @@
                 keypath="共n台，共nG">
                 <span
                   class="number"
-                  style="color: #3a84ff;">
+                  style="color: #3a84ff">
                   {{ nodeTableData.length }}
                 </span>
                 <span
                   class="number"
-                  style="color: #2dcb56;">
+                  style="color: #2dcb56">
                   {{ data.shrinkDisk }}
                 </span>
               </I18nT>
@@ -113,7 +111,7 @@
                   keypath="较目标容量相差nG">
                   <span
                     class="number"
-                    style="color: #ff9c01;">
+                    style="color: #ff9c01">
                     {{ targetMatchReal }}
                   </span>
                 </I18nT>
@@ -123,7 +121,7 @@
                   keypath="较目标容量超出nG">
                   <span
                     class="number"
-                    style="color: #ff9c01;">
+                    style="color: #ff9c01">
                     {{ Math.abs(targetMatchReal) }}
                   </span>
                 </I18nT>
@@ -131,7 +129,7 @@
               <BkButton
                 v-if="data.targetDisk"
                 size="small"
-                style="margin-left: auto;"
+                style="margin-left: auto"
                 @click="handleShowHostSelect">
                 <DbIcon type="add" />
                 {{ t('手动添加') }}
@@ -154,7 +152,7 @@
       @change="handleSelectChange" />
   </div>
 </template>
-<script setup lang="tsx" generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel">
+<script setup lang="tsx" generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel">
   import {
     computed,
     ref,

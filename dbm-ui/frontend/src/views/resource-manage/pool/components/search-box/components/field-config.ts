@@ -9,20 +9,14 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import _ from 'lodash';
 
 import { getBizs } from '@services/source/cmdb';
-import {
-  fetchMountPoints,
-  fetchSubzones,
-} from '@services/source/dbresourceResource';
+import { fetchMountPoints, fetchSubzones } from '@services/source/dbresourceResource';
 import { getResourceSpec } from '@services/source/dbresourceSpec';
-import {
-  fetchDbTypeList,
-  getInfrasCities,
-} from '@services/source/infras';
+import { fetchDbTypeList, getInfrasCities } from '@services/source/infras';
 import { getCloudList } from '@services/source/ipchooser';
 
 import { ipv4 } from '@common/regex';
@@ -30,14 +24,14 @@ import { ipv4 } from '@common/regex';
 import { t } from '@locales/index';
 
 type Config = {
-  label: string,
-  component: string,
-  type?: 'number' | 'string' | 'array' | 'rang',
-  flex?: number,
-  validator?: (value: any) => boolean | string,
-  service?: (params?: any) => Promise<Array<any>> | Promise<any>,
-  getNameByKey?: (value: string | number, item: any) => string | undefined,
-}
+  label: string;
+  component: string;
+  type?: 'number' | 'string' | 'array' | 'rang';
+  flex?: number;
+  validator?: (value: any) => boolean | string;
+  service?: (params?: any) => Promise<Array<any>> | Promise<any>;
+  getNameByKey?: (value: string | number, item: any) => string | undefined;
+};
 
 export default {
   for_bizs: {
@@ -45,7 +39,7 @@ export default {
     component: 'for_bizs',
     type: 'array',
     service: getBizs,
-    getNameByKey: (value: number, item: { bk_biz_id: number, display_name: string }) => {
+    getNameByKey: (value: number, item: { bk_biz_id: number; display_name: string }) => {
       if (`${value}` === `${item.bk_biz_id}`) {
         return item.display_name;
       }
@@ -57,7 +51,7 @@ export default {
     component: 'resource_types',
     type: 'array',
     service: fetchDbTypeList,
-    getNameByKey: (value: string, item: { id: string, name: string }) => {
+    getNameByKey: (value: string, item: { id: string; name: string }) => {
       if (value === item.id) {
         return item.name;
       }
@@ -73,7 +67,7 @@ export default {
       if (!value || value.length < 1) {
         return true;
       }
-      const errorValue = value.filter(item => !ipv4.test(_.trim(item)));
+      const errorValue = value.filter((item) => !ipv4.test(_.trim(item)));
       if (errorValue.length > 0) {
         return t('IP 格式错误:n', { n: errorValue.join(',') });
       }
@@ -89,7 +83,7 @@ export default {
     label: t('城市'),
     component: 'city',
     service: getInfrasCities,
-    getNameByKey: (value: string, item: { city_code: string, city_name: string }) => {
+    getNameByKey: (value: string, item: { city_code: string; city_name: string }) => {
       if (value === item.city_code) {
         return item.city_name;
       }
@@ -169,7 +163,7 @@ export default {
     flex: 2,
     type: 'number',
     service: (value: number) => getResourceSpec({ spec_id: value }),
-    getNameByKey: (value: number, item: { spec_id: number, spec_name: string }) => {
+    getNameByKey: (value: number, item: { spec_id: number; spec_name: string }) => {
       if (value === item.spec_id) {
         return item.spec_name;
       }
@@ -181,7 +175,7 @@ export default {
     component: 'bk_cloud_ids',
     type: 'array',
     service: getCloudList,
-    getNameByKey: (value: string, item: { bk_cloud_id: number, bk_cloud_name: string }) => {
+    getNameByKey: (value: string, item: { bk_cloud_id: number; bk_cloud_name: string }) => {
       if (value === `${item.bk_cloud_id}`) {
         return item.bk_cloud_name;
       }

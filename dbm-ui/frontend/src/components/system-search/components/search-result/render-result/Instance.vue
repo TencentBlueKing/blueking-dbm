@@ -10,7 +10,8 @@
           :key-word="keyWord"
           :text="getMatchText(item)" />
         <div class="intro">
-          (实例<span v-if="item.cluster_domain">, {{ item.cluster_domain }}</span>)
+          (实例<span v-if="item.cluster_domain">, {{ item.cluster_domain }} </span>
+          )
         </div>
       </div>
       <div class="biz-text">
@@ -27,18 +28,18 @@
   import HightLightText from './components/HightLightText.vue';
 
   interface Props {
-    keyWord: string,
+    keyWord: string;
     data: {
-      bk_biz_id: number,
-      cluster_id: number,
-      cluster_type: string,
-      id: number,
-      ip: string,
-      name: string,
-      port: string,
-      cluster_domain: string,
-    }[],
-    bizIdNameMap: Record<number, string>
+      bk_biz_id: number;
+      cluster_id: number;
+      cluster_type: string;
+      id: number;
+      ip: string;
+      name: string;
+      port: string;
+      cluster_domain: string;
+    }[];
+    bizIdNameMap: Record<number, string>;
   }
 
   const props = defineProps<Props>();
@@ -69,27 +70,36 @@
     } as Record<string, string>;
 
     if (data.cluster_type === 'tendbha') {
-      location({
-        name: 'DatabaseTendbhaInstance',
-        query: {
-          ip: data.ip,
+      location(
+        {
+          name: 'DatabaseTendbhaInstance',
+          query: {
+            ip: data.ip,
+          },
         },
-      }, data.bk_biz_id);
-    } if (data.cluster_type === 'tendbcluster') {
-      location({
-        name: 'tendbClusterInstance',
-        query: {
-          ip: data.ip,
+        data.bk_biz_id,
+      );
+    }
+    if (data.cluster_type === 'tendbcluster') {
+      location(
+        {
+          name: 'tendbClusterInstance',
+          query: {
+            ip: data.ip,
+          },
         },
-      }, data.bk_biz_id);
+        data.bk_biz_id,
+      );
     } else {
-      location({
-        name: routerNameMap[data.cluster_type],
-        query: {
-          id: data.id,
+      location(
+        {
+          name: routerNameMap[data.cluster_type],
+          query: {
+            id: data.id,
+          },
         },
-      }, data.bk_biz_id);
+        data.bk_biz_id,
+      );
     }
   };
 </script>
-

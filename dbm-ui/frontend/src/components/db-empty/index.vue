@@ -16,7 +16,7 @@
     <div class="db-empty__content">
       <img
         src="@images/empty.png"
-        :width="width">
+        :width="width" />
       <p class="db-empty__text">
         {{ text || $t('暂无数据') }}
       </p>
@@ -31,8 +31,8 @@
 
 <script setup lang="ts">
   interface Props {
-    width?: number,
-    text?: string,
+    width?: number;
+    text?: string;
   }
 
   withDefaults(defineProps<Props>(), {

@@ -9,12 +9,9 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import {
-  type ComponentInternalInstance,
-  getCurrentInstance,
-} from 'vue';
+import { type ComponentInternalInstance, getCurrentInstance } from 'vue';
 
 const findProvider = (componentInstance: ComponentInternalInstance | null): ComponentInternalInstance | null => {
   let target = null;
@@ -23,13 +20,11 @@ const findProvider = (componentInstance: ComponentInternalInstance | null): Comp
       return;
     }
     childrenList.forEach((child) => {
-      if (child.isMounted
-        && typeof child.exposed?.submit === 'function') {
+      if (child.isMounted && typeof child.exposed?.submit === 'function') {
         target = child;
         return;
       }
-      if (typeof child.type !== 'object'
-        && typeof child.type !== 'function') {
+      if (typeof child.type !== 'object' && typeof child.type !== 'function') {
         return search(child.children);
       }
       if (child.isMounted && child.subTree) {
@@ -54,10 +49,10 @@ export const useModelProvider = () => {
       };
     }
 
-    const {
-      submit = () => Promise.resolve(),
-      cancel = () => Promise.resolve(),
-    } = provider.exposed as Record<'submit'|'cancel', () => Promise<any>>;
+    const { submit = () => Promise.resolve(), cancel = () => Promise.resolve() } = provider.exposed as Record<
+      'submit' | 'cancel',
+      () => Promise<any>
+    >;
 
     return {
       submit,

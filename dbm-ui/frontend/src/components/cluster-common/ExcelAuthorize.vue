@@ -55,9 +55,7 @@
               <p
                 v-overflow-tips
                 class="text-overflow excel-authorize-file-status"
-                :class="[
-                  { 'excel-authorize-file-status--fail': file.status === 'fail' }
-                ]">
+                :class="[{ 'excel-authorize-file-status--fail': file.status === 'fail' }]">
                 <DbIcon
                   v-if="file.status === 'success'"
                   type="check-line" />
@@ -266,46 +264,46 @@
 </script>
 
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.excel-authorize {
-  padding-bottom: 40px;
-  font-size: @font-size-mini;
-
-  .excel-authorize-tips {
-    padding-top: 4px;
-  }
-
-  .excel-authorize-file {
-    overflow: hidden;
+  .excel-authorize {
+    padding-bottom: 40px;
     font-size: @font-size-mini;
-    flex: 1;
-    .flex-center();
 
-    .db-icon-excel {
-      margin-right: 16px;
-      font-size: 26px;
-      color: @success-color;
+    .excel-authorize-tips {
+      padding-top: 4px;
     }
 
-    .excel-authorize-file-text {
-      flex: 1;
+    .excel-authorize-file {
       overflow: hidden;
-    }
+      font-size: @font-size-mini;
+      flex: 1;
+      .flex-center();
 
-    .excel-authorize-file-status {
-      color: @success-color;
+      .db-icon-excel {
+        margin-right: 16px;
+        font-size: 26px;
+        color: @success-color;
+      }
 
-      .excel-authorize-file-status--fail {
-        color: @danger-color;
+      .excel-authorize-file-text {
+        flex: 1;
+        overflow: hidden;
+      }
+
+      .excel-authorize-file-status {
+        color: @success-color;
+
+        .excel-authorize-file-status--fail {
+          color: @danger-color;
+        }
+      }
+
+      .excel-authorize-file-icon {
+        margin-left: 12px;
+        font-size: @font-size-normal;
+        cursor: pointer;
       }
     }
-
-    .excel-authorize-file-icon {
-      margin-left: 12px;
-      font-size: @font-size-normal;
-      cursor: pointer;
-    }
   }
-}
 </style>

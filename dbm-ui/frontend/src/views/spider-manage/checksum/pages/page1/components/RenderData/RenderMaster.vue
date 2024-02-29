@@ -22,10 +22,7 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -34,15 +31,15 @@
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
-    modelValue: string,
-    scope: string,
-    slave?: string
+    modelValue: string;
+    scope: string;
+    slave?: string;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      master: string
-    }>
+      master: string;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -59,32 +56,37 @@
     },
   ];
 
-  const {
-    loading: isLoading,
-    run: fetchRemoteMachineInstancePair,
-  } = useRequest(getRemoteMachineInstancePair, {
+  const { loading: isLoading, run: fetchRemoteMachineInstancePair } = useRequest(getRemoteMachineInstancePair, {
     manual: true,
-    onSuccess(data)  {
+    onSuccess(data) {
       const instanceData = data.instances[props.slave as string];
       localMasterInstance.value = instanceData.instance;
     },
   });
 
-  watch(() => props.scope, () => {
-    localMasterInstance.value = props.scope === 'all' ? t('全部') : props.modelValue;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.scope,
+    () => {
+      localMasterInstance.value = props.scope === 'all' ? t('全部') : props.modelValue;
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(() => props.slave, () => {
-    if (props.slave) {
-      fetchRemoteMachineInstancePair({
-        instances: [props.slave],
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.slave,
+    () => {
+      if (props.slave) {
+        fetchRemoteMachineInstancePair({
+          instances: [props.slave],
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
@@ -93,10 +95,9 @@
           master: '',
         });
       }
-      return inputRef.value.getValue()
-        .then(() => ({
-          master: localMasterInstance.value,
-        }));
+      return inputRef.value.getValue().then(() => ({
+        master: localMasterInstance.value,
+      }));
     },
   });
 </script>

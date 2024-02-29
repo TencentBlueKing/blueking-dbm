@@ -24,7 +24,7 @@
   import type { IFileData } from './FileList.vue';
 
   interface Props {
-    data: IFileData
+    data: IFileData;
   }
 
   defineProps<Props>();

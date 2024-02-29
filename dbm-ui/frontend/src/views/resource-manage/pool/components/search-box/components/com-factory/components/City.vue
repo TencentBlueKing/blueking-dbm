@@ -33,10 +33,10 @@
   import { getInfrasCities } from '@services/source/infras';
 
   interface Props {
-    defaultValue?: string
+    defaultValue?: string;
   }
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: string): void;
   }
 
   defineProps<Props>();
@@ -46,10 +46,7 @@
   });
   const { t } = useI18n();
 
-  const {
-    loading,
-    data,
-  } = useRequest(getInfrasCities, {
+  const { loading, data } = useRequest(getInfrasCities, {
     initialData: [],
   });
 
@@ -57,4 +54,3 @@
     emits('change', value);
   };
 </script>
-

@@ -14,10 +14,12 @@
 <template>
   <div
     class="db-card"
-    :class="[{
-      'db-card-collapse': !isNormalMode,
-      'db-card-collapse--active': notFolded
-    }]">
+    :class="[
+      {
+        'db-card-collapse': !isNormalMode,
+        'db-card-collapse--active': notFolded,
+      },
+    ]">
     <div
       class="db-card__header"
       @click="handleToggle">
@@ -51,13 +53,13 @@
 
 <script setup lang="ts">
   interface Props {
-    title?: string,
-    desc?: string,
-    mode?: 'normal'| 'collapse'| string,
+    title?: string;
+    desc?: string;
+    mode?: 'normal' | 'collapse' | string;
   }
 
   interface Emits {
-    (e: 'collapsed', value: boolean): void
+    (e: 'collapsed', value: boolean): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -74,14 +76,20 @@
   const isNormalMode = computed(() => props.mode === 'normal');
   const notFolded = computed(() => localCollpase.value && !isNormalMode.value);
 
-  watch(collapse, (value: boolean) => {
-    if (!isNormalMode.value) {
-      localCollpase.value = value;
-    }
-  }, { deep: true, immediate: true });
+  watch(
+    collapse,
+    (value: boolean) => {
+      if (!isNormalMode.value) {
+        localCollpase.value = value;
+      }
+    },
+    { deep: true, immediate: true },
+  );
 
   const handleToggle = () => {
-    if (isNormalMode.value) return;
+    if (isNormalMode.value) {
+      return;
+    }
     localCollpase.value = !localCollpase.value;
     collapse.value = localCollpase.value;
     emits('collapsed', localCollpase.value);
@@ -89,7 +97,7 @@
 </script>
 
 <style lang="less">
-  @import "@/styles/mixins.less";
+  @import '@/styles/mixins.less';
 
   .db-card {
     padding: 24px;

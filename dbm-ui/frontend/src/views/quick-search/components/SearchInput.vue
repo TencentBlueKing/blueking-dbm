@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
   interface Emits {
-    (e: 'search', value: string): void
+    (e: 'search', value: string): void;
   }
 
   const emits = defineEmits<Emits>();

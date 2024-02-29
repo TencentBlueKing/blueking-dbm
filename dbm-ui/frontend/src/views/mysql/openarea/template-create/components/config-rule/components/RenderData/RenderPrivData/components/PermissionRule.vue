@@ -16,19 +16,19 @@
         settings />
     </div>
     <template #footer>
-      <div style="display: flex;">
+      <div style="display: flex">
         <I18nT
           v-if="checkedCount"
           keypath="已选n个"
           tag="div">
           <span
             class="number"
-            style="color: #2DCB56">
+            style="color: #2dcb56">
             {{ checkedCount }}
           </span>
         </I18nT>
         <BkButton
-          style="margin-left: auto;"
+          style="margin-left: auto"
           theme="primary"
           @click="handleSubmit">
           {{ t('确定') }}
@@ -194,41 +194,40 @@
   const handleCancel = () => {
     isShow.value = false;
   };
-
 </script>
 <style lang="less">
   .openarea-create-permission-rule {
-    .account-box{
-      .flod-flag{
+    .account-box {
+      .flod-flag {
         display: inline-block;
         margin-right: 4px;
         cursor: pointer;
-        transition: all .1s;
+        transition: all 0.1s;
 
-        &.is-flod{
+        &.is-flod {
           transform: rotateZ(-90deg);
         }
       }
     }
 
-    .cell-privilege{
-      .cell{
+    .cell-privilege {
+      .cell {
         padding: 0 !important;
         margin-left: -16px;
 
-        .inner-row{
+        .inner-row {
           padding-left: 32px !important;
         }
       }
     }
 
-    .inner-row{
+    .inner-row {
       display: flex;
       height: 40px;
       align-items: center;
 
-      &~.inner-row{
-        border-top: 1px solid #DCDEE5;
+      & ~ .inner-row {
+        border-top: 1px solid #dcdee5;
       }
     }
   }

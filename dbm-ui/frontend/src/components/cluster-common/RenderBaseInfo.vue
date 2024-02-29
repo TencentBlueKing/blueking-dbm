@@ -30,7 +30,7 @@
           {{ data.cluster_name }}
           <span
             v-if="data.cluster_alias"
-            style="color: #63656e;">
+            style="color: #63656e">
             ({{ data.cluster_alias }})
           </span>
         </td>
@@ -54,7 +54,7 @@
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
 
   interface Props {
-    data: Record<any, any> & {id: number};
+    data: Record<any, any> & { id: number };
   }
 
   const props = defineProps<Props>();
@@ -78,7 +78,7 @@
       line-height: 28px;
       color: #63656e;
 
-      td:nth-child(2n+1) {
+      td:nth-child(2n + 1) {
         text-align: right;
       }
 

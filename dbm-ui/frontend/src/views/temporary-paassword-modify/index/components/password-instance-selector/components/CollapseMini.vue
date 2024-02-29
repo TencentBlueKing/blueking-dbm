@@ -15,7 +15,7 @@
   <div
     class="password-instance-selector-collapse-mini"
     :class="{
-      'password-instance-selector-collapse-mini-collapse': innerCollapse
+      'password-instance-selector-collapse-mini-collapse': innerCollapse,
     }">
     <div
       class="collapse-mini-header"
@@ -58,9 +58,12 @@
 
   const innerCollapse = ref(props.collapse);
 
-  watch(() => props.collapse, () => {
-    innerCollapse.value = props.collapse;
-  });
+  watch(
+    () => props.collapse,
+    () => {
+      innerCollapse.value = props.collapse;
+    },
+  );
 
   const handleToggle = () => {
     innerCollapse.value = !innerCollapse.value;

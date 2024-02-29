@@ -35,11 +35,11 @@
   import RedisFlows from './components/RedisFlows.vue';
 
   interface Props {
-    data: TicketModel
+    data: TicketModel;
   }
 
   interface Emits {
-    (e: 'fetchData'): void
+    (e: 'fetchData'): void;
   }
 
   const props = defineProps<Props>();
@@ -69,12 +69,16 @@
     fetchTicketFlows(props.data.id, true);
   }, 10000);
 
-  watch(() => props.data.id, (id: number) => {
-    if (id) {
-      state.flows = [];
-      fetchTicketFlows(id);
-    }
-  }, { immediate: true });
+  watch(
+    () => props.data.id,
+    (id: number) => {
+      if (id) {
+        state.flows = [];
+        fetchTicketFlows(id);
+      }
+    },
+    { immediate: true },
+  );
 
   /**
    * 获取单据流程
@@ -108,81 +112,81 @@
 </script>
 
 <style lang="less" scoped>
-.ticket-flows {
-  :deep(.db-card__content) {
-    padding-left: 82px;
-  }
-
-  :deep(.bk-timeline) {
-    padding-bottom: 16px;
-
-    .bk-timeline-title {
-      font-size: @font-size-mini;
-      font-weight: bold;
-      color: @title-color;
+  .ticket-flows {
+    :deep(.db-card__content) {
+      padding-left: 82px;
     }
 
-    .bk-timeline-dot {
-      &::before {
-        display: none;
-      }
+    :deep(.bk-timeline) {
+      padding-bottom: 16px;
 
-      .bk-timeline-icon {
-        color: unset !important;
-        background: unset !important;
-        border: none !important;
-      }
-    }
-
-    .bk-timeline-content {
-      max-width: unset;
-      font-size: @font-size-mini;
-      color: @default-color;
-
-      .flow-time {
-        padding-top: 8px;
-        color: @gray-color;
-      }
-    }
-
-    .flow-todo {
-      &__title {
-        padding-bottom: 12px;
+      .bk-timeline-title {
+        font-size: @font-size-mini;
         font-weight: bold;
+        color: @title-color;
       }
 
-      &__infos {
-        margin-bottom: 8px;
-
-        .done_success {
-          color: @success-color;
+      .bk-timeline-dot {
+        &::before {
+          display: none;
         }
 
-        .done_failed {
-          color: @danger-color;
+        .bk-timeline-icon {
+          color: unset !important;
+          background: unset !important;
+          border: none !important;
+        }
+      }
+
+      .bk-timeline-content {
+        max-width: unset;
+        font-size: @font-size-mini;
+        color: @default-color;
+
+        .flow-time {
+          padding-top: 8px;
+          color: @gray-color;
+        }
+      }
+
+      .flow-todo {
+        &__title {
+          padding-bottom: 12px;
+          font-weight: bold;
+        }
+
+        &__infos {
+          margin-bottom: 8px;
+
+          .done_success {
+            color: @success-color;
+          }
+
+          .done_failed {
+            color: @danger-color;
+          }
         }
       }
     }
   }
-}
 </style>
 
 <style lang="less">
-.todos-tips-content {
-  &__desc {
-    padding: 8px 0 24px;
-    font-size: @font-size-mini;
-    color: @title-color;
-  }
-
-  &__buttons {
-    text-align: right;
-
-    .bk-button {
-      min-width: 62px;
-      margin-left: 8px;
+  .todos-tips-content {
+    &__desc {
+      padding: 8px 0 24px;
       font-size: @font-size-mini;
+      color: @title-color;
+    }
+
+    &__buttons {
+      text-align: right;
+
+      .bk-button {
+        min-width: 62px;
+        margin-left: 8px;
+        font-size: @font-size-mini;
+      }
     }
   }
-}
 </style>

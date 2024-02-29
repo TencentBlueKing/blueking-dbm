@@ -67,7 +67,9 @@
                   class="result__item">
                   <span
                     v-overflow-tips
-                    class="text-overflow">{{ item.master_domain }}</span>
+                    class="text-overflow">
+                    {{ item.master_domain }}
+                  </span>
                   <i
                     class="db-icon-close result__remove"
                     @click="handleSelected(item, false)" />
@@ -127,7 +129,7 @@
                 :is-searching="state.search.length > 0"
                 :pagination="{
                   ...state.pagination,
-                  small: true
+                  small: true,
                 }"
                 remote-pagination
                 row-style="cursor: pointer;"
@@ -479,7 +481,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .cluster-selector {
     font-size: @font-size-mini;

@@ -19,14 +19,14 @@
     <div
       class="stretch-layout-left"
       :style="{
-        width: `${renderLeftWidth}px`
+        width: `${renderLeftWidth}px`,
       }">
       <slot name="list" />
     </div>
     <DragResize
       :show-trigger="isShowTrigger"
       :style="{
-        left: `${renderLeftWidth-1}px`
+        left: `${renderLeftWidth - 1}px`,
       }"
       @change="handleLeftWidthChange"
       @open="handleOpenChange" />
@@ -38,15 +38,11 @@
   </div>
 </template>
 <script lang="ts">
-  import {
-    type InjectionKey,
-    provide,
-    type Ref,
-  } from 'vue';
+  import { type InjectionKey, provide, type Ref } from 'vue';
 
   export const provideKey: InjectionKey<{
-    isOpen: Ref<boolean>,
-    splitScreen: () => void
+    isOpen: Ref<boolean>;
+    splitScreen: () => void;
   }> = Symbol.for('stretch-layout');
 </script>
 <script setup lang="ts">
@@ -55,8 +51,8 @@
   import DragResize from './components/DragResize.vue';
 
   interface Props {
-    name: string,
-    minLeftWidth?: number
+    name: string;
+    minLeftWidth?: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -64,9 +60,9 @@
   });
 
   defineSlots<{
-    list(): any,
-    default(): any,
-    right(): any,
+    list(): any;
+    default(): any;
+    right(): any;
   }>();
 
   const rootRef = ref();
@@ -131,15 +127,15 @@
 </script>
 
 <style lang="less">
-.stretch-layout {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+  .stretch-layout {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
 
-  .stretch-layout-right {
-    width: 0;
-    flex: 1;
+    .stretch-layout-right {
+      width: 0;
+      flex: 1;
+    }
   }
-}
 </style>

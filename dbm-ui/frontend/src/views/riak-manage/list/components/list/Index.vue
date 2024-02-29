@@ -511,69 +511,69 @@
 </script>
 
 <style>
-.info-box-cluster-name {
-  color: #313238;
-}
+  .info-box-cluster-name {
+    color: #313238;
+  }
 </style>
 
 <style lang="less" scoped>
-.riak-list-container {
-  height: 100%;
-  padding: 24px 0;
-  margin: 0 24px;
-  overflow: hidden;
+  .riak-list-container {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
+    overflow: hidden;
 
-  .header-action {
-    display: flex;
-    margin-bottom: 16px;
+    .header-action {
+      display: flex;
+      margin-bottom: 16px;
 
-    .header-action-search-select {
-      width: 500px;
-      margin-left: auto;
-    }
+      .header-action-search-select {
+        width: 500px;
+        margin-left: auto;
+      }
 
-    .header-action-deploy-time {
-      width: 300px;
-      margin-left: 8px;
-    }
-  }
-
-  :deep(.riak-list-table) {
-    .is-new {
-      td {
-        background-color: #F3FCF5 !important;
+      .header-action-deploy-time {
+        width: 300px;
+        margin-left: 8px;
       }
     }
 
-    .is-offline {
-      .cell {
-        color: #C4C6CC !important;
+    :deep(.riak-list-table) {
+      .is-new {
+        td {
+          background-color: #f3fcf5 !important;
+        }
       }
-    }
 
-    .new-tag {
-      height: 19px;
-    }
+      .is-offline {
+        .cell {
+          color: #c4c6cc !important;
+        }
+      }
 
-    .disabled-tag {
-      width: 38px;
-      height: 16px;
-      margin-left: 4px;
-    }
+      .new-tag {
+        height: 19px;
+      }
 
-    .db-icon-copy {
-      display: none;
-    }
-
-    tr:hover {
-      .db-icon-copy {
-        display: inline-block !important;
+      .disabled-tag {
+        width: 38px;
+        height: 16px;
         margin-left: 4px;
-        color: #3a84ff;
-        vertical-align: middle;
-        cursor: pointer;
+      }
+
+      .db-icon-copy {
+        display: none;
+      }
+
+      tr:hover {
+        .db-icon-copy {
+          display: inline-block !important;
+          margin-left: 4px;
+          color: #3a84ff;
+          vertical-align: middle;
+          cursor: pointer;
+        }
       }
     }
   }
-}
 </style>

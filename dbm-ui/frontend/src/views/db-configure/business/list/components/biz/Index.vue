@@ -48,14 +48,18 @@
   /**
    * tabs 设置
    */
-  watch(() => route.params.clusterType, (type) => {
-    const clusterType = type as ClusterTypesValues;
-    const tabs = [getDefaultConf(clusterType, t('配置列表'))];
-    // 添加额外配置
-    const extraTabs = extraClusterConfs[clusterType];
-    if (extraTabs) {
-      tabs.push(...extraTabs);
-    }
-    state.tabs = tabs;
-  }, { immediate: true });
+  watch(
+    () => route.params.clusterType,
+    (type) => {
+      const clusterType = type as ClusterTypesValues;
+      const tabs = [getDefaultConf(clusterType, t('配置列表'))];
+      // 添加额外配置
+      const extraTabs = extraClusterConfs[clusterType];
+      if (extraTabs) {
+        tabs.push(...extraTabs);
+      }
+      state.tabs = tabs;
+    },
+    { immediate: true },
+  );
 </script>

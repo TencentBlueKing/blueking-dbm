@@ -32,7 +32,7 @@
         :pagination="pagination.count < 10 ? false : pagination"
         remote-pagination
         :settings="tableSettings"
-        style="margin-top: 12px;"
+        style="margin-top: 12px"
         @clear-search="handleClearSearch"
         @page-limit-change="handlePageLimitChange"
         @page-value-change="handlePageValueChange"
@@ -66,6 +66,7 @@
   import { activePanelInjectionKey } from './PanelTab.vue';
 
   import type { TableProps } from '@/types/bkui-vue';
+
   interface TableItem {
     data: RedisHostModel
   }
@@ -485,7 +486,7 @@
     .no-tip {
       width: 100%;
       font-weight: 400;
-      color: #3A84FF;
+      color: #3a84ff;
       text-align: right;
       cursor: pointer;
     }

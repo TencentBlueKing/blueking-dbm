@@ -9,13 +9,11 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import NoticGroupModel from '@services/model/notice-group/notice-group';
 
-import http, {
-  type IRequestPayload,
-} from '../http';
+import http, { type IRequestPayload } from '../http';
 import type { ListBase } from '../types';
 
 const path = '/apis/monitor/notice_group';
@@ -23,30 +21,37 @@ const path = '/apis/monitor/notice_group';
 /**
  * 获取告警组列表
  */
-export function getAlarmGroupList(params: {
-  bk_biz_id: number,
-  name: string,
-  limit: number,
-  offset: number
-}, payload = {} as IRequestPayload) {
-  return http.get<ListBase<NoticGroupModel[]>>(`${path}/`, params, payload)
-    .then(data => ({
-      ...data,
-      results: data.results.map(item => new NoticGroupModel(Object.assign(item,  {
-        permission: data.permission,
-      }))),
-    }));
+export function getAlarmGroupList(
+  params: {
+    bk_biz_id: number;
+    name: string;
+    limit: number;
+    offset: number;
+  },
+  payload = {} as IRequestPayload,
+) {
+  return http.get<ListBase<NoticGroupModel[]>>(`${path}/`, params, payload).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item) =>
+        new NoticGroupModel(
+          Object.assign(item, {
+            permission: data.permission,
+          }),
+        ),
+    ),
+  }));
 }
 
 /**
  * 告警组新增、编辑参数
  */
 interface IOperaionNoticeGroupParams {
-  bk_biz_id: number
-  name: string,
-  receivers: NoticGroupModel['receivers'][],
-  details: NoticGroupModel['details']
-  id: number
+  bk_biz_id: number;
+  name: string;
+  receivers: NoticGroupModel['receivers'][];
+  details: NoticGroupModel['details'];
+  id: number;
 }
 
 /**
@@ -73,16 +78,13 @@ export function deleteAlarmGroup(params: { id: number }) {
 /**
  * 获取告警组通知方式
  */
-export function getAlarmGroupNotifyList(params: {
-  bk_biz_id: number,
-  name?: string,
-  limit?: number,
-  offset?: number
-}) {
-  return http.get<{
-    type: string,
-    label: string,
-    is_active: boolean,
-    icon: string
-  }[]>(`${path}/get_msg_type/`, params);
+export function getAlarmGroupNotifyList(params: { bk_biz_id: number; name?: string; limit?: number; offset?: number }) {
+  return http.get<
+    {
+      type: string;
+      label: string;
+      is_active: boolean;
+      icon: string;
+    }[]
+  >(`${path}/get_msg_type/`, params);
 }

@@ -9,16 +9,16 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { defineStore } from 'pinia';
 
 interface State {
-  abbreviation: string,
-  country: string,
-  countryCode: string,
-  label: string,
-  utc: string,
+  abbreviation: string;
+  country: string;
+  countryCode: string;
+  label: string;
+  utc: string;
 }
 
 export const useTimeZone = defineStore('useTimeZone', {
@@ -31,13 +31,7 @@ export const useTimeZone = defineStore('useTimeZone', {
   }),
   actions: {
     update(newState: State) {
-      const {
-        abbreviation,
-        country,
-        countryCode,
-        label,
-        utc,
-      } = newState;
+      const { abbreviation, country, countryCode, label, utc } = newState;
       this.$patch({
         abbreviation,
         country,

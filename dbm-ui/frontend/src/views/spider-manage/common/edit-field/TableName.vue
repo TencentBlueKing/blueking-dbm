@@ -25,7 +25,7 @@
     </span>
     <div
       ref="popRef"
-      style=" font-size: 12px; line-height: 24px; color: #63656e;">
+      style="font-size: 12px; line-height: 24px; color: #63656e">
       <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
       <p>{{ t('？： 匹配任意单一字符，如 a%?%d') }}</p>
       <p>{{ t('* ：专门指代 ALL 语义, 只能独立使用') }}</p>
@@ -36,30 +36,24 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableEditTag from '@views/mysql/common/edit/Tag.vue';
 
   interface Props {
-    modelValue?: string [],
-    clusterId: number,
-    required?: boolean,
+    modelValue?: string[];
+    clusterId: number;
+    required?: boolean;
   }
 
   interface Emits {
-    (e: 'change', value: string []): void
+    (e: 'change', value: string[]): void;
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<string, string[]>>
+    getValue: (field: string) => Promise<Record<string, string[]>>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -73,7 +67,7 @@
 
   const rules = [
     {
-      validator: (value: string []) => {
+      validator: (value: string[]) => {
         if (!props.required) {
           return true;
         }
@@ -82,19 +76,19 @@
       message: t('DB 名不能为空'),
     },
     {
-      validator: (value: string []) => {
-        const hasAllMatch = _.some(value, item => /[%*?]/.test(item));
+      validator: (value: string[]) => {
+        const hasAllMatch = _.some(value, (item) => /[%*?]/.test(item));
         return !(value.length > 1 && hasAllMatch);
       },
       message: t('包含通配符 * % ? 时，只允许单一对象'),
     },
     {
-      validator: (value: string []) => _.some(value, item => !/^\*$/.test(item)),
+      validator: (value: string[]) => _.some(value, (item) => !/^\*$/.test(item)),
       message: t('* 只允许单独使用'),
       trigger: 'change',
     },
     {
-      validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
+      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
       message: t('% 不允许单独使用'),
       trigger: 'change',
     },
@@ -103,22 +97,29 @@
   const rootRef = ref();
   const popRef = ref();
   const tagRef = ref();
-  const localValue  = ref(props.modelValue);
+  const localValue = ref(props.modelValue);
 
   // 集群改变时表名需要重置
-  watch(() => props.clusterId, () => {
-    localValue.value = [];
-  });
-
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue;
-    } else {
+  watch(
+    () => props.clusterId,
+    () => {
       localValue.value = [];
-    }
-  }, {
-    immediate: true,
-  });
+    },
+  );
+
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localValue.value = props.modelValue;
+      } else {
+        localValue.value = [];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
@@ -158,10 +159,9 @@
 
   defineExpose<Exposes>({
     getValue(field: string) {
-      return tagRef.value.getValue()
-        .then(() => ({
-          [field]: localValue.value,
-        }));
+      return tagRef.value.getValue().then(() => ({
+        [field]: localValue.value,
+      }));
     },
   });
 </script>

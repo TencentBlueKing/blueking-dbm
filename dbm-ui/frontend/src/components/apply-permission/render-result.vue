@@ -16,7 +16,7 @@
     <div class="no-permission-tips">
       <img
         class="lock"
-        src="/images/no-permission.svg">
+        src="/images/no-permission.svg" />
       <p class="tips-text">
         {{ t('该操作需要以下权限') }}
       </p>
@@ -43,9 +43,7 @@
                   :key="rindex">
                   {{ resourceItem.type }}-{{ resourceItem.instances.join('，') }}
                 </p>
-                <p v-if="permissionItem.relatedResources.length < 1">
-                  --
-                </p>
+                <p v-if="permissionItem.relatedResources.length < 1">--</p>
               </td>
             </tr>
           </template>
@@ -65,11 +63,10 @@
   import type ApplyDataModel from '@services/model/iam/apply-data';
 
   interface Props {
-    data: ApplyDataModel
+    data: ApplyDataModel;
   }
   defineProps<Props>();
   const { t } = useI18n();
-
 </script>
 <style lang="less" scoped>
   .no-permission-tips {

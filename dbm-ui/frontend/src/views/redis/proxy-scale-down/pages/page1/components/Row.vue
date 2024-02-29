@@ -13,26 +13,25 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.cluster"
         :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.nodeType"
         :is-loading="data.isLoading"
         :placeholder="$t('输入集群后自动生成')" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSpec
         :data="data.spec"
         :is-loading="data.isLoading" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetNumber
         ref="editRef"
         :data="data.targetNum"
@@ -40,8 +39,7 @@
         :is-loading="data.isLoading"
         :max="data.spec?.count" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderSwitchMode
         ref="switchRef"
         :is-loading="data.isLoading" />
@@ -77,10 +75,10 @@
   }
 
   export interface InfoItem {
-    cluster_id: number,
-    bk_cloud_id: number,
-    target_proxy_count:number,
-    online_switch_type: OnlineSwitchType,
+    cluster_id: number;
+    bk_cloud_id: number;
+    target_proxy_count: number;
+    online_switch_type: OnlineSwitchType;
   }
 
   // 创建表格数据
@@ -92,26 +90,25 @@
     bkCloudId: 0,
     nodeType: '',
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
     inputedClusters?: string[];
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    inputedClusters: () => ([]),
+    inputedClusters: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -119,7 +116,6 @@
   const clusterRef = ref();
   const switchRef = ref();
   const editRef = ref();
-
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);
@@ -150,5 +146,4 @@
       });
     },
   });
-
 </script>

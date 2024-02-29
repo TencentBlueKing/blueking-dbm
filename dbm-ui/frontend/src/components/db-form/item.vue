@@ -24,12 +24,7 @@
   </BkFormItem>
 </template>
 <script setup lang="ts">
-  import {
-    provide,
-    ref,
-    useAttrs,
-  } from 'vue';
-
+  import { provide, ref, useAttrs } from 'vue';
 
   const attrs = useAttrs();
   const formItemRef = ref();

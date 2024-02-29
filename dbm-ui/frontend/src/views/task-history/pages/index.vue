@@ -19,13 +19,13 @@
         :data="searchData"
         :get-menu-list="getMenuList"
         :placeholder="$t('ID_任务类型_状态_关联单据')"
-        style="width: 500px;"
+        style="width: 500px"
         @change="fetchTableData" />
       <BkDatePicker
         v-model="state.filter.daterange"
         class="ml-8"
         :placeholder="$t('选择日期范围')"
-        style="width: 300px;"
+        style="width: 300px"
         type="daterange"
         @change="fetchTableData" />
     </div>
@@ -64,7 +64,6 @@
     getCostTimeDisplay,
     getMenuListSearch,
     getSearchSelectorParams,
-    utcDisplayTime,
   } from '@utils';
 
   import type { ListState } from '../common/types';
@@ -324,9 +323,8 @@
   };
 </script>
 
-
 <style lang="less" scoped>
-  @import "@/styles/mixins.less";
+  @import '@/styles/mixins.less';
 
   .task-history-list-page {
     .header-action {

@@ -10,7 +10,7 @@
         class="mb-16"
         :data="serachData"
         :placeholder="t('请输入 DB 名、表名')"
-        style="width: 490px;"
+        style="width: 490px"
         unique-select />
       <BkLoading :loading="isLoading">
         <BkTable
@@ -23,7 +23,7 @@
       <span
         v-bk-tooltips="{
           content: t('所有检测均失败，无法执行'),
-          disabled: isExecSubmitEnable
+          disabled: isExecSubmitEnable,
         }">
         <BkButton
           :disabled="!isExecSubmitEnable"
@@ -322,43 +322,42 @@
   };
 </script>
 <style lang="less">
-.partition-dry-run {
-  padding: 16px 24px;
+  .partition-dry-run {
+    padding: 16px 24px;
 
-  .bk-table{
-    tr{
-      &:hover{
-        .copy-btn,
-        .download-btn{
-          display: inline-block;
+    .bk-table {
+      tr {
+        &:hover {
+          .copy-btn,
+          .download-btn {
+            display: inline-block;
+          }
         }
+      }
+    }
+
+    .sql-box {
+      color: #3a84ff;
+
+      .copy-btn,
+      .download-btn {
+        display: none;
       }
     }
   }
 
-  .sql-box{
-    color: #3A84FF;
+  .execute-bable {
+    :deep(.action-box) {
+      display: flex;
+      width: 100%;
+      overflow: hidden;
+      align-items: center;
 
-    .copy-btn,
-    .download-btn{
-      display: none;
+      .tag-box {
+        padding: 0 6px;
+        margin-left: 4px;
+        transform: scale(0.83, 0.83);
+      }
     }
   }
-}
-
-.execute-bable {
-  :deep(.action-box) {
-    display: flex;
-    width: 100%;
-    overflow: hidden;
-    align-items: center;
-
-    .tag-box{
-      padding: 0 6px;
-      margin-left: 4px;
-      transform: scale(0.83, 0.83);
-    }
-  }
-
-}
 </style>

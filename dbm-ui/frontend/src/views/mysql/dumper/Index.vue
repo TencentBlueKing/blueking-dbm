@@ -35,7 +35,7 @@
   import RenderGroup from './components/render-group/Index.vue';
   import RenderList from './components/render-list/Index.vue';
 
-  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number]
+  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number];
 
   const activeGroup = ref<DumperConfig | null>(null);
 
@@ -45,15 +45,15 @@
 </script>
 
 <style lang="less">
-.dumper-instance-page {
-  height: 100%;
+  .dumper-instance-page {
+    height: 100%;
 
-  .bk-resize-layout-aside {
-    border: 0;
+    .bk-resize-layout-aside {
+      border: 0;
 
-    &::after {
-      display: none;
+      &::after {
+        display: none;
+      }
     }
   }
-}
 </style>

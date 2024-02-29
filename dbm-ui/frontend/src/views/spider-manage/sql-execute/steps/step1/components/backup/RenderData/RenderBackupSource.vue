@@ -27,15 +27,15 @@
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
 
   interface Props {
-    modelValue: string
+    modelValue: string;
   }
 
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: string): void;
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<string, string>>
+    getValue: (field: string) => Promise<Record<string, string>>;
   }
 
   defineProps<Props>();
@@ -66,10 +66,9 @@
 
   defineExpose<Exposes>({
     getValue(field: string) {
-      return editSelectRef.value.getValue()
-        .then(() => ({
-          [field]: localValue.value,
-        }));
+      return editSelectRef.value.getValue().then(() => ({
+        [field]: localValue.value,
+      }));
     },
   });
 </script>

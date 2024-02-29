@@ -13,7 +13,7 @@
 
 <template>
   <BkException
-    style="margin-top: 150px;"
+    style="margin-top: 150px"
     :title="$t('无业务权限')"
     type="403">
     <p class="mb-24">

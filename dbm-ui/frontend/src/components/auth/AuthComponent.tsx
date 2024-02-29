@@ -9,16 +9,11 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import {
-  checkAuthAllowed,
-  getApplyDataLink,
-} from '@services/source/iam';
+import { checkAuthAllowed, getApplyDataLink } from '@services/source/iam';
 
-import {
-  permissionDialog,
-} from '@utils';
+import { permissionDialog } from '@utils';
 
 import './style.less';
 
@@ -73,21 +68,21 @@ export default defineComponent({
     });
 
     const checkPermission = () => {
-      checkAuthAllowed(fetchPermissionParams.value)
-        .then((res) => {
-          hasAuth.value = res[0]?.is_allowed ?? false;
-        });
+      checkAuthAllowed(fetchPermissionParams.value).then((res) => {
+        hasAuth.value = res[0]?.is_allowed ?? false;
+      });
     };
 
     const handleShowPermissionApply = (event: MouseEvent) => {
       event.stopPropagation();
       event.preventDefault();
-      if (props.permission || hasAuth.value) return;
+      if (props.permission || hasAuth.value) {
+        return;
+      }
 
-      getApplyDataLink(fetchPermissionParams.value)
-        .then((res) => {
-          permissionDialog(res);
-        });
+      getApplyDataLink(fetchPermissionParams.value).then((res) => {
+        permissionDialog(res);
+      });
     };
 
     onBeforeMount(() => {
@@ -109,7 +104,7 @@ export default defineComponent({
     if (this.$slots.forbid) {
       return (
         <div
-          class="permission-disabled"
+          class='permission-disabled'
           v-cursor
           onClick={this.handleShowPermissionApply}>
           {this.$slots.forbid ? this.$slots.forbid() : null}

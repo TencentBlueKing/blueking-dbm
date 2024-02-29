@@ -9,18 +9,21 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import _ from 'lodash';
 
 export const listColumnsCache = {
   key: 'list_column_display',
-  setItem(key: string, value: { columns: Array<string>, size: string }) {
+  setItem(key: string, value: { columns: Array<string>; size: string }) {
     const lastValue = listColumnsCache.getItem() || {};
-    localStorage.setItem(listColumnsCache.key, JSON.stringify({
-      ...lastValue,
-      [key]: value,
-    }));
+    localStorage.setItem(
+      listColumnsCache.key,
+      JSON.stringify({
+        ...lastValue,
+        [key]: value,
+      }),
+    );
   },
   getItem(key?: string) {
     try {

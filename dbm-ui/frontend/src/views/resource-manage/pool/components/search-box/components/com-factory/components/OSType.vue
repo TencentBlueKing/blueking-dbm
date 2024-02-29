@@ -33,11 +33,11 @@
   import { getOsTypeList } from '@services/source/dbresourceResource';
 
   interface Props {
-    defaultValue?: string,
+    defaultValue?: string;
   }
 
   interface Emits {
-    (e: 'change', value: string): void,
+    (e: 'change', value: string): void;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -52,14 +52,13 @@
 
   const { t } = useI18n();
 
-  const {
-    data,
-    loading,
-  } = useRequest(getOsTypeList, {
-    defaultParams: [{
-      offset: 0,
-      limit: -1,
-    }],
+  const { data, loading } = useRequest(getOsTypeList, {
+    defaultParams: [
+      {
+        offset: 0,
+        limit: -1,
+      },
+    ],
     initialData: [],
   });
 
@@ -67,4 +66,3 @@
     emits('change', value);
   };
 </script>
-

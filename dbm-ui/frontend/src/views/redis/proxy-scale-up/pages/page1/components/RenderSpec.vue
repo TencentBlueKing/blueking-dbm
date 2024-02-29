@@ -32,13 +32,13 @@
   import TableEditSelect, { type IListItem } from './SpecSelect.vue';
 
   interface Props {
-    selectList: IListItem[],
-    data?: IDataRow['spec'],
-    isLoading?: boolean,
+    selectList: IListItem[];
+    data?: IDataRow['spec'];
+    isLoading?: boolean;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = defineProps<Props>();
@@ -54,40 +54,40 @@
     },
   ];
 
-  watch(() => props.data, (data) => {
-    if (data) {
-      localValue.value = data.id;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      if (data) {
+        localValue.value = data.id;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: number) => {
     localValue.value = value;
   };
 
-
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => (Number(localValue.value)));
+      return selectRef.value.getValue().then(() => Number(localValue.value));
     },
   });
-
 </script>
 <style lang="less" scoped>
-.render-spec-box {
-  line-height: 20px;
-  color: #63656e;
-}
-
-.eye {
-  font-size: 15px;
-  color: #3A84FF;
-
-  &:hover {
-    cursor: pointer;
+  .render-spec-box {
+    line-height: 20px;
+    color: #63656e;
   }
-}
+
+  .eye {
+    font-size: 15px;
+    color: #3a84ff;
+
+    &:hover {
+      cursor: pointer;
+    }
+  }
 </style>

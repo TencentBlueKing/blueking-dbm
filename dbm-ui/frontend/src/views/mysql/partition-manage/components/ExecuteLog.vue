@@ -133,7 +133,7 @@
     padding: 28px 24px;
   }
 
-  .partition-execute-error-message-pop{
-    max-width: 350px;;
+  .partition-execute-error-message-pop {
+    max-width: 350px;
   }
 </style>

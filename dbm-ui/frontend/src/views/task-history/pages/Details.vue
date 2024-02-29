@@ -23,10 +23,14 @@
       <div class="btn">
         <span
           class="bk-button-primary bk-button mr-8"
-          @click.stop="handleSkippClick">{{ t('确定') }}</span>
+          @click.stop="handleSkippClick">
+          {{ t('确定') }}
+        </span>
         <span
           class="bk-button"
-          @click.stop="handleSkippCancel">{{ t('取消') }}</span>
+          @click.stop="handleSkippCancel">
+          {{ t('取消') }}
+        </span>
       </div>
     </div>
     <div
@@ -39,10 +43,14 @@
       <div class="btn">
         <span
           class="bk-button-primary bk-button mr-8"
-          @click.stop="handleRefreshClick">{{ t('确定') }}</span>
+          @click.stop="handleRefreshClick">
+          {{ t('确定') }}
+        </span>
         <span
           class="bk-button"
-          @click.stop="handleRefreshCancel">{{ t('取消') }}</span>
+          @click.stop="handleRefreshCancel">
+          {{ t('取消') }}
+        </span>
       </div>
     </div>
     <div
@@ -52,22 +60,24 @@
       <div class="title">
         {{ t('确定强制失败吗') }}
       </div>
-      <div class="sub-title">
-        将会终止节点运行，并置为强制失败状态
-      </div>
+      <div class="sub-title">将会终止节点运行，并置为强制失败状态</div>
       <div class="btn">
         <span
           class="bk-button-primary bk-button confirm mr-8"
-          @click.stop="handleForceFailClick">{{ t('强制失败') }}</span>
+          @click.stop="handleForceFailClick">
+          {{ t('强制失败') }}
+        </span>
         <span
           class="bk-button"
-          @click.stop="handleForceFailCancel">{{ t('取消') }}</span>
+          @click.stop="handleForceFailCancel">
+          {{ t('取消') }}
+        </span>
       </div>
     </div>
     <div class="mission-details">
       <BkLoading
         :loading="flowState.loading"
-        style="height: 100%;">
+        style="height: 100%">
         <DbCard
           mode="collapse"
           :title="t('基本信息')">
@@ -122,7 +132,7 @@
                   <Minimap
                     ref="minimapRef"
                     v-clickoutside:[minimapTriggerRef?.$el]="handleHiddenMinimap"
-                    style="background-color: rgb(245 247 251);"
+                    style="background-color: rgb(245 247 251)"
                     @change="handleTranslate" />
                 </template>
               </BkPopover>
@@ -186,7 +196,7 @@
     <NodeLog
       :is-show="logState.isShow"
       :node="logState.node"
-      @close="() => logState.isShow = false"
+      @close="() => (logState.isShow = false)"
       @refresh="handleRefresh" />
     <!-- 结果文件功能 -->
     <RedisResultFiles
@@ -217,7 +227,7 @@
           <span class="mr-8">{{ $t('总耗时') }}: </span>
           <CostTimer
             :is-timing="flowState.details?.flow_info?.status === 'RUNNING'"
-            :value="(flowState.details?.flow_info?.cost_time || 0)" />
+            :value="flowState.details?.flow_info?.cost_time || 0" />
         </div>
         <BkPopover
           v-if="isShowRevokePipelineButton"
@@ -935,13 +945,13 @@
 </script>
 
 <style lang="less">
-  @import "@styles/mixins";
+  @import '@styles/mixins';
 
-  .mission-detail-page{
+  .mission-detail-page {
     position: relative;
     height: calc(100% - 10px);
 
-    .custom-main-breadcrumbs{
+    .custom-main-breadcrumbs {
       top: -52px;
     }
 
@@ -949,7 +959,6 @@
     .mission-flows {
       height: 100%;
     }
-
 
     .mission-details {
       height: 100%;
@@ -989,7 +998,6 @@
           font-size: @font-size-large;
           text-align: center;
           cursor: pointer;
-
         }
 
         .flow-tools-icon:hover,
@@ -1028,7 +1036,6 @@
         border-radius: 2px;
       }
     }
-
   }
 
   .mission-tips-content {
@@ -1063,7 +1070,7 @@
       margin-top: 6px;
       margin-bottom: 16px;
       font-size: 12px;
-      color: #63656E;
+      color: #63656e;
     }
 
     .btn {
@@ -1074,7 +1081,7 @@
       .confirm {
         width: 88px;
         color: #fff;
-        background: #EA3636;
+        background: #ea3636;
         border: none;
       }
 
@@ -1090,7 +1097,7 @@
     align-items: center;
     justify-content: center;
   }
-  .box-shadow(@color: rgba(25,25,41,.1)) {
+  .box-shadow(@color: rgba(25,25,41,0.1)) {
     box-shadow: 0 2px 4px 0 @color;
   }
 
@@ -1166,7 +1173,7 @@
       .box-shadow(rgba(25,25,41,0.05));
       .flex();
 
-      &[data-evt-type="log"] {
+      &[data-evt-type='log'] {
         cursor: pointer;
       }
 
@@ -1192,7 +1199,7 @@
           width: 38px;
           height: 38px;
           margin: -19px;
-          background-image: url("@images/flow-loading.png");
+          background-image: url('@images/flow-loading.png');
           background-size: 38px;
           animation: bkdata-ss-draft-node-running 2s linear infinite;
 
@@ -1240,7 +1247,8 @@
           background-color: #929496;
           border-radius: 2px;
 
-          &.db-icon-refresh-2, &.db-icon-qiangzhizhongzhi {
+          &.db-icon-refresh-2,
+          &.db-icon-qiangzhizhongzhi {
             display: inline-block;
             padding: 1px;
             font-size: 14px;
@@ -1306,7 +1314,7 @@
     padding: 8px !important;
   }
 
-  .mission-detail-status-box{
+  .mission-detail-status-box {
     display: flex;
     font-size: 12px;
 
@@ -1325,5 +1333,4 @@
       }
     }
   }
-
 </style>

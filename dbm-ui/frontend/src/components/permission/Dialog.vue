@@ -56,9 +56,9 @@
 
 <script setup lang="ts">
   const state = reactive<{
-    isShow: boolean,
-    applied: boolean,
-    permission: Permission | null
+    isShow: boolean;
+    applied: boolean;
+    permission: Permission | null;
   }>({
     isShow: false,
     applied: false,

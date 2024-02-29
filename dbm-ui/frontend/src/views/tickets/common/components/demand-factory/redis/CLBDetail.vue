@@ -23,19 +23,20 @@
   import type { RedisCLBDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<RedisCLBDetails>
+    ticketDetails: TicketDetails<RedisCLBDetails>;
   }
 
   interface RowData {
-    clusterName: string
+    clusterName: string;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const dataArr = Object.values(props.ticketDetails.details.clusters)
-    .map(item => ({ clusterName: item.immute_domain }));
+  const dataArr = Object.values(props.ticketDetails.details.clusters).map((item) => ({
+    clusterName: item.immute_domain,
+  }));
 
   const tableData = ref<RowData[]>(dataArr);
 
@@ -46,5 +47,4 @@
       showOverflowTooltip: true,
     },
   ];
-
 </script>

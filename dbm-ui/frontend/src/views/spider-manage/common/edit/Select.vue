@@ -19,7 +19,7 @@
       'is-focused': isShowPop,
       'is-error': Boolean(errorMessage),
       'is-disabled': disabled,
-      'is-seleced': !!localValue
+      'is-seleced': !!localValue,
     }">
     <div class="select-result-text">
       <span>{{ renderText }}</span>
@@ -44,7 +44,7 @@
       class="select-placeholder">
       {{ placeholder }}
     </div>
-    <div style="display: none;">
+    <div style="display: none">
       <div ref="popRef">
         <div
           v-if="searchKey || renderList.length > 0"
@@ -54,7 +54,7 @@
             behavior="simplicity"
             :placeholder="$t('请输入字段名搜索')">
             <template #prefix>
-              <span style="font-size: 14px; color: #979ba5;">
+              <span style="font-size: 14px; color: #979ba5">
                 <DbIcon type="search" />
               </span>
             </template>
@@ -66,7 +66,7 @@
             :key="item.id"
             class="option-item"
             :class="{
-              active: item.id === localValue
+              active: item.id === localValue,
             }"
             @click="handleSelect(item)">
             <span>{{ item.name }}</span>
@@ -74,7 +74,7 @@
         </div>
         <div
           v-if="renderList.length < 1"
-          style="color: #63656e; text-align: center;">
+          style="color: #63656e; text-align: center">
           数据为空
         </div>
       </div>
@@ -83,43 +83,32 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
-  import {
-    computed,
-    onBeforeUnmount,
-    onMounted,
-    ref,
-    watch,
-  } from 'vue';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
   import { useDebouncedRef } from '@hooks';
 
   import { encodeRegexp } from '@utils';
 
-  import useValidtor, {
-    type Rules,
-  } from './hooks/useValidtor';
+  import useValidtor, { type Rules } from './hooks/useValidtor';
 
-  type IKey = string | number
+  type IKey = string | number;
 
   interface IListItem {
-    id: IKey,
-    name: string
+    id: IKey;
+    name: string;
   }
 
   interface Props {
-    modelValue?: IKey,
-    list: Array<IListItem>,
-    placeholder?: string,
-    rules?: Rules,
-    disabled?: boolean
+    modelValue?: IKey;
+    list: Array<IListItem>;
+    placeholder?: string;
+    rules?: Rules;
+    disabled?: boolean;
   }
   interface Emits {
-    (e: 'update:modelValue', value: IKey): void,
-    (e: 'change', value: IKey): void
+    (e: 'update:modelValue', value: IKey): void;
+    (e: 'change', value: IKey): void;
   }
 
   interface Exposes {
@@ -137,10 +126,7 @@
 
   let tippyIns: Instance;
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { message: errorMessage, validator } = useValidtor(props.rules);
 
   const rootRef = ref();
   const popRef = ref();
@@ -150,47 +136,51 @@
 
   const searchKey = useDebouncedRef('');
 
-  const renderList = computed(() => props.list.reduce((result, item) => {
-    const reg = new RegExp(encodeRegexp(searchKey.value), 'i');
-    if (reg.test(item.name)) {
-      result.push(item);
-    }
-    return result;
-  }, [] as Array<IListItem>));
+  const renderList = computed(() =>
+    props.list.reduce((result, item) => {
+      const reg = new RegExp(encodeRegexp(searchKey.value), 'i');
+      if (reg.test(item.name)) {
+        result.push(item);
+      }
+      return result;
+    }, [] as Array<IListItem>),
+  );
 
   const renderText = computed(() => {
-    const selectItem = _.find(renderList.value, item => item.id === localValue.value);
+    const selectItem = _.find(renderList.value, (item) => item.id === localValue.value);
 
     return selectItem ? selectItem.name : '';
   });
 
-  watch(() => props.modelValue, () => {
-    localValue.value = props.modelValue;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      localValue.value = props.modelValue;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 选择
   const handleSelect = (item: IListItem) => {
     localValue.value = item.id;
     tippyIns.hide();
 
-    validator(localValue.value)
-      .then(() => {
-        window.changeConfirm = true;
-        emits('update:modelValue', localValue.value);
-        emits('change', localValue.value);
-      });
+    validator(localValue.value).then(() => {
+      window.changeConfirm = true;
+      emits('update:modelValue', localValue.value);
+      emits('change', localValue.value);
+    });
   };
   // 删除值
   const handleRemove = () => {
     localValue.value = '';
-    validator(localValue.value)
-      .then(() => {
-        window.changeConfirm = true;
-        emits('update:modelValue', localValue.value);
-        emits('change', localValue.value);
-      });
+    validator(localValue.value).then(() => {
+      window.changeConfirm = true;
+      emits('update:modelValue', localValue.value);
+      emits('change', localValue.value);
+    });
   };
 
   onMounted(() => {
@@ -230,11 +220,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localValue.value)
-        .then(() => localValue.value);
+      return validator(localValue.value).then(() => localValue.value);
     },
   });
-
 </script>
 <style lang="less">
   .table-edit-select {
@@ -348,7 +336,7 @@
     }
   }
 
-  .tippy-box[data-theme~="table-edit-select"] {
+  .tippy-box[data-theme~='table-edit-select'] {
     .tippy-content {
       padding: 8px 0;
       font-size: 12px;

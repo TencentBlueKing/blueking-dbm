@@ -15,7 +15,7 @@
   <div class="sql-execute-sql-file-list">
     <div class="file-list-title">
       <span>{{ t('文件列表') }}</span>
-      <span style="font-size: 12px; font-weight: normal;color: #979ba5;">
+      <span style="font-size: 12px; font-weight: normal; color: #979ba5">
         {{ t('按顺序执行') }}
       </span>
     </div>
@@ -24,13 +24,13 @@
         v-model="localList"
         item-key="id"
         @end="handleDragEnd">
-        <template #item="{element: fileItemData}">
+        <template #item="{ element: fileItemData }">
           <div
             class="file-item"
             :class="{
               active: fileItemData.name === modelValue,
-              'is-error': fileData[fileItemData.name].isUploadFailed
-                || fileData[fileItemData.name].grammarCheck?.isError
+              'is-error':
+                fileData[fileItemData.name].isUploadFailed || fileData[fileItemData.name].grammarCheck?.isError,
             }"
             @click="handleClick(fileItemData.name)">
             <div
@@ -50,21 +50,21 @@
                 <div class="upload-info">
                   <DbIcon
                     v-if="fileData[fileItemData.name].grammarCheck?.isError"
-                    style="color: #ea3636;"
+                    style="color: #ea3636"
                     svg
                     type="attention-fill" />
                   <DbIcon
                     v-else-if="fileData[fileItemData.name].isUploadFailed"
-                    style="color: #ea3636;"
+                    style="color: #ea3636"
                     type="attention-fill" />
                   <DbIcon
                     v-else
-                    style="color: #2dcb56;"
+                    style="color: #2dcb56"
                     type="check-circle-fill" />
                 </div>
                 <div class="drag-flag">
                   <DbIcon
-                    style="font-size: 10px; color: #fff;"
+                    style="font-size: 10px; color: #fff"
                     type="drag" />
                 </div>
                 <div
@@ -72,7 +72,7 @@
                   class="action-btn remove-btn"
                   @click.stop="handleRemove(fileItemData.name)">
                   <DbIcon
-                    style="color: #fff;"
+                    style="color: #fff"
                     type="delete" />
                 </div>
               </template>
@@ -90,15 +90,15 @@
   import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
 
   export interface IFileData {
-    isSuccess: boolean,
-    isCheckFailded: boolean,
-    isUploading: boolean,
-    isUploadFailed: boolean,
-    file: File | null,
-    content: string,
-    messageList: GrammarCheckModel['messageList'],
-    grammarCheck?: GrammarCheckModel,
-    realFilePath: string,
+    isSuccess: boolean;
+    isCheckFailded: boolean;
+    isUploading: boolean;
+    isUploadFailed: boolean;
+    file: File | null;
+    content: string;
+    messageList: GrammarCheckModel['messageList'];
+    grammarCheck?: GrammarCheckModel;
+    realFilePath: string;
   }
 
   export const createFileData = (data = {} as Partial<IFileData>) => ({
@@ -112,25 +112,21 @@
     grammarCheck: data.grammarCheck,
     realFilePath: data.realFilePath || '',
   });
-
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
 
   interface Props {
-    modelValue: string,
-    data: Array<string>,
-    fileData: Record<string, IFileData>
+    modelValue: string;
+    data: Array<string>;
+    fileData: Record<string, IFileData>;
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: string): void,
-    (e: 'remove', value: string, index: number): void,
-    (e: 'sort', value: string[]): void,
+    (e: 'update:modelValue', value: string): void;
+    (e: 'remove', value: string, index: number): void;
+    (e: 'sort', value: string[]): void;
   }
 
   const props = defineProps<Props>();
@@ -139,27 +135,34 @@
 
   const { t } = useI18n();
 
-  const localList = ref<Array<Record<'id'|'name', string>>>([]);
+  const localList = ref<Array<Record<'id' | 'name', string>>>([]);
 
-  watch(() => props.data, () => {
-    localList.value = props.data.map(fileName => ({
-      id: fileName,
-      name: fileName,
-    }));
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      localList.value = props.data.map((fileName) => ({
+        id: fileName,
+        name: fileName,
+      }));
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClick = (fileName: string) => {
     emits('update:modelValue', fileName);
   };
 
   const handleDragEnd = () => {
-    emits('sort', localList.value.map(item => item.name));
+    emits(
+      'sort',
+      localList.value.map((item) => item.name),
+    );
   };
 
   const handleRemove = (fileName: string) => {
-    const index = _.findIndex(localList.value, item => item.name === fileName);
+    const index = _.findIndex(localList.value, (item) => item.name === fileName);
     emits('remove', fileName, index);
   };
 </script>

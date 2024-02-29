@@ -15,7 +15,7 @@
   <div
     class="render-target-box"
     :class="{
-      'is-repeat': isRepeat
+      'is-repeat': isRepeat,
     }">
     <TableEditInput
       ref="inputRef"
@@ -33,10 +33,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { ipv4 } from '@common/regex';
@@ -46,12 +43,12 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    source?: IDataRow['source'],
-    modelValue: IDataRow['target'],
+    source?: IDataRow['source'];
+    modelValue: IDataRow['target'];
   }
 
   interface Exposes {
-    getValue: () => Promise<{ [target: string]: string }>
+    getValue: () => Promise<{ [target: string]: string }>;
   }
 
   const props = defineProps<Props>();
@@ -64,11 +61,10 @@
   const localIpText = ref('');
   const isRepeat = ref(false);
 
-
   const rules = [
     {
       validator: (value: string) => {
-        const ipList = _.filter(value.split(splitReg), item => _.trim(item)) as Array<string>;
+        const ipList = _.filter(value.split(splitReg), (item) => _.trim(item)) as Array<string>;
         return ipList.length > 0;
       },
       message: t('IP 不能为空'),
@@ -76,13 +72,13 @@
     {
       validator: (value: string) => {
         const ipList = value.split(splitReg) as Array<string>;
-        return _.every(ipList, item => ipv4.test(_.trim(item)));
+        return _.every(ipList, (item) => ipv4.test(_.trim(item)));
       },
       message: t('IP格式不正确'),
     },
     {
       validator: (value: string) => {
-        const hostList = value.split(splitReg).filter(item => !!_.trim(item));
+        const hostList = value.split(splitReg).filter((item) => !!_.trim(item));
         if (_.uniq(hostList).length !== hostList.length) {
           isRepeat.value = true;
           return false;
@@ -95,20 +91,21 @@
   ];
 
   // 同步外部主从机器
-  watch(() => props.modelValue, () => {
-    localIpText.value = props.modelValue.join(';');
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => props.modelValue,
+    () => {
+      localIpText.value = props.modelValue.join(';');
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value
-        .getValue()
-        .then(() => ({
-          target: localIpText.value.split(splitReg).join('\n'),
-        }));
+      return inputRef.value.getValue().then(() => ({
+        target: localIpText.value.split(splitReg).join('\n'),
+      }));
     },
   });
 </script>
@@ -159,7 +156,7 @@
     .popover-host-item {
       padding: 2px 20px 2px 0;
 
-      &:nth-child(n+2) {
+      &:nth-child(n + 2) {
         border-top: 1px solid #dcdee5;
       }
     }

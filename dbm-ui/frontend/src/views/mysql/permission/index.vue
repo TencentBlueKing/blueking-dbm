@@ -39,7 +39,7 @@
         v-model="state.search"
         :data="filters"
         :placeholder="t('账号名称_DB名称_权限名称')"
-        style="width: 500px;"
+        style="width: 500px"
         unique-select
         @change="handleSearchChange" />
     </div>
@@ -466,95 +466,95 @@
   };
 </script>
 <style lang="less">
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.permission-rules-page {
-  .bk-table {
-    .cell{
-      padding: 0 !important;
-    }
+  .permission-rules-page {
+    .bk-table {
+      .cell {
+        padding: 0 !important;
+      }
 
-    tr{
-      &:hover {
-        .add-rule-btn {
-          display: inline-flex;
-          margin-left: 8px;
+      tr {
+        &:hover {
+          .add-rule-btn {
+            display: inline-flex;
+            margin-left: 8px;
+          }
+        }
+
+        &.is-new {
+          td {
+            background-color: #f3fcf5 !important;
+          }
         }
       }
 
-      &.is-new {
-        td {
-          background-color: #f3fcf5 !important;
+      th,
+      td {
+        &:first-child {
+          padding: 0 16px;
         }
       }
     }
 
-    th,
-    td{
-      &:first-child{
-        padding: 0 16px;
+    .permission-info-alert {
+      margin-bottom: 16px;
+
+      .label {
+        font-weight: 700;
       }
     }
-  }
 
-  .permission-info-alert {
-    margin-bottom: 16px;
-
-    .label {
-      font-weight: 700;
+    .operation-box {
+      justify-content: space-between;
+      padding-bottom: 16px;
+      .flex-center();
     }
-  }
 
-  .operation-box {
-    justify-content: space-between;
-    padding-bottom: 16px;
-    .flex-center();
-  }
-
-  .cell-row{
-    & ~ .cell-row{
-      border-top: 1px solid #DCDEE5;
-    }
-  }
-
-  .row-expand-btn {
-    display: flex;
-    padding-right: 8px;
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-
-    .expand-flag{
-      transform: rotate(-90deg);
-      transition: all 0.1s;
-
-      &.is-expand {
-        transform: rotate(0);
+    .cell-row {
+      & ~ .cell-row {
+        border-top: 1px solid #dcdee5;
       }
     }
+
+    .row-expand-btn {
+      display: flex;
+      padding-right: 8px;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+
+      .expand-flag {
+        transform: rotate(-90deg);
+        transition: all 0.1s;
+
+        &.is-expand {
+          transform: rotate(0);
+        }
+      }
+    }
+
+    .add-rule-btn {
+      display: none;
+    }
   }
 
-  .add-rule-btn{
-    display: none;
-  }
-}
+  .permission-rule-account-details {
+    font-size: @font-size-mini;
 
-.permission-rule-account-details {
-  font-size: @font-size-mini;
+    .account-details-item {
+      display: flex;
+      padding-bottom: 16px;
+    }
 
-  .account-details-item {
-    display: flex;
-    padding-bottom: 16px;
-  }
+    .account-details-label {
+      width: 90px;
+      text-align: right;
+      flex-shrink: 0;
+    }
 
-  .account-details-label {
-    width: 90px;
-    text-align: right;
-    flex-shrink: 0;
+    .account-details-value {
+      color: @title-color;
+    }
   }
-
-  .account-details-value {
-    color: @title-color;
-  }
-}
 </style>

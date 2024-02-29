@@ -13,8 +13,8 @@
 
 <template>
   <td
-    :class="{'toolbox-right-fixed-column': isFixedRight, 'toolbox-left-fixed-column': isFixedLeft}"
-    style="padding: 0;">
+    :class="{ 'toolbox-right-fixed-column': isFixedRight, 'toolbox-left-fixed-column': isFixedLeft }"
+    style="padding: 0">
     <slot />
   </td>
 </template>
@@ -22,7 +22,7 @@
   import { renderTablekey } from '@components/render-table/Index.vue';
 
   interface Props {
-    fixed?: 'right' | 'left',
+    fixed?: 'right' | 'left';
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -33,5 +33,4 @@
 
   const isFixedRight = computed(() => isFixed?.value && props.fixed === 'right');
   const isFixedLeft = computed(() => isFixed?.value && props.fixed === 'left');
-
 </script>

@@ -55,12 +55,12 @@
 
   import dbIcon from '@components/db-icon';
 
-  type UserGroup = ServiceReturnType<typeof getUserGroupList>[number]
+  type UserGroup = ServiceReturnType<typeof getUserGroupList>[number];
 
   interface Props {
-    type: 'add' | 'edit' | 'copy' | '',
-    isBuiltIn: boolean,
-    bizId: number
+    type: 'add' | 'edit' | 'copy' | '';
+    isBuiltIn: boolean;
+    bizId: number;
   }
 
   interface Exposes {
@@ -68,9 +68,9 @@
   }
 
   interface RecipientItem {
-    username: string,
-    display_name: string,
-    type: string,
+    username: string;
+    display_name: string;
+    type: string;
   }
 
   const props = defineProps<Props>();
@@ -96,8 +96,8 @@
     }
 
     const userGroupList: {
-      label: string,
-      value: string,
+      label: string;
+      value: string;
     }[] = [];
     const userList: string[] = [];
 
@@ -155,32 +155,38 @@
     return !(props.isBuiltIn && modelValueOrigin.includes(id));
   };
 
-  const defaultAlternate = () => [{
-    display_name: t('用户组'),
-    username: 'role',
-    children: _.cloneDeep(roleList.value),
-  }];
-
-  const fuzzySearchMethod = (keyword: string) => getUserList({
-    fuzzy_lookups: keyword,
-  }).then(searchList => ({
-    next: false,
-    results: [{
-      display_name: t('个人用户'),
+  const defaultAlternate = () => [
+    {
+      display_name: t('用户组'),
       username: 'role',
-      children: searchList.results.map(userItem => ({
-        username: userItem.username,
-        display_name: userItem.username,
-        type: 'group',
-      })),
-    }],
-  }));
+      children: _.cloneDeep(roleList.value),
+    },
+  ];
+
+  const fuzzySearchMethod = (keyword: string) =>
+    getUserList({
+      fuzzy_lookups: keyword,
+    }).then((searchList) => ({
+      next: false,
+      results: [
+        {
+          display_name: t('个人用户'),
+          username: 'role',
+          children: searchList.results.map((userItem) => ({
+            username: userItem.username,
+            display_name: userItem.username,
+            type: 'group',
+          })),
+        },
+      ],
+    }));
 
   const renderTag = (renderMethod: typeof h, node: Record<string, string>) => {
     const type = itemMap[node.username]?.type || 'user';
 
     return renderMethod(
-      'div', {
+      'div',
+      {
         class: isClosable(node.username) ? '' : 'built-in',
       },
       [
@@ -189,7 +195,8 @@
           type: type === 'group' ? 'yonghuzu' : 'dba-config',
         }),
         renderMethod(
-          'span', {
+          'span',
+          {
             class: 'mr-4',
           },
           itemMap[node.username]?.display_name || node.username,
@@ -198,13 +205,13 @@
     );
   };
 
-  const renderList = (renderMethod: typeof h, node: {
-    user: RecipientItem
-  }) => {
-    const {
-      type,
-      display_name: displayName,
-    } = node.user;
+  const renderList = (
+    renderMethod: typeof h,
+    node: {
+      user: RecipientItem;
+    },
+  ) => {
+    const { type, display_name: displayName } = node.user;
 
     return renderMethod(Fragment, [
       renderMethod(dbIcon, {
@@ -221,7 +228,7 @@
 
   defineExpose<Exposes>({
     getSelectedReceivers() {
-      return modelValue.value.map(modelValueItem => ({
+      return modelValue.value.map((modelValueItem) => ({
         type: itemMap[modelValueItem]?.type || 'user',
         id: modelValueItem,
       }));
@@ -230,45 +237,45 @@
 </script>
 
 <style lang="less" scoped>
-.receivers-selector-wrapper {
-  .receivers-selector {
-    width: 100%;
-  }
-
-  :deep(.user-selector-selected) {
-    .built-in + .user-selector-selected-clear {
-      display: none;
+  .receivers-selector-wrapper {
+    .receivers-selector {
+      width: 100%;
     }
-  }
 
-  .receivers-list {
-    padding: 12px 16px;
-    background: #F5F7FA;
-
-    .receivers-list-item {
-      font-size: 12px;
-
-      &:not(:first-child) {
-        margin-top: 16px;
+    :deep(.user-selector-selected) {
+      .built-in + .user-selector-selected-clear {
+        display: none;
       }
     }
 
-    .receivers-list-label {
-      line-height: 20px;
-      color: #979BA5;
-    }
+    .receivers-list {
+      padding: 12px 16px;
+      background: #f5f7fa;
 
-    .receivers-list-value {
-      margin-top: 2px;
-      line-height: 16px;
-      color: #63656E;
+      .receivers-list-item {
+        font-size: 12px;
+
+        &:not(:first-child) {
+          margin-top: 16px;
+        }
+      }
+
+      .receivers-list-label {
+        line-height: 20px;
+        color: #979ba5;
+      }
+
+      .receivers-list-value {
+        margin-top: 2px;
+        line-height: 16px;
+        color: #63656e;
+      }
     }
   }
-}
 </style>
 
 <style>
-.receivers-selector-selected-tag-icon {
-  font-size: 17.5px;
-}
+  .receivers-selector-selected-tag-icon {
+    font-size: 17.5px;
+  }
 </style>

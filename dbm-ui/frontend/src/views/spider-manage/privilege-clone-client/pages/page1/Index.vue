@@ -26,7 +26,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -73,10 +73,7 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -84,7 +81,7 @@
 
   const rowRefs = ref();
   const isShowIpSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedIps = shallowRef<HostDetails[]>([]);
@@ -144,20 +141,20 @@
     tableData.value = dataList;
     if (ip) {
       delete ipMemo[ip];
-      selectedIps.value = selectedIps.value.filter(item => item.ip !== ip);
+      selectedIps.value = selectedIps.value.filter((item) => item.ip !== ip);
     }
   };
 
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => precheckPermissionClone({
-        bizId: currentBizId,
-        clone_type: 'client',
-        clone_list: data,
-        clone_cluster_type: 'tendbcluster',
-      })
-        .then((precheckResult) => {
+      .then((data) =>
+        precheckPermissionClone({
+          bizId: currentBizId,
+          clone_type: 'client',
+          clone_list: data,
+          clone_cluster_type: 'tendbcluster',
+        }).then((precheckResult) => {
           if (!precheckResult.pre_check) {
             return Promise.reject();
           }
@@ -182,7 +179,8 @@
               },
             });
           });
-        }))
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });
@@ -206,7 +204,7 @@
       margin-top: 16px;
     }
 
-    .item-block{
+    .item-block {
       margin-top: 24px;
     }
   }

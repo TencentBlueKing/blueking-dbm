@@ -23,28 +23,22 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getClusterDatabaseNameList,
-  } from '@services/source/remoteService';
+  import { getClusterDatabaseNameList } from '@services/source/remoteService';
 
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
-    clusterId: number,
+    clusterId: number;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      source_db: string
-    }>
+      source_db: string;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -57,7 +51,7 @@
   const { t } = useI18n();
 
   const editRef = ref<InstanceType<typeof TableEditSelect>>();
-  const dbNameList = shallowRef<{value: string, label: string}[]>([]);
+  const dbNameList = shallowRef<{ value: string; label: string }[]>([]);
 
   const rules = [
     {
@@ -66,40 +60,37 @@
     },
   ];
 
-  const {
-    loading: isLoading,
-    run: fetchList,
-  } = useRequest(getClusterDatabaseNameList, {
+  const { loading: isLoading, run: fetchList } = useRequest(getClusterDatabaseNameList, {
     manual: true,
     onSuccess(data) {
-      const [{
-        databases,
-      }] = data;
+      const [{ databases }] = data;
 
-      dbNameList.value = databases.map(item => ({
+      dbNameList.value = databases.map((item) => ({
         value: item,
         label: item,
       }));
     },
   });
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchList({
-        cluster_ids: [props.clusterId],
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (props.clusterId) {
+        fetchList({
+          cluster_ids: [props.clusterId],
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return (editRef.value as InstanceType<typeof TableEditSelect>)
-        .getValue()
-        .then(() => ({
-          source_db: modelValue.value,
-        }));
+      return (editRef.value as InstanceType<typeof TableEditSelect>).getValue().then(() => ({
+        source_db: modelValue.value,
+      }));
     },
   });
 </script>

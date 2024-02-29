@@ -31,15 +31,15 @@
 
 <script setup lang="ts">
   interface Props {
-    content?: string | number,
-    type?: '' | 'stroke' | 'filled',
-    theme?: 'info' | 'success' | 'warning' | 'danger',
-    iconType?: string,
-    extCls?: string
+    content?: string | number;
+    type?: '' | 'stroke' | 'filled';
+    theme?: 'info' | 'success' | 'warning' | 'danger';
+    iconType?: string;
+    extCls?: string;
   }
 
   interface Emits {
-    (e: 'tag-click'): void
+    (e: 'tag-click'): void;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -58,10 +58,9 @@
 </script>
 
 <style lang="less" scoped>
-  .tag-box{
+  .tag-box {
     padding: 0 6px;
     margin: 0;
     transform: scale(0.83, 0.83);
-
   }
 </style>

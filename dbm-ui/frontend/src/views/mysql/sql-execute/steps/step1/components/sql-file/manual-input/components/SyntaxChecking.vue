@@ -19,9 +19,7 @@
     <span>{{ $t('语法校验进行中') }}</span>
   </div>
 </template>
-<script setup lang="ts">
-
-</script>
+<script setup lang="ts"></script>
 <style lang="less">
   .sql-execute-syntax-checking {
     display: flex;

@@ -14,7 +14,7 @@
 <template>
   <div
     class="table-edit-input"
-    :class="{'is-error': Boolean(errorMessage)}">
+    :class="{ 'is-error': Boolean(errorMessage) }">
     <BkInput
       v-model="localValue"
       class="input-box"
@@ -137,70 +137,67 @@
   });
 </script>
 <style lang="less" scoped>
-.is-error {
-  background-color: #fff0f1 !important;
+  .is-error {
+    background-color: #fff0f1 !important;
 
-  :deep(input) {
-    background: transparent;
+    :deep(input) {
+      background: transparent;
+    }
+
+    :deep(.bk-input--suffix-icon) {
+      display: none !important;
+    }
   }
 
-  :deep(.bk-input--suffix-icon) {
-    display: none !important;
-  }
-}
+  .table-edit-input {
+    position: relative;
+    height: 42px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #fff;
+    border: 1px solid transparent;
 
-.table-edit-input {
-  position: relative;
-  height: 42px;
-  overflow: hidden;
-  cursor: pointer;
-  background: #fff;
-  border: 1px solid transparent;
+    &:hover {
+      background-color: #fafbfd;
+      border: 1px solid #a3c5fd;
+    }
 
-  &:hover {
-    background-color: #fafbfd;
-    border: 1px solid #a3c5fd;
-  }
+    .input-box {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      background: inherit;
+      border: none;
+      outline: none;
 
-  .input-box {
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    background: inherit;
-    border: none;
-    outline: none;
-
-    :deep(.bk-input) {
-      border-radius: 0;
-
-      input {
-        border: 1px solid transparent;
+      :deep(.bk-input) {
         border-radius: 0;
 
-        &:focus {
-          border-color: 1px solid #3a84ff;
+        input {
+          border: 1px solid transparent;
+          border-radius: 0;
+
+          &:focus {
+            border-color: 1px solid #3a84ff;
+          }
         }
+      }
+
+      :deep(.bk-input--number-control) {
+        display: none !important;
       }
     }
 
-    :deep(.bk-input--number-control) {
-      display: none !important;
+    .input-error {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      padding-right: 10px;
+      font-size: 14px;
+      color: #ea3636;
+      align-items: center;
     }
-
-
   }
-
-
-  .input-error {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    padding-right: 10px;
-    font-size: 14px;
-    color: #ea3636;
-    align-items: center;
-  }
-}
 </style>

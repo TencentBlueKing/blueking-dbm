@@ -46,14 +46,14 @@
 
   interface Props {
     list: Array<{
-      key: string,
-      label: string
-    }>,
-    nodeInfo: Record<string, TExpansionNode>,
-    ipSource: string
+      key: string;
+      label: string;
+    }>;
+    nodeInfo: Record<string, TExpansionNode>;
+    ipSource: string;
   }
   interface Exposes {
-    validate: () => boolean
+    validate: () => boolean;
   }
 
   const props = defineProps<Props>();
@@ -64,10 +64,15 @@
 
   const { t } = useI18n();
 
-  const validateStatusMemo = reactive(props.list.reduce((result, item) => ({
-    ...result,
-    [item.key]: false,
-  }), {} as Record<string, boolean>));
+  const validateStatusMemo = reactive(
+    props.list.reduce(
+      (result, item) => ({
+        ...result,
+        [item.key]: false,
+      }),
+      {} as Record<string, boolean>,
+    ),
+  );
 
   const handleSelect = (value: string) => {
     validateStatusMemo[modelValue.value] = true;
@@ -76,7 +81,7 @@
 
   defineExpose<Exposes>({
     validate() {
-      Object.keys(validateStatusMemo).forEach(key => validateStatusMemo[key] = true);
+      Object.keys(validateStatusMemo).forEach((key) => (validateStatusMemo[key] = true));
       return Object.values(props.nodeInfo).some((nodeData) => {
         if (!nodeData.targetDisk) {
           return false;
@@ -121,7 +126,7 @@
         margin-top: 4px;
       }
 
-      .node-item-name{
+      .node-item-name {
         padding-right: 8px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -129,17 +134,17 @@
       }
     }
 
-    .empty-tips{
+    .empty-tips {
       margin-left: auto;
       font-weight: normal;
-      color: #C4C6CC;
+      color: #c4c6cc;
       flex: 0 0 auto;
     }
 
-    .disk-tips{
+    .disk-tips {
       margin-left: auto;
       font-weight: normal;
-      color: #63656E;
+      color: #63656e;
       flex: 0 0 auto;
     }
   }

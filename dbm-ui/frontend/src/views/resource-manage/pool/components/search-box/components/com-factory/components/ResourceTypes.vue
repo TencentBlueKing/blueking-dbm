@@ -14,7 +14,7 @@
 <template>
   <BkSelect
     :class="{
-      'is-selected-all': !(defaultValue && defaultValue.length > 0)
+      'is-selected-all': !(defaultValue && defaultValue.length > 0),
     }"
     collapse-tags
     filterable
@@ -61,13 +61,13 @@
   import { fetchDbTypeList } from '@services/source/infras';
 
   interface Props {
-    defaultValue?: string[],
+    defaultValue?: string[];
     simple?: boolean;
   }
   interface Emits {
-    (e: 'change', value: Props['defaultValue']): void,
-    (e: 'submit'): void,
-    (e: 'cancel'): void,
+    (e: 'change', value: Props['defaultValue']): void;
+    (e: 'submit'): void;
+    (e: 'cancel'): void;
   }
 
   defineProps<Props>();
@@ -79,10 +79,7 @@
   const { t } = useI18n();
   const allText = t('全部');
 
-  const {
-    data: dbTypeList,
-    loading: isDbTypeListLoading,
-  } = useRequest(fetchDbTypeList);
+  const { data: dbTypeList, loading: isDbTypeListLoading } = useRequest(fetchDbTypeList);
 
   const handleSubmit = () => {
     emits('submit');
@@ -93,8 +90,7 @@
 
   const handleChange = (value: string[]) => {
     const result = [...value];
-    _.remove(result, item => item === allText);
+    _.remove(result, (item) => item === allText);
     emits('change', result);
   };
 </script>
-

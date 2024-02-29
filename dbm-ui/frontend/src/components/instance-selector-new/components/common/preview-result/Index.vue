@@ -53,7 +53,9 @@
             class="result-item">
             <span
               v-overflow-tips
-              class="text-overflow">{{ item[displayKey] }}</span>
+              class="text-overflow">
+              {{ item[displayKey] }}
+            </span>
             <DbIcon
               type="close result-item-remove"
               @click="handleRemove(key, index)" />
@@ -75,11 +77,11 @@
   import CollapseMini from './CollapseMini.vue';
 
   interface Props {
-    lastValues: InstanceSelectorValues,
-    showTitle?: boolean,
-    title?: string,
-    displayKey?: keyof IValue,
-    activePanelId?: string,
+    lastValues: InstanceSelectorValues;
+    showTitle?: boolean;
+    title?: string;
+    displayKey?: keyof IValue;
+    activePanelId?: string;
   }
 
   type Keys = keyof InstanceSelectorValues;
@@ -100,7 +102,7 @@
   const copy = useCopy();
 
   const keys = computed(() => Object.keys(props.lastValues) as Keys[]);
-  const isEmpty = computed(() => !keys.value.some(key => props.lastValues[key].length > 0));
+  const isEmpty = computed(() => !keys.value.some((key) => props.lastValues[key].length > 0));
   const mainKey = computed(() => props.displayKey);
 
   const handleClear = () => {
@@ -131,7 +133,7 @@
     for (const key of keys.value) {
       instances.push(...props.lastValues[key]);
     }
-    copy(instances.map(item => item[mainKey.value]).join('\n'));
+    copy(instances.map((item) => item[mainKey.value]).join('\n'));
   };
 </script>
 <style lang="less">

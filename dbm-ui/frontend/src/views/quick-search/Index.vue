@@ -6,7 +6,7 @@
     :max="500"
     :min="300"
     placement="right"
-    style="height: 100%;">
+    style="height: 100%">
     <template #main>
       <div class="quick-search-head">
         <div class="quick-search-search">
@@ -105,14 +105,14 @@
       db_types: dbTypes,
       resource_types: resourceTypes,
     } = route.query as unknown as {
-      filter_type: string,
-      bk_biz_ids?: string,
-      db_types?: string,
-      resource_types?: string,
+      filter_type: string;
+      bk_biz_ids?: string;
+      db_types?: string;
+      resource_types?: string;
     };
 
     return {
-      bk_biz_ids: bkBizIds ? bkBizIds.split(',').map(bizId => Number(bizId)) : [],
+      bk_biz_ids: bkBizIds ? bkBizIds.split(',').map((bizId) => Number(bizId)) : [],
       db_types: dbTypes ? dbTypes.split(',') : [],
       resource_types: resourceTypes ? resourceTypes.split(',') : [],
       filter_type,
@@ -123,7 +123,7 @@
   const router = useRouter();
   const { t } = useI18n();
   const { bizs: bizList } = useGlobalBizs();
-  const keyword = useDebouncedRef(route.query.keyword as string || '');
+  const keyword = useDebouncedRef((route.query.keyword as string) || '');
 
   const comMap = {
     cluster_domain: ClusterDomain,
@@ -134,8 +134,10 @@
     ticket: Ticket,
   };
 
-  const bizIdNameMap = bizList
-    .reduce((result, item) => Object.assign(result, { [item.bk_biz_id]: item.name }), {} as Record<number, string>);
+  const bizIdNameMap = bizList.reduce(
+    (result, item) => Object.assign(result, { [item.bk_biz_id]: item.name }),
+    {} as Record<number, string>,
+  );
 
   const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'machine'>>({
     cluster_name: [],
@@ -203,10 +205,7 @@
     return dataMap.value.cluster_domain;
   });
 
-  const {
-    loading,
-    run: quickSearchRun,
-  } = useRequest(quickSearch, {
+  const { loading, run: quickSearchRun } = useRequest(quickSearch, {
     manual: true,
     onSuccess(data) {
       Object.assign(dataMap.value, {
@@ -253,22 +252,30 @@
     });
   };
 
-  watch(keyword, (newKeyword, oldKeyword) => {
-    const newKeywordArr = newKeyword.split(/，|\n/g);
-    const oldKeywordArr = (oldKeyword || '').split(/，|\n/g);
+  watch(
+    keyword,
+    (newKeyword, oldKeyword) => {
+      const newKeywordArr = newKeyword.split(/，|\n/g);
+      const oldKeywordArr = (oldKeyword || '').split(/，|\n/g);
 
-    if (!_.isEqual(newKeywordArr, oldKeywordArr) && !newKeyword.endsWith('\n')) {
+      if (!_.isEqual(newKeywordArr, oldKeywordArr) && !newKeyword.endsWith('\n')) {
+        handleSearch();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    formData,
+    () => {
       handleSearch();
-    }
-  }, {
-    immediate: true,
-  });
-
-  watch(formData, () => {
-    handleSearch();
-  }, {
-    deep: true,
-  });
+    },
+    {
+      deep: true,
+    },
+  );
 
   // const handleExportAllClusters = () => {
 
@@ -292,70 +299,70 @@
 </script>
 
 <style lang="less" scoped>
-.quick-search {
-  height: 100%;
-
-  .quick-search-head {
+  .quick-search {
     height: 100%;
-    background-color: #FFF;
 
-    .quick-search-search {
-      display: flex;
-      padding: 45px 0 32px;
-      justify-content: center;
+    .quick-search-head {
+      height: 100%;
+      background-color: #fff;
 
-      .export-button {
-        height: 40px;
-
-        .export-icon {
-          font-size: 16px;
-        }
-      }
-    }
-
-    .quick-search-tab {
-      box-shadow: 0 2px 4px 0 #1919290d;
-
-      :deep(.bk-tab-header) {
+      .quick-search-search {
+        display: flex;
+        padding: 45px 0 32px;
         justify-content: center;
-        border-bottom: none;
-      }
 
-      :deep(.bk-tab-content) {
-        padding: 0 !important;
-      }
-    }
+        .export-button {
+          height: 40px;
 
-    .tab-content {
-      height: calc(100% - 162px);
-      background-color: #f5f7fa;
-
-      :deep(.tab-content-loading) {
-        height: 100%;
-        padding: 16px 0;
-
-        .bk-loading-mask {
-          z-index: 3 !important;
-        }
-
-        .bk-loading-indicator {
-          z-index: 3 !important;
+          .export-icon {
+            font-size: 16px;
+          }
         }
       }
 
-      .tab-table {
-        margin: 0 24px;
+      .quick-search-tab {
+        box-shadow: 0 2px 4px 0 #1919290d;
+
+        :deep(.bk-tab-header) {
+          justify-content: center;
+          border-bottom: none;
+        }
+
+        :deep(.bk-tab-content) {
+          padding: 0 !important;
+        }
+      }
+
+      .tab-content {
+        height: calc(100% - 162px);
+        background-color: #f5f7fa;
+
+        :deep(.tab-content-loading) {
+          height: 100%;
+          padding: 16px 0;
+
+          .bk-loading-mask {
+            z-index: 3 !important;
+          }
+
+          .bk-loading-indicator {
+            z-index: 3 !important;
+          }
+        }
+
+        .tab-table {
+          margin: 0 24px;
+        }
       }
     }
-  }
 
-  .tab-filter-options {
-    padding: 10px 12px;
-    background-color: #fff;
-  }
+    .tab-filter-options {
+      padding: 10px 12px;
+      background-color: #fff;
+    }
 
-  :deep(.bk-resize-collapse) {
-    z-index: 3;
+    :deep(.bk-resize-collapse) {
+      z-index: 3;
+    }
   }
-}
 </style>

@@ -15,7 +15,7 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="inputRef"
-      :model-value="relatedClusterList.map(item => item.cluster_name).join(',')"
+      :model-value="relatedClusterList.map((item) => item.cluster_name).join(',')"
       :placeholder="t('输入主库后自动生成')"
       readonly
       :rules="rules" />

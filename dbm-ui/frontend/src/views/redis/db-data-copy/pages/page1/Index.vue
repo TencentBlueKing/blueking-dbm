@@ -17,10 +17,14 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('数据复制：通过DTS能力，将原集群全部或者部分数据复制到目标集群，原集群和目标集群都可以为自建集群或者DBM托管集群')" />
+        :title="
+          t(
+            '数据复制：通过DTS能力，将原集群全部或者部分数据复制到目标集群，原集群和目标集群都可以为自建集群或者DBM托管集群',
+          )
+        " />
       <div
         class="title-spot"
-        style="margin-top: 16px;">
+        style="margin-top: 16px">
         {{ t('复制类型') }}<span class="required" />
       </div>
       <div class="btn-group">
@@ -42,11 +46,10 @@
         @change-table-available="handleTableDataAvailableChange" />
       <div
         class="title-spot"
-        style="margin: 25px 0 12px;">
+        style="margin: 25px 0 12px">
         {{ t('写入类型') }}<span class="required" />
       </div>
-      <BkRadioGroup
-        v-model="writeType">
+      <BkRadioGroup v-model="writeType">
         <BkRadio
           v-for="item in writeTypeList"
           :key="item.value"
@@ -56,11 +59,10 @@
       </BkRadioGroup>
       <div
         class="title-spot"
-        style="margin: 22px 0 12px;">
+        style="margin: 22px 0 12px">
         {{ t('断开设置') }}<span class="required" />
       </div>
-      <BkRadioGroup
-        v-model="disconnectType">
+      <BkRadioGroup v-model="disconnectType">
         <BkRadio
           v-for="item in disconnectTypeList"
           :key="item.value"
@@ -71,11 +73,10 @@
       <template v-if="disconnectType !== DisconnectModes.AUTO_DISCONNECT_AFTER_REPLICATION">
         <div
           class="title-spot"
-          style="margin: 22px 0 12px;">
+          style="margin: 22px 0 12px">
           {{ t('提醒频率') }}<span class="required" />
         </div>
-        <BkRadioGroup
-          v-model="remindFrequencyType">
+        <BkRadioGroup v-model="remindFrequencyType">
           <BkRadio
             v-for="item in remindFrequencyTypeList"
             :key="item.value"
@@ -85,11 +86,10 @@
         </BkRadioGroup>
         <div
           class="title-spot"
-          style="margin: 22px 0 12px;">
+          style="margin: 22px 0 12px">
           {{ t('校验与修复类型') }}<span class="required" />
         </div>
-        <BkRadioGroup
-          v-model="repairAndVerifyType">
+        <BkRadioGroup v-model="repairAndVerifyType">
           <BkRadio
             v-for="item in repairAndVerifyTypeList"
             :key="item.value"
@@ -100,7 +100,7 @@
         <template v-if="repairAndVerifyType !== RepairAndVerifyModes.NO_CHECK_NO_REPAIR">
           <div
             class="title-spot"
-            style="margin: 25px 0 7px;">
+            style="margin: 25px 0 7px">
             {{ t('校验与修复频率设置') }}<span class="required" />
           </div>
           <BkSelect
@@ -131,7 +131,7 @@
         <BkButton
           class="w-88 ml-8"
           :disabled="isSubmitting"
-          style="margin-left: 8px;">
+          style="margin-left: 8px">
           {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
@@ -139,12 +139,12 @@
   </SmartAction>
 </template>
 <script lang="tsx">
-// 业务内，通用
+  // 业务内，通用
   export interface InfoItem {
-    src_cluster: number | string,
-    dst_cluster: number | string,
-    key_white_regex:string, // 包含key
-    key_black_regex:string, // 排除key
+    src_cluster: number | string;
+    dst_cluster: number | string;
+    key_white_regex: string; // 包含key
+    key_black_regex: string; // 排除key
   }
 
   // 跨业务
@@ -154,8 +154,10 @@
   export type IntraBusinessToThirdInfoItem = InfoItem & { dst_cluster_password: string };
 
   // 自建集群至业务内
-  export type SelfbuiltClusterToIntraInfoItem = InfoItem &
-    { src_cluster_type: ClusterType, src_cluster_password: string };
+  export type SelfbuiltClusterToIntraInfoItem = InfoItem & {
+    src_cluster_type: ClusterType;
+    src_cluster_password: string;
+  };
 
   export const destroyLocalStorage = () => {
     setTimeout(() => {
@@ -168,25 +170,21 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import RedisDSTHistoryJobModel,
-    {
-      CopyModes,
-      DisconnectModes,
-      RemindFrequencyModes,
-      RepairAndVerifyFrequencyModes,
-      RepairAndVerifyModes,
-      WriteModes,
-    } from '@services/model/redis/redis-dst-history-job';
+  import RedisDSTHistoryJobModel, {
+    CopyModes,
+    DisconnectModes,
+    RemindFrequencyModes,
+    RepairAndVerifyFrequencyModes,
+    RepairAndVerifyModes,
+    WriteModes,
+  } from '@services/model/redis/redis-dst-history-job';
   import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    LocalStorageKeys,
-    TicketTypes,
-  } from '@common/const';
+  import { LocalStorageKeys, TicketTypes } from '@common/const';
 
   import {
     copyTypeList,
@@ -200,33 +198,32 @@
   import RenderCrossBusinessTable from './components/cross-business/Index.vue';
   import RenderIntraBusinessToThirdPartTable from './components/intra-business-third/Index.vue';
   import type { SelectItem } from './components/RenderTargetCluster.vue';
-  import RenderSelfbuiltToIntraBusinessTable  from './components/selfbuilt-clusters-intra-business/Index.vue';
+  import RenderSelfbuiltToIntraBusinessTable from './components/selfbuilt-clusters-intra-business/Index.vue';
   import { ClusterType } from './components/selfbuilt-clusters-intra-business/RenderClusterType.vue';
   import RenderWithinBusinessTable from './components/within-business/Index.vue';
-
 
   type InfoTypes = InfoItem | CrossBusinessInfoItem | IntraBusinessToThirdInfoItem | SelfbuiltClusterToIntraInfoItem;
 
   // 提交单据类型
   type DataCopySubmitTicket = SubmitTicket<TicketTypes, InfoTypes[]> & {
     details: {
-      dts_copy_type: CopyModes,
-      write_mode: WriteModes,
+      dts_copy_type: CopyModes;
+      write_mode: WriteModes;
       sync_disconnect_setting: {
-        type: DisconnectModes,
-        reminder_frequency: RemindFrequencyModes | '',
-      },
+        type: DisconnectModes;
+        reminder_frequency: RemindFrequencyModes | '';
+      };
       data_check_repair_setting: {
-        type: RepairAndVerifyModes | '',
-        execution_frequency: RepairAndVerifyFrequencyModes | '',
-      }
-    }
-  }
+        type: RepairAndVerifyModes | '';
+        execution_frequency: RepairAndVerifyFrequencyModes | '';
+      };
+    };
+  };
 
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const copyType = ref(CopyModes.INTRA_BISNESS);
   const writeType = ref(WriteModes.DELETE_AND_WRITE_TO_REDIS);
   const disconnectType = ref(DisconnectModes.KEEP_SYNC_WITH_REMINDER);
@@ -244,7 +241,8 @@
       [CopyModes.INTRA_TO_THIRD]: RenderIntraBusinessToThirdPartTable,
       [CopyModes.SELFBUILT_TO_INTRA]: RenderSelfbuiltToIntraBusinessTable,
     };
-    return copyType.value in comMap ? comMap[copyType.value as keyof typeof comMap]
+    return copyType.value in comMap
+      ? comMap[copyType.value as keyof typeof comMap]
       : RenderSelfbuiltToIntraBusinessTable;
   });
 
@@ -252,7 +250,6 @@
     checkandRecoverDataListFromLocalStorage();
     queryClusterList();
   });
-
 
   const checkandRecoverDataListFromLocalStorage = () => {
     const r = localStorage.getItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY);
@@ -282,7 +279,7 @@
       offset: 0,
       limit: -1,
     });
-    clusterList.value = result.results.map(item => ({
+    clusterList.value = result.results.map((item) => ({
       value: item.id,
       label: item.master_domain,
     }));
@@ -304,7 +301,10 @@
         },
         data_check_repair_setting: {
           type: isAutoDisconnect ? '' : repairAndVerifyType.value,
-          execution_frequency: isAutoDisconnect || repairAndVerifyType.value === RepairAndVerifyModes.NO_CHECK_NO_REPAIR ? '' : repairAndVerifyFrequency.value,
+          execution_frequency:
+            isAutoDisconnect || repairAndVerifyType.value === RepairAndVerifyModes.NO_CHECK_NO_REPAIR
+              ? ''
+              : repairAndVerifyFrequency.value,
         },
         infos,
       },
@@ -322,18 +322,19 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisDBDataCopy',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'RedisDBDataCopy',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .catch((e) => {
             // 目前后台还未调通
             console.error('submit data copy ticket error', e);
@@ -341,7 +342,8 @@
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   // 重置
@@ -352,7 +354,6 @@
 </script>
 
 <style lang="less" scoped>
-
   .proxy-scale-down-page {
     padding-bottom: 20px;
 

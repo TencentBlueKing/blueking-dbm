@@ -9,12 +9,9 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import {
-  isRecentDays,
-  utcDisplayTime,
-} from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -46,13 +43,13 @@ export default class InfluxDBInstance {
   instance_address: string;
   instance_name: string;
   operations: Array<{
-    flow_id: number,
-    instance_id: number,
-    operator: string,
-    status: string,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
+    flow_id: number;
+    instance_id: number;
+    operator: string;
+    status: string;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
   }>;
   role: string;
   status: string;
@@ -63,7 +60,10 @@ export default class InfluxDBInstance {
   disk: number;
   cpu: number;
   mem: number;
-  permission: Record<'influxdb_view' | 'influxdb_enable_disable' | 'influxdb_destroy' | 'influxdb_replace' | 'influxdb_reboot', boolean>;
+  permission: Record<
+    'influxdb_view' | 'influxdb_enable_disable' | 'influxdb_destroy' | 'influxdb_replace' | 'influxdb_reboot',
+    boolean
+  >;
 
   constructor(payload = {} as InfluxDBInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -100,7 +100,7 @@ export default class InfluxDBInstance {
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(InfluxDBInstance.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态
@@ -158,11 +158,11 @@ export default class InfluxDBInstance {
   }
 
   get isRebooting() {
-    return Boolean(this.operations.find(item => item.ticket_type === InfluxDBInstance.INFLUXDB_REBOOT));
+    return Boolean(this.operations.find((item) => item.ticket_type === InfluxDBInstance.INFLUXDB_REBOOT));
   }
 
   get isStarting() {
-    return Boolean(this.operations.find(item => item.ticket_type === InfluxDBInstance.INFLUXDB_ENABLE));
+    return Boolean(this.operations.find((item) => item.ticket_type === InfluxDBInstance.INFLUXDB_ENABLE));
   }
 
   get createAtDisplay() {
@@ -170,7 +170,7 @@ export default class InfluxDBInstance {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: InfluxDBInstance.operationIconMap[item.ticket_type],
       tip: InfluxDBInstance.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,

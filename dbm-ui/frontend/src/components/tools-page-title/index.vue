@@ -31,33 +31,42 @@
 
   const toolboxTitle = ref('');
 
-  const titleMap = computed(() => props.toolboxRoutes.reduce((results, item) => {
-    Object.assign(results, {
-      [item.name as string]: item.meta?.navName,
-    });
-    return results;
-  }, {} as Record<string, string>));
+  const titleMap = computed(() =>
+    props.toolboxRoutes.reduce(
+      (results, item) => {
+        Object.assign(results, {
+          [item.name as string]: item.meta?.navName,
+        });
+        return results;
+      },
+      {} as Record<string, string>,
+    ),
+  );
 
-  watch(() => route.name, (name) => {
-    toolboxTitle.value = titleMap.value[name as string];
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => route.name,
+    (name) => {
+      toolboxTitle.value = titleMap.value[name as string];
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>
-.toolbox-title-box {
-  display: flex;
-  width: 100%;
-  height: 54px;
-  padding: 0 24px;
-  align-items: center;
+  .toolbox-title-box {
+    display: flex;
+    width: 100%;
+    height: 54px;
+    padding: 0 24px;
+    align-items: center;
 
-  .title {
-    margin-right: 8px;
-    font-size: 14px;
-    font-weight: 700;
-    color: #313238;
+    .title {
+      margin-right: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #313238;
+    }
   }
-}
 </style>

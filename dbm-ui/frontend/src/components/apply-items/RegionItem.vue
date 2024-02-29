@@ -29,9 +29,11 @@
             class="region-group__item">
             <BkRadioButton
               class="region-group__badge"
-              :class="[{
-                'region-group__badge--tight': info.inventory_tag === 'insufficient'
-              }]"
+              :class="[
+                {
+                  'region-group__badge--tight': info.inventory_tag === 'insufficient',
+                },
+              ]"
               :data-tag="getCitiyTag(info)"
               :label="info.city_code">
               {{ info.city_name }}
@@ -49,14 +51,14 @@
 
   import { getInfrasCities } from '@services/source/infras';
 
-  type CityItem = ServiceReturnType<typeof getInfrasCities>
+  type CityItem = ServiceReturnType<typeof getInfrasCities>;
 
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: string): void;
   }
 
   interface Expose {
-    getValue: () => { cityCode: string, cityName: string }
+    getValue: () => { cityCode: string; cityName: string };
   }
 
   const emits = defineEmits<Emits>();
@@ -68,7 +70,7 @@
 
   enum Inventory {
     INSUFFICIENT = '紧张',
-    SUFFICIENT = '充足'
+    SUFFICIENT = '充足',
   }
   type InventoryStrings = keyof typeof Inventory;
 
@@ -82,7 +84,6 @@
   watch(modelValue, () => {
     state.cityCode = modelValue.value;
   });
-
 
   /**
    * 获取服务器资源的城市信息
@@ -113,7 +114,7 @@
 
   function handleChange(value: string) {
     modelValue.value = value;
-    state.cityName = (state.regions.find((item => item.city_code === value)))?.city_name;
+    state.cityName = state.regions.find((item) => item.city_code === value)?.city_name;
     emits('change', value);
   }
 
@@ -125,11 +126,10 @@
       };
     },
   });
-
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .region-group {
     .flex-center();

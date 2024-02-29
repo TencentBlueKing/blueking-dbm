@@ -39,7 +39,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<number>
+    getValue: () => Promise<number>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -77,10 +77,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => ({ count: Number(localValue.value) - props.min }));
+      return editRef.value.getValue().then(() => ({ count: Number(localValue.value) - props.min }));
     },
   });
-
 </script>

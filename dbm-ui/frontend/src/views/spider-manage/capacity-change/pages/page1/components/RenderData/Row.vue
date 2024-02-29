@@ -14,30 +14,28 @@
 <template>
   <tbody>
     <tr>
-      <td
-        style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
           @id-change="handleClusterIdChange" />
       </td>
-      <td
-        style="padding: 0;">
+      <td style="padding: 0">
         <RenderResourceSpec
           ref="resourceSpecRef"
           :cluster-id="localClusterId"
           @cluster-change="handleClusterDataChange" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderShardNum :cluster-data="localClusterData" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderMachinePairCnt :cluster-data="localClusterData" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCapacity :cluster-data="localClusterData" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTargetResourceSpec
           ref="targetResourceSpecRef"
           :cluster-data="localClusterData" />
@@ -59,23 +57,23 @@
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
-      id: number,
-      domain: string,
-    },
+      id: number;
+      domain: string;
+    };
     resourceSpec?: {
-      id: number,
-      name: string,
-    },
-    clusterShardNum?: number,
-    clusterCapacity?: string,
-    machinePairCnt?: number,
+      id: number;
+      name: string;
+    };
+    clusterShardNum?: number;
+    clusterCapacity?: string;
+    machinePairCnt?: number;
     resource_spec?: {
       backend_group: {
-        spec_id: number,
-        count: number,
-        affinity: ''
-      }
-    },
+        spec_id: number;
+        count: number;
+        affinity: '';
+      };
+    };
   }
 
   // 创建表格数据
@@ -88,13 +86,9 @@
     machinePairCnt: data.machinePairCnt,
     resource_spec: data.resource_spec,
   });
-
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
 
   import RenderCapacity from './RenderCapacity.vue';
   import RenderCluster from './RenderCluster.vue';
@@ -104,16 +98,16 @@
   import RenderTargetResourceSpec from './RenderTargetResourceSpec.vue';
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -127,13 +121,17 @@
   const localClusterId = ref(0);
   const localClusterData = ref<SpiderModel>();
 
-  watch(() => props.data, () => {
-    if (props.data.clusterData) {
-      localClusterId.value = props.data.clusterData.id;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.clusterData) {
+        localClusterId.value = props.data.clusterData.id;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
@@ -159,11 +157,7 @@
         clusterRef.value.getValue(),
         resourceSpecRef.value.getValue(),
         targetResourceSpecRef.value.getValue(),
-      ]).then(([
-        clusterData,
-        resourceSpecData,
-        targetResourceSpecData,
-      ]) => ({
+      ]).then(([clusterData, resourceSpecData, targetResourceSpecData]) => ({
         ...clusterData,
         ...resourceSpecData,
         ...targetResourceSpecData,

@@ -14,7 +14,7 @@
 <template>
   <BkDialog
     :is-show="isShow"
-    :title="$t('替换Proxy_批量录入') "
+    :title="$t('替换Proxy_批量录入')"
     :width="705"
     @closed="handleClosed">
     <div class="proxy-replace-batch-entry">
@@ -22,7 +22,7 @@
         <table>
           <thead>
             <tr>
-              <th>{{ $t('目标Proxy') }} </th>
+              <th>{{ $t('目标Proxy') }}</th>
               <th>{{ $t('新Proxy主机') }}</th>
             </tr>
           </thead>
@@ -46,7 +46,7 @@
         <BkInput
           v-model="localValue"
           :placeholder="placeholder"
-          style="height: 320px; margin: 12px 0 30px;"
+          style="height: 320px; margin: 12px 0 30px"
           type="textarea"
           @input="handleInputChange" />
       </div>
@@ -94,18 +94,18 @@
 <script lang="ts">
   export interface IValue {
     originProxyIp: {
-      cluster_id: number,
-      bk_host_id: number,
-      bk_cloud_id: number,
-      port: number,
-      ip: string,
-      instance_address: string
-    },
+      cluster_id: number;
+      bk_host_id: number;
+      bk_cloud_id: number;
+      port: number;
+      ip: string;
+      instance_address: string;
+    };
     targetProxyIp: {
-      bk_host_id: number,
-      bk_cloud_id: number,
-      ip: string,
-    },
+      bk_host_id: number;
+      bk_cloud_id: number;
+      ip: string;
+    };
   }
 </script>
 <script setup lang="ts">
@@ -114,21 +114,17 @@
   import { useI18n } from 'vue-i18n';
 
   import { checkMysqlInstances } from '@services/source/instances';
-  import type { InstanceInfos  } from '@services/types/clusters';
+  import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ipPort,
-    ipv4,
-  } from '@common/regex';
+  import { ipPort, ipv4 } from '@common/regex';
 
   import { execCopy } from '@/utils';
 
-
   interface IInputParse {
-    originIp: string,
-    targetIp: string,
+    originIp: string;
+    targetIp: string;
   }
 
   interface Props {
@@ -142,7 +138,7 @@
   defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const getInputTextList = (list: Array<IInputParse>) => list.map(item => `${item.originIp} ${item.targetIp}`);
+  const getInputTextList = (list: Array<IInputParse>) => list.map((item) => `${item.originIp} ${item.targetIp}`);
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -165,9 +161,8 @@
     emits('update:isShow', false);
   };
 
-
   const handleSubmit = () => {
-    const inputRecordList =  localValue.value.split('\n');
+    const inputRecordList = localValue.value.split('\n');
 
     const validList: Array<IInputParse> = [];
     const invalidList: Array<IInputParse> = [];
@@ -177,7 +172,7 @@
       if (!_.trim(recordItem)) {
         return;
       }
-      const ipList = recordItem.split(/ +/).filter(item => _.trim(item));
+      const ipList = recordItem.split(/ +/).filter((item) => _.trim(item));
       if (ipList.length !== 2) {
         errorList.push({
           originIp: recordItem,
@@ -200,61 +195,60 @@
     });
 
     isChecking.value = true;
-    const allValidOriginIpList = validList.reduce((result, item) => [
-      ...result,
-      item.originIp,
-    ], [] as string[]);
+    const allValidOriginIpList = validList.reduce((result, item) => [...result, item.originIp], [] as string[]);
     checkMysqlInstances({
       bizId: currentBizId,
       instance_addresses: allValidOriginIpList,
-    }).then((data) => {
-      const realDataMap = data.reduce((result, item) => ({
-        ...result,
-        [`${item.ip}:${item.port}`]: item,
-      }), {} as Record<string, InstanceInfos>);
-
-      const resultList: Array<IValue> = [];
-      const hostErrorList: Array<IInputParse> = [];
-
-      validList.forEach((inputData) => {
-        if (!realDataMap[inputData.originIp]) {
-          hostErrorList.push(inputData);
-        } else {
-          const originIpData = realDataMap[inputData.originIp];
-          resultList.push({
-            originProxyIp: {
-              cluster_id: originIpData.cluster_id,
-              bk_host_id: originIpData.bk_host_id,
-              bk_cloud_id: originIpData.bk_cloud_id,
-              port: originIpData.port,
-              ip: originIpData.ip,
-              instance_address: inputData.originIp,
-            },
-            targetProxyIp: {
-              bk_host_id: 0,
-              bk_cloud_id: 0,
-              ip: inputData.targetIp,
-            },
-          });
-        }
-      });
-      inputInvalidStack.value = invalidList;
-      inputErrorStack.value = errorList;
-      inputHostErrorStack.value = hostErrorList;
-      if (invalidList.length < 1
-        && errorList.length < 1
-        && hostErrorList.length < 1) {
-        emits('change', resultList);
-        handleClosed();
-      } else {
-        localValue.value = _.filter([
-          ...invalidList.map(item => getInputTextList([item])),
-          ...errorList.map(item => getInputTextList([item])),
-          ...hostErrorList.map(item => getInputTextList([item])),
-          ...resultList.map(item => `${item.originProxyIp.instance_address} ${item.targetProxyIp.ip}`),
-        ]).join('\n');
-      }
     })
+      .then((data) => {
+        const realDataMap = data.reduce(
+          (result, item) => ({
+            ...result,
+            [`${item.ip}:${item.port}`]: item,
+          }),
+          {} as Record<string, InstanceInfos>,
+        );
+
+        const resultList: Array<IValue> = [];
+        const hostErrorList: Array<IInputParse> = [];
+
+        validList.forEach((inputData) => {
+          if (!realDataMap[inputData.originIp]) {
+            hostErrorList.push(inputData);
+          } else {
+            const originIpData = realDataMap[inputData.originIp];
+            resultList.push({
+              originProxyIp: {
+                cluster_id: originIpData.cluster_id,
+                bk_host_id: originIpData.bk_host_id,
+                bk_cloud_id: originIpData.bk_cloud_id,
+                port: originIpData.port,
+                ip: originIpData.ip,
+                instance_address: inputData.originIp,
+              },
+              targetProxyIp: {
+                bk_host_id: 0,
+                bk_cloud_id: 0,
+                ip: inputData.targetIp,
+              },
+            });
+          }
+        });
+        inputInvalidStack.value = invalidList;
+        inputErrorStack.value = errorList;
+        inputHostErrorStack.value = hostErrorList;
+        if (invalidList.length < 1 && errorList.length < 1 && hostErrorList.length < 1) {
+          emits('change', resultList);
+          handleClosed();
+        } else {
+          localValue.value = _.filter([
+            ...invalidList.map((item) => getInputTextList([item])),
+            ...errorList.map((item) => getInputTextList([item])),
+            ...hostErrorList.map((item) => getInputTextList([item])),
+            ...resultList.map((item) => `${item.originProxyIp.instance_address} ${item.targetProxyIp.ip}`),
+          ]).join('\n');
+        }
+      })
       .finally(() => {
         isChecking.value = false;
       });
@@ -288,10 +282,9 @@
   const handleHighClusterError = () => {
     const $inputEl = inputRef.value.querySelector('textarea');
     $inputEl.focus();
-    const invalidText = [
-      ...getInputTextList(inputInvalidStack.value),
-      ...getInputTextList(inputErrorStack.value),
-    ].join('\n');
+    const invalidText = [...getInputTextList(inputInvalidStack.value), ...getInputTextList(inputErrorStack.value)].join(
+      '\n',
+    );
     const clusterErrorText = getInputTextList(inputHostErrorStack.value).join('\n');
 
     const startIndex = invalidText.length > 0 ? invalidText.length + 1 : 0;

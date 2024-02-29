@@ -58,13 +58,13 @@
         <BkInput
           v-model="localValue"
           :placeholder="placeholder"
-          style="height: 320px; margin: 12px 0 30px;"
+          style="height: 320px; margin: 12px 0 30px"
           type="textarea"
           @input="handleInputChange" />
       </div>
       <div class="error-box">
         <span v-if="inputInvalidStack.length > 0">
-          <span>{{ $t('n处格式错误',[inputInvalidStack.length]) }}</span>
+          <span>{{ $t('n处格式错误', [inputInvalidStack.length]) }}</span>
           <DbIcon
             class="action-btn"
             type="audit"
@@ -72,7 +72,7 @@
         </span>
         <span v-if="inputErrorStack.length > 0">
           <span v-if="inputInvalidStack.length > 0">；</span>
-          <span>{{ $t('n处缺少匹配对象',[inputErrorStack.length]) }}</span>
+          <span>{{ $t('n处缺少匹配对象', [inputErrorStack.length]) }}</span>
           <DbIcon
             class="action-btn"
             type="audit"
@@ -106,18 +106,18 @@
 <script lang="ts">
   export interface IValue {
     clusterData: {
-      id: number,
-      domain: string,
-      cloudId: number
-    },
-    rollbackIp: string,
-    backupSource: string,
-    backupid: number,
-    rollbackTime: string,
-    databases: string[],
-    tables: string[],
-    databasesIgnore: string[],
-    tablesIgnore: string[],
+      id: number;
+      domain: string;
+      cloudId: number;
+    };
+    rollbackIp: string;
+    backupSource: string;
+    backupid: number;
+    rollbackTime: string;
+    databases: string[];
+    tables: string[];
+    databasesIgnore: string[];
+    tablesIgnore: string[];
   }
 </script>
 <script setup lang="ts">

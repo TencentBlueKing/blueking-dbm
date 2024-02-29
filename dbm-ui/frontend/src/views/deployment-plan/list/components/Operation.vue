@@ -75,11 +75,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    reactive,
-    watch,
-  } from 'vue';
+  import { computed, reactive, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -88,17 +84,17 @@
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
   interface Props {
-    clusterType: string,
-    machineType: string,
-    data?: DeployPlanModel
+    clusterType: string;
+    machineType: string;
+    data?: DeployPlanModel;
   }
 
-  interface Emits{
-    (e: 'change'): void
+  interface Emits {
+    (e: 'change'): void;
   }
 
   interface Expose {
-    submit: () => void,
+    submit: () => void;
   }
 
   const props = defineProps<Props>();
@@ -119,10 +115,7 @@
   const formData = reactive(genDefaultData());
   const isEditing = computed(() => props.data && props.data.id > 0);
 
-  const {
-    loading: isResourceSpecLoading,
-    data: resourceSpecList,
-  } = useRequest(getResourceSpecList, {
+  const { loading: isResourceSpecLoading, data: resourceSpecList } = useRequest(getResourceSpecList, {
     defaultParams: [
       {
         spec_cluster_type: props.clusterType,
@@ -135,7 +128,7 @@
     if (formData.machine_pair_cnt < 1) {
       return '';
     }
-    const spec = _.find(resourceSpecList.value?.results, item => item.spec_id === formData.spec);
+    const spec = _.find(resourceSpecList.value?.results, (item) => item.spec_id === formData.spec);
     if (!spec) {
       return '';
     }
@@ -148,30 +141,31 @@
     return `>= ${storage * formData.machine_pair_cnt}`;
   });
 
-  watch(() => props.data, () => {
-    if (!props.data) {
-      return;
-    }
-    formData.id = props.data.id;
-    formData.name = props.data.name;
-    formData.shard_cnt = props.data.shard_cnt;
-    formData.machine_pair_cnt = props.data.machine_pair_cnt;
-    formData.capacity = props.data.capacity;
-  },  {
-    immediate: true,
-  });
-
+  watch(
+    () => props.data,
+    () => {
+      if (!props.data) {
+        return;
+      }
+      formData.id = props.data.id;
+      formData.name = props.data.name;
+      formData.shard_cnt = props.data.shard_cnt;
+      formData.machine_pair_cnt = props.data.machine_pair_cnt;
+      formData.capacity = props.data.capacity;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Expose>({
     submit() {
       return createDeployPlan({
         ...formData,
         capacity: estimateCapacity.value,
-      })
-        .then(() => emits('change'));
+      }).then(() => emits('change'));
     },
   });
-
 </script>
 <style lang="less">
   .deployment-plan-operation-box {

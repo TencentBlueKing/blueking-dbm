@@ -34,21 +34,17 @@
 
   import { getLevelConfig } from '@services/source/configs';
 
-  import {
-    confLevelInfos,
-    ConfLevels,
-    type ConfLevelValues,
-  } from '@common/const';
+  import { confLevelInfos, ConfLevels, type ConfLevelValues } from '@common/const';
 
   import RangeInput from './RangeInput.vue';
 
-  type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number]
+  type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number];
 
   type TableColumn = {
-    cell: string,
-    data: ParameterConfigItem,
-    index: number
-  }
+    cell: string;
+    data: ParameterConfigItem;
+    index: number;
+  };
 
   export default {
     name: 'ParameterTable',
@@ -600,7 +596,7 @@
 </script>
 
 <style lang="less">
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .parameter-table.custom-edit-table {
     .sticky-table(var(--sticky-top));

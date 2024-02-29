@@ -24,7 +24,7 @@
     show-selected-icon
     @change="handleChange">
     <BkOption
-      v-for="(item) in data"
+      v-for="item in data"
       :key="item.bk_cloud_id"
       :label="item.bk_cloud_name"
       :value="`${item.bk_cloud_id}`" />
@@ -37,10 +37,10 @@
   import { getCloudList } from '@services/source/ipchooser';
 
   interface Props {
-    defaultValue?: number[]
+    defaultValue?: number[];
   }
   interface Emits {
-    (e: 'change', value: Props['defaultValue']): void
+    (e: 'change', value: Props['defaultValue']): void;
   }
 
   defineProps<Props>();
@@ -50,10 +50,7 @@
   });
   const { t } = useI18n();
 
-  const {
-    loading: isLoading,
-    data,
-  } = useRequest(getCloudList, {
+  const { loading: isLoading, data } = useRequest(getCloudList, {
     initialData: [],
   });
 
@@ -61,4 +58,3 @@
     emits('change', value);
   };
 </script>
-

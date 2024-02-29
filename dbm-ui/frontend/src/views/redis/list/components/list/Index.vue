@@ -24,20 +24,18 @@
         <BkDropdown
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: t('请选择操作集群')
+            content: t('请选择操作集群'),
           }"
           class="cluster-dropdown mb-16"
           :disabled="!hasSelected"
           @click.stop
-          @hide="() => isShowDropdown = false"
-          @show="() => isShowDropdown = true">
+          @hide="() => (isShowDropdown = false)"
+          @show="() => (isShowDropdown = true)">
           <BkButton :disabled="!hasSelected">
             <span class="pr-4">{{ t('批量操作') }}</span>
             <DbIcon
               class="cluster-dropdown-icon"
-              :class="[
-                { 'cluster-dropdown-icon-active': isShowDropdown }
-              ]"
+              :class="[{ 'cluster-dropdown-icon-active': isShowDropdown }]"
               type="down-big " />
           </BkButton>
           <template #content>
@@ -73,7 +71,7 @@
     <div class="table-wrapper-out">
       <div
         class="table-wrapper"
-        :class="{'is-shrink-table': isStretchLayoutOpen}">
+        :class="{ 'is-shrink-table': isStretchLayoutOpen }">
         <DbTable
           ref="tableRef"
           :columns="columns"
@@ -1079,229 +1077,227 @@
 </script>
 
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.redis-cluster-list-page {
-  display: flex;
-  height: 100%;
-  padding: 24px 0;
-  margin: 0 24px;
-  overflow: hidden;
-  flex-direction: column;
-
-  :deep(.cell) {
-    line-height: normal !important;
-
-    .domain {
-      display: flex;
-      align-items: center;
-    }
-
-    .db-icon-copy, .db-icon-edit {
-      display: none;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-  }
-
-  :deep(tr:hover) {
-    .db-icon-copy, .db-icon-edit {
-      display: inline-block !important;
-    }
-  }
-
-  .operation-box{
+  .redis-cluster-list-page {
     display: flex;
-    flex-wrap: wrap;
-
-    .bk-search-select {
-      flex: 1;
-      max-width: 320px;
-      min-width: 320px;
-      margin-left: auto;
-    }
-  }
-
-  .cluster-dropdown {
-    margin-right: auto;
-
-    .cluster-dropdown-icon {
-      color: @gray-color;
-      transform: rotate(0);
-      transition: all 0.2s;
-
-    }
-
-    .cluster-dropdown-icon-active {
-      transform: rotate(-90deg);
-    }
-  }
-
-  .table-wrapper-out {
-    flex: 1;
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
     overflow: hidden;
+    flex-direction: column;
 
-    .table-wrapper {
-      background-color: white;
+    :deep(.cell) {
+      line-height: normal !important;
 
-      .bk-table {
-        height: 100% !important;
-      }
-
-      :deep(.cell) {
-      line-height: unset !important;
-
-      .db-icon-copy {
-        display: none;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-    }
-
-    :deep(.cluster-name-container) {
-      display: flex;
-      align-items: flex-start;
-      padding: 8px 0;
-      overflow: hidden;
-
-      .cluster-name {
-        line-height: 16px;
-
-        &__alias {
-          color: @light-gray;
-        }
-      }
-
-      .cluster-tags {
+      .domain {
         display: flex;
         align-items: center;
-        flex-wrap: wrap;
-        margin-left: 4px;
       }
 
-      .cluster-tag {
-        flex-shrink: 0;
-        margin: 2px;
-      }
-    }
-
-    :deep(.ip-list) {
-      padding: 8px 0;
-
-      &__more {
-        display: inline-block;
-        margin-top: 2px;
-      }
-
-      .db-icon-copy {
+      .db-icon-copy,
+      .db-icon-edit {
         display: none;
-        margin-top: 1px;
-        margin-left: 8px;
+        margin-left: 4px;
         color: @primary-color;
-        vertical-align: text-top;
         cursor: pointer;
-      }
-    }
-
-    :deep(.operations) {
-      .bk-button {
-        margin-right: 8px;
-      }
-
-      &__more {
-        .db-icon-more {
-          font-size: 16px;
-          color: @default-color;
-          cursor: pointer;
-
-          &:hover {
-            background-color: @bg-disable;
-            border-radius: 2px;
-          }
-        }
       }
     }
 
     :deep(tr:hover) {
-      .db-icon-copy {
-        display: inline-block;
+      .db-icon-copy,
+      .db-icon-edit {
+        display: inline-block !important;
       }
     }
 
-    :deep(.is-offline) {
-      .cluster-name-container {
-        .cluster-name {
-          a {
-            color: @gray-color;
+    .operation-box {
+      display: flex;
+      flex-wrap: wrap;
+
+      .bk-search-select {
+        flex: 1;
+        max-width: 320px;
+        min-width: 320px;
+        margin-left: auto;
+      }
+    }
+
+    .cluster-dropdown {
+      margin-right: auto;
+
+      .cluster-dropdown-icon {
+        color: @gray-color;
+        transform: rotate(0);
+        transition: all 0.2s;
+      }
+
+      .cluster-dropdown-icon-active {
+        transform: rotate(-90deg);
+      }
+    }
+
+    .table-wrapper-out {
+      flex: 1;
+      overflow: hidden;
+
+      .table-wrapper {
+        background-color: white;
+
+        .bk-table {
+          height: 100% !important;
+        }
+
+        :deep(.cell) {
+          line-height: unset !important;
+
+          .db-icon-copy {
+            display: none;
+            margin-left: 4px;
+            color: @primary-color;
+            cursor: pointer;
+          }
+        }
+
+        :deep(.cluster-name-container) {
+          display: flex;
+          align-items: flex-start;
+          padding: 8px 0;
+          overflow: hidden;
+
+          .cluster-name {
+            line-height: 16px;
+
+            &__alias {
+              color: @light-gray;
+            }
           }
 
-          &__alias {
+          .cluster-tags {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-left: 4px;
+          }
+
+          .cluster-tag {
+            flex-shrink: 0;
+            margin: 2px;
+          }
+        }
+
+        :deep(.ip-list) {
+          padding: 8px 0;
+
+          &__more {
+            display: inline-block;
+            margin-top: 2px;
+          }
+
+          .db-icon-copy {
+            display: none;
+            margin-top: 1px;
+            margin-left: 8px;
+            color: @primary-color;
+            vertical-align: text-top;
+            cursor: pointer;
+          }
+        }
+
+        :deep(.operations) {
+          .bk-button {
+            margin-right: 8px;
+          }
+
+          &__more {
+            .db-icon-more {
+              font-size: 16px;
+              color: @default-color;
+              cursor: pointer;
+
+              &:hover {
+                background-color: @bg-disable;
+                border-radius: 2px;
+              }
+            }
+          }
+        }
+
+        :deep(tr:hover) {
+          .db-icon-copy {
+            display: inline-block;
+          }
+        }
+
+        :deep(.is-offline) {
+          .cluster-name-container {
+            .cluster-name {
+              a {
+                color: @gray-color;
+              }
+
+              &__alias {
+                color: @disable-color;
+              }
+            }
+          }
+
+          .cell {
             color: @disable-color;
           }
         }
-      }
 
-      .cell {
-        color: @disable-color;
-      }
-    }
-
-      :deep(.bk-table-body) {
-        max-height: calc(100% - 100px);
-      }
-    }
-  }
-
-
-  .is-shrink-table {
-    :deep(.bk-table-body) {
-      overflow: hidden auto;
-    }
-  }
-
-}
-</style>
-
-<style lang="less">
-.redis-manage-clb-minitag {
-  color: #8E3AFF;
-  cursor: pointer;
-  background-color: #F2EDFF;
-
-  &:hover {
-    color: #8E3AFF;
-    background-color: #E3D9FE;
-  }
-}
-
-.redis-manage-polary-minitag {
-  color: #3A84FF;
-  cursor: pointer;
-  background-color: #EDF4FF;
-
-  &:hover {
-    color: #3A84FF;
-    background-color: #E1ECFF;
-  }
-}
-
-.redis-manage-infobox {
-  .bk-modal-body {
-    .bk-modal-header {
-      .bk-dialog-header {
-        .bk-dialog-title {
-          margin-top: 18px;
-          margin-bottom: 16px;
+        :deep(.bk-table-body) {
+          max-height: calc(100% - 100px);
         }
       }
     }
 
-    .bk-modal-footer {
-      height: 80px;
+    .is-shrink-table {
+      :deep(.bk-table-body) {
+        overflow: hidden auto;
+      }
     }
-
   }
-}
+</style>
+
+<style lang="less">
+  .redis-manage-clb-minitag {
+    color: #8e3aff;
+    cursor: pointer;
+    background-color: #f2edff;
+
+    &:hover {
+      color: #8e3aff;
+      background-color: #e3d9fe;
+    }
+  }
+
+  .redis-manage-polary-minitag {
+    color: #3a84ff;
+    cursor: pointer;
+    background-color: #edf4ff;
+
+    &:hover {
+      color: #3a84ff;
+      background-color: #e1ecff;
+    }
+  }
+
+  .redis-manage-infobox {
+    .bk-modal-body {
+      .bk-modal-header {
+        .bk-dialog-header {
+          .bk-dialog-title {
+            margin-top: 18px;
+            margin-bottom: 16px;
+          }
+        }
+      }
+
+      .bk-modal-footer {
+        height: 80px;
+      }
+    }
+  }
 </style>

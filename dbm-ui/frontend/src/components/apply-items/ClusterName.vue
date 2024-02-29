@@ -22,7 +22,7 @@
         trigger: 'click',
         placement: 'top',
         theme: 'light',
-        content: clusterNamePlaceholder
+        content: clusterNamePlaceholder,
       }"
       class="item-input"
       :maxlength="63"
@@ -38,10 +38,10 @@
   import { nameRegx } from '@common/regex';
 
   interface Props {
-    modelValue: string
+    modelValue: string;
   }
   interface Emits {
-    (e: 'update:modelValue', value: string): void
+    (e: 'update:modelValue', value: string): void;
   }
 
   defineProps<Props>();
@@ -63,4 +63,3 @@
     emits('update:modelValue', value);
   };
 </script>
-

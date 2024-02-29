@@ -9,21 +9,13 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
+import { onBeforeUnmount, ref, shallowRef } from 'vue';
 
-import {
-  onBeforeUnmount,
-  ref,
-  shallowRef,
-} from 'vue';
+import { getNodeLog, getRetryNodeHistories } from '@services/source/taskflow';
 
-import {
-  getNodeLog,
-  getRetryNodeHistories,
-} from '@services/source/taskflow';
-
-export type ILogItem = ServiceReturnType<typeof getNodeLog>[number]
+export type ILogItem = ServiceReturnType<typeof getNodeLog>[number];
 
 export const parseLog = (list: ILogItem[]) => {
   const fileStartReg = /.*\[start\]-(.+)$/;
@@ -54,7 +46,6 @@ export const parseLog = (list: ILogItem[]) => {
   return fileLogMap;
 };
 
-
 export default function (rootId: string, nodeId: string) {
   let versionId = '';
   const isLoading = ref(false);
@@ -68,20 +59,21 @@ export default function (rootId: string, nodeId: string) {
       version_id: versionId,
       root_id: rootId as string,
       node_id: nodeId as string,
-    }).then((logData) => {
-      if (lastLogLength !== logData.length) {
-        wholeLogList.value = logData as ILogItem[];
-        fileLogMap.value = parseLog(logData);
-      }
-      lastLogLength = logData.length;
-
-      if (logTimer < 0) {
-        return;
-      }
-      logTimer = setTimeout(() => {
-        fetchLog();
-      }, 2000);
     })
+      .then((logData) => {
+        if (lastLogLength !== logData.length) {
+          wholeLogList.value = logData as ILogItem[];
+          fileLogMap.value = parseLog(logData);
+        }
+        lastLogLength = logData.length;
+
+        if (logTimer < 0) {
+          return;
+        }
+        logTimer = setTimeout(() => {
+          fetchLog();
+        }, 2000);
+      })
       .finally(() => {
         isLoading.value = false;
       });
@@ -93,21 +85,22 @@ export default function (rootId: string, nodeId: string) {
     getRetryNodeHistories({
       root_id: rootId,
       node_id: nodeId,
-    }).then((data) => {
-      if (data.length > 0 && data[0].version) {
-        versionId = data[0].version;
-        fetchLog();
-        clearTimeout(versionTimer);
-        return;
-      }
-
-      if (versionTimer < 0) {
-        return;
-      }
-      versionTimer = setTimeout(() => {
-        fetchVersion();
-      }, 2000);
     })
+      .then((data) => {
+        if (data.length > 0 && data[0].version) {
+          versionId = data[0].version;
+          fetchLog();
+          clearTimeout(versionTimer);
+          return;
+        }
+
+        if (versionTimer < 0) {
+          return;
+        }
+        versionTimer = setTimeout(() => {
+          fetchVersion();
+        }, 2000);
+      })
       .catch(() => {
         isLoading.value = false;
       });

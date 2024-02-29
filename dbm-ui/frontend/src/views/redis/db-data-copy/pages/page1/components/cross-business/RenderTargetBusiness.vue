@@ -24,8 +24,7 @@
     </div>
   </BkLoading>
 </template>
-<script lang="ts">
-</script>
+<script lang="ts"></script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -39,13 +38,12 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
-
 
   const props = defineProps<Props>();
 
-  const emits = defineEmits<{ 'change': [value: number] }>();
+  const emits = defineEmits<{ change: [value: number] }>();
 
   const { bizs } = useGlobalBizs();
 
@@ -53,10 +51,12 @@
 
   const selectRef = ref();
   const localValue = ref();
-  const selectList = computed(() => bizs.map(item => ({
-    value: item.bk_biz_id,
-    label: item.name,
-  })));
+  const selectList = computed(() =>
+    bizs.map((item) => ({
+      value: item.bk_biz_id,
+      label: item.name,
+    })),
+  );
 
   const rules = [
     {
@@ -65,21 +65,23 @@
     },
   ];
 
-  watch(() => props.data, (bizId) => {
-    if (bizId === undefined) {
-      return;
-    }
-    localValue.value = bizId;
-    emits('change', bizId);
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (bizId) => {
+      if (bizId === undefined) {
+        return;
+      }
+      localValue.value = bizId;
+      emits('change', bizId);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return selectRef.value.getValue().then(() => localValue.value);
     },
   });
 </script>

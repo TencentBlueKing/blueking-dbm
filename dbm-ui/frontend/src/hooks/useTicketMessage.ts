@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { Message } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
@@ -29,10 +29,14 @@ export const useTicketMessage = () => {
     Message({
       message: h('p', {}, [
         t('任务提交成功_具体结果可前往'),
-        h('a', {
-          href: route.href,
-          target: '_blank',
-        }, ` "${t('我的服务单')}" `),
+        h(
+          'a',
+          {
+            href: route.href,
+            target: '_blank',
+          },
+          ` "${t('我的服务单')}" `,
+        ),
         t('查看'),
       ]),
       theme: 'success',

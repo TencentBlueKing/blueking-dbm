@@ -26,7 +26,7 @@
               v-model="treeSearch"
               clearable
               :placeholder="$t('搜索拓扑节点')" />
-            <div style="height: calc(100% - 50px); margin-top: 12px;">
+            <div style="height: calc(100% - 50px); margin-top: 12px">
               <BkTree
                 ref="treeRef"
                 children="children"
@@ -70,10 +70,7 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { ref, shallowRef } from 'vue';
 
   import { queryClusters } from '@services/source/mysqlCluster';
 
@@ -88,18 +85,18 @@
   interface TTopoTreeData {
     id: number;
     name: string;
-    obj: 'biz' | 'cluster',
-    count: number,
+    obj: 'biz' | 'cluster';
+    count: number;
     children: Array<TTopoTreeData>;
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'change', value: InstanceSelectorValues): void;
   }
 
   interface Props {
-    lastValues: InstanceSelectorValues,
-    role?: string
+    lastValues: InstanceSelectorValues;
+    role?: string;
   }
 
   const props = defineProps<Props>();
@@ -111,7 +108,7 @@
 
   const isTreeDataLoading = ref(false);
   const treeRef = ref();
-  const treeData = shallowRef<TTopoTreeData []>([]);
+  const treeData = shallowRef<TTopoTreeData[]>([]);
   const treeSearch = ref('');
   const selectNode = ref<TTopoTreeData>();
 
@@ -125,42 +122,43 @@
           cluster_type: activePanel?.value,
         },
       ],
-    }).then((data) => {
-      const formatData = data.map((item: any) => {
-        const res = { ...item, count: item.instance_count };
-        if (props.role === 'slave') {
-          res.count = item.slaves?.length || 0;
-        } else if (props.role === 'proxy') {
-          res.count = item.proxies?.length || 0;
-        } else if (props.role === 'master') {
-          res.count = item.masters?.length || 0;
-        }
-        return res;
-      });
-      treeData.value = [
-        {
-          name: currentBizInfo?.display_name || '--',
-          id: currentBizId,
-          obj: 'biz',
-          count: formatData.reduce((count: number, item: any) => count + item.count, 0),
-          children: formatData.map((item: any) => ({
-            id: item.id,
-            name: item.cluster_name,
-            obj: 'cluster',
-            count: item.count,
-            children: [],
-          })),
-        },
-      ];
-      setTimeout(() => {
-        if (data.length > 0) {
-          const [firstNode] = treeData.value;
-          treeRef.value.setOpen(firstNode);
-          treeRef.value.setSelect(firstNode);
-          selectNode.value = firstNode;
-        }
-      });
     })
+      .then((data) => {
+        const formatData = data.map((item: any) => {
+          const res = { ...item, count: item.instance_count };
+          if (props.role === 'slave') {
+            res.count = item.slaves?.length || 0;
+          } else if (props.role === 'proxy') {
+            res.count = item.proxies?.length || 0;
+          } else if (props.role === 'master') {
+            res.count = item.masters?.length || 0;
+          }
+          return res;
+        });
+        treeData.value = [
+          {
+            name: currentBizInfo?.display_name || '--',
+            id: currentBizId,
+            obj: 'biz',
+            count: formatData.reduce((count: number, item: any) => count + item.count, 0),
+            children: formatData.map((item: any) => ({
+              id: item.id,
+              name: item.cluster_name,
+              obj: 'cluster',
+              count: item.count,
+              children: [],
+            })),
+          },
+        ];
+        setTimeout(() => {
+          if (data.length > 0) {
+            const [firstNode] = treeData.value;
+            treeRef.value.setOpen(firstNode);
+            treeRef.value.setSelect(firstNode);
+            selectNode.value = firstNode;
+          }
+        });
+      })
       .finally(() => {
         isTreeDataLoading.value = false;
       });
@@ -172,7 +170,7 @@
   const handleNodeClick = (
     node: TTopoTreeData,
     status: any,
-    { __is_open: isOpen, __is_selected: isSelected }: { __is_open: boolean, __is_selected: boolean },
+    { __is_open: isOpen, __is_selected: isSelected }: { __is_open: boolean; __is_selected: boolean },
   ) => {
     selectNode.value = node;
 
@@ -195,7 +193,6 @@
   const handleHostChange = (values: InstanceSelectorValues) => {
     emits('change', values);
   };
-
 </script>
 <style lang="less">
   .instance-selector-topo {

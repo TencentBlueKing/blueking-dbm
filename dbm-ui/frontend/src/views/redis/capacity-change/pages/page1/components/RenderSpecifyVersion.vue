@@ -33,13 +33,13 @@
     data?: string;
     list?: {
       value: string;
-      label: string
+      label: string;
     }[];
     isLoading?: boolean;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -61,9 +61,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return selectRef.value.getValue().then(() => localValue.value);
     },
   });
 </script>

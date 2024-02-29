@@ -22,15 +22,11 @@
       <div class="batch-input-format">
         <div class="batch-input-format-item">
           <strong>{{ $t('集群域名') }}</strong>
-          <p class="pt-8">
-            test.mysql.db
-          </p>
+          <p class="pt-8">test.mysql.db</p>
         </div>
         <div class="batch-input-format-item">
           <strong>{{ $t('源DB名') }}</strong>
-          <p class="pt-8">
-            origin-db
-          </p>
+          <p class="pt-8">origin-db</p>
         </div>
         <div class="batch-input-format-item">
           <strong>{{ $t('新DB名') }}</strong>
@@ -232,52 +228,52 @@
 </script>
 
 <style lang="less" scoped>
-.batch-input {
-  position: relative;
+  .batch-input {
+    position: relative;
 
-  .batch-input-format {
-    display: flex;
-    padding: 16px;
-    background-color: #f5f7fa;
-    border-radius: 2px;
+    .batch-input-format {
+      display: flex;
+      padding: 16px;
+      background-color: #f5f7fa;
+      border-radius: 2px;
 
-    .batch-input-format-item {
-      margin-right: 24px;
-      font-size: @font-size-mini;
-    }
-  }
-
-  .batch-input-copy {
-    color: @primary-color;
-    cursor: pointer;
-  }
-
-  .batch-input-textarea {
-    height: 310px;
-    margin: 16px 0 30px;
-
-    :deep(textarea) {
-      &::selection {
-        background-color: #fdd;
+      .batch-input-format-item {
+        margin-right: 24px;
+        font-size: @font-size-mini;
       }
     }
-  }
 
-  .batch-input-errors {
-    position: absolute;
-    bottom: 8px;
-    font-size: @font-size-mini;
-    color: @danger-color;
-
-    .batch-input-errors-icon {
-      font-size: @font-size-large;
-      color: @gray-color;
+    .batch-input-copy {
+      color: @primary-color;
       cursor: pointer;
+    }
 
-      &:hover {
-        color: @default-color;
+    .batch-input-textarea {
+      height: 310px;
+      margin: 16px 0 30px;
+
+      :deep(textarea) {
+        &::selection {
+          background-color: #fdd;
+        }
+      }
+    }
+
+    .batch-input-errors {
+      position: absolute;
+      bottom: 8px;
+      font-size: @font-size-mini;
+      color: @danger-color;
+
+      .batch-input-errors-icon {
+        font-size: @font-size-large;
+        color: @gray-color;
+        cursor: pointer;
+
+        &:hover {
+          color: @default-color;
+        }
       }
     }
   }
-}
 </style>

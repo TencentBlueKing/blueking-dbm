@@ -15,14 +15,13 @@
   <div class="sql-execute-failed">
     <div class="wrapper">
       <span class="failed-flag">
-        <DbIcon
-          type="delete-fill" />
+        <DbIcon type="delete-fill" />
       </span>
     </div>
-    <div style="margin-top: 22px; font-size: 24px; line-height: 32px; color: #313238;">
+    <div style="margin-top: 22px; font-size: 24px; line-height: 32px; color: #313238">
       {{ t('模拟执行失败') }}
     </div>
-    <div style="margin-top: 8px; line-height: 32px; color: #313238;">
+    <div style="margin-top: 8px; line-height: 32px; color: #313238">
       {{ t('接下你可以直接_继续提交_或_返回修改_后重试') }}
     </div>
   </div>

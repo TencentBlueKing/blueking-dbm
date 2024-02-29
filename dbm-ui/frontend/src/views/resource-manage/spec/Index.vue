@@ -53,20 +53,20 @@
     FunctionTabId,
   } from '@services/model/function-controller/functionController';
 
-  import { useFunController  } from '@stores';
+  import { useFunController } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
   import SpecList from './components/SpecList.vue';
 
   interface TabItem {
-    moduleId: ExtractedControllerDataKeys,
-    label: string,
-    name: FunctionTabId,
+    moduleId: ExtractedControllerDataKeys;
+    label: string;
+    name: FunctionTabId;
     children: {
-      label: string,
-      name: string,
-    }[]
+      label: string;
+      name: string;
+    }[];
   }
 
   const { t } = useI18n();
@@ -285,21 +285,25 @@
   const curTab = ref<string>(ClusterTypes.TENDBSINGLE);
   const curChildTab = ref('');
 
-  const renderTabs = computed(() => tabs.filter((item) => {
-    const data = funControllerStore.funControllerData[item.moduleId];
-    const childItem = (data.children as Record<TabItem['name'], ControllerBaseInfo>)[item.name];
+  const renderTabs = computed(() =>
+    tabs.filter((item) => {
+      const data = funControllerStore.funControllerData[item.moduleId];
+      const childItem = (data.children as Record<TabItem['name'], ControllerBaseInfo>)[item.name];
 
-    // 若有对应的模块子功能，判断是否开启
-    if (childItem) {
-      return data && data.is_enabled && childItem.is_enabled;
-    }
+      // 若有对应的模块子功能，判断是否开启
+      if (childItem) {
+        return data && data.is_enabled && childItem.is_enabled;
+      }
 
-    // 若无，则判断整个模块是否开启
-    return data && data.is_enabled;
-  }));
-  const childrenTabs = computed(() => renderTabs.value.find(item => item.name === curTab.value)?.children || []);
-  const clusterTypeLabel = computed(() => renderTabs.value.find(item => item.name === curTab.value)?.label ?? '');
-  const machineTypeLabel = computed(() => childrenTabs.value.find(item => item.name === curChildTab.value)?.label ?? '');
+      // 若无，则判断整个模块是否开启
+      return data && data.is_enabled;
+    }),
+  );
+  const childrenTabs = computed(() => renderTabs.value.find((item) => item.name === curTab.value)?.children || []);
+  const clusterTypeLabel = computed(() => renderTabs.value.find((item) => item.name === curTab.value)?.label ?? '');
+  const machineTypeLabel = computed(
+    () => childrenTabs.value.find((item) => item.name === curChildTab.value)?.label ?? '',
+  );
 
   const handleChangeClusterType = (value: string) => {
     if (curTab.value !== value) {
@@ -315,17 +319,17 @@
   });
 </script>
 <style lang="less">
-  .resource-spec-list-page{
-    .bk-tab-content{
+  .resource-spec-list-page {
+    .bk-tab-content {
       display: none;
     }
 
-    .top-tabs{
+    .top-tabs {
       background: #fff;
       box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
     }
 
-    .wrapper{
+    .wrapper {
       padding: 24px;
     }
   }

@@ -19,7 +19,7 @@
     </BkTab>
     <div class="content-wrapper">
       <SearchBox
-        style="margin-bottom: 30px;"
+        style="margin-bottom: 30px"
         @change="handleSearchChange" />
       <Component
         :is="renderCom"
@@ -28,10 +28,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    computed,
-    ref,
-  } from 'vue';
+  import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { useUrlSearch } from '@hooks';
@@ -45,11 +42,7 @@
   const URL_MEMO_KEY = 'tabType';
 
   const { t } = useI18n();
-  const {
-    appendSearchParams,
-    getSearchParams,
-    replaceSearchParams,
-  } = useUrlSearch();
+  const { appendSearchParams, getSearchParams, replaceSearchParams } = useUrlSearch();
 
   const tabType = ref(getSearchParams()[URL_MEMO_KEY] || 'backupInspection');
   const serachParams = ref<Record<string, any>>({});
@@ -78,7 +71,6 @@
       ...payload,
     });
   };
-
 </script>
 <style lang="less">
   .inspection-manage-page {
@@ -87,20 +79,20 @@
     overflow: hidden;
     flex-direction: column;
 
-    .list-type-box{
+    .list-type-box {
       background-color: #fff;
 
-      .bk-tab-content{
+      .bk-tab-content {
         display: none;
       }
 
-      .bk-tab-header{
+      .bk-tab-header {
         border: none;
         box-shadow: 0 3px 4px 0 #0000000a;
       }
     }
 
-    .content-wrapper{
+    .content-wrapper {
       padding: 20px;
       flex: 1;
       overflow-y: auto;

@@ -23,7 +23,7 @@
       :height="505"
       :is-searching="!!search"
       :settings="tableSettings"
-      style="margin-top: 12px;"
+      style="margin-top: 12px"
       @clear-search="handleClearSearch"
       @row-click.stop="handleRowClick" />
   </div>

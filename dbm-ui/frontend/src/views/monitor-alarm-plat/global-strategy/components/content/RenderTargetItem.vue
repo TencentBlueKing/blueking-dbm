@@ -16,7 +16,7 @@
     ref="itemRef"
     v-bk-tooltips="{
       disabled: !isShowToolTip,
-      content: list.join(',')
+      content: list.join(','),
     }"
     class="item">
     {{ titleText }}: {{ list.join(',') }}
@@ -25,14 +25,15 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
   interface Props {
-    title?: string,
-    list?: string[],
+    title?: string;
+    list?: string[];
   }
 
   const props = withDefaults(defineProps<Props>(), {
     title: '',
-    list: () => ([]),
+    list: () => [],
   });
 
   const { t } = useI18n();
@@ -53,12 +54,12 @@
   });
 </script>
 <style lang="less" scoped>
-.item {
-  width: 100%;
-  height: 20px;
-  overflow: hidden;
-  line-height: 20px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+  .item {
+    width: 100%;
+    height: 20px;
+    overflow: hidden;
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 </style>

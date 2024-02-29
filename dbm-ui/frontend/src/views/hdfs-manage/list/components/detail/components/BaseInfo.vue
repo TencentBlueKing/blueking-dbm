@@ -22,15 +22,14 @@
   import RenderBaseInfo from '@components/cluster-common/RenderBaseInfo.vue';
 
   interface Props {
-    data: ServiceReturnType<typeof getHdfsDetail>
+    data: ServiceReturnType<typeof getHdfsDetail>;
   }
 
   defineProps<Props>();
-
 </script>
 
 <style lang="less" scoped>
-.cluster-detail-base-info {
-  width: 100%;
-}
+  .cluster-detail-base-info {
+    width: 100%;
+  }
 </style>

@@ -13,7 +13,7 @@
 
 <template>
   <div
-    v-bkloading="{loading: isLoading}"
+    v-bkloading="{ loading: isLoading }"
     class="config-info">
     <DbOriginalTable
       :columns="columns"
@@ -109,8 +109,8 @@
 </script>
 
 <style lang="less" scoped>
-.config-info {
-  height: calc(100% - 96px);
-  margin: 24px 0;
-}
+  .config-info {
+    height: calc(100% - 96px);
+    margin: 24px 0;
+  }
 </style>

@@ -9,16 +9,10 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
-import {
-  type ComponentInternalInstance,
-  getCurrentInstance,
-  reactive,
-  ref,
-  shallowRef,
-} from 'vue';
+import { type ComponentInternalInstance, getCurrentInstance, reactive, ref, shallowRef } from 'vue';
 
 import { useGlobalBizs } from '@stores';
 
@@ -31,8 +25,8 @@ export function useClusterData<T>() {
   const globalBizsStore = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
-      getResourceList: (params: any) => Promise<any>
-    }
+      getResourceList: (params: any) => Promise<any>;
+    };
   };
 
   const isLoading = ref(false);
@@ -46,26 +40,31 @@ export function useClusterData<T>() {
   });
   const searchSelectValue = ref<ISearchValue[]>([]);
 
-  watch(searchSelectValue, () => {
-    setTimeout(() => {
-      handleChangePage(1);
-    });
-  }, {
-    immediate: true,
-    deep: true,
-  });
+  watch(
+    searchSelectValue,
+    () => {
+      setTimeout(() => {
+        handleChangePage(1);
+      });
+    },
+    {
+      immediate: true,
+      deep: true,
+    },
+  );
 
   /**
    * 获取列表
    */
   const fetchResources = async () => {
     isLoading.value = true;
-    return currentInstance.proxy.getResourceList({
-      bk_biz_id: globalBizsStore.currentBizId,
-      limit: pagination.limit,
-      offset: pagination.limit * (pagination.current - 1),
-      ...getSearchSelectorParams(searchSelectValue.value),
-    })
+    return currentInstance.proxy
+      .getResourceList({
+        bk_biz_id: globalBizsStore.currentBizId,
+        limit: pagination.limit,
+        offset: pagination.limit * (pagination.current - 1),
+        ...getSearchSelectorParams(searchSelectValue.value),
+      })
       .then((res) => {
         pagination.count = res.count;
         tableData.value = res.results;

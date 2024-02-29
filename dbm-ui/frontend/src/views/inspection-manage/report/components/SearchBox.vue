@@ -29,7 +29,7 @@
         </BkSelect>
       </BkFormItem>
     </BkForm>
-    <div style="padding: 0 12px;">
+    <div style="padding: 0 12px">
       <BkButton
         theme="primary"
         @click="handleSubmit">
@@ -51,8 +51,8 @@
 
   import { queryAllTypeCluster } from '@services/dbbase';
 
-  interface Emits{
-    (e: 'change', value: Record<string, any>): void
+  interface Emits {
+    (e: 'change', value: Record<string, any>): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -63,22 +63,21 @@
     status: '',
   });
 
-  const filterInvalidValue = (params: Record<string, any>) => Object.keys(params).reduce((result, item) => {
-    if (params[item]) {
-      return Object.assign(result, {
-        [item]: params[item],
-      });
-    }
-    return result;
-  }, {});
+  const filterInvalidValue = (params: Record<string, any>) =>
+    Object.keys(params).reduce((result, item) => {
+      if (params[item]) {
+        return Object.assign(result, {
+          [item]: params[item],
+        });
+      }
+      return result;
+    }, {});
 
   const { t } = useI18n();
 
   const formData = reactive(genDefaultData());
 
-  const {
-    data: clusterList,
-  } = useRequest(queryAllTypeCluster, {
+  const { data: clusterList } = useRequest(queryAllTypeCluster, {
     defaultParams: [
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -86,12 +85,14 @@
     ],
   });
 
-
   const handleSubmit = () => {
-    emits('change', filterInvalidValue({
-      ...formData,
-      create_at: formData.create_at ? dayjs(formData.create_at).format('YYYY-MM-DD') : '',
-    }));
+    emits(
+      'change',
+      filterInvalidValue({
+        ...formData,
+        create_at: formData.create_at ? dayjs(formData.create_at).format('YYYY-MM-DD') : '',
+      }),
+    );
   };
 
   const handleReset = () => {
@@ -103,16 +104,16 @@
     padding: 16px 12px 36px;
     background: #fff;
 
-    .bk-form{
+    .bk-form {
       display: flex;
 
-      .bk-form-item{
+      .bk-form-item {
         flex: 1;
         padding: 0 12px;
       }
     }
 
-    .bk-date-picker{
+    .bk-date-picker {
       width: 100%;
     }
   }

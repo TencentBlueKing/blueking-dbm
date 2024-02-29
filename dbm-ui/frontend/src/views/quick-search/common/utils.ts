@@ -1,17 +1,18 @@
 import type { FormatClusterArray } from './types';
 
-export const formatCluster = <T extends {
-  cluster_type: string
-  bk_biz_id: number
-}>(data: Array<T>) => {
+export const formatCluster = <
+  T extends {
+    cluster_type: string;
+    bk_biz_id: number;
+  },
+>(
+  data: Array<T>,
+) => {
   const bizMap: Record<string, Set<number>> = {};
   const clusterMap: Record<string, Array<T>> = {};
 
   data.forEach((clusterItem) => {
-    const {
-      cluster_type: clusterType,
-      bk_biz_id: bizId,
-    } = clusterItem;
+    const { cluster_type: clusterType, bk_biz_id: bizId } = clusterItem;
 
     if (clusterMap[clusterType]) {
       clusterMap[clusterType].push(clusterItem);
@@ -27,10 +28,16 @@ export const formatCluster = <T extends {
   });
 
   return {
-    dataList: Object.keys(clusterMap).reduce((prevArr, mapKey) => [...prevArr, {
-      clusterType: mapKey,
-      dataList: clusterMap[mapKey],
-    }], [] as FormatClusterArray<Array<T>>),
+    dataList: Object.keys(clusterMap).reduce(
+      (prevArr, mapKey) => [
+        ...prevArr,
+        {
+          clusterType: mapKey,
+          dataList: clusterMap[mapKey],
+        },
+      ],
+      [] as FormatClusterArray<Array<T>>,
+    ),
     bizMap,
   };
 };

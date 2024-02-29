@@ -26,7 +26,7 @@
               v-model="treeSearch"
               clearable
               :placeholder="$t('搜索拓扑节点')" />
-            <div style="height: calc(100% - 50px); margin-top: 12px;">
+            <div style="height: calc(100% - 50px); margin-top: 12px">
               <BkTree
                 ref="treeRef"
                 children="children"
@@ -58,7 +58,7 @@
           </div>
         </template>
         <template #main>
-          <div style="height: 570px;">
+          <div style="height: 570px">
             <RenderContent
               :is-radio-mode="isRadioMode"
               :last-values="lastValues"
@@ -73,7 +73,6 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-
   import RedisModel from '@services/model/redis/redis';
   import { getRedisList } from '@services/source/redis';
 
@@ -85,15 +84,15 @@
   import type { TableProps } from '@/types/bkui-vue';
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'change', value: InstanceSelectorValues): void;
   }
 
   interface Props {
-    lastValues: InstanceSelectorValues,
-    tableSettings: TableProps['settings'],
-    role?: string,
-    activeTab?: PanelTypes,
-    isRadioMode?: boolean,
+    lastValues: InstanceSelectorValues;
+    tableSettings: TableProps['settings'];
+    role?: string;
+    activeTab?: PanelTypes;
+    isRadioMode?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -122,24 +121,25 @@
     getRedisList({
       offset: 0,
       limit: -1,
-    }).then((data) => {
-      const arr = data.results;
-      treeData.value = arr;
-      setTimeout(() => {
-        if (arr.length > 0) {
-          const [firstNode] = treeData.value;
-          const [firstRawNode] = treeRef.value.getData().data;
-          const node = {
-            id: firstNode.id,
-            name: firstNode.cluster_name,
-            clusterDomain: firstNode.master_domain,
-          };
-          treeRef.value.setOpen(firstRawNode);
-          treeRef.value.setSelect(firstRawNode);
-          selectNode.value = node;
-        }
-      });
     })
+      .then((data) => {
+        const arr = data.results;
+        treeData.value = arr;
+        setTimeout(() => {
+          if (arr.length > 0) {
+            const [firstNode] = treeData.value;
+            const [firstRawNode] = treeRef.value.getData().data;
+            const node = {
+              id: firstNode.id,
+              name: firstNode.cluster_name,
+              clusterDomain: firstNode.master_domain,
+            };
+            treeRef.value.setOpen(firstRawNode);
+            treeRef.value.setSelect(firstRawNode);
+            selectNode.value = node;
+          }
+        });
+      })
       .catch((e) => {
         console.error(e);
       })
@@ -156,12 +156,14 @@
     info: unknown,
     {
       __is_open: isOpen,
-      __is_selected: isSelected }: {
-        __is_open: boolean,
-        __is_selected: boolean,
-        __index: number },
+      __is_selected: isSelected,
+    }: {
+      __is_open: boolean;
+      __is_selected: boolean;
+      __index: number;
+    },
   ) => {
-    const rawNode = treeRef.value.getData().data.find((item: { id: number; }) => item.id === node.id);
+    const rawNode = treeRef.value.getData().data.find((item: { id: number }) => item.id === node.id);
     const item = {
       id: node.id,
       name: node.cluster_name,
@@ -187,7 +189,6 @@
   const handleHostChange = (values: InstanceSelectorValues) => {
     emits('change', values);
   };
-
 </script>
 <style lang="less">
   .instance-selector-topo {

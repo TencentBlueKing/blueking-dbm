@@ -25,7 +25,7 @@
       :label="item"
       :value="item">
       {{ item }}
-    </bkoption>
+    </BkOption>
   </BkSelect>
 </template>
 <script setup lang="ts">
@@ -35,10 +35,10 @@
   import { fetchDeviceClass } from '@services/source/dbresourceResource';
 
   interface Props {
-    defaultValue?: string
+    defaultValue?: string;
   }
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: string): void;
   }
 
   defineProps<Props>();
@@ -48,9 +48,7 @@
   });
   const { t } = useI18n();
 
-  const {
-    data,
-  } = useRequest(fetchDeviceClass, {
+  const { data } = useRequest(fetchDeviceClass, {
     initialData: [],
   });
 
@@ -58,4 +56,3 @@
     emits('change', value.join(','));
   };
 </script>
-

@@ -28,8 +28,8 @@
 
   interface Exposes {
     getValue: () => Promise<{
-      target_db_pattern: string
-    }>
+      target_db_pattern: string;
+    }>;
   }
 
   const { t } = useI18n();
@@ -48,12 +48,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return (editRef.value as InstanceType<typeof TableEditInput>)
-        .getValue()
-        .then(() => ({
-          target_db_pattern: modelValue.value,
-        }));
+      return (editRef.value as InstanceType<typeof TableEditInput>).getValue().then(() => ({
+        target_db_pattern: modelValue.value,
+      }));
     },
   });
 </script>
-

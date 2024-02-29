@@ -334,17 +334,16 @@
   const handleClearSearch = () => {
     searchBoxRef.value.clearValue();
   };
-
 </script>
 <style lang="less">
-.resource-pool-list-page {
-  .action-box {
-    display: flex;
+  .resource-pool-list-page {
+    .action-box {
+      display: flex;
 
-    .quick-search-btn {
-      width: 32px;
-      margin-left: auto;
+      .quick-search-btn {
+        width: 32px;
+        margin-left: auto;
+      }
     }
   }
-}
 </style>

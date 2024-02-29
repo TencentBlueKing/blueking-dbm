@@ -18,10 +18,10 @@
     class="cluster-operation-status-tips"
     @mouseenter="handleMouseenter">
     <slot />
-    <div style="display: none;">
+    <div style="display: none">
       <div
         ref="popRef"
-        style="font-size: 12px; line-height: 16px; color: #63656e;">
+        style="font-size: 12px; line-height: 16px; color: #63656e">
         <I18nT
           keypath="xx_跳转_我的服务单_查看进度"
           tag="span">
@@ -43,20 +43,17 @@
   <slot v-else />
 </template>
 <script lang="ts">
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
 
-  let activeTippyIns:Instance;
+  let activeTippyIns: Instance;
 </script>
 <script setup lang="ts">
   interface Props {
     data?: {
-      operationStatusText: string,
-      operationTicketId: number,
-    },
-    disabled?: boolean,
+      operationStatusText: string;
+      operationTicketId: number;
+    };
+    disabled?: boolean;
   }
 
   const props = defineProps<Props>();
@@ -86,30 +83,34 @@
     }
   };
 
-  watch(() => props.data, () => {
-    setTimeout(() => {
-      if (props.data?.operationTicketId && !props.disabled && !tippyIns) {
-        tippyIns = tippy(rootRef.value as SingleTarget, {
-          content: popRef.value,
-          placement: 'top',
-          appendTo: () => document.body,
-          theme: 'light',
-          maxWidth: 'none',
-          trigger: 'manual',
-          interactive: true,
-          arrow: true,
-          offset: [0, 8],
-          zIndex: 999999,
-          hideOnClick: true,
-        });
-      }
-      if (!props.data?.operationTicketId) {
-        destroyTippy();
-      }
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      setTimeout(() => {
+        if (props.data?.operationTicketId && !props.disabled && !tippyIns) {
+          tippyIns = tippy(rootRef.value as SingleTarget, {
+            content: popRef.value,
+            placement: 'top',
+            appendTo: () => document.body,
+            theme: 'light',
+            maxWidth: 'none',
+            trigger: 'manual',
+            interactive: true,
+            arrow: true,
+            offset: [0, 8],
+            zIndex: 999999,
+            hideOnClick: true,
+          });
+        }
+        if (!props.data?.operationTicketId) {
+          destroyTippy();
+        }
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   onBeforeUnmount(() => {
     destroyTippy();

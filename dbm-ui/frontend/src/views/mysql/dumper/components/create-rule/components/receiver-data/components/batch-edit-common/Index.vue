@@ -11,7 +11,7 @@
         </div>
         <div
           class="title-spot edit-title"
-          style="font-weight: normal;">
+          style="font-weight: normal">
           {{ config.title }} <span class="required" />
         </div>
         <BkInput
@@ -71,23 +71,23 @@
 </script>
 
 <style lang="less">
-.dumper-batch-edit-common {
-  & + .bk-pop-confirm-footer {
-    button {
-      width: 72px;
+  .dumper-batch-edit-common {
+    & + .bk-pop-confirm-footer {
+      button {
+        width: 72px;
+      }
+    }
+    .main-title {
+      font-weight: 700;
+      font-size: 12px;
+      color: #63656e;
+    }
+    .edit-title {
+      margin-bottom: 6px;
+    }
+
+    .input-box {
+      height: 32px;
     }
   }
-  .main-title {
-    font-weight: 700;
-    font-size: 12px;
-    color: #63656E;
-  }
-  .edit-title {
-    margin-bottom: 6px;
-  }
-
-  .input-box {
-    height: 32px;
-  }
-}
 </style>

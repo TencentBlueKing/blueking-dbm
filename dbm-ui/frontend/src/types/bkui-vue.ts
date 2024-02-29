@@ -9,10 +9,11 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { DatePicker, Table } from 'bkui-vue';
 import type { ISearchItem, ISearchValue } from 'bkui-vue/lib/search-select/utils';
+
 export type { FormItemProps } from 'bkui-vue/lib/form/form-item';
 
 export type DatePickerValues = Array<InstanceType<typeof DatePicker>['$props']['modelValue']>;
@@ -25,18 +26,18 @@ export type SearchSelectData = Array<ISearchItem>;
 export type SearchSelectItem = ISearchItem;
 
 export interface TableColumnRender {
-  cell: string,
-  data: any,
-  row: any,
-  column: any,
-  index: number,
-  rows: any[]
+  cell: string;
+  data: any;
+  row: any;
+  column: any;
+  index: number;
+  rows: any[];
 }
 
 export interface TableSelectionData<T> {
-  checked: boolean,
-  data: T[],
-  index: number,
-  isAll: boolean,
-  row: T
+  checked: boolean;
+  data: T[];
+  index: number;
+  isAll: boolean;
+  row: T;
 }

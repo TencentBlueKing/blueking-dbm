@@ -16,7 +16,7 @@
     <div class="empty-config-content">
       <img
         src="@images/empty.png"
-        width="220">
+        width="220" />
       <p>{{ $t('暂未绑定数据库相关配置') }}</p>
       <BkButton
         outline
@@ -43,7 +43,9 @@
   const treeNode = inject<ComputedRef<TreeData>>('treeNode');
 
   const handleModuleBind = () => {
-    if (!treeNode) return;
+    if (!treeNode) {
+      return;
+    }
     let { id, name } = treeNode.value;
     const { parentId, levelType } = treeNode.value;
     if (parentId && levelType === 'cluster') {
@@ -54,8 +56,10 @@
     router.push({
       name: 'SelfServiceBindDbModule',
       params: {
-        type: route.params.clusterType === ClusterTypes.TENDBSINGLE
-          ? TicketTypes.MYSQL_SINGLE_APPLY : TicketTypes.MYSQL_HA_APPLY,
+        type:
+          route.params.clusterType === ClusterTypes.TENDBSINGLE
+            ? TicketTypes.MYSQL_SINGLE_APPLY
+            : TicketTypes.MYSQL_HA_APPLY,
         bk_biz_id: globalBizsStore.currentBizId,
         db_module_id: id,
       },
@@ -81,5 +85,4 @@
       padding: 4px 0 24px;
     }
   }
-
 </style>

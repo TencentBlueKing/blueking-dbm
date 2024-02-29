@@ -467,68 +467,66 @@
   };
 </script>
 <style lang="less" scoped>
-.rotation-setting-type-content {
-  display: flex;
-  flex-direction: column;
+  .rotation-setting-type-content {
+    display: flex;
+    flex-direction: column;
 
-  .create-box {
-    width: 100%;
-  }
+    .create-box {
+      width: 100%;
+    }
 
-  :deep(.table-box) {
-    .priority-box {
-      display: flex;
-      align-items: center;
+    :deep(.table-box) {
+      .priority-box {
+        display: flex;
+        align-items: center;
 
-      &:hover {
+        &:hover {
+          .edit-icon {
+            display: block;
+          }
+        }
+
         .edit-icon {
-          display: block;
+          display: none;
+          color: #3a84ff;
+          cursor: pointer;
         }
       }
 
-      .edit-icon {
-        display: none;
-        color: #3A84FF;
-        cursor: pointer;
+      .rotate-table-column {
+        width: 100%;
+        overflow: hidden;
       }
-    }
 
-    .rotate-table-column {
-      width: 100%;
-      overflow: hidden;
-    }
-
-    .display-text {
-      height: 22px;
-      padding: 0 8px;
-      overflow: hidden;
-      line-height: 22px;
-      color: #63656E;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      cursor: pointer;
-      background: #F0F1F5;
-      border-radius: 2px;
-    }
-
-    .operate-box {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-
-      span {
-        color: #3A84FF;
+      .display-text {
+        height: 22px;
+        padding: 0 8px;
+        overflow: hidden;
+        line-height: 22px;
+        color: #63656e;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         cursor: pointer;
+        background: #f0f1f5;
+        border-radius: 2px;
       }
-    }
 
-    .is-new {
-      td {
-        background-color: #f3fcf5 !important;
+      .operate-box {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+
+        span {
+          color: #3a84ff;
+          cursor: pointer;
+        }
+      }
+
+      .is-new {
+        td {
+          background-color: #f3fcf5 !important;
+        }
       }
     }
   }
-
-}
-
 </style>

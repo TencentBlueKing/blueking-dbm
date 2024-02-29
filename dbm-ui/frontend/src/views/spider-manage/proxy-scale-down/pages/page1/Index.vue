@@ -36,13 +36,15 @@
       <div class="bottom-opeartion">
         <BkCheckbox
           v-model="isIgnoreBusinessAccess"
-          style="padding-top: 6px;" />
+          style="padding-top: 6px" />
         <span
           v-bk-tooltips="{
             content: t('如忽略_有连接的情况下也会执行'),
             theme: 'dark',
           }"
-          class="ml-6 force-switch">{{ t('忽略业务连接') }}</span>
+          class="ml-6 force-switch">
+          {{ t('忽略业务连接') }}
+        </span>
       </div>
       <ClusterSelector
         v-model:is-show="isShowClusterSelector"
@@ -315,7 +317,7 @@
 
       .force-switch {
         font-size: 12px;
-        border-bottom: 1px dashed #63656E;
+        border-bottom: 1px dashed #63656e;
       }
     }
   }

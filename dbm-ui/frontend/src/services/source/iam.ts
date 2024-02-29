@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import ApplyDataModel from '@services/model/iam/apply-data';
 
@@ -21,24 +21,26 @@ const path = '/apis/iam';
  * 校验资源权限参数
  */
 interface IAMParams {
-  action_ids: Array<string>,
-  resources?: Array<{ type: string, id?: string | number }>
+  action_ids: Array<string>;
+  resources?: Array<{ type: string; id?: string | number }>;
 }
 
 /**
  * 检查当前用户对该动作是否有权限
  */
 export function checkAuthAllowed(params: IAMParams) {
-  return http.post<{
-    action_id: string,
-    is_allowed: boolean
-  }[]>(`${path}/check_allowed/`, params);
+  return http.post<
+    {
+      action_id: string;
+      is_allowed: boolean;
+    }[]
+  >(`${path}/check_allowed/`, params);
 }
 
 export function simpleCheckAllowed(params: {
-  action_id: string,
-  resource_ids: Array<string|number>,
-  bk_biz_id?: number,
+  action_id: string;
+  resource_ids: Array<string | number>;
+  bk_biz_id?: number;
 }) {
   return http.post<boolean>(`${path}/simple_check_allowed/`, params);
 }
@@ -46,18 +48,15 @@ export function simpleCheckAllowed(params: {
  * 获取权限申请数据
  */
 export function getApplyDataLink(params: IAMParams) {
-  return http.post<ApplyDataModel>(`${path}/get_apply_data/`, params)
-    .then(data => new ApplyDataModel(data));
+  return http.post<ApplyDataModel>(`${path}/get_apply_data/`, params).then((data) => new ApplyDataModel(data));
 }
 
-export function simpleGetApplyData(params: {
-  action_id: string,
-  resource_ids: Array<string|number>
-}) {
-  return http.post<ApplyDataModel>(`${path}/simple_get_apply_data/`, {
-    ...params,
-    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-  })
+export function simpleGetApplyData(params: { action_id: string; resource_ids: Array<string | number> }) {
+  return http
+    .post<ApplyDataModel>(`${path}/simple_get_apply_data/`, {
+      ...params,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    })
     .then((data) => {
       console.log(data, new ApplyDataModel(data));
       return new ApplyDataModel(data);

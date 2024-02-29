@@ -15,7 +15,7 @@
   <div
     v-bk-tooltips="{
       disabled: Boolean(clusterData),
-      content: t('请先选择集群')
+      content: t('请先选择集群'),
     }">
     <DisableSelect
       ref="inputRef"
@@ -31,7 +31,7 @@
     @closed="handleClose">
     <template #header>
       <span>
-        {{ t('选择集群目标方案_n', {n: clusterData?.master_domain}) }}
+        {{ t('选择集群目标方案_n', { n: clusterData?.master_domain }) }}
         <BkTag theme="info">
           {{ t('存储层 RemoteDB/DR 同时变更') }}
         </BkTag>
@@ -47,8 +47,12 @@
             <td>{{ t('变更后规格') }}： {{ futureSpec.name }}</td>
           </tr>
           <tr>
-            <td>{{ t('当前容量') }}： <span class="text-bold">{{ clusterData.cluster_capacity }} G</span></td>
-            <td>{{ t('变更后容量') }}： <span class="text-bold">{{ futureSpec.futureCapacity }} G</span></td>
+            <td>
+              {{ t('当前容量') }}： <span class="text-bold">{{ clusterData.cluster_capacity }} G</span>
+            </td>
+            <td>
+              {{ t('变更后容量') }}： <span class="text-bold">{{ futureSpec.futureCapacity }} G</span>
+            </td>
           </tr>
         </table>
       </div>
@@ -68,35 +72,28 @@
         @click="handleConfirm">
         {{ t('确定') }}
       </BkButton>
-      <BkButton
-        @click="handleClose">
+      <BkButton @click="handleClose">
         {{ t('取消') }}
       </BkButton>
     </template>
   </DbSideslider>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type SpiderModel from '@services/model/spider/spider';
 
   import { useBeforeClose } from '@hooks';
 
-  import ClusterSpecPlanSelector, {
-    type IRowData,
-  } from '@components/cluster-spec-plan-selector/Index.vue';
+  import ClusterSpecPlanSelector, { type IRowData } from '@components/cluster-spec-plan-selector/Index.vue';
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
 
   interface Props {
-    clusterData?: SpiderModel
+    clusterData?: SpiderModel;
   }
   interface Exposes {
-    getValue: () => Promise<any>
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -129,15 +126,18 @@
     },
   ];
 
-  watch(() => props.clusterData, () => {
-    if (!props.clusterData) {
-      futureSpec.value = {
-        name: '',
-        futureCapacity: 0,
-      };
-      localSpec.value = undefined;
-    }
-  });
+  watch(
+    () => props.clusterData,
+    () => {
+      if (!props.clusterData) {
+        futureSpec.value = {
+          name: '',
+          futureCapacity: 0,
+        };
+        localSpec.value = undefined;
+      }
+    },
+  );
 
   const handleShowSelector = () => {
     if (!props.clusterData) {
@@ -162,61 +162,61 @@
 
   async function handleClose() {
     const result = await handleBeforeClose(choosedSpecId.value !== -1);
-    if (!result) return;
+    if (!result) {
+      return;
+    }
     isShowSelector.value = false;
   }
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value
-        .getValue()
-        .then(() => {
-          if (!props.clusterData || !localSpec.value) {
-            return Promise.reject();
-          }
-          return ({
-            remote_shard_num: Math.ceil(props.clusterData.cluster_shard_num / localSpec.value.machine_pair),
-            resource_spec: {
-              backend_group: {
-                spec_id: localSpec.value.spec_id,
-                count: localSpec.value.machine_pair,
-                affinity: '',
-              },
+      return inputRef.value.getValue().then(() => {
+        if (!props.clusterData || !localSpec.value) {
+          return Promise.reject();
+        }
+        return {
+          remote_shard_num: Math.ceil(props.clusterData.cluster_shard_num / localSpec.value.machine_pair),
+          resource_spec: {
+            backend_group: {
+              spec_id: localSpec.value.spec_id,
+              count: localSpec.value.machine_pair,
+              affinity: '',
             },
-          });
-        });
+          },
+        };
+      });
     },
   });
 </script>
 <style lang="less">
-.cluster-spec-plan-selector-box{
-  padding: 20px 40px;
+  .cluster-spec-plan-selector-box {
+    padding: 20px 40px;
 
-  .bk-form-label{
-    font-weight: bold;
-  }
-
-  .spec-box{
-    width: 100%;
-    padding: 16px;
-    font-size: 12px;
-    line-height: 18px;
-    background-color: #FAFBFD;
-
-    table{
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 8px 0;
-      table-layout: fixed;
+    .bk-form-label {
+      font-weight: bold;
     }
 
-    td{
-      height: 18px;
+    .spec-box {
+      width: 100%;
+      padding: 16px;
+      font-size: 12px;
+      line-height: 18px;
+      background-color: #fafbfd;
 
-      .text-bold {
-        font-weight: bold;
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 8px 0;
+        table-layout: fixed;
+      }
+
+      td {
+        height: 18px;
+
+        .text-bold {
+          font-weight: bold;
+        }
       }
     }
   }
-}
 </style>

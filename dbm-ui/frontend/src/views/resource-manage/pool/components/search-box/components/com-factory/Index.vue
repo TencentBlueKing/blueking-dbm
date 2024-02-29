@@ -39,10 +39,7 @@
   import _ from 'lodash';
   import { ref } from 'vue';
 
-  import {
-    useListeners,
-    useProps,
-  } from '@hooks';
+  import { useListeners, useProps } from '@hooks';
 
   import fieldConfig from '../field-config';
 
@@ -63,15 +60,15 @@
   import Subzones from './components/Subzones.vue';
 
   interface Props {
-    name: string,
-    model: Record<string, any>
+    name: string;
+    model: Record<string, any>;
   }
   interface Emits {
-    (e: 'change', name: string, value: any): void
+    (e: 'change', name: string, value: any): void;
   }
   interface Expose {
-    getValue: () => Promise<boolean>,
-    reset: () => void
+    getValue: () => Promise<boolean>;
+    reset: () => void;
   }
 
   const props = defineProps<Props>();
@@ -176,7 +173,7 @@
       text-align: center;
       cursor: pointer;
 
-      & ~ .action-item{
+      & ~ .action-item {
         border-left: 1px solid #dcdee5;
       }
     }

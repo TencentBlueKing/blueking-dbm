@@ -44,7 +44,7 @@
             trigger: 'click',
             placement: 'right',
             theme: 'light',
-            content: userPlaceholder
+            content: userPlaceholder,
           }"
           :placeholder="userPlaceholder" />
       </BkFormItem>
@@ -368,9 +368,8 @@
   };
 </script>
 
-
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .password-strength {
     padding-top: 4px;

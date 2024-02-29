@@ -13,9 +13,7 @@
 
 <template>
   <div class="render-cluster-role">
-    <template v-if="data.length < 1">
-      --
-    </template>
+    <template v-if="data.length < 1"> -- </template>
     <template v-else>
       <BkTag
         v-for="item in renderList"
@@ -43,11 +41,13 @@
     Hot: t('热节点'),
   } as Record<string, string>;
 
-  const renderList = computed(() => props.data.map((item) => {
-    const word = _.last(item.split('_'));
-    const code = `${word?.charAt(0).toUpperCase()}${word?.slice(1)}`;
-    return codeMap[code] ? codeMap[code] : code;
-  }));
+  const renderList = computed(() =>
+    props.data.map((item) => {
+      const word = _.last(item.split('_'));
+      const code = `${word?.charAt(0).toUpperCase()}${word?.slice(1)}`;
+      return codeMap[code] ? codeMap[code] : code;
+    }),
+  );
 </script>
 <style lang="less">
   .render-cluster-role {

@@ -70,7 +70,7 @@
                 <BkButton
                   :disabled="loading"
                   size="small"
-                  @click="() => clusterState.isShow = false">
+                  @click="() => (clusterState.isShow = false)">
                   {{ $t('取消') }}
                 </BkButton>
               </div>
@@ -369,7 +369,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .configure-edit-container {
     padding: 54px 0;

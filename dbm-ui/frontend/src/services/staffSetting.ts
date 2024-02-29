@@ -9,21 +9,19 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import http from './http';
-import type {
-  AdminItem,
-  UpdateAdminsParams,
-} from './types/staffSetting';
+import type { AdminItem, UpdateAdminsParams } from './types/staffSetting';
 
 /**
  * 查询 DBA 人员列表
  */
-export const getAdmins = (params: { bk_biz_id: number }) => http.get<AdminItem[]>('/apis/conf/db_admin/list_admins/', params);
+export const getAdmins = (params: { bk_biz_id: number }) =>
+  http.get<AdminItem[]>('/apis/conf/db_admin/list_admins/', params);
 
 /**
  * 更新 DBA 人员列表
  */
-export const updateAdmins = (params: UpdateAdminsParams) => http.post<UpdateAdminsParams>('/apis/conf/db_admin/upsert_admins/', params);
-
+export const updateAdmins = (params: UpdateAdminsParams) =>
+  http.post<UpdateAdminsParams>('/apis/conf/db_admin/upsert_admins/', params);

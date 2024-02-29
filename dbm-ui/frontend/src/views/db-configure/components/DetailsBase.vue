@@ -15,7 +15,7 @@
   <div class="details-base">
     <BkLoading
       :loading="loading"
-      style="height: 100%;"
+      style="height: 100%"
       :z-index="12">
       <DbCard
         class="base-card"
@@ -42,7 +42,7 @@
           :sticky-top="stickyTop" />
       </DbCard>
       <DbCard
-        v-for="(card) of extraParametersCards"
+        v-for="card of extraParametersCards"
         :key="card.conf_type"
         class="params-card"
         mode="collapse"
@@ -72,10 +72,7 @@
     updatePlatformConfig,
   } from '@services/source/configs';
 
-  import {
-    ConfLevels,
-    type ConfLevelValues,
-  } from '@common/const';
+  import { ConfLevels, type ConfLevelValues } from '@common/const';
 
   import EditInfo, { type EditEmitData } from '@components/editable-info/index.vue';
 
@@ -83,35 +80,35 @@
 
   import ReadonlyTable from './ReadonlyTable.vue';
 
-
-  type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>
+  type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>;
 
   interface Props {
-    data?: ServiceReturnType<typeof getLevelConfig>,
-    loading?: boolean,
-    fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>,
-    stickyTop?: number,
-    level?: ConfLevelValues,
-    title?: string,
-    extraParametersCards?: ExtraConfListItem[],
-    routeParams?: Record<string, any>,
+    data?: ServiceReturnType<typeof getLevelConfig>;
+    loading?: boolean;
+    fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>;
+    stickyTop?: number;
+    level?: ConfLevelValues;
+    title?: string;
+    extraParametersCards?: ExtraConfListItem[];
+    routeParams?: Record<string, any>;
   }
 
   interface Emits {
-    (e:'update-info', value: { key: string, value: string }): void
+    (e: 'update-info', value: { key: string; value: string }): void;
   }
 
   // eslint-disable-next-line max-len
-  type updateFuncParam = ServiceParameters<typeof updatePlatformConfig> & ServiceParameters<typeof updateBusinessConfig>;
+  type updateFuncParam = ServiceParameters<typeof updatePlatformConfig> &
+    ServiceParameters<typeof updateBusinessConfig>;
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => ({} as NonNullable<Props['data']>),
+    data: () => ({}) as NonNullable<Props['data']>,
     loading: false,
-    fetchParams: () => ({} as PlatConfDetailsParams),
+    fetchParams: () => ({}) as PlatConfDetailsParams,
     stickyTop: 0,
     level: ConfLevels.PLAT,
     title: '',
-    extraParametersCards: () => ([]),
+    extraParametersCards: () => [],
     routeParams: () => ({}),
   });
 

@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
 
@@ -21,24 +21,20 @@ const path = '/apis/db_dirty';
 /**
  * 污点池列表
  */
-export function getDirtyMachines(params: {
-  limit: number,
-  offset: number,
-}) {
-  return http.get<ListBase<DirtyMachinesModel[]>>(`${path}/query_dirty_machines/`, params, {
-    catchError: true,
-  })
-    .then(res => ({
+export function getDirtyMachines(params: { limit: number; offset: number }) {
+  return http
+    .get<ListBase<DirtyMachinesModel[]>>(`${path}/query_dirty_machines/`, params, {
+      catchError: true,
+    })
+    .then((res) => ({
       ...res,
-      results: res.results.map(item => new DirtyMachinesModel(item)),
+      results: res.results.map((item) => new DirtyMachinesModel(item)),
     }));
 }
 
 /**
  * 将污点池主机转移至待回收模块
  */
-export function transferDirtyMachines(params: {
-  bk_host_ids: number[]
-}) {
+export function transferDirtyMachines(params: { bk_host_ids: number[] }) {
   return http.post(`${path}/transfer_dirty_machines/`, params);
 }

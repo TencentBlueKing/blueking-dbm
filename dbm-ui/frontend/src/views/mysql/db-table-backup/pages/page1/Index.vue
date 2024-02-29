@@ -19,8 +19,7 @@
         theme="info"
         :title="$t('指定库表备份_支持模糊匹配')" />
       <div class="mt16">
-        <BkButton
-          @click="handleShowBatchEntry">
+        <BkButton @click="handleShowBatchEntry">
           <DbIcon type="add" />
           {{ $t('批量录入') }}
         </BkButton>
@@ -68,10 +67,7 @@
 </template>
 
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { ref, shallowRef } from 'vue';
   import { useRouter } from 'vue-router';
 
   import { createTicket } from '@services/source/ticket';
@@ -82,18 +78,13 @@
 
   import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
 
-  import BatchEntry, {
-    type IValue as IBatchEntryValue,
-  } from './components/BatchEntry.vue';
+  import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   interface IClusterData {
-    id: number,
-    master_domain: string
+    id: number;
+    master_domain: string;
   }
 
   // 检测列表是否为空
@@ -103,12 +94,14 @@
     }
 
     const [firstRow] = list;
-    return !firstRow.clusterData
+    return (
+      !firstRow.clusterData &&
       // && !firstRow.backupOn
-      && !firstRow.dbPatterns
-      && !firstRow.ignoreDbs
-      && !firstRow.tablePatterns
-      && !firstRow.ignoreTables;
+      !firstRow.dbPatterns &&
+      !firstRow.ignoreDbs &&
+      !firstRow.tablePatterns &&
+      !firstRow.ignoreTables
+    );
   };
 
   const clusterSelectorTabList = [ClusterTypes.TENDBHA];
@@ -119,7 +112,7 @@
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
   const isShowBatchEntry = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
@@ -129,7 +122,7 @@
   };
   // 批量录入
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
-    const newList = list.map(item => createRowData(item));
+    const newList = list.map((item) => createRowData(item));
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -142,13 +135,15 @@
     isShowBatchSelector.value = true;
   };
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
-      clusterData: {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-      },
-    }));
+  const handelClusterChange = (selected: { [key: string]: Array<IClusterData> }) => {
+    const newList = selected[ClusterTypes.TENDBHA].map((clusterData) =>
+      createRowData({
+        clusterData: {
+          id: clusterData.id,
+          domain: clusterData.master_domain,
+        },
+      }),
+    );
 
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
@@ -173,14 +168,16 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'MYSQL_HA_DB_TABLE_BACKUP',
-        remark: '',
-        details: {
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }))
+      .then((data) =>
+        createTicket({
+          ticket_type: 'MYSQL_HA_DB_TABLE_BACKUP',
+          remark: '',
+          details: {
+            infos: data,
+          },
+          bk_biz_id: currentBizId,
+        }),
+      )
       .then((data) => {
         window.changeConfirm = false;
         router.push({

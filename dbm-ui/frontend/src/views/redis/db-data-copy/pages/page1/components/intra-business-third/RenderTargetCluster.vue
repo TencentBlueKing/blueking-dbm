@@ -24,26 +24,22 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import {
-    domainPort,
-    ipPort,
-  } from '@common/regex';
+  import { domainPort, ipPort } from '@common/regex';
 
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
-
   interface Props {
-    data?: IDataRow['targetCluster']
+    data?: IDataRow['targetCluster'];
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   interface Emits {
-    (e: 'input-finish', value: string): void
+    (e: 'input-finish', value: string): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -73,12 +69,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return editRef.value.getValue().then(() => localValue.value);
     },
   });
-
 </script>
 <style lang="less" scoped>
   .render-host-box {

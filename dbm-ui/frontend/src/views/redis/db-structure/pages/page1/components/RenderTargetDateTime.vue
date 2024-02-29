@@ -41,7 +41,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -64,7 +64,7 @@
 
   const disableDate = (date: Date) => {
     const now = Date.now();
-    return date.valueOf() < (now - 16 * 24 * 3600000) || date.valueOf() > now;
+    return date.valueOf() < now - 16 * 24 * 3600000 || date.valueOf() > now;
   };
 
   const handleDatetimeChange = (date: string) => {
@@ -73,23 +73,20 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (formatDateToUTC(dateValue.value)));
+      return editRef.value.getValue().then(() => formatDateToUTC(dateValue.value));
     },
   });
-
 </script>
 <style lang="less" scoped>
-.render-box {
-  :deep(.icon-wrapper) {
-    left: 10px;
-    display: block;
-    width: 32px;
-  }
+  .render-box {
+    :deep(.icon-wrapper) {
+      left: 10px;
+      display: block;
+      width: 32px;
+    }
 
-  :deep(input) {
-    padding-left: 40px;
+    :deep(input) {
+      padding-left: 40px;
+    }
   }
-}
 </style>

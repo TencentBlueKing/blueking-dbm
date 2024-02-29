@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 export default class RedisClusterNodeByIp {
   bk_host_id: number;
@@ -24,7 +24,7 @@ export default class RedisClusterNodeByIp {
       machine_pair_cnt: number;
       name: string;
       shard_cnt: number;
-    },
+    };
     deploy_plan_id: number;
     immute_domain: string;
     id: number;
@@ -44,22 +44,22 @@ export default class RedisClusterNodeByIp {
     cpu: {
       max: number;
       min: number;
-    },
+    };
     id: number;
     mem: {
       max: number;
       min: number;
-    },
+    };
     name: string;
     qps: {
       max: number;
       min: number;
-    },
+    };
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    }[],
+    }[];
   };
   total_master: number;
   total_slave: number;

@@ -29,7 +29,7 @@
             <I18nT
               keypath="共n个"
               tag="p">
-              <strong style="color: #3a84ff;">{{ nums }}</strong>
+              <strong style="color: #3a84ff">{{ nums }}</strong>
             </I18nT>
           </slot>
         </div>
@@ -64,13 +64,13 @@
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
 
   export type CollapseTableOperation = {
-    label: string,
-    onClick: (params: Array<any>) => void
+    label: string;
+    onClick: (params: Array<any>) => void;
   };
 
   export type ClusterTableProps = {
-    -readonly [K in keyof TablePropTypes]: TablePropTypes[K]
-  }
+    -readonly [K in keyof TablePropTypes]: TablePropTypes[K];
+  };
 
   export default {
     name: 'DBCollapseTable',
@@ -79,14 +79,14 @@
 
 <script setup lang="ts">
   interface Props {
-    collapse?: boolean,
-    title?: string,
+    collapse?: boolean;
+    title?: string;
     tableProps?: {
-      data: TablePropTypes['data'],
-      columns: TablePropTypes['columns'],
-    },
-    operations?: CollapseTableOperation[],
-    showIcon?: boolean,
+      data: TablePropTypes['data'];
+      columns: TablePropTypes['columns'];
+    };
+    operations?: CollapseTableOperation[];
+    showIcon?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -96,7 +96,7 @@
       data: [] as TablePropTypes['data'],
       columns: [] as TablePropTypes['columns'],
     }),
-    operations: () => ([]),
+    operations: () => [],
     showIcon: true,
   });
 
@@ -105,9 +105,12 @@
   });
   const nums = computed(() => props.tableProps?.data?.length ?? 0);
 
-  watch(() => props.collapse, () => {
-    state.collapse = props.collapse;
-  });
+  watch(
+    () => props.collapse,
+    () => {
+      state.collapse = props.collapse;
+    },
+  );
 
   function handleToggle() {
     state.collapse = !state.collapse;
@@ -115,96 +118,96 @@
 </script>
 
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.db-collapse-table {
-  font-weight: normal;
-  color: @default-color;
+  .db-collapse-table {
+    font-weight: normal;
+    color: @default-color;
 
-  &__header {
-    height: 42px;
-    padding: 0 16px;
-    font-size: @font-size-mini;
-    cursor: pointer;
-    background-color: @bg-dark-gray;
-    justify-content: space-between;
-    .flex-center();
-  }
-
-  &__left {
-    .flex-center();
-  }
-
-  &__icon {
-    transform: rotate(-90deg);
-    transition: all 0.2s;
-  }
-
-  &__title {
-    .flex-center();
-
-    padding-left: 4px;
-  }
-
-  &__dropdown {
-    font-size: 0;
-    line-height: 20px;
-  }
-
-  &__trigger {
-    display: block;
-    font-size: 20px;
-    cursor: pointer;
-
-    &:hover {
-      background-color: @bg-disable;
-      border-radius: 2px;
-    }
-  }
-
-  &__content {
-    :deep(thead th),
-    :deep(.table-head-settings) {
-      background-color: #f5f7fa !important;
+    &__header {
+      height: 42px;
+      padding: 0 16px;
+      font-size: @font-size-mini;
+      cursor: pointer;
+      background-color: @bg-dark-gray;
+      justify-content: space-between;
+      .flex-center();
     }
 
-    :deep(.bk-pagination-small-list) {
-      order: 3;
-      flex: 1;
-      justify-content: flex-end;
+    &__left {
+      .flex-center();
     }
 
-    :deep(.bk-pagination-limit-select) {
-      .bk-input {
-        border-color: #f0f1f5;
-      }
+    &__icon {
+      transform: rotate(-90deg);
+      transition: all 0.2s;
     }
 
-    :deep(.domain-column) {
-      .master-icon {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        line-height: 20px;
-        color: #3A84FF;
-        text-align: center;
-        background: #F0F5FF;
+    &__title {
+      .flex-center();
+
+      padding-left: 4px;
+    }
+
+    &__dropdown {
+      font-size: 0;
+      line-height: 20px;
+    }
+
+    &__trigger {
+      display: block;
+      font-size: 20px;
+      cursor: pointer;
+
+      &:hover {
+        background-color: @bg-disable;
         border-radius: 2px;
       }
+    }
 
-      .slave-icon {
-        .master-icon();
+    &__content {
+      :deep(thead th),
+      :deep(.table-head-settings) {
+        background-color: #f5f7fa !important;
+      }
 
-        color: #1CAB88;
-        background: #F2FFF4;
+      :deep(.bk-pagination-small-list) {
+        order: 3;
+        flex: 1;
+        justify-content: flex-end;
+      }
+
+      :deep(.bk-pagination-limit-select) {
+        .bk-input {
+          border-color: #f0f1f5;
+        }
+      }
+
+      :deep(.domain-column) {
+        .master-icon {
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          line-height: 20px;
+          color: #3a84ff;
+          text-align: center;
+          background: #f0f5ff;
+          border-radius: 2px;
+        }
+
+        .slave-icon {
+          .master-icon();
+
+          color: #1cab88;
+          background: #f2fff4;
+        }
+      }
+    }
+
+    &--collapse {
+      .db-collapse-table__icon {
+        transform: rotate(0);
       }
     }
   }
-
-  &--collapse {
-    .db-collapse-table__icon {
-      transform: rotate(0);
-    }
-  }
-}
 </style>

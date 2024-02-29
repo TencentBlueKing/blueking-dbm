@@ -11,21 +11,21 @@
       <template #submitTips="{ hostList }">
         <I18nT
           keypath="已选n台_共nGB(目标容量:nG)"
-          style="font-size: 14px; color: #63656e;"
+          style="font-size: 14px; color: #63656e"
           tag="span">
           <span
             class="number"
-            style="color: #2dcb56;">
+            style="color: #2dcb56">
             {{ hostList.length }}
           </span>
           <span
             class="number"
-            style="color: #3a84ff;">
+            style="color: #3a84ff">
             {{ calcSelectHostDisk(hostList) }}
           </span>
           <span
             class="number"
-            style="color: #63656e;">
+            style="color: #63656e">
             {{ data.targetDisk - data.totalDisk }}
           </span>
         </I18nT>
@@ -38,12 +38,12 @@
         <I18nT keypath="共n台_共nGB">
           <span
             class="number"
-            style="color: #3a84ff;">
+            style="color: #3a84ff">
             {{ hostTableData.length }}
           </span>
           <span
             class="number"
-            style="color: #2dcb56;">
+            style="color: #2dcb56">
             {{ calcSelectHostDisk(hostTableData) }}
           </span>
         </I18nT>
@@ -53,7 +53,7 @@
           keypath="较目标容量相差nG">
           <span
             class="number"
-            style="color: #ff9c01;">
+            style="color: #ff9c01">
             {{ targetMatchReal }}
           </span>
         </I18nT>
@@ -63,7 +63,7 @@
           keypath="较目标容量超出nG">
           <span
             class="number"
-            style="color: #ff9c01;">
+            style="color: #ff9c01">
             {{ Math.abs(targetMatchReal) }}
           </span>
         </I18nT>
@@ -174,6 +174,4 @@
     hostTableData.value = hostList;
     emits('change', hostList, calcSelectHostDisk(hostList));
   };
-
 </script>
-

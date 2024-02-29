@@ -104,7 +104,7 @@
   import SpiderTruncateDatabase from './spider/TruncateDatabase.vue';
 
   interface Props {
-    data: TicketModel
+    data: TicketModel;
   }
 
   const props = defineProps<Props>();
@@ -116,10 +116,7 @@
     TicketTypes.REDIS_PURGE,
   ];
 
-  const mysqlTicketType = [
-    TicketTypes.MYSQL_AUTHORIZE_RULES,
-    TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES,
-  ];
+  const mysqlTicketType = [TicketTypes.MYSQL_AUTHORIZE_RULES, TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES];
 
   const clusterTicketType = [
     TicketTypes.REDIS_PROXY_CLOSE,
@@ -151,10 +148,7 @@
     TicketTypes.MYSQL_SINGLE_DESTROY,
   ];
 
-  const dumperNodeStatusUpdateType = [
-    TicketTypes.TBINLOGDUMPER_DISABLE_NODES,
-    TicketTypes.TBINLOGDUMPER_ENABLE_NODES,
-  ];
+  const dumperNodeStatusUpdateType = [TicketTypes.TBINLOGDUMPER_DISABLE_NODES, TicketTypes.TBINLOGDUMPER_ENABLE_NODES];
 
   const bigDataReplaceType = [
     TicketTypes.ES_REPLACE,
@@ -163,10 +157,7 @@
     TicketTypes.PULSAR_REPLACE,
   ];
 
-  const mysqlSlaveType = [
-    TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
-    TicketTypes.MYSQL_ADD_SLAVE,
-  ];
+  const mysqlSlaveType = [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, TicketTypes.MYSQL_ADD_SLAVE];
 
   const bigDataRebootType = [
     TicketTypes.HDFS_REBOOT,
@@ -186,10 +177,7 @@
     TicketTypes.PULSAR_SCALE_UP,
   ];
 
-  const riakCapacityType = [
-    TicketTypes.RIAK_CLUSTER_SCALE_IN,
-    TicketTypes.RIAK_CLUSTER_SCALE_OUT,
-  ];
+  const riakCapacityType = [TicketTypes.RIAK_CLUSTER_SCALE_IN, TicketTypes.RIAK_CLUSTER_SCALE_OUT];
 
   const clones = [
     TicketTypes.MYSQL_CLIENT_CLONE_RULES,
@@ -215,10 +203,7 @@
     TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES,
   ];
 
-  const importSQLTypes = [
-    TicketTypes.MYSQL_IMPORT_SQLFILE,
-    TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
-  ];
+  const importSQLTypes = [TicketTypes.MYSQL_IMPORT_SQLFILE, TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE];
 
   const redisCLBTypes = [
     TicketTypes.REDIS_PLUGIN_DNS_BIND_CLB,
@@ -380,8 +365,6 @@
     }
     return DetailsMySQL;
   });
-
-
 </script>
 
 <style lang="less" scoped>

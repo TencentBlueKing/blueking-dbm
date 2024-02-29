@@ -25,7 +25,7 @@
     </span>
     <div
       ref="popRef"
-      style=" font-size: 12px; line-height: 24px;color: #63656e;">
+      style="font-size: 12px; line-height: 24px; color: #63656e">
       <p>{{ $t('匹配任意长度字符串_如a_不允许独立使用') }}</p>
       <p>{{ $t('匹配任意单一字符_如a_d') }}</p>
       <p>{{ $t('专门指代ALL语义_只能独立使用') }}</p>
@@ -36,27 +36,21 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
-  import {
-    onMounted,
-    ref,
-  } from 'vue';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
+  import { onMounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableEditTag from '@views/mysql/common/edit/Tag.vue';
 
   interface Props {
-    modelValue: string [],
-    required?: boolean
+    modelValue: string[];
+    required?: boolean;
   }
   interface Emits {
-    (e: 'change', value: string[]): void
+    (e: 'change', value: string[]): void;
   }
   interface Exposes {
-    getValue: () => Promise<string []>
+    getValue: () => Promise<string[]>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -71,7 +65,7 @@
   const { t } = useI18n();
   const rules = [
     {
-      validator: (value: string []) => {
+      validator: (value: string[]) => {
         if (!props.required) {
           return true;
         }
@@ -80,8 +74,8 @@
       message: t('DB名不能为空'),
     },
     {
-      validator: (value: string []) => {
-        const hasAllMatch = _.find(value, item => /%$/.test(item));
+      validator: (value: string[]) => {
+        const hasAllMatch = _.find(value, (item) => /%$/.test(item));
         return !(value.length > 1 && hasAllMatch);
       },
       message: t('一格仅支持单个_对象'),

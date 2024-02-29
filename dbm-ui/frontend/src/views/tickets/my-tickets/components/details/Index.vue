@@ -15,7 +15,7 @@
   <div class="ticket-details">
     <BkLoading
       :loading="state.isLoading"
-      style="min-height: 200px;">
+      style="min-height: 200px">
       <template v-if="state.ticketData">
         <DbCard
           mode="collapse"
@@ -30,7 +30,7 @@
           to="body">
           <DbCard
             v-model:collapse="demandCollapse"
-            :class="{'tickets-main-is-fullscreen' : isFullscreen}"
+            :class="{ 'tickets-main-is-fullscreen': isFullscreen }"
             mode="collapse"
             :title="t('需求信息')">
             <DemandInfo
@@ -198,82 +198,78 @@
   onBeforeUnmount(() => {
     window.removeEventListener('keydown', exitFullscreen);
   });
-
 </script>
 
 <style lang="less" scoped>
-.ticket-details {
-  padding: 24px;
+  .ticket-details {
+    padding: 24px;
 
-  .db-card {
-    margin-bottom: 16px;
-
-
-  }
-}
-
-.ticket-flows {
-  :deep(.db-card__content) {
-    padding-left: 82px;
-  }
-
-  :deep(.bk-timeline) {
-    padding-bottom: 16px;
-  }
-
-  :deep(.bk-timeline-title) {
-    font-size: @font-size-mini;
-    font-weight: bold;
-    color: @title-color;
-  }
-
-  :deep(.bk-timeline-dot) {
-    &::before {
-      display: none;
-    }
-
-    .bk-timeline-icon {
-      color: unset !important;
-      background: white !important;
-      border: none !important;
+    .db-card {
+      margin-bottom: 16px;
     }
   }
 
-  :deep(.bk-timeline-content) {
-    max-width: unset;
-    font-size: @font-size-mini;
-    color: @default-color;
+  .ticket-flows {
+    :deep(.db-card__content) {
+      padding-left: 82px;
+    }
 
-    .flow-time {
-      padding-top: 8px;
-      color: @gray-color;
+    :deep(.bk-timeline) {
+      padding-bottom: 16px;
+    }
+
+    :deep(.bk-timeline-title) {
+      font-size: @font-size-mini;
+      font-weight: bold;
+      color: @title-color;
+    }
+
+    :deep(.bk-timeline-dot) {
+      &::before {
+        display: none;
+      }
+
+      .bk-timeline-icon {
+        color: unset !important;
+        background: white !important;
+        border: none !important;
+      }
+    }
+
+    :deep(.bk-timeline-content) {
+      max-width: unset;
+      font-size: @font-size-mini;
+      color: @default-color;
+
+      .flow-time {
+        padding-top: 8px;
+        color: @gray-color;
+      }
+    }
+
+    :deep(.flow-todo__title) {
+      padding-bottom: 12px;
+      font-weight: bold;
     }
   }
-
-  :deep(.flow-todo__title) {
-    padding-bottom: 12px;
-    font-weight: bold;
-  }
-}
-
 </style>
 
 <style lang="less">
-.ticket-flow-content {
-  .ticket-flow-content-desc {
-    padding: 8px 0 24px;
-    font-size: @font-size-mini;
-    color: @title-color;
-  }
-
-  .ticket-flow-content-buttons {
-    text-align: right;
-
-    .bk-button {
-      min-width: 62px;
-      margin-left: 8px;
+  .ticket-flow-content {
+    .ticket-flow-content-desc {
+      padding: 8px 0 24px;
       font-size: @font-size-mini;
+      color: @title-color;
+    }
+
+    .ticket-flow-content-buttons {
+      text-align: right;
+
+      .bk-button {
+        min-width: 62px;
+        margin-left: 8px;
+        font-size: @font-size-mini;
+      }
     }
   }
-}
 </style>

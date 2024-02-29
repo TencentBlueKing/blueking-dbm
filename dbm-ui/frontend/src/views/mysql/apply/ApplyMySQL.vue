@@ -38,9 +38,9 @@
               filterable
               :input-search="false"
               :loading="loading.modules"
-              style="display: inline-block;">
+              style="display: inline-block">
               <BkOption
-                v-for="(item) in fetchState.moduleList"
+                v-for="item in fetchState.moduleList"
                 :key="item.db_module_id"
                 :label="item.name"
                 :value="item.db_module_id" />
@@ -48,7 +48,7 @@
                 <p
                   v-bk-tooltips.top="{
                     content: t('请先选择所属业务'),
-                    disabled: !!formdata.bk_biz_id
+                    disabled: !!formdata.bk_biz_id,
                   }">
                   <BkButton
                     class="create-module"
@@ -87,7 +87,9 @@
                   {{ t('该模块暂未绑定数据库相关配置') }}
                   <span
                     class="bind-module"
-                    @click="handleBindConfig">{{ isBindModule ? t('已完成') : t('去绑定') }}</span>
+                    @click="handleBindConfig">
+                    {{ isBindModule ? t('已完成') : t('去绑定') }}
+                  </span>
                 </div>
                 <div
                   v-if="!fetchState.levelConfigList.length"
@@ -133,10 +135,14 @@
               type="number" />
             <span
               v-if="isSingleType"
-              class="apply-form__tips ml-10">{{ t('多实例部署时_系统将从起始端口开始自动分配') }}</span>
+              class="apply-form__tips ml-10">
+              {{ t('多实例部署时_系统将从起始端口开始自动分配') }}
+            </span>
             <span
               v-else
-              class="apply-form__tips ml-10">{{ t('多集群部署时_系统将从起始端口开始自动分配') }}</span>
+              class="apply-form__tips ml-10">
+              {{ t('多集群部署时_系统将从起始端口开始自动分配') }}
+            </span>
           </BkFormItem>
         </DbCard>
         <DbCard :title="t('需求信息')">
@@ -179,8 +185,7 @@
             :label="t('服务器选择')"
             property="details.ip_source"
             required>
-            <BkRadioGroup
-              v-model="formdata.details.ip_source">
+            <BkRadioGroup v-model="formdata.details.ip_source">
               <BkRadioButton label="resource_pool">
                 {{ t('自动从资源池匹配') }}
               </BkRadioButton>
@@ -214,10 +219,10 @@
                   <template #submitTips="{ hostList }">
                     <I18nT
                       keypath="需n台_已选n台"
-                      style="font-size: 14px; color: #63656e;"
+                      style="font-size: 14px; color: #63656e"
                       tag="span">
-                      <span style="font-weight: bold; color: #2dcb56;"> {{ hostNums }} </span>
-                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                      <span style="font-weight: bold; color: #2dcb56"> {{ hostNums }} </span>
+                      <span style="font-weight: bold; color: #3a84ff"> {{ hostList.length }} </span>
                     </I18nT>
                   </template>
                 </IpSelector>
@@ -240,10 +245,10 @@
                   <template #submitTips="{ hostList }">
                     <I18nT
                       keypath="需n台_已选n台"
-                      style="font-size: 14px; color: #63656e;"
+                      style="font-size: 14px; color: #63656e"
                       tag="span">
-                      <span style="font-weight: bold; color: #2dcb56;"> {{ hostNums }} </span>
-                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                      <span style="font-weight: bold; color: #2dcb56"> {{ hostNums }} </span>
+                      <span style="font-weight: bold; color: #3a84ff"> {{ hostList.length }} </span>
                     </I18nT>
                   </template>
                 </IpSelector>
@@ -264,7 +269,7 @@
                   :cloud-id="formdata.details.bk_cloud_id"
                   :cluster-type="ClusterTypes.TENDBSINGLE"
                   machine-type="single"
-                  style="width: 435px;" />
+                  style="width: 435px" />
               </BkFormItem>
               <template v-else>
                 <BkFormItem
@@ -278,7 +283,7 @@
                     :cloud-id="formdata.details.bk_cloud_id"
                     :cluster-type="ClusterTypes.TENDBHA"
                     machine-type="proxy"
-                    style="width: 435px;" />
+                    style="width: 435px" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('后端存储资源规格')"
@@ -291,7 +296,7 @@
                     :cloud-id="formdata.details.bk_cloud_id"
                     :cluster-type="ClusterTypes.TENDBHA"
                     machine-type="backend"
-                    style="width: 435px;" />
+                    style="width: 435px" />
                 </BkFormItem>
               </template>
             </div>
@@ -301,7 +306,7 @@
               v-model="formdata.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
-              style="width: 655px;"
+              style="width: 655px"
               type="textarea" />
           </BkFormItem>
         </DbCard>
@@ -352,8 +357,7 @@
       :is-single-type="isSingleType"
       :nodes="previewNodes" />
     <template #footer>
-      <BkButton
-        @click="() => isShowPreview = false">
+      <BkButton @click="() => (isShowPreview = false)">
         {{ t('关闭') }}
       </BkButton>
     </template>
@@ -365,19 +369,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
-  import type {
-    BizItem,
-    HostDetails,
-  } from '@services/types';
+  import type { BizItem, HostDetails } from '@services/types';
 
   import { useApplyBase } from '@hooks';
 
-  import {
-    ClusterTypes,
-    mysqlType,
-    type MysqlTypeString,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, mysqlType,type MysqlTypeString, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';
@@ -392,13 +388,7 @@
   import { useMysqlData } from './hooks/useMysqlData';
 
   // 基础设置
-  const {
-    baseState,
-    bizState,
-    handleCancel,
-    handleCreateAppAbbr,
-    handleCreateTicket,
-  } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const { t } = useI18n();
   const route = useRoute();
@@ -441,22 +431,26 @@
         validator: (val: number) => !!val,
       },
     ],
-    'details.nodes.proxy': [{
-      message: t('请添加服务器'),
-      trigger: 'change',
-      validator: () => {
-        const counts = formdata.details.nodes.proxy.length;
-        return counts !== 0;
+    'details.nodes.proxy': [
+      {
+        message: t('请添加服务器'),
+        trigger: 'change',
+        validator: () => {
+          const counts = formdata.details.nodes.proxy.length;
+          return counts !== 0;
+        },
       },
-    }],
-    'details.nodes.backend': [{
-      message: t('请添加服务器'),
-      trigger: 'change',
-      validator: () => {
-        const counts = formdata.details.nodes.backend.length;
-        return counts !== 0;
+    ],
+    'details.nodes.backend': [
+      {
+        message: t('请添加服务器'),
+        trigger: 'change',
+        validator: () => {
+          const counts = formdata.details.nodes.backend.length;
+          return counts !== 0;
+        },
       },
-    }],
+    ],
   }));
   const formItemLabels = computed(() => {
     const labels = {
@@ -471,16 +465,14 @@
     }
     return labels;
   });
-  const hostSpecInfo = computed(() => (
-    fetchState.hostSpecs.find(info => info.spec === formdata.details.spec)
-  ));
+  const hostSpecInfo = computed(() => fetchState.hostSpecs.find((info) => info.spec === formdata.details.spec));
   const typeInfo = computed(() => mysqlType[dbType as MysqlTypeString]);
   const moduleName = computed(() => {
-    const item = fetchState.moduleList.find(item => item.db_module_id === formdata.details.db_module_id);
+    const item = fetchState.moduleList.find((item) => item.db_module_id === formdata.details.db_module_id);
     return item?.name ?? '';
   });
   const tableData = computed(() => {
-    if (moduleName.value && (formdata.details.db_app_abbr)) {
+    if (moduleName.value && formdata.details.db_app_abbr) {
       return formdata.details.domains;
     }
     return [];
@@ -495,15 +487,8 @@
   const isDefaultCity = computed(() => formdata.details.city_code === 'default');
 
   // 获取基础数据信息
-  const {
-    formdata,
-    fetchState,
-    loading,
-    leveConfig,
-    handleResetFormdata,
-    fetchModules,
-    fetchLevelConfig,
-  } = useMysqlData(dbType);
+  const { formdata, fetchState, loading, leveConfig, handleResetFormdata, fetchModules, fetchLevelConfig } =
+    useMysqlData(dbType);
 
   function handleChangeClusterCount(value: number) {
     if (value && formdata.details.inst_num > value) {
@@ -527,7 +512,7 @@
   /**
    * 变更所属管控区域
    */
-  function handleChangeCloud(info: {id: number | string, name: string}) {
+  function handleChangeCloud(info: { id: number | string; name: string }) {
     cloudInfo.id = info.id;
     cloudInfo.name = info.name;
 
@@ -548,13 +533,29 @@
   }
 
   const disableHostSubmitMethods = {
-    proxy: (hostList: Array<any>) => (hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Proxy', n: hostNums.value }) : false),
-    backend: (hostList: Array<any>) => (hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Master / Slave', n: hostNums.value }) : false),
+    proxy: (hostList: Array<any>) =>
+      hostList.length !== hostNums.value
+        ? t('xx共需n台', {
+          title: 'Proxy',
+          n: hostNums.value,
+        })
+        : false,
+    backend: (hostList: Array<any>) =>
+      hostList.length !== hostNums.value
+        ? t('xx共需n台', {
+          title: 'Master / Slave',
+          n: hostNums.value,
+        })
+        : false,
   };
-  const makeMapByHostId = (hostList: HostDetails[]) => hostList.reduce((result, item) => ({
-    ...result,
-    [item.host_id]: true,
-  }), {} as Record<number, boolean>);
+  const makeMapByHostId = (hostList: HostDetails[]) =>
+    hostList.reduce(
+      (result, item) => ({
+        ...result,
+        [item.host_id]: true,
+      }),
+      {} as Record<number, boolean>,
+    );
 
   // proxy、backend 节点互斥
   function proxyDisableHostMethod(data: any, list: any[]) {
@@ -563,7 +564,7 @@
       return t('主机已被Master_Slave使用');
     }
 
-    if (list.length >= hostNums.value && !list.find(item => item.host_id === data.host_id)) {
+    if (list.length >= hostNums.value && !list.find((item) => item.host_id === data.host_id)) {
       return t('需n台_已选n台', [hostNums.value, list.length]);
     }
 
@@ -576,7 +577,7 @@
       return t('主机已被Proxy使用');
     }
 
-    if (list.length >= hostNums.value && !list.find(item => item.host_id === data.host_id)) {
+    if (list.length >= hostNums.value && !list.find((item) => item.host_id === data.host_id)) {
       return t('需n台_已选n台', [hostNums.value, list.length]);
     }
 
@@ -604,17 +605,20 @@
   }
 
   /** 获取版本、字符集信息 */
-  watch(() => fetchState.levelConfigList, (value) => {
-    value.forEach((item) => {
-      Object.keys(leveConfig).forEach((key) => {
-        if (key === item.conf_name) {
-          if (item.conf_value !== undefined) {
-            leveConfig[key as keyof typeof leveConfig] = item.conf_value;
+  watch(
+    () => fetchState.levelConfigList,
+    (value) => {
+      value.forEach((item) => {
+        Object.keys(leveConfig).forEach((key) => {
+          if (key === item.conf_name) {
+            if (item.conf_value !== undefined) {
+              leveConfig[key as keyof typeof leveConfig] = item.conf_value;
+            }
           }
-        }
+        });
       });
-    });
-  });
+    },
+  );
 
   /**
    * 预览功能
@@ -623,15 +627,17 @@
     proxy: formatNodes(formdata.details.nodes.proxy),
     backend: formatNodes(formdata.details.nodes.backend),
   }));
-  const previewData = computed(() => tableData.value.map(({ key }: { key: string }) => ({
-    domain: `${moduleName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
-    slaveDomain: `${moduleName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
-    disasterDefence: t('同城跨园区'),
-    deployStructure: typeInfo.value.name,
-    version: leveConfig.db_version,
-    charset: leveConfig.charset,
-    spec: hostSpecInfo.value ? `${hostSpecInfo.value.cpu}/${hostSpecInfo.value.mem}` : '',
-  })));
+  const previewData = computed(() =>
+    tableData.value.map(({ key }: { key: string }) => ({
+      domain: `${moduleName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
+      slaveDomain: `${moduleName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
+      disasterDefence: t('同城跨园区'),
+      deployStructure: typeInfo.value.name,
+      version: leveConfig.db_version,
+      charset: leveConfig.charset,
+      spec: hostSpecInfo.value ? `${hostSpecInfo.value.cpu}/${hostSpecInfo.value.mem}` : '',
+    })),
+  );
   const isShowPreview = ref(false);
   const handleShowPreview = () => {
     isShowPreview.value = true;
@@ -641,7 +647,7 @@
    * 格式化 IP 提交格式
    */
   function formatNodes(hosts: HostDetails[]) {
-    return hosts.map(host => ({
+    return hosts.map((host) => ({
       ip: host.ip,
       bk_host_id: host.host_id,
       bk_cloud_id: host.cloud_id,
@@ -654,7 +660,8 @@
    */
   const formRef = ref();
   const handleSubmit = async () => {
-    const validate = await formRef.value?.validate()
+    const validate = await formRef.value
+      ?.validate()
       .then(() => true)
       .catch(() => false);
     if (validate && fetchState.levelConfigList.length) {
@@ -756,9 +763,13 @@
       fetchLevelConfig(formdata.details.db_module_id as number);
       return;
     }
-    const moduleInfo = fetchState.moduleList.find(item => item.db_module_id ===  formdata.details.db_module_id);
+    const moduleInfo = fetchState.moduleList.find((item) => item.db_module_id === formdata.details.db_module_id);
     const moduleName = moduleInfo?.name ?? '';
-    const moduleNameQuery = moduleName ? { module_name: moduleName } : {};
+    const moduleNameQuery = moduleName
+      ? {
+        module_name: moduleName,
+      }
+      : {};
     isBindModule.value = true;
     const url = router.resolve({
       name: 'SelfServiceBindDbModule',
@@ -767,7 +778,9 @@
         bk_biz_id: formdata.bk_biz_id,
         db_module_id: formdata.details.db_module_id,
       },
-      query: { ...moduleNameQuery },
+      query: {
+        ...moduleNameQuery,
+      },
     });
     window.open(url.href, '_blank');
   };
@@ -786,8 +799,8 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
-  @import "@styles/applyInstance.less";
+  @import '@styles/mixins.less';
+  @import '@styles/applyInstance.less';
 
   :deep(.domain-address) {
     .flex-center();

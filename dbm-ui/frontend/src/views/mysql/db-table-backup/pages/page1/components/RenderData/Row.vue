@@ -14,7 +14,7 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
@@ -26,26 +26,26 @@
           ref="backupSourceRef"
           :model-value="data.backupOn" />
       </td> -->
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="dbPatternsRef"
           :cluster-id="localClusterId"
           :model-value="data.dbPatterns" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableName
           ref="tablePatternsRef"
           :cluster-id="localClusterId"
           :model-value="data.tablePatterns" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="ignoreDbsRef"
           :cluster-id="localClusterId"
           :model-value="data.ignoreDbs"
           :required="false" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableName
           ref="ignoreTablesRef"
           :cluster-id="localClusterId"
@@ -62,7 +62,7 @@
           <div
             class="action-btn"
             :class="{
-              disabled: removeable
+              disabled: removeable,
             }"
             @click="handleRemove">
             <DbIcon type="minus-fill" />
@@ -78,14 +78,14 @@
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
-      id: number,
-      domain: string,
-    }
+      id: number;
+      domain: string;
+    };
     // backupOn: string,
-    dbPatterns?: string [],
-    tablePatterns?: string [],
-    ignoreDbs?: string [],
-    ignoreTables?: string [],
+    dbPatterns?: string[];
+    tablePatterns?: string[];
+    ignoreDbs?: string[];
+    ignoreTables?: string[];
   }
 
   // 创建表格数据
@@ -98,13 +98,9 @@
     ignoreDbs: data.ignoreDbs,
     ignoreTables: data.ignoreTables,
   });
-
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
@@ -112,16 +108,16 @@
   import RenderCluster from './RenderCluster.vue';
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -137,25 +133,34 @@
 
   const localClusterId = ref(0);
 
-  watch(() => props.data, () => {
-    if (props.data.clusterData) {
-      localClusterId.value = props.data.clusterData.id;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.clusterData) {
+        localClusterId.value = props.data.clusterData.id;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
   };
 
   const handleCreate = (list: Array<string>) => {
-    emits('add', list.map(domain => createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-      },
-    })));
+    emits(
+      'add',
+      list.map((domain) =>
+        createRowData({
+          clusterData: {
+            id: 0,
+            domain,
+          },
+        }),
+      ),
+    );
   };
 
   const handleAppend = () => {
@@ -178,48 +183,50 @@
         tablePatternsRef.value.getValue('table_patterns'),
         ignoreDbsRef.value.getValue('ignore_dbs'),
         ignoreTablesRef.value.getValue('ignore_tables'),
-      ]).then(([
-        clusterData,
-        // hostData,
-        dbPatternsData,
-        tablePatternsData,
-        ignoreDbsData,
-        ignoreTablesData,
-      ]) => ({
-        ...clusterData,
-        // ...hostData,
-        ...dbPatternsData,
-        ...tablePatternsData,
-        ...ignoreDbsData,
-        ...ignoreTablesData,
-      }));
+      ]).then(
+        ([
+          clusterData,
+          // hostData,
+          dbPatternsData,
+          tablePatternsData,
+          ignoreDbsData,
+          ignoreTablesData,
+        ]) => ({
+          ...clusterData,
+          // ...hostData,
+          ...dbPatternsData,
+          ...tablePatternsData,
+          ...ignoreDbsData,
+          ...ignoreTablesData,
+        }),
+      );
     },
   });
 </script>
 <style lang="less" scoped>
-.action-box {
-  display: flex;
-  align-items: center;
-
-  .action-btn {
+  .action-box {
     display: flex;
-    font-size: 14px;
-    color: #c4c6cc;
-    cursor: pointer;
-    transition: all 0.15s;
+    align-items: center;
 
-    &:hover {
-      color: #979ba5;
-    }
+    .action-btn {
+      display: flex;
+      font-size: 14px;
+      color: #c4c6cc;
+      cursor: pointer;
+      transition: all 0.15s;
 
-    &.disabled {
-      color: #dcdee5;
-      cursor: not-allowed;
-    }
+      &:hover {
+        color: #979ba5;
+      }
 
-    & ~ .action-btn {
-      margin-left: 18px;
+      &.disabled {
+        color: #dcdee5;
+        cursor: not-allowed;
+      }
+
+      & ~ .action-btn {
+        margin-left: 18px;
+      }
     }
   }
-}
 </style>

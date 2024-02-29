@@ -9,25 +9,16 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
-import {
-  type ComponentInternalInstance,
-  getCurrentInstance,
-  reactive,
-  type Ref,
-  ref,
-  shallowRef,
-} from 'vue';
+import { type ComponentInternalInstance, getCurrentInstance, reactive, type Ref, ref, shallowRef } from 'vue';
 
 import { getModules } from '@services/source/cmdb';
 
 import { useGlobalBizs } from '@stores';
 
-import {
-  getSearchSelectorParams,
-} from '@utils';
+import { getSearchSelectorParams } from '@utils';
 
 /**
  * 处理集群列表数据
@@ -36,13 +27,13 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISea
   const globalBizsStore = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
-      getResourceList: (params: any) => Promise<any>
-    }
+      getResourceList: (params: any) => Promise<any>;
+    };
   };
 
   const isLoading = ref(false);
   const tableData = shallowRef<T[]>([]);
-  const dbModuleList = shallowRef<{ id: number, name: string }[]>([]);
+  const dbModuleList = shallowRef<{ id: number; name: string }[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
     current: 1,
@@ -56,13 +47,14 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISea
    */
   const fetchResources = () => {
     isLoading.value = true;
-    return currentInstance.proxy.getResourceList({
-      type: activeTab.value,
-      bk_biz_id: globalBizsStore.currentBizId,
-      limit: pagination.limit,
-      offset: pagination.limit * (pagination.current - 1),
-      ...getSearchSelectorParams(searchParams.value),
-    })
+    return currentInstance.proxy
+      .getResourceList({
+        type: activeTab.value,
+        bk_biz_id: globalBizsStore.currentBizId,
+        limit: pagination.limit,
+        offset: pagination.limit * (pagination.current - 1),
+        ...getSearchSelectorParams(searchParams.value),
+      })
       .then((res) => {
         pagination.count = res.count;
         tableData.value = res.results;
@@ -102,7 +94,7 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISea
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_type: activeTab.value,
     }).then((res) => {
-      dbModuleList.value = res.map(item => ({
+      dbModuleList.value = res.map((item) => ({
         id: item.db_module_id,
         name: item.name,
       }));

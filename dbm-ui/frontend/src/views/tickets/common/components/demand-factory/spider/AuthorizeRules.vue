@@ -44,8 +44,7 @@
         <span class="ticket-details__item-label">{{ t('账号名') }}：</span>
         <span class="ticket-details__item-value">{{ authorizeData?.user || '--' }}</span>
       </div>
-      <div
-        class="ticket-details__item">
+      <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('访问DB') }}：</span>
         <span>
           <BkTag
@@ -189,11 +188,10 @@
   const handleTargetCluster = () => {
     previewTargetClusterShow.value = true;
   };
-
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
   .table {
     display: flex;

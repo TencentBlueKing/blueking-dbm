@@ -13,8 +13,7 @@
 
 <template>
   <BkLoading :loading="isResourceSpecLoading">
-    <BkComposeFormItem
-      class="search-spec-id">
+    <BkComposeFormItem class="search-spec-id">
       <BkSelect
         v-model="currentCluster"
         :clearable="false"
@@ -37,7 +36,7 @@
         :input-search="false"
         style="width: 150px">
         <BkOption
-          v-for="(item) in clusterMachineList"
+          v-for="item in clusterMachineList"
           :key="item.label"
           :label="item.label"
           :value="item.name" />
@@ -62,27 +61,22 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    watch,
-  } from 'vue';
+  import { watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getResourceSpec,
-    getResourceSpecList,
-  } from '@services/source/dbresourceSpec';
+  import { getResourceSpec, getResourceSpecList } from '@services/source/dbresourceSpec';
 
   import { ClusterTypes } from '@common/const';
 
   interface Props {
-    defaultValue?: number
+    defaultValue?: number;
   }
   interface Emits {
-    (e: 'change', value: Props['defaultValue']): void,
+    (e: 'change', value: Props['defaultValue']): void;
   }
   interface Expose {
-    reset: () => void
+    reset: () => void;
   }
 
   const emits = defineEmits<Emits>();
@@ -268,20 +262,14 @@
 
   const currentCluster = ref('');
   const currentMachine = ref('');
-  const clusterMachineList = ref<Record<'label'|'name', string>[]>([]);
+  const clusterMachineList = ref<Record<'label' | 'name', string>[]>([]);
 
-  const {
-    loading: isResourceSpecLoading,
-    run: fetchResourceSpecDetail,
-  } = useRequest(getResourceSpec, {
+  const { loading: isResourceSpecLoading, run: fetchResourceSpecDetail } = useRequest(getResourceSpec, {
     manual: true,
     onSuccess(data) {
       currentCluster.value = data.spec_cluster_type;
 
-      const clusterData =  _.find(
-        clusterList,
-        item => item.name === currentCluster.value,
-      );
+      const clusterData = _.find(clusterList, (item) => item.name === currentCluster.value);
       if (!clusterData) {
         return;
       }
@@ -297,36 +285,40 @@
     manual: true,
   });
 
-  watch(defaultValue, () => {
-    if (defaultValue.value === undefined) {
-      currentCluster.value = '',
-      currentMachine.value = '';
-    } else if (!currentCluster.value && !currentMachine.value && defaultValue.value) {
-      // 通过规格ID获取规格详情
-      fetchResourceSpecDetail({
-        spec_id: defaultValue.value,
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    defaultValue,
+    () => {
+      if (defaultValue.value === undefined) {
+        (currentCluster.value = ''), (currentMachine.value = '');
+      } else if (!currentCluster.value && !currentMachine.value && defaultValue.value) {
+        // 通过规格ID获取规格详情
+        fetchResourceSpecDetail({
+          spec_id: defaultValue.value,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(currentMachine, () => {
-    if (currentMachine.value) {
-      fetchResourceSpecList({
-        spec_cluster_type: currentCluster.value,
-        spec_machine_type: currentMachine.value,
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    currentMachine,
+    () => {
+      if (currentMachine.value) {
+        fetchResourceSpecList({
+          spec_cluster_type: currentCluster.value,
+          spec_machine_type: currentMachine.value,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleCluserChange = () => {
-    const clusterData =  _.find(
-      clusterList,
-      item => item.name === currentCluster.value,
-    );
+    const clusterData = _.find(clusterList, (item) => item.name === currentCluster.value);
     defaultValue.value = 0;
     currentMachine.value = '';
     if (!clusterData) {
@@ -345,19 +337,18 @@
   defineExpose<Expose>({
     reset() {
       rerenderKey.value = Date.now();
-      currentCluster.value = '',
-      currentMachine.value = '';
+      (currentCluster.value = ''), (currentMachine.value = '');
 
       clusterMachineList.value = [];
     },
   });
 </script>
 <style lang="less" scoped>
-  .search-spec-id{
+  .search-spec-id {
     display: flex;
     width: 100%;
 
-    :deep(.bk-compose-form-item-tail){
+    :deep(.bk-compose-form-item-tail) {
       flex: 1;
     }
   }

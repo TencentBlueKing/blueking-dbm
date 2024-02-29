@@ -15,7 +15,7 @@
   <div class="file-list">
     <div class="header">
       <span>{{ $t('文件列表') }}</span>
-      <span style="font-weight: normal; color: #979ba5;">{{ $t('按顺序执行') }}</span>
+      <span style="font-weight: normal; color: #979ba5">{{ $t('按顺序执行') }}</span>
     </div>
     <div class="file-wrapper">
       <FileItem
@@ -29,24 +29,23 @@
 </template>
 <script lang="ts">
   export interface IFileItem {
-    name: string,
-    isPending: boolean,
-    isSuccessed: boolean,
-    isFailed: boolean,
-    isWaiting: boolean,
+    name: string;
+    isPending: boolean;
+    isSuccessed: boolean;
+    isFailed: boolean;
+    isWaiting: boolean;
   }
 </script>
 <script setup lang="ts">
   import FileItem from './FileItem.vue';
 
-
   interface Props {
-    list: Array<IFileItem>,
-    modelValue: string,
+    list: Array<IFileItem>;
+    modelValue: string;
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: string): void
+    (e: 'update:modelValue', value: string): void;
   }
 
   defineProps<Props>();

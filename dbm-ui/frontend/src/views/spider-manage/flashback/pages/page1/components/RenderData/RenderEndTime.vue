@@ -23,7 +23,7 @@
       type="datetime">
       <template #footer>
         <div
-          style="line-height: 32px; text-align: center; cursor: pointer;"
+          style="line-height: 32px; text-align: center; cursor: pointer"
           @click.stop="handleNowTime">
           now
         </div>
@@ -46,11 +46,11 @@
   import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
 
   interface Props {
-    startTime?: string,
+    startTime?: string;
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<'end_time', string>>
+    getValue: (field: string) => Promise<Record<'end_time', string>>;
   }
 
   const props = defineProps<Props>();
@@ -65,11 +65,8 @@
   const editRef = ref();
   const isNowTime = ref(false);
 
-  const disableDate = (date: Date) => date
-    && (
-      date.valueOf() > Date.now()
-      || date.valueOf() < dayjs(props.startTime).valueOf()
-    );
+  const disableDate = (date: Date) =>
+    date && (date.valueOf() > Date.now() || date.valueOf() < dayjs(props.startTime).valueOf());
 
   const rules = [
     {
@@ -78,9 +75,12 @@
     },
   ];
 
-  watch(() => props.startTime, () => {
-    modelValue.value = '';
-  });
+  watch(
+    () => props.startTime,
+    () => {
+      modelValue.value = '';
+    },
+  );
 
   watch(modelValue, () => {
     isNowTime.value = false;
@@ -97,18 +97,17 @@
           end_time: '',
         });
       }
-      return editRef.value.getValue()
-        .then(() => ({
-          end_time: formatDateToUTC(modelValue.value!),
-        }));
+      return editRef.value.getValue().then(() => ({
+        end_time: formatDateToUTC(modelValue.value!),
+      }));
     },
   });
 </script>
 <style lang="less" scoped>
-  .render-end-time{
+  .render-end-time {
     position: relative;
 
-    .value-now{
+    .value-now {
       position: absolute;
       padding: 0 16px;
       pointer-events: none;

@@ -18,7 +18,7 @@
     required
     :rules="rules">
     <template #labelAppend>
-      <span style="font-size: 12px; font-weight: normal; color: #8a8f99;">
+      <span style="font-size: 12px; font-weight: normal; color: #8a8f99">
         （{{ $t('最终执行结果以 SQL 内容为准') }}）
       </span>
     </template>
@@ -38,7 +38,7 @@
             theme="primary"
             @click="handleGrammarCheck">
             <DbIcon type="right-shape" />
-            <span style="margin-left: 4px;">{{ $t('语法检测') }}</span>
+            <span style="margin-left: 4px">{{ $t('语法检测') }}</span>
           </BkButton>
         </div>
         <template v-else>
@@ -57,13 +57,7 @@
   </BkFormItem>
 </template>
 <script setup lang="ts">
-  import {
-    onActivated,
-    onDeactivated,
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { onActivated, onDeactivated, ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
@@ -78,7 +72,7 @@
   import SyntaxSuccess from './components/SyntaxSuccess.vue';
 
   interface Props {
-    modelValue: string[]
+    modelValue: string[];
   }
   interface Emits {
     (e: 'change', value: string[]): void;
@@ -139,18 +133,22 @@
 
   let isInnerChange = false;
   // 内容回填时需要根据文件名获取文件内容
-  watch(() => props.modelValue, () => {
-    if (isInnerChange) {
-      isInnerChange = false;
-      return;
-    }
-    if (props.modelValue.length < 1) {
-      return;
-    }
-    fetchFileContent();
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      if (isInnerChange) {
+        isInnerChange = false;
+        return;
+      }
+      if (props.modelValue.length < 1) {
+        return;
+      }
+      fetchFileContent();
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const triggerChange = () => {
     if (!grammarCheckData) {
@@ -199,7 +197,6 @@
   onDeactivated(() => {
     isKeepAliveActive = false;
   });
-
 </script>
 <style lang="less">
   .sql-execute-manual-input {

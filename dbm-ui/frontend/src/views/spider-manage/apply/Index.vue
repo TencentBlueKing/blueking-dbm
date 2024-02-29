@@ -67,7 +67,7 @@
                   v-model="formdata.details.resource_spec.spider.count"
                   :min="2"
                   type="number" />
-                <span class="input-desc">{{ $t('至少n台', {n: 2}) }}</span>
+                <span class="input-desc">{{ $t('至少n台', { n: 2 }) }}</span>
               </BkFormItem>
             </div>
           </BkFormItem>
@@ -91,10 +91,10 @@
               clearable
               :max="65535"
               :min="25000"
-              style="width: 185px;"
+              style="width: 185px"
               type="number" />
             <span class="input-desc">
-              {{ $t('范围min_max', {min: 25000, max: 65535}) }}
+              {{ $t('范围min_max', { min: 25000, max: 65535 }) }}
             </span>
           </BkFormItem>
           <BkFormItem :label="$t('备注')">
@@ -102,7 +102,7 @@
               v-model="formdata.remark"
               :maxlength="100"
               :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
-              style="width: 655px;"
+              style="width: 655px"
               type="textarea" />
           </BkFormItem>
         </DbCard>
@@ -135,14 +135,11 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import type { BizItem } from '@services/types';
 
-  import { useApplyBase, useInfo  } from '@hooks';
+  import { useApplyBase, useInfo } from '@hooks';
 
   import { nameRegx } from '@common/regex';
 
@@ -199,13 +196,7 @@
   });
 
   // 基础设置
-  const {
-    baseState,
-    bizState,
-    handleCancel,
-    handleCreateAppAbbr,
-    handleCreateTicket,
-  } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const formRef = ref();
   const specProxyRef = ref();
@@ -216,11 +207,13 @@
   const isDefaultCity = computed(() => formdata.value.details.city_code === 'default');
 
   const rules = {
-    'details.cluster_name': [{
-      message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-      trigger: 'blur',
-      validator: (val: string) => nameRegx.test(val),
-    }],
+    'details.cluster_name': [
+      {
+        message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+        trigger: 'blur',
+        validator: (val: string) => nameRegx.test(val),
+      },
+    ],
   };
 
   /**
@@ -314,7 +307,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/applyInstance.less";
+  @import '@styles/applyInstance.less';
 
   .apply-instance {
     :deep(.item-input) {
@@ -331,7 +324,7 @@
     :deep(.resource-pool-item) {
       width: 655px;
       padding: 24px 0;
-      background-color: #F5F7FA;
+      background-color: #f5f7fa;
       border-radius: 2px;
 
       .bk-form-item {

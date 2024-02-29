@@ -9,20 +9,19 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
-
+ */
 
 import { queryClusters } from '@services/source/mysqlCluster';
 
 export interface TableItem {
-  cluster_domain: string,
-  cluster_id: number,
-  cluster_related: ServiceReturnType<typeof queryClusters>
-  checked_related: ServiceReturnType<typeof queryClusters>,
-  new_slave_ip: string,
-  uniqueId: string
+  cluster_domain: string;
+  cluster_id: number;
+  cluster_related: ServiceReturnType<typeof queryClusters>;
+  checked_related: ServiceReturnType<typeof queryClusters>;
+  new_slave_ip: string;
+  uniqueId: string;
 }
-export  interface TableColumnData {
-  index: number,
-  data: TableItem
+export interface TableColumnData {
+  index: number;
+  data: TableItem;
 }

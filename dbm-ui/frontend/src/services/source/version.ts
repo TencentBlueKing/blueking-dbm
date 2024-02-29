@@ -9,11 +9,9 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import http, {
-  type IRequestPayload,
-} from '../http';
+import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/version';
 
@@ -27,10 +25,13 @@ export function getClusterTypeToVersions() {
 /**
  * 查询数据库版本列表
  */
-export function getVersions(params: {
-  query_key: string,
-  db_type?: string
-}, payload = {} as IRequestPayload) {
+export function getVersions(
+  params: {
+    query_key: string;
+    db_type?: string;
+  },
+  payload = {} as IRequestPayload,
+) {
   return http.get<string[]>(`${path}/list_versions/`, params, payload);
 }
 
@@ -39,8 +40,8 @@ export function getVersions(params: {
  */
 export function getProjectVersion() {
   return http.get<{
-    app_version: string,
-    chart_version: string,
-    version: string,
+    app_version: string;
+    chart_version: string;
+    version: string;
   }>('/version/');
 }

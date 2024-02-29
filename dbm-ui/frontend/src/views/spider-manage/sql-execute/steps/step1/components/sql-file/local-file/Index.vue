@@ -18,24 +18,28 @@
     required
     :rules="rules">
     <template #labelAppend>
-      <span style="font-size: 12px; font-weight: normal; color: #8a8f99;">
+      <span style="font-size: 12px; font-weight: normal; color: #8a8f99">
         （{{ t('最终执行结果以SQL文件内容为准') }}）
       </span>
     </template>
     <div class="sql-execute-local-file">
-      <div style="margin-bottom: 16px;">
+      <div style="margin-bottom: 16px">
         <BkButton @click="handleSelectLocalFile">
           <DbIcon
-            style="margin-right: 3px;"
+            style="margin-right: 3px"
             type="add" />
           <span>{{ t('添加文件') }}</span>
         </BkButton>
-        <span style="margin-left: 12px; font-size: 12px; color: #8a8f99;">
-          {{ t('仅支持_sql文件_文件名不能包含空格_上传后_SQL执行顺序默认为从上至下_可拖动文件位置_变换文件的执行顺序文件') }}
+        <span style="margin-left: 12px; font-size: 12px; color: #8a8f99">
+          {{
+            t(
+              '仅支持_sql文件_文件名不能包含空格_上传后_SQL执行顺序默认为从上至下_可拖动文件位置_变换文件的执行顺序文件',
+            )
+          }}
         </span>
       </div>
       <div
-        v-if="(uploadFileNameList.length > 0)"
+        v-if="uploadFileNameList.length > 0"
         class="editor-layout">
         <div class="editor-layout-left">
           <RenderFileList
@@ -48,7 +52,7 @@
         <div class="editor-layout-right">
           <BkLoading
             class="content-loading"
-            :loading="(currentSelectFileData.isUploading || isContentLoading)">
+            :loading="currentSelectFileData.isUploading || isContentLoading">
             <Editor
               :message-list="currentSelectFileData.messageList"
               :model-value="currentSelectFileData.content"
@@ -64,9 +68,9 @@
         ref="uploadRef"
         accept=".sql"
         multiple
-        style="position: absolute; width: 0; height: 0;"
+        style="position: absolute; width: 0; height: 0"
         type="file"
-        @change="handleStartUpdate">
+        @change="handleStartUpdate" />
     </div>
   </BkFormItem>
 </template>
@@ -349,7 +353,6 @@
   onDeactivated(() => {
     isKeepAliveActive = false;
   });
-
 </script>
 <style lang="less">
   .sql-execute-local-file {

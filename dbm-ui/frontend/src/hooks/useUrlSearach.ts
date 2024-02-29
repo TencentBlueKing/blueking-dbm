@@ -9,19 +9,22 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { buildURLParams } from '@utils';
 
-export const useUrlSearch =  () => {
+export const useUrlSearch = () => {
   const searchParams = new URLSearchParams(window.location.search);
 
   const getSearchParams = () => {
     const curSearchParams = new URLSearchParams(window.location.search);
-    return Array.from(curSearchParams.keys()).reduce((result, key) => ({
-      ...result,
-      [key]: curSearchParams.get(key) || '',
-    }), {} as Record<string, string>);
+    return Array.from(curSearchParams.keys()).reduce(
+      (result, key) => ({
+        ...result,
+        [key]: curSearchParams.get(key) || '',
+      }),
+      {} as Record<string, string>,
+    );
   };
 
   const appendSearchParams = (params: Record<string, any>) => {

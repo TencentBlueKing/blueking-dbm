@@ -14,7 +14,7 @@
 <template>
   <BkSelect
     :class="{
-      'is-selected-all': !(defaultValue && defaultValue.length > 0)
+      'is-selected-all': !(defaultValue && defaultValue.length > 0),
     }"
     collapse-tags
     filterable
@@ -61,13 +61,13 @@
   import { getBizs } from '@services/source/cmdb';
 
   interface Props {
-    defaultValue?: string[],
+    defaultValue?: string[];
     simple?: boolean;
   }
   interface Emits {
-    (e: 'change', value: Props['defaultValue']): void,
-    (e: 'submit'): void,
-    (e: 'cancel'): void,
+    (e: 'change', value: Props['defaultValue']): void;
+    (e: 'submit'): void;
+    (e: 'cancel'): void;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -82,10 +82,7 @@
 
   const allText = t('全部');
 
-  const {
-    data: bizList,
-    loading: isBizListLoading,
-  } = useRequest(getBizs);
+  const { data: bizList, loading: isBizListLoading } = useRequest(getBizs);
 
   const handleSubmit = () => {
     emits('submit');
@@ -96,8 +93,7 @@
 
   const handleChange = (value: Array<string>) => {
     const result = [...value];
-    _.remove(result, item => item === allText);
+    _.remove(result, (item) => item === allText);
     emits('change', result);
   };
 </script>
-

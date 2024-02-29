@@ -49,13 +49,13 @@
   import PermissionRule from './components/PermissionRule.vue';
 
   interface Props {
-    clusterId: number,
+    clusterId: number;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      priv_data: Array<number>
-    }>
+      priv_data: Array<number>;
+    }>;
   }
 
   defineProps<Props>();
@@ -88,7 +88,7 @@
   });
 </script>
 <style lang="less" scoped>
-  .priv-data-box{
+  .priv-data-box {
     position: relative;
     padding: 0 16px;
 
@@ -106,4 +106,3 @@
     }
   }
 </style>
-

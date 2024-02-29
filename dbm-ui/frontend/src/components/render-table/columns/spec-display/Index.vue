@@ -19,18 +19,18 @@
       :is-show="isShowPopover">
       <div
         class="render-spec-box"
-        :class="{'default-display': !data}"
+        :class="{ 'default-display': !data }"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave">
         <span
           v-if="!data"
-          style="color: #c4c6cc;">
+          style="color: #c4c6cc">
           {{ $t('输入主机后自动生成') }}
         </span>
         <span
           v-else
           class="content">
-          {{ data?.name ? `${data.name} ${isIgnoreCounts ? '' : $t('((n))台', {n: data?.count})}` : '' }}
+          {{ data?.name ? `${data.name} ${isIgnoreCounts ? '' : $t('((n))台', { n: data?.count })}` : '' }}
         </span>
       </div>
     </SpecPanel>
@@ -45,21 +45,21 @@
       cpu: {
         max: number;
         min: number;
-      },
+      };
       id: number;
       mem: {
         max: number;
         min: number;
-      },
+      };
       qps: {
         max: number;
         min: number;
-      }
+      };
       storage_spec: {
         mount_point: string;
         size: number;
         type: string;
-      }[],
+      }[];
       count?: number;
     };
     isLoading?: boolean;
@@ -82,27 +82,26 @@
     clearTimeout(timer);
     isShowPopover.value = false;
   };
-
 </script>
 <style lang="less" scoped>
-.render-spec-box {
-  height: 42px;
-  padding: 10px 16px;
-  overflow: hidden;
-  line-height: 20px;
-  color: #63656e;
-  text-overflow:ellipsis;
-  white-space: nowrap;
+  .render-spec-box {
+    height: 42px;
+    padding: 10px 16px;
+    overflow: hidden;
+    line-height: 20px;
+    color: #63656e;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
-  .content {
-    padding-bottom: 2px;
-    cursor: pointer;
-    border-bottom: 1px dotted #979BA5;
+    .content {
+      padding-bottom: 2px;
+      cursor: pointer;
+      border-bottom: 1px dotted #979ba5;
+    }
   }
-}
 
-.default-display {
-  cursor: not-allowed;
-  background: #FAFBFD;
-}
+  .default-display {
+    cursor: not-allowed;
+    background: #fafbfd;
+  }
 </style>

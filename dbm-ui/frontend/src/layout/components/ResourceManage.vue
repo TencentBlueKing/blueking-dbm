@@ -63,6 +63,4 @@
     key: currentActiveKey,
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'resourceSpec');
-
 </script>
-

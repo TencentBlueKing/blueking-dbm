@@ -26,12 +26,11 @@
         </AuthButton>
       </OperationBtnStatusTips>
       <OperationBtnStatusTips :data="operationData">
-        <span
-          v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
+        <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
             action-id="es_shrink"
             class="ml8"
-            :disabled="(batchShrinkDisabledInfo.disabled || operationData?.operationDisabled)"
+            :disabled="batchShrinkDisabledInfo.disabled || operationData?.operationDisabled"
             :permission="operationData?.permission.es_shrink"
             :resource="operationData?.id"
             @click="handleShowShrink">
@@ -43,12 +42,12 @@
         <span
           v-bk-tooltips="{
             content: $t('请先选中节点'),
-            disabled: !isBatchReplaceDisabeld
+            disabled: !isBatchReplaceDisabeld,
           }">
           <AuthButton
             action-id="es_replace"
             class="ml8"
-            :disabled="(isBatchReplaceDisabeld || operationData?.operationDisabled)"
+            :disabled="isBatchReplaceDisabeld || operationData?.operationDisabled"
             :permission="operationData?.permission.es_replace"
             :resource="operationData?.id"
             @click="handleShowReplace">
@@ -58,14 +57,14 @@
       </OperationBtnStatusTips>
       <BkDropdown
         class="ml8"
-        @hide="() => isCopyDropdown = false"
-        @show="() => isCopyDropdown = true">
+        @hide="() => (isCopyDropdown = false)"
+        @show="() => (isCopyDropdown = true)">
         <BkButton>
           {{ $t('复制IP') }}
           <DbIcon
             class="action-copy-icon"
             :class="{
-              'action-copy-icon--avtive': isCopyDropdown
+              'action-copy-icon--avtive': isCopyDropdown,
             }"
             type="up-big" />
         </BkButton>
@@ -87,7 +86,7 @@
         v-model="searchKey"
         clearable
         :placeholder="$t('请输入IP搜索')"
-        style="max-width: 360px; margin-left: 8px; flex: 1;" />
+        style="max-width: 360px; margin-left: 8px; flex: 1" />
     </div>
     <BkAlert
       v-if="operationData?.operationStatusText"
@@ -124,7 +123,7 @@
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       quick-close
-      :title="$t('xx扩容【name】', {title: 'ES', name:operationData?.cluster_name })"
+      :title="$t('xx扩容【name】', { title: 'ES', name: operationData?.cluster_name })"
       :width="960">
       <ClusterExpansion
         v-if="operationData"
@@ -133,7 +132,7 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
-      :title="$t('xx缩容【name】', {title: 'ES', name:operationData?.cluster_name })"
+      :title="$t('xx缩容【name】', { title: 'ES', name: operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
         v-if="operationData"
@@ -143,7 +142,7 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowReplace"
-      :title="$t('xx替换【name】', {title: 'ES', name:operationData?.cluster_name })"
+      :title="$t('xx替换【name】', { title: 'ES', name: operationData?.cluster_name })"
       :width="960">
       <ClusterReplace
         v-if="operationData"
@@ -600,7 +599,6 @@
   const handleClose = () => {
     isShowDetail.value = false;
   };
-
 </script>
 <style lang="less">
   .es-detail-node-list {

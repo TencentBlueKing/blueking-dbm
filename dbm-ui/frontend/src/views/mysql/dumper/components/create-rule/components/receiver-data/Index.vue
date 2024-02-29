@@ -13,10 +13,9 @@
 
 <template>
   <div class="render-data">
-    <BkButton
-      @click="handleOpenClusterSelector">
+    <BkButton @click="handleOpenClusterSelector">
       <DbIcon
-        style="margin-right: 8px;color: #979BA5"
+        style="margin-right: 8px; color: #979ba5"
         type="add" />
       {{ t('添加数据源集群') }}
     </BkButton>
@@ -386,12 +385,11 @@
   });
 </script>
 <style lang="less">
-.render-data {
-  .batch-edit-btn {
-    margin-left: 4px;
-    color: #3a84ff;
-    cursor: pointer;
+  .render-data {
+    .batch-edit-btn {
+      margin-left: 4px;
+      color: #3a84ff;
+      cursor: pointer;
+    }
   }
-}
-
 </style>

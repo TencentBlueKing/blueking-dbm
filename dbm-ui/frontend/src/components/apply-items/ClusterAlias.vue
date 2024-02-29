@@ -32,12 +32,12 @@
   import { verifyDuplicatedClusterName } from '@services/source/dbbase';
 
   interface Props {
-    modelValue: string,
-    bizId: number|'',
-    clusterType: string
+    modelValue: string;
+    bizId: number | '';
+    clusterType: string;
   }
   interface Emits {
-    (e: 'update:modelValue', value: string): void
+    (e: 'update:modelValue', value: string): void;
   }
 
   const props = defineProps<Props>();
@@ -63,7 +63,7 @@
           name: val,
           bk_biz_id: props.bizId,
           cluster_type: props.clusterType,
-        }).then(data => !data);
+        }).then((data) => !data);
       },
       message: t('集群名称重复'),
       trigger: 'blur',
@@ -74,4 +74,3 @@
     emits('update:modelValue', value);
   };
 </script>
-

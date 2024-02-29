@@ -23,7 +23,7 @@
   import type { RedisStructureDeleteDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<RedisStructureDeleteDetails>
+    ticketDetails: TicketDetails<RedisStructureDeleteDetails>;
   }
 
   defineProps<Props>();
@@ -42,4 +42,3 @@
     },
   ];
 </script>
-

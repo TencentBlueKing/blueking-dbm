@@ -13,12 +13,12 @@
 
 <template>
   <BkTimeline :list="flowTimeline">
-    <template #content="{content}">
+    <template #content="{ content }">
       <FlowContent
         :content="content"
         @fetch-data="handleFetchData">
         <template #extra-text>
-          <template v-if="(content.isLast && content.status === 'SUCCEEDED')">
+          <template v-if="content.isLast && content.status === 'SUCCEEDED'">
             ，
             <a
               href="javascript:"

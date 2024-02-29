@@ -13,7 +13,7 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderHost
         ref="hostRef"
         :data="data.ip"
@@ -24,24 +24,24 @@
     <td
       v-if="data.cluster?.isGeneral || data.cluster?.isStart"
       :rowspan="data.cluster?.rowSpan"
-      style="padding: 0;">
+      style="padding: 0">
       <RenderText
         :data="data.cluster.domain"
         :is-loading="data.isLoading"
         :placeholder="$t('输入主机后自动生成')" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSpec
         :data="data.spec"
         :is-loading="data.isLoading" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.slaveHost?.faults"
         :is-loading="data.isLoading"
         :placeholder="$t('输入主机后自动生成')" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.slaveHost?.total"
         :is-loading="data.isLoading"
@@ -82,14 +82,14 @@
       isStart: boolean;
       isGeneral: boolean;
       rowSpan: number;
-    },
+    };
     targetNum: number;
     slaveNum?: number;
     spec?: SpecInfo;
     slaveHost?: {
       faults: number;
       total: number;
-    }
+    };
   }
 
   // 创建表格数据
@@ -108,27 +108,26 @@
     },
     targetNum: 1,
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    inputedIps?: string[],
+    data: IDataRow;
+    removeable: boolean;
+    inputedIps?: string[];
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'onIpInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'onIpInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    inputedIps: () => ([]),
+    inputedIps: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -155,5 +154,4 @@
       return hostRef.value.getValue();
     },
   });
-
 </script>

@@ -1,6 +1,6 @@
 <template>
   <BkButton
-    style="padding: 10px 20px;"
+    style="padding: 10px 20px"
     text
     theme="primary"
     @click="handleShowDetail">
@@ -148,4 +148,3 @@
     isShowDetail.value = false;
   };
 </script>
-

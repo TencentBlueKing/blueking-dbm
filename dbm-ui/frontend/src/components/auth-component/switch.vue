@@ -1,17 +1,14 @@
 <template>
-  <BkSwitcher
-    v-bind="attrs" />
+  <BkSwitcher v-bind="attrs" />
 </template>
 <script setup lang="ts">
-  import {
-    useAttrs,
-  } from 'vue';
+  import { useAttrs } from 'vue';
 
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    permission?: boolean | string,
-    actionId: string,
-    resource?: string | number,
+    permission?: boolean | string;
+    actionId: string;
+    resource?: string | number;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -24,7 +21,6 @@
   });
 
   const attrs = useAttrs();
-
 </script>
 <style lang="less" scoped>
   .auth-switch-disable {

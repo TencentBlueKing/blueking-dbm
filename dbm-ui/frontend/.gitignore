@@ -30,6 +30,4 @@ public/.DS_Store
 *.bak
 *.bak.*
 .codecc
-.vscode
-.husky/commit-msg-bkcodeai
-.husky/pre-commit-bkcodeai
+

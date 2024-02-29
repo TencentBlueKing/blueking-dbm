@@ -29,7 +29,7 @@
                 :min="data.totalDisk"
                 :model-value="targetDisk > 0 ? targetDisk : undefined"
                 :placeholder="t('请输入')"
-                style="width: 156px; margin-right: 8px;"
+                style="width: 156px; margin-right: 8px"
                 type="number"
                 @change="handleTargetDiskChange" />
               <span>GB</span>
@@ -39,7 +39,7 @@
                 </span>
                 <span
                   class="strong-num"
-                  style="color: #2dcb56;">
+                  style="color: #2dcb56">
                   {{ targetDisk - data.totalDisk }}
                 </span>
                 <span>GB</span>
@@ -53,7 +53,7 @@
                 </span>
                 GB
               </span>
-              <span style="margin-left: 65px;">
+              <span style="margin-left: 65px">
                 <span>{{ t('扩容后') }}:</span>
                 <template v-if="data.targetDisk">
                   <span class="strong-num">{{ data.targetDisk }}</span>
@@ -61,7 +61,7 @@
                 </template>
                 <span
                   v-else
-                  style="padding-left: 4px;">
+                  style="padding-left: 4px">
                   {{ t('请先设置期望容量') }}
                 </span>
               </span>
@@ -85,7 +85,7 @@
     </BkForm>
   </div>
 </template>
-  <script setup lang="tsx">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import type { HostDetails } from '@services/types';
@@ -95,43 +95,43 @@
 
   export interface TExpansionNode {
     // 集群节点展示名
-    label: string,
+    label: string;
     // 集群id
-    clusterId: number,
+    clusterId: number;
     // 集群的节点类型
-    role: string,
+    role: string;
     // 初始主机
-    originalHostList: HostDetails[],
+    originalHostList: HostDetails[];
     // 服务器来源
-    ipSource: 'resource_pool'|'manual_input',
+    ipSource: 'resource_pool' | 'manual_input';
     // 扩容主机
-    hostList: Array<HostDetails & {instance_num: number}>,
+    hostList: Array<HostDetails & { instance_num: number }>;
     // 当前主机的总容量
-    totalDisk: number,
+    totalDisk: number;
     // 扩容目标容量
-    targetDisk: number,
+    targetDisk: number;
     // 实际选中的扩容主机容量
-    expansionDisk: number,
+    expansionDisk: number;
     // 资源池规格集群类型
-    specClusterType: string,
+    specClusterType: string;
     // 资源池规格集群类型
-    specMachineType: string,
+    specMachineType: string;
     // 扩容资源池
     resourceSpec: {
-      spec_id: number,
-      count: number,
-      instance_num: number,
-    }
+      spec_id: number;
+      count: number;
+      instance_num: number;
+    };
   }
 
   interface Props {
     cloudInfo: {
-      id: number,
-      name: string
-    },
-    data: TExpansionNode,
-    ipSource: string,
-    disableHostMethod?: (params: HostDetails) => string | boolean
+      id: number;
+      name: string;
+    };
+    data: TExpansionNode;
+    ipSource: string;
+    disableHostMethod?: (params: HostDetails) => string | boolean;
   }
 
   defineProps<Props>();
@@ -173,67 +173,67 @@
     expansionDisk.value = expansionDiskValue;
     window.changeConfirm = true;
   };
-  </script>
-  <style lang="less">
-    .es-cluster-expansion-node-box {
-      padding: 0 24px 24px;
+</script>
+<style lang="less">
+  .es-cluster-expansion-node-box {
+    padding: 0 24px 24px;
 
-      .bk-form-label {
-        font-size: 12px;
-        font-weight: bold;
-        color: #63656e;
+    .bk-form-label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #63656e;
+    }
+
+    .strong-num {
+      padding: 0 4px;
+      font-weight: bold;
+    }
+
+    .header {
+      padding: 10px 0;
+      font-size: 14px;
+      font-weight: bold;
+      color: #313238;
+    }
+
+    .target-content-box {
+      display: flex;
+      align-items: flex-start;
+
+      .content-label {
+        padding-right: 8px;
       }
 
-      .strong-num{
-        padding: 0 4px;
-        font-weight: bold;
+      .content-value {
+        flex: 1;
       }
 
-      .header {
-        padding: 10px 0;
-        font-size: 14px;
-        font-weight: bold;
-        color: #313238;
-      }
-
-      .target-content-box {
+      .content-tips {
         display: flex;
-        align-items: flex-start;
+        height: 40px;
+        padding: 0 16px;
+        margin-top: 12px;
+        background: #fafbfd;
+        align-items: center;
+      }
+    }
 
-        .content-label {
-          padding-right: 8px;
-        }
+    .data-preview-table {
+      margin-top: 16px;
 
-        .content-value {
-          flex: 1;
-        }
-
-        .content-tips {
-          display: flex;
-          height: 40px;
-          padding: 0 16px;
-          margin-top: 12px;
-          background: #fafbfd;
-          align-items: center;
-        }
+      .data-preview-header {
+        display: flex;
+        height: 42px;
+        padding: 0 16px;
+        background: #f0f1f5;
+        align-items: center;
       }
 
-      .data-preview-table {
-        margin-top: 16px;
-
-        .data-preview-header {
-          display: flex;
-          height: 42px;
-          padding: 0 16px;
-          background: #f0f1f5;
-          align-items: center;
-        }
-
-        .bk-table {
-          th {
-            background: #f5f7fa;
-          }
+      .bk-table {
+        th {
+          background: #f5f7fa;
         }
       }
     }
-  </style>
+  }
+</style>

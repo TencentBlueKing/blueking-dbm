@@ -103,7 +103,7 @@
 
   const type = computed(() => route.params.clusterType as ClusterTypes);
   const mysqlTypeName = computed(() => {
-    const target = Object.values(mysqlType).find(item => item.type === type.value);
+    const target = Object.values(mysqlType).find((item) => item.type === type.value);
     return target?.name || '';
   });
 
@@ -122,19 +122,21 @@
    * 获取版本列表
    */
   versionState.loading = true;
-  getVersions({
-    query_key: type.value,
-    db_type: 'mysql',
-  }, {
-    permission: 'page',
-  })
+  getVersions(
+    {
+      query_key: type.value,
+      db_type: 'mysql',
+    },
+    {
+      permission: 'page',
+    },
+  )
     .then((res) => {
       versionState.list = res;
     })
     .finally(() => {
       versionState.loading = false;
     });
-
 
   const handleCancel = () => {
     router.push({
@@ -144,10 +146,13 @@
 
   const bindFormRef = ref();
   const handleSubmit = async () => {
-    const validate = await bindFormRef.value.validate()
+    const validate = await bindFormRef.value
+      .validate()
       .then(() => true)
       .catch(() => false);
-    if (!validate) return;
+    if (!validate) {
+      return;
+    }
 
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,

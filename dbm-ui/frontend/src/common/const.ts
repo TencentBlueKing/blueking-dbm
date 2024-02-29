@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { t } from '@locales/index';
 
@@ -26,9 +26,9 @@ export enum DBTypes {
   INFLUXDB = 'influxdb',
   SPIDER = 'spider',
   RIAK = 'riak',
-  MONGODB = 'mongodb'
+  MONGODB = 'mongodb',
 }
-export type DBTypesValues = `${DBTypes}`
+export type DBTypesValues = `${DBTypes}`;
 
 /**
  * 集群类型
@@ -285,7 +285,7 @@ export enum TicketTypes {
   MONGODB_DESTROY = 'MONGODB_DESTROY', // MongoDB 集群删除
   MONGODB_SCALE_UPDOWN = 'MONGODB_SCALE_UPDOWN', // MongoDB 分片式集群单个容量变更
   MONGODB_AUTHORIZE = 'MONGODB_AUTHORIZE', // MongoDB 集群授权
-  MONGODB_EXCEL_AUTHORIZE = 'MONGODB_EXCEL_AUTHORIZE' // MongoDB 导入授权
+  MONGODB_EXCEL_AUTHORIZE = 'MONGODB_EXCEL_AUTHORIZE', // MongoDB 导入授权
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -488,9 +488,8 @@ export enum PipelineStatus {
   READY = 'READY', // 准备中
   RUNNING = 'RUNNING', // 运行中
   FINISHED = 'FINISHED', // 完成
-  FAILED = 'FAILED' // 失败
+  FAILED = 'FAILED', // 失败
 }
-
 
 export enum LocalStorageKeys {
   REDIS_ROLLBACK_LIST = 'REDIS_ROLLBACK_LIST', // 跨页使用的回写数据列表
@@ -507,9 +506,16 @@ export enum AccountTypes {
   TENDBCLUSTER = 'tendbcluster',
   MONGODB = 'mongodb',
 }
-export type AccountTypesValues = `${AccountTypes}`
+export type AccountTypesValues = `${AccountTypes}`;
 
 /**
  * 要排除的系统库名称
  */
-export const dbSysExclude = ['mysql', 'db_infobase', 'information_schema', 'performance_schema', 'sys', 'infodba_schema'];
+export const dbSysExclude = [
+  'mysql',
+  'db_infobase',
+  'information_schema',
+  'performance_schema',
+  'sys',
+  'infodba_schema',
+];

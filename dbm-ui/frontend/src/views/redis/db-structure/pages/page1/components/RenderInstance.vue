@@ -48,9 +48,7 @@
         <div
           v-if="localValue.length > 1"
           class="more-box">
-          <BkTag>
-            +{{ localValue.length - 1 }}
-          </BkTag>
+          <BkTag> +{{ localValue.length - 1 }} </BkTag>
         </div>
       </div>
     </BkPopover>
@@ -70,11 +68,11 @@
   }
 
   interface Emits {
-    (e: 'change', value: string[]): void
+    (e: 'change', value: string[]): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string[]>
+    getValue: () => Promise<string[]>;
   }
 
   const props = defineProps<Props>();
@@ -88,7 +86,7 @@
 
   const selectList = computed(() => {
     if (props.data) {
-      return props.data.map(item => ({ value: item, label: item }));
+      return props.data.map((item) => ({ value: item, label: item }));
     }
     return [];
   });
@@ -100,21 +98,29 @@
     },
   ];
 
-  watch(isTendisplus, (status) => {
-    if (status && props.data) {
-      localValue.value = props.data;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    isTendisplus,
+    (status) => {
+      if (status && props.data) {
+        localValue.value = props.data;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(localValue, (chooseList) => {
-    if (chooseList.length > 0) {
-      emits('change', chooseList);
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    localValue,
+    (chooseList) => {
+      if (chooseList.length > 0) {
+        emits('change', chooseList);
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
@@ -126,10 +132,9 @@
       if (isTendisplus.value && props.data) {
         return Promise.resolve(props.data);
       }
-      return selectRef.value.getValue().then(() => (localValue.value));
+      return selectRef.value.getValue().then(() => localValue.value);
     },
   });
-
 </script>
 <style lang="less" scoped>
   .item-input {
@@ -164,7 +169,7 @@
   .content {
     position: relative;
 
-    .more-box{
+    .more-box {
       position: absolute;
       top: 0;
       right: 3px;

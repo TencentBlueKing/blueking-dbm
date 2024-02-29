@@ -20,7 +20,7 @@
       auto-label-width
       :model="formData"
       :rules="rules"
-      style="margin-bottom: 16px;">
+      style="margin-bottom: 16px">
       <DbCard :title="t('业务信息')">
         <BusinessItems
           v-model:app-abbr="formData.details.db_app_abbr"
@@ -57,8 +57,7 @@
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
-          <BkRadioGroup
-            v-model="formData.details.ip_source">
+          <BkRadioGroup v-model="formData.details.ip_source">
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -86,15 +85,15 @@
                   :disable-host-method="masterDisableHostMethod"
                   required
                   :show-view="false"
-                  style="display: inline-block;"
+                  style="display: inline-block"
                   @change="handleMasterIpListChange">
                   <template #submitTips="{ hostList }">
                     <I18nT
                       keypath="至少n台_已选n台"
-                      style="font-size: 14px; color: #63656e;"
+                      style="font-size: 14px; color: #63656e"
                       tag="span">
-                      <span style="font-weight: bold; color: #2dcb56;"> 3 </span>
-                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                      <span style="font-weight: bold; color: #2dcb56"> 3 </span>
+                      <span style="font-weight: bold; color: #3a84ff"> {{ hostList.length }} </span>
                     </I18nT>
                   </template>
                   <template #desc>
@@ -122,7 +121,7 @@
             </DbFormItem>
             <BkFormItem label=" ">
               <BkAlert
-                style="width: 655px;"
+                style="width: 655px"
                 :theme="tipTheme"
                 :title="t('请保证冷热节点至少存在一台')" />
             </BkFormItem>
@@ -202,8 +201,8 @@
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.client.count">
-                  <div style="display: flex; align-items: center;">
-                    <span style="flex-shrink: 0;">
+                  <div style="display: flex; align-items: center">
+                    <span style="flex-shrink: 0">
                       <BkInput
                         v-model="formData.details.resource_spec.client.count"
                         :min="0"
@@ -215,7 +214,7 @@
             </BkFormItem>
             <BkFormItem label=" ">
               <BkAlert
-                style="width: 655px;"
+                style="width: 655px"
                 :theme="tipTheme"
                 :title="t('请保证冷热节点至少存在一台')" />
             </BkFormItem>
@@ -244,8 +243,7 @@
                 </BkFormItem>
               </div>
             </BkFormItem>
-            <BkFormItem
-              :label="t('冷节点')">
+            <BkFormItem :label="t('冷节点')">
               <div class="resource-pool-item">
                 <BkFormItem
                   :label="t('规格')"
@@ -268,12 +266,11 @@
                 </BkFormItem>
               </div>
             </BkFormItem>
-            <BkFormItem
-              :label="t('总容量')">
+            <BkFormItem :label="t('总容量')">
               <BkInput
                 disabled
                 :model-value="totalCapacity"
-                style="width: 184px;" />
+                style="width: 184px" />
               <span class="input-desc">G</span>
             </BkFormItem>
           </div>
@@ -287,7 +284,7 @@
             clearable
             :min="1"
             show-clear-only-hover
-            style="width: 185px;"
+            style="width: 185px"
             type="number" />
         </BkFormItem>
         <BkFormItem :label="t('备注')">
@@ -295,7 +292,7 @@
             v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
-            style="width: 655px;"
+            style="width: 655px"
             type="textarea" />
         </BkFormItem>
       </DbCard>
@@ -304,7 +301,7 @@
       <div>
         <BkButton
           :loading="baseState.isSubmitting"
-          style="width: 88px;"
+          style="width: 88px"
           theme="primary"
           @click="handleSubmit">
           {{ t('提交') }}
@@ -779,7 +776,7 @@
     .resource-pool-item {
       width: 655px;
       padding: 24px 0;
-      background-color: #F5F7FA;
+      background-color: #f5f7fa;
       border-radius: 2px;
 
       .bk-form-item {

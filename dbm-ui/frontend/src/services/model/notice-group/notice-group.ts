@@ -1,4 +1,4 @@
-import { utcDisplayTime  } from '@utils';
+import { utcDisplayTime } from '@utils';
 
 export default class NoticGroup {
   bk_biz_id: number;
@@ -8,15 +8,15 @@ export default class NoticGroup {
   dba_sync: boolean;
   details: {
     alert_notice: {
-      time_range: string,
+      time_range: string;
       notify_config: {
         notice_ways: {
-          name: string,
-          receivers?: string[]
-        } [],
-        level: 3 | 2 | 1
-      }[]
-    }[]
+          name: string;
+          receivers?: string[];
+        }[];
+        level: 3 | 2 | 1;
+      }[];
+    }[];
   };
   id: number;
   is_built_in: boolean;
@@ -24,20 +24,20 @@ export default class NoticGroup {
   monitor_group_id: number;
   name: string;
   receivers: {
-    type: string,
-    id: string
+    type: string;
+    id: string;
   }[];
   sync_at: string;
   update_at: string;
   updater: string;
   used_count: number;
   permission: {
-    global_notify_group_create: boolean,
-    global_notify_group_delete: boolean,
-    global_notify_group_update: boolean,
-    notify_group_create: boolean,
-    notify_group_delete: boolean,
-    notify_group_update: boolean,
+    global_notify_group_create: boolean;
+    global_notify_group_delete: boolean;
+    global_notify_group_update: boolean;
+    notify_group_create: boolean;
+    notify_group_delete: boolean;
+    notify_group_update: boolean;
   };
 
   constructor(payload = {} as NoticGroup) {

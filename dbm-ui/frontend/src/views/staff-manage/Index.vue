@@ -63,10 +63,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getAdmins,
-    updateAdmins,
-  } from '@services/source/dbadmin';
+  import { getAdmins, updateAdmins } from '@services/source/dbadmin';
   import type { AdminItem } from '@services/types/staffSetting';
 
   import { useInfo } from '@hooks';
@@ -84,7 +81,7 @@
   const staffFormRef = ref();
   const adminList = shallowRef<AdminItem[]>([]);
 
-  let adminListMemo:AdminItem[] = [];
+  let adminListMemo: AdminItem[] = [];
 
   const rules = [
     {
@@ -94,10 +91,7 @@
     },
   ];
 
-  const {
-    loading: isLoading,
-    run: getAdminsMethod,
-  } = useRequest(getAdmins, {
+  const { loading: isLoading, run: getAdminsMethod } = useRequest(getAdmins, {
     defaultParams: [
       {
         bk_biz_id: bizId,
@@ -109,10 +103,7 @@
     },
   });
 
-  const {
-    loading: isSubmitting,
-    run: updateAdminsMethod,
-  } = useRequest(updateAdmins, {
+  const { loading: isSubmitting, run: updateAdminsMethod } = useRequest(updateAdmins, {
     manual: true,
     onSuccess() {
       Message({
@@ -131,10 +122,13 @@
    */
 
   const handleSubmit = async () => {
-    const validate = await staffFormRef.value.validate()
+    const validate = await staffFormRef.value
+      .validate()
       .then(() => true)
       .catch(() => false);
-    if (!validate) return;
+    if (!validate) {
+      return;
+    }
 
     updateAdminsMethod({
       bk_biz_id: bizId,
@@ -154,13 +148,13 @@
   };
 </script>
 <style lang="less">
-  .staff-manage-page{
+  .staff-manage-page {
     .bk-form-item {
       max-width: 690px;
     }
 
     .db-card {
-      & ~ .db-card{
+      & ~ .db-card {
         margin-top: 16px;
       }
     }

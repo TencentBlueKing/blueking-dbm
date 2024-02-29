@@ -48,7 +48,7 @@
       <span
         v-bk-tooltips="{
           content: $t('请选择实例'),
-          disabled: !isEmpty
+          disabled: !isEmpty,
         }"
         class="inline-block">
         <BkButton
@@ -70,41 +70,35 @@
 <script lang="ts">
   import type { IValue, MySQLClusterTypes } from './common/types';
 
-  export type InstanceSelectorValue = IValue
-  export type SupportClusterTypes = MySQLClusterTypes
+  export type InstanceSelectorValue = IValue;
+  export type SupportClusterTypes = MySQLClusterTypes;
   export type InstanceSelectorValues = {
-    tendbha: IValue[],
-    tendbsingle: IValue[],
-  }
+    tendbha: IValue[];
+    tendbsingle: IValue[];
+  };
 
   export default {
     name: 'InstanceSelector',
   };
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-  } from 'vue';
+  import { ref } from 'vue';
 
-  import PanelTab, {
-    activePanelInjectionKey,
-    defaultPanelList,
-    type PanelTypes,
-  } from './components/PanelTab.vue';
+  import PanelTab, { activePanelInjectionKey, defaultPanelList, type PanelTypes } from './components/PanelTab.vue';
   import PreviewResult from './components/PreviewResult.vue';
   import RenderManualInput from './components/RenderManualInput.vue';
   import RenderTopo from './components/RenderTopo.vue';
 
   interface Props {
     isShow?: boolean;
-    panelList?: Array<PanelTypes>,
-    role?: string,
-    values?: InstanceSelectorValues
+    panelList?: Array<PanelTypes>;
+    role?: string;
+    values?: InstanceSelectorValues;
   }
 
   interface Emits {
-    (e: 'update:isShow', value: boolean): void,
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'update:isShow', value: boolean): void;
+    (e: 'change', value: InstanceSelectorValues): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -121,7 +115,7 @@
     tendbha: [],
     tendbsingle: [],
   });
-  const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
+  const isEmpty = computed(() => !Object.values(lastValues).some((values) => values.length > 0));
   provide(activePanelInjectionKey, panelTabActive);
 
   const comMap = {
@@ -132,11 +126,14 @@
 
   const renderCom = computed(() => comMap[panelTabActive.value as keyof typeof comMap]);
 
-  watch(() => props.isShow, (show) => {
-    if (show && props.values) {
-      Object.assign(lastValues, props.values);
-    }
-  });
+  watch(
+    () => props.isShow,
+    (show) => {
+      if (show && props.values) {
+        Object.assign(lastValues, props.values);
+      }
+    },
+  );
 
   const handleChange = (values: InstanceSelectorValues) => {
     Object.assign(lastValues, values);

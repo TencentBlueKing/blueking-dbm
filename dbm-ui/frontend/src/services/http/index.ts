@@ -9,31 +9,25 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { CancelTokenSource } from 'axios';
 import _ from 'lodash';
 
-import {
-  buildURLParams,
-  downloadUrl,
-} from '@utils';
+import { buildURLParams, downloadUrl } from '@utils';
 
-import Request, {
-  type Config,
-  type Method,
-} from './lib/request';
+import Request, { type Config, type Method } from './lib/request';
 
-export type IRequestPayload = Config['payload']
+export type IRequestPayload = Config['payload'];
 
 // type IRequestConfig = Pick<Config, 'params' | 'payload'>
 
-export type IRequestResponseData<T> = T
+export type IRequestResponseData<T> = T;
 export interface IRequestResponsePaginationData<T> {
-  results: Array<T>,
-  page: number,
-  num_pages: number,
-  total: number
+  results: Array<T>;
+  page: number;
+  num_pages: number;
+  total: number;
 }
 
 const methodList: Array<Method> = ['get', 'delete', 'post', 'put', 'download', 'patch'];
@@ -47,7 +41,7 @@ export const setCancelTokenSource = (source: CancelTokenSource) => {
 export const getCancelTokenSource = () => cancelTokenSource;
 
 const handler = {} as {
-  [n in Method]: <T = any>(url: string, params?: Record<string, any>, payload?: IRequestPayload) => Promise<T>
+  [n in Method]: <T = any>(url: string, params?: Record<string, any>, payload?: IRequestPayload) => Promise<T>;
 };
 
 methodList.forEach((method) => {

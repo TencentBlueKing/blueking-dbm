@@ -14,44 +14,44 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
           @id-change="handleClusterIdChange"
           @input-create="handleCreate" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderStartTime
           ref="startTimeRef"
           v-model="localStartTime" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderEndTime
           ref="endTimeRef"
           v-model="localEndTime"
           :start-time="localStartTime" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="databasesRef"
           :cluster-id="localClusterId"
           :model-value="data.databases" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableName
           ref="tablesRef"
           :cluster-id="localClusterId"
           :model-value="data.tables" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="databasesIgnoreRef"
           :cluster-id="localClusterId"
           :model-value="data.databasesIgnore"
           :required="false" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableName
           ref="tablesIgnoreRef"
           :cluster-id="localClusterId"
@@ -68,7 +68,7 @@
           <div
             class="action-btn"
             :class="{
-              disabled: removeable
+              disabled: removeable,
             }"
             @click="handleRemove">
             <DbIcon type="minus-fill" />
@@ -86,13 +86,13 @@
     clusterData?: {
       id: number;
       domain: string;
-    },
+    };
     startTime?: string;
-    endTime?: string,
-    databases?: string [];
-    tables?: string [];
-    databasesIgnore?: string [];
-    tablesIgnore?: string [];
+    endTime?: string;
+    databases?: string[];
+    tables?: string[];
+    databasesIgnore?: string[];
+    tablesIgnore?: string[];
   }
 
   // 创建表格数据
@@ -108,10 +108,7 @@
   });
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
@@ -121,16 +118,16 @@
   import RenderStartTime from './RenderStartTime.vue';
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -148,25 +145,34 @@
   const localStartTime = ref<string>();
   const localEndTime = ref<string>();
 
-  watch(() => props.data, () => {
-    if (props.data.clusterData) {
-      localClusterId.value = props.data.clusterData.id;
-      localStartTime.value = props.data.startTime;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.clusterData) {
+        localClusterId.value = props.data.clusterData.id;
+        localStartTime.value = props.data.startTime;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
   const handleClusterIdChange = (id: number) => {
     localClusterId.value = id;
   };
 
   const handleCreate = (list: Array<string>) => {
-    emits('add', list.map(domain => createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-      },
-    })));
+    emits(
+      'add',
+      list.map((domain) =>
+        createRowData({
+          clusterData: {
+            id: 0,
+            domain,
+          },
+        }),
+      ),
+    );
   };
 
   const handleAppend = () => {
@@ -190,23 +196,25 @@
         tablesRef.value.getValue('tables'),
         databasesIgnoreRef.value.getValue('databases_ignore'),
         tablesIgnoreRef.value.getValue('tables_ignore'),
-      ]).then(([
-        clusterData,
-        startTimeData,
-        endTimeData,
-        databasesData,
-        tablesData,
-        databasesIgnoreData,
-        tablesIgnoreData,
-      ]) => ({
-        ...clusterData,
-        ...startTimeData,
-        ...endTimeData,
-        ...databasesData,
-        ...tablesData,
-        ...databasesIgnoreData,
-        ...tablesIgnoreData,
-      }));
+      ]).then(
+        ([
+          clusterData,
+          startTimeData,
+          endTimeData,
+          databasesData,
+          tablesData,
+          databasesIgnoreData,
+          tablesIgnoreData,
+        ]) => ({
+          ...clusterData,
+          ...startTimeData,
+          ...endTimeData,
+          ...databasesData,
+          ...tablesData,
+          ...databasesIgnoreData,
+          ...tablesIgnoreData,
+        }),
+      );
     },
   });
 </script>

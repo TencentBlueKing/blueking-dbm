@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { getModules } from '@services/source/cmdb';
 import { getResources as getSpiderResources } from '@services/source/spider';
@@ -18,10 +18,7 @@ import { getTendbsingleList } from '@services/source/tendbsingle';
 
 import { useGlobalBizs } from '@stores';
 
-import {
-  ClusterTypes,
-  DBTypes,
-} from '@common/const';
+import { ClusterTypes, DBTypes } from '@common/const';
 
 import { getSearchSelectorParams } from '@utils';
 
@@ -97,7 +94,7 @@ export function useClusterData(state: ClusterSelectorState) {
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_type: state.activeTab,
     }).then((res) => {
-      state.dbModuleList = res.map(item => ({
+      state.dbModuleList = res.map((item) => ({
         id: item.db_module_id,
         name: item.name,
       }));

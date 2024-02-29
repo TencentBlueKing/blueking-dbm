@@ -17,7 +17,7 @@
       <span
         v-if="!data"
         key="empty"
-        style="color: #c4c6cc;">
+        style="color: #c4c6cc">
         {{ $t('输入集群后自动生成') }}
       </span>
       <span v-else>{{ data }}</span>
@@ -33,7 +33,6 @@
   }
 
   defineProps<Props>();
-
 </script>
 <style lang="less" scoped>
   .render-type-box {

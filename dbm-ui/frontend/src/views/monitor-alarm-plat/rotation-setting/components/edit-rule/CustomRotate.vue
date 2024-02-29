@@ -12,20 +12,16 @@
 -->
 
 <template>
-  <div class="title-spot custom-item-title mt-24">
-    {{ t('轮值起止时间') }}<span class="required" />
-  </div>
+  <div class="title-spot custom-item-title mt-24">{{ t('轮值起止时间') }}<span class="required" /></div>
   <BkDatePicker
     ref="datePickerRef"
     append-to-body
     :clearable="false"
     :model-value="dateTimeRange"
-    style="width:100%;"
+    style="width: 100%"
     type="daterange"
     @change="handlerChangeDatetime" />
-  <div class="title-spot custom-item-title mt-24">
-    {{ t('轮值排班') }}<span class="required" />
-  </div>
+  <div class="title-spot custom-item-title mt-24">{{ t('轮值排班') }}<span class="required" /></div>
   <DbOriginalTable
     class="custom-table-box"
     :columns="columns"
@@ -287,93 +283,91 @@
       };
     },
   });
-
 </script>
 <style lang="less" scoped>
-.custom-item-title {
-  margin-bottom: 6px;
-  font-weight: normal;
-  color: #63656E;
+  .custom-item-title {
+    margin-bottom: 6px;
+    font-weight: normal;
+    color: #63656e;
 
-  .title-tip {
-    margin-left: 6px;
-    font-size: 12px;
-    color: #979BA5;
-  }
-}
-
-.custom-table-box {
-  :deep(td) {
-    background-color: #F5F7FA !important;
+    .title-tip {
+      margin-left: 6px;
+      font-size: 12px;
+      color: #979ba5;
+    }
   }
 
-  :deep(.peoples) {
-    position: relative;
-    display: flex;
-    width: 100%;
-    flex-wrap: wrap;
+  .custom-table-box {
+    :deep(td) {
+      background-color: #f5f7fa !important;
+    }
 
-    &:hover{
+    :deep(.peoples) {
+      position: relative;
+      display: flex;
+      width: 100%;
+      flex-wrap: wrap;
+
+      &:hover {
+        .operate-box {
+          .operate-icon {
+            display: block !important;
+          }
+        }
+      }
+
+      .people-select {
+        width: 100%;
+
+        .angle-up {
+          display: none !important;
+        }
+      }
+
+      .bk-tag-input {
+        width: 100%;
+      }
+
       .operate-box {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 9999;
+        display: flex;
+        height: 100%;
+        padding-right: 12px;
+        align-items: center;
+
         .operate-icon {
-          display: block !important;
+          display: none !important;
+          font-size: 16px;
+          color: #737987;
+          cursor: pointer;
         }
       }
     }
 
-    .people-select {
-      width: 100%;
-
-      .angle-up {
-        display: none !important;
-      }
+    :deep(.time-group-mutiple) {
+      padding: 10px 0;
     }
 
-    .bk-tag-input {
-      width: 100%;
-    }
-
-    .operate-box {
-      position: absolute;
-      top: 0;
-      right: 0;
-      z-index: 9999;
-      display: flex;
-      height: 100%;
-      padding-right: 12px;
-      align-items: center;
-
-      .operate-icon {
-        display: none !important;
-        font-size: 16px;
-        color: #737987;
-        cursor: pointer;
-
-      }
-    }
-  }
-
-  :deep(.time-group-mutiple) {
-    padding: 10px 0;
-  }
-
-  :deep(.time-group-box) {
-    display: flex;
-    width: 100%;
-    flex-flow: column wrap;
-    gap: 8px;
-
-    .time-item {
+    :deep(.time-group-box) {
       display: flex;
       width: 100%;
-      align-items: center;
+      flex-flow: column wrap;
+      gap: 8px;
 
-      .icon {
-        font-size: 18px;
-        color: #979BA5;
-        cursor: pointer;
+      .time-item {
+        display: flex;
+        width: 100%;
+        align-items: center;
+
+        .icon {
+          font-size: 18px;
+          color: #979ba5;
+          cursor: pointer;
+        }
       }
     }
   }
-}
 </style>

@@ -23,10 +23,8 @@
   import RenderDynamicTable from '../render-dynamic-table/Index.vue';
 
   interface Props {
-    searchParams: Record<string, any>
+    searchParams: Record<string, any>;
   }
 
   defineProps<Props>();
-
 </script>
-

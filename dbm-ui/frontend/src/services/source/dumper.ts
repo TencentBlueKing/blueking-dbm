@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import DumperModel from '@services/model/dumper/dumper';
 
@@ -47,12 +47,7 @@ interface DumperConfig {
 /**
  * 查询数据订阅配置列表
  */
-export function listDumperConfig(params: {
-  db_name?: string,
-  table_name?: string,
-  limit?: number
-  offset?: number,
-}) {
+export function listDumperConfig(params: { db_name?: string; table_name?: string; limit?: number; offset?: number }) {
   return http.get<ListBase<DumperConfig[]>>(`/apis/mysql/bizs/${currentBizId}/dumper_config/`, params);
 }
 
@@ -66,18 +61,14 @@ export const createDumperConfig = function (params: Omit<DumperConfig, 'id'>) {
 /**
  * 校验订阅配置是否重名
  */
-export function verifyDuplicateName(params: {
-  name: string,
-}) {
+export function verifyDuplicateName(params: { name: string }) {
   return http.get<any>(`/apis/mysql/bizs/${currentBizId}/dumper_config/verify_duplicate_name/`, params);
 }
 
 /**
  * 数据订阅配置详情
  */
-export function getDumperConfigDetail(params: {
-  id: number,
-}) {
+export function getDumperConfigDetail(params: { id: number }) {
   return http.get<DumperConfig>(`/apis/mysql/bizs/${currentBizId}/dumper_config/${params.id}/`, params);
 }
 
@@ -98,9 +89,7 @@ export function updateDumperConfigPartial(params: Partial<DumperConfig>) {
 /**
  * 删除数据订阅配置
  */
-export function deleteDumperConfig(params: {
-  id: number,
-}) {
+export function deleteDumperConfig(params: { id: number }) {
   return http.delete<null>(`/apis/mysql/bizs/${currentBizId}/dumper_config/${params.id}/`, params);
 }
 
@@ -108,15 +97,17 @@ export function deleteDumperConfig(params: {
  * 查询数据订阅实例列表
  */
 export function listDumperInstance(params: {
-  ip?: string,
-  dumper_id?: string,
-  source_cluster?: string,
-  receiver_type?: string,
-  start_time?: string,
-  end_time?: string,
+  ip?: string;
+  dumper_id?: string;
+  source_cluster?: string;
+  receiver_type?: string;
+  start_time?: string;
+  end_time?: string;
 }) {
-  return http.get<ListBase<DumperModel[]>>(`/apis/mysql/bizs/${currentBizId}/dumper_instance/`, params).then(data => ({
-    ...data,
-    results: data.results.map(item => new DumperModel(item)),
-  }));
+  return http
+    .get<ListBase<DumperModel[]>>(`/apis/mysql/bizs/${currentBizId}/dumper_instance/`, params)
+    .then((data) => ({
+      ...data,
+      results: data.results.map((item) => new DumperModel(item)),
+    }));
 }

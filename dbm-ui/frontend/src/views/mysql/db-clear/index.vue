@@ -14,12 +14,15 @@
 <template>
   <SuccessView
     v-if="ticketId"
-    :steps="[{
-      title: $t('单据审批'),
-      status: 'loading',
-    }, {
-      title: $t('清档_执行'),
-    }]"
+    :steps="[
+      {
+        title: $t('单据审批'),
+        status: 'loading',
+      },
+      {
+        title: $t('清档_执行'),
+      },
+    ]"
     :ticket-id="ticketId"
     :title="$t('清档任务提交成功')"
     @close="handleCloseSuccess" />
@@ -32,7 +35,7 @@
     <div class="db-clear-operations">
       <BkButton
         class="db-clear-batch"
-        @click="() => isShowBatchInput = true">
+        @click="() => (isShowBatchInput = true)">
         <i class="db-icon-add" />
         {{ $t('批量录入') }}
       </BkButton>
@@ -52,7 +55,7 @@
       :false-label="false">
       <span
         class="inline-block"
-        style=" margin-top: -2px;border-bottom: 1px dashed #979ba5;">
+        style="margin-top: -2px; border-bottom: 1px dashed #979ba5">
         {{ $t('安全模式') }}
       </span>
     </BkCheckbox>
@@ -82,7 +85,7 @@
   <div
     v-show="isShowInputTips"
     ref="popRef"
-    style=" font-size: 12px; line-height: 24px;color: #63656e;">
+    style="font-size: 12px; line-height: 24px; color: #63656e">
     <p>{{ $t('匹配任意长度字符串_如a_不允许独立使用') }}</p>
     <p>{{ $t('匹配任意单一字符_如a_d') }}</p>
     <p>{{ $t('专门指代ALL语义_只能独立使用') }}</p>

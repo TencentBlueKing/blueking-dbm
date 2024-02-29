@@ -34,7 +34,7 @@
         ref="formRef"
         form-type="vertical"
         :model="formData"
-        style="margin-top: 16px;">
+        style="margin-top: 16px">
         <BkFormItem
           :label="t('备份类型')"
           property="backup_type"
@@ -104,10 +104,7 @@
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const createDefaultData = () => ({
     backup_type: 'logical',
@@ -125,7 +122,7 @@
   const formData = reactive(createDefaultData());
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -145,7 +142,7 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChange = (selected: { [key: string]: Array<SpiderModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
@@ -191,25 +188,25 @@
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
-      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== domain);
     }
   };
 
   const handleSubmit = () => {
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) => {
-        isSubmitting.value = true;
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: 'TENDBCLUSTER_FULL_BACKUP',
-          remark: '',
-          details: {
-            infos: {
-              ...formData,
-              clusters: data,
-            },
+    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue())).then((data) => {
+      isSubmitting.value = true;
+      createTicket({
+        bk_biz_id: currentBizId,
+        ticket_type: 'TENDBCLUSTER_FULL_BACKUP',
+        remark: '',
+        details: {
+          infos: {
+            ...formData,
+            clusters: data,
           },
-        }).then((data) => {
+        },
+      })
+        .then((data) => {
           window.changeConfirm = false;
           router.push({
             name: 'spiderDbBackup',
@@ -221,10 +218,10 @@
             },
           });
         })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      });
+        .finally(() => {
+          isSubmitting.value = false;
+        });
+    });
   };
 
   const handleReset = () => {

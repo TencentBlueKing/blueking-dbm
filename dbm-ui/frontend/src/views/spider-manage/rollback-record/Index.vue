@@ -8,8 +8,7 @@
       :confirm-handler="handleBatchDisable"
       :content="t('移除后将不可恢复')"
       :title="t('确认销毁选中的实例')">
-      <BkButton
-        :disabled="selectionList.length < 1">
+      <BkButton :disabled="selectionList.length < 1">
         {{ t('批量销毁') }}
       </BkButton>
     </DbPopconfirm>

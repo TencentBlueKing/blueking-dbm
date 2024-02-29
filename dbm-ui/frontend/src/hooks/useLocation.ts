@@ -1,7 +1,4 @@
-import {
-  type RouteLocationRaw,
-  useRouter,
-} from 'vue-router';
+import { type RouteLocationRaw, useRouter } from 'vue-router';
 
 export const locationUrl = (params: RouteLocationRaw, bizId?: number) => {
   const router = useRouter();

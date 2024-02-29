@@ -79,11 +79,7 @@
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type InfoItem,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -99,11 +95,11 @@
   const { currentBizId } = useGlobalBizs();
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
-  const inputedClusters = computed(() => tableData.value.map(item => item.cluster));
-  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length);
+  const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
+  const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
@@ -139,7 +135,7 @@
   });
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<RedisModel>}) => {
+  const handelClusterChange = (selected: { [key: string]: Array<RedisModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
@@ -175,7 +171,7 @@
     if (result.results.length < 1) {
       return;
     }
-    const list = result.results.filter(item => item.master_domain === domain);
+    const list = result.results.filter((item) => item.master_domain === domain);
     if (list.length === 0) {
       return;
     }
@@ -197,14 +193,14 @@
     tableData.value.splice(index, 1);
     delete domainMemo[cluster];
     const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
-    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== cluster);
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter((item) => item.master_domain !== cluster);
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<InfoItem>
-    }) => item.getValue()));
+    const infos = await Promise.all<InfoItem[]>(
+      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+    );
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_PROXY_SCALE_DOWN,
@@ -218,18 +214,19 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisProxyScaleDown',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'RedisProxyScaleDown',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .catch((e) => {
             console.error('submit proxy scale down error: ', e);
             window.changeConfirm = false;
@@ -237,7 +234,8 @@
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   // 重置

@@ -76,15 +76,13 @@
   const handleShowMasterBatchSelector = () => {
     emits('show-master-batch-selector');
   };
-
 </script>
 <style lang="less">
-.render-data {
-  .batch-edit-btn {
-    margin-left: 4px;
-    color: #3a84ff;
-    cursor: pointer;
+  .render-data {
+    .batch-edit-btn {
+      margin-left: 4px;
+      color: #3a84ff;
+      cursor: pointer;
+    }
   }
-}
-
 </style>

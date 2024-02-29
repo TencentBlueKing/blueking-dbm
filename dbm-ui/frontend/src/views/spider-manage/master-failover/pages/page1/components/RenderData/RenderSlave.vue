@@ -32,17 +32,17 @@
   import type { IHostData } from './Row.vue';
 
   interface Props {
-    masterData?: IHostData
+    masterData?: IHostData;
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>
+    getValue: (field: string) => Promise<string>;
   }
 
   interface ISlaveHost {
-    bk_cloud_id: number,
-    bk_host_id: number,
-    ip: string,
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
   }
 
   const props = defineProps<Props>();
@@ -59,10 +59,7 @@
     },
   ];
 
-  const {
-    loading: isLoading,
-    run: fetchRemoteMachineInstancePair,
-  } = useRequest(getRemoteMachineInstancePair, {
+  const { loading: isLoading, run: fetchRemoteMachineInstancePair } = useRequest(getRemoteMachineInstancePair, {
     manual: true,
     onSuccess(data) {
       const [machineInstancePair] = Object.values(data.machines);
@@ -74,24 +71,25 @@
     },
   });
 
-  watch(() => props.masterData, () => {
-    if (props.masterData) {
-      fetchRemoteMachineInstancePair({
-        machines: [`${props.masterData.bk_cloud_id}:${props.masterData.ip}`],
-      });
-    }
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => props.masterData,
+    () => {
+      if (props.masterData) {
+        fetchRemoteMachineInstancePair({
+          machines: [`${props.masterData.bk_cloud_id}:${props.masterData.ip}`],
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value
-        .getValue()
-        .then(() => ({
-          slave: slaveHostData.value,
-        }));
+      return inputRef.value.getValue().then(() => ({
+        slave: slaveHostData.value,
+      }));
     },
   });
 </script>

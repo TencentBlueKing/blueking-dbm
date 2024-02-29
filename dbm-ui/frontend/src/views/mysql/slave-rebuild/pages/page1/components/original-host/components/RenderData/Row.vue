@@ -14,12 +14,12 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderSlave
           ref="slaveRef"
           v-model="localSlave" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :slave="localSlave" />
@@ -42,14 +42,14 @@
   export interface IDataRow {
     rowKey: string;
     slave?: {
-      bkCloudId: number,
-      bkHostId: number,
-      ip: string,
-      port: number,
-      instanceAddress: string,
-      clusterId: number
-    },
-    clusterId?: number,
+      bkCloudId: number;
+      bkHostId: number;
+      ip: string;
+      port: number;
+      instanceAddress: string;
+      clusterId: number;
+    };
+    clusterId?: number;
   }
 
   // 创建表格数据
@@ -61,16 +61,16 @@
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -82,13 +82,17 @@
 
   const localSlave = ref<IDataRow['slave']>();
 
-  watch(() => props.data, () => {
-    if (props.data) {
-      localSlave.value = props.data.slave;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data) {
+        localSlave.value = props.data.slave;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleAppend = () => {
     emits('add', [createRowData()]);
@@ -103,13 +107,12 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        slaveRef.value.getValue('master_ip'),
-        clusterRef.value.getValue(),
-      ]).then(([sourceData, moduleData]) => ({
-        ...sourceData,
-        ...moduleData,
-      }));
+      return Promise.all([slaveRef.value.getValue('master_ip'), clusterRef.value.getValue()]).then(
+        ([sourceData, moduleData]) => ({
+          ...sourceData,
+          ...moduleData,
+        }),
+      );
     },
   });
 </script>

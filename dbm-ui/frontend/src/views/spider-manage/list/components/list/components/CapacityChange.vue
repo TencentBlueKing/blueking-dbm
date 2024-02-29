@@ -26,7 +26,7 @@
       machine-type="remote"
       :plan-form-item-props="{
         property: 'specId',
-        required: true
+        required: true,
       }"
       :shard-num="data.cluster_shard_num"
       @change="handlePlanChange" />
@@ -187,39 +187,39 @@
 </script>
 
 <style lang="less" scoped>
-.capacity-form {
-  padding: 28px 40px 24px;
+  .capacity-form {
+    padding: 28px 40px 24px;
 
-  :deep(.bk-form-label){
-    font-weight: bold;
-  }
-
-  .spec-box{
-    width: 100%;
-    padding: 16px 0;
-    font-size: 12px;
-    line-height: 18px;
-    background-color: #FAFBFD;
-
-    table{
-      width: 100%;
-      table-layout: fixed;
+    :deep(.bk-form-label) {
+      font-weight: bold;
     }
 
-    td{
-      height: 18px;
-      padding-left: 16px;
+    .spec-box {
+      width: 100%;
+      padding: 16px 0;
+      font-size: 12px;
+      line-height: 18px;
+      background-color: #fafbfd;
 
-      &:nth-child(2n+1){
-        text-align: right;
+      table {
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      td {
+        height: 18px;
+        padding-left: 16px;
+
+        &:nth-child(2n + 1) {
+          text-align: right;
+        }
       }
     }
-  }
 
-  .tips {
-    display: flex;
-    align-items: center;
-    font-size: 12px;
+    .tips {
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+    }
   }
-}
 </style>

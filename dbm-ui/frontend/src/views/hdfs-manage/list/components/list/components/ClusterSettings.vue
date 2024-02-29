@@ -16,7 +16,7 @@
     class="cluster-settings"
     :loading="isLoading">
     <template
-      v-for="(xml,index) in xmls"
+      v-for="(xml, index) in xmls"
       :key="xml.name">
       <BkCollapsePanel :model-value="index === 0">
         <template #header>
@@ -26,13 +26,19 @@
               <strong class="custom-collapse-header__name">{{ xml.name }}</strong>
             </div>
             <div class="custom-collapse-header__bar">
-              <a
+              <BkButton
                 class="mr-8"
-                href="javascript:"
-                @click.stop="copy(xml.value)">{{ $t('复制') }}</a>
-              <a
-                href="javascript:"
-                @click.stop="handleDownload(xml)">{{ $t('下载') }}</a>
+                text
+                theme="primary"
+                @click.stop="copy(xml.value)">
+                {{ $t('复制') }}
+              </BkButton>
+              <BkButton
+                text
+                theme="primary"
+                @click.stop="handleDownload(xml)">
+                {{ $t('下载') }}
+              </BkButton>
             </div>
           </div>
         </template>
@@ -53,12 +59,12 @@
   import { useCopy } from '@/hooks';
 
   interface XML {
-    name: string,
-    value: string
+    name: string;
+    value: string;
   }
 
   interface Props {
-    clusterId: number
+    clusterId: number;
   }
 
   const props = defineProps<Props>();
@@ -70,12 +76,14 @@
   const xmls = shallowRef<XML[]>([]);
 
   const getXmls = () => {
-    if (!props.clusterId) return;
+    if (!props.clusterId) {
+      return;
+    }
 
     isLoading.value = true;
     getHdfsXmls({ cluster_id: props.clusterId })
       .then((res) => {
-        xmls.value = xmlKeys.map(key => ({
+        xmls.value = xmlKeys.map((key) => ({
           name: key,
           value: res[key as keyof ClusterConfigXmlsModel] ?? '',
         }));
@@ -85,9 +93,13 @@
       });
   };
 
-  watch(() => props.clusterId, () => {
-    getXmls();
-  }, { immediate: true });
+  watch(
+    () => props.clusterId,
+    () => {
+      getXmls();
+    },
+    { immediate: true },
+  );
 
   const handleDownload = (xml: XML) => {
     const a = document.createElement('a');
@@ -101,49 +113,49 @@
 </script>
 
 <style lang="less" scoped>
-.cluster-settings {
-  height: 100%;
-  padding: 28px 40px;
+  .cluster-settings {
+    height: 100%;
+    padding: 28px 40px;
 
-  .custom-collapse-header {
-    display: flex;
-    height: 58px;
-    font-size: 12px;
-    line-height: 58px;
-    align-items: center;
-    justify-content: space-between;
-    color: @title-color;
-    cursor: pointer;
+    .custom-collapse-header {
+      display: flex;
+      height: 58px;
+      font-size: 12px;
+      line-height: 58px;
+      align-items: center;
+      justify-content: space-between;
+      color: @title-color;
+      cursor: pointer;
 
-    &__icon {
-      display: inline-block;
-      font-size: 14px;
-      color: @default-color;
-      transform: rotateZ(-90deg);
-      transition: all 0.2s;
-    }
+      &__icon {
+        display: inline-block;
+        font-size: 14px;
+        color: @default-color;
+        transform: rotateZ(-90deg);
+        transition: all 0.2s;
+      }
 
-    &__name {
-      margin: 0 4px 0 12px;
-    }
-  }
-
-  :deep(.bk-collapse-item) {
-    padding: 0 16px;
-    margin-bottom: 16px;
-    background-color: white;
-    border: 1px solid #dcdee5;
-    border-radius: 2px;
-
-    &-active {
-      .custom-collapse-header__icon {
-        transform: rotate(0);
+      &__name {
+        margin: 0 4px 0 12px;
       }
     }
-  }
 
-  :deep(.bk-collapse-content) {
-    padding: 0;
+    :deep(.bk-collapse-item) {
+      padding: 0 16px;
+      margin-bottom: 16px;
+      background-color: white;
+      border: 1px solid #dcdee5;
+      border-radius: 2px;
+
+      &-active {
+        .custom-collapse-header__icon {
+          transform: rotate(0);
+        }
+      }
+    }
+
+    :deep(.bk-collapse-content) {
+      padding: 0;
+    }
   }
-}
 </style>

@@ -9,17 +9,17 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 /**
  * 批量录入 item
  */
 export interface InputItem {
-  cluster: string,
-  master: string,
-  slaves: string[],
-  dbs: string[],
-  ignoreDBs: string[],
-  tables: string[],
-  ignoreTables: string[]
+  cluster: string;
+  master: string;
+  slaves: string[];
+  dbs: string[];
+  ignoreDBs: string[];
+  tables: string[];
+  ignoreTables: string[];
 }
