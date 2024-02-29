@@ -63,7 +63,7 @@
   const props = defineProps<Props>();
 
   const domains = defineModel<{ key: string }[]>('domains', {
-    default: [{ key: '' }],
+    default: () => [{ key: '' }],
   });
 
   const { t } = useI18n();
@@ -83,7 +83,7 @@
     return [];
   });
 
-  const domainKeys = computed(() => tableData.value.map(item => item.key));
+  const domainKeyList = computed(() => tableData.value.map(item => item.key));
 
   const domainRule = [
     {
@@ -104,18 +104,9 @@
     {
       message: t('主访问入口重复'),
       trigger: 'blur',
-      validator: (val: string) => domainKeys.value.filter(item => item === val).length < 2,
+      validator: (val: string) => domainKeyList.value.filter(item => item === val).length < 2,
     },
   ];
-
-  // 设置域名 form-item refs
-  const domainRefs: any[] = [];
-
-  const setDomainRef = (el: any) => {
-    if (el) {
-      domainRefs.push(el);
-    }
-  };
 
   const columns = computed(() => {
     const columns: Column[] = [
@@ -126,115 +117,96 @@
       },
       {
         label: () => (
-         <span>
-          {
-            props.isSqlserverSingle ? t('域名') : t('主域名')
-          }
-          {
-            tableData.value.length !== 0 && (
-              <BatchEdit
-                v-bk-tooltips={ t('快捷编辑_可通过换行分隔_快速编辑多个域名') }
-                moduleName={ props.moduleName }
-                appName={ props.formData.details.db_app_abbr }
-                onChange={ handleBatchEditDomains } />
+          <span>
+            {
+              props.isSqlserverSingle ? t('域名') : t('主域名')
+            }
+            {
+              tableData.value.length !== 0 && (
+                <span v-bk-tooltips={t('快捷编辑_可通过换行分隔_快速编辑多个域名')}>
+                  <BatchEdit
+                    moduleName={ props.moduleName }
+                    appName={ props.formData.details.db_app_abbr }
+                    onChange={ handleBatchEditDomains } />
+                </span>
               )
-          }
-         </span>
-      ),
+            }
+          </span>
+        ),
         field: 'mainDomain',
         minWidth: 500,
-        render: ({ index }: { index: number }) => renderDomain(index, true),
+        render: ({ index }: { index: number }) => (
+          <div class="domain-address">
+            <span>
+              { props.moduleName }db.
+            </span>
+            <bk-form-item
+              class="domain-address__item"
+              errorDisplayType="tooltips"
+              property={`details.domains.${index}.key` }
+              key={index }
+              rules={domainRule}
+              label-width={0}>
+                <bk-input
+                  style="width:260px"
+                  model-value={ props.formData.details.domains[index]?.key }
+                  placeholder={ t('请输入') }
+                  v-bk-tooltips={{
+                    trigger: 'click',
+                    placement: 'top',
+                    theme: 'light',
+                    content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+                  }}
+                  onInput={(value: string) => handleChangeDomain(value, index)}
+                />
+            </bk-form-item>
+            <span>
+              {`.${props.formData.details.db_app_abbr}.db`}
+            </span>
+          </div>
+        ),
       }];
+
     if (!props.isSqlserverSingle) {
       columns.push({
         label: t('从域名'),
         field: 'slaveDomain',
-        render: ({ index }: { index: number }) => renderDomain(index),
+        render: ({ index }: { index: number }) => (
+          <div class="domain-address">
+            <span>
+              { props.moduleName }dr.
+            </span>
+            <span class="domain-address__placeholder">
+              { props.formData.details.domains[index]?.key }
+            </span>
+            <span>
+              { `.${props.formData.details.db_app_abbr}.db` }
+            </span>
+          </div>
+        ),
       });
     }
-    return columns;
-  });
 
-  watch(() => props.formData.details.cluster_count, () => {
-    if (domainRefs.length > 1) {
-      domainRefs.splice(0, domainRefs.length - 1);
-    }
+    return columns;
   });
 
   /**
    * 批量编辑域名
    */
-  const handleBatchEditDomains = (realm: string[]) => {
-    if (realm.length !== 0) {
-      const results = props.formData.details.domains;
-      results.forEach((item, index) => {
-        if (realm[index]) {
-          results[index].key = realm[index];
-        }
-      });
-      _.merge(domains, results);
-      // 校验域名信息
-      nextTick(() => {
-        domainRefs.forEach((item) => {
-          item?.validate?.();
-        });
-      });
-    }
+  const handleBatchEditDomains = (newDomainList: string[]) => {
+    domains.value = newDomainList.map(newDomainItem => ({
+      key: newDomainItem,
+    }));
   };
 
   /**
    * 编辑域名
    */
-  const handleChangeDomain = (value: string) => {
-    domains.value = [{ key: value }];
+  const handleChangeDomain = (value: string, index: number) => {
+    const newDomains = _.cloneDeep(domains.value);
+    newDomains[index].key = value;
+    domains.value = newDomains;
   };
-
-  /**
-   * 渲染域名编辑
-   */
-  const renderDomain = (
-    rowIndex: number,
-    isMain = false,
-  ) => (
-      <div class="domain-address">
-       <span>
-        { props.moduleName }{ isMain ? 'db.' : 'dr.' }
-       </span>
-        {
-         isMain ? (
-          <bk-form-item
-            ref={ setDomainRef }
-            class="domain-address__item"
-            errorDisplayType="tooltips"
-            property={ `details.domains.${rowIndex}.key` }
-            key={ rowIndex }
-            rules={ domainRule }
-            label-width={ 0 }>
-             <bk-input
-               style="width:260px"
-               model-value={ props.formData.details.domains[rowIndex]?.key }
-               placeholder={ t('请输入') }
-               v-bk-tooltips={{
-                 trigger: 'click',
-                 placement: 'top',
-                 theme: 'light',
-                 content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-               }}
-               onInput={ (value: string) => handleChangeDomain(value) }
-             />
-          </bk-form-item>
-          )
-          : (
-           <span class="domain-address__placeholder">
-             { props.formData.details.domains[rowIndex]?.key }
-           </span>
-          )
-        }
-       <span>
-        { `.${props.formData.details.db_app_abbr}.db` }
-       </span>
-      </div>
-  );
 </script>
 
 <style lang="less" scoped>

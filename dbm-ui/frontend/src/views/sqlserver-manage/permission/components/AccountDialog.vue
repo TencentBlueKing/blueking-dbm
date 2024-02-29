@@ -44,12 +44,16 @@
           <BkInput
             ref="passwordRef"
             v-model="formData.password"
+            class="password-input"
             :placeholder="t('请输入')"
             type="password"
             @blur="passwordInstance?.hide();"
             @focus="handlePasswordFocus" />
           <BkButton
+            class="password-generate-button"
             :disabled="isLoading"
+            outline
+            theme="primary"
             @click="handleAutoGeneration">
             {{ t('自动生成') }}
           </BkButton>
@@ -96,6 +100,7 @@
 
   import {
     getPasswordPolicy,
+    getRandomPassword,
     getRSAPublicKeys,
     verifyPasswordStrength,
   } from '@services/permission';
@@ -139,7 +144,7 @@
     password_verify_info: {} as PasswordStrengthVerifyInfo,
   });
 
-  const formData = ref({
+  const formData = reactive({
     password: '',
     user: '',
   });
@@ -213,6 +218,15 @@
       label: t('特殊符号序'),
     },
   ];
+
+  const {
+    run: getRandomPasswordRun,
+  } = useRequest(getRandomPassword, {
+    manual: true,
+    onSuccess(randomPasswordRes) {
+      formData.password = randomPasswordRes.password;
+    },
+  });
 
   const { run: runGetPasswordPolicy } = useRequest(getPasswordPolicy, {
     manual: true,
@@ -317,49 +331,17 @@
   /**
    * 校验密码
    */
-  watch(() => formData.value.password, (psw) => {
-    psw && debounceVerifyPassword();
+  watch(() => formData.password, (newPassword) => {
+    if (newPassword) {
+      debounceVerifyPassword();
+    }
   });
-
-  /**
-   *  生成符合 规定的 随机密码
-   */
-  const handleGetAutoPassWord = (length: number) => {
-    const lowerChars = 'abcdefghijklmnopqrstuvwxyz';
-    const upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const nums = '0123456789';
-    const specialChars = '!@#$%^&*()_+-=[]{}|;:",.<>?/';
-    const allChars = lowerChars + upperChars + nums + specialChars;
-
-    let password: string;
-    do {
-      // 确保密码包含 大小写字母 数字 特殊符号
-      password = [
-        lowerChars[Math.floor(Math.random() * lowerChars.length)],
-        upperChars[Math.floor(Math.random() * upperChars.length)],
-        nums[Math.floor(Math.random() * nums.length)],
-        specialChars[Math.floor(Math.random() * specialChars.length)],
-      ].join('');
-
-      // 随机填充剩余密码
-      for (let i = 4; i < length; i++) {
-        password += allChars[Math.floor(Math.random() * allChars.length)];
-      }
-
-      // 打乱密码
-      password = password.split('').sort(() => Math.random() - 0.5)
-        .join('');
-      // 校验密码重复三位
-    } while (/(.)\1{2}/.test(password));
-
-    return password;
-  };
 
   /**
    * 自动生成密码
    */
   const handleAutoGeneration = () => {
-    formData.value.password = handleGetAutoPassWord(10);
+    getRandomPasswordRun();
   };
 
   /**
@@ -368,7 +350,7 @@
   const getEncryptPassword = () => {
     const encypt = new JSEncrypt();
     encypt.setPublicKey(publicKey.value);
-    const encyptPassword = encypt.encrypt(formData.value.password);
+    const encyptPassword = encypt.encrypt(formData.password);
     return (typeof encyptPassword === 'string' && encyptPassword) || '';
   };
 
@@ -395,10 +377,10 @@
 
   const handleClose = () => {
     accountDialogIsShow.value = false;
-    formData.value = {
+    Object.assign(formData, {
       password: '',
       user: '',
-    };
+    });
     passwordInstance.value?.destroy();
     passwordInstance.value = null;
     passwordValidate.value = {} as  PasswordStrength;
@@ -425,7 +407,7 @@
     await accountRef.value.validate();
     runCreateAccount({
       password: getEncryptPassword(),
-      user: formData.value.user,
+      user: formData.user,
     });
   };
 </script>
@@ -434,8 +416,16 @@
   @import "@styles/mixins.less";
 
   .account-dialog {
-    .bk-button {
-      width: 64px;
+    .password-item {
+      .password-input {
+        border-right: none;
+        border-radius: 2px 0 0 2px;
+        flex: 1;
+      }
+
+      .password-generate-button {
+        border-radius: 0 2px 2px 0;
+      }
     }
   }
 

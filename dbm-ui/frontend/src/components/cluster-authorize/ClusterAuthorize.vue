@@ -150,7 +150,7 @@
         </BkFormItem>
         <BkFormItem :label="t('权限明细')">
           <BkAlert
-            v-if="clusterType === ClusterTypes.TENDBHA"
+            v-if="clusterTypes.includes(ClusterTypes.TENDBHA)"
             class="mb-16 mt-10"
             theme="warning"
             :title="t('注意_对从库授权时仅会授予select权限')" />
@@ -181,7 +181,7 @@
     v-model:is-show="clusterState.isShow"
     :cluster-types="clusterTypes"
     only-one-type
-    :selected="clusterSelectorSelected"
+    :selected="newClusterSelectorSelected"
     :tab-list-config="tabListConfig"
     @change="handleNewClusterChange" />
   <MySqlClusterSelector
@@ -314,7 +314,7 @@
   /** 权限规则功能 */
   const accountState = reactive({
     isLoading: false,
-    rules: [] as PermissionRule[],
+    rules: [] as PermissionRule[] | MongodbPermissonAccountModel[],
   });
 
   const clusterState = reactive({
@@ -410,6 +410,16 @@
     } = clusterState;
     selected[clusterType] = tableProps.data;
     return selected;
+  });
+
+  const newClusterSelectorSelected = computed(() => {
+    const {
+      selected,
+      clusterType,
+      tableProps,
+    } = clusterState;
+    selected[clusterType] = tableProps.data;
+    return selected as unknown as Record<string, MongodbModel[]>;
   });
 
   const tabListConfig = computed(() => props.clusterTypes.reduce((prevConfig, clusterTypeItem) => ({
@@ -568,7 +578,7 @@
       const formatData = data
         .reduce((ips: string[], item) => ips.concat(item.ips), [])
         .map(ip => ({ ip }));
-      state.formdata.source_ips.push(...formatData);
+      state.formdata.source_ips!.push(...formatData);
     });
   };
 

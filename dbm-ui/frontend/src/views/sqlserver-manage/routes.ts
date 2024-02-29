@@ -17,6 +17,15 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/sqlserver-manage/ha-cluster-list/Index.vue'),
       },
       {
+        name: 'SqlServerHaInstanceList',
+        path: 'sqlserver-ha-instance-list',
+        meta: {
+          navName: t('【SQLServer 主从集群】实例视图'),
+          fullscreen: true,
+        },
+        component: () => import('@views/sqlserver-manage/ha-instance-list/Index.vue'),
+      },
+      {
         name: 'SqlServerSingle',
         path: 'sqlserver-single',
         meta: {

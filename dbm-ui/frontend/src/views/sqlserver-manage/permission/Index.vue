@@ -37,7 +37,7 @@
       <DbOriginalTable
         class="permission-rules-table"
         :columns="columns"
-        :data="data"
+        :data="sqlserverPermissionRulesData?.results || []"
         :max-height="tableMaxHeight"
         :row-class="setRowClass"
         @refresh="runAccountRulesList" />
@@ -96,12 +96,9 @@
 </template>
 
 <script setup lang="tsx">
+  import BkButton from 'bkui-vue/lib/button';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
 
   import SqlserverPermissionModel from '@services/model/sqlserver/sqlserver-permission';
   import {
@@ -118,15 +115,12 @@
   import { OccupiedInnerHeight } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
+  import MiniTag from '@components/mini-tag/index.vue';
 
   import { messageSuccess } from '@utils';
 
   import AccountDialog from './components/AccountDialog.vue';
   import CreateRuleSlider from './components/CreateRule.vue';
-
-  interface PermissionRuleExtend extends SqlserverPermissionModel{
-    isExpand: boolean
-  }
 
   interface PermissionRuleItemType {
     access_db: string
@@ -138,44 +132,44 @@
   }
 
   const { t } = useI18n();
-  const router = useRouter();
-  const route = useRoute();
 
   const columns = [
     {
       label: t('账号名称'),
       field: 'user',
       showOverflowTooltip: false,
-      render: ({ data }: { data: PermissionRuleExtend }) => (
+      render: ({ data }: { data: SqlserverPermissionModel }) => (
         <div
           class="permission-rules-cell"
           onClick={ () => handleToggleExpand(data) }>
             {
               data.rules.length > 1 && (
-                <i
-                  class={ ['db-icon-down-shape user-icon', { 'user-icon-expand': data.isExpand }] } />
+                <Db-Icon
+                  type='down-shape'
+                  class={ ['user-icon', { 'user-icon-expand': !rowExpandMap.value[data.account.account_id] }] } />
               )
             }
             <div class="user-name">
-              <a
-                v-overflow-tips
-                class="user-name-text text-overflow"
-                href="javascript:"
-                onClick={ () => handleViewAccount(data) }>
-                  { data.account.user }
-              </a>
+              <bk-button
+                text
+                theme="primary"
+                class="user-name-text"
+                onClick={() => handleViewAccount(data)}>
+                  {data.account.user}
+              </bk-button>
               {
                 data.isNew && (
-                  <span
-                    class="glob-new-tag mr-4"
-                    data-text="NEW" />
+                  <MiniTag
+                    theme="success"
+                    content="NEW"
+                    class="ml-4" />
                 )
               }
               <bk-button
-                class="add-rule"
+                class="add-rule ml-4"
                 size="small"
-                onClick={ () => handleShowCreateRule(data) }>
-                 { t('新建规则') }
+                onClick={() => handleShowCreateRule(data)}>
+                 {t('新建规则')}
               </bk-button>
             </div>
         </div>
@@ -185,7 +179,7 @@
       label: t('访问的DB名'),
       field: 'access_db',
       sort: true,
-      render: ({ data }: { data: PermissionRuleExtend }) => {
+      render: ({ data }: { data: SqlserverPermissionModel }) => {
         if (!data.rules.length) {
           return (
             <div class="permission-rules-cell">
@@ -213,7 +207,7 @@
       label: t('权限'),
       field: 'privilege',
       sort: true,
-      render: ({ data }: { data: PermissionRuleExtend }) => (
+      render: ({ data }: { data: SqlserverPermissionModel }) => (
         getRenderList(data).map(rule => (
           <div
             class="permission-rules-cell"
@@ -224,25 +218,9 @@
       ),
     },
     {
-      label: t('授权实例'),
-      field: 'account_id',
-      sort: true,
-      render: ({ data }: { data: PermissionRuleExtend }) => getRenderList(data).map(rule => (
-        <div class="permission-rules-cell">
-          <a
-            v-overflow-tips
-            class="user-name-text text-overflow"
-            href="javascript:"
-            onClick={ () => handleGoToAuthorize(data, rule) }>
-              { rule.account_id }
-          </a>
-        </div>
-      )),
-    },
-    {
       label: t('操作'),
       width: 140,
-      render: ({ data }: { data: PermissionRuleExtend }) => {
+      render: ({ data }: { data: SqlserverPermissionModel }) => {
         if (data.rules.length === 0) {
           return (
           <div class="permission-rules-cell">
@@ -334,19 +312,15 @@
   const authorizeShow = ref(false);
   const authorizeUser = ref();
   const authorizeDbs = ref();
+  const rowExpandMap = shallowRef<Record<number, boolean>>({});
 
   const {
-    data,
-    mutate,
+    data: sqlserverPermissionRulesData,
     loading: isLoading,
     run: runAccountRulesList,
   } = useRequest(getSqlserverPermissionRules, {
     manual: true,
     onSuccess(sqlserverPermissionRules) {
-      mutate({
-        ...sqlserverPermissionRules,
-        results: sqlserverPermissionRules.results.map(item => (Object.assign(item, { isExpand: true }))),
-      });
       accountMapList.value = sqlserverPermissionRules.results.map(item => item.account);
     },
   });
@@ -367,21 +341,21 @@
   };
 
   // 设置行样式
-  const setRowClass = (row: PermissionRuleExtend) => (row.isNew ? 'is-new' : '');
+  const setRowClass = (row: SqlserverPermissionModel) => (row.isNew ? 'is-new' : '');
 
   /**
    * 列表项展开/收起
    */
-  const handleToggleExpand = (data: PermissionRuleExtend) => {
+  const handleToggleExpand = (data: SqlserverPermissionModel) => {
     if (data.rules.length <= 1) {
       return;
     }
-    Object.assign(data, {
-      isExpand: !data.isExpand,
-    });
+    const expandMap = { ...rowExpandMap.value };
+    expandMap[data.account.account_id] = !expandMap[data.account.account_id];
+    rowExpandMap.value = expandMap;
   };
 
-  const handleDeleteAccount = (data: PermissionRuleExtend) => {
+  const handleDeleteAccount = (data: SqlserverPermissionModel) => {
     useInfoWithIcon({
       type: 'warnning',
       title: t('确认删除该账号'),
@@ -396,39 +370,26 @@
   /**
    * 展开/收起渲染列表
    */
-  const getRenderList = (data: PermissionRuleExtend) => (data.isExpand ? data.rules : data.rules.slice(0, 1));
+  const getRenderList = (data: SqlserverPermissionModel) => (!rowExpandMap.value[data.account.account_id]
+    ? data.rules : data.rules.slice(0, 1));
 
-  const handleViewAccount = (data: PermissionRuleExtend) => {
+  const handleViewAccount = (data: SqlserverPermissionModel) => {
     accountInformationData.value = data;
     accountInformationShow.value = true;
   };
 
-  const handleShowCreateRule = (data: PermissionRuleExtend) => {
+  const handleShowCreateRule = (data: SqlserverPermissionModel) => {
     ruleAccountId.value = data.account.account_id;
     ruleShow.value = true;
   };
 
   const handleShowAuthorize = (
-    data: PermissionRuleExtend,
+    data: SqlserverPermissionModel,
     item: PermissionRuleItemType,
   ) => {
     authorizeShow.value = true;
     authorizeUser.value = data.account.user;
     authorizeDbs.value = [item.access_db];
-  };
-
-  const handleGoToAuthorize = (
-    data: PermissionRuleExtend,
-    item: PermissionRuleItemType,
-  ) => {
-    router.push({
-      name: 'xxx',
-      query: {
-        from: String(route.name),
-        bizId: data.account.bk_biz_id,
-        accountId: item.account_id,
-      },
-    });
   };
 </script>
 
@@ -458,7 +419,6 @@
     .flex-center();
 
     .user-name-text {
-      margin-right: 16px;
       font-weight: bold;
     }
 

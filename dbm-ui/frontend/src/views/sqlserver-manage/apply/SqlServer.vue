@@ -39,8 +39,8 @@
                     class="create-module"
                     text
                     @click="handleCreateModule">
-                    <span class="db-icon-plus-circle" />
-                    {{ t('新建模块') }}
+                    <DbIcon type="plus-circle" />
+                    <span class="ml-4">{{ t('新建模块') }}</span>
                   </BkButton>
                 </p>
               </template>
@@ -275,7 +275,6 @@
 </template>
 
 <script setup lang="tsx">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
@@ -304,17 +303,7 @@
   import DomainTable from './components/DomainTable.vue';
   import PreviewTable from './components/PreviewTable.vue';
 
-  interface previewDataType{
-    domain:string,
-    slaveDomain:string,
-    disasterDefence:string,
-    deployStructure:string,
-    version:string,
-    charset:string,
-  }
-
   const { t } = useI18n();
-
   const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -424,20 +413,21 @@
     return [];
   });
 
-  const previewData = computed(() => tableData.value.reduce((
-    accumulator: previewDataType[],
-    { key },
-  ) => {
-    accumulator.push({
-      domain: `${moduleName.value}db.${key}.${formData.details.db_app_abbr}.db`,
-      slaveDomain: `${moduleName.value}db.${key}.${formData.details.db_app_abbr}.db`,
-      disasterDefence: t('同城跨园区'),
-      deployStructure: isSingleType ? t('单节点部署') : t('主从部署'),
-      version: dbVersion.value,
-      charset: charset.value,
-    });
-    return accumulator;
-  }, []));
+  const previewData = computed(() => tableData.value.reduce((accumulator, { key }) => [...accumulator, {
+    domain: `${moduleName.value}db.${key}.${formData.details.db_app_abbr}.db`,
+    slaveDomain: `${moduleName.value}db.${key}.${formData.details.db_app_abbr}.db`,
+    disasterDefence: t('同城跨园区'),
+    deployStructure: isSingleType ? t('单节点部署') : t('主从部署'),
+    version: dbVersion.value,
+    charset: charset.value,
+  }], [] as {
+    domain:string,
+    slaveDomain:string,
+    disasterDefence:string,
+    deployStructure:string,
+    version:string,
+    charset:string,
+  }[]));
 
   /**
    * 获取模块详情
@@ -573,7 +563,7 @@
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
-        _.merge(formData, getDefaultformData());
+        Object.assign(formData, getDefaultformData());
         nextTick(() => {
           window.changeConfirm = false;
         });

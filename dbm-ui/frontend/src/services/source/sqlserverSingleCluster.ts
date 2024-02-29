@@ -11,11 +11,12 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import SqlServerClusterDetailModel from '@services/model/sqlserver/sqlserver-cluster-detail';
+import SqlServerClusterListModel from '@services/model/sqlserver/sqlserver-ha-cluster';
+
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import SqlServerClusterDetailModel from '../model/sqlserver/sqlserver-cluster-detail';
-import SqlServerClusterListModel from '../model/sqlserver/sqlserver-ha-cluster';
 import type {
   ListBase,
   ResourceTopo,

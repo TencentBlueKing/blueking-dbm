@@ -19,32 +19,70 @@
           </BkButton>
           <template #content>
             <BkDropdownMenu>
-              <BkDropdownItem @click="handleCopyAll()">
-                {{ t('所有集群 IP') }}
+              <BkDropdownItem>
+                <BkButton
+                  :disabled="tableDataList.length === 0"
+                  text
+                  @click="handleCopy(tableDataList)">
+                  {{ t('所有集群 IP') }}
+                </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem @click="handleCopySelected()">
-                {{ t('已选集群 IP') }}
+              <BkDropdownItem>
+                <BkButton
+                  :disabled="selected.length === 0"
+                  text
+                  @click="handleCopy(selected)">
+                  {{ t('已选集群 IP') }}
+                </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem @click="handleCopyAbnormal()">
-                {{ t('异常集群 IP') }}
+              <BkDropdownItem>
+                <BkButton
+                  :disabled="abnormalDataList.length === 0"
+                  text
+                  @click="handleCopy(abnormalDataList)">
+                  {{ t('异常集群 IP') }}
+                </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem @click="handleCopyAll(true)">
-                {{ t('所有集群实例') }}
+              <BkDropdownItem>
+                <BkButton
+                  :disabled="tableDataList.length === 0"
+                  text
+                  @click="handleCopy(tableDataList, true)">
+                  {{ t('所有集群实例') }}
+                </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem @click="handleCopySelected(true)">
-                {{ t('已选集群实例') }}
+              <BkDropdownItem>
+                <BkButton
+                  :disabled="selected.length === 0"
+                  text
+                  @click="handleCopy(selected, true)">
+                  {{ t('已选集群实例') }}
+                </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem @click="handleCopyAbnormal(true)">
-                {{ t('异常集群实例') }}
+              <BkDropdownItem>
+                <BkButton
+                  :disabled="abnormalDataList.length === 0"
+                  text
+                  @click="handleCopy(abnormalDataList, true)">
+                  {{ t('异常集群实例') }}
+                </BkButton>
               </BkDropdownItem>
             </BkDropdownMenu>
           </template>
         </BkDropdown>
-        <BkButton
-          class="ml-8"
-          @click="handleShowAuthorize(selected)">
-          {{ t('批量授权') }}
-        </BkButton>
+        <span
+          v-bk-tooltips="{
+            disabled: hasSelected,
+            content: t('请选择集群')
+          }"
+          class="inline-block">
+          <BkButton
+            class="ml-8"
+            :disabled="!hasSelected"
+            @click="handleShowAuthorize(selected)">
+            {{ t('批量授权') }}
+          </BkButton>
+        </span>
         <BkButton
           class="ml-8"
           @click="handleShowExcelAuthorize">
@@ -70,9 +108,6 @@
         ref="tableRef"
         :columns="columns"
         :data-source="getHaClusterList"
-        :is-anomalies="isAnomalies"
-        :pagination="renderPagination"
-        :pagination-extra="{ small: false }"
         :row-class="setRowClass"
         selectable
         @selection="handleSelection" />
@@ -105,9 +140,7 @@
   import { createTicket } from '@services/source/ticket';
 
   import {
-    type IPagination,
     useCopy,
-    useDefaultPagination,
     useInfoWithIcon,
     useStretchLayout,
     useTicketMessage,
@@ -125,36 +158,13 @@
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
-  import DbStatus from '@components/db-status/index.vue';
+  import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import {
-    getSearchSelectorParams,
-    messageWarn,
-  } from '@utils';
-
-  import type { SearchSelectValues } from '@types/bkui-vue';
-
-  interface Server {
-    name: string;
-    ip: string;
-    port: number;
-    instance: string;
-    status: string;
-    phase: string;
-    bk_instance_id: number;
-    bk_host_id: number;
-    bk_cloud_id: number;
-    bk_biz_id: number;
-  }
-
-  interface copyListType  {
-    ip: string;
-    port: number;
-    instance: string;
-  }
+  import { getSearchSelectorParams } from '@utils';
 
   const haClusterData = defineModel<{
     clusterId: number,
@@ -193,12 +203,10 @@
     },
   ];
 
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const isCopyDropdown = ref(false);
   const selected = ref<SqlServerHaClusterModel[]>([]);
-  const searchValues = ref<SearchSelectValues>([]);
-  const isAnomalies = ref(false);
-  const pagination = ref<IPagination>(useDefaultPagination());
+  const searchValues = ref([]);
   const isShowExcelAuthorize = ref(false);
 
   /** 集群授权 */
@@ -210,23 +218,10 @@
     db_module_name: string,
   }[]>([]);
 
+  const tableDataList = computed(() => tableRef.value!.getData<SqlServerHaClusterModel>());
+  const abnormalDataList = computed(() => tableDataList.value.filter(dataItem => dataItem.isAbnormal));
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
-
-  const renderPagination = computed(() => {
-    if (pagination.value.count < 10) {
-      return false;
-    }
-    if (!isStretchLayoutOpen.value) {
-      return { ...pagination.value };
-    }
-    return {
-      ...pagination.value,
-      small: true,
-      align: 'left',
-      layout: ['total', 'limit', 'list'],
-    };
-  });
 
   const isCN = computed(() => locale.value === 'zh-cn');
 
@@ -254,43 +249,53 @@
       field: 'master_domain',
       fixed: 'left',
       render: ({ data }: { data: SqlServerHaClusterModel }) => (
-        <div class="domain">
-          <RenderTextEllipsisOneLine
-            onClick = { () => handleToDetails(data) }
-            text = { data.master_domain }>
-            <div class="cluster-tags">
-              {
-                data.operations.map(item => (
-                  <RenderOperationTag
-                    class="cluster-tag"
-                    data={ item } />
-                ))
-              }
-            </div>
-            <div style="display: flex; align-items: center;">
-              <db-icon
-                type="copy"
-                v-bk-tooltips={ t('复制主访问入口') }
-                onClick={ () => copy(data.master_domain) }/>
-              <db-icon
-                type="link"
-                v-bk-tooltips={ t('新开tab打开') }
-                onClick={ () => handleToDetails(data, true) }/>
-              <div
-                class="text-overflow"
-                v-overflow-tips>
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <bk-button
+                text
+                theme="primary"
+                onClick={() => handleToDetails(data)}>
+                {data.master_domain}
+              </bk-button>
+            ),
+            append: () => (
+              <>
+                <div class="cluster-tags">
                   {
-                    data.isNew && (
-                     <span
-                       class="glob-new-tag cluster-tag ml-4"
-                       data-text="NEW"/>
-                    )
+                    data.operationTagTips.map(item => (
+                      <RenderOperationTag
+                        class="cluster-tag"
+                        data={item} />
+                    ))
                   }
-              </div>
-            </div>
-          </RenderTextEllipsisOneLine>
-        </div>
-    ),
+                </div>
+                <div style="display: flex; align-items: center;">
+                  <db-icon
+                    type="copy"
+                    v-bk-tooltips={ t('复制主访问入口') }
+                    onClick={ () => copy(data.master_domain) }/>
+                  <db-icon
+                    type="link"
+                    v-bk-tooltips={ t('新开tab打开') }
+                    onClick={ () => handleToDetails(data, true) }/>
+                  <div
+                    class="text-overflow"
+                    v-overflow-tips>
+                      {
+                        data.isNew && (
+                          <span
+                            class="glob-new-tag cluster-tag ml-4"
+                            data-text="NEW"/>
+                        )
+                      }
+                  </div>
+                </div>
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('从访问入口'),
@@ -309,10 +314,7 @@
       label: t('状态'),
       field: 'status',
       sort: true,
-      render: ({ data }: { data: SqlServerHaClusterModel }) => {
-        const { text, theme } = data.dbStatusConfigureObj;
-        return <DbStatus theme={ theme }>{ text }</DbStatus>;
-      },
+      render: ({ data }: { data: SqlServerHaClusterModel }) => <RenderClusterStatus data={data.status} />,
     },
     {
       label: 'Master',
@@ -420,49 +422,20 @@
   ];
 
   const handleFetchTableData = () => {
-    tableRef.value.fetchData({
+    tableRef.value!.fetchData({
       ...getSearchSelectorParams(searchValues.value),
     }, {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
   };
 
-  const handleCopy = (
-    isInstance: boolean,
-    tableData: SqlServerHaClusterModel[],
-  ) => {
-    const copyList: copyListType[] =  tableData.reduce((acc, cluster) => {
-      const masterDetails = cluster.masters.map(extractServerDetails);
-      const slaveDetails = cluster.slaves.map(extractServerDetails);
-      return acc.concat(masterDetails, slaveDetails);
-    }, [] as copyListType[]);
-
-    if (copyList.length) {
-      const instances = copyList.map(item => (isInstance ? item.instance : item.ip));
-      copy(instances.join('\n'));
-    } else {
-      const tipMessage = isInstance ? t('没有可复制实例') : t('没有可复制IP');
-      messageWarn(tipMessage);
-    }
-  };
-
-  const handleCopyAll = (isInstance = false) => {
-    const tableData = tableRef.value.getData();
-    handleCopy(isInstance, tableData);
-  };
-
-  const handleCopySelected = (isInstance = false) => {
-    const tableData = selected.value;
-    if (tableData.length) {
-      handleCopy(isInstance, tableData);
-    } else {
-      messageWarn(t('请先勾选数据'));
-    }
-  };
-
-  const handleCopyAbnormal = (isInstance = false) => {
-    const tableData = (tableRef.value.getData() as SqlServerHaClusterModel[]).filter(item => item.status !== 'running');
-    handleCopy(isInstance, tableData);
+  const handleCopy = (dataList: SqlServerHaClusterModel[], isInstance = false) => {
+    const list = dataList.reduce((prevList, tableItem) => {
+      const masterList = tableItem.masters.map(masterItem => (isInstance ? `${masterItem.ip}:${masterItem.port}` : `${masterItem.ip}`));
+      const slaveList = tableItem.slaves.map(slavesItem => (isInstance ? `${slavesItem.ip}:${slavesItem.port}` : `${slavesItem.ip}`));
+      return [...prevList, ...masterList, ...slaveList];
+    }, [] as string[]);
+    copy(list.join('\n'));
   };
 
   /**
@@ -537,12 +510,6 @@
     isShowExcelAuthorize.value = true;
   };
 
-  const extractServerDetails = (server: Server) => ({
-    ip: server.ip,
-    port: server.port,
-    instance: server.instance,
-  });
-
   // 设置行样式
   const setRowClass = (row: SqlServerHaClusterModel) => {
     const classStack = [];
@@ -571,10 +538,7 @@
     }
   };
 
-  const handleSelection = (
-    data: SqlServerHaClusterModel,
-    list: SqlServerHaClusterModel[],
-  ) => {
+  const handleSelection = (data: SqlServerHaClusterModel, list: SqlServerHaClusterModel[]) => {
     selected.value = list;
   };
 
