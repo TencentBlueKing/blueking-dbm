@@ -99,7 +99,6 @@ package-lock.json
 webpack-stats.json
 *.sqlite3
 
-.vscode/
 .envrc
 .vimlocal
 .obsidian
@@ -135,7 +134,6 @@ backend/dbm_init/tmp/
 backend/tmp*
 scripts/ssls/
 .codecc
-.vscode
 .build.yml
 
 # 版本文件
