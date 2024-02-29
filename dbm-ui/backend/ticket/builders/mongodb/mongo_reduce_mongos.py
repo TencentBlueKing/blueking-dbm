@@ -49,7 +49,7 @@ class MongoDBReduceMongosDetailSerializer(BaseMongoDBOperateDetailSerializer):
                 raise serializers.ValidationError(_("缩容后的整体mongos机器数量不能小于2"))
 
             # 缩容后的整体mongos需要满足集群亲和性，等后续支持指定count缩容后才校验
-            machines = [s.machine for s in cluster.proxyinstance_set]
+            machines = [s.machine for s in cluster.proxyinstance_set.all()]
             shrink_ips = [node["ip"] for node in info["reduce_nodes"]]
             self.validate_shrink_ip_machine_affinity(cluster, machines, shrink_ips)
 

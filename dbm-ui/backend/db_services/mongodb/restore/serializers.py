@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
@@ -34,6 +35,21 @@ class QueryBackupLogResponseSerializer(serializers.Serializer):
 class QueryRestoreRecordSerializer(serializers.Serializer):
     limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
+    immute_domain = serializers.CharField(help_text=_("集群域名"), required=False)
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), required=False, choices=ClusterType.get_choices())
+    ips = serializers.CharField(help_text=_("过滤ip，多个ip以逗号分割"), required=False)
+
+    def get_conditions(self, attr):
+        filters = Q()
+        if attr.get("cluster_type"):
+            filters &= Q(cluster_type=attr["cluster_type"])
+        if attr.get("immute_domain"):
+            filters &= Q(immute_domain__icontains=attr["immute_domain"])
+        if attr.get("ips"):
+            ips = attr["ips"].split(",")
+            filters &= Q(storageinstance__machine__ip__in=ips) | Q(proxyinstance__machine__ip__in=ips)
+
+        return filters
 
 
 class QueryRestoreRecordResponseSerializer(serializers.Serializer):
