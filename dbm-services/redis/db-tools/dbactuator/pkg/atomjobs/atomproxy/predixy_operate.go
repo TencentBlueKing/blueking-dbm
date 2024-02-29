@@ -157,7 +157,7 @@ func (job *PredixyOperate) DirBackup(execUser string, port int) error {
 	if job.params.Debug {
 		return nil
 	}
-	dataDir := getPathWitChRoot("", consts.DataPath, PredixyDir)
+	dataDir := getPathWitChRoot("", consts.GetRedisDataDir(), PredixyDir)
 	insDir := fmt.Sprintf("%s/%d", dataDir, port)
 	// 判断目录是否存在
 	job.runtime.Logger.Info("check predixy ins dir[%s] exists.", insDir)

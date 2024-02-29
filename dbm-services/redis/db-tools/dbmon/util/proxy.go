@@ -25,7 +25,7 @@ func GetTwemproxyLastLogFile(port int) (logFile string, err error) {
 	ret = strings.TrimSpace(ret)
 	if ret == "" {
 		// 如果twemproxy进程不存在，则从日志目录中获取
-		ret = fmt.Sprintf("%s/twemproxy*/%d/log/twemproxy.%d.log", consts.DataPath, port, port)
+		ret = fmt.Sprintf("%s/twemproxy*/%d/log/twemproxy.%d.log", consts.GetRedisDataDir(), port, port)
 	}
 	files, err = filepath.Glob(ret + "*")
 	if err != nil {
@@ -62,7 +62,7 @@ func GetPredixyLastLogFile(port int) (logFile string, err error) {
 	}
 	logFile = strings.TrimSpace(logFile)
 	if logFile == "" {
-		logFile = fmt.Sprintf("%s/predixy/%d/logs/log", consts.DataPath, port)
+		logFile = fmt.Sprintf("%s/predixy/%d/logs/log", consts.GetRedisDataDir(), port)
 	}
 	return
 }

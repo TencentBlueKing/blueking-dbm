@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import hashlib
+import json
 import logging.config
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
@@ -387,3 +388,45 @@ def get_twemproxy_cluster_hash_tag(cluster_type: str, cluster_id: int) -> str:
             return resp["content"].get("hash_tag", "")
     except Exception:
         return ""
+
+
+def get_twemproxy_version(ip: str, port: int, bk_cloud_id: int) -> str:
+    """
+    连接twemproxy执行 stats 获取版本信息
+    返回结果示例: 0.4.1-rc-v0.28
+    """
+    admin_port = port + 1000
+    resp = DRSApi.twemproxy_rpc(
+        {
+            "addresses": [f"{ip}:{admin_port}"],
+            "db_num": 0,
+            "password": "",
+            "command": "stats",
+            "bk_cloud_id": bk_cloud_id,
+        }
+    )
+    if not resp or len(resp) == 0:
+        return ""
+    return json.loads(resp[0]["result"])["version"]
+
+
+def get_predixy_version(ip: str, port: int, bk_cloud_id: int, proxy_password: str) -> str:
+    """
+    连接predixy执行 info Proxy 获取版本信息
+    返回结果示例: 1.4.0
+    """
+    resp = DRSApi.redis_rpc(
+        {
+            "addresses": [f"{ip}:{port}"],
+            "db_num": 0,
+            "password": proxy_password,
+            "command": "info Proxy",
+            "bk_cloud_id": bk_cloud_id,
+        }
+    )
+    if not resp or len(resp) == 0:
+        return ""
+    for line in resp[0]["result"].split("\n"):
+        if line.startswith("Version:"):
+            return line.split(":")[1]
+    return ""
