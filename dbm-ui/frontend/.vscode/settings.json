@@ -1,0 +1,18 @@
+{
+  "eslint.validate": ["javascript", "javascriptreact", "html", "vue"],
+  "eslint.alwaysShowStatus": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.tabSize": 2,
+  "css.validate": false,
+  "stylelint.enable": true,
+  "scss.validate": false,
+  "stylelint.validate": ["css", "scss", "vue"],
+  "preCI.localCodeCheck.filter.whitePath": "",
+  "preCI.localCodeCheck.filter.skipPath": "",
+  "preCI.localCodeCheck.checkerSet.JS": ["standard_js"],
+  "editor.formatOnSave": true,
+  "bk-code-ai.enable": true,
+}

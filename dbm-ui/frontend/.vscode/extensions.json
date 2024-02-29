@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "stylelint.vscode-stylelint",
+    "vue.vscode-typescript-vue-plugin",
+    "vue.volar",
+    "cpylua.language-postcss"
+  ]
+}
