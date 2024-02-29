@@ -101,9 +101,7 @@
               :value="item.value" />
           </BkSelect>
         </BkComposeFormItem>
-        <div class="anticipated-effective-time">
-          {{ t('预计失效时间') }}：{{ anticipatedEffectiveTime }}
-        </div>
+        <div class="anticipated-effective-time">{{ t('预计失效时间') }}：{{ anticipatedEffectiveTime }}</div>
       </BkFormItem>
       <div class="btn-area">
         <BkButton
@@ -116,8 +114,7 @@
           :confirm-handler="handleReset"
           :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
           :title="t('确认重置页面')">
-          <BkButton
-            class="ml8 w-88">
+          <BkButton class="ml8 w-88">
             {{ t('重置') }}
           </BkButton>
         </DbPopconfirm>
@@ -138,7 +135,7 @@
         class="password-strength-item">
         <span
           class="password-strength-status"
-          :class="[ getStrenthStatus(item) ]" />
+          :class="[getStrenthStatus(item)]" />
         <span>{{ item.text }}</span>
       </div>
     </div>
@@ -147,9 +144,7 @@
     <div
       ref="subTitleRef"
       class="password-temporary-modify-head">
-      <span class="head-subtitle">
-        ( {{ t('修改的是管理账号的密码') }} )
-      </span>
+      <span class="head-subtitle"> ( {{ t('修改的是管理账号的密码') }} ) </span>
       <BkButton
         v-if="!submitting && !submitted"
         text
@@ -610,136 +605,134 @@
     handleReset();
     submitted.value = false;
   };
-
 </script>
 
 <style lang="less" scoped>
-
-.password-temporary-modify-head {
-  display: flex;
-  margin-left: 8px;;
-  flex: 1;
-  line-height: 1.7;
-  justify-content: space-between;
-
-  .head-subtitle {
-    font-size: 12px;
-    color: #979BA5;
-  }
-
-  .head-button {
+  .password-temporary-modify-head {
     display: flex;
-    align-items: center;
+    margin-left: 8px;
+    flex: 1;
+    line-height: 1.7;
+    justify-content: space-between;
 
-    .head-button-text {
+    .head-subtitle {
       font-size: 12px;
-    }
-  }
-}
-
-.password-temporary-modify {
-  background-color: #FFF;
-  border-radius: 2px;
-
-  .submitting-mask {
-    padding: 90px 0 138px;
-    text-align: center;
-
-    .submitting-icon {
-      font-size: 64px;
-      color: @primary-color;
-      animation: rotate 2s linear infinite;
+      color: #979ba5;
     }
 
-    .submitting-text {
-      margin-top: 36px;
-      font-size: 24px;
-      color: #313238;
-    }
-
-    @keyframes rotate {
-      0% {
-        transform: rotate(0deg);
-      }
-
-      100% {
-        transform: rotate(-360deg);
-      }
-    }
-  }
-
-  .password-form {
-    padding-top: 32px;
-
-    :deep(.password-form-instance) {
+    .head-button {
       display: flex;
+      align-items: center;
+
+      .head-button-text {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .password-temporary-modify {
+    background-color: #fff;
+    border-radius: 2px;
+
+    .submitting-mask {
+      padding: 90px 0 138px;
+      text-align: center;
+
+      .submitting-icon {
+        font-size: 64px;
+        color: @primary-color;
+        animation: rotate 2s linear infinite;
+      }
+
+      .submitting-text {
+        margin-top: 36px;
+        font-size: 24px;
+        color: #313238;
+      }
+
+      @keyframes rotate {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(-360deg);
+        }
+      }
+    }
+
+    .password-form {
+      padding-top: 32px;
+
+      :deep(.password-form-instance) {
+        display: flex;
+        align-items: center;
+      }
+
+      .btn-area {
+        padding: 24px 0 24px 200px;
+        background-color: #f5f7fa;
+      }
+    }
+
+    :deep(.instance-tip) {
+      color: #ff9c01;
+    }
+
+    :deep(.type-icon) {
+      font-size: 16px;
+    }
+
+    .form-item-input {
+      min-width: 300px;
+    }
+
+    .form-item-suffix {
+      width: 88px;
+    }
+
+    .password-input {
+      border-right: none;
+    }
+
+    .anticipated-effective-time {
+      font-size: 12px;
+      line-height: 12px;
+    }
+  }
+
+  .password-strength-wrapper {
+    position: relative;
+    z-index: -1;
+    display: none;
+  }
+
+  .password-strength {
+    padding-top: 4px;
+    font-size: @font-size-mini;
+
+    .password-strength-item {
+      display: flex;
+      padding-bottom: 4px;
       align-items: center;
     }
 
-    .btn-area {
-      padding: 24px 0 24px 200px;
-      background-color: #f5f7fa;
+    .password-strength-status {
+      width: 6px;
+      height: 6px;
+      margin-right: 8px;
+      background-color: @bg-disable;
+      border-radius: 50%;
+    }
+
+    .password-strength-status-success {
+      background-color: @bg-success;
+    }
+
+    .password-strength-status-failed {
+      background-color: @bg-danger;
     }
   }
-
-  :deep(.instance-tip) {
-    color: #FF9C01;
-  }
-
-  :deep(.type-icon) {
-    font-size: 16px;
-  }
-
-  .form-item-input {
-    min-width: 300px;
-  }
-
-  .form-item-suffix {
-    width: 88px;
-  }
-
-  .password-input {
-    border-right: none;
-  }
-
-  .anticipated-effective-time {
-    font-size: 12px;
-    line-height: 12px;
-  }
-}
-
-.password-strength-wrapper {
-  position: relative;
-  z-index: -1;
-  display: none;
-}
-
-.password-strength {
-  padding-top: 4px;
-  font-size: @font-size-mini;
-
-  .password-strength-item {
-    display: flex;
-    padding-bottom: 4px;
-    align-items: center;
-  }
-
-  .password-strength-status {
-    width: 6px;
-    height: 6px;
-    margin-right: 8px;
-    background-color: @bg-disable;
-    border-radius: 50%;
-  }
-
-  .password-strength-status-success {
-    background-color: @bg-success;
-  }
-
-  .password-strength-status-failed {
-    background-color: @bg-danger;
-  }
-}
 </style>
 
 <!-- <style>

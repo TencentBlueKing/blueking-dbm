@@ -9,38 +9,38 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 export interface EventSwtichItem {
-  app: string
-  bk_biz_id: number,
-  bk_biz_name: string,
-  cloud: string
-  cluster: string
+  app: string;
+  bk_biz_id: number;
+  bk_biz_name: string;
+  cloud: string;
+  cluster: string;
   cluster_info: {
-    cluster_type: string,
-    id: number,
-    immute_domain: string
-  }
-  confirm_check_time: string
-  confirm_result: string
-  db_role: string
-  db_type: string
-  idc: string
-  ip: string
-  port: number
-  remark: string
-  slave_ip: string
-  slave_port: number
-  status: string
-  switch_finished_time: string
-  switch_result: string
-  switch_start_time: string
-  uid: number
+    cluster_type: string;
+    id: number;
+    immute_domain: string;
+  };
+  confirm_check_time: string;
+  confirm_result: string;
+  db_role: string;
+  db_type: string;
+  idc: string;
+  ip: string;
+  port: number;
+  remark: string;
+  slave_ip: string;
+  slave_port: number;
+  status: string;
+  switch_finished_time: string;
+  switch_result: string;
+  switch_start_time: string;
+  uid: number;
 }
 
 export interface EventSwitchLogItem {
-  levelname: string,
-  message: string,
-  timestamp: number
+  levelname: string;
+  message: string;
+  timestamp: number;
 }

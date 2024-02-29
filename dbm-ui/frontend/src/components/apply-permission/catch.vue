@@ -37,12 +37,8 @@
   <slot v-else />
 </template>
 <script setup lang="ts">
-  import {
-    Button as BkButton,
-  } from 'bkui-vue';
-  import {
-    ref,
-  } from 'vue';
+  import { Button as BkButton } from 'bkui-vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import ApplyDataModel from '@services/model/iam/apply-data';
@@ -50,7 +46,6 @@
   import { useEventBus } from '@hooks';
 
   import RenderResult from './render-result.vue';
-
 
   const isApplyed = ref(false);
 
@@ -73,7 +68,6 @@
     needApplyPermission.value = true;
     permissionResult.value = data as ApplyDataModel;
   });
-
 </script>
 <style lang="less" scoped>
   .dbm-perimission-section {

@@ -35,13 +35,11 @@
       </RenderData>
       <div
         class="title-spot"
-        style="margin: 22px 0 12px;">
+        style="margin: 22px 0 12px">
         {{ t('校验与修复类型') }}<span class="required" />
       </div>
-      <BkRadioGroup
-        v-model="repairAndVerifyType">
-        <BkRadio
-          :label="RepairAndVerifyModes.DATA_CHECK_AND_REPAIR">
+      <BkRadioGroup v-model="repairAndVerifyType">
+        <BkRadio :label="RepairAndVerifyModes.DATA_CHECK_AND_REPAIR">
           <BkPopover
             placement="top"
             theme="dark">
@@ -52,8 +50,7 @@
             </template>
           </BkPopover>
         </BkRadio>
-        <BkRadio
-          :label="RepairAndVerifyModes.DATA_CHECK_ONLY">
+        <BkRadio :label="RepairAndVerifyModes.DATA_CHECK_ONLY">
           <BkPopover
             :content="t('校验将会对集群进行大量的读操作，可能会影响性能')"
             placement="top"
@@ -61,20 +58,19 @@
             <span>{{ t(repairAndVerifyTypeList[1].label) }}</span>
           </BkPopover>
         </BkRadio>
-        <BkRadio
-          :label="RepairAndVerifyModes.NO_CHECK_NO_REPAIR">
+        <BkRadio :label="RepairAndVerifyModes.NO_CHECK_NO_REPAIR">
           {{ t(repairAndVerifyTypeList[2].label) }}
         </BkRadio>
       </BkRadioGroup>
       <template v-if="repairAndVerifyType !== RepairAndVerifyModes.NO_CHECK_NO_REPAIR">
         <div
           class="title-spot"
-          style="margin: 25px 0 7px;">
+          style="margin: 25px 0 7px">
           {{ t('校验与修复频率设置') }}<span class="required" />
         </div>
         <BkSelect
           v-model="repairAndVerifyFrequency"
-          style="width:460px;">
+          style="width: 460px">
           <BkOption
             v-for="(item, index) in repairAndVerifyFrequencyList"
             :key="index"
@@ -132,39 +128,33 @@
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type InfoItem,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
-
-  type SubmitType = SubmitTicket<TicketTypes, InfoItem[]> &
-    {
-      details: {
-        data_check_repair_setting: {
-          type: RepairAndVerifyModes,
-          execution_frequency: RepairAndVerifyFrequencyModes | ''
-        }
-      }
-    }
+  type SubmitType = SubmitTicket<TicketTypes, InfoItem[]> & {
+    details: {
+      data_check_repair_setting: {
+        type: RepairAndVerifyModes;
+        execution_frequency: RepairAndVerifyFrequencyModes | '';
+      };
+    };
+  };
 
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const repairAndVerifyType = ref(RepairAndVerifyModes.DATA_CHECK_AND_REPAIR);
   const repairAndVerifyFrequency = ref(RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION);
   const clusterTypesMap = ref<Record<string, string[]>>({});
   const tableData = ref([createRowData()]);
-  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.srcCluster)).length);
-  const inputedClusters = computed(() => tableData.value.map(item => item.srcCluster));
+  const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.srcCluster)).length);
+  const inputedClusters = computed(() => tableData.value.map((item) => item.srcCluster));
 
   // 集群域名是否已存在表格的映射表
-  let domainMemo:Record<string, boolean> = {};
+  let domainMemo: Record<string, boolean> = {};
 
   onMounted(() => {
     queryDBVersions();
@@ -217,12 +207,13 @@
       },
       proxy: {
         id: item.proxy[0].spec_config.id,
-        count: new Set(item.proxy.map(item => item.ip)).size,
-      } };
+        count: new Set(item.proxy.map((item) => item.ip)).size,
+      },
+    };
   };
 
   // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+  const handelClusterChange = async (selected: { [key: string]: Array<RedisModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
@@ -258,7 +249,7 @@
     if (result.results.length < 1) {
       return;
     }
-    const list = result.results.filter(item => item.master_domain === domain);
+    const list = result.results.filter((item) => item.master_domain === domain);
     if (list.length === 0) {
       return;
     }
@@ -280,14 +271,14 @@
     tableData.value.splice(index, 1);
     delete domainMemo[srcCluster];
     const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
-    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== srcCluster);
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter((item) => item.master_domain !== srcCluster);
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<InfoItem>
-    }) => item.getValue()));
+    const infos = await Promise.all<InfoItem[]>(
+      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+    );
     const params: SubmitType = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE,
@@ -295,7 +286,8 @@
         ip_source: 'resource_pool',
         data_check_repair_setting: {
           type: repairAndVerifyType.value,
-          execution_frequency: repairAndVerifyType.value === RepairAndVerifyModes.NO_CHECK_NO_REPAIR ? '' : repairAndVerifyFrequency.value,
+          execution_frequency:
+            repairAndVerifyType.value === RepairAndVerifyModes.NO_CHECK_NO_REPAIR ? '' : repairAndVerifyFrequency.value,
         },
         infos,
       },
@@ -305,25 +297,27 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisClusterShardUpdate',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'RedisClusterShardUpdate',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .catch(() => {
             window.changeConfirm = false;
           })
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   // 重置

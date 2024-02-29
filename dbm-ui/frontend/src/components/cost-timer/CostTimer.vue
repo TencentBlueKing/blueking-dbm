@@ -21,23 +21,31 @@
   import { useIntervalFn } from '@vueuse/core';
 
   interface Props {
-    value: number,
-    isTiming: boolean
+    value: number;
+    isTiming: boolean;
   }
 
   const props = defineProps<Props>();
 
   const costTime = ref(0);
   // 计时
-  const { resume, pause } = useIntervalFn(() => costTime.value = costTime.value + 1, 1000, { immediate: false });
+  const { resume, pause } = useIntervalFn(() => (costTime.value = costTime.value + 1), 1000, { immediate: false });
 
-  watch(() => props.value, (time) => {
-    costTime.value = time;
-  }, { immediate: true });
+  watch(
+    () => props.value,
+    (time) => {
+      costTime.value = time;
+    },
+    { immediate: true },
+  );
 
-  watch(() => props.isTiming, () => {
-    props.isTiming ? resume() : pause();
-  }, { immediate: true });
+  watch(
+    () => props.isTiming,
+    () => {
+      props.isTiming ? resume() : pause();
+    },
+    { immediate: true },
+  );
 
   onBeforeUnmount(() => {
     pause();

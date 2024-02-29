@@ -9,18 +9,18 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import _ from 'lodash';
 
 type IRenderPermissionList = Array<{
-  systemName: string,
-  actionName: string,
+  systemName: string;
+  actionName: string;
   relatedResources: Array<{
-    type: string,
-    instances: Array<string>
-  }>
-}>
+    type: string;
+    instances: Array<string>;
+  }>;
+}>;
 
 export default class ApplyData {
   apply_url: string;
@@ -28,21 +28,21 @@ export default class ApplyData {
     system_id: string;
     system_name: string;
     actions: Array<{
-      id: string,
-      name: string,
+      id: string;
+      name: string;
       related_resource_types: {
-        system_id: string,
-        system_name: string,
-        type: string,
-        type_name: string,
+        system_id: string;
+        system_name: string;
+        type: string;
+        type_name: string;
         instances: {
-          type: string,
-          type_name: string,
-          id: string,
-          name: string,
-        }[][]
-      }[]
-    }>
+          type: string;
+          type_name: string;
+          id: string;
+          name: string;
+        }[][];
+      }[];
+    }>;
   };
 
   constructor(payload = {} as ApplyData) {

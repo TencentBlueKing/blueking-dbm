@@ -73,11 +73,11 @@
     current: number;
     limit: number;
     limitList: Array<number>;
-    align: string,
+    align: string;
     layout: Array<string>;
   }
   export interface IPaginationExtra {
-    small?: boolean
+    small?: boolean;
   }
 </script>
 <script setup lang="tsx">
@@ -556,79 +556,79 @@
   });
 </script>
 <style lang="less">
-.db-table{
-  .prepend-row {
-    display: flex;
-    height: 30px;
-    background: #ebecf0;
-    align-items: center;
-    justify-content: center;
+  .db-table {
+    .prepend-row {
+      display: flex;
+      height: 30px;
+      background: #ebecf0;
+      align-items: center;
+      justify-content: center;
+    }
+
+    table tbody tr td .cell {
+      line-height: unset !important;
+    }
   }
 
-  table tbody tr td .cell {
-    line-height: unset !important;
-  }
-}
-
-.db-table-select-cell {
-  position: relative;
-  display: flex;
-  align-items: center;
-
-  .db-table-whole-check {
+  .db-table-select-cell {
     position: relative;
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    vertical-align: middle;
-    cursor: pointer;
-    background-color: #fff;
-    border: 1px solid #3a84ff;
-    border-radius: 2px;
+    display: flex;
+    align-items: center;
 
-    &::after {
-      position: absolute;
-      top: 1px;
-      left: 4px;
-      width: 4px;
-      height: 8px;
-      border: 2px solid #3a84ff;
-      border-top: 0;
-      border-left: 0;
-      content: "";
-      transform: rotate(45deg);
-    }
-  }
-
-  .select-menu-flag {
-    margin-left: 4px;
-    font-size: 18px;
-    color: #63656E;
-  }
-}
-
-[data-theme~='db-table-select-menu'] {
-  padding: 0 !important;
-
-  .db-table-select-plan {
-    padding: 5px 0;
-
-    .item {
-      padding: 0 10px;
-      font-size: 12px;
-      line-height: 26px;
+    .db-table-whole-check {
+      position: relative;
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
       cursor: pointer;
+      background-color: #fff;
+      border: 1px solid #3a84ff;
+      border-radius: 2px;
 
-      &:hover {
-        color: #3a84ff;
-        background-color: #eaf3ff;
+      &::after {
+        position: absolute;
+        top: 1px;
+        left: 4px;
+        width: 4px;
+        height: 8px;
+        border: 2px solid #3a84ff;
+        border-top: 0;
+        border-left: 0;
+        content: '';
+        transform: rotate(45deg);
       }
+    }
 
-      &.is-selected {
-        color: #3a84ff;
-        background-color: #f4f6fa;
+    .select-menu-flag {
+      margin-left: 4px;
+      font-size: 18px;
+      color: #63656e;
+    }
+  }
+
+  [data-theme~='db-table-select-menu'] {
+    padding: 0 !important;
+
+    .db-table-select-plan {
+      padding: 5px 0;
+
+      .item {
+        padding: 0 10px;
+        font-size: 12px;
+        line-height: 26px;
+        cursor: pointer;
+
+        &:hover {
+          color: #3a84ff;
+          background-color: #eaf3ff;
+        }
+
+        &.is-selected {
+          color: #3a84ff;
+          background-color: #f4f6fa;
+        }
       }
     }
   }
-}
 </style>

@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { type ComponentInternalInstance } from 'vue';
 
@@ -22,8 +22,8 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
   const { currentBizId } = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
-      getTableList: (params: any) => Promise<any>
-    }
+      getTableList: (params: any) => Promise<any>;
+    };
   };
 
   const isLoading = ref(false);
@@ -64,7 +64,8 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
         cluster_id: clusterId.value,
       });
     }
-    return currentInstance.proxy.getTableList(params)
+    return currentInstance.proxy
+      .getTableList(params)
       .then((data) => {
         const ret = data;
         tableData.value = ret.results;

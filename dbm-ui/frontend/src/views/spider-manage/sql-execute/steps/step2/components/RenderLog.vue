@@ -39,6 +39,7 @@
   } from 'vue';
 
   import { escapeHTML } from '@utils';
+
   interface Props {
     data: any[]
   }
@@ -101,7 +102,6 @@
       itemEl.style.width = `${maxLineNumberWidth}px`;
     });
   });
-
 </script>
 <style lang="less">
   .execute-sql-render-log {

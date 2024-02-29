@@ -17,20 +17,19 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('新建一个单节点实例_通过全备_binlog的方式_将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')" />
+        :title="
+          $t('新建一个单节点实例_通过全备_binlog的方式_将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')
+        " />
       <div
         class="mt16"
-        style="display: flex;">
-        <BkButton
-          @click="handleShowBatchEntry">
+        style="display: flex">
+        <BkButton @click="handleShowBatchEntry">
           <DbIcon type="add" />
           {{ $t('批量录入') }}
         </BkButton>
       </div>
-      <div class="title-spot mt-12 mb-10">
-        {{ $t('时区') }}<span class="required" />
-      </div>
-      <TimeZonePicker style="width: 450px;" />
+      <div class="title-spot mt-12 mb-10">{{ $t('时区') }}<span class="required" /></div>
+      <TimeZonePicker style="width: 450px" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -39,7 +38,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -85,19 +84,14 @@
   import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
-  import BatchEntry, {
-    type IValue as IBatchEntryValue,
-  } from './components/BatchEntry.vue';
+  import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   interface IClusterData {
-    id: number,
-    master_domain: string,
-    bk_cloud_id: number,
+    id: number;
+    master_domain: string;
+    bk_cloud_id: number;
   }
 
   // 检测列表是否为空
@@ -106,14 +100,16 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.clusterData
-      && !firstRow.rollbackIp
-      && !firstRow.backupid
-      && !firstRow.rollbackTime
-      && !firstRow.databases
-      && !firstRow.databasesIgnore
-      && !firstRow.tables
-      && !firstRow.tablesIgnore;
+    return (
+      !firstRow.clusterData &&
+      !firstRow.rollbackIp &&
+      !firstRow.backupid &&
+      !firstRow.rollbackTime &&
+      !firstRow.databases &&
+      !firstRow.databasesIgnore &&
+      !firstRow.tables &&
+      !firstRow.tablesIgnore
+    );
   };
 
   const clusterSelectorTabList = [ClusterTypes.TENDBHA];
@@ -124,7 +120,7 @@
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
   const isShowBatchEntry = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
@@ -134,7 +130,7 @@
   };
   // 批量录入
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
-    const newList = list.map(item => createRowData(item));
+    const newList = list.map((item) => createRowData(item));
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -147,14 +143,16 @@
     isShowBatchSelector.value = true;
   };
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
-      clusterData: {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-        cloudId: clusterData.bk_cloud_id,
-      },
-    }));
+  const handelClusterChange = (selected: { [key: string]: Array<IClusterData> }) => {
+    const newList = selected[ClusterTypes.TENDBHA].map((clusterData) =>
+      createRowData({
+        clusterData: {
+          id: clusterData.id,
+          domain: clusterData.master_domain,
+          cloudId: clusterData.bk_cloud_id,
+        },
+      }),
+    );
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -178,25 +176,27 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'MYSQL_ROLLBACK_CLUSTER',
-        remark: '',
-        details: {
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
-        router.push({
-          name: 'MySQLDBRollback',
-          params: {
-            page: 'success',
+      .then((data) =>
+        createTicket({
+          ticket_type: 'MYSQL_ROLLBACK_CLUSTER',
+          remark: '',
+          details: {
+            infos: data,
           },
-          query: {
-            ticketId: data.id,
-          },
-        });
-      }))
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'MySQLDBRollback',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

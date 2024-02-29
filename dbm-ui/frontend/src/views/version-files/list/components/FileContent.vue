@@ -36,7 +36,7 @@
             v-model="state.search"
             clearable
             :placeholder="t('请输入名称关键字')"
-            style="width: 500px;"
+            style="width: 500px"
             type="search"
             @clear="handleChangePage(1)"
             @enter="handleChangePage(1)" />
@@ -486,97 +486,96 @@
   };
 </script>
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.version-files {
-  padding: 24px;
+  .version-files {
+    padding: 24px;
 
-  .version-files-content {
-    padding: 16px;
-    background: #fff;
+    .version-files-content {
+      padding: 16px;
+      background: #fff;
+    }
+
+    .version-files-operations {
+      margin-bottom: 16px;
+      justify-content: space-between;
+      .flex-center();
+
+      .bk-button {
+        width: 88px;
+      }
+    }
+
+    .bk-tab {
+      background-color: #fafbfd;
+    }
+
+    :deep(.bk-tab-content) {
+      padding: 0;
+    }
+
+    :deep(.bk-tab-header--active) {
+      background-color: @bg-white;
+    }
   }
 
-  .version-files-operations {
+  .version-files-table {
+    :deep(.bk-table-body) {
+      .md-five {
+        display: flex;
+
+        .md-five-value {
+          display: inline-block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .db-icon-copy {
+          display: none;
+          margin-left: 12px;
+          line-height: 40px;
+          color: @primary-color;
+          cursor: pointer;
+        }
+      }
+
+      .version-name {
+        .set-btn {
+          display: none;
+          height: 22px;
+          padding: 3px 8px;
+          margin-left: 5px;
+          cursor: pointer;
+          background: #fafbfd;
+          border: 1px solid #dcdee5;
+        }
+
+        .set-btn-disable {
+          color: #c4c6cc;
+        }
+      }
+
+      tr:hover .db-icon-copy {
+        display: inline-block;
+      }
+
+      tr:hover {
+        .set-btn {
+          display: inline-flex;
+        }
+      }
+    }
+  }
+
+  .create-dialog-operations {
     margin-bottom: 16px;
-    justify-content: space-between;
-    .flex-center();
 
     .bk-button {
-      width: 88px;
+      min-width: 64px;
     }
   }
 
-  .bk-tab {
-    background-color: #fafbfd;
+  :deep(.bk-upload__tip) {
+    line-height: normal;
   }
-
-  :deep(.bk-tab-content) {
-    padding: 0;
-  }
-
-  :deep(.bk-tab-header--active) {
-    background-color: @bg-white;
-  }
-}
-
-.version-files-table {
-  :deep(.bk-table-body) {
-    .md-five {
-      display: flex;
-
-      .md-five-value {
-        display: inline-block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .db-icon-copy {
-        display: none;
-        margin-left: 12px;
-        line-height: 40px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-
-    }
-
-    .version-name {
-      .set-btn {
-        display: none;
-        height: 22px;
-        padding: 3px 8px;
-        margin-left: 5px;
-        cursor: pointer;
-        background: #FAFBFD;
-        border: 1px solid #DCDEE5;
-      }
-
-      .set-btn-disable {
-        color: #C4C6CC;
-      }
-    }
-
-    tr:hover .db-icon-copy {
-      display: inline-block;
-    }
-
-    tr:hover {
-      .set-btn {
-        display: inline-flex;
-      }
-    }
-  }
-}
-
-.create-dialog-operations {
-  margin-bottom: 16px;
-
-  .bk-button {
-    min-width: 64px;
-  }
-}
-
-:deep(.bk-upload__tip) {
-  line-height: normal;
-}
 </style>

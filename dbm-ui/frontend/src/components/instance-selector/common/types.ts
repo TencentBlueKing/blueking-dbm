@@ -9,19 +9,19 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { ClusterTypes } from '@common/const';
 
 export type MySQLClusterTypes = ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE;
 
 export interface IValue {
-  bk_host_id: number,
-  bk_cloud_id: number,
-  bk_cloud_name: string,
-  ip: string,
-  port: number
-  instance_address: string,
-  cluster_id: number,
-  cluster_type: MySQLClusterTypes,
+  bk_host_id: number;
+  bk_cloud_id: number;
+  bk_cloud_name: string;
+  ip: string;
+  port: number;
+  instance_address: string;
+  cluster_id: number;
+  cluster_type: MySQLClusterTypes;
 }

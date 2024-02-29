@@ -94,10 +94,7 @@
 </template>
 
 <script setup lang="ts">
-  import {
-    Eye,
-    Unvisible,
-  } from 'bkui-vue/lib/icon';
+  import { Eye, Unvisible } from 'bkui-vue/lib/icon';
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -147,35 +144,29 @@
   });
 
   const handleCopy = (type: string) => {
-    const {
-      cluster_name,
-      domain,
-      username,
-      password,
-      token,
-    } = result.value;
+    const { cluster_name, domain, username, password, token } = result.value;
     switch (type) {
-    case 'cluster_name':
-      copy(cluster_name);
-      break;
-    case 'domain':
-      copy(domain);
-      break;
-    case 'username':
-      copy(username);
-      break;
-    case 'password':
-      copy(password);
-      break;
-    case 'token':
-      copy(token);
-      break;
-    default:
-      // 复制全部
-      // eslint-disable-next-line no-case-declarations, camelcase
-      const content = `${t('集群名称')}: ${cluster_name}\n${t('域名')}: ${domain}\n${t('Manager 账号')}: ${username}\n${t('Manager 密码')}: ${password}\nToken: ${token}`;
-      copy(content);
-      break;
+      case 'cluster_name':
+        copy(cluster_name);
+        break;
+      case 'domain':
+        copy(domain);
+        break;
+      case 'username':
+        copy(username);
+        break;
+      case 'password':
+        copy(password);
+        break;
+      case 'token':
+        copy(token);
+        break;
+      default:
+        // 复制全部
+        // eslint-disable-next-line no-case-declarations, camelcase
+        const content = `${t('集群名称')}: ${cluster_name}\n${t('域名')}: ${domain}\n${t('Manager 账号')}: ${username}\n${t('Manager 密码')}: ${password}\nToken: ${token}`;
+        copy(content);
+        break;
     }
   };
 

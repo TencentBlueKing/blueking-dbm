@@ -10,7 +10,7 @@
         <I18nT
           class="ml-8"
           keypath="共n条"
-          style="color: #63656E;"
+          style="color: #63656e"
           tag="span">
           <template #n>
             <strong>{{ item.dataList.length }}</strong>
@@ -314,16 +314,16 @@
 </script>
 
 <style lang="less" scoped>
-@import "../style/table-card.less";
+  @import '../style/table-card.less';
 
-.search-result-cluster {
-  .export-button-icon {
-    font-size: 14px;
-  }
+  .search-result-cluster {
+    .export-button-icon {
+      font-size: 14px;
+    }
 
-  .export-button-text {
-    margin-left: 4px;
-    font-size: 12px;
+    .export-button-text {
+      margin-left: 4px;
+      font-size: 12px;
+    }
   }
-}
 </style>

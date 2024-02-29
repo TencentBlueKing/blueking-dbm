@@ -31,11 +31,11 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['srcCluster']
+    data?: IDataRow['srcCluster'];
   }
 
   interface Emits {
-    (e: 'onInputFinish', value: string): void
+    (e: 'onInputFinish', value: string): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -53,7 +53,7 @@
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) =>  domainRegex.test(value),
+      validator: (value: string) => domainRegex.test(value),
       message: t('目标集群输入格式有误'),
     },
   ];
@@ -63,7 +63,6 @@
       emits('onInputFinish', value);
     });
   };
-
 </script>
 <style lang="less" scoped>
   .render-cluster-box {

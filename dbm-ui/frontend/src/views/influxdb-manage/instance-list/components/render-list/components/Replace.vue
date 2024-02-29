@@ -53,11 +53,7 @@
 </template>
 <script setup lang="ts">
   import { InfoBox } from 'bkui-vue';
-  import {
-    computed,
-    reactive,
-    ref,
-  } from 'vue';
+  import { computed, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
@@ -67,26 +63,24 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import HostReplace, {
-    type TReplaceNode,
-  } from '@components/cluster-common/host-replace/Index.vue';
+  import HostReplace, { type TReplaceNode } from '@components/cluster-common/host-replace/Index.vue';
 
-  import { messageError  } from '@utils';
+  import { messageError } from '@utils';
 
-  type TNodeInfo = TReplaceNode<InfluxDBInstanceModel>
+  type TNodeInfo = TReplaceNode<InfluxDBInstanceModel>;
 
   interface Props {
-    nodeList: TNodeInfo['nodeList']
+    nodeList: TNodeInfo['nodeList'];
   }
 
   interface Emits {
-    (e: 'change'): void,
-    (e: 'removeNode', instanceId: number): void
+    (e: 'change'): void;
+    (e: 'removeNode', instanceId: number): void;
   }
 
   interface Exposes {
-    submit: () => Promise<any>,
-    cancel: () => Promise<any>,
+    submit: () => Promise<any>;
+    cancel: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -114,17 +108,19 @@
   });
 
   const isEmpty = computed(() => {
-    const {
-      influxdb,
-    } = nodeInfoMap;
+    const { influxdb } = nodeInfoMap;
     return influxdb.nodeList.length < 1;
   });
 
-  watch(() => props.nodeList, () => {
-    nodeInfoMap.influxdb.nodeList = [...props.nodeList];
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.nodeList,
+    () => {
+      nodeInfoMap.influxdb.nodeList = [...props.nodeList];
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleRemoveNode = (node: TNodeInfo['nodeList'][0]) => {
     emits('removeNode', node.id);
@@ -138,79 +134,80 @@
           return reject();
         }
 
-        Promise.all([
-          influxdbRef.value.getValue(),
-        ]).then(([influxdbValue]) => {
-          const isEmptyValue = () => {
-            if (ipSource.value === 'manual_input') {
-              return influxdbValue.new_nodes.length < 1;
-            }
-
-            return !(influxdbValue.resource_spec.spec_id > 0 && influxdbValue.resource_spec.count > 0);
-          };
-
-          if (isEmptyValue()) {
-            messageError(t('替换节点不能为空'));
-            return reject();
-          }
-
-          const getReplaceNodeNums = () => {
-            if (ipSource.value === 'manual_input') {
-              return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
-            }
-            return Object.values(nodeInfoMap).reduce((result, nodeData) => {
-              if (nodeData.resourceSpec.spec_id > 0 && nodeData.resourceSpec.count > 0) {
-                return result + nodeData.nodeList.length;
-              }
-              return result;
-            }, 0);
-          };
-
-          InfoBox({
-            title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
-            subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
-            confirmText: t('确认'),
-            cancelText: t('取消'),
-            headerAlign: 'center',
-            contentAlign: 'center',
-            footerAlign: 'center',
-            onClosed: () => reject(),
-            onConfirm: () => {
-              const nodeData = {};
+        Promise.all([influxdbRef.value.getValue()]).then(
+          ([influxdbValue]) => {
+            const isEmptyValue = () => {
               if (ipSource.value === 'manual_input') {
-                Object.assign(nodeData, {
-                  new_nodes: {
-                    influxdb: influxdbValue.new_nodes,
-                  },
-                });
-              } else {
-                Object.assign(nodeData, {
-                  resource_spec: {
-                    influxdb: influxdbValue.resource_spec,
-                  },
-                });
+                return influxdbValue.new_nodes.length < 1;
               }
-              createTicket({
-                ticket_type: 'INFLUXDB_REPLACE',
-                bk_biz_id: currentBizId,
-                details: {
-                  ip_source: ipSource.value,
-                  old_nodes: {
-                    influxdb: influxdbValue.old_nodes,
+
+              return !(influxdbValue.resource_spec.spec_id > 0 && influxdbValue.resource_spec.count > 0);
+            };
+
+            if (isEmptyValue()) {
+              messageError(t('替换节点不能为空'));
+              return reject();
+            }
+
+            const getReplaceNodeNums = () => {
+              if (ipSource.value === 'manual_input') {
+                return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
+              }
+              return Object.values(nodeInfoMap).reduce((result, nodeData) => {
+                if (nodeData.resourceSpec.spec_id > 0 && nodeData.resourceSpec.count > 0) {
+                  return result + nodeData.nodeList.length;
+                }
+                return result;
+              }, 0);
+            };
+
+            InfoBox({
+              title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
+              subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
+              confirmText: t('确认'),
+              cancelText: t('取消'),
+              headerAlign: 'center',
+              contentAlign: 'center',
+              footerAlign: 'center',
+              onClosed: () => reject(),
+              onConfirm: () => {
+                const nodeData = {};
+                if (ipSource.value === 'manual_input') {
+                  Object.assign(nodeData, {
+                    new_nodes: {
+                      influxdb: influxdbValue.new_nodes,
+                    },
+                  });
+                } else {
+                  Object.assign(nodeData, {
+                    resource_spec: {
+                      influxdb: influxdbValue.resource_spec,
+                    },
+                  });
+                }
+                createTicket({
+                  ticket_type: 'INFLUXDB_REPLACE',
+                  bk_biz_id: currentBizId,
+                  details: {
+                    ip_source: ipSource.value,
+                    old_nodes: {
+                      influxdb: influxdbValue.old_nodes,
+                    },
+                    ...nodeData,
                   },
-                  ...nodeData,
-                },
-              })
-                .then(() => {
-                  emits('change');
-                  resolve('success');
                 })
-                .catch(() => {
-                  reject();
-                });
-            },
-          });
-        }, () => reject());
+                  .then(() => {
+                    emits('change');
+                    resolve('success');
+                  })
+                  .catch(() => {
+                    reject();
+                  });
+              },
+            });
+          },
+          () => reject(),
+        );
       });
     },
     cancel() {
@@ -225,11 +222,11 @@
     line-height: 20px;
     color: #63656e;
 
-    .ip-srouce-box{
+    .ip-srouce-box {
       display: flex;
       margin-bottom: 16px;
 
-      .bk-radio-button{
+      .bk-radio-button {
         flex: 1;
         background: #fff;
       }

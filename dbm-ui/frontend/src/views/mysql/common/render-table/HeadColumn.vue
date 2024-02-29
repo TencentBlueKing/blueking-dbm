@@ -15,7 +15,7 @@
   <th
     :class="{
       'edit-required': required,
-      [`column-${columnKey}`]: true
+      [`column-${columnKey}`]: true,
     }"
     :data-minWidth="minWidth"
     :style="styles"
@@ -28,17 +28,13 @@
     </div>
     <div
       v-if="slots.append"
-      style="display: inline-block; line-height: 40px; vertical-align: top;">
+      style="display: inline-block; line-height: 40px; vertical-align: top">
       <slot name="append" />
     </div>
   </th>
 </template>
 <script setup lang="ts">
-  import {
-    computed,
-    inject,
-    useSlots,
-  } from 'vue';
+  import { computed, inject, useSlots } from 'vue';
 
   import { random } from '@utils';
 
@@ -56,7 +52,7 @@
 
   const slots = useSlots();
 
-  const columnKey  = random();
+  const columnKey = random();
 
   const parentTable = inject('mysqlToolRenderTable', {} as any);
 
@@ -74,5 +70,4 @@
   const handleMouseMove = (event: MouseEvent) => {
     parentTable?.columnMouseMove(event);
   };
-
 </script>

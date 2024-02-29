@@ -14,9 +14,7 @@
           v-for="column of accountColumns"
           :key="column.key"
           class="details-item">
-          <div class="details-label">
-            {{ column.label }}：
-          </div>
+          <div class="details-label">{{ column.label }}：</div>
           <div class="details-value">
             {{ column.value ?? props.info?.account?.[column.key] }}
           </div>
@@ -28,7 +26,9 @@
           <span class="details-value">
             <BkButton
               hover-theme="danger"
-              @click="handleDeleteAccount()">{{ t('删除账号') }}</BkButton>
+              @click="handleDeleteAccount()">
+              {{ t('删除账号') }}
+            </BkButton>
           </span>
         </div>
       </div>
@@ -39,18 +39,15 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type {
-    AccountColumn,
-    PermissionTableRow,
-  } from '../common/types';
+  import type { AccountColumn, PermissionTableRow } from '../common/types';
   import { useDeleteAccount } from '../hooks/useDeleteAccount';
 
   interface Props {
-    info: PermissionTableRow,
+    info: PermissionTableRow;
   }
 
   interface Emits {
-    (e: 'deleteAccount'): void,
+    (e: 'deleteAccount'): void;
   }
 
   const props = defineProps<Props>();
@@ -99,24 +96,24 @@
 </script>
 
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.account-details {
-  font-size: @font-size-mini;
+  .account-details {
+    font-size: @font-size-mini;
 
-  .details-item {
-    display: flex;
-    padding-bottom: 16px;
+    .details-item {
+      display: flex;
+      padding-bottom: 16px;
+    }
+
+    .details-label {
+      width: 90px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .details-value {
+      color: @title-color;
+    }
   }
-
-  .details-label {
-    width: 90px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-
-  .details-value {
-    color: @title-color;
-  }
-}
 </style>

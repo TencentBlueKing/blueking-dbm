@@ -14,7 +14,7 @@
 <template>
   <BkLoading
     :loading="topoState.loading"
-    style="width: 100%; height: 100%;">
+    style="width: 100%; height: 100%">
     <DbCard
       ref="clusterTopoRef"
       class="cluster-details__topo"
@@ -100,26 +100,21 @@
 
   import { useFullscreen } from '@vueuse/core';
 
-  import {
-    GraphData,
-    type GraphLine,
-    type GraphNode,
-    type NodeConfig,
-  } from './common/graphData';
+  import { GraphData, type GraphLine, type GraphNode, type NodeConfig } from './common/graphData';
   import { detailColumns, useRenderGraph } from './common/useRenderGraph';
 
   interface TopoState {
-    loading: boolean,
-    locations: GraphNode[],
-    lines: GraphLine[]
+    loading: boolean;
+    locations: GraphNode[];
+    lines: GraphLine[];
   }
 
   interface Props {
     // eslint-disable-next-line vue/no-unused-properties
-    dbType: string,
-    clusterType: string,
-    id: number,
-    nodeCofig?: NodeConfig
+    dbType: string;
+    clusterType: string;
+    id: number;
+    nodeCofig?: NodeConfig;
   }
 
   const props = defineProps<Props>();
@@ -147,26 +142,23 @@
     lines: [],
   });
   const graphDataInst = new GraphData(props.clusterType, props.nodeCofig);
-  const {
-    graphState,
-    instState,
-    instDetails,
-    renderDraph,
-    handleZoomIn,
-    handleZoomOut,
-    handleZoomReset,
-  } = useRenderGraph(props, graphDataInst.nodeConfig);
+  const { graphState, instState, instDetails, renderDraph, handleZoomIn, handleZoomOut, handleZoomReset } =
+    useRenderGraph(props, graphDataInst.nodeConfig);
 
   /**
    * 获取拓扑数据
    */
-  watch(() => props.id, (id) => {
-    if (id) {
-      fetchResourceTopo(id).then(() => {
-        renderDraph(topoState.locations, topoState.lines);
-      });
-    }
-  }, { immediate: true });
+  watch(
+    () => props.id,
+    (id) => {
+      if (id) {
+        fetchResourceTopo(id).then(() => {
+          renderDraph(topoState.locations, topoState.lines);
+        });
+      }
+    },
+    { immediate: true },
+  );
 
   /**
    * 拓扑全屏切换
@@ -187,10 +179,7 @@
     return apiMap[props.clusterType]({ cluster_id: id })
       .then((res) => {
         try {
-          const {
-            locations,
-            lines,
-          } = graphDataInst.formatGraphData(res, props.dbType);
+          const { locations, lines } = graphDataInst.formatGraphData(res, props.dbType);
           topoState.locations = locations;
           topoState.lines = lines;
         } catch (e) {
@@ -209,7 +198,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .cluster-details__topo {
     height: 100%;
@@ -322,8 +311,8 @@
         padding: 0 8px;
         margin: 0 4px;
         line-height: 18px;
-        background-color: #FAFBFD;
-        border: 1px solid #979BA5;
+        background-color: #fafbfd;
+        border: 1px solid #979ba5;
         border-radius: 2px;
         flex-shrink: 0;
       }
@@ -337,7 +326,7 @@
       display: flex;
       height: 100%;
       padding: 0 14px 0 20px;
-      background: #FFF;
+      background: #fff;
       border-radius: 4px;
       box-shadow: 0 2px 4px 0 #1919290d;
       align-items: center;

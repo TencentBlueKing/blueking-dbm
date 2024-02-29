@@ -21,9 +21,7 @@
     <slot name="click" />
     <template #content>
       <div class="panel">
-        <div class="title">
-          {{ data.name }} {{ $t('规格') }}
-        </div>
+        <div class="title">{{ data.name }} {{ $t('规格') }}</div>
         <div class="items">
           <div class="item">
             <div
@@ -32,8 +30,11 @@
               CPU：
             </div>
             <div class="item__content">
-              {{ data.cpu.min === data.cpu.max ?
-                $t('n核', { n: data.cpu.min }) :$t('((n-m))台', { n: data.cpu.min, m: data.cpu.max }) }}
+              {{
+                data.cpu.min === data.cpu.max
+                  ? $t('n核', { n: data.cpu.min })
+                  : $t('((n-m))台', { n: data.cpu.min, m: data.cpu.max })
+              }}
             </div>
           </div>
           <div class="item">
@@ -48,7 +49,7 @@
           </div>
           <div
             class="item"
-            style="align-items: flex-start;">
+            style="align-items: flex-start">
             <div
               class="item__title"
               :style="titleWidth">
@@ -108,27 +109,27 @@
     cpu: {
       max: number;
       min: number;
-    },
+    };
     id: number;
     mem: {
       max: number;
       min: number;
-    },
+    };
     qps: {
       max: number;
       min: number;
-    }
+    };
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    }[],
+    }[];
     count?: number;
   }
 
   interface Props {
-    data?: SpecInfo,
-    hideQps?: boolean,
+    data?: SpecInfo;
+    hideQps?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -167,118 +168,115 @@
   }));
 </script>
 <style lang="less" scoped>
-
-.panel {
-  display: flex;
-  width: 514px;
-  padding: 16px 24px 20px 16px;
-  margin-top: -7px;
-  margin-left: -14px;
-  background: #FFF;
-  border: 1px solid #DCDEE5;
-  box-shadow: 0 3px 6px 0 #00000029;
-  box-sizing: border-box;
-  flex-direction: column;
-
-  .title {
-    height: 20px;
-    margin-bottom: 18px;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 20px;
-    color: #63656E;
-  }
-
-  .items {
+  .panel {
     display: flex;
+    width: 514px;
+    padding: 16px 24px 20px 16px;
+    margin-top: -7px;
+    margin-left: -14px;
+    background: #fff;
+    border: 1px solid #dcdee5;
+    box-shadow: 0 3px 6px 0 #00000029;
+    box-sizing: border-box;
     flex-direction: column;
-    gap: 18px;
 
-    .item {
+    .title {
+      height: 20px;
+      margin-bottom: 18px;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 20px;
+      color: #63656e;
+    }
+
+    .items {
       display: flex;
-      width: 100%;
-      align-items: center;
+      flex-direction: column;
+      gap: 18px;
 
-      &__title {
-        min-width: 36px;
-        margin-right: 8px;
-        font-size: 12px;
-        letter-spacing: 0;
-        color: #63656E;
-        text-align: right;
-      }
+      .item {
+        display: flex;
+        width: 100%;
+        align-items: center;
 
-      &__content {
-        font-size: 12px;
-        letter-spacing: 0;
-        color: #313238;
+        &__title {
+          min-width: 36px;
+          margin-right: 8px;
+          font-size: 12px;
+          letter-spacing: 0;
+          color: #63656e;
+          text-align: right;
+        }
 
-        .table {
-          display: flex;
-          flex-direction: column;
+        &__content {
+          font-size: 12px;
+          letter-spacing: 0;
+          color: #313238;
 
-          .cell_common {
-            width: 150px;
-            height: 42px;
-            padding: 11px 16px;
-            border: 1px solid #DCDEE5;
-          }
-
-          .head {
+          .table {
             display: flex;
-            width: 100%;
-            background: #F0F1F5;
+            flex-direction: column;
 
-            &_one {
-              .cell_common();
-
-              border-bottom: none;
+            .cell_common {
+              width: 150px;
+              height: 42px;
+              padding: 11px 16px;
+              border: 1px solid #dcdee5;
             }
 
-            &_two {
-              .cell_common();
+            .head {
+              display: flex;
+              width: 100%;
+              background: #f0f1f5;
 
-              width: 120px;
-              border-right: none;
-              border-bottom: none;
-              border-left: none;
+              &_one {
+                .cell_common();
+
+                border-bottom: none;
+              }
+
+              &_two {
+                .cell_common();
+
+                width: 120px;
+                border-right: none;
+                border-bottom: none;
+                border-left: none;
+              }
+
+              &_three {
+                .cell_common();
+
+                width: 120px;
+                border-bottom: none;
+              }
             }
 
-            &_three {
-              .cell_common();
+            .row {
+              display: flex;
+              width: 100%;
 
-              width: 120px;
-              border-bottom: none;
+              &_one {
+                .cell_common();
+              }
+
+              &_two {
+                .cell_common();
+
+                width: 120px;
+                border-right: none;
+                border-left: none;
+              }
+
+              &_three {
+                .cell_common();
+
+                width: 120px;
+              }
             }
           }
-
-          .row {
-            display: flex;
-            width: 100%;
-
-            &_one {
-              .cell_common();
-
-            }
-
-            &_two {
-              .cell_common();
-
-              width: 120px;
-              border-right: none;
-              border-left: none;
-            }
-
-            &_three {
-              .cell_common();
-
-              width: 120px;
-            }
-          }  }
-
+        }
       }
     }
   }
-
-}
 </style>

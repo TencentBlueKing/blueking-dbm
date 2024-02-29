@@ -23,32 +23,32 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
 
   import mysqlToolboxMenuConfig from '@views/mysql/toolbox-menu';
 
-  interface Props{
-    id: string,
-    favorMap: Record<string, boolean>,
+  interface Props {
+    id: string;
+    favorMap: Record<string, boolean>;
     toolboxMenuConfig: typeof mysqlToolboxMenuConfig;
   }
 
   const props = defineProps<Props>();
 
-  const currentMenu = _.find(props.toolboxMenuConfig, item => item.id === props.id);
+  const currentMenu = _.find(props.toolboxMenuConfig, (item) => item.id === props.id);
 
   const isShow = ref(false);
 
-  watch(() => props.favorMap, () => {
-    if (!currentMenu) {
-      return;
-    }
-    isShow.value = _.some(currentMenu.children, item => props.favorMap[item.id]);
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.favorMap,
+    () => {
+      if (!currentMenu) {
+        return;
+      }
+      isShow.value = _.some(currentMenu.children, (item) => props.favorMap[item.id]);
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
-

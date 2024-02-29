@@ -37,7 +37,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -75,10 +75,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (Number(localValue.value)));
+      return editRef.value.getValue().then(() => Number(localValue.value));
     },
   });
-
 </script>

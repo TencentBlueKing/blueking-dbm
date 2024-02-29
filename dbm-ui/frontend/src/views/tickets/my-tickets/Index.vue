@@ -34,13 +34,13 @@
   }
 </script>
 <style lang="less">
-.my-tickets-page {
-  display: flex;
-  height: 100%;
-
-  .ticket-detail-wrapper {
-    flex: 1;
+  .my-tickets-page {
+    display: flex;
     height: 100%;
+
+    .ticket-detail-wrapper {
+      flex: 1;
+      height: 100%;
+    }
   }
-}
 </style>

@@ -30,7 +30,7 @@
           <AuthButton
             action-id="hdfs_shrink"
             class="ml8"
-            :disabled="(batchShrinkDisabledInfo.disabled || operationData?.operationDisabled)"
+            :disabled="batchShrinkDisabledInfo.disabled || operationData?.operationDisabled"
             :permission="operationData?.permission.hdfs_shrink"
             :resource="operationData?.id"
             @click="handleShowShrink">
@@ -43,7 +43,7 @@
           <AuthButton
             action-id="hdfs_replace"
             class="ml8"
-            :disabled="(batchReplaceDisableInfo.disabled || operationData?.operationDisabled)"
+            :disabled="batchReplaceDisableInfo.disabled || operationData?.operationDisabled"
             :permission="operationData?.permission.hdfs_replace"
             :resource="operationData?.id"
             @click="handleShowReplace">
@@ -53,14 +53,14 @@
       </OperationBtnStatusTips>
       <BkDropdown
         class="ml8"
-        @hide="() => isCopyDropdown = false"
-        @show="() => isCopyDropdown = true">
+        @hide="() => (isCopyDropdown = false)"
+        @show="() => (isCopyDropdown = true)">
         <BkButton>
           {{ $t('复制IP') }}
           <DbIcon
             class="action-copy-icon"
             :class="{
-              'action-copy-icon--avtive': isCopyDropdown
+              'action-copy-icon--avtive': isCopyDropdown,
             }"
             type="up-big" />
         </BkButton>
@@ -82,7 +82,7 @@
         v-model="searchKey"
         clearable
         :placeholder="$t('请输入IP搜索')"
-        style="max-width: 360px; margin-left: 8px; flex: 1;" />
+        style="max-width: 360px; margin-left: 8px; flex: 1" />
     </div>
     <BkAlert
       v-if="operationData?.operationStatusText"
@@ -119,7 +119,7 @@
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       quick-close
-      :title="$t('xx扩容【name】', {title: 'HDFS', name:operationData?.cluster_name })"
+      :title="$t('xx扩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
       :width="960">
       <ClusterExpansion
         v-if="operationData"
@@ -128,7 +128,7 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
-      :title="$t('xx缩容【name】', {title: 'HDFS', name:operationData?.cluster_name })"
+      :title="$t('xx缩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
         v-if="operationData"
@@ -137,7 +137,7 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowReplace"
-      :title="$t('xx替换【name】', {title: 'HDFS', name:operationData?.cluster_name })"
+      :title="$t('xx替换【name】', { title: 'HDFS', name: operationData?.cluster_name })"
       :width="960">
       <ClusterReplace
         v-if="operationData"

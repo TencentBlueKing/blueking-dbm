@@ -21,18 +21,18 @@
   import { loadInstance, mount, unmount } from '@blueking/bk-weweb';
 
   export interface Item {
-    id: string,
-    name: string,
+    id: string;
+    name: string;
   }
   export interface SearchValue {
-    id: string,
-    name: string,
-    values: Item[]
+    id: string;
+    name: string;
+    values: Item[];
   }
   export interface SearchData {
-    id: string,
-    name: string,
-    children?: Item[]
+    id: string;
+    name: string;
+    children?: Item[];
   }
 
   export default {
@@ -200,8 +200,8 @@
 </script>
 
 <style lang="less" scoped>
-:deep(.bk-search-select) {
-  width: 100%;
-  background: white;
-}
+  :deep(.bk-search-select) {
+    width: 100%;
+    background: white;
+  }
 </style>

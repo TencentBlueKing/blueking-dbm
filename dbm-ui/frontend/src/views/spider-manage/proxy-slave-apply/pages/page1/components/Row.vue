@@ -13,20 +13,19 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSpec
         ref="sepcRef"
         :data="data.spec"
         :is-loading="data.isLoading"
         :select-list="specList" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetNumber
         ref="numRef"
         :data="data.targetNum"
@@ -59,9 +58,9 @@
     isLoading: boolean;
     cluster: string;
     clusterId: number;
-    clusterType: string,
-    cloudId: number,
-    bizId: number,
+    clusterType: string;
+    cloudId: number;
+    bizId: number;
     spec?: SpecInfo;
     targetNum?: string;
   }
@@ -70,10 +69,10 @@
     cluster_id: number;
     resource_spec: {
       spider_slave_ip_list: {
-        spec_id: 1,
-        count: 2
-      } & SpecInfo
-    }
+        spec_id: 1;
+        count: 2;
+      } & SpecInfo;
+    };
   }
 
   // 创建表格数据
@@ -86,22 +85,21 @@
     cloudId: 0,
     bizId: 0,
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'onClusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'onClusterInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = defineProps<Props>();
@@ -113,14 +111,18 @@
 
   const specList = ref<IListItem[]>([]);
 
-  watch(() => props.data, (data) => {
-    if (data?.clusterType) {
-      const type = data.clusterType;
-      setTimeout(() => querySpecList(type));
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      if (data?.clusterType) {
+        const type = data.clusterType;
+        setTimeout(() => querySpecList(type));
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 查询集群对应的规格列表
   const querySpecList = async (type: string) => {
@@ -130,12 +132,12 @@
       offset: 0,
     });
     const retArr = ret.results;
-    const res  = await getSpecResourceCount({
+    const res = await getSpecResourceCount({
       bk_biz_id: Number(props.data.bizId),
       bk_cloud_id: Number(props.data.cloudId),
-      spec_ids: retArr.map(item => item.spec_id),
+      spec_ids: retArr.map((item) => item.spec_id),
     });
-    specList.value = retArr.map(item => ({
+    specList.value = retArr.map((item) => ({
       id: item.spec_id,
       name: item.spec_name,
       specData: {
@@ -148,7 +150,6 @@
       },
     }));
   };
-
 
   const handleInputFinish = (value: string) => {
     emits('onClusterInputFinish', value);
@@ -182,5 +183,4 @@
       });
     },
   });
-
 </script>

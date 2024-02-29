@@ -67,16 +67,16 @@
   }
 
   interface Emits {
-    (e: 'onInputFinish', value: string): void
+    (e: 'onInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
-    inputed: () => ([]),
+    inputed: () => [],
   });
   const emits = defineEmits<Emits>();
 
@@ -113,21 +113,25 @@
       message: t('目标主机不存在'),
     },
     {
-      validator: (value: string) => props.inputed.filter(item => item === value).length < 2,
+      validator: (value: string) => props.inputed.filter((item) => item === value).length < 2,
       message: t('目标主机重复'),
     },
   ];
 
-  watch(() => props.data, (data) => {
-    localValue.value = data;
-    // selected.value = {
-    //   [props.activeTab]: [{
-    //     ip: data,
-    //   }],
-    // } as InstanceSelectorValues;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      localValue.value = data;
+      // selected.value = {
+      //   [props.activeTab]: [{
+      //     ip: data,
+      //   }],
+      // } as InstanceSelectorValues;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // const handelRadioChange = (data: InstanceSelectorValues) => {
   //   selected.value = data;
@@ -148,12 +152,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return editRef.value.getValue().then(() => localValue.value);
     },
   });
-
 </script>
 <style lang="less" scoped>
   .render-host-box {
@@ -171,8 +172,7 @@
     //   }
     // }
 
-
-    .edit-btn{
+    .edit-btn {
       position: absolute;
       top: 0;
       right: 5px;
@@ -193,16 +193,15 @@
 
         .select-icon {
           font-size: 16px;
-          color: #979BA5;
+          color: #979ba5;
         }
 
         &:hover {
-          background: #F0F1F5;
+          background: #f0f1f5;
 
           .select-icon {
-            color: #3A84FF;
+            color: #3a84ff;
           }
-
         }
       }
     }

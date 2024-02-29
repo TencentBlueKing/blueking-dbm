@@ -30,9 +30,11 @@
             v-for="item of listData"
             :key="item.id"
             class="aside-list__item"
-            :class="[{
-              'aside-list__item--active': item.id === activeInstId
-            }]"
+            :class="[
+              {
+                'aside-list__item--active': item.id === activeInstId,
+              },
+            ]"
             @click="handleClickItem(item)">
             <DbStatus :theme="getItemStatus(item)" />
             <span
@@ -73,7 +75,7 @@
   import { useGlobalBizs } from '@/stores';
 
   interface Emits {
-    (e: 'change', value: { id: number, instance: string }): void
+    (e: 'change', value: { id: number; instance: string }): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -118,7 +120,7 @@
         listData.value = data.results;
         isAnomalies.value = false;
 
-        const targetItem = listData.value.find(item => item.id === Number(route.params.instId));
+        const targetItem = listData.value.find((item) => item.id === Number(route.params.instId));
         if (isInit && targetItem) {
           handleClickItem(targetItem);
           return;
@@ -172,54 +174,54 @@
 </script>
 
 <style lang="less" scoped>
-.influxdb-details-aside {
-  position: relative;
-  height: 100%;
-  padding-top: 24px;
+  .influxdb-details-aside {
+    position: relative;
+    height: 100%;
+    padding-top: 24px;
 
-  .aside-loading {
-    height: calc(100% - 56px);
-  }
+    .aside-loading {
+      height: calc(100% - 56px);
+    }
 
-  .aside-search {
-    display: flex;
-    width: calc(100% - 40px);
-    margin: 0 auto 24px;
-  }
-
-  .aside-list {
-    height: calc(100% - 32px);
-
-    &__item {
+    .aside-search {
       display: flex;
-      width: calc(100% - 1px);
-      padding: 0 20px;
-      font-size: @font-size-mini;
-      line-height: 32px;
-      cursor: pointer;
-      border-top: 1px solid transparent;
-      border-bottom: 1px solid transparent;
-      align-items: center;
+      width: calc(100% - 40px);
+      margin: 0 auto 24px;
+    }
 
-      &:hover {
-        background-color: @bg-white;
+    .aside-list {
+      height: calc(100% - 32px);
+
+      &__item {
+        display: flex;
+        width: calc(100% - 1px);
+        padding: 0 20px;
+        font-size: @font-size-mini;
+        line-height: 32px;
+        cursor: pointer;
+        border-top: 1px solid transparent;
+        border-bottom: 1px solid transparent;
+        align-items: center;
+
+        &:hover {
+          background-color: @bg-white;
+        }
+
+        &--active {
+          width: 100%;
+          background-color: @bg-white;
+          border-top-color: @border-disable;
+          border-bottom-color: @border-disable;
+        }
       }
+    }
 
-      &--active {
-        width: 100%;
-        background-color: @bg-white;
-        border-top-color: @border-disable;
-        border-bottom-color: @border-disable;
+    .aside-pagination {
+      padding: 4px 0;
+
+      :deep(.bk-pagination-limit) {
+        display: none;
       }
     }
   }
-
-  .aside-pagination {
-    padding: 4px 0;
-
-    :deep(.bk-pagination-limit) {
-      display: none;
-    }
-  }
-}
 </style>

@@ -33,19 +33,22 @@ export default class RiakNode {
     [RiakNode.REBOOTING]: '重启任务正在进行中，跳转xx查看进度',
   };
 
-  static stautsInfo: Record<string, {
-    theme: string,
-    text: string
-  }> = {
-      [RiakNode.NORMAL]: {
-        theme: 'success',
-        text: t('正常'),
-      },
-      [RiakNode.ABNORMAL]: {
-        theme: 'danger',
-        text: t('异常'),
-      },
-    };
+  static stautsInfo: Record<
+    string,
+    {
+      theme: string;
+      text: string;
+    }
+  > = {
+    [RiakNode.NORMAL]: {
+      theme: 'success',
+      text: t('正常'),
+    },
+    [RiakNode.ABNORMAL]: {
+      theme: 'danger',
+      text: t('异常'),
+    },
+  };
 
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -117,4 +120,3 @@ export default class RiakNode {
   //   };
   // }
 }
-

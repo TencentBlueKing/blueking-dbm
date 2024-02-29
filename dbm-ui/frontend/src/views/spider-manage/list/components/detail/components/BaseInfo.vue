@@ -23,19 +23,17 @@
 
   import type TendbClusterModel from '@services/model/spider/tendbCluster';
 
-  import EditInfo, {
-    type InfoColumn,
-  } from '@components/editable-info/index.vue';
+  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
   interface Props {
-    data: TendbClusterModel
+    data: TendbClusterModel;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const columns:InfoColumn[][] = [
+  const columns: InfoColumn[][] = [
     [
       {
         label: t('集群名称'),
@@ -70,12 +68,12 @@
       {
         label: 'Spider Master',
         key: 'spider_master',
-        render: () => props.data.spider_master.map(item => item.instance).join(','),
+        render: () => props.data.spider_master.map((item) => item.instance).join(','),
       },
       {
         label: 'Spider Slave',
         key: 'spider_slave',
-        render: () => props.data.spider_slave.map(item => item.instance).join(',') || '--',
+        render: () => props.data.spider_slave.map((item) => item.instance).join(',') || '--',
       },
       {
         label: 'Spider Ctl Primary',
@@ -85,17 +83,17 @@
       {
         label: t('运维节点'),
         key: 'spider_mnt',
-        render: () => props.data.spider_mnt.map(item => item.instance).join(',') || '--',
+        render: () => props.data.spider_mnt.map((item) => item.instance).join(',') || '--',
       },
       {
         label: 'RemoteDB',
         key: 'remote_db',
-        render: () => props.data.remote_db.map(item => item.instance).join(','),
+        render: () => props.data.remote_db.map((item) => item.instance).join(','),
       },
       {
         label: 'RemoteDR',
         key: 'remote_dr',
-        render: () => props.data.remote_dr.map(item => item.instance).join(','),
+        render: () => props.data.remote_dr.map((item) => item.instance).join(','),
       },
     ],
   ];

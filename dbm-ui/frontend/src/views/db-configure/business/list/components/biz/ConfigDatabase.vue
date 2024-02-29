@@ -18,7 +18,7 @@
         v-model="state.search"
         clearable
         :placeholder="$t('名称_数据库版本_更新人')"
-        style="width: 500px;"
+        style="width: 500px"
         type="search" />
       <BkButton
         v-bk-tooltips="$t('刷新')"
@@ -208,11 +208,10 @@
       },
     });
   };
-
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .biz-database {
     .biz-database-operations {
@@ -243,7 +242,7 @@
           height: 6px;
           background-color: @bg-danger;
           border-radius: 50%;
-          content: "";
+          content: '';
         }
       }
     }
@@ -256,4 +255,3 @@
     }
   }
 </style>
-

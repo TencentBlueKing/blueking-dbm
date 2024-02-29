@@ -40,10 +40,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import {
-    computed,
-    ref,
-  } from 'vue';
+  import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
@@ -81,7 +78,7 @@
           top: 2px;
           right: -8px;
           color: @danger-color;
-          content: "*";
+          content: '*';
         }
       }
     }

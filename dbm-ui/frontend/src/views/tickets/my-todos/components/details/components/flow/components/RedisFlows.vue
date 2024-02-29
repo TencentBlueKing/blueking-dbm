@@ -13,7 +13,7 @@
 
 <template>
   <BkTimeline :list="flowTimeline">
-    <template #content="{content}">
+    <template #content="{ content }">
       <template v-if="content?.todos?.length > 0">
         <div
           v-for="item in content.todos"
@@ -22,9 +22,13 @@
           <div class="flow-todo__title">
             {{ item.name }}
             <template v-if="isShowResourceApply(item)">
-              ，<a
-                href="javascript:"
-                @click="handleToApply">{{ $t('请前往补货') }}</a>
+              ，
+              <BkButton
+                text
+                theme="primary"
+                @click="handleToApply">
+                {{ $t('请前往补货') }}
+              </BkButton>
             </template>
           </div>
           <div
@@ -104,9 +108,11 @@
           <div
             v-else
             class="flow-todo__infos">
-            {{ item.done_by }} {{ $t('处理完成') }}，
-            {{ $t('操作') }}：<span :class="String(item.status).toLowerCase()">{{ getOperation(item) }}</span>，
-            {{ $t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
+            {{ item.done_by }} {{ $t('处理完成') }}， {{ $t('操作') }}：
+            <span :class="String(item.status).toLowerCase()">
+              {{ getOperation(item) }}
+            </span>
+            ， {{ $t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
             <template v-if="item.url">
               ，<a :href="item.url">{{ $t('查看详情') }} &gt;</a>
             </template>
@@ -123,7 +129,7 @@
           :content="content"
           is-todos>
           <template #extra-text>
-            <template v-if="(content.isLast && content.status === 'SUCCEEDED')">
+            <template v-if="content.isLast && content.status === 'SUCCEEDED'">
               ，
               <a
                 href="javascript:"

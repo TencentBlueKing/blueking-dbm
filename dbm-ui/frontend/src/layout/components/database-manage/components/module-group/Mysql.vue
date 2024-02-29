@@ -74,8 +74,7 @@
       <FunController
         :controller-id="dumperControlId"
         module-id="mysql">
-        <BkMenuItem
-          key="DumperDataSubscription">
+        <BkMenuItem key="DumperDataSubscription">
           <template #icon>
             <i class="db-icon-mobanshili" />
           </template>
@@ -114,10 +113,7 @@
   </FunController>
 </template>
 <script setup lang="ts">
-  import {
-    onBeforeUnmount,
-    shallowRef,
-  } from 'vue';
+  import { onBeforeUnmount, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { FunctionKeys } from '@services/model/function-controller/functionController';
@@ -144,13 +140,12 @@
   const dumperControlId = `dumper_biz_${window.PROJECT_CONFIG.BIZ_ID}` as FunctionKeys;
 
   const renderToolboxMenu = () => {
-    toolboxMenuSortList.value = userProfile.profile[UserPersonalSettings.MYSQL_TOOLBOX_MENUS]
-      || toolboxMenuConfig.map(item => item.id);
+    toolboxMenuSortList.value =
+      userProfile.profile[UserPersonalSettings.MYSQL_TOOLBOX_MENUS] || toolboxMenuConfig.map((item) => item.id);
     favorMeunMap.value = makeMap(userProfile.profile[UserPersonalSettings.MYSQL_TOOLBOX_FAVOR]);
   };
 
   renderToolboxMenu();
-
 
   eventBus.on('MYSQL_TOOLBOX_CHANGE', renderToolboxMenu);
 
@@ -158,4 +153,3 @@
     eventBus.off('MYSQL_TOOLBOX_CHANGE', renderToolboxMenu);
   });
 </script>
-

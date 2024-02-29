@@ -15,9 +15,8 @@
   <div class="ticket-details__info">
     <div
       class="ticket-details__item"
-      style="align-items: flex-start;">
-      <span
-        class="ticket-details__item-label">{{ t('需求信息') }}：</span>
+      style="align-items: flex-start">
+      <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
       <span class="ticket-details__item-value">
         <BkLoading :loading="loading">
           <DbOriginalTable
@@ -119,9 +118,8 @@
       }, [] as RowData[]);
     },
   });
-
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

@@ -24,7 +24,7 @@
         v-model="tableSearch"
         :data="filters"
         :placeholder="t('请输入账号名称/DB名称/权限名称')"
-        style="width: 500px;"
+        style="width: 500px"
         unique-select
         @change="getList" />
     </div>
@@ -339,88 +339,86 @@
 </script>
 
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.permission {
-  .permission-operations {
-    justify-content: space-between;
-    padding-bottom: 16px;
-    .flex-center();
-  }
+  .permission {
+    .permission-operations {
+      justify-content: space-between;
+      padding-bottom: 16px;
+      .flex-center();
+    }
 
-  :deep(.permission-cell) {
-    position: relative;
-    padding: 0 15px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    border-bottom: 1px solid @border-disable;
-  }
+    :deep(.permission-cell) {
+      position: relative;
+      padding: 0 15px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-bottom: 1px solid @border-disable;
+    }
 
-  :deep(.permission-cell:last-child) {
-    border-bottom: 0;
-  }
+    :deep(.permission-cell:last-child) {
+      border-bottom: 0;
+    }
 
-  :deep(.user-icon) {
-    position: absolute;
-    top: 50%;
-    left: 15px;
-    transform: translateY(-50%) rotate(-90deg);
-    transition: all 0.2s;
-  }
+    :deep(.user-icon) {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      transform: translateY(-50%) rotate(-90deg);
+      transition: all 0.2s;
+    }
 
-  :deep(.user-icon-expand) {
-    transform: translateY(-50%) rotate(0);
-  }
+    :deep(.user-icon-expand) {
+      transform: translateY(-50%) rotate(0);
+    }
 
-  :deep(.user-name) {
-    height: 100%;
-    padding-left: 24px;
-    cursor: pointer;
-    align-items: center;
-    .flex-center();
+    :deep(.user-name) {
+      height: 100%;
+      padding-left: 24px;
+      cursor: pointer;
+      align-items: center;
+      .flex-center();
 
-    .add-rule {
-      display: none;
+      .add-rule {
+        display: none;
+      }
+    }
+
+    :deep(.user-name-text) {
+      margin-right: 16px;
+      font-weight: bold;
     }
   }
 
-  :deep(.user-name-text) {
-    margin-right: 16px;
-    font-weight: bold;
-  }
-}
+  .permission-table {
+    transition: all 0.5s;
 
-.permission-table {
-  transition: all 0.5s;
-
-  :deep(.bk-table-body table tbody tr:hover) {
-    .add-rule {
-      display: flex;
+    :deep(.bk-table-body table tbody tr:hover) {
+      .add-rule {
+        display: flex;
+      }
     }
 
-  }
+    :deep(.bk-table-body table tbody tr) {
+      &.is-new {
+        td {
+          background-color: #f3fcf5 !important;
+        }
+      }
 
-  :deep(.bk-table-body table tbody tr) {
-    &.is-new {
       td {
-        background-color: #f3fcf5 !important;
-      }
-    }
-
-    td {
-      .cell {
-        padding: 0 !important;
+        .cell {
+          padding: 0 !important;
+        }
       }
 
-    }
-
-    td:first-child {
-      .cell,
-      .permission-cell {
-        height: 100% !important;
+      td:first-child {
+        .cell,
+        .permission-cell {
+          height: 100% !important;
+        }
       }
     }
   }
-}
 </style>

@@ -86,8 +86,8 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  interface Emits{
-    (e: 'showMasterBatchSelector'): void
+  interface Emits {
+    (e: 'showMasterBatchSelector'): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -97,15 +97,15 @@
   };
 </script>
 <style lang="less">
-.render-data {
-  .batch-edit-btn {
-    margin-left: 4px;
-    color: #3a84ff;
-    cursor: pointer;
+  .render-data {
+    .batch-edit-btn {
+      margin-left: 4px;
+      color: #3a84ff;
+      cursor: pointer;
+    }
   }
-}
 
-.spec-title {
-  border-bottom: 1px dashed #979BA5;
-}
+  .spec-title {
+    border-bottom: 1px dashed #979ba5;
+  }
 </style>

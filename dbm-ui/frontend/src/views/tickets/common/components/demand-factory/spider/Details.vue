@@ -45,8 +45,7 @@
   <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('数据库部署信息') }}</strong>
     <div class="ticket-details__list">
-      <div
-        class="ticket-details__item">
+      <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ $t('容灾要求') }}：</span>
         <span class="ticket-details__item-value">{{ affinity }}</span>
       </div>
@@ -75,8 +74,7 @@
         <span class="ticket-details__item-label">{{ t('备注') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
       </div>
-      <div
-        class="ticket-details__item">
+      <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('接入层Master') }}：</span>
         <span class="ticket-details__item-value">
           <BkPopover
@@ -86,7 +84,7 @@
             theme="light">
             <span
               class="pb-2"
-              style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
               {{ spiderSpec?.spec_name }}（{{ `${spiderSpec?.count} ${t('台')}` }}）
             </span>
             <template #content>
@@ -95,8 +93,7 @@
           </BkPopover>
         </span>
       </div>
-      <div
-        class="ticket-details__item whole mt-8">
+      <div class="ticket-details__item whole mt-8">
         <span class="ticket-details__item-label">{{ t('集群部署方案') }}：</span>
         <span class="ticket-details__item-value">
           <DbOriginalTable
@@ -122,38 +119,38 @@
   import SpecInfos, { type SpecInfo } from '../../SpecInfos.vue';
 
   interface Details {
-    bk_cloud_id: number,
-    db_app_abbr: string,
-    cluster_name: string,
-    cluster_alias: string,
-    ip_source: string,
-    city_code: string,
-    db_module_id: number,
-    spider_port: number,
-    cluster_shard_num: number,
-    remote_shard_num: number,
-    bk_cloud_name: string,
-    charset: string,
+    bk_cloud_id: number;
+    db_app_abbr: string;
+    cluster_name: string;
+    cluster_alias: string;
+    ip_source: string;
+    city_code: string;
+    db_module_id: number;
+    spider_port: number;
+    cluster_shard_num: number;
+    remote_shard_num: number;
+    bk_cloud_name: string;
+    charset: string;
     version: {
-      db_version: string,
-      spider_version: string
-    },
-    db_module_name: string,
-    city_name: string,
-    machine_pair_cnt: number,
-    disaster_tolerance_level: string,
+      db_version: string;
+      spider_version: string;
+    };
+    db_module_name: string;
+    city_name: string;
+    machine_pair_cnt: number;
+    disaster_tolerance_level: string;
     resource_spec: {
-      spider: SpecInfo,
+      spider: SpecInfo;
       backend_group: {
-        count: number,
-        spec_id: string,
-        spec_info: RedisClusterSpecModel
-      },
-    },
+        count: number;
+        spec_id: string;
+        spec_info: RedisClusterSpecModel;
+      };
+    };
   }
 
-  interface Props{
-    ticketDetails: TicketDetails<Details>
+  interface Props {
+    ticketDetails: TicketDetails<Details>;
   }
 
   const props = defineProps<Props>();
@@ -172,7 +169,7 @@
   const affinity = computed(() => {
     const level = props.ticketDetails?.details?.disaster_tolerance_level;
     if (level && affinityList) {
-      return affinityList.find(item => item.value === level)?.label;
+      return affinityList.find((item) => item.value === level)?.label;
     }
     return '--';
   });
@@ -198,19 +195,19 @@
     {
       field: 'qps',
       label: t('集群QPS每秒'),
-      render: ({ data }: {data: RedisClusterSpecModel}) => data.qps.min * data.machine_pair,
+      render: ({ data }: { data: RedisClusterSpecModel }) => data.qps.min * data.machine_pair,
     },
   ];
 
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {
       const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find(item => item.city_code === cityCode)?.city_name;
+      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
       cityName.value = name ?? '--';
     },
   });
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

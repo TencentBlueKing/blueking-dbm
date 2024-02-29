@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing; software distributed under the License is distributed
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -54,26 +54,26 @@ export default class Tendbsingle {
   master_domain: string;
   major_version: string;
   masters: {
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    bk_host_id: number,
-    bk_instance_id: number,
-    instance: string,
-    ip: string,
-    name: string,
-    phase: string,
-    port: number,
-    spec_config: Record<'id', number>,
-    status: string,
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    bk_instance_id: number;
+    instance: string;
+    ip: string;
+    name: string;
+    phase: string;
+    port: number;
+    spec_config: Record<'id', number>;
+    status: string;
   }[];
   operations: Array<{
-    cluster_id: number,
-    flow_id: number,
-    operator: string,
-    status: string,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
+    cluster_id: number;
+    flow_id: number;
+    operator: string;
+    status: string;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
   }>;
   permission: {
     mysql_authorize: boolean;
@@ -125,7 +125,7 @@ export default class Tendbsingle {
   }
 
   get isStarting() {
-    return Boolean(this.operations.find(item => item.ticket_type === Tendbsingle.MYSQL_SINGLE_ENABLE));
+    return Boolean(this.operations.find((item) => item.ticket_type === Tendbsingle.MYSQL_SINGLE_ENABLE));
   }
 
   get masterDomainDisplayName() {
@@ -140,7 +140,7 @@ export default class Tendbsingle {
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(Tendbsingle.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态
@@ -189,7 +189,7 @@ export default class Tendbsingle {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: Tendbsingle.operationIconMap[item.ticket_type],
       tip: Tendbsingle.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,

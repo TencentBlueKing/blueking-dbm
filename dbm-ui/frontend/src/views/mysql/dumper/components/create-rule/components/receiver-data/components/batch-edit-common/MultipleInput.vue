@@ -1,13 +1,13 @@
 <template>
   <div
     class="entry-config-multi"
-    :class="{'is-error': isError}">
+    :class="{ 'is-error': isError }">
     <BkInput
       v-model.trim="localValue"
       class="input-box"
       :placeholder="t('请输入数值')"
       :rows="rows"
-      style="resize:none;"
+      style="resize: none"
       type="textarea"
       @blur="handleBlur"
       @input="handleInput" />
@@ -25,7 +25,7 @@
   import { useI18n } from 'vue-i18n';
 
   interface Exposes {
-    getValue: () => string[],
+    getValue: () => string[];
   }
 
   const { t } = useI18n();
@@ -43,7 +43,7 @@
 
   const checkInput = () => {
     const inputArr = localValue.value.split('\n');
-    const isExistError = inputArr.find(item => !checkRow(item));
+    const isExistError = inputArr.find((item) => !checkRow(item));
     return !isExistError;
   };
 
@@ -65,40 +65,38 @@
       return [];
     },
   });
-
 </script>
 <style lang="less" scoped>
-.entry-config-multi {
-  position: relative;
+  .entry-config-multi {
+    position: relative;
 
-  .input-box {
-    height: auto;
-    max-height: 300px;
-    min-height: 84px;
-  }
-
-  .error-box {
-    position: absolute;
-    top: 0;
-    right: 0;
-    display: flex;
-    width: 25px;
-    height: 100%;
-    padding-top: 12px;
-    justify-content: center;
-    align-items: center;
-
-    .error-icon {
-      font-size: 14px;
-      color: #ea3636;
+    .input-box {
+      height: auto;
+      max-height: 300px;
+      min-height: 84px;
     }
 
-  }
-}
+    .error-box {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: flex;
+      width: 25px;
+      height: 100%;
+      padding-top: 12px;
+      justify-content: center;
+      align-items: center;
 
-.is-error{
-  :deep(textarea) {
-    background-color: #fff0f1;
+      .error-icon {
+        font-size: 14px;
+        color: #ea3636;
+      }
+    }
   }
-}
+
+  .is-error {
+    :deep(textarea) {
+      background-color: #fff0f1;
+    }
+  }
 </style>

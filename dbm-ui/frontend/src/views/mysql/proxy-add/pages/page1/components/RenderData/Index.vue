@@ -42,9 +42,9 @@
   import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/mysql/common/render-table/Index.vue';
 
-  interface Emits{
-    (e: 'batchSelectCluster'): void,
-    (e: 'batchSelectIp'): void
+  interface Emits {
+    (e: 'batchSelectCluster'): void;
+    (e: 'batchSelectIp'): void;
   }
 
   const emits = defineEmits<Emits>();

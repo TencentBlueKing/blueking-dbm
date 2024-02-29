@@ -20,12 +20,12 @@
       @change="handleImportModeChange">
       <BkRadioButton
         label="manual"
-        style="width: 140px;">
+        style="width: 140px">
         {{ t('手动输入') }}
       </BkRadioButton>
       <BkRadioButton
         label="file"
-        style="width: 140px;">
+        style="width: 140px">
         {{ t('SQL文件') }}
       </BkRadioButton>
     </BkRadioGroup>
@@ -40,11 +40,7 @@
   </KeepAlive>
 </template>
 <script setup lang="ts">
-  import {
-    computed,
-    ref,
-    watch,
-  } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import LocalFile from './local-file/Index.vue';
@@ -55,7 +51,7 @@
     modelValue: string[];
   }
   interface Emits {
-    (e: 'update:modelValue', value: string []): void;
+    (e: 'update:modelValue', value: string[]): void;
     (e: 'update:importMode', value: string): void;
     (e: 'grammar-check', doCheck: boolean, checkPass: boolean): void;
   }
@@ -74,13 +70,19 @@
   };
   const renderCom = computed(() => comMap[localImportMode.value as keyof typeof comMap]);
 
-  watch(() => props.importMode, () => {
-    localImportMode.value = props.importMode;
-  });
+  watch(
+    () => props.importMode,
+    () => {
+      localImportMode.value = props.importMode;
+    },
+  );
 
-  watch(() => props.modelValue, () => {
-    localFileList.value = props.modelValue;
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      localFileList.value = props.modelValue;
+    },
+  );
 
   // 文件来源改变时需要重置文件列表和语法检测
   const handleImportModeChange = () => {
@@ -88,7 +90,7 @@
   };
 
   // 文件列表
-  const handleChange = (value: string []) => {
+  const handleChange = (value: string[]) => {
     emits('update:modelValue', value);
     emits('update:importMode', localImportMode.value);
   };

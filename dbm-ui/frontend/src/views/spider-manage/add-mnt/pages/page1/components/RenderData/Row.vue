@@ -14,20 +14,20 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
           @id-change="handleClusterIdChange"
           @input-create="handleCreate" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderNet
           ref="netRef"
           :cluster-id="localClusterId"
           @cluster-change="handleClusterDataChange" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderHost
           ref="proxyRef"
           :cluster-data="localClusterData"
@@ -46,23 +46,23 @@
   import { random } from '@utils';
 
   export interface IHostData {
-    bk_host_id: number,
-    bk_cloud_id: number,
-    ip: string,
+    bk_host_id: number;
+    bk_cloud_id: number;
+    ip: string;
   }
 
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
-      id: number,
-      domain: string,
-    },
-    bkCloudId?: number,
+      id: number;
+      domain: string;
+    };
+    bkCloudId?: number;
     spiderIpList?: {
-      ip: string,
-      bk_cloud_id: number,
-      bk_host_id: number
-    }[]
+      ip: string;
+      bk_cloud_id: number;
+      bk_host_id: number;
+    }[];
   }
 
   // 创建表格数据
@@ -81,17 +81,17 @@
   import RenderNet from './RenderNet.vue';
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -105,13 +105,17 @@
   const localClusterId = ref(0);
   const localClusterData = ref<SpiderModel>();
 
-  watch(() => props.data, () => {
-    if (props.data.clusterData) {
-      localClusterId.value = props.data.clusterData.id;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.clusterData) {
+        localClusterId.value = props.data.clusterData.id;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
   const handleClusterIdChange = (id: number) => {
     localClusterId.value = id;
   };
@@ -119,12 +123,17 @@
     localClusterData.value = data;
   };
   const handleCreate = (list: Array<string>) => {
-    emits('add', list.map(domain => createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-      },
-    })));
+    emits(
+      'add',
+      list.map((domain) =>
+        createRowData({
+          clusterData: {
+            id: 0,
+            domain,
+          },
+        }),
+      ),
+    );
   };
 
   const handleAppend = () => {
@@ -140,15 +149,13 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        clusterRef.value.getValue(),
-        netRef.value.getValue(),
-        proxyRef.value.getValue(),
-      ]).then(([clusterData, netData, proxyData]) => ({
-        ...clusterData,
-        ...netData,
-        ...proxyData,
-      }));
+      return Promise.all([clusterRef.value.getValue(), netRef.value.getValue(), proxyRef.value.getValue()]).then(
+        ([clusterData, netData, proxyData]) => ({
+          ...clusterData,
+          ...netData,
+          ...proxyData,
+        }),
+      );
     },
   });
 </script>

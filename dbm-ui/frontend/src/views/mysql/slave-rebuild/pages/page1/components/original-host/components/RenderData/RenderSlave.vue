@@ -24,10 +24,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { checkMysqlInstances } from '@services/source/instances';
@@ -41,7 +38,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>
+    getValue: (field: string) => Promise<string>;
   }
 
   const { currentBizId } = useGlobalBizs();
@@ -63,56 +60,59 @@
       message: t('目标从库实例格式不正确'),
     },
     {
-      validator: (value: string) => checkMysqlInstances({
-        bizId: currentBizId,
-        instance_addresses: [value],
-      }).then((data) => {
-        if (data.length < 1) {
-          return false;
-        }
-        const [instanceData] = data;
-        modelValue.value = {
-          bkCloudId: instanceData.bk_cloud_id,
-          bkHostId: instanceData.bk_host_id,
-          ip: instanceData.ip,
-          port: instanceData.port,
-          instanceAddress: instanceData.instance_address,
-          clusterId: instanceData.cluster_id,
-        };
-        return true;
-      }),
+      validator: (value: string) =>
+        checkMysqlInstances({
+          bizId: currentBizId,
+          instance_addresses: [value],
+        }).then((data) => {
+          if (data.length < 1) {
+            return false;
+          }
+          const [instanceData] = data;
+          modelValue.value = {
+            bkCloudId: instanceData.bk_cloud_id,
+            bkHostId: instanceData.bk_host_id,
+            ip: instanceData.ip,
+            port: instanceData.port,
+            instanceAddress: instanceData.instance_address,
+            clusterId: instanceData.cluster_id,
+          };
+          return true;
+        }),
       message: t('目标从库实例不存在'),
     },
   ];
 
-  watch(() => modelValue.value, () => {
-    if (!modelValue.value) {
-      return;
-    }
-    localValue.value = `${modelValue.value.ip}:${modelValue.value.port}`;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => modelValue.value,
+    () => {
+      if (!modelValue.value) {
+        return;
+      }
+      localValue.value = `${modelValue.value.ip}:${modelValue.value.port}`;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => {
-          if (!modelValue.value) {
-            return Promise.reject();
-          }
-          return ({
-            slave: {
-              bk_biz_id: currentBizId,
-              bk_cloud_id: modelValue.value.bkCloudId,
-              ip: modelValue.value.ip,
-              bk_host_id: modelValue.value.bkHostId,
-              port: modelValue.value.port,
-              instance_address: modelValue.value.instanceAddress,
-            },
-          });
-        });
+      return editRef.value.getValue().then(() => {
+        if (!modelValue.value) {
+          return Promise.reject();
+        }
+        return {
+          slave: {
+            bk_biz_id: currentBizId,
+            bk_cloud_id: modelValue.value.bkCloudId,
+            ip: modelValue.value.ip,
+            bk_host_id: modelValue.value.bkHostId,
+            port: modelValue.value.port,
+            instance_address: modelValue.value.instanceAddress,
+          },
+        };
+      });
     },
   });
 </script>

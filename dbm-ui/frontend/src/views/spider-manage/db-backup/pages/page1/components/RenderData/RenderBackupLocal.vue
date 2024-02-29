@@ -34,12 +34,12 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    clusterData?: IDataRow['clusterData'],
-    modelValue: string
+    clusterData?: IDataRow['clusterData'];
+    modelValue: string;
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<Record<string, string>>;
   }
 
   const props = defineProps<Props>();
@@ -65,44 +65,46 @@
 
   const editSelectRef = ref();
   const localValue = ref('');
-  const backupList = shallowRef<Record<'label'|'value', string>[]>([]);
+  const backupList = shallowRef<Record<'label' | 'value', string>[]>([]);
 
-  const {
-    run: fetchClusterList,
-    loading: isListLoading,
-  } = useRequest(getSpiderList, {
+  const { run: fetchClusterList, loading: isListLoading } = useRequest(getSpiderList, {
     onSuccess(data) {
       if (data.results.length < 1) {
         backupList.value = [...baseList];
         return;
       }
-      const mntList = data.results[0].spider_mnt.map(item => ({
+      const mntList = data.results[0].spider_mnt.map((item) => ({
         label: `运维节点(${item.ip}#${item.port})`,
         value: `spider_mnt::${item.instance}`,
       }));
-      backupList.value = [
-        ...baseList,
-        ...mntList,
-      ];
+      backupList.value = [...baseList, ...mntList];
     },
     manual: true,
   });
 
-  watch(() => props.modelValue, () => {
-    localValue.value = props.modelValue;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      localValue.value = props.modelValue;
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(() => props.clusterData, () => {
-    if (props.clusterData) {
-      fetchClusterList({
-        cluster_ids: props.clusterData.id,
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterData,
+    () => {
+      if (props.clusterData) {
+        fetchClusterList({
+          cluster_ids: props.clusterData.id,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string) => {
     localValue.value = value;
@@ -110,10 +112,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editSelectRef.value.getValue()
-        .then(() => ({
-          backup_local: localValue.value,
-        }));
+      return editSelectRef.value.getValue().then(() => ({
+        backup_local: localValue.value,
+      }));
     },
   });
 </script>

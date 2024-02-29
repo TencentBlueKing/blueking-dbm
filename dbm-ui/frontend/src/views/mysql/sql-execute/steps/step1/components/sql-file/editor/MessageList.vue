@@ -20,20 +20,20 @@
       class="message-total-wrapper"
       @click="handleShowError">
       <DbIcon
-        style="margin-right: 4px; color: #b34747;"
+        style="margin-right: 4px; color: #b34747"
         type="delete-fill" />
       <I18nT
         v-if="totalMap.errorNum"
         keypath="检测失败_共n个错误"
         tag="span">
-        <span style="color: #b34747;">{{ totalMap.errorNum }}</span>
+        <span style="color: #b34747">{{ totalMap.errorNum }}</span>
       </I18nT>
       <template v-if="totalMap.warningNum > 0">
         <span v-if="totalMap.errorNum">，</span>
         <I18nT
           keypath="n个告警提示"
           tag="span">
-          <span style="color: #ff9c01;">{{ totalMap.warningNum }}</span>
+          <span style="color: #ff9c01">{{ totalMap.warningNum }}</span>
         </I18nT>
       </template>
     </div>
@@ -47,11 +47,11 @@
         <div class="item-head">
           <DbIcon
             v-if="item.type === 'error'"
-            style="color: #b34747;"
+            style="color: #b34747"
             type="delete-fill" />
           <DbIcon
             v-else
-            style="color: #e59e1e;"
+            style="color: #e59e1e"
             type="early-warning" />
         </div>
         <div>
@@ -73,19 +73,16 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    computed,
-    ref,
-  } from 'vue';
+  import { computed, ref } from 'vue';
 
-  export type IMessageList = Array<{ type: 'warning' | 'error', line: number, message: string }>
+  export type IMessageList = Array<{ type: 'warning' | 'error'; line: number; message: string }>;
 
   interface Props {
-    modelValue: boolean,
+    modelValue: boolean;
     data: IMessageList;
   }
 
-  interface Emits{
+  interface Emits {
     (e: 'update:modelValue', value: boolean): void;
   }
 

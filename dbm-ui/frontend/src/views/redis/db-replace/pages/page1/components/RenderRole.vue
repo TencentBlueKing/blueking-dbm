@@ -17,7 +17,7 @@
       <span
         v-if="!data"
         key="empty"
-        style="color: #c4c6cc;">
+        style="color: #c4c6cc">
         {{ $t('输入主机后自动生成') }}
       </span>
       <span v-else>{{ firstLetterToUpper(data) }}</span>
@@ -35,7 +35,6 @@
   }
 
   defineProps<Props>();
-
 </script>
 <style lang="less" scoped>
   .render-role-box {

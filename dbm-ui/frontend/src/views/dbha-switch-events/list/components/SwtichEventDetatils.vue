@@ -24,10 +24,10 @@
 
   import BkLog from '@components/vue2/bk-log/index.vue';
 
-  type EventSwitchLogItem = ServiceReturnType<typeof getEventSwitchLog>[number]
+  type EventSwitchLogItem = ServiceReturnType<typeof getEventSwitchLog>[number];
 
   interface Props {
-    uid: number
+    uid: number;
   }
 
   const props = defineProps<Props>();
@@ -76,14 +76,18 @@
       });
   };
 
-  watch(() => props.uid, () => {
-    props.uid && fetchEventSwitchLog();
-  }, { immediate: true });
+  watch(
+    () => props.uid,
+    () => {
+      props.uid && fetchEventSwitchLog();
+    },
+    { immediate: true },
+  );
 </script>
 
 <style lang="less" scoped>
-.switch-event-details {
-  height: 100%;
-  padding: 16px;
-}
+  .switch-event-details {
+    height: 100%;
+    padding: 16px;
+  }
 </style>

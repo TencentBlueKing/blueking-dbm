@@ -13,7 +13,7 @@
 
 <template>
   <BkTimeline :list="flowTimeline">
-    <template #content="{content}">
+    <template #content="{ content }">
       <FlowContent
         :content="content"
         @fetch-data="handleFetchData" />

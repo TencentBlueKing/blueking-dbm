@@ -33,7 +33,7 @@
         trigger: 'click',
         placement: 'top',
         theme: 'light',
-        content: dbAppAbbrPlaceholder
+        content: dbAppAbbrPlaceholder,
       }"
       class="item-input"
       :disabled="state.hasEnglishName"
@@ -55,8 +55,8 @@
   import BusinessSelector from '@components/business-selector/BusinessSelector.vue';
 
   interface Emits {
-    (e: 'changeBiz', value: BizItem): void
-    (e: 'changeAppAbbr', value: string): void
+    (e: 'changeBiz', value: BizItem): void;
+    (e: 'changeAppAbbr', value: string): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -89,30 +89,42 @@
   });
   const appAbbrRef = ref();
 
-  watch(bizId, (value) => {
-    if (typeof value === 'number' || value === null) {
-      state.bizId = value;
-    } else if (value === '') {
-      state.bizId = null;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    bizId,
+    (value) => {
+      if (typeof value === 'number' || value === null) {
+        state.bizId = value;
+      } else if (value === '') {
+        state.bizId = null;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(appAbbr, (value) => {
-    state.appAbbr = value;
-  }, {
-    immediate: true,
-  });
+  watch(
+    appAbbr,
+    (value) => {
+      state.appAbbr = value;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 组件外部：创建业务英文名称后会回写到列表内
-  watch(() => state.bizList, () => {
-    const info = state.bizList.find(item => state.bizId === item.bk_biz_id);
-    state.hasEnglishName = !!info?.english_name;
-  }, {
-    immediate: true,
-    deep: true,
-  });
+  watch(
+    () => state.bizList,
+    () => {
+      const info = state.bizList.find((item) => state.bizId === item.bk_biz_id);
+      state.hasEnglishName = !!info?.english_name;
+    },
+    {
+      immediate: true,
+      deep: true,
+    },
+  );
 
   /**
    * 获取业务列表
@@ -130,14 +142,14 @@
 
   function handleChangeBizId(value: number) {
     bizId.value = value;
-    const info = state.bizList.find(item => value === item.bk_biz_id);
+    const info = state.bizList.find((item) => value === item.bk_biz_id);
     if (info) {
       state.appAbbr = info.english_name;
       handleChangeAppAbbr(state.appAbbr);
       info.english_name && appAbbrRef.value?.clearValidate();
     }
     state.hasEnglishName = !!info?.english_name;
-    emits('changeBiz', info || {} as BizItem);
+    emits('changeBiz', info || ({} as BizItem));
   }
 
   function handleChangeAppAbbr(value: string) {
@@ -146,11 +158,10 @@
   }
 
   onMounted(() => {
-    fetchBizs()
-      .finally(() => {
-        if (route.query.bizId) {
-          handleChangeBizId(~~route.query.bizId);
-        }
-      });
+    fetchBizs().finally(() => {
+      if (route.query.bizId) {
+        handleChangeBizId(~~route.query.bizId);
+      }
+    });
   });
 </script>

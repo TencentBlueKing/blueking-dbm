@@ -26,11 +26,7 @@
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getIntersectedSlaveMachinesFromClusters } from '@services/source/mysqlCluster';
@@ -44,23 +40,22 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue: IDataRow['slaveData']
-    clusterList: number []
+    modelValue: IDataRow['slaveData'];
+    clusterList: number[];
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>
+    getValue: (field: string) => Promise<string>;
   }
 
   interface ISlaveHost {
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    bk_host_id: number,
-    ip: string,
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
   }
 
   const props = defineProps<Props>();
-
 
   const genHostKey = (hostData: any) => `${hostData.ip}`;
 
@@ -72,55 +67,61 @@
 
   const editRef = ref();
   const localValue = ref('');
-  const slaveHostSelectList = shallowRef([] as Array<{ id: string, name: string}>);
-  let allSlaveHostList: ISlaveHost [] = [];
+  const slaveHostSelectList = shallowRef([] as Array<{ id: string; name: string }>);
+  let allSlaveHostList: ISlaveHost[] = [];
 
   const rules = [
     {
-      validator: (value: string) => !!_.find(allSlaveHostList, item => genHostKey(item) === value),
+      validator: (value: string) => !!_.find(allSlaveHostList, (item) => genHostKey(item) === value),
       message: t('目标从库不能为空'),
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue.ip;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localValue.value = props.modelValue.ip;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(() => props.clusterList, () => {
-    localValue.value = '';
-    slaveHostSelectList.value = [];
-    allSlaveHostList = [];
+  watch(
+    () => props.clusterList,
+    () => {
+      localValue.value = '';
+      slaveHostSelectList.value = [];
+      allSlaveHostList = [];
 
-    if (props.clusterList.length > 0) {
-      getIntersectedSlaveMachinesFromClusters({
-        bk_biz_id: currentBizId,
-        cluster_ids: props.clusterList,
-      }).then((data) => {
-        slaveHostSelectList.value = data.map(hostData => ({
-          id: genHostKey(hostData),
-          name: hostData.ip,
-        }));
-        allSlaveHostList = data;
-      });
-    }
-  }, {
-    immediate: true,
-  });
+      if (props.clusterList.length > 0) {
+        getIntersectedSlaveMachinesFromClusters({
+          bk_biz_id: currentBizId,
+          cluster_ids: props.clusterList,
+        }).then((data) => {
+          slaveHostSelectList.value = data.map((hostData) => ({
+            id: genHostKey(hostData),
+            name: hostData.ip,
+          }));
+          allSlaveHostList = data;
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => {
-          const slaveHostData = _.find(allSlaveHostList, item => genHostKey(item) === localValue.value);
-          return {
-            slave_ip: slaveHostData,
-          };
-        });
+      return editRef.value.getValue().then(() => {
+        const slaveHostData = _.find(allSlaveHostList, (item) => genHostKey(item) === localValue.value);
+        return {
+          slave_ip: slaveHostData,
+        };
+      });
     },
   });
 </script>

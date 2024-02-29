@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
 
@@ -88,48 +88,39 @@ const path = `/apis/mysql/bizs/${currentBizId}/fixpoint_rollback`;
 /**
  * 通过日志平台获取集群备份记录
  */
-export function queryBackupLogFromBklog(params: {
-  cluster_id: number
-}) {
+export function queryBackupLogFromBklog(params: { cluster_id: number }) {
   return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_bklog/`, params);
 }
 
 /**
  * 根据job id查询任务执行状态和执行结果
  */
-export function queryBackupLogFromLoacal(params: {
-  cluster_id: number
-}) {
+export function queryBackupLogFromLoacal(params: { cluster_id: number }) {
   return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_local/`, params);
 }
 
 /**
  * 获取集群列表
  */
-export function queryFixpointLog(params: {
-  cluster_id: number,
-  rollback_time: string,
-  job_instance_id: number
-}) {
-  return http.get<ListBase<FixpointLogModel[]>>(`${path}/query_fixpoint_log/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map(item => new FixpointLogModel(item)),
-    }));
+export function queryFixpointLog(params: { cluster_id: number; rollback_time: string; job_instance_id: number }) {
+  return http.get<ListBase<FixpointLogModel[]>>(`${path}/query_fixpoint_log/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new FixpointLogModel(item)),
+  }));
 }
 
 /**
  * 获取定点构造记录
  */
 export function queryLatesBackupLog(params: {
-  bk_biz_id: number,
-  cluster_id: number,
-  rollback_time: string,
-  job_instance_id: number
+  bk_biz_id: number;
+  cluster_id: number;
+  rollback_time: string;
+  job_instance_id: number;
 }) {
   return http.get<{
-    backup_logs: Array<any>,
-    job_status: string,
-    message: string
+    backup_logs: Array<any>;
+    job_status: string;
+    message: string;
   }>(`${path}/query_latest_backup_log/`, params);
 }

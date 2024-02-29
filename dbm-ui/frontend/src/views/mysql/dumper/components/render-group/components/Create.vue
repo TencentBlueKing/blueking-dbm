@@ -22,12 +22,12 @@
 
 <script setup lang="ts">
   interface Emits {
-    (e: 'change', value: string): void
-    (e: 'close'): void
+    (e: 'change', value: string): void;
+    (e: 'close'): void;
   }
 
   interface Props {
-    originName: string
+    originName: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -55,11 +55,11 @@
 </script>
 
 <style lang="less" scoped>
-.group-form {
-  width: 100%;
+  .group-form {
+    width: 100%;
 
-  :deep(.bk-form-content) {
-    margin: 0 !important;
+    :deep(.bk-form-content) {
+      margin: 0 !important;
+    }
   }
-}
 </style>

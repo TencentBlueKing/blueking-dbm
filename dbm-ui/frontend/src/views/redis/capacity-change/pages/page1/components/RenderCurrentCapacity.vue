@@ -17,13 +17,13 @@
       ref="textRef"
       v-bk-tooltips="{
         content: placeholder,
-        disabled: !isOverflow
+        disabled: !isOverflow,
       }"
       class="capacity-box"
-      :class="{'default-display': !data}">
+      :class="{ 'default-display': !data }">
       <span
         v-if="!data"
-        style="color: #c4c6cc;">
+        style="color: #c4c6cc">
         {{ placeholder }}
       </span>
       <div
@@ -72,39 +72,37 @@
   //   if (props.data) return Number(((props.data.used / props.data.total) * 100).toFixed(2));
   //   return 0;
   // });
-
 </script>
 <style lang="less" scoped>
-.capacity-box {
-  padding: 11px 16px;
-  overflow: hidden;
-  line-height: 20px;
-  color: #63656e;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  .capacity-box {
+    padding: 11px 16px;
+    overflow: hidden;
+    line-height: 20px;
+    color: #63656e;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
-  .content {
-    display: flex;
-    align-items: center;
+    .content {
+      display: flex;
+      align-items: center;
 
-    .percent {
-      margin-left: 4px;
-      font-size: 12px;
-      font-weight: bold;
-      color: #313238;
-    }
+      .percent {
+        margin-left: 4px;
+        font-size: 12px;
+        font-weight: bold;
+        color: #313238;
+      }
 
-    .spec {
-      margin-left: 2px;
-      font-size: 12px;
-      // color: #979BA5;
+      .spec {
+        margin-left: 2px;
+        font-size: 12px;
+        // color: #979BA5;
+      }
     }
   }
-}
 
-.default-display {
-  cursor: not-allowed;
-  background: #FAFBFD;
-}
-
+  .default-display {
+    cursor: not-allowed;
+    background: #fafbfd;
+  }
 </style>

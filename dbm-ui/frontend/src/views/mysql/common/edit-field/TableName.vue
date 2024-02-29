@@ -22,33 +22,29 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    watch,
-  } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
 
   interface Props {
-    modelValue?: string [],
-    clusterId: number,
-    required?: boolean,
-    single?: boolean,
+    modelValue?: string[];
+    clusterId: number;
+    required?: boolean;
+    single?: boolean;
     rules?: {
-      validator: (value: string[]) => boolean,
-      message: string
-    }[]
+      validator: (value: string[]) => boolean;
+      message: string;
+    }[];
   }
 
   interface Emits {
-    (e: 'change', value: string []): void,
-    (e: 'update:modelValue', value: string []): void
+    (e: 'change', value: string[]): void;
+    (e: 'update:modelValue', value: string[]): void;
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<string, string[]>>
+    getValue: (field: string) => Promise<Record<string, string[]>>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -63,7 +59,7 @@
   const { t } = useI18n();
 
   const tagRef = ref();
-  const localValue  = ref(props.modelValue);
+  const localValue = ref(props.modelValue);
 
   const rules = computed(() => {
     if (props.rules && props.rules.length > 0) {
@@ -72,7 +68,7 @@
 
     return [
       {
-        validator: (value: string []) => {
+        validator: (value: string[]) => {
           if (!props.required) {
             return true;
           }
@@ -81,18 +77,18 @@
         message: t('表名不能为空'),
       },
       {
-        validator: (value: string []) => !_.some(value, item => /\*/.test(item) && item.length > 1),
+        validator: (value: string[]) => !_.some(value, (item) => /\*/.test(item) && item.length > 1),
         message: t('* 只能独立使用'),
         trigger: 'change',
       },
       {
-        validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
+        validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
         message: t('% 不允许单独使用'),
         trigger: 'change',
       },
       {
-        validator: (value: string []) => {
-          if (_.some(value, item => /[*%?]/.test(item))) {
+        validator: (value: string[]) => {
+          if (_.some(value, (item) => /[*%?]/.test(item))) {
             return value.length < 2;
           }
           return true;
@@ -104,19 +100,26 @@
   });
 
   // 集群改变时表名需要重置
-  watch(() => props.clusterId, () => {
-    localValue.value = [];
-  });
-
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue;
-    } else {
+  watch(
+    () => props.clusterId,
+    () => {
       localValue.value = [];
-    }
-  }, {
-    immediate: true,
-  });
+    },
+  );
+
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localValue.value = props.modelValue;
+      } else {
+        localValue.value = [];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
@@ -126,15 +129,14 @@
 
   defineExpose<Exposes>({
     getValue(field: string) {
-      return tagRef.value.getValue()
-        .then(() => {
-          if (!localValue.value) {
-            return Promise.reject();
-          }
-          return {
-            [field]: props.single ? localValue.value[0] : localValue.value,
-          };
-        });
+      return tagRef.value.getValue().then(() => {
+        if (!localValue.value) {
+          return Promise.reject();
+        }
+        return {
+          [field]: props.single ? localValue.value[0] : localValue.value,
+        };
+      });
     },
   });
 </script>

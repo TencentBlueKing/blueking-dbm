@@ -18,7 +18,7 @@
     class="toolbox-render-table">
     <table ref="tableRef">
       <thead>
-        <tr style="position:relative;">
+        <tr style="position: relative">
           <slot />
         </tr>
       </thead>
@@ -31,7 +31,9 @@
 </template>
 <script lang="ts">
   import type { InjectionKey, Ref } from 'vue';
-  export const renderTablekey: InjectionKey<{isOverflow: Ref<boolean>, rowWidth: Ref<number>}> = Symbol('renderTable');
+
+  export const renderTablekey: InjectionKey<{ isOverflow: Ref<boolean>; rowWidth: Ref<number> }> =
+    Symbol('renderTable');
 </script>
 
 <script setup lang="ts">
@@ -39,7 +41,7 @@
 
   import useColumnResize from './hooks/useColumnResize';
 
-  const checkTableScroll = () =>  {
+  const checkTableScroll = () => {
     // handleScroll();
     rowWidth.value = tableRef.value.clientWidth;
     isOverflow.value = tableOuterRef.value.clientWidth < tableRef.value.clientWidth;
@@ -74,7 +76,6 @@
   });
 
   onBeforeUnmount(() => window.removeEventListener('resize', checkTableScroll));
-
 </script>
 <style lang="less">
   .toolbox-render-table {
@@ -137,7 +138,7 @@
         font-size: 12px;
         line-height: 40px;
         color: #ea3636;
-        content: "*";
+        content: '*';
       }
     }
 

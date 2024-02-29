@@ -13,7 +13,7 @@
 
 <template>
   <div
-    v-bkloading="{loading: isLoading}"
+    v-bkloading="{ loading: isLoading }"
     class="cluster-details">
     <BkTab
       v-model:active="activePanelKey"
@@ -63,10 +63,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    DBTypes,
-  } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
@@ -78,9 +75,9 @@
     clusterId: number;
   }
   interface PanelItem {
-    label: string,
-    name: string,
-    link: string,
+    label: string;
+    name: string;
+    link: string;
   }
 
   const props = defineProps<Props>();
@@ -94,14 +91,11 @@
   const monitorPanelList = ref<PanelItem[]>([]);
 
   const activePanel = computed(() => {
-    const targetPanel = monitorPanelList.value.find(item => item.name === activePanelKey.value);
+    const targetPanel = monitorPanelList.value.find((item) => item.name === activePanelKey.value);
     return targetPanel;
   });
 
-  const {
-    loading: isLoading,
-    run: fetchResourceDetails,
-  } = useRequest(getTendbhaDetail, {
+  const { loading: isLoading, run: fetchResourceDetails } = useRequest(getTendbhaDetail, {
     manual: true,
     onSuccess(result: ResourceItem) {
       data.value = result;
@@ -112,7 +106,7 @@
     manual: true,
     onSuccess(res) {
       if (res.urls.length > 0) {
-        monitorPanelList.value = res.urls.map(item => ({
+        monitorPanelList.value = res.urls.map((item) => ({
           label: item.view,
           name: item.view,
           link: item.url,
@@ -121,21 +115,25 @@
     },
   });
 
-  watch(() => props.clusterId, () => {
-    if (!props.clusterId) {
-      return;
-    }
-    fetchResourceDetails({
-      id: props.clusterId,
-    });
-    runGetMonitorUrls({
-      bk_biz_id: currentBizId,
-      cluster_type: ClusterTypes.TENDBHA,
-      cluster_id: props.clusterId,
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (!props.clusterId) {
+        return;
+      }
+      fetchResourceDetails({
+        id: props.clusterId,
+      });
+      runGetMonitorUrls({
+        bk_biz_id: currentBizId,
+        cluster_type: ClusterTypes.TENDBHA,
+        cluster_id: props.clusterId,
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>

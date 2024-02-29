@@ -73,21 +73,14 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import { random } from '@utils';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type InfoItem,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -95,12 +88,12 @@
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
 
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length);
 
   const tabListConfig = {
     [ClusterTypes.TENDBCLUSTER]: {
@@ -112,7 +105,7 @@
   };
 
   // 集群域名是否已存在表格的映射表
-  let domainMemo:Record<string, boolean> = {};
+  let domainMemo: Record<string, boolean> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -146,7 +139,7 @@
   });
 
   // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChange = async (selected: { [key: string]: Array<SpiderModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
@@ -174,7 +167,9 @@
       tableData.value[index].cluster = '';
       return;
     }
-    if (tableData.value[index].cluster === domain) return;
+    if (tableData.value[index].cluster === domain) {
+      return;
+    }
     tableData.value[index].isLoading = true;
     const ret = await getSpiderList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
@@ -199,16 +194,16 @@
     tableData.value.splice(index, 1);
     delete domainMemo[domain];
     const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
-    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== domain);
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== domain);
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<InfoItem>
-    }) => item.getValue()));
+    const infos = await Promise.all<InfoItem[]>(
+      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+    );
 
-    const params: SubmitTicket<TicketTypes, InfoItem[]> & { remark: string} = {
+    const params: SubmitTicket<TicketTypes, InfoItem[]> & { remark: string } = {
       remark: '',
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
@@ -222,25 +217,27 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'SpiderProxySlaveApply',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'SpiderProxySlaveApply',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .catch((e) => {
             console.error('submit spider slave apply ticket error：', e);
           })
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   const handleReset = () => {

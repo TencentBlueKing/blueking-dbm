@@ -17,7 +17,7 @@
     class="cluster-monitor">
     <BkLoading
       :loading="isLoading"
-      style="height: 100%;">
+      style="height: 100%">
       <div
         class="cluster-monitor-bar"
         @click.stop>
@@ -47,8 +47,7 @@
   import { useFullscreen } from '@vueuse/core';
 
   interface Props {
-    url?: string,
-
+    url?: string;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -96,35 +95,35 @@
 </script>
 
 <style lang="less" scoped>
-.cluster-monitor {
-  width: 100%;
-  height: 100%;
-  padding: 14px 0;
-  background-color: white;
+  .cluster-monitor {
+    width: 100%;
+    height: 100%;
+    padding: 14px 0;
+    background-color: white;
 
-  &-bar {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-bottom: 16px;
+    &-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 16px;
 
-    &__icon {
-      display: block;
-      margin-left: 16px;
-      font-size: @font-size-large;
-      text-align: center;
-      cursor: pointer;
+      &__icon {
+        display: block;
+        margin-left: 16px;
+        font-size: @font-size-large;
+        text-align: center;
+        cursor: pointer;
 
-      &:hover {
-        color: @primary-color;
+        &:hover {
+          color: @primary-color;
+        }
       }
     }
-  }
 
-  iframe {
-    width: 100%;
-    height: calc(100% - 30px);
-    border: 0;
+    iframe {
+      width: 100%;
+      height: calc(100% - 30px);
+      border: 0;
+    }
   }
-}
 </style>

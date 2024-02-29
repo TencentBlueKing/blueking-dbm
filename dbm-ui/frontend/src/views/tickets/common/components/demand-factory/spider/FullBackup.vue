@@ -15,9 +15,8 @@
   <div class="ticket-details__info">
     <div
       class="ticket-details__item"
-      style="align-items: flex-start;">
-      <span
-        class="ticket-details__item-label">{{ t('需求信息') }}：</span>
+      style="align-items: flex-start">
+      <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
       <span class="ticket-details__item-value">
         <BkLoading :loading="loading">
           <DbOriginalTable
@@ -32,7 +31,9 @@
     <div class="ticket-details__list">
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('备份类型') }}：</span>
-        <span class="ticket-details__item-value">{{ infos.backup_type === 'physical' ? t('物理备份') : t('逻辑备份') }}</span>
+        <span class="ticket-details__item-value">{{
+          infos.backup_type === 'physical' ? t('物理备份') : t('逻辑备份')
+        }}</span>
       </div>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('备份保存时间') }}：</span>
@@ -52,12 +53,12 @@
   import type { SpiderFullBackupDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<SpiderFullBackupDetails>
+    ticketDetails: TicketDetails<SpiderFullBackupDetails>;
   }
 
   interface RowData {
-    clusterName: string,
-    position: string,
+    clusterName: string;
+    position: string;
   }
 
   const props = defineProps<Props>();
@@ -81,19 +82,24 @@
   ];
 
   const { loading } = useRequest(getSpiderListByBizId, {
-    defaultParams: [{
-      bk_biz_id: props.ticketDetails.bk_biz_id,
-      offset: 0,
-      limit: -1,
-    }],
+    defaultParams: [
+      {
+        bk_biz_id: props.ticketDetails.bk_biz_id,
+        offset: 0,
+        limit: -1,
+      },
+    ],
     onSuccess: (r) => {
       if (r.results.length < 1) {
         return;
       }
-      const clusterMap = r.results.reduce((obj, item) => {
-        Object.assign(obj, { [item.id]: item.master_domain });
-        return obj;
-      }, {} as Record<number, string>);
+      const clusterMap = r.results.reduce(
+        (obj, item) => {
+          Object.assign(obj, { [item.id]: item.master_domain });
+          return obj;
+        },
+        {} as Record<number, string>,
+      );
       tableData.value = infos.clusters.reduce((results, item) => {
         const obj = {
           clusterName: clusterMap[item.cluster_id],
@@ -104,8 +110,7 @@
       }, [] as RowData[]);
     },
   });
-
 </script>
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

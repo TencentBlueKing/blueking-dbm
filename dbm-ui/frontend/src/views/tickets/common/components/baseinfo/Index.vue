@@ -48,7 +48,7 @@
                   v-model="editState.value"
                   :disabled="loading"
                   :placeholder="$t('请输入')"
-                  style="width: 240px;"
+                  style="width: 240px"
                   @blur="handleSaveEdit"
                   @enter="handleSaveEdit" />
                 <BkLoading
@@ -95,44 +95,51 @@
   import { t } from '@locales/index';
 
   export type InfoColumn = {
-    label: string,
-    key: string,
-    isEdit?: boolean,
-    isCopy?: boolean,
-    isRequired?: boolean,
-    render?: () => VNode | string | null
-  }
+    label: string;
+    key: string;
+    isEdit?: boolean;
+    isCopy?: boolean;
+    isRequired?: boolean;
+    render?: () => VNode | string | null;
+  };
 
   export type EditEmitData = {
-    value: string,
-    key: string,
-    editResolve: (value: unknown) => void
-  }
+    value: string;
+    key: string;
+    editResolve: (value: unknown) => void;
+  };
 
   /**
    * 默认显示信息配置
    */
   export const getDefaultColumns = () => [
-    [{
-      label: t('配置名称'),
-      key: 'name',
-      isEdit: true,
-      isRequired: true,
-    }, {
-      label: t('描述'),
-      key: 'description',
-      isEdit: true,
-    }, {
-      label: t('数据库版本'),
-      key: 'version',
-    }],
-    [{
-      label: t('更新时间'),
-      key: 'updated_at',
-    }, {
-      label: t('更新人'),
-      key: 'updated_by',
-    }],
+    [
+      {
+        label: t('配置名称'),
+        key: 'name',
+        isEdit: true,
+        isRequired: true,
+      },
+      {
+        label: t('描述'),
+        key: 'description',
+        isEdit: true,
+      },
+      {
+        label: t('数据库版本'),
+        key: 'version',
+      },
+    ],
+    [
+      {
+        label: t('更新时间'),
+        key: 'updated_at',
+      },
+      {
+        label: t('更新人'),
+        key: 'updated_by',
+      },
+    ],
   ];
 
   export default {
@@ -220,7 +227,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .base-container {
     display: flex;

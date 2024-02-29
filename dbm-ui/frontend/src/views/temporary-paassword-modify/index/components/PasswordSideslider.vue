@@ -16,7 +16,7 @@
     :is-show="isShow"
     :title="t('临时密码生效的实例')"
     :width="1200"
-    @closed="isShow = false;">
+    @closed="isShow = false">
     <div class="password-sideslider">
       <div class="operate-area">
         <BkButton
@@ -46,7 +46,7 @@
         :data-source="queryMysqlAdminPassword"
         :max-height="tableMaxHeight"
         :pagination-extra="{
-          small: true
+          small: true,
         }"
         row-class="password-sideslider-table-row"
         show-overflow-tooltip
@@ -251,36 +251,36 @@
 </script>
 
 <style lang="less" scoped>
-.password-sideslider {
-  padding: 16px 24px;
+  .password-sideslider {
+    padding: 16px 24px;
 
-  .operate-area {
-    display: flex;
-    margin-bottom: 16px;
+    .operate-area {
+      display: flex;
+      margin-bottom: 16px;
 
-    .search-select {
-      flex: 1;
-    }
-  }
-
-  :deep(.row-copy-icon) {
-    display: none;
-  }
-
-  :deep(.password-sideslider-table-row) {
-    &:hover {
-      .row-copy-icon {
-        display: inline;
+      .search-select {
+        flex: 1;
       }
     }
-  }
 
-  :deep(.row-type) {
-    font-size: 16px;
-  }
+    :deep(.row-copy-icon) {
+      display: none;
+    }
 
-  :deep(.expired-time) {
-    color: @warning-color;
+    :deep(.password-sideslider-table-row) {
+      &:hover {
+        .row-copy-icon {
+          display: inline;
+        }
+      }
+    }
+
+    :deep(.row-type) {
+      font-size: 16px;
+    }
+
+    :deep(.expired-time) {
+      color: @warning-color;
+    }
   }
-}
 </style>

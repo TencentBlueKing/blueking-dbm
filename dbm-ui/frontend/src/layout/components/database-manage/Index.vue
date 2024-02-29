@@ -56,10 +56,7 @@
 </template>
 <script setup lang="ts">
   import { Menu } from 'bkui-vue';
-  import {
-    computed,
-    ref,
-  } from 'vue';
+  import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import AppSelect from '@components/app-select/Index.vue';
@@ -85,7 +82,4 @@
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'DatabaseTendbsingle', isModuleLoading);
 
   const styles = useMenuStyles(menuBoxRef);
-
 </script>
-
-

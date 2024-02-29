@@ -178,36 +178,36 @@
     display: block;
     width: 380px;
     max-width: 700px;
-    transition: all .1s;
+    transition: all 0.1s;
 
     @media screen and (max-width: 1450px) {
       flex: 1 !important;
       width: auto !important;
     }
 
-    .search-input{
+    .search-input {
       overflow: hidden;
       border: 1px solid transparent;
       border-radius: 2px;
 
       .bk-input--text,
-      .bk-input--suffix-icon{
-        background: #303D55;
+      .bk-input--suffix-icon {
+        background: #303d55;
         border-radius: none;
       }
 
-      .bk-input--text{
+      .bk-input--text {
         color: #fff;
 
-        &::placeholder{
-          color: #929BB2;
+        &::placeholder {
+          color: #929bb2;
         }
       }
     }
   }
 
-  [data-tippy-root] .tippy-box[data-theme~="system-search-popover-theme"]{
-    .tippy-content{
+  [data-tippy-root] .tippy-box[data-theme~='system-search-popover-theme'] {
+    .tippy-content {
       padding: 0 !important;
     }
   }

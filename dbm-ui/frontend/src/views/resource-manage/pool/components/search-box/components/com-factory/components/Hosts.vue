@@ -26,10 +26,10 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    defaultValue?: string[]
+    defaultValue?: string[];
   }
   interface Emits {
-    (e: 'change', value: Props['defaultValue']): void
+    (e: 'change', value: Props['defaultValue']): void;
   }
 
   defineProps<Props>();
@@ -48,10 +48,9 @@
     if (!_.trim(text)) {
       return [];
     }
-    return text.split(/[,;，；\n]/).map(item => ({
+    return text.split(/[,;，；\n]/).map((item) => ({
       id: item,
       name: item,
     }));
   };
 </script>
-

@@ -15,7 +15,7 @@
       <div
         class="action-btn"
         :class="{
-          disabled: !removeable
+          disabled: !removeable,
         }"
         @click="handleRemove">
         <DbIcon type="minus-fill" />
@@ -32,15 +32,15 @@
   }
 
   interface Emits {
-    (e: 'add'): void,
-    (e: 'remove'): void,
+    (e: 'add'): void;
+    (e: 'remove'): void;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      db_name: string,
-      table_names: string[],
-    }>,
+      db_name: string;
+      table_names: string[];
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -62,10 +62,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        dbNameTagInputRef.value!.getValue(),
-        tableNameTagInputref.value!.getValue(),
-      ]).then((data) => {
+      return Promise.all([dbNameTagInputRef.value!.getValue(), tableNameTagInputref.value!.getValue()]).then((data) => {
         const [dbName, tableNames] = data;
         return {
           db_name: dbName,
@@ -102,7 +99,7 @@
 
     :deep(.bk-tag-input-trigger) {
       min-height: 32px;
-      border-color: #C4C6CC;
+      border-color: #c4c6cc;
 
       .placeholder {
         height: 32px !important;
@@ -123,16 +120,16 @@
       .action-btn {
         display: flex;
         font-size: 14px;
-        color: #979BA5;
+        color: #979ba5;
         cursor: pointer;
         transition: all 0.15s;
 
         &:hover {
-          color: #63656E;
+          color: #63656e;
         }
 
         &.disabled {
-          color: #C4C6CC;
+          color: #c4c6cc;
           cursor: not-allowed;
         }
 

@@ -20,8 +20,7 @@
           @click="handleCreate">
           {{ t('新建授权') }}
         </BkButton>
-        <BkButton
-          @click="handleExcelAuthorize">
+        <BkButton @click="handleExcelAuthorize">
           {{ t('Excel导入') }}
         </BkButton>
       </div>
@@ -29,7 +28,7 @@
         v-model="tableSearch"
         :data="filters"
         :placeholder="t('请输入账号名称/DB名称/权限名称')"
-        style="width: 500px;"
+        style="width: 500px"
         unique-select
         @change="fetchTableData" />
     </div>
@@ -136,20 +135,23 @@
       id: 'privilege',
       multiple: true,
       children: [
-        ...dbOperations.dml.map(id => ({ id: id.toLowerCase(), name: id })),
-        ...dbOperations.ddl.map(id => ({ id: id.toLowerCase(), name: id })),
-        ...dbOperations.glob.map(id => ({ id, name: id })),
+        ...dbOperations.dml.map((id) => ({ id: id.toLowerCase(), name: id })),
+        ...dbOperations.ddl.map((id) => ({ id: id.toLowerCase(), name: id })),
+        ...dbOperations.glob.map((id) => ({ id, name: id })),
       ],
     },
   ];
 
   const fetchTableData = () => {
-    tableRef.value.fetchData({
-      ip: keyword.value,
-      db_type: ClusterTypes.TENDBCLUSTER,
-    }, {
-      bk_biz_id: currentBizId,
-    });
+    tableRef.value.fetchData(
+      {
+        ip: keyword.value,
+        db_type: ClusterTypes.TENDBCLUSTER,
+      },
+      {
+        bk_biz_id: currentBizId,
+      },
+    );
   };
 
   const handleClearSearch = () => {
@@ -165,41 +167,40 @@
   const handleExcelAuthorize = () => {
     isShowExcelAuthorize.value = true;
   };
-
 </script>
 
 <style lang="less" scoped>
-.permission-list {
-  .permission-list-operations {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 0;
-
-    .operations-left {
+  .permission-list {
+    .permission-list-operations {
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
 
-      .bk-button {
-        min-width: 88px;
-        margin-right: 8px;
+      .operations-left {
+        display: flex;
+        align-items: center;
+
+        .bk-button {
+          min-width: 88px;
+          margin-right: 8px;
+        }
       }
     }
-  }
 
-  :deep(.bk-table) {
-    tr:hover {
+    :deep(.bk-table) {
+      tr:hover {
+        .copy-btn {
+          display: inline-block;
+        }
+      }
+
       .copy-btn {
-        display: inline-block;
+        display: none;
+        margin-left: 8px;
+        color: @primary-color;
+        cursor: pointer;
       }
     }
-
-    .copy-btn {
-      display: none;
-      margin-left: 8px;
-      color: @primary-color;
-      cursor: pointer;
-    }
   }
-}
 </style>

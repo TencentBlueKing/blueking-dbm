@@ -5,7 +5,7 @@
     @update:is-show="handleCancel">
     <template #header>
       <span>{{ t('设置业务专用') }}</span>
-      <span style=" margin-left: 12px;font-size: 12px; color: #63656E;">
+      <span style="margin-left: 12px; font-size: 12px; color: #63656e">
         <I18nT keypath="已选:n台主机">
           <span class="number">{{ data.length }}</span>
         </I18nT>
@@ -66,8 +66,7 @@
             </div>
           </DbFormItem>
           <DbFormItem :label="t('磁盘')">
-            <ResourceSpecStorage
-              v-model="formData.storage_spec" />
+            <ResourceSpecStorage v-model="formData.storage_spec" />
           </DbFormItem>
         </DbForm>
       </div>
@@ -89,11 +88,7 @@
   </DbSideslider>
 </template>
 <script setup lang="ts">
-  import {
-    computed,
-    reactive,
-    ref,
-  } from 'vue';
+  import { computed, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -103,18 +98,16 @@
 
   import { leaveConfirm } from '@utils';
 
-  import ResourceSpecStorage, {
-    type IStorageSpecItem,
-  } from './components/ResourceSpecStorage.vue';
+  import ResourceSpecStorage, { type IStorageSpecItem } from './components/ResourceSpecStorage.vue';
 
   interface Props {
-    data: number[],
-    isShow: boolean,
+    data: number[];
+    isShow: boolean;
   }
 
   interface Emits {
-    (e: 'update:isShow', value: boolean): void,
-    (e: 'change'): void
+    (e: 'update:isShow', value: boolean): void;
+    (e: 'change'): void;
   }
 
   const props = defineProps<Props>();
@@ -134,22 +127,20 @@
   const isSubmiting = ref(false);
   const formData = reactive(genDefaultData());
 
-  const isSubmitDisabled = computed(() => !(
-    formData.for_bizs.length > 0
-    || formData.resource_types.length > 0
-    || formData.storage_spec.length > 0
-    || formData.set_empty_biz
-    || formData.set_empty_resource_type));
+  const isSubmitDisabled = computed(
+    () =>
+      !(
+        formData.for_bizs.length > 0 ||
+        formData.resource_types.length > 0 ||
+        formData.storage_spec.length > 0 ||
+        formData.set_empty_biz ||
+        formData.set_empty_resource_type
+      ),
+  );
 
-  const {
-    data: bizList,
-    loading: isBizListLoading,
-  } = useRequest(getBizs);
+  const { data: bizList, loading: isBizListLoading } = useRequest(getBizs);
 
-  const {
-    data: dbTypeList,
-    loading: isDbTypeListLoading,
-  } = useRequest(fetchDbTypeList);
+  const { data: dbTypeList, loading: isDbTypeListLoading } = useRequest(fetchDbTypeList);
 
   const handleEmptyBizChange = () => {
     formData.for_bizs = [];
@@ -161,17 +152,21 @@
 
   const handleSubmit = () => {
     isSubmiting.value = true;
-    formRef.value.validate()
+    formRef.value
+      .validate()
       .then(() => {
-        const storageDevice = formData.storage_spec.reduce((result, item) => ({
-          ...result,
-          [item.mount_point]: {
-            size: item.size,
-            disk_type: item.type,
-          },
-        }), {} as Record<string, {size: number, disk_type: string}>);
+        const storageDevice = formData.storage_spec.reduce(
+          (result, item) => ({
+            ...result,
+            [item.mount_point]: {
+              size: item.size,
+              disk_type: item.type,
+            },
+          }),
+          {} as Record<string, { size: number; disk_type: string }>,
+        );
         return updateResource({
-          bk_host_ids: props.data.map(item => ~~item),
+          bk_host_ids: props.data.map((item) => ~~item),
           for_bizs: formData.set_empty_biz ? [] : formData.for_bizs,
           resource_types: formData.set_empty_resource_type ? [] : formData.resource_types,
           set_empty_biz: formData.set_empty_biz,
@@ -189,15 +184,14 @@
   };
 
   const handleCancel = () => {
-    leaveConfirm()
-      .then(() => {
-        emits('update:isShow', false);
-        Object.assign(formData, genDefaultData());
-        // 重置数据时会触发form的编辑状态检测，需要重置检测状态
-        setTimeout(() => {
-          window.changeConfirm = false;
-        }, 100);
-      });
+    leaveConfirm().then(() => {
+      emits('update:isShow', false);
+      Object.assign(formData, genDefaultData());
+      // 重置数据时会触发form的编辑状态检测，需要重置检测状态
+      setTimeout(() => {
+        window.changeConfirm = false;
+      }, 100);
+    });
   };
 </script>
 <style lang="less">
@@ -208,7 +202,7 @@
       display: flex;
 
       .bk-select {
-        flex: 1
+        flex: 1;
       }
     }
   }

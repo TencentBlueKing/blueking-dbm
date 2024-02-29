@@ -9,13 +9,10 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { PipelineStatus } from '@common/const';
 
-import {
-  isRecentDays,
-  utcDisplayTime,
-} from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -41,24 +38,23 @@ interface Node {
     cpu: {
       max: number;
       min: number;
-    },
+    };
     mem: {
       max: number;
       min: number;
-    },
+    };
     qps: {
       max: number;
       min: number;
-    },
+    };
     name: string;
-    device_class: [],
-    storage_spec:
-    {
+    device_class: [];
+    storage_spec: {
       size: number;
       type: string;
       mount_point: string;
-    }[],
-  }
+    }[];
+  };
 }
 export default class Redis {
   static REDIS_DESTROY = 'REDIS_DESTROY';
@@ -99,25 +95,25 @@ export default class Redis {
     cpu: {
       max: number;
       min: number;
-    },
+    };
     mem: {
       max: number;
       min: number;
-    },
-    device_class: [],
+    };
+    device_class: [];
     storage_spec: [
       {
         size: number;
         type: string;
         mount_point: string;
-      }
-    ],
+      },
+    ];
     desc: string;
     instance_num: number;
     qps: {
       max: number;
       min: number;
-    }
+    };
   };
   cluster_stats: Record<string, any>;
   cluster_type: string;
@@ -212,8 +208,10 @@ export default class Redis {
 
   get redisMasterCount() {
     const len = this.redis_master.length;
-    if (len <= 1) return len;
-    return new Set(this.redis_master.map(item => item.ip)).size;
+    if (len <= 1) {
+      return len;
+    }
+    return new Set(this.redis_master.map((item) => item.ip)).size;
   }
 
   get redisMasterFaultNum() {
@@ -238,8 +236,10 @@ export default class Redis {
 
   get redisSlaveCount() {
     const len = this.redis_slave.length;
-    if (len <= 1) return len;
-    return new Set(this.redis_slave.map(item => item.ip)).size;
+    if (len <= 1) {
+      return len;
+    }
+    return new Set(this.redis_slave.map((item) => item.ip)).size;
   }
 
   get storageCount() {
@@ -248,12 +248,14 @@ export default class Redis {
 
   get proxyCount() {
     const len = this.proxy.length;
-    if (len <= 1) return len;
-    return new Set(this.proxy.map(item => item.ip)).size;
+    if (len <= 1) {
+      return len;
+    }
+    return new Set(this.proxy.map((item) => item.ip)).size;
   }
 
   get isSlaveNormal() {
-    return this.redis_slave.every(item => item.status === 'running');
+    return this.redis_slave.every((item) => item.status === 'running');
   }
 
   get masterDomainDisplayName() {
@@ -263,11 +265,11 @@ export default class Redis {
   }
 
   get isOnlineCLB() {
-    return this.cluster_entry.some(item => item.cluster_entry_type === 'clb');
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
   }
 
   get isOnlinePolaris() {
-    return this.cluster_entry.some(item => item.cluster_entry_type === 'polaris');
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'polaris');
   }
 
   get createAtDisplay() {
@@ -283,12 +285,12 @@ export default class Redis {
   }
 
   get isStarting() {
-    return Boolean(this.operations.find(item => item.ticket_type === Redis.REDIS_PROXY_OPEN));
+    return Boolean(this.operations.find((item) => item.ticket_type === Redis.REDIS_PROXY_OPEN));
   }
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(Redis.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态
@@ -338,7 +340,7 @@ export default class Redis {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: Redis.operationIconMap[item.ticket_type],
       tip: Redis.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,

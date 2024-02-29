@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import KafkaModel from '@services/model/kafka/kafka';
 import KafkaInstanceModel from '@services/model/kafka/kafka-instance';
@@ -29,13 +29,17 @@ const path = `/apis/bigdata/bizs/${currentBizId}/kafka/kafka_resources`;
  * 获取集群列表
  */
 export function getKafkaList(params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<KafkaModel[]>>(`${path}/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map((item: KafkaModel) => new KafkaModel(Object.assign(item, {
-        permission: Object.assign({}, item.permission, data.permission),
-      }))),
-    }));
+  return http.get<ListBase<KafkaModel[]>>(`${path}/`, params).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item: KafkaModel) =>
+        new KafkaModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
+  }));
 }
 
 /**
@@ -49,11 +53,10 @@ export function getKafkaTableFields() {
  * 获取实例列表
  */
 export function getKafkaInstanceList(params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<KafkaInstanceModel[]>>(`${path}/list_instances/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map((item: KafkaInstanceModel) => new KafkaInstanceModel(item)),
-    }));
+  return http.get<ListBase<KafkaInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item: KafkaInstanceModel) => new KafkaInstanceModel(item)),
+  }));
 }
 
 /**
@@ -67,14 +70,12 @@ export function retrieveKafkaInstance(params: { bk_biz_id: number }) {
  * 获取集群详情
  */
 export function getKafkaDetail(params: { id: number }) {
-  return http.get<KafkaModel>(`${path}/${params.id}/`)
-    .then(data => new KafkaModel(data));
+  return http.get<KafkaModel>(`${path}/${params.id}/`).then((data) => new KafkaModel(data));
 }
 
 // 获取集群详情（入口配置）
 export function getClusterDetailEntryConfig(params: { id: number }) {
-  return http.get<KafkaModel>(`${path}/${params.id}/`)
-    .then(data => new KafkaModel(data));
+  return http.get<KafkaModel>(`${path}/${params.id}/`).then((data) => new KafkaModel(data));
 }
 
 /**
@@ -88,22 +89,24 @@ export function getKafkaTopoGraph(params: { cluster_id: number }) {
  * 获取 Kafka 集群访问密码
  */
 export function getKafkaPassword(params: Record<string, any> & { cluster_id: number }) {
-  return http.get<KafkaPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
-    .then(data => new KafkaPasswordModel(data));
+  return http
+    .get<KafkaPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
+    .then((data) => new KafkaPasswordModel(data));
 }
 
 /**
  * 获取 Kafka 集群节点列表信息
  */
-export function getKafkaNodeList(params: Record<string, any> & {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
-  return http.get<ListBase<Array<KafkaNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map((item: KafkaNodeModel) => new KafkaNodeModel(item)),
-    }));
+export function getKafkaNodeList(
+  params: Record<string, any> & {
+    bk_biz_id: number;
+    cluster_id: number;
+  },
+) {
+  return http.get<ListBase<Array<KafkaNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item: KafkaNodeModel) => new KafkaNodeModel(item)),
+  }));
 }
 
 /**

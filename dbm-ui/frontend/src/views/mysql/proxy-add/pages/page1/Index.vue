@@ -19,8 +19,7 @@
         theme="info"
         :title="$t('给集群添加Proxy实例')" />
       <div class="mt16">
-        <BkButton
-          @click="handleShowBatchEntry">
+        <BkButton @click="handleShowBatchEntry">
           <DbIcon type="add" />
           {{ $t('批量录入') }}
         </BkButton>
@@ -33,7 +32,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -68,10 +67,7 @@
 </template>
 
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { ref, shallowRef } from 'vue';
   import { useRouter } from 'vue-router';
 
   import { createTicket } from '@services/source/ticket';
@@ -82,19 +78,14 @@
 
   import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
 
-  import BatchEntry, {
-    type IValue as IBatchEntryValue,
-  } from './components/BatchEntry.vue';
+  import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   interface IClusterData {
-    id: number,
-    master_domain: string,
-    bk_cloud_id: number,
+    id: number;
+    master_domain: string;
+    bk_cloud_id: number;
   }
 
   // 检测列表是否为空
@@ -114,7 +105,7 @@
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
   const isShowBatchEntry = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
@@ -124,7 +115,7 @@
   };
   // 批量录入
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
-    const newList = list.map(item => createRowData(item));
+    const newList = list.map((item) => createRowData(item));
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -137,14 +128,16 @@
     isShowBatchSelector.value = true;
   };
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
-      clusterData: {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-        cloudId: clusterData.bk_cloud_id,
-      },
-    }));
+  const handelClusterChange = (selected: { [key: string]: Array<IClusterData> }) => {
+    const newList = selected[ClusterTypes.TENDBHA].map((clusterData) =>
+      createRowData({
+        clusterData: {
+          id: clusterData.id,
+          domain: clusterData.master_domain,
+          cloudId: clusterData.bk_cloud_id,
+        },
+      }),
+    );
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -168,26 +161,28 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'MYSQL_PROXY_ADD',
-        remark: '',
-        details: {
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
+      .then((data) =>
+        createTicket({
+          ticket_type: 'MYSQL_PROXY_ADD',
+          remark: '',
+          details: {
+            infos: data,
+          },
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
 
-        router.push({
-          name: 'MySQLProxyAdd',
-          params: {
-            page: 'success',
-          },
-          query: {
-            ticketId: data.id,
-          },
-        });
-      }))
+          router.push({
+            name: 'MySQLProxyAdd',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

@@ -23,19 +23,17 @@
 
   import type { ResourceItem } from '@services/types';
 
-  import EditInfo, {
-    type InfoColumn,
-  } from '@components/editable-info/index.vue';
+  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
   interface Props {
-    data: ResourceItem
+    data: ResourceItem;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const columns:InfoColumn[][] = [
+  const columns: InfoColumn[][] = [
     [
       {
         label: t('集群名称'),
@@ -62,17 +60,17 @@
       {
         label: 'Master',
         key: 'masters',
-        render: () => props.data.masters.map(item => item.instance).join(','),
+        render: () => props.data.masters.map((item) => item.instance).join(','),
       },
       {
         label: 'Slave',
         key: 'slaves',
-        render: () => (props.data.slaves || []).map(item => item.instance).join(','),
+        render: () => (props.data.slaves || []).map((item) => item.instance).join(','),
       },
       {
         label: 'Proxy',
         key: 'proxies',
-        render: () => (props.data.proxies || []).map(item => item.instance).join(','),
+        render: () => (props.data.proxies || []).map((item) => item.instance).join(','),
       },
       {
         label: t('创建人'),

@@ -13,15 +13,14 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSourceCluster
         :id="data.srcCluster"
         ref="sourceClusterRef"
         :data="data.srcCluster"
         @cluster-input-finish="handleClusterInputFinish" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderInstanceId
         ref="instanceIdRef"
         :data="data.dumperId" />
@@ -37,20 +36,18 @@
     </td>
     <td
       v-if="receiverType !== 'L5_AGENT'"
-      style="padding: 0;">
+      style="padding: 0">
       <RenderReceiver
         ref="receiverRef"
         :data="data.receiver" />
     </td>
     <template v-if="receiverType === 'KAFKA'">
-      <td
-        style="padding: 0;">
+      <td style="padding: 0">
         <RenderAccount
           ref="accountRef"
           :data="data.account" />
       </td>
-      <td
-        style="padding: 0;">
+      <td style="padding: 0">
         <RenderPassword
           ref="passwordRef"
           :data="data.password" />
@@ -58,14 +55,12 @@
     </template>
 
     <template v-if="receiverType === 'L5_AGENT'">
-      <td
-        style="padding: 0;">
+      <td style="padding: 0">
         <RenderL5ModCmdId
           ref="modIdRef"
           :data="data.l5ModId" />
       </td>
-      <td
-        style="padding: 0;">
+      <td style="padding: 0">
         <RenderL5ModCmdId
           ref="cmdIdRef"
           :data="data.l5ModId" />
@@ -99,9 +94,9 @@
     rowKey: string;
     isLoading: boolean;
     srcCluster: {
-      clusterName: string,
-      clusterId: number,
-      moduleId: number,
+      clusterName: string;
+      clusterId: number;
+      moduleId: number;
     };
     dumperId: string;
     receiver: string;
@@ -129,24 +124,23 @@
     l5ModId: 0,
     l5CmdId: 0,
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    rowSpan: number,
-    index: number,
-    type: string,
+    data: IDataRow;
+    rowSpan: number;
+    index: number;
+    type: string;
   }
 
   interface Emits {
-    (e: 'remove'): void,
-    (e: 'type-change', value: string): void
-    (e: 'cluster-input-finish', value: IDataRow['srcCluster']): void
+    (e: 'remove'): void;
+    (e: 'type-change', value: string): void;
+    (e: 'cluster-input-finish', value: IDataRow['srcCluster']): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<any>
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -162,11 +156,15 @@
   const cmdIdRef = ref<InstanceType<typeof RenderL5ModCmdId>>();
   const receiverType = ref('KAFKA');
 
-  watch(() => props.type, (type) => {
-    receiverType.value = type;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.type,
+    (type) => {
+      receiverType.value = type;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleReceiverTypeChange = (type: string) => {
     receiverType.value = type;
@@ -192,17 +190,9 @@
         modIdRef.value?.getValue(),
         cmdIdRef.value?.getValue(),
       ]).then((data) => {
-        const [
-          srcCluster,
-          id,
-          target,
-          user,
-          pwd,
-          modid,
-          cmdid,
-        ] = data;
+        const [srcCluster, id, target, user, pwd, modid, cmdid] = data;
         const targetArr = target ? target.split(':') : ['', 0];
-        const rowObj =  {
+        const rowObj = {
           ...srcCluster,
           dumper_id: id,
           protocol_type: receiverType.value,
@@ -211,7 +201,7 @@
           l5_modid: modid, // protocol_type为L5_AGENT填入用户值
           l5_cmdid: cmdid, // protocol_type为L5_AGENT填入用户值
           kafka_user: user, // protocol_type为KAFKA填入用户值
-          kafka_pwd: pwd,  // protocol_type为KAFKA填入用户值
+          kafka_pwd: pwd, // protocol_type为KAFKA填入用户值
         };
         if (receiverType.value === 'KAFKA') {
           delete rowObj.l5_modid;
@@ -231,11 +221,9 @@
       });
     },
   });
-
 </script>
 <style lang="less" scoped>
-.delete-column {
-  width: 100%;
-}
+  .delete-column {
+    width: 100%;
+  }
 </style>
-

@@ -12,9 +12,7 @@
         v-model="formData.desc"
         :rules="descRules" />
     </td>
-    <td>
-      String
-    </td>
+    <td>String</td>
     <td>
       <BkButton
         :loading="isSubmiting"
@@ -47,7 +45,7 @@
   import type { IVariable } from '../Index.vue';
 
   const emits = defineEmits<{
-    'create-change': []
+    'create-change': [];
   }>();
 
   const { t } = useI18n();
@@ -71,7 +69,7 @@
       message: t('变量名不能为空'),
     },
     {
-      validator: (value: string) => _.every(list.value, item => item.name !== value),
+      validator: (value: string) => _.every(list.value, (item) => item.name !== value),
       message: t('变量名重复'),
     },
   ];
@@ -82,10 +80,7 @@
     },
   ];
 
-  const {
-    loading: isSubmiting,
-    run: updateVariableMethod,
-  } = useRequest(updateVariable<'add'>, {
+  const { loading: isSubmiting, run: updateVariableMethod } = useRequest(updateVariable<'add'>, {
     manual: true,
     onSuccess() {
       messageSuccess('添加变量成功');
@@ -108,4 +103,3 @@
     });
   };
 </script>
-

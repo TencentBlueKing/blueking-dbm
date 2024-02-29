@@ -29,13 +29,12 @@
 
   interface Props {
     defaultValue?: number;
-
   }
 
-  interface Emits{
-    (e: 'change', value: number): void,
-    (e: 'submit'): void,
-    (e: 'cancel'): void,
+  interface Emits {
+    (e: 'change', value: number): void;
+    (e: 'submit'): void;
+    (e: 'cancel'): void;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -51,9 +50,7 @@
 
   const { t } = useI18n();
 
-
   const handleChange = (value: number) => {
     emits('change', value);
   };
 </script>
-

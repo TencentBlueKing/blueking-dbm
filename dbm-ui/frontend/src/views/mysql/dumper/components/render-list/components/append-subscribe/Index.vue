@@ -19,7 +19,7 @@
     @closed="handleClose">
     <template #header>
       <div class="header-main">
-        {{ t('追加订阅【name】', {name: data?.name}) }}
+        {{ t('追加订阅【name】', { name: data?.name }) }}
       </div>
     </template>
     <div class="append-rule-edit-box">
@@ -81,10 +81,7 @@
   import { listDumperConfig } from '@services/source/dumper';
   import { createTicket } from '@services/source/ticket';
 
-  import {
-    useBeforeClose,
-    useTicketMessage,
-  } from '@hooks';
+  import { useBeforeClose, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -93,15 +90,15 @@
   import ReceiverData from '@views/mysql/dumper/components/create-rule/components/receiver-data/Index.vue';
 
   interface Props {
-    data: DumperConfig | null,
+    data: DumperConfig | null;
   }
 
   interface Emits {
-    (e: 'success'): void,
-    (e: 'cancel'): void,
+    (e: 'success'): void;
+    (e: 'cancel'): void;
   }
 
-  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number]
+  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number];
 
   const props = withDefaults(defineProps<Props>(), {
     data: null,
@@ -152,49 +149,47 @@
 
   const handleClose = async () => {
     const result = await handleBeforeClose();
-    if (!result) return;
+    if (!result) {
+      return;
+    }
     window.changeConfirm = false;
     emits('cancel');
     isShow.value = false;
   };
-
 </script>
 
 <style lang="less" scoped>
-
-.header-main {
-  display: flex;
-  width: 100%;
-  overflow: hidden;
-  align-items: center;
-
-  .name {
-    width: auto;
-    max-width: 720px;
+  .header-main {
+    display: flex;
+    width: 100%;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    align-items: center;
+
+    .name {
+      width: auto;
+      max-width: 720px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
-}
 
-.append-rule-edit-box {
-  display: flex;
-  width: 100%;
-  padding: 24px 40px;
-  flex-direction: column;
+  .append-rule-edit-box {
+    display: flex;
+    width: 100%;
+    padding: 24px 40px;
+    flex-direction: column;
 
-  .edit-form {
-    // :deep(.bk-form-label) {
-    //   font-weight: 700;
-    // }
+    .edit-form {
+      // :deep(.bk-form-label) {
+      //   font-weight: 700;
+      // }
 
-    :deep(.deploy-place-radio) {
-      .bk-radio-label {
-        color: #63656e;
+      :deep(.deploy-place-radio) {
+        .bk-radio-label {
+          color: #63656e;
+        }
       }
     }
   }
-}
-
-
 </style>

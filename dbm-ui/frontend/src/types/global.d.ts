@@ -5,5 +5,3 @@ declare module 'tippy.js' {
     _bk_overflow_tips_: any;
   }
 }
-
-

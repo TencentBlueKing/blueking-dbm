@@ -15,9 +15,8 @@
   <div class="ticket-details__info">
     <div
       class="ticket-details__item"
-      style="align-items: flex-start;">
-      <span
-        class="ticket-details__item-label">{{ t('订阅的库表') }}：</span>
+      style="align-items: flex-start">
+      <span class="ticket-details__item-label">{{ t('订阅的库表') }}：</span>
       <span class="ticket-details__item-value">
         <BkTable
           class="subscribe-table"
@@ -27,9 +26,8 @@
     </div>
     <div
       class="ticket-details__item mt-16"
-      style="align-items: flex-start;">
-      <span
-        class="ticket-details__item-label">{{ t('数据源与接收端') }}：</span>
+      style="align-items: flex-start">
+      <span class="ticket-details__item-label">{{ t('数据源与接收端') }}：</span>
       <span class="ticket-details__item-value">
         <BkTable
           class="subscribe-table"
@@ -191,10 +189,9 @@
       source_cluster_domain: domain,
     };
   });
-
 </script>
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
   .subscribe-table {
     :deep(.table-names-box) {
@@ -210,8 +207,8 @@
         margin-right: 4px;
         margin-bottom: 8px;
         line-height: 22px;
-        color: #63656E;
-        background: #F0F1F5;
+        color: #63656e;
+        background: #f0f1f5;
         border-radius: 2px;
       }
     }

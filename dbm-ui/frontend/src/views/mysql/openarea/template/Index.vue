@@ -130,10 +130,10 @@
 </script>
 <style lang="less">
   .mysql-openarea-page {
-    .header-action{
+    .header-action {
       display: flex;
 
-      .search-box{
+      .search-box {
         width: 390px;
         margin-left: auto;
       }

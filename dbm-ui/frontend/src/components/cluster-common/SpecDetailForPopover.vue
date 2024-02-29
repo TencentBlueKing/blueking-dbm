@@ -42,7 +42,7 @@
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
   interface Props {
-    data: ResourceSpecModel
+    data: ResourceSpecModel;
   }
 
   defineProps<Props>();
@@ -69,24 +69,24 @@
     padding: 6px 4px;
     font-size: 12px;
     line-height: 20px;
-    color: #63656E;
+    color: #63656e;
 
-    .title{
+    .title {
       font-weight: bold;
     }
 
-    .info-box{
-      & > tr > td{
+    .info-box {
+      & > tr > td {
         line-height: 32px;
         vertical-align: top;
 
-        &:first-child{
+        &:first-child {
           width: 118px;
           padding-right: 8px;
           text-align: right;
         }
 
-        &:last-child{
+        &:last-child {
           color: #313238;
         }
       }

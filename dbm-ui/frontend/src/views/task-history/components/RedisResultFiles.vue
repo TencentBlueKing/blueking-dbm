@@ -23,7 +23,7 @@
       <span
         v-bk-tooltips="{
           disabled: hasSelected,
-          content: $t('请选择结果项')
+          content: $t('请选择结果项'),
         }"
         class="inline-block">
         <BkButton
@@ -38,7 +38,7 @@
         v-if="showDelete"
         v-bk-tooltips="{
           disabled: hasSelected,
-          content: $t('请选择结果项')
+          content: $t('请选择结果项'),
         }"
         class="inline-block">
         <BkButton

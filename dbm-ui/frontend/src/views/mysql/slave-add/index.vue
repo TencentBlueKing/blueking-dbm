@@ -14,12 +14,15 @@
 <template>
   <SuccessView
     v-if="ticketId"
-    :steps="[{
-      title: $t('单据审批'),
-      status: 'loading',
-    }, {
-      title: $t('添加从库_执行'),
-    }]"
+    :steps="[
+      {
+        title: $t('单据审批'),
+        status: 'loading',
+      },
+      {
+        title: $t('添加从库_执行'),
+      },
+    ]"
     :ticket-id="ticketId"
     :title="$t('添加从库任务提交成功')"
     @close="handleCloseSuccess" />
@@ -31,7 +34,7 @@
       :title="$t('添加从库_同机的所有集群会统一新增从库_但新机器不添加到域名解析中去')" />
     <BkButton
       class="slave-add-batch"
-      @click="() => isShowBatchInput = true">
+      @click="() => (isShowBatchInput = true)">
       <i class="db-icon-add" />
       {{ $t('批量录入') }}
     </BkButton>
@@ -504,22 +507,22 @@
 </script>
 
 <style lang="less" scoped>
-.slave-add {
-  height: 100%;
-  overflow: hidden;
+  .slave-add {
+    height: 100%;
+    overflow: hidden;
 
-  :deep(.bk-form-label) {
-    font-weight: bold;
-    color: #313238;
-  }
+    :deep(.bk-form-label) {
+      font-weight: bold;
+      color: #313238;
+    }
 
-  .slave-add-batch {
-    margin: 16px 0;
+    .slave-add-batch {
+      margin: 16px 0;
 
-    .db-icon-add {
-      margin-right: 4px;
-      color: @gray-color;
+      .db-icon-add {
+        margin-right: 4px;
+        color: @gray-color;
+      }
     }
   }
-}
 </style>

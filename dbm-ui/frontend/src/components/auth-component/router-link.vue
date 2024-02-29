@@ -1,19 +1,16 @@
 <template>
-  <RouterLink
-    v-bind="(attrs as unknown as any)">
+  <RouterLink v-bind="attrs as unknown as any">
     <slot />
   </RouterLink>
 </template>
 <script setup lang="ts">
-  import {
-    useAttrs,
-  } from 'vue';
+  import { useAttrs } from 'vue';
 
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    permission?: boolean | string,
-    actionId: string,
-    resource?: string | number,
+    permission?: boolean | string;
+    actionId: string;
+    resource?: string | number;
   }
 
   withDefaults(defineProps<Props>(), {

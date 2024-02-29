@@ -13,7 +13,7 @@
 
 <template>
   <BkTimeline :list="flowTimeline">
-    <template #content="{content}">
+    <template #content="{ content }">
       <template v-if="content?.todos?.length > 0">
         <div
           v-for="item in content.todos"
@@ -99,9 +99,11 @@
           <div
             v-else
             class="flow-todo__infos">
-            {{ item.done_by }} 处理完成，
-            操作：<span :class="String(item.status).toLowerCase()">{{ getOperation(item) }}</span>，
-            耗时：{{ getCostTimeDisplay(item.cost_time) }}
+            {{ item.done_by }} 处理完成， 操作：
+            <span :class="String(item.status).toLowerCase()">
+              {{ getOperation(item) }}
+            </span>
+            ， 耗时：{{ getCostTimeDisplay(item.cost_time) }}
             <template v-if="item.url">
               ，<a :href="item.url">{{ $t('查看详情') }} &gt;</a>
             </template>
@@ -124,9 +126,7 @@
           {{ $t('个_失败') }}
           <span class="sql-count danger">{{ counts.fail }}</span>
           {{ $t('个') }}
-          <template v-if="content.summary">
-            ，耗时：{{ getCostTimeDisplay(content.cost_time) }}，
-          </template>
+          <template v-if="content.summary"> ，耗时：{{ getCostTimeDisplay(content.cost_time) }}， </template>
           <BkButton
             text
             theme="primary"
@@ -145,9 +145,12 @@
               :value="content.cost_time" />
           </template>
           <template v-if="content.url">
-            ，<a
+            ，
+            <a
               :href="content.url"
-              target="_blank">{{ $t('任务详情') }} &gt;</a>
+              target="_blank">
+              {{ $t('任务详情') }} &gt;
+            </a>
           </template>
         </p>
         <p
@@ -288,24 +291,24 @@
 </script>
 
 <style lang="less" scoped>
-:deep(.bk-modal-content) {
-  height: 100%;
-  padding: 15px;
-}
-
-.sql-count {
-  font-weight: 700;
-
-  &.success {
-    color: @success-color;
+  :deep(.bk-modal-content) {
+    height: 100%;
+    padding: 15px;
   }
 
-  &.warning {
-    color: @warning-color;
-  }
+  .sql-count {
+    font-weight: 700;
 
-  &.danger {
-    color: @danger-color;
+    &.success {
+      color: @success-color;
+    }
+
+    &.warning {
+      color: @warning-color;
+    }
+
+    &.danger {
+      color: @danger-color;
+    }
   }
-}
 </style>

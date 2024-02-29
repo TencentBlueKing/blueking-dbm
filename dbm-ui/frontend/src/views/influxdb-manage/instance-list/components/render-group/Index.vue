@@ -15,10 +15,10 @@
   <div class="group-wrapper">
     <BkLoading
       :loading="isLoading"
-      style="height: 100%;">
+      style="height: 100%">
       <div
         class="group-item group-item--all"
-        :class="{'active': activeGroupId === 0}"
+        :class="{ active: activeGroupId === 0 }"
         @click.stop="handleChangeGroup(0)">
         <DbIcon
           class="mr-12"
@@ -36,7 +36,7 @@
           v-for="item in groupList"
           :key="item.id"
           class="group-item"
-          :class="{ 'active': activeGroupId === item.id}"
+          :class="{ active: activeGroupId === item.id }"
           @click.stop="handleChangeGroup(item.id)">
           <template v-if="curEditGroupId === item.id">
             <GroupCreate
@@ -103,12 +103,7 @@
   import type { Emitter } from 'mitt';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    createGroup,
-    deleteGroup,
-    getGroupList,
-    updateGroupInfo,
-  } from '@services/source/influxdbGroup';
+  import { createGroup, deleteGroup, getGroupList, updateGroupInfo } from '@services/source/influxdbGroup';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
   import GroupCreate from './components/Create.vue';
@@ -127,17 +122,21 @@
   const groupList = ref<Array<InfluxDBGroupItem>>([]);
   const curEditGroupId = ref(0);
   const isShowCreateGroup = ref(false);
-  const totalInstances = computed(() => (
-    groupList.value.reduce((total: number, item) => total + (item.instance_count ?? 0), 0)
-  ));
+  const totalInstances = computed(() =>
+    groupList.value.reduce((total: number, item) => total + (item.instance_count ?? 0), 0),
+  );
 
-  watch(() => groupList, () => {
-    eventBus.emit('update-group-list', groupList.value);
-  }, { immediate: true, deep: true });
+  watch(
+    () => groupList,
+    () => {
+      eventBus.emit('update-group-list', groupList.value);
+    },
+    { immediate: true, deep: true },
+  );
 
-  const hasGroupId = (id: number) => !!groupList.value.find(item => item.id === id) || id === 0;
+  const hasGroupId = (id: number) => !!groupList.value.find((item) => item.id === id) || id === 0;
   const setGroupId = (id: number) => {
-    let groupId  = id;
+    let groupId = id;
     if (groupId === activeGroupId.value) {
       return;
     }
@@ -182,12 +181,11 @@
 
   const handleDelete = (item: InfluxDBGroupItem) => {
     if (item.instance_count === 0) {
-      deleteGroup({ id: item.id })
-        .then(() => {
-          messageSuccess(t('删除成功'));
-          fetchGroupList();
-          handleChangeGroup(0);
-        });
+      deleteGroup({ id: item.id }).then(() => {
+        messageSuccess(t('删除成功'));
+        fetchGroupList();
+        handleChangeGroup(0);
+      });
     }
   };
 
@@ -216,11 +214,10 @@
     createGroup({
       bk_biz_id: currentBizId,
       name,
-    })
-      .then((res) => {
-        messageSuccess(t('创建成功'));
-        groupList.value.push(res);
-      });
+    }).then((res) => {
+      messageSuccess(t('创建成功'));
+      groupList.value.push(res);
+    });
   };
 
   const handleCreateClose = () => {
@@ -234,92 +231,92 @@
 </script>
 
 <style lang="less" scoped>
-.group-wrapper {
-  height: 100%;
-  padding-top: 16px;
+  .group-wrapper {
+    height: 100%;
+    padding-top: 16px;
 
-  .split-line {
-    display: block;
-    height: 1px;
-    margin: 8px 0;
-    background-color: #dcdee5;
-  }
-
-  .group-list {
-    max-height: calc(100% - 86px);
-  }
-
-  .group-item {
-    display: flex;
-    height: 36px;
-    padding: 0 16px;
-    font-size: 12px;
-    line-height: 36px;
-    cursor: pointer;
-    align-items: center;
-
-    .group-item-name {
-      flex: 1;
+    .split-line {
+      display: block;
+      height: 1px;
+      margin: 8px 0;
+      background-color: #dcdee5;
     }
 
-    .group-item-nums {
-      padding: 0 6px;
-      line-height: 16px;
-      color: @gray-color;
-      background-color: #eaebf0;
-      border-radius: 2px;
+    .group-list {
+      max-height: calc(100% - 86px);
     }
 
-    .group-item-operations {
-      display: none;
-    }
+    .group-item {
+      display: flex;
+      height: 36px;
+      padding: 0 16px;
+      font-size: 12px;
+      line-height: 36px;
+      cursor: pointer;
+      align-items: center;
 
-    .group-item-btn {
-      &.is-disabled {
-        color: @light-gray;
-        cursor: not-allowed;
+      .group-item-name {
+        flex: 1;
       }
-    }
-
-    &:hover {
-      background-color: #eaebf0;
-
-      &:not(.group-item--all) {
-        .group-item-operations {
-          display: block;
-        }
-
-        .group-item-nums {
-          display: none;
-        }
-      }
-    }
-
-    &.active {
-      color: @primary-color;
-      background-color: #e1ecff;
 
       .group-item-nums {
-        color: white;
-        background-color: #a3c5fd;
+        padding: 0 6px;
+        line-height: 16px;
+        color: @gray-color;
+        background-color: #eaebf0;
+        border-radius: 2px;
+      }
+
+      .group-item-operations {
+        display: none;
+      }
+
+      .group-item-btn {
+        &.is-disabled {
+          color: @light-gray;
+          cursor: not-allowed;
+        }
+      }
+
+      &:hover {
+        background-color: #eaebf0;
+
+        &:not(.group-item--all) {
+          .group-item-operations {
+            display: block;
+          }
+
+          .group-item-nums {
+            display: none;
+          }
+        }
+      }
+
+      &.active {
+        color: @primary-color;
+        background-color: #e1ecff;
+
+        .group-item-nums {
+          color: white;
+          background-color: #a3c5fd;
+        }
+      }
+    }
+
+    .group-footer {
+      display: flex;
+      align-items: center;
+      height: 36px;
+      padding: 0 16px;
+      font-size: 12px;
+      line-height: 36px;
+    }
+
+    .group-add {
+      .db-icon-plus-circle {
+        margin-right: 4px;
+        font-size: 14px;
       }
     }
   }
-
-  .group-footer {
-    display: flex;
-    align-items: center;
-    height: 36px;
-    padding: 0 16px;
-    font-size: 12px;
-    line-height: 36px;
-  }
-
-  .group-add {
-    .db-icon-plus-circle {
-      margin-right: 4px;
-      font-size: 14px;
-    }
-  }
-}
 </style>

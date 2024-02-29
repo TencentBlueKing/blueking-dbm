@@ -34,8 +34,8 @@
 
   import { fetchImportTask } from '@services/source/dbresourceResource';
 
-  interface Emits{
-    (e: 'exportHost'): void
+  interface Emits {
+    (e: 'exportHost'): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -45,9 +45,7 @@
 
   const taskNumber = computed(() => (taskInfo.value ? taskInfo.value.task_ids.length : 0));
 
-  const {
-    data: taskInfo,
-  } = useRequest(fetchImportTask, {
+  const { data: taskInfo } = useRequest(fetchImportTask, {
     manual: false,
     initialData: {
       bk_biz_id: 0,

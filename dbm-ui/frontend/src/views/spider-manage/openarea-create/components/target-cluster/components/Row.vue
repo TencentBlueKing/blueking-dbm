@@ -14,7 +14,7 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <ColumnCluster
           ref="clusterRef"
           :model-value="localClusterData" />
@@ -24,7 +24,7 @@
         :key="variableName"
         ref="variableRefs"
         :name="variableName" />
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <ColumnHost
           ref="hostRef"
           :cluster-data="localClusterData" />
@@ -50,22 +50,20 @@
   });
 </script>
 <script setup lang="ts">
-  import {
-    watch,
-  } from 'vue';
+  import { watch } from 'vue';
 
   import ColumnCluster from './ColumnCluster.vue';
   import ColumnHost from './ColumnHost.vue';
   import ColumnVariable from './ColumnVariable.vue';
 
-  export interface IData{
+  export interface IData {
     clusterData?: {
-      id: number,
-      master_domain: string,
-      bk_biz_id: number,
-      bk_cloud_id: number,
-      bk_cloud_name: string,
-    },
+      id: number;
+      master_domain: string;
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_cloud_name: string;
+    };
     vars?: Record<string, string>;
     authorizeIps?: string[];
   }
@@ -75,18 +73,18 @@
   }
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    variableList: string[],
+    data: IDataRow;
+    removeable: boolean;
+    variableList: string[];
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<Record<string, any>>
+  interface Exposes {
+    getValue: () => Promise<Record<string, any>>;
   }
 
   const props = defineProps<Props>();
@@ -99,11 +97,15 @@
 
   const localClusterData = ref<IData['clusterData']>();
 
-  watch(() => props.data, () => {
-    localClusterData.value = props.data.clusterData;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      localClusterData.value = props.data.clusterData;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleAppend = () => {
     emits('add', [createRowData()]);
@@ -120,20 +122,12 @@
     getValue() {
       return Promise.all([
         (clusterRef.value as InstanceType<typeof ColumnCluster>).getValue(),
-        Promise.all((variableRefs.value.map(item => item.getValue()))),
+        Promise.all(variableRefs.value.map((item) => item.getValue())),
         (hostRef.value as InstanceType<typeof ColumnHost>).getValue(),
-      ]).then(([
-        clusterData,
-        variableData,
-        hostData,
-      ]) => ({
+      ]).then(([clusterData, variableData, hostData]) => ({
         ...clusterData,
         ...hostData,
-        vars: variableData
-          .reduce(
-            (result, item) => Object.assign(result, item),
-            {} as Record<string, string>,
-          ),
+        vars: variableData.reduce((result, item) => Object.assign(result, item), {} as Record<string, string>),
       }));
     },
   });

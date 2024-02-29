@@ -15,11 +15,7 @@
   <Component :is="com" />
 </template>
 <script setup lang="ts">
-  import {
-    computed,
-    ref,
-    watch,
-  } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import { useRoute } from 'vue-router';
 
   import Page1 from './pages/page1/Index.vue';
@@ -41,9 +37,13 @@
     return Page1;
   });
 
-  watch(route, () => {
-    page.value = route.params.page as string;
-  }, {
-    immediate: true,
-  });
+  watch(
+    route,
+    () => {
+      page.value = route.params.page as string;
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>

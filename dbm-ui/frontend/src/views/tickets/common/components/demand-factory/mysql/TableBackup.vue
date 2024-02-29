@@ -143,5 +143,5 @@
 </script>
 
 <style lang="less" scoped>
-@import "@views/tickets/common/styles/DetailsTable.less";
+  @import '@views/tickets/common/styles/DetailsTable.less';
 </style>

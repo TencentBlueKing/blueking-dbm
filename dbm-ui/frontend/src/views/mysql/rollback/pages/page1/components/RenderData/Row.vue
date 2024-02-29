@@ -14,14 +14,14 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
           @id-change="handleClusterIdChange"
           @input-create="handleCreate" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderHost
           ref="hostRef"
           :cloud-id="cloudId"
@@ -29,13 +29,13 @@
           :domain="data.clusterData?.domain"
           :model-value="data.rollbackIp" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderBackup
           ref="backupSourceRef"
           :model-value="localBackupSource"
           @change="handleBackupSourceChange" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderMode
           ref="modeRef"
           :backup-source="localBackupSource"
@@ -43,26 +43,26 @@
           :cluster-id="localClusterId"
           :rollback-time="data.rollbackTime" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="databasesRef"
           :cluster-id="localClusterId"
           :model-value="data.databases" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableName
           ref="tablesRef"
           :cluster-id="localClusterId"
           :model-value="data.tables" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="databasesIgnoreRef"
           :cluster-id="localClusterId"
           :model-value="data.databasesIgnore"
           :required="false" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableName
           ref="tablesIgnoreRef"
           :cluster-id="localClusterId"
@@ -79,7 +79,7 @@
           <div
             class="action-btn"
             :class="{
-              disabled: removeable
+              disabled: removeable,
             }"
             @click="handleRemove">
             <DbIcon type="minus-fill" />
@@ -95,18 +95,18 @@
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
-      id: number,
-      domain: string
-      cloudId: number | null
-    },
-    rollbackIp?: string,
-    backupSource: string,
-    backupid?: number,
-    rollbackTime?: string,
-    databases?: string[],
-    databasesIgnore?: string [],
-    tables?: string [],
-    tablesIgnore?: string [],
+      id: number;
+      domain: string;
+      cloudId: number | null;
+    };
+    rollbackIp?: string;
+    backupSource: string;
+    backupid?: number;
+    rollbackTime?: string;
+    databases?: string[];
+    databasesIgnore?: string[];
+    tables?: string[];
+    tablesIgnore?: string[];
   }
 
   // 创建表格数据
@@ -124,10 +124,7 @@
   });
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
@@ -138,16 +135,16 @@
   import RenderMode from './RenderMode.vue';
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -167,17 +164,21 @@
   const cloudId = ref<number | null>(null);
   const localBackupSource = ref('');
 
-  watch(() => props.data, () => {
-    if (props.data.clusterData) {
-      localClusterId.value = props.data.clusterData.id;
-      cloudId.value = props.data.clusterData.cloudId;
-    }
-    localBackupSource.value = props.data.backupSource;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.clusterData) {
+        localClusterId.value = props.data.clusterData.id;
+        cloudId.value = props.data.clusterData.cloudId;
+      }
+      localBackupSource.value = props.data.backupSource;
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  const handleClusterIdChange = (idData: { id: number, cloudId: number | null }) => {
+  const handleClusterIdChange = (idData: { id: number; cloudId: number | null }) => {
     localClusterId.value = idData.id;
     cloudId.value = idData.cloudId;
   };
@@ -187,13 +188,18 @@
   };
 
   const handleCreate = (list: Array<string>) => {
-    emits('add', list.map(domain => createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-        cloudId: null,
-      },
-    })));
+    emits(
+      'add',
+      list.map((domain) =>
+        createRowData({
+          clusterData: {
+            id: 0,
+            domain,
+            cloudId: null,
+          },
+        }),
+      ),
+    );
   };
 
   const handleAppend = () => {
@@ -218,52 +224,54 @@
         tablesRef.value.getValue('tables'),
         databasesIgnoreRef.value.getValue('databases_ignore'),
         tablesIgnoreRef.value.getValue('tables_ignore'),
-      ]).then(([
-        clusterData,
-        hostData,
-        backupSourceData,
-        modeData,
-        databasesData,
-        tablesData,
-        databasesIgnoreData,
-        tablesIgnoreData,
-      ]) => ({
-        ...clusterData,
-        ...hostData,
-        ...backupSourceData,
-        ...modeData,
-        ...databasesData,
-        ...tablesData,
-        ...databasesIgnoreData,
-        ...tablesIgnoreData,
-      }));
+      ]).then(
+        ([
+          clusterData,
+          hostData,
+          backupSourceData,
+          modeData,
+          databasesData,
+          tablesData,
+          databasesIgnoreData,
+          tablesIgnoreData,
+        ]) => ({
+          ...clusterData,
+          ...hostData,
+          ...backupSourceData,
+          ...modeData,
+          ...databasesData,
+          ...tablesData,
+          ...databasesIgnoreData,
+          ...tablesIgnoreData,
+        }),
+      );
     },
   });
 </script>
 <style lang="less" scoped>
-.action-box {
-  display: flex;
-  align-items: center;
-
-  .action-btn {
+  .action-box {
     display: flex;
-    font-size: 14px;
-    color: #c4c6cc;
-    cursor: pointer;
-    transition: all 0.15s;
+    align-items: center;
 
-    &:hover {
-      color: #979ba5;
-    }
+    .action-btn {
+      display: flex;
+      font-size: 14px;
+      color: #c4c6cc;
+      cursor: pointer;
+      transition: all 0.15s;
 
-    &.disabled {
-      color: #dcdee5;
-      cursor: not-allowed;
-    }
+      &:hover {
+        color: #979ba5;
+      }
 
-    & ~ .action-btn {
-      margin-left: 18px;
+      &.disabled {
+        color: #dcdee5;
+        cursor: not-allowed;
+      }
+
+      & ~ .action-btn {
+        margin-left: 18px;
+      }
     }
   }
-}
 </style>

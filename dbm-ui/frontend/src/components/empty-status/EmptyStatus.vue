@@ -15,7 +15,7 @@
   <BkException
     v-if="isAnomalies"
     scene="part"
-    style="font-size: 12px;"
+    style="font-size: 12px"
     type="500">
     <div>
       <div class="mb-8">
@@ -32,11 +32,11 @@
   <BkException
     v-else-if="isSearching"
     scene="part"
-    style="font-size: 12px;"
+    style="font-size: 12px"
     type="search-empty">
     <div>
       <div>{{ $t('搜索结果为空') }}</div>
-      <div style="margin-top: 8px; color: #979ba5;">
+      <div style="margin-top: 8px; color: #979ba5">
         {{ $t('可以尝试调整关键词或') }}
         <BkButton
           text
@@ -51,19 +51,19 @@
     v-else
     :description="$t('暂无数据')"
     scene="part"
-    style="font-size: 12px;"
+    style="font-size: 12px"
     type="empty" />
 </template>
 
 <script setup lang="ts">
   interface Emits {
-    (e: 'refresh'): void,
-    (e: 'clearSearch'): void,
+    (e: 'refresh'): void;
+    (e: 'clearSearch'): void;
   }
 
   interface Props {
-    isAnomalies: boolean,
-    isSearching: boolean,
+    isAnomalies: boolean;
+    isSearching: boolean;
   }
 
   defineProps<Props>();

@@ -12,19 +12,54 @@
 -->
 
 <template>
-  <div style="padding: 20px;">
+  <div style="padding: 20px">
     <ContentLoader
       :height="716"
-      :width="maxWidth-40"
+      :width="maxWidth - 40"
       v-bind="attrs">
       <!-- eslint-disable vue/max-attributes-per-line -->
-      <rect height="24" rx="2" :width="maxWidth" x="0" y="57" />
-      <rect height="24" rx="2" :width="maxWidth" x="0" y="99" />
-      <rect height="24" rx="2" :width="maxWidth" x="0" y="141" />
-      <rect height="24" rx="2" :width="maxWidth" x="0" y="183" />
-      <rect height="24" rx="2" :width="maxWidth" x="0" y="225" />
-      <rect height="32" rx="2" width="480" :x="maxWidth-480" y="0" />
-      <rect height="32" rx="2" width="88" x="0" y="0" />
+      <rect
+        height="24"
+        rx="2"
+        :width="maxWidth"
+        x="0"
+        y="57" />
+      <rect
+        height="24"
+        rx="2"
+        :width="maxWidth"
+        x="0"
+        y="99" />
+      <rect
+        height="24"
+        rx="2"
+        :width="maxWidth"
+        x="0"
+        y="141" />
+      <rect
+        height="24"
+        rx="2"
+        :width="maxWidth"
+        x="0"
+        y="183" />
+      <rect
+        height="24"
+        rx="2"
+        :width="maxWidth"
+        x="0"
+        y="225" />
+      <rect
+        height="32"
+        rx="2"
+        width="480"
+        :x="maxWidth - 480"
+        y="0" />
+      <rect
+        height="32"
+        rx="2"
+        width="88"
+        x="0"
+        y="0" />
     </ContentLoader>
   </div>
 </template>
@@ -46,4 +81,3 @@
 
   const attrs = attrsOnlyProp(useAttrs());
 </script>
-

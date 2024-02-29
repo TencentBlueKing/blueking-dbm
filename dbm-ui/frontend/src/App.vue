@@ -32,7 +32,7 @@
           <DbIcon
             class="user-info-arrow"
             :class="{
-              'is-active': isShowLogout
+              'is-active': isShowLogout,
             }"
             type="down-shape" />
         </div>
@@ -48,16 +48,13 @@
     <template #content-header>
       <RouterBack />
     </template>
-    <DbRouterView style="height: 100%;" />
+    <DbRouterView style="height: 100%" />
   </Layout>
   <SystemVersionLog v-model:is-show="isShowSystemVersionLog" />
 </template>
 <script setup lang="ts">
   import urlJoin from 'url-join';
-  import {
-    onMounted,
-    watch,
-  } from 'vue';
+  import { onMounted, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getLogout } from '@services/source/logout';
@@ -92,11 +89,13 @@
   const isShowLogout = ref(false);
   const isShowSystemVersionLog = ref(false);
 
-  watch(locale, () => {
-    document.title = documentTitles[locale.value];
-  }, {
-    immediate: true,
-  });
+  watch(
+    locale,
+    () => {
+      document.title = documentTitles[locale.value];
+    },
+    { immediate: true },
+  );
 
   const handleShowSystemVersionLog = () => {
     isShowSystemVersionLog.value = true;
@@ -105,8 +104,8 @@
   const handleSignOut = () => {
     useInfo({
       title: t('确认退出登录'),
-      onConfirm: () => getLogout()
-        .then(() => {
+      onConfirm: () =>
+        getLogout().then(() => {
           window.location.reload();
           return true;
         }),
@@ -118,62 +117,62 @@
   });
 </script>
 <style lang="less">
-.bk-popover[data-theme~="top-action-menu-theme"]{
-  padding-right: 0 !important;
-  padding-left: 0 !important;
+  .bk-popover[data-theme~='top-action-menu-theme'] {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
 
-  .item {
-    display: flex;
+    .item {
+      display: flex;
+      height: 32px;
+      padding: 0 16px;
+      font-size: 12px;
+      color: #63656e;
+      cursor: pointer;
+      align-items: center;
+
+      &.active,
+      &:hover {
+        color: #3a84ff;
+        background-color: #eaf3ff;
+      }
+    }
+  }
+
+  .top-action-btn {
+    position: relative;
+    display: inline-flex;
+    width: 32px;
     height: 32px;
-    padding: 0 16px;
-    font-size: 12px;
-    color: #63656e;
+    font-size: 16px;
+    color: #979ba5;
     cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.15s;
     align-items: center;
+    justify-content: center;
 
-    &.active,
-    &:hover {
-      color: #3a84ff;
-      background-color: #eaf3ff;
+    &:hover,
+    &.active {
+      color: @primary-color;
+      background-color: #f0f1f5;
     }
   }
-}
 
-.top-action-btn{
-  position: relative;
-  display: inline-flex;
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
-  color: #979ba5;
-  cursor: pointer;
-  border-radius: 50%;
-  transition: background .15s;
-  align-items: center;
-  justify-content: center;
+  .user-info-box {
+    cursor: pointer;
 
-  &:hover,
-  &.active {
-    color: @primary-color;
-    background-color: #f0f1f5;
-  }
-}
+    .username-text {
+      padding-right: 4px;
+    }
 
-.user-info-box {
-  cursor: pointer;
+    .user-info-arrow {
+      display: inline-block;
+      font-size: 12px;
+      transition: all 0.2s;
 
-  .username-text {
-    padding-right: 4px;
-  }
-
-  .user-info-arrow{
-    display: inline-block;
-    font-size: 12px;
-    transition: all 0.2s;
-
-    &.is-active{
-      transform: rotate(180deg);
+      &.is-active {
+        transform: rotate(180deg);
+      }
     }
   }
-}
 </style>

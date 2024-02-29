@@ -8,24 +8,28 @@ import type { ListBase } from './types';
 
 // 分区列表
 export const getList = function (params: Record<string, any>) {
-  return http.get<ListBase<PartitionModel[]>>('/apis/partition/', params)
-    .then(data => ({
-      ...data,
-      results: data.results.map(item => new PartitionModel(Object.assign(item, {
-        permission: Object.assign({}, data.permission, item.permission),
-      }))),
-    }));
+  return http.get<ListBase<PartitionModel[]>>('/apis/partition/', params).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item) =>
+        new PartitionModel(
+          Object.assign(item, {
+            permission: Object.assign({}, data.permission, item.permission),
+          }),
+        ),
+    ),
+  }));
 };
 
 // 增加分区策略
 export const create = function (params: {
-  cluster_id: number,
-  dblikes: string[],
-  tblikes: string[],
-  partition_column: string,
-  partition_column_type: string,
-  expire_time: number,
-  partition_time_interval: number,
+  cluster_id: number;
+  dblikes: string[];
+  tblikes: string[];
+  partition_column: string;
+  partition_column_type: string;
+  expire_time: number;
+  partition_time_interval: number;
 }) {
   const { currentBizId } = useGlobalBizs();
   return http.post<Record<number, IDryRunData[]>>('/apis/partition/', {
@@ -35,10 +39,7 @@ export const create = function (params: {
 };
 
 // 批量删除
-export const batchRemove = function (params: {
-  cluster_type: string,
-  ids: number[],
-}) {
+export const batchRemove = function (params: { cluster_type: string; ids: number[] }) {
   const { currentBizId } = useGlobalBizs();
   return http.delete('/apis/partition/batch_delete/', {
     bk_biz_id: currentBizId,
@@ -47,10 +48,7 @@ export const batchRemove = function (params: {
 };
 
 // 禁用
-export const disablePartition = function (params: {
-  cluster_type: string,
-  ids: number[],
-}) {
+export const disablePartition = function (params: { cluster_type: string; ids: number[] }) {
   const { currentBizId } = useGlobalBizs();
   return http.post('/apis/partition/disable/', {
     bk_biz_id: currentBizId,
@@ -59,10 +57,7 @@ export const disablePartition = function (params: {
 };
 
 // 启用
-export const enablePartition = function (params: {
-  cluster_type: string,
-  ids: number[],
-}) {
+export const enablePartition = function (params: { cluster_type: string; ids: number[] }) {
   const { currentBizId } = useGlobalBizs();
   return http.post('/apis/partition/enable/', {
     bk_biz_id: currentBizId,
@@ -70,30 +65,25 @@ export const enablePartition = function (params: {
   });
 };
 
-
 interface IDryRunData {
   execute_objects: {
-    add_partition: string[],
-    config_id: number,
-    dblike: string,
-    drop_partition: string[],
+    add_partition: string[];
+    config_id: number;
+    dblike: string;
+    drop_partition: string[];
     init_partition: {
-      need_size: number,
-      sql: string
-    }[],
-    tblike: string
-  }[],
-  ip: string,
-  message: string,
-  port: number,
-  shard_name: string
+      need_size: number;
+      sql: string;
+    }[];
+    tblike: string;
+  }[];
+  ip: string;
+  message: string;
+  port: number;
+  shard_name: string;
 }
 // 分区策略前置执行
-export const dryRun = function (params: {
-  config_id: number,
-  cluster_id: number,
-  cluster_type: string,
-}) {
+export const dryRun = function (params: { config_id: number; cluster_id: number; cluster_type: string }) {
   const { currentBizId } = useGlobalBizs();
   return http.post<Record<number, IDryRunData[]>>('/apis/partition/dry_run/', {
     bk_biz_id: currentBizId,
@@ -102,50 +92,43 @@ export const dryRun = function (params: {
 };
 
 // 分区策略执行
-export const execute = function (params: {
-  cluster_id: number,
-  partition_objects: Record<any, unknown>,
-}) {
+export const execute = function (params: { cluster_id: number; partition_objects: Record<any, unknown> }) {
   return http.post<{
-    id: number
+    id: number;
   }>('/apis/partition/execute_partition/', params);
 };
 
 // 查询分区策略日志
-export const queryLog = function (params: {
-  cluster_type: string,
-  config_id: number,
-}) {
-  return http.get<ListBase<PartitionLogModel[]>>('/apis/partition/query_log/', params)
-    .then(data => ({
-      ...data,
-      results: data.results.map(item => new PartitionLogModel(item)),
-    }));
+export const queryLog = function (params: { cluster_type: string; config_id: number }) {
+  return http.get<ListBase<PartitionLogModel[]>>('/apis/partition/query_log/', params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new PartitionLogModel(item)),
+  }));
 };
 
 // 分区策略字段校验
 export const verifyPartitionField = function (params: {
-  cluster_id: number,
-  dblikes: string[],
-  tblikes: string[],
-  partition_column: string,
-  partition_column_type: string,
+  cluster_id: number;
+  dblikes: string[];
+  tblikes: string[];
+  partition_column: string;
+  partition_column_type: string;
 }) {
   return http.post('/apis/partition/verify_partition_field/', params);
 };
 
 // 修改分区策略
 export const edit = function (params: {
-  id: number,
-  cluster_id: number,
-  dblikes: string[],
-  tblikes: string[],
-  partition_column: string,
-  partition_column_type: string,
-  expire_time: number,
-  partition_time_interval: number,
+  id: number;
+  cluster_id: number;
+  dblikes: string[];
+  tblikes: string[];
+  partition_column: string;
+  partition_column_type: string;
+  expire_time: number;
+  partition_time_interval: number;
 }) {
-  const realParams = { ...params } as { id?: number, };
+  const realParams = { ...params } as { id?: number };
   delete realParams.id;
 
   return http.put<Record<number, IDryRunData[]>>(`/apis/partition/${params.id}/`, {

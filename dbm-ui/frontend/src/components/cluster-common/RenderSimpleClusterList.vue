@@ -24,7 +24,7 @@
         :key="item.id"
         class="cluster-item"
         :class="{
-          active: item.id === modelValue
+          active: item.id === modelValue,
         }"
         @click="handleSelectCluster(item)">
         <RenderClusterStatus
@@ -33,7 +33,7 @@
         <span
           v-overflow-tips
           class="text-overflow"
-          style="margin-left: 4px;">
+          style="margin-left: 4px">
           {{ item.cluster_name }}
         </span>
       </div>
@@ -58,11 +58,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { ref, shallowRef, watch } from 'vue';
 
   import { useDebouncedRef } from '@hooks';
 
@@ -72,8 +68,8 @@
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   interface Props {
-    modelValue: number,
-    dataSource: (params: any)=> Promise<any>,
+    modelValue: number;
+    dataSource: (params: any) => Promise<any>;
   }
 
   interface Emits {
@@ -97,30 +93,35 @@
 
   const fetchData = () => {
     isLoading.value = true;
-    props.dataSource({
-      bk_biz_id: globalBizsStore.currentBizId,
-      name: searchKey.value,
-    }).then((data: { count: number, results: Array<{id: number, cluster_type: string}>}) => {
-      current.value = data.count;
-      tableData.value = data.results;
-      if (data.results.length < 1) {
-        return;
-      }
-      const clusterIdMap = data.results.reduce((result, item) => ({
-        ...result,
-        [item.id]: true,
-      }), {} as Record<number, boolean>);
-      const currentCluster = clusterIdMap[props.modelValue];
-      // 选中不在最新的表中，默认选择第一个
-      if (!currentCluster) {
-        handleSelectCluster(data.results[0]);
-        return;
-      }
+    props
+      .dataSource({
+        bk_biz_id: globalBizsStore.currentBizId,
+        name: searchKey.value,
+      })
+      .then((data: { count: number; results: Array<{ id: number; cluster_type: string }> }) => {
+        current.value = data.count;
+        tableData.value = data.results;
+        if (data.results.length < 1) {
+          return;
+        }
+        const clusterIdMap = data.results.reduce(
+          (result, item) => ({
+            ...result,
+            [item.id]: true,
+          }),
+          {} as Record<number, boolean>,
+        );
+        const currentCluster = clusterIdMap[props.modelValue];
+        // 选中不在最新的表中，默认选择第一个
+        if (!currentCluster) {
+          handleSelectCluster(data.results[0]);
+          return;
+        }
 
-      emits('update:clusterType', data.results.find(item => item.id === props.modelValue)?.cluster_type ?? '');
+        emits('update:clusterType', data.results.find((item) => item.id === props.modelValue)?.cluster_type ?? '');
 
-      isAnomalies.value = false;
-    })
+        isAnomalies.value = false;
+      })
       .catch(() => {
         current.value = 0;
         tableData.value = [];
@@ -186,7 +187,7 @@
           bottom: 0;
           width: 1px;
           background: #fff;
-          content: "";
+          content: '';
         }
       }
     }

@@ -41,24 +41,17 @@
           :disabled="editDisabled"
           :list="logRecordList"
           :rules="rules"
-          style="flex: 1;" />
+          style="flex: 1" />
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    watch,
-  } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    queryBackupLogFromBklog,
-    queryBackupLogFromLoacal,
-  } from '@services/source/fixpointRollback';
+  import { queryBackupLogFromBklog, queryBackupLogFromLoacal } from '@services/source/fixpointRollback';
 
   import { useTimeZoneFormat } from '@hooks';
 
@@ -74,9 +67,9 @@
 
   interface Exposes {
     getValue: (field: string) => Promise<{
-      backupinfo?: any,
-      rollback_time?: string
-    }>
+      backupinfo?: any;
+      rollback_time?: string;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -117,7 +110,7 @@
   const localBackupid = ref(0);
   const localRollbackTime = ref('');
 
-  const logRecordList = shallowRef<Array<{ id: string, name: string}>>([]);
+  const logRecordList = shallowRef<Array<{ id: string; name: string }>>([]);
 
   const editDisabled = computed(() => !props.clusterId || !props.backupSource);
 
@@ -130,7 +123,7 @@
     queryBackupLog({
       cluster_id: props.clusterId,
     }).then((dataList) => {
-      logRecordList.value = dataList.map(item => ({
+      logRecordList.value = dataList.map((item) => ({
         id: item.backup_id,
         name: `${item.mysql_role} ${item.backup_time}`,
       }));
@@ -138,45 +131,51 @@
     });
   };
 
-  watch(() => [props.backupSource, props.clusterId], () => {
-    localBackupid.value = 0;
-    localRollbackTime.value = '';
-    if (!props.clusterId || !props.backupSource) {
-      return;
-    }
-    fetchLogData();
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => [props.backupSource, props.clusterId],
+    () => {
+      localBackupid.value = 0;
+      localRollbackTime.value = '';
+      if (!props.clusterId || !props.backupSource) {
+        return;
+      }
+      fetchLogData();
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(() => props.backupid, () => {
-    if (props.backupid) {
-      localBackupid.value = props.backupid;
-    }
-    if (props.rollbackTime) {
-      localRollbackTime.value = props.rollbackTime;
-    }
+  watch(
+    () => props.backupid,
+    () => {
+      if (props.backupid) {
+        localBackupid.value = props.backupid;
+      }
+      if (props.rollbackTime) {
+        localRollbackTime.value = props.rollbackTime;
+      }
 
-    localBackupType.value = props.rollbackTime ? 'time' : 'record';
-  }, {
-    immediate: true,
-  });
+      localBackupType.value = props.rollbackTime ? 'time' : 'record';
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
       if (localBackupType.value === 'record') {
-        return localBackupidRef.value.getValue()
-          .then(() => {
-            const backupInfo = _.find(logRecordListMemo, item => item.backup_id === localBackupid.value);
-            return ({
-              backupinfo: backupInfo,
-            });
-          });
+        return localBackupidRef.value.getValue().then(() => {
+          const backupInfo = _.find(logRecordListMemo, (item) => item.backup_id === localBackupid.value);
+          return {
+            backupinfo: backupInfo,
+          };
+        });
       }
-      return localRollbackTimeRef.value.getValue()
-        .then(() => ({
-          rollback_time: formatDateToUTC(localRollbackTime.value),
-        }));
+      return localRollbackTimeRef.value.getValue().then(() => ({
+        rollback_time: formatDateToUTC(localRollbackTime.value),
+      }));
     },
   });
 </script>

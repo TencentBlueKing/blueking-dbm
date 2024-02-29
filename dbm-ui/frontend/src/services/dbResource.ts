@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import DbResourceModel from '@services/model/db-resource/DbResource';
 import DeployPlanModel from '@services/model/db-resource/DeployPlan';
@@ -19,21 +19,15 @@ import OperationModel from '@services/model/db-resource/Operation';
 import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
 import http from './http';
-import type {
-  HostDetails,
-} from './types/ip';
+import type { HostDetails } from './types/ip';
 
 // 查询部署方案列表
-export function fetchDeployPlan(params: {
-  cluster_type: string,
-  limit: number,
-  offset: number,
-  name?: string
-}) {
-  return http.get<{ count: number, results: DeployPlanModel[] }>('/apis/dbresource/deploy_plan/', params)
-    .then(data => ({
+export function fetchDeployPlan(params: { cluster_type: string; limit: number; offset: number; name?: string }) {
+  return http
+    .get<{ count: number; results: DeployPlanModel[] }>('/apis/dbresource/deploy_plan/', params)
+    .then((data) => ({
       ...data,
-      results: data.results.map(item => new DeployPlanModel(item)),
+      results: data.results.map((item) => new DeployPlanModel(item)),
     }));
 }
 
@@ -56,22 +50,23 @@ export function removeDeployPlan(params: { id: number }) {
 }
 // 资源池列表
 export function fetchList(params: Record<string, any>) {
-  return http.post<{ count: number, results: DbResourceModel[] }>('/apis/dbresource/resource/list/', params)
-    .then(data => ({
+  return http
+    .post<{ count: number; results: DbResourceModel[] }>('/apis/dbresource/resource/list/', params)
+    .then((data) => ({
       ...data,
-      results: data.results.map(item => new DbResourceModel(item)),
+      results: data.results.map((item) => new DbResourceModel(item)),
     }));
 }
 
 // 资源池导入
 export function importResource(params: {
-  for_bizs: number[],
-  resource_types: string[],
+  for_bizs: number[];
+  resource_types: string[];
   hosts: Array<{
-    ip: string,
-    host_id: number,
-    bk_cloud_id: number
-  }>
+    ip: string;
+    host_id: number;
+    bk_cloud_id: number;
+  }>;
 }) {
   return http.post('/apis/dbresource/resource/import/', params);
 }
@@ -97,20 +92,17 @@ export function fetchDeviceClass() {
 }
 
 // 获取DBA业务下的主机信息
-export function fetchListDbaHost(params: {
-  limit: number,
-  offset: number,
-  search_content: string
-}) {
-  return http.get<{
-    total: number,
-    data: ImportHostModel[]
-  }>('/apis/dbresource/resource/list_dba_hosts/', {
-    search_content: params.search_content,
-    start: params.offset,
-    page_size: params.limit,
-  })
-    .then(data => ({
+export function fetchListDbaHost(params: { limit: number; offset: number; search_content: string }) {
+  return http
+    .get<{
+      total: number;
+      data: ImportHostModel[];
+    }>('/apis/dbresource/resource/list_dba_hosts/', {
+      search_content: params.search_content,
+      start: params.offset,
+      page_size: params.limit,
+    })
+    .then((data) => ({
       count: data.total,
       results: data.data,
     }));
@@ -124,34 +116,30 @@ export function removeResource(params: { bk_host_ids: number[] }) {
 // 查询资源导入任务
 export function fetchImportTask() {
   return http.get<{
-    bk_biz_id: number,
-    task_ids: string[]
+    bk_biz_id: number;
+    task_ids: string[];
   }>('/apis/dbresource/resource/query_import_tasks/');
 }
 
 // 获取资源导入相关链接
 export function fetchResourceImportUrls() {
   return http.get<{
-    bk_cmdb_url: string,
-    bk_nodeman_url: string,
-    bk_scr_url: string
+    bk_cmdb_url: string;
+    bk_nodeman_url: string;
+    bk_scr_url: string;
   }>('/apis/dbresource/resource/resource_import_urls/');
 }
 
 // 查询资源操作记录
-export function fetchOperationList(params: {
-  limit: number,
-  offset: number,
-  begin_time: string,
-  end_time: string
-}) {
-  return http.get<{
-    count: number,
-    results: OperationModel[]
-  }>('/apis/dbresource/resource/query_operation_list/', params)
-    .then(data => ({
+export function fetchOperationList(params: { limit: number; offset: number; begin_time: string; end_time: string }) {
+  return http
+    .get<{
+      count: number;
+      results: OperationModel[];
+    }>('/apis/dbresource/resource/query_operation_list/', params)
+    .then((data) => ({
       ...data,
-      results: data.results.map(item => new OperationModel(item)),
+      results: data.results.map((item) => new OperationModel(item)),
     }));
 }
 
@@ -162,53 +150,60 @@ export function fetchHostListByHostId(params: { bk_host_ids: string }) {
 
 // 更新资源
 export function updateResource(params: {
-  bk_host_ids: number[],
-  for_bizs: number[],
-  resource_types: string[],
-  set_empty_biz: boolean,
-  set_empty_resource_type: boolean,
-  storage_device: Record<string, {size: number, disk_type: string}>
+  bk_host_ids: number[];
+  for_bizs: number[];
+  resource_types: string[];
+  set_empty_biz: boolean;
+  set_empty_resource_type: boolean;
+  storage_device: Record<string, { size: number; disk_type: string }>;
 }) {
   return http.post('/apis/dbresource/resource/update/', params);
 }
 
 // 获取推荐规格
-export function fetchRecommendSpec(params: {
-  cluster_id: number,
-  role: string,
-} | {
-  instance_id: number,
-  role: string,
-}) {
-  return http.get<ResourceSpecModel[]>('/apis/dbresource/spec/recommend_spec/', params)
-    .then(data => data.map(item => new ResourceSpecModel(item)));
+export function fetchRecommendSpec(
+  params:
+    | {
+        cluster_id: number;
+        role: string;
+      }
+    | {
+        instance_id: number;
+        role: string;
+      },
+) {
+  return http
+    .get<ResourceSpecModel[]>('/apis/dbresource/spec/recommend_spec/', params)
+    .then((data) => data.map((item) => new ResourceSpecModel(item)));
 }
 
 // 污点池列表
-export function getDirtyMachines(params: {
-  limit: number,
-  offset: number,
-}, config = { globalError: true }) {
-  return http.get<{count: number, results: DirtyMachinesModel[]}>('/apis/db_dirty/query_dirty_machines/', params, config)
-    .then(res => ({
+export function getDirtyMachines(
+  params: {
+    limit: number;
+    offset: number;
+  },
+  config = { globalError: true },
+) {
+  return http
+    .get<{ count: number; results: DirtyMachinesModel[] }>('/apis/db_dirty/query_dirty_machines/', params, config)
+    .then((res) => ({
       ...res,
-      results: res.results.map(item => new DirtyMachinesModel(item)),
+      results: res.results.map((item) => new DirtyMachinesModel(item)),
     }));
 }
 
 // 将污点池主机转移至待回收模块
-export function transferDirtyMachines(params: {
-  bk_host_ids: number[]
-}) {
+export function transferDirtyMachines(params: { bk_host_ids: number[] }) {
   return http.post('/apis/db_dirty/transfer_dirty_machines/', params);
 }
 
 // 获取规格主机数量
 export function getSpecResourceCount(params: {
-  bk_biz_id: number,
-  resource_type?: string,
-  bk_cloud_id: number,
-  spec_ids: number[]
+  bk_biz_id: number;
+  resource_type?: string;
+  bk_cloud_id: number;
+  spec_ids: number[];
 }) {
   return http.post<Record<number, number>>('/apis/dbresource/resource/spec_resource_count/', params);
 }

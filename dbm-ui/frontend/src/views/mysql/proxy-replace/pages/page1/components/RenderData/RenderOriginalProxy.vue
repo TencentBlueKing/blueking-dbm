@@ -15,7 +15,7 @@
   <div
     class="render-original-proxy"
     :class="{
-      'is-editing': isShowEdit
+      'is-editing': isShowEdit,
     }">
     <TableEditInput
       v-if="isShowEdit"
@@ -54,23 +54,23 @@
         </div>
       </div>
     </template>
-    <div style="display: none;">
+    <div style="display: none">
       <div
         ref="popRef"
-        style="padding: 9px 7px;">
+        style="padding: 9px 7px">
         <BkLoading
           v-if="isShowRelateMemo"
           :loading="isRelateLoading">
-          <div style="margin-bottom: 8px; font-size: 12px; line-height: 16px;">
-            <span style="font-weight: bold; color: #313238;">{{ $t('同机关联集群') }}</span>
-            <span style="color: #63656e;">{{ $t('同主机关联的其他集群_勾选后一同替换') }}</span>
+          <div style="margin-bottom: 8px; font-size: 12px; line-height: 16px">
+            <span style="font-weight: bold; color: #313238">{{ $t('同机关联集群') }}</span>
+            <span style="color: #63656e">{{ $t('同主机关联的其他集群_勾选后一同替换') }}</span>
           </div>
-          <div style="max-height: 300px; overflow: auto;">
+          <div style="max-height: 300px; overflow: auto">
             <template v-if="relatedClusterList.length > 0">
               <div
                 v-for="item in relatedClusterList"
                 :key="item.id"
-                style="padding: 8px 0;">
+                style="padding: 8px 0">
                 <BkCheckbox
                   label
                   :model-value="Boolean(realateCheckedMap[item.id])"
@@ -81,7 +81,7 @@
             </template>
             <p
               v-else
-              style="color: #63656e;">
+              style="color: #63656e">
               {{ $t('无同机关联集群') }}
             </p>
           </div>
@@ -92,7 +92,6 @@
 </template>
 <script lang="ts">
   const instanceAddreddMemo: { [key: string]: Record<string, boolean> } = {};
-
 </script>
 <script setup lang="ts">
   import _ from 'lodash';

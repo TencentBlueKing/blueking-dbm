@@ -18,8 +18,7 @@
       :key="index"
       class="ticket-details__info">
       <strong class="ticket-details__info-title">{{ item.title }}</strong>
-      <div
-        class="ticket-details__list">
+      <div class="ticket-details__list">
         <div class="ticket-details__item">
           <span class="ticket-details__item-label">{{ t('集群') }}：</span>
           <span class="ticket-details__item-value">{{ item.clusterName }}</span>
@@ -35,10 +34,10 @@
         <div class="ticket-details__item">
           <span class="ticket-details__item-label">{{ isScaleUp ? t('扩容容量') : t('缩容容量') }}：</span>
           <span class="ticket-details__item-value">
-            {{ isScaleUp ? item.targetDisk : item.shrinkDisk }}GB
-            （{{ isScaleUp ?
-              t('当前m_G_扩容后预估n_G', {m: item.totalDisk, n: item.expectDisk})
-              : t('当前m_G_缩容后预估n_G', {m: item.totalDisk, n: item.totalDisk - item.shrinkDisk})
+            {{ isScaleUp ? item.targetDisk : item.shrinkDisk }}GB （{{
+              isScaleUp
+                ? t('当前m_G_扩容后预估n_G', { m: item.totalDisk, n: item.expectDisk })
+                : t('当前m_G_缩容后预估n_G', { m: item.totalDisk, n: item.totalDisk - item.shrinkDisk })
             }}）
           </span>
         </div>
@@ -50,7 +49,9 @@
           <div class="ticket-details__item">
             <span class="ticket-details__item-label">{{ isScaleUp ? t('扩容数量') : t('缩容数量') }}：</span>
             <span class="ticket-details__item-value">
-              {{ t('n台', [item.count]) }}（{{ t('当前n台_扩容至m台', {n: item.totalHost, m: item.totalHost + item.count}) }})
+              {{ t('n台', [item.count]) }}（{{
+                t('当前n台_扩容至m台', { n: item.totalHost, m: item.totalHost + item.count })
+              }})
             </span>
           </div>
         </template>
@@ -72,33 +73,30 @@
   import { useRequest } from 'vue-request';
 
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
-  import type {
-    BigDataCapacityDetails,
-    TicketDetails,
-  } from '@services/types/ticket';
+  import type { BigDataCapacityDetails, TicketDetails } from '@services/types/ticket';
 
   import SelectIpTable from './SelectIpTable.vue';
 
   interface Props {
-    ticketDetails: TicketDetails<BigDataCapacityDetails>
+    ticketDetails: TicketDetails<BigDataCapacityDetails>;
   }
 
   interface RowData {
-    title: string,
-    clusterName: string,
-    clusterId: string,
-    totalDisk: number,
-    targetDisk: number,
-    expectDisk: number,
-    shrinkDisk: number,
-    specName: string,
-    totalHost: number,
-    count: number,
+    title: string;
+    clusterName: string;
+    clusterId: string;
+    totalDisk: number;
+    targetDisk: number;
+    expectDisk: number;
+    shrinkDisk: number;
+    specName: string;
+    totalHost: number;
+    count: number;
     hostList: {
-      ip: string,
-      alive: number,
-      bk_disk: number,
-      instance_num: number,
+      ip: string;
+      alive: number;
+      bk_disk: number;
+      instance_num: number;
     }[];
   }
 
@@ -128,35 +126,42 @@
   const extInfo = props.ticketDetails.details.ext_info;
 
   const { loading } = useRequest(getResourceSpecList, {
-    defaultParams: [{
-      spec_cluster_type: props.ticketDetails.group,
-      offset: 0,
-      limit: -1,
-    }],
+    defaultParams: [
+      {
+        spec_cluster_type: props.ticketDetails.group,
+        offset: 0,
+        limit: -1,
+      },
+    ],
     onSuccess: async (res) => {
-      const specListMap = res.results.reduce((obj, item) => {
-        Object.assign(obj, {
-          [item.spec_id]: item.spec_name,
-        });
-        return obj;
-      }, {} as Record<string, string>);
+      const specListMap = res.results.reduce(
+        (obj, item) => {
+          Object.assign(obj, {
+            [item.spec_id]: item.spec_name,
+          });
+          return obj;
+        },
+        {} as Record<string, string>,
+      );
 
-      const generateDataRow = (key: string, id: number, count: number) => ({
-        clusterId,
-        count,
-        title: nodeTypeText[key],
-        clusterName: clusterInfo?.immute_domain ?? '--',
-        totalDisk: extInfo[key].total_disk,
-        targetDisk: extInfo[key].target_disk,
-        expectDisk: extInfo[key].expansion_disk,
-        shrinkDisk: extInfo[key].shrink_disk,
-        totalHost: extInfo[key].total_hosts,
-        hostList: extInfo[key].host_list,
-        specName: specListMap[id],
-      }) as unknown as RowData;
+      const generateDataRow = (key: string, id: number, count: number) =>
+        ({
+          clusterId,
+          count,
+          title: nodeTypeText[key],
+          clusterName: clusterInfo?.immute_domain ?? '--',
+          totalDisk: extInfo[key].total_disk,
+          targetDisk: extInfo[key].target_disk,
+          expectDisk: extInfo[key].expansion_disk,
+          shrinkDisk: extInfo[key].shrink_disk,
+          totalHost: extInfo[key].total_hosts,
+          hostList: extInfo[key].host_list,
+          specName: specListMap[id],
+        }) as unknown as RowData;
 
       const targetObj = isFromResourcePool
-        ? props.ticketDetails.details.resource_spec : props.ticketDetails.details.nodes;
+        ? props.ticketDetails.details.resource_spec
+        : props.ticketDetails.details.nodes;
       dataList.value = Object.entries(targetObj).map(([key, item]) => ({
         ...generateDataRow(key, item.spec_id, item.count),
       }));
@@ -165,7 +170,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
   .inline-table {
     padding-left: 160px;

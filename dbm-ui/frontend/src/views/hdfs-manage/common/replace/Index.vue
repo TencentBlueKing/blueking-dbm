@@ -27,9 +27,7 @@
       <div
         v-show="nodeInfoMap.datanode.nodeList.length > 0"
         class="item">
-        <div class="item-label">
-          DataNode
-        </div>
+        <div class="item-label">DataNode</div>
         <HostReplace
           ref="datanodeRef"
           v-model:hostList="nodeInfoMap.datanode.hostList"
@@ -37,7 +35,7 @@
           v-model:resourceSpec="nodeInfoMap.datanode.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
-            name: data.bk_cloud_name
+            name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.datanode"
           :ip-source="ipSource"
@@ -60,11 +58,7 @@
 </template>
 <script setup lang="ts">
   import { InfoBox } from 'bkui-vue';
-  import {
-    computed,
-    reactive,
-    ref,
-  } from 'vue';
+  import { computed, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type HdfsModel from '@services/model/hdfs/hdfs';
@@ -75,27 +69,25 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import HostReplace, {
-    type TReplaceNode,
-  } from '@components/cluster-common/host-replace/Index.vue';
+  import HostReplace, { type TReplaceNode } from '@components/cluster-common/host-replace/Index.vue';
 
-  import { messageError  } from '@utils';
+  import { messageError } from '@utils';
 
-  type TNodeInfo = TReplaceNode<HdfsNodeModel>
+  type TNodeInfo = TReplaceNode<HdfsNodeModel>;
 
   interface Props {
-    data: HdfsModel,
-    nodeList: TNodeInfo['nodeList']
+    data: HdfsModel;
+    nodeList: TNodeInfo['nodeList'];
   }
 
   interface Emits {
-    (e: 'change'): void,
-    (e: 'removeNode', bkHostId: number): void
+    (e: 'change'): void;
+    (e: 'removeNode', bkHostId: number): void;
   }
 
   interface Exposes {
-    submit: () => Promise<any>,
-    cancel: () => Promise<any>,
+    submit: () => Promise<any>;
+    cancel: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -123,25 +115,27 @@
   });
 
   const isEmpty = computed(() => {
-    const {
-      datanode,
-    } = nodeInfoMap;
+    const { datanode } = nodeInfoMap;
     return datanode.nodeList.length < 1;
   });
 
-  watch(() => props.nodeList, () => {
-    const datanodeList: TNodeInfo['nodeList'] = [];
+  watch(
+    () => props.nodeList,
+    () => {
+      const datanodeList: TNodeInfo['nodeList'] = [];
 
-    props.nodeList.forEach((nodeItem) => {
-      if (nodeItem.isDataNode) {
-        datanodeList.push(nodeItem);
-      }
-    });
+      props.nodeList.forEach((nodeItem) => {
+        if (nodeItem.isDataNode) {
+          datanodeList.push(nodeItem);
+        }
+      });
 
-    nodeInfoMap.datanode.nodeList = datanodeList;
-  }, {
-    immediate: true,
-  });
+      nodeInfoMap.datanode.nodeList = datanodeList;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleRemoveNode = (node: TNodeInfo['nodeList'][0]) => {
     emits('removeNode', node.bk_host_id);
@@ -155,80 +149,81 @@
           return reject();
         }
 
-        Promise.all([
-          datanodeRef.value.getValue(),
-        ]).then(([datanodeValue]) => {
-          const isEmptyValue = () => {
-            if (ipSource.value === 'manual_input') {
-              return datanodeValue.new_nodes.length < 1;
-            }
-
-            return !(datanodeValue.resource_spec.spec_id > 0 && datanodeValue.resource_spec.count > 0);
-          };
-
-          if (isEmptyValue()) {
-            messageError(t('替换节点不能为空'));
-            return reject();
-          }
-
-          const getReplaceNodeNums = () => {
-            if (ipSource.value === 'manual_input') {
-              return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
-            }
-            return Object.values(nodeInfoMap).reduce((result, nodeData) => {
-              if (nodeData.resourceSpec.spec_id > 0) {
-                return result + nodeData.nodeList.length;
-              }
-              return result;
-            }, 0);
-          };
-
-          InfoBox({
-            title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
-            subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
-            confirmText: t('确认'),
-            cancelText: t('取消'),
-            headerAlign: 'center',
-            contentAlign: 'center',
-            footerAlign: 'center',
-            onClosed: () => reject(),
-            onConfirm: () => {
-              const nodeData = {};
+        Promise.all([datanodeRef.value.getValue()]).then(
+          ([datanodeValue]) => {
+            const isEmptyValue = () => {
               if (ipSource.value === 'manual_input') {
-                Object.assign(nodeData, {
-                  new_nodes: {
-                    datanode: datanodeValue.new_nodes,
-                  },
-                });
-              } else {
-                Object.assign(nodeData, {
-                  resource_spec: {
-                    datanode: datanodeValue.resource_spec,
-                  },
-                });
+                return datanodeValue.new_nodes.length < 1;
               }
-              createTicket({
-                ticket_type: 'HDFS_REPLACE',
-                bk_biz_id: currentBizId,
-                details: {
-                  cluster_id: props.data.id,
-                  ip_source: ipSource.value,
-                  old_nodes: {
-                    datanode: datanodeValue.old_nodes,
+
+              return !(datanodeValue.resource_spec.spec_id > 0 && datanodeValue.resource_spec.count > 0);
+            };
+
+            if (isEmptyValue()) {
+              messageError(t('替换节点不能为空'));
+              return reject();
+            }
+
+            const getReplaceNodeNums = () => {
+              if (ipSource.value === 'manual_input') {
+                return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
+              }
+              return Object.values(nodeInfoMap).reduce((result, nodeData) => {
+                if (nodeData.resourceSpec.spec_id > 0) {
+                  return result + nodeData.nodeList.length;
+                }
+                return result;
+              }, 0);
+            };
+
+            InfoBox({
+              title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
+              subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
+              confirmText: t('确认'),
+              cancelText: t('取消'),
+              headerAlign: 'center',
+              contentAlign: 'center',
+              footerAlign: 'center',
+              onClosed: () => reject(),
+              onConfirm: () => {
+                const nodeData = {};
+                if (ipSource.value === 'manual_input') {
+                  Object.assign(nodeData, {
+                    new_nodes: {
+                      datanode: datanodeValue.new_nodes,
+                    },
+                  });
+                } else {
+                  Object.assign(nodeData, {
+                    resource_spec: {
+                      datanode: datanodeValue.resource_spec,
+                    },
+                  });
+                }
+                createTicket({
+                  ticket_type: 'HDFS_REPLACE',
+                  bk_biz_id: currentBizId,
+                  details: {
+                    cluster_id: props.data.id,
+                    ip_source: ipSource.value,
+                    old_nodes: {
+                      datanode: datanodeValue.old_nodes,
+                    },
+                    ...nodeData,
                   },
-                  ...nodeData,
-                },
-              })
-                .then(() => {
-                  emits('change');
-                  resolve('success');
                 })
-                .catch(() => {
-                  reject();
-                });
-            },
-          });
-        }, () => reject());
+                  .then(() => {
+                    emits('change');
+                    resolve('success');
+                  })
+                  .catch(() => {
+                    reject();
+                  });
+              },
+            });
+          },
+          () => reject(),
+        );
       });
     },
     cancel() {
@@ -243,11 +238,11 @@
     line-height: 20px;
     color: #63656e;
 
-    .ip-srouce-box{
+    .ip-srouce-box {
       display: flex;
       margin-bottom: 16px;
 
-      .bk-radio-button{
+      .bk-radio-button {
         flex: 1;
         background: #fff;
       }

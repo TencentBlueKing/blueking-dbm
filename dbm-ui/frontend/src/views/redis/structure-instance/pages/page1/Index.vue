@@ -471,94 +471,91 @@
     });
     window.open(route.href);
   };
-
 </script>
 
 <style lang="less" scoped>
-
-
-.record-table {
-  :deep(.normal-color) {
-    .cell {
-      color: #63656E;
-    }
-  }
-
-  :deep(.disable-color) {
-    .cell {
-      color: #C4C6CC;
-    }
-  }
-
-  :deep(.first-column) {
-    display: flex;
-    align-items: center;
-
-    .name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+  .record-table {
+    :deep(.normal-color) {
+      .cell {
+        color: #63656e;
+      }
     }
 
-    .tag-tip {
-      padding: 1px 4px;
-      font-weight: 700;
-      transform : scale(0.83,0.83);
-    }
-  }
-
-  :deep(.operate-box) {
-    cursor: pointer;
-  }
-
-  :deep(.instance-box) {
-    position: relative;
-    width: 100%;
-    padding-right: 4px;
-    overflow: hidden;
-
-    .content {
-      width: 100%;
-      padding-right: 20px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    :deep(.disable-color) {
+      .cell {
+        color: #c4c6cc;
+      }
     }
 
-    .tag-box{
-      position: absolute;
-      top: 0;
-      right: -10px;
+    :deep(.first-column) {
+      display: flex;
+      align-items: center;
 
-      .bk-tag {
-        padding: 0 6px;
-        font-size: 12px;
+      .name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tag-tip {
+        padding: 1px 4px;
+        font-weight: 700;
         transform: scale(0.83, 0.83);
       }
     }
-  }
-}
 
-.redis-struct-ins-page {
-  padding-bottom: 20px;
+    :deep(.operate-box) {
+      cursor: pointer;
+    }
 
-  .buttons {
-    margin: 16px 0;
-  }
+    :deep(.instance-box) {
+      position: relative;
+      width: 100%;
+      padding-right: 4px;
+      overflow: hidden;
 
-  .page-action-box {
-    display: flex;
-    align-items: center;
-    margin-top: 16px;
+      .content {
+        width: 100%;
+        padding-right: 20px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
 
-    .safe-action {
-      margin-left: auto;
+      .tag-box {
+        position: absolute;
+        top: 0;
+        right: -10px;
 
-      .safe-action-text {
-        padding-bottom: 2px;
-        border-bottom: 1px dashed #979ba5;
+        .bk-tag {
+          padding: 0 6px;
+          font-size: 12px;
+          transform: scale(0.83, 0.83);
+        }
       }
     }
   }
-}
+
+  .redis-struct-ins-page {
+    padding-bottom: 20px;
+
+    .buttons {
+      margin: 16px 0;
+    }
+
+    .page-action-box {
+      display: flex;
+      align-items: center;
+      margin-top: 16px;
+
+      .safe-action {
+        margin-left: auto;
+
+        .safe-action-text {
+          padding-bottom: 2px;
+          border-bottom: 1px dashed #979ba5;
+        }
+      }
+    }
+  }
 </style>

@@ -30,15 +30,14 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   interface Emits {
-    (e: 'type-change', value: string): void
+    (e: 'type-change', value: string): void;
   }
 
   const props = defineProps<Props>();
-
 
   const emits = defineEmits<Emits>();
 
@@ -69,11 +68,15 @@
     },
   ];
 
-  watch(() => props.data, (type) => {
-    localValue.value = type;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (type) => {
+      localValue.value = type;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string) => {
     localValue.value = value;
@@ -82,9 +85,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return selectRef.value.getValue().then(() => localValue.value);
     },
   });
 </script>
@@ -98,7 +99,7 @@
 
     &:hover {
       background-color: #fafbfd;
-      border-color:#a3c5fd;
+      border-color: #a3c5fd;
     }
   }
 

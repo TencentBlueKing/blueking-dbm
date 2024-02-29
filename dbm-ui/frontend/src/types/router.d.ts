@@ -9,23 +9,22 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import 'vue-router';
 
 export interface RouteMeteTag {
-  theme: string
-  text: string
+  theme: string;
+  text: string;
 }
 declare module 'vue-router' {
   interface RouteMeta {
-    navName?: string // 用于设置面包屑 name
-    tags?: Tag[] // 用于设置面包屑 tags
-    fullscreen?: boolean // 用于判断是否满屏幕
-    group?: string // 用于设置顶部导航分组
-    skeleton?: string
+    navName?: string; // 用于设置面包屑 name
+    tags?: Tag[]; // 用于设置面包屑 tags
+    fullscreen?: boolean; // 用于判断是否满屏幕
+    group?: string; // 用于设置顶部导航分组
+    skeleton?: string;
   }
 }
 
 export {};
-

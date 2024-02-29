@@ -14,19 +14,19 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderMaster
           ref="masterHostRef"
           :model-value="data.masterData"
           @change="handleMasterDataChange" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderSlave
           ref="slaveHostRef"
           :cluster-list="relatedClusterList"
           :model-value="data.slaveData" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :master-data="localMasterData"
@@ -42,7 +42,7 @@
           <div
             class="action-btn"
             :class="{
-              disabled: removeable
+              disabled: removeable,
             }"
             @click="handleRemove">
             <DbIcon type="minus-fill" />
@@ -53,11 +53,7 @@
   </tbody>
 </template>
 <script lang="ts">
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { ref, shallowRef, watch } from 'vue';
 
   import { random } from '@utils';
 
@@ -66,19 +62,19 @@
   import RenderSlave from './RenderSlave.vue';
 
   export type IHostData = {
-    bk_cloud_id: number,
-    bk_host_id: number,
-    ip: string
-  }
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
+  };
 
   export interface IDataRow {
     rowKey: string;
-    masterData?: IHostData,
-    slaveData?: IHostData,
+    masterData?: IHostData;
+    slaveData?: IHostData;
     clusterData?: {
-      id: number,
-      domain: string
-    }
+      id: number;
+      domain: string;
+    };
   }
 
   // 创建表格数据
@@ -91,16 +87,16 @@
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -115,11 +111,15 @@
 
   const relatedClusterList = shallowRef<number[]>([]);
 
-  watch(() => props.data, () => {
-    localMasterData.value = props.data.masterData;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      localMasterData.value = props.data.masterData;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleMasterDataChange = (data: IHostData) => {
     localMasterData.value = data;

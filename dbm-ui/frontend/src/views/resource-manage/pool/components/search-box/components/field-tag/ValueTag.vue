@@ -21,13 +21,9 @@
       <span>
         {{ config.label }}
       </span>
-      <span style="padding-right: 4px;">
-        :
-      </span>
+      <span style="padding-right: 4px"> : </span>
       <span>
-        <template v-if="isRemoteOriginLoading">
-          ...
-        </template>
+        <template v-if="isRemoteOriginLoading"> ... </template>
         <template v-else>
           {{ renderText }}
         </template>
@@ -37,13 +33,13 @@
       class="remove-btn"
       type="close"
       @click="handleRemove" />
-    <div style="display: none;">
+    <div style="display: none">
       <div
         ref="popRef"
         class="search-field-tag-pop"
         :style="{
           width: name === 'spec_id' ? '550px' : '368px',
-          padding: '9px 7px'
+          padding: '9px 7px',
         }">
         <ComFactory
           ref="inputRef"
@@ -54,14 +50,14 @@
           @cancel="handleCancel"
           @change="handleChange"
           @submit="handleSubmit" />
-        <div style="margin-top: 8px; font-size: 14px; line-height: 22px; color: #3a84ff; text-align: right;">
+        <div style="margin-top: 8px; font-size: 14px; line-height: 22px; color: #3a84ff; text-align: right">
           <span
-            style="margin-right: 16px; cursor: pointer;"
+            style="margin-right: 16px; cursor: pointer"
             @click="handleSubmit">
             {{ t('确定') }}
           </span>
           <span
-            style="cursor: pointer;"
+            style="cursor: pointer"
             @click="handleCancel">
             {{ t('取消') }}
           </span>
@@ -72,9 +68,7 @@
 </template>
 <script lang="ts">
   let singleIns: Instance;
-  export default {
-
-  };
+  export default {};
 </script>
 <script setup lang="ts">
   import tippy, {
@@ -259,7 +253,7 @@
       background: #dcdee5;
     }
 
-    .tag-value-text{
+    .tag-value-text {
       max-width: 240px;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -276,12 +270,12 @@
   }
 </style>
 <style lang="less">
-  .search-field-tag-pop{
+  .search-field-tag-pop {
     width: 368px;
     padding: 9px 15px;
 
-    .resourece-pool-serach-item{
-      .wrapper{
+    .resourece-pool-serach-item {
+      .wrapper {
         padding: 0;
       }
     }

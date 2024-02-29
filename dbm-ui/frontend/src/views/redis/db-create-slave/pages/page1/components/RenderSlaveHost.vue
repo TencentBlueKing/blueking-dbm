@@ -15,25 +15,24 @@
   <BkLoading :loading="isLoading">
     <div
       class="render-text-box"
-      :class="{'default-display': !data}">
+      :class="{ 'default-display': !data }">
       <span
         v-if="!data.total"
         key="empty"
-        style="color: #c4c6cc;">
+        style="color: #c4c6cc">
         {{ $t('选择主机后自动生成') }}
       </span>
       <span v-else>
-        <span style="color: red;">{{ data.faults }}</span> / {{ data.total }}
+        <span style="color: red">{{ data.faults }}</span> / {{ data.total }}
       </span>
     </div>
   </BkLoading>
 </template>
 <script setup lang="ts">
-
   interface Props {
     data?: {
-      faults: number,
-      total: number,
+      faults: number;
+      total: number;
     };
     isLoading?: boolean;
   }
@@ -45,7 +44,6 @@
     }),
     isLoading: false,
   });
-
 </script>
 <style lang="less" scoped>
   .render-text-box {
@@ -56,10 +54,9 @@
     color: #63656e;
     text-overflow: ellipsis;
     white-space: nowrap;
-
   }
 
   .default-display {
-    background: #FAFBFD;
+    background: #fafbfd;
   }
 </style>

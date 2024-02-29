@@ -18,7 +18,7 @@
         v-model="search"
         clearable
         :placeholder="$t('请输入参数项')"
-        style="width: 320px;" />
+        style="width: 320px" />
     </div>
     <DbOriginalTable
       class="parameter-table"
@@ -153,12 +153,12 @@
   };
 </script>
 <style lang="less">
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .db-configure-readonly-parameters-table {
     width: 100%;
 
-    .config-name-box{
+    .config-name-box {
       display: inline-block;
       max-width: calc(100% - 18px);
       vertical-align: middle;

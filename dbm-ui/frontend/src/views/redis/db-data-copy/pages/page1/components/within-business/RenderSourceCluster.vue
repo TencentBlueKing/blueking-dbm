@@ -29,17 +29,16 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['srcCluster']
+    data?: IDataRow['srcCluster'];
   }
 
   interface Emits {
-    (e: 'onInputFinish', value: string): void
+    (e: 'onInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
-
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
@@ -68,9 +67,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return editRef.value.getValue().then(() => localValue.value);
     },
   });
 </script>

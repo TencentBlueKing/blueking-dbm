@@ -52,7 +52,9 @@
             class="result-item">
             <span
               v-overflow-tips
-              class="text-overflow">{{ item.instance_address }}</span>
+              class="text-overflow">
+              {{ item.instance_address }}
+            </span>
             <DbIcon
               type="close result-item-remove"
               @click="handleRemove(key, index)" />
@@ -74,9 +76,10 @@
   import type { InstanceSelectorValues } from '../Index.vue';
 
   import type { PanelTypes } from './PanelTab.vue';
+
   interface Props {
-    lastValues: InstanceSelectorValues
-    panelList: Array<PanelTypes>,
+    lastValues: InstanceSelectorValues;
+    panelList: Array<PanelTypes>;
   }
 
   type Keys = keyof InstanceSelectorValues;
@@ -92,12 +95,17 @@
   const copy = useCopy();
 
   const keys = computed(() => Object.keys(props.lastValues) as Keys[]);
-  const isEmpty = computed(() => !keys.value.some(key => props.lastValues[key].length > 0));
-  const textMap = computed(() => props.panelList.reduce((results, item) => {
-    // eslint-disable-next-line no-param-reassign
-    results[item.id] = item.title;
-    return results;
-  }, {} as Record<string, string>));
+  const isEmpty = computed(() => !keys.value.some((key) => props.lastValues[key].length > 0));
+  const textMap = computed(() =>
+    props.panelList.reduce(
+      (results, item) => {
+        // eslint-disable-next-line no-param-reassign
+        results[item.id] = item.title;
+        return results;
+      },
+      {} as Record<string, string>,
+    ),
+  );
 
   const handleClear = () => {
     emits('change', {
@@ -128,7 +136,7 @@
     for (const key of keys.value) {
       instances.push(...props.lastValues[key]);
     }
-    copy(instances.map(item => item.instance_address).join('\n'));
+    copy(instances.map((item) => item.instance_address).join('\n'));
   };
 </script>
 <style lang="less">

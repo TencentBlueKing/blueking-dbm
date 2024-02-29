@@ -17,7 +17,7 @@
       ref="textRef"
       v-bk-tooltips="{
         content: data || placeholder,
-        disabled: !isOverflow
+        disabled: !isOverflow,
       }"
       class="render-text-box"
       :class="{
@@ -26,7 +26,7 @@
       }">
       <span
         v-if="!data"
-        style="color: #c4c6cc;">
+        style="color: #c4c6cc">
         {{ placeholder }}
       </span>
       <span v-else>{{ data }}</span>
@@ -49,11 +49,11 @@
     data?: T;
     isLoading?: boolean;
     placeholder?: string;
-    rules?: Rules,
+    rules?: Rules;
   }
 
   interface Exposes {
-    getValue: () => Promise<T>
+    getValue: () => Promise<T>;
   }
 
   const props = defineProps<Props>();
@@ -64,17 +64,13 @@
 
   const { isOverflow } = useIsWidthOverflow(textRef, renderData);
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { message: errorMessage, validator } = useValidtor(props.rules);
 
   defineExpose<Exposes>({
     getValue() {
       return validator(props.data).then(() => props.data as T);
     },
   });
-
 </script>
 <style lang="less" scoped>
   .is-error {
@@ -103,11 +99,10 @@
       color: #ea3636;
       align-items: center;
     }
-
   }
 
   .default-display {
     cursor: not-allowed;
-    background: #FAFBFD;
+    background: #fafbfd;
   }
 </style>

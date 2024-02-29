@@ -23,8 +23,7 @@
     :quick-close="false"
     width="768">
     <BkLoading :loading="loading">
-      <RenderResult
-        :data="renderPermissionResult" />
+      <RenderResult :data="renderPermissionResult" />
     </BkLoading>
     <template #footer>
       <BkButton
@@ -49,16 +48,8 @@
   </BkDialog>
 </template>
 <script setup lang="ts">
-  import {
-    Button as BkButton,
-    Dialog as BkDialog,
-    Loading as BkLoading,
-  } from 'bkui-vue';
-  import {
-    computed,
-    onMounted,
-    ref,
-  } from 'vue';
+  import { Button as BkButton, Dialog as BkDialog, Loading as BkLoading } from 'bkui-vue';
+  import { computed, onMounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -67,14 +58,14 @@
 
   import RenderResult from './render-result.vue';
 
-  export type CheckParams = ServiceParameters<typeof simpleGetApplyData>
+  export type CheckParams = ServiceParameters<typeof simpleGetApplyData>;
 
   interface Props {
-    applyData?: ApplyDataModel,
-    checkParams?: ServiceParameters<typeof simpleGetApplyData>
+    applyData?: ApplyDataModel;
+    checkParams?: ServiceParameters<typeof simpleGetApplyData>;
   }
   interface Emits {
-    (e: 'cancel'): void
+    (e: 'cancel'): void;
   }
   const props = defineProps<Props>();
   const emit = defineEmits<Emits>();
@@ -84,10 +75,7 @@
   const isApplyed = ref(false);
 
   const iamApplyData = ref(new ApplyDataModel());
-  const {
-    loading,
-    run,
-  } = useRequest(simpleGetApplyData, {
+  const { loading, run } = useRequest(simpleGetApplyData, {
     manual: true,
     onSuccess(data) {
       iamApplyData.value = data;

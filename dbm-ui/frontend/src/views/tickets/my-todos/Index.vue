@@ -28,7 +28,6 @@
   import Details from './components/details/Index.vue';
   import List from './components/List.vue';
 
-
   const activeTicket = ref<TicketModel | null>(null);
 
   function handleChangeTicket(data: TicketModel | null) {
@@ -37,13 +36,13 @@
 </script>
 
 <style lang="less" scoped>
-.my-todos {
-  display: flex;
-  height: 100%;
-
-  .my-todos-details {
-    flex: 1;
+  .my-todos {
+    display: flex;
     height: 100%;
+
+    .my-todos-details {
+      flex: 1;
+      height: 100%;
+    }
   }
-}
 </style>

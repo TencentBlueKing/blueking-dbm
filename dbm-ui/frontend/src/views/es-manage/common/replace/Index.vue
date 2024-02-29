@@ -37,7 +37,7 @@
           v-model:resourceSpec="nodeInfoMap.hot.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
-            name: data.bk_cloud_name
+            name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.hot"
           :disable-host-method="hotDisableHostMethod"
@@ -57,7 +57,7 @@
           v-model:resourceSpec="nodeInfoMap.cold.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
-            name: data.bk_cloud_name
+            name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.cold"
           :disable-host-method="coldDisableHostMethod"
@@ -77,7 +77,7 @@
           v-model:resourceSpec="nodeInfoMap.client.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
-            name: data.bk_cloud_name
+            name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.client"
           :disable-host-method="clientDisableHostMethod"
@@ -101,11 +101,7 @@
 </template>
 <script setup lang="ts">
   import { InfoBox } from 'bkui-vue';
-  import {
-    computed,
-    reactive,
-    ref,
-  } from 'vue';
+  import { computed, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type EsModel from '@services/model/es/es';
@@ -116,34 +112,36 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import HostReplace, {
-    type TReplaceNode,
-  } from '@components/cluster-common/es-host-replace/Index.vue';
+  import HostReplace, { type TReplaceNode } from '@components/cluster-common/es-host-replace/Index.vue';
 
-  import { messageError  } from '@utils';
+  import { messageError } from '@utils';
 
   interface Props {
-    data: EsModel,
-    nodeList: TReplaceNode['nodeList']
+    data: EsModel;
+    nodeList: TReplaceNode['nodeList'];
   }
 
   interface Emits {
-    (e: 'change'): void,
-    (e: 'removeNode', bkHostId: number): void
+    (e: 'change'): void;
+    (e: 'removeNode', bkHostId: number): void;
   }
 
   interface Exposes {
-    submit: () => Promise<any>,
-    cancel: () => Promise<any>,
+    submit: () => Promise<any>;
+    cancel: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: TReplaceNode['hostList']) =>  hostList.reduce((result, item) => ({
-    ...result,
-    [item.host_id]: true,
-  }), {} as Record<number, boolean>);
+  const makeMapByHostId = (hostList: TReplaceNode['hostList']) =>
+    hostList.reduce(
+      (result, item) => ({
+        ...result,
+        [item.host_id]: true,
+      }),
+      {} as Record<number, boolean>,
+    );
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -196,37 +194,35 @@
   });
 
   const isEmpty = computed(() => {
-    const {
-      hot,
-      cold,
-      client,
-    } = nodeInfoMap;
-    return hot.nodeList.length < 1
-      && cold.nodeList.length < 1
-      && client.nodeList.length < 1;
+    const { hot, cold, client } = nodeInfoMap;
+    return hot.nodeList.length < 1 && cold.nodeList.length < 1 && client.nodeList.length < 1;
   });
 
-  watch(() => props.nodeList, () => {
-    const hotList: TReplaceNode['nodeList'] = [];
-    const coldList: TReplaceNode['nodeList'] = [];
-    const clientList: TReplaceNode['nodeList'] = [];
+  watch(
+    () => props.nodeList,
+    () => {
+      const hotList: TReplaceNode['nodeList'] = [];
+      const coldList: TReplaceNode['nodeList'] = [];
+      const clientList: TReplaceNode['nodeList'] = [];
 
-    props.nodeList.forEach((nodeItem) => {
-      if (nodeItem.isHot) {
-        hotList.push(nodeItem);
-      } else if (nodeItem.isCold) {
-        coldList.push(nodeItem);
-      } else if (nodeItem.isClient) {
-        clientList.push(nodeItem);
-      }
-    });
+      props.nodeList.forEach((nodeItem) => {
+        if (nodeItem.isHot) {
+          hotList.push(nodeItem);
+        } else if (nodeItem.isCold) {
+          coldList.push(nodeItem);
+        } else if (nodeItem.isClient) {
+          clientList.push(nodeItem);
+        }
+      });
 
-    nodeInfoMap.hot.nodeList = hotList;
-    nodeInfoMap.cold.nodeList = coldList;
-    nodeInfoMap.client.nodeList = clientList;
-  }, {
-    immediate: true,
-  });
+      nodeInfoMap.hot.nodeList = hotList;
+      nodeInfoMap.cold.nodeList = coldList;
+      nodeInfoMap.client.nodeList = clientList;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 节点主机互斥
   const hotDisableHostMethod = (hostData: HostDetails) => {
@@ -277,92 +273,91 @@
           return reject(t('至少替换一种节点类型'));
         }
 
-        Promise.all([
-          hotRef.value.getValue(),
-          coldRef.value.getValue(),
-          clientRef.value.getValue(),
-        ]).then(([hotValue, coldValue, clientValue]) => {
-          const isEmptyValue = () => {
-            if (ipSource.value === 'manual_input') {
-              return hotValue.new_nodes.length
-                + coldValue.new_nodes.length
-                + clientValue.new_nodes.length < 1;
-            }
-
-            return !((hotValue.resource_spec.spec_id > 0 && hotValue.resource_spec.count > 0)
-              || (coldValue.resource_spec.spec_id > 0 && coldValue.resource_spec.count > 0)
-              || (clientValue.resource_spec.spec_id > 0 && clientValue.resource_spec.count > 0));
-          };
-
-          if (isEmptyValue()) {
-            messageError(t('替换节点不能为空'));
-            return reject();
-          }
-
-          const getReplaceNodeNums = () => {
-            if (ipSource.value === 'manual_input') {
-              return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
-            }
-            return Object.values(nodeInfoMap).reduce((result, nodeData) => {
-              if (nodeData.resourceSpec.spec_id > 0) {
-                return result + nodeData.nodeList.length;
-              }
-              return result;
-            }, 0);
-          };
-
-          InfoBox({
-            title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
-            subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
-            confirmText: t('确认'),
-            cancelText: t('取消'),
-            headerAlign: 'center',
-            contentAlign: 'center',
-            footerAlign: 'center',
-            onClosed: () => reject(),
-            onConfirm: () => {
-              const nodeData = {};
+        Promise.all([hotRef.value.getValue(), coldRef.value.getValue(), clientRef.value.getValue()]).then(
+          ([hotValue, coldValue, clientValue]) => {
+            const isEmptyValue = () => {
               if (ipSource.value === 'manual_input') {
-                Object.assign(nodeData, {
-                  new_nodes: {
-                    hot: hotValue.new_nodes,
-                    cold: coldValue.new_nodes,
-                    client: clientValue.new_nodes,
-                  },
-                });
-              } else {
-                Object.assign(nodeData, {
-                  resource_spec: {
-                    hot: hotValue.resource_spec,
-                    cold: coldValue.resource_spec,
-                    client: clientValue.resource_spec,
-                  },
-                });
+                return hotValue.new_nodes.length + coldValue.new_nodes.length + clientValue.new_nodes.length < 1;
               }
-              createTicket({
-                ticket_type: 'ES_REPLACE',
-                bk_biz_id: currentBizId,
-                details: {
-                  cluster_id: props.data.id,
-                  ip_source: ipSource.value,
-                  old_nodes: {
-                    hot: hotValue.old_nodes,
-                    cold: coldValue.old_nodes,
-                    client: clientValue.old_nodes,
+
+              return !(
+                (hotValue.resource_spec.spec_id > 0 && hotValue.resource_spec.count > 0) ||
+                (coldValue.resource_spec.spec_id > 0 && coldValue.resource_spec.count > 0) ||
+                (clientValue.resource_spec.spec_id > 0 && clientValue.resource_spec.count > 0)
+              );
+            };
+
+            if (isEmptyValue()) {
+              messageError(t('替换节点不能为空'));
+              return reject();
+            }
+
+            const getReplaceNodeNums = () => {
+              if (ipSource.value === 'manual_input') {
+                return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
+              }
+              return Object.values(nodeInfoMap).reduce((result, nodeData) => {
+                if (nodeData.resourceSpec.spec_id > 0) {
+                  return result + nodeData.nodeList.length;
+                }
+                return result;
+              }, 0);
+            };
+
+            InfoBox({
+              title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
+              subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
+              confirmText: t('确认'),
+              cancelText: t('取消'),
+              headerAlign: 'center',
+              contentAlign: 'center',
+              footerAlign: 'center',
+              onClosed: () => reject(),
+              onConfirm: () => {
+                const nodeData = {};
+                if (ipSource.value === 'manual_input') {
+                  Object.assign(nodeData, {
+                    new_nodes: {
+                      hot: hotValue.new_nodes,
+                      cold: coldValue.new_nodes,
+                      client: clientValue.new_nodes,
+                    },
+                  });
+                } else {
+                  Object.assign(nodeData, {
+                    resource_spec: {
+                      hot: hotValue.resource_spec,
+                      cold: coldValue.resource_spec,
+                      client: clientValue.resource_spec,
+                    },
+                  });
+                }
+                createTicket({
+                  ticket_type: 'ES_REPLACE',
+                  bk_biz_id: currentBizId,
+                  details: {
+                    cluster_id: props.data.id,
+                    ip_source: ipSource.value,
+                    old_nodes: {
+                      hot: hotValue.old_nodes,
+                      cold: coldValue.old_nodes,
+                      client: clientValue.old_nodes,
+                    },
+                    ...nodeData,
                   },
-                  ...nodeData,
-                },
-              })
-                .then(() => {
-                  emits('change');
-                  resolve('success');
                 })
-                .catch(() => {
-                  reject();
-                });
-            },
-          });
-        }, () => reject('error'));
+                  .then(() => {
+                    emits('change');
+                    resolve('success');
+                  })
+                  .catch(() => {
+                    reject();
+                  });
+              },
+            });
+          },
+          () => reject('error'),
+        );
       });
     },
     cancel() {
@@ -377,11 +372,11 @@
     line-height: 20px;
     color: #63656e;
 
-    .ip-srouce-box{
+    .ip-srouce-box {
       display: flex;
       margin-bottom: 16px;
 
-      .bk-radio-button{
+      .bk-radio-button {
         flex: 1;
         background: #fff;
       }

@@ -15,7 +15,7 @@
   <RenderTable>
     <RenderTableHeadColumn>
       {{ t('变更的DB') }}
-      <span style="font-size: 12px; font-weight: normal; color: #8a8f99;">
+      <span style="font-size: 12px; font-weight: normal; color: #8a8f99">
         ({{ t('如果变更 SQL 是“create database ...”，这个请填写 test') }})
       </span>
     </RenderTableHeadColumn>
@@ -38,8 +38,5 @@
   import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/mysql/common/render-table/Index.vue';
 
-
   const { t } = useI18n();
-
 </script>
-

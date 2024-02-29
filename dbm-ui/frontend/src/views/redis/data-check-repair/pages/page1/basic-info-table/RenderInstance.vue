@@ -44,9 +44,7 @@
       <div
         v-if="!isSelectAll && localValue.length > 1"
         class="more-box">
-        <BkTag>
-          +{{ localValue.length - 1 }}
-        </BkTag>
+        <BkTag> +{{ localValue.length - 1 }} </BkTag>
       </div>
     </div>
   </BkPopover>
@@ -63,11 +61,11 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string[]>
+    getValue: () => Promise<string[]>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    selectList: () => ([]),
+    selectList: () => [],
     data: '',
   });
 
@@ -78,10 +76,10 @@
   const localValue = ref<string[]>([]);
   const displayText = ref(totalText);
 
-  const selectList = computed(() => (props.selectList
-    ? props.selectList.map(item => ({ value: item, label: item })) : []));
+  const selectList = computed(() =>
+    props.selectList ? props.selectList.map((item) => ({ value: item, label: item })) : [],
+  );
   const isSelectAll = computed(() => localValue.value.length === props.selectList.length);
-
 
   watch(localValue, (list) => {
     if (list.length === props.selectList.length) {
@@ -94,19 +92,26 @@
     displayText.value = list.join(' , ');
   });
 
-  watch(() => props.selectList, (list) => {
-    if (list.length > 0) {
-      localValue.value = list;
-    }
-  });
+  watch(
+    () => props.selectList,
+    (list) => {
+      if (list.length > 0) {
+        localValue.value = list;
+      }
+    },
+  );
 
-  watch(() => props.data, (str) => {
-    if (str) {
-      localValue.value = str.split('\n');
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (str) => {
+      if (str) {
+        localValue.value = str.split('\n');
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const getFinalValue = () => {
     if (isSelectAll.value || localValue.value.length === 0) {
@@ -122,8 +127,6 @@
   });
 </script>
 <style lang="less" scoped>
-
-
   .item-input {
     width: 100%;
     height: 40px;
@@ -144,7 +147,7 @@
   .content {
     position: relative;
 
-    .more-box{
+    .more-box {
       position: absolute;
       top: 0;
       right: 3px;
@@ -154,6 +157,4 @@
       }
     }
   }
-
-
 </style>

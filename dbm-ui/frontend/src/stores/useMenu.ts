@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { defineStore } from 'pinia';
 
@@ -26,9 +26,9 @@ export const useMenu = defineStore('useMenu', {
   }),
   getters: {
     // 切换展开/收起
-    collapsed: state => state.toggleCollapsed && state.hoverCollapsed,
+    collapsed: (state) => state.toggleCollapsed && state.hoverCollapsed,
     // 处于 hover 展开
-    isHover: state => state.toggleCollapsed && (state.hoverCollapsed === false),
+    isHover: (state) => state.toggleCollapsed && state.hoverCollapsed === false,
   },
   actions: {
     toggle() {

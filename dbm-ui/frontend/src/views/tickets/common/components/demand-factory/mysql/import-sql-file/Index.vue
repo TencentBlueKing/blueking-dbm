@@ -12,8 +12,7 @@
 -->
 
 <template>
-  <div
-    class="ticket-details__info">
+  <div class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('所属业务') }}：</span>
@@ -27,8 +26,7 @@
         <span class="ticket-details__item-label">{{ t('SQL来源') }}：</span>
         <span class="ticket-details__item-value">{{ importModeType }}</span>
       </div>
-      <div
-        class="ticket-details__item">
+      <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('SQL执行内容') }}：</span>
         <BkButton
           text
@@ -66,7 +64,7 @@
         <span>{{ t('目标集群') }}：</span>
         <DBCollapseTable
           :show-icon="false"
-          style="width: 800px;"
+          style="width: 800px"
           :table-props="clusterState.tableProps"
           :title="clusterState.clusterType" />
       </div>
@@ -75,7 +73,7 @@
         <DbOriginalTable
           :columns="targetDB"
           :data="dataList"
-          style="width: 800px;" />
+          style="width: 800px" />
       </div>
       <div
         v-if="ticketDetails?.details?.backup?.length"
@@ -84,7 +82,7 @@
         <DbOriginalTable
           :columns="backupConfig"
           :data="backupList"
-          style="width: 800px;" />
+          style="width: 800px" />
       </div>
     </div>
     <BkSideslider
@@ -96,7 +94,7 @@
       :z-index="99999"
       @closed="handleClose">
       <div
-        v-if="(uploadFileList.length > 1)"
+        v-if="uploadFileList.length > 1"
         class="editor-layout">
         <div class="editor-layout-left">
           <RenderFileList
@@ -387,11 +385,10 @@
         });
     });
   });
-
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
   .sql-mode-execute {
     i {
@@ -445,5 +442,4 @@
       }
     }
   }
-
 </style>

@@ -33,7 +33,9 @@
           class="result__item">
           <span
             v-overflow-tips
-            class="text-overflow">{{ clusterItem[displayKey] }}</span>
+            class="text-overflow">
+            {{ clusterItem[displayKey] }}
+          </span>
           <i
             class="db-icon-close result__remove"
             @click="handleDeleteItem(clusterItem, false)" />
@@ -50,14 +52,14 @@
   type Selected = Record<string, T[]>;
 
   interface Props {
-    tabList: { name: string; id: string }[],
-    selectedMap: Record<string, Record<string, ValueOf<Selected>[0]>>,
-    showTitle?: boolean,
-    displayKey?: string,
+    tabList: { name: string; id: string }[];
+    selectedMap: Record<string, Record<string, ValueOf<Selected>[0]>>;
+    showTitle?: boolean;
+    displayKey?: string;
   }
 
   interface Emits {
-    (e: 'delete-item', value: T, status: boolean): void,
+    (e: 'delete-item', value: T, status: boolean): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -68,19 +70,18 @@
   const emits = defineEmits<Emits>();
 
   // 选中结果是否为空
-  const isEmpty = computed(() => _.every(Object.values(props.selectedMap), item => Object.keys(item).length < 1));
+  const isEmpty = computed(() => _.every(Object.values(props.selectedMap), (item) => Object.keys(item).length < 1));
 
   // 获取 tab 信息
-  const getTabInfo = (key: string) => (props.showTitle ? props.tabList.find(tab => tab.id === key)?.name : '');
+  const getTabInfo = (key: string) => (props.showTitle ? props.tabList.find((tab) => tab.id === key)?.name : '');
 
   const handleDeleteItem = (data: ValueOf<Selected>[0], value: boolean) => {
     emits('delete-item', data, value);
   };
-
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .result__item {
     padding: 0 12px;
@@ -109,5 +110,4 @@
       }
     }
   }
-
 </style>

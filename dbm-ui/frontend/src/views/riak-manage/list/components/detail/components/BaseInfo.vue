@@ -23,19 +23,17 @@
 
   import RiakModel from '@services/model/riak/riak';
 
-  import EditInfo, {
-    type InfoColumn,
-  } from '@components/editable-info/index.vue';
+  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
   interface Props {
-    data: RiakModel
+    data: RiakModel;
   }
 
   defineProps<Props>();
 
   const { t } = useI18n();
 
-  const columns:InfoColumn[][] = [
+  const columns: InfoColumn[][] = [
     [
       {
         label: t('集群名称'),

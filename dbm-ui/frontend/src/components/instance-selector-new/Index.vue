@@ -67,7 +67,7 @@
       <span
         v-bk-tooltips="{
           content: t('请选择实例'),
-          disabled: !isEmpty
+          disabled: !isEmpty,
         }"
         class="inline-block">
         <BkButton
@@ -88,19 +88,20 @@
 </template>
 <script lang="ts">
   import { t } from '@locales/index';
+
   export default { name: 'InstanceSelector' };
 
   export interface IValue {
-    bk_host_id: number,
-    bk_cloud_id: number,
-    ip: string,
-    port: number,
-    instance_address: string,
-    cluster_id: number,
-    cluster_type: string,
+    bk_host_id: number;
+    bk_cloud_id: number;
+    ip: string;
+    port: number;
+    instance_address: string;
+    cluster_id: number;
+    cluster_type: string;
   }
 
-  export type InstanceSelectorValues<T = IValue> = Record<string, T[]>
+  export type InstanceSelectorValues<T = IValue> = Record<string, T[]>;
 
   export const activePanelInjectionKey = Symbol('activePanel');
 

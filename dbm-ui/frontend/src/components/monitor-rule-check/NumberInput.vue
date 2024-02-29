@@ -14,7 +14,7 @@
 <template>
   <div
     class="input-box"
-    :class="{'is-input-empty': isEmpty}">
+    :class="{ 'is-input-empty': isEmpty }">
     <BkInput
       v-model.number="modelValue"
       class="input"
@@ -39,8 +39,8 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    unit?: string,
-    disabled?: boolean,
+    unit?: string;
+    disabled?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -51,7 +51,7 @@
   const { t } = useI18n();
 
   interface Exposes {
-    getValue: () => number
+    getValue: () => number;
   }
 
   const modelValue = defineModel<number>({
@@ -86,48 +86,47 @@
       return modelValue.value;
     },
   });
-
 </script>
 <style lang="less" scoped>
-.input-box {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  border-bottom: 1px solid #C4C6CC;
+  .input-box {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    border-bottom: 1px solid #c4c6cc;
 
-  .input {
-    width: 60px;
-    border: none;
-    outline: none;
-    box-shadow: none;
-
-    input {
+    .input {
+      width: 60px;
       border: none;
       outline: none;
+      box-shadow: none;
+
+      input {
+        border: none;
+        outline: none;
+      }
+    }
+
+    .up-down {
+      display: flex;
+      width: 10px;
+      margin-right: 5px;
+      margin-left: 10px;
+      flex-direction: column;
+      cursor: pointer;
+
+      .icon {
+        font-size: 12px;
+      }
+    }
+
+    :deep(.bk-input--number-control) {
+      display: none;
     }
   }
 
-  .up-down {
-    display: flex;
-    width: 10px;
-    margin-right: 5px;
-    margin-left: 10px;
-    flex-direction: column;
-    cursor: pointer;
-
-    .icon {
-      font-size: 12px;
+  .is-input-empty {
+    :deep(.bk-input--text) {
+      background-color: #fff0f1;
     }
   }
-
-  :deep(.bk-input--number-control) {
-    display: none;
-  }
-}
-
-.is-input-empty {
-  :deep(.bk-input--text) {
-    background-color: #fff0f1;
-  }
-}
 </style>

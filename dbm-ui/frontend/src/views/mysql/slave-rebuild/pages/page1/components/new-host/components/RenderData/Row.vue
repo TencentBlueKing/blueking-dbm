@@ -14,17 +14,17 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderOldSlave
           ref="slaveRef"
           v-model="localOldSlave" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :old-slave="localOldSlave" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderNewSlave
           ref="newSlaveRef"
           :old-slave="localOldSlave" />
@@ -48,21 +48,21 @@
   export interface IDataRow {
     rowKey: string;
     oldSlave?: {
-      bkCloudId: number,
-      bkCloudName: string,
-      bkHostId: number,
-      ip: string,
-      port: number,
-      instanceAddress: string,
-      clusterId: number,
-    },
-    clusterId?: number,
+      bkCloudId: number;
+      bkCloudName: string;
+      bkHostId: number;
+      ip: string;
+      port: number;
+      instanceAddress: string;
+      clusterId: number;
+    };
+    clusterId?: number;
     newSlave?: {
-      bkCloudId: number,
-      bkHostId: number,
-      ip: string,
-      port: number,
-    }
+      bkCloudId: number;
+      bkHostId: number;
+      ip: string;
+      port: number;
+    };
   }
 
   // 创建表格数据
@@ -75,16 +75,16 @@
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -97,13 +97,17 @@
 
   const localOldSlave = ref<IDataRow['oldSlave']>();
 
-  watch(() => props.data, () => {
-    if (props.data) {
-      localOldSlave.value = props.data.oldSlave;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data) {
+        localOldSlave.value = props.data.oldSlave;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleAppend = () => {
     emits('add', [createRowData()]);
@@ -130,4 +134,3 @@
     },
   });
 </script>
-

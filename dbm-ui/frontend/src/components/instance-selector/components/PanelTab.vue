@@ -18,7 +18,7 @@
       :key="item.id"
       class="tab-item"
       :class="{
-        active: modelValue === item.id
+        active: modelValue === item.id,
       }"
       @click="handleClick(item.id)">
       {{ item.title }}
@@ -46,19 +46,19 @@
     },
   ];
   export type PanelTypes = {
-    id: string,
-    title: string,
+    id: string;
+    title: string;
   };
   export const activePanelInjectionKey: InjectionKey<Ref<PanelTypes['id']>> = Symbol('activePanel');
 </script>
 
 <script setup lang="ts">
   interface Props {
-    modelValue: string,
-    panelList?: Array<PanelTypes>
+    modelValue: string;
+    panelList?: Array<PanelTypes>;
   }
   interface Emits {
-    (e: 'update:modelValue', value: string): void
+    (e: 'update:modelValue', value: string): void;
   }
 
   const props = defineProps<Props>();

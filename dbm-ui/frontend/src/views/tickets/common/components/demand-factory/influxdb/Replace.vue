@@ -21,24 +21,23 @@
   import { useI18n } from 'vue-i18n';
 
   interface NodeInfo {
-    bk_cloud_id: number,
-    bk_host_id: number,
-    ip: string,
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
   }
 
   interface Details {
     ticketDetails: {
       details: {
         new_nodes: {
-          influxdb: Array<NodeInfo>
-        },
+          influxdb: Array<NodeInfo>;
+        };
         old_nodes: {
-          influxdb: Array<NodeInfo>
-        }
-      }
-    }
+          influxdb: Array<NodeInfo>;
+        };
+      };
+    };
   }
-
 
   const props = defineProps<Details>();
   const { t } = useI18n();

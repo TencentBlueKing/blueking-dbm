@@ -9,11 +9,15 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 // 首字母大写
 export const firstLetterToUpper = (str: string) => {
-  if (!str) return '';
-  if (str.length === 1) return str.toUpperCase();
+  if (!str) {
+    return '';
+  }
+  if (str.length === 1) {
+    return str.toUpperCase();
+  }
   return str.charAt(0).toUpperCase() + str.slice(1);
 };

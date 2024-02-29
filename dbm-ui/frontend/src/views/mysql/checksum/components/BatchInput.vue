@@ -15,46 +15,34 @@
   <BkDialog
     :is-show="isShow"
     :quick-close="false"
-    :title="$t('数据校验修复_批量录入') "
+    :title="$t('数据校验修复_批量录入')"
     :width="1200"
     @closed="handleClose">
     <div class="batch-input">
       <div class="batch-input-format">
         <div class="batch-input-format-item">
           <strong>{{ $t('目标集群') }}</strong>
-          <p class="pt-8">
-            target-cluster.db
-          </p>
+          <p class="pt-8">target-cluster.db</p>
         </div>
         <div class="batch-input-format-item">
           <strong>{{ $t('校验主库') }}</strong>
-          <p class="pt-8">
-            127.0.0.1:10000
-          </p>
+          <p class="pt-8">127.0.0.1:10000</p>
         </div>
         <div class="batch-input-format-item">
           <strong>{{ $t('校验从库') }}</strong>
-          <p class="pt-8">
-            127.0.0.2:20000
-          </p>
+          <p class="pt-8">127.0.0.2:20000</p>
         </div>
         <div class="batch-input-format-item">
           <strong>{{ $t('校验DB') }}</strong>
-          <p class="pt-8">
-            testDB,mysqlDB
-          </p>
+          <p class="pt-8">testDB,mysqlDB</p>
         </div>
         <div class="batch-input-format-item">
           <strong>{{ $t('校验表名') }}</strong>
-          <p class="pt-8">
-            test%
-          </p>
+          <p class="pt-8">test%</p>
         </div>
         <div class="batch-input-format-item">
           <strong>{{ $t('忽略DB名') }}</strong>
-          <p class="pt-8">
-            null
-          </p>
+          <p class="pt-8">null</p>
         </div>
         <div class="batch-input-format-item">
           <strong>{{ $t('忽略表名') }}</strong>
@@ -267,52 +255,52 @@
 </script>
 
 <style lang="less" scoped>
-.batch-input {
-  position: relative;
+  .batch-input {
+    position: relative;
 
-  .batch-input-format {
-    display: flex;
-    padding: 16px;
-    background-color: #f5f7fa;
-    border-radius: 2px;
+    .batch-input-format {
+      display: flex;
+      padding: 16px;
+      background-color: #f5f7fa;
+      border-radius: 2px;
 
-    .batch-input-format-item {
-      margin-right: 24px;
-      font-size: @font-size-mini;
-    }
-  }
-
-  .batch-input-copy {
-    color: @primary-color;
-    cursor: pointer;
-  }
-
-  .batch-input-textarea {
-    height: 310px;
-    margin: 16px 0 30px;
-
-    :deep(textarea) {
-      &::selection {
-        background-color: #fdd;
+      .batch-input-format-item {
+        margin-right: 24px;
+        font-size: @font-size-mini;
       }
     }
-  }
 
-  .batch-input-errors {
-    position: absolute;
-    bottom: 8px;
-    font-size: @font-size-mini;
-    color: @danger-color;
-
-    .batch-input-errors-icon {
-      font-size: @font-size-large;
-      color: @gray-color;
+    .batch-input-copy {
+      color: @primary-color;
       cursor: pointer;
+    }
 
-      &:hover {
-        color: @default-color;
+    .batch-input-textarea {
+      height: 310px;
+      margin: 16px 0 30px;
+
+      :deep(textarea) {
+        &::selection {
+          background-color: #fdd;
+        }
+      }
+    }
+
+    .batch-input-errors {
+      position: absolute;
+      bottom: 8px;
+      font-size: @font-size-mini;
+      color: @danger-color;
+
+      .batch-input-errors-icon {
+        font-size: @font-size-large;
+        color: @gray-color;
+        cursor: pointer;
+
+        &:hover {
+          color: @default-color;
+        }
       }
     }
   }
-}
 </style>

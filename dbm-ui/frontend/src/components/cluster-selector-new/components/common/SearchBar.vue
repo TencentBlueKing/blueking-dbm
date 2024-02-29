@@ -16,18 +16,18 @@
   import { useGlobalBizs } from '@stores';
 
   export type SearchSelectList = {
-    id: string,
-    name: string,
+    id: string;
+    name: string;
     children?: {
-      id: string | number,
-      name: string,
-    }[]
-  }[]
+      id: string | number;
+      name: string;
+    }[];
+  }[];
 
   interface Props {
-    clusterType: string,
-    searchSelectList?: SearchSelectList,
-    placeholder?: string
+    clusterType: string;
+    searchSelectList?: SearchSelectList;
+    placeholder?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -42,36 +42,47 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const dbModuleList = shallowRef<{ id: number, name: string }[]>([]);
+  const dbModuleList = shallowRef<{ id: number; name: string }[]>([]);
 
-  const searchSelectData = computed(() => (props.searchSelectList ? props.searchSelectList : [{
-    name: t('集群'),
-    id: 'domain',
-  }, {
-    name: t('模块'),
-    id: 'db_module_id',
-    children: dbModuleList.value,
-  }]));
+  const searchSelectData = computed(() =>
+    props.searchSelectList
+      ? props.searchSelectList
+      : [
+          {
+            name: t('集群'),
+            id: 'domain',
+          },
+          {
+            name: t('模块'),
+            id: 'db_module_id',
+            children: dbModuleList.value,
+          },
+        ],
+  );
 
   const { run: rungGetModules } = useRequest(getModules, {
     manual: true,
     onSuccess(res) {
-      dbModuleList.value = res.map(item => ({
+      dbModuleList.value = res.map((item) => ({
         id: item.db_module_id,
         name: item.name,
       }));
     },
   });
 
-  watch(() => props.clusterType, (type) => {
-    // 取默认才查询
-    if (!props.searchSelectList && type) {
-      rungGetModules({
-        bk_biz_id: currentBizId,
-        cluster_type: type,
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterType,
+    (type) => {
+      // 取默认才查询
+      if (!props.searchSelectList && type) {
+        rungGetModules({
+          bk_biz_id: currentBizId,
+          cluster_type: type,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>

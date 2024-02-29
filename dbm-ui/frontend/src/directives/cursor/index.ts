@@ -14,9 +14,7 @@
   We undertake not to change the open source license (MIT license) applicable
   to the current version of the project delivered to anyone in the future.
 */
-import type {
-  ObjectDirective,
-} from 'vue';
+import type { ObjectDirective } from 'vue';
 
 import './index.css';
 
@@ -26,11 +24,10 @@ interface Cursor {
     mouseMoveHandler: (event: MouseEvent) => void;
     mouseLeaveHandler: (event: MouseEvent) => void;
     element: HTMLElement;
-  }
+  };
 }
 
-type TargetEl = HTMLElement & Cursor
-
+type TargetEl = HTMLElement & Cursor;
 
 /* eslint-disable no-param-reassign,no-underscore-dangle */
 
@@ -86,4 +83,3 @@ export default {
     destroy(el as TargetEl);
   },
 } as ObjectDirective;
-

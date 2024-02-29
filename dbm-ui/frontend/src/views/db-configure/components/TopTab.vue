@@ -38,13 +38,13 @@
   import { ClusterTypes } from '@common/const';
 
   interface TabItem {
-    moduleId: ExtractedControllerDataKeys,
-    id: FunctionTabId,
-    name: string,
+    moduleId: ExtractedControllerDataKeys;
+    id: FunctionTabId;
+    name: string;
   }
 
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: string): void;
   }
 
   const emit = defineEmits<Emits>();
@@ -123,18 +123,20 @@
 
   const route = useRoute();
   const clusterType = computed(() => route.params.clusterType as string);
-  const renderTabs = computed(() => tabs.filter((item) => {
-    const data = funControllerStore.funControllerData[item.moduleId];
-    const childItem = (data.children as Record<TabItem['id'], ControllerBaseInfo>)[item.id];
+  const renderTabs = computed(() =>
+    tabs.filter((item) => {
+      const data = funControllerStore.funControllerData[item.moduleId];
+      const childItem = (data.children as Record<TabItem['id'], ControllerBaseInfo>)[item.id];
 
-    // 若有对应的模块子功能，判断是否开启
-    if (childItem) {
-      return data && data.is_enabled && childItem.is_enabled;
-    }
+      // 若有对应的模块子功能，判断是否开启
+      if (childItem) {
+        return data && data.is_enabled && childItem.is_enabled;
+      }
 
-    // 若无，则判断整个模块是否开启
-    return data && data.is_enabled;
-  }));
+      // 若无，则判断整个模块是否开启
+      return data && data.is_enabled;
+    }),
+  );
   const initActive = clusterType.value ?? renderTabs.value[0].id;
   const active = ref(initActive);
 
@@ -145,12 +147,12 @@
   }
 </script>
 <style lang="less">
-.db-configur-type-tab{
-  background: #fff;
-  box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+  .db-configur-type-tab {
+    background: #fff;
+    box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-  .bk-tab-content{
-    display: none;
+    .bk-tab-content {
+      display: none;
+    }
   }
-}
 </style>

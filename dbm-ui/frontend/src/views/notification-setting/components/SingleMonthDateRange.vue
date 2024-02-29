@@ -16,7 +16,7 @@
     :clearable="false"
     multiple
     :scroll-height="0"
-    style="width: 250px;"
+    style="width: 250px"
     @click="togglePanel">
     <BkOption
       v-for="(item, index) in 31"
@@ -127,62 +127,60 @@
   const togglePanel = () => {
     showPanel.value = !showPanel.value;
   };
-
-
 </script>
 <style lang="less">
-.bk-select-extension {
-  .panel {
-    position: absolute;
-    bottom: -180px;
-    display: flex;
-    width: 250px;
-    height: 220px;
-    padding: 12px;
-    cursor: pointer;
-    background: #FFF;
-    border: 1px solid #DCDEE5;
-    border-radius: 2px;
-    box-shadow: 0 2px 6px 0 #0000001a;
-    flex-wrap: wrap;
-
-    .num {
-      width: 32px;
-      height: 32px;
-      line-height: 32px;
-      color: #63656E;
-      text-align: center;
+  .bk-select-extension {
+    .panel {
+      position: absolute;
+      bottom: -180px;
+      display: flex;
+      width: 250px;
+      height: 220px;
+      padding: 12px;
+      cursor: pointer;
+      background: #fff;
+      border: 1px solid #dcdee5;
       border-radius: 2px;
+      box-shadow: 0 2px 6px 0 #0000001a;
+      flex-wrap: wrap;
 
-      &:hover {
-        color: #63656E;
-        background-color: #E1ECFF;
+      .num {
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        color: #63656e;
+        text-align: center;
+        border-radius: 2px;
+
+        &:hover {
+          color: #63656e;
+          background-color: #e1ecff;
+        }
+      }
+
+      .num-today {
+        color: #3a84ff;
+        border: 1px solid #a3c5fd;
+        border-radius: 2px;
+      }
+
+      .num-active {
+        background-color: #e1ecff;
+        border-radius: 0;
+      }
+
+      .num-choosed {
+        color: #fff;
+        background-color: #3a84ff;
+      }
+
+      .num-choosed-min {
+        border-radius: 2px 0 0 2px;
+      }
+
+      .num-choosed-max {
+        border-radius: 0 2px 2px 0;
       }
     }
-
-    .num-today {
-      color: #3A84FF;
-      border: 1px solid #A3C5FD;
-      border-radius: 2px;
-    }
-
-    .num-active {
-      background-color: #E1ECFF;
-      border-radius: 0;
-    }
-
-    .num-choosed {
-      color: #fff;
-      background-color: #3A84FF;
-    }
-
-    .num-choosed-min {
-      border-radius: 2px 0 0 2px;
-    }
-
-    .num-choosed-max {
-      border-radius: 0 2px 2px 0;
-    }
   }
-}
 </style>

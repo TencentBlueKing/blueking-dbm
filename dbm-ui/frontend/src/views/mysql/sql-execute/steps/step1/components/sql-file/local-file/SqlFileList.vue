@@ -15,7 +15,7 @@
   <div class="sql-execute-sql-file-list">
     <div class="file-list-title">
       <span>{{ $t('文件列表') }}</span>
-      <span style="font-size: 12px; font-weight: normal;color: #979ba5;">
+      <span style="font-size: 12px; font-weight: normal; color: #979ba5">
         {{ $t('按顺序执行') }}
       </span>
     </div>
@@ -24,7 +24,7 @@
         v-model="localList"
         item-key="id"
         @end="handleDragEnd">
-        <template #item="{element: fileItemData}">
+        <template #item="{ element: fileItemData }">
           <div
             class="file-item"
             :class="{
@@ -43,54 +43,57 @@
 
   export interface SqlFileData {
     [key: string]: {
-      content: string,
-      path: string,
-      url: string,
-    },
+      content: string;
+      path: string;
+      url: string;
+    };
   }
-
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
 
   interface Props {
-    modelValue: string,
-    data: Array<string>,
+    modelValue: string;
+    data: Array<string>;
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: string): void,
-    (e: 'remove', value: string, index: number): void,
-    (e: 'sort', value: string[]): void,
-    (e: 'changeName', value: string): void,
+    (e: 'update:modelValue', value: string): void;
+    (e: 'remove', value: string, index: number): void;
+    (e: 'sort', value: string[]): void;
+    (e: 'changeName', value: string): void;
   }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const localList = ref<Array<Record<'id'|'name', string>>>([]);
+  const localList = ref<Array<Record<'id' | 'name', string>>>([]);
 
-  watch(() => props.data, () => {
-    localList.value = props.data.map(fileName => ({
-      id: fileName,
-      name: fileName,
-    }));
-    const fileName = localList.value[0].name;
-    emits('update:modelValue', fileName);
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      localList.value = props.data.map((fileName) => ({
+        id: fileName,
+        name: fileName,
+      }));
+      const fileName = localList.value[0].name;
+      emits('update:modelValue', fileName);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClick = (fileName: string) => {
     emits('update:modelValue', fileName);
   };
 
   const handleDragEnd = () => {
-    emits('sort', localList.value.map(item => item.name));
+    emits(
+      'sort',
+      localList.value.map((item) => item.name),
+    );
   };
 </script>
 <style lang="less">

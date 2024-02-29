@@ -4,10 +4,7 @@
     v-bind="attrs" />
 </template>
 <script setup lang="ts">
-  import {
-    computed,
-    useAttrs,
-  } from 'vue';
+  import { computed, useAttrs } from 'vue';
 
   import RenderClusterDomain from './ClusterDomain.vue';
   import RenderClusterName from './ClusterName.vue';
@@ -16,9 +13,8 @@
   import RenderTask from './Task.vue';
   import RenderTicket from './Ticket.vue';
 
-
-  interface Props{
-    name: string
+  interface Props {
+    name: string;
   }
 
   const props = defineProps<Props>();
@@ -41,4 +37,3 @@
     return 'div';
   });
 </script>
-

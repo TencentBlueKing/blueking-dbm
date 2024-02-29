@@ -75,22 +75,21 @@
   ];
 
   const activeTab = ref(tabs[0].value);
-
 </script>
 <style lang="less">
-.monitor-alarm-plat-page{
-  .top-tabs{
-    background: #fff;
-    box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+  .monitor-alarm-plat-page {
+    .top-tabs {
+      background: #fff;
+      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-    .bk-tab-content{
-      display: none;
+      .bk-tab-content {
+        display: none;
+      }
+    }
+
+    .content {
+      height: calc(100vh - 150px);
+      padding: 24px;
     }
   }
-
-  .content {
-    height: calc(100vh - 150px);
-    padding: 24px;
-  }
-}
 </style>

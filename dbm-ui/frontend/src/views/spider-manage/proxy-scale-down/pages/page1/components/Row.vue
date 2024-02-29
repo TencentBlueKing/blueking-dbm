@@ -13,13 +13,13 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         :check-duplicate="false"
         :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderNodeType
         ref="nodeTypeRef"
         :choosed="choosedNodeType"
@@ -28,13 +28,12 @@
         :is-loading="data.isLoading"
         @change="handleChangeNodeType" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSpec
         :data="currentSepc"
         :is-loading="data.isLoading" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetNumber
         ref="tergetNumRef"
         :data="data.targetNum"
@@ -79,9 +78,9 @@
   }
 
   export interface InfoItem {
-    cluster_id: number,
-    spider_reduced_to_count: number,
-    reduce_spider_role: string,
+    cluster_id: number;
+    spider_reduced_to_count: number;
+    reduce_spider_role: string;
   }
 
   // 创建表格数据
@@ -97,27 +96,26 @@
     spiderMasterList: [],
     spiderSlaveList: [],
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    choosedNodeType?: string[],
+    data: IDataRow;
+    removeable: boolean;
+    choosedNodeType?: string[];
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
-    (e: 'nodeTypeChoosed', label: string): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
+    (e: 'nodeTypeChoosed', label: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    choosedNodeType: () => ([]),
+    choosedNodeType: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -129,7 +127,6 @@
   const currentType = ref('');
 
   const counts = computed(() => ({ master: props.data.masterCount, slave: props.data.slaveCount }));
-
 
   const handleChangeNodeType = (choosedLabel: string) => {
     currentType.value = choosedLabel;
@@ -173,5 +170,4 @@
       });
     },
   });
-
 </script>

@@ -35,7 +35,7 @@
     </div>
     <div
       class="table-wrapper"
-      :class="{'is-shrink-table': isStretchLayoutOpen}">
+      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
       <DbTable
         ref="tableRef"
         :columns="columns"
@@ -51,7 +51,7 @@
     </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
-      :title="t('xx扩容【name】', {title: 'ES', name:operationData?.cluster_name })"
+      :title="t('xx扩容【name】', { title: 'ES', name: operationData?.cluster_name })"
       :width="960">
       <ClusterExpansion
         v-if="operationData"
@@ -60,7 +60,7 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
-      :title="t('xx缩容【name】', {title: 'ES', name:operationData?.cluster_name })"
+      :title="t('xx缩容【name】', { title: 'ES', name: operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
         v-if="operationData"
@@ -801,7 +801,6 @@
         color: @primary-color;
         cursor: pointer;
       }
-
     }
 
     :deep(tr:hover) {

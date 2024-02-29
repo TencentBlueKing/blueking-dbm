@@ -17,17 +17,15 @@
   </BkLoading>
 </template>
 
-
 <script setup lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
 
   import DemandFactory from '@views/tickets/common/components/demand-factory/Index.vue';
 
-  interface Props{
-    data: TicketModel,
-    isLoading: boolean,
+  interface Props {
+    data: TicketModel;
+    isLoading: boolean;
   }
 
   defineProps<Props>();
-
 </script>

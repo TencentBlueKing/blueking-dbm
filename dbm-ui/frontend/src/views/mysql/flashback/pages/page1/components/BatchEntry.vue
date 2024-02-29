@@ -22,7 +22,7 @@
         <table>
           <thead>
             <tr>
-              <th>{{ $t('目标集群') }} </th>
+              <th>{{ $t('目标集群') }}</th>
               <th>{{ $t('起止时间') }}</th>
               <th>{{ $t('目标库') }}</th>
               <th>{{ $t('目标表') }}</th>
@@ -54,7 +54,7 @@
         <BkInput
           v-model="localValue"
           :placeholder="placeholder"
-          style="height: 320px; margin: 12px 0 30px;"
+          style="height: 320px; margin: 12px 0 30px"
           type="textarea"
           @input="handleInputChange" />
       </div>
@@ -102,15 +102,15 @@
 <script lang="ts">
   export interface IValue {
     clusterData: {
-      id: number,
-      domain: string,
-    },
-    startTime: string,
-    endTime: string,
-    databases: string[],
-    tables: string[],
-    databasesIgnore: string[],
-    tablesIgnore: string[],
+      id: number;
+      domain: string;
+    };
+    startTime: string;
+    endTime: string;
+    databases: string[];
+    tables: string[];
+    databasesIgnore: string[];
+    tablesIgnore: string[];
   }
 </script>
 <script setup lang="ts">

@@ -24,7 +24,7 @@
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: t('请选择集群')
+            content: t('请选择集群'),
           }"
           class="inline-block">
           <AuthButton
@@ -38,7 +38,7 @@
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: t('请选择集群')
+            content: t('请选择集群'),
           }"
           class="inline-block">
           <BkButton
@@ -65,13 +65,13 @@
         :data="searchSelectData"
         :get-menu-list="getMenuList"
         :placeholder="t('域名_IP_模块')"
-        style="width: 320px;"
+        style="width: 320px"
         unique-select
         @change="handleSearch" />
     </div>
     <div
       class="table-wrapper"
-      :class="{'is-shrink-table': isStretchLayoutOpen}">
+      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
       <DbTable
         ref="tableRef"
         :columns="columns"
@@ -783,116 +783,118 @@
 </script>
 
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.mysql-ha-cluster-list {
-  height: 100%;
-  padding: 24px 0;
-  margin: 0 24px;
-  overflow: hidden;
+  .mysql-ha-cluster-list {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
+    overflow: hidden;
 
-  .operation-box{
-    display: flex;
-    flex-wrap: wrap;
-
-    .bk-search-select {
-      flex: 1;
-      max-width: 320px;
-      min-width: 320px;
-      margin-left: auto;
-    }
-  }
-
-  .table-wrapper {
-    background-color: white;
-
-    .bk-table {
-      height: 100% !important;
-    }
-
-    :deep(.bk-table-body) {
-      max-height: calc(100% - 100px);
-    }
-  }
-
-  .is-shrink-table {
-    :deep(.bk-table-body) {
-      overflow: hidden auto;
-    }
-  }
-
-  :deep(.cell) {
-    line-height: normal !important;
-
-    .domain {
+    .operation-box {
       display: flex;
-      align-items: center;
+      flex-wrap: wrap;
+
+      .bk-search-select {
+        flex: 1;
+        max-width: 320px;
+        min-width: 320px;
+        margin-left: auto;
+      }
     }
 
-    .db-icon-copy, .db-icon-edit {
-      display: none;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
+    .table-wrapper {
+      background-color: white;
+
+      .bk-table {
+        height: 100% !important;
+      }
+
+      :deep(.bk-table-body) {
+        max-height: calc(100% - 100px);
+      }
     }
 
-    .operations-more {
-      .db-icon-more {
-        display: block;
-        font-size: @font-size-normal;
-        font-weight: bold;
-        color: @default-color;
+    .is-shrink-table {
+      :deep(.bk-table-body) {
+        overflow: hidden auto;
+      }
+    }
+
+    :deep(.cell) {
+      line-height: normal !important;
+
+      .domain {
+        display: flex;
+        align-items: center;
+      }
+
+      .db-icon-copy,
+      .db-icon-edit {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
         cursor: pointer;
+      }
 
-        &:hover {
-          background-color: @bg-disable;
-          border-radius: 2px;
+      .operations-more {
+        .db-icon-more {
+          display: block;
+          font-size: @font-size-normal;
+          font-weight: bold;
+          color: @default-color;
+          cursor: pointer;
+
+          &:hover {
+            background-color: @bg-disable;
+            border-radius: 2px;
+          }
         }
       }
     }
-  }
 
-  :deep(tr:hover) {
-    .db-icon-copy, .db-icon-edit {
-      display: inline-block !important;
-    }
-  }
-
-  :deep(.is-offline) {
-    a {
-      color: @gray-color;
-    }
-
-    .cell {
-      color: @disable-color;
-    }
-  }
-
-  :deep(.cluster-name-container) {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    overflow: hidden;
-
-    .cluster-name {
-      line-height: 16px;
-
-      &__alias {
-        color: @light-gray;
+    :deep(tr:hover) {
+      .db-icon-copy,
+      .db-icon-edit {
+        display: inline-block !important;
       }
     }
 
-    .cluster-tags {
-      display: flex;
-      margin-left: 4px;
-      align-items: center;
-      flex-wrap: wrap;
+    :deep(.is-offline) {
+      a {
+        color: @gray-color;
+      }
+
+      .cell {
+        color: @disable-color;
+      }
     }
 
-    .cluster-tag {
-      margin: 2px 0;
-      flex-shrink: 0;
+    :deep(.cluster-name-container) {
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      overflow: hidden;
+
+      .cluster-name {
+        line-height: 16px;
+
+        &__alias {
+          color: @light-gray;
+        }
+      }
+
+      .cluster-tags {
+        display: flex;
+        margin-left: 4px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .cluster-tag {
+        margin: 2px 0;
+        flex-shrink: 0;
+      }
     }
   }
-}
 </style>

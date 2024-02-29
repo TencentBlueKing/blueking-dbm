@@ -14,38 +14,38 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
           @id-change="handleClusterIdChange" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderMode
           ref="modeRef"
           :cluster-id="localClusterId"
           :rollback-time="data.rollbackTime" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="databasesRef"
           :cluster-id="localClusterId"
           :model-value="data.databases" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="databasesIgnoreRef"
           :cluster-id="localClusterId"
           :model-value="data.databasesIgnore"
           :required="false" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableName
           ref="tablesRef"
           :cluster-id="localClusterId"
           :model-value="data.tables" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableName
           ref="tablesIgnoreRef"
           :cluster-id="localClusterId"
@@ -61,16 +61,16 @@
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
-      id: number,
-      domain: string
-      cloudId: number | null
-    },
-    rollbackupType: string,
-    rollbackTime?: string,
-    databases?: string[],
-    databasesIgnore?: string [],
-    tables?: string [],
-    tablesIgnore?: string [],
+      id: number;
+      domain: string;
+      cloudId: number | null;
+    };
+    rollbackupType: string;
+    rollbackTime?: string;
+    databases?: string[];
+    databasesIgnore?: string[];
+    tables?: string[];
+    tablesIgnore?: string[];
   }
 
   // 创建表格数据
@@ -93,11 +93,11 @@
   import RenderMode from './RenderMode.vue';
 
   interface Props {
-    data: IDataRow,
+    data: IDataRow;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -112,16 +112,20 @@
   const localClusterId = ref(0);
   const localRollbackuoType = ref('');
 
-  watch(() => props.data, () => {
-    if (props.data.clusterData) {
-      localClusterId.value = props.data.clusterData.id;
-    }
-    localRollbackuoType.value = props.data.rollbackupType;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.clusterData) {
+        localClusterId.value = props.data.clusterData.id;
+      }
+      localRollbackuoType.value = props.data.rollbackupType;
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  const handleClusterIdChange = (idData: { id: number, cloudId: number | null }) => {
+  const handleClusterIdChange = (idData: { id: number; cloudId: number | null }) => {
     localClusterId.value = idData.id;
   };
 
@@ -134,14 +138,7 @@
         tablesRef.value.getValue('tables'),
         databasesIgnoreRef.value.getValue('databases_ignore'),
         tablesIgnoreRef.value.getValue('tables_ignore'),
-      ]).then(([
-        clusterData,
-        modeData,
-        databasesData,
-        tablesData,
-        databasesIgnoreData,
-        tablesIgnoreData,
-      ]) => ({
+      ]).then(([clusterData, modeData, databasesData, tablesData, databasesIgnoreData, tablesIgnoreData]) => ({
         ...clusterData,
         ...modeData,
         ...databasesData,
@@ -153,29 +150,29 @@
   });
 </script>
 <style lang="less" scoped>
-.action-box {
-  display: flex;
-  align-items: center;
-
-  .action-btn {
+  .action-box {
     display: flex;
-    font-size: 14px;
-    color: #c4c6cc;
-    cursor: pointer;
-    transition: all 0.15s;
+    align-items: center;
 
-    &:hover {
-      color: #979ba5;
-    }
+    .action-btn {
+      display: flex;
+      font-size: 14px;
+      color: #c4c6cc;
+      cursor: pointer;
+      transition: all 0.15s;
 
-    &.disabled {
-      color: #dcdee5;
-      cursor: not-allowed;
-    }
+      &:hover {
+        color: #979ba5;
+      }
 
-    & ~ .action-btn {
-      margin-left: 18px;
+      &.disabled {
+        color: #dcdee5;
+        cursor: not-allowed;
+      }
+
+      & ~ .action-btn {
+        margin-left: 18px;
+      }
     }
   }
-}
 </style>

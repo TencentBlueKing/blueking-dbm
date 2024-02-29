@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import http from '../http';
 
@@ -19,11 +19,13 @@ const path = '/apis/core/storage';
  * 批量获取文件内容
  */
 export function batchFetchFile(params: { file_path_list: string[] }) {
-  return http.post<Array<{
-    content: string,
-    path: string,
-    url: string
-  }>>(`${path}/batch_fetch_file_content/`, params);
+  return http.post<
+    Array<{
+      content: string;
+      path: string;
+      url: string;
+    }>
+  >(`${path}/batch_fetch_file_content/`, params);
 }
 
 /**
@@ -33,6 +35,6 @@ export function getFileContent(params: { file_path: string }) {
   return http.get<{
     content: string;
     path: string;
-    url: string
+    url: string;
   }>(`${path}/fetch_file_content/`, params);
 }

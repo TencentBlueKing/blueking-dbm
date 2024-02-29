@@ -34,7 +34,7 @@
     </div>
     <div
       v-if="slots.append"
-      style="display: inline-block; line-height: 40px; vertical-align: top;">
+      style="display: inline-block; line-height: 40px; vertical-align: top">
       <slot name="append" />
     </div>
   </th>
@@ -148,5 +148,4 @@
   const handleMouseMove = (event: MouseEvent) => {
     parentTable?.columnMouseMove(event);
   };
-
 </script>

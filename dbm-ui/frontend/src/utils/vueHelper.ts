@@ -9,30 +9,31 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import _ from 'lodash';
 
 const isListener = (key: string) => /^on[A-Z]/.test(key);
 const isCSS = (key: string) => /^(class|style)$/.test(key);
 
-export const attrsWithoutListener = (attrs: Record<string, any>) => Object.keys(attrs).reduce((result, key) => {
-  if (!(isListener(key) && _.isFunction(attrs[key]))) {
-    return {
-      ...result,
-      [key]: attrs[key],
-    };
-  }
-  return result;
-}, {});
+export const attrsWithoutListener = (attrs: Record<string, any>) =>
+  Object.keys(attrs).reduce((result, key) => {
+    if (!(isListener(key) && _.isFunction(attrs[key]))) {
+      return {
+        ...result,
+        [key]: attrs[key],
+      };
+    }
+    return result;
+  }, {});
 
-export const attrsOnlyProp = (attrs: Record<string, any>) => Object.keys(attrs).reduce((result, key) => {
-  if (!isCSS(key)
-    && !(isListener(key) && _.isFunction(attrs[key]))) {
-    return {
-      ...result,
-      [key]: attrs[key],
-    };
-  }
-  return result;
-}, {});
+export const attrsOnlyProp = (attrs: Record<string, any>) =>
+  Object.keys(attrs).reduce((result, key) => {
+    if (!isCSS(key) && !(isListener(key) && _.isFunction(attrs[key]))) {
+      return {
+        ...result,
+        [key]: attrs[key],
+      };
+    }
+    return result;
+  }, {});

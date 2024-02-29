@@ -14,22 +14,22 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <CellName
           ref="nameRef"
           :data="localRowData"
           :model-value="localRowData.name"
           @edit-change="handleNameChange" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <CellDesc
           ref="descRef"
           v-model="localRowData.desc" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <CellType />
       </td>
-      <td :class="{'shadow-column': isFixed}">
+      <td :class="{ 'shadow-column': isFixed }">
         <div class="action-box">
           <div
             class="action-btn"
@@ -39,7 +39,7 @@
           <div
             class="action-btn"
             :class="{
-              disabled: data.builtin
+              disabled: data.builtin,
             }"
             @click="handleRemove">
             <DbIcon type="minus-fill" />
@@ -69,16 +69,16 @@
   import CellName from './CellName.vue';
   import CellType from './CellType.vue';
 
-  export type IDataRow = IVariable
+  export type IDataRow = IVariable;
 
   interface Props {
-    data: IDataRow,
+    data: IDataRow;
   }
 
   interface Emits {
-    (e: 'edit-change'): void,
-    (e: 'add', params: IDataRow): void,
-    (e: 'remove', data: IDataRow): void,
+    (e: 'edit-change'): void;
+    (e: 'add', params: IDataRow): void;
+    (e: 'remove', data: IDataRow): void;
   }
 
   const props = defineProps<Props>();
@@ -92,11 +92,15 @@
 
   const localRowData = reactive(createRowData());
 
-  watch(() => props.data, () => {
-    Object.assign(localRowData, props.data);
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      Object.assign(localRowData, props.data);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleNameChange = () => {
     emits('edit-change');

@@ -13,35 +13,33 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSourceCluster
         ref="sourceClusterRef"
         :data="data.srcCluster"
         :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         ref="targetClusterRef"
         :data="data.targetCluster"
         :is-loading="data.isLoading"
         @input-finish="handleInputTargetCluster" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderAccessCode
         ref="sccessCodeRef"
         :dst-cluster="targetCluster"
         :src-cluster="String(data.srcClusterId)" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
         required />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderKeyRelated
         ref="excludeKeyRef"
         :data="data.excludeKey"
@@ -87,27 +85,26 @@
     includeKey: ['*'],
     excludeKey: [],
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    inputedClusters?: string[],
+    data: IDataRow;
+    removeable: boolean;
+    inputedClusters?: string[];
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<IntraBusinessToThirdInfoItem>
+    getValue: () => Promise<IntraBusinessToThirdInfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    inputedClusters: () => ([]),
+    inputedClusters: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -148,13 +145,7 @@
         includeKeyRef.value.getValue(),
         excludeKeyRef.value.getValue(),
       ]).then((data) => {
-        const [
-          srcClusterId,
-          targetCluster,
-          password,
-          includeKey,
-          excludeKey,
-        ] = data;
+        const [srcClusterId, targetCluster, password, includeKey, excludeKey] = data;
         return {
           src_cluster: srcClusterId,
           dst_cluster: targetCluster,
@@ -165,5 +156,4 @@
       });
     },
   });
-
 </script>

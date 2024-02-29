@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { RouteRecordRaw } from 'vue-router';
 
@@ -21,10 +21,12 @@ const routes: RouteRecordRaw[] = [
     path: 'monitor-strategy',
     meta: {
       navName: t('监控策略'),
-      tags: [{
-        theme: 'info',
-        text: t('业务'),
-      }],
+      tags: [
+        {
+          theme: 'info',
+          text: t('业务'),
+        },
+      ],
       fullscreen: true,
     },
     component: () => import('@views/monitor-alarm-db/monitor-strategy/Index.vue'),

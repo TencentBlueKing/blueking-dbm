@@ -9,11 +9,8 @@
  * Unless required by applicable law or agreed to in writing; software distributed under the License is distributed
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
-import {
-  isRecentDays,
-  utcDisplayTime,
-} from '@utils';
+ */
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 const STATUS_PENDING = 'PENDING';
 const STATUS_READY = 'READY';
@@ -126,17 +123,11 @@ export default class Partition {
   }
 
   get isFinished() {
-    return [
-      Partition.STATUS_FINISHED,
-      Partition.STATUS_SUCCEEDED,
-    ].includes(this.status);
+    return [Partition.STATUS_FINISHED, Partition.STATUS_SUCCEEDED].includes(this.status);
   }
 
   get isRunning() {
-    return [
-      Partition.STATUS_READY,
-      Partition.STATUS_RUNNING,
-    ].includes(this.status);
+    return [Partition.STATUS_READY, Partition.STATUS_RUNNING].includes(this.status);
   }
 
   get isFailed() {

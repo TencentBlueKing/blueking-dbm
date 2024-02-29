@@ -24,7 +24,7 @@
         v-if="showRemove"
         class="action-btn"
         :class="{
-          disabled: removeable
+          disabled: removeable,
         }"
         @click="handleRemove">
         <DbIcon type="minus-fill" />
@@ -36,16 +36,15 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
 
   interface Props {
-    showAdd?: boolean,
-    showRemove?: boolean,
-    removeable?: boolean,
+    showAdd?: boolean;
+    showRemove?: boolean;
+    removeable?: boolean;
   }
 
   interface Emits {
-    (e: 'add'): void,
-    (e: 'remove'): void,
+    (e: 'add'): void;
+    (e: 'remove'): void;
   }
-
 
   const props = withDefaults(defineProps<Props>(), {
     showAdd: true,
@@ -65,35 +64,33 @@
     }
     emits('remove');
   };
-
 </script>
 <style lang="less" scoped>
-.action-box {
-  display: flex;
-  height: 42px;
-  padding: 0 16px;
-  align-items: center;
-
-  .action-btn {
+  .action-box {
     display: flex;
-    font-size: 14px;
-    color: #c4c6cc;
-    cursor: pointer;
-    transition: all 0.15s;
+    height: 42px;
+    padding: 0 16px;
+    align-items: center;
 
-    &:hover {
-      color: #979ba5;
-    }
+    .action-btn {
+      display: flex;
+      font-size: 14px;
+      color: #c4c6cc;
+      cursor: pointer;
+      transition: all 0.15s;
 
-    &.disabled {
-      color: #dcdee5;
-      cursor: not-allowed;
-    }
+      &:hover {
+        color: #979ba5;
+      }
 
-    & ~ .action-btn {
-      margin-left: 18px;
+      &.disabled {
+        color: #dcdee5;
+        cursor: not-allowed;
+      }
+
+      & ~ .action-btn {
+        margin-left: 18px;
+      }
     }
   }
-}
-
 </style>

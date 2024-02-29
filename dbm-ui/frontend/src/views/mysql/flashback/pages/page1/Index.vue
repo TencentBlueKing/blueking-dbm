@@ -20,17 +20,14 @@
         :title="$t('通过flashback工具_对row格式的binlog做逆向操作')" />
       <div
         class="mt16"
-        style="display: flex;">
-        <BkButton
-          @click="handleShowBatchEntry">
+        style="display: flex">
+        <BkButton @click="handleShowBatchEntry">
           <DbIcon type="add" />
           {{ $t('批量录入') }}
         </BkButton>
       </div>
-      <div class="title-spot mt-12 mb-10">
-        {{ $t('时区') }}<span class="required" />
-      </div>
-      <TimeZonePicker style="width: 450px;" />
+      <div class="title-spot mt-12 mb-10">{{ $t('时区') }}<span class="required" /></div>
+      <TimeZonePicker style="width: 450px" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -39,7 +36,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -74,10 +71,7 @@
 </template>
 
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { ref, shallowRef } from 'vue';
   import { useRouter } from 'vue-router';
 
   import { createTicket } from '@services/source/ticket';
@@ -89,18 +83,13 @@
   import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
-  import BatchEntry, {
-    type IValue as IBatchEntryValue,
-  } from './components/BatchEntry.vue';
+  import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   interface IClusterData {
-    id: number,
-    master_domain: string
+    id: number;
+    master_domain: string;
   }
 
   // 检测列表是否为空
@@ -109,11 +98,9 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.clusterData
-      && !firstRow.startTime
-      && !firstRow.databases
-      && !firstRow.tables
-      && !firstRow.tablesIgnore;
+    return (
+      !firstRow.clusterData && !firstRow.startTime && !firstRow.databases && !firstRow.tables && !firstRow.tablesIgnore
+    );
   };
 
   const clusterSelectorTabList = [ClusterTypes.TENDBHA];
@@ -124,7 +111,7 @@
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
   const isShowBatchEntry = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
@@ -134,7 +121,7 @@
   };
   // 批量录入
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
-    const newList = list.map(item => createRowData(item));
+    const newList = list.map((item) => createRowData(item));
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -146,13 +133,15 @@
     isShowBatchSelector.value = true;
   };
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
-      clusterData: {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-      },
-    }));
+  const handelClusterChange = (selected: { [key: string]: Array<IClusterData> }) => {
+    const newList = selected[ClusterTypes.TENDBHA].map((clusterData) =>
+      createRowData({
+        clusterData: {
+          id: clusterData.id,
+          domain: clusterData.master_domain,
+        },
+      }),
+    );
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -175,25 +164,27 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'MYSQL_FLASHBACK',
-        remark: '',
-        details: {
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
-        router.push({
-          name: 'MySQLDBFlashback',
-          params: {
-            page: 'success',
+      .then((data) =>
+        createTicket({
+          ticket_type: 'MYSQL_FLASHBACK',
+          remark: '',
+          details: {
+            infos: data,
           },
-          query: {
-            ticketId: data.id,
-          },
-        });
-      }))
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'MySQLDBFlashback',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

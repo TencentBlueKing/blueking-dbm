@@ -16,7 +16,9 @@
     <BkAlert
       closable
       theme="warning"
-      :title="t('如果希望使用通配符授权一批IP_或者授权平台公共类IP_未注册到配置平台的IP_需要先录入到白名单中_才能对其授权')" />
+      :title="
+        t('如果希望使用通配符授权一批IP_或者授权平台公共类IP_未注册到配置平台的IP_需要先录入到白名单中_才能对其授权')
+      " />
     <div class="whitelist-operations">
       <div class="operations-left">
         <AuthButton
@@ -28,7 +30,7 @@
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: t('请选择白名单组')
+            content: t('请选择白名单组'),
           }"
           class="inline-block">
           <AuthButton
@@ -43,7 +45,7 @@
         v-model="keyword"
         clearable
         :placeholder="t('请输入IP')"
-        style="width: 500px;"
+        style="width: 500px"
         type="search"
         @clear="fetchTableData"
         @enter="fetchTableData" />
@@ -291,37 +293,37 @@
 </script>
 
 <style lang="less" scoped>
-.whitelist {
-  .whitelist-operations {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 0;
-
-    .operations-left {
+  .whitelist {
+    .whitelist-operations {
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
 
-      .bk-button {
-        min-width: 88px;
-        margin-right: 8px;
+      .operations-left {
+        display: flex;
+        align-items: center;
+
+        .bk-button {
+          min-width: 88px;
+          margin-right: 8px;
+        }
       }
     }
-  }
 
-  :deep(.bk-table) {
-    tr:hover {
+    :deep(.bk-table) {
+      tr:hover {
+        .copy-btn {
+          display: inline-block;
+        }
+      }
+
       .copy-btn {
-        display: inline-block;
+        display: none;
+        margin-left: 8px;
+        color: @primary-color;
+        cursor: pointer;
       }
     }
-
-    .copy-btn {
-      display: none;
-      margin-left: 8px;
-      color: @primary-color;
-      cursor: pointer;
-    }
   }
-}
 </style>

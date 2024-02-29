@@ -14,14 +14,14 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
           @input-cluster-finish="handleInputFinish"
           @input-create="handleCreate" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderBackupLocal
           ref="backupLocalRef"
           :cluster-data="data.clusterData"
@@ -42,10 +42,10 @@
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
-      id: number,
-      domain: string,
-    },
-    backupLocal: string,
+      id: number;
+      domain: string;
+    };
+    backupLocal: string;
   }
 
   // 创建表格数据
@@ -54,24 +54,23 @@
     clusterData: data.clusterData,
     backupLocal: data.backupLocal || '',
   });
-
 </script>
 <script setup lang="ts">
   import RenderBackupLocal from './RenderBackupLocal.vue';
   import RenderCluster from './RenderCluster.vue';
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean
+    data: IDataRow;
+    removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'inputClusterFinish', value: IDataRow): void,
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'inputClusterFinish', value: IDataRow): void;
   }
 
-  interface Exposes{
-    getValue: () => Promise<any>
+  interface Exposes {
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -82,21 +81,29 @@
   const backupLocalRef = ref();
 
   const handleCreate = (list: Array<string>) => {
-    emits('add', list.map(domain => createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-      },
-    })));
+    emits(
+      'add',
+      list.map((domain) =>
+        createRowData({
+          clusterData: {
+            id: 0,
+            domain,
+          },
+        }),
+      ),
+    );
   };
 
   const handleInputFinish = (domain: string) => {
-    emits('inputClusterFinish', createRowData({
-      clusterData: {
-        id: 0,
-        domain,
-      },
-    }));
+    emits(
+      'inputClusterFinish',
+      createRowData({
+        clusterData: {
+          id: 0,
+          domain,
+        },
+      }),
+    );
   };
 
   const handleAppend = () => {
@@ -112,16 +119,12 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        clusterRef.value.getValue(),
-        backupLocalRef.value.getValue(),
-      ]).then(([
-        clusterData,
-        backupLocalData,
-      ]) => ({
-        ...clusterData,
-        ...backupLocalData,
-      }));
+      return Promise.all([clusterRef.value.getValue(), backupLocalRef.value.getValue()]).then(
+        ([clusterData, backupLocalData]) => ({
+          ...clusterData,
+          ...backupLocalData,
+        }),
+      );
     },
   });
 </script>

@@ -23,7 +23,7 @@
       <template #aside>
         <BkLoading
           :loading="treeState.loading"
-          style="height: 100%;"
+          style="height: 100%"
           :z-index="12">
           <div class="content-tree">
             <div class="content-tree-search">
@@ -51,7 +51,7 @@
                     {{ getIconText(item) }}
                   </span>
                   <span
-                    v-overflow-tips="{ content:item.name, placement: 'right' }"
+                    v-overflow-tips="{ content: item.name, placement: 'right' }"
                     class="content-tree-name text-overflow">
                     {{ item.name }}
                   </span>
@@ -96,12 +96,7 @@
   </ApplyPermissionCatch>
 </template>
 <script setup lang="ts">
-  import {
-    clusterTypeInfos,
-    ClusterTypes,
-    type ClusterTypesValues,
-    ConfLevels,
-  } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, type ClusterTypesValues, ConfLevels } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/catch.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
@@ -119,22 +114,20 @@
     search: '',
     data: [],
   });
-  const {
-    treeRef,
-    treeSearchConfig,
-    treePrefixIcon,
-    handleSelectedTreeNode,
-    createModule,
-    fetchBusinessTopoTree,
-  } = useTreeData(treeState);
+  const { treeRef, treeSearchConfig, treePrefixIcon, handleSelectedTreeNode, createModule, fetchBusinessTopoTree } =
+    useTreeData(treeState);
   // 可创建模块
   const clusterType = computed(() => route.params.clusterType as string);
   const hasModuleClusters: string[] = [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA];
   const hasModules = computed(() => hasModuleClusters.includes(clusterType.value));
 
   const getIconText = (item: TreeData) => {
-    if (item.levelType === ConfLevels.APP) return '业';
-    if (item.levelType === ConfLevels.MODULE) return '模';
+    if (item.levelType === ConfLevels.APP) {
+      return '业';
+    }
+    if (item.levelType === ConfLevels.MODULE) {
+      return '模';
+    }
     return '集';
   };
 
@@ -142,15 +135,23 @@
    * content component
    */
   const activeComponent = computed(() => {
-    if (!treeState.activeNode) return '';
+    if (!treeState.activeNode) {
+      return '';
+    }
 
     const { levelType } = treeState.activeNode;
 
-    if (levelType === ConfLevels.APP) return ConfigBusiness;
+    if (levelType === ConfLevels.APP) {
+      return ConfigBusiness;
+    }
 
-    if (levelType === ConfLevels.MODULE) return ConfigModule;
+    if (levelType === ConfLevels.MODULE) {
+      return ConfigModule;
+    }
 
-    if (levelType === ConfLevels.CLUSTER) return ConfigCluster;
+    if (levelType === ConfLevels.CLUSTER) {
+      return ConfigCluster;
+    }
 
     return '';
   });
@@ -166,7 +167,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .database-content {
     height: 100%;

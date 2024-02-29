@@ -14,9 +14,9 @@
           content: $t('可扩容数量已达上限max_Master数_master_运维节点数_mnt', {
             max: masterScaleUpLimitMax,
             master: data.spider_master.length,
-            mnt: data.spider_mnt.length
+            mnt: data.spider_mnt.length,
           }),
-          disabled: masterScaleUpLimit.max
+          disabled: masterScaleUpLimit.max,
         }"
         :disabled="!masterScaleUpLimit.max"
         :max="masterScaleUpLimit.max"
@@ -40,7 +40,7 @@
         v-model="formdata.slave"
         v-bk-tooltips="{
           content: $t('当前集群没有可扩容Slave'),
-          disabled: hasSpiderSlave
+          disabled: hasSpiderSlave,
         }"
         :disabled="!hasSpiderSlave"
         :max="slaveScaleUpLimit.max"
@@ -242,13 +242,13 @@
 </script>
 
 <style lang="less" scoped>
-.scale-up-form {
-  padding: 28px 40px 24px;
+  .scale-up-form {
+    padding: 28px 40px 24px;
 
-  .tips {
-    display: flex;
-    align-items: center;
-    font-size: 12px;
+    .tips {
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+    }
   }
-}
 </style>

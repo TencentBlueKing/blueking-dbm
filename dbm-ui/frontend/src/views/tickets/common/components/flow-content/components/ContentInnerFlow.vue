@@ -15,7 +15,7 @@
   <template
     v-for="item of content.todos"
     :key="item.id">
-    <template v-if="item.status === 'TODO' && item.type==='INNER_APPROVE'">
+    <template v-if="item.status === 'TODO' && item.type === 'INNER_APPROVE'">
       <p class="mb-8">
         {{ $t('请在') }} "
         <a
@@ -42,7 +42,9 @@
     <template v-if="content.url">
       ，<a
         :href="content.url"
-        :target="getHrefTarget(content)">{{ $t('查看详情') }} &gt;</a>
+        :target="getHrefTarget(content)">
+        {{ $t('查看详情') }} &gt;
+      </a>
     </template>
   </p>
   <p
@@ -100,11 +102,11 @@
   import FlowContentTodo from './ContentTodo.vue';
 
   interface Emits {
-    (e: 'fetch-data'): void
+    (e: 'fetch-data'): void;
   }
 
   interface Props {
-    content: FlowItem,
+    content: FlowItem;
   }
 
   const props = defineProps<Props>();

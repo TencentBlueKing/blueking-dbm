@@ -293,7 +293,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .configure-edit-container {
     padding: 54px 0;

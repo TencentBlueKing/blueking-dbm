@@ -32,7 +32,7 @@
         <BkInput
           v-model="formdata.ips"
           :placeholder="placeholder"
-          style="height: 134px;"
+          style="height: 134px"
           type="textarea"
           @input="debounceInput" />
       </BkFormItem>
@@ -43,7 +43,7 @@
         <BkInput
           v-model="formdata.remark"
           :placeholder="t('请添加IP的简要说明_如IP用途等')"
-          style="height: 114px;"
+          style="height: 114px"
           type="textarea" />
       </BkFormItem>
     </DbForm>
@@ -62,11 +62,11 @@
       </BkButton>
     </template>
   </BkDialog>
-  <div style="display: none;">
+  <div style="display: none">
     <div
       ref="mergeTipsRef"
       class="merge-tips"
-      style=" padding: 4px; font-size: 12px;color: #63656e;">
+      style="padding: 4px; font-size: 12px; color: #63656e">
       <p class="pb-12">
         {{ t('检测到多个前缀相同的IP_是否立即合并成以下IP') }}
       </p>
@@ -80,11 +80,13 @@
           text
           theme="primary"
           @click="handleMerge">
-          {{ t("合并") }}
+          {{ t('合并') }}
         </BkButton>
         <span
           class="inline-block"
-          style="transform: scale(0.8);">｜</span>
+          style="transform: scale(0.8)">
+          ｜
+          </span>
         <BkButton
           text
           theme="primary"

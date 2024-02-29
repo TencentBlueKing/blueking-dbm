@@ -32,7 +32,7 @@
               <BkDropdownItem
                 v-for="item in filters"
                 :key="item.value"
-                :class="{'dropdown-item-active': item.value === state.filters.status}"
+                :class="{ 'dropdown-item-active': item.value === state.filters.status }"
                 @click="handleChangeStatus(item)">
                 {{ item.label }}
               </BkDropdownItem>
@@ -97,13 +97,15 @@
                   class="info-item-value"
                   :data="item.related_object.objects"
                   show-all
-                  style="overflow: hidden;" />
+                  style="overflow: hidden" />
               </div>
               <div class="side-item-info is-single">
                 <span class="info-item-label">{{ t('业务') }}：</span>
                 <span
                   v-overflow-tips
-                  class="info-item-value text-overflow">{{ item.bk_biz_name }}</span>
+                  class="info-item-value text-overflow">
+                  {{ item.bk_biz_name }}
+                </span>
               </div>
               <div class="side-item-info">
                 <span>{{ t('申请人') }}： {{ item.creator }}</span>
@@ -134,22 +136,22 @@
    * 列表基础数据
    */
   export interface TicketsState {
-    list: TicketModel[],
-    isLoading: boolean,
-    isAnomalies: boolean,
-    activeTicket: TicketModel | null,
-    isInit: boolean,
-    ticketTypes: Array<SearchFilterItem>,
+    list: TicketModel[];
+    isLoading: boolean;
+    isAnomalies: boolean;
+    activeTicket: TicketModel | null;
+    isInit: boolean;
+    ticketTypes: Array<SearchFilterItem>;
     filters: {
-      status: string,
-      search: SearchValue[],
-    },
+      status: string;
+      search: SearchValue[];
+    };
     page: {
-      current: number,
-      limit: number,
-      total: number,
-    },
-    bkBizIdList: Array<SearchFilterItem>,
+      current: number;
+      limit: number;
+      total: number;
+    };
+    bkBizIdList: Array<SearchFilterItem>;
   }
 </script>
 <script setup lang="ts">
@@ -443,199 +445,197 @@
   resume();
 </script>
 <style lang="less">
-@import "@/styles/mixins.less";
+  @import '@/styles/mixins.less';
 
-.ticket-manage-list {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  width: 320px;
-  height: 100%;
-  background-color: @white-color;
-
-  .filter-box {
+  .ticket-manage-list {
+    display: flex;
+    flex-direction: column;
     flex-shrink: 0;
-    padding: 16px;
-    border-bottom: 1px solid @border-disable;
+    width: 320px;
+    height: 100%;
+    background-color: @white-color;
 
-    .ticket-type-tab{
-      margin-bottom: 12px;
-
-      .bk-tab-header {
-        width: 100%;
-        height: 32px;
-        font-size: 12px;
-        line-height: 32px !important;
-        border-radius: 2px;
-
-        .bk-tab-header-nav {
-          width: 100%;
-          align-items: center;
-        }
-
-        .bk-tab-header-item {
-          height: 24px;
-          margin: 0 4px;
-          line-height: 24px !important;
-          border-radius: 2px;
-          flex: 1;
-
-          &:last-child::after {
-            display: none;
-          }
-
-          &:not(:first-of-type)::before {
-            left: -4px;
-            display: block !important;
-          }
-        }
-      }
-
-      .bk-tab-content {
-        display: none;
-      }
-    }
-
-    .side-header {
-      .flex-center();
-
-      justify-content: space-between;
-      padding-bottom: 8px;
-      color: @title-color;
-    }
-
-    .status-trigger {
-      position: relative;
-      height: 32px;
-      padding: 0 24px 0 10px;
-      font-size: 12px;
-      line-height: 32px;
-      color: @default-color;
-      cursor: pointer;
-      background-color: #fff;
-
-      .status-trigger-icon {
-        position: absolute;
-        right: 6px;
-        font-size: 14px;
-        line-height: 32px;
-        color: @gray-color;
-        transition: all 0.3s;
-      }
-
-    }
-
-    .status-trigger:hover,
-    .status-trigger-active {
-      background-color: #f5f7fa;
-    }
-
-    .status-trigger-active {
-      .status-trigger-icon {
-        transform: rotate(180deg);
-      }
-    }
-  }
-
-  .side-main {
-    width: 100%;
-    flex: 1;
-    min-height: 0;
-  }
-
-  .side-list {
-    width: 100%;
-    height: calc(100% - 32px);
-
-    .bk-nested-loading {
-      width: 100%;
-      height: 100%;
-    }
-  }
-
-  .side-item {
-    padding: 16px;
-    font-size: @font-size-mini;
-    cursor: pointer;
-    border-bottom: 1px solid @border-disable;
-
-    .bk-tag {
-      height: 16px;
-      padding: 0 4px;
-      margin: 0;
-
-      .bk-tag-text {
-        height: 16px;
-        line-height: 16px;
-        transform: scale(0.83, 0.83);
-      }
-
-    }
-
-    .side-item-title {
-      display: flex;
-      align-items: center;
-      padding-bottom: 8px;
-      overflow: hidden;
-    }
-
-    .side-item-name {
-      padding-right: 8px;
-    }
-
-    .side-item-tag {
+    .filter-box {
       flex-shrink: 0;
+      padding: 16px;
+      border-bottom: 1px solid @border-disable;
+
+      .ticket-type-tab {
+        margin-bottom: 12px;
+
+        .bk-tab-header {
+          width: 100%;
+          height: 32px;
+          font-size: 12px;
+          line-height: 32px !important;
+          border-radius: 2px;
+
+          .bk-tab-header-nav {
+            width: 100%;
+            align-items: center;
+          }
+
+          .bk-tab-header-item {
+            height: 24px;
+            margin: 0 4px;
+            line-height: 24px !important;
+            border-radius: 2px;
+            flex: 1;
+
+            &:last-child::after {
+              display: none;
+            }
+
+            &:not(:first-of-type)::before {
+              left: -4px;
+              display: block !important;
+            }
+          }
+        }
+
+        .bk-tab-content {
+          display: none;
+        }
+      }
+
+      .side-header {
+        .flex-center();
+
+        justify-content: space-between;
+        padding-bottom: 8px;
+        color: @title-color;
+      }
+
+      .status-trigger {
+        position: relative;
+        height: 32px;
+        padding: 0 24px 0 10px;
+        font-size: 12px;
+        line-height: 32px;
+        color: @default-color;
+        cursor: pointer;
+        background-color: #fff;
+
+        .status-trigger-icon {
+          position: absolute;
+          right: 6px;
+          font-size: 14px;
+          line-height: 32px;
+          color: @gray-color;
+          transition: all 0.3s;
+        }
+      }
+
+      .status-trigger:hover,
+      .status-trigger-active {
+        background-color: #f5f7fa;
+      }
+
+      .status-trigger-active {
+        .status-trigger-icon {
+          transform: rotate(180deg);
+        }
+      }
     }
 
-    .side-item-info {
-      .flex-center();
+    .side-main {
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+    }
 
-      justify-content: space-between;
+    .side-list {
+      width: 100%;
+      height: calc(100% - 32px);
 
-      .info-item-label {
+      .bk-nested-loading {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    .side-item {
+      padding: 16px;
+      font-size: @font-size-mini;
+      cursor: pointer;
+      border-bottom: 1px solid @border-disable;
+
+      .bk-tag {
+        height: 16px;
+        padding: 0 4px;
+        margin: 0;
+
+        .bk-tag-text {
+          height: 16px;
+          line-height: 16px;
+          transform: scale(0.83, 0.83);
+        }
+      }
+
+      .side-item-title {
+        display: flex;
+        align-items: center;
+        padding-bottom: 8px;
+        overflow: hidden;
+      }
+
+      .side-item-name {
+        padding-right: 8px;
+      }
+
+      .side-item-tag {
         flex-shrink: 0;
       }
 
-      .info-item-value {
-        flex-grow: 1;
+      .side-item-info {
+        .flex-center();
 
-        :deep(.bk-tag) {
-          height: 16px;
-          padding: 0 4px;
-          margin: 0;
-          line-height: 16px;
+        justify-content: space-between;
+
+        .info-item-label {
+          flex-shrink: 0;
+        }
+
+        .info-item-value {
+          flex-grow: 1;
+
+          :deep(.bk-tag) {
+            height: 16px;
+            padding: 0 4px;
+            margin: 0;
+            line-height: 16px;
+          }
+        }
+      }
+
+      .is-single {
+        justify-content: flex-start;
+        margin-bottom: 8px;
+      }
+    }
+
+    .side-item:hover,
+    .side-item-active {
+      background-color: #ebf2ff;
+
+      .side-item-title {
+        .side-item-name {
+          font-weight: 700;
+          color: #313238;
+        }
+
+        .bk-tag {
+          font-weight: 700;
         }
       }
     }
 
-    .is-single {
-      justify-content: flex-start;
-      margin-bottom: 8px;
-    }
-  }
+    .side-pagination {
+      padding: 2px 0;
 
-  .side-item:hover,
-  .side-item-active {
-    background-color: #EBF2FF;
-
-    .side-item-title {
-      .side-item-name  {
-        font-weight: 700;
-        color: #313238;
-      }
-
-      .bk-tag {
-        font-weight: 700;
+      .bk-pagination-limit {
+        display: none;
       }
     }
   }
-
-  .side-pagination {
-    padding: 2px 0;
-
-    .bk-pagination-limit {
-      display: none;
-    }
-  }
-}
 </style>

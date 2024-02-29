@@ -234,7 +234,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
   :deep(.cluster-name) {
     padding: 8px 0;

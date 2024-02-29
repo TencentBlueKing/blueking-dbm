@@ -9,23 +9,24 @@
  * Unless required by applicable law or agreed to in writing; software distributed under the License is distributed
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import dayjs from 'dayjs';
 
 import { utcDisplayTime } from '@utils';
+
 export interface DutyCycleItem {
-  members: string[],
-  duty_day: number,
-  work_days: number[],
-  work_type: string,
-  work_times: string[],
-  duty_number: number,
+  members: string[];
+  duty_day: number;
+  work_days: number[];
+  work_type: string;
+  work_times: string[];
+  duty_number: number;
 }
 
 export interface DutyCustomItem {
-  date: string,
-  members: string[],
-  work_times: string[],
+  date: string;
+  members: string[];
+  work_times: string[];
 }
 
 export default class DutyRule {

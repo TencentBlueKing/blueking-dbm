@@ -8,8 +8,7 @@ export const useProps = function () {
   const attrs = useAttrs();
 
   return Object.keys(attrs).reduce((result, key) => {
-    if (!isCSS(key)
-      && !(isListener(key) && _.isFunction(attrs[key]))) {
+    if (!isCSS(key) && !(isListener(key) && _.isFunction(attrs[key]))) {
       return {
         ...result,
         [key]: attrs[key],

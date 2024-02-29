@@ -26,7 +26,7 @@
               v-model="treeSearch"
               clearable
               :placeholder="t('搜索拓扑节点')" />
-            <div style="height: calc(100% - 50px); margin-top: 12px;">
+            <div style="height: calc(100% - 50px); margin-top: 12px">
               <BkTree
                 ref="treeRef"
                 children="children"
@@ -78,29 +78,26 @@
   import { useGlobalBizs } from '@stores';
 
   import getSettings from '../common/tableSettings';
-  import type {
-    InstanceSelectorValues,
-    PanelTypes,
-  } from '../common/types';
+  import type { InstanceSelectorValues, PanelTypes } from '../common/types';
 
   import RenderTopoHost from './RenderTopoHost.vue';
 
   interface TTopoTreeData {
     id: number;
     name: string;
-    obj: 'biz' | 'cluster',
-    count: number,
+    obj: 'biz' | 'cluster';
+    count: number;
     children: Array<TTopoTreeData>;
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'change', value: InstanceSelectorValues): void;
   }
 
   interface Props {
-    lastValues: InstanceSelectorValues,
-    role?: string
-    panelTabActive: PanelTypes
+    lastValues: InstanceSelectorValues;
+    role?: string;
+    panelTabActive: PanelTypes;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -129,44 +126,45 @@
           cluster_type: props.panelTabActive,
         },
       ],
-    }).then((data) => {
-      const formatData = data.map((item) => {
-        const formatDataItem = { ...item, count: item.instance_count };
-        if (props.role === 'slave') {
-          formatDataItem.count = item.slaves?.length || 0;
-        } else if (props.role === 'proxy') {
-          formatDataItem.count = item.proxies?.length || 0;
-        } else if (props.role === 'master') {
-          formatDataItem.count = item.masters?.length || 0;
-        } else if (props.panelTabActive === 'tendbha') {
-          formatDataItem.count = formatDataItem.count - (item.proxies?.length || 0);
-        }
-        return formatDataItem;
-      });
-      treeData.value = [
-        {
-          name: currentBizInfo?.display_name || '--',
-          id: currentBizId,
-          obj: 'biz',
-          count: formatData.reduce((count, item) => count + item.count, 0),
-          children: formatData.map(item => ({
-            id: item.id,
-            name: item.cluster_name,
-            obj: 'cluster',
-            count: item.count,
-            children: [],
-          })),
-        },
-      ];
-      setTimeout(() => {
-        if (data.length > 0) {
-          const [firstNode] = treeData.value;
-          treeRef.value.setOpen(firstNode);
-          treeRef.value.setSelect(firstNode);
-          selectNode.value = firstNode;
-        }
-      });
     })
+      .then((data) => {
+        const formatData = data.map((item) => {
+          const formatDataItem = { ...item, count: item.instance_count };
+          if (props.role === 'slave') {
+            formatDataItem.count = item.slaves?.length || 0;
+          } else if (props.role === 'proxy') {
+            formatDataItem.count = item.proxies?.length || 0;
+          } else if (props.role === 'master') {
+            formatDataItem.count = item.masters?.length || 0;
+          } else if (props.panelTabActive === 'tendbha') {
+            formatDataItem.count = formatDataItem.count - (item.proxies?.length || 0);
+          }
+          return formatDataItem;
+        });
+        treeData.value = [
+          {
+            name: currentBizInfo?.display_name || '--',
+            id: currentBizId,
+            obj: 'biz',
+            count: formatData.reduce((count, item) => count + item.count, 0),
+            children: formatData.map((item) => ({
+              id: item.id,
+              name: item.cluster_name,
+              obj: 'cluster',
+              count: item.count,
+              children: [],
+            })),
+          },
+        ];
+        setTimeout(() => {
+          if (data.length > 0) {
+            const [firstNode] = treeData.value;
+            treeRef.value.setOpen(firstNode);
+            treeRef.value.setSelect(firstNode);
+            selectNode.value = firstNode;
+          }
+        });
+      })
       .finally(() => {
         isTreeDataLoading.value = false;
       });
@@ -177,7 +175,7 @@
   // 选中topo节点，获取topo节点下面的所有主机
   const handleNodeClick = (
     node: TTopoTreeData,
-    { __is_open: isOpen, __is_selected: isSelected }: { __is_open: boolean, __is_selected: boolean },
+    { __is_open: isOpen, __is_selected: isSelected }: { __is_open: boolean; __is_selected: boolean },
   ) => {
     selectNode.value = node;
 

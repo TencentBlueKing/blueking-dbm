@@ -31,7 +31,7 @@
     </div>
     <div
       class="table-wrapper"
-      :class="{'is-shrink-table': isStretchLayoutOpen}">
+      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
       <DbTable
         ref="tableRef"
         :columns="columns"
@@ -345,7 +345,7 @@
 </script>
 
 <style lang="less">
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .mysql-ha-instance-list-page {
     height: 100%;

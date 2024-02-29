@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 export enum CopyModes {
   INTRA_BISNESS = 'one_app_diff_cluster', // 业务内
@@ -41,7 +41,6 @@ export enum RepairAndVerifyModes {
   DATA_CHECK_ONLY = 'data_check_only', // 仅进行数据校验，不进行修复
   NO_CHECK_NO_REPAIR = 'no_check_no_repair', // 不校验不修复
 }
-
 
 export enum RepairAndVerifyFrequencyModes {
   ONCE_AFTER_REPLICATION = 'once_after_replication', // 复制完成后，只进行一次

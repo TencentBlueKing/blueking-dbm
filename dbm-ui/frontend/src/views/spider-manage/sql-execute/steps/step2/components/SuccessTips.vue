@@ -14,16 +14,14 @@
 <template>
   <div class="sql-execute-success">
     <div class="wrapper">
-      <span
-        class="success-flag">
-        <DbIcon
-          type="check-circle-fill" />
+      <span class="success-flag">
+        <DbIcon type="check-circle-fill" />
       </span>
     </div>
-    <div style="margin-top: 22px; font-size: 24px; line-height: 32px; color: #313238;">
+    <div style="margin-top: 22px; font-size: 24px; line-height: 32px; color: #313238">
       {{ t('模拟执行成功') }}
     </div>
-    <div style="margin-top: 8px; line-height: 32px; color: #313238;">
+    <div style="margin-top: 8px; line-height: 32px; color: #313238">
       {{ t('接下你可以直接_提交申请_或返回上一步修改重试') }}
     </div>
     <div class="action-wrapper">
@@ -31,7 +29,7 @@
         <span>{{ t('生产执行时无需再确认') }}</span>
         <BkSwitcher
           size="small"
-          style="margin-left: 12px;"
+          style="margin-left: 12px"
           theme="primary" />
       </div>
     </div>

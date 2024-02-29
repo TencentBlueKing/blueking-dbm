@@ -16,7 +16,7 @@
     class="cluster-password"
     :is-show="isShow"
     :quick-close="false"
-    :title="title ||$t('获取访问方式')"
+    :title="title || $t('获取访问方式')"
     @closed="handleClose">
     <BkLoading :loading="state.isLoading">
       <div class="cluster-password__content">
@@ -69,13 +69,13 @@
               v-for="(item, index) in dataObj[key].list"
               :key="index"
               class="item-box">
-              <div class="item-title">
-                {{ item.title }}：
-              </div>
+              <div class="item-title">{{ item.title }}：</div>
               <div class="item-content">
                 <span
                   v-overflow-tips
-                  class="text-overflow">{{ item.value }}</span>
+                  class="text-overflow">
+                  {{ item.value }}
+                </span>
                 <DbIcon
                   class="icon"
                   type="copy"
@@ -101,10 +101,7 @@
 </template>
 
 <script setup lang="ts">
-  import {
-    Eye,
-    Unvisible,
-  } from 'bkui-vue/lib/icon';
+  import { Eye, Unvisible } from 'bkui-vue/lib/icon';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -117,8 +114,8 @@
   import { useGlobalBizs } from '@stores';
 
   interface Props {
-    title?: string,
-    fetchParams: ClusterPasswordParams,
+    title?: string;
+    fetchParams: ClusterPasswordParams;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -181,10 +178,7 @@
 
   const passwordText = computed(() => (isShowPassword.value ? state.data.password : '******'));
 
-  const {
-    loading: clbLoading,
-    run: runGetClusterEntries,
-  } = useRequest(getClusterEntries, {
+  const { loading: clbLoading, run: runGetClusterEntries } = useRequest(getClusterEntries, {
     manual: true,
     onSuccess: (res) => {
       res.forEach((item) => {
@@ -307,7 +301,7 @@
 
           .item-title {
             width: 96px;
-            color: #63656E;
+            color: #63656e;
             text-align: right;
           }
 
@@ -320,14 +314,12 @@
 
             .icon {
               margin-left: 6px;
-              color: #3A84FF;
+              color: #3a84ff;
               cursor: pointer;
             }
           }
         }
       }
-
-
     }
   }
 </style>

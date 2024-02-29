@@ -9,7 +9,7 @@
         <span
           v-bk-tooltips="{
             disabled: !isDisabled,
-            content: t('搜索条件为空')
+            content: t('搜索条件为空'),
           }">
           <BkButton
             :disabled="isDisabled"
@@ -18,10 +18,10 @@
           </BkButton>
         </span>
         <template #content>
-          <div style="padding: 10px;">
+          <div style="padding: 10px">
             <div
               class="mb-12"
-              style="font-size: 14px; line-height: 22px; color: #313238;">
+              style="font-size: 14px; line-height: 22px; color: #313238">
               {{ t('设置为收藏条件') }}
             </div>
             <DbForm
@@ -95,26 +95,18 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    reactive,
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { computed, reactive, ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getProfile,
-    upsertProfile,
-  } from '@services/source/profile';
+  import { getProfile, upsertProfile } from '@services/source/profile';
 
   interface Props {
-    searchParams: Record<string, any>
+    searchParams: Record<string, any>;
   }
 
-  interface Emits{
-    (e: 'change', value: Props['searchParams']): void
+  interface Emits {
+    (e: 'change', value: Props['searchParams']): void;
   }
 
   const props = defineProps<Props>();
@@ -129,7 +121,7 @@
   const isShowForm = ref(false);
   const isSubmiting = ref(false);
   const collectName = ref('');
-  const list = shallowRef<{name: string, params: Props['searchParams']}[]>([]);
+  const list = shallowRef<{ name: string; params: Props['searchParams'] }[]>([]);
 
   const formData = reactive({
     name: '',
@@ -138,20 +130,23 @@
   const isDisabled = computed(() => Object.keys(props.searchParams).length < 1);
   let changeBySelect = false;
 
-  watch(() => props.searchParams, () => {
-    if (changeBySelect) {
-      changeBySelect = false;
-      return;
-    }
-    collectSelectRef.value.handleClear({
-      stopPropagation: () => undefined,
-    });
-  });
+  watch(
+    () => props.searchParams,
+    () => {
+      if (changeBySelect) {
+        changeBySelect = false;
+        return;
+      }
+      collectSelectRef.value.handleClear({
+        stopPropagation: () => undefined,
+      });
+    },
+  );
 
   const rules = {
     name: [
       {
-        validator: (value: string) => _.every(list.value, item => item.name !== value),
+        validator: (value: string) => _.every(list.value, (item) => item.name !== value),
         message: t('条件名称已存在'),
         trigger: 'blue',
       },
@@ -160,7 +155,7 @@
 
   useRequest(getProfile, {
     onSuccess(data) {
-      const profileData = _.find(data.profile, item => item.label === PRIMARY_KEY);
+      const profileData = _.find(data.profile, (item) => item.label === PRIMARY_KEY);
       if (profileData) {
         list.value = profileData.values;
       }
@@ -184,15 +179,18 @@
       },
     ];
 
-    formRef.value.validate()
-      .then(() => upsertProfile({
-        label: PRIMARY_KEY,
-        values: profileValue,
-      }).then(() => {
-        list.value = profileValue;
-        isShowForm.value = false;
-        collectName.value = formData.name;
-      }))
+    formRef.value
+      .validate()
+      .then(() =>
+        upsertProfile({
+          label: PRIMARY_KEY,
+          values: profileValue,
+        }).then(() => {
+          list.value = profileValue;
+          isShowForm.value = false;
+          collectName.value = formData.name;
+        }),
+      )
       .finally(() => {
         isSubmiting.value = false;
       });
@@ -216,7 +214,7 @@
 
   // 填充收藏条件
   const handleCollectChange = (value: string) => {
-    const result = _.find(list.value, item => item.name === value);
+    const result = _.find(list.value, (item) => item.name === value);
     if (result) {
       changeBySelect = true;
       emits('change', result.params);
@@ -225,7 +223,7 @@
 
   // 删除收藏条件
   const handleRemove = (payload: { name: string }) => {
-    const result = _.filter(list.value, item => item.name !== payload.name);
+    const result = _.filter(list.value, (item) => item.name !== payload.name);
     if (collectName.value === payload.name) {
       collectSelectRef.value.handleClear({
         stopPropagation: () => undefined,
@@ -249,7 +247,7 @@
       width: 1px;
       height: 14px;
       margin: 0 8px;
-      border: 1px solid #DCDEE5;
+      border: 1px solid #dcdee5;
     }
   }
 

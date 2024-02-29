@@ -11,7 +11,5 @@
   </BkInput>
 </template>
 <script setup lang="ts">
-
   const moduleValue = defineModel<string>();
-
 </script>

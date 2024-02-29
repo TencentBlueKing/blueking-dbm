@@ -11,7 +11,7 @@
       ref="contentRef"
       v-bk-tooltips="{
         content: overflowTips,
-        disabled: !overflowTips
+        disabled: !overflowTips,
       }"
       class="layout-content">
       <div>
@@ -27,19 +27,17 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    onBeforeUnmount,
-    onMounted,
-    ref,
-  } from 'vue';
+  import { onBeforeUnmount, onMounted, ref } from 'vue';
 
   import { calcTextWidth } from '@utils';
 
-  const slots = defineSlots<Partial<{
-    prepend(): any;
-    default(): any;
-    append(): any;
-  }>>();
+  const slots = defineSlots<
+    Partial<{
+      prepend(): any;
+      default(): any;
+      append(): any;
+    }>
+  >();
 
   const rootRef = ref();
   const contentRef = ref<HTMLElement>();
@@ -47,12 +45,14 @@
   const overflowTips = ref('');
 
   onMounted(() => {
-    const resizeObserver = new ResizeObserver(_.throttle(() => {
-      const tips = contentRef.value!.innerText;
-      const boxWidth = contentRef.value!.getBoundingClientRect().width;
-      const textWidth = calcTextWidth(tips, contentRef.value);
-      overflowTips.value = boxWidth < textWidth ? tips : '';
-    }, 100));
+    const resizeObserver = new ResizeObserver(
+      _.throttle(() => {
+        const tips = contentRef.value!.innerText;
+        const boxWidth = contentRef.value!.getBoundingClientRect().width;
+        const textWidth = calcTextWidth(tips, contentRef.value);
+        overflowTips.value = boxWidth < textWidth ? tips : '';
+      }, 100),
+    );
     resizeObserver.observe(rootRef.value);
 
     onBeforeUnmount(() => {
@@ -74,7 +74,7 @@
       align-items: center;
     }
 
-    .layout-content{
+    .layout-content {
       overflow: hidden;
       flex: 0 1 auto;
 

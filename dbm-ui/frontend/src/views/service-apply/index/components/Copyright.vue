@@ -26,9 +26,7 @@
         {{ $t('蓝鲸桌面') }}
       </a>
     </div>
-    <p class="copyright">
-      Copyright © 2012-{{ currentYear }} Tencent BlueKing. All Rights Reserved. {{ version }}
-    </p>
+    <p class="copyright">Copyright © 2012-{{ currentYear }} Tencent BlueKing. All Rights Reserved. {{ version }}</p>
   </div>
 </template>
 
@@ -38,23 +36,22 @@
   const currentYear = new Date().getFullYear();
   const version = ref('V1.0.0');
 
-  getProjectVersion()
-    .then((res) => {
-      version.value = res.version;
-    });
+  getProjectVersion().then((res) => {
+    version.value = res.version;
+  });
 </script>
 
 <style lang="less">
-.db-copyright {
-  display: flex;
-  height: 52px;
-  margin-top: 20px;
-  font-size: 12px;
-  line-height: 20px;
-  color: #63656e;
-  border-top: 1px solid #dcdee5;
-  align-items: center;
-  flex-direction: column;
-  justify-content: center;
-}
+  .db-copyright {
+    display: flex;
+    height: 52px;
+    margin-top: 20px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #63656e;
+    border-top: 1px solid #dcdee5;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+  }
 </style>

@@ -123,9 +123,7 @@
       },
     },
   ];
-
-
 </script>
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

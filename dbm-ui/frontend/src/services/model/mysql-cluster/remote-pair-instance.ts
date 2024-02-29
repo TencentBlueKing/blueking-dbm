@@ -9,7 +9,7 @@ export default class RemotePaisInstance {
   port: number;
   phase: string;
   spec_config: {
-    id: number
+    id: number;
   };
   status: string;
 

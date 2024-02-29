@@ -10,7 +10,7 @@
         <img
           height="30"
           src="@images/nav-logo.png"
-          width="30">
+          width="30" />
         <span class="title-desc ml-8">{{ t('数据库管理') }}</span>
       </span>
     </template>
@@ -21,7 +21,7 @@
           :key="menuItem.value"
           class="nav-item"
           :class="{
-            active: menuType === menuItem.value
+            active: menuType === menuItem.value,
           }"
           @click="handleMenuChange(menuItem.value)">
           {{ menuItem.label }}
@@ -45,7 +45,7 @@
     <div
       ref="contentWrapperRef"
       class="db-navigation-content-wrapper"
-      :class="{'is-fullscreen': isContendFullscreen}"
+      :class="{ 'is-fullscreen': isContendFullscreen }"
       :style="contentWrapperStyle">
       <slot />
     </div>
@@ -53,17 +53,13 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    watch,
-  } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
   import { useFullscreenStyle } from '@hooks';
 
-  import { useUserProfile  } from '@stores';
+  import { useUserProfile } from '@stores';
 
   import ConfigManage from './components/ConfigManage.vue';
   import DatabaseManage from './components/database-manage/Index.vue';
@@ -71,7 +67,6 @@
   import PersonalWorkbench from './components/PersonalWorkbench.vue';
   import PlatformManage from './components/PlatformManage.vue';
   import ResourceManage from './components/ResourceManage.vue';
-
 
   const SIDE_MENU_TOGGLE_KEY = 'sideMenuFlod';
   const { t } = useI18n();
@@ -112,7 +107,7 @@
       label: t('个人工作台'),
       value: menuEnum.personalWorkbench,
     },
-  ].filter(item => item) as {label: string, value: string}[];
+  ].filter((item) => item) as { label: string; value: string }[];
 
   const routeGroup = {
     [menuEnum.databaseManage]: [
@@ -131,21 +126,9 @@
       'ticketManage',
       'DBPasswordTemporaryModify',
     ],
-    [menuEnum.observableManage]: [
-      'DBHASwitchEvents',
-      'inspectionManage',
-    ],
-    [menuEnum.configManage]: [
-      'DbConfigure',
-      'DBMonitorStrategy',
-      'DBMonitorAlarmGroup',
-      'StaffManage',
-    ],
-    [menuEnum.resourceManage]: [
-      'ResourceSpec',
-      'resourceManage',
-      'resourcePoolDirtyMachines',
-    ],
+    [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage'],
+    [menuEnum.configManage]: ['DbConfigure', 'DBMonitorStrategy', 'DBMonitorAlarmGroup', 'StaffManage'],
+    [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
     [menuEnum.platformManage]: [
       'PlatformVersionFiles',
       'PlatformDbConfigure',
@@ -157,11 +140,7 @@
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
     ],
-    [menuEnum.personalWorkbench]: [
-      'SelfServiceMyTickets',
-      'MyTodos',
-      'serviceApply',
-    ],
+    [menuEnum.personalWorkbench]: ['SelfServiceMyTickets', 'MyTodos', 'serviceApply'],
   } as Record<string, string[]>;
 
   const contentWrapperRef = ref<HTMLElement>();
@@ -186,29 +165,36 @@
   const needMenu = computed(() => !(route.name === 'QuickSearch' && menuType.value === ''));
 
   // 解析路由分组
-  watch(route, () => {
-    if (route.name === 'index') {
-      menuType.value = menuEnum.databaseManage;
-      return;
-    }
-
-    const routeGroupMap = Object.keys(routeGroup).reduce((result, key) => {
-      routeGroup[key].forEach((item) => {
-        Object.assign(result, {
-          [item]: key,
-        });
-      });
-      return result;
-    }, {} as Record<string, string>);
-    _.forEach(route.matched, (item) => {
-      const routeName = item.name as string;
-      if (routeName && routeGroupMap[routeName]) {
-        menuType.value = routeGroupMap[routeName];
+  watch(
+    route,
+    () => {
+      if (route.name === 'index') {
+        menuType.value = menuEnum.databaseManage;
+        return;
       }
-    });
-  }, {
-    immediate: true,
-  });
+
+      const routeGroupMap = Object.keys(routeGroup).reduce(
+        (result, key) => {
+          routeGroup[key].forEach((item) => {
+            Object.assign(result, {
+              [item]: key,
+            });
+          });
+          return result;
+        },
+        {} as Record<string, string>,
+      );
+      _.forEach(route.matched, (item) => {
+        const routeName = item.name as string;
+        if (routeName && routeGroupMap[routeName]) {
+          menuType.value = routeGroupMap[routeName];
+        }
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleCollapse = () => {
     isSideMenuFlod.value = !isSideMenuFlod.value;
@@ -224,105 +210,104 @@
   };
 </script>
 <style lang="less">
-.bk-navigation{
-  .container-content{
-    height: auto;
-    max-height: unset !important;
-    padding: 0 !important;
+  .bk-navigation {
+    .container-content {
+      height: auto;
+      max-height: unset !important;
+      padding: 0 !important;
+    }
+
+    .navigation-nav {
+      .split-line {
+        margin: 0 20px 0 60px;
+        border-bottom: solid #29344c 1px;
+      }
+
+      .nav-slider {
+        background-color: #1f2533 !important;
+        border: none !important;
+      }
+
+      .group-name {
+        color: #fff;
+      }
+    }
+
+    .bk-navigation-header {
+      background: #0e1525;
+    }
   }
 
-  .navigation-nav{
-    .split-line{
-      margin: 0 20px 0 60px;
-      border-bottom: solid #29344c 1px;
-    }
+  .db-navigation-header {
+    display: flex;
 
-    .nav-slider{
-      background-color: #1f2533 !important;
-      border: none !important;
-    }
-
-    .group-name {
-      color: #fff;
-    }
-  }
-
-  .bk-navigation-header {
-    background: #0e1525;
-  }
-}
-
-.db-navigation-header{
-  display: flex;
-
-  .nav-item{
-    position: relative;
-    padding: 0 16px;
-    color: #96A2B9;
-    cursor: pointer;
-    transition: 0.1s;
-
-    &.active,
-    &:hover{
-      color: #FFF;
-    }
-
-    &:last-child{
+    .nav-item {
       position: relative;
+      padding: 0 16px;
+      color: #96a2b9;
+      cursor: pointer;
+      transition: 0.1s;
 
-      &::before{
-        position: absolute;
-        top: 50%;
-        left: 0;
-        width: 1px;
-        height: 12px;
-        background: #434853;
-        content: '';
-        transform: translateY(-50%);
+      &.active,
+      &:hover {
+        color: #fff;
+      }
+
+      &:last-child {
+        position: relative;
+
+        &::before {
+          position: absolute;
+          top: 50%;
+          left: 0;
+          width: 1px;
+          height: 12px;
+          background: #434853;
+          content: '';
+          transform: translateY(-50%);
+        }
       }
     }
   }
-}
 
-.db-navigation-header-right{
-  display: flex;
-  flex: 1;
-  margin-left: 80px;
-  color: #979BA5;
-  align-items: center;
-}
-
-.db-navigation-content-header{
-  position: relative;
-  z-index: 1;
-  display: flex;
-  height: 52px;
-  padding: 0 14px;
-  background: #FFF;
-  align-content: center;
-  box-shadow: 0 3px 4px 0 #0000000a;
-
-  #dbContentHeaderAppend{
-    flex: 1;
+  .db-navigation-header-right {
     display: flex;
+    flex: 1;
+    margin-left: 80px;
+    color: #979ba5;
     align-items: center;
   }
-}
 
-.db-navigation-content-title{
-  display: flex;
-  font-size: 16px;
-  color: #313238;
-  align-items: center;
-}
+  .db-navigation-content-header {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    height: 52px;
+    padding: 0 14px;
+    background: #fff;
+    align-content: center;
+    box-shadow: 0 3px 4px 0 #0000000a;
 
-.db-navigation-content-wrapper{
-  padding: 20px 24px 0;
-  overflow: auto;
-
-  &.is-fullscreen{
-    padding: 0;
+    #dbContentHeaderAppend {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
   }
-}
-</style>
 
+  .db-navigation-content-title {
+    display: flex;
+    font-size: 16px;
+    color: #313238;
+    align-items: center;
+  }
+
+  .db-navigation-content-wrapper {
+    padding: 20px 24px 0;
+    overflow: auto;
+
+    &.is-fullscreen {
+      padding: 0;
+    }
+  }
+</style>

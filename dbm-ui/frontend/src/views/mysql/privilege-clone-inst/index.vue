@@ -14,12 +14,15 @@
 <template>
   <SuccessView
     v-if="ticketId"
-    :steps="[{
-      title: $t('单据审批'),
-      status: 'loading',
-    }, {
-      title: $t('DB实例权限克隆_执行'),
-    }]"
+    :steps="[
+      {
+        title: $t('单据审批'),
+        status: 'loading',
+      },
+      {
+        title: $t('DB实例权限克隆_执行'),
+      },
+    ]"
     :ticket-id="ticketId"
     :title="$t('DB实例权限克隆任务提交成功')"
     @close="handleCloseSuccess" />
@@ -31,7 +34,7 @@
       :title="$t('DB权限克隆_DB实例IP替换时_克隆原实例的所有权限到新实例中')" />
     <BkButton
       class="clone-instance-batch"
-      @click="() => isShowBatchInput = true">
+      @click="() => (isShowBatchInput = true)">
       <i class="db-icon-add" />
       {{ $t('批量录入') }}
     </BkButton>

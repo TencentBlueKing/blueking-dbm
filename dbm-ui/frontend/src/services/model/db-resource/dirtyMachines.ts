@@ -4,7 +4,7 @@ export default class DirtyMachines {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
-  ip:string;
+  ip: string;
   task_id: string;
   ticket_id: number;
   ticket_type: string;

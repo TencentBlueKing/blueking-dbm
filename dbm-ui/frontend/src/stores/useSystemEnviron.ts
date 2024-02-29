@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { defineStore } from 'pinia';
 
@@ -23,7 +23,7 @@ interface Urls {
  * 获取关联系统 url
  */
 export const useSystemEnviron = defineStore('SystemEnviron', {
-  state: (): { urls: Urls & { AFFINITY?: { label: string, value: string }[] } } => ({
+  state: (): { urls: Urls & { AFFINITY?: { label: string; value: string }[] } } => ({
     urls: {},
   }),
   actions: {

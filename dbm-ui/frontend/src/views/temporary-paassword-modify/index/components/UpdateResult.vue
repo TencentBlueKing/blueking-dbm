@@ -41,9 +41,7 @@
         v-if="errorListLength"
         class="list-box">
         <div class="list-box-head">
-          <span>
-            {{ t('失败的实例') }}({{ errorListLength }})
-          </span>
+          <span> {{ t('失败的实例') }}({{ errorListLength }}) </span>
           <BkButton
             text
             theme="primary"
@@ -74,7 +72,7 @@
 
   import RenderSuccess from '@components/ticket-success/Index.vue';
 
-  type ModifyMysqlAdminPassword = ServiceReturnType<typeof modifyMysqlAdminPassword>
+  type ModifyMysqlAdminPassword = ServiceReturnType<typeof modifyMysqlAdminPassword>;
 
   interface RetryItem {
     ip: string;
@@ -85,14 +83,14 @@
   }
 
   interface Props {
-    submitRes?: ModifyMysqlAdminPassword
-    submitLength: number
-    submitRoleMap: Record<string, string>
+    submitRes?: ModifyMysqlAdminPassword;
+    submitLength: number;
+    submitRoleMap: Record<string, string>;
   }
 
   interface Emits {
-    (e: 'retry', value: RetryItem[]): void
-    (e: 'refresh'): void
+    (e: 'retry', value: RetryItem[]): void;
+    (e: 'refresh'): void;
   }
 
   const props = defineProps<Props>();
@@ -101,30 +99,29 @@
   const { t } = useI18n();
   const copy = useCopy();
 
-  const errorList = computed(() => (props?.submitRes?.fail || []).reduce((errorPrev, errorItem) => {
-    const {
-      bk_cloud_id,
-      cluster_type,
-    } = errorItem;
-    const roleMap = props.submitRoleMap;
-    const retryItems = errorItem.instances.reduce((retryItemsPrev, instanceItem) => {
-      const newInstanceItem = instanceItem.addresses.map(addressItem => ({
-        ...addressItem,
-        bk_cloud_id,
-        cluster_type,
-        role: roleMap[`${addressItem.ip}:${addressItem.port}`],
-      }));
+  const errorList = computed(() =>
+    (props?.submitRes?.fail || []).reduce((errorPrev, errorItem) => {
+      const { bk_cloud_id, cluster_type } = errorItem;
+      const roleMap = props.submitRoleMap;
+      const retryItems = errorItem.instances.reduce((retryItemsPrev, instanceItem) => {
+        const newInstanceItem = instanceItem.addresses.map((addressItem) => ({
+          ...addressItem,
+          bk_cloud_id,
+          cluster_type,
+          role: roleMap[`${addressItem.ip}:${addressItem.port}`],
+        }));
 
-      return [...retryItemsPrev, ...newInstanceItem];
-    }, [] as RetryItem[]);
+        return [...retryItemsPrev, ...newInstanceItem];
+      }, [] as RetryItem[]);
 
-    return [...errorPrev, ...retryItems];
-  }, [] as RetryItem[]));
+      return [...errorPrev, ...retryItems];
+    }, [] as RetryItem[]),
+  );
   const errorListLength = computed(() => errorList.value.length);
   const successListLength = computed(() => props.submitLength - errorListLength.value);
 
   const handleCopy = () => {
-    const copyList = errorList.value.map(errorItem => `${errorItem.ip}:${errorItem.port}`);
+    const copyList = errorList.value.map((errorItem) => `${errorItem.ip}:${errorItem.port}`);
     copy(copyList.join('\n'));
   };
 
@@ -138,42 +135,42 @@
 </script>
 
 <style lang="less" scoped>
-.password-temporary-modify-success {
-  padding: 60px 0;
-  background-color: #FFF;
+  .password-temporary-modify-success {
+    padding: 60px 0;
+    background-color: #fff;
 
-  .title-success {
-    font-weight: bold;
-    color: @success-color;
-  }
-
-  .title-error {
-    font-weight: bold;
-    color: @danger-color;
-  }
-
-  .list-box {
-    max-width: 820px;
-    padding: 16px;
-    margin: 24px auto 0;
-    text-align: left;
-    background-color: #F5F7FA;
-
-    .list-box-head {
-      margin-bottom: 12px;
+    .title-success {
       font-weight: bold;
-      color: #313238;
+      color: @success-color;
     }
 
-    .list-box-content {
-      display: flex;
-      flex-wrap: wrap;
+    .title-error {
+      font-weight: bold;
+      color: @danger-color;
+    }
 
-      .list-box-content-item {
-        width: 20%;
-        line-height: 24px;
+    .list-box {
+      max-width: 820px;
+      padding: 16px;
+      margin: 24px auto 0;
+      text-align: left;
+      background-color: #f5f7fa;
+
+      .list-box-head {
+        margin-bottom: 12px;
+        font-weight: bold;
+        color: #313238;
+      }
+
+      .list-box-content {
+        display: flex;
+        flex-wrap: wrap;
+
+        .list-box-content-item {
+          width: 20%;
+          line-height: 24px;
+        }
       }
     }
   }
-}
 </style>

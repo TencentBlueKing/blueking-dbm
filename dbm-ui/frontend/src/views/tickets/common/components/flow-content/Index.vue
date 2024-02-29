@@ -26,8 +26,10 @@
   <template v-else>
     <p>
       <template
-        v-if="content.status === 'RUNNING' &&
-          (content.flow_type === 'RESOURCE_APPLY' || content.flow_type === 'RESOURCE_BATCH_APPLY')">
+        v-if="
+          content.status === 'RUNNING' &&
+          (content.flow_type === 'RESOURCE_APPLY' || content.flow_type === 'RESOURCE_BATCH_APPLY')
+        ">
         <DbIcon
           class="resource-apply-exclamation-fill"
           type="exclamation-fill" />
@@ -56,7 +58,7 @@
         " {{ $t('中确认') }}
       </template>
       <template v-else>
-        <span :style="{color: content.status === 'TERMINATED' ? '#ea3636' : '#63656e'}">{{ content.summary }}</span>
+        <span :style="{ color: content.status === 'TERMINATED' ? '#ea3636' : '#63656e' }">{{ content.summary }}</span>
       </template>
       <template v-if="content.summary">
         ，{{ $t('耗时') }}：
@@ -67,7 +69,9 @@
       <template v-if="content.url">
         ，<a
           :href="content.url"
-          :target="getHrefTarget(content)">{{ $t('查看详情') }} &gt;</a>
+          :target="getHrefTarget(content)">
+          {{ $t('查看详情') }} &gt;
+        </a>
       </template>
       <slot name="extra-text" />
     </p>
@@ -128,12 +132,12 @@
   import FlowContentTodo from './components/ContentTodo.vue';
 
   interface Emits {
-    (e: 'fetch-data'): void
+    (e: 'fetch-data'): void;
   }
 
   interface Props {
-    content: FlowItem,
-    isTodos?: boolean
+    content: FlowItem;
+    isTodos?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -195,9 +199,9 @@
 </script>
 
 <style scoped>
-.resource-apply-exclamation-fill {
-  margin-right: 4px;
-  font-size: 14px;
-  color: #ff9c01;
-}
+  .resource-apply-exclamation-fill {
+    margin-right: 4px;
+    font-size: 14px;
+    color: #ff9c01;
+  }
 </style>

@@ -14,7 +14,7 @@
 <template>
   <div
     class="table-edit-tag"
-    :class="{['is-error']: Boolean(errorMessage),}">
+    :class="{ ['is-error']: Boolean(errorMessage) }">
     <BkTagInput
       v-model="localValue"
       allow-create
@@ -32,23 +32,21 @@
   </div>
 </template>
 <script setup lang="ts">
-  import useValidtor, {
-    type Rules,
-  } from './hooks/useValidtor';
+  import useValidtor, { type Rules } from './hooks/useValidtor';
 
   interface Props {
-    modelValue?: Array<string>,
-    placeholder?: string,
-    rules?: Rules,
+    modelValue?: Array<string>;
+    placeholder?: string;
+    rules?: Rules;
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: string []): void;
-    (e: 'change', value: string []): void;
+    (e: 'update:modelValue', value: string[]): void;
+    (e: 'change', value: string[]): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string []>;
+    getValue: () => Promise<string[]>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -61,31 +59,30 @@
 
   const localValue = ref(props.modelValue);
 
-  watch(() => props.modelValue, (list) => {
-    localValue.value = list;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    (list) => {
+      localValue.value = list;
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { message: errorMessage, validator } = useValidtor(props.rules);
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
-    validator(localValue.value)
-      .then(() => {
-        window.changeConfirm = true;
-        emits('update:modelValue', localValue.value);
-        emits('change', localValue.value);
-      });
+    validator(localValue.value).then(() => {
+      window.changeConfirm = true;
+      emits('update:modelValue', localValue.value);
+      emits('change', localValue.value);
+    });
   };
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localValue.value)
-        .then(() => localValue.value);
+      return validator(localValue.value).then(() => localValue.value);
     },
   });
 </script>

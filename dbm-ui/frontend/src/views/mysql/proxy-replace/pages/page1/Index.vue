@@ -19,8 +19,7 @@
         theme="info"
         :title="$t('对集群的Proxy实例进行替换')" />
       <div class="page-action-box mt16">
-        <BkButton
-          @click="handleShowBatchEntry">
+        <BkButton @click="handleShowBatchEntry">
           <DbIcon type="add" />
           {{ $t('批量录入') }}
         </BkButton>
@@ -33,7 +32,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :removeable="tableData.length <2"
+          :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -78,10 +77,7 @@
 </template>
 
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -89,18 +85,11 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import ProxySelector, {
-    type InstanceSelectorValues,
-  } from '@components/instance-selector/Index.vue';
+  import ProxySelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
 
-  import BatchEntry, {
-    type IValue as IBatchEntryValue,
-  } from './components/BatchEntry.vue';
+  import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -118,7 +107,7 @@
   const rowRefs = ref();
   const isShowBatchProxySelector = ref(false);
   const isShowBatchEntry = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const isSafe = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
@@ -131,7 +120,8 @@
     {
       id: 'manualInput',
       title: t('手动输入'),
-    }];
+    },
+  ];
 
   // 批量录入
   const handleShowBatchEntry = () => {
@@ -139,9 +129,11 @@
   };
   // 批量录入
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
-    if (list.length === 0) return;
+    if (list.length === 0) {
+      return;
+    }
 
-    const newList = list.map(item => createRowData(item));
+    const newList = list.map((item) => createRowData(item));
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -154,9 +146,11 @@
   };
   // 批量选择
   const handelProxySelectorChange = (data: InstanceSelectorValues) => {
-    const newList = data.tendbha.map(item => createRowData({
-      originProxyIp: item,
-    }));
+    const newList = data.tendbha.map((item) =>
+      createRowData({
+        originProxyIp: item,
+      }),
+    );
     tableData.value = newList;
     window.changeConfirm = true;
   };
@@ -177,27 +171,29 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'MYSQL_PROXY_SWITCH',
-        remark: '',
-        details: {
-          infos: data,
-          is_safe: isSafe.value,
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
+      .then((data) =>
+        createTicket({
+          ticket_type: 'MYSQL_PROXY_SWITCH',
+          remark: '',
+          details: {
+            infos: data,
+            is_safe: isSafe.value,
+          },
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
 
-        router.push({
-          name: 'MySQLProxyReplace',
-          params: {
-            page: 'success',
-          },
-          query: {
-            ticketId: data.id,
-          },
-        });
-      }))
+          router.push({
+            name: 'MySQLProxyReplace',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

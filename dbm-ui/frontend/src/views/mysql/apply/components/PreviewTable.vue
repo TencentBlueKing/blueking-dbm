@@ -227,65 +227,65 @@
 </script>
 
 <style lang="less" scoped>
-.preview-table {
-  :deep(.bk-table-body) {
-    td {
-      position: relative;
-
-      &.host-td .cell {
-        height: 100% !important;
-        padding: 0;
-        line-height: normal !important;
-      }
-    }
-
-    .host-list {
-      height: 100%;
-      text-align: center;
-
-      &__wrapper {
+  .preview-table {
+    :deep(.bk-table-body) {
+      td {
         position: relative;
-        top: 50%;
-        display: inline-block;
-        transform: translateY(-50%);
+
+        &.host-td .cell {
+          height: 100% !important;
+          padding: 0;
+          line-height: normal !important;
+        }
       }
 
-      &__group {
-        display: flex;
-        align-items: center;
-      }
-
-      &__item {
-        display: flex;
-        align-items: center;
-        min-width: 130px;
-        line-height: 32px;
-      }
-
-      &__tag {
-        width: 16px;
-        height: 16px;
-        margin-right: 4px;
-        font-size: @font-size-mini;
-        line-height: 16px;
+      .host-list {
+        height: 100%;
         text-align: center;
 
-        &--proxy {
-          color: #ff9c01;
-          background-color: #ffe8c3;
+        &__wrapper {
+          position: relative;
+          top: 50%;
+          display: inline-block;
+          transform: translateY(-50%);
         }
 
-        &--master {
-          color: @primary-color;
-          background-color: #cad7eb;
+        &__group {
+          display: flex;
+          align-items: center;
         }
 
-        &--slave {
-          color: #2dcb56;
-          background-color: #c8e5cd;
+        &__item {
+          display: flex;
+          align-items: center;
+          min-width: 130px;
+          line-height: 32px;
+        }
+
+        &__tag {
+          width: 16px;
+          height: 16px;
+          margin-right: 4px;
+          font-size: @font-size-mini;
+          line-height: 16px;
+          text-align: center;
+
+          &--proxy {
+            color: #ff9c01;
+            background-color: #ffe8c3;
+          }
+
+          &--master {
+            color: @primary-color;
+            background-color: #cad7eb;
+          }
+
+          &--slave {
+            color: #2dcb56;
+            background-color: #c8e5cd;
+          }
         }
       }
     }
   }
-}
 </style>

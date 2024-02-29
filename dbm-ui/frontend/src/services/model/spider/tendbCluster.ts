@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
@@ -18,43 +18,43 @@ import { utcDisplayTime } from '@utils';
 import { t } from '@locales/index';
 
 export type InstanceSpecInfo = {
-  count: number,
-  id: number,
-  name: string,
+  count: number;
+  id: number;
+  name: string;
   cpu: {
-    max: number,
-    min: number
-  },
+    max: number;
+    min: number;
+  };
   mem: {
-    max: number,
-    min: number
-  },
+    max: number;
+    min: number;
+  };
   storage_spec: {
-    mount_point: string,
-    size: number | string,
-    type: string,
-  }[],
-  device_class: string[],
+    mount_point: string;
+    size: number | string;
+    type: string;
+  }[];
+  device_class: string[];
   qps: {
-    min: number,
-    max: number
-  },
-}
+    min: number;
+    max: number;
+  };
+};
 
 export type Instance = {
-  bk_biz_id: number,
-  bk_cloud_id: number,
-  bk_host_id: number,
-  bk_instance_id: number,
-  instance: string,
-  ip: string,
-  name: string,
-  phase: 'online' | 'offline',
-  port: number,
-  status: 'running' | 'unavailable',
-  spec_config: InstanceSpecInfo,
-  shard_id?: number
-}
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_host_id: number;
+  bk_instance_id: number;
+  instance: string;
+  ip: string;
+  name: string;
+  phase: 'online' | 'offline';
+  port: number;
+  status: 'running' | 'unavailable';
+  spec_config: InstanceSpecInfo;
+  shard_id?: number;
+};
 
 export default class TendbCluster {
   static TENDBCLUSTER_SPIDER_ADD_NODES = 'TENDBCLUSTER_SPIDER_ADD_NODES';
@@ -102,16 +102,16 @@ export default class TendbCluster {
   major_version: string;
   master_domain: string;
   operations: Array<{
-    cluster_id: number,
-    flow_id: number,
-    status: string,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
-    operationStatusText: string,
-    operationStatusIcon: string,
-    operationTicketId: number,
-    operationDisabled: boolean
+    cluster_id: number;
+    flow_id: number;
+    status: string;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
+    operationStatusText: string;
+    operationStatusIcon: string;
+    operationTicketId: number;
+    operationDisabled: boolean;
   }>;
   permission: {
     tendbcluster_enable_disable: boolean;
@@ -131,8 +131,8 @@ export default class TendbCluster {
   spider_ctl_primary: string;
   status: string;
   temporary_info: {
-    source_cluster?: string,
-    ticket_id: number
+    source_cluster?: string;
+    ticket_id: number;
   };
 
   constructor(payload = {} as TendbCluster) {
@@ -172,7 +172,7 @@ export default class TendbCluster {
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(TendbCluster.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态
@@ -235,7 +235,7 @@ export default class TendbCluster {
   }
 
   get isStarting() {
-    return Boolean(this.operations.find(item => item.ticket_type === TendbCluster.TENDBCLUSTER_ENABLE));
+    return Boolean(this.operations.find((item) => item.ticket_type === TendbCluster.TENDBCLUSTER_ENABLE));
   }
 
   get masterDomainDisplayName() {
@@ -251,7 +251,7 @@ export default class TendbCluster {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: TendbCluster.operationIconMap[item.ticket_type],
       tip: TendbCluster.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,

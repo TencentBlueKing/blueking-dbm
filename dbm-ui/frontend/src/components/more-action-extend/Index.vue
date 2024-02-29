@@ -3,7 +3,7 @@
     ref="rootRef"
     class="more-action-extend"
     :class="{
-      active: isPopoverShow
+      active: isPopoverShow,
     }"
     v-bind="attrs"
     @click.stop="handleClick">
@@ -19,24 +19,16 @@
   </div>
 </template>
 <script lang="ts">
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
-  import {
-    onBeforeUnmount,
-    onMounted,
-    ref,
-    useAttrs,
-  } from 'vue';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
+  import { onBeforeUnmount, onMounted, ref, useAttrs } from 'vue';
 
-  let activeTippyIns:Instance;
+  let activeTippyIns: Instance;
 </script>
 <script setup lang="ts">
   const rootRef = ref();
   const popRef = ref();
 
-  let tippyIns:Instance | undefined;
+  let tippyIns: Instance | undefined;
 
   const attrs = useAttrs();
 
@@ -88,19 +80,19 @@
   });
 </script>
 <style lang="less">
-  .more-action-extend{
+  .more-action-extend {
     display: inline-flex;
     width: 20px;
     height: 20px;
     font-size: 14px;
-    color: #3A84FF;
+    color: #3a84ff;
     cursor: pointer;
     border-radius: 50%;
     justify-content: center;
     align-items: center;
 
     &:hover,
-    &.active{
+    &.active {
       background: #dcdee5;
     }
   }
@@ -110,10 +102,10 @@
     padding: 4px 0;
     margin: -5px -9px;
     font-size: 12px;
-    color: #63656E;
+    color: #63656e;
     flex-direction: column;
 
-    & > *{
+    & > * {
       display: flex !important;
       height: 32px;
       justify-content: center;
@@ -121,8 +113,8 @@
       padding: 0 22px 0 12px;
       cursor: pointer;
 
-      &:hover{
-        background-color: #F5F7FA;
+      &:hover {
+        background-color: #f5f7fa;
       }
     }
   }

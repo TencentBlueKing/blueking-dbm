@@ -71,7 +71,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import RedisDSTHistoryJobModel  from '@services/model/redis/redis-dst-history-job';
+  import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
 
   import { LocalStorageKeys } from '@common/const';
 
@@ -84,38 +84,36 @@
   import { destroyLocalStorage } from '../../Index.vue';
 
   import { ClusterType } from './RenderClusterType.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './Row.vue';
 
   interface Props {
     clusterList: SelectItem[];
   }
 
   interface Exposes {
-    getValue: () => Promise<SelfbuiltClusterToIntraInfoItem[]>,
-    resetTable: () => void
+    getValue: () => Promise<SelfbuiltClusterToIntraInfoItem[]>;
+    resetTable: () => void;
   }
-
 
   defineProps<Props>();
 
   const emits = defineEmits<{
-    'change-table-available': [status: boolean]
+    'change-table-available': [status: boolean];
   }>();
 
   const tableData = ref([createRowData()]);
   const rowRefs = ref();
-  const tableAvailable = computed(() => tableData.value.findIndex(item => Boolean(item.srcCluster)) > -1);
-
+  const tableAvailable = computed(() => tableData.value.findIndex((item) => Boolean(item.srcCluster)) > -1);
 
   // 集群域名是否已存在表格的映射表
   const domainMemo = {} as Record<string, boolean>;
 
-  watch(() => tableAvailable.value, (status) => {
-    emits('change-table-available', status);
-  });
+  watch(
+    () => tableAvailable.value,
+    (status) => {
+      emits('change-table-available', status);
+    },
+  );
 
   onMounted(() => {
     checkandRecoverDataListFromLocalStorage();
@@ -127,19 +125,20 @@
       return;
     }
     const item = JSON.parse(r) as RedisDSTHistoryJobModel;
-    tableData.value = [{
-      rowKey: item.src_cluster,
-      isLoading: false,
-      srcCluster: item.src_cluster,
-      targetClusterId: item.dst_cluster_id,
-      includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
-      excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
-      clusterType: item.src_cluster_type as ClusterType,
-      password: '',
-    }];
+    tableData.value = [
+      {
+        rowKey: item.src_cluster,
+        isLoading: false,
+        srcCluster: item.src_cluster,
+        targetClusterId: item.dst_cluster_id,
+        includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
+        excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
+        clusterType: item.src_cluster_type as ClusterType,
+        password: '',
+      },
+    ];
     destroyLocalStorage();
   };
-
 
   const handleChangeCluster = async (index: number, domain: string) => {
     tableData.value[index].srcCluster = domain;
@@ -158,21 +157,21 @@
   };
 
   defineExpose<Exposes>({
-    getValue: () => Promise.all<SelfbuiltClusterToIntraInfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<SelfbuiltClusterToIntraInfoItem>
-    }) => item.getValue())),
+    getValue: () =>
+      Promise.all<SelfbuiltClusterToIntraInfoItem[]>(
+        rowRefs.value.map((item: { getValue: () => Promise<SelfbuiltClusterToIntraInfoItem> }) => item.getValue()),
+      ),
     resetTable: () => {
       tableData.value = [createRowData()];
     },
   });
 </script>
 <style lang="less">
-.render-data {
-  .batch-edit-btn {
-    margin-left: 4px;
-    color: #3a84ff;
-    cursor: pointer;
+  .render-data {
+    .batch-edit-btn {
+      margin-left: 4px;
+      color: #3a84ff;
+      cursor: pointer;
+    }
   }
-}
-
 </style>

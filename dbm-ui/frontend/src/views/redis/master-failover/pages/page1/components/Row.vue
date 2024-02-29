@@ -13,15 +13,14 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderHost
         ref="hostRef"
         :data="data.ip"
         :inputed="inputedIps"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         ref="clusterRef"
         :data="data.cluster"
@@ -29,14 +28,14 @@
         :placeholder="$t('输入主库后自动生成')"
         :rules="rules" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderMasterInstance
         ref="instanceRef"
         :data="data.masters"
         :is-loading="data.isLoading" />
     </td>
 
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         ref="slaveRef"
         :data="data.slave"
@@ -44,7 +43,7 @@
         :placeholder="$t('输入主库后自动生成')"
         :rules="rules" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSwitchMode
         ref="switchModeRef"
         :data="data.switchMode"
@@ -72,21 +71,21 @@
   export interface IDataRow {
     rowKey: string;
     isLoading: boolean;
-    ip: string,
+    ip: string;
     clusterId: number;
     slave: string;
     switchMode?: string;
     cluster?: string;
-    masters?:string[];
+    masters?: string[];
   }
 
   export interface InfoItem {
-    cluster_id: number,
-    online_switch_type: OnlineSwitchType,
+    cluster_id: number;
+    online_switch_type: OnlineSwitchType;
     pairs: {
-      redis_master: string,
-      redis_slave: string,
-    }[]
+      redis_master: string;
+      redis_slave: string;
+    }[];
   }
   // 创建表格数据
   export const createRowData = (data?: IDataRow): IDataRow => ({
@@ -99,27 +98,26 @@
     slave: data?.slave ?? '',
     switchMode: data?.switchMode ?? '',
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    inputedIps?: string[],
+    data: IDataRow;
+    removeable: boolean;
+    inputedIps?: string[];
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'onIpInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'onIpInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    inputedIps: () => ([]),
+    inputedIps: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -175,5 +173,4 @@
       };
     },
   });
-
 </script>

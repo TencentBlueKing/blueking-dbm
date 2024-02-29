@@ -18,7 +18,7 @@
         v-for="(item, index) in renderList"
         :key="`${item.ip}:${item.port}`"
         :class="{
-          'is-unavailable': item.status === 'unavailable'
+          'is-unavailable': item.status === 'unavailable',
         }">
         <span :style="{ color: highlightIps.includes(item.ip) ? 'rgb(255 130 4)' : '#63656e' }">
           {{ item.ip }}
@@ -34,8 +34,7 @@
             ext-cls="copy-popover"
             placement="top"
             theme="light">
-            <DbIcon
-              type="copy" />
+            <DbIcon type="copy" />
             <template #content>
               <a
                 class="copy-trigger"
@@ -94,7 +93,7 @@
         :columns="columns"
         :data-source="dataSource"
         releate-url-query
-        style="margin-bottom: 34px;" />
+        style="margin-bottom: 34px" />
       <template #footer>
         <BkButton @click="handleHideMore">
           {{ $t('关闭') }}
@@ -244,73 +243,73 @@
   };
 </script>
 <style lang="less">
-.render-cluster-node-instance {
-  position: relative;
-  display: inline-block;
-  padding-bottom: 10px;
-  margin-top: 10px;
-  line-height: 20px;
+  .render-cluster-node-instance {
+    position: relative;
+    display: inline-block;
+    padding-bottom: 10px;
+    margin-top: 10px;
+    line-height: 20px;
 
-  .is-unavailable {
-    color: #c4c6cc;
+    .is-unavailable {
+      color: #c4c6cc;
+    }
+
+    .unavailable-flag {
+      display: inline-flex;
+      height: 16px;
+      padding: 0 2px;
+      margin-left: 2px;
+      color: #63656e;
+      background: #f0f1f5;
+      border-radius: 2px;
+      align-items: center;
+
+      .unavailable-flag-text {
+        font-size: 12px;
+        transform: scale(0.8341);
+      }
+    }
   }
 
-  .unavailable-flag {
-    display: inline-flex;
-    height: 16px;
-    padding: 0 2px;
-    margin-left: 2px;
-    color: #63656e;
-    background: #f0f1f5;
-    border-radius: 2px;
-    align-items: center;
+  .cluster-node-instance-dialog {
+    .bk-dialog-header {
+      padding: 18px 24px 24px !important;
+      // line-height: 1;
+    }
 
-    .unavailable-flag-text {
+    .action-box {
+      display: flex;
+      margin-bottom: 12px;
+    }
+  }
+
+  .copy-popover {
+    padding: 4px 6px !important;
+
+    .bk-pop2-arrow {
+      display: none;
+    }
+
+    .copy-trigger {
+      display: inline-block;
+      padding: 0 4px;
       font-size: 12px;
-      transform: scale(0.8341);
+      line-height: 24px;
+      vertical-align: middle;
+      border-radius: 2px;
+
+      &:hover {
+        background-color: #f0f1f5;
+      }
+    }
+
+    .copy-trigger-split {
+      display: inline-block;
+      width: 1px;
+      height: 18px;
+      margin: 0 4px;
+      vertical-align: middle;
+      background-color: #f0f1f5;
     }
   }
-}
-
-.cluster-node-instance-dialog {
-  .bk-dialog-header {
-    padding: 18px 24px 24px !important;
-    // line-height: 1;
-  }
-
-  .action-box {
-    display: flex;
-    margin-bottom: 12px;
-  }
-}
-
-.copy-popover {
-  padding: 4px 6px !important;
-
-  .bk-pop2-arrow {
-    display: none;
-  }
-
-  .copy-trigger {
-    display: inline-block;
-    padding: 0 4px;
-    font-size: 12px;
-    line-height: 24px;
-    vertical-align: middle;
-    border-radius: 2px;
-
-    &:hover {
-      background-color: #F0F1F5;
-    }
-  }
-
-  .copy-trigger-split {
-    display: inline-block;
-    width: 1px;
-    height: 18px;
-    margin: 0 4px;
-    vertical-align: middle;
-    background-color: #F0F1F5;
-  }
-}
 </style>

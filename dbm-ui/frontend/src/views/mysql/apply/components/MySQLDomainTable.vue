@@ -222,11 +222,11 @@
 </script>
 
 <style lang="less" scoped>
-.mysql-domains {
-  :deep(.bk-table) {
-    .bk-form-content {
-      margin-left: 0 !important;
+  .mysql-domains {
+    :deep(.bk-table) {
+      .bk-form-content {
+        margin-left: 0 !important;
+      }
     }
   }
-}
 </style>

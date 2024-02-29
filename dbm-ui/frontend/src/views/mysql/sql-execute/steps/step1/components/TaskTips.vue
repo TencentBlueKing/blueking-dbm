@@ -12,9 +12,9 @@
 -->
 
 <template>
-  <div style="margin-bottom: 40px;">
+  <div style="margin-bottom: 40px">
     <BkAlert
-      v-if="(taskCount < 1)"
+      v-if="taskCount < 1"
       closable
       theme="info"
       :title="$t('提供多个集群批量执行sql文件功能')" />
@@ -25,21 +25,23 @@
         <div class="sql-execute-task-tips">
           <div
             class="loading-flag rotate-loading"
-            style="width: 12px; height: 12px;">
+            style="width: 12px; height: 12px">
             <DbIcon
               svg
               type="sync-pending" />
           </div>
-          <div style="padding-left: 4px;">
+          <div style="padding-left: 4px">
             <span>{{ $t('目前已有') }}</span>
             <span
               ref="rootRef"
-              class="strong-number">{{ taskCount }}</span>
+              class="strong-number">
+              {{ taskCount }}
+            </span>
             <span>{{ $t('个模拟执行任务待确认_可点击查看最新动态') }}</span>
           </div>
         </div>
       </BkAlert>
-      <div style="display: none;">
+      <div style="display: none">
         <div
           ref="popRef"
           class="sql-execute-task-popover-list">
@@ -53,11 +55,11 @@
                 type="loading" />
               <DbIcon
                 v-else-if="item.isSucceeded"
-                style="color: #2dcb56;"
+                style="color: #2dcb56"
                 type="check-circle-fill" />
               <DbIcon
                 v-else
-                style="color: #ea3636;"
+                style="color: #ea3636"
                 type="delete-fill" />
             </div>
             <div class="task-create-time">
@@ -86,14 +88,7 @@
 <script setup lang="ts">
   import { useTaskCount } from '@views/mysql/common/hooks/useTaskCount';
 
-  const {
-    rootRef,
-    popRef,
-    taskList,
-    taskCount,
-    handleRevokeTask,
-    handleGoTaskLog,
-  } = useTaskCount('mysql');
+  const { rootRef, popRef, taskList, taskCount, handleRevokeTask, handleGoTaskLog } = useTaskCount('mysql');
 </script>
 <style lang="less">
   .sql-execute-task-tips {

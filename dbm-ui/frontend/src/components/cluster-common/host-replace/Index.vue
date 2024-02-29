@@ -21,10 +21,10 @@
             <I18nT
               keypath="(共n台_磁盘容量nG)"
               tag="span">
-              <span style="padding: 0 4px;">
+              <span style="padding: 0 4px">
                 {{ nodeList.length }}
               </span>
-              <span style="padding: 0 4px;">
+              <span style="padding: 0 4px">
                 {{ nodeDiskTotal }}
               </span>
             </I18nT>
@@ -37,7 +37,7 @@
                 <I18nT
                   v-if="nodeList.length > hostList.length"
                   keypath="已选n台_少n台_共nG"
-                  style="color: #ea3636;"
+                  style="color: #ea3636"
                   tag="span">
                   <span>{{ hostList.length }}</span>
                   <span>{{ Math.abs(nodeList.length - hostList.length) }}</span>
@@ -46,7 +46,7 @@
                 <I18nT
                   v-else-if="nodeList.length < hostList.length"
                   keypath="已选n台_多n台_共nG"
-                  style="color: #ea3636;"
+                  style="color: #ea3636"
                   tag="span">
                   <span>{{ hostList.length }}</span>
                   <span>{{ Math.abs(nodeList.length - hostList.length) }}</span>
@@ -60,7 +60,7 @@
                 </I18nT>
               </template>
               <span v-else>
-                {{ t('需n台', { n: nodeList.length}) }}
+                {{ t('需n台', { n: nodeList.length }) }}
               </span>
               <span>)</span>
             </span>
@@ -107,8 +107,10 @@
     </table>
   </div>
 </template>
-<script setup lang="tsx"
-generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|InfluxDBInstanceModel">
+<script
+  setup
+  lang="tsx"
+  generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | InfluxDBInstanceModel">
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -124,50 +126,50 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
   import HostSelector from './components/HostSelector.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
 
-  export interface TReplaceNode<N>{
+  export interface TReplaceNode<N> {
     // 集群id
-    clusterId: number,
+    clusterId: number;
     // 集群的节点类型
-    role: string,
-    nodeList: N[],
-    hostList: ServiceReturnType<typeof checkHost>,
+    role: string;
+    nodeList: N[];
+    hostList: ServiceReturnType<typeof checkHost>;
     // 资源池规格集群类型
-    specClusterType: string,
+    specClusterType: string;
     // 资源池规格集群类型
-    specMachineType: string,
+    specMachineType: string;
     // 扩容资源池
     resourceSpec: {
-      spec_id: number,
-      count: number
-    }
+      spec_id: number;
+      count: number;
+    };
   }
 
   interface Ivalue {
-    bk_host_id: number,
-    ip: string,
-    bk_cloud_id: number,
+    bk_host_id: number;
+    ip: string;
+    bk_cloud_id: number;
   }
 
   interface Props {
     cloudInfo: {
-      id: number,
-      name: string
-    },
-    data: TReplaceNode<T>,
-    ipSource: string,
-    disableHostMethod?: (params: Props['data']['hostList'][0]) => string | boolean
+      id: number;
+      name: string;
+    };
+    data: TReplaceNode<T>;
+    ipSource: string;
+    disableHostMethod?: (params: Props['data']['hostList'][0]) => string | boolean;
   }
 
   interface Emits {
-    (e: 'removeNode', node: T): void
+    (e: 'removeNode', node: T): void;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      old_nodes: Ivalue[],
-      new_nodes: Ivalue[],
-      resource_spec: Props['data']['resourceSpec']
-    }>
+      old_nodes: Ivalue[];
+      new_nodes: Ivalue[];
+      resource_spec: Props['data']['resourceSpec'];
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -189,10 +191,8 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
   const hostEditBtnPlaceholderId = `replaceHostEditBtn${random()}`;
   const isValidated = ref(false);
 
-  const nodeDiskTotal = computed(() => nodeList.value
-    .reduce((result, item) => result + item.disk, 0));
-  const localHostDisk = computed(() => hostList.value
-    .reduce((result, item) => result + ~~Number(item.bk_disk), 0));
+  const nodeDiskTotal = computed(() => nodeList.value.reduce((result, item) => result + item.disk, 0));
+  const localHostDisk = computed(() => hostList.value.reduce((result, item) => result + ~~Number(item.bk_disk), 0));
 
   const isError = computed(() => {
     if (nodeList.value.length < 1) {
@@ -205,18 +205,24 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
     return resourceSpec.value.spec_id < 1;
   });
 
-  watch(() => props.ipSource, () => {
-    isValidated.value = false;
-  });
+  watch(
+    () => props.ipSource,
+    () => {
+      isValidated.value = false;
+    },
+  );
 
   // 移除节点
   const handleRemoveNode = (node: Props['data']['nodeList'][0]) => {
-    nodeList.value = nodeList.value.reduce((result, item) => {
-      if (item.bk_host_id !== node.bk_host_id) {
-        result.push(item);
-      }
-      return result;
-    }, [] as Props['data']['nodeList']);
+    nodeList.value = nodeList.value.reduce(
+      (result, item) => {
+        if (item.bk_host_id !== node.bk_host_id) {
+          result.push(item);
+        }
+        return result;
+      },
+      [] as Props['data']['nodeList'],
+    );
     window.changeConfirm = true;
     emits('removeNode', node);
   };
@@ -244,12 +250,12 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
         });
       }
       return Promise.resolve({
-        old_nodes: nodeList.value.map(nodeItem => ({
+        old_nodes: nodeList.value.map((nodeItem) => ({
           bk_host_id: nodeItem.bk_host_id,
           ip: nodeItem.ip,
           bk_cloud_id: nodeItem.bk_cloud_id,
         })),
-        new_nodes: hostList.value.map(hostItem => ({
+        new_nodes: hostList.value.map((hostItem) => ({
           bk_host_id: hostItem.host_id,
           ip: hostItem.ip,
           bk_cloud_id: hostItem.cloud_id,
@@ -299,7 +305,7 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
         }
       }
 
-      .original-ip-box{
+      .original-ip-box {
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -317,7 +323,7 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
           align-items: center;
           justify-content: center;
 
-          & ~ .ip-tag{
+          & ~ .ip-tag {
             margin-top: 12px;
           }
         }
@@ -327,7 +333,7 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
           font-size: 14px;
           cursor: pointer;
 
-          &:hover{
+          &:hover {
             color: #3a84ff;
           }
         }
@@ -336,7 +342,7 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
       .ip-edit-btn {
         cursor: pointer;
 
-        &:hover{
+        &:hover {
           color: #3a84ff;
         }
       }

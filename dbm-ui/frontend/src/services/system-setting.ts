@@ -6,19 +6,11 @@ export const getDeviceClassList = function () {
 };
 
 // 业务设置列表键值映射表
-export const getBizSettingList = function (params: {
-  bk_biz_id: number,
-  key?: string
-}) {
+export const getBizSettingList = function (params: { bk_biz_id: number; key?: string }) {
   return http.get<Record<string, any>>('/apis/conf/biz_settings/simple/', params);
 };
 
 // 更新业务设置列表键值
-export const updateBizSetting = function (params: {
-  bk_biz_id: number,
-  key: string,
-  value: any,
-  value_type?: string,
-}) {
+export const updateBizSetting = function (params: { bk_biz_id: number; key: string; value: any; value_type?: string }) {
   return http.post('/apis/conf/biz_settings/update_settings/', params);
 };

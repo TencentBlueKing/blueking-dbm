@@ -125,31 +125,31 @@
 </script>
 
 <style lang="less" scoped>
-.business-selector {
-  &-item {
-    flex: 1;
-    display: flex;
-    align-items: center;
+  .business-selector {
+    &-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
 
-    &:hover {
-      .business-selector-favor {
+      &:hover {
+        .business-selector-favor {
+          display: block;
+        }
+      }
+    }
+
+    &-display {
+      flex: 1;
+    }
+
+    &-favor {
+      flex-shrink: 0;
+      display: none;
+
+      &.db-icon-star-fill {
         display: block;
+        color: @warning-color;
       }
     }
   }
-
-  &-display {
-    flex: 1;
-  }
-
-  &-favor {
-    flex-shrink: 0;
-    display: none;
-
-    &.db-icon-star-fill {
-      display: block;
-      color: @warning-color;
-    }
-  }
-}
 </style>

@@ -24,11 +24,11 @@
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   interface Props {
-    data: string
+    data: string;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = defineProps<Props>();
@@ -49,18 +49,19 @@
     },
   ];
 
-  watch(() => props.data, (value) => {
-    localValue.value = value;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (value) => {
+      localValue.value = value;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (localValue.value));
+      return editRef.value.getValue().then(() => localValue.value);
     },
   });
 </script>
-

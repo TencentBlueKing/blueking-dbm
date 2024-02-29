@@ -16,7 +16,9 @@
     <BkAlert
       closable
       theme="warning"
-      :title="t('如果希望使用通配符授权一批IP_或者授权平台公共类IP_未注册到配置平台的IP_需要先录入到白名单中_才能对其授权')" />
+      :title="
+        t('如果希望使用通配符授权一批IP_或者授权平台公共类IP_未注册到配置平台的IP_需要先录入到白名单中_才能对其授权')
+      " />
     <div class="whitelist-operations">
       <AuthButton
         :action-id="managePermissionActionId"
@@ -27,7 +29,7 @@
       <span
         v-bk-tooltips="{
           disabled: selectedIdList.length > 0,
-          content: t('请选择白名单组')
+          content: t('请选择白名单组'),
         }"
         class="delete-button">
         <AuthButton
@@ -42,7 +44,7 @@
         v-model="keyword"
         clearable
         :placeholder="t('请输入IP')"
-        style="width: 500px;"
+        style="width: 500px"
         type="search"
         @clear="fetchTableData"
         @enter="fetchTableData" />
@@ -251,35 +253,35 @@
 </script>
 
 <style lang="less">
-.whitelist-page {
-  .bk-table {
-    tr:hover {
+  .whitelist-page {
+    .bk-table {
+      tr:hover {
+        .copy-btn {
+          display: inline-block;
+        }
+      }
+
       .copy-btn {
-        display: inline-block;
+        display: none;
+        color: @primary-color;
+        cursor: pointer;
       }
     }
 
-    .copy-btn {
-      display: none;
-      color: @primary-color;
-      cursor: pointer;
+    .whitelist-operations {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+
+      .delete-button {
+        margin-right: auto;
+      }
+
+      .bk-button {
+        min-width: 88px;
+        margin-right: 8px;
+      }
     }
   }
-
-  .whitelist-operations {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 0;
-
-    .delete-button {
-      margin-right: auto;
-    }
-
-    .bk-button {
-      min-width: 88px;
-      margin-right: 8px;
-    }
-  }
-}
 </style>

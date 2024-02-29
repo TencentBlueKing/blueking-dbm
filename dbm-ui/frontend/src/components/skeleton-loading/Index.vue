@@ -31,10 +31,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    onMounted,
-    ref,
-  } from 'vue';
+  import { onMounted, ref } from 'vue';
 
   import ClusterList from './components/ClusterList.vue';
 
@@ -75,7 +72,6 @@
       background: #f5f7fa;
       opacity: 100%;
       visibility: visible;
-
     }
 
     .skeleton-loading-hidden {

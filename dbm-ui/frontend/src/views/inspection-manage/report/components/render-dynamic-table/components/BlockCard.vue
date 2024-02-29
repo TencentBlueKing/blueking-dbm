@@ -1,7 +1,7 @@
 <template>
   <div
     class="block-card"
-    :class="{'is-toggle': isToggle}">
+    :class="{ 'is-toggle': isToggle }">
     <div
       class="card-title"
       @click="handleTogglle">
@@ -36,18 +36,17 @@
     border-radius: 2px;
     box-shadow: 0 2px 4px 0 #1919290d;
 
-
-    & ~ .block-card{
+    & ~ .block-card {
       margin-top: 16px;
     }
 
-    &.is-toggle{
-      .card-toggle-flag{
+    &.is-toggle {
+      .card-toggle-flag {
         transform: rotateZ(0);
       }
     }
 
-    .card-title{
+    .card-title {
       display: flex;
       font-size: 14px;
       font-weight: 700;
@@ -55,16 +54,15 @@
       color: #313238;
       align-items: center;
       cursor: pointer;
-
     }
 
-    .card-toggle-flag{
+    .card-toggle-flag {
       margin-right: 8px;
       transform: rotateZ(-90deg);
-      transition: all .15s;
+      transition: all 0.15s;
     }
 
-    .card-content{
+    .card-content {
       margin-top: 16px;
     }
   }

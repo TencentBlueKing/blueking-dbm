@@ -20,11 +20,15 @@
     <span>【{{ data.title }}】{{ $t('单据ID') }}：</span>
     <span
       class="ticket-id"
-      @click="() => handleClickRelatedTicket(data.ticket_id)">#{{ data.ticket_id }}</span>
+      @click="() => handleClickRelatedTicket(data.ticket_id)">
+      #{{ data.ticket_id }}
+    </span>
     <div
       v-if="isFailed"
       class="fail-tip">
-      &nbsp;,&nbsp;<span style="color:#EA3636">{{ $t('执行失败') }}</span>&nbsp;,&nbsp;{{ $t('待确认') }}
+      &nbsp;,&nbsp;
+      <span style="color: #ea3636">{{ $t('执行失败') }}</span>
+      &nbsp;,&nbsp;{{ $t('待确认') }}
     </div>
   </div>
 </template>
@@ -32,13 +36,13 @@
 <script lang="ts">
   export interface Props {
     data: {
-      cluster_id: number,
-      flow_id: number,
-      status: PipelineStatus,
-      ticket_id: number,
-      ticket_type: string,
-      title: string,
-    }
+      cluster_id: number;
+      flow_id: number;
+      status: PipelineStatus;
+      ticket_id: number;
+      ticket_type: string;
+      title: string;
+    };
   }
 </script>
 <script setup lang="ts">
@@ -62,7 +66,6 @@
     });
     window.open(route.href);
   };
-
 </script>
 <style lang="less" scoped>
   .item {
@@ -71,10 +74,10 @@
     height: 20px;
     align-items: center;
     font-size: 12px;
-    color: #63656E;
+    color: #63656e;
 
     .ticket-id {
-      color:#3A84FF;
+      color: #3a84ff;
       cursor: pointer;
     }
 

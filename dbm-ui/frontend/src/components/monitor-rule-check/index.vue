@@ -20,12 +20,9 @@
       <span>{{ title }}</span>
     </div>
     <div class="if-box">
-      <div class="control">
-        if
-      </div>
+      <div class="control">if</div>
       <div class="details">
-        <div
-          class="common-disply io-box">
+        <div class="common-disply io-box">
           {{ indicator }}
         </div>
         <template
@@ -40,8 +37,7 @@
                 :clearable="false"
                 disabled>
                 <template #trigger>
-                  <div
-                    class="common-disply">
+                  <div class="common-disply">
                     {{ signMap[rule.method] }}
                   </div>
                 </template>
@@ -74,9 +70,7 @@
       </div>
     </div>
     <div class="else-box">
-      <div class="control">
-        then
-      </div>
+      <div class="control">then</div>
       <span>{{ t('触发告警') }}</span>
     </div>
   </div>
@@ -106,15 +100,15 @@
   }
 
   interface Props {
-    data?: Data,
-    indicator?: string,
-    title?: string,
-    disabled?: boolean,
+    data?: Data;
+    indicator?: string;
+    title?: string;
+    disabled?: boolean;
   }
 
   interface Exposes {
-    getValue: () => Data,
-    resetValue: () => void,
+    getValue: () => Data;
+    resetValue: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -140,12 +134,15 @@
     value: key,
   }));
 
-  watch(localValue, (data) => {
-    emits('change', data);
-  }, {
-    deep: true,
-  });
-
+  watch(
+    localValue,
+    (data) => {
+      emits('change', data);
+    },
+    {
+      deep: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
@@ -158,87 +155,83 @@
       localValue.value = _.cloneDeep(props.data);
     },
   });
-
 </script>
 <style lang="less" scoped>
-.rule-check-box {
-  width: 100%;
-  padding: 16px;
-  border: 1px solid #DCDEE5;
-  border-radius: 2px;
-
-  .title-box {
-    display: flex;
+  .rule-check-box {
     width: 100%;
-    font-weight: 700;
-    color: #63656E;
-    align-items: center;
-  }
+    padding: 16px;
+    border: 1px solid #dcdee5;
+    border-radius: 2px;
 
-  .if-box {
-    display: flex;
-    width: 100%;
-    margin-top: 16px;
-    margin-bottom: 16px;
-    gap: 4px;
-
-    .details {
-      flex: 1;
-      flex-wrap: wrap;
+    .title-box {
       display: flex;
+      width: 100%;
+      font-weight: 700;
+      color: #63656e;
+      align-items: center;
+    }
+
+    .if-box {
+      display: flex;
+      width: 100%;
+      margin-top: 16px;
+      margin-bottom: 16px;
       gap: 4px;
 
-      .common-disply {
-        width: 48px;
-        height: 32px;
+      .details {
+        flex: 1;
+        flex-wrap: wrap;
+        display: flex;
+        gap: 4px;
+
+        .common-disply {
+          width: 48px;
+          height: 32px;
+          font-size: 12px;
+          line-height: 32px;
+          text-align: center;
+          background: #f0f1f5;
+          border-radius: 2px 0 0 2px;
+        }
+
+        .io-box {
+          width: auto;
+          min-width: 180px;
+          padding: 0 12px;
+          text-align: left;
+        }
+
+        .condition {
+          width: 32px;
+          height: 32px;
+          line-height: 32px;
+          color: #ff9c01;
+          text-align: center;
+          background: #fff3e1;
+          border-radius: 2px;
+        }
+      }
+    }
+
+    .else-box {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      gap: 9px;
+
+      span {
         font-size: 12px;
-        line-height: 32px;
-        text-align: center;
-        background: #F0F1F5;
-        border-radius: 2px 0 0 2px;
-
-      }
-
-      .io-box {
-        width: auto;
-        min-width: 180px;
-        padding: 0 12px;
-        text-align: left;
-      }
-
-      .condition {
-        width: 32px;
-        height: 32px;
-        line-height: 32px;
-        color: #FF9C01;
-        text-align: center;
-        background: #FFF3E1;
-        border-radius: 2px;
       }
     }
-
-
   }
 
-  .else-box {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    gap: 9px;
-
-    span {
-      font-size: 12px;
-    }
+  .control {
+    width: 46px;
+    height: 32px;
+    line-height: 32px;
+    color: #3a84ff;
+    text-align: center;
+    background: #f0f5ff;
+    border-radius: 3px;
   }
-}
-
-.control {
-  width: 46px;
-  height: 32px;
-  line-height: 32px;
-  color: #3A84FF;
-  text-align: center;
-  background: #F0F5FF;
-  border-radius: 3px;
-}
 </style>

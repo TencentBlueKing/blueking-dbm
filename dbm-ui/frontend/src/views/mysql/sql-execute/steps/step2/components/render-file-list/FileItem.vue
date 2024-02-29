@@ -16,7 +16,7 @@
     class="render-file-item"
     :class="{
       active: data.name === active,
-      'is-failed': data.isFailed
+      'is-failed': data.isFailed,
     }"
     @click="handleClick">
     <div class="file-name">
@@ -32,15 +32,15 @@
       </div>
       <DbIcon
         v-else-if="data.isFailed"
-        style="color: #ea3636;"
+        style="color: #ea3636"
         type="delete-fill" />
       <DbIcon
         v-else-if="data.isSuccessed"
-        style="color: #2dcb56;"
+        style="color: #2dcb56"
         type="check-circle-fill" />
       <span
         v-else
-        style="font-size: 12px; color: #63656e;">
+        style="font-size: 12px; color: #63656e">
         {{ $t('待执行') }}
       </span>
     </div>
@@ -50,12 +50,12 @@
   import type { IFileItem } from './Index.vue';
 
   interface Props {
-    data: IFileItem,
-    active: string,
+    data: IFileItem;
+    active: string;
   }
 
-  interface Emits{
-    (e: 'click') : void
+  interface Emits {
+    (e: 'click'): void;
   }
 
   defineProps<Props>();

@@ -44,7 +44,7 @@
             trigger: 'click',
             placement: 'right',
             theme: 'light',
-            content: userPlaceholder
+            content: userPlaceholder,
           }"
           :placeholder="userPlaceholder" />
       </BkFormItem>
@@ -101,32 +101,24 @@
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    createAccount,
-    getPasswordPolicy,
-    getRSAPublicKeys,
-    verifyPasswordStrength,
-  } from '@services/permission';
+  import { createAccount, getPasswordPolicy, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
 
   import { useGlobalBizs } from '@stores';
 
   import { dbTippy } from '@common/tippy';
 
-  import {
-    PASSWORD_POLICY,
-    type PasswordPolicyKeys,
-  } from '../common/const';
+  import { PASSWORD_POLICY, type PasswordPolicyKeys } from '../common/const';
 
   interface StrengthItem {
-    keys: string[],
-    text: string
+    keys: string[];
+    text: string;
   }
 
   type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>;
-  type IncludeRule = PasswordPolicy['rule']['include_rule']
-  type ExcludeContinuousRule = PasswordPolicy['rule']['exclude_continuous_rule']
+  type IncludeRule = PasswordPolicy['rule']['include_rule'];
+  type ExcludeContinuousRule = PasswordPolicy['rule']['exclude_continuous_rule'];
   type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
-  type PasswordStrengthVerifyInfo = PasswordStrength['password_verify_info']
+  type PasswordStrengthVerifyInfo = PasswordStrength['password_verify_info'];
 
   export default {
     name: 'PermissionAccount',
@@ -385,7 +377,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .account-dialog {
     .bk-button {

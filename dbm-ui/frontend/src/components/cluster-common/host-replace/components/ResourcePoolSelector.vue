@@ -2,11 +2,11 @@
   <div
     class="replace-resource-pool-selector"
     :class="{
-      'is-error': error
+      'is-error': error,
     }">
     <div class="mr-8">
       <span>{{ t('匹配规格') }}</span>
-      <span style="color: #ea3636;">*</span>
+      <span style="color: #ea3636">*</span>
     </div>
     <div class="select-box">
       <BkSelect
@@ -24,9 +24,9 @@
             placement="right"
             theme="light"
             width="580">
-            <div style="display: flex; width: 100%; align-items: center;">
+            <div style="display: flex; width: 100%; align-items: center">
               <div>{{ item.spec_name }}</div>
-              <BkTag style="margin-left: auto;">
+              <BkTag style="margin-left: auto">
                 {{ specCountMap[item.spec_id] }}
               </BkTag>
             </div>
@@ -45,8 +45,10 @@
     </div>
   </div>
 </template>
-<script setup lang="ts"
-generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|InfluxdbInstanceModel">
+<script
+  setup
+  lang="ts"
+  generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | InfluxdbInstanceModel">
   import {
     shallowRef,
   } from 'vue';
@@ -162,22 +164,22 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
     align-items: center;
     justify-content: center;
 
-    .bk-select{
+    .bk-select {
       width: 240px;
     }
 
-    &.is-error{
-      .bk-select{
-        .bk-input{
+    &.is-error {
+      .bk-select {
+        .bk-input {
           border-color: #ea3636;
         }
       }
     }
 
-    .select-box{
+    .select-box {
       position: relative;
 
-      .error-tips{
+      .error-tips {
         position: absolute;
         top: 50%;
         right: 9px;

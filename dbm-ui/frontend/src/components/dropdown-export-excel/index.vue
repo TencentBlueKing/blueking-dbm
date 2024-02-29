@@ -1,11 +1,11 @@
 <template>
   <span class="inline-block ml-8">
     <BkDropdown
-      @hide="() => isCopyDropdown = false"
-      @show="() => isCopyDropdown = true">
+      @hide="() => (isCopyDropdown = false)"
+      @show="() => (isCopyDropdown = true)">
       <BkButton
         class="export-dropdown-button"
-        :class="{ 'active': isCopyDropdown }">
+        :class="{ active: isCopyDropdown }">
         {{ t('导出') }}
         <DbIcon type="up-big dropdown-button-icon" />
       </BkButton>
@@ -17,7 +17,7 @@
           <BkDropdownItem
             v-bk-tooltips="{
               disabled: hasSelected,
-              content: isCluster ? t('请选择集群') : t('请选择实例')
+              content: isCluster ? t('请选择集群') : t('请选择实例'),
             }"
             :ext-cls="!hasSelected ? 'export-dropdown-item-disable' : ''"
             @click="() => handleExport('selected')">
@@ -172,8 +172,6 @@
       await apiMap[props.type].instance(params);
     }
   };
-
-
 </script>
 
 <style lang="less">
@@ -191,6 +189,6 @@
   }
 
   .export-dropdown-item-disable {
-    color: #C4C6CC !important;
+    color: #c4c6cc !important;
   }
 </style>

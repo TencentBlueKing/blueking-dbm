@@ -24,7 +24,7 @@
     </div>
     <div
       class="layout-right"
-      style="width: 928px;">
+      style="width: 928px">
       <div class="log-header">
         <div>{{ $t('执行日志') }}</div>
         <div
@@ -32,22 +32,22 @@
           class="log-status">
           <DbIcon
             class="rotate-loading"
-            style="color: #2dcb56;"
+            style="color: #2dcb56"
             svg
             type="check-circle-fill" />
-          <span style="padding-left: 4px; font-size: 12px;">{{ $t('执行成功') }}</span>
+          <span style="padding-left: 4px; font-size: 12px">{{ $t('执行成功') }}</span>
         </div>
         <div
           v-else
           class="log-status">
           <DbIcon
-            style="color: #ea3636;"
+            style="color: #ea3636"
             svg
             type="delete-fill" />
-          <span style="padding-left: 4px; font-size: 12px;">{{ $t('执行失败') }}</span>
+          <span style="padding-left: 4px; font-size: 12px">{{ $t('执行失败') }}</span>
         </div>
       </div>
-      <div style="height: calc(100% - 40px);">
+      <div style="height: calc(100% - 40px)">
         <RenderLog :data="renderLog" />
       </div>
     </div>
@@ -55,10 +55,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
 
   import { querySemanticData } from '@services/source/sqlImport';
 
@@ -72,8 +69,8 @@
   import useLog from '@views/mysql/sql-execute/steps/step2/hooks/useLog';
 
   interface Props {
-    rootId?: string,
-    nodeId?: string
+    rootId?: string;
+    nodeId?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -84,7 +81,7 @@
   const { currentBizId } = useGlobalBizs();
   const selectFileName = ref('');
   const fileImportMode = ref('');
-  const fileList = ref<string []>([]);
+  const fileList = ref<string[]>([]);
   const renderLog = shallowRef<any[]>([]);
 
   // 执行状态
@@ -107,10 +104,9 @@
     }));
   });
 
-  const currentSelectFileData = computed(() => _.find(
-    fileDataList.value,
-    item => item.name === selectFileName.value,
-  ));
+  const currentSelectFileData = computed(() =>
+    _.find(fileDataList.value, (item) => item.name === selectFileName.value),
+  );
 
   watch([fileImportMode, selectFileName, fileLogMap], () => {
     renderLog.value = wholeLogList.value;
@@ -122,12 +118,11 @@
       root_id: props.rootId,
     }).then((data) => {
       fileImportMode.value = data.import_mode;
-      fileList.value = data.semantic_data.execute_sql_files.map(item => item.replace(/[^_]+_/, ''));
+      fileList.value = data.semantic_data.execute_sql_files.map((item) => item.replace(/[^_]+_/, ''));
       // 默认选中第一个问题件
       [selectFileName.value] = fileList.value;
     });
   });
-
 </script>
 <style lang="less" scoped>
   .log-layout {

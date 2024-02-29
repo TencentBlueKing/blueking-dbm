@@ -47,7 +47,7 @@
   import { useGlobalBizs } from '@stores';
 
   interface Props {
-    id: number
+    id: number;
   }
 
   const props = defineProps<Props>();
@@ -60,10 +60,12 @@
   const abnormalCount = ref(0);
 
   useRequest(getRiakNodeList, {
-    defaultParams: [{
-      bk_biz_id: currentBizId,
-      cluster_id: props.id,
-    }],
+    defaultParams: [
+      {
+        bk_biz_id: currentBizId,
+        cluster_id: props.id,
+      },
+    ],
     onSuccess(riakNodeListResult) {
       let normal = 0;
       let abnormal = 0;
@@ -84,39 +86,39 @@
 </script>
 
 <style lang="less" scoped>
-.node-number {
-  .node-number-current {
-    display: flex;
-    padding: 16px 24px;
-    margin: 24px 0 20px;
-    background-color: @bg-gray;
-
-    .node-number-item {
+  .node-number {
+    .node-number-current {
       display: flex;
-      align-items: center;
-      margin-left: 44px;
-    }
+      padding: 16px 24px;
+      margin: 24px 0 20px;
+      background-color: @bg-gray;
 
-    .node-number-current-total {
-      display: inline-block;
-      margin-left: 12px;
-      font-weight: 700;
-      color: @bg-default;
-    }
+      .node-number-item {
+        display: flex;
+        align-items: center;
+        margin-left: 44px;
+      }
 
-    .node-number-current-normal {
-      display: inline-block;
-      margin-left: 12px;
-      font-weight: 700;
-      color: @success-color;
-    }
+      .node-number-current-total {
+        display: inline-block;
+        margin-left: 12px;
+        font-weight: 700;
+        color: @bg-default;
+      }
 
-    .node-number-current-abnormal {
-      display: inline-block;
-      margin-left: 12px;
-      font-weight: 700;
-      color: @danger-color;
+      .node-number-current-normal {
+        display: inline-block;
+        margin-left: 12px;
+        font-weight: 700;
+        color: @success-color;
+      }
+
+      .node-number-current-abnormal {
+        display: inline-block;
+        margin-left: 12px;
+        font-weight: 700;
+        color: @danger-color;
+      }
     }
   }
-}
 </style>

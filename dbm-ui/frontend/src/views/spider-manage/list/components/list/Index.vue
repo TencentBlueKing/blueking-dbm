@@ -23,7 +23,7 @@
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: t('请选择集群')
+            content: t('请选择集群'),
           }"
           class="inline-block">
           <AuthButton
@@ -37,7 +37,7 @@
         <span
           v-bk-tooltips="{
             disabled: hasData,
-            content: t('请先创建实例')
+            content: t('请先创建实例'),
           }"
           class="inline-block">
           <AuthButton
@@ -64,7 +64,7 @@
     <div
       class="table-wrapper"
       :class="{
-        'is-shrink-table': isStretchLayoutOpen
+        'is-shrink-table': isStretchLayoutOpen,
       }">
       <DbTable
         ref="tableRef"
@@ -984,148 +984,148 @@
 </script>
 
 <style lang="less" scoped>
-.spider-manage-list-page {
-  height: 100%;
-  padding: 24px 0;
-  margin: 0 24px;
-  overflow: hidden;
-
-  .operations {
-    display: flex;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
-
-  .is-shrink-table {
-    :deep(.bk-table-body) {
-      overflow: hidden auto;
-    }
-  }
-
-  :deep(.cell) {
-    line-height: normal !important;
-
-    .domain {
-      display: flex;
-      align-items: center;
-    }
-
-    .db-icon-copy, .db-icon-edit {
-      display: none;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-
-    .operations-more {
-      .db-icon-more {
-        display: block;
-        font-size: @font-size-normal;
-        color: @default-color;
-        cursor: pointer;
-
-        &:hover {
-          background-color: @bg-disable;
-          border-radius: 2px;
-        }
-      }
-    }
-  }
-
-  :deep(tr:hover) {
-    .db-icon-copy, .db-icon-edit {
-      display: inline-block !important;
-    }
-  }
-
-  :deep(.is-offline) {
-    a {
-      color: @gray-color;
-    }
-
-    .cell {
-      color: @disable-color;
-    }
-  }
-
-  :deep(.cluster-name-container) {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
+  .spider-manage-list-page {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
     overflow: hidden;
 
-    .cluster-name {
-      line-height: 16px;
-
-      &__alias {
-        color: @light-gray;
-      }
-    }
-
-    .cluster-tags {
+    .operations {
       display: flex;
-      margin-left: 4px;
-      align-items: center;
+      margin-bottom: 16px;
       flex-wrap: wrap;
     }
 
-    .cluster-tag {
-      margin: 2px;
-      flex-shrink: 0;
+    .is-shrink-table {
+      :deep(.bk-table-body) {
+        overflow: hidden auto;
+      }
+    }
+
+    :deep(.cell) {
+      line-height: normal !important;
+
+      .domain {
+        display: flex;
+        align-items: center;
+      }
+
+      .db-icon-copy,
+      .db-icon-edit {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+
+      .operations-more {
+        .db-icon-more {
+          display: block;
+          font-size: @font-size-normal;
+          color: @default-color;
+          cursor: pointer;
+
+          &:hover {
+            background-color: @bg-disable;
+            border-radius: 2px;
+          }
+        }
+      }
+    }
+
+    :deep(tr:hover) {
+      .db-icon-copy,
+      .db-icon-edit {
+        display: inline-block !important;
+      }
+    }
+
+    :deep(.is-offline) {
+      a {
+        color: @gray-color;
+      }
+
+      .cell {
+        color: @disable-color;
+      }
+    }
+
+    :deep(.cluster-name-container) {
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      overflow: hidden;
+
+      .cluster-name {
+        line-height: 16px;
+
+        &__alias {
+          color: @light-gray;
+        }
+      }
+
+      .cluster-tags {
+        display: flex;
+        margin-left: 4px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .cluster-tag {
+        margin: 2px;
+        flex-shrink: 0;
+      }
     }
   }
-}
-
 </style>
 
 <style lang="less">
-.operations-menu {
-  .bk-button {
-    width: 100%;
-    justify-content: flex-start;
-  }
-}
-
-.mnt-checkbox-group {
-  flex-wrap: wrap;
-
-  .bk-checkbox {
-    margin-top: 8px;
-    margin-left: 0;
-    flex: 0 0 50%;
-  }
-}
-
-.struct-cluster-source-popover {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  gap: 12px;
-  padding: 2px 0;
-
-  .title {
-    font-size: 12px;
-    font-weight: 700;
-    color: #313238;
+  .operations-menu {
+    .bk-button {
+      width: 100%;
+      justify-content: flex-start;
+    }
   }
 
-  .item-row {
+  .mnt-checkbox-group {
+    flex-wrap: wrap;
+
+    .bk-checkbox {
+      margin-top: 8px;
+      margin-left: 0;
+      flex: 0 0 50%;
+    }
+  }
+
+  .struct-cluster-source-popover {
     display: flex;
     width: 100%;
-    align-items: center;
-    overflow: hidden;
+    flex-direction: column;
+    gap: 12px;
+    padding: 2px 0;
 
-    .label {
-      width: 72px;
-      text-align: right;
+    .title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #313238;
     }
 
-    .content {
-      flex: 1;
+    .item-row {
+      display: flex;
+      width: 100%;
+      align-items: center;
       overflow: hidden;
-      cursor: pointer;
+
+      .label {
+        width: 72px;
+        text-align: right;
+      }
+
+      .content {
+        flex: 1;
+        overflow: hidden;
+        cursor: pointer;
+      }
     }
   }
-
-}
 </style>

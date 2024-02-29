@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 module.exports = {
   root: true,
@@ -19,10 +19,9 @@ module.exports = {
     'eslint:recommended',
     '@vue/eslint-config-typescript/recommended',
     './.eslintrc-auto-import.json',
+    'prettier',
   ],
-  plugins: [
-    'simple-import-sort',
-  ],
+  plugins: ['simple-import-sort'],
   env: {
     es6: true,
     node: true,
@@ -42,31 +41,33 @@ module.exports = {
   },
   rules: {
     '@typescript-eslint/no-explicit-any': 'off',
-    // 对象写在一行时，大括号里需要空格
-    // 'object-curly-spacing': ['error', 'always'],
     'simple-import-sort/exports': 'error',
-    'simple-import-sort/imports': ['error', {
-      groups: [
-        ['^[a-zA-Z]'],
-        ['^@services'],
-        ['^@hooks'],
-        ['^@router'],
-        ['^@stores'],
-        ['^@common'],
-        ['^@components'],
-        ['^@views'],
-        ['^@utils'],
-        ['^@helper'],
-        ['^@types'],
-        ['^@locales'],
-        ['^@styles'],
-        ['^@locales'],
-        ['^@images'],
-        ['^@\\w'],
-        ['^\\.\\.'],
-        ['^\\.'],
-      ],
-    }],
+    'simple-import-sort/imports': [
+      'error',
+      {
+        groups: [
+          ['^[a-zA-Z]'],
+          ['^@services'],
+          ['^@hooks'],
+          ['^@router'],
+          ['^@stores'],
+          ['^@common'],
+          ['^@components'],
+          ['^@views'],
+          ['^@utils'],
+          ['^@helper'],
+          ['^@types'],
+          ['^@locales'],
+          ['^@styles'],
+          ['^@locales'],
+          ['^@images'],
+          ['^@\\w'],
+          ['^\\.\\.'],
+          ['^\\.'],
+        ],
+      },
+    ],
+    'import/newline-after-import': 'error',
     'vue/multi-word-component-names': 'off',
   },
   overrides: [
@@ -75,57 +76,68 @@ module.exports = {
       rules: {
         indent: 'off',
         'import/first': 'off',
-        'vue/html-closing-bracket-newline': ['error', {
-          singleline: 'never',
-          multiline: 'never',
-        }],
-        'vue/component-tags-order': ['warn', {
-          order: ['template', 'script', 'style'],
-        }],
-        'vue/attributes-order': ['error', {
-          order: [
-            'DEFINITION',
-            'LIST_RENDERING',
-            'CONDITIONALS',
-            'RENDER_MODIFIERS',
-            'GLOBAL',
-            ['UNIQUE', 'SLOT'],
-            'TWO_WAY_BINDING',
-            'OTHER_DIRECTIVES',
-            'OTHER_ATTR',
-            'EVENTS',
-            'CONTENT',
-          ],
-          alphabetical: true,
-        }],
-        'vue/define-macros-order': ['error', {
-          order: ['defineProps', 'defineEmits'],
-        }],
-        'vue/no-undef-properties': ['error', {
-          ignores: ['/^\\$/'],
-        }],
-        'vue/no-unused-properties': ['error', {
-          groups: ['props'],
-          deepData: false,
-          ignorePublicMembers: false,
-        }],
-        'vue/no-useless-mustaches': ['error', {
-          ignoreIncludesComment: false,
-          ignoreStringEscape: false,
-        }],
-        'vue/no-useless-v-bind': ['error', {
-          ignoreIncludesComment: false,
-          ignoreStringEscape: false,
-        }],
+        'vue/html-closing-bracket-newline': [
+          'error',
+          {
+            singleline: 'never',
+            multiline: 'never',
+          },
+        ],
+        'vue/component-tags-order': ['warn', { order: ['template', 'script', 'style'] }],
+        'vue/attributes-order': [
+          'error',
+          {
+            order: [
+              'DEFINITION',
+              'LIST_RENDERING',
+              'CONDITIONALS',
+              'RENDER_MODIFIERS',
+              'GLOBAL',
+              ['UNIQUE', 'SLOT'],
+              'TWO_WAY_BINDING',
+              'OTHER_DIRECTIVES',
+              'OTHER_ATTR',
+              'EVENTS',
+              'CONTENT',
+            ],
+            alphabetical: true,
+          },
+        ],
+        'vue/define-macros-order': ['error', { order: ['defineProps', 'defineEmits'] }],
+        'vue/no-undef-properties': ['error', { ignores: ['/^\\$/'] }],
+        'vue/no-unused-properties': [
+          'error',
+          {
+            groups: ['props'],
+            deepData: false,
+            ignorePublicMembers: false,
+          },
+        ],
+        'vue/no-useless-mustaches': [
+          'error',
+          {
+            ignoreIncludesComment: false,
+            ignoreStringEscape: false,
+          },
+        ],
+        'vue/no-useless-v-bind': [
+          'error',
+          {
+            ignoreIncludesComment: false,
+            ignoreStringEscape: false,
+          },
+        ],
         'vue/prefer-separate-static-class': 'error',
         'vue/prefer-true-attribute-shorthand': 'error',
-        'vue/script-indent': ['error', 2, {
-          baseIndent: 1,
-        }],
-        'vue/component-name-in-template-casing': ['error', 'PascalCase', {
-          registeredComponentsOnly: false,
-          ignores: [],
-        }],
+        'vue/script-indent': ['error', 2, { baseIndent: 1 }],
+        'vue/component-name-in-template-casing': [
+          'error',
+          'PascalCase',
+          {
+            registeredComponentsOnly: false,
+            ignores: [],
+          },
+        ],
         'vue/no-setup-props-reactivity-loss': 'off',
         'vue/no-setup-props-destructure': 'off',
       },

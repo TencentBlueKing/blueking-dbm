@@ -78,7 +78,11 @@
       <BkFormItem :label="t('是否启用')">
         <BkPopConfirm
           :confirm-text="formdata.enable ? t('停用') : t('启用')"
-          :content="formdata.enable ? t('停用后，在资源规格选择时，将不可见，且不可使用') : t('启用后，在资源规格选择时，将开放选择')"
+          :content="
+            formdata.enable
+              ? t('停用后，在资源规格选择时，将不可见，且不可使用')
+              : t('启用后，在资源规格选择时，将开放选择')
+          "
           :is-show="isShowSwitchTip"
           placement="bottom"
           :title="formdata.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
@@ -101,7 +105,7 @@
     <span
       v-bk-tooltips="{
         content: t('请编辑配置'),
-        disabled: isChange
+        disabled: isChange,
       }"
       class="inline-block">
       <BkButton
@@ -127,13 +131,9 @@
   import { useI18n } from 'vue-i18n';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import {
-    createResourceSpec,
-    updateResourceSpec,
-    verifyDuplicatedSpecName,
-  } from '@services/source/dbresourceSpec';
+  import { createResourceSpec, updateResourceSpec, verifyDuplicatedSpecName } from '@services/source/dbresourceSpec';
 
-  import { useStickyFooter  } from '@hooks';
+  import { useStickyFooter } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -142,24 +142,24 @@
   import SpecCPU from './spec-form-item/SpecCPU.vue';
   import SpecDevice from './spec-form-item/SpecDevice.vue';
   import SpecMem from './spec-form-item/SpecMem.vue';
-  import SpecQps from  './spec-form-item/SpecQPS.vue';
+  import SpecQps from './spec-form-item/SpecQPS.vue';
   import SpecStorage from './spec-form-item/SpecStorage.vue';
 
   import { messageSuccess } from '@/utils';
 
   interface Emits {
-    (e: 'cancel'): void,
-    (e: 'successed'): void,
+    (e: 'cancel'): void;
+    (e: 'successed'): void;
   }
 
   interface Props {
-    clusterType: string,
-    machineType: string,
-    machineTypeLabel: string,
-    mode: string,
-    isEdit: boolean,
-    hasInstance: boolean,
-    data: ResourceSpecModel | null
+    clusterType: string;
+    machineType: string;
+    machineTypeLabel: string;
+    mode: string;
+    isEdit: boolean;
+    hasInstance: boolean;
+    data: ResourceSpecModel | null;
   }
 
   const props = defineProps<Props>();
@@ -237,12 +237,13 @@
       trigger: 'blur',
     },
     {
-      validator: (value: string) => verifyDuplicatedSpecName({
-        spec_cluster_type: props.clusterType,
-        spec_machine_type: props.machineType,
-        spec_name: value,
-        spec_id: props.mode === 'edit' ? formdata.value.spec_id : undefined,
-      }).then(exists => !exists),
+      validator: (value: string) =>
+        verifyDuplicatedSpecName({
+          spec_cluster_type: props.clusterType,
+          spec_machine_type: props.machineType,
+          spec_name: value,
+          spec_id: props.mode === 'edit' ? formdata.value.spec_id : undefined,
+        }).then((exists) => !exists),
       message: t('规格名称已存在_请修改规格'),
       trigger: 'blur',
     },
@@ -250,17 +251,16 @@
 
   useStickyFooter(formWrapperRef, formFooterRef);
 
-  watch([
-    () => formdata.value.cpu,
-    () => formdata.value.mem,
-    () => formdata.value.storage_spec,
-    () => formdata.value.qps,
-  ], () => {
-    if (props.mode === 'create' && isCustomInput.value === false) {
-      formdata.value.spec_name = getName();
-      nameInputRef.value?.clearValidate();
-    }
-  }, { deep: true });
+  watch(
+    [() => formdata.value.cpu, () => formdata.value.mem, () => formdata.value.storage_spec, () => formdata.value.qps],
+    () => {
+      if (props.mode === 'create' && isCustomInput.value === false) {
+        formdata.value.spec_name = getName();
+        nameInputRef.value?.clearValidate();
+      }
+    },
+    { deep: true },
+  );
 
   const handleCancelSwitch = () => {
     isShowSwitchTip.value = false;
@@ -276,7 +276,6 @@
     handleCancelSwitch();
   };
 
-
   const getName = () => {
     const { cpu, mem, storage_spec: StorageSpec, qps } = formdata.value;
     const displayList = [
@@ -289,7 +288,7 @@
         unit: 'G',
       },
       {
-        value: Math.min(...StorageSpec.map(item => Number(item.size))),
+        value: Math.min(...StorageSpec.map((item) => Number(item.size))),
         unit: 'G',
       },
       {
@@ -297,8 +296,9 @@
         unit: '/s',
       },
     ];
-    return displayList.filter(item => item.value)
-      .map(item => item.value + item.unit)
+    return displayList
+      .filter((item) => item.value)
+      .map((item) => item.value + item.unit)
       .join('_');
   };
 
@@ -308,12 +308,13 @@
 
   const submit = () => {
     isLoading.value = true;
-    formRef.value.validate()
+    formRef.value
+      .validate()
       .then(() => {
         const params = Object.assign(_.cloneDeep(formdata.value), {
           spec_id: (formdata.value as ResourceSpecModel).spec_id,
-          device_class: formdata.value.device_class.filter(item => item),
-          storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
+          device_class: formdata.value.device_class.filter((item) => item),
+          storage_spec: formdata.value.storage_spec.filter((item) => item.mount_point && item.size && item.type),
         });
 
         if (props.mode === 'edit') {
@@ -386,7 +387,7 @@
           font-weight: normal;
           color: @danger-color;
           text-align: center;
-          content: "*";
+          content: '*';
         }
       }
 
@@ -400,7 +401,7 @@
           width: 1px;
           height: 100%;
           background-color: #dcdee5;
-          content: "";
+          content: '';
         }
       }
 
@@ -417,7 +418,7 @@
           height: 1px;
           line-height: 22px;
           background-color: #dcdee5;
-          content: "";
+          content: '';
         }
 
         &::after {
@@ -429,7 +430,7 @@
           color: @primary-color;
           text-align: center;
           background-color: #e1ecff;
-          content: "AND";
+          content: 'AND';
         }
 
         &:first-child {
@@ -441,7 +442,7 @@
             background-color: white;
             border-bottom: 1px solid #dcdee5;
             border-left: 1px solid white;
-            content: "";
+            content: '';
           }
         }
 
@@ -458,7 +459,7 @@
             background-color: white;
             border-top: 1px solid #dcdee5;
             border-left: 1px solid white;
-            content: "";
+            content: '';
           }
         }
       }

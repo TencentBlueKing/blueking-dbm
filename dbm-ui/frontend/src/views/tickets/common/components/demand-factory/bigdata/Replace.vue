@@ -137,34 +137,34 @@
 </script>
 
 <style lang="less" scoped>
-@import "@views/tickets/common/styles/DetailsTable.less";
+  @import '@views/tickets/common/styles/DetailsTable.less';
 
-.details-replace {
-  :deep(&__cell) {
-    position: relative;
-    padding: 0 15px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    border-bottom: 1px solid @border-disable;
+  .details-replace {
+    :deep(&__cell) {
+      position: relative;
+      padding: 0 15px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-bottom: 1px solid @border-disable;
 
-    &:last-child {
-      border-bottom: 0;
+      &:last-child {
+        border-bottom: 0;
+      }
     }
-  }
 
-  :deep(&__ip) {
-    line-height: 30px;
-  }
+    :deep(&__ip) {
+      line-height: 30px;
+    }
 
-  &__table {
-    :deep(.bk-table-body table tbody tr) {
-      td {
-        .cell {
-          padding: 0 !important;
+    &__table {
+      :deep(.bk-table-body table tbody tr) {
+        td {
+          .cell {
+            padding: 0 !important;
+          }
         }
       }
     }
   }
-}
 </style>

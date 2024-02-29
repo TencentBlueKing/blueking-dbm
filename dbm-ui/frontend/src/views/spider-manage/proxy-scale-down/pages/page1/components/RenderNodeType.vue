@@ -27,7 +27,7 @@
 <script lang="ts">
   export enum NodeType {
     MASTER = 'spider_master',
-    SLAVE = 'spider_slave'
+    SLAVE = 'spider_slave',
   }
 </script>
 <script setup lang="ts">

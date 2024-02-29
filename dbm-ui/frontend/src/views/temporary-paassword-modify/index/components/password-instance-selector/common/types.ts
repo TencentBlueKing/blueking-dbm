@@ -9,33 +9,30 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import type {
-  ClusterTypes,
-  DBTypes,
-} from '@common/const';
+import type { ClusterTypes, DBTypes } from '@common/const';
 
-export type ClusterTypeOpts = ClusterTypes.TENDBSINGLE | ClusterTypes.TENDBHA | ClusterTypes.TENDBCLUSTER
+export type ClusterTypeOpts = ClusterTypes.TENDBSINGLE | ClusterTypes.TENDBHA | ClusterTypes.TENDBCLUSTER;
 
 export type InstanceSelectorValue = {
-  bk_host_id: number,
-  bk_cloud_id: number,
-  ip: string,
-  port: number
-  instance_address: string,
-  cluster_id: number,
-  cluster_type: ClusterTypes,
-  role: string,
-  db_type: DBTypes
-}
+  bk_host_id: number;
+  bk_cloud_id: number;
+  ip: string;
+  port: number;
+  instance_address: string;
+  cluster_id: number;
+  cluster_type: ClusterTypes;
+  role: string;
+  db_type: DBTypes;
+};
 
 export type InstanceSelectorValues = {
-  tendbha: InstanceSelectorValue[],
-  tendbsingle: InstanceSelectorValue[],
-  tendbcluster: InstanceSelectorValue[]
-}
+  tendbha: InstanceSelectorValue[];
+  tendbsingle: InstanceSelectorValue[];
+  tendbcluster: InstanceSelectorValue[];
+};
 
 export const defaultPanelList = ['tendbsingle', 'tendbha', 'tendbcluster', 'manualInput'] as const;
 
-export type PanelTypes = typeof defaultPanelList[number];
+export type PanelTypes = (typeof defaultPanelList)[number];

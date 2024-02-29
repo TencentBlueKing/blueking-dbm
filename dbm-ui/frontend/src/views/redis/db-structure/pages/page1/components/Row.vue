@@ -13,14 +13,14 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.cluster"
         :inputed="inputedClusters"
         @on-input-finish="handleInputFinish" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderInstance
         ref="instanceRef"
         :cluster-type="data.clusterType"
@@ -28,22 +28,20 @@
         :is-loading="data.isLoading"
         @change="handleChoosedListChange" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderSpec
         :data="data.spec"
         is-ignore-counts
         :is-loading="data.isLoading" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetHostNumber
         ref="hostNumRef"
         :data="data.hostNum"
         :is-loading="data.isLoading"
         :max="targetMax" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetDateTime
         ref="timeRef"
         :data="data.targetDateTime"
@@ -82,16 +80,16 @@
   }
 
   export interface InfoItem {
-    cluster_id: number,
+    cluster_id: number;
     bk_cloud_id: number;
-    master_instances:string[],
-    recovery_time_point: string,
+    master_instances: string[];
+    recovery_time_point: string;
     resource_spec: {
       redis: {
-        spec_id: number,
-        count: number,
-      }
-    }
+        spec_id: number;
+        count: number;
+      };
+    };
   }
 
   // 创建表格数据
@@ -103,27 +101,26 @@
     clusterId: 0,
     bkCloudId: 0,
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    inputedClusters?: string[],
+    data: IDataRow;
+    removeable: boolean;
+    inputedClusters?: string[];
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    inputedClusters: () => ([]),
+    inputedClusters: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -134,8 +131,8 @@
   const timeRef = ref();
   const targetMax = ref(0);
 
-  const handleChoosedListChange  = (arr: string[]) => {
-    targetMax.value  = arr.length;
+  const handleChoosedListChange = (arr: string[]) => {
+    targetMax.value = arr.length;
   };
 
   const handleInputFinish = (value: string) => {
@@ -156,24 +153,23 @@
   defineExpose<Exposes>({
     async getValue() {
       await clusterRef.value.getValue();
-      return Promise.all([
-        instanceRef.value.getValue(), hostNumRef.value.getValue(), timeRef.value.getValue(),
-      ]).then((data) => {
-        const [instances, hostNum, targetDateTime] = data;
-        return {
-          cluster_id: props.data.clusterId,
-          bk_cloud_id: props.data.bkCloudId,
-          master_instances: instances,
-          recovery_time_point: targetDateTime,
-          resource_spec: {
-            redis: {
-              spec_id: props.data.spec?.id ?? 0,
-              count: Number(hostNum),
+      return Promise.all([instanceRef.value.getValue(), hostNumRef.value.getValue(), timeRef.value.getValue()]).then(
+        (data) => {
+          const [instances, hostNum, targetDateTime] = data;
+          return {
+            cluster_id: props.data.clusterId,
+            bk_cloud_id: props.data.bkCloudId,
+            master_instances: instances,
+            recovery_time_point: targetDateTime,
+            resource_spec: {
+              redis: {
+                spec_id: props.data.spec?.id ?? 0,
+                count: Number(hostNum),
+              },
             },
-          },
-        };
-      });
+          };
+        },
+      );
     },
   });
-
 </script>

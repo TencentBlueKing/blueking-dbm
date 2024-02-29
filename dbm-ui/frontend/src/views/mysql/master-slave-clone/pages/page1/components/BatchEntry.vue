@@ -22,7 +22,7 @@
         <table>
           <thead>
             <tr>
-              <th>{{ $t('目标集群') }} </th>
+              <th>{{ $t('目标集群') }}</th>
               <th>{{ $t('新_主从_主机_2台') }}</th>
             </tr>
           </thead>
@@ -46,7 +46,7 @@
         <BkInput
           v-model="localValue"
           :placeholder="placeholder"
-          style="height: 320px; margin: 12px 0 30px;"
+          style="height: 320px; margin: 12px 0 30px"
           type="textarea"
           @input="handleInputChange" />
       </div>
@@ -94,18 +94,21 @@
 <script lang="ts">
   export interface IValue {
     clusterData: {
-      id: number,
-      domain: string,
-      cloudId: number
-    },
-    masterIp: string,
-    slaveIp: string,
+      id: number;
+      domain: string;
+      cloudId: number;
+    };
+    masterIp: string;
+    slaveIp: string;
   }
 
-  type RealDataMap = Record<string, {
-    id: number,
-    bk_cloud_id: number
-  }>
+  type RealDataMap = Record<
+    string,
+    {
+      id: number;
+      bk_cloud_id: number;
+    }
+  >;
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -120,10 +123,9 @@
 
   import { execCopy } from '@/utils';
 
-
   interface IInputParse {
-    domain: string,
-    ips: string,
+    domain: string;
+    ips: string;
   }
 
   interface Props {
@@ -137,7 +139,7 @@
   defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const getInputTextList = (list: Array<IInputParse>) => list.map(_ => `${_.domain} ${_.ips}`);
+  const getInputTextList = (list: Array<IInputParse>) => list.map((_) => `${_.domain} ${_.ips}`);
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -160,9 +162,8 @@
     emits('update:isShow', false);
   };
 
-
   const handleSubmit = () => {
-    const inputRecordList =  localValue.value.split('\n');
+    const inputRecordList = localValue.value.split('\n');
 
     const validList: Array<IInputParse> = [];
     const invalidList: Array<IInputParse> = [];
@@ -199,7 +200,7 @@
       // 主机格式正确
       const ipList = ips.split(/[,，]/);
 
-      if (ipList.length !== 2 || !_.every(ipList, _ => ipv4.test(_))) {
+      if (ipList.length !== 2 || !_.every(ipList, (_) => ipv4.test(_))) {
         invalidList.push(payload);
         return;
       }
@@ -208,21 +209,24 @@
     });
 
     isChecking.value = true;
-    const clusterFilters = validList.map(item => ({
+    const clusterFilters = validList.map((item) => ({
       immute_domain: item.domain,
     }));
     queryClusters({
       cluster_filters: clusterFilters,
       bk_biz_id: currentBizId,
     })
-      .then((data: Array<{master_domain: string, id: number, bk_cloud_id: number}>) => {
-        const realDataMap = data.reduce((result, item) => ({
-          ...result,
-          [item.master_domain]: {
-            id: item.id,
-            bk_cloud_id: item.bk_cloud_id,
-          },
-        }), {} as RealDataMap);
+      .then((data: Array<{ master_domain: string; id: number; bk_cloud_id: number }>) => {
+        const realDataMap = data.reduce(
+          (result, item) => ({
+            ...result,
+            [item.master_domain]: {
+              id: item.id,
+              bk_cloud_id: item.bk_cloud_id,
+            },
+          }),
+          {} as RealDataMap,
+        );
         const resultList: Array<IValue> = [];
         const clusterErrorList: Array<IInputParse> = [];
         validList.forEach((item) => {
@@ -244,17 +248,15 @@
         inputInvalidStack.value = invalidList;
         inputErrorStack.value = errorList;
         inputClusterErrorStack.value = clusterErrorList;
-        if (invalidList.length < 1
-          && errorList.length < 1
-          && clusterErrorList.length < 1) {
+        if (invalidList.length < 1 && errorList.length < 1 && clusterErrorList.length < 1) {
           emits('change', resultList);
           handleClosed();
         } else {
           localValue.value = _.filter([
-            ...invalidList.map(item => `${item.domain} ${item.ips}`),
-            ...errorList.map(item => `${item.domain} ${item.ips}`),
-            ...clusterErrorList.map(item => `${item.domain} ${item.ips}`),
-            ...resultList.map(item => `${item.clusterData.domain} ${item.masterIp},${item.slaveIp}`),
+            ...invalidList.map((item) => `${item.domain} ${item.ips}`),
+            ...errorList.map((item) => `${item.domain} ${item.ips}`),
+            ...clusterErrorList.map((item) => `${item.domain} ${item.ips}`),
+            ...resultList.map((item) => `${item.clusterData.domain} ${item.masterIp},${item.slaveIp}`),
           ]).join('\n');
         }
       })
@@ -291,10 +293,9 @@
   const handleHighClusterError = () => {
     const $inputEl = inputRef.value.querySelector('textarea');
     $inputEl.focus();
-    const invalidText = [
-      ...getInputTextList(inputInvalidStack.value),
-      ...getInputTextList(inputErrorStack.value),
-    ].join('\n');
+    const invalidText = [...getInputTextList(inputInvalidStack.value), ...getInputTextList(inputErrorStack.value)].join(
+      '\n',
+    );
     const clusterErrorText = getInputTextList(inputClusterErrorStack.value).join('\n');
 
     const startIndex = invalidText.length > 0 ? invalidText.length + 1 : 0;

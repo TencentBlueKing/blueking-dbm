@@ -21,7 +21,7 @@
       :label-width="165"
       :model="formData"
       :rules="rules"
-      style="margin-bottom: 16px;">
+      style="margin-bottom: 16px">
       <DbCard :title="t('业务信息')">
         <BusinessItems
           v-model:app-abbr="formData.details.db_app_abbr"
@@ -58,8 +58,7 @@
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
-          <BkRadioGroup
-            v-model="formData.details.ip_source">
+          <BkRadioGroup v-model="formData.details.ip_source">
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -74,10 +73,9 @@
           <div
             v-if="formData.details.ip_source === 'manual_input'"
             class="mb-24">
-            <DbFormItem
-              property="details.nodes.namenode">
+            <DbFormItem property="details.nodes.namenode">
               <template #label>
-                <div style="font-size: 12px; line-height: 16px; text-align: right;">
+                <div style="font-size: 12px; line-height: 16px; text-align: right">
                   <p>NameNode</p>
                   <p>Zookeeper/JournalNode</p>
                 </div>
@@ -91,16 +89,16 @@
                   :disable-host-method="disableHostMethod"
                   required
                   :show-view="false"
-                  style="display: inline-block;"
+                  style="display: inline-block"
                   @change="handleNameAndZookeeperMergeHostChange">
                   <template #submitTips="{ hostList }">
                     <I18nT
                       keypath="至少n台_最多n台_已选n台"
-                      style="font-size: 14px; color: #63656e;"
+                      style="font-size: 14px; color: #63656e"
                       tag="span">
-                      <span style="font-weight: bold; color: #2dcb56;"> 3 </span>
-                      <span style="font-weight: bold; color: #2dcb56;"> 5 </span>
-                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                      <span style="font-weight: bold; color: #2dcb56"> 3 </span>
+                      <span style="font-weight: bold; color: #2dcb56"> 5 </span>
+                      <span style="font-weight: bold; color: #3a84ff"> {{ hostList.length }} </span>
                     </I18nT>
                   </template>
                   <template #desc>
@@ -126,15 +124,15 @@
                   :disable-host-method="datanodeDisableHostMethod"
                   required
                   :show-view="false"
-                  style="display: inline-block;"
+                  style="display: inline-block"
                   @change="handleDatanodeChange">
                   <template #submitTips="{ hostList }">
                     <I18nT
                       keypath="至少n台_已选n台"
-                      style="font-size: 14px; color: #63656e;"
+                      style="font-size: 14px; color: #63656e"
                       tag="span">
-                      <span style="font-weight: bold; color: #2dcb56;"> 2 </span>
-                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                      <span style="font-weight: bold; color: #2dcb56"> 2 </span>
+                      <span style="font-weight: bold; color: #3a84ff"> {{ hostList.length }} </span>
                     </I18nT>
                   </template>
                   <template #desc>
@@ -160,7 +158,7 @@
                           clearable
                           :min="1"
                           show-clear-only-hover
-                          style="width: 130px;"
+                          style="width: 130px"
                           type="number" />
                         <span class="input-desc">{{ t('禁用2181_8480_8485') }}</span>
                       </BkFormItem>
@@ -175,7 +173,7 @@
                           clearable
                           :min="1"
                           show-clear-only-hover
-                          style="width: 130px;"
+                          style="width: 130px"
                           type="number" />
                         <span class="input-desc">{{ t('禁用2181_8480_8485') }}</span>
                       </BkFormItem>
@@ -236,8 +234,8 @@
                   :label="t('数量')"
                   property="details.resource_spec.zookeeper.count"
                   required>
-                  <div style="display: flex; align-items: center;">
-                    <span style="flex-shrink: 0;">
+                  <div style="display: flex; align-items: center">
+                    <span style="flex-shrink: 0">
                       <BkInput
                         v-model="formData.details.resource_spec.zookeeper.count"
                         :max="3"
@@ -246,7 +244,7 @@
                     </span>
                     <span
                       class="input-desc pr-12"
-                      style="line-height: 16px;">
+                      style="line-height: 16px">
                       {{ t('1_3台_小于3时从Namenode节点复用') }}
                     </span>
                   </div>
@@ -289,7 +287,7 @@
               <BkInput
                 disabled
                 :model-value="totalCapacity"
-                style="width: 184px;" />
+                style="width: 184px" />
               <span class="input-desc">G</span>
             </BkFormItem>
           </div>
@@ -301,7 +299,7 @@
             v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
-            style="width: 655px;"
+            style="width: 655px"
             type="textarea" />
         </BkFormItem>
       </DbCard>
@@ -310,7 +308,7 @@
       <div>
         <BkButton
           :loading="baseState.isSubmitting"
-          style="width: 88px;"
+          style="width: 88px"
           theme="primary"
           @click="handleSubmit">
           {{ t('提交') }}
@@ -335,20 +333,11 @@
   import _ from 'lodash';
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
-  import type {
-    BizItem,
-    HostDetails,
-  } from '@services/types';
+  import type { BizItem, HostDetails } from '@services/types';
 
-  import {
-    useApplyBase,
-    useInfo,
-  } from '@hooks';
+  import { useApplyBase, useInfo } from '@hooks';
 
   // import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
@@ -358,9 +347,7 @@
   import DeployVersion from '@components/apply-items/DeployVersion.vue';
   import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
-  import HdfsHostTable, {
-    type IHostTableData,
-  } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
+  import HdfsHostTable, { type IHostTableData } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
   import RenderHostTable from '@components/cluster-common/big-data-host-table/RenderHostTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -428,8 +415,7 @@
     'details.nodes.namenode': [
       {
         required: true,
-        validator: () => formData.details.nodes.namenode.length === 2
-          && formData.details.nodes.zookeeper.length === 3,
+        validator: () => formData.details.nodes.namenode.length === 2 && formData.details.nodes.zookeeper.length === 3,
         message: t('NameNode必须两台_Zookeeper_JournalNode必须三台'),
         trigger: 'change',
       },
@@ -467,22 +453,20 @@
     ],
   };
 
-  watch(() => formData.details.resource_spec.datanode, () => {
-    const count = Number(formData.details.resource_spec.datanode.count);
-    if (specDatanodeRef.value) {
-      const { storage_spec: storageSpec = [] } = specDatanodeRef.value.getData();
-      const disk = storageSpec.reduce((total: number, item: { size: number }) => total + Number(item.size || 0), 0);
-      totalCapacity.value = disk * count;
-    }
-  }, { flush: 'post', deep: true });
+  watch(
+    () => formData.details.resource_spec.datanode,
+    () => {
+      const count = Number(formData.details.resource_spec.datanode.count);
+      if (specDatanodeRef.value) {
+        const { storage_spec: storageSpec = [] } = specDatanodeRef.value.getData();
+        const disk = storageSpec.reduce((total: number, item: { size: number }) => total + Number(item.size || 0), 0);
+        totalCapacity.value = disk * count;
+      }
+    },
+    { flush: 'post', deep: true },
+  );
 
-  const {
-    baseState,
-    bizState,
-    handleCreateAppAbbr,
-    handleCreateTicket,
-    handleCancel,
-  } = useApplyBase();
+  const { baseState, bizState, handleCreateAppAbbr, handleCreateTicket, handleCancel } = useApplyBase();
 
   // 切换业务，需要重置 IP 相关的选择
   function handleChangeBiz(info: BizItem) {
@@ -497,7 +481,7 @@
   /**
    * 变更所属管控区域
    */
-  function handleChangeCloud(info: {id: number | string, name: string}) {
+  function handleChangeCloud(info: { id: number | string; name: string }) {
     cloudInfo.id = info.id;
     cloudInfo.name = info.name;
 
@@ -527,17 +511,20 @@
   const dataNodeDisableDialogSubmitMethod = (hostList: Array<any>) => hostList.length < 2;
   // ip 主机状态校验
   const disableHostMethod = (data: any, list: any[]) => {
-    if (list.length >= 5 && !list.find(item => item.host_id === data.host_id)) {
+    if (list.length >= 5 && !list.find((item) => item.host_id === data.host_id)) {
       return t('至少n台_最多n台_已选n台', [3, 5, list.length]);
     }
 
     return false;
   };
   const datanodeDisableHostMethod = (data: any) => {
-    const hostIdMap = nodeAndZookerperMergeList.value.reduce((result, item) => ({
-      ...result,
-      [item.host_id]: true,
-    }), {} as Record<number, boolean>);
+    const hostIdMap = nodeAndZookerperMergeList.value.reduce(
+      (result, item) => ({
+        ...result,
+        [item.host_id]: true,
+      }),
+      {} as Record<number, boolean>,
+    );
 
     return hostIdMap[data.host_id] ? t('主机已被使用') : false;
   };
@@ -547,72 +534,72 @@
 
   // 提交
   const handleSubmit = () => {
-    formRef.value.validate()
-      .then(() => {
-        baseState.isSubmitting = true;
-        const mapIpField = (ipList: Array<IHostTableData>) => ipList.map(item => ({
+    formRef.value.validate().then(() => {
+      baseState.isSubmitting = true;
+      const mapIpField = (ipList: Array<IHostTableData>) =>
+        ipList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,
           bk_cloud_id: item.cloud_area.id,
           bk_biz_id: item.biz.id,
         }));
 
-        const getDetails = () => {
-          const details: Record<string, any> = _.cloneDeep(formData.details);
-          const { cityName } = regionItemRef.value.getValue();
+      const getDetails = () => {
+        const details: Record<string, any> = _.cloneDeep(formData.details);
+        const { cityName } = regionItemRef.value.getValue();
 
-          if (formData.details.ip_source === 'resource_pool') {
-            delete details.nodes;
-            const regionAndDisasterParams = {
-              affinity: details.disaster_tolerance_level,
-              location_spec: {
-                city: cityName,
-                sub_zone_ids: [],
-              },
-            };
-            return {
-              ...details,
-              resource_spec: {
-                zookeeper: {
-                  ...details.resource_spec.zookeeper,
-                  ...specZookeeperRef.value.getData(),
-                  ...regionAndDisasterParams,
-                  count: Number(details.resource_spec.zookeeper.count),
-                },
-                namenode: {
-                  ...details.resource_spec.namenode,
-                  ...specNamenodeRef.value.getData(),
-                  ...regionAndDisasterParams,
-                  count: Number(details.resource_spec.namenode.count),
-                },
-                datanode: {
-                  ...details.resource_spec.datanode,
-                  ...specDatanodeRef.value.getData(),
-                  ...regionAndDisasterParams,
-                  count: Number(details.resource_spec.datanode.count),
-                },
-              },
-            };
-          }
-
-          delete details.resource_spec;
-          return {
-            ...details,
-            nodes: {
-              zookeeper: mapIpField(formData.details.nodes.zookeeper),
-              namenode: mapIpField(formData.details.nodes.namenode),
-              datanode: mapIpField(formData.details.nodes.datanode),
+        if (formData.details.ip_source === 'resource_pool') {
+          delete details.nodes;
+          const regionAndDisasterParams = {
+            affinity: details.disaster_tolerance_level,
+            location_spec: {
+              city: cityName,
+              sub_zone_ids: [],
             },
           };
-        };
+          return {
+            ...details,
+            resource_spec: {
+              zookeeper: {
+                ...details.resource_spec.zookeeper,
+                ...specZookeeperRef.value.getData(),
+                ...regionAndDisasterParams,
+                count: Number(details.resource_spec.zookeeper.count),
+              },
+              namenode: {
+                ...details.resource_spec.namenode,
+                ...specNamenodeRef.value.getData(),
+                ...regionAndDisasterParams,
+                count: Number(details.resource_spec.namenode.count),
+              },
+              datanode: {
+                ...details.resource_spec.datanode,
+                ...specDatanodeRef.value.getData(),
+                ...regionAndDisasterParams,
+                count: Number(details.resource_spec.datanode.count),
+              },
+            },
+          };
+        }
 
-        const params = {
-          ...formData,
-          details: getDetails(),
+        delete details.resource_spec;
+        return {
+          ...details,
+          nodes: {
+            zookeeper: mapIpField(formData.details.nodes.zookeeper),
+            namenode: mapIpField(formData.details.nodes.namenode),
+            datanode: mapIpField(formData.details.nodes.datanode),
+          },
         };
-        // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
-        bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
-      });
+      };
+
+      const params = {
+        ...formData,
+        details: getDetails(),
+      };
+      // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
+      bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+    });
   };
 
   // 重置表单
@@ -675,7 +662,7 @@
     .resource-pool-item {
       width: 655px;
       padding: 24px 0;
-      background-color: #F5F7FA;
+      background-color: #f5f7fa;
       border-radius: 2px;
 
       .bk-form-item {
@@ -713,7 +700,7 @@
           padding: 0 12px 0 8px;
         }
 
-        tr:nth-child(n+2) {
+        tr:nth-child(n + 2) {
           td {
             padding-top: 24px;
           }

@@ -9,8 +9,9 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { PipelineStatus } from '@common/const';
+
 export default class Spider {
   bk_biz_id: number;
   bk_biz_name: string;
@@ -26,7 +27,7 @@ export default class Spider {
     };
     creator: string;
     desc: string;
-    device_class: Record<string, any>[],
+    device_class: Record<string, any>[];
     mem: {
       max: number;
       min: number;
@@ -44,28 +45,28 @@ export default class Spider {
       size: number;
       type: string;
       mount_point: string;
-    }[]
+    }[];
   };
   cluster_type: string;
   cluster_entry_details: {
-    cluster_entry_type: string,
-    entry: string,
-    role: string,
+    cluster_entry_type: string;
+    entry: string;
+    role: string;
     target_details: {
-      app: string,
-      bk_cloud_iduid: number,
-      dns_str: string,
-      domain_name: string,
-      domain_typeuid: number,
-      ip: string,
-      last_change_time: string,
-      manager: string,
-      port: number,
-      remark: string,
-      start_time: string,
-      status: string,
-      uid: number,
-    }[]
+      app: string;
+      bk_cloud_iduid: number;
+      dns_str: string;
+      domain_name: string;
+      domain_typeuid: number;
+      ip: string;
+      last_change_time: string;
+      manager: string;
+      port: number;
+      remark: string;
+      start_time: string;
+      status: string;
+      uid: number;
+    }[];
   }[];
   create_at: string;
   creator: string;
@@ -76,12 +77,12 @@ export default class Spider {
   major_version: string;
   master_domain: string;
   operations: Array<{
-    cluster_id: number,
-    flow_id: number,
-    status: PipelineStatus,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
+    cluster_id: number;
+    flow_id: number;
+    status: PipelineStatus;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
   }>;
   phase: string;
   region: string;
@@ -101,22 +102,22 @@ export default class Spider {
       cpu: {
         max: number;
         min: number;
-      },
+      };
       id: number;
       mem: {
         max: number;
         min: number;
-      },
+      };
       name: string;
       qps: {
         max: number;
         min: number;
-      },
+      };
       storage_spec: {
         mount_point: string;
         size: number;
         type: string;
-      }[],
+      }[];
     };
   }[];
   remote_dr: Spider['remote_db'];

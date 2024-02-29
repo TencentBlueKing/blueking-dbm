@@ -1,9 +1,6 @@
-import {
-  onMounted,
-  type Ref,
-  ref } from 'vue';
+import { onMounted, type Ref, ref } from 'vue';
 
-export const useMenuStyles = (menuBox: Ref<HTMLElement|undefined>) => {
+export const useMenuStyles = (menuBox: Ref<HTMLElement | undefined>) => {
   const style = ref({});
 
   onMounted(() => {

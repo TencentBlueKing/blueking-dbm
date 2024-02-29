@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 import RedisModel from '@services/model/redis/redis';
@@ -17,15 +17,8 @@ import RedisModel from '@services/model/redis/redis';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type {
-  HostNode,
-  ListBase,
-  ResourceInstance,
-  ResourceTopo,
-} from '../types';
-import type {
-  ResourceRedisItem,
-} from '../types/clusters';
+import type { HostNode, ListBase, ResourceInstance, ResourceTopo } from '../types';
+import type { ResourceRedisItem } from '../types/clusters';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -34,36 +27,45 @@ const path = `/apis/redis/bizs/${currentBizId}/redis_resources`;
 /**
  * 获取集群列表
  */
-export function getRedisList(params: {
-  limit?: number,
-  offset?: number,
-  cluster_ids?: number[] | number,
-  domain?: string,
-  bk_biz_id?: number,
-} = {}) {
-  return http.get<ListBase<RedisModel[]>>(`${path}/`, params)
-    .then(data => ({
-      ...data,
-      results: data.results.map(item => new RedisModel(Object.assign(item, {
-        permission: Object.assign({}, item.permission, data.permission),
-      }))),
-    }));
+export function getRedisList(
+  params: {
+    limit?: number;
+    offset?: number;
+    cluster_ids?: number[] | number;
+    domain?: string;
+    bk_biz_id?: number;
+  } = {},
+) {
+  return http.get<ListBase<RedisModel[]>>(`${path}/`, params).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item) =>
+        new RedisModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
+  }));
 }
 
 /**
  * 根据业务id获取集群列表
  */
-export function getRedisListByBizId(params: {
-  limit?: number,
-  offset?: number,
-  cluster_ids?: number[] | number,
-  domain?: string,
-  bk_biz_id?: number,
-} = {}) {
-  return http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
-    .then(data => ({
+export function getRedisListByBizId(
+  params: {
+    limit?: number;
+    offset?: number;
+    cluster_ids?: number[] | number;
+    domain?: string;
+    bk_biz_id?: number;
+  } = {},
+) {
+  return http
+    .get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
+    .then((data) => ({
       ...data,
-      results: data.results.map(item => new RedisModel(item)),
+      results: data.results.map((item) => new RedisModel(item)),
     }));
 }
 
@@ -71,10 +73,12 @@ export function getRedisListByBizId(params: {
  * 查询表格信息
  */
 export function getRedisTableFields() {
-  return http.get<{
-    key: string,
-    name: string,
-  }[]>(`${path}/get_table_fields/`);
+  return http.get<
+    {
+      key: string;
+      name: string;
+    }[]
+  >(`${path}/get_table_fields/`);
 }
 
 /**
@@ -88,45 +92,45 @@ export function getRedisInstances(params: Record<string, any>) {
  * 集群实例详情
  */
 interface InstanceDetails {
-  bk_cloud_id: number,
-  bk_cpu: number,
-  bk_disk: number,
-  bk_host_id: number,
-  bk_host_innerip: string,
-  bk_mem: number,
-  bk_os_name: string,
-  cluster_id: number,
-  cluster_type: string,
-  create_at: string,
-  idc_city_id: string,
-  idc_city_name: string,
-  idc_id: number,
-  instance_address: string,
-  master_domain: string,
-  net_device_id: string,
-  rack: string,
-  rack_id: number,
-  role: string,
-  slave_domain: string,
-  status: string,
-  sub_zone: string,
-  db_module_id: number,
-  cluster_type_display: string,
-  bk_idc_name: string,
-  bk_cloud_name: string,
-  db_version: string,
-  version?: string
+  bk_cloud_id: number;
+  bk_cpu: number;
+  bk_disk: number;
+  bk_host_id: number;
+  bk_host_innerip: string;
+  bk_mem: number;
+  bk_os_name: string;
+  cluster_id: number;
+  cluster_type: string;
+  create_at: string;
+  idc_city_id: string;
+  idc_city_name: string;
+  idc_id: number;
+  instance_address: string;
+  master_domain: string;
+  net_device_id: string;
+  rack: string;
+  rack_id: number;
+  role: string;
+  slave_domain: string;
+  status: string;
+  sub_zone: string;
+  db_module_id: number;
+  cluster_type_display: string;
+  bk_idc_name: string;
+  bk_cloud_name: string;
+  db_version: string;
+  version?: string;
 }
 
 /**
  * 获取集群实例详情
  */
 export function retrieveRedisInstance(params: {
-  bk_biz_id: number,
-  type: string,
-  instance_address: string,
-  cluster_id?: number
-  dbType: string
+  bk_biz_id: number;
+  type: string;
+  instance_address: string;
+  cluster_id?: number;
+  dbType: string;
 }) {
   return http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
 }
@@ -141,11 +145,7 @@ export function getRedisDetail(params: { id: number }) {
 /**
  * 查询集群主机列表
  */
-export function getRedisNodes(params: {
-  db_type: string;
-  bk_biz_id: string;
-  cluster_id: string;
-}) {
+export function getRedisNodes(params: { db_type: string; bk_biz_id: string; cluster_id: string }) {
   return http.get<HostNode[]>(`${path}/${params.cluster_id}/get_nodes/`, params);
 }
 
@@ -154,9 +154,9 @@ export function getRedisNodes(params: {
  */
 export function getRedisPassword(params: { cluster_id: number }) {
   return http.get<{
-    cluster_name: string,
-    domain: string,
-    password: string
+    cluster_name: string;
+    domain: string;
+    password: string;
   }>(`${path}/${params.cluster_id}/get_password/`);
 }
 

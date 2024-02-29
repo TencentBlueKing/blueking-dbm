@@ -17,15 +17,13 @@
   </div>
 </template>
 <script setup lang="ts">
-
   import { getPulsarDetail } from '@services/source/pulsar';
 
   import RenderBaseInfo from '@components/cluster-common/RenderBaseInfo.vue';
 
   interface Props {
-    data: ServiceReturnType<typeof getPulsarDetail>
+    data: ServiceReturnType<typeof getPulsarDetail>;
   }
 
   defineProps<Props>();
 </script>
-

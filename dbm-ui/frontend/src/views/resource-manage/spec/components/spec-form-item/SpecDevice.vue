@@ -21,7 +21,7 @@
         property="device_class"
         required
         :rules="rules"
-        style="width: 100%;">
+        style="width: 100%">
         <BkSelect
           v-model="localValue"
           :allow-empty-values="['']"
@@ -52,11 +52,11 @@
   import { getDeviceClassList } from '@services/system-setting';
 
   interface Emits {
-    (e: 'update:modelValue', value: string[]): void
+    (e: 'update:modelValue', value: string[]): void;
   }
 
   interface Props {
-    modelValue: string[]
+    modelValue: string[];
   }
 
   const props = defineProps<Props>();
@@ -73,20 +73,21 @@
     },
   ];
 
-  const {
-    loading: isLoading,
-    data: deviceClassList,
-  } = useRequest(getDeviceClassList);
+  const { loading: isLoading, data: deviceClassList } = useRequest(getDeviceClassList);
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue.length === 0) {
-      localValue.value = '';
-      return;
-    }
-    localValue.value = props.modelValue;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue.length === 0) {
+        localValue.value = '';
+        return;
+      }
+      localValue.value = props.modelValue;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = () => {
     emits('update:modelValue', localValue.value as string[]);
@@ -94,5 +95,5 @@
 </script>
 
 <style lang="less" scoped>
-  @import "./specFormItem.less";
+  @import './specFormItem.less';
 </style>

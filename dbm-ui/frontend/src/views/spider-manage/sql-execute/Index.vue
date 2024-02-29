@@ -15,11 +15,7 @@
   <Component :is="com" />
 </template>
 <script setup lang="ts">
-  import {
-    computed,
-    ref,
-    watch,
-  } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import { useRoute } from 'vue-router';
 
   import Step1 from './steps/step1/Index.vue';
@@ -43,9 +39,13 @@
     return Step1;
   });
 
-  watch(route, () => {
-    step.value = route.params.step as string;
-  }, {
-    immediate: true,
-  });
+  watch(
+    route,
+    () => {
+      step.value = route.params.step as string;
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>

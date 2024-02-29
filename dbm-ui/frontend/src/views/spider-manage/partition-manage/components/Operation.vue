@@ -115,25 +115,21 @@
   import { useRequest } from 'vue-request';
 
   import type PartitionModel from '@services/model/partition/partition';
-  import {
-    create as createParitition,
-    edit as editPartition,
-    verifyPartitionField,
-  } from '@services/partitionManage';
+  import { create as createParitition, edit as editPartition, verifyPartitionField } from '@services/partitionManage';
   import { getSpiderList } from '@services/source/spider';
 
   import { dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
 
   interface Props {
-    data?: PartitionModel
+    data?: PartitionModel;
   }
-  interface Emits{
-    (e: 'editSuccess'): void,
-    (e: 'createSuccess', params: ServiceReturnType<typeof createParitition>, clusterId: number): void
+  interface Emits {
+    (e: 'editSuccess'): void;
+    (e: 'createSuccess', params: ServiceReturnType<typeof createParitition>, clusterId: number): void;
   }
   interface Expose {
-    submit: () => Promise<any>
+    submit: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -163,17 +159,17 @@
         trigger: 'blur',
       },
       {
-        validator: (value: string[]) => !value.some(item => item === '*'),
+        validator: (value: string[]) => !value.some((item) => item === '*'),
         message: t('目标 DB 不能为*'),
         trigger: 'blur',
       },
       {
-        validator: (value: string[]) => value.every(item => dbRegex.test(item)),
+        validator: (value: string[]) => value.every((item) => dbRegex.test(item)),
         message: t('只允许数字、大小写字母开头和结尾，或%结尾'),
         trigger: 'change',
       },
       {
-        validator: (value: string[]) => value.every(item => !dbSysExclude.includes(item)),
+        validator: (value: string[]) => value.every((item) => !dbSysExclude.includes(item)),
         message: t('不能是系统库'),
         trigger: 'change',
       },
@@ -186,7 +182,7 @@
         trigger: 'blur',
       },
       {
-        validator: (value: string[]) => value.every(item => !/[*%?]/.test(item)),
+        validator: (value: string[]) => value.every((item) => !/[*%?]/.test(item)),
         message: t('不支持通配符 *, %, ?'),
         trigger: 'blur',
       },
@@ -194,10 +190,12 @@
     partition_column: [
       {
         validator: () => {
-          if (!formData.cluster_id
-            || formData.dblikes.length < 1
-            || formData.tblikes.length < 1
-            || !formData.partition_column_type) {
+          if (
+            !formData.cluster_id ||
+            formData.dblikes.length < 1 ||
+            formData.tblikes.length < 1 ||
+            !formData.partition_column_type
+          ) {
             return false;
           }
           return true;
@@ -206,13 +204,14 @@
         trigger: 'blur',
       },
       {
-        validator: (value: string) => verifyPartitionField({
-          cluster_id: formData.cluster_id,
-          dblikes: formData.dblikes,
-          tblikes: formData.tblikes,
-          partition_column: value,
-          partition_column_type: formData.partition_column_type,
-        }),
+        validator: (value: string) =>
+          verifyPartitionField({
+            cluster_id: formData.cluster_id,
+            dblikes: formData.dblikes,
+            tblikes: formData.tblikes,
+            partition_column: value,
+            partition_column_type: formData.partition_column_type,
+          }),
         message: t('分区字段验证失败'),
         trigger: 'blur',
       },
@@ -220,7 +219,7 @@
     expire_time: [
       {
         required: true,
-        validator: (value: number) =>  Boolean(value),
+        validator: (value: number) => Boolean(value),
         message: t('数据过期时间不能为空'),
         trigger: 'blur',
       },
@@ -237,29 +236,32 @@
     ],
   };
 
-  const {
-    loading: isCluserListLoading,
-    data: clusterList,
-  } = useRequest(getSpiderList, {
-    defaultParams: [{
-      limit: -1,
-    }],
+  const { loading: isCluserListLoading, data: clusterList } = useRequest(getSpiderList, {
+    defaultParams: [
+      {
+        limit: -1,
+      },
+    ],
   });
 
-  watch(() => props.data, () => {
-    if (props.data) {
-      formData.cluster_id = props.data.cluster_id;
-      formData.dblikes = [props.data.dblike];
-      formData.tblikes = [props.data.tblike];
-      formData.partition_column = props.data.partition_columns;
-      formData.partition_column_type = props.data.partition_column_type;
-      formData.expire_time = props.data.expire_time;
-      formData.partition_time_interval = props.data.partition_time_interval;
-    }
-    isEditMode.value = Boolean(props.data && props.data.id);
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data) {
+        formData.cluster_id = props.data.cluster_id;
+        formData.dblikes = [props.data.dblike];
+        formData.tblikes = [props.data.tblike];
+        formData.partition_column = props.data.partition_columns;
+        formData.partition_column_type = props.data.partition_column_type;
+        formData.expire_time = props.data.expire_time;
+        formData.partition_time_interval = props.data.partition_time_interval;
+      }
+      isEditMode.value = Boolean(props.data && props.data.id);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleTblikeFocus = () => {
     isTblikePopShow.value = true;
@@ -274,19 +276,18 @@
 
   defineExpose<Expose>({
     submit() {
-      return formRef.value.validate()
-        .then(() => {
-          if (props.data && props.data.id) {
-            return editPartition({
-              id: props.data.id,
-              ...formData,
-            }).then(() => emits('editSuccess'));
-          }
-
-          return createParitition({
+      return formRef.value.validate().then(() => {
+        if (props.data && props.data.id) {
+          return editPartition({
+            id: props.data.id,
             ...formData,
-          }).then(data => emits('createSuccess', data, formData.cluster_id));
-        });
+          }).then(() => emits('editSuccess'));
+        }
+
+        return createParitition({
+          ...formData,
+        }).then((data) => emits('createSuccess', data, formData.cluster_id));
+      });
     },
   });
 </script>

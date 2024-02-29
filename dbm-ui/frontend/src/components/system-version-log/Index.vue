@@ -7,8 +7,7 @@
     <div
       ref="log"
       class="system-log-layout">
-      <div
-        class="layout-left">
+      <div class="layout-left">
         <ScrollFaker
           v-if="versionLogList"
           class="version-wraper">
@@ -49,16 +48,11 @@
   </BkDialog>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-  } from 'vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getVersionLogDetail,
-    getVersionLogList,
-  } from '@services/source/versionLog';
+  import { getVersionLogDetail, getVersionLogList } from '@services/source/versionLog';
 
   const { t } = useI18n();
 
@@ -86,10 +80,7 @@
     });
   };
 
-  const {
-    loading: isVersionLogListLoading,
-    data: versionLogList,
-  } = useRequest(getVersionLogList, {
+  const { loading: isVersionLogListLoading, data: versionLogList } = useRequest(getVersionLogList, {
     onSuccess(data) {
       if (data.length > 0) {
         const [[lastVersion]] = data;
@@ -97,19 +88,18 @@
       }
     },
   });
-
 </script>
 <style lang="less">
   .db-system-version-log-dialog {
-    .bk-modal-body{
+    .bk-modal-body {
       padding: 0 !important;
 
       .bk-modal-header,
-      .bk-modal-footer{
+      .bk-modal-footer {
         display: none;
       }
 
-      .bk-modal-content{
+      .bk-modal-content {
         padding: 0 !important;
       }
     }
@@ -134,7 +124,7 @@
         width: 1px;
         height: 100%;
         background: #dcdee5;
-        content: "";
+        content: '';
       }
     }
 
@@ -184,7 +174,7 @@
         width: 4px;
         height: 100%;
         border: 1px solid transparent;
-        content: "";
+        content: '';
       }
 
       .title {
@@ -228,13 +218,12 @@
         height: auto;
         margin: 10px 0;
         font:
-          normal 14px/1.5
-          "Helvetica Neue",
+          normal 14px/1.5 'Helvetica Neue',
           Helvetica,
           Arial,
-          "Lantinghei SC",
-          "Hiragino Sans GB",
-          "Microsoft Yahei",
+          'Lantinghei SC',
+          'Hiragino Sans GB',
+          'Microsoft Yahei',
           sans-serif;
         font-weight: bold;
         color: #34383e;
@@ -317,7 +306,7 @@
           margin-left: -15px;
           background: #000;
           border-radius: 50%;
-          content: "";
+          content: '';
         }
       }
 
@@ -367,7 +356,7 @@
       code {
         width: 95%;
         padding: 0 3px 2px;
-        font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+        font-family: Monaco, Menlo, Consolas, 'Courier New', monospace;
         font-size: 14px;
         color: #333;
         border-radius: 3px;
@@ -421,12 +410,12 @@
       }
 
       blockquote small::before {
-        content: "\2014 \00A0";
+        content: '\2014 \00A0';
       }
 
       blockquote::before,
       blockquote::after {
-        content: "";
+        content: '';
       }
     }
   }

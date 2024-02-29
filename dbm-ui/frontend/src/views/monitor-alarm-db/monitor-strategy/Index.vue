@@ -79,22 +79,21 @@
   ];
 
   const activeTab = ref(dbType ? dbType : tabs[0].value);
-
 </script>
 <style lang="less">
-.monitor-strategy-page{
-  .top-tabs{
-    background: #fff;
-    box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+  .monitor-strategy-page {
+    .top-tabs {
+      background: #fff;
+      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-    .bk-tab-content{
-      display: none;
+      .bk-tab-content {
+        display: none;
+      }
+    }
+
+    .monitor-strategy-content {
+      height: calc(100vh - 150px);
+      padding: 24px;
     }
   }
-
-  .monitor-strategy-content {
-    height: calc(100vh - 150px);
-    padding: 24px;
-  }
-}
 </style>

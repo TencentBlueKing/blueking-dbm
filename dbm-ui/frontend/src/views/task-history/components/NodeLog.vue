@@ -25,7 +25,7 @@
           <span
             v-overflow-tips="{
               content: `【${nodeData.name}】 ${t('日志详情')}`,
-              theme: 'light'
+              theme: 'light',
             }"
             class="log-header__title text-overflow">
             {{ `【${nodeData.name}】 ${t('日志详情')}` }}
@@ -58,7 +58,7 @@
             <BkButton
               class="refresh-btn"
               :loading="retryLoading"
-              @click="() => refreshShow = true">
+              @click="() => (refreshShow = true)">
               <i class="db-icon-refresh mr5" />{{ $t('失败重试') }}
             </BkButton>
             <template #content>
@@ -69,10 +69,14 @@
                 <div class="btn">
                   <span
                     class="bk-button-primary bk-button mr-8"
-                    @click="handleRefresh">{{ $t('确定') }}</span>
+                    @click="handleRefresh">
+                    {{ $t('确定') }}
+                  </span>
                   <span
                     class="bk-button"
-                    @click="() => refreshShow = false">{{ $t('取消') }}</span>
+                    @click="() => (refreshShow = false)">
+                    {{ $t('取消') }}
+                  </span>
                 </div>
               </div>
             </template>
@@ -85,7 +89,10 @@
         ref="logContentRef"
         class="log-content">
         <div class="log-tools">
-          <span class="log-tools-title">{{ $t('执行日志') }} <span> {{ $t('日志保留7天_如需要请下载保存') }}</span></span>
+          <span class="log-tools-title">
+            {{ $t('执行日志') }}
+            <span> {{ $t('日志保留7天_如需要请下载保存') }}</span>
+          </span>
           <div class="log-tools-bar">
             <i
               v-bk-tooltips="$t('复制')"
@@ -114,11 +121,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getNodeLog,
-    getRetryNodeHistories,
-    retryTaskflowNode,
-  } from '@services/source/taskflow';
+  import { getNodeLog, getRetryNodeHistories, retryTaskflowNode } from '@services/source/taskflow';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import BkLog from '@components/vue2/bk-log/index.vue';
@@ -134,22 +137,21 @@
 
   import { useCopy } from '@/hooks';
 
-
-  type NodeLog = ServiceReturnType<typeof getNodeLog>[number]
+  type NodeLog = ServiceReturnType<typeof getNodeLog>[number];
 
   interface Props {
-    isShow?: boolean,
-    node?: GraphNode,
+    isShow?: boolean;
+    node?: GraphNode;
   }
 
   interface Emits {
-    (e: 'close'): void
-    (e: 'refresh'): void
+    (e: 'close'): void;
+    (e: 'refresh'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     isShow: false,
-    node: () => ({} as GraphNode),
+    node: () => ({}) as GraphNode,
   });
   const emits = defineEmits<Emits>();
 
@@ -165,7 +167,7 @@
 
   const nodeData = computed(() => props.node.data || {});
   const status = computed(() => {
-    const themesMap =  {
+    const themesMap = {
       FINISHED: 'success',
       RUNNING: 'info',
       FAILED: 'danger',
@@ -194,10 +196,7 @@
     return 0;
   });
 
-  const {
-    loading: retryLoading,
-    run: runRetryTaskflowNode,
-  } = useRequest(retryTaskflowNode, {
+  const { loading: retryLoading, run: runRetryTaskflowNode } = useRequest(retryTaskflowNode, {
     manual: true,
     onSuccess: () => {
       messageSuccess(t('重试成功'));
@@ -222,7 +221,9 @@
 
   /** 获取日志及下载日志接口  */
   const getNodeLogRequest = (isInit?: boolean) => {
-    if (!currentData.value.version) return;
+    if (!currentData.value.version) {
+      return;
+    }
 
     const params: any = {
       root_id: rootId,
@@ -243,14 +244,21 @@
 
   const { isActive, pause, resume } = useTimeoutPoll(getNodeLogRequest, 5000);
 
-  watch(() => STATUS_RUNNING.value, (val) => {
-    val && !isActive.value && resume();
-    !val && isActive.value && pause();
-  });
+  watch(
+    () => STATUS_RUNNING.value,
+    (val) => {
+      val && !isActive.value && resume();
+      !val && isActive.value && pause();
+    },
+  );
 
-  watch(() => props.isShow, () => {
-    state.isShow = props.isShow;
-  }, { immediate: true });
+  watch(
+    () => props.isShow,
+    () => {
+      state.isShow = props.isShow;
+    },
+    { immediate: true },
+  );
 
   /**
    * 日志全屏切换
@@ -315,7 +323,7 @@
   };
   const handleCopyLog = () => {
     const logData = formatLogData(logState.data);
-    copy(logData.map(item => item.message).join('\n'));
+    copy(logData.map((item) => item.message).join('\n'));
   };
 
   const handleRefresh = () => {
@@ -334,11 +342,10 @@
     emits('close');
     pause();
   };
-
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .tips-content {
     font-weight: normal;

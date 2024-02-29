@@ -40,12 +40,12 @@
   import { messageError } from '@utils';
 
   interface Emits {
-    (e: 'change', value: string): void
-    (e: 'close'): void
+    (e: 'change', value: string): void;
+    (e: 'close'): void;
   }
 
   interface Props {
-    originName: string
+    originName: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -71,7 +71,8 @@
   });
 
   const handleSubmit = () => {
-    formRef.value?.validate()
+    formRef.value
+      ?.validate()
       .then(() => {
         if (name.value && props.originName !== name.value) {
           emits('change', name.value);
@@ -89,11 +90,11 @@
 </script>
 
 <style lang="less" scoped>
-.group-form {
-  width: 100%;
+  .group-form {
+    width: 100%;
 
-  :deep(.bk-form-content) {
-    margin: 0 !important;
+    :deep(.bk-form-content) {
+      margin: 0 !important;
+    }
   }
-}
 </style>

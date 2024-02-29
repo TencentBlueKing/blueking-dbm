@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import http from '../http';
 import type { ListBase } from '../types';
@@ -17,14 +17,14 @@ import type { ListBase } from '../types';
 const path = '/apis/group';
 
 interface InfluxDBGroupItem {
-  id: number,
-  creator: string,
-  create_at: string,
-  updater: string,
-  update_at: string,
-  bk_biz_id: number,
-  instance_count: number,
-  name: string
+  id: number;
+  creator: string;
+  create_at: string;
+  updater: string;
+  update_at: string;
+  bk_biz_id: number;
+  instance_count: number;
+  name: string;
 }
 
 /**
@@ -40,10 +40,7 @@ export function getGroupList(params: { bk_biz_id: number }) {
 /**
  * 创建分组
  */
-export function createGroup(params: {
-  bk_biz_id: number,
-  name: string
-}) {
+export function createGroup(params: { bk_biz_id: number; name: string }) {
   return http.post<InfluxDBGroupItem>(`${path}/`, params);
 }
 
@@ -57,11 +54,7 @@ export function getGroupInfo(params: { id: number }) {
 /**
  * 更新分组信息
  */
-export function updateGroupInfo(params: {
-  id: number,
-  bk_biz_id: number,
-  name: string
-}) {
+export function updateGroupInfo(params: { id: number; bk_biz_id: number; name: string }) {
   return http.put<InfluxDBGroupItem>(`${path}/${params.id}/`, params);
 }
 
@@ -75,9 +68,6 @@ export function deleteGroup(params: { id: number }) {
 /**
  * 移动实例到新分组
  */
-export function moveInstancesToGroup(params: {
-  new_group_id: number,
-  instance_ids: number[]
-}) {
+export function moveInstancesToGroup(params: { new_group_id: number; instance_ids: number[] }) {
   return http.post(`${path}/move_instances/`, params);
 }

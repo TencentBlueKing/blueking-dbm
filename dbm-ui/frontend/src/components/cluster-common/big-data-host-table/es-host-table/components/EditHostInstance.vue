@@ -28,16 +28,13 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    nextTick,
-    ref,
-  } from 'vue';
+  import { nextTick, ref } from 'vue';
 
   interface Props {
-    modelValue: number
+    modelValue: number;
   }
   interface Emits {
-    (e: 'change', value: number): void
+    (e: 'change', value: number): void;
   }
 
   const props = defineProps<Props>();
@@ -64,7 +61,7 @@
   };
 </script>
 <style lang="less">
-  .es-cluster-node-edit-host-instance{
+  .es-cluster-node-edit-host-instance {
     display: block;
   }
 </style>

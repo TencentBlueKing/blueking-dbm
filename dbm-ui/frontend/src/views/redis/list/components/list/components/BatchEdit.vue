@@ -21,7 +21,7 @@
     :width="width">
     <i
       class="db-icon-bulk-edit batch-edit__trigger"
-      @click="() => state.isShow = true" />
+      @click="() => (state.isShow = true)" />
     <template #content>
       <div class="batch-edit__content">
         <p class="batch-edit__header">
@@ -56,21 +56,24 @@
 
 <script setup lang="ts">
   type ErrorInfo = {
-    isPass: boolean,
-    errorText: string
-  }
+    isPass: boolean;
+    errorText: string;
+  };
 
   interface Props {
-    title?: string,
-    width?: number,
-    validator?: (errorText: string, value?: string) => {
+    title?: string;
+    width?: number;
+    validator?: (
+      errorText: string,
+      value?: string,
+    ) => {
       isPass: boolean;
       errorText: string;
-    }
+    };
   }
 
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: string): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -99,23 +102,31 @@
     return true;
   }
 
-  watch(() => state.isShow, (show) => {
-    if (show === false) {
-      state.value = '';
-      state.isShowError = false;
-    }
-  });
+  watch(
+    () => state.isShow,
+    (show) => {
+      if (show === false) {
+        state.value = '';
+        state.isShowError = false;
+      }
+    },
+  );
 
-  watch(() => state.value, (value) => {
-    value && handleValidate();
-  });
+  watch(
+    () => state.value,
+    (value) => {
+      value && handleValidate();
+    },
+  );
 
   /**
    * confirm batch edit
    */
   async function handleConfirm() {
     await handleValidate();
-    if (state.isShowError === true) return;
+    if (state.isShowError === true) {
+      return;
+    }
 
     emits('change', state.value);
     handleCancel();

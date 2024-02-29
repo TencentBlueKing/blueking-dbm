@@ -31,7 +31,7 @@
         :pagination="pagination"
         remote-pagination
         :settings="tableSettings"
-        style="margin-top: 12px;"
+        style="margin-top: 12px"
         @clear-search="handleClearSearch"
         @page-limit-change="handlePageLimitChange"
         @page-value-change="handlePageValueChange"

@@ -15,7 +15,7 @@
   <div class="main-content">
     <BkLoading
       :loading="state.loading"
-      style="height: 100%;"
+      style="height: 100%"
       :z-index="12">
       <ConfigEmpty v-if="showEmpty" />
       <BkTab
@@ -53,22 +53,20 @@
    * 顶部 tabs
    */
   const activatedTab = ref('base');
-  const tabs = reactive([{
-    label: t('参数管理'),
-    name: 'base',
-  }]);
+  const tabs = reactive([
+    {
+      label: t('参数管理'),
+      name: 'base',
+    },
+  ]);
 
-  const {
-    state,
-    fetchParams,
-    dbType,
-  } = useBaseDetails();
+  const { state, fetchParams, dbType } = useBaseDetails();
 
   const showEmpty = computed(() => state.isEmpty && dbType.value === DBTypes.MYSQL);
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/common.less";
+  @import '@styles/common.less';
 
   .main-content {
     height: calc(100% - 42px);

@@ -16,30 +16,26 @@
     <td class="ticket-column">
       {{ data.relateTicket }}
     </td>
-    <td style="padding: 0;">
-      <RenderText
-        :data="data.srcCluster" />
+    <td style="padding: 0">
+      <RenderText :data="data.srcCluster" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderInstance
         ref="instanceRef"
         :data="data.instances"
         :select-list="instances" />
     </td>
-    <td
-      style="padding: 0;">
-      <RenderText
-        :data="data.targetCluster" />
+    <td style="padding: 0">
+      <RenderText :data="data.targetCluster" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderKeyRelated
         ref="includeKeyRef"
         :data="data.includeKey"
         :required="isIncludeKeyRequired"
         @change="handleIncludeKeysChange" />
     </td>
-    <td
-      style="padding: 0;">
+    <td style="padding: 0">
       <RenderKeyRelated
         ref="excludeKeyRef"
         :data="data.excludeKey"
@@ -49,7 +45,6 @@
   </tr>
 </template>
 <script lang="ts">
-
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
@@ -71,20 +66,19 @@
     src_cluster: string; // 源集群,来自于数据复制记录
     src_instances: string[]; // 源实例列表
     dst_cluster: string; // 目的集群,来自于数据复制记录
-    key_white_regex: string;// 包含key
-    key_black_regex:string;// 排除key
+    key_white_regex: string; // 包含key
+    key_black_regex: string; // 排除key
   }
-
 </script>
 <script setup lang="ts">
   import { getRedisList } from '@services/source/redis';
 
   interface Props {
-    data: IDataRow,
+    data: IDataRow;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = defineProps<Props>();
@@ -97,13 +91,17 @@
   const isIncludeKeyRequired = ref(false);
   const isExcludeKeyRequired = ref(false);
 
-  watch(() => props.data.srcCluster, (domain) => {
-    setTimeout(() => {
-      queryInstances(domain);
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data.srcCluster,
+    (domain) => {
+      setTimeout(() => {
+        queryInstances(domain);
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleIncludeKeysChange = (arr: string[]) => {
     isExcludeKeyRequired.value = arr.length === 0;
@@ -120,7 +118,7 @@
       return;
     }
     const data = result.results[0];
-    instances.value = data.redis_master.map(row => `${row.ip}:${row.port}`);
+    instances.value = data.redis_master.map((row) => `${row.ip}:${row.port}`);
   };
 
   defineExpose<Exposes>({
@@ -130,11 +128,7 @@
         includeKeyRef.value.getValue(),
         excludeKeyRef.value.getValue(),
       ]).then((data) => {
-        const [
-          instances,
-          includeKey,
-          excludeKey,
-        ] = data;
+        const [instances, includeKey, excludeKey] = data;
         return {
           bill_id: props.data.billId,
           src_cluster: props.data.srcCluster,
@@ -146,42 +140,41 @@
       });
     },
   });
-
 </script>
 <style lang="less" scoped>
-.ticket-column {
-  width: 100%;
-  padding: 10px 16px;
-  overflow: hidden;
-  line-height: 20px;
-  color: #3A84FF;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+  .ticket-column {
+    width: 100%;
+    padding: 10px 16px;
+    overflow: hidden;
+    line-height: 20px;
+    color: #3a84ff;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-.action-box {
-  display: flex;
-  align-items: center;
-
-  .action-btn {
+  .action-box {
     display: flex;
-    font-size: 14px;
-    color: #c4c6cc;
-    cursor: pointer;
-    transition: all 0.15s;
+    align-items: center;
 
-    &:hover {
-      color: #979ba5;
-    }
+    .action-btn {
+      display: flex;
+      font-size: 14px;
+      color: #c4c6cc;
+      cursor: pointer;
+      transition: all 0.15s;
 
-    &.disabled {
-      color: #dcdee5;
-      cursor: not-allowed;
-    }
+      &:hover {
+        color: #979ba5;
+      }
 
-    & ~ .action-btn {
-      margin-left: 18px;
+      &.disabled {
+        color: #dcdee5;
+        cursor: not-allowed;
+      }
+
+      & ~ .action-btn {
+        margin-left: 18px;
+      }
     }
   }
-}
 </style>

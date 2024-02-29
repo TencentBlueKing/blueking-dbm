@@ -54,12 +54,12 @@
     :rules="rules">
     <template #label>
       <span>{{ t('执行时间') }}</span>
-      <span style="font-weight: normal; color: #979ba5;">
+      <span style="font-weight: normal; color: #979ba5">
         {{ t('在审批通过后_将会按照设置的时间定时执行_无需人工确认_如审批超时_需_人工确认_后才能执行') }}
       </span>
     </template>
     <div class="sql-execute-time-box">
-      <TimeZonePicker style="width: 350px;" />
+      <TimeZonePicker style="width: 350px" />
       <div ref="timeRef">
         <BkDatePicker
           v-model="localTriggerTime"
@@ -81,13 +81,13 @@
 
   interface Props {
     modelValue: {
-      mode: string,
-      trigger_time: string,
-    }
+      mode: string;
+      trigger_time: string;
+    };
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: Props['modelValue']): void
+    (e: 'update:modelValue', value: Props['modelValue']): void;
   }
 
   const props = defineProps<Props>();
@@ -110,10 +110,13 @@
   const localMode = ref(props.modelValue.mode);
   const localTriggerTime = ref(props.modelValue.trigger_time);
 
-  watch(() => props.modelValue, () => {
-    localMode.value = props.modelValue.mode;
-    localTriggerTime.value = props.modelValue.trigger_time;
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      localMode.value = props.modelValue.mode;
+      localTriggerTime.value = props.modelValue.trigger_time;
+    },
+  );
 
   const triggerChange = () => {
     nextTick(() => {

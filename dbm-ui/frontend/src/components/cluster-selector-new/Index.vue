@@ -73,8 +73,7 @@
                 @click.stop="handleChangeTab(tabItem)">
                 {{ tabItem.name }}
               </div>
-              <template
-                #content>
+              <template #content>
                 <div class="tab-tips">
                   <h4>{{ t('切换类型说明') }}</h4>
                   <p>{{ t('切换后如果重新选择_选择结果将会覆盖原来选择的内容') }}</p>
@@ -408,7 +407,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .cluster-selector {
     font-size: @font-size-mini;

@@ -25,8 +25,8 @@
     </span>
     <div
       ref="popRef"
-      style=" font-size: 12px; line-height: 24px;color: #63656e;">
-      <p style="font-weight: bold;">
+      style="font-size: 12px; line-height: 24px; color: #63656e">
+      <p style="font-weight: bold">
         {{ $t('可使用通配符进行提取，如：') }}
       </p>
       <p>{{ $t('*Key$ ：提取以 Key 结尾的 key，包括 Key') }}</p>
@@ -36,23 +36,20 @@
   </div>
 </template>
 <script setup lang="ts">
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
   import TableEditTag from '@views/redis/common/edit/Tag.vue';
 
   interface Props {
-    data: string [],
-    required?: boolean
+    data: string[];
+    required?: boolean;
   }
   interface Emits {
-    (e: 'change', value: string[]): void
+    (e: 'change', value: string[]): void;
   }
   interface Exposes {
-    getValue: () => Promise<string []>
+    getValue: () => Promise<string[]>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -67,7 +64,7 @@
   const { t } = useI18n();
   const rules = [
     {
-      validator: (value: string []) => {
+      validator: (value: string[]) => {
         if (!props.required) {
           return true;
         }

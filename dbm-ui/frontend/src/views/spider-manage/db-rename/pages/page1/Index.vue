@@ -33,13 +33,15 @@
       <div class="bottom-opeartion">
         <BkCheckbox
           v-model="isIgnore"
-          style="padding-top: 6px;" />
+          style="padding-top: 6px" />
         <span
           v-bk-tooltips="{
             content: t('如忽略_有连接的情况下也会执行'),
             theme: 'dark',
           }"
-          class="ml-6 force-switch">{{ t('忽略业务连接') }}</span>
+          class="ml-6 force-switch">
+          {{ t('忽略业务连接') }}
+        </span>
       </div>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
@@ -83,10 +85,7 @@
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -94,11 +93,11 @@
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const isIgnore = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -109,9 +108,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.clusterData
-      && !firstRow.fromDatabase
-      && !firstRow.toDatabase;
+    return !firstRow.clusterData && !firstRow.fromDatabase && !firstRow.toDatabase;
   };
 
   // 批量选择
@@ -120,7 +117,7 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChange = (selected: { [key: string]: Array<SpiderModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
@@ -161,22 +158,24 @@
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
-      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== domain);
     }
   };
 
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
-        remark: '',
-        details: {
-          force: isIgnore.value,
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }))
+      .then((data) =>
+        createTicket({
+          ticket_type: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
+          remark: '',
+          details: {
+            force: isIgnore.value,
+            infos: data,
+          },
+          bk_biz_id: currentBizId,
+        }),
+      )
       .then((data) => {
         window.changeConfirm = false;
         router.push({
@@ -214,7 +213,7 @@
 
       .force-switch {
         font-size: 12px;
-        border-bottom: 1px dashed #63656E;
+        border-bottom: 1px dashed #63656e;
       }
     }
   }

@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import http from '../http';
 
@@ -18,19 +18,12 @@ const path = '/apis/conf/biz_settings';
 /**
  * 创建业务配置
  */
-export const create = function (params: {
-  bk_biz_id: number,
-  type: string,
-  key: string,
-  value: any,
-}) {
+export const create = function (params: { bk_biz_id: number; type: string; key: string; value: any }) {
   return http.post(`${path}/`, params);
 };
 /**
  * 更新业务配置
  */
-export const update = function (params: {
-  id: number,
-}) {
+export const update = function (params: { id: number }) {
   return http.post(`${path}/`, params);
 };

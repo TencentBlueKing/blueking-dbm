@@ -27,11 +27,11 @@
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
-    clusterData?: SpiderModel
+    clusterData?: SpiderModel;
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<Record<string, string>>;
   }
 
   const props = defineProps<Props>();
@@ -49,15 +49,14 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue()
-        .then(() => {
-          if (!props.clusterData) {
-            return Promise.reject();
-          }
-          return {
-            module: props.clusterData.db_module_name,
-          };
-        });
+      return inputRef.value.getValue().then(() => {
+        if (!props.clusterData) {
+          return Promise.reject();
+        }
+        return {
+          module: props.clusterData.db_module_name,
+        };
+      });
     },
   });
 </script>

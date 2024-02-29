@@ -14,20 +14,20 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderDbName
           ref="dbPatternsRef"
           :cluster-id="0"
           :model-value="data.db_patterns"
           @change="handleDbPatternsChange" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderBackupSource
           ref="backupOnRef"
           :model-value="data.backup_on"
           @change="handleBackupOnChange" />
       </td>
-      <td style="padding: 0;">
+      <td style="padding: 0">
         <RenderTableName
           ref="tablePatternsRef"
           :cluster-id="0"
@@ -44,7 +44,7 @@
           <div
             class="action-btn"
             :class="{
-              disabled: removeable
+              disabled: removeable,
             }"
             @click="handleRemove">
             <DbIcon type="minus-fill" />
@@ -59,9 +59,9 @@
 
   export interface IDataRow {
     rowKey?: string;
-    db_patterns: string [],
-    backup_on: string,
-    table_patterns: string [],
+    db_patterns: string[];
+    backup_on: string;
+    table_patterns: string[];
   }
 
   // 创建表格数据
@@ -73,9 +73,7 @@
   });
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-  } from 'vue';
+  import { ref } from 'vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
@@ -83,18 +81,18 @@
   import RenderBackupSource from './RenderBackupSource.vue';
 
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
+    data: IDataRow;
+    removeable: boolean;
   }
 
   interface Emits {
-    (e: 'add', params: IDataRow): void,
-    (e: 'remove'): void,
-    (e: 'change', value: IDataRow): void,
+    (e: 'add', params: IDataRow): void;
+    (e: 'remove'): void;
+    (e: 'change', value: IDataRow): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<any[]>
+    getValue: () => Promise<any[]>;
   }
 
   const props = defineProps<Props>();
@@ -151,32 +149,31 @@
       ]);
     },
   });
-
 </script>
 <style lang="less" scoped>
-.action-box {
-  display: flex;
-  align-items: center;
-
-  .action-btn {
+  .action-box {
     display: flex;
-    font-size: 14px;
-    color: #c4c6cc;
-    cursor: pointer;
-    transition: all 0.15s;
+    align-items: center;
 
-    &:hover {
-      color: #979ba5;
-    }
+    .action-btn {
+      display: flex;
+      font-size: 14px;
+      color: #c4c6cc;
+      cursor: pointer;
+      transition: all 0.15s;
 
-    &.disabled {
-      color: #dcdee5;
-      cursor: not-allowed;
-    }
+      &:hover {
+        color: #979ba5;
+      }
 
-    & ~ .action-btn {
-      margin-left: 18px;
+      &.disabled {
+        color: #dcdee5;
+        cursor: not-allowed;
+      }
+
+      & ~ .action-btn {
+        margin-left: 18px;
+      }
     }
   }
-}
 </style>

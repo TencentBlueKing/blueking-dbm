@@ -14,7 +14,7 @@
 <template>
   <BkDialog
     :is-show="isShow"
-    :title="$t('库表备份_批量录入') "
+    :title="$t('库表备份_批量录入')"
     :width="1200"
     @closed="handleClosed">
     <div class="db-table-backup-batch-entry">
@@ -22,7 +22,7 @@
         <table>
           <thead>
             <tr>
-              <th>{{ $t('目标集群') }} </th>
+              <th>{{ $t('目标集群') }}</th>
               <!-- <th>{{ $t('备份源') }}</th> -->
               <th>{{ $t('备份DB名') }}</th>
               <th>{{ $t('备份表名') }}</th>
@@ -54,7 +54,7 @@
         <BkInput
           v-model="localValue"
           :placeholder="placeholder"
-          style="height: 320px; margin: 12px 0 30px;"
+          style="height: 320px; margin: 12px 0 30px"
           type="textarea"
           @input="handleInputChange" />
       </div>
@@ -103,14 +103,14 @@
 <script lang="ts">
   export interface IValue {
     clusterData: {
-      id: number,
-      domain: string,
-    }
+      id: number;
+      domain: string;
+    };
     // backupOn: string,
-    dbPatterns: string [],
-    tablePatterns: string [],
-    ignoreDbs: string [],
-    ignoreTables: string [],
+    dbPatterns: string[];
+    tablePatterns: string[];
+    ignoreDbs: string[];
+    ignoreTables: string[];
   }
 </script>
 <script setup lang="ts">

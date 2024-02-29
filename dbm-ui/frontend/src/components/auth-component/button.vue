@@ -1,19 +1,16 @@
 <template>
-  <BkButton
-    v-bind="attrs">
+  <BkButton v-bind="attrs">
     <slot />
   </BkButton>
 </template>
 <script setup lang="ts">
-  import {
-    useAttrs,
-  } from 'vue';
+  import { useAttrs } from 'vue';
 
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    permission?: boolean | string,
-    actionId: string,
-    resource?: string | number,
+    permission?: boolean | string;
+    actionId: string;
+    resource?: string | number;
   }
 
   withDefaults(defineProps<Props>(), {

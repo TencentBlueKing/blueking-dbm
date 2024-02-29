@@ -70,7 +70,7 @@
             <BkButton
               class="w-88"
               size="small"
-              @click="() => inputState.values = ''">
+              @click="() => (inputState.values = '')">
               {{ $t('清空') }}
             </BkButton>
           </div>

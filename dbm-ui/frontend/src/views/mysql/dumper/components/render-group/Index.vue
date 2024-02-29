@@ -15,10 +15,10 @@
   <div class="group-wrapper">
     <BkLoading
       :loading="isLoading"
-      style="height: 100%;">
+      style="height: 100%">
       <div
         class="group-item group-item-all"
-        :class="{'active': activeGroup === null}"
+        :class="{ active: activeGroup === null }"
         @click.stop="() => handleChangeGroup()">
         <DbIcon
           class="mr-12"
@@ -36,7 +36,7 @@
           v-for="item in groupList"
           :key="item.id"
           class="group-item"
-          :class="{ 'active': activeGroup?.name === item.name}"
+          :class="{ active: activeGroup?.name === item.name }"
           @click.stop="handleChangeGroup(item)">
           <template v-if="curEditGroupId === item.id">
             <GroupCreate
@@ -208,102 +208,101 @@
   const handleShowCreateRule = () => {
     isShowCreateRule.value = true;
   };
-
 </script>
 
 <style lang="less" scoped>
-.group-wrapper {
-  height: 100%;
-  padding-top: 16px;
+  .group-wrapper {
+    height: 100%;
+    padding-top: 16px;
 
-  .split-line {
-    display: block;
-    height: 1px;
-    margin: 8px 0;
-    background-color: #dcdee5;
-  }
-
-  .group-list {
-    max-height: calc(100% - 86px);
-  }
-
-  .group-item {
-    display: flex;
-    height: 36px;
-    padding: 0 16px;
-    font-size: 12px;
-    line-height: 36px;
-    cursor: pointer;
-    align-items: center;
-
-    .group-item-name {
-      flex: 1;
+    .split-line {
+      display: block;
+      height: 1px;
+      margin: 8px 0;
+      background-color: #dcdee5;
     }
 
-    .group-item-nums {
-      padding: 0 6px;
-      line-height: 16px;
-      color: @gray-color;
-      background-color: #eaebf0;
-      border-radius: 2px;
+    .group-list {
+      max-height: calc(100% - 86px);
     }
 
-    .group-item-operations {
-      display: none;
-    }
+    .group-item {
+      display: flex;
+      height: 36px;
+      padding: 0 16px;
+      font-size: 12px;
+      line-height: 36px;
+      cursor: pointer;
+      align-items: center;
 
-    .group-item-btn {
-      &.is-disabled {
-        color: @light-gray;
-        cursor: not-allowed;
+      .group-item-name {
+        flex: 1;
       }
-    }
-
-    &:hover {
-      background-color: #eaebf0;
-
-      &:not(.group-item--all) {
-        .group-item-operations {
-          display: block;
-        }
-
-        .group-item-nums {
-          display: none;
-        }
-      }
-    }
-
-    &.active {
-      color: @primary-color;
-      background-color: #e1ecff;
 
       .group-item-nums {
-        color: white;
-        background-color: #a3c5fd;
+        padding: 0 6px;
+        line-height: 16px;
+        color: @gray-color;
+        background-color: #eaebf0;
+        border-radius: 2px;
+      }
+
+      .group-item-operations {
+        display: none;
+      }
+
+      .group-item-btn {
+        &.is-disabled {
+          color: @light-gray;
+          cursor: not-allowed;
+        }
+      }
+
+      &:hover {
+        background-color: #eaebf0;
+
+        &:not(.group-item--all) {
+          .group-item-operations {
+            display: block;
+          }
+
+          .group-item-nums {
+            display: none;
+          }
+        }
+      }
+
+      &.active {
+        color: @primary-color;
+        background-color: #e1ecff;
+
+        .group-item-nums {
+          color: white;
+          background-color: #a3c5fd;
+        }
+      }
+    }
+
+    .group-item-all {
+      padding-right: 20px;
+    }
+
+    .rule-footer {
+      display: flex;
+      align-items: center;
+      height: 36px;
+      padding: 0 16px;
+      font-size: 12px;
+      line-height: 36px;
+    }
+
+    .rule-add {
+      color: #3a84ff;
+
+      .db-icon-plus-circle {
+        margin-right: 4px;
+        font-size: 14px;
       }
     }
   }
-
-  .group-item-all {
-    padding-right: 20px;
-  }
-
-  .rule-footer {
-    display: flex;
-    align-items: center;
-    height: 36px;
-    padding: 0 16px;
-    font-size: 12px;
-    line-height: 36px;
-  }
-
-  .rule-add {
-    color: #3A84FF;
-
-    .db-icon-plus-circle {
-      margin-right: 4px;
-      font-size: 14px;
-    }
-  }
-}
 </style>

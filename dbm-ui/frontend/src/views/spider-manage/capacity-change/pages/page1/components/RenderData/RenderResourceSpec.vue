@@ -30,17 +30,17 @@
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
-    clusterId: number,
+    clusterId: number;
   }
   interface Emits {
-    (e: 'cluster-change', value: SpiderModel): void
+    (e: 'cluster-change', value: SpiderModel): void;
   }
   interface Exposes {
     getValue: () => Promise<{
-      bk_cloud_id: number,
-      cluster_shard_num: number,
-      db_module_id: number
-    }>
+      bk_cloud_id: number;
+      cluster_shard_num: number;
+      db_module_id: number;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -50,10 +50,7 @@
   const masterInstance = ref('');
   const localClusterData = ref<SpiderModel>();
 
-  const {
-    loading: isLoading,
-    run: fetchClusetrData,
-  } = useRequest(getSpiderDetail, {
+  const { loading: isLoading, run: fetchClusetrData } = useRequest(getSpiderDetail, {
     manual: true,
     onSuccess(data) {
       [masterInstance.value] = data.spider_master[0].instance;
@@ -62,33 +59,35 @@
     },
   });
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchClusetrData({
-        id: props.clusterId,
-      });
-    } else {
-      localClusterData.value = undefined;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (props.clusterId) {
+        fetchClusetrData({
+          id: props.clusterId,
+        });
+      } else {
+        localClusterData.value = undefined;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value
-        .getValue()
-        .then(() => {
-          if (!localClusterData.value) {
-            return Promise.reject();
-          }
-          const clusterData = localClusterData.value;
-          return ({
-            bk_cloud_id: clusterData.bk_cloud_id,
-            cluster_shard_num: clusterData.cluster_shard_num,
-            db_module_id: clusterData.db_module_id,
-          });
-        });
+      return inputRef.value.getValue().then(() => {
+        if (!localClusterData.value) {
+          return Promise.reject();
+        }
+        const clusterData = localClusterData.value;
+        return {
+          bk_cloud_id: clusterData.bk_cloud_id,
+          cluster_shard_num: clusterData.cluster_shard_num,
+          db_module_id: clusterData.db_module_id,
+        };
+      });
     },
   });
 </script>

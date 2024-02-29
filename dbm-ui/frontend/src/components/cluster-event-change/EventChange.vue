@@ -18,7 +18,7 @@
         v-model="state.daterange"
         append-to-body
         :placeholder="$t('请选择')"
-        style="width: 410px;"
+        style="width: 410px"
         type="datetimerange"
         @change="fetchData" />
     </div>
@@ -156,8 +156,8 @@
 </script>
 
 <style lang="less" scoped>
-.event-change {
-  height: 100%;
-  padding: 24px 0;
-}
+  .event-change {
+    height: 100%;
+    padding: 24px 0;
+  }
 </style>

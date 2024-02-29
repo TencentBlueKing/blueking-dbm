@@ -7,7 +7,7 @@
       :title="t('集群部署等操作新主机的任务，如任务执行失败，相应的主机将会被挪到这里，等待人工确认')" />
     <div class="header-action mb-16">
       <span
-        v-bk-tooltips="{content: $t('请选择主机'), disabled: selectedHosts.length > 0 }"
+        v-bk-tooltips="{ content: $t('请选择主机'), disabled: selectedHosts.length > 0 }"
         class="inline-block">
         <BkButton
           :disabled="selectedHosts.length === 0"
@@ -16,7 +16,7 @@
         </BkButton>
       </span>
       <span
-        v-bk-tooltips="{content: $t('请选择主机'), disabled: selectedHosts.length > 0 }"
+        v-bk-tooltips="{ content: $t('请选择主机'), disabled: selectedHosts.length > 0 }"
         class="inline-block">
         <BkButton
           class="ml-8"
@@ -300,7 +300,7 @@
 
 <style lang="less" scoped>
   .dirty-machines-page {
-    .header-action{
+    .header-action {
       display: flex;
     }
   }

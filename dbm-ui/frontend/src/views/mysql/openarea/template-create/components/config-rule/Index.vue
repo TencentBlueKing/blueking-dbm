@@ -2,15 +2,14 @@
   <div class="openarea-create-config-rule">
     <div class="variable-box">
       <BkButton
-        style="margin-bottom: 12px; margin-left: auto; font-size: 12px;"
+        style="margin-bottom: 12px; margin-left: auto; font-size: 12px"
         text
         theme="primary"
         @click="handleShowVariable">
         {{ t('变量') }}
       </BkButton>
     </div>
-    <RenderData
-      class="mt16">
+    <RenderData class="mt16">
       <RenderDataRow
         v-for="(item, index) in tableData"
         :key="item.rowKey"
@@ -30,19 +29,15 @@
   import VariableBox from '../variable-box/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IData,
-    type IDataRow,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IData, type IDataRow } from './components/RenderData/Row.vue';
 
   interface Props {
-    clusterId: number,
-    data: IData[]
+    clusterId: number;
+    data: IData[];
   }
 
   interface Exposes {
-    getValue: () => Promise<Required<IData>[]>
+    getValue: () => Promise<Required<IData>[]>;
   }
 
   const props = defineProps<Props>();
@@ -54,15 +49,19 @@
 
   const isShowVariable = ref(false);
 
-  watch(() => props.data, () => {
-    if (props.data.length < 1) {
-      tableData.value = [createRowData({})];
-    } else {
-      tableData.value = props.data.map(item => createRowData(item));
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.length < 1) {
+        tableData.value = [createRowData({})];
+      } else {
+        tableData.value = props.data.map((item) => createRowData(item));
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleShowVariable = () => {
     isShowVariable.value = true;
@@ -84,32 +83,31 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all(rowRefs.value.map(item => item.getValue()));
+      return Promise.all(rowRefs.value.map((item) => item.getValue()));
     },
   });
-
 </script>
 <style lang="less">
   .openarea-create-config-rule {
     display: block;
 
-    .variable-box{
+    .variable-box {
       display: flex;
       margin-top: -24px;
     }
 
-    .action-btn{
+    .action-btn {
       display: inline-flex;
       font-size: 14px;
       color: #c4c6cc;
       cursor: pointer;
-      transition: all .15s;
+      transition: all 0.15s;
 
-      &:hover{
+      &:hover {
         color: #979ba5;
       }
 
-      &.disbled{
+      &.disbled {
         color: #dcdee5;
         cursor: not-allowed;
       }

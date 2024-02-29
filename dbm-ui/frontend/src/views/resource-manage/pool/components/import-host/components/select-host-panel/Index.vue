@@ -15,7 +15,7 @@
   <div class="export-host-select-panel">
     <div class="title">
       {{ t('导入主机') }}
-      <span style="font-size: 12px; color: #979ba5;">
+      <span style="font-size: 12px; color: #979ba5">
         {{ t('（从 CMDB 的 DBA 业务空闲机导入）') }}
       </span>
     </div>

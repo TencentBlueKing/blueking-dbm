@@ -19,7 +19,7 @@
     @closed="handleClose">
     <template #header>
       <div class="header-main">
-        {{ t('Dumper 手动迁移【name】', {name: `${data.ip}:${data.listen_port}`}) }}
+        {{ t('Dumper 手动迁移【name】', { name: `${data.ip}:${data.listen_port}` }) }}
       </div>
     </template>
     <div class="append-rule-edit-box">
@@ -28,9 +28,7 @@
       </div>
       <div class="basic-info-box">
         <div class="info-item">
-          <div class="title">
-            {{ t('Dumper实例') }}：
-          </div>
+          <div class="title">{{ t('Dumper实例') }}：</div>
           <div
             v-overflow-tips
             class="content">
@@ -38,9 +36,7 @@
           </div>
         </div>
         <div class="info-item">
-          <div class="title">
-            {{ t('数据源集群') }}：
-          </div>
+          <div class="title">{{ t('数据源集群') }}：</div>
           <div
             v-overflow-tips
             class="content">
@@ -48,9 +44,7 @@
           </div>
         </div>
         <div class="info-item">
-          <div class="title">
-            {{ t('Dumper版本') }}：
-          </div>
+          <div class="title">{{ t('Dumper版本') }}：</div>
           <div
             v-overflow-tips
             class="content">
@@ -58,9 +52,7 @@
           </div>
         </div>
         <div class="info-item">
-          <div class="title">
-            Dumper ID：
-          </div>
+          <div class="title">Dumper ID：</div>
           <div
             v-overflow-tips
             class="content">
@@ -68,9 +60,7 @@
           </div>
         </div>
         <div class="info-item">
-          <div class="title">
-            {{ t('接收端类型') }}：
-          </div>
+          <div class="title">{{ t('接收端类型') }}：</div>
           <div
             v-overflow-tips
             class="content">
@@ -78,9 +68,7 @@
           </div>
         </div>
         <div class="info-item">
-          <div class="title">
-            {{ t('接收端集群与端口') }}：
-          </div>
+          <div class="title">{{ t('接收端集群与端口') }}：</div>
           <div
             v-overflow-tips
             class="content">
@@ -145,22 +133,19 @@
   import DumperInstanceModel from '@services/model/dumper/dumper';
   import { createTicket } from '@services/source/ticket';
 
-  import {
-    useBeforeClose,
-    useTicketMessage,
-  } from '@hooks';
+  import { useBeforeClose, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    data: DumperInstanceModel,
+    data: DumperInstanceModel;
   }
 
   interface Emits {
-    (e: 'success'): void,
-    (e: 'cancel'): void,
+    (e: 'success'): void;
+    (e: 'cancel'): void;
   }
 
   const props = defineProps<Props>();
@@ -169,7 +154,10 @@
 
   const { t } = useI18n();
 
-  const targetPos = computed(() => `${props.data.source_cluster.master_ip}:${props.data.source_cluster.master_port} ( ${props.data.source_cluster.immute_domain} )`);
+  const targetPos = computed(
+    () =>
+      `${props.data.source_cluster.master_ip}:${props.data.source_cluster.master_port} ( ${props.data.source_cluster.immute_domain} )`,
+  );
 
   const handleBeforeClose = useBeforeClose();
   const { currentBizId } = useGlobalBizs();
@@ -223,7 +211,6 @@
           },
         ],
       },
-
     };
     isSubmitting.value = true;
     try {
@@ -241,80 +228,78 @@
 
   async function handleClose() {
     const result = await handleBeforeClose();
-    if (!result) return;
+    if (!result) {
+      return;
+    }
     window.changeConfirm = false;
     emits('cancel');
     isShow.value = false;
   }
-
 </script>
 
 <style lang="less" scoped>
-
-.header-main {
-  display: flex;
-  width: 100%;
-  overflow: hidden;
-  align-items: center;
-
-  .name {
-    width: auto;
-    max-width: 720px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.append-rule-edit-box {
-  display: flex;
-  width: 100%;
-  padding: 24px 40px;
-  flex-direction: column;
-
-  .info-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: #313238;
-  }
-
-  .basic-info-box {
+  .header-main {
     display: flex;
     width: 100%;
-    padding: 30px 70px 18px;
-    margin: 8px 0 24px;
-    background: #F5F7FA;
-    border-radius: 2px;
-    flex-wrap: wrap;
+    overflow: hidden;
+    align-items: center;
 
-    .info-item {
-      display: flex;
-      width: 50%;
-      margin-bottom: 12px;
+    .name {
+      width: auto;
+      max-width: 720px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .append-rule-edit-box {
+    display: flex;
+    width: 100%;
+    padding: 24px 40px;
+    flex-direction: column;
+
+    .info-title {
       font-size: 12px;
+      font-weight: 700;
+      color: #313238;
+    }
 
-      .title {
-        width: 110px;
-        text-align: right;
+    .basic-info-box {
+      display: flex;
+      width: 100%;
+      padding: 30px 70px 18px;
+      margin: 8px 0 24px;
+      background: #f5f7fa;
+      border-radius: 2px;
+      flex-wrap: wrap;
+
+      .info-item {
+        display: flex;
+        width: 50%;
+        margin-bottom: 12px;
+        font-size: 12px;
+
+        .title {
+          width: 110px;
+          text-align: right;
+        }
+
+        .content {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          flex: 1;
+        }
       }
+    }
 
-      .content {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        flex:1;
+    .edit-form {
+      :deep(.deploy-place-radio) {
+        .bk-radio-label {
+          color: #63656e;
+        }
       }
     }
   }
-
-  .edit-form {
-    :deep(.deploy-place-radio) {
-      .bk-radio-label {
-        color: #63656e;
-      }
-    }
-  }
-}
-
-
 </style>

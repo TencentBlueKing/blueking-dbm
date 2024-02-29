@@ -1,13 +1,13 @@
 <template>
   <div
     class="entry-config-multi"
-    :class="{'is-error': isError}">
+    :class="{ 'is-error': isError }">
     <BkInput
       v-model="modelValue"
       :disabled="disabled"
       placeholder=" "
       :rows="rows"
-      style="resize:none;"
+      style="resize: none"
       type="textarea"
       @blur="handleBlur"
       @input="handleInput" />
@@ -29,23 +29,24 @@
 </template>
 <script lang="ts">
   import { ipv4 } from '@common/regex';
+
   export const checkIp = (value: string) => ipv4.test(value);
 </script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    disabled?: boolean,
+    disabled?: boolean;
   }
 
   interface ErrorItem {
-    isChecked: boolean,
-    tip: string,
+    isChecked: boolean;
+    tip: string;
   }
 
   defineProps<Props>();
 
-  const modelValue =  defineModel<string>({
+  const modelValue = defineModel<string>({
     default: '',
   });
 
@@ -77,50 +78,49 @@
   };
 </script>
 <style lang="less" scoped>
-.entry-config-multi {
-  position: relative;
+  .entry-config-multi {
+    position: relative;
 
-  .bk-textarea {
-    border-color: transparent;
-    border-radius: 0;
-  }
-
-  .is-focused {
-    border-color: #3a84ff;
-  }
-
-  :deep(textarea) {
-    min-height: 42px !important;
-    padding: 12px 18px;
-    border-radius: 0;
-  }
-
-  .error-box {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 25px;
-    height: 100%;
-    padding-top: 12px;
-
-    .tip-box {
-      display: flex;
-      height: 18px;
-      padding-top: 3.5px;
-      justify-content: center;
-
-      .error-icon {
-        font-size: 14px;
-        color: #ea3636;
-      }
+    .bk-textarea {
+      border-color: transparent;
+      border-radius: 0;
     }
 
-  }
-}
+    .is-focused {
+      border-color: #3a84ff;
+    }
 
-.is-error{
-  :deep(textarea) {
-    background-color: #fff0f1;
+    :deep(textarea) {
+      min-height: 42px !important;
+      padding: 12px 18px;
+      border-radius: 0;
+    }
+
+    .error-box {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 25px;
+      height: 100%;
+      padding-top: 12px;
+
+      .tip-box {
+        display: flex;
+        height: 18px;
+        padding-top: 3.5px;
+        justify-content: center;
+
+        .error-icon {
+          font-size: 14px;
+          color: #ea3636;
+        }
+      }
+    }
   }
-}
+
+  .is-error {
+    :deep(textarea) {
+      background-color: #fff0f1;
+    }
+  }
 </style>

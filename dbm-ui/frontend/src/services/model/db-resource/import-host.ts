@@ -2,8 +2,8 @@ import type { HostDetails } from '../../types';
 
 export default class ImportHost implements HostDetails {
   alive: number;
-  biz: { id: number; name: string; };
-  cloud_area: { id: number; name: string; };
+  biz: { id: number; name: string };
+  cloud_area: { id: number; name: string };
   cloud_id: number;
   host_id: number;
   host_name: string;

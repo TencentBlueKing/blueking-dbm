@@ -23,21 +23,14 @@
   import _ from 'lodash';
   import { useRequest } from 'vue-request';
 
-  import {
-    getConfigNames,
-    getLevelConfig,
-    updateBusinessConfig,
-  } from '@services/source/configs';
+  import { getConfigNames, getLevelConfig, updateBusinessConfig } from '@services/source/configs';
 
   import ParameterTable from '@views/db-configure/components/ParameterTable.vue';
-  import {
-    type DiffItem,
-    useDiff,
-  } from '@views/db-configure/hooks/useDiff';
+  import { type DiffItem, useDiff } from '@views/db-configure/hooks/useDiff';
 
   interface Props {
-    bizId: number,
-    version: string,
+    bizId: number;
+    version: string;
   }
 
   const props = defineProps<Props>();
@@ -54,23 +47,24 @@
   });
   const paramsConfigDataStringify = ref('');
 
-  const {
-    data: parameters,
-    run: fetchParameters,
-  } = useRequest(getConfigNames, {
+  const { data: parameters, run: fetchParameters } = useRequest(getConfigNames, {
     manual: true,
   });
 
-  watch(() => props.version, () => {
-    if (props.version) {
-      fetchParameters({
-        meta_cluster_type: 'tendbcluster',
-        conf_type: 'dbconf',
-        version: props.version,
-      });
-      fetchLevelConfig();
-    }
-  }, { immediate: true });
+  watch(
+    () => props.version,
+    () => {
+      if (props.version) {
+        fetchParameters({
+          meta_cluster_type: 'tendbcluster',
+          conf_type: 'dbconf',
+          version: props.version,
+        });
+        fetchLevelConfig();
+      }
+    },
+    { immediate: true },
+  );
 
   const fetchParams = computed(() => ({
     bk_biz_id: props.bizId,
@@ -140,8 +134,8 @@
   };
 
   // 范围选择
-  const handleChangeRange = (index: number,  { max, min }: { max: number, min: number }) => {
-    configData.value.conf_items[index].value_allowed = (min || max) ? `[${min || 0},${max || 0}]` : '';
+  const handleChangeRange = (index: number, { max, min }: { max: number; min: number }) => {
+    configData.value.conf_items[index].value_allowed = min || max ? `[${min || 0},${max || 0}]` : '';
   };
 
   // multipleEnums 变更
@@ -172,7 +166,10 @@
   };
 
   // 选择参数项
-  const handleChangeParameterItem = (index: number, selected: ServiceReturnType<typeof getLevelConfig>['conf_items'][number]) => {
+  const handleChangeParameterItem = (
+    index: number,
+    selected: ServiceReturnType<typeof getLevelConfig>['conf_items'][number],
+  ) => {
     configData.value.conf_items[index] = Object.assign(_.cloneDeep(selected), { op_type: 'add' });
   };
 
@@ -181,7 +178,7 @@
     const { data } = useDiff(configData.value.conf_items, originConfItems.value);
     const confItems = data.map((item: DiffItem) => {
       const type = item.status === 'delete' ? 'remove' : 'update';
-      const data = item.status === 'delete' ?  item.before : item.after;
+      const data = item.status === 'delete' ? item.before : item.after;
       return Object.assign(data, { op_type: type });
     });
 

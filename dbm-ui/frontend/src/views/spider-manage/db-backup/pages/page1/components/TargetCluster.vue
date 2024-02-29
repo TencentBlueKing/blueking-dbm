@@ -43,10 +43,10 @@
 </template>
 <script lang="tsx">
   export interface IClusterData {
-    id: number,
-    cluster_name: string,
-    status: string,
-    master_domain: string,
+    id: number;
+    cluster_name: string;
+    status: string;
+    master_domain: string;
   }
 </script>
 <script setup lang="tsx">

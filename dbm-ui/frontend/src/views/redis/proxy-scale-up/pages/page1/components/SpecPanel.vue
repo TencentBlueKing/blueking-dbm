@@ -21,30 +21,25 @@
     <slot name="hover" />
     <template #content>
       <div class="panel">
-        <div class="title">
-          {{ data.name }} {{ $t('规格') }}
-        </div>
+        <div class="title">{{ data.name }} {{ $t('规格') }}</div>
         <div class="item">
-          <div class="item__title">
-            CPU：
-          </div>
+          <div class="item__title">CPU：</div>
           <div class="item__content">
-            {{ data.cpu.min === data.cpu.max ?
-              $t('n核', { n: data.cpu.min }) :$t('((n-m))台', { n: data.cpu.min, m: data.cpu.max }) }}
+            {{
+              data.cpu.min === data.cpu.max
+                ? $t('n核', { n: data.cpu.min })
+                : $t('((n-m))台', { n: data.cpu.min, m: data.cpu.max })
+            }}
           </div>
         </div>
         <div class="item">
-          <div class="item__title">
-            {{ $t('内存') }}：
-          </div>
+          <div class="item__title">{{ $t('内存') }}：</div>
           <div class="item__content">
             {{ data.mem.min === data.mem.max ? data.mem.min : `(${data.mem.min}~${data.mem.max})` }} G
           </div>
         </div>
         <div class="item">
-          <div class="item__title">
-            {{ $t('磁盘') }}：
-          </div>
+          <div class="item__title">{{ $t('磁盘') }}：</div>
           <div class="item__content">
             <div class="table">
               <div class="head">
@@ -82,18 +77,18 @@
     cpu: {
       max: number;
       min: number;
-    },
+    };
     id: number;
     mem: {
       max: number;
       min: number;
-    },
+    };
     count: number;
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    }[]
+    }[];
   }
 
   interface Props {
@@ -113,126 +108,126 @@
         max: 1,
       },
       count: 1,
-      storage_spec: [{
-        mount_point: '/data',
-        size: 0,
-        type: '默认',
-      }],
+      storage_spec: [
+        {
+          mount_point: '/data',
+          size: 0,
+          type: '默认',
+        },
+      ],
     }),
   });
 </script>
 <style lang="less" scoped>
-
-.panel {
-  display: flex;
-  width: 420px;
-  height: 220px;
-  padding: 16px;
-  margin-top: -7px;
-  margin-left: -14px;
-  background: #FFF;
-  border: 1px solid #DCDEE5;
-  box-shadow: 0 3px 6px 0 #00000029;
-  box-sizing: border-box;
-  flex-direction: column;
-
-  .title {
-    height: 20px;
-    margin-bottom: 12px;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 20px;
-    color: #63656E;
-  }
-
-  .item {
+  .panel {
     display: flex;
-    width: 100%;
-    height: 32px;
-    align-items: center;
+    width: 420px;
+    height: 220px;
+    padding: 16px;
+    margin-top: -7px;
+    margin-left: -14px;
+    background: #fff;
+    border: 1px solid #dcdee5;
+    box-shadow: 0 3px 6px 0 #00000029;
+    box-sizing: border-box;
+    flex-direction: column;
 
-    &__title {
+    .title {
       height: 20px;
+      margin-bottom: 12px;
       font-size: 12px;
-      letter-spacing: 0;
-      color: #63656E;
+      font-weight: 700;
+      line-height: 20px;
+      color: #63656e;
     }
 
-    &__content {
-      height: 20px;
-      font-size: 12px;
-      letter-spacing: 0;
-      color: #313238;
+    .item {
+      display: flex;
+      width: 100%;
+      height: 32px;
+      align-items: center;
 
-      .table {
-        display: flex;
-        width: 100%;
-        flex-direction: column;
+      &__title {
+        height: 20px;
+        font-size: 12px;
+        letter-spacing: 0;
+        color: #63656e;
+      }
 
-        .cell_common {
-          width: 140px;
-          height: 42px;
-          padding: 11px 16px;
-          border: 1px solid #DCDEE5;
-          border-right: 1px solid #DCDEE5;
-          border-bottom: 1px solid #DCDEE5;
-        }
+      &__content {
+        height: 20px;
+        font-size: 12px;
+        letter-spacing: 0;
+        color: #313238;
 
-        .head {
+        .table {
           display: flex;
           width: 100%;
-          background: #F0F1F5;
+          flex-direction: column;
 
-          &_one {
-            .cell_common();
-
-            border-right: none;
-            border-bottom: none;
+          .cell_common {
+            width: 140px;
+            height: 42px;
+            padding: 11px 16px;
+            border: 1px solid #dcdee5;
+            border-right: 1px solid #dcdee5;
+            border-bottom: 1px solid #dcdee5;
           }
 
-          &_two {
-            .cell_common();
+          .head {
+            display: flex;
+            width: 100%;
+            background: #f0f1f5;
 
-            width: 120px;
-            border-right: none;
-            border-bottom: none;
+            &_one {
+              .cell_common();
+
+              border-right: none;
+              border-bottom: none;
+            }
+
+            &_two {
+              .cell_common();
+
+              width: 120px;
+              border-right: none;
+              border-bottom: none;
+            }
+
+            &_three {
+              .cell_common();
+
+              width: 82px;
+              border-bottom: none;
+            }
           }
 
-          &_three {
-            .cell_common();
+          .row {
+            display: flex;
+            width: 100%;
+            border-top: none;
 
-            width: 82px;
-            border-bottom: none;
-          }
-        }
+            &_one {
+              .cell_common();
 
-        .row {
-          display: flex;
-          width: 100%;
-          border-top: none;
+              border-right: none;
+            }
 
-          &_one {
-            .cell_common();
+            &_two {
+              .cell_common();
 
-            border-right: none;
+              width: 120px;
+              border-right: none;
+            }
 
-          }
+            &_three {
+              .cell_common();
 
-          &_two {
-            .cell_common();
-
-            width: 120px;
-            border-right: none;
-          }
-
-          &_three {
-            .cell_common();
-
-            width: 82px;
+              width: 82px;
+            }
           }
         }
       }
     }
   }
-}
 </style>

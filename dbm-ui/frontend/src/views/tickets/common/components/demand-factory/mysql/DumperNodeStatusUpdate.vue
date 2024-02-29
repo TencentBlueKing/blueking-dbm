@@ -82,5 +82,4 @@
       render: ({ data }: {data: RowData}) => <span>{syncTypeMap[data.add_type]}</span>,
     },
   ];
-
 </script>
