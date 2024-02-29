@@ -70,7 +70,9 @@ class MongoDBRestoreViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False, serializer_class=QueryRestoreRecordSerializer, pagination_class=None)
     def query_restore_record(self, requests, *args, **kwargs):
-        # TODO: 支持过滤搜索
         data = self.params_validate(self.get_serializer_class())
-        restore_records = MongoDBRestoreHandler.query_restore_record(**data, bk_biz_id=kwargs["bk_biz_id"])
+        filters = self.get_serializer().get_conditions(data)
+        restore_records = MongoDBRestoreHandler.query_restore_record(
+            kwargs["bk_biz_id"], data["limit"], data["offset"], filters
+        )
         return Response(restore_records)
