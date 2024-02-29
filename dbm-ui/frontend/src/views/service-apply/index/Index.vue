@@ -114,7 +114,15 @@
 
   import { useUserProfile } from '@stores';
 
-  import { bigDataType, mongoType, mysqlType, redisType, TicketTypes, UserPersonalSettings } from '@common/const';
+  import {
+    bigDataType,
+    mongoType,
+    mysqlType,
+    redisType,
+    sqlServerType,
+    TicketTypes,
+    UserPersonalSettings,
+  } from '@common/const';
 
   import { makeMap } from '@utils';
 
@@ -183,6 +191,27 @@
           id: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].id,
           name: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].name,
           icon: 'mysql',
+        },
+      ],
+    },
+    {
+      id: 'sqlserver',
+      groupName: 'SQLServer',
+      name: '关系型数据库',
+      children: [
+        {
+          controllerId: 'sqlserver_single',
+          routeName: 'SqlServiceSingleApply',
+          id: sqlServerType[TicketTypes.SQLSERVER_SINGLE_APPLY].id,
+          name: sqlServerType[TicketTypes.SQLSERVER_SINGLE_APPLY].name,
+          icon: 'sqlserver',
+        },
+        {
+          controllerId: 'sqlserver_ha',
+          routeName: 'SqlServiceHaApply',
+          id: sqlServerType[TicketTypes.SQLSERVER_HA_APPLY].id,
+          name: sqlServerType[TicketTypes.SQLSERVER_HA_APPLY].name,
+          icon: 'sqlserver',
         },
       ],
     },

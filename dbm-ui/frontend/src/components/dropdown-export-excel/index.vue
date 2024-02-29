@@ -68,7 +68,10 @@
     exportSpiderClusterToExcel,
     exportSpiderInstanceToExcel,
   } from '@services/source/spider';
-  import { exportSqlServerHaClusterToExcel } from '@services/source/sqlserveHaCluster';
+  import {
+    exportSqlServerHaClusterToExcel,
+    exportSqlServerHaInstanceToExcel,
+  } from '@services/source/sqlserveHaCluster';
   import { exportSqlServerSingleClusterToExcel } from '@services/source/sqlserverSingleCluster';
   import {
     exportTendbhaClusterToExcel,
@@ -145,6 +148,7 @@
     },
     sqlserver_ha: {
       cluster: exportSqlServerHaClusterToExcel,
+      instance: exportSqlServerHaInstanceToExcel,
     },
     sqlserver_single: {
       cluster: exportSqlServerSingleClusterToExcel,

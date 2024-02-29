@@ -11,11 +11,13 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import SqlServerClusterDetailModel from '@services/model/sqlserver/sqlserver-cluster-detail';
+import SqlServerClusterListModel from '@services/model/sqlserver/sqlserver-ha-cluster';
+import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
+
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import SqlServerClusterDetailModel from '../model/sqlserver/sqlserver-cluster-detail';
-import SqlServerClusterListModel from '../model/sqlserver/sqlserver-ha-cluster';
 import type {
   ListBase,
   ResourceTopo,
@@ -55,9 +57,16 @@ export function getHaClusterTopoGraph(params: { cluster_id: number }) {
 }
 
 /**
- * 导出数据为 excel 文件
+ * 导出集群数据为 excel 文件
  */
 export function exportSqlServerHaClusterToExcel(params: { bk_host_ids?: number[] }) {
+  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 导出实例数据为 excel 文件
+ */
+export function exportSqlServerHaInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
 }
 
@@ -65,8 +74,26 @@ export function exportSqlServerHaClusterToExcel(params: { bk_host_ids?: number[]
  * 获取集群实例列表
  */
 export const getSqlServerInstanceList = function () {
-  return http.get<ListBase<any[]>>(`${path}/list_instances/`);
+  return http.get<ListBase<SqlServerHaInstanceModel[]>>(`${path}/list_instances/`)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new SqlServerHaInstanceModel(item)),
+    }));
 };
+
+/**
+ * 获取集群实例详情
+ */
+export function retrieveSqlserverHaInstance(params: {
+  bk_biz_id: number,
+  type: string,
+  instance_address: string,
+  cluster_id?: number
+  dbType: string
+}) {
+  return http.get<SqlServerHaInstanceModel>(`${path}/retrieve_instance/`, params)
+    .then(res => new SqlServerHaInstanceModel(res));
+}
 
 /**
  * 根据sqlserver 版本查询系统版本

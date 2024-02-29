@@ -175,6 +175,11 @@
   ];
   const isRequired = !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`);
 
+  const isSqlserver = [
+    ClusterTypes.SQLSERVER_SINGLE,
+    ClusterTypes.SQLSERVER_HA,
+  ].includes(props.clusterType as ClusterTypes);
+
   const initFormdata = () => {
     if (props.data) {
       return _.cloneDeep(props.data);
@@ -188,6 +193,21 @@
       },
     ];
 
+    const genSystemDriveStorageSpec = () => [
+      {
+        mount_point: 'C:\\',
+        size: '' as string | number,
+        type: '',
+        isSystemDrive: true,
+      },
+      {
+        mount_point: 'D:\\',
+        size: '' as string | number,
+        type: '',
+        isSystemDrive: true,
+      },
+    ];
+
     return {
       cpu: {
         max: '' as string | number,
@@ -197,7 +217,7 @@
         max: '' as string | number,
         min: '' as string | number,
       },
-      storage_spec: genStorageSpec(),
+      storage_spec: isSqlserver ? genSystemDriveStorageSpec() : genStorageSpec(),
       device_class: [] as string[],
       desc: '',
       enable: true,
