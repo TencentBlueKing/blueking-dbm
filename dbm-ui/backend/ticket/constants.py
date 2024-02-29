@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.flow.consts import StateType
+from backend.ticket.exceptions import TicketBaseException
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
@@ -127,6 +128,17 @@ class TicketType(str, StructuredEnum):
         elif db_type == DBType.TenDBCluster.upper():
             ticket_types.append(cls.MYSQL_PARTITION)
         return ticket_types
+
+    @classmethod
+    def get_db_type_by_ticket(cls, ticket_type):
+        """根据单据类型找到组件类型"""
+        if ticket_type in [cls.TENDIS_META_MITRATE.value, cls.PROXY_SCALE_UP, cls.PROXY_SCALE_DOWN]:
+            return DBType.Redis.value
+        db_type = ticket_type.upper().split("_")[0].lower()
+        if db_type in DBType.get_values():
+            return db_type
+        else:
+            raise TicketBaseException(_("无法找到{}关联的组件类型").format(ticket_type))
 
     # MYSQL
     MYSQL_SINGLE_APPLY = EnumField("MYSQL_SINGLE_APPLY", _("MySQL 单节点部署"))
@@ -247,7 +259,7 @@ class TicketType(str, StructuredEnum):
     REDIS_SLOTS_MIGRATE = EnumField("REDIS_SLOTS_MIGRATE", _("Redis slots 迁移"))
     REDIS_CLUSTER_VERSION_UPDATE_ONLINE = EnumField("REDIS_CLUSTER_VERSION_UPDATE_ONLINE", _("Redis 集群版本升级"))
     REDIS_CLUSTER_REINSTALL_DBMON = EnumField("REDIS_CLUSTER_REINSTALL_DBMON", _("Redis 集群重装DBMON"))
-    PREDIXY_CONFIG_SERVERS_REWRITE = EnumField("PREDIXY_CONFIG_SERVERS_REWRITE", _("predixy配置重写"))
+    REDIS_PREDIXY_CONFIG_SERVERS_REWRITE = EnumField("REDIS_PREDIXY_CONFIG_SERVERS_REWRITE", _("predixy配置重写"))
 
     # 大数据
     KAFKA_APPLY = EnumField("KAFKA_APPLY", _("Kafka 集群部署"))

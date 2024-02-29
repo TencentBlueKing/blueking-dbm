@@ -27,6 +27,7 @@ from backend.db_services.dbbase.resources.viewsets import ResourceViewSet
 from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
 from backend.db_services.mongodb.resources import constants, yasg_slz
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
+from backend.iam_app.dataclass.actions import ActionEnum
 
 
 @method_decorator(
@@ -78,6 +79,9 @@ class MongoDBViewSet(ResourceViewSet):
     query_class = MongoDBListRetrieveResource
     query_serializer_class = serializers.ListMongoDBResourceSLZ
     list_instances_slz = serializers.MongoDBListInstancesSerializer
+
+    list_perm_actions = [ActionEnum.MONGODB_VIEW, ActionEnum.MONGODB_ENABLE_DISABLE, ActionEnum.MONGODB_DESTROY]
+    list_instance_perm_actions = [ActionEnum.MONGODB_VIEW]
 
     @common_swagger_auto_schema(
         operation_summary=_("获取实例的角色类型"),

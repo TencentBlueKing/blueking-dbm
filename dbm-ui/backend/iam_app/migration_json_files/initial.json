@@ -209,6 +209,25 @@
     {
         "operation": "upsert_resource_type",
         "data": {
+            "id": "mongodb",
+            "name": "Mongodb集群",
+            "name_en": "mongodb",
+            "description": "Mongodb集群",
+            "provider_config": {
+                "path": "/apis/iam/resource/"
+            },
+            "version": 1,
+            "parents": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_resource_type",
+        "data": {
             "id": "dbtype",
             "name": "DB类型",
             "name_en": "dbtype",
@@ -472,6 +491,24 @@
                 {
                     "system_id": "bk_dbm",
                     "id": "riak"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_instance_selection",
+        "data": {
+            "id": "mongodb_list",
+            "name": "Mongodb集群 列表",
+            "name_en": "mongodb list",
+            "resource_type_chain": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb"
                 }
             ]
         }
@@ -5317,6 +5354,570 @@
     {
         "operation": "upsert_action",
         "data": {
+            "id": "mongodb_view",
+            "name": "Mongodb 集群详情查看",
+            "name_en": "mongodb_view",
+            "type": "view",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群管理",
+            "description": "Mongodb 集群详情查看",
+            "description_en": "mongodb_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_replicaset_apply",
+            "name": "MongoDB 副本集集群部署",
+            "name_en": "MONGODB_REPLICASET_APPLY",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群管理",
+            "description": "MongoDB 副本集集群部署",
+            "description_en": "MONGODB_REPLICASET_APPLY"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_shard_apply",
+            "name": "MongoDB 分片集群部署",
+            "name_en": "MONGODB_SHARD_APPLY",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群管理",
+            "description": "MongoDB 分片集群部署",
+            "description_en": "MONGODB_SHARD_APPLY"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_exec_script_apply",
+            "name": "MongoDB 变更脚本执行",
+            "name_en": "MONGODB_EXEC_SCRIPT_APPLY",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "脚本任务",
+            "description": "MongoDB 变更脚本执行",
+            "description_en": "MONGODB_EXEC_SCRIPT_APPLY"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_remove_ns",
+            "name": "MongoDB 清档",
+            "name_en": "MONGODB_REMOVE_NS",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "数据处理",
+            "description": "MongoDB 清档",
+            "description_en": "MONGODB_REMOVE_NS"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_full_backup",
+            "name": "MongoDB 全库备份",
+            "name_en": "MONGODB_FULL_BACKUP",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "备份",
+            "description": "MongoDB 全库备份",
+            "description_en": "MONGODB_FULL_BACKUP"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_backup",
+            "name": "MongoDB 库表备份",
+            "name_en": "MONGODB_BACKUP",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "备份",
+            "description": "MongoDB 库表备份",
+            "description_en": "MONGODB_BACKUP"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_add_mongos",
+            "name": "MongoDB 扩容接入层",
+            "name_en": "MONGODB_ADD_MONGOS",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群维护",
+            "description": "MongoDB 扩容接入层",
+            "description_en": "MONGODB_ADD_MONGOS"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_reduce_mongos",
+            "name": "MongoDB 缩容接入层",
+            "name_en": "MONGODB_REDUCE_MONGOS",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群维护",
+            "description": "MongoDB 缩容接入层",
+            "description_en": "MONGODB_REDUCE_MONGOS"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_add_shard_nodes",
+            "name": "MongoDB 扩容shard节点数",
+            "name_en": "MONGODB_ADD_SHARD_NODES",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群维护",
+            "description": "MongoDB 扩容shard节点数",
+            "description_en": "MONGODB_ADD_SHARD_NODES"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_reduce_shard_nodes",
+            "name": "MongoDB 缩容shard节点数",
+            "name_en": "MONGODB_REDUCE_SHARD_NODES",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群维护",
+            "description": "MongoDB 缩容shard节点数",
+            "description_en": "MONGODB_REDUCE_SHARD_NODES"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_scale_updown",
+            "name": "MongoDB 集群容量变更",
+            "name_en": "MONGODB_SCALE_UPDOWN",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群维护",
+            "description": "MongoDB 集群容量变更",
+            "description_en": "MONGODB_SCALE_UPDOWN"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_enable_disable",
+            "name": "MongoDB 集群禁用启用",
+            "name_en": "mongodb_enable_disable",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "mongodb_view"
+            ],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群管理",
+            "description": "MongoDB 集群禁用启用",
+            "description_en": "mongodb_enable_disable"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_destroy",
+            "name": "MongoDB 集群删除",
+            "name_en": "MONGODB_DESTROY",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群管理",
+            "description": "MongoDB 集群删除",
+            "description_en": "MONGODB_DESTROY"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_instance_reload",
+            "name": "MongoDB 实例重启",
+            "name_en": "MONGODB_INSTANCE_RELOAD",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群管理",
+            "description": "MongoDB 实例重启",
+            "description_en": "MONGODB_INSTANCE_RELOAD"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_cutoff",
+            "name": "MongoDB 整机替换",
+            "name_en": "MONGODB_CUTOFF",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群维护",
+            "description": "MongoDB 整机替换",
+            "description_en": "MONGODB_CUTOFF"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_restore",
+            "name": "MongoDB 定点回档",
+            "name_en": "MONGODB_RESTORE",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群维护",
+            "description": "MongoDB 定点回档",
+            "description_en": "MONGODB_RESTORE"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_authorize",
+            "name": "MongoDB 授权",
+            "name_en": "MONGODB_AUTHORIZE",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "权限管理",
+            "description": "MongoDB 授权",
+            "description_en": "MONGODB_AUTHORIZE"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_excel_authorize",
+            "name": "MongoDB Excel授权",
+            "name_en": "MONGODB_EXCEL_AUTHORIZE",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "权限管理",
+            "description": "MongoDB Excel授权",
+            "description_en": "MONGODB_EXCEL_AUTHORIZE"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_temporary_destroy",
+            "name": "MongoDB 临时集群销毁",
+            "name_en": "MONGODB_TEMPORARY_DESTROY",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群维护",
+            "description": "MongoDB 临时集群销毁",
+            "description_en": "MONGODB_TEMPORARY_DESTROY"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
             "id": "resource_pool_manage",
             "name": "资源池管理",
             "name_en": "resource_pool_manage",
@@ -7419,6 +8020,109 @@
                 ]
             },
             {
+                "name": "MongoDB",
+                "name_en": "MongoDB",
+                "actions": [],
+                "sub_groups": [
+                    {
+                        "name": "集群管理",
+                        "name_en": "集群管理",
+                        "actions": [
+                            {
+                                "id": "mongodb_view"
+                            },
+                            {
+                                "id": "mongodb_replicaset_apply"
+                            },
+                            {
+                                "id": "mongodb_shard_apply"
+                            },
+                            {
+                                "id": "mongodb_enable_disable"
+                            },
+                            {
+                                "id": "mongodb_destroy"
+                            },
+                            {
+                                "id": "mongodb_instance_reload"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "脚本任务",
+                        "name_en": "脚本任务",
+                        "actions": [
+                            {
+                                "id": "mongodb_exec_script_apply"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "数据处理",
+                        "name_en": "数据处理",
+                        "actions": [
+                            {
+                                "id": "mongodb_remove_ns"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "备份",
+                        "name_en": "备份",
+                        "actions": [
+                            {
+                                "id": "mongodb_full_backup"
+                            },
+                            {
+                                "id": "mongodb_backup"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "集群维护",
+                        "name_en": "集群维护",
+                        "actions": [
+                            {
+                                "id": "mongodb_add_mongos"
+                            },
+                            {
+                                "id": "mongodb_reduce_mongos"
+                            },
+                            {
+                                "id": "mongodb_add_shard_nodes"
+                            },
+                            {
+                                "id": "mongodb_reduce_shard_nodes"
+                            },
+                            {
+                                "id": "mongodb_scale_updown"
+                            },
+                            {
+                                "id": "mongodb_cutoff"
+                            },
+                            {
+                                "id": "mongodb_restore"
+                            },
+                            {
+                                "id": "mongodb_temporary_destroy"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "权限管理",
+                        "name_en": "权限管理",
+                        "actions": [
+                            {
+                                "id": "mongodb_authorize"
+                            },
+                            {
+                                "id": "mongodb_excel_authorize"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
                 "name": "配置管理",
                 "name_en": "配置管理",
                 "actions": [
@@ -8052,6 +8756,75 @@
                         },
                         {
                             "id": "riak_destroy",
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "id": "mongodb",
+                    "actions": [
+                        {
+                            "id": "mongodb_view",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_exec_script_apply",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_remove_ns",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_full_backup",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_backup",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_add_mongos",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_reduce_mongos",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_add_shard_nodes",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_reduce_shard_nodes",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_scale_updown",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_enable_disable",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_destroy",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_instance_reload",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_cutoff",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_restore",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_temporary_destroy",
                             "required": true
                         }
                     ]
