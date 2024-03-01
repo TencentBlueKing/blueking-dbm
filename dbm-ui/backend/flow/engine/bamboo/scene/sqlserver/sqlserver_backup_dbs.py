@@ -58,7 +58,6 @@ class SqlserverBackupDBSFlow(BaseFlow):
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
             sub_flow_context.update(info)
-            sub_flow_context["port"] = master_instance.port
             sub_flow_context["backup_id"] = f"{info['backup_type']}_{self.root_id}"
 
             # 声明子流程
@@ -84,6 +83,7 @@ class SqlserverBackupDBSFlow(BaseFlow):
                         exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                         get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
                         job_timeout=3 * 3600,
+                        custom_params={"port": master_instance.port},
                     )
                 ),
             )

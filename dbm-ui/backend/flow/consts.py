@@ -1250,6 +1250,24 @@ class SqlserverLoginExecMode(str, StructuredEnum):
     DROP = EnumField("drop", _("删除"))
 
 
+class SqlserverDtsMode(str, StructuredEnum):
+    """
+    Sqlserver数据迁移模式
+    """
+
+    FULL = EnumField("full", _("完整备份迁移(一次性)"))
+    INCR = EnumField("incr", _("增量备份迁移(持续的)"))
+
+
+class SqlserverRestoreDBStatus(str, StructuredEnum):
+    """
+    Sqlserver 执行恢复后db的状态
+    """
+
+    NORECOVERY = EnumField("NORECOVERY", "NORECOVERY")
+    RECOVERY = EnumField("RECOVERY", "RECOVERY")
+
+
 class MongoDBClusterDefaultPort(int, StructuredEnum):
     """mongodb cluster默认端口"""
 
