@@ -15,6 +15,7 @@ from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_cluster_destroy import
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_cluster_disable import SqlserverDisableFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_cluster_enable import SqlserverEnableFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_cluster_reset import SqlserverResetFlow
+from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_dts import SqlserverDTSFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_ha_deploy import SqlserverHAApplyFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_master_slave_failover import SqlserverFailOverFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_master_slave_switch import SqlserverSwitchFlow
@@ -93,3 +94,11 @@ class SqlserverController(BaseController):
     def slave_rebuild_in_new_slave_scene(self):
         flow = SqlserverSlaveRebuildFlow(root_id=self.root_id, data=self.ticket_data)
         flow.slave_rebuild_in_new_slave_flow()
+
+    def full_dts_scene(self):
+        flow = SqlserverDTSFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.full_dts_flow()
+
+    def incr_dts_scene(self):
+        flow = SqlserverDTSFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.incr_dts_flow()

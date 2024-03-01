@@ -121,7 +121,7 @@ class SqlserverActPayload(PayloadHandler):
                 "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
-                    "port": self.global_data["port"],
+                    "port": kwargs["custom_params"]["port"],
                     "backup_dbs": self.global_data["backup_dbs"],
                     "backup_type": self.global_data["backup_type"],
                     "backup_id": self.global_data["backup_id"],
@@ -142,7 +142,7 @@ class SqlserverActPayload(PayloadHandler):
                 "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
-                    "port": self.global_data["port"],
+                    "port": kwargs["custom_params"]["port"],
                     "backup_dbs": self.global_data["backup_dbs"],
                     "backup_type": SqlserverBackupMode.LOG_BACKUP.value,
                     "backup_id": self.global_data["backup_id"],
@@ -298,7 +298,8 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
-    def get_restore_full_dbs_payload(self, **kwargs) -> dict:
+    @staticmethod
+    def get_restore_full_dbs_payload(**kwargs) -> dict:
         """
         恢复全量备份的payload
         """
@@ -309,14 +310,15 @@ class SqlserverActPayload(PayloadHandler):
                 "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
-                    "port": self.global_data["port"],
+                    "port": kwargs["custom_params"]["port"],
                     "restore_infos": kwargs["custom_params"]["restore_infos"],
                     "restore_mode": kwargs["custom_params"].get("restore_mode", ""),
                 },
             },
         }
 
-    def get_restore_log_dbs_payload(self, **kwargs) -> dict:
+    @staticmethod
+    def get_restore_log_dbs_payload(**kwargs) -> dict:
         """
         恢复增量备份的payload
         """
@@ -327,7 +329,7 @@ class SqlserverActPayload(PayloadHandler):
                 "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
-                    "port": self.global_data["port"],
+                    "port": kwargs["custom_params"]["port"],
                     "restore_infos": kwargs["custom_params"]["restore_infos"],
                     "restore_mode": kwargs["custom_params"].get("restore_mode", ""),
                 },

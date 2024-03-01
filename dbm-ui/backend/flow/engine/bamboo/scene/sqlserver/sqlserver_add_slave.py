@@ -171,5 +171,9 @@ class SqlserverAddSlaveFlow(BaseFlow):
                 ),
             )
 
+            sub_pipelines.append(
+                sub_pipeline.build_sub_process(sub_name=_("添加slave[{}]".format(info["new_slave_host"]["ip"])))
+            )
+
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         main_pipeline.run_pipeline()

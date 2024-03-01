@@ -123,17 +123,20 @@ func (b *BuildAlwaysOnComp) Init() error {
 
 // CreateEndPoint 建立对端关系
 func (b *BuildAlwaysOnComp) CreateEndPoint() error {
-	sqlStr := fmt.Sprintf(cst.GET_CREATE_END_POINT_SQL, b.ListenPort, "%s")
+	sqlStr := []string{
+		cst.GET_DROP_END_POINT_SQL,
+		fmt.Sprintf(cst.GET_CREATE_END_POINT_SQL, b.ListenPort, "%s"),
+	}
 
 	if b.Params.IsFirst {
 		// 第一次建立需要在主节点操作
-		if _, err := b.DB.Exec(sqlStr); err != nil {
+		if _, err := b.DB.ExecMore(sqlStr); err != nil {
 			logger.Error("exec create endpoint in DB [%s:%d] failed", b.Params.Host, b.Params.Port)
 			return err
 		}
 	}
 	for _, i := range b.DRS {
-		if _, err := i.Connet.Exec(sqlStr); err != nil {
+		if _, err := i.Connet.ExecMore(sqlStr); err != nil {
 			logger.Error("exec create endpoint in DR [%s:%d] failed", i.Host, i.Port)
 			return err
 		}

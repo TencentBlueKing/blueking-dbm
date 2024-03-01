@@ -12,7 +12,7 @@ import logging
 
 from pipeline.component_framework.component import Component
 
-from backend.flow.consts import SqlserverRestoreDBStatus, SqlserverRestoreMode
+from backend.flow.consts import SqlserverRestoreMode
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptService
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
 from backend.flow.utils.sqlserver.sqlserver_db_function import get_backup_info_in_master
@@ -25,9 +25,9 @@ sync_payload_func_map = {
 }
 
 
-class RestoreForDoDrService(SqlserverActuatorScriptService):
+class RestoreForDtsService(SqlserverActuatorScriptService):
     """
-    根据Sqlserver做dr的场景，数据库级别建立同步，做恢复数据在slave
+    根据Sqlserver数据迁移的场景，做恢复数据在目标集群
     逻辑：
     1：在master本地备份表查询这次流程的产生的备份信息，根据传入的backup_id 以及 同步的数据库列表
     2：拼接参数，做恢复操作
@@ -35,45 +35,41 @@ class RestoreForDoDrService(SqlserverActuatorScriptService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        restore_dbs = []
         restore_infos = []
 
-        for db_name in kwargs["restore_dbs"]:
-            self.log_info(f"checking db:[{db_name}]")
+        for info in kwargs["restore_infos"]:
+            self.log_info(f"checking db:[{info['db_name']}]")
 
             backup_info = get_backup_info_in_master(
                 cluster_id=kwargs["cluster_id"],
                 backup_id=kwargs["backup_id"],
-                db_name=db_name,
+                db_name=info["db_name"],
                 backup_type=kwargs["restore_mode"],
             )
             if len(backup_info) == 0:
-                self.log_warning(f"the database [{db_name}] is not backup-infos ")
-                continue
+                raise Exception(f"the database [{info['db_name']}] is not backup-infos ")
 
-            restore_dbs.append(db_name)
             if kwargs["restore_mode"] == SqlserverRestoreMode.LOG:
                 bak_file = [backup_info[0]["backup_file"]]
             else:
                 bak_file = backup_info[0]["backup_file"]
 
-            restore_infos.append({"db_name": db_name, "target_db_name": db_name, "bak_file": bak_file})
-
-        if len(restore_dbs) == 0:
-            raise Exception("not dbs restore, check")
+            restore_infos.append(
+                {"db_name": info["db_name"], "target_db_name": info["target_db_name"], "bak_file": bak_file}
+            )
 
         # 拼接恢复参数
         data.get_one_of_inputs("kwargs")["get_payload_func"] = sync_payload_func_map[kwargs["restore_mode"]]
         data.get_one_of_inputs("kwargs")["custom_params"] = {
             "port": kwargs["port"],
             "restore_infos": restore_infos,
-            "restore_mode": SqlserverRestoreDBStatus.NORECOVERY.value,
+            "restore_mode": kwargs["restore_db_status"],
         }
 
         return super()._execute(data, parent_data)
 
 
-class RestoreForDoDrComponent(Component):
+class RestoreForDtsComponent(Component):
     name = __name__
-    code = "sqlserver_restore_for_do_dr"
-    bound_service = RestoreForDoDrService
+    code = "sqlserver_restore_for_dts"
+    bound_service = RestoreForDtsService

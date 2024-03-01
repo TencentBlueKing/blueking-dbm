@@ -13,6 +13,8 @@ from backend.db_meta.api.cluster.sqlserverha.handler import SqlserverHAClusterHa
 from backend.db_meta.api.cluster.sqlserversingle.handler import SqlserverSingleClusterHandler
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
+from backend.flow.consts import SqlserverDtsMode
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("flow")
@@ -150,3 +152,23 @@ class SqlserverDBMeta(object):
             resource_spec=self.global_data.get("resource_spec", def_resource_spec),
             is_stand_by=False,
         )
+
+    def update_dts_status(self):
+        """
+        定义更新dts状态
+        """
+        if self.global_data["dts_mode"] == SqlserverDtsMode.FULL.value:
+            # 全量迁移
+            status = DtsStatus.FullSuccess
+        elif self.global_data["dts_mode"] == SqlserverDtsMode.INCR.value and not self.global_data["is_last"]:
+            # 增量迁移且触发任务不停止
+            status = DtsStatus.IncrOnline
+        elif self.global_data["dts_mode"] == SqlserverDtsMode.INCR.value and self.global_data["is_last"]:
+            # 增量迁移且触发任务停止
+            status = DtsStatus.IncrSuccess
+        else:
+            raise Exception(
+                f"not support: dts_mode[{self.global_data['dts_mode']}]; is_last[{self.global_data['is_last']}]"
+            )
+        # 任务结束后变更状态
+        SqlserverDtsInfo.objects.filter(id=self.global_data["dts_id"]).update(status=status)
