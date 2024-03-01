@@ -17,6 +17,7 @@ from backend.flow.consts import (
     MediumFileTypeEnum,
     SqlserverBackupJobExecMode,
     SqlserverLoginExecMode,
+    SqlserverRestoreDBStatus,
     SqlserverRestoreMode,
 )
 from backend.flow.utils.sqlserver.sqlserver_host import Host
@@ -111,7 +112,12 @@ class RestoreForDoDrKwargs:
     """
     定义执行exec_sqlserver_backup_job活动节点的私有变量结构体
     @attributes cluster_id 集群id
-    @attributes exec_mode 操作类型
+    @attributes backup_id 备份id
+    @attributes restore_dbs 恢复DB列表
+    @attributes restore_mode 恢复模式，分全量备份文件恢复以及日志备份恢复
+    @attributes exec_ips 操作机器
+    @attributes port 实例端口
+    @attributes job_timeout 操作超时时间
     """
 
     cluster_id: int
@@ -119,6 +125,7 @@ class RestoreForDoDrKwargs:
     restore_dbs: list
     restore_mode: SqlserverRestoreMode
     exec_ips: List[Host] = field(metadata={"validate": validate_hosts})
+    port: int
     job_timeout: int = DEFAULT_JOB_TIMEOUT
 
 
@@ -132,3 +139,27 @@ class ExecLoginKwargs:
 
     cluster_id: int
     exec_mode: SqlserverLoginExecMode
+
+
+@dataclass()
+class RestoreForDtsKwargs:
+    """
+    定义执行sqlserver_restore_for_dts活动节点的私有变量结构体
+    @attributes cluster_id 集群id
+    @attributes port 实例端口
+    @attributes backup_id 备份id
+    @attributes restore_infos 恢复列表。元素结构{"db_name": xx, "target_db_name": xx}
+    @attributes restore_mode 恢复模式，分全量备份文件恢复以及日志备份恢复
+    @attributes restore_db_status 恢复后的DB模式
+    @attributes exec_ips 操作机器
+    @attributes job_timeout 操作超时时间
+    """
+
+    cluster_id: int
+    port: int
+    backup_id: str
+    restore_infos: list
+    restore_mode: SqlserverRestoreMode
+    restore_db_status: SqlserverRestoreDBStatus
+    exec_ips: List[Host] = field(metadata={"validate": validate_hosts})
+    job_timeout: int = DEFAULT_JOB_TIMEOUT

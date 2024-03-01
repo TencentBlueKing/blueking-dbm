@@ -10,9 +10,12 @@
 
 package cst
 
-var GET_CREATE_END_POINT_SQL = `
+var GET_DROP_END_POINT_SQL = `
 IF EXISTS(select 1 from [master].[sys].[database_mirroring_endpoints] where name='endpoint_mirroring') 
 	DROP ENDPOINT [endpoint_mirroring]
+`
+
+var GET_CREATE_END_POINT_SQL = `
 CREATE ENDPOINT [endpoint_mirroring] 
 STATE=STARTED AS TCP (LISTENER_PORT = %d, LISTENER_IP = ALL) 
 FOR DATA_MIRRORING (ROLE = PARTNER, AUTHENTICATION = WINDOWS NEGOTIATE, ENCRYPTION = REQUIRED ALGORITHM AES);

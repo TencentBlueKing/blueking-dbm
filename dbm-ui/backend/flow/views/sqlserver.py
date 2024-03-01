@@ -241,3 +241,31 @@ class SqlserverRebuildInNewSlaveSceneApiView(FlowTestView):
         test = SqlserverController(root_id=root_id, ticket_data=request.data)
         test.slave_rebuild_in_new_slave_scene()
         return Response({"root_id": root_id})
+
+
+class SqlserverFullDtsSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_full_dts
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.full_dts_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverIncrDtsSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_incr_dts
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.incr_dts_scene()
+        return Response({"root_id": root_id})

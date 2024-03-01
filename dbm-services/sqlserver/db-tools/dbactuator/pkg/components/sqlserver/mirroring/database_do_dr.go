@@ -108,16 +108,19 @@ func (c *CreateMirrorComp) PreCheck() error {
 
 // CreateEndPoint 建立对端关系
 func (c *CreateMirrorComp) CreateEndPoint() error {
-	sqlStr := fmt.Sprintf(cst.GET_CREATE_END_POINT_SQL, c.ListenPort, "%s")
+	sqlStr := []string{
+		cst.GET_DROP_END_POINT_SQL,
+		fmt.Sprintf(cst.GET_CREATE_END_POINT_SQL, c.ListenPort, "%s"),
+	}
 
 	// 在DB执行create sql
-	if _, err := c.DB.Exec(sqlStr); err != nil {
+	if _, err := c.DB.ExecMore(sqlStr); err != nil {
 		logger.Error("exec create endpoint in DB [%s:%d] failed", c.Params.Host, c.Params.Port)
 		return err
 	}
 
 	// 在DR执行create sql
-	if _, err := c.DR.Exec(sqlStr); err != nil {
+	if _, err := c.DR.ExecMore(sqlStr); err != nil {
 		logger.Error("exec create endpoint in DR [%s:%d] failed", c.Params.DRHost, c.Params.DRPort)
 		return err
 	}

@@ -385,7 +385,8 @@ def sync_dbs_for_cluster_sub_flow(
         act_component_code=TransFileInWindowsComponent.code,
         kwargs=asdict(
             DownloadMediaKwargs(
-                target_hosts=sync_slaves, file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package()
+                target_hosts=sync_slaves + [Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package(),
             ),
         ),
     )
@@ -398,6 +399,7 @@ def sync_dbs_for_cluster_sub_flow(
                 exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                 get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
                 job_timeout=3 * 3600,
+                custom_params={"port": master_instance.port},
             )
         ),
     )
@@ -410,6 +412,7 @@ def sync_dbs_for_cluster_sub_flow(
                 exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                 get_payload_func=SqlserverActPayload.get_backup_log_dbs_payload.__name__,
                 job_timeout=3 * 3600,
+                custom_params={"port": master_instance.port},
             )
         ),
     )
@@ -440,6 +443,7 @@ def sync_dbs_for_cluster_sub_flow(
                         restore_dbs=sync_dbs,
                         restore_mode=SqlserverRestoreMode.FULL.value,
                         exec_ips=[slave],
+                        port=master_instance.port,
                         job_timeout=3 * 3600,
                     )
                 ),
@@ -460,6 +464,7 @@ def sync_dbs_for_cluster_sub_flow(
                         restore_dbs=sync_dbs,
                         restore_mode=SqlserverRestoreMode.LOG.value,
                         exec_ips=[slave],
+                        port=master_instance.port,
                         job_timeout=3 * 3600,
                     )
                 ),
