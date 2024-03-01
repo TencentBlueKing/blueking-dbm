@@ -75,6 +75,8 @@
     MachineTypes,
   } from '@common/const';
 
+  import MiniTag from '@components/mini-tag/index.vue';
+
   import SpecTip from '@images/spec-tip.png';
 
   type RedisClusterSpecRow = RedisClusterSpecModel & {
@@ -93,6 +95,7 @@
     bizId: number | string,
     cloudId: number | string,
     shardNum?: number,
+    shardNodeCount?: number,
     isApply?: boolean
     originSpecId?: number | string
   }
@@ -102,7 +105,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    shardNum: undefined,
+    shardNum: 0,
+    shardNodeCount: 0,
     isApply: true,
     originSpecId: undefined,
   });
@@ -139,19 +143,17 @@
         let tag;
         if (props.originSpecId === data.spec_id) {
           tag = (
-            <bk-tag
-                class='ml-2'
-                theme="info">
-                { t('当前方案') }
-            </bk-tag>
+            <MiniTag
+              class='ml-2'
+              theme="info"
+              content={t('当前方案')} />
           );
         } else if (data.machine_num > data.count) {
           tag = (
-            <bk-tag
+            <MiniTag
               class='ml-2'
-              theme="danger">
-              { t('资源不足') }
-            </bk-tag>
+              theme="danger"
+              content={t('资源不足')} />
           );
         }
 
@@ -262,11 +264,12 @@
   } = useRequest(getFilterClusterSpec, {
     manual: true,
     onSuccess(res) {
+      const shardNodeNum = props.isApply ? 3 : props.shardNodeCount; // 节点数，部署时固定，容量变更取自集群信息
       specList.value = res.map(item => Object.assign(item, {
-        shard_node_num: 3, // 节点数，固定值
+        shard_node_num: shardNodeNum,
         shard_num: props.isApply ? item.shard_recommend.shard_num : props.shardNum,
         shard_node_spec: '',
-        machine_num: item.machine_pair * 3, // 机组数 * 节点数
+        machine_num: item.machine_pair * shardNodeNum, // 机器组数 x 每个Shard节点数
         count: 0,
       } as RedisClusterSpecRow));
       getSpecResourceCountRun({
