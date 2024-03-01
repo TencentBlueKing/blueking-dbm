@@ -117,11 +117,13 @@ class MongosScaleMetaService(BaseService):
 
         # 创建实例
         api.machine.create(machines=machines, bk_cloud_id=cluster.bk_cloud_id, creator=created_by)
-        api.proxy_instance.create(proxies=proxies, status=InstanceStatus.RUNNING.value, creator=created_by)
+        proxies_obj = api.proxy_instance.create(
+            proxies=proxies, status=InstanceStatus.RUNNING.value, creator=created_by
+        )
 
         # 新增 mongos 到集群
         self.add_proxies(cluster, proxies)
-        MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(proxies)
+        MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(proxies_obj)
 
     # mongos(proxy) 添加到集群
     @transaction.atomic

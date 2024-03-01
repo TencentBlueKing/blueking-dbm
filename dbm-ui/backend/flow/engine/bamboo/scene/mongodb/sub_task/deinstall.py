@@ -43,7 +43,9 @@ def mongo_deinstall_parallel(sub_get_kwargs: ActKwargs, nodes: list, instance_ty
     return acts_list
 
 
-def deinstall(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, cluster_id: int) -> SubBuilder:
+def deinstall(
+    root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, cluster_id: int, reduce_mongos: bool
+) -> SubBuilder:
     """
     单个cluster卸载流程
     """
@@ -54,7 +56,8 @@ def deinstall(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, 
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
     # 获取单个cluster信息
-    sub_get_kwargs.get_cluster_info_deinstall(cluster_id=cluster_id)
+    if not reduce_mongos:
+        sub_get_kwargs.get_cluster_info_deinstall(cluster_id=cluster_id)
 
     # mongo卸载
     # 复制集卸载
@@ -65,7 +68,8 @@ def deinstall(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, 
             nodes=sub_get_kwargs.payload["nodes"],
             instance_type=MongoDBInstanceType.MongoD.value,
         )
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+        if acts_list:
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
     # cluster卸载
     elif sub_get_kwargs.payload["cluster_type"] == ClusterType.MongoShardedCluster.value:
         # mongos卸载——并行
@@ -74,7 +78,8 @@ def deinstall(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, 
             nodes=sub_get_kwargs.payload["mongos_nodes"],
             instance_type=MongoDBInstanceType.MongoS.value,
         )
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+        if acts_list:
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
         # shard卸载——并行
         many_acts_list = []
         for shard_nodes in sub_get_kwargs.payload["shards_nodes"]:
@@ -84,14 +89,16 @@ def deinstall(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, 
                 instance_type=MongoDBInstanceType.MongoD.value,
             )
             many_acts_list.extend(acts_list)
-        sub_pipeline.add_parallel_acts(acts_list=many_acts_list)
+        if many_acts_list:
+            sub_pipeline.add_parallel_acts(acts_list=many_acts_list)
         # config卸载——并行
         acts_list = mongo_deinstall_parallel(
             sub_get_kwargs=sub_get_kwargs,
             nodes=sub_get_kwargs.payload["config_nodes"],
             instance_type=MongoDBInstanceType.MongoD.value,
         )
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+        if acts_list:
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 删除dns
     kwargs = sub_get_kwargs.get_delete_domain_kwargs()
@@ -110,11 +117,12 @@ def deinstall(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, 
     )
 
     # 删除db_meta关系
-    kwargs = {"cluster_id": cluster_id}
-    sub_pipeline.add_act(
-        act_name=_("MongoDB-删除db_meta关系"),
-        act_component_code=ExecDeletePasswordFromDBOperationComponent.code,
-        kwargs=kwargs,
-    )
+    if not reduce_mongos:
+        kwargs = {"cluster_id": cluster_id}
+        sub_pipeline.add_act(
+            act_name=_("MongoDB-删除db_meta关系"),
+            act_component_code=ExecDeletePasswordFromDBOperationComponent.code,
+            kwargs=kwargs,
+        )
 
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--卸载--cluster_id:{}".format(str(cluster_id))))
