@@ -180,7 +180,8 @@
     specName: string
     bizId: number,
     cloudId: number,
-    shardNum: number
+    shardNum: number,
+    shardNodeCount: number,
   }>();
   const clusterAuthorizeShow = ref(false);
   const excelAuthorizeShow = ref(false);
@@ -455,6 +456,7 @@
       bk_biz_id: bizId,
       bk_cloud_id: cloudId,
       shard_num: shardNum,
+      shard_node_count: shardNodeCount,
       mongodb,
     } = row;
     const {
@@ -470,6 +472,7 @@
       bizId,
       cloudId,
       shardNum,
+      shardNodeCount
     };
     capacityChangeShow.value = true;
   };

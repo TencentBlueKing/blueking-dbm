@@ -166,7 +166,8 @@
     specName: string
     bizId: number,
     cloudId: number,
-    shardNum: number
+    shardNum: number,
+    shardNodeCount: number,
   }>();
   const monitorPanelList = ref<{
     label: string,
@@ -189,6 +190,7 @@
         bk_biz_id: bizId,
         bk_cloud_id: cloudId,
         shard_num: shardNum,
+        shard_node_count: shardNodeCount,
         mongodb,
       } = result;
       const {
@@ -204,6 +206,7 @@
         bizId,
         cloudId,
         shardNum,
+        shardNodeCount,
       };
     },
   });

@@ -29,7 +29,7 @@
     </div>
     <DbForm
       form-type="vertical"
-      model="specInfo">
+      :model="specInfo">
       <MongoConfigSpec
         v-model="specInfo"
         :biz-id="data.bizId"
@@ -40,6 +40,7 @@
           capacity: 'capacity',
           specId: 'spec_id'
         }"
+        :shard-node-count="data.shardNodeCount"
         :shard-num="data.shardNum"
         @current-change="handleMongoConfigSpecChange" />
     </DbForm>
@@ -68,6 +69,7 @@
       bizId: number,
       cloudId: number,
       shardNum: number;
+      shardNodeCount: number;
     },
   }
 
