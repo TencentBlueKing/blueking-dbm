@@ -57,8 +57,5 @@ export function simpleGetApplyData(params: { action_id: string; resource_ids: Ar
       ...params,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     })
-    .then((data) => {
-      console.log(data, new ApplyDataModel(data));
-      return new ApplyDataModel(data);
-    });
+    .then((data) => new ApplyDataModel(data));
 }
