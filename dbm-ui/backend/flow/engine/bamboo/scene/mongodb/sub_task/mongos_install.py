@@ -23,7 +23,9 @@ from backend.flow.plugins.components.collections.mongodb.exec_actuator_job impor
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
-def mongos_install(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs) -> SubBuilder:
+def mongos_install(
+    root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, increase_mongos: bool
+) -> SubBuilder:
     """
     多个mongos安装流程
     """
@@ -33,7 +35,7 @@ def mongos_install(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwa
     # 创建子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
-    # mongod安装——并行
+    # mongos安装——并行
     acts_list = []
     for node in sub_get_kwargs.mongos_info["nodes"]:
         kwargs = sub_get_kwargs.get_install_mongos_kwargs(node=node, replace=False)
@@ -56,6 +58,10 @@ def mongos_install(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwa
         ],
         info=sub_get_kwargs.mongos_info,
     )
+    # 增加mongos获取密码
+    if increase_mongos:
+        kwargs["create"] = False
+        kwargs = sub_get_kwargs.get_password_from_db(info=kwargs)
     sub_pipeline.add_act(
         act_name=_("MongoDB--保存dba用户及额外管理用户密码"),
         act_component_code=ExecAddPasswordToDBOperationComponent.code,

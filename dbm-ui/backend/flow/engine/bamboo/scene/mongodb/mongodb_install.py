@@ -161,7 +161,9 @@ class MongoDBInstallFlow(object):
 
         # mongos安装——子流程并行
         self.get_kwargs.mongos_info = self.data["mongos"]
-        sub_pipline = mongos_install(root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs)
+        sub_pipline = mongos_install(
+            root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, increase_mongos=False
+        )
         pipeline.add_sub_pipeline(sub_flow=sub_pipline)
 
         # 添加shard到cluster

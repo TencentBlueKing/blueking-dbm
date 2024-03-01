@@ -1156,6 +1156,46 @@ class ActKwargs:
         info["passwords"] = passwords
         return info
 
+    def get_host_scale_mongos(self, info: dict, increase: bool):
+        """cluster增加或减少mongos获取主机"""
+
+        if increase:
+            hosts = [{"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]} for mongos in info["mongos"]]
+        else:
+            hosts = [{"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]} for mongos in info["reduce_nodes"]]
+        self.payload["hosts"] = hosts
+
+    def get_change_meta_mongos_kwargs(self, increase: bool) -> dict:
+        """增加或减少修改mongos的元数据的kwargs"""
+
+        mongos_add = []
+        mongos_del = []
+        if increase:
+            mongos_add = [
+                {
+                    "ip": mongos["ip"],
+                    "spec_id": self.mongos_info["resource_spec"]["mongos"]["id"],
+                    "spec_config": self.mongos_info["resource_spec"]["mongos"],
+                }
+                for mongos in self.mongos_info["nodes"]
+            ]
+        else:
+            mongos_del = [
+                {
+                    "ip": mongos["ip"],
+                }
+                for mongos in self.mongos_info["nodes"]
+            ]
+
+        return {
+            "created_by": self.payload["created_by"],
+            "immute_domain": self.payload["mongos"]["domain"],
+            "cluster_id": self.mongos_info["cluster_id"],
+            "bk_biz_id": self.payload["bk_biz_id"],
+            "mongos_add": mongos_add,
+            "mongos_del": mongos_del,
+        }
+
 
 @dataclass()
 class CommonContext:

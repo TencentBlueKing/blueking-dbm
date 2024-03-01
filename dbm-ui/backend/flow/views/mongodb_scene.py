@@ -140,3 +140,27 @@ class MongoDBReplaceView(FlowTestView):
         root_id = uuid.uuid1().hex
         MongoDBController(root_id=root_id, ticket_data=request.data).machine_replace()
         return Response({"root_id": root_id})
+
+
+class MongoDBIncreaseMongoSView(FlowTestView):
+    """
+    mongodb增加mongos
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).increase_mongos()
+        return Response({"root_id": root_id})
+
+
+class MongoDBReduceMongoSView(FlowTestView):
+    """
+    mongodb减少mongos
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).reduce_mongos()
+        return Response({"root_id": root_id})
