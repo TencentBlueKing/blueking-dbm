@@ -613,7 +613,7 @@
                   text
                   theme={theme}
                   action-id="tendbcluster_destroy"
-                  disabled={data.operationDisabled}
+                  disabled={data.operationDisabled && !data.isOffline}
                   permission={data.permission.tendbcluster_destroy}
                   resource={data.id}
                   class="mr-8"
