@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_backup import MongoBackupFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_scale_mongos import ScaleMongoSFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_exec_script import MongoExecScriptFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoFakeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
@@ -109,3 +110,19 @@ class MongoDBController(BaseController):
 
         flow = MongoReplaceFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_host_replace_flow()
+
+    def increase_mongos(self):
+        """
+        增加mongos
+        """
+
+        flow = ScaleMongoSFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_mongos_flow(increase=True)
+
+    def reduce_mongos(self):
+        """
+        减少mongos
+        """
+
+        flow = ScaleMongoSFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_mongos_flow(increase=False)
