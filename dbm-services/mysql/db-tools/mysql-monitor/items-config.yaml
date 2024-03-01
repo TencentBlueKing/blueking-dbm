@@ -210,7 +210,7 @@
   role:
   - spider_master
 - name: scene-snapshot
-  enable: true
+  enable: false
   schedule: '@every 1m'
   machine_type:
   - spider

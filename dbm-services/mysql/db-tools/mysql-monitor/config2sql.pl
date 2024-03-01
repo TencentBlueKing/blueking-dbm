@@ -10,6 +10,8 @@ foreach my $item (@$items_config) {
     my $item_value = encode_json($item);
     $item_value =~ s/"enable":"1"/"enable":true/;
     $item_value =~ s/"enable":"0"/"enable":false/;
+    $item_value =~ s/"enable":""/"enable":false/;
+
     my $sql = sprintf(q#REPLACE INTO 
     tb_config_name_def(
         namespace, conf_type, conf_file, conf_name, 
