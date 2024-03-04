@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Tuple, Union
 from django.conf import settings
 from django.core.cache import cache
 from django.http.response import HttpResponse
+from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.db_meta.enums import ClusterType
@@ -87,6 +88,7 @@ class AuthorizeHandler(object):
         tasks = []
         with ThreadPoolExecutor(max_workers=min(len(authorize_excel_data_list), settings.CONCURRENT_NUMBER)) as ex:
             for index, excel_data in enumerate(authorize_excel_data_list):
+                # 解析excel行数据，然后执行pre_check
                 authorize = self.authorize_meta.from_excel_data(excel_data, cluster_type=excel_authorize.cluster_type)
                 tasks.append(ex.submit(self.pre_check_rules, authorize=authorize, task_index=index, **kwargs))
 
@@ -126,6 +128,40 @@ class AuthorizeHandler(object):
             "authorize_uid": authorize_uid,
             "authorize_data_list": raw_authorize_data_list,
         }
+
+    def _multi_user_pre_check_rules(self, authorize: AuthorizeMeta, users_key: str, **kwargs):
+        """提供一个通用的多账户授权前置校验方案"""
+        authorize_data_list: List[Dict] = []
+        all_pre_check: bool = True
+        message: str = _("前置校验成功")
+
+        # 多个账号的授权规则分别校验
+        for user in getattr(authorize, users_key):
+            single_auth = self.authorize_meta.from_dict(authorize.to_dict())
+            single_auth.user = user["user"]
+            single_auth.access_dbs = user["access_dbs"]
+
+            pre_check, msg, authorize_data = self._pre_check_rules(single_auth, **kwargs)
+            if not pre_check:
+                all_pre_check, message = False, msg
+            authorize_data_list.append(authorize_data)
+
+        # 缓存授权数据并返回前置校验结果
+        authorize_uid = data_cache(key=None, data=authorize_data_list, cache_time=AUTHORIZE_DATA_EXPIRE_TIME)
+        return {
+            "pre_check": all_pre_check,
+            "message": message,
+            "authorize_uid": authorize_uid,
+            "authorize_data": authorize_data_list,
+        }
+
+    def multi_user_pre_check_rules(self, authorize: AuthorizeMeta, **kwargs):
+        """
+        多个账号的前置校验，适合多账号的授权
+        @param authorize: 授权规则数据
+        @param kwargs: 其他参数
+        """
+        raise NotImplementedError
 
     def get_online_rules(self) -> List:
         """获取现网授权记录"""

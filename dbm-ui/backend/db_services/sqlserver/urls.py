@@ -14,4 +14,7 @@ urlpatterns = [
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.sqlserver.resources.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.sqlserver.sql_import.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.sqlserver.cluster.urls")),
+    path("bizs/<int:bk_biz_id>/", include("backend.db_services.sqlserver.rollback.urls")),
+    path("bizs/<int:bk_biz_id>/", include("backend.db_services.sqlserver.permission.urls")),
+    path("bizs/<int:bk_biz_id>/", include("backend.db_services.sqlserver.data_migrate.urls")),
 ]

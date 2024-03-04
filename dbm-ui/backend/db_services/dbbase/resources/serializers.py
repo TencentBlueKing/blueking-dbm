@@ -25,6 +25,7 @@ class ListResourceSLZ(serializers.Serializer):
     version = serializers.CharField(required=False)
     region = serializers.CharField(required=False)
     cluster_ids = serializers.ListField(child=serializers.IntegerField(), required=False, allow_empty=True)
+    exact_domain = serializers.CharField(help_text=_("精确域名查询"), required=False)
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
@@ -33,7 +34,6 @@ class ListMySQLResourceSLZ(ListResourceSLZ):
 
 class ListMongoDBResourceSLZ(ListResourceSLZ):
     cluster_type = serializers.ChoiceField(required=False, choices=ClusterType.get_choices())
-    exact_domain = serializers.CharField(help_text=_("精确域名查询"), required=False)
     domains = serializers.CharField(help_text=_("批量域名查询(逗号分割)"), required=False)
 
 

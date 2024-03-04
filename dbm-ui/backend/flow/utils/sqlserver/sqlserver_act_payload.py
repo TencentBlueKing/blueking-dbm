@@ -75,7 +75,9 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.Deploy.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_create_sqlserver_account()},
+                "general": {
+                    "runtime_account": PayloadHandler.get_create_sqlserver_account(self.global_data["bk_cloud_id"])
+                },
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "pkg": sqlserver_pkg.name,

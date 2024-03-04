@@ -14,7 +14,7 @@ from typing import Dict, List, Tuple
 from django.utils.translation import ugettext_lazy as _
 
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
-from backend.db_services.dbpermission.constants import AUTHORIZE_DATA_EXPIRE_TIME, AccountType, AuthorizeExcelHeader
+from backend.db_services.dbpermission.constants import AccountType, AuthorizeExcelHeader
 from backend.db_services.dbpermission.db_account.handlers import AccountHandler
 from backend.db_services.dbpermission.db_authorize.dataclass import AuthorizeMeta, ExcelAuthorizeMeta
 from backend.db_services.dbpermission.db_authorize.handlers import AuthorizeHandler
@@ -23,7 +23,6 @@ from backend.db_services.mongodb.permission.db_authorize.dataclass import (
     MongoDBAuthorizeMeta,
     MongoDBExcelAuthorizeMeta,
 )
-from backend.utils.cache import data_cache
 
 
 class MongoDBAuthorizeHandler(AuthorizeHandler):
@@ -88,34 +87,15 @@ class MongoDBAuthorizeHandler(AuthorizeHandler):
             excel_authorize, user_db__rules=user_db__rules, user__password=user_password_map, **kwargs
         )
 
-    def multi_user_pre_check_rules(self, authorize: MongoDBAuthorizeMeta):
+    def multi_user_pre_check_rules(self, authorize: MongoDBAuthorizeMeta, **kwargs):
         """多个账号的前置校验，适合mongodb的授权"""
         users = [user["user"] for user in authorize.mongo_users]
         user_db__rules, user_password_map = self._get_user_rules_and_password_map(users)
-        authorize_data_list: List[Dict] = []
-        all_pre_check: bool = True
-        message: str = _("前置校验成功")
-
-        # 多个账号的授权规则分别校验
-        for mongo_user in authorize.mongo_users:
-            single_auth = MongoDBAuthorizeMeta.from_dict(authorize.to_dict())
-            single_auth.user = mongo_user["user"]
-            single_auth.access_dbs = mongo_user["access_dbs"]
-
-            pre_check, msg, authorize_data = self._pre_check_rules(single_auth, user_db__rules, user_password_map)
-            if not pre_check:
-                all_pre_check, message = False, msg
-
-            authorize_data["password"] = user_password_map[mongo_user["user"]]
-            authorize_data_list.append(authorize_data)
-        # 缓存授权数据并返回前置校验结果
-        authorize_uid = data_cache(key=None, data=authorize_data_list, cache_time=AUTHORIZE_DATA_EXPIRE_TIME)
-        return {
-            "pre_check": all_pre_check,
-            "message": message,
-            "authorize_uid": authorize_uid,
-            "authorize_data": authorize_data_list,
-        }
+        # 获取授权检查数据
+        authorize_check_result = self._multi_user_pre_check_rules(
+            authorize, users_key="mongo_users", user_db__rules=user_db__rules, user_password_map=user_password_map
+        )
+        return authorize_check_result
 
     def get_online_rules(self) -> List:
         """获取现网授权记录"""

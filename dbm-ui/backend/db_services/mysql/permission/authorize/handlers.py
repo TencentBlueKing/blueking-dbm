@@ -60,6 +60,7 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
             "bk_biz_id": self.bk_biz_id,
             "operator": self.operator,
             "user": authorize.user,
+            "access_dbs": authorize.access_dbs,
             "account_rules": account_rules,
             "source_ips": source_ips,
             "target_instances": authorize.target_instances,

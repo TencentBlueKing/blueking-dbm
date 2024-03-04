@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import itertools
 import logging
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
@@ -19,7 +19,6 @@ from pipeline.core.flow.activity import Service
 from backend import env
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.db_services.dbpermission.db_authorize.models import AuthorizeRecord
-from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
 
@@ -31,11 +30,10 @@ class AuthorizeRules(BaseService):
 
     def _generate_rule_desc(self, authorize_data):
         # 生成当前规则的描述细则
-        access_dbs = [account_rule["dbname"] for account_rule in authorize_data["account_rules"]]
         rules_product: List[Tuple[Any, ...]] = list(
             itertools.product(
                 [authorize_data["user"]],
-                access_dbs,
+                authorize_data["access_dbs"],
                 [", ".join(authorize_data["source_ips"])],
                 authorize_data["target_instances"],
             )
@@ -54,19 +52,22 @@ class AuthorizeRules(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         ticket_id = kwargs["uid"]
         ticket_type = kwargs["ticket_type"]
+        db_type = TicketType.get_db_type_by_ticket(ticket_type)
         bk_biz_id = kwargs["bk_biz_id"]
-        authorize_data_list = kwargs["rules_set"]
-        authorize_success_count = 0
+
+        # authorize_data_list的单个元素是authorize_data, 格式为：
+        # {"user": xx, "source_ip": [...], "target_instances": [...], "access_db": [...]}
+        authorize_data_list: List[Dict] = kwargs["rules_set"]
+        authorize_success_count: int = 0
 
         for authorize_data in authorize_data_list:
             # 将授权信息存入record
-            access_dbs = [account_rule["dbname"] for account_rule in authorize_data["account_rules"]]
             record = AuthorizeRecord(
                 ticket_id=ticket_id,
                 user=authorize_data["user"],
-                source_ips="\n".join(authorize_data["source_ips"]),
-                target_instances="\n".join(authorize_data["target_instances"]),
-                access_dbs="\n".join(access_dbs),
+                source_ips=",".join(authorize_data["source_ips"]),
+                target_instances=",".join(authorize_data["target_instances"]),
+                access_dbs=",".join(authorize_data["access_dbs"]),
             )
 
             # 生成规则描述
@@ -83,13 +84,9 @@ class AuthorizeRules(BaseService):
 
             except Exception as e:  # pylint: disable=broad-except
                 record.status = False
-                if isinstance(e, ApiResultError):
-                    error_message = _("「授权接口返回结果异常」{}").format(e.message)
-                else:
-                    error_message = _("「授权接口调用异常」{}").format(e)
-
-                record.error = error_message
-                self.log_error(_("授权异常，相关信息: {}\n").format(error_message))
+                error_message = getattr(e, "message", None) or e
+                record.error = _("「授权接口调用异常」{}").format(error_message)
+                self.log_error(_("授权异常，相关信息: {}\n").format(record.error))
 
             record.save()
 
@@ -97,8 +94,8 @@ class AuthorizeRules(BaseService):
         overall_result = authorize_success_count == len(authorize_data_list)
         overall_result_alias = _("成功") if overall_result else _("失败")
         self.log_info(_("授权整体结果{}").format(overall_result_alias))
-
-        if ticket_type == TicketType.MYSQL_EXCEL_AUTHORIZE_RULES:
+        # 如果是excel导入授权，则增加增加excel导入授权总览
+        if "EXCEL" in ticket_type:
             self.log_info(
                 _("Excel导入授权行数:{}，成功授权数目:{}，失败授权数目:{}").format(
                     len(authorize_data_list),
@@ -106,12 +103,12 @@ class AuthorizeRules(BaseService):
                     len(authorize_data_list) - authorize_success_count,
                 )
             )
-
+        # 打印授权结果详情链接下载
         self.log_info(
             _(
-                "授权结果详情请下载excel: <a href='{}/apis/mysql/bizs/{}/permission/authorize/"
+                "授权结果详情请下载excel: <a href='{}/apis/{}/bizs/{}/permission/authorize/"
                 "get_authorize_info_excel/?ticket_id={}'>excel 下载</a>"
-            ).format(env.BK_SAAS_HOST, bk_biz_id, ticket_id)
+            ).format(env.BK_SAAS_HOST, db_type, bk_biz_id, ticket_id)
         )
         return overall_result
 

@@ -16,7 +16,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models.cluster import Cluster
-from backend.db_meta.models.cluster_entry import ClusterEntry
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import ResourceList
@@ -51,14 +50,6 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
             "domains": Q(immute_domain__in=query_params.get("domains", "").split(",")),
         }
-
-        def filter_exact_domain(_query_params, _cluster_queryset, _proxy_queryset, _storage_queryset):
-            # 域名精确查询
-            cluster_entry_set = ClusterEntry.objects.filter(entry=query_params["exact_domain"])
-            _cluster_queryset = _cluster_queryset.filter(clusterentry__in=cluster_entry_set)
-            return _cluster_queryset
-
-        filter_func_map = {"exact_domain": filter_exact_domain}
         return super()._list_clusters(
             bk_biz_id, query_params, limit, offset, filter_params_map, filter_func_map, **kwargs
         )

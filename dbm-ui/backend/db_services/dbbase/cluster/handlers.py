@@ -16,8 +16,8 @@ from django.db.models import Prefetch
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import AccessLayer, InstanceInnerRole, InstanceStatus
-from backend.db_meta.exceptions import InstanceNotExistException
+from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole, InstanceStatus
+from backend.db_meta.exceptions import ClusterNotExistException, InstanceNotExistException
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_meta.models.machine import Machine
 from backend.db_services.dbbase.dataclass import DBInstance
@@ -26,6 +26,34 @@ from backend.db_services.dbbase.dataclass import DBInstance
 class ClusterServiceHandler:
     def __init__(self, bk_biz_id: int):
         self.bk_biz_id = bk_biz_id
+
+    def check_cluster_databases(self, cluster_id: int, db_list: List[int]):
+        """
+        校验集群的库名是否存在，支持各个类型的集群
+        注意：这个方法是通用查询库表是否存在，子类需要单独实现check_cluster_database,而不是覆写该方法
+        @param cluster_id: 集群ID
+        @param db_list: 库名列表
+        """
+        try:
+            cluster = Cluster.objects.get(id=cluster_id)
+        except Cluster.DoesNotExist:
+            raise ClusterNotExistException(_("集群[]不存在，请检查集群ID").format(cluster_id))
+
+        # mysql校验库存在的模块函数
+        if cluster.cluster_type in [ClusterType.TenDBCluster, ClusterType.TenDBHA, ClusterType.TenDBSingle]:
+            from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler as MySQL
+
+            check_infos = [{"cluster_id": cluster_id, "db_names": db_list}]
+            return MySQL(self.bk_biz_id).check_cluster_database(check_infos)[0]["check_info"]
+        # sqlserver校验库存在的模块函数
+        if cluster.cluster_type in [ClusterType.SqlserverHA, ClusterType.SqlserverSingle]:
+            from backend.db_services.sqlserver.cluster.handlers import ClusterServiceHandler as SQLServer
+
+            return SQLServer(self.bk_biz_id).check_cluster_database(cluster_id, db_list)
+
+    def check_cluster_database(self, cluster_id: int, db_list: List[int]):
+        """子类可单独实现的校验库表是否存在的逻辑，非必须实现"""
+        raise NotImplementedError
 
     def find_related_clusters_by_cluster_ids(
         self,

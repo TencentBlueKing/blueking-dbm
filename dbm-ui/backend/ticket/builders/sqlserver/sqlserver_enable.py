@@ -24,7 +24,7 @@ class SQLServerEnableDetailSerializer(MySQLClustersTakeDownDetailsSerializer):
 
 
 class SQLServerEnableFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SqlserverController.fake_scene
+    controller = SqlserverController.cluster_enable_scene
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_ENABLE, phase=ClusterPhase.ONLINE)

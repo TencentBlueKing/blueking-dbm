@@ -29,10 +29,10 @@ class DBAccountBaseSerializer(serializers.Serializer):
 
     @classmethod
     def check_username_valid(cls, account_type, user):
-        if account_type in [AccountType.MYSQL, AccountType.TENDBCLUSTER]:
-            user_pattern = re.compile(r"^[0-9a-zA-Z][0-9a-zA-Z\-._]{0,31}$")
-        else:
+        if account_type == AccountType.MONGODB:
             user_pattern = re.compile(r"^[0-9a-zA-Z]{1,31}\.[0-9a-zA-Z\-._]{1,31}$")
+        else:
+            user_pattern = re.compile(r"^[0-9a-zA-Z][0-9a-zA-Z\-._]{0,31}$")
 
         if not re.match(user_pattern, user):
             raise serializers.ValidationError(_("账号名称不符合要求, 请重新更改账号名"))
@@ -156,6 +156,16 @@ class AddAccountRuleSerializer(serializers.Serializer):
         mongo_manager = serializers.ListField(
             help_text=_("mongo管理权限"),
             child=serializers.ChoiceField(choices=PrivilegeType.MongoDB.MANAGER.get_choices()),
+            required=False,
+        )
+        sqlserver_dml = serializers.ListField(
+            help_text=_("sqlserver-dml权限"),
+            child=serializers.ChoiceField(choices=PrivilegeType.SQLServer.DML.get_choices()),
+            required=False,
+        )
+        sqlserver_owner = serializers.ListField(
+            help_text=_("sqlserver-owner权限"),
+            child=serializers.ChoiceField(choices=PrivilegeType.SQLServer.OWNER.get_choices()),
             required=False,
         )
 

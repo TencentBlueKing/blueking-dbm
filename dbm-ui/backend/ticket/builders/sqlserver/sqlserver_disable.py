@@ -23,7 +23,7 @@ class SQLServerDisableDetailSerializer(SQLServerTakeDownDetailsSerializer):
 
 
 class SQLServerDisableFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SqlserverController.fake_scene
+    controller = SqlserverController.cluster_disable_scene
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_DISABLE, phase=ClusterPhase.OFFLINE)

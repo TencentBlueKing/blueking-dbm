@@ -82,6 +82,20 @@ def get_dbs_for_drs(cluster_id: int, db_list: list, ignore_db_list: list) -> lis
     return real_dbs
 
 
+def multi_get_dbs_for_drs(cluster_ids: List[int], db_list: list, ignore_db_list: list) -> Dict[int, List[str]]:
+    """
+    根据库正则批量查询集群的正式DB列表
+    @param cluster_ids: 集群ID列表
+    @param db_list: 匹配db的正则列表
+    @param ignore_db_list: 忽略db的正则列表
+    """
+    cluster_id__dbs: Dict[int, List[str]] = get_cluster_database(cluster_ids)
+    cluster_id__dbs = {
+        cluster_id: sqlserver_match_dbs(dbs, db_list, ignore_db_list) for cluster_id, dbs in cluster_id__dbs.items()
+    }
+    return cluster_id__dbs
+
+
 def check_sqlserver_db_exist(cluster_id: int, check_dbs: list) -> list:
     """
     根据存入的db名称，判断库名是否在集群存在
@@ -306,13 +320,12 @@ def get_group_name(master_instance: StorageInstance, bk_cloud_id: int):
     return ret[0]["cmd_results"][0]["table_data"][0]["name"]
 
 
-def get_cluster_database(cluster_ids: List[int]) -> Dict[int, List[str]]:
+def get_cluster_database_with_cloud(bk_cloud_id: int, clusters: List[Cluster]) -> Dict[int, List[str]]:
     """
     获取集群的业务库
-    @param cluster_ids: 集群ID列表
+    @param bk_cloud_id: 云区域
+    @param clusters: 集群ID列表(请保证这一批集群处于相同云区域)
     """
-    clusters = Cluster.objects.prefetch_related("storageinstance_set").filter(id__in=cluster_ids)
-
     # 获取每个集群的主节点信息
     master_instances: List[StorageInstance] = []
     master_ip_port__cluster: Dict[str, Cluster] = {}
@@ -326,7 +339,7 @@ def get_cluster_database(cluster_ids: List[int]) -> Dict[int, List[str]]:
     # 通过DRS获取每个集群的业务主库信息
     rets = DRSApi.sqlserver_rpc(
         {
-            "bk_cloud_id": clusters.first().bk_cloud_id,
+            "bk_cloud_id": bk_cloud_id,
             "addresses": [inst.ip_port for inst in master_instances],
             "cmds": [
                 "select name from [master].[sys].[databases] where "
@@ -340,9 +353,28 @@ def get_cluster_database(cluster_ids: List[int]) -> Dict[int, List[str]]:
     cluster_id__database: Dict[int, List[str]] = defaultdict(list)
     for ret in rets:
         if ret["error_msg"]:
-            raise Exception(f"[{ret['address']}] check db failed: {ret[0]['error_msg']}")
-
+            raise Exception(f"[{ret['address']}] check db failed: {ret['error_msg']}")
         all_dbs = [i["name"] for i in ret["cmd_results"][0]["table_data"]]
         cluster_id__database[master_ip_port__cluster[ret["address"]].id] = all_dbs
 
+    return cluster_id__database
+
+
+def get_cluster_database(cluster_ids: List[int]) -> Dict[int, List[str]]:
+    """
+    获取集群的业务库
+    @param cluster_ids: 集群ID列表(请保证这一批集群处于相同云区域)
+    """
+    clusters = Cluster.objects.prefetch_related("storageinstance_set").filter(id__in=cluster_ids)
+
+    # 按照云区域ID进行集群聚合
+    cloud__clusters_map: Dict[int, List[Cluster]] = defaultdict(list)
+    for cluster in clusters:
+        cloud__clusters_map[cluster.bk_cloud_id].append(cluster)
+
+    # 根据云区域分批查询集群的DB列表
+    cluster_id__database: Dict[int, List[str]] = defaultdict(list)
+    for bk_cloud_id, clusters in cloud__clusters_map.items():
+        cluster_dbs_info = get_cluster_database_with_cloud(bk_cloud_id, clusters)
+        cluster_id__database.update(cluster_dbs_info)
     return cluster_id__database

@@ -115,6 +115,8 @@ class SQLServerHAApplyFlowBuilder(SQLServerSingleApplyFlowBuilder):
     inner_flow_builder = SQLServerHAApplyFlowParamBuilder
     inner_flow_name = _("SQLServer 高可用部署执行")
     resource_apply_builder = SQLServerHaApplyResourceParamBuilder
+    # 标记集群类型
+    cluster_type = ClusterType.SqlserverHA
 
     def patch_ticket_detail(self):
         # 补充数据库版本和字符集

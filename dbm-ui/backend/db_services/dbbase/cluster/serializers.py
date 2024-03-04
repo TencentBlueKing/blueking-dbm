@@ -48,3 +48,14 @@ class FindRelatedClustersByInstancesRequestSerializer(serializers.Serializer):
 class FindRelatedClustersByInstancesResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": FIND_RELATED_CLUSTERS_BY_INSTANCE_RESPONSE_DATA}
+
+
+class CheckClusterDbsSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    db_list = serializers.ListField(help_text=_("db列表"), child=serializers.CharField())
+
+
+class CheckClusterDbsResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": {"db1": True, "db2": False}}

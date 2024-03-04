@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -17,10 +17,12 @@ from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLFILE_PATH
 from backend.flow.consts import SqlserverBackupFileTagEnum, SqlserverBackupMode, SqlserverCharSet
 from backend.flow.engine.controller.sqlserver import SqlserverController
+from backend.flow.utils.sqlserver import sqlserver_db_function
 from backend.ticket import builders
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
+from backend.ticket.exceptions import TicketParamsVerifyException
 from backend.ticket.models import Flow
 
 
@@ -35,13 +37,7 @@ class SQLServerImportDetailSerializer(SQLServerBaseOperateDetailSerializer):
 
     class SQLImportBackUpSerializer(serializers.Serializer):
         backup_dbs = serializers.ListField(help_text=_("备份db列表"), child=serializers.CharField())
-        backup_place = serializers.CharField(help_text=_("备份位置(先固定为master)"), required=False, default="master")
-        backup_type = serializers.ChoiceField(
-            help_text=_("备份方式"), choices=SqlserverBackupMode.get_choices(), required=False
-        )
-        file_tag = serializers.ChoiceField(
-            help_text=_("备份保存时间"), choices=SqlserverBackupFileTagEnum.get_choices(), required=False
-        )
+        ignore_backup_dbs = serializers.ListField(help_text=_("忽略备份db列表"), child=serializers.CharField())
 
     charset = serializers.ChoiceField(help_text=_("字符集"), required=False, choices=SqlserverCharSet.get_choices())
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
@@ -50,7 +46,18 @@ class SQLServerImportDetailSerializer(SQLServerBaseOperateDetailSerializer):
     execute_sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
     execute_db_infos = serializers.ListSerializer(help_text=_("sql执行的DB信息"), child=ExecuteDBInfoSerializer())
     ticket_mode = SQLImportModeSerializer(help_text=_("执行模式"))
-    backup = SQLImportBackUpSerializer(help_text=_("备份信息"), required=False)
+
+    backup = serializers.ListSerializer(help_text=_("备份信息"), required=False, child=SQLImportBackUpSerializer())
+    backup_place = serializers.CharField(help_text=_("备份位置(先固定为master)"), required=False, default="master")
+    file_tag = serializers.ChoiceField(
+        help_text=_("备份保存时间"),
+        choices=SqlserverBackupFileTagEnum.get_choices(),
+        required=False,
+        default=SqlserverBackupFileTagEnum.MSSQL_FULL_BACKUP,
+    )
+    backup_type = serializers.ChoiceField(
+        help_text=_("备份方式"), choices=SqlserverBackupMode.get_choices(), required=False
+    )
 
     def validate(self, attrs):
         return attrs
@@ -60,15 +67,26 @@ class SQLServerBackupFlowParamBuilder(builders.FlowParamBuilder):
     controller = SqlserverController.backup_dbs_scene
 
     def format_ticket_data(self):
-        sql_backup_data = self.ticket_data["backup"]
-        backup_infos = [
-            {"cluster_id": cluster_id, "backup_dbs": sql_backup_data["backup_dbs"]}
-            for cluster_id in self.ticket_data["cluster_ids"]
-        ]
-        backup_data = {
-            "backup_place": sql_backup_data["backup_place"],
-            "backup_type": sql_backup_data["backup_type"],
-            "file_tag": sql_backup_data["file_tag"],
+        # 根据库正则批量查询实际DB，获取集群备份DB信息
+        backup_infos: List[Dict] = []
+        for backup in self.ticket_data["backup"]:
+            cluster_id__real_dbs = sqlserver_db_function.multi_get_dbs_for_drs(
+                self.ticket_data["cluster_ids"], backup["backup_dbs"], backup["ignore_backup_dbs"]
+            )
+            backup_infos.extend(
+                [
+                    {"cluster_id": cluster_id, "backup_dbs": cluster_id__real_dbs[cluster_id]}
+                    for cluster_id in self.ticket_data["cluster_ids"]
+                    if cluster_id__real_dbs.get(cluster_id)
+                ]
+            )
+        if not backup_infos:
+            raise TicketParamsVerifyException(_("所选备份DB信息为空，请检查库表正则"))
+        # 填充其他备份选项
+        backup_data: Dict[str, Any] = {
+            "backup_place": self.ticket_data["backup_place"],
+            "backup_type": self.ticket_data["backup_type"],
+            "file_tag": self.ticket_data["file_tag"],
             "infos": backup_infos,
         }
         self.ticket_data = backup_data

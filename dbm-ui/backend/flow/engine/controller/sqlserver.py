@@ -9,6 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.sqlserver.build_database_sync import SqlserverBuildDBSyncFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_add_slave import SqlserverAddSlaveFlow
+from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_authorize_rules import SQLServerAuthorizeRules
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_backup_dbs import SqlserverBackupDBSFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_clean_dbs import SqlserverCleanDBSFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_cluster_destroy import SqlserverDestroyFlow
@@ -106,4 +107,8 @@ class SqlserverController(BaseController):
 
     def db_construct_scene(self):
         flow = SqlserverDataConstruct(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
+
+    def authorize(self):
+        flow = SQLServerAuthorizeRules(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
