@@ -160,17 +160,17 @@
         params.id = Number(route.params.id);
       }
       const handler = isEditMode ? updateOpenarea : createOpenarea;
-      handler(params).then(() => {
+      return handler(params).then(() => {
         messageSuccess(isEditMode ? t('编辑成功') : t('新建成功'));
         window.changeConfirm = false;
         router.push({
           name: 'spiderOpenareaTemplate',
         });
-      })
-        .finally(() => {
-          isSubmiting.value = false;
-        });
-    });
+      });
+    })
+      .finally(() => {
+        isSubmiting.value = false;
+      });
   };
 
   const handleReset = () => {
