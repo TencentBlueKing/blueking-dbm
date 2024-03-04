@@ -303,7 +303,9 @@ class BaseTicketFlowBuilderPatchMixin(object):
 
     def patch_spec_details(self):
         """补充规格信息"""
-        spec_ids = get_target_items_from_details(self.ticket.details["infos"], match_keys=["spec_id"])
+        spec_ids = get_target_items_from_details(self.ticket.details, match_keys=["spec_id"])
+        # 过滤掉非合法类型和重复的spec_id
+        spec_ids = set([int(spec_id) for spec_id in spec_ids if isinstance(spec_id, (int, str))])
         if not spec_ids:
             return
         specs = {spec.spec_id: spec.get_spec_info() for spec in Spec.objects.filter(spec_id__in=spec_ids)}
