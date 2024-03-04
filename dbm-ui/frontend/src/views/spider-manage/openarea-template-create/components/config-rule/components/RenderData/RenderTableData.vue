@@ -20,7 +20,6 @@
       :list="dbNameList"
       multiple
       :placeholder="t('请选择')"
-      :rules="rules"
       show-select-all />
   </BkLoading>
 </template>
@@ -58,13 +57,6 @@
 
   const editRef = ref<InstanceType<typeof TableEditSelect>>();
   const dbNameList = shallowRef<{value: string, label: string}[]>([]);
-
-  const rules = [
-    {
-      validator: (value: string[]) => value.length > 0,
-      message: t('目标集群不能为空'),
-    },
-  ];
 
   const {
     loading: isLoading,

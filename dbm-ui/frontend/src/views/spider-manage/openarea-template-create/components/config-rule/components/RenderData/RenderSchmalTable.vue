@@ -20,7 +20,6 @@
       :list="dbNameList"
       multiple
       :placeholder="t('请选择')"
-      :rules="rules"
       show-select-all />
   </BkLoading>
 </template>
@@ -60,13 +59,6 @@
   const editRef = ref<InstanceType<typeof TableEditSelect>>();
   const dbNameList = shallowRef<{value: string, label: string}[]>([]);
 
-  const rules = [
-    {
-      validator: (value: string[]) => value.length > 0,
-      message: t('克隆表结构不能为空'),
-    },
-  ];
-
   const {
     loading: isLoading,
     run: fetchList,
@@ -78,6 +70,8 @@
         value: item,
         label: item,
       }));
+      // 默认全选
+      modelValue.value = dbNameList.value.map(item => item.value);
     },
   });
 

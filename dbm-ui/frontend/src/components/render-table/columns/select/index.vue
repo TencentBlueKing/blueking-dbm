@@ -155,7 +155,7 @@
 .is-error {
   background-color: #fff0f1 !important;
 
-  :deep(input) {
+  :deep(.bk-input) {
     background-color: #fff0f1 !important;
   }
 

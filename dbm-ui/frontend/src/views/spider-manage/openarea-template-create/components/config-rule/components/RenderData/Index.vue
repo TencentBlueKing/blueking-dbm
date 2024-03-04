@@ -22,11 +22,13 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="170"
+          :required="false"
           :width="180">
           {{ t('克隆表结构') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="170"
+          :required="false"
           :width="180">
           {{ t('克隆表数据') }}
         </RenderTableHeadColumn>
