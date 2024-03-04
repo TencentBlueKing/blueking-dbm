@@ -42,7 +42,7 @@ from backend.utils.time import date2str
 class MongoDBRestoreDetailSerializer(BaseMongoDBOperateDetailSerializer):
     cluster_ids = serializers.ListField(help_text=_("集群列表"), child=serializers.IntegerField())
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices(), required=False)
-    ns_filter = DBTableSerializer(help_text=_("库表选择器"))
+    ns_filter = DBTableSerializer(help_text=_("库表选择器"), required=False)
     rollback_time = DBTimezoneField(help_text=_("回档时间"), required=False)
     backupinfo = serializers.JSONField(help_text=_("指定备份记录[集群ID: 记录]"), required=False)
     city_code = serializers.CharField(help_text=_("部署城市"), required=False, default="default")
