@@ -14,6 +14,7 @@ import logging
 from django.db.transaction import atomic
 
 from backend.components import MySQLPrivManagerApi
+from backend.components.mysql_partition.client import DBPartitionApi
 from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.tendbha.handler import TenDBHAClusterHandler
@@ -466,13 +467,25 @@ class MySQLDBMeta(object):
         """
         定义更新cluster集群的为offline 状态
         """
-        Cluster.objects.filter(id=self.cluster["id"]).update(phase=ClusterPhase.OFFLINE)
+        cluster = Cluster.objects.get(id=self.cluster["id"])
+        cluster.phase = ClusterPhase.OFFLINE
+        cluster.save()
+        # TODO: 修改分区配置为禁用状态
+        DBPartitionApi.disable_partition(
+            params={"cluster_type": cluster.cluster_type, "bk_biz_id": self.bk_biz_id, "cluster_ids": [cluster.id]}
+        )
 
     def mysql_cluster_online(self):
         """
         定义更新cluster集群的为online 状态
         """
-        Cluster.objects.filter(id=self.cluster["id"]).update(phase=ClusterPhase.ONLINE)
+        cluster = Cluster.objects.get(id=self.cluster["id"])
+        cluster.phase = ClusterPhase.ONLINE
+        cluster.save()
+        # TODO: 修改分区配置为启用状态
+        DBPartitionApi.enable_partition(
+            params={"cluster_type": cluster.cluster_type, "bk_biz_id": self.bk_biz_id, "cluster_ids": [cluster.id]}
+        )
 
     def mysql_migrate_cluster_switch_storage(self):
         """
