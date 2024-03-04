@@ -18,6 +18,8 @@ from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.db_meta.models import Cluster
+from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
+from backend.db_services.dbbase.cluster.serializers import CheckClusterDbsResponseSerializer, CheckClusterDbsSerializer
 from backend.db_services.dbbase.resources.query import ListRetrieveResource
 from backend.db_services.dbbase.serializers import (
     CommonQueryClusterResponseSerializer,
@@ -78,3 +80,15 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         data = self.params_validate(self.get_serializer_class())
         __, cluster_infos = ListRetrieveResource.common_query_cluster(**data)
         return Response(cluster_infos)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群的库是否存在"),
+        request_body=CheckClusterDbsSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: CheckClusterDbsResponseSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=CheckClusterDbsSerializer)
+    def check_cluster_databases(self, request, *args, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        bk_biz_id = validated_data.pop("bk_biz_id")
+        return Response(ClusterServiceHandler(bk_biz_id).check_cluster_databases(**validated_data))

@@ -11,8 +11,6 @@ specific language governing permissions and limitations under the License.
 from dataclasses import asdict, dataclass
 from typing import Dict, List, Union
 
-from backend.db_services.dbpermission.constants import AccountType
-
 
 @dataclass
 class AccountMeta:
@@ -21,7 +19,7 @@ class AccountMeta:
     account_id: int = None
     user: str = None
     password: str = None
-    account_type: str = AccountType.MYSQL.value
+    account_type: str = None
 
     def to_dict(self):
         return asdict(self)
@@ -50,10 +48,11 @@ class AccountRuleMeta(AccountMeta):
         if not isinstance(self.privilege, dict):
             return
 
-        # 更新账号权限参数
-        for rule_type in self.privilege:
-            if isinstance(self.privilege[rule_type], list):
-                self.privilege[rule_type] = ",".join(self.privilege[rule_type])
-
+        # 对不同账号权限进行格式化
         if "glob" in self.privilege:
             self.privilege["global"] = self.privilege.pop("glob")
+        if "sqlserver_dml" in self.privilege:
+            self.privilege["dml"] = self.privilege.pop("sqlserver_dml")
+        if "sqlserver_owner" in self.privilege:
+            self.privilege["owner"] = self.privilege.pop("sqlserver_owner")
+        self.privilege = {rule_type: ",".join(self.privilege[rule_type]) for rule_type in self.privilege}

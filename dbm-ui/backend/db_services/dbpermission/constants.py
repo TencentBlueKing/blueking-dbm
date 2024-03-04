@@ -69,6 +69,14 @@ class PrivilegeType:
             DB_OWNER = EnumField("dbOwner", _("dbOwner"))
             ROOT = EnumField("root", _("root"))
 
+    class SQLServer:
+        class DML(str, StructuredEnum):
+            db_datawriter = EnumField("db_datawriter", _("db_datawriter"))
+            db_datareader = EnumField("db_datareader", _("db_datareader"))
+
+        class OWNER(str, StructuredEnum):
+            db_owner = EnumField("db_owner", _("db_owner"))
+
 
 class AccountType(str, StructuredEnum):
     """账号类型枚举"""
@@ -76,6 +84,7 @@ class AccountType(str, StructuredEnum):
     MYSQL = EnumField("mysql", _("MySQL"))
     TENDBCLUSTER = EnumField("tendbcluster", _("TendbCluster"))
     MONGODB = EnumField("mongodb", _("MongoDB"))
+    SQLServer = EnumField("sqlserver", _("SQLServer"))
 
 
 class AuthorizeExcelHeader(str, StructuredEnum):

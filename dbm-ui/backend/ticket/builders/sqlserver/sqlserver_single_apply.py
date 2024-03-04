@@ -202,10 +202,16 @@ class SQLServerSingleApplyFlowBuilder(BaseSQLServerTicketFlowBuilder):
     inner_flow_builder = SQLServerSingleApplyFlowParamBuilder
     inner_flow_name = _("SQLServer 单节点部署执行")
     resource_apply_builder = SQLServerSingleApplyResourceParamBuilder
+    # 标记集群类型
+    cluster_type = ClusterType.SqlserverSingle
 
     def patch_ticket_detail(self):
         # 补充数据库版本和字符集
-        db_config = get_module_infos(bk_biz_id=self.ticket.bk_biz_id, db_module_id=self.ticket.details["db_module_id"])
+        db_config = get_module_infos(
+            bk_biz_id=self.ticket.bk_biz_id,
+            db_module_id=self.ticket.details["db_module_id"],
+            cluster_type=self.cluster_type,
+        )
         # 校验配置是否存在
         if not db_config.get("db_version") or not db_config.get("charset"):
             raise TicketParamsVerifyException(_("获取数据库字符集或版本失败，请检查获取参数, db_config: {}").format(db_config))

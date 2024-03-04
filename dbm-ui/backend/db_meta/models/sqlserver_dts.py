@@ -24,6 +24,7 @@ class DtsStatus(str, StructuredEnum):
     # 迁移记录的状态枚举
     ToDo = EnumField("todo", _("待执行"))
     Terminated = EnumField("terminated", _("已终止"))
+    Disconnecting = EnumField("disconnecting", _("中断中"))
     Disconnected = EnumField("disconnected", _("已断开"))
 
     # 全量迁移阶段状态枚举
@@ -56,3 +57,9 @@ class SqlserverDtsInfo(AuditedModel):
 
     class Meta:
         verbose_name = verbose_name_plural = _("sqlserver数据迁移记录表")
+        # 单据ID-源集群-目标集群组成唯一键
+        unique_together = (
+            "ticket_id",
+            "source_cluster_id",
+            "target_cluster_id",
+        )

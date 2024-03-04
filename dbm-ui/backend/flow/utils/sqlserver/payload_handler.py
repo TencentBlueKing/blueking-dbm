@@ -13,7 +13,12 @@ from typing import Tuple
 
 from django.utils.crypto import get_random_string
 
+from backend import env
 from backend.components import DBPrivManagerApi
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
+from backend.db_proxy.constants import ExtensionType
+from backend.db_proxy.models import DBExtension
 from backend.flow.consts import DEFAULT_INSTANCE, MSSQL_ADMIN, MSSQL_EXPORTER, SqlserverComponent, SqlserverUserName
 
 logger = logging.getLogger("flow")
@@ -25,6 +30,21 @@ class PayloadHandler(object):
         @param global_data 流程/子流程全局信息
         """
         self.global_data = global_data
+
+    @staticmethod
+    def get_sqlserver_drs_account(bk_cloud_id: int):
+        """
+        获取sqlserver在drs的admin账号密码
+        """
+        if env.DRS_USERNAME:
+            return {"user": env.DRS_USERNAME, "pwd": env.DRS_PASSWORD}
+
+        bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
+        drs = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.DRS)
+        return {
+            "drs_user": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["user"]),
+            "drs_pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
+        }
 
     @staticmethod
     def get_sqlserver_account():
@@ -69,8 +89,8 @@ class PayloadHandler(object):
 
         return user_map
 
-    @staticmethod
-    def get_create_sqlserver_account():
+    @classmethod
+    def get_create_sqlserver_account(cls, bk_cloud_id: int):
         """
         获取sqlserver实例内置帐户密码，安装实例场景使用
         todo 后续需要增加drs访问账号初始化
@@ -98,6 +118,9 @@ class PayloadHandler(object):
         # 随机生成admin密码
         user_map["mssql_admin_user"] = MSSQL_ADMIN
         user_map["mssql_admin_pwd"] = get_random_string(length=10)
+
+        # 添加drs账号和密码
+        user_map.update(cls.get_sqlserver_drs_account(bk_cloud_id))
 
         return user_map
 

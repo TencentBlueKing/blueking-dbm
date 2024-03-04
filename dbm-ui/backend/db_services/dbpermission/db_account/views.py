@@ -32,21 +32,25 @@ from backend.db_services.dbpermission.db_account.serializers import (
 )
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission, get_request_key_id
 
 SWAGGER_TAG = "db_services/permission/account"
 
 
 class BaseDBAccountViewSet(viewsets.SystemViewSet):
-    db_type = None
+    account_type = None
+
+    @staticmethod
+    def instance_getter(request, view):
+        return [get_request_key_id(request, "bk_biz_id")]
 
     def _get_custom_permissions(self):
         if self.action not in ["create_account", "delete_account", "add_account_rule"]:
             return [DBManagePermission()]
 
-        account_type = self.request.data.get("account_type", self.db_type)
+        account_type = self.request.data.get("account_type", self.account_type)
         account_action = getattr(ActionEnum, f"{account_type}_{self.action}".upper())
-        return [ResourceActionPermission([account_action], ResourceEnum.BUSINESS)]
+        return [ResourceActionPermission([account_action], ResourceEnum.BUSINESS, self.instance_getter)]
 
     def _view_common_handler(
         self, request, bk_biz_id: int, meta: Union[Type[AccountMeta], Type[AccountRuleMeta]], func: str
@@ -62,7 +66,7 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         base_info = {
             "bk_biz_id": bk_biz_id,
             "operator": request.user.username,
-            "account_type": validated_data.pop("account_type", None),
+            "account_type": validated_data.get("account_type"),
             "context": {},
         }
         meta_init_data = meta.from_dict(validated_data)
