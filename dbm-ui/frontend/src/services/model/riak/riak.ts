@@ -104,6 +104,8 @@ export default class Riak {
   update_at: string;
   access_url: string;
   cap_usage: number;
+  db_module_id: number;
+  db_module_name: string;
 
   constructor(payload = {} as Riak) {
     this.id = payload.id;
@@ -128,6 +130,8 @@ export default class Riak {
     this.update_at = payload.update_at;
     this.access_url = payload.access_url;
     this.cap_usage = payload.cap_usage;
+    this.db_module_id = payload.db_module_id;
+    this.db_module_name = payload.db_module_name;
   }
 
   get isNewRow() {
