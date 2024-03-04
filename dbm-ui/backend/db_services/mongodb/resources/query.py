@@ -14,7 +14,7 @@ from django.db.models import CharField, ExpressionWrapper, F, Q, QuerySet, Value
 from django.db.models.functions import Concat
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
+from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.cluster_entry import ClusterEntry
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
@@ -97,11 +97,8 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             ).count()
             shard_node_count = len(mongodb) / shard_num
 
-        # 获取单副本集机器数量，这里就以m1为准(一个分片至少包含m1, m2, backup)
-        m1_machines = [m.machine.bk_host_id for m in mongodb_insts if m.instance_role == InstanceRole.MONGO_M1]
-        replicaset_machine_num = len(set(m1_machines))
-
-        # 获取mongodb总机器数量、机器组数
+        # 获取mongodb总机器数量、机器组数、单机部署实例数
+        machine_instance_num = mongodb_insts[0].machine.storageinstance_set.count()
         mongodb_machine_num = len(set([m.machine.bk_host_id for m in mongodb_insts]))
         mongodb_machine_pair = mongodb_machine_num // shard_node_count
 
@@ -115,7 +112,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
         shard_spec = MongoDBShardSpecFilter.get_shard_spec(mongodb_spec, shard_num)
 
         cluster_extra_info = {
-            "replicaset_machine_num": replicaset_machine_num,
+            "machine_instance_num": machine_instance_num,
             "mongodb_machine_pair": mongodb_machine_pair,
             "mongodb_machine_num": mongodb_machine_num,
             "shard_spec": shard_spec,
