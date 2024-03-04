@@ -180,6 +180,8 @@
     nextTick(() => {
       tableRef.value.fetchData({
         cluster_id: props.clusterId,
+      }, {
+        account_type: 'tendbcluster',
       });
     });
   });
