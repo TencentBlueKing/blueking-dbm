@@ -36,6 +36,7 @@ from backend.ticket.builders.mysql.mysql_ha_metadata_import import TenDBHAMetada
 from backend.ticket.builders.mysql.mysql_ha_standardize import TenDBHAStandardizeDetailSerializer
 from backend.ticket.builders.spider.metadata_import import TenDBClusterMetadataImportDetailSerializer
 from backend.ticket.builders.spider.mysql_spider_standardize import TenDBClusterStandardizeDetailSerializer
+from backend.ticket.builders.tendbcluster.append_deploy_ctl import TenDBClusterAppendDeployCTLDetailSerializer
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
@@ -95,16 +96,16 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
             domain_list.append(line.decode("utf-8").strip().rstrip("."))
 
         cluster_ids = list(
-            Cluster.objects.filter(immute_domain__in=domain_list, cluster_type=ClusterType.TenDBHA.value).values_list(
-                "id", flat=True
-            )
+            Cluster.objects.filter(
+                bk_biz_id=data["bk_biz_id"], immute_domain__in=domain_list, cluster_type=ClusterType.TenDBHA.value
+            ).values_list("id", flat=True)
         )
         logger.info("domains: {}, ids: {}".format(domain_list, cluster_ids))
 
         exists_domains = list(
-            Cluster.objects.filter(immute_domain__in=domain_list, cluster_type=ClusterType.TenDBHA.value).values_list(
-                "immute_domain", flat=True
-            )
+            Cluster.objects.filter(
+                bk_biz_id=data["bk_biz_id"], immute_domain__in=domain_list, cluster_type=ClusterType.TenDBHA.value
+            ).values_list("immute_domain", flat=True)
         )
         diff = list(set(domain_list) - set(exists_domains))
         if diff:
@@ -166,14 +167,14 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
 
         cluster_ids = list(
             Cluster.objects.filter(
-                immute_domain__in=domain_list, cluster_type=ClusterType.TenDBCluster.value
+                bk_biz_id=data["bk_biz_id"], immute_domain__in=domain_list, cluster_type=ClusterType.TenDBCluster.value
             ).values_list("id", flat=True)
         )
         logger.info("domains: {}, ids: {}".format(domain_list, cluster_ids))
 
         exists_domains = list(
             Cluster.objects.filter(
-                immute_domain__in=domain_list, cluster_type=ClusterType.TenDBCluster.value
+                bk_biz_id=data["bk_biz_id"], immute_domain__in=domain_list, cluster_type=ClusterType.TenDBCluster.value
             ).values_list("immute_domain", flat=True)
         )
         diff = list(set(domain_list) - set(exists_domains))
@@ -206,7 +207,31 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
     )
     def tendbcluster_append_deploy_ctl(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
+
+        domain_list = []
+        for line in data.pop("file").readlines():
+            domain_list.append(line.decode("utf-8".strip().rstrip(".")))
+
+        cluster_ids = list(
+            Cluster.objects.filter(
+                bk_biz_id=data["bk_biz_id"], immute_domain__in=domain_list, cluster_type=ClusterType.TenDBCluster.value
+            ).values_list("id", flat=True)
+        )
+        logger.info("domains: {}, ids: {}".format(domain_list, cluster_ids))
+
+        exists_domains = list(
+            Cluster.objects.filter(
+                bk_biz_id=data["bk_biz_id"], immute_domain__in=domain_list, cluster_type=ClusterType.TenDBCluster.value
+            ).values_list("immute_domain", flat=True)
+        )
+        diff = list(set(cluster_ids) - set(exists_domains))
+        if diff:
+            raise serializers.ValidationError(_("cluster {} not found".format(diff)))
+
+        data["cluster_ids"] = cluster_ids
+
         # 创建标准化ticket
+        TenDBClusterAppendDeployCTLDetailSerializer(data=data).is_valid(raise_exception=True)
         Ticket.create_ticket(
             ticket_type=TicketType.TENDBCLUSTER_APPEND_DEPLOY_CTL,
             creator=request.user.username,
