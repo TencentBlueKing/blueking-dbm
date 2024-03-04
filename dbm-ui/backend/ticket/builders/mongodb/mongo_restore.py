@@ -201,7 +201,7 @@ class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     def get_shard_apply_details(cls, ticket_id, ticket_data, apply_details=None):
         """补充分片集回档的部署参数"""
         # 分片集暂时只支持单个回档，因此cluster_ids只有一个元素
-        cluster = Cluster.objects.get(ticket_data["cluster_ids"][0])
+        cluster = Cluster.objects.get(id=ticket_data["cluster_ids"][0])
         shard_num = cluster.nosqlstoragesetdtl_set.filter(instance__machine__machine_type=MachineType.MONGODB).count()
         cluster_name = cluster_alias = f"{cluster.name}-tmp{date2str(datetime.date.today(), '%Y%m%d')}-{ticket_id}"
 
