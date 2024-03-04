@@ -33,10 +33,10 @@ from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDa
 from backend.flow.engine.bamboo.scene.redis.redis_instance_apply_flow import RedisInstanceApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_delete import RedisKeysDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_extract import RedisKeysExtractFlow
+from backend.flow.engine.bamboo.scene.redis.redis_predixy_cluster_apply_flow import TendisPlusApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_predixy_config_servers_rewrite import (
     RedisPredixyConfigServersRewriteFlow,
 )
-from backend.flow.engine.bamboo.scene.redis.redis_predixy_cluster_apply_flow import TendisPlusApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_remove_dts_server import RedisRemoveDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.redis_reupload_old_backup_records import RedisReuploadOldBackupRecordsFlow
