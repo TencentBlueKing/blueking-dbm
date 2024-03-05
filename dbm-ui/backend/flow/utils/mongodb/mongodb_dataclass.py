@@ -213,10 +213,18 @@ class ActKwargs:
             )
         return result["password"]
 
-    def get_send_media_kwargs(self) -> dict:
-        """介质下发的kwargs"""
+    def get_send_media_kwargs(self, media_type: str) -> dict:
+        """
+        介质下发的kwargs
+        media_type: all 所有介质
+        media_type: actuator 仅actuator介质
+        """
 
-        file_list = GetFileList(db_type=DBType.MongoDB).mongodb_pkg(db_version=self.payload["db_version"])
+        file_list = []
+        if media_type == "actuator":
+            file_list = GetFileList(db_type=DBType.MongoDB).mongodb_actuator_pkg()
+        elif media_type == "all":
+            file_list = GetFileList(db_type=DBType.MongoDB).mongodb_pkg(db_version=self.payload["db_version"])
         ip_list = self.payload["hosts"]
         exec_ips = [host["ip"] for host in ip_list]
         return {
@@ -780,15 +788,19 @@ class ActKwargs:
         """获取所有需要卸载的cluster的hosts"""
 
         hosts = set()
+        bk_cloud_id: int = None
         for cluster_id in self.payload["cluster_ids"]:
             cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
             if cluster_info.cluster_type == ClusterType.MongoReplicaSet.value:
-                for member in cluster_info.get_shards()[0].members:
+                shard = cluster_info.get_shards()[0]
+                bk_cloud_id = shard.members[0].bk_cloud_id
+                for member in shard.members:
                     hosts.add(member.ip)
             elif cluster_info.cluster_type == ClusterType.MongoShardedCluster.value:
                 mongos = cluster_info.get_mongos()
                 shards = cluster_info.get_shards()
                 config = cluster_info.get_config()
+                bk_cloud_id = mongos[0].bk_cloud_id
                 for mongo in mongos:
                     hosts.add(mongo.ip)
                 for member in config.members:
@@ -798,7 +810,7 @@ class ActKwargs:
                         hosts.add(member.ip)
         list_hosts = []
         for host in hosts:
-            list_hosts.append({"ip": host})
+            list_hosts.append({"ip": host, "bk_cloud_id": bk_cloud_id})
         self.payload["hosts"] = list_hosts
 
     def get_cluster_info_deinstall(self, cluster_id: int):
@@ -806,7 +818,6 @@ class ActKwargs:
 
         cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
         self.payload["cluster_type"] = cluster_info.cluster_type
-        # self.payload["app"] = cluster_info.name.split("-")[0]
         self.payload["set_id"] = cluster_info.name
         self.payload["bk_cloud_id"] = cluster_info.bk_cloud_id
         nodes = []
@@ -845,8 +856,8 @@ class ActKwargs:
             self.payload["shards_nodes"] = shards_nodes
             self.payload["config_nodes"] = config_nodes
 
-    def get_mongo_deinstall_kwargs(self, node_info: dict, instance_type: str, nodes_info: list) -> dict:
-        """卸载mongo"""
+    def get_mongo_deinstall_kwargs(self, node_info: dict, instance_type: str, nodes_info: list, force: bool) -> dict:
+        """卸载mongo的kwargs"""
 
         nodes = []
         for node in nodes_info:
@@ -866,8 +877,19 @@ class ActKwargs:
                     "setId": self.payload["set_id"],
                     "nodeInfo": nodes,
                     "instanceType": instance_type,
+                    "force": force,
                 },
             },
+        }
+
+    def get_meta_deinstall_kwargs(self, cluster_id: int) -> dict:
+        """卸载集群修改元数据的kwarg"""
+
+        return {
+            "created_by": self.payload["created_by"],
+            "immute_domain": "",
+            "cluster_id": cluster_id,
+            "bk_biz_id": self.payload["bk_biz_id"],
         }
 
     def get_delete_domain_kwargs(self):

@@ -38,7 +38,7 @@ def user(
     sub_get_kwargs.get_cluster_info_user(cluster_id=cluster_id, admin_user=MongoDBManagerUser.DbaUser.value)
 
     # 介质下发
-    kwargs = sub_get_kwargs.get_send_media_kwargs()
+    kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="actuator")
     sub_pipeline.add_act(
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
     )

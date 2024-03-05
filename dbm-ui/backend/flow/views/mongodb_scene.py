@@ -164,3 +164,15 @@ class MongoDBReduceMongoSView(FlowTestView):
         root_id = uuid.uuid1().hex
         MongoDBController(root_id=root_id, ticket_data=request.data).reduce_mongos()
         return Response({"root_id": root_id})
+
+
+class MongoDBDeInstallSView(FlowTestView):
+    """
+    mongodb卸载
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).deinstall_cluster()
+        return Response({"root_id": root_id})

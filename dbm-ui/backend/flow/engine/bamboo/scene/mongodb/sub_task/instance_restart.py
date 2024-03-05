@@ -37,7 +37,7 @@ def instance_restart(
     sub_get_kwargs.get_file_path()
     sub_get_kwargs.payload["db_version"] = instances_info["instances"][0]["db_version"]
     sub_get_kwargs.payload["hosts"] = instances_info["hosts"]
-    kwargs = sub_get_kwargs.get_send_media_kwargs()
+    kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="actuator")
     sub_pipeline.add_act(
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
     )

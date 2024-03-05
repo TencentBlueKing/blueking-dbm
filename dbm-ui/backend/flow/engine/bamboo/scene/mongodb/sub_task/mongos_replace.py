@@ -142,6 +142,7 @@ def mongos_replace(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
         node_info=sub_sub_get_kwargs.payload["mongos_nodes"][0],
         instance_type=MongoDBInstanceType.MongoS.value,
         nodes_info=sub_sub_get_kwargs.payload["mongos_nodes"],
+        force=True,
     )
     sub_sub_pipeline.add_act(
         act_name=_("MongoDB-老实例下架-{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"]))),

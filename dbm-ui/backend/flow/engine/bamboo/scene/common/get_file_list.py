@@ -579,3 +579,12 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}{mongodb_pkg.path}",
             # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
+
+    def mongodb_actuator_pkg(self) -> list:
+        """
+        mongodb的actuator包
+        """
+
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}{self.actuator_pkg.path}",
+        ]

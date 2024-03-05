@@ -50,7 +50,7 @@ class MongosShutdownMetaService(BaseService):
             if _t:
                 raise Exception(_("{} 存在不是本集群的实例下架列表").format(_t))
 
-            machine_obj, cc_manage = defaultdict(dict), CcManage(cluster.bk_biz_id)
+            machine_obj, cc_manage = defaultdict(dict), CcManage(cluster.bk_biz_id, DBType.MongoDB.value)
             cc_manage.delete_service_instance(bk_instance_ids=[obj.bk_instance_id for obj in proxy_objs])
             for proxy_obj in proxy_objs:
                 logger.info("cluster proxy {} for cluster {}".format(proxy_obj, cluster.immute_domain))
@@ -89,7 +89,7 @@ class MongosShutdownMetaService(BaseService):
     @transaction.atomic
     def decommission_backends(self, cluster: Cluster, backends: List[Dict]):
         logger.info("user request decmmission backends {} {}".format(cluster.immute_domain, backends))
-        cc_manage = CcManage(cluster.bk_biz_id)
+        cc_manage = CcManage(cluster.bk_biz_id, DBType.MongoDB.value)
         try:
             storage_objs = common.filter_out_instance_obj(backends, cluster.storageinstance_set.all())
             _t = common.not_exists(backends, storage_objs)
@@ -145,7 +145,9 @@ class MongosShutdownMetaService(BaseService):
                 cluster_entry_obj.delete()
             logger.info("cluster detail {}".format(cluster.__dict__))
 
-            CcManage(cluster.bk_biz_id).delete_cluster_modules(db_type=DBType.MongoDB.value, cluster=cluster)
+            CcManage(cluster.bk_biz_id, DBType.MongoDB.value).delete_cluster_modules(
+                db_type=DBType.MongoDB.value, cluster=cluster
+            )
             cluster.delete()
         except Exception as e:
             logger.error(traceback.format_exc())

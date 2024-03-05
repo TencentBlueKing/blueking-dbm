@@ -44,7 +44,7 @@ class MongoDBDeInstallFlow(object):
         """
 
         # 介质下发——job的api可以多个IP并行执行
-        kwargs = self.get_kwargs.get_send_media_kwargs()
+        kwargs = self.get_kwargs.get_send_media_kwargs(media_type="actuator")
         pipeline.add_act(
             act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
         )
@@ -63,8 +63,10 @@ class MongoDBDeInstallFlow(object):
         # 创建流程实例
         pipeline = Builder(root_id=self.root_id, data=self.data)
 
+        # 获取信息
         # 获取所有的cluster主机信息
         self.get_kwargs.get_hosts_deinstall()
+        self.get_kwargs.payload["app"] = self.get_kwargs.payload["bk_app_abbr"]
 
         # 下发介质
         self.prepare_job(pipeline=pipeline)
@@ -73,7 +75,11 @@ class MongoDBDeInstallFlow(object):
         sub_pipelines = []
         for cluster_id in self.data["cluster_ids"]:
             sub_pipline = deinstall(
-                root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, cluster_id=cluster_id
+                root_id=self.root_id,
+                ticket_data=self.data,
+                sub_kwargs=self.get_kwargs,
+                cluster_id=cluster_id,
+                reduce_mongos=False,
             )
             sub_pipelines.append(sub_pipline)
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
