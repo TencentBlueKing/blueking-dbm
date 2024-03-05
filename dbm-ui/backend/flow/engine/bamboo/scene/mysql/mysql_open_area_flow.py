@@ -278,8 +278,11 @@ class MysqlOpenAreaFlow(object):
         if data_flag:
             pipeline.add_sub_pipeline(sub_flow=self.open_area_data_flow())
 
-        # 对开区的新集群进行授权
-        pipeline.add_act(act_name=_("添加mysql规则授权"), act_component_code=AuthorizeRulesComponent.code, kwargs=self.data)
+        # 判断是否对开区的集群进行授权
+        if self.data.get("rules_set"):
+            pipeline.add_act(
+                act_name=_("添加mysql规则授权"), act_component_code=AuthorizeRulesComponent.code, kwargs=self.data
+            )
 
         pipeline.run_pipeline(is_drop_random_user=True)
 
