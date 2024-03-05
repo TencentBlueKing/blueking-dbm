@@ -31,8 +31,7 @@
         v-bind="$attrs"
         @column-sort="handleColumnSortChange"
         @page-limit-change="handlePageLimitChange"
-        @page-value-change="handlePageValueChange"
-        @row-click="handleRowClick">
+        @page-value-change="handlePageValueChange">
         <template
           v-if="Object.keys(rowSelectMemo).length > 0"
           #prepend>
@@ -197,9 +196,9 @@
       return (
         <span v-bk-tooltips={tips}>
           <bk-checkbox
-            style="pointer-events: none;"
             label={true}
             disabled={selectDisabled}
+            onChange={() => handleRowClick(data)}
             modelValue={Boolean(rowSelectMemo.value[_.get(data, props.primaryKey)])} />
         </span>
       );
@@ -421,11 +420,11 @@
   };
 
   // 选中单行
-  const handleRowClick = (event: MouseEvent, data: any) => {
-    const targetElement = event.target as HTMLElement;
-    if (/bk-button/.test(targetElement.className)) {
-      return;
-    }
+  const handleRowClick = (data: any) => {
+    // const targetElement = event.target as HTMLElement;
+    // if (/bk-button/.test(targetElement.className)) {
+    //   return;
+    // }
     if (!props.selectable) {
       return;
     }

@@ -61,6 +61,7 @@ export const getPreview = function (params: {
       execute_objects: {
         authorize_ips: string[],
         data_tblist: string[],
+        error_msg: string,
         priv_data: number[],
         schema_tblist: string[],
         source_db: string,
