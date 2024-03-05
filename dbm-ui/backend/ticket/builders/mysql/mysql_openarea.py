@@ -45,7 +45,9 @@ class MysqlOpenAreaDetailSerializer(MySQLBaseOperateDetailSerializer):
     cluster_id = serializers.IntegerField(help_text=_("源集群ID"))
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
     config_data = serializers.ListSerializer(help_text=_("分区信息"), child=ConfigDataSerializer())
-    rules_set = serializers.ListSerializer(help_text=_("授权信息"), child=PrivDataSerializer())
+    rules_set = serializers.ListSerializer(
+        help_text=_("授权信息"), child=PrivDataSerializer(), required=False, allow_null=True, allow_empty=True
+    )
 
 
 class MysqlOpenAreaParamBuilder(builders.FlowParamBuilder):

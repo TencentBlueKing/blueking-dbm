@@ -470,10 +470,13 @@ class MySQLDBMeta(object):
         cluster = Cluster.objects.get(id=self.cluster["id"])
         cluster.phase = ClusterPhase.OFFLINE
         cluster.save()
-        # TODO: 修改分区配置为禁用状态
-        DBPartitionApi.disable_partition(
-            params={"cluster_type": cluster.cluster_type, "bk_biz_id": self.bk_biz_id, "cluster_ids": [cluster.id]}
-        )
+        # 修改分区配置为禁用状态 - offlinewithclu
+        disable_partition_params = {
+            "cluster_type": cluster.cluster_type,
+            "operator": self.ticket_data["creator"],
+            "cluster_ids": [cluster.id],
+        }
+        DBPartitionApi.disable_partition_cluster(params=disable_partition_params)
 
     def mysql_cluster_online(self):
         """
@@ -482,10 +485,13 @@ class MySQLDBMeta(object):
         cluster = Cluster.objects.get(id=self.cluster["id"])
         cluster.phase = ClusterPhase.ONLINE
         cluster.save()
-        # TODO: 修改分区配置为启用状态
-        DBPartitionApi.enable_partition(
-            params={"cluster_type": cluster.cluster_type, "bk_biz_id": self.bk_biz_id, "cluster_ids": [cluster.id]}
-        )
+        # 修改分区配置为启用状态 - online
+        disable_partition_params = {
+            "cluster_type": cluster.cluster_type,
+            "operator": self.ticket_data["creator"],
+            "cluster_ids": [cluster.id],
+        }
+        DBPartitionApi.enable_partition_cluster(params=disable_partition_params)
 
     def mysql_migrate_cluster_switch_storage(self):
         """
