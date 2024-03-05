@@ -660,6 +660,8 @@ func (task *CmdsImporterTask) Execute() {
 	if task.Err != nil {
 		return
 	}
+	// 导入数据时关闭目的集群慢查询
+	task.DisableDstClusterSlowlog()
 
 	task.UpdateDbAndLogLocal("found %d del files", len(task.DelFiles))
 
