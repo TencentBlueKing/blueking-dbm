@@ -654,6 +654,60 @@ func (task *FatherTask) GetDstRedisPasswd() string {
 	return string(dstPasswd)
 }
 
+// DisableDstClusterSlowlog  dst cluster 'config set slowlog-log-slower-than -1'
+func (task *FatherTask) DisableDstClusterSlowlog() {
+	dstProxyAddrs, err := util.LookupDbDNSIPs(task.RowData.DstCluster)
+	if err != nil {
+		task.Logger.Error(err.Error())
+		return
+	}
+	task.Logger.Info(fmt.Sprintf(
+		"DisableDstClusterSlowlog %s all proxys:[%+v] run 'config set slowlog-log-slower-than -1'",
+		dstProxyAddrs, task.RowData.DstCluster))
+	dstPasswd, _ := base64.StdEncoding.DecodeString(task.RowData.DstPassword)
+	wg := sync.WaitGroup{}
+	for _, dstAddr := range dstProxyAddrs {
+		wg.Add(1)
+		go func(addr string) {
+			defer wg.Done()
+			cli01, err := myredis.NewRedisClient(addr, string(dstPasswd), 0, task.Logger)
+			if err != nil {
+				return
+			}
+			defer cli01.Close()
+			cli01.ConfigSet("slowlog-log-slower-than", -1)
+		}(dstAddr)
+	}
+	wg.Wait()
+}
+
+// EnableDstClusterSlowlog  dst cluster 'config set slowlog-log-slower-than 100000'
+func (task *FatherTask) EnableDstClusterSlowlog() {
+	dstProxyAddrs, err := util.LookupDbDNSIPs(task.RowData.DstCluster)
+	if err != nil {
+		task.Logger.Error(err.Error())
+		return
+	}
+	task.Logger.Info(fmt.Sprintf(
+		"EnablestClusterSlowlog %s all proxys:[%+v] run 'config set slowlog-log-slower-than 100000'",
+		dstProxyAddrs, task.RowData.DstCluster))
+	dstPasswd, _ := base64.StdEncoding.DecodeString(task.RowData.DstPassword)
+	wg := sync.WaitGroup{}
+	for _, dstAddr := range dstProxyAddrs {
+		wg.Add(1)
+		go func(addr string) {
+			defer wg.Done()
+			cli01, err := myredis.NewRedisClient(addr, string(dstPasswd), 0, task.Logger)
+			if err != nil {
+				return
+			}
+			defer cli01.Close()
+			cli01.ConfigSet("slowlog-log-slower-than", 100000)
+		}(dstAddr)
+	}
+	wg.Wait()
+}
+
 // GetTaskParallelLimit 从配置文件中获取每一类task的并发度
 func GetTaskParallelLimit(taskType string) int {
 	limit01 := viper.GetInt(taskType + "ParallelLimit")

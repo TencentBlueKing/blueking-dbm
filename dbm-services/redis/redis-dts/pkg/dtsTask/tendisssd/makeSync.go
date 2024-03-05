@@ -383,6 +383,7 @@ func (task *MakeSyncTask) WatchSync() {
 			}
 			task.Logger.Info(fmt.Sprintf("start execute %q ...", task.RowData.SyncOperate))
 			task.RedisSyncStop()
+			task.EnableDstClusterSlowlog() // 开启目的集群慢查询日志
 			if task.Err == nil {
 				task.RestoreSrcSSDKeepCount() // 恢复 src ssd slave-log-keep-count值
 				task.SetSyncOperate(succ)

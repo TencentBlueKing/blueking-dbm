@@ -146,6 +146,9 @@ func (task *MakeCacheSyncTask) Execute() {
 		return
 	}
 
+	// 关闭目的集群slowlog
+	task.DisableDstClusterSlowlog()
+
 	task.RedisShakeStart(true)
 	if task.Err != nil {
 		return
@@ -651,6 +654,7 @@ func (task *MakeCacheSyncTask) WatchShake() {
 			}
 			task.Logger.Info(fmt.Sprintf("start execute %q ...", task.RowData.SyncOperate))
 			task.RedisShakeStop()
+			task.EnableDstClusterSlowlog() // 开启目的集群慢查询日志
 			if task.Err == nil {
 				task.SetSyncOperate(succ)
 				task.SetStatus(2)
