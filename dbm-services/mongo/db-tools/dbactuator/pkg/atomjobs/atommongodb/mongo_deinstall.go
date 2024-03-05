@@ -24,6 +24,7 @@ type DeInstallConfParams struct {
 	SetId        string   `json:"setId" validate:"required"`
 	NodeInfo     []string `json:"nodeInfo" validate:"required"`     // []string ip,ip  如果为复制集节点，则为复制集所有节点的ip；如果为mongos，则为mongos的ip
 	InstanceType string   `json:"instanceType" validate:"required"` // mongod mongos
+	Force        bool     `json:"force"`                            // 不检查连接，强制卸载
 }
 
 // DeInstall 添加分片到集群
@@ -178,8 +179,10 @@ func (d *DeInstall) shutdownProcess() error {
 	if d.ServiceStatus == true {
 		d.runtime.Logger.Info("start to shutdown service")
 		// 检查连接
-		if err := d.checkConnection(); err != nil {
-			return err
+		if d.ConfParams.Force == false {
+			if err := d.checkConnection(); err != nil {
+				return err
+			}
 		}
 
 		// 关闭进程

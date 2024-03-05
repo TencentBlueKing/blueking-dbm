@@ -42,7 +42,7 @@ def reduce_mongos(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwar
     sub_get_kwargs.get_host_scale_mongos(info=info, increase=False)
 
     # 介质下发
-    kwargs = sub_get_kwargs.get_send_media_kwargs()
+    kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="actuator")
     sub_pipeline.add_act(
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
     )

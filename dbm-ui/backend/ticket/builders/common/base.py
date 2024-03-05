@@ -20,9 +20,9 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
+from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, Spec, StorageInstance
-from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole, InstanceStatus, ClusterPhase
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.dumper.handlers import DumperHandler

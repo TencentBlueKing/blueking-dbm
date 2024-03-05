@@ -55,7 +55,7 @@ def cluster_replace(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
         sub_get_kwargs.get_mongos_host_replace()
 
     # 介质下发
-    kwargs = sub_get_kwargs.get_send_media_kwargs()
+    kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="actuator")
     sub_pipeline.add_act(
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
     )
