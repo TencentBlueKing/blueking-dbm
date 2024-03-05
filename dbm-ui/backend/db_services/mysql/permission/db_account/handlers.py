@@ -179,7 +179,7 @@ class AccountHandler(object):
         # 如果是通过id过滤的，则不管集群类型
         if rule_filter.rule_ids:
             rules_list = MySQLPrivManagerApi.list_account_rules(
-                {"bk_biz_id": self.bk_biz_id, "ids": rule_filter.rule_ids}
+                {"bk_biz_id": self.bk_biz_id, "ids": rule_filter.rule_ids, "cluster_type": self.account_type}
             )
         else:
             rules_list = MySQLPrivManagerApi.list_account_rules(
