@@ -14,7 +14,7 @@ import (
 const lowercase = "abcdefghijklmnopqrstuvwxyz"
 const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const number = "0123456789"
-const symbol = `!#$%&()*+,-./:;<=>?@[]^_{|}~` // 剔除 " ' ` \
+const symbol = `!#%&()*+,-./;<=>?[]^_{|}~` // 剔除@ : $ " ' ` \
 
 // 为密码池添加连续的字母序，数字序，特殊字符序和键盘序
 const continuousSymbols = "~!@#$%^&*()_+"
