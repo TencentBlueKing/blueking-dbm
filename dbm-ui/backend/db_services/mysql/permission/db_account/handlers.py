@@ -24,11 +24,10 @@ class MySQLAccountHandler(AccountHandler):
     """
     封装账号相关的处理操作
     """
-
     def has_high_risk_privileges(self, rule_sets):
         """
         - 判断是否有高危权限
-        @param rule_sets: 授权列表，数据结构与MySQLPrivManagerApi.authorize_rules接口相同
+        @param rule_sets: 授权列表，数据结构与DBPrivManagerApi.authorize_rules接口相同
         """
         risk_priv_set = set(PrivilegeType.MySQL.GLOBAL.get_values())
         user_db__rules = self.aggregate_user_db_privileges(self.bk_biz_id, self.account_type)
