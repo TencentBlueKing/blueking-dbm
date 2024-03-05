@@ -58,6 +58,7 @@
     </BkSideslider>
     <DbSideslider
       v-model:is-show="isShowPreivew"
+      :disabled-confirm="isExistedErrorMsg"
       :title="t('请确认以下开区内容：')"
       :width="1100">
       <PreviewData
@@ -92,7 +93,12 @@
   const isShowTemplateDetail = ref(false);
   const isShowPreivew = ref(false);
   const variableList = ref<string[]>([]);
+
   const previewData = shallowRef<ServiceReturnType<typeof getPreview>>();
+
+  const isExistedErrorMsg = computed(() =>
+    previewData.value?.config_data.some((item) => item.execute_objects.some((obj) => obj.error_msg)),
+  );
 
   const { loading: isLoading, data: openareaTemplateData } = useRequest(getDetail, {
     defaultParams: [

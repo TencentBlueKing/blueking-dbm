@@ -90,7 +90,7 @@
   defineExpose<Exposes>({
     getValue() {
       return (editRef.value as InstanceType<typeof TableEditSelect>).getValue().then(() => ({
-        schema_tblist: modelValue.value,
+        schema_tblist: modelValue.value.length === dbNameList.value.length ? ['*all*'] : modelValue.value,
       }));
     },
   });
