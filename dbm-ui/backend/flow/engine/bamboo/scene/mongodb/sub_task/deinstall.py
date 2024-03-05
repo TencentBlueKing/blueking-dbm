@@ -24,14 +24,15 @@ from backend.flow.plugins.components.collections.mongodb.delete_password_from_db
     ExecDeletePasswordFromDBOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.mongo_shutdown_meta import MongosShutdownMetaComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
-def mongo_deinstall_parallel(sub_get_kwargs: ActKwargs, nodes: list, instance_type: str) -> list:
+def mongo_deinstall_parallel(sub_get_kwargs: ActKwargs, nodes: list, instance_type: str, force: bool) -> list:
     acts_list = []
     for node in nodes:
         kwargs = sub_get_kwargs.get_mongo_deinstall_kwargs(
-            node_info=node, nodes_info=nodes, instance_type=instance_type
+            node_info=node, nodes_info=nodes, instance_type=instance_type, force=force
         )
         acts_list.append(
             {
@@ -58,6 +59,9 @@ def deinstall(
     # 获取单个cluster信息
     if not reduce_mongos:
         sub_get_kwargs.get_cluster_info_deinstall(cluster_id=cluster_id)
+        mongos_deinstall_force = False
+    else:
+        mongos_deinstall_force = True
 
     # mongo卸载
     # 复制集卸载
@@ -67,6 +71,7 @@ def deinstall(
             sub_get_kwargs=sub_get_kwargs,
             nodes=sub_get_kwargs.payload["nodes"],
             instance_type=MongoDBInstanceType.MongoD.value,
+            force=False,
         )
         if acts_list:
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
@@ -77,6 +82,7 @@ def deinstall(
             sub_get_kwargs=sub_get_kwargs,
             nodes=sub_get_kwargs.payload["mongos_nodes"],
             instance_type=MongoDBInstanceType.MongoS.value,
+            force=mongos_deinstall_force,
         )
         if acts_list:
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
@@ -87,6 +93,7 @@ def deinstall(
                 sub_get_kwargs=sub_get_kwargs,
                 nodes=shard_nodes["nodes"],
                 instance_type=MongoDBInstanceType.MongoD.value,
+                force=True,
             )
             many_acts_list.extend(acts_list)
         if many_acts_list:
@@ -96,6 +103,7 @@ def deinstall(
             sub_get_kwargs=sub_get_kwargs,
             nodes=sub_get_kwargs.payload["config_nodes"],
             instance_type=MongoDBInstanceType.MongoD.value,
+            force=True,
         )
         if acts_list:
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
@@ -118,10 +126,10 @@ def deinstall(
 
     # 删除db_meta关系
     if not reduce_mongos:
-        kwargs = {"cluster_id": cluster_id}
+        kwargs = sub_get_kwargs.get_meta_deinstall_kwargs(cluster_id=cluster_id)
         sub_pipeline.add_act(
             act_name=_("MongoDB-删除db_meta关系"),
-            act_component_code=ExecDeletePasswordFromDBOperationComponent.code,
+            act_component_code=MongosShutdownMetaComponent.code,
             kwargs=kwargs,
         )
 

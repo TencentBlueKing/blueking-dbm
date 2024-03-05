@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_backup import MongoBackupFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_scale_mongos import ScaleMongoSFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_deinstall import MongoDBDeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_exec_script import MongoExecScriptFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoFakeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
@@ -71,7 +72,7 @@ class MongoDBController(BaseController):
         """
 
         flow = MongoUserFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.multi_cluster_user_flow(True)
+        flow.multi_cluster_user_flow(create=True)
 
     def delete_user(self):
         """
@@ -79,7 +80,7 @@ class MongoDBController(BaseController):
         """
 
         flow = MongoUserFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.multi_cluster_user_flow(False)
+        flow.multi_cluster_user_flow(create=False)
 
     def exec_script(self):
         """
@@ -126,3 +127,11 @@ class MongoDBController(BaseController):
 
         flow = ScaleMongoSFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_cluster_mongos_flow(increase=False)
+
+    def deinstall_cluster(self):
+        """
+        下架集群
+        """
+
+        flow = MongoDBDeInstallFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_deinstall_flow()

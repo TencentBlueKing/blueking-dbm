@@ -48,6 +48,7 @@ def mongod_replace(
     new_node = info["target"]
     sub_sub_get_kwargs.payload["app"] = sub_sub_get_kwargs.payload["bk_app_abbr"]
     sub_sub_get_kwargs.replicaset_info["port"] = sub_sub_get_kwargs.db_instance["port"]
+    force = True
     if cluster_role:
         sub_sub_get_kwargs.cluster_type = ClusterType.MongoShardedCluster.value
         cluster_name = sub_sub_get_kwargs.db_instance["seg_range"]
@@ -174,6 +175,7 @@ def mongod_replace(
         node_info=sub_sub_get_kwargs.payload["nodes"][0],
         instance_type=MongoDBInstanceType.MongoD.value,
         nodes_info=sub_sub_get_kwargs.payload["nodes"],
+        force=force,
     )
     sub_sub_pipeline.add_act(
         act_name=_("MongoDB-老实例下架-{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"]))),
