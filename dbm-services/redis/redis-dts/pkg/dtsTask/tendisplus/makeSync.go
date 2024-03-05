@@ -121,6 +121,7 @@ func (task *MakeSyncTask) Execute() {
 	if task.Err != nil {
 		return
 	}
+	task.DisableDstClusterSlowlog() // 关闭目的集群slowlog
 	task.RedisSyncStart(true)
 	if task.Err != nil {
 		return
@@ -738,6 +739,7 @@ func (task *MakeSyncTask) WatchSync() {
 			}
 			task.Logger.Info(fmt.Sprintf("start execute %q ...", task.RowData.SyncOperate))
 			task.RedisSyncStop()
+			task.EnableDstClusterSlowlog() // 开启目的集群慢查询
 			if task.Err == nil {
 				task.SetSyncOperate(succ)
 				task.SetStatus(2)
