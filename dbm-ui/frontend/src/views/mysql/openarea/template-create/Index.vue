@@ -36,7 +36,7 @@
                 v-for="item in clusterList"
                 :id="item.id"
                 :key="item.id"
-                :name="`${item.name} (${item.id})`" />
+                :name="`${item.immute_domain} (${item.id})`" />
             </BkSelect>
           </BkFormItem>
           <BkFormItem

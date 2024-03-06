@@ -13,7 +13,7 @@
         :columns="columns"
         :container-height="600"
         :data-source="getPermissionRules"
-        settings />
+        :settings="settings" />
     </div>
     <template #footer>
       <div style="display: flex;">
@@ -43,12 +43,6 @@
   </BkDialog>
 </template>
 <script setup lang="tsx">
-  import {
-    computed,
-    nextTick,
-    ref,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getPermissionRules } from '@services/permission';
@@ -57,6 +51,7 @@
 
   interface Props {
     clusterId: number,
+    dbType: 'mysql' | 'tendbcluster',
   }
 
   const props = defineProps<Props>();
@@ -72,10 +67,28 @@
   const { t } = useI18n();
 
   const tableRef = ref();
-
   const rowFlodMap = ref<Record<string, boolean>>({});
   const ruleCheckedMap = ref<Record<number, boolean>>({});
+
   const checkedCount = computed(() => Object.keys(ruleCheckedMap.value).length);
+
+  const settings = {
+    fields: [
+      {
+        label: t('账号名称'),
+        field: 'user',
+      },
+      {
+        label: t('访问DB'),
+        field: 'access_db',
+      },
+      {
+        label: t('权限'),
+        field: 'privilege',
+      },
+    ],
+    checked: ['user', 'access_db', 'privilege'],
+  };
 
   const columns = [
     {
@@ -85,24 +98,24 @@
       showOverflowTooltip: false,
       render: ({ data }: { data: IColumnData }) => (
         <div class="account-box">
-            {
-              data.rules.length > 1
-                && <db-icon
-                    type="down-shape"
-                    class={{
-                      'flod-flag': true,
-                      'is-flod': rowFlodMap.value[data.account.user],
-                    }}
-                    onClick={() => handleToogleExpand(data.account.user)} />
-            }
-            { data.account.user }
+          {
+            data.rules.length > 1
+              && <db-icon
+                  type="down-shape"
+                  class={{
+                    'flod-flag': true,
+                    'is-flod': rowFlodMap.value[data.account.user],
+                  }}
+                  onClick={() => handleToogleExpand(data.account.user)} />
+          }
+          { data.account.user }
         </div>
       ),
     },
     {
       label: t('访问DB'),
       width: 300,
-      field: 'access-db',
+      field: 'access_db',
       showOverflowTooltip: true,
       sort: true,
       render: ({ data }: { data: IColumnData }) => {
@@ -113,7 +126,7 @@
               <span>{t('暂无规则，')}</span>
               <router-link
                 to={{
-                    name: 'spiderPermission',
+                    name: 'PermissionRules',
                 }}
                 target="_blank">
                 {t('去创建')}
@@ -127,7 +140,7 @@
           <div class="inner-row">
             <bk-checkbox
               class="mr-8"
-              modleValue={ruleCheckedMap.value[item.rule_id]}
+              model-value={ruleCheckedMap.value[item.rule_id]}
               onChange={(value: boolean) => handleDbChange(value, item.rule_id)} />
             <bk-tag>
               {item.access_db}
@@ -155,6 +168,24 @@
     },
   ];
 
+  watch(isShow, () => {
+    if (!isShow.value) {
+      return;
+    }
+
+    ruleCheckedMap.value = modleValue.value.reduce((result, id) => Object.assign(result, {
+      [id]: true,
+    }), {});
+
+    nextTick(() => {
+      tableRef.value.fetchData({
+        cluster_id: props.clusterId,
+      }, {
+        account_type: props.dbType,
+      });
+    });
+  });
+
   const cellClassCallback = (data: any) => (data.field ? `cell-${data.field}` : '');
 
   const handleToogleExpand = (user: string) => {
@@ -172,27 +203,6 @@
       delete ruleCheckedMap.value[ruleId];
     }
   };
-
-  watch(isShow, () => {
-    if (!isShow.value) {
-      return;
-    }
-    nextTick(() => {
-      tableRef.value.fetchData({
-        cluster_id: props.clusterId,
-      }, {
-        account_type: 'tendbcluster',
-      });
-    });
-  });
-
-  watch(modleValue, () => {
-    if (isShow.value) {
-      ruleCheckedMap.value = modleValue.value.reduce((result, id) => Object.assign(result, {
-        [id]: true,
-      }), {});
-    }
-  });
 
   const handleSubmit = () => {
     modleValue.value = Object.keys(ruleCheckedMap.value).map(item => Number(item));

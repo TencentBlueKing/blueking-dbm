@@ -73,7 +73,7 @@
     watch,
   } from 'vue';
 
-  import RenderPrivData from './RenderPrivData/Index.vue';
+  import RenderPrivData from './RenderPrivData.vue';
   import RenderSchmalTable from './RenderSchmalTable.vue';
   import RenderSourceDb from './RenderSourceDb.vue';
   import RenderTableData from './RenderTableData.vue';
