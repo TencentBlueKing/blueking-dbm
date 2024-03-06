@@ -40,13 +40,14 @@
   <PermissionRule
     v-model="modelValue"
     v-model:is-show="isShow"
-    :cluster-id="clusterId" />
+    :cluster-id="clusterId"
+    db-type="tendbcluster" />
 </template>
-<script setup lang="ts">
+  <script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import PermissionRule from './components/PermissionRule.vue';
+  import PermissionRule from '@components/add-permission-rule-dialog/Index.vue';
 
   interface Props {
     clusterId: number,
@@ -75,35 +76,35 @@
 
   defineExpose<Exposes>({
     getValue() {
-      if (modelValue.value.length < 1) {
-        errorMessage.value = t('初始化授权不能为空');
-        return Promise.reject();
-      }
+      //   if (modelValue.value.length < 1) {
+      //     errorMessage.value = t('初始化授权不能为空');
+      //     return Promise.reject();
+      //   }
 
-      errorMessage.value = '';
+      //   errorMessage.value = '';
       return Promise.resolve({
         priv_data: modelValue.value,
       });
     },
   });
-</script>
-<style lang="less" scoped>
-  .priv-data-box{
-    position: relative;
-    padding: 0 16px;
+  </script>
+  <style lang="less" scoped>
+    .priv-data-box{
+      position: relative;
+      padding: 0 16px;
 
-    .error-flag {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 99;
-      display: flex;
-      padding-right: 6px;
-      font-size: 14px;
-      color: #ea3636;
-      align-items: center;
+      .error-flag {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 99;
+        display: flex;
+        padding-right: 6px;
+        font-size: 14px;
+        color: #ea3636;
+        align-items: center;
+      }
     }
-  }
-</style>
+  </style>
 
