@@ -19,7 +19,7 @@
     :popover-delay="0"
     theme="light"
     trigger="manual"
-    width="514">
+    width="512">
     <slot />
     <template #content>
       <div class="spider-sepc-panel">
@@ -151,8 +151,8 @@
     display: flex;
     width: 514px;
     padding: 16px 24px 20px 16px;
-    margin-top: -7px;
-    margin-left: -14px;
+    margin-top: -12px;
+    margin-left: -12px;
     background: #fff;
     border: 1px solid #dcdee5;
     box-shadow: 0 3px 6px 0 #00000029;

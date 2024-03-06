@@ -76,7 +76,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<string>({
+  const modelValue = defineModel<string | number>({
     default: '',
   });
 
@@ -169,7 +169,20 @@
 <style lang="less" scoped>
   .is-error {
     :deep(input) {
+      padding: 0 16px;
       background-color: #fff0f1;
+      border: 1px solid transparent;
+      border-radius: 0;
+
+      &:hover {
+        cursor: pointer;
+        background-color: #fafbfd;
+        border: 1px solid #a3c5fd;
+      }
+
+      &:focus {
+        border-color: #3a84ff;
+      }
     }
 
     :deep(.bk-input--number-control) {

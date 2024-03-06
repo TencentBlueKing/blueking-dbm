@@ -66,7 +66,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
 
@@ -79,7 +79,7 @@
 
   import SpecTip from '@images/spec-tip.png';
 
-  type RedisClusterSpecRow = RedisClusterSpecModel & {
+  type RedisClusterSpecRow = ClusterSpecModel & {
     shard_node_num: number;
     shard_num: number;
     shard_node_spec: string;

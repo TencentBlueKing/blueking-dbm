@@ -15,7 +15,7 @@
   <div class="sql-execute-target-cluster">
     <DbFormItem
       ref="formItemRef"
-      :label="t('目标集群')"
+      :label="t('目标集群与构造设置')"
       property="cluster_ids"
       required
       :rules="rules">

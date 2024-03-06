@@ -58,7 +58,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import {
     getFilterClusterSpec,
@@ -67,7 +67,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  export type IRowData = RedisClusterSpecModel
+  export type IRowData = ClusterSpecModel
 
   interface Props {
     clusterType: string,
@@ -77,7 +77,7 @@
     planFormItemProps?: Partial<FormItemProps>,
   }
   interface Emits{
-    (e: 'change', modelValue: number, data: RedisClusterSpecModel): void
+    (e: 'change', modelValue: number, data: ClusterSpecModel): void
   }
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -111,7 +111,7 @@
       field: 'spec_name',
       label: t('资源规格'),
       width: 200,
-      render: ({ data }: { data: RedisClusterSpecModel}) => (
+      render: ({ data }: { data: ClusterSpecModel}) => (
         <bk-radio
           label={data.spec_id}
           modelValue={modelValue.value}
@@ -142,7 +142,7 @@
     {
       field: 'count',
       label: t('可用主机数'),
-      render: ({ data }: {data: RedisClusterSpecModel}) => {
+      render: ({ data }: {data: ClusterSpecModel}) => {
         if (isCountLoading.value) {
           return (
             <div class="rotate-loading" style="display: inline-block;">
@@ -268,7 +268,7 @@
   };
 
   // 选中单行
-  const handleRowClick = (event: MouseEvent, data: RedisClusterSpecModel):any => {
+  const handleRowClick = (event: MouseEvent, data: ClusterSpecModel):any => {
     modelValue.value = data.spec_id;
     specData.value = {
       name: data.spec_name,

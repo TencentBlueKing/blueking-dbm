@@ -196,7 +196,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { getVersions } from '@services/source/version';
   import type { BizItem } from '@services/types';
 
@@ -274,7 +274,7 @@
   const mongoCofigSpecRef = ref<InstanceType<typeof SpecSelector>>();
   const mongosSpecRef = ref<InstanceType<typeof SpecSelector>>();
   const mongoConfigSpecRef = ref<InstanceType<typeof MongoConfigSpec>>();
-  const mongoConfigSpec = ref<RedisClusterSpecModel & {
+  const mongoConfigSpec = ref<ClusterSpecModel & {
     shard_node_num: number;
     shard_num: number;
     shard_node_spec: string;

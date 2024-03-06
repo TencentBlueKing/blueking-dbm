@@ -61,9 +61,7 @@
                     content: $t('每台主机实例数量'),
                     zIndex: 99999,
                   }"
-                  class="info-title text-overflow"
-                  >{{ $t('每台主机实例数量') }}：</span
-                >
+                  class="info-title text-overflow">{{ $t('每台主机实例数量') }}：</span>
                 <span class="info-value">{{ item.instance_num }}</span>
               </div>
             </div>
@@ -103,14 +101,17 @@
     machineType: string;
     bizId: number | string;
     cloudId: number | string;
+    showRefresh?: boolean;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    showRefresh: true,
+  });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const showRefreshIcon = computed(() => Boolean(props.clusterType && props.machineType));
+  const showRefreshIcon = computed(() => props.showRefresh && Boolean(props.clusterType && props.machineType));
   const list = shallowRef<ResourceSpecData[]>([]);
   const {
     data,

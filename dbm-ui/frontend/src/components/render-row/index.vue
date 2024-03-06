@@ -93,9 +93,16 @@
     max-width: 100%;
     align-items: center;
 
-    &-tag {
-      flex-shrink: 0;
-      margin: 0 4px;
+    .render-row-tag {
+      height: 16px !important;
+      padding: 0 4px;
+      margin: 0;
+
+      :deep(.bk-tag-text) {
+        height: 16px !important;
+        line-height: 16px;
+        transform: scale(0.83, 0.83);
+      }
     }
   }
 </style>

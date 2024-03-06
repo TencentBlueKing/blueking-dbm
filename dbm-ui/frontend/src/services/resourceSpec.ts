@@ -12,7 +12,7 @@
  */
 
 import http from './http';
-import RedisClusterSpecModel from './model/resource-spec/redis-cluster-sepc';
+import ClusterSpecModel from './model/resource-spec/cluster-sepc';
 import ResourceSpecModel from './model/resource-spec/resourceSpec';
 import type { ListBase } from './types';
 
@@ -82,7 +82,7 @@ export const getFilterClusterSpec = (params: {
     max: number;
   };
   shard_num?: number;
-}) => http.post<RedisClusterSpecModel[]>('/apis/dbresource/spec/filter_cluster_spec/', params);
+}) => http.post<ClusterSpecModel[]>('/apis/dbresource/spec/filter_cluster_spec/', params);
 
 // 规格详情
 export const getResourceSpec = function (params: { spec_id: number }) {

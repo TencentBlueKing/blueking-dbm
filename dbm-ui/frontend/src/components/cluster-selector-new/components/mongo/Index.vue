@@ -53,6 +53,8 @@
   interface Props {
     activeTab: string,
     selected: Record<string, any[]>,
+    // 多选模式
+    multiple: TabItem['multiple'],
     // eslint-disable-next-line vue/no-unused-properties
     getResourceList: TabItem['getResourceList'],
     disabledRowConfig?: TabItem['disabledRowConfig'],
@@ -79,7 +81,7 @@
   const columns = [
     {
       width: 60,
-      label: () => (
+      label: () => props.multiple && (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}
           model-value={isSelectedAll.value}
@@ -116,8 +118,15 @@
             </bk-popover>
           );
         }
-        return (
+        return props.multiple ? (
           <bk-checkbox
+            style="vertical-align: middle;"
+            model-value={Boolean(selectedDomainMap.value[data.id])}
+            label={true}
+            onChange={(value: boolean) => handleSelecteRow(data, value)}
+          />
+          ) : (
+          <bk-radio
             style="vertical-align: middle;"
             model-value={Boolean(selectedDomainMap.value[data.id])}
             label={true}
