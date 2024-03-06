@@ -197,6 +197,11 @@
         trigger: 'blur',
       },
       {
+        pattern: /^[A-Za-z]/,
+        message: t('只能英文字母开头'),
+        trigger: 'blur',
+      },
+      {
         pattern: /^[0-9a-zA-Z-]+$/,
         message: t('由英文字母_数字_连字符_组成'),
         trigger: 'blur',
