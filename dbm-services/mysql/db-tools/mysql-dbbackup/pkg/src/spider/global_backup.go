@@ -25,8 +25,10 @@ const (
 	StatusRunning = "running"
 	// StatusFailed 备份失败
 	StatusFailed = "failed"
-	// StatusQuit 手动设置为 quit 状态的任务，会自动kill掉
+	// StatusQuit 手动设置为 quit 状态的任务，会自动kill掉备份进程
 	StatusQuit = "quit"
+	// StatusCancel 取消备份
+	StatusCancel = "cancel"
 	// StatusReplicated master 发给从库的备份任务，相当于从库的 init. replicated 状态在remote master上不会变化
 	StatusReplicated = "replicated"
 	// StatusUnknown TODO

@@ -11,6 +11,7 @@ package dbareport
 import (
 	"context"
 	"encoding/json"
+	errs "errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -278,7 +279,8 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 
 	binlogInfo, _ := json.Marshal(metaInfo.BinlogInfo)
 	extraFields, _ := json.Marshal(metaInfo.ExtraFields)
-	sqlBuilder := sq.Replace(ModelBackupReport{}.TableName()).Columns("backup_id", "backup_type", "cluster_id",
+	localBackupReport := ModelBackupReport{}.TableName()
+	sqlBuilder := sq.Replace(localBackupReport).Columns("backup_id", "backup_type", "cluster_id",
 		"cluster_address", "backup_host", "backup_port", "server_id", "mysql_role", "shard_value",
 		"bill_id", "bk_biz_id", "mysql_version", "data_schema_grant", "is_full_backup",
 		"backup_begin_time", "backup_end_time", "backup_consistent_time",
@@ -303,13 +305,11 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 		indexFilePath,
 		binlogInfo, extraFields,
 		fileListRaw, "", "")
-
-	//_, err = sqlBuilder.RunWith(conn).Exec()
 	sqlStr, sqlArgs, err := sqlBuilder.ToSql()
 	if err != nil {
 		return err
 	}
-	_, _ = conn.ExecContext(ctx, "set session sql_log_bin=0;") // 关闭 binlog
+
 	_, err = conn.ExecContext(ctx, sqlStr, sqlArgs...)
 	if err != nil {
 		logger.Log.Warnf("failed to write %d local_backup_report, err: %s, fix it", metaInfo.BackupPort, err)
@@ -321,9 +321,11 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 			return errors.Wrap(err, "write local_backup_report again")
 		}
 	}
+	// archive old items
+	_, _ = conn.ExecContext(ctx, "set session sql_log_bin=0;") // 关闭 binlog
 	// 也不记录 binlog
-	sqlStr = fmt.Sprintf("DELETE FROM %s WHERE backup_begin_time < DATE_SUB(now(), INTERVAL %d DAY)",
-		ModelBackupReport{}.TableName(), cst.SpiderRemoveOldTaskBeforeDays) // where host ?
+	sqlStr = fmt.Sprintf("DELETE FROM %s WHERE backup_begin_time < DATE_SUB(now(), INTERVAL %d DAY) ",
+		localBackupReport, cst.SpiderRemoveOldTaskBeforeDays)
 	_, _ = conn.ExecContext(ctx, sqlStr)
 	return nil
 }
@@ -347,13 +349,18 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 		metaInfo.AddIndexFileItem(indexFilePath)
 	}
 
+	var err2 error
 	if upload {
 		// 上传、上报备份文件
 		for _, f := range metaInfo.FileList {
 			filePath := filepath.Join(r.cfg.Public.BackupDir, f.FileName)
 			var taskId string
-			if taskId, err = r.ExecuteBackupClient(filePath); err != nil {
-				return err
+			var err22 error
+			if taskId, err22 = r.ExecuteBackupClient(filePath); err22 != nil {
+				err2 = errs.Join(err, err22)
+				//return err
+			} else {
+				taskId = "-1"
 			}
 			f.TaskId = taskId
 			backupTaskResult := BackupLogReport{}
@@ -381,6 +388,9 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 
 	if err = r.ReportToLocalBackup(indexFilePath, metaInfo); err != nil {
 		return err
+	}
+	if err2 != nil {
+		return err2
 	}
 	return nil
 }

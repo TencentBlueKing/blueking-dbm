@@ -49,7 +49,7 @@ const INFODBA_SCHEMA = "infodba_schema"
 const (
 	// SpiderScheduleWaitTimeout TODO
 	SpiderScheduleWaitTimeout = 48 * time.Hour
-	// SpiderRemoveOldTaskBeforeDays TODO
+	// SpiderRemoveOldTaskBeforeDays 不少于 14 day
 	SpiderRemoveOldTaskBeforeDays = 30
 	// SpiderTaskMaxRunHours TODO
 	SpiderTaskMaxRunHours = 48
