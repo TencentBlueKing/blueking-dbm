@@ -39,7 +39,7 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
-          required
+          :required="false"
           :width="180">
           {{ t('初始化授权') }}
         </RenderTableHeadColumn>
