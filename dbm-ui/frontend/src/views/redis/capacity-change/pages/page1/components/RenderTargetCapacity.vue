@@ -65,7 +65,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
 
@@ -95,7 +95,7 @@
   const selectRef = ref();
   const activeRowData = ref<TargetPlanProps['data']>();
   const showChooseClusterTargetPlan = ref(false);
-  const localValue = shallowRef<RedisClusterSpecModel>();
+  const localValue = shallowRef<ClusterSpecModel>();
   const capacityObj = ref<CapacityNeed>();
 
   // const percent = computed(() => {
@@ -150,7 +150,7 @@
   };
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (obj: RedisClusterSpecModel, capacity: CapacityNeed) => {
+  const handleChoosedTargetCapacity = (obj: ClusterSpecModel, capacity: CapacityNeed) => {
     localValue.value = obj;
     capacityObj.value = capacity;
     showChooseClusterTargetPlan.value = false;

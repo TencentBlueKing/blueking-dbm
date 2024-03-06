@@ -33,3 +33,14 @@ interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
 export function checkRedisInstances(params: Record<'instance_addresses', Array<string>> & { bizId: number }) {
   return http.post<InstanceItem[]>(`/apis/redis/bizs/${params.bizId}/instance/check_instances/`, params);
 }
+
+/**
+ * 判断 Mongo 实例是否存在
+ */
+export function checkMongoInstances(params: {
+  bizId: number;
+  instance_addresses: string[];
+  cluster_ids?: number[],
+}) {
+  return http.post<InstanceItem[]>(`/apis/mongodb/bizs/${params.bizId}/instance/check_instances/`, params);
+}

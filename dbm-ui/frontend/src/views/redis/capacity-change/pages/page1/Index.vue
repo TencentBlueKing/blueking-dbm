@@ -219,7 +219,7 @@
       },
     };
     InfoBox({
-      title: t('确认提交 n 个集群容量变更任务？', { n: totalNum.value }),
+      title: t('确认提交n个集群容量变更任务', { n: totalNum.value }),
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;

@@ -15,17 +15,14 @@
   <BkLoading :loading="isLoading">
     <SpecPanel
       :data="data"
-      hide-qps
-      :is-show="isShowPopover">
+      :hide-qps="hideQps">
       <div
         class="render-spec-box"
-        :class="{ 'default-display': !data }"
-        @mouseenter="handleMouseEnter"
-        @mouseleave="handleMouseLeave">
+        :class="{ 'default-display': !data }">
         <span
           v-if="!data"
           style="color: #c4c6cc">
-          {{ $t('输入主机后自动生成') }}
+          {{ placeholder || $t('输入主机后自动生成') }}
         </span>
         <span
           v-else
@@ -64,24 +61,17 @@
     };
     isLoading?: boolean;
     isIgnoreCounts?: boolean;
+    placeholder?: string;
+    hideQps?: boolean;
   }
 
-  const props = defineProps<Props>();
-  const isShowPopover = ref(false);
-  let timer = 0;
-
-  const handleMouseEnter = () => {
-    timer = setTimeout(() => {
-      if (props.data) {
-        isShowPopover.value = true;
-      }
-    }, 500);
-  };
-
-  const handleMouseLeave = () => {
-    clearTimeout(timer);
-    isShowPopover.value = false;
-  };
+  withDefaults(defineProps<Props>(), {
+    data: undefined,
+    placeholder: undefined,
+    isLoading: false,
+    isIgnoreCounts: false,
+    hideQps: true,
+  });
 </script>
 <style lang="less" scoped>
   .render-spec-box {

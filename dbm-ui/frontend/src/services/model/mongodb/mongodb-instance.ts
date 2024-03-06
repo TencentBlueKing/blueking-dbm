@@ -38,9 +38,41 @@ export default class MongodbInstance {
   cluster_type: string;
   create_at: string;
   db_module_id: string;
+  host_info: {
+    alive: number,
+    biz: {
+      id: number,
+      name: string
+    },
+    cloud_area: {
+      id: number,
+      name: string
+    },
+    cloud_id: number,
+    host_id: number,
+    host_name?: string,
+    ip: string,
+    ipv6: string,
+    meta: {
+      bk_biz_id: number,
+      scope_id: number,
+      scope_type: string
+    },
+    scope_id: string,
+    scope_type: string,
+    os_name: string,
+    bk_cpu?: number,
+    bk_disk?: number,
+    bk_mem?: number,
+    os_type: string,
+    agent_id: number,
+    cpu: string,
+    cloud_vendor: string,
+    bk_idc_name?: string,
+  };
   id: number;
   instance_address: string;
-  ip: number;
+  ip: string;
   machine_type: string;
   master_domain: string;
   operations: Array<{
@@ -56,7 +88,24 @@ export default class MongodbInstance {
   role: string;
   shard: string;
   slave_domain: string;
-  spec_config: string;
+  spec_config: {
+    count: number;
+    cpu: {
+      max: number;
+      min: number;
+    },
+    id: number;
+    mem: {
+      max: number;
+      min: number;
+    },
+    name: string;
+    storage_spec: {
+      mount_point: string;
+      size: number;
+      type: string;
+    }[],
+  };
   status: string;
   version: string;
 
@@ -69,6 +118,7 @@ export default class MongodbInstance {
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
+    this.host_info = payload.host_info || {};
     this.id = payload.id;
     this.instance_address = payload.instance_address;
     this.ip = payload.ip;

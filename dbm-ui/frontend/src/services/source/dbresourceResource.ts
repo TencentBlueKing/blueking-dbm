@@ -154,7 +154,7 @@ export function getSpecResourceCount(params: {
   bk_cloud_id: number;
   spec_ids: number[];
 }) {
-  return http.post<Record<number, number>>(`${path}/spec_resource_count/`, params);
+  return http.post<Record<string, number>>(`${path}/spec_resource_count/`, params);
 }
 
 /**

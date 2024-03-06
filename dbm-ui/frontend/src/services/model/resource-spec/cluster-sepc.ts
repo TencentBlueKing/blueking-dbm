@@ -10,7 +10,7 @@
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-export default class RedisClusterSpec {
+export default class ClusterSpec {
   capacity: number;
   cluster_capacity: number;
   cluster_shard_num: number;
@@ -34,10 +34,11 @@ export default class RedisClusterSpec {
     max: number;
   };
   shard_choices: {
-    shard_num: number,
-    shard_spec: string,
+    shard_num: number;
+    shard_spec: string;
   }[];
-  shard_recommend: RedisClusterSpec['shard_choices'][number];
+  shard_num: number;
+  shard_recommend: ClusterSpec['shard_choices'][number];
   spec_cluster_type: string;
   spec_id: number;
   spec_machine_type: string;
@@ -48,7 +49,7 @@ export default class RedisClusterSpec {
     type: string;
   }[];
 
-  constructor(payload = {} as RedisClusterSpec) {
+  constructor(payload = {} as ClusterSpec) {
     this.capacity = payload.capacity;
     this.cluster_capacity = payload.cluster_capacity;
     this.cluster_shard_num = payload.cluster_shard_num;
@@ -63,6 +64,7 @@ export default class RedisClusterSpec {
     this.mem = payload.mem;
     this.qps = payload.qps;
     this.shard_choices = payload.shard_choices;
+    this.shard_num = payload.shard_num;
     this.shard_recommend = payload.shard_recommend;
     this.spec_cluster_type = payload.spec_cluster_type;
     this.spec_id = payload.spec_id;

@@ -95,6 +95,7 @@
               :custom-colums="activePanelObj.customColums"
               :disabled-row-config="activePanelObj.disabledRowConfig"
               :get-resource-list="activePanelObj.getResourceList"
+              :multiple="activePanelObj.multiple"
               :search-placeholder="activePanelObj.searchPlaceholder"
               :search-select-list="activePanelObj.searchSelectList"
               :selected="selectedArr"
@@ -150,6 +151,8 @@
   export type TabListType = {
     name: string,
     id: ClusterTypes,
+    tableContent: any,
+    resultContent: any,
     // 不可选行及提示
     disabledRowConfig?: {
       handler: (data: any) => boolean,
@@ -164,12 +167,12 @@
     // 搜索栏的placeholder
     searchPlaceholder?: string
     showPreviewResultTitle?: boolean,
+    // 多选模式
+    multiple?: boolean,
     // 状态列
     columnStatusFilter?: (data: any) => boolean,
     // 查询接口
     getResourceList?: (params: any) => Promise<ListBase<Record<string, any>[]>>,
-    tableContent: any,
-    resultContent: any,
   }[];
 
   export type TabItem = TabListType[number];
@@ -228,6 +231,7 @@
     [ClusterTypes.MONGO_REPLICA_SET]: {
       id: ClusterTypes.MONGO_REPLICA_SET,
       name: t('集群选择'),
+      multiple: true,
       getResourceList: getMongoList,
       tableContent: MongoTable,
       resultContent: ResultPreview,
@@ -235,6 +239,7 @@
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       id: ClusterTypes.MONGO_SHARED_CLUSTER,
       name: t('集群选择'),
+      multiple: true,
       getResourceList: getMongoList,
       tableContent: MongoTable,
       resultContent: ResultPreview,

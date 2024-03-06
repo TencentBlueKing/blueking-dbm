@@ -110,7 +110,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { getInfrasCities } from '@services/ticket';
   import type { TicketDetails } from '@services/types/ticket';
 
@@ -144,7 +144,7 @@
       backend_group: {
         count: number;
         spec_id: string;
-        spec_info: RedisClusterSpecModel;
+        spec_info: ClusterSpecModel;
       };
     };
   }
@@ -195,7 +195,7 @@
     {
       field: 'qps',
       label: t('集群QPS每秒'),
-      render: ({ data }: { data: RedisClusterSpecModel }) => data.qps.min * data.machine_pair,
+      render: ({ data }: { data: ClusterSpecModel }) => data.qps.min * data.machine_pair,
     },
   ];
 

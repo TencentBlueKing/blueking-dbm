@@ -197,7 +197,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
 
   import { useBeforeClose } from '@hooks';
@@ -328,7 +328,7 @@
         field: 'spec',
         showOverflowTooltip: true,
         width: 260,
-        render: ({ index, row }: { index: number, row: RedisClusterSpecModel }) => (
+        render: ({ index, row }: { index: number, row: ClusterSpecModel }) => (
           <div style="display:flex;align-items:center;">
             <bk-radio label={index} v-model={radioValue.value}>{row.spec_name}</bk-radio>
           </div>

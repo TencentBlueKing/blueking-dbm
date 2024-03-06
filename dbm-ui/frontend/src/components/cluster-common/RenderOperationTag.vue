@@ -102,8 +102,8 @@
 <style lang="less" scoped>
   .render-cluster-opration-tag {
     display: inline-block;
-    margin-right: 4px;
     height: 16px !important;
+    margin-right: 4px;
 
     .tag-placeholder {
       display: inline-block;

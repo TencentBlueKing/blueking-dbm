@@ -38,10 +38,21 @@
   import InfluxdbOperations from './influxdb/Operations.vue';
   import InfluxdbReplace from './influxdb/Replace.vue';
   import MongoAuthrizeRules from './mongodb/AuthorizeRules.vue';
+  import MongoCapacityChange from './mongodb/CapacityChange.vue';
+  import MongoDbBackup from './mongodb/DbBackup.vue';
+  import MongoDbClear from './mongodb/DbClear.vue';
+  import MongoDBReplace from './mongodb/DBReplace.vue';
+  import MongoDbStruct from './mongodb/DbStruct.vue';
+  import MongoDbTableBackup from './mongodb/DbTableBackup.vue';
   import MongoDetailsClusterOperation from './mongodb/DetailsClusterOperation.vue';
   import DetailsMongoDBReplicaSet from './mongodb/DetailsMongoDBReplicaSet.vue';
   import DetailsMongoDBSharedCluster from './mongodb/DetailsMongoDBSharedCluster.vue';
-  import MongoScaleUpdown from './mongodb/ScaleUpdown.vue';
+  import MongoProxyScaleDown from './mongodb/ProxyScaleDown.vue';
+  import MongoProxyScaleUp from './mongodb/ProxyScaleUp.vue';
+  import MongoScriptExecute from './mongodb/script-execute/Index.vue';
+  import MongoShardScaleDown from './mongodb/ShardScaleDown.vue';
+  import MongoShardScaleUp from './mongodb/ShardScaleUp.vue';
+  import MongoTemporaryDestrot from './mongodb/TemporaryDestrot.vue';
   import MySQLChecksum from './mysql/Checksum.vue';
   import MySQLClone from './mysql/Clone.vue';
   import MySQLClusterOperation from './mysql/ClusterOperation.vue';
@@ -218,10 +229,7 @@
     TicketTypes.MONGODB_DESTROY,
   ];
 
-  const mongoAuthorizeRulesTypes = [
-    TicketTypes.MONGODB_AUTHORIZE,
-    TicketTypes.MONGODB_EXCEL_AUTHORIZE,
-  ];
+  const mongoAuthorizeRulesTypes = [TicketTypes.MONGODB_AUTHORIZE, TicketTypes.MONGODB_EXCEL_AUTHORIZE];
 
   // 单一情况映射表
   const SingleDemandMap = {
@@ -284,7 +292,18 @@
     [TicketTypes.RIAK_CLUSTER_REBOOT]: RiakReboot,
     [TicketTypes.MONGODB_SHARD_APPLY]: DetailsMongoDBSharedCluster,
     [TicketTypes.MONGODB_REPLICASET_APPLY]: DetailsMongoDBReplicaSet,
-    [TicketTypes.MONGODB_SCALE_UPDOWN]: MongoScaleUpdown,
+    [TicketTypes.MONGODB_EXEC_SCRIPT_APPLY]: MongoScriptExecute,
+    [TicketTypes.MONGODB_ADD_SHARD_NODES]: MongoShardScaleUp,
+    [TicketTypes.MONGODB_REDUCE_SHARD_NODES]: MongoShardScaleDown,
+    [TicketTypes.MONGODB_REDUCE_MONGOS]: MongoProxyScaleDown,
+    [TicketTypes.MONGODB_BACKUP]: MongoDbTableBackup,
+    [TicketTypes.MONGODB_FULL_BACKUP]: MongoDbBackup,
+    [TicketTypes.MONGODB_REMOVE_NS]: MongoDbClear,
+    [TicketTypes.MONGODB_RESTORE]: MongoDbStruct,
+    [TicketTypes.MONGODB_CUTOFF]: MongoDBReplace,
+    [TicketTypes.MONGODB_SCALE_UPDOWN]: MongoCapacityChange,
+    [TicketTypes.MONGODB_ADD_MONGOS]: MongoProxyScaleUp,
+    [TicketTypes.MONGODB_TEMPORARY_DESTROY]: MongoTemporaryDestrot,
   };
 
   // 不同集群详情组件
