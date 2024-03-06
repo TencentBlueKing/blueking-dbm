@@ -177,7 +177,7 @@ func RunBackupTasks(cnfList []*config.Public) error {
 
 		for instPort, instTask := range allInstBackupTasks {
 			if port, ok := instTask.backupTaskInit[backupIdEarliest]; ok {
-				if port == instPort { // 有可能在 25000 里查到 26000 实例的备份任务，这里要排查
+				if port == instPort { // 有可能在 25000 里查到 26000 实例的备份任务，这里要排除
 					// 在 instTask.tasks 找到 backupIdEarliest 这个 id 的任务
 					for _, t := range instTask.tasks {
 						if t.BackupId == backupIdEarliest {
@@ -370,20 +370,26 @@ func buildBackupCmdForRemote(backupId string, cnfFilename string, shardValue int
 
 // archiveAbnormalTasks TODO
 // archiveTasks 以 实例 的维度归档异常任务，正常不返回error，避免影响正常备份任务
-func archiveAbnormalTasks(backupTasks []*GlobalBackupModel, db *sqlx.DB) error {
-	// var runningTask []*GlobalBackupModel
-	// var toQuitTask []*GlobalBackupModel
+func (b GlobalBackupModel) archiveAbnormalTasks(db *sqlx.DB) error {
+	backupTasks, err := b.queryBackupTasks(0, db)
+	if err != nil {
+		return err
+	}
+
 	for _, t := range backupTasks {
+		var bTmp = GlobalBackupModel{BackupId: t.BackupId, Host: t.Host, Port: t.Port}
 		if t.BackupStatus == StatusRunning {
 			// 归档 running-task
 			// runningTask = append(runningTask, t)
-			var bTmp = GlobalBackupModel{BackupId: t.BackupId, Host: t.Host, Port: t.Port}
 			bTmp.handleRunningTasks(db)
 		} else if t.BackupStatus == StatusQuit {
 			// 归档 quit-task
 			// toQuitTask = append(toQuitTask, t)
-			var bTmp = GlobalBackupModel{BackupId: t.BackupId, Host: t.Host, Port: t.Port}
 			bTmp.handleQuitTasks(db)
+		} else if t.CreatedAt < time.Now().Add(-24*time.Hour).Format(time.DateTime) &&
+			t.CreatedAt > time.Now().Add(-24*14*time.Hour).Format(time.DateTime) &&
+			(t.BackupStatus == StatusInit || t.BackupStatus == StatusReplicated) {
+			bTmp.updateBackupTask(StatusQuit, 0, db)
 		}
 	}
 	return nil
@@ -414,11 +420,12 @@ func (instTask *InstBackupTask) filterBackupTasks(cnf *config.Public) (err error
 		// 在 queryBackupTasks 会作为条件
 		b.Wrapper = cst.WrapperSpider
 	}
-	instTask.tasks, err = b.queryBackupTasks(0, dbw.Db)
-	if err != nil {
+	if err = b.archiveAbnormalTasks(dbw.Db); err != nil {
 		return err
 	}
-	if err = archiveAbnormalTasks(instTask.tasks, dbw.Db); err != nil {
+
+	instTask.tasks, err = b.queryBackupTasks(0, dbw.Db)
+	if err != nil {
 		return err
 	}
 

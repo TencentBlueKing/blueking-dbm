@@ -237,13 +237,14 @@ func (b GlobalBackupModel) handleQuitTasks(db *sqlx.DB) {
 func (b GlobalBackupModel) handleOldTask(db *sqlx.DB) error {
 	ctx := context.Background()
 	conn, err := db.DB.Conn(context.Background())
+	defer conn.Close()
 	// 关闭 binlog 避免 slave 报错
 	if _, err = conn.ExecContext(ctx, "set session sql_log_bin=0"); err != nil {
 		return err
 	}
 
 	sqlStr := fmt.Sprintf("DELETE FROM %s WHERE CreatedAt < DATE_SUB(now(), INTERVAL %d DAY)",
-		b.TableName(), cst.SpiderRemoveOldTaskBeforeDays) // where host ?
+		b.TableName(), cst.SpiderRemoveOldTaskBeforeDays)
 	_, _ = conn.ExecContext(ctx, sqlStr)
 	return nil
 }
