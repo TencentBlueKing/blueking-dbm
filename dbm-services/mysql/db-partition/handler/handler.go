@@ -179,6 +179,26 @@ func DisablePartition(r *gin.Context) {
 	return
 }
 
+// DisablePartitionByCluster 用于集群禁用时停止分区，标志为 offlinewithclu
+func DisablePartitionByCluster(r *gin.Context) {
+	var input service.DisablePartitionInput
+	if err := r.ShouldBind(&input); err != nil {
+		err = errno.ErrReadEntity.Add(err.Error())
+		slog.Error(err.Error())
+		SendResponse(r, err, nil)
+		return
+	}
+	slog.Info(fmt.Sprintf("ids: %v, operator: %s", input.Ids, input.Operator))
+	err := input.DisablePartitionConfigByCluster()
+	if err != nil {
+		slog.Error(err.Error())
+		SendResponse(r, errors.New(fmt.Sprintf("分区禁用失败!%s", err.Error())), nil)
+		return
+	}
+	SendResponse(r, nil, "分区禁用成功！")
+	return
+}
+
 // EnablePartition TODO
 func EnablePartition(r *gin.Context) {
 	var input service.EnablePartitionInput
@@ -190,6 +210,26 @@ func EnablePartition(r *gin.Context) {
 	}
 	slog.Info(fmt.Sprintf("ids: %v, operator: %s", input.Ids, input.Operator))
 	err := input.EnablePartitionConfig()
+	if err != nil {
+		slog.Error(err.Error())
+		SendResponse(r, errors.New(fmt.Sprintf("分区启用失败!%s", err.Error())), nil)
+		return
+	}
+	SendResponse(r, nil, "分区启用成功！")
+	return
+}
+
+// EnablePartitionByCluster 集群启用时启用分区
+func EnablePartitionByCluster(r *gin.Context) {
+	var input service.EnablePartitionInput
+	if err := r.ShouldBind(&input); err != nil {
+		err = errno.ErrReadEntity.Add(err.Error())
+		slog.Error(err.Error())
+		SendResponse(r, err, nil)
+		return
+	}
+	slog.Info(fmt.Sprintf("ids: %v, operator: %s", input.Ids, input.Operator))
+	err := input.EnablePartitionByCluster()
 	if err != nil {
 		slog.Error(err.Error())
 		SendResponse(r, errors.New(fmt.Sprintf("分区启用失败!%s", err.Error())), nil)

@@ -21,6 +21,8 @@ func RegisterRouter(engine *gin.Engine) {
 	p.POST("/dry_run", handler.DryRun)
 	p.POST("/disable_partition", handler.DisablePartition)
 	p.POST("/enable_partition", handler.EnablePartition)
+	p.POST("/disable_partition_cluster", handler.DisablePartitionByCluster)
+	p.POST("/enable_partition_cluster", handler.EnablePartitionByCluster)
 	// 更新分区配置
 	p.POST("/update_conf", handler.UpdatePartitionsConfig)
 	p.POST("/create_log", handler.CreatePartitionLog)

@@ -4,16 +4,16 @@ import (
 	"net/http"
 	"os"
 
-	"dbm-services/common/go-pubpkg/apm/metric"
-	"dbm-services/common/go-pubpkg/apm/trace"
-	"dbm-services/mysql/db-partition/monitor"
-
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"golang.org/x/exp/slog"
+
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
+	"dbm-services/mysql/db-partition/monitor"
 
 	"dbm-services/mysql/db-partition/assests"
 	"dbm-services/mysql/db-partition/cron"
