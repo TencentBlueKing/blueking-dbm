@@ -46,6 +46,7 @@
           :is-remote-pagination="activePanelObj?.tableConfig?.isRemotePagination"
           :last-values="lastValues"
           :manual-config="activePanelObj?.manualConfig"
+          :multiple="activePanelObj?.tableConfig?.multiple"
           :role-filter-list="activePanelObj?.tableConfig?.roleFilterList"
           :status-filter="activePanelObj?.tableConfig?.statusFilter"
           :table-setting="tableSettings"
@@ -86,7 +87,7 @@
     </template>
   </BkDialog>
 </template>
-<script lang="ts">
+<script lang="ts" generic="T extends IValue">
   import { t } from '@locales/index';
 
   export default { name: 'InstanceSelector' };
@@ -101,7 +102,7 @@
     cluster_type: string;
   }
 
-  export type InstanceSelectorValues<T = IValue> = Record<string, T[]>;
+  export type InstanceSelectorValues<T> = Record<string, T[]>;
 
   export const activePanelInjectionKey = Symbol('activePanel');
 
@@ -157,7 +158,7 @@
   });
 </script>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends IValue">
   import _ from 'lodash';
 
   import {
@@ -165,9 +166,11 @@
     listClustersMasterFailoverProxy,
   } from '@services/redis/toolbox';
   import {
+    checkMongoInstances,
     checkMysqlInstances,
     checkRedisInstances,
   } from '@services/source/instances';
+  import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
   import { queryClusters } from '@services/source/mysqlCluster';
   import { getSpiderInstanceList } from '@services/source/spider';
 
@@ -176,6 +179,7 @@
   import ManualInputContent from './components/common/manual-content/Index.vue';
   import PanelTab  from './components/common/PanelTab.vue';
   import PreviewResult from './components/common/preview-result/Index.vue';
+  import MongoClusterContent from './components/mongo/Index.vue';
   import RedisContent from './components/redis/Index.vue';
   import TendbClusterContent from './components/tendb-cluster/Index.vue';
 
@@ -193,10 +197,13 @@
     tableConfig?: {
       isRemotePagination?: boolean,
       columnsChecked?: string[],
+      // 多选模式
+      multiple?: boolean,
       firsrColumn?: {
         label: string,
         field: string,
-        role: string, // 接口过滤
+        // 接口过滤
+        role?: string,
       },
       roleFilterList?: {
         list: { text: string, value: string }[],
@@ -226,15 +233,16 @@
 
   type RedisModel = ServiceReturnType<typeof listClustersMasterFailoverProxy>[number]
   type RedisHostModel = ServiceReturnType<typeof listClusterHostsMasterFailoverProxy>['results'][number]
+  type MongodbModel = ServiceReturnType<typeof getMongoTopoList>[number]
 
   interface Props {
     clusterTypes: ClusterTypes[],
     tabListConfig?: Record<string, PanelListType>,
-    selected?: InstanceSelectorValues,
+    selected?: InstanceSelectorValues<T>,
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'change', value: InstanceSelectorValues<T>): void
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -338,6 +346,49 @@
         content: ManualInputContent,
       },
     ],
+    [ClusterTypes.MONGOCLUSTER]: [
+      {
+        id: 'mongocluster',
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: getMongoTopoList,
+          countFunc: (item: MongodbModel) => item.instanceCount,
+        },
+        tableConfig: {
+          getTableList: getMongoInstancesList,
+          multiple: true,
+          firsrColumn: {
+            label: 'IP',
+            field: 'ip',
+          },
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: MongoClusterContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getSpiderInstanceList,
+          firsrColumn: {
+            label: 'IP',
+            field: 'ip',
+          },
+        },
+        manualConfig: {
+          checkInstances: checkMongoInstances,
+          checkType: 'instance',
+          checkKey: 'instance_address',
+          activePanelId: 'mongocluster',
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: ManualInputContent,
+      },
+    ],
   };
 
   const diffComposeObjs = (objA: Record<string, any>, objB: Record<string, any>) => {
@@ -365,10 +416,10 @@
     return obj;
   };
 
-  const panelTabActive = ref<string>();
+  const panelTabActive = ref<string>('');
   const activePanelObj = ref<PanelListItem>();
 
-  const lastValues = reactive<InstanceSelectorValues>({});
+  const lastValues = reactive<InstanceSelectorValues<T>>({});
 
   provide(activePanelInjectionKey, panelTabActive);
 
@@ -431,7 +482,7 @@
     activePanelObj.value = obj;
   };
 
-  const handleChange = (values: InstanceSelectorValues) => {
+  const handleChange = (values: InstanceSelectorValues<T>) => {
     Object.assign(lastValues, values);
   };
 

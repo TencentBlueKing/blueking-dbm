@@ -79,7 +79,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import {
     getFilterClusterSpec,
@@ -108,8 +108,8 @@
   const { t } = useI18n();
 
   const specRef = ref();
-  const specs = shallowRef<RedisClusterSpecModel[]>([]);
-  const renderSpecs = shallowRef<RedisClusterSpecModel[]>([]);
+  const specs = shallowRef<ClusterSpecModel[]>([]);
+  const renderSpecs = shallowRef<ClusterSpecModel[]>([]);
   const isLoading = ref(false);
   const sliderProps = reactive({
     value: [0, 0],
@@ -127,7 +127,7 @@
       field: 'spec_name',
       label: t('资源规格'),
       showOverflowTooltip: false,
-      render: ({ data, index }: { data: RedisClusterSpecModel, index: number }) => (
+      render: ({ data, index }: { data: ClusterSpecModel, index: number }) => (
         <bk-radio
           v-model={modelValue.value.spec_id}
           label={data.spec_id}
@@ -318,7 +318,7 @@
     }
   });
 
-  const handleRowClick = (event: Event, row: RedisClusterSpecModel) => {
+  const handleRowClick = (event: Event, row: ClusterSpecModel) => {
     modelValue.value.spec_id = row.spec_id;
   };
 

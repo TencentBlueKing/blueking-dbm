@@ -68,14 +68,18 @@ export default class FunctionController {
     this.addons = payload.addons;
     this.mysql = payload.mysql;
     this.redis = payload.redis;
+    this.mongodb = payload.mongodb;
     this.bigdata = payload.bigdata;
     this.monitor = payload.monitor;
-    this.mongodb = payload.mongodb;
     this.sqlserver = payload.sqlserver;
   }
 
   getFlatData<T extends FunctionKeys, K extends ExtractedControllerDataKeys>(key: K) {
     const item = this[key] as ControllerItem<T>;
+
+    if (!item) {
+      return {};
+    }
 
     const flatData = {
       [key]: item.is_enabled,

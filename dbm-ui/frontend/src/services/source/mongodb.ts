@@ -34,12 +34,14 @@ export function getMongoList(params: {
   name?: string,
   ip?: string,
   domain?: string,
+  exact_domain?: string,
   creator?: string,
   cluster_type?: string,
   version?: string,
   region?: string,
   db_module_id?: number,
-  cluster_ids?: number[],
+  cluster_ids?: string,
+  domains?: string,
   limit?: number,
   offset?: number,
 }) {
@@ -47,6 +49,27 @@ export function getMongoList(params: {
     ...data,
     results: data.results.map(item => new MongodbModel(item)),
   }));
+}
+
+/**
+ * 获取Mongo拓扑
+ */
+export function getMongoTopoList(params: {
+  id?: number,
+  name?: string,
+  ip?: string,
+  domain?: string,
+  exact_domain?: string,
+  creator?: string,
+  cluster_type?: string,
+  version?: string,
+  region?: string,
+  db_module_id?: number,
+  cluster_ids?: string,
+  limit?: number,
+  offset?: number,
+}) {
+  return http.get<ListBase<MongodbModel[]>>(`${path}/`, params).then(data => data.results.map(item => new MongodbModel(item)));
 }
 
 /**

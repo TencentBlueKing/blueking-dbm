@@ -20,15 +20,12 @@ import {
   shallowRef,
 } from 'vue';
 
-import { useGlobalBizs } from '@stores';
-
 import { getSearchSelectorParams } from '@utils';
 
 /**
  * 处理集群列表数据
  */
 export function useClusterData<T>() {
-  const globalBizsStore = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
       activeTab: string,
@@ -62,7 +59,6 @@ export function useClusterData<T>() {
   const fetchResources = async () => {
     isLoading.value = true;
     return currentInstance.proxy.getResourceList({
-      bk_biz_id: globalBizsStore.currentBizId,
       cluster_type: currentInstance.proxy.activeTab,
       limit: pagination.limit,
       offset: pagination.limit * (pagination.current - 1),

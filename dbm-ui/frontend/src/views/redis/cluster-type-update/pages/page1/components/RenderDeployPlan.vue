@@ -33,7 +33,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
 
@@ -92,7 +92,7 @@
   ];
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (choosedObj: RedisClusterSpecModel, capacity: CapacityNeed) => {
+  const handleChoosedTargetCapacity = (choosedObj: ClusterSpecModel, capacity: CapacityNeed) => {
     displayText.value = `${choosedObj.cluster_capacity}G_${choosedObj.qps.min}/s（${choosedObj.cluster_shard_num} 分片）`;
     localValue.value = {
       spec_id: choosedObj.spec_id,

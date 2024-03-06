@@ -101,7 +101,7 @@
     };
   });
 
-  const searchSelectList = computed(() => ([
+  const searchSelectList = [
     {
       name: t('策略名称'),
       id: 'name',
@@ -110,7 +110,7 @@
       name: t('更新人'),
       id: 'updater',
     },
-  ]));
+  ];
 
   const columns = [
     {

@@ -50,7 +50,7 @@
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
@@ -77,7 +77,7 @@
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
-  const currentSpec = ref<RedisClusterSpecModel & {
+  const currentSpec = ref<ClusterSpecModel & {
     shard_node_num: number;
     shard_num: number;
     shard_node_spec: string;

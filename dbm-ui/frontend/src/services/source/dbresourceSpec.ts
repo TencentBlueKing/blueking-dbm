@@ -12,7 +12,7 @@
  */
 
 import http from '../http';
-import RedisClusterSpecModel from '../model/resource-spec/redis-cluster-sepc';
+import ClusterSpecModel from '../model/resource-spec/cluster-sepc';
 import ResourceSpecModel from '../model/resource-spec/resourceSpec';
 import type { ListBase } from '../types';
 
@@ -69,7 +69,7 @@ export function getFilterClusterSpec(params: {
   };
   shard_num?: number;
 }) {
-  return http.post<RedisClusterSpecModel[]>(`${path}/filter_cluster_spec/`, params);
+  return http.post<ClusterSpecModel[]>(`${path}/filter_cluster_spec/`, params);
 }
 
 /**
