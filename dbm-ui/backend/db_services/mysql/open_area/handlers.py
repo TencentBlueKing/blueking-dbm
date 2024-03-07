@@ -144,6 +144,7 @@ class OpenAreaHandler:
                 "cluster_type": cluster_id__cluster[data["cluster_id"]].cluster_type,
             }
             for data in config_data
+            if data.get("authorize_ips")
             for user in user__dbs_rules.keys()
         ]
         return authorize_details
