@@ -9,17 +9,14 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import {
-  reactive,
-  toRefs,
-} from 'vue';
+import { reactive, toRefs } from 'vue';
 
 export type Rules = Array<{
-  validator: (value: any) => boolean | Promise<boolean>,
-  message: string | (() => string)
-}>
+  validator: (value: any) => boolean | string | Promise<boolean | string>;
+  message: string | (() => string);
+}>;
 
 const getRuleMessage = (rule: Rules[0]) => {
   if (typeof rule.message === 'function') {
@@ -28,7 +25,7 @@ const getRuleMessage = (rule: Rules[0]) => {
   return rule.message;
 };
 
-export default function (rules: Rules|undefined) {
+export default function (rules: Rules | undefined) {
   const state = reactive({
     loading: false,
     error: false,
@@ -36,8 +33,7 @@ export default function (rules: Rules|undefined) {
   });
 
   const validator = (targetValue: any) => {
-    state.error = false,
-    state.message = '';
+    (state.error = false), (state.message = '');
     if (!rules) {
       return Promise.resolve(true);
     }
@@ -49,34 +45,38 @@ export default function (rules: Rules|undefined) {
           return Promise.resolve(true);
         }
         const rule = rules[stepIndex];
-        return Promise.resolve()
-          .then(() => {
-            const result = rule.validator(targetValue);
-            // 异步验证
-            if (typeof result !== 'boolean'
-                && typeof result.then === 'function') {
-              return result.then((data: boolean) => {
-              // 异步验证结果为 false
+        return Promise.resolve().then(() => {
+          const result = rule.validator(targetValue);
+          // 异步验证
+          if (typeof result !== 'boolean' && typeof result !== 'string' && typeof result.then === 'function') {
+            return result
+              .then((data: boolean | string) => {
+                // 异步验证结果为 false
                 if (data === false) {
                   return Promise.reject(getRuleMessage(rule));
                 }
-              }).then(() => run(), () => {
-                state.error = true;
-                const message = getRuleMessage(rule);
-                state.message = message;
-                return Promise.reject(message);
-              });
-            }
-            // 验证失败
-            if (!result) {
-              state.error = true;
-              const message = getRuleMessage(rule);
-              state.message = message;
-              return Promise.reject(message);
-            }
-            // 下一步
-            return run();
-          });
+                if (typeof data === 'string') {
+                  return Promise.reject(data);
+                }
+              })
+              .then(
+                () => run(),
+                (errMessage: string) => {
+                  state.error = true;
+                  state.message = errMessage;
+                  return Promise.reject(errMessage);
+                },
+              );
+          }
+          // 验证失败
+          if (result !== true) {
+            state.error = true;
+            state.message = typeof result === 'string' ? result : getRuleMessage(rule);
+            return Promise.reject(state.message);
+          }
+          // 下一步
+          return run();
+        });
       };
     })();
 

@@ -11,9 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import SqlServerClusterDetailModel from '@services/model/sqlserver/sqlserver-cluster-detail';
 import SqlServerInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
 import SqlServerClusterListModel from '@services/model/sqlserver/sqlserver-single-cluster';
+import SqlServerSingleClusterDetailModel from '@services/model/sqlserver/sqlserver-single-cluster-detail';
 
 import { useGlobalBizs } from '@stores';
 
@@ -37,10 +37,10 @@ export function getSingleClusterList(params: { limit?: number; offset?: number }
 /**
  * 获取集群详情
  */
-export function getSingleClusterDetail(params: { cluster_id: number }) {
+export function getSingleClusterDetail(params: { id: number }) {
   return http
-    .get<SqlServerClusterDetailModel>(`${path}/${params.cluster_id}/`)
-    .then((data) => new SqlServerClusterDetailModel(data));
+    .get<SqlServerSingleClusterDetailModel>(`${path}/${params.id}/`)
+    .then((data) => new SqlServerSingleClusterDetailModel(data));
 }
 
 /**

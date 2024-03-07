@@ -20,7 +20,7 @@
     }">
     <BkDatePicker
       append-to-body
-      :clearable="false"
+      clearable
       :model-value="localValue"
       :placeholder="placeholder"
       style="width: 100%"
@@ -88,6 +88,7 @@
 
   const handleChange = (value: Required<Props>['modelValue']) => {
     localValue.value = value;
+    console.log('handleChange', value);
     validator(localValue.value).then(() => {
       window.changeConfirm = true;
       emits('update:modelValue', localValue.value);

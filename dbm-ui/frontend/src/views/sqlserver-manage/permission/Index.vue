@@ -91,7 +91,7 @@
   <ClusterAuthorize
     v-model="authorizeShow"
     :account-type="AccountTypes.SQLSERVER"
-    :cluster-types="[ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA]"
+    :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
     :permisson-rule-list="selectedList" />
 </template>
 

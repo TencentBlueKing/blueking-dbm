@@ -7,7 +7,6 @@
     :model-value="localValue"
     :no-match-text="t('无匹配数据')"
     :placeholder="t('请输入搜索（国家，城市，简称）')"
-    :popover-options="{ 'ext-cls': '__bk-date-picker-popover__' }"
     :search-placeholder="t('请输入搜索（国家，城市，简称）')"
     @change="handleChange">
     <template #trigger>
@@ -94,7 +93,7 @@
   import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useTimeZone } from '@stores';
+  import { useTimeZoneFormat } from '@hooks';
 
   import { encodeRegexp } from '@utils';
 
@@ -1642,7 +1641,7 @@
   };
 
   const { t } = useI18n();
-  const timeZoneStore = useTimeZone();
+  const { timeZone } = useTimeZoneFormat();
 
   const timezoneDetails = getTimezoneDetails();
 
@@ -1659,7 +1658,11 @@
     (val) => {
       const info = getTimezoneInfoByValue(val);
       selected.value = info;
-      timeZoneStore.update(info);
+      timeZone.value = {
+        ...info,
+        utc: info.utc.substring(3),
+      };
+
       emits('change', val, info);
     },
     {

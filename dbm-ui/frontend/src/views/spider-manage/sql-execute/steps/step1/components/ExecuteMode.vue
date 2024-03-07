@@ -94,7 +94,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const formatDateToUTC = useTimeZoneFormat();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const disableDate = (date: number | Date) => Boolean(date && date.valueOf() < Date.now() - 86400000);
 

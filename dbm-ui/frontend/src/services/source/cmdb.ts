@@ -60,8 +60,8 @@ interface CreateModuleResult {
 /**
  * 创建数据库模块
  */
-export function createModules(params: { db_module_name: string; cluster_type: string; id: number }) {
-  return http.post<CreateModuleResult>(`${path}/${params.id}/create_module/`, params);
+export function createModules(params: { db_module_name: string; cluster_type: string; biz_id: number }) {
+  return http.post<CreateModuleResult>(`${path}/${params.biz_id}/create_module/`, params);
 }
 
 interface UserGroup {
@@ -129,4 +129,16 @@ interface CreateAbbrParams {
  */
 export function createAppAbbr(params: CreateAbbrParams & { id: number }) {
   return http.post<CreateAbbrParams>(`${path}/${params.id}/set_db_app_abbr/`, params);
+}
+
+// 更具模块 id 获取模块信息
+export function getModuleDetail(params: { module_id: number }) {
+  return http.post<{
+    buffer_percent: string;
+    charset: string;
+    db_version: string;
+    max_remain_mem_gb: string;
+    sync_type: string;
+    system_version: string;
+  }>(`apis/configs/get_module_by_id/`, params);
 }

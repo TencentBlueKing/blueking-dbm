@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
-import { type ComponentInternalInstance } from 'vue';
+import type { ComponentInternalInstance, Ref } from 'vue';
 import { useRequest } from 'vue-request';
 
 import { useGlobalBizs } from '@stores';

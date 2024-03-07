@@ -104,7 +104,7 @@
       v-if="currentFileExecuteObject"
       #header>
       <span>{{ t('SQL 内容') }}</span>
-      <span style="color: #63656e; font-size: 12px; font-weight: normal; margin-left: 30px">
+      <span style="margin-left: 30px; font-size: 12px; font-weight: normal; color: #63656e">
         <span>{{ t('变更的 DB:') }}</span>
         <span class="ml-4">
           <BkTag
@@ -265,15 +265,15 @@
   }
 
   .sql-risk-main {
+    display: flex;
     margin-bottom: 10px;
     gap: 8px;
-    display: flex;
     flex-direction: column;
 
     .danger-count {
-      color: #ea3636;
-      font-weight: 700;
       display: inline-block;
+      font-weight: 700;
+      color: #ea3636;
     }
 
     .collapse-dropdown-icon {

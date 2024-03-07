@@ -12,9 +12,9 @@
  */
 import type { AuthorizePreCheckData } from '@services/types/permission';
 
-import type { DetailClusters, SpecInfo } from './common';
+import type { DetailBase, DetailClusters, SpecInfo } from './common';
 
-export interface MysqlIpItem {
+export interface MysqlIpItem extends DetailBase {
   bk_biz_id: number;
   bk_cloud_id: number;
   bk_host_id: number;
@@ -25,7 +25,7 @@ export interface MysqlIpItem {
 /**
  * mysql-授权详情
  */
-export interface MysqlAuthorizationDetails {
+export interface MysqlAuthorizationDetails extends DetailBase {
   authorize_uid: string;
   authorize_data: AuthorizePreCheckData;
   excel_url: string;
@@ -36,10 +36,15 @@ export interface MysqlAuthorizationDetails {
   >;
 }
 
+export interface MySQLForceImportSQLFileExecuteSqlFiles {
+  raw_file_name: string;
+  sql_content: string;
+  sql_path: string;
+}
 /**
  * MySQL SQL变更执行
  */
-export interface MySQLImportSQLFileDetails {
+export interface MySQLImportSQLFileDetails extends DetailBase {
   uid: string;
   path: string;
   backup: {
@@ -84,16 +89,10 @@ export interface MySQLImportSQLFileDetails {
   dump_file_path?: string;
 }
 
-export interface MySQLForceImportSQLFileExecuteSqlFiles {
-  raw_file_name: string;
-  sql_content: string;
-  sql_path: string;
-}
-
 /**
  * MySQL 校验
  */
-export interface MySQLChecksumDetails {
+export interface MySQLChecksumDetails extends DetailBase {
   clusters: DetailClusters;
   data_repair: {
     is_repair: boolean;
@@ -124,7 +123,7 @@ export interface MySQLChecksumDetails {
 /**
  * MySQL 权限克隆详情
  */
-export interface MySQLCloneDetails {
+export interface MySQLCloneDetails extends DetailBase {
   clone_type: string;
   clone_uid: string;
   clone_data: {
@@ -139,7 +138,7 @@ export interface MySQLCloneDetails {
 /**
  * MySQL DB实例克隆详情
  */
-export interface MySQLInstanceCloneDetails {
+export interface MySQLInstanceCloneDetails extends DetailBase {
   clone_type: string;
   clone_uid: string;
   clone_data: {
@@ -154,7 +153,7 @@ export interface MySQLInstanceCloneDetails {
 /**
  * MySQL 启停删
  */
-export interface MySQLOperationDetails {
+export interface MySQLOperationDetails extends DetailBase {
   clusters: DetailClusters;
   cluster_ids: number[];
   force: boolean;
@@ -163,7 +162,7 @@ export interface MySQLOperationDetails {
 /**
  * mysql - 单据详情
  */
-export interface MySQLDetails {
+export interface MySQLDetails extends DetailBase {
   bk_cloud_id: number;
   city_code: string;
   city_name: string;
@@ -195,7 +194,7 @@ export interface MySQLDetails {
   };
 }
 
-export interface DumperInstallDetails {
+export interface DumperInstallDetails extends DetailBase {
   name: string;
   infos: {
     l5_cmdid: number;
@@ -213,7 +212,7 @@ export interface DumperInstallDetails {
   repl_tables: string[];
 }
 
-export interface DumperNodeStatusUpdateDetails {
+export interface DumperNodeStatusUpdateDetails extends DetailBase {
   dumpers: {
     [key: string]: {
       id: number;
@@ -249,7 +248,7 @@ export interface DumperNodeStatusUpdateDetails {
   dumper_instance_ids: number[];
 }
 
-export interface DumperSwitchNodeDetails {
+export interface DumperSwitchNodeDetails extends DetailBase {
   clusters: DetailClusters;
   infos: Array<{
     cluster_id: number;
@@ -266,7 +265,7 @@ export interface DumperSwitchNodeDetails {
 /**
  * MySQL 闪回
  */
-export interface MySQLFlashback {
+export interface MySQLFlashback extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_id: number;
@@ -284,7 +283,7 @@ export interface MySQLFlashback {
 /**
  * MySQL 全库备份
  */
-export interface MySQLFullBackupDetails {
+export interface MySQLFullBackupDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
     backup_type: string;
@@ -300,7 +299,7 @@ export interface MySQLFullBackupDetails {
 /**
  * MySQL 主从清档
  */
-export interface MySQLHATruncateDetails {
+export interface MySQLHATruncateDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_id: number;
@@ -316,7 +315,7 @@ export interface MySQLHATruncateDetails {
 /**
  * MySQL 主故障切换
  */
-export interface MySQLMasterFailDetails {
+export interface MySQLMasterFailDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_ids: number[];
@@ -331,7 +330,7 @@ export interface MySQLMasterFailDetails {
 /**
  * MySQL 主从互换
  */
-export interface MySQLMasterSlaveDetails {
+export interface MySQLMasterSlaveDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_ids: number[];
@@ -346,7 +345,7 @@ export interface MySQLMasterSlaveDetails {
 /**
  * MySQL 克隆主从
  */
-export interface MySQLMigrateDetails {
+export interface MySQLMigrateDetails extends DetailBase {
   backup_source: string;
   clusters: DetailClusters;
   infos: {
@@ -357,7 +356,7 @@ export interface MySQLMigrateDetails {
   is_safe: boolean;
 }
 
-export interface MysqlOpenAreaDetails {
+export interface MysqlOpenAreaDetails extends DetailBase {
   cluster_id: number;
   clusters: DetailClusters;
   config_id: number;
@@ -386,7 +385,7 @@ export interface MysqlOpenAreaDetails {
 /**
  * MySQL 新增 Proxy
  */
-export interface MySQLProxyAddDetails {
+export interface MySQLProxyAddDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_ids: number[];
@@ -397,7 +396,7 @@ export interface MySQLProxyAddDetails {
 /**
  * MySQL 替换 PROXY
  */
-export interface MySQLProxySwitchDetails {
+export interface MySQLProxySwitchDetails extends DetailBase {
   clusters: DetailClusters;
   force: boolean;
   infos: {
@@ -410,7 +409,7 @@ export interface MySQLProxySwitchDetails {
 /**
  * MySQL 重命名
  */
-export interface MySQLRenameDetails {
+export interface MySQLRenameDetails extends DetailBase {
   clusters: DetailClusters;
   force: boolean;
   infos: {
@@ -424,7 +423,7 @@ export interface MySQLRenameDetails {
 /**
  * MySQL SLAVE重建
  */
-export interface MySQLRestoreSlaveDetails {
+export interface MySQLRestoreSlaveDetails extends DetailBase {
   backup_source: string;
   clusters: DetailClusters;
   infos: {
@@ -437,7 +436,7 @@ export interface MySQLRestoreSlaveDetails {
 /**
  * MySQL SLAVE原地重建
  */
-export interface MySQLRestoreLocalSlaveDetails {
+export interface MySQLRestoreLocalSlaveDetails extends DetailBase {
   backup_source: string;
   clusters: DetailClusters;
   force: boolean;
@@ -460,7 +459,7 @@ export enum RollbackClusterTypes {
 /**
  * MySql 定点回档
  */
-export interface MySQLRollbackDetails {
+export interface MySQLRollbackDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
     backup_source: string;
@@ -497,7 +496,7 @@ export interface MySQLRollbackDetails {
 /**
  * MySQL Slave详情
  */
-export interface MySQLSlaveDetails {
+export interface MySQLSlaveDetails extends DetailBase {
   backup_source: string;
   clusters: DetailClusters;
   infos: {
@@ -511,7 +510,7 @@ export interface MySQLSlaveDetails {
 /**
  * MySQL 库表备份
  */
-export interface MySQLTableBackupDetails {
+export interface MySQLTableBackupDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
     backup_on: string;
@@ -527,7 +526,7 @@ export interface MySQLTableBackupDetails {
 /**
  * MySQL 数据导出
  */
-export interface MySQLExportData {
+export interface MySQLExportData extends DetailBase {
   clusters: DetailClusters;
   cluster_id: number;
   charset: string;
@@ -539,7 +538,7 @@ export interface MySQLExportData {
   dump_schema: boolean; // 是否导出表结构
 }
 
-export interface MysqlDataMigrateDetails {
+export interface MysqlDataMigrateDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
     db_list: string;
@@ -551,7 +550,7 @@ export interface MysqlDataMigrateDetails {
 /**
  * MySQL Proxy 升级
  */
-export interface MySQLProxyUpgradeDetails {
+export interface MySQLProxyUpgradeDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
     pkg_id: string;
@@ -565,7 +564,7 @@ export interface MySQLProxyUpgradeDetails {
 /**
  * MySQL 原地升级
  */
-export interface MySQLLocalUpgradeDetails {
+export interface MySQLLocalUpgradeDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
     pkg_id: number;
@@ -584,7 +583,7 @@ export interface MySQLLocalUpgradeDetails {
 /**
  * MySQL 迁移升级
  */
-export interface MySQLMigrateUpgradeDetails {
+export interface MySQLMigrateUpgradeDetails extends DetailBase {
   clusters: DetailClusters;
   ip_source: string;
   backup_source: string;

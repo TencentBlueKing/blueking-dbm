@@ -234,7 +234,7 @@
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const tableMaxHeight = useTableMaxHeight(334);
-  const formatDateToUTC = useTimeZoneFormat();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   // 单据克隆
   useTicketCloneInfo({

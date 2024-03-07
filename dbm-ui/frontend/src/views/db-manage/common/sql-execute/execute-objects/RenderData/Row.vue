@@ -57,11 +57,12 @@
   import { ref } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
 
+  import RenderSql from '@views/db-manage/common/sql-execute/common/RenderSql/Index.vue';
+
   import { random } from '@utils';
 
   import RenderDbName from './RenderDbName.vue';
   import RenderIgnoreDbName from './RenderIgnoreDbName.vue';
-  import RenderSql from './RenderSql/Index.vue';
 
   export interface IDataRow {
     rowKey: string;

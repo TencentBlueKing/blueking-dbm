@@ -33,7 +33,7 @@
   const disableDate = (date: Date) => date && date.valueOf() > Date.now();
 
   const { t } = useI18n();
-  const formatDateToUTC = useTimeZoneFormat();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const timerRules = [
     {

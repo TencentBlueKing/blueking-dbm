@@ -13,20 +13,13 @@
 
 <template>
   <BkLoading
-    :loading="state.isLoading"
+    :loading="isLoading"
     style="min-height: calc(100vh - 120px)">
     <PermissionCatch :key="ticketId">
       <SmartAction :offset-target="getOffsetTarget">
         <div class="ticket-details-page">
-          <template v-if="state.ticketData">
-            <DbCard
-              mode="collapse"
-              :title="t('基本信息')">
-              <Baseinfo
-                :columns="baseColumns"
-                :data="state.ticketData"
-                width="30%" />
-            </DbCard>
+          <template v-if="ticketData">
+            <BaseInfo :ticket-data="ticketData" />
             <Teleport
               :disabled="!isFullscreen"
               to="body">
@@ -35,12 +28,19 @@
                 :class="{ 'tickets-main-is-fullscreen': isFullscreen }"
                 mode="collapse"
                 :title="t('需求信息')">
-                <DemandInfo
-                  :data="state.ticketData"
-                  :is-loading="state.isLoading" />
-                <div class="mt-10">
-                  <span>{{ t('备注') }}:</span>
-                  <span class="ml-5">{{ state.ticketData.remark }}</span>
+                <DemandInfo :data="ticketData" />
+                <div>
+                  <span
+                    style="
+                      display: inline-block;
+                      min-width: 100px;
+                      padding-right: 4px;
+                      line-height: 32px;
+                      text-align: right;
+                    ">
+                    {{ t('备注：') }}
+                  </span>
+                  <span>{{ ticketData.remark || '--' }}</span>
                 </div>
               </DbCard>
             </Teleport>
@@ -50,40 +50,34 @@
               :title="t('实施进度')">
               <FlowInfo
                 ref="flowInfoRef"
-                :data="state.ticketData"
-                @fetch-data="handleFetchData"
-                @mounted="handleFlowInfoMounted" />
+                :data="ticketData"
+                @refresh="handleRefreshTicketData" />
             </DbCard>
           </template>
         </div>
         <template
-          v-if="state.ticketData"
+          v-if="ticketData"
           #action>
-          <TicketClone :data="state.ticketData" />
+          <TicketClone :data="ticketData" />
         </template>
       </SmartAction>
     </PermissionCatch>
   </BkLoading>
 </template>
-<script lang="tsx">
-  let myTicketsDetailTimer = 0;
-</script>
-
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import type { LocationQueryValue } from 'vue-router';
+  import { useRequest } from 'vue-request';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketDetails } from '@services/source/ticket';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue';
-  import CostTimer from '@components/cost-timer/CostTimer.vue';
 
-  import Baseinfo, { type InfoColumn } from '@views/tickets/common/components/baseinfo/Index.vue';
   import TicketClone from '@views/tickets/common/components/TicketClone.vue';
 
-  import { utcDisplayTime, utcTimeToSeconds } from '@utils';
+  import { useTimeoutFn } from '@vueuse/core';
 
+  import BaseInfo from './components/BaseInfo.vue';
   import DemandInfo from './components/Demand.vue';
   import FlowInfo from './components/flow/Index.vue';
 
@@ -91,153 +85,87 @@
     ticketId: number;
   }
 
-  interface Emits {
-    (e: 'updateActiveTicket', value: TicketModel): void
-  }
-
   const props = defineProps<Props>();
 
-  const emits = defineEmits<Emits>();
-
-  /**
-   * 获取单据详情
-   */
-  const fetchTicketDetails = (id: number, isPoll = false) => {
-    state.isLoading = !isPoll;
-    getTicketDetails({ id }, {
-      permission: 'catch'
-    })
-      .then((ticketData) => {
-        state.ticketData = ticketData;
-        emits('updateActiveTicket', ticketData);
-
-        if (currentScope?.active && ['PENDING', 'RUNNING'].includes(state.ticketData?.status)) {
-          myTicketsDetailTimer = setTimeout(() => {
-            fetchTicketDetails(id, true);
-          }, 10000)
-        }
-      })
-      .catch(() => {
-        state.ticketData = null;
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
-  };
-
-  const currentScope = getCurrentScope();
   const { t } = useI18n();
   const route = useRoute();
 
-  const isFullscreen = ref<LocationQueryValue | LocationQueryValue[]>();
+  const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card');
+
+  const isFullscreen = ref<boolean>(Boolean(route.query.isFullscreen));
   const demandCollapse = ref(false);
-  const flowInfoRef = ref<InstanceType<typeof FlowInfo>>()
+  const flowInfoRef = ref<InstanceType<typeof FlowInfo>>();
 
-  const state = reactive({
-    isLoading: false,
-    ticketData: null as TicketModel | null,
-  });
+  const isLoading = ref(true);
+  const ticketData = ref<TicketModel<unknown>>();
 
-  /**
-   * 基础信息配置
-   */
-  const baseColumns: InfoColumn[][] = [
-    [
-      {
-        label: t('单号'),
-        key: 'id',
+  const { run: fetchTicketDetails } = useRequest(
+    (params: ServiceParameters<typeof getTicketDetails>) =>
+      getTicketDetails(params, {
+        permission: 'catch',
+      }),
+    {
+      onSuccess(data, params) {
+        if (params[0].id !== props.ticketId) {
+          return;
+        }
+        isLoading.value = false;
+        ticketData.value = data;
+        loopFetchTicketDetails();
       },
-      {
-        label: t('单据类型'),
-        key: 'ticket_type_display',
-      },
-    ],
-    [
-      {
-        label: t('单据状态'),
-        key: 'status',
-        render: () => {
-          if (state.ticketData) {
-            return <bk-tag theme={state.ticketData.tagTheme}>{t(state.ticketData.statusText)}</bk-tag>;
-          }
-          return <bk-tag theme={undefined} />;
-        },
-      },
-      {
-        label: t('申请人'),
-        key: 'creator',
-      },
-    ],
-    [
-      {
-        label: t('已耗时'),
-        key: 'cost_time',
-        render: () => (
-          <CostTimer
-            value={state.ticketData?.cost_time || 0}
-            isTiming={state.ticketData?.status === 'RUNNING'}
-            startTime={utcTimeToSeconds(state.ticketData?.create_at)} />
-        ),
-      },
-      {
-        label: t('申请时间'),
-        key: 'create_at',
-        render: () => (state.ticketData?.create_at ? utcDisplayTime(state.ticketData.create_at) : '--'),
-      },
-    ],
-  ];
+    },
+  );
 
-  let flowInit = false;
-
-  watch(() => props.ticketId, () => {
-    if (props.ticketId) {
-      clearTimeout(myTicketsDetailTimer);
-      fetchTicketDetails(props.ticketId);
-    }
-  }, { immediate: true });
-
-  watch(isFullscreen, (isFullscreen) => {
-    if (isFullscreen) {
-      demandCollapse.value = true;
-    }
-  }, { immediate: true });
-
-  watch(() => route.query.isFullscreen, (value) => {
-    setTimeout(() => {
-      isFullscreen.value = value;
+  const { start: loopFetchTicketDetails } = useTimeoutFn(() => {
+    fetchTicketDetails({
+      id: props.ticketId,
     });
-  }, {
-    immediate: true,
-  });
+  }, 10000);
 
-  const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card')
+  watch(
+    () => props.ticketId,
+    () => {
+      if (props.ticketId) {
+        ticketData.value = undefined;
+        fetchTicketDetails({
+          id: props.ticketId,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    isFullscreen,
+    () => {
+      if (isFullscreen.value) {
+        demandCollapse.value = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const exitFullscreen = (e: KeyboardEvent) => {
     if (e.keyCode === 27) {
-      isFullscreen.value = undefined;
+      isFullscreen.value = false;
     }
   };
 
-  const handleFetchData = () => {
-    if (props.ticketId) {
-      fetchTicketDetails(props.ticketId);
-    }
+  const handleRefreshTicketData = () => {
+    fetchTicketDetails({
+      id: props.ticketId,
+    });
   };
-
-  const handleFlowInfoMounted = () => {
-    if (flowInit) {
-      flowInfoRef.value!.fetchFlowData();
-      flowInit = false;
-    }
-  }
 
   onMounted(() => {
-    flowInit = true;
     window.addEventListener('keydown', exitFullscreen);
   });
 
   onBeforeUnmount(() => {
-    clearTimeout(myTicketsDetailTimer);
     window.removeEventListener('keydown', exitFullscreen);
   });
 </script>
@@ -246,6 +174,18 @@
   .ticket-details-page {
     padding: 24px;
     font-size: 12px;
+
+    .bk-table {
+      .bk-table-body {
+        height: unset !important;
+        max-height: unset !important;
+      }
+
+      td {
+        height: unset !important;
+        min-height: 42px;
+      }
+    }
 
     .db-card {
       .db-card__content {

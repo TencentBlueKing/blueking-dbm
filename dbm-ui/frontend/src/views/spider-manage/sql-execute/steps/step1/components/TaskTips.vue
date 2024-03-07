@@ -86,7 +86,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useTaskCount } from '@views/mysql/common/hooks/useTaskCount';
+  import { useTaskCount } from '@hooks';
 
   const { t } = useI18n();
   const { rootRef, popRef, taskList, taskCount, handleRevokeTask, handleGoTaskLog } = useTaskCount('tendbcluster');

@@ -31,14 +31,11 @@
       ref="selectRef"
       v-model="localValue"
       auto-focus
+      v-bind="attrs"
       class="select-box"
       :clearable="false"
       :disabled="disabled"
-      :filterable="filterable"
       :input-search="false"
-      :multiple="multiple"
-      :placeholder="placeholder"
-      :show-select-all="showSelectAll"
       @change="handleSelect"
       @clear="handleRemove">
       <template
@@ -71,6 +68,7 @@
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
+  import { useAttrs } from 'vue';
 
   import { useResizeObserver } from '@vueuse/core';
 
@@ -78,12 +76,8 @@
 
   interface Props {
     list: Array<IListItem>;
-    placeholder?: string;
     rules?: Rules;
     disabled?: boolean;
-    multiple?: boolean;
-    showSelectAll?: boolean;
-    filterable?: boolean;
     validateAfterSelect?: boolean; // 选择完立即校验
   }
   interface Emits {
@@ -97,22 +91,19 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: '请输入',
-    textarea: false,
     rules: () => [],
     disabled: false,
-    multiple: false,
-    showSelectAll: false,
-    filterable: true,
     validateAfterSelect: true,
   });
   const emits = defineEmits<Emits>();
 
+  const attrs = useAttrs();
   const modelValue = defineModel<IKey>();
 
   const slots = defineSlots<
     Partial<{
-      trigger: any;
+      default: () => VNode | VNode[];
+      trigger: () => VNode | VNode[];
     }>
   >();
 
@@ -176,7 +167,7 @@
   };
 
   const checkRootHeight = () => {
-    rootHeight.value = rootRef.value.parentNode.clientHeight;
+    rootHeight.value = rootRef.value?.parentNode.clientHeight;
   };
 
   const handleOptionClick = (value: IKey) => {

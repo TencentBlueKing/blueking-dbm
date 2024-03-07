@@ -82,7 +82,7 @@
           style="margin-top: 16px">
           <BkFormItem
             class="mb-0"
-            :label="t('数据库全局权限(owner)')">
+            :label="t('数据库所有者权限(owner)')">
             <BkCheckbox
               :model-value="checkAllPrivileges"
               @change="(value: boolean) => handleSelectAllPrivileges(value)">
@@ -285,7 +285,7 @@
 
   const handleBeforeClose = () => {
     if (window.changeConfirm) {
-      return new Promise((resolve) => {
+      return new Promise<boolean>((resolve) => {
         InfoBox({
           title: t('确认离开当前页'),
           content: t('离开将会导致未保存信息丢失'),
