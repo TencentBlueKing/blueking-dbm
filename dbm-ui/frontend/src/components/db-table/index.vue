@@ -336,7 +336,7 @@
               bkTableRef.value?.clearSelection?.();
             }
 
-            if (!props.fixedPagination) {
+            if (!props.fixedPagination && props.releateUrlQuery) {
               replaceSearchParams(params);
             }
 

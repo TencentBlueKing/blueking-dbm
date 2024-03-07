@@ -12,54 +12,17 @@
 -->
 
 <template>
-  <DbOriginalTable
-    v-if="tableData.length > 0"
-    :columns="columns"
-    :data="tableData" />
-  <div
-    v-else
-    class="json-display">
+  <div>
     {{ JSON.stringify(ticketDetails) }}
   </div>
 </template>
 
 <script setup lang="tsx">
-  import { useI18n } from 'vue-i18n';
-
-  import type { DetailClusters } from '@services/model/ticket/details/common';
   import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketModel<{
-      clusters?: DetailClusters;
-      infos?: {
-        cluster_id: number;
-      }[];
-    }>;
+    ticketDetails: TicketModel<unknown>;
   }
 
-  const props = defineProps<Props>();
-
-  const { t } = useI18n();
-
-  const columns = [
-    {
-      label: t('集群名称'),
-      field: 'immute_domain',
-      showOverflowTooltip: true,
-    },
-  ];
-
-  const { clusters, infos } = props.ticketDetails.details;
-
-  const tableData = infos
-    ? infos.map((item) => ({
-        immute_domain: clusters ? clusters[item.cluster_id].immute_domain : '--',
-      }))
-    : [];
+  defineProps<Props>();
 </script>
-<style lang="less" scoped>
-  .json-display {
-    overflow-y: auto;
-  }
-</style>

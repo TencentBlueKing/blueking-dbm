@@ -23,17 +23,26 @@
 </template>
 <script setup lang="ts">
   import { watch } from 'vue';
+  import { useRoute } from 'vue-router';
 
   import { useUrlSearch } from '@hooks';
 
   import Details from './components/details/Index.vue';
   import List from './components/list/Index.vue';
 
+  const route = useRoute();
   const { appendSearchParams } = useUrlSearch();
 
   const activeTicketId = ref(0);
 
+  if (Number(route.query.viewId) > 0) {
+    activeTicketId.value = Number(route.query.viewId);
+  }
+
   watch(activeTicketId, () => {
+    if (!activeTicketId.value) {
+      return;
+    }
     appendSearchParams({
       viewId: activeTicketId.value,
     });

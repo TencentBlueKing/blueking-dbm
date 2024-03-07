@@ -47,7 +47,18 @@
 <script
   setup
   lang="tsx"
-  generic="T extends ResourceItem | ResourceRedisItem | SpiderModel | EsModel | HdfsModel | KafkaModel | PulsarModel">
+  generic="
+    T extends
+      | ResourceItem
+      | ResourceRedisItem
+      | SpiderModel
+      | EsModel
+      | HdfsModel
+      | KafkaModel
+      | PulsarModel
+      | SqlServerHaClusterDetailModel
+      | SqlServerSingleClusterDetailModel
+  ">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -56,6 +67,8 @@
   import KafkaModel from '@services/model/kafka/kafka';
   import PulsarModel from '@services/model/pulsar/pulsar';
   import SpiderModel from '@services/model/spider/spider';
+  import SqlServerHaClusterDetailModel from '@services/model/sqlserver/sqlserver-ha-cluster-detail';
+  import SqlServerSingleClusterDetailModel from '@services/model/sqlserver/sqlserver-single-cluster-detail';
   import { updateClusterEntryConfig } from '@services/source/clusters';
   import type { ResourceItem, ResourceRedisItem } from '@services/types';
 

@@ -1,7 +1,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <DbForm
-      ref="createModuleFormRef"
+      ref="formRef"
       class="create-module db-scroll-y"
       :label-width="180"
       :model="formData">
@@ -85,8 +85,10 @@
           required>
           <BkSelect
             v-model="formData.operatingSystemVersion"
+            collapse-tags
             filterable
             multiple
+            multiple-mode="tag"
             :placeholder="t('请选择操作系统版本')">
             <BkOption
               v-for="item in operatingSystemVersionList"
@@ -141,67 +143,52 @@
           </BkRadioGroup>
         </BkFormItem>
       </DbCard>
-      <!-- <DbCard :title="t('参数配置')">
-        <BkLoading :loading="parameterTableLoading">
-          <ParameterTable
-            ref="parameterTableRef"
-            :data="leaveConfigData?.conf_items"
-            :is-anomalies="parameterTableLoading"
-            level="module"
-            @refresh="fetchLevelConfig" />
-        </BkLoading>
-      </DbCard> -->
     </DbForm>
     <template #action>
       <BkButton
         class="w-88 mt-8"
-        :loading="isLoading"
+        :loading="isSubmiting"
         theme="primary"
         @click="handleSubmit">
         {{ t('确定') }}
       </BkButton>
-      <BkButton
-        class="w-88 ml-8 mt-8"
-        :disabled="isLoading"
-        @click="resetFormData()">
-        {{ t('重置') }}
-      </BkButton>
+      <DbPopconfirm
+        :confirm-handler="handleReset"
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置表单内容')">
+        <BkButton
+          class="w-88 ml-8 mt-8"
+          :disabled="isSubmiting">
+          {{ t('重置') }}
+        </BkButton>
+      </DbPopconfirm>
     </template>
   </SmartAction>
 </template>
 
 <script setup lang="ts">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { createModules } from '@services/source/cmdb';
-  import {
-    // getLevelConfig,
-    saveModulesDeployInfo,
-  } from '@services/source/configs';
-  import { listSqlserverSystemVersion } from '@services/source/version'
+  import { saveModulesDeployInfo } from '@services/source/configs';
+  import { listSqlserverSystemVersion } from '@services/source/version';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    sqlServerType,
-    type SqlServerTypeString,
-  } from '@common/const';
+  import { sqlServerType } from '@common/const';
 
   import DeployVersion from '@components/apply-items/DeployVersion.vue';
 
-  // import ParameterTable from '@views/db-configure/components/ParameterTable.vue';
   import { messageSuccess } from '@utils';
 
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
 
-  const {
-    bizs,
-    currentBizId,
-  } = useGlobalBizs();
+  const { bizs } = useGlobalBizs();
+
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const haModeList = [
     {
@@ -215,8 +202,11 @@
   ];
 
   const characterSets = ['Chinese_PRC_CI_AS', 'Latin1_General_100_CI_AS'];
-  const bizInfo = bizs.find(info => info.bk_biz_id === currentBizId) || { name: '' };
-  const paramBizId = Number(route.params.bk_biz_id);
+
+  const ticketInfo = sqlServerType[route.params.ticketType as keyof typeof sqlServerType];
+
+  const bizId = Number(route.params.bizId);
+  const bizInfo = bizs.find((info) => info.bk_biz_id === bizId) || { name: '' };
 
   const rules = {
     module_name: [
@@ -238,163 +228,148 @@
    */
   const getFormData = () => ({
     module_name: '',
-    sqlserver_type: route.params.type,
     version: '',
     camelCase: '', // 数据库配置
-    character_set: '', // 字符集
-    memoryAllocationRatio: '', // 内存分配比
+    character_set: 'Chinese_PRC_CI_AS', // 字符集
+    memoryAllocationRatio: 80, // 内存分配比
     maxSystemReservedMemory: 32, // 最大系统保留内存
     operatingSystemVersion: [] as string[], // 操作系统版本
-    haMode: '', // 主从方式
+    haMode: 'mirroring', // 主从方式
   });
 
-  const createModuleFormRef = ref();
+  const formRef = ref();
+  const isSubmiting = ref(false);
 
   const formData = reactive(getFormData());
 
-  const ticketInfo = computed(() => sqlServerType[route.params.type as SqlServerTypeString]);
+  let lastestModuleId = 0;
 
-  const {
-    loading: isLoading,
-    run: runCreateModules,
-  } = useRequest(createModules, {
+  const { run: runSaveModuleDeploy } = useRequest(saveModulesDeployInfo, {
+    manual: true,
+    onSuccess(data) {
+      messageSuccess(t('创建DB模块并绑定数据库配置成功'));
+      window.changeConfirm = false;
+
+      // 跳转到数据库配置并选中当前模块
+      router.push({
+        name: 'DbConfigureList',
+        params: {
+          clusterType: ticketInfo.type,
+        },
+        query: {
+          treeId: lastestModuleId ? `module-${lastestModuleId}` : '',
+          parentId: `app-${data.bk_biz_id}`,
+        },
+      });
+    },
+  });
+
+  const { run: runCreateModules } = useRequest(createModules, {
     manual: true,
     onSuccess(res) {
       if (res.db_module_id) {
+        lastestModuleId = res.db_module_id;
         // 绑定数据库配置
         runSaveModuleDeploy({
           level_name: 'module',
           version: 'deploy_info',
           conf_type: 'deploy',
-          bk_biz_id: paramBizId,
+          bk_biz_id: bizId,
           level_value: res.db_module_id, // 创建模块后的 db_module_id
-          meta_cluster_type: String(route.query.cluster_type),
+          meta_cluster_type: ticketInfo.type,
           conf_items: [
             {
-              conf_name: "charset",
+              conf_name: 'charset',
               conf_value: formData.character_set,
-              op_type: "update",
-              description: t("字符集")
+              op_type: 'update',
+              description: t('字符集'),
             },
             {
-              conf_name: "db_version",
+              conf_name: 'db_version',
               conf_value: formData.version,
-              op_type: "update",
-              description: t("数据库版本")
+              op_type: 'update',
+              description: t('数据库版本'),
             },
             {
-              conf_name: "buffer_percent",
-              conf_value: formData.memoryAllocationRatio,
-              op_type: "update",
-              description: t("实际内存分配比率")
+              conf_name: 'buffer_percent',
+              conf_value: `${formData.memoryAllocationRatio}`,
+              op_type: 'update',
+              description: t('实际内存分配比率'),
             },
             {
-              conf_name: "max_remain_mem_gb",
+              conf_name: 'max_remain_mem_gb',
               conf_value: String(formData.maxSystemReservedMemory),
-              op_type: "update",
-              description: t("最大系统保留内存")
+              op_type: 'update',
+              description: t('最大系统保留内存'),
             },
             {
-              conf_name: "sync_type",
+              conf_name: 'sync_type',
               conf_value: formData.haMode,
-              op_type: "update",
-              description: t("主从方式")
+              op_type: 'update',
+              description: t('主从方式'),
             },
             {
-              conf_name: "system_version",
-              conf_value: formData.operatingSystemVersion.map(versionItem => versionItem.replace(/\s*/g, '')).join(','),
-              op_type: "update",
-              description: t("操作系统版本")
-            }
-          ]
+              conf_name: 'system_version',
+              conf_value: formData.operatingSystemVersion
+                .map((versionItem) => versionItem.replace(/\s*/g, ''))
+                .join(','),
+              op_type: 'update',
+              description: t('操作系统版本'),
+            },
+          ],
         });
       }
     },
   });
 
-  // const {
-  //   loading: parameterTableLoading,
-  //   run: runGetLevelConfig,
-  //   data: leaveConfigData,
-  // } = useRequest(getLevelConfig, {
-  //   manual: true,
-  // });
+  const { data: operatingSystemVersionList, run: listSqlserverSystemVersionRun } = useRequest(
+    listSqlserverSystemVersion,
+    {
+      manual: true,
+    },
+  );
 
-  const { run: runSaveModuleDeploy } = useRequest(saveModulesDeployInfo, {
-    manual: true,
-    onSuccess() {
-      messageSuccess(t('创建DB模块并绑定数据库配置成功'));
-      window.changeConfirm = false;
-    }
-  });
-
-  const {
-    data: operatingSystemVersionList,
-    run: listSqlserverSystemVersionRun
-  } = useRequest(listSqlserverSystemVersion, {
-    manual:true
-  });
-
-  watch(() => formData.version, (version) => {
-    if (version) {
-      // fetchLevelConfig();
-
-      formData.operatingSystemVersion = [] as string[]
-      listSqlserverSystemVersionRun({
-        sqlserver_version: version
-      })
-
-      if (Number(version.slice(-4)) > 2017) {
-        formData.haMode = 'always_on';
-      } else {
-        formData.haMode = 'mirroring';
+  watch(
+    () => formData.version,
+    () => {
+      if (formData.version) {
+        formData.operatingSystemVersion = [];
+        formData.haMode = Number(formData.version.slice(-4)) > 2017 ? 'always_on' : 'mirroring';
+        listSqlserverSystemVersionRun({
+          sqlserver_version: formData.version,
+        });
       }
-    }
-  }, { immediate: true });
-
-  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
-
-  // const fetchLevelConfig = () => {
-  //   runGetLevelConfig({
-  //     bk_biz_id: paramBizId,
-  //     level_name: 'module',
-  //     level_value: Number(route.query.db_module_id),
-  //     meta_cluster_type: String(route.query.cluster_type),
-  //     conf_type: 'dbconf',
-  //     version: formData.version,
-  //   });
-  // };
+    },
+    {
+      immediate: true,
+    },
+  );
 
   /**
    * 提交表单
    */
   const handleSubmit = async () => {
-    // 校验表单信息
-    await createModuleFormRef.value.validate();
-    // 创建模块
-    runCreateModules({
-      db_module_name: formData.module_name,
-      cluster_type: String(route.query.cluster_type),
-      id: paramBizId,
-    });
+    isSubmiting.value = true;
+    try {
+      // 校验表单信息
+      await formRef.value.validate();
+      // 创建模块
+      await runCreateModules({
+        db_module_name: formData.module_name,
+        cluster_type: ticketInfo.type,
+        biz_id: bizId,
+      });
+    } finally {
+      isSubmiting.value = false;
+    }
   };
 
   /**
    * 重置表单
    */
-  const resetFormData = () => {
-    InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
-      cancelText: t('取消'),
-      onConfirm: () => {
-        Object.assign(formData, getFormData());
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-    });
+  const handleReset = () => {
+    Object.assign(formData, getFormData());
+    window.changeConfirm = false;
   };
 
   defineExpose({

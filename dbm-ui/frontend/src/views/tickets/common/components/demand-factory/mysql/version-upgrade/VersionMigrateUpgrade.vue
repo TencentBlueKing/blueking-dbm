@@ -95,7 +95,7 @@
       render: ({ data }: { data: DataItem }) => <VersionContent data={data.targetVersion} />
     },
     {
-      label: t('新主从主机'),
+      label: t('新从库主机'),
       field: 'ip',
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     }

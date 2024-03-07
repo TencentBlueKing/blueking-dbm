@@ -100,10 +100,49 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: generateRedisRedisVersionUpgradeCloneData, // Redis 版本升级
 };
 
-export type CloneDataHandlerMap = typeof generateCloneDataHandlerMap;
+const importSqlserverModule = <T extends Record<string, any>>() => {
+  const modules = import.meta.glob<{ default: () => any }>(`./sqlserver/*.ts`, {
+    eager: true,
+  });
 
-export type CloneDataHandlerMapKeys = keyof CloneDataHandlerMap;
+  console.log('sqlserver modules:', modules);
 
-export async function generateCloneData<T extends CloneDataHandlerMapKeys>(ticketType: T, ticketData: TicketModel) {
-  return (await generateCloneDataHandlerMap[ticketType](ticketData)) as ServiceReturnType<CloneDataHandlerMap[T]>;
+  return Object.keys(modules).reduce((result, item) => {
+    const [, ticketType] = item.match(/([^/]+)\.ts$/) as [string, string];
+    return Object.assign(result, {
+      [ticketType]: modules[item].default,
+    });
+  }, {} as T);
+};
+
+const sqlserverTicketModule = importSqlserverModule<{
+  [TicketTypes.SQLSERVER_ADD_SLAVE]: typeof import('./sqlserver/SQLSERVER_ADD_SLAVE').default;
+  [TicketTypes.SQLSERVER_BACKUP_DBS]: typeof import('./sqlserver/SQLSERVER_BACKUP_DBS').default;
+  [TicketTypes.SQLSERVER_CLEAR_DBS]: typeof import('./sqlserver/SQLSERVER_CLEAR_DBS').default;
+  [TicketTypes.SQLSERVER_DBRENAME]: typeof import('./sqlserver/SQLSERVER_DBRENAME').default;
+  [TicketTypes.SQLSERVER_FULL_MIGRATE]: typeof import('./sqlserver/SQLSERVER_FULL_MIGRATE').default;
+  [TicketTypes.SQLSERVER_IMPORT_SQLFILE]: typeof import('./sqlserver/SQLSERVER_IMPORT_SQLFILE').default;
+  [TicketTypes.SQLSERVER_INCR_MIGRATE]: typeof import('./sqlserver/SQLSERVER_INCR_MIGRATE').default;
+  [TicketTypes.SQLSERVER_MASTER_FAIL_OVER]: typeof import('./sqlserver/SQLSERVER_MASTER_FAIL_OVER').default;
+  [TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH]: typeof import('./sqlserver/SQLSERVER_MASTER_SLAVE_SWITCH').default;
+  [TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE]: typeof import('./sqlserver/SQLSERVER_RESTORE_LOCAL_SLAVE').default;
+  [TicketTypes.SQLSERVER_RESTORE_SLAVE]: typeof import('./sqlserver/SQLSERVER_RESTORE_SLAVE').default;
+  [TicketTypes.SQLSERVER_ROLLBACK]: typeof import('./sqlserver/SQLSERVER_ROLLBACK').default;
+}>();
+
+export const allTicketMap = {
+  ...generateCloneDataHandlerMap,
+  ...sqlserverTicketModule,
+};
+
+export type CloneDataHandlerMap = typeof allTicketMap;
+
+export type CloneDataHandlerMapKeys = keyof CloneDataHandlerMap | keyof typeof sqlserverTicketModule;
+
+export async function generateCloneData<T extends CloneDataHandlerMap>(
+  ticketType: T,
+  ticketData: TicketModel<unknown>,
+) {
+  console.log('ticketType: ', ticketType, sqlserverTicketModule);
+  return await allTicketMap[ticketType](ticketData);
 }

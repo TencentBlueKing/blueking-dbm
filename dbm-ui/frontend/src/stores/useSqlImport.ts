@@ -13,13 +13,32 @@
 
 import { defineStore } from 'pinia';
 
+import { grammarCheck as mysqlGrammarCheck } from '@services/source/mysqlSqlImport';
+import { grammarCheck as sqlserverGrammarCheck } from '@services/source/sqlserverSqlImport';
+
+import { DBTypes } from '@common/const';
+
 export const useSqlImport = defineStore('useSqlImport', {
   state: () => ({
     uploadFilePath: '',
+    dbType: '',
   }),
+  getters: {
+    grammarCheckHandle: (state) => {
+      const grammarCheckMap = {
+        [DBTypes.MYSQL]: mysqlGrammarCheck,
+        [DBTypes.TENDBCLUSTER]: mysqlGrammarCheck,
+        [DBTypes.SQLSERVER]: sqlserverGrammarCheck,
+      };
+      return grammarCheckMap[state.dbType as keyof typeof grammarCheckMap];
+    },
+  },
   actions: {
     updateUploadFilePath(uploadFilePath: string) {
       this.uploadFilePath = uploadFilePath;
+    },
+    updateDbType(dbType: string) {
+      this.dbType = dbType;
     },
   },
 });

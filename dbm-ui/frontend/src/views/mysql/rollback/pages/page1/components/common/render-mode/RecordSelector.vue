@@ -125,7 +125,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import dayjs from 'dayjs';
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -138,9 +137,17 @@
     queryLatesBackupLog,
   } from '@services/source/fixpointRollback';
 
-  import { useDebouncedRef } from '@hooks';
+  import { useDebouncedRef, useTimeZoneFormat } from '@hooks';
 
-  import { useGlobalBizs, useTimeZone } from '@stores';
+  import { useGlobalBizs } from '@stores';
+
+  const props = withDefaults(defineProps<Props>(), {
+    backupid: '',
+    backupSource: '',
+    modelValue: '',
+    disabled: false,
+    clearable: false,
+  });
 
   import useValidtor, { type Rules } from '@components/render-table/hooks/useValidtor';
 
@@ -163,16 +170,9 @@
     getValue: () => Promise<BackupLogRecord>;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    backupid: '',
-    backupSource: '',
-    modelValue: '',
-    disabled: false,
-    clearable: false,
-  });
-
   let tippyIns: Instance;
   const { t } = useI18n();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   enum OperateType {
     MANUAL = 'maunal',
@@ -220,7 +220,6 @@
 
   const { message: errorMessage, validator } = useValidtor(rules);
   const { currentBizId } = useGlobalBizs();
-  const timeZoneStore = useTimeZone();
   const searchKey = useDebouncedRef('');
 
   const rootRef = ref();
@@ -249,9 +248,7 @@
 
   const renderText = computed(() => {
     const item = _.find(logRecordList.value, (i) => i.backup_id === localValue.value) as BackupLogRecord;
-    return !item
-      ? ''
-      : `${item.mysql_role ? `${item.mysql_role} ` : ' '}${dayjs(item.backup_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`;
+    return !item ? '' : `${item.mysql_role ? `${item.mysql_role} ` : ' '}${formatDateToUTC(item.backup_time)}`;
   });
 
   const fetchLogData = () => {
@@ -263,11 +260,39 @@
     }).then((dataList) => {
       logRecordOptions.value = dataList.map((item) => ({
         id: item.backup_id,
-        name: `${item.mysql_role ? `${item.mysql_role} ` : ' '} ${dayjs(item.backup_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
+        name: `${item.mysql_role ? `${item.mysql_role} ` : ' '} ${formatDateToUTC(item.backup_time)}`,
       }));
       logRecordList.value = dataList;
     });
   };
+
+  watch(
+    () => [props.backupSource, props.clusterId],
+    () => {
+      if (!props.clusterId || !props.backupSource) {
+        return;
+      }
+      fetchLogData();
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => props.backupid,
+    (newVal) => {
+      if (newVal) {
+        validator(newVal);
+        const currentRecordType = isDateType(newVal) ? OperateType.MATCH : OperateType.MANUAL;
+        hanldeChangeTab(currentRecordType);
+        localValue.value = newVal;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const hanldeChangeTab = (tabName: OperateType) => {
     recordType.value = tabName;
@@ -345,34 +370,6 @@
       tippyIns.destroy();
     }
   });
-
-  watch(
-    () => [props.backupSource, props.clusterId, timeZoneStore.label],
-    () => {
-      if (!props.clusterId || !props.backupSource) {
-        return;
-      }
-      fetchLogData();
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    () => props.backupid,
-    (newVal) => {
-      if (newVal) {
-        validator(newVal);
-        const currentRecordType = isDateType(newVal) ? OperateType.MATCH : OperateType.MANUAL;
-        hanldeChangeTab(currentRecordType);
-        localValue.value = newVal;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
 
   defineExpose<Exposes>({
     getValue() {

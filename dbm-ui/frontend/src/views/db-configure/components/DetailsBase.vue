@@ -83,14 +83,14 @@
   type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>;
 
   interface Props {
-    data?: ServiceReturnType<typeof getLevelConfig> & { charset?: string},
-    loading?: boolean,
-    fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>,
-    stickyTop?: number,
-    level?: ConfLevelValues,
-    title?: string,
-    extraParametersCards?: ExtraConfListItem[],
-    routeParams?: Record<string, any>,
+    data?: ServiceReturnType<typeof getLevelConfig> & { charset?: string };
+    loading?: boolean;
+    fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>;
+    stickyTop?: number;
+    level?: ConfLevelValues;
+    title?: string;
+    extraParametersCards?: ExtraConfListItem[];
+    routeParams?: Record<string, any>;
   }
 
   interface Emits {

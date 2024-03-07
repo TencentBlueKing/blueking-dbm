@@ -203,12 +203,16 @@ export const useTreeData = (treeState: TreeState) => {
     if (clusterType?.value) {
       const mysqlTypes = [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA] as string[];
       if (mysqlTypes.includes(clusterType.value)) {
-        const type =
-          clusterType.value === ClusterTypes.TENDBSINGLE ? TicketTypes.MYSQL_SINGLE_APPLY : TicketTypes.MYSQL_HA_APPLY;
+        const ticketTypeMap = {
+          [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
+          [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
+          [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
+          [ClusterTypes.SQLSERVER_HA]: TicketTypes.SQLSERVER_HA_APPLY,
+        };
         router.push({
           name: 'SelfServiceCreateDbModule',
           params: {
-            type,
+            type: ticketTypeMap[clusterType.value as keyof typeof ticketTypeMap],
             bk_biz_id: globalBizsStore.currentBizId,
           },
         });
