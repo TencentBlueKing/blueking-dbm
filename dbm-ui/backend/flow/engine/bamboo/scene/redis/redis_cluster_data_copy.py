@@ -896,11 +896,14 @@ class RedisClusterDataCopyFlow(object):
             acts_list = []
             # 交换源集群、目标集群的 redis 配置
             act_kwargs.cluster = {
+                "bill_id": int(info["bill_id"]),
                 "bk_biz_id": int(job_row.app),
                 "src_cluster_domain": src_cluster_info["cluster_domain"],
+                "src_cluster_port": src_cluster_info["cluster_port"],
                 "src_cluster_version": src_cluster_info["cluster_version"],
                 "src_cluster_type": src_cluster_info["cluster_type"],
                 "dst_cluster_domain": dst_cluster_info["cluster_domain"],
+                "dst_cluster_port": dst_cluster_info["cluster_port"],
                 "dst_cluster_version": dst_cluster_info["cluster_version"],
                 "dst_cluster_type": dst_cluster_info["cluster_type"],
             }
@@ -915,11 +918,14 @@ class RedisClusterDataCopyFlow(object):
 
             # 交换源集群、目标集群的 proxy 配置
             act_kwargs.cluster = {
+                "bill_id": int(info["bill_id"]),
                 "bk_biz_id": int(job_row.app),
                 "src_cluster_domain": src_cluster_info["cluster_domain"],
+                "src_cluster_port": src_cluster_info["cluster_port"],
                 "src_proxy_version": self.__get_proxy_version_by_cluster_type(src_cluster_info["cluster_type"]),
                 "src_cluster_type": src_cluster_info["cluster_type"],
                 "dst_cluster_domain": dst_cluster_info["cluster_domain"],
+                "dst_cluster_port": dst_cluster_info["cluster_port"],
                 "dst_proxy_version": self.__get_proxy_version_by_cluster_type(dst_cluster_info["cluster_type"]),
                 "dst_cluster_type": dst_cluster_info["cluster_type"],
             }
