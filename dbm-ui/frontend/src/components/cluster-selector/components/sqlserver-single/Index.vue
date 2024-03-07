@@ -69,6 +69,7 @@
     columnStatusFilter?: TabItem['columnStatusFilter'],
     customColums?: TabItem['customColums'],
     searchSelectList?: TabItem['searchSelectList'],
+    multiple: boolean,
   }
 
   type ResourceItem = ValueOf<SelectedMap>[0];
@@ -107,8 +108,10 @@
 
   const columns = computed(() => [
     {
-      minWidth: 60,
-      label: () => (
+      width: 80,
+      minWidth: 80,
+      fixed: 'left',
+      label: () => props.multiple ? (
         <div style="display:flex;align-items:center">
           <bk-checkbox
             key={`${pagination.current}_${activeTab.value}`}
@@ -136,7 +139,7 @@
             }}>
           </bk-popover>
         </div>
-      ),
+      ) : '',
       render: ({ data }: { data: ResourceItem }) => {
         const disabledRowConfig = props.disabledRowConfig.find(item => item.handler(data));
         if (disabledRowConfig) {
@@ -146,26 +149,32 @@
               placement="top"
               popoverDelay={0}>
               {{
-                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
+                default: () => props.multiple ? <bk-checkbox style="vertical-align: middle;" disabled /> : <bk-radio disabled label={false}/>,
                 content: () => <span>{disabledRowConfig.tip}</span>,
               }}
             </bk-popover>
           );
         }
-        return (
+        return props.multiple ? (
           <bk-checkbox
             style="vertical-align: middle;"
             model-value={Boolean(selectedDomainMap.value[data.id])}
             label={true}
             onChange={(value: boolean) => handleSelecteRow(data, value)}
           />
+          ) : (
+          <bk-radio
+            model-value={Boolean(selectedDomainMap.value[data.id])}
+            onChange={(value: boolean) => handleSelecteRow(data, value)}
+            label={true}/>
         );
       },
     },
     {
       label: t('访问入口'),
       field: 'cluster_name',
-      minWidth: 220,
+      width: 280,
+      fixed: 'left',
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (
         <div class="cluster-name-box">
@@ -197,7 +206,7 @@
     {
       label: t('状态'),
       field: 'status',
-      minWidth: 90,
+      width: 90,
       filter: {
         list: [
           {
@@ -220,13 +229,13 @@
     {
       label: t('集群名称'),
       field: 'cluster_name',
-      minWidth: 120,
+      width: 200,
       showOverflowTooltip: true,
     },
     {
       label: t('所属模块'),
       field: 'db_module_id',
-      minWidth: 100,
+      width: 150,
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.db_module_id,
@@ -237,13 +246,27 @@
     {
       label: t('管控区域'),
       field: 'bk_cloud_id',
-      minWidth: 100,
+      width: 120,
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.bk_cloud_id,
         checked: columnCheckedMap.value.bk_cloud_id,
       },
       render: ({ data }: { data: ResourceItem }) => <span>{data.bk_cloud_name}</span>,
+    },
+    {
+      label: t('版本'),
+      field: 'major_version',
+      width: 200,
+      showOverflowTooltip: true,
+      render: ({ data }: { data: ResourceItem }) => data.major_version || '--',
+    },
+    {
+      label: t('同步模式'),
+      field: 'sync_mode',
+      minWidth: 120,
+      width: 120,
+      render: ({ data }: { data: ResourceItem }) => <span>{data.sync_mode || '--'}</span>,
     },
   ]);
 
@@ -366,7 +389,7 @@
    * 选择当行数据
    */
   const handleSelecteRow = (data: ResourceItem, value: boolean) => {
-    const selectedMapMemo = { ...selectedMap.value };
+    const selectedMapMemo = props.multiple ? { ...selectedMap.value } : {};
     if (!selectedMapMemo[activeTab.value]) {
       selectedMapMemo[activeTab.value] = {};
     }

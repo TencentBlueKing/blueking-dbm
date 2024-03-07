@@ -133,8 +133,8 @@
 
   .config-biz-details {
     .top-tabs {
-      background: #fff;
       padding: 0 24px;
+      background: #fff;
       box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
       .bk-tab-content {

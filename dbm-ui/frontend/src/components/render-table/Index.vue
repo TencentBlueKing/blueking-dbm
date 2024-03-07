@@ -26,6 +26,11 @@
       <slot name="data" />
     </table>
     <div
+      v-if="slots.empty"
+      class="toolbox-table-empty">
+      <slot name="empty" />
+    </div>
+    <div
       ref="tableColumnResizeRef"
       class="table-column-resize" />
   </div>
@@ -45,6 +50,12 @@
   import _ from 'lodash';
 
   import useColumnResize from './hooks/useColumnResize';
+
+  const slots = defineSlots<{
+    default(): any;
+    data(): any;
+    empty?(): any;
+  }>();
 
   const checkTableScroll = () => {
     // handleScroll();
@@ -147,25 +158,25 @@
       }
 
       th {
+        position: relative;
         height: 40px;
         font-weight: normal;
         line-height: 0;
         color: #313238;
         background: #f0f1f5;
-        position: relative;
 
         &.poiner-right {
           &::after {
-            content: '';
             position: absolute;
             top: 0;
-            bottom: 0;
             right: -3px;
-            width: 6px;
-            background-color: #3785ff;
-            transform: translateX(1px);
-            pointer-events: none;
+            bottom: 0;
             z-index: 1;
+            width: 6px;
+            pointer-events: none;
+            background-color: #3785ff;
+            content: '';
+            transform: translateX(1px);
           }
         }
 
@@ -201,12 +212,6 @@
       background: #3c96ff;
     }
 
-    .toolbox-table-empty {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
     .toolbox-right-fixed-column {
       position: sticky;
       right: 0;
@@ -239,6 +244,12 @@
         background: linear-gradient(to right, rgb(0 0 0 / 12%), transparent);
         content: '';
       }
+    }
+
+    .toolbox-table-empty {
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
   }
 </style>

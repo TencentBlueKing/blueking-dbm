@@ -185,7 +185,7 @@
                   :data="formData.details.nodes.backend"
                   :disable-dialog-submit-method="backendHost"
                   :disable-host-method="disableHostMethod"
-                  :disable-tips="formData.details.db_module_id ? '' : t('请选择模块')"
+                  :disable-tips="formData.details.db_module_id !== null ? '' : t('请选择模块')"
                   @change="handleBackendIpChange">
                   <template #desc>
                     {{ t('需n台', { n: hostNums }) }}
@@ -322,7 +322,10 @@
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const isSingleType = route.name === 'SqlServiceSingleApply';
+
   const clusterType = isSingleType ? 'sqlserver_single' : 'sqlserver_ha';
+
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const getDefaultformData = () => ({
     ticket_type: isSingleType ? TicketTypes.SQLSERVER_SINGLE_APPLY : TicketTypes.SQLSERVER_HA_APPLY,
@@ -530,7 +533,47 @@
     manual: true,
   });
 
-  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+  // 根据DM模块 获取配置下拉展示详情
+  watch(
+    () => formData.details.db_module_id,
+    (newDbModuleId) => {
+      if (newDbModuleId) {
+        const module = (moduleList.value || []).find((item) => item.db_module_id === formData.details.db_module_id);
+        moduleName.value = module ? module.name : '';
+
+        fetchModulesDetails({
+          bk_biz_id: Number(formData.bk_biz_id),
+          meta_cluster_type: sqlServerType[formData.ticket_type as SqlServerTypeString].type,
+          conf_type: 'deploy',
+          level_value: newDbModuleId,
+          level_name: 'module',
+          version: 'deploy_info',
+        });
+      }
+    },
+  );
+
+  /**
+   * 设置 domain 数量
+   */
+  watch(
+    () => formData.details.cluster_count,
+    (count: number) => {
+      const len = formData.details.domains.length;
+      if (count === len) {
+        return;
+      }
+      if (count > 0 && count <= 200) {
+        if (count > len) {
+          const appends = Array.from({ length: count - len }, () => ({ key: '' }));
+          formData.details.domains.push(...appends);
+        }
+        if (count < len) {
+          formData.details.domains.splice(count - 1, len - count);
+        }
+      }
+    },
+  );
 
   const backendHost = (hostList: Array<HostDetails>) =>
     hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Master / Slave', n: hostNums.value }) : false;
@@ -570,13 +613,11 @@
     const url = router.resolve({
       name: 'SqlServerCreateDbModule',
       params: {
-        type: formData.ticket_type,
-        bk_biz_id: formData.bk_biz_id,
+        ticketType: formData.ticket_type,
+        bizId: formData.bk_biz_id,
       },
       query: {
         from: String(route.name),
-        cluster_type: clusterType,
-        db_module_id: formData.details.db_module_id,
       },
     });
     window.open(url.href, '_blank');
@@ -713,48 +754,6 @@
   // watch(route.query, () => getModulesConfig(), {
   //   immediate: true,
   // });
-
-  // 根据DM模块 获取配置下拉展示详情
-  watch(
-    () => formData.details.db_module_id,
-    (newDbModuleId) => {
-      if (newDbModuleId) {
-        const module = (moduleList.value || []).find((item) => item.db_module_id === formData.details.db_module_id);
-        moduleName.value = module ? module.name : '';
-
-        fetchModulesDetails({
-          bk_biz_id: Number(formData.bk_biz_id),
-          meta_cluster_type: sqlServerType[formData.ticket_type as SqlServerTypeString].type,
-          conf_type: 'deploy',
-          level_value: newDbModuleId,
-          level_name: 'module',
-          version: 'deploy_info',
-        });
-      }
-    },
-  );
-
-  /**
-   * 设置 domain 数量
-   */
-  watch(
-    () => formData.details.cluster_count,
-    (count: number) => {
-      const len = formData.details.domains.length;
-      if (count === len) {
-        return;
-      }
-      if (count > 0 && count <= 200) {
-        if (count > len) {
-          const appends = Array.from({ length: count - len }, () => ({ key: '' }));
-          formData.details.domains.push(...appends);
-        }
-        if (count < len) {
-          formData.details.domains.splice(count - 1, len - count);
-        }
-      }
-    },
-  );
 
   defineExpose({
     routerBack() {

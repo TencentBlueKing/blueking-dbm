@@ -60,7 +60,7 @@
   });
 
   const { t } = useI18n();
-  const formatDateToUTC = useTimeZoneFormat();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const editRef = ref();
   const isNowTime = ref(false);

@@ -21,22 +21,22 @@ import { t } from '@locales/index';
 
 export type InstanceSpecInfo = {
   count: number;
-  id: number;
-  name: string;
   cpu: {
     max: number;
     min: number;
   };
+  device_class: string[];
+  id: number;
   mem: {
     max: number;
     min: number;
   };
+  name: string;
   storage_spec: {
     mount_point: string;
-    size: number | string;
+    size: number;
     type: string;
   }[];
-  device_class: string[];
   qps: {
     min: number;
     max: number;

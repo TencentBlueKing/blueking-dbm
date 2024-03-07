@@ -29,7 +29,9 @@
             v-model="formData.execute_objects"
             cluster-type="mysql"
             :cluster-version-list="clusterVersionList"
-            style="margin-top: 16px" />
+            :db-type="DBTypes.MYSQL"
+            style="margin-top: 16px"
+            :upload-file-path="uploadFilePath" />
           <RenderCharset v-model="formData.charset" />
           <Backup v-model="formData.backup" />
           <TicketMode v-model="formData.ticket_mode" />
@@ -63,11 +65,9 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import { querySemanticData, semanticCheck } from '@services/source/sqlImport';
+  import { querySemanticData, semanticCheck } from '@services/source/mysqlSqlImport';
 
   import { useTicketCloneInfo } from '@hooks';
-
-  import { useSqlImport } from '@stores';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
@@ -81,7 +81,6 @@
   const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
-  const { updateUploadFilePath } = useSqlImport();
 
   const { rootId } = route.query as { rootId: string | undefined };
 
@@ -103,7 +102,7 @@
   const formRef = ref();
   const resetFormKey = ref(0);
   const isSubmitting = ref(false);
-
+  const uploadFilePath = ref('');
   const clusterVersionList = ref<string[]>([]);
 
   const formData = reactive(createDefaultData());
@@ -120,8 +119,7 @@
         ticket_mode: cloneData.ticket_mode,
       });
       window.changeConfirm = true;
-      updateUploadFilePath(cloneData.path);
-      console.log('cloneData = ', cloneData);
+      uploadFilePath.value = cloneData.path;
     },
   });
 
@@ -141,7 +139,7 @@
         backup: semanticData.backup,
         ticket_mode: semanticData.ticket_mode,
       });
-      updateUploadFilePath(semanticData.path);
+      uploadFilePath.value = semanticData.path;
     },
   });
 
