@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import json
 import logging.config
 import time
 from typing import Any
@@ -26,6 +27,7 @@ from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.db_package.models import Package
+from backend.db_services.redis.redis_dts.models.tb_tendis_dts_switch_backup import TbTendisDtsSwitchBackup
 from backend.db_services.redis.util import (
     is_predixy_proxy_type,
     is_redis_instance_type,
@@ -236,9 +238,54 @@ class RedisActPayload(object):
         return data
 
     @staticmethod
-    def redis_conf_names_by_cluster_type(cluster_type: str) -> list:
+    def get_dbconfig_for_swap(
+        bill_id: int,
+        src_cluster_addr: str,
+        dst_cluster_addr: str,
+        bk_biz_id: str,
+        cluster_domain: str,
+        cluster_version: str,
+        cluste_type: str,
+        conf_type: str,
+        data_type: str,
+    ) -> dict:
+        # 先从表中获取,如果获取不到,则从dbconfig中获取
+        try:
+            row = TbTendisDtsSwitchBackup.objects.get(
+                bill_id=bill_id, src_cluster=src_cluster_addr, dst_cluster=dst_cluster_addr, data_type=data_type
+            )
+            if row.data:
+                return json.loads(row.data)
+        except TbTendisDtsSwitchBackup.DoesNotExist:
+            pass
+        # 从dbconfig中获取,然后保存到表中,便于重试
+        resp = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(bk_biz_id),
+                "level_name": LevelName.CLUSTER,
+                "level_value": cluster_domain,
+                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                "conf_file": cluster_version,
+                "conf_type": conf_type,
+                "namespace": cluste_type,
+                "format": FormatType.MAP,
+            }
+        )
+        row = TbTendisDtsSwitchBackup()
+        row.bill_id = bill_id
+        row.src_cluster = src_cluster_addr
+        row.dst_cluster = dst_cluster_addr
+        row.data_type = data_type
+        row.data = json.dumps(resp)
+        row.save()
+        return resp
+
+    @staticmethod
+    def redis_conf_names_by_cluster_type(cluster_type: str, cluster_version: str) -> list:
         conf_names: list = []
-        if is_redis_instance_type(cluster_type) or is_tendisplus_instance_type(cluster_type):
+        if (
+            is_redis_instance_type(cluster_type) and cluster_version != RedisVersion.Redis20
+        ) or is_tendisplus_instance_type(cluster_type):
             conf_names.append("cluster-enabled")
         if is_redis_instance_type(cluster_type) or is_tendisssd_instance_type(cluster_type):
             conf_names.append("maxmemory")
@@ -248,20 +295,30 @@ class RedisActPayload(object):
     def dts_swap_redis_config(self, cluster_map: dict):
         """交换源集群和目标集群的redis配置"""
         logger.info(_("开始交换源集群和目标集群的redis配置"))
+
+        bill_id = cluster_map["bill_id"]
+        src_cluster_addr = cluster_map["src_cluster_domain"] + IP_PORT_DIVIDER + str(cluster_map["src_cluster_port"])
+        dst_cluster_addr = cluster_map["dst_cluster_domain"] + IP_PORT_DIVIDER + str(cluster_map["dst_cluster_port"])
+        bk_biz_id = cluster_map["bk_biz_id"]
+        conf_type = ConfigTypeEnum.DBConf
+
         logger.info(_("获取源集群:{} redis配置").format(cluster_map["src_cluster_domain"]))
-        src_resp = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster_map["bk_biz_id"]),
-                "level_name": LevelName.CLUSTER,
-                "level_value": cluster_map["src_cluster_domain"],
-                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "conf_file": cluster_map["src_cluster_version"],
-                "conf_type": ConfigTypeEnum.DBConf,
-                "namespace": cluster_map["src_cluster_type"],
-                "format": FormatType.MAP,
-            }
+        data_type = "src_dbconf"
+        src_resp = self.get_dbconfig_for_swap(
+            bill_id,
+            src_cluster_addr,
+            dst_cluster_addr,
+            bk_biz_id,
+            cluster_map["src_cluster_domain"],
+            cluster_map["src_cluster_version"],
+            cluster_map["src_cluster_type"],
+            conf_type,
+            data_type,
         )
-        src_conf_names = self.redis_conf_names_by_cluster_type(cluster_map["src_cluster_type"])
+
+        src_conf_names = self.redis_conf_names_by_cluster_type(
+            cluster_map["src_cluster_type"], cluster_map["src_cluster_version"]
+        )
         src_conf_items = []
         for conf_name in src_conf_names:
             if conf_name in src_resp["content"]:
@@ -270,19 +327,22 @@ class RedisActPayload(object):
                 )
 
         logger.info(_("获取目标集群:{} redis配置").format(cluster_map["dst_cluster_domain"]))
-        dst_resp = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster_map["bk_biz_id"]),
-                "level_name": LevelName.CLUSTER,
-                "level_value": cluster_map["dst_cluster_domain"],
-                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "conf_file": cluster_map["dst_cluster_version"],
-                "conf_type": ConfigTypeEnum.DBConf,
-                "namespace": cluster_map["dst_cluster_type"],
-                "format": FormatType.MAP,
-            }
+        data_type = "dst_dbconf"
+        dst_resp = self.get_dbconfig_for_swap(
+            bill_id,
+            src_cluster_addr,
+            dst_cluster_addr,
+            bk_biz_id,
+            cluster_map["dst_cluster_domain"],
+            cluster_map["dst_cluster_version"],
+            cluster_map["dst_cluster_type"],
+            conf_type,
+            data_type,
         )
-        dst_conf_names = self.redis_conf_names_by_cluster_type(cluster_map["dst_cluster_type"])
+
+        dst_conf_names = self.redis_conf_names_by_cluster_type(
+            cluster_map["dst_cluster_type"], cluster_map["dst_cluster_version"]
+        )
         dst_conf_items = []
         for conf_name in dst_conf_names:
             if conf_name in dst_resp["content"]:
@@ -305,7 +365,7 @@ class RedisActPayload(object):
             "level_value": "",  # 需要替换成真实值
         }
 
-        if src_conf_names != dst_conf_names:
+        if cluster_map["src_cluster_type"] != cluster_map["dst_cluster_type"]:
             # 源集群、目标集群类型有变化, 先删除原有的配置,再更新配置,避免残留
             src_remove_items = [{"conf_name": conf_name, "op_type": OpType.REMOVE} for conf_name in src_conf_names]
             upsert_param["conf_file_info"]["namespace"] = cluster_map["src_cluster_type"]
@@ -323,14 +383,14 @@ class RedisActPayload(object):
             logger.info(_("删除目标集群:{} redis配置,upsert_param:{}").format(cluster_map["dst_cluster_domain"], upsert_param))
             DBConfigApi.upsert_conf_item(upsert_param)
             time.sleep(2)
-        # 源集群 写入目标集群的配置
+        # 源集群 写入目标集群的配置,除了 dst_conf_items 以外,其他conf_items基本用默认值
         upsert_param["conf_file_info"]["namespace"] = cluster_map["dst_cluster_type"]
         upsert_param["conf_file_info"]["conf_file"] = cluster_map["dst_cluster_version"]
         upsert_param["conf_items"] = dst_conf_items
         upsert_param["level_value"] = cluster_map["src_cluster_domain"]
         logger.info(_("更新源集群redis配置 为 目标集群的配置,upsert_param:{}".format(upsert_param)))
         DBConfigApi.upsert_conf_item(upsert_param)
-        # 目标集群 写入源集群的配置
+        # 目标集群 写入源集群的配置,除了 src_conf_items 以外,其他conf_items基本用默认值
         upsert_param["conf_file_info"]["namespace"] = cluster_map["src_cluster_type"]
         upsert_param["conf_file_info"]["conf_file"] = cluster_map["src_cluster_version"]
         upsert_param["conf_items"] = src_conf_items
@@ -441,50 +501,81 @@ class RedisActPayload(object):
         """
         src_proxy_conf_names = ["port"]
         dst_proxy_conf_names = ["port"]
-        # if is_twemproxy_proxy_type(cluster_map["src_cluster_type"]):
-        #     src_proxy_conf_names.append("hash_tag")
-        # if is_twemproxy_proxy_type(cluster_map["dst_cluster_type"]):
-        #     dst_proxy_conf_names.append("hash_tag")
 
+        # 如果类型相同, 需要处理的就是 twemproxy hash_tag:
+        # - 都是twemproxy类型且 hash_tag 不同，需要交换一下，其他的端口这些都不用管;
+        # - 都是predixy类型完全没有需要变化的，如果实在要变化，也应该是目的集群跟着原集群的变;
+        # 如果类型不同, 主要处理的就是集群类型、proxy版本这些，同时保留port不变:
+        # - twemproxy 变成 predixy类型，先删除 twemproxy的配置，然后插入predixy配置;
+        # - predixy 变成 twemproxy 类型，先删除predixy 配置，然后插入twemproxy的配置, twemproxy hash_tag默认开启满足预期;
         logger.info(_("交换源集群和目标集群 dbconfig 中的proxy版本信息"))
+
+        bill_id = cluster_map["bill_id"]
+        src_cluster_addr = cluster_map["src_cluster_domain"] + IP_PORT_DIVIDER + str(cluster_map["src_cluster_port"])
+        dst_cluster_addr = cluster_map["dst_cluster_domain"] + IP_PORT_DIVIDER + str(cluster_map["dst_cluster_port"])
+        bk_biz_id = str(cluster_map["bk_biz_id"])
+        conf_type = ConfigTypeEnum.ProxyConf
+
         logger.info(_("获取源集群:{} proxy配置").format(cluster_map["src_cluster_domain"]))
-        src_resp = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster_map["bk_biz_id"]),
-                "level_name": LevelName.CLUSTER,
-                "level_value": cluster_map["src_cluster_domain"],
-                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "conf_file": cluster_map["src_proxy_version"],
-                "conf_type": ConfigTypeEnum.ProxyConf,
-                "namespace": cluster_map["src_cluster_type"],
-                "format": FormatType.MAP,
-            }
+        data_type = "src_proxyconf"
+        src_resp = self.get_dbconfig_for_swap(
+            bill_id,
+            src_cluster_addr,
+            dst_cluster_addr,
+            bk_biz_id,
+            cluster_map["src_cluster_domain"],
+            cluster_map["src_proxy_version"],
+            cluster_map["src_cluster_type"],
+            conf_type,
+            data_type,
         )
+        logger.info(_("获取目标集群:{} proxy配置").format(cluster_map["dst_cluster_domain"]))
+        data_type = "dst_proxyconf"
+        dst_resp = self.get_dbconfig_for_swap(
+            bill_id,
+            src_cluster_addr,
+            dst_cluster_addr,
+            bk_biz_id,
+            cluster_map["dst_cluster_domain"],
+            cluster_map["dst_proxy_version"],
+            cluster_map["dst_cluster_type"],
+            conf_type,
+            data_type,
+        )
+        # src_conf_upsert_items 目前赋值的是源集群中不能更改的项,如port不能变
         src_conf_upsert_items = []
         for conf_name in src_proxy_conf_names:
             src_conf_upsert_items.append(
                 {"conf_name": conf_name, "conf_value": src_resp["content"][conf_name], "op_type": OpType.UPDATE}
             )
-        logger.info(_("src_conf_upsert_items==>{}".format(src_conf_upsert_items)))
-
-        logger.info(_("获取目标集群:{} proxy配置").format(cluster_map["dst_cluster_domain"]))
-        dst_resp = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster_map["bk_biz_id"]),
-                "level_name": LevelName.CLUSTER,
-                "level_value": cluster_map["dst_cluster_domain"],
-                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "conf_file": cluster_map["dst_proxy_version"],
-                "conf_type": ConfigTypeEnum.ProxyConf,
-                "namespace": cluster_map["dst_cluster_type"],
-                "format": FormatType.MAP,
-            }
-        )
+        # dst_conf_upsert_items 目前赋值的是目的集群中不能更改的项,如port不能变
         dst_conf_upsert_items = []
         for conf_name in dst_proxy_conf_names:
             dst_conf_upsert_items.append(
                 {"conf_name": conf_name, "conf_value": dst_resp["content"][conf_name], "op_type": OpType.UPDATE}
             )
+        # 如果集群类型相同
+        if cluster_map["src_cluster_type"] == cluster_map["dst_cluster_type"]:
+            # 如果都是predixy类型的集群,直接返回
+            if is_predixy_proxy_type(cluster_map["src_cluster_type"]):
+                return
+            elif is_twemproxy_proxy_type(cluster_map["src_cluster_type"]):
+                # 如果都是twemproxy类型且 hash_tag 相同,直接返回
+                if src_resp["content"]["hash_tag"] == dst_resp["content"]["hash_tag"]:
+                    return
+        # 如果都是twemproxy类型集群 且 hash_tag 不同,则需要交换一下
+        if is_twemproxy_proxy_type(cluster_map["src_cluster_type"]) and is_twemproxy_proxy_type(
+            cluster_map["dst_cluster_type"]
+        ):
+            if src_resp["content"]["hash_tag"] != dst_resp["content"]["hash_tag"]:
+                src_conf_upsert_items.append(
+                    {"conf_name": "hash_tag", "conf_value": dst_resp["content"]["hash_tag"], "op_type": OpType.UPDATE}
+                )
+                dst_conf_upsert_items.append(
+                    {"conf_name": "hash_tag", "conf_value": src_resp["content"]["hash_tag"], "op_type": OpType.UPDATE}
+                )
+
+        logger.info(_("src_conf_upsert_items==>{}".format(src_conf_upsert_items)))
         logger.info(_("dst_conf_upsert_items==>{}".format(dst_conf_upsert_items)))
 
         upsert_param = {
@@ -502,39 +593,41 @@ class RedisActPayload(object):
             "level_value": "",  # 需要替换成真实值
         }
 
-        remove_items = []
-        for conf_name in src_proxy_conf_names:
-            remove_items.append({"conf_name": conf_name, "op_type": OpType.REMOVE})
-        # 删除源集群的proxy配置
-        src_remove_param = copy.deepcopy(upsert_param)
-        src_remove_param["conf_file_info"]["conf_file"] = cluster_map["src_proxy_version"]
-        src_remove_param["conf_file_info"]["namespace"] = cluster_map["src_cluster_type"]
-        src_remove_param["conf_items"] = remove_items
-        src_remove_param["level_value"] = cluster_map["src_cluster_domain"]
-        logger.info(
-            _("删除源集群:{} proxy配置,src_remove_param:{}").format(cluster_map["src_cluster_domain"], src_remove_param)
-        )
-        DBConfigApi.upsert_conf_item(src_remove_param)
+        if cluster_map["src_cluster_type"] != cluster_map["dst_cluster_type"]:
+            # 如果集群类型不同,才需要删除原有dbconfig中proxy配置
+            remove_items = []
+            for conf_name in src_proxy_conf_names:
+                remove_items.append({"conf_name": conf_name, "op_type": OpType.REMOVE})
+            # 删除源集群的proxy配置
+            src_remove_param = copy.deepcopy(upsert_param)
+            src_remove_param["conf_file_info"]["conf_file"] = cluster_map["src_proxy_version"]
+            src_remove_param["conf_file_info"]["namespace"] = cluster_map["src_cluster_type"]
+            src_remove_param["conf_items"] = remove_items
+            src_remove_param["level_value"] = cluster_map["src_cluster_domain"]
+            logger.info(
+                _("删除源集群:{} proxy配置,src_remove_param:{}").format(cluster_map["src_cluster_domain"], src_remove_param)
+            )
+            DBConfigApi.upsert_conf_item(src_remove_param)
 
-        remove_items = []
-        for conf_name in dst_proxy_conf_names:
-            remove_items.append({"conf_name": conf_name, "op_type": OpType.REMOVE})
-        # 删除目标集群的proxy配置
-        dst_remove_param = copy.deepcopy(upsert_param)
-        dst_remove_param["conf_file_info"]["conf_file"] = cluster_map["dst_proxy_version"]
-        dst_remove_param["conf_file_info"]["namespace"] = cluster_map["dst_cluster_type"]
-        dst_remove_param["conf_items"] = remove_items
-        dst_remove_param["level_value"] = cluster_map["dst_cluster_domain"]
-        logger.info(
-            _("删除目标集群:{} proxy配置,dst_remove_param:{}").format(cluster_map["dst_cluster_domain"], dst_remove_param)
-        )
-        DBConfigApi.upsert_conf_item(dst_remove_param)
+            remove_items = []
+            for conf_name in dst_proxy_conf_names:
+                remove_items.append({"conf_name": conf_name, "op_type": OpType.REMOVE})
+            # 删除目标集群的proxy配置
+            dst_remove_param = copy.deepcopy(upsert_param)
+            dst_remove_param["conf_file_info"]["conf_file"] = cluster_map["dst_proxy_version"]
+            dst_remove_param["conf_file_info"]["namespace"] = cluster_map["dst_cluster_type"]
+            dst_remove_param["conf_items"] = remove_items
+            dst_remove_param["level_value"] = cluster_map["dst_cluster_domain"]
+            logger.info(
+                _("删除目标集群:{} proxy配置,dst_remove_param:{}").format(cluster_map["dst_cluster_domain"], dst_remove_param)
+            )
+            DBConfigApi.upsert_conf_item(dst_remove_param)
 
-        time.sleep(2)
+            time.sleep(2)
 
-        # 更新源集群的proxy版本信息
+        # 更新源集群的proxy版本、集群类型等信息
         src_upsert_param = copy.deepcopy(upsert_param)
-        src_upsert_param["conf_file_info"]["conf_file"] = cluster_map["dst_proxy_version"]  # 替换成目标集群的proxy版本
+        src_upsert_param["conf_file_info"]["conf_file"] = cluster_map["dst_proxy_version"]
         src_upsert_param["conf_file_info"]["namespace"] = cluster_map["dst_cluster_type"]
         src_upsert_param["conf_items"] = src_conf_upsert_items
         src_upsert_param["level_value"] = cluster_map["src_cluster_domain"]
@@ -545,9 +638,9 @@ class RedisActPayload(object):
         )
         DBConfigApi.upsert_conf_item(src_upsert_param)
 
-        # 更新目标集群的proxy版本信息
+        # 更新目的集群的proxy版本、集群类型等信息
         dst_upsert_param = copy.deepcopy(upsert_param)
-        dst_upsert_param["conf_file_info"]["conf_file"] = cluster_map["src_proxy_version"]  # 替换成源集群的proxy版本
+        dst_upsert_param["conf_file_info"]["conf_file"] = cluster_map["src_proxy_version"]
         dst_upsert_param["conf_file_info"]["namespace"] = cluster_map["src_cluster_type"]
         dst_upsert_param["conf_items"] = dst_conf_upsert_items
         dst_upsert_param["level_value"] = cluster_map["dst_cluster_domain"]
@@ -1804,7 +1897,7 @@ class RedisActPayload(object):
                 "format": FormatType.MAP,
             }
         )
-        conf_names = self.redis_conf_names_by_cluster_type(cluster_map["cluster_type"])
+        conf_names = self.redis_conf_names_by_cluster_type(cluster_map["cluster_type"], cluster_map["current_version"])
         conf_items = []
         for conf_name in conf_names:
             if conf_name in src_resp["content"]:

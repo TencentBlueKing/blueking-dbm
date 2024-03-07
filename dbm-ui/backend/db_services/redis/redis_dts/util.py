@@ -144,7 +144,7 @@ def get_cluster_info_by_id(
             "cluster_port": cluster.proxyinstance_set.first().port,
             "cluster_version": cluster.major_version,
             "cluster_name": cluster.name,
-            "cluster_city_name": one_master.machine.bk_city.logical_city,
+            "cluster_city_name": one_master.machine.bk_city.logical_city.name,
             "redis_password": passwd_ret.get("redis_password"),
             "redis_proxy_admin_password": passwd_ret.get("redis_proxy_admin_password"),
             "redis_databases": databases,
