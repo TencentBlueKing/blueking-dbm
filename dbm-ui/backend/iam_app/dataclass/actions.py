@@ -116,6 +116,17 @@ class ActionEnum:
         subgroup=_(""),
     )
 
+    TICKET_VIEW = ActionMeta(
+        id="ticket_view",
+        name=_("单据查看"),
+        name_en="ticket_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("业务"),
+        subgroup=_(""),
+    )
+
     RESOURCE_MANAGE = ActionMeta(
         id="resource_manage",
         name=_("资源管理访问"),
