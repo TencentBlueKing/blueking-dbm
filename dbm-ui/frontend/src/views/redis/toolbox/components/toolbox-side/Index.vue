@@ -33,7 +33,8 @@
         <BkCollapse v-model="activeCollapses">
           <Vuedraggable
             v-model="allRenderMenuGroupList"
-            item-key="id">
+            item-key="id"
+            @end="handleDragEnd">
             <template #item="{element}">
               <RenderMenuGroup
                 :id="element.id"
@@ -103,13 +104,12 @@
     immediate: true,
   });
 
-  // 拖动排序
-  watch(allRenderMenuGroupList, () => {
+  const handleDragEnd = () => {
     userProfileStore.updateProfile({
       label: UserPersonalSettings.REDIS_TOOLBOX_MENUS,
       values: allRenderMenuGroupList.value.map(item => item.id),
     });
-  });
+  };
 
 </script>
 
