@@ -331,6 +331,10 @@
           label: 'SQLServer',
           name: DBTypes.SQLSERVER,
         },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
       ],
     },
   ];

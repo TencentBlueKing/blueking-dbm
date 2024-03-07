@@ -31,10 +31,10 @@
   interface Props {
     modelValue?: string[];
     initValue?: string[];
-    clusterId: number;
-    placeholder?: string;
     disabled?: boolean;
+    clusterId?: number;
     required?: boolean;
+    placeholder?: string;
     single?: boolean;
     rules?: {
       validator: (value: string[]) => boolean;
@@ -55,6 +55,7 @@
     modelValue: undefined,
     initValue: undefined,
     placeholder: '',
+    clusterId: undefined,
     required: true,
     single: false,
     rules: undefined,

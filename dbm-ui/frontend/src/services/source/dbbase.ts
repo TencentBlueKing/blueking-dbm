@@ -27,36 +27,16 @@ export function verifyDuplicatedClusterName(params: { cluster_type: string; name
 /**
  * 根据过滤条件查询集群详细信息
  */
-export function filterClusters(params: { bk_biz_id: number; exact_domain: string }) {
-  return http.get<
-    {
-      bk_biz_id: number;
-      bk_biz_name: string;
-      bk_cloud_id: number;
-      bk_cloud_name: string;
-      cluster_capacity: number;
-      cluster_shard_num: number;
-      cluster_spec: {
-        cpu: {
-          max: number;
-          min: number;
-        };
-        mem: {
-          max: number;
-          min: number;
-        };
-        qps: {
-          max: number;
-          min: number;
-        };
-        spec_name: string;
-      };
-      db_module_id: number;
-      id: number;
-      machine_pair_cnt: number;
-      master_domain: string;
-    }[]
-  >(`${path}/filter_clusters/`, params);
+export function filterClusters<
+  T extends {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_cloud_name: string;
+    cluster_name: string;
+    cluster_type: string;
+  },
+>(params: { bk_biz_id: number; exact_domain: string }) {
+  return http.get<T[]>(`${path}/filter_clusters/`, params);
 }
 
 /*

@@ -377,6 +377,7 @@
     {
       label: t('集群名称'),
       field: 'cluster_name',
+      width: 200,
       minWidth: 200,
       showOverflowTooltip: false,
       renderHead: () => (
@@ -518,7 +519,8 @@
     {
       label: t('版本'),
       field: 'major_version',
-      minWidth: 100,
+      minWidth: 180,
+      width: 180,
       filter: {
         list: columnAttrs.value.major_version,
         checked: columnCheckedMap.value.major_version,
@@ -526,9 +528,17 @@
       render: ({ data }: { data: SqlServerSingleClusterModel }) => <span>{data.major_version || '--'}</span>,
     },
     {
+      label: t('同步模式'),
+      field: 'sync_mode',
+      minWidth: 120,
+      width: 120,
+      render: ({ data }: { data: SqlServerSingleClusterModel }) => <span>{data.sync_mode || '--'}</span>,
+    },
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
+      width: 100,
       filter: {
         list: columnAttrs.value.region,
         checked: columnCheckedMap.value.region,

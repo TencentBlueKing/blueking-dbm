@@ -13,18 +13,10 @@
 
 <template>
   <SmartAction>
-    <div class="db-backup-page">
+    <div class="sqlserver-db-backup-page">
       <BkAlert
         theme="info"
         :title="t('数据库备份：指定DB备份，支持模糊匹配')" />
-      <!-- <BkButton
-        class="mt16"
-        @click="handleShowBatchEntry">
-        <DbIcon
-          class="mr8"
-          type="add" />
-        {{ t('批量录入') }}
-      </BkButton> -->
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -34,12 +26,8 @@
           ref="rowRefs"
           :data="item"
           :removeable="tableData.length < 2"
-          @add="() => handleAppend(index)"
-          @input-backup-dbs-finish="(backupDbs: string[]) => handleDbListChange(index, backupDbs, 'backupDbs')"
-          @input-cluster-finish="(domain: string) => handleClusterChange(index, domain)"
-          @input-ignore-dbs-finish="(ignoreDbs: string[]) => handleDbListChange(index, ignoreDbs, 'ignoreDbs')"
-          @remove="() => handleRemove(index)"
-          @show-final-reviewer="() => handleShowFianlDbReviewer(item)" />
+          @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @remove="() => handleRemove(index)" />
       </RenderData>
       <DbForm
         class="db-backup-form mt16"
@@ -78,15 +66,13 @@
             v-model="formData.file_tag"
             size="small">
             <template v-if="isBackupTypeFull">
-              <BkRadio label="LONGDAY_DBFILE_3Y"> 3 {{ t('年') }} </BkRadio>
-              <BkRadio label="MSSQL_FULL_BACKUP"> 30 {{ t('天') }} </BkRadio>
+              <BkRadio label="DBFILE1M"> {{ t('1 个月') }} </BkRadio>
+              <BkRadio label="DBFILE6M"> {{ t('6 个月') }} </BkRadio>
+              <BkRadio label="DBFILE1Y"> {{ t('1 年') }} </BkRadio>
+              <BkRadio label="DBFILE3Y"> {{ t('3 年') }} </BkRadio>
             </template>
             <template v-else>
-              <BkRadio
-                disabled
-                label="MSSQL_FULL_BACKUP">
-                15 {{ t('天') }}
-              </BkRadio>
+              <BkRadio label="INCREMENT_BACKUP"> 15 {{ t('天') }} </BkRadio>
             </template>
           </BkRadioGroup>
         </BkFormItem>
@@ -111,39 +97,22 @@
         </BkButton>
       </DbPopconfirm>
     </template>
-    <!-- <BatchEntry
-      v-model:is-show="isShowBatchEntry"
-      @change="handleBatchEntry" /> -->
     <ClusterSelector
       v-model:is-show="isShowBatchSelector"
       :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
       :selected="selectedClusters"
       :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
-    <DbSideslider
-      v-if="currentRowData"
-      v-model:is-show="isShowFianlDbReviewer"
-      quick-close
-      :width="960">
-      <template #header>
-        {{ t('预览DB结果列表') }}
-        <BkTag class="ml-8">{{ currentRowData.domain }}</BkTag>
-      </template>
-      <FianlDbReviewer
-        :data="currentRowData"
-        @change="handleDbChage" />
-    </DbSideslider>
   </SmartAction>
 </template>
 
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
-  import { filterClusters } from '@services/source/dbbase';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -152,12 +121,8 @@
 
   import ClusterSelector, { type TabItem } from '@components/cluster-selector/Index.vue';
 
-  // import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry/Index.vue';
-  import FianlDbReviewer from './components/FianlDbReviewer/Index.vue';
   import RenderData from './components/RenderData/Index.vue';
   import RenderRow, { createRowData, type IDataRow } from './components/RenderData/RenderRow.vue';
-
-  type SqlserverModel = SqlServerSingleClusterModel | SqlServerHaClusterModel;
 
   const { t } = useI18n();
   const router = useRouter();
@@ -187,15 +152,12 @@
   const createDefaultData = () => ({
     backup_type: 'full_backup',
     backup_place: 'master',
-    file_tag: 'LONGDAY_DBFILE_3Y',
+    file_tag: 'DBFILE1M',
   });
 
   const rowRefs = ref<InstanceType<typeof RenderRow>[]>();
   const isShowBatchSelector = ref(false);
-  // const isShowBatchEntry = ref(false);
   const isSubmitting = ref(false);
-  const isShowFianlDbReviewer = ref(false);
-  const currentRowData = ref<IDataRow>();
   const tableData = ref<IDataRow[]>([createRowData()]);
   const formData = reactive(createDefaultData());
 
@@ -204,31 +166,14 @@
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
 
-  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.domain)).length);
   const isBackupTypeFull = computed(() => formData.backup_type === 'full_backup');
 
   watch(
     () => formData.backup_type,
     () => {
-      formData.file_tag = isBackupTypeFull.value ? 'LONGDAY_DBFILE_3Y' : 'MSSQL_FULL_BACKUP';
+      formData.file_tag = isBackupTypeFull.value ? 'DBFILE1M' : 'INCREMENT_BACKUP';
     },
   );
-
-  // 显示批量录入
-  // const handleShowBatchEntry = () => {
-  //   isShowBatchEntry.value = true;
-  // };
-
-  // 批量录入
-  // const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
-  //   const newList = list.map((item) => createRowData(item));
-  //   if (checkListEmpty(tableData.value)) {
-  //     tableData.value = newList;
-  //   } else {
-  //     tableData.value = [...tableData.value, ...newList];
-  //   }
-  //   window.changeConfirm = true;
-  // };
 
   // 检测列表是否为空
   const checkListEmpty = (list: IDataRow[]) => {
@@ -236,7 +181,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.domain;
+    return !firstRow.clusterData;
   };
 
   // 批量选择
@@ -244,147 +189,82 @@
     isShowBatchSelector.value = true;
   };
 
-  // 根据集群选择返回的数据加工成table所需的数据
-  const generateRowDateFromRequest = (item: { id: number; exact_domain: string; cluster_type: string }) => ({
-    rowKey: item.exact_domain,
-    isLoading: false,
-    domain: item.exact_domain,
-    clusterId: item.id,
-    clusterType: item.cluster_type,
-    backupDbs: [] as string[],
-    ignoreDbs: [] as string[],
-  });
-
+  // 输入集群后查询集群信息并填充到table
   // 批量选择
-  const handelClusterChange = (selected: { [key: string]: SqlserverModel[] }) => {
+  const handelClusterChange = (selected: {
+    [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
+  }) => {
     selectedClusters.value = selected;
-    let list: SqlserverModel[] = [];
-
-    if (selected[ClusterTypes.SQLSERVER_SINGLE]) {
-      list = selected[ClusterTypes.SQLSERVER_SINGLE];
-    }
-    if (selected[ClusterTypes.SQLSERVER_HA]) {
-      list = [...list, ...selected[ClusterTypes.SQLSERVER_HA]];
-    }
-
+    const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
+        const row = createRowData({
+          clusterData: {
+            id: item.id,
+            domain: item.master_domain,
+            cloudId: item.bk_cloud_id,
+          },
+        });
+        result.push(row);
         domainMemo[domain] = true;
-        return [...result, generateRowDateFromRequest({ ...item, exact_domain: item.master_domain })];
       }
       return result;
     }, [] as IDataRow[]);
-
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
       tableData.value = [...tableData.value, ...newList];
     }
-
     window.changeConfirm = true;
   };
 
-  // 输入集群后查询集群信息并填充到table
-  const handleClusterChange = async (index: number, domain: string) => {
-    if (!domain) {
-      const { domain } = tableData.value[index];
-      domainMemo[domain] = false;
-      tableData.value[index].domain = '';
-      return;
-    }
-    tableData.value[index].isLoading = true;
-    const result = await filterClusters({
-      bk_biz_id: currentBizId,
-      exact_domain: domain,
-    }).finally(() => {
-      tableData.value[index].isLoading = false;
-    });
-
-    if (result.length < 1) {
-      return;
-    }
-    const item = result[0];
-    const row = generateRowDateFromRequest(item);
-    tableData.value[index] = row;
-    domainMemo[domain] = true;
-    selectedClusters.value[item.cluster_type].push(item);
-  };
-
-  const handleDbListChange = (index: number, dbList: string[], fieldName: 'backupDbs' | 'ignoreDbs') => {
-    Object.assign(tableData.value[index], { [fieldName]: dbList });
-  };
-
-  // 追加集群
-  const handleAppend = (index: number) => {
+  // 追加一个集群
+  const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, createRowData());
+    dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
   };
 
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const { domain, clusterType } = dataList[index];
+    const domain = dataList[index].clusterData?.domain;
     dataList.splice(index, 1);
     tableData.value = dataList;
     if (domain) {
       delete domainMemo[domain];
-      const clustersArr = selectedClusters.value[clusterType];
-      selectedClusters.value[clusterType] = clustersArr.filter((item) => item.master_domain !== domain);
+      const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
+      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== domain);
     }
-  };
-
-  const handleShowFianlDbReviewer = (item: IDataRow) => {
-    currentRowData.value = item;
-    isShowFianlDbReviewer.value = true;
-  };
-
-  const handleDbChage = (backupDbs: string[], ignoreDbs: string[]) => {
-    Object.assign(currentRowData.value, {
-      backupDbs,
-      ignoreDbs,
-    });
   };
 
   const handleSubmit = async () => {
     isSubmitting.value = true;
-    const infos = await Promise.all(
-      rowRefs.value!.map(
-        (item: {
-          getValue: () => Promise<{
-            cluster_id: number;
-            backup_dbs: string[];
-          }>;
-        }) => item.getValue(),
-      ),
-    );
-    isSubmitting.value = false;
-
-    InfoBox({
-      title: t('确认提交n个数据库备份任务', { n: totalNum.value }),
-      width: 480,
-      onConfirm: () =>
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.SQLSERVER_BACKUP_DBS,
-          details: {
-            ...formData,
-            infos,
+    try {
+      const infos = await Promise.all(rowRefs.value!.map((item) => item.getValue()));
+      await createTicket({
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.SQLSERVER_BACKUP_DBS,
+        details: {
+          ...formData,
+          infos,
+        },
+      }).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'SqlServerDbBackup',
+          params: {
+            page: 'success',
           },
-        }).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'SqlServerDbBackup',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-    });
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {
@@ -397,13 +277,12 @@
 </script>
 
 <style lang="less">
-  .db-backup-page {
+  .sqlserver-db-backup-page {
     padding-bottom: 20px;
 
-    .db-backup-form {
-      .bk-form-label {
-        font-size: 12px;
-      }
+    .bk-form-label {
+      font-size: 12px;
+      font-weight: bold;
     }
   }
 </style>

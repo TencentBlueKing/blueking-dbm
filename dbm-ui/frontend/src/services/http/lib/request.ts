@@ -9,12 +9,9 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import axios, {
-  type AxiosRequestConfig,
-  type CancelTokenSource,
-} from 'axios';
+import axios, { type AxiosRequestConfig, type CancelTokenSource } from 'axios';
 import Cookie from 'js-cookie';
 import _ from 'lodash';
 import qs from 'qs';
@@ -23,30 +20,30 @@ import { setCancelTokenSource } from '../index';
 import requestMiddleware from '../middleware/request';
 import responseMiddleware from '../middleware/response';
 
-import Cache, {
-  type CacheExpire,
-  type CacheValue,
-} from './cache';
+import Cache, { type CacheExpire, type CacheValue } from './cache';
 import { paramsSerializer } from './utils';
 
 const cacheHandler = new Cache();
 
-export type Method = 'get' | 'delete' | 'post' | 'put' | 'download' | 'patch'
+export type Method = 'get' | 'delete' | 'post' | 'put' | 'download' | 'patch';
 export interface Config {
-  url: string,
-  method: Method,
-  params?: Record<string, any>,
+  url: string;
+  method: Method;
+  params?: Record<string, any>;
   payload?: {
-    timeout?: number,
-    cache?: string | number | boolean,
-    onUploadProgress?: (params: CancelTokenSource) => void,
-    permission?: 'page' | 'dialog' | 'catch',
-    catchError?: boolean
-  } & AxiosRequestConfig,
+    timeout?: number;
+    cache?: string | number | boolean;
+    onUploadProgress?: (params: CancelTokenSource) => void;
+    permission?: 'page' | 'dialog' | 'catch';
+    catchError?: boolean;
+  } & AxiosRequestConfig;
 }
 
-requestMiddleware(axios.interceptors.request);
-responseMiddleware(axios.interceptors.response);
+/* @ts-ignore */
+if (axios.interceptors.response.handlers.length < 1) {
+  requestMiddleware(axios.interceptors.request);
+  responseMiddleware(axios.interceptors.response);
+}
 
 const { CancelToken } = axios;
 const CSRF_TOKEN_KEY = 'dbm_csrftoken';
@@ -76,15 +73,9 @@ const defaultConfig = {
 };
 
 export default class Request {
-  static supporMethods = [
-    'get', 'post', 'delete', 'put', 'patch',
-  ];
-  static willCachedMethods = [
-    'get',
-  ];
-  static bodyDataMethods = [
-    'post', 'put', 'delete', 'patch',
-  ];
+  static supporMethods = ['get', 'post', 'delete', 'put', 'patch'];
+  static willCachedMethods = ['get'];
+  static bodyDataMethods = ['post', 'put', 'delete', 'patch'];
 
   cache: Cache;
   config: Config;

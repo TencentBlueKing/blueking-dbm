@@ -129,7 +129,7 @@ module.exports = {
         ],
         'vue/prefer-separate-static-class': 'error',
         'vue/prefer-true-attribute-shorthand': 'error',
-        'vue/script-indent': ['error', 2, { baseIndent: 1 }],
+        'vue/script-indent': ['off', 2, { baseIndent: 1 }],
         'vue/component-name-in-template-casing': [
           'error',
           'PascalCase',

@@ -27,11 +27,23 @@ const path = `/apis/sqlserver/bizs/${currentBizId}/sqlserver_ha_resources`;
 /**
  * 获取集群列表
  */
-export function getHaClusterList(params: { limit?: number; offset?: number }) {
+export function getHaClusterList(params: { limit?: number; offset?: number; sys_mode?: 'mirrorin' | 'always_on' }) {
   return http.get<ListBase<SqlServerClusterListModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new SqlServerClusterListModel(item)),
   }));
+}
+
+/**
+ * 获取完整的集群列表
+ */
+export function getHaClusterWholeList() {
+  return http
+    .get<ListBase<SqlServerClusterListModel[]>>(`${path}/`, {
+      limit: -1,
+      offset: 0,
+    })
+    .then((data) => data.results.map((item) => new SqlServerClusterListModel(item)));
 }
 
 /**

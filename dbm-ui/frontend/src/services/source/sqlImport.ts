@@ -5,8 +5,6 @@ import UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task
 
 import http from '../http';
 
-// const path = `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import`;
-
 /**
  * 删除用户语义检查任务列表
  */

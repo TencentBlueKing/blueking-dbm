@@ -125,9 +125,11 @@
   });
 
   onBeforeUnmount(() => {
-    tippyIns.hide();
-    tippyIns.unmount();
-    tippyIns.destroy();
+    if (tippyIns) {
+      tippyIns.hide();
+      tippyIns.unmount();
+      tippyIns.destroy();
+    }
   });
 </script>
 <style lang="less">

@@ -14,6 +14,7 @@
 import dayjs from 'dayjs';
 
 export default class AdminPassword {
+  bk_biz_id: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
   component: string;
@@ -26,6 +27,7 @@ export default class AdminPassword {
   username: string;
 
   constructor(payload = {} as AdminPassword) {
+    this.bk_biz_id = payload.bk_biz_id;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.component = payload.component;

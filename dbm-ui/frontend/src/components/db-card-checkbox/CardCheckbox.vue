@@ -69,7 +69,7 @@
   }));
 
   function handleChange() {
-    if (props.disabled) {
+    if (props.disabled || props.modelValue === props.trueValue) {
       return;
     }
 
