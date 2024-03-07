@@ -73,6 +73,10 @@
     v-model:is-show="isShowExcelAuthorize"
     :cluster-type="ClusterTypes.SQLSERVER_HA"
     :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES" />
+  <EditEntryConfig
+    :id="showEnterConfigClusterId"
+    v-model:is-show="showEditEntryConfig"
+    :get-detail-info="getHaClusterDetail" />
   <ClusterReset
     v-if="currentData"
     v-model:is-show="isShowClusterReset"
@@ -89,6 +93,7 @@
 
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import {
+    getHaClusterDetail,
     getHaClusterList,
     getSqlServerInstanceList,
   } from '@services/source/sqlserveHaCluster';
@@ -119,6 +124,7 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
@@ -193,6 +199,8 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false)
+  const showEditEntryConfig = ref(false);
+  const showEnterConfigClusterId = ref(0);
   const currentData = ref<SqlServerHaClusterModel>()
   const selected = ref<SqlServerHaClusterModel[]>([])
 
@@ -334,53 +342,49 @@
         <TextOverflowLayout>
           {{
             default: () => (
-              <auth-button
+              <bk-button
                 text
                 theme="primary"
                 onClick={() => handleToDetails(data)}>
                 {data.masterDomainDisplayName}
-              </auth-button>
+              </bk-button>
             ),
             append: () => (
               <>
-                <div class="cluster-tags">
-                  {
-                    data.operationTagTips.map(item => (
-                      <RenderOperationTag
-                        class="cluster-tag"
-                        data={item} />
-                    ))
-                  }
-                </div>
-                <div style="display: flex; align-items: center;">
-                  <RenderCellCopy copyItems={
-                    [
-                      {
-                        value: data.master_domain,
-                        label: t('域名')
-                      },
-                      {
-                        value: data.masterDomainDisplayName,
-                        label: t('域名:端口')
-                      }
-                    ]
-                  } />
-                  {/* <db-icon
-                    type="link"
-                    v-bk-tooltips={ t('新开tab打开') }
-                    onClick={ () => handleToDetails(data, true) }/> */}
-                  <div
-                    class="text-overflow"
-                    v-overflow-tips>
-                      {
-                        data.isNew && (
-                          <span
-                            class="glob-new-tag cluster-tag ml-4"
-                            data-text="NEW"/>
-                        )
-                      }
-                  </div>
-                </div>
+                {
+                  data.operationTagTips.map(item => (
+                    <RenderOperationTag
+                      class="cluster-tag"
+                      data={item} />
+                  ))
+                }
+                <RenderCellCopy copyItems={
+                  [
+                    {
+                      value: data.master_domain,
+                      label: t('域名')
+                    },
+                    {
+                      value: data.masterDomainDisplayName,
+                      label: t('域名:端口')
+                    }
+                  ]
+                }/>
+                {
+                  data.isNew && (
+                    <span
+                      class="glob-new-tag cluster-tag ml-4"
+                      data-text="NEW"/>
+                  )
+                }
+                <bk-button
+                  v-bk-tooltips={t('修改入口配置')}
+                  class="ml-4"
+                  text
+                  theme="primary"
+                  onClick={() => handleOpenEntryConfig(data)}>
+                  <db-icon type="edit" />
+                </bk-button>
               </>
             ),
           }}
@@ -524,6 +528,14 @@
                     }
                   ]
                 } />
+                <bk-button
+                  v-bk-tooltips={t('修改入口配置')}
+                  class="ml-4"
+                  text
+                  theme="primary"
+                  onClick={() => handleOpenEntryConfig(data)}>
+                  <db-icon type="edit" />
+                </bk-button>
               </>
             )
           }}
@@ -617,12 +629,20 @@
     {
       label: t('版本'),
       field: 'major_version',
-      minWidth: 100,
+      minWidth: 180,
+      width: 180,
       filter: {
         list: columnAttrs.value.major_version,
         checked: columnCheckedMap.value.major_version,
       },
       render: ({ data }: { data: SqlServerHaClusterModel }) => <span>{data.major_version || '--'}</span>,
+    },
+    {
+      label: t('同步模式'),
+      field: 'sync_mode',
+      minWidth: 120,
+      width: 120,
+      render: ({ data }: { data: SqlServerHaClusterModel }) => <span>{data.sync_mode || '--'}</span>,
     },
     {
       label: t('地域'),
@@ -661,7 +681,7 @@
       label: t('操作'),
       field: '',
       width: tableOperationWidth.value,
-      fixed: 'right',
+      fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: { data: SqlServerHaClusterModel }) => (
         <>
           {
@@ -804,6 +824,10 @@
     }, [] as string[]);
     copy(copyList.join('\n'));
   }
+  const handleOpenEntryConfig = (row: SqlServerHaClusterModel) => {
+    showEditEntryConfig.value  = true;
+    showEnterConfigClusterId.value = row.id;
+  };
 
   // 获取列表数据下的实例子列表
   const getInstanceListByRole = (dataList: SqlServerHaClusterModel[], field: keyof SqlServerHaClusterModel) => dataList.reduce((result, curRow) => {
@@ -972,7 +996,7 @@
     });
   };
 </script>
-<style lang="less" scoped>
+<style lang="less">
   @import '@styles/mixins.less';
 
   .sqlserver-ha-cluster-list {
@@ -980,13 +1004,6 @@
     padding: 24px 0;
     margin: 0 24px;
     overflow: hidden;
-
-    .cluster-tags {
-      display: flex;
-      margin-left: 4px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
 
     .header-action {
       display: flex;
@@ -1000,16 +1017,12 @@
       }
     }
 
-    :deep(td .cell) {
+    td .cell {
       line-height: normal !important;
 
-      .domain {
-        display: flex;
-        align-items: center;
-      }
-
       .db-icon-copy,
-      .db-icon-link {
+      .db-icon-link,
+      .db-icon-edit {
         display: none;
         margin-left: 4px;
         color: @primary-color;
@@ -1032,10 +1045,11 @@
       }
     }
 
-    :deep(th:hover),
-    :deep(td:hover) {
+    th:hover,
+    td:hover {
       .db-icon-copy,
-      .db-icon-link {
+      .db-icon-link,
+      .db-icon-edit {
         display: inline-block !important;
       }
     }

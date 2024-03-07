@@ -97,6 +97,7 @@
 <style lang="less" scoped>
   .render-cell-copy {
     display: grid;
+    color: #3a84ff;
 
     .is-active {
       display: inline-block !important;

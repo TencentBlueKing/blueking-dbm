@@ -83,6 +83,7 @@
 
   interface Exposes {
     getValue: () => Promise<string>;
+    validator: () => Promise<boolean>;
     focus: () => void;
   }
 
@@ -114,11 +115,17 @@
 
   const { message: errorMessage, validator } = useValidtor(props.rules);
 
-  watch(modelValue, (value) => {
-    if (value) {
-      window.changeConfirm = true;
-    }
-  });
+  watch(
+    modelValue,
+    (value) => {
+      if (value) {
+        window.changeConfirm = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 响应输入
   const handleInput = (value: string) => {
@@ -210,6 +217,12 @@
   defineExpose<Exposes>({
     getValue() {
       return validator(modelValue.value).then(() => modelValue.value);
+    },
+    validator() {
+      return validator(modelValue.value).then(
+        () => true,
+        () => false,
+      );
     },
     focus() {
       (rootRef.value as HTMLElement).querySelector('input')?.focus();
@@ -334,9 +347,9 @@
       position: absolute;
       top: 14px;
       right: 10px;
+      display: none;
       font-size: 14px;
       color: #c4c6cc;
-      display: none;
 
       &:hover {
         color: #979ba5;

@@ -170,7 +170,7 @@
   import { getCostTimeDisplay, utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketData: TicketModel,
+    ticketData: TicketModel<unknown>,
     flows?: FlowItem[]
   }
 

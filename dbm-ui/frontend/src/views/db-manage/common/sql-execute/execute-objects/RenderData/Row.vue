@@ -49,10 +49,11 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderSql from '@views/db-manage/common/sql-execute/common/RenderSql/Index.vue';
+
   import { random } from '@utils';
 
   import RenderDbName from './RenderDbName.vue';
-  import RenderSql from './RenderSql/Index.vue';
 
   export interface IDataRow {
     rowKey: string;

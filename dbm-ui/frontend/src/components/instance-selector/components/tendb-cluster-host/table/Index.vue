@@ -97,6 +97,7 @@
     spec_config: data.spec_config,
     db_module_id: data.db_module_id,
     db_module_name: data.db_module_name,
+    role: data.role
   });
 
   const { t } = useI18n();

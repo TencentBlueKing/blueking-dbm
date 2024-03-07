@@ -37,17 +37,24 @@
   import { watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { useSqlImport } from '@stores';
+
+  import { DBTypes } from '@common/const';
+
   import RenderData from './RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './RenderData/Row.vue';
 
   interface Props {
+    dbType: DBTypes;
+    uploadFilePath: string;
     clusterVersionList: string[];
     clusterType: 'mysql' | 'tendbcluster';
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const { updateUploadFilePath, updateDbType } = useSqlImport();
 
   const modelValue = defineModel<Array<IDataRow>>({
     default: () => [],
@@ -63,6 +70,17 @@
       trigger: 'change',
     },
   ];
+
+  watch(
+    () => [props.uploadFilePath, props.dbType],
+    () => {
+      updateUploadFilePath(props.uploadFilePath);
+      updateDbType(props.dbType);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(
     modelValue,

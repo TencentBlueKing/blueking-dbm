@@ -14,6 +14,7 @@
 <template>
   <TableTagInput
     ref="tagRef"
+    :disabled="(checkExist || checkNotExist) && !clusterId"
     :model-value="localValue"
     :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
     :rules="rules"
@@ -25,18 +26,19 @@
   import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { checkClusterDatabase } from '@services/source/remoteService';
+  import { checkClusterDatabase } from '@services/source/dbbase';
 
   import TableTagInput from '@components/render-table/columns/db-table-name/Index.vue';
 
   interface Props {
     modelValue?: string[];
     initValue?: string[];
-    clusterId: number;
+    clusterId?: number;
     required?: boolean;
     single?: boolean;
     checkExist?: boolean;
     allowAsterisk?: boolean;
+    checkNotExist?: boolean;
     rules?: {
       validator: (value: string[]) => boolean;
       message: string;
@@ -55,10 +57,11 @@
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
     initValue: undefined,
+    clusterId: undefined,
     required: true,
     single: false,
-    remoteExist: false,
     checkExist: false,
+    checkNotExist: false,
     rules: undefined,
     allowAsterisk: true,
   });
@@ -132,23 +135,42 @@
           if (!props.checkExist) {
             return true;
           }
+          if (!props.clusterId) {
+            return false;
+          }
+          // % 通配符不需要校验存在
+          if (/%$/.test(value[0]) || value[0] === '*') {
+            return true;
+          }
           const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
           if (clearDbList.length < 1) {
             return true;
           }
           return checkClusterDatabase({
-            infos: [
-              {
-                cluster_id: props.clusterId,
-                db_names: value,
-              },
-            ],
-          }).then((data) => {
-            if (data.length < 1) {
-              return false;
-            }
-            return _.every(Object.values(data[0].check_info), (item) => item);
-          });
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+            cluster_id: props.clusterId,
+            db_list: value,
+          }).then((data) => _.every(Object.values(data), (item) => !item));
+        },
+        message: t('DB 不存在'),
+      },
+      {
+        validator: (value: string[]) => {
+          if (!props.checkNotExist) {
+            return true;
+          }
+          if (!props.clusterId) {
+            return false;
+          }
+          const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
+          if (clearDbList.length < 1) {
+            return true;
+          }
+          return checkClusterDatabase({
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+            cluster_id: props.clusterId,
+            db_list: value,
+          }).then((data) => _.every(Object.values(data), (item) => item));
         },
         message: t('DB 不存在'),
       },
