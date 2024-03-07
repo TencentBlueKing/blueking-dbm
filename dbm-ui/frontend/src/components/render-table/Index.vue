@@ -251,5 +251,11 @@
         content: '';
       }
     }
+
+    .toolbox-table-empty {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
   }
 </style>

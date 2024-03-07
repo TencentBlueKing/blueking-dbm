@@ -13,15 +13,15 @@
 import dayjs from 'dayjs';
 import { ref } from 'vue';
 
-export const useTimeZoneFormat = () => {
-  const timeZone = ref({
-    abbreviation: '',
-    country: '',
-    countryCode: '',
-    label: '',
-    utc: '',
-  });
+const timeZone = ref({
+  abbreviation: '',
+  country: '',
+  countryCode: '',
+  label: '',
+  utc: '',
+});
 
+export const useTimeZoneFormat = () => {
   const format = (date: string) => {
     if (!date) {
       return '';

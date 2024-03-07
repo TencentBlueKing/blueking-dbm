@@ -26,7 +26,9 @@
           </span>
         </template>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :min-width="240">
+      <RenderTableHeadColumn
+        :min-width="240"
+        :width="240">
         {{ t('目标集群') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
@@ -39,6 +41,7 @@
         {{ t('迁移后 DB 名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :min-width="90"
         :required="false"
         :width="90">
         {{ t('操作') }}

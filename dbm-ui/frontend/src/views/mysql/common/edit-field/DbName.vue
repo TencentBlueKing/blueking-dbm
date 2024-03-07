@@ -151,9 +151,21 @@
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             cluster_id: props.clusterId,
             db_list: value,
-          }).then((data) => _.every(Object.values(data), (item) => !item));
+          }).then((data) => {
+            const existDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
+              if (data[dbName]) {
+                result.push(dbName);
+              }
+              return result;
+            }, []);
+            if (existDbList.length > 0) {
+              return t('n 已存在', { n: existDbList.join('、') });
+            }
+
+            return true;
+          });
         },
-        message: t('DB 不存在'),
+        message: t('DB 已存在'),
       },
       {
         validator: (value: string[]) => {
@@ -171,7 +183,19 @@
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             cluster_id: props.clusterId,
             db_list: value,
-          }).then((data) => _.every(Object.values(data), (item) => item));
+          }).then((data) => {
+            const notExistDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
+              if (!data[dbName]) {
+                result.push(dbName);
+              }
+              return result;
+            }, []);
+            if (notExistDbList.length > 0) {
+              return t('n 不存在', { n: notExistDbList.join('、') });
+            }
+
+            return true;
+          });
         },
         message: t('DB 不存在'),
       },

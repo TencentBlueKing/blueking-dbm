@@ -183,7 +183,7 @@
   import InnerManualConfirm from './approve/InnerManualConfirm.vue';
 
   interface Props {
-    ticketData: TicketModel,
+    ticketData: TicketModel<unknown>,
     flows?: FlowItem[]
   }
 
