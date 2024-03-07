@@ -45,8 +45,11 @@ export interface Config {
   } & AxiosRequestConfig,
 }
 
-requestMiddleware(axios.interceptors.request);
-responseMiddleware(axios.interceptors.response);
+/* @ts-ignore */
+if (axios.interceptors.response.handlers.length < 1) {
+  requestMiddleware(axios.interceptors.request);
+  responseMiddleware(axios.interceptors.response);
+}
 
 const { CancelToken } = axios;
 const CSRF_TOKEN_KEY = 'dbm_csrftoken';
