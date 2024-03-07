@@ -216,7 +216,7 @@ export default class Es {
   }
 
   get domainDisplayName() {
-    const port = this.es_datanode_hot[0]?.port;
+    const { port } = this.es_master[0];
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;
   }
