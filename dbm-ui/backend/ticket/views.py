@@ -25,7 +25,9 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.configuration.models import DBAdministrator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import RejectPermission, ResourceActionPermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission, InstanceDetailPermission
 from backend.iam_app.handlers.drf_perm.ticket import CreateTicketPermission
 from backend.ticket.builders import BuilderFactory
@@ -83,6 +85,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             return [ClusterDetailPermission()]
         elif self.action == "get_instance_operate_records":
             return [InstanceDetailPermission()]
+        elif self.action == "list" and "self_manage" not in self.request.query_params:
+            instance_getter = lambda request, view: [request.query_params.get("bk_biz_id", 0)]  # noqa
+            return [ResourceActionPermission([ActionEnum.TICKET_VIEW], ResourceEnum.BUSINESS, instance_getter)]
         elif self.action in [
             "retrieve",
             "list",
@@ -112,14 +117,20 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         # 4. 返回用户自己创建的单据
         username = self.request.user.username
 
-        # (目前只用作为list)如果没有传入self_manage参数，只返回自己创建的单据
+        # (目前只用作为list)如果没有传入self_manage参数，返回业务全量单据.
+        if "self_manage" not in self.request.query_params and self.action == "list":
+            return Ticket.objects.filter(bk_biz_id=self.request.query_params.get("bk_biz_id", 0))
+
+        # 如果self_manage为假，则只返回个人单据
         self_manage = self.request.data.get("self_manage") or self.request.query_params.get("self_manage") or False
         if not int(self_manage) and self.action == "list":
             return Ticket.objects.filter(creator=username)
 
+        # 如果是管理员，则返回所有单据
         if username in env.ADMIN_USERS or self.request.user.is_superuser:
             return Ticket.objects.all()
 
+        # 默认返回个人管理单据
         ticket_filter = Q(creator=username)
         user_manage_queryset = DBAdministrator.objects.filter(users__contains=username)
         for manage in user_manage_queryset:
