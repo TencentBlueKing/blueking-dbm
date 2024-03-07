@@ -301,6 +301,7 @@
       getResourceList: getSingleClusterList,
       tableContent: SqlserverSingleTable,
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
     },
     [ClusterTypes.SQLSERVER_HA]: {
       id: ClusterTypes.SQLSERVER_HA,
@@ -313,6 +314,7 @@
       getResourceList: getHaClusterList,
       tableContent: SqlserverHaTable,
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
     },
     [ClusterTypes.TENDBSINGLE]: {
       id: ClusterTypes.TENDBSINGLE,
@@ -534,6 +536,7 @@
     .bk-modal-header {
       display: none;
     }
+
     .bk-dialog-content {
       padding: 0;
       margin: 0;
@@ -557,6 +560,7 @@
         border-left: 0;
         border-bottom-color: transparent;
       }
+
       .tabs-item-active {
         background-color: @bg-white;
         border-bottom-color: @border-white;

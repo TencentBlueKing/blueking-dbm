@@ -29,7 +29,7 @@
 
   interface Props {
     modelValue?: string[];
-    clusterId: number;
+    clusterId?: number;
     required?: boolean;
     single?: boolean;
     rules?: {
@@ -49,6 +49,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
+    clusterId: undefined,
     required: true,
     single: false,
     rules: undefined,

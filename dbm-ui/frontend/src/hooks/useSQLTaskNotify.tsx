@@ -44,6 +44,7 @@ export const useSQLTaskNotify = () => {
       },
     ],
     pollingInterval: 10000,
+    debounceInterval: 10000,
     onSuccess(data) {
       const isAlterItem = _.find(data, (item) => item.is_alter);
 
