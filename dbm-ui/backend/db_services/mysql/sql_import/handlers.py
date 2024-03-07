@@ -25,6 +25,7 @@ from backend.db_services.mysql.sql_import.constants import (
     CACHE_SEMANTIC_AUTO_COMMIT_FIELD,
     CACHE_SEMANTIC_SKIP_PAUSE_FILED,
     CACHE_SEMANTIC_TASK_FIELD,
+    MAX_PREVIEW_SQL_FILE_SIZE,
     SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME,
     SQLImportMode,
 )
@@ -71,7 +72,9 @@ class SQLHandler(object):
         # 如果上传的是sql内容, 则创建一个sql文件
         if sql_content:
             sql_file = tempfile.NamedTemporaryFile(suffix=".sql")
-            sql_file.write(str.encode(sql_content, encoding="utf-8"))
+            content_byte = str.encode(sql_content, encoding="utf-8")
+            sql_file.write(content_byte)
+            sql_file.size = len(content_byte)
             sql_file.seek(0)
             sql_file_list = [sql_file]
 
@@ -84,9 +87,13 @@ class SQLHandler(object):
 
                 # 恢复文件指针为文件头，否则会无法读取内容 TODO：如果sql内容过大需要进行内容读取吗？
                 file.seek(0)
-                sql_file_info.update(
-                    sql_path=sql_path, sql_content=file.read().decode("utf-8"), raw_file_name=file.name
-                )
+                # 超过最大预览限制，则不支持预览
+                if file.size > MAX_PREVIEW_SQL_FILE_SIZE:
+                    sql_content = _("当前SQL文件过大，暂不提供内容预览...")
+                else:
+                    sql_content = file.read().decode("utf-8")
+
+                sql_file_info.update(sql_path=sql_path, sql_content=sql_content, raw_file_name=file.name)
 
             sql_file_info_list.append(sql_file_info)
 

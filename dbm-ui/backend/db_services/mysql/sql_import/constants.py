@@ -19,6 +19,11 @@ CACHE_SEMANTIC_AUTO_COMMIT_FIELD = "{bk_biz_id}_{root_id}_semantic_check_auto_co
 CACHE_SEMANTIC_SKIP_PAUSE_FILED = "{bk_biz_id}_{root_id}_semantic_check_skip_pause"
 SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME = 7 * 24 * 60 * 60
 
+# 最大预览SQL文件大小200MB
+MAX_PREVIEW_SQL_FILE_SIZE = 200 * 1024 * 1024
+# 最大上传SQL文件大小1G
+MAX_UPLOAD_SQL_FILE_SIZE = 1024 * 1024 * 1024
+
 
 class SQLCharset(str, StructuredEnum):
     """sql语句的字符集类型"""
