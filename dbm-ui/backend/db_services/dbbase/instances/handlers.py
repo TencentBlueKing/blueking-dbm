@@ -13,7 +13,6 @@ from typing import Any, Dict, List, Union
 
 from django.db.models import F, Q
 
-from backend import env
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
@@ -119,9 +118,7 @@ class InstanceHandler:
             db_instances.append(db_inst)
 
         # 查询补充主机信息
-        host_infos = HostHandler.check(
-            [{"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "scope_type": "biz"}], [], [], bk_host_ids
-        )
+        host_infos = HostHandler.check([{"bk_biz_id": self.bk_biz_id, "scope_type": "biz"}], [], [], bk_host_ids)
         host_id_info_map = {host_info["host_id"]: host_info for host_info in host_infos}
         return [
             {**host_id_instance_map[str(db_inst)], **{"host_info": host_id_info_map.get(db_inst.bk_host_id, {})}}
