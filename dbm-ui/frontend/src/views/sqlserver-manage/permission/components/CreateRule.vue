@@ -265,7 +265,7 @@
 
   const handleBeforeClose = () => {
     if (window.changeConfirm) {
-      return new Promise((resolve) => {
+      return new Promise<boolean>((resolve) => {
         InfoBox({
           title: t('确认离开当前页'),
           content: t('离开将会导致未保存信息丢失'),
