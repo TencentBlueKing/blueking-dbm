@@ -32,6 +32,7 @@
           <td style="padding: 0">
             <RenderDbName
               ref="backupDbsRef"
+              check-not-exist
               :cluster-id="data.clusterId"
               :model-value="backupDbs"
               required
@@ -42,6 +43,7 @@
               ref="ignoreDbsRef"
               :cluster-id="data.clusterId"
               :model-value="ignoreDbs"
+              :required="false"
               @change="handleIgnoreDbsChange" />
           </td>
         </tr>
@@ -79,14 +81,14 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getSqlserverDbs } from '@services/source/sqlserver'
+  import { getSqlserverDbs } from '@services/source/sqlserver';
 
   import { useCopy } from '@hooks';
 
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  import RenderDbName from '../RenderData/RenderDbName.vue';
+  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
 
   interface Props {
     data: {
@@ -116,30 +118,27 @@
   const backupDbs = ref(_.cloneDeep(props.data.backupDbs));
   const ignoreDbs = ref(_.cloneDeep(props.data.ignoreDbs));
 
-  const {
-    data: finalDbs,
-    run: getSqlserverDbsRun
-  } = useRequest(getSqlserverDbs, {
+  const { data: finalDbs, run: getSqlserverDbsRun } = useRequest(getSqlserverDbs, {
     manual: true,
-  })
+  });
 
   const getFinalDbsNew = (backupDbs: string[], ignoreDbs: string[]) => {
     getSqlserverDbsRun({
       cluster_id: props.data.clusterId,
       db_list: backupDbs,
-      ignore_db_list: ignoreDbs
-    })
-  }
-  getFinalDbsNew(props.data.backupDbs, props.data.ignoreDbs)
+      ignore_db_list: ignoreDbs,
+    });
+  };
+  getFinalDbsNew(props.data.backupDbs, props.data.ignoreDbs);
 
   const handleBackupDbsChange = (value: string[]) => {
     backupDbs.value = value;
-    getFinalDbsNew(value, ignoreDbs.value)
+    getFinalDbsNew(value, ignoreDbs.value);
   };
 
   const handleIgnoreDbsChange = (value: string[]) => {
     ignoreDbs.value = value;
-    getFinalDbsNew(backupDbs.value, value)
+    getFinalDbsNew(backupDbs.value, value);
   };
 
   const handleCopy = () => {
@@ -149,13 +148,11 @@
   defineExpose<Expose>({
     submit() {
       return Promise.all([
-        backupDbsRef.value!.getValue(),
-        ignoreDbsRef.value!.getValue()
-      ]).then(
-        ([backupDbs, ignoreDbs]) => {
-          emits('change', backupDbs, ignoreDbs);
-        },
-      );
+        backupDbsRef.value!.getValue('db_list'),
+        ignoreDbsRef.value!.getValue('ignore_db_list'),
+      ]).then(([backupDbs, ignoreDbs]) => {
+        emits('change', backupDbs.db_list, ignoreDbs.ignore_db_list);
+      });
     },
   });
 </script>

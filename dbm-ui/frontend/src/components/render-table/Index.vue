@@ -25,6 +25,11 @@
       <slot name="data" />
     </table>
     <div
+      v-if="slots.empty"
+      class="toolbox-table-empty">
+      <slot name="empty" />
+    </div>
+    <div
       ref="tableColumnResizeRef"
       class="table-column-resize" />
   </div>
@@ -40,6 +45,12 @@
   import _ from 'lodash';
 
   import useColumnResize from './hooks/useColumnResize';
+
+  const slots = defineSlots<{
+    default(): any;
+    data(): any;
+    empty?(): any;
+  }>();
 
   const checkTableScroll = () => {
     // handleScroll();
@@ -149,6 +160,12 @@
       display: none;
       width: 1px;
       background: #dfe0e5;
+    }
+
+    .toolbox-table-empty {
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
   }
 </style>

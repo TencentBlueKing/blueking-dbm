@@ -304,6 +304,7 @@
       getResourceList: getSingleClusterList,
       tableContent: SqlserverSingleTable,
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
     },
     [ClusterTypes.SQLSERVER_HA]: {
       id: ClusterTypes.SQLSERVER_HA,
@@ -318,6 +319,7 @@
       getResourceList: getHaClusterList,
       tableContent: SqlserverHaTable,
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
     },
     [ClusterTypes.TENDBSINGLE]: {
       id: ClusterTypes.TENDBSINGLE,
@@ -515,6 +517,10 @@
   };
 
   const handleSelectTable = (selected: Record<string, Record<string, T>>) => {
+    if (!activePanelObj.value.multiple) {
+      selectedMap.value = selected;
+      return;
+    }
     // 如果只允许选一种集群类型, 则清空非当前集群类型的选中列表
     // 如果是勾选的取消全选，则忽略
     if (props.onlyOneType && Object.keys(Object.values(selected)[0]).length > 0) {

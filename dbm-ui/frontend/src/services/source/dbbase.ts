@@ -27,36 +27,16 @@ export function verifyDuplicatedClusterName(params: { cluster_type: string; name
 /**
  * 根据过滤条件查询集群详细信息
  */
-export function filterClusters(params: { bk_biz_id: number; exact_domain: string }) {
-  return http.get<
-    {
-      bk_biz_id: number;
-      bk_biz_name: string;
-      bk_cloud_id: number;
-      bk_cloud_name: string;
-      cluster_capacity: number;
-      cluster_shard_num: number;
-      cluster_spec: {
-        cpu: {
-          max: number;
-          min: number;
-        };
-        mem: {
-          max: number;
-          min: number;
-        };
-        qps: {
-          max: number;
-          min: number;
-        };
-        spec_name: string;
-      };
-      db_module_id: number;
-      id: number;
-      machine_pair_cnt: number;
-      master_domain: string;
-    }[]
-  >(`${path}/filter_clusters/`, params);
+export function filterClusters<
+  T extends {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_cloud_name: string;
+    cluster_name: string;
+    cluster_type: string;
+  },
+>(params: { bk_biz_id: number; exact_domain: string }) {
+  return http.get<T[]>(`${path}/filter_clusters/`, params);
 }
 
 /*
@@ -85,11 +65,7 @@ export function queryBizClusterAttrs(params: {
 /**
  * 查询资源池,污点主机管理表头筛选数据
  */
-export function queryResourceAdministrationAttrs(params: {
-  resource_type: string;
-  limit?: number;
-  offset?: number;
-}) {
+export function queryResourceAdministrationAttrs(params: { resource_type: string; limit?: number; offset?: number }) {
   return http.get<
     Record<
       string,
@@ -99,4 +75,20 @@ export function queryResourceAdministrationAttrs(params: {
       }[]
     >
   >(`${path}/query_resource_administration_attrs/`, params);
+}
+
+// 查询集群的库是否存在
+export function checkClusterDatabase(params: { bk_biz_id: number; cluster_id: number; db_list: string[] }) {
+  return http.post<Record<string, boolean>>(`${path}/check_cluster_databases/`, params);
+}
+
+// 根据用户手动输入的ip[:port]查询真实的实例
+export function checkInstance<
+  T extends {
+    bk_host_id: number;
+    ip: string;
+    bk_cloud_id: number;
+  },
+>(params: { instance_addresses: string[]; bk_biz_id: number }) {
+  return http.post<T[]>(`${path}/check_instances/`, params);
 }

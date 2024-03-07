@@ -24,14 +24,11 @@
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
 </script>
 <script setup lang="ts">
-  import {
-    onBeforeUnmount,
-    ref,
-    watch,
-  } from 'vue';
+  import { onBeforeUnmount, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { filterClusters } from '@services/source/dbbase'
+  import type TendbClusterModel from '@services/model/spider/tendbCluster';
+  import { filterClusters } from '@services/source/dbbase';
 
   import { useGlobalBizs } from '@stores';
 
@@ -47,7 +44,7 @@
       bk_cloud_id: number;
       cluster_shard_num: number;
       db_module_id: number;
-    }>
+    }>;
   }
 
   const { t } = useI18n();
@@ -57,7 +54,7 @@
 
   const { currentBizId } = useGlobalBizs();
 
-  const modelValue = defineModel<IDataRow['clusterData']>()
+  const modelValue = defineModel<IDataRow['clusterData']>();
 
   const editRef = ref<InstanceType<typeof TableEditInput>>();
 
@@ -67,27 +64,29 @@
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) => filterClusters({
-        exact_domain: value,
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        if (data.length > 0) {
-          const [clusterData] = data;
-          modelValue.value = {
-            bkCloudId: clusterData.bk_cloud_id,
-            clusterCapacity: clusterData.cluster_capacity,
-            clusterShardNum: clusterData.cluster_shard_num,
-            clusterSpec: clusterData.cluster_spec,
-            dbModuleId: clusterData.db_module_id,
-            id: clusterData.id,
-            machinePairCnt: clusterData.machine_pair_cnt,
-            masterDomain: clusterData.master_domain,
+      validator: (value: string) =>
+        filterClusters<TendbClusterModel>({
+          exact_domain: value,
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          if (data.length > 0) {
+            const [clusterData] = data;
+            modelValue.value = {
+              bkCloudId: clusterData.bk_cloud_id,
+              clusterCapacity: clusterData.cluster_capacity,
+              clusterShardNum: clusterData.cluster_shard_num,
+              clusterSpec: clusterData.cluster_spec,
+              dbModuleId: clusterData.db_module_id,
+              id: clusterData.id,
+              machinePairCnt: clusterData.machine_pair_cnt,
+              masterDomain: clusterData.master_domain,
+              remoteShardNum: clusterData.remote_shard_num,
+            };
+            return true;
           }
-          return true;
-        }
-        modelValue.value = undefined
-        return false;
-      }),
+          modelValue.value = undefined;
+          return false;
+        }),
       message: t('目标集群不存在'),
     },
     {
@@ -96,10 +95,13 @@
         const otherClusterMemoMap = { ...clusterIdMemo };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
@@ -114,15 +116,19 @@
   ];
 
   // 同步外部值
-  watch(() => modelValue, () => {
-    if (modelValue.value) {
-      clusterIdMemo[instanceKey][modelValue.value.id] = true;
-    } else {
-      delete clusterIdMemo[instanceKey];
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => modelValue,
+    () => {
+      if (modelValue.value) {
+        clusterIdMemo[instanceKey][modelValue.value.id] = true;
+      } else {
+        delete clusterIdMemo[instanceKey];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];
@@ -130,13 +136,22 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value!.getValue()
+      return editRef
+        .value!.getValue()
         .then(() => ({
           cluster_id: modelValue.value!.id,
           bk_cloud_id: modelValue.value!.bkCloudId,
           cluster_shard_num: modelValue.value!.clusterShardNum,
           db_module_id: modelValue.value!.dbModuleId,
-        }));
+        }))
+        .catch(() =>
+          Promise.reject({
+            cluster_id: modelValue.value?.id,
+            bk_cloud_id: modelValue.value?.bkCloudId,
+            cluster_shard_num: modelValue.value?.clusterShardNum,
+            db_module_id: modelValue.value?.dbModuleId,
+          }),
+        );
     },
   });
 </script>
