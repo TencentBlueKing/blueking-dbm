@@ -14,39 +14,35 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0">
+      <FixedColumn fixed="left">
         <RenderCluster
           ref="clusterRef"
           v-model="localClusterData" />
-      </td>
+      </FixedColumn>
       <td style="padding: 0">
         <RenderSlaveHost
           ref="hostRef"
           :cluster-data="localClusterData"
           :model-value="localNewSlaveHost" />
       </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @remove="handleRemove" />
     </tr>
   </tbody>
 </template>
 <script lang="ts">
+  import { ref, watch } from 'vue';
+
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
+  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
+
   import { random } from '@utils';
+
+  import RenderSlaveHost from './RenderSlaveHost.vue';
 
   export interface IHostData {
     bk_biz_id: number;
@@ -72,12 +68,6 @@
   });
 </script>
 <script setup lang="ts">
-  import { ref, watch } from 'vue';
-
-  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
-
-  import RenderSlaveHost from './RenderSlaveHost.vue';
-
   interface Props {
     data: IDataRow;
     removeable: boolean;

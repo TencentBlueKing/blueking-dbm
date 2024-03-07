@@ -14,11 +14,11 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0">
+      <FixedColumn fixed="left">
         <RenderSlave
           ref="slaveRef"
           v-model="localSlave" />
-      </td>
+      </FixedColumn>
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
@@ -32,6 +32,7 @@
   </tbody>
 </template>
 <script lang="ts">
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';

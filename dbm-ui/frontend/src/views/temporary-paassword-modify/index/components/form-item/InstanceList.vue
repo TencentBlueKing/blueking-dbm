@@ -65,7 +65,7 @@
   const tabListConfig = {
     [ClusterTypes.TENDBCLUSTER]: [
       {
-        name: t('TendbCluster 主从'),
+        name: 'TendbCluster',
         tableConfig: {
           firsrColumn: {
             label: 'instance_address',
@@ -83,7 +83,7 @@
   });
 
   const isShowInstanceSelector = shallowRef(false);
-  const instanceSelectorValue = shallowRef({
+  const instanceSelectorValue = shallowRef<Record<string, IValue[]>>({
     [ClusterTypes.TENDBSINGLE]: [] as TendbhaInstanceModel[],
     [ClusterTypes.TENDBHA]: [] as TendbhaInstanceModel[],
     [ClusterTypes.TENDBCLUSTER]: [] as TendbInstanceModel[],

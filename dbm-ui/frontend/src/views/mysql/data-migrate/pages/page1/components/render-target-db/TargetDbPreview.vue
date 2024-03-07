@@ -178,11 +178,11 @@
 
       .name-item {
         width: 260px;
-        line-height: 24px;
         margin: 0 13px 0 0;
-        white-space: nowrap;
         overflow: hidden;
+        line-height: 24px;
         text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
   }

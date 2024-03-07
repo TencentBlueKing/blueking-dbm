@@ -15,8 +15,9 @@
   <div class="render-data">
     <RenderTable>
       <RenderTableHeadColumn
-        :min-width="220"
-        :width="220">
+        fixed="left"
+        :min-width="350"
+        :width="350">
         {{ t('待回档集群') }}
         <template #append>
           <span
@@ -46,6 +47,8 @@
         {{ t('构造后 DB 名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        fixed="right"
+        :min-width="90"
         :required="false"
         :width="90">
         {{ t('操作') }}

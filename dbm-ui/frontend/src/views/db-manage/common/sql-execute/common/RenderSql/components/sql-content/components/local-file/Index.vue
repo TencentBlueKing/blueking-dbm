@@ -91,7 +91,6 @@
 
   interface Props {
     clusterVersionList: string[];
-    clusterType: 'mysql' | 'tendbcluster';
   }
 
   interface Emits {
@@ -106,7 +105,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const { grammarCheckHandle } = useSqlImport();
+  const { grammarCheckHandle, dbType: currentDbType } = useSqlImport();
   const { t } = useI18n();
 
   const modelValue = defineModel<string[]>({
@@ -225,7 +224,8 @@
     props.clusterVersionList.forEach((version, index) => {
       params.append(`versions[${index}]`, version);
     });
-    params.append('cluster_type', props.clusterType);
+
+    params.append('cluster_type', currentDbType);
 
     grammarCheckHandle(params)
       .then((data) => {

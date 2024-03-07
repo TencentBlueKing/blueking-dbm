@@ -15,6 +15,7 @@
   <div class="render-data">
     <RenderTable>
       <RenderTableHeadColumn
+        fixed="left"
         :min-width="280"
         :width="280">
         {{ t('源集群') }}
@@ -41,9 +42,9 @@
         {{ t('迁移后 DB 名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="90"
+        fixed="right"
         :required="false"
-        :width="90">
+        :width="100">
         {{ t('操作') }}
       </RenderTableHeadColumn>
       <template #data>
