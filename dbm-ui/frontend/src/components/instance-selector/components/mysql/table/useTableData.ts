@@ -12,7 +12,7 @@
  */
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
-import { type ComponentInternalInstance } from 'vue';
+import type { ComponentInternalInstance, Ref } from 'vue';
 
 import { useGlobalBizs } from '@stores';
 
