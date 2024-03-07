@@ -49,6 +49,7 @@
     <td style="padding: 0">
       <RenderDbName
         ref="databasesRef"
+        check-not-exist
         :cluster-id="localClusterData!.id"
         :init-value="['*']"
         :model-value="data.databases" />

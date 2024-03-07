@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <DemandFactory :data="data" />
-  </BkLoading>
+  <DemandFactory :data="data" />
 </template>
 
 <script setup lang="ts">
@@ -24,7 +22,6 @@
 
   interface Props {
     data: TicketModel<unknown>;
-    isLoading: boolean;
   }
 
   defineProps<Props>();

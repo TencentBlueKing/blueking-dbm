@@ -65,7 +65,7 @@
   import screenfull from 'screenfull';
   import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-  import { grammarCheck } from '@services/source/sqlImport';
+  import { grammarCheck } from '@services/source/mysqlSqlImport';
 
   import { getSQLFilename } from '@utils';
 

@@ -65,7 +65,7 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import { deleteUserSemanticTasks } from '@services/source/sqlImport';
+  import { deleteUserSemanticTasks } from '@services/source/mysqlSqlImport';
   import { createTicket } from '@services/source/ticket';
 
   import { DBTypes, TicketTypes } from '@common/const';
@@ -172,6 +172,7 @@
       justify-content: center;
     }
   }
+
   .sql-execute-more-action-box {
     display: flex;
     margin-top: 12px;

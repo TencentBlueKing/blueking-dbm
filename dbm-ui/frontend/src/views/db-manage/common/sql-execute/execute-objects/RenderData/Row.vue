@@ -31,7 +31,6 @@
           ref="sqlFielsRef"
           v-model="localSqlFiles"
           v-model:importMode="localImportMode"
-          :cluster-type="clusterType"
           :cluster-version-list="clusterVersionList"
           :db-names="localDbnames"
           :ignore-db-names="localIgnoreDbnames" />
@@ -50,10 +49,11 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderSql from '@views/db-manage/common/sql-execute/common/RenderSql/Index.vue';
+
   import { random } from '@utils';
 
   import RenderDbName from './RenderDbName.vue';
-  import RenderSql from './RenderSql/Index.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -77,7 +77,6 @@
     data: IDataRow;
     removeable: boolean;
     clusterVersionList: string[];
-    clusterType: 'mysql' | 'tendbcluster';
   }
   interface Emits {
     (e: 'add' | 'change', params: IDataRow): void;

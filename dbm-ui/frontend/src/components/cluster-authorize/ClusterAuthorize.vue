@@ -229,10 +229,6 @@
   import AccountRulesTable from './accout-rules-preview-table/Index.vue';
   // import AccountRulesTable from './accouter-rules-selector/components/AccountRulesTable.vue';
   import AccountRulesSelector from './accouter-rules-selector/Index.vue';
-
-  export default {
-    name: 'ClusterAuthorize',
-  };
 </script>
 
 <script setup lang="tsx">
@@ -269,7 +265,7 @@
 
   type ClusterSelectorResult = Record<string, Array<ResourceItem>>
 
-  const props = withDefaults(defineProps<Props>(), {
+    const props = withDefaults(defineProps<Props>(), {
     user: '',
     accessDbs: () => [],
     selected: () => [],
@@ -280,10 +276,15 @@
 
   const emits = defineEmits<Emits>();
 
+  defineOptions({
+    name: 'ClusterAuthorize',
+  })
+
   const isShow = defineModel<boolean>({
     required: true,
     default: false,
   });
+
 
   /**
    * 重置表单数据
@@ -376,6 +377,8 @@
       [ClusterTypes.TENDBHA]: [],
       [ClusterTypes.TENDBSINGLE]: [],
       [ClusterTypes.TENDBCLUSTER]: [],
+      [ClusterTypes.SQLSERVER_HA]: [],
+      [ClusterTypes.SQLSERVER_SINGLE]: []
     } as ClusterSelectorResult,
     isShow: false,
     tableProps: {
@@ -689,6 +692,7 @@
       remark: '',
       ticket_type: ticketTypeMap[props.accountType],
     };
+
     createTicket(params)
       .then((res) => {
         ticketMessage(res.id);
@@ -772,11 +776,11 @@
     if (state.isLoading) return false;
 
     if (window.changeConfirm) {
-      return new Promise((resolve) => {
+      return new Promise<boolean>((resolve) => {
         InfoBox({
           title: t('确认离开当前页'),
           content: t('离开将会导致未保存信息丢失'),
-          confirmTxt: t('离开'),
+          confirmText: t('离开'),
           onConfirm: () => {
             window.changeConfirm = false;
             resolve(true);

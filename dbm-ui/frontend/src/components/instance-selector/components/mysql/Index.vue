@@ -27,7 +27,9 @@
               clearable
               :placeholder="$t('搜索拓扑节点')" />
             <div :class="TopoAlertContent ? 'topo-alert-box' : 'topo-box'">
-              <TopoAlertContent @close="handleCloseAlert" />
+              <Component
+                :is="TopoAlertContent"
+                @close="handleCloseAlert" />
               <BkTree
                 ref="treeRef"
                 children="children"
@@ -78,12 +80,7 @@
   </BkLoading>
 </template>
 <script setup lang="ts" generic="T extends IValue">
-  import type {
-    InstanceSelectorValues,
-    IValue,
-    PanelListType,
-    TableSetting,
-  } from '../../Index.vue';
+  import type { InstanceSelectorValues, IValue, PanelListType, TableSetting } from '../../Index.vue';
 
   import RenderTopoHost from './table/Index.vue';
   import { useTopoData } from './useTopoData';
@@ -100,14 +97,14 @@
   type TopoConfigType = Required<PanelListType[number]>['topoConfig'];
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>,
-    tableSetting: TableSetting,
-    firsrColumn?: TableConfigType['firsrColumn'],
-    roleFilterList?: TableConfigType['roleFilterList'],
-    isRemotePagination?: TableConfigType['isRemotePagination'],
-    disabledRowConfig?: TableConfigType['disabledRowConfig'],
-    topoAlertContent?: TopoConfigType['topoAlertContent'],
-    filterClusterId?: TopoConfigType['filterClusterId'], // 过滤的集群ID，单集群模式
+    lastValues: InstanceSelectorValues<T>;
+    tableSetting: TableSetting;
+    firsrColumn?: TableConfigType['firsrColumn'];
+    roleFilterList?: TableConfigType['roleFilterList'];
+    isRemotePagination?: TableConfigType['isRemotePagination'];
+    disabledRowConfig?: TableConfigType['disabledRowConfig'];
+    topoAlertContent?: TopoConfigType['topoAlertContent'];
+    filterClusterId?: TopoConfigType['filterClusterId']; // 过滤的集群ID，单集群模式
     // eslint-disable-next-line vue/no-unused-properties
     getTopoList: NonNullable<TopoConfigType['getTopoList']>;
     // eslint-disable-next-line vue/no-unused-properties
@@ -118,7 +115,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: Props['lastValues']): void
+    (e: 'change', value: Props['lastValues']): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {

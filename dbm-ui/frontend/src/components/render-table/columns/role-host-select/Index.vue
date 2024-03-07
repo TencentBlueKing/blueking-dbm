@@ -231,12 +231,12 @@
     width: 100%;
 
     .option-count {
-      margin-left: auto;
-      background-color: #f0f1f5;
-      padding: 0 8px;
-      color: #979ba5;
       width: 23px;
       height: 16px;
+      padding: 0 8px;
+      margin-left: auto;
+      color: #979ba5;
+      background-color: #f0f1f5;
       border-radius: 2px;
     }
   }
@@ -264,8 +264,8 @@
         }
 
         .delete-icon {
-          color: #979ba5;
           display: none;
+          color: #979ba5;
         }
       }
 

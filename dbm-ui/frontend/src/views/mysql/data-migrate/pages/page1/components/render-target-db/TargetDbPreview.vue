@@ -21,6 +21,7 @@
             <RenderDbName
               ref="dbPatternsRef"
               v-model="dbInfo.dbs"
+              check-not-exist
               :cluster-id="data.sourceClusterId"
               required
               @change="handleDbsChange" />
@@ -152,8 +153,9 @@
     padding: 16px 24px;
 
     .preview-header {
-      margin: 24px 0 16px;
       display: flex;
+      margin: 24px 0 16px;
+
       .title {
         font-weight: 700;
         color: #313238;
@@ -161,11 +163,11 @@
     }
 
     .preview-copy {
-      width: 100%;
       display: flex;
-      justify-content: flex-end;
-      margin-bottom: 8px;
+      width: 100%;
       margin-top: -24px;
+      margin-bottom: 8px;
+      justify-content: flex-end;
     }
 
     .preview-content {
@@ -176,11 +178,11 @@
 
       .name-item {
         width: 260px;
-        line-height: 24px;
         margin: 0 13px 0 0;
-        white-space: nowrap;
         overflow: hidden;
+        line-height: 24px;
         text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
   }

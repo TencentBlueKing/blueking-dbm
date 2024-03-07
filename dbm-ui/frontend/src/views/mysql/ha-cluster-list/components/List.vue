@@ -101,7 +101,7 @@
     v-model:is-show="isShowExcelAuthorize"
     :cluster-type="ClusterTypes.TENDBHA" />
   <EditEntryConfig
-    :id="clusterId"
+    :id="showEnterConfigClusterId"
     v-model:is-show="showEditEntryConfig"
     :get-detail-info="getTendbhaDetail" />
   <CreateSubscribeRuleSlider
@@ -238,6 +238,7 @@
   const isShowExcelAuthorize = ref(false);
   const isInit = ref(false);
   const showEditEntryConfig = ref(false);
+  const showEnterConfigClusterId = ref(0);
   const showCreateSubscribeRuleSlider = ref(false);
   const showDataExportSlider = ref(false)
   const selectedClusterList = ref<ColumnData['data'][]>([]);
@@ -956,7 +957,7 @@
 
   const handleOpenEntryConfig = (row: TendbhaModel) => {
     showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
+    showEnterConfigClusterId.value = row.id;
   };
 
   const handleSelection = (data: TendbhaModel, list: TendbhaModel[]) => {

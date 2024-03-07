@@ -23,10 +23,10 @@ import type { HostDetails } from '@services/types/ip';
 
 import type { ClusterTypes } from '@common/const';
 
-import type { DetailClusters, DetailSpecs, SpecInfo } from './common';
+import type { DetailBase, DetailClusters, DetailSpecs, SpecInfo } from './common';
 
 // redis 新建从库
-export interface RedisAddSlaveDetails {
+export interface RedisAddSlaveDetails extends DetailBase {
   clusters: DetailClusters;
   ip_source: 'resource_pool';
   infos: {
@@ -50,7 +50,7 @@ export interface RedisAddSlaveDetails {
 }
 
 // redis CLB
-export interface RedisCLBDetails {
+export interface RedisCLBDetails extends DetailBase {
   cluster_id: number;
   clusters: {
     [key: string]: {
@@ -76,7 +76,7 @@ export interface RedisCLBDetails {
 }
 
 // redis 集群容量变更
-export interface RedisScaleUpDownDetails {
+export interface RedisScaleUpDownDetails extends DetailBase {
   clusters: DetailClusters;
   ip_source: 'resource_pool';
   infos: {
@@ -100,7 +100,7 @@ export interface RedisScaleUpDownDetails {
 }
 
 // redis 集群分片变更
-export interface RedisClusterShardUpdateDetails {
+export interface RedisClusterShardUpdateDetails extends DetailBase {
   clusters: DetailClusters;
   data_check_repair_setting: {
     type: RepairAndVerifyModes;
@@ -133,7 +133,7 @@ export interface RedisClusterShardUpdateDetails {
 }
 
 // redis 集群类型变更
-export interface RedisClusterTypeUpdateDetails {
+export interface RedisClusterTypeUpdateDetails extends DetailBase {
   clusters: DetailClusters;
   data_check_repair_setting: {
     type: RepairAndVerifyModes;
@@ -168,7 +168,7 @@ export interface RedisClusterTypeUpdateDetails {
 }
 
 // redis 数据校验与修复
-export interface RedisDataCheckAndRepairDetails {
+export interface RedisDataCheckAndRepairDetails extends DetailBase {
   clusters: DetailClusters;
   execute_mode: ExecuteModes;
   specified_execution_time: string; // 定时执行,指定执行时间
@@ -194,7 +194,7 @@ export enum RedisClusterType {
 }
 
 // redis 数据复制
-export interface RedisDataCopyDetails {
+export interface RedisDataCopyDetails extends DetailBase {
   clusters: DetailClusters;
   dts_copy_type: CopyModes;
   write_mode: WriteModes;
@@ -218,7 +218,7 @@ export interface RedisDataCopyDetails {
 }
 
 // redis 定点构造
-export interface RedisDataStructrueDetails {
+export interface RedisDataStructrueDetails extends DetailBase {
   clusters: DetailClusters;
   ip_source: 'resource_pool';
   infos: {
@@ -237,7 +237,7 @@ export interface RedisDataStructrueDetails {
 }
 
 // redis 整机替换
-export interface RedisDBReplaceDetails {
+export interface RedisDBReplaceDetails extends DetailBase {
   clusters: DetailClusters;
   ip_source: 'resource_pool';
   infos: {
@@ -260,7 +260,7 @@ export interface RedisDBReplaceDetails {
   specs: DetailSpecs;
 }
 
-export interface RedisDetails {
+export interface RedisDetails extends DetailBase {
   bk_cloud_id: number;
   cap_key: string;
   city_code: string;
@@ -296,7 +296,7 @@ export interface RedisDetails {
 }
 
 // redis 主从切换
-export interface RedisMasterSlaveSwitchDetails {
+export interface RedisMasterSlaveSwitchDetails extends DetailBase {
   clusters: DetailClusters;
   force: boolean;
   infos: {
@@ -311,7 +311,7 @@ export interface RedisMasterSlaveSwitchDetails {
 }
 
 // redis-提取key | 删除key 详情
-export interface RedisKeysDetails {
+export interface RedisKeysDetails extends DetailBase {
   delete_type: string;
   rules: {
     black_regex: string;
@@ -328,7 +328,7 @@ export interface RedisKeysDetails {
 }
 
 // redis 接入层缩容
-export interface RedisProxyScaleDownDetails {
+export interface RedisProxyScaleDownDetails extends DetailBase {
   clusters: DetailClusters;
   ip_source: 'resource_pool';
   infos: {
@@ -345,7 +345,7 @@ export interface RedisProxyScaleDownDetails {
 }
 
 // redis 接入层扩容
-export interface RedisProxyScaleUpDetails {
+export interface RedisProxyScaleUpDetails extends DetailBase {
   clusters: DetailClusters;
   ip_source: 'resource_pool';
   infos: {
@@ -363,7 +363,7 @@ export interface RedisProxyScaleUpDetails {
 }
 
 // redis 以构造实例恢复
-export interface RedisRollbackDataCopyDetails {
+export interface RedisRollbackDataCopyDetails extends DetailBase {
   clusters: DetailClusters;
   //  dts 复制类型: 回档临时实例数据回写
   dts_copy_type: 'copy_from_rollback_instance';
@@ -378,7 +378,7 @@ export interface RedisRollbackDataCopyDetails {
 }
 
 // redis 构造销毁
-export interface RedisStructureDeleteDetails {
+export interface RedisStructureDeleteDetails extends DetailBase {
   infos: {
     related_rollback_bill_id: number;
     prod_cluster: string;
@@ -387,7 +387,7 @@ export interface RedisStructureDeleteDetails {
 }
 
 // redis 版本升级
-export interface RedisVersionUpgrade {
+export interface RedisVersionUpgrade extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_ids: number[];

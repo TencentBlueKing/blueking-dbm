@@ -17,9 +17,9 @@
             @change="handleSearchChange" />
           <BkCheckbox
             v-model="isOnlyShowSelected"
-            @change="handleChangeOnlyShowSelected"
-            >{{ t('仅显示已选择') }}</BkCheckbox
-          >
+            @change="handleChangeOnlyShowSelected">
+            {{ t('仅显示已选择') }}
+          </BkCheckbox>
         </div>
         <BkButton
           text
@@ -316,8 +316,8 @@
     height: 730px;
 
     .top-operate {
-      width: 100%;
       display: flex;
+      width: 100%;
       font-size: 12px;
 
       .search-main {
