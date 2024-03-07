@@ -11,21 +11,19 @@
 
   import { getHaClusterDetail } from '@services/source/sqlserveHaCluster';
 
-  import EditInfo, {
-    type InfoColumn,
-  } from '@components/editable-info/index.vue';
+  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
   interface Props {
-    haClusterData:{
-      clusterId: number
-    }
+    haClusterData: {
+      clusterId: number;
+    };
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const columns:InfoColumn[][] = [
+  const columns: InfoColumn[][] = [
     [
       {
         label: t('集群名称'),
@@ -56,12 +54,10 @@
       {
         label: 'node_id',
         key: 'node_id',
-
       },
       {
         label: 'Proxy',
         key: 'proxies',
-
       },
       {
         label: t('创建人'),
@@ -74,16 +70,17 @@
     ],
   ];
 
-  const {
-    run: fetchInstDetails,
-    data,
-  } = useRequest(getHaClusterDetail, {
+  const { run: fetchInstDetails, data } = useRequest(getHaClusterDetail, {
     manual: true,
   });
 
-  watch(() => props.haClusterData, () => {
-    fetchInstDetails({ cluster_id: props.haClusterData.clusterId });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.haClusterData,
+    () => {
+      fetchInstDetails({ id: props.haClusterData.clusterId });
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>

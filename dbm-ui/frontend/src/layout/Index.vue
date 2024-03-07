@@ -227,6 +227,7 @@
 
     .navigation-nav {
       z-index: 1001 !important;
+
       .split-line {
         margin: 0 20px 0 60px;
         border-bottom: solid #29344c 1px;

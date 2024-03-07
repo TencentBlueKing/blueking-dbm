@@ -30,7 +30,7 @@
     <td style="padding: 0">
       <RenderDbName
         ref="dbPatternsRef"
-        check-exist
+        check-not-exist
         :cluster-id="localClusterId"
         :model-value="data.dbPatterns" />
     </td>

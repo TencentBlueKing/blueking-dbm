@@ -84,12 +84,12 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useTaskCount } from '@hooks';
+
   import { DBTypes } from '@common/const';
 
-  import { useTaskCount } from '@views/mysql/common/hooks/useTaskCount';
-
   interface Props {
-    dbType: DBTypes.MYSQL | DBTypes.TENDBCLUSTER;
+    dbType: DBTypes.MYSQL | DBTypes.TENDBCLUSTER | DBTypes.SQLSERVER;
   }
 
   const props = defineProps<Props>();

@@ -53,8 +53,8 @@
     title: string;
     content: string;
     placement?: Placement;
-    confirmHandler: () => Promise<any>;
-    cancelHandler?: () => Promise<any>;
+    confirmHandler: () => Promise<any> | void;
+    cancelHandler?: () => Promise<any> | void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -125,9 +125,11 @@
   });
 
   onBeforeUnmount(() => {
-    tippyIns.hide();
-    tippyIns.unmount();
-    tippyIns.destroy();
+    if (tippyIns) {
+      tippyIns.hide();
+      tippyIns.unmount();
+      tippyIns.destroy();
+    }
   });
 </script>
 <style lang="less">

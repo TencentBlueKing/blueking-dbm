@@ -29,10 +29,13 @@
 
   import { clusterTypeInfos, ClusterTypes } from '@common/const';
 
-  interface TabItem {
-    id: ClusterTypes;
-    name: string;
+  interface Props {
+    excludes?: ClusterTypes[];
   }
+
+  const props = withDefaults(defineProps<Props>(), {
+    excludes: () => [],
+  });
 
   const funControllerStore = useFunController();
 
@@ -40,14 +43,22 @@
     default: ClusterTypes.TENDBSINGLE,
   });
 
-  const renderTabs = Object.values(clusterTypeInfos).reduce((result, item) => {
+  const renderTabs = Object.values(clusterTypeInfos).reduce<
+    {
+      id: ClusterTypes;
+      name: string;
+    }[]
+  >((result, item) => {
     const { id, name, dbType, moduleId } = item;
     const data = funControllerStore.funControllerData.getFlatData(moduleId);
-    if (data[dbType]) {
+    if (props.excludes.includes(id)) {
+      return result;
+    }
+    if (data[dbType as keyof typeof data]) {
       result.push({ id, name });
     }
     return result;
-  }, [] as TabItem[]);
+  }, []);
 </script>
 
 <style lang="less">

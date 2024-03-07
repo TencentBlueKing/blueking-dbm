@@ -34,6 +34,7 @@
     <td style="padding: 0">
       <RenderDbName
         ref="dbPatternsRef"
+        check-not-exist
         :cluster-id="data.clusterData.id"
         :model-value="rowInfo.dbs"
         required

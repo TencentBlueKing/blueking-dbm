@@ -184,7 +184,7 @@
   </template>
   <!-- 系统自动终止 -->
   <template v-if="content.err_code === 3 && content.context.expire_time && content.todos.length === 0">
-    <div style="color: #ea3636; margin-top: 8px">
+    <div style="margin-top: 8px; color: #ea3636">
       <span>{{ t('system已处理') }}</span>
       <span> ({{ t('超过n天未处理，自动终止', { n: content.context.expire_time }) }}) </span>
     </div>

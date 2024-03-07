@@ -15,30 +15,8 @@
   <div class="ticket-manage-list">
     <div class="filter-box">
       <div class="side-header">
-        <strong>{{ t('申请列表') }}</strong>
-        <BkDropdown
-          :is-show="isShowDropdown"
-          trigger="manual"
-          @hide="handleClose">
-          <div
-            class="status-trigger"
-            :class="{ 'status-trigger-active': isShowDropdown }"
-            @click="handleToggle">
-            <span>{{ activeItemInfo?.label }}</span>
-            <DbIcon type="down-big status-trigger-icon" />
-          </div>
-          <template #content>
-            <BkDropdownMenu>
-              <BkDropdownItem
-                v-for="item in filters"
-                :key="item.value"
-                :class="{ 'dropdown-item-active': item.value === state.filters.status }"
-                @click="handleChangeStatus(item)">
-                {{ item.label }}
-              </BkDropdownItem>
-            </BkDropdownMenu>
-          </template>
-        </BkDropdown>
+        <div style="font-weight: bold">{{ t('申请列表') }}</div>
+        <TicketStatus v-model="ticketStatus" />
       </div>
       <BkTab
         v-if="!isBizTicketManagePage"
@@ -53,170 +31,126 @@
           name="1" />
       </BkTab>
       <DbSearchSelect
-        v-model="state.filters.search"
+        v-model="searachSelectValue"
         :data="searchSelectData"
         :placeholder="searchPlaceholder"
-        unique-select
-        @change="handleSearchChange" />
+        unique-select />
     </div>
-    <div class="side-main">
+    <div class="ticket-list">
       <div
         ref="sideListRef"
-        class="side-list db-scroll-y">
-        <BkLoading :loading="state.isLoading">
-          <EmptyStatus
-            v-if="state.list.length === 0"
-            :is-anomalies="state.isAnomalies"
-            :is-searching="isSearching"
-            @clear-search="handleClearSearch"
-            @refresh="fetchTickets()" />
-          <template v-else>
+        class="ticket-wrapper">
+        <ScrollFaker>
+          <BkLoading :loading="isLoading">
             <div
-              v-for="item of state.list"
+              v-for="item of list"
               :key="item.id"
-              class="side-item"
-              :class="[{ 'side-item-active': modelValue === item.id }]"
+              class="ticket-box"
+              :class="{
+                'is-active': modelValue === item.id,
+              }"
               @click="handleChange(item.id)">
-              <div class="side-item-title">
-                <strong
+              <div class="ticket-header">
+                <div
                   v-overflow-tips
-                  class="side-item-name text-overflow">
+                  class="ticket-type-name text-overflow">
                   {{ item.ticket_type_display }}
-                </strong>
+                </div>
                 <BkTag
-                  class="side-item-tag"
+                  class="ticket-status-tag"
                   :theme="item.tagTheme">
-                  {{ t(item.statusText) }}
+                  {{ item.statusText }}
                 </BkTag>
               </div>
               <div
                 v-if="item.related_object"
-                class="side-item-info is-single">
-                <span class="info-item-label">{{ item.related_object.title }}：</span>
+                class="ticket-info-more">
+                <div class="ticket-info-label">{{ item.related_object.title }}：</div>
                 <RenderRow
-                  class="info-item-value"
                   :data="item.related_object.objects"
                   show-all
                   style="overflow: hidden" />
               </div>
-              <div class="side-item-info is-single">
-                <span class="info-item-label">{{ t('业务') }}：</span>
-                <span
+              <div class="ticket-info-more">
+                <div class="ticket-info-label">{{ t('业务') }}：</div>
+                <div
                   v-overflow-tips
-                  class="info-item-value text-overflow">
+                  class="text-overflow">
                   {{ item.bk_biz_name }}
-                </span>
+                </div>
               </div>
-              <div class="side-item-info">
-                <span>{{ t('申请人') }}： {{ item.creator }}</span>
-                <span>{{ item.formatCreateAt }}</span>
+              <div class="ticket-info-more">
+                <div>{{ t('申请人') }}： {{ item.creator }}</div>
+                <div style="margin-left: auto">{{ item.formatCreateAt }}</div>
               </div>
             </div>
-          </template>
-        </BkLoading>
+            <EmptyStatus
+              v-if="list.length < 1"
+              :is-anomalies="isAnomalies"
+              :is-searching="isSearching"
+              @clear-search="handleClearSearch"
+              @refresh="fetchTicketList" />
+          </BkLoading>
+        </ScrollFaker>
       </div>
       <BkPagination
-        v-model="state.page.current"
+        v-model="pagination.current"
         align="center"
         class="side-pagination"
-        :count="state.page.total"
-        :limit="state.page.limit"
+        :count="pagination.total"
+        :limit="pagination.limit"
         :show-total-count="false"
         small
-        @change="handleChangePage" />
+        @change="handlePaginationChange" />
     </div>
   </div>
 </template>
-<script lang="ts">
-  import TicketModel from '@services/model/ticket/ticket';
-  import type { SearchFilterItem } from '@services/types';
-
-  import type { SearchValue } from '@components/vue2/search-select/index.vue';
-  /**
-   * 列表基础数据
-   */
-  export interface TicketsState {
-    list: TicketModel[];
-    isLoading: boolean;
-    isAnomalies: boolean;
-    activeTicket: TicketModel<unknown> | null;
-    isInit: boolean;
-    ticketTypes: Array<SearchFilterItem>;
-    filters: {
-      status: string;
-      search: SearchValue[];
-    };
-    page: {
-      current: number;
-      limit: number;
-      total: number;
-    };
-    bkBizIdList: Array<SearchFilterItem>;
-  }
-</script>
 <script setup lang="ts">
+  import _ from 'lodash';
+  import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
 
-  import { type StatusTypeKeys, StatusTypes } from '@services/model/ticket/ticket';
-  import { getTickets, getTicketTypes } from '@services/source/ticket';
+  import { getTickets, getTicketStatus, getTicketTypes } from '@services/source/ticket';
+
+  import { useUrlSearch } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import RenderRow from '@components/render-row/index.vue';
+  import type { SearchValue } from '@components/vue2/search-select/index.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
-  import { useTimeoutPoll } from '@vueuse/core';
+  import { useTimeoutFn } from '@vueuse/core';
+
+  import TicketStatus from './components/TicketStatus.vue';
 
   const { t } = useI18n();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
+  const { replaceSearchParams } = useUrlSearch();
+  const paginationLimit = 10;
 
   const isBizTicketManagePage = route.name === 'bizTicketManage';
-  const isSelfManage = route.query.self_manage === '1';
-  const viewId = Number(route.query.viewId);
   const searchPlaceholder = isBizTicketManagePage ? t('单号_单据类型_申请人') : t('单号_单据类型_业务');
-
-  const needPollIds: {
-    index: number;
-    id: number;
-  }[] = [];
-  // 状态过滤列表
-  const filters = Object.keys(StatusTypes).map((key: string) => ({
-    label: t(StatusTypes[key as StatusTypeKeys]),
-    value: key,
-  }));
 
   const modelValue = defineModel<number>();
 
-  // 视图定位到激活项
   const sideListRef = ref<HTMLDivElement>();
-  // 状态选择设置
-  const isShowDropdown = ref(false);
-  const selfManage = ref<'0' | '1'>(isSelfManage ? '1' : '0');
-  const state = reactive<TicketsState>({
-    list: [],
-    isLoading: false,
-    isAnomalies: false,
-    activeTicket: null,
-    isInit: false,
-    filters: {
-      status: 'ALL',
-      search: [],
-    },
-    page: {
-      current: route.query.current ? Number(route.query.current) : 1,
-      limit: route.query.limit ? Number(route.query.limit) : 20,
-      total: 0,
-    },
-    ticketTypes: [],
-    bkBizIdList: globalBizsStore.bizs.map((item) => ({
-      id: item.bk_biz_id,
-      name: item.name,
-    })),
+  const isAnomalies = ref(false);
+  const searachSelectValue = ref<SearchValue[]>([]);
+  const selfManage = ref<'0' | '1'>(route.query.self_manage === '1' ? '1' : '0');
+  const ticketStatus = ref(route.query.status || 'ALL');
+  const list = ref<ServiceReturnType<typeof getTickets>['results']>([]);
+  const ticketTypeList = shallowRef<{ id: string; name: string }[]>([]);
+
+  const pagination = reactive({
+    current: route.query.offset ? Math.ceil(Number(route.query.offset) / paginationLimit) + 1 : 1,
+    limit: route.query.limit ? Number(route.query.limit) : paginationLimit,
+    total: 0,
   });
 
   const searchSelectData = computed(() =>
@@ -228,13 +162,16 @@
       !isBizTicketManagePage && {
         name: t('业务'),
         id: 'bk_biz_id',
-        children: state.bkBizIdList,
+        children: globalBizsStore.bizs.map((item) => ({
+          id: item.bk_biz_id,
+          name: item.name,
+        })),
       },
       {
         name: t('单据类型'),
         id: 'ticket_type__in',
         multiple: true,
-        children: state.ticketTypes,
+        children: ticketTypeList.value,
       },
       isBizTicketManagePage && {
         name: t('申请人'),
@@ -243,103 +180,56 @@
     ].filter((_) => _),
   );
 
-  const isSearching = computed(() => state.filters.status !== 'ALL' || state.filters.search.length > 0);
-
-  const activeItemInfo = computed(() => filters.find((item) => item.value === state.filters.status));
-
-  /**
-   * 获取单据列表
-   */
-  const fetchTickets = (isPoll = false) => {
-    state.isLoading = !isPoll;
-    if (sideListRef.value) {
-      sideListRef.value.scrollTop = 0;
-    }
-    const params = {
-      status: state.filters.status === 'ALL' ? '' : state.filters.status,
-      limit: state.page.limit,
-      offset: (state.page.current - 1) * state.page.limit,
-      ...getSearchSelectorParams(state.filters.search),
-    };
-    if (isBizTicketManagePage) {
-      Object.assign(params, {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      });
-    } else {
-      Object.assign(params, {
-        self_manage: selfManage.value,
-      });
-    }
-
-    getTickets(params)
-      .then((res) => {
-        const { results = [], count = 0 } = res;
-        state.list = results;
-        state.page.total = count;
-
-        needPollIds.length = 0;
-        results.forEach((item, index) => {
-          if (item.status === 'RUNNING') {
-            const obj = {
-              index,
-              id: item.id,
-            };
-            needPollIds.push(obj);
-          }
-        });
-
-        if (isPoll) {
-          return;
-        }
-
-        if (viewId > 0) {
-          handleChange(viewId);
-        } else if (results.length > 0) {
-          handleChange(results[0].id);
-          nextTick(() => {
-            if (sideListRef.value) {
-              const activeItem = sideListRef.value.querySelector('.side-item-active');
-              if (activeItem) {
-                activeItem.scrollIntoView();
-              }
-            }
-          });
-        }
-        state.isAnomalies = false;
-      })
-      .catch(() => {
-        state.list = [];
-        state.page.total = 0;
-        state.isAnomalies = true;
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
-  };
+  const isSearching = computed(() => ticketStatus.value !== 'ALL' || searachSelectValue.value.length > 0);
 
   useRequest(getTicketTypes, {
     onSuccess(data) {
-      state.ticketTypes = data.map((item) => ({
+      ticketTypeList.value = data.map((item) => ({
         id: item.key,
         name: item.value,
       }));
     },
   });
 
-  watch(selfManage, () => {
-    fetchTickets();
-  });
+  const { run: fetchTicketStatus } = useRequest(
+    () => {
+      if (list.value.length < 1) {
+        return Promise.reject();
+      }
+      return getTicketStatus({
+        ticket_ids: list.value.map((item) => item.id).join(','),
+      });
+    },
+    {
+      manual: true,
+      onSuccess(data) {
+        list.value.forEach((ticketData) => {
+          if (data[ticketData.id]) {
+            Object.assign(ticketData, {
+              status: data[ticketData.id],
+            });
+          }
+        });
+        loopFetchTicketStatus();
+      },
+    },
+  );
+
+  const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
+    fetchTicketStatus();
+  }, 10000);
 
   /**
-   * 检查所有执行中的单据
+   * 获取单据列表
    */
-  const checkRunningTickets = async () => {
-    if (needPollIds.length > 0) {
-      const params = {
-        status: state.filters.status === 'ALL' ? '' : state.filters.status,
-        limit: state.page.limit,
-        offset: (state.page.current - 1) * state.page.limit,
-        ...getSearchSelectorParams(state.filters.search),
+  let params: Record<string, any>;
+  const { loading: isLoading, run: fetchTicketList } = useRequest(
+    () => {
+      params = {
+        status: ticketStatus.value === 'ALL' ? '' : (ticketStatus.value as string),
+        limit: pagination.limit,
+        offset: (pagination.current - 1) * pagination.limit,
+        ...getSearchSelectorParams(searachSelectValue.value),
       };
       if (isBizTicketManagePage) {
         Object.assign(params, {
@@ -350,81 +240,65 @@
           self_manage: selfManage.value,
         });
       }
+      return getTickets(params);
+    },
+    {
+      onSuccess(data) {
+        const { results = [], count = 0 } = data;
+        list.value = results;
+        pagination.total = count;
+        loopFetchTicketStatus();
+        replaceSearchParams(params);
 
-      getTickets(params).then((res) => {
-        const { results = [] } = res;
-        const statusMap = results.reduce(
-          (results, item) => {
-            Object.assign(results, {
-              [item.id]: item.status,
-            });
-            return results;
-          },
-          {} as Record<string, string>,
-        );
-
-        const needRemoveIndexs: number[] = [];
-        needPollIds.forEach((item, index) => {
-          const newStatus = statusMap[item.id] as StatusTypeKeys;
-          if (newStatus && newStatus !== 'RUNNING' && state.list[item.index].status === 'RUNNING') {
-            needRemoveIndexs.push(index);
-            state.list[item.index].status = newStatus;
+        nextTick(() => {
+          sideListRef.value!.scrollTop = 0;
+          if (results.length > 0) {
+            const activeItem = sideListRef.value!.querySelector('.is-active');
+            if (activeItem) {
+              activeItem.scrollIntoView({
+                block: 'center',
+              });
+            }
+            if (!modelValue.value) {
+              handleChange(results[0].id);
+            }
           }
         });
-        if (needRemoveIndexs.length > 0) {
-          needRemoveIndexs.forEach((index) => {
-            needPollIds.splice(index, 1);
-          });
-        }
-      });
-    }
-  };
 
-  const handleSearchChange = () => {
-    state.page.current = 1;
-    fetchTickets();
-  };
-  /**
-   * 翻页
-   * @param page
-   */
-  const handleChangePage = (page = 1) => {
-    state.page.current = page;
-    fetchTickets();
-  };
+        isAnomalies.value = false;
+      },
+      onError() {
+        isAnomalies.value = true;
+      },
+    },
+  );
 
-  const handleToggle = () => {
-    isShowDropdown.value = !isShowDropdown.value;
-  };
+  watch(
+    [selfManage, ticketStatus, searachSelectValue],
+    () => {
+      modelValue.value = undefined;
+      pagination.current = 1;
+      fetchTicketList();
+    },
+    {
+      deep: true,
+    },
+  );
 
-  const handleClose = () => {
-    isShowDropdown.value = false;
-  };
-
-  const handleChangeStatus = (item: { label: string; value: string }) => {
-    state.filters.status = item.value;
-    isShowDropdown.value = false;
-    handleChangePage(1);
-  };
+  const handlePaginationChange = _.debounce(() => {
+    modelValue.value = undefined;
+    fetchTicketList();
+  }, 100);
 
   const handleClearSearch = () => {
-    state.filters.status = 'ALL';
-    state.filters.search = [];
-    handleChangePage(1);
+    modelValue.value = undefined;
+    ticketStatus.value = 'ALL';
+    searachSelectValue.value = [];
   };
 
   const handleChange = (ticketId: number) => {
     modelValue.value = ticketId;
   };
-
-  /**
-   * 轮询执行中的列表
-   */
-  const { resume } = useTimeoutPoll(() => {
-    checkRunningTickets();
-  }, 10000);
-
-  resume();
 </script>
 <style lang="less">
   @import '@/styles/mixins.less';
@@ -523,13 +397,13 @@
       }
     }
 
-    .side-main {
+    .ticket-list {
       width: 100%;
       flex: 1;
       min-height: 0;
     }
 
-    .side-list {
+    .ticket-wrapper {
       width: 100%;
       height: calc(100% - 32px);
 
@@ -539,7 +413,7 @@
       }
     }
 
-    .side-item {
+    .ticket-box {
       padding: 16px;
       font-size: @font-size-mini;
       cursor: pointer;
@@ -557,27 +431,30 @@
         }
       }
 
-      .side-item-title {
+      .ticket-header {
         display: flex;
         align-items: center;
         padding-bottom: 8px;
         overflow: hidden;
       }
 
-      .side-item-name {
+      .ticket-type-name {
         padding-right: 8px;
+        font-weight: bold;
       }
 
-      .side-item-tag {
+      .ticket-status-tag {
         flex-shrink: 0;
       }
 
-      .side-item-info {
+      .ticket-info-more {
         .flex-center();
 
-        justify-content: space-between;
+        & ~ .ticket-info-more {
+          margin-top: 8px;
+        }
 
-        .info-item-label {
+        .ticket-info-label {
           flex-shrink: 0;
         }
 
@@ -592,19 +469,14 @@
           }
         }
       }
-
-      .is-single {
-        justify-content: flex-start;
-        margin-bottom: 8px;
-      }
     }
 
-    .side-item:hover,
-    .side-item-active {
+    .ticket-box:hover,
+    .is-active {
       background-color: #ebf2ff;
 
-      .side-item-title {
-        .side-item-name {
+      .ticket-header {
+        .ticket-type-name {
           font-weight: 700;
           color: #313238;
         }

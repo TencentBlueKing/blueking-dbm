@@ -21,15 +21,14 @@ const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/clus
 /**
  * 通过集群查询同机关联集群
  */
-export function findRelatedClustersByClusterIds(params: {
-  cluster_ids: number []
-  bk_biz_id: number
-}) {
-  return http.post<Array<{
-    cluster_id: number,
-    cluster_info: TendbhaModel,
-    related_clusters: Array<TendbhaModel>
-  }>>(`${getRootPath()}/find_related_clusters_by_cluster_ids/`, params);
+export function findRelatedClustersByClusterIds(params: { cluster_ids: number[]; bk_biz_id: number }) {
+  return http.post<
+    Array<{
+      cluster_id: number;
+      cluster_info: TendbhaModel;
+      related_clusters: Array<TendbhaModel>;
+    }>
+  >(`${getRootPath()}/find_related_clusters_by_cluster_ids/`, params);
 }
 
 /**
@@ -50,16 +49,15 @@ export function findRelatedClustersByInstances(params: {
 /**
  * 获取关联集群从库的交集
  */
-export function getIntersectedSlaveMachinesFromClusters(params: {
-  bk_biz_id: number,
-  cluster_ids: number[],
-}) {
-  return http.post<Array<{
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    bk_host_id: number,
-    ip: string,
-  }>>(`${getRootPath()}/get_intersected_slave_machines_from_clusters/`, params);
+export function getIntersectedSlaveMachinesFromClusters(params: { bk_biz_id: number; cluster_ids: number[] }) {
+  return http.post<
+    Array<{
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    }>
+  >(`${getRootPath()}/get_intersected_slave_machines_from_clusters/`, params);
 }
 
 /**
@@ -67,31 +65,34 @@ export function getIntersectedSlaveMachinesFromClusters(params: {
  */
 export function getRemoteMachineInstancePair(params: { instances?: string[]; machines?: string[] }) {
   return http.post<{
-    instances: Record<string, RemotePairInstanceModel>,
-    machines: Record<string, RemotePairInstanceModel>
+    instances: Record<string, RemotePairInstanceModel>;
+    machines: Record<string, RemotePairInstanceModel>;
   }>(`${getRootPath()}/get_remote_machine_instance_pair/`, params);
 }
 
 /**
  * 查询tendbcluster集群的remote_db/remote_dr
  */
-export function getRemoteParis(params: {
-  cluster_ids: number[]
-}) {
-  return http.post<Array<{
-    cluster_id: number,
-    remote_pairs: {
-      remote_db: RemotePairInstanceModel,
-      remote_dr: RemotePairInstanceModel
-    }[]
-  }>>(`${getRootPath()}/get_remote_pairs/`, params)
-    .then(data => data.map(item => ({
-      cluster_id: item.cluster_id,
-      remote_pairs: item.remote_pairs.map(remotePair => ({
-        remote_db: new RemotePairInstanceModel(remotePair.remote_db),
-        remote_dr: new RemotePairInstanceModel(remotePair.remote_dr),
+export function getRemoteParis(params: { cluster_ids: number[] }) {
+  return http
+    .post<
+      Array<{
+        cluster_id: number;
+        remote_pairs: {
+          remote_db: RemotePairInstanceModel;
+          remote_dr: RemotePairInstanceModel;
+        }[];
+      }>
+    >(`${getRootPath()}/get_remote_pairs/`, params)
+    .then((data) =>
+      data.map((item) => ({
+        cluster_id: item.cluster_id,
+        remote_pairs: item.remote_pairs.map((remotePair) => ({
+          remote_db: new RemotePairInstanceModel(remotePair.remote_db),
+          remote_dr: new RemotePairInstanceModel(remotePair.remote_dr),
+        })),
       })),
-    })));
+    );
 }
 
 /**
@@ -112,6 +113,8 @@ export function queryClusters(params: {
 /**
  * 通过集群域名获取集群详情
  */
-export function getClusterInfoByDomains(params: Record<'cluster_filters', Array<{ immute_domain: string }>> & { bizId: number }) {
+export function getClusterInfoByDomains(
+  params: Record<'cluster_filters', Array<{ immute_domain: string }>> & { bizId: number },
+) {
   return http.post<TendbhaModel[]>(`${getRootPath()}/query_clusters/`, params);
 }

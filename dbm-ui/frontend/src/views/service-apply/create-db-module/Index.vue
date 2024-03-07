@@ -369,7 +369,7 @@
       // 新建模块或已经新建成功则不执行创建
       if (!isReadonly.value) {
         const createResult = await createModules({
-          id: bizId,
+          biz_id: bizId,
           db_module_name: formData.module_name,
           cluster_type: ticketInfo.type,
         });

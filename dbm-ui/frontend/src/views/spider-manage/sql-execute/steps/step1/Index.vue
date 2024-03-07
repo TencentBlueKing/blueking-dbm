@@ -29,7 +29,9 @@
             v-model="formData.execute_objects"
             cluster-type="tendbcluster"
             :cluster-version-list="clusterVersionList"
-            style="margin-top: 16px" />
+            :db-type="DBTypes.TENDBCLUSTER"
+            style="margin-top: 16px"
+            :upload-file-path="uploadFilePath" />
           <RenderCharset v-model="formData.charset" />
           <Backup v-model="formData.backup" />
           <TicketMode v-model="formData.ticket_mode" />
@@ -64,12 +66,10 @@
   import { useRoute, useRouter } from 'vue-router';
 
   import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
-  import { querySemanticData, semanticCheck } from '@services/source/sqlImport';
+  import { querySemanticData, semanticCheck } from '@services/source/mysqlSqlImport';
   import { getTicketDetails } from '@services/source/ticket';
 
   // import { useTicketCloneInfo } from '@hooks';
-  import { useSqlImport } from '@stores';
-
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import Backup from '@views/db-manage/common/sql-execute/backup/Index.vue';
@@ -82,7 +82,6 @@
   const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
-  const { updateUploadFilePath } = useSqlImport();
 
   const { rootId, ticket_id: ticketId } = route.query as { rootId?: string; ticket_id?: string };
 
@@ -118,6 +117,7 @@
   const formRef = ref();
   const resetFormKey = ref(0);
   const isSubmitting = ref(false);
+  const uploadFilePath = ref('');
   const clusterVersionList = ref<string[]>([]);
 
   const formData = reactive(createDefaultData());
@@ -137,7 +137,7 @@
         backup: semanticData.backup,
         ticket_mode: semanticData.ticket_mode,
       });
-      updateUploadFilePath(semanticData.path);
+      uploadFilePath.value = semanticData.path;
     },
   });
 
@@ -149,7 +149,7 @@
     ],
     manual: !ticketId,
     onSuccess(ticketData) {
-      updateUploadFilePath((ticketData.details as MySQLImportSQLFileDetails).path);
+      uploadFilePath.value = (ticketData.details as MySQLImportSQLFileDetails).path;
     },
   });
 

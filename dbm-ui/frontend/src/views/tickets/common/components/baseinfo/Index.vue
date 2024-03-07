@@ -141,22 +141,18 @@
       },
     ],
   ];
-
-  export default {
-    name: 'EditableInfo',
-  };
 </script>
 
 <script setup lang="ts">
   interface Props {
-    readonly?: boolean,
-    columns?: Array<Array<InfoColumn>>,
-    data?: Record<string, any>,
-    width?: string,
+    readonly?: boolean;
+    columns?: Array<Array<InfoColumn>>;
+    data?: Record<string, any>;
+    width?: string;
   }
 
   interface Emits {
-    (e: 'save', value: EditEmitData): void
+    (e: 'save', value: EditEmitData): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -171,9 +167,13 @@
   const loading = ref(false);
   const rules = [{ required: true, trigger: 'blur', message: t('必填项') }];
 
-  watch(() => props.columns, () => {
-    unique.value = generateId('EDITABLE_INFO_KEY_', 6);
-  }, { deep: true });
+  watch(
+    () => props.columns,
+    () => {
+      unique.value = generateId('EDITABLE_INFO_KEY_', 6);
+    },
+    { deep: true },
+  );
 
   /**
    * 编辑基本信息
@@ -203,13 +203,14 @@
       return;
     }
 
-    const validate = await editItemRef.value[0]?.validate()
+    const validate = await editItemRef.value[0]
+      ?.validate()
       .then(() => true)
       .catch(() => false);
     if (validate) {
       loading.value = true;
       let editResolve = (value: unknown = true) => value;
-      const promise = new Promise(resolve => editResolve = resolve);
+      const promise = new Promise((resolve) => (editResolve = resolve));
       emits('save', { ...editState, editResolve });
       const res = await promise;
       loading.value = false;

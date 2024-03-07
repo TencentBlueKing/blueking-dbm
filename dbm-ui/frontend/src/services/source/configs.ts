@@ -224,7 +224,7 @@ export function getPlatformConfigList(
 /**
  * 保存模块部署配置
  */
-interface CreateModuleDeployInfo {
+export function saveModulesDeployInfo(params: {
   bk_biz_id: number;
   conf_items: {
     conf_name: string;
@@ -232,18 +232,20 @@ interface CreateModuleDeployInfo {
     op_type: string;
     description: string;
   }[];
-  version: string;
-  meta_cluster_type: string;
+  conf_type: string;
   level_name: string;
   level_value: number;
-  conf_type: string;
-}
-
-/**
- * 保存模块配置
- */
-export function saveModulesDeployInfo(params: CreateModuleDeployInfo) {
-  return http.post<CreateModuleDeployInfo>(`${path}/save_module_deploy_info/`, params);
+  meta_cluster_type: string;
+  version: string;
+}) {
+  return http.post<{
+    bk_biz_id: string;
+    conf_file: string;
+    conf_type: string;
+    is_published: number;
+    namespace: string;
+    revision: string;
+  }>(`${path}/save_module_deploy_info/`, params);
 }
 
 /**

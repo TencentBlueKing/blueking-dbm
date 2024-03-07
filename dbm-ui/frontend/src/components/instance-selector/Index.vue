@@ -31,7 +31,10 @@
       <template #main>
         <PanelTab
           v-model="panelTabActive"
+          :disabled="!isEmpty && unqiuePanelValue"
+          :hide-manual-input="hideManualInput"
           :panel-list="panelList"
+          :unqiue-panel-tips="unqiuePanelTips"
           @change="handleChangePanel" />
         <Component
           :is="renderCom"
@@ -90,12 +93,12 @@
 </template>
 
 <script lang="ts">
+  import type { InjectionKey, Ref } from 'vue';
+
   import SpiderMachineModel from '@services/model/spider/spiderMachine';
   import type { ListBase } from '@services/types';
 
   import { t } from '@locales/index';
-
-  export default { name: 'InstanceSelector' };
 
   export interface IValue {
     [key: string]: any;
@@ -119,6 +122,7 @@
       status: string;
     }[];
     spec_config?: SpiderMachineModel['spec_config'];
+    role: string;
   }
 
   export type InstanceSelectorValues<T> = Record<string, T[]>;
@@ -189,6 +193,14 @@
   } from '@services/source/mysqlCluster';
   import { getRedisClusterList, getRedisMachineList } from '@services/source/redis';
   import { getSpiderInstanceList, getSpiderMachineList } from '@services/source/spider';
+  import {
+    getHaClusterWholeList as getSqlServerHaCluster,
+    getSqlServerInstanceList,
+  } from '@services/source/sqlserveHaCluster';
+  import {
+    getSingleClusterList,
+    getSqlServerInstanceList as getSqlServerSingleInstanceList,
+  } from '@services/source/sqlserverSingleCluster';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
   import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
 
@@ -202,6 +214,7 @@
   import MysqlContent from './components/mysql/Index.vue';
   import RedisContent from './components/redis/Index.vue';
   import RenderRedisHost from './components/redis-host/Index.vue';
+  import SqlServerContent from './components/sql-server/Index.vue';
   import TendbClusterContent from './components/tendb-cluster/Index.vue';
   import TendbClusterHostContent from './components/tendb-cluster-host/Index.vue';
 
@@ -223,7 +236,7 @@
       firsrColumn?: {
         label: string;
         field: string;
-        role: string; // 接口过滤
+        role?: string; // 接口过滤
       };
       roleFilterList?: {
         list: { text: string; value: string }[];
@@ -259,6 +272,9 @@
     clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost' | 'mongoCluster')[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
+    unqiuePanelValue?: boolean;
+    unqiuePanelTips?: string;
+    hideManualInput?: boolean;
   }
 
   interface Emits {
@@ -269,9 +285,16 @@
   const props = withDefaults(defineProps<Props>(), {
     tabListConfig: undefined,
     selected: undefined,
+    unqiuePanelValue: false,
+    unqiuePanelTips: t('仅可选择一种实例类型'),
+    hideManualInput: false,
   });
 
   const emits = defineEmits<Emits>();
+
+  defineOptions({
+    name: 'InstanceSelector',
+  });
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -281,7 +304,7 @@
     [ClusterTypes.REDIS]: [
       {
         id: 'redis',
-        name: t('主库主机'),
+        name: t('Redis 主库主机'),
         topoConfig: {
           getTopoList: getRedisClusterList,
           countFunc: (item: RedisModel) => item.redisMasterCount,
@@ -338,7 +361,7 @@
     [ClusterTypes.TENDBCLUSTER]: [
       {
         id: 'tendbcluster',
-        name: t('主库主机'),
+        name: t('Tendb Cluster'),
         topoConfig: {
           getTopoList: getMysqlClusterList,
         },
@@ -375,7 +398,7 @@
     [ClusterTypes.TENDBSINGLE]: [
       {
         id: 'tendbsingle',
-        name: t('单节点'),
+        name: t('Mysql 单节点'),
         topoConfig: {
           getTopoList: getMysqlClusterList,
         },
@@ -412,7 +435,7 @@
     [ClusterTypes.TENDBHA]: [
       {
         id: 'tendbha',
-        name: t('主从'),
+        name: t('Mysql 主从'),
         topoConfig: {
           getTopoList: getMysqlClusterList,
         },
@@ -449,14 +472,13 @@
     mongoCluster: [
       {
         id: 'mongoCluster',
-        name: t('主库主机'),
+        name: t('Mongo 主库主机'),
         topoConfig: {
           getTopoList: getMongoTopoList,
           countFunc: (item: MongodbModel) => item.instanceCount,
         },
         tableConfig: {
           getTableList: getMongoInstancesList,
-          multiple: true,
           firsrColumn: {
             label: 'IP',
             field: 'ip',
@@ -492,7 +514,7 @@
     TendbClusterHost: [
       {
         id: 'TendbClusterHost',
-        name: t('主库主机'),
+        name: 'TendbCluster',
         topoConfig: {
           getTopoList: queryMysqlCluster,
           countFunc: (clusterItem: { remote_db: { ip: string }[] }) => {
@@ -520,7 +542,7 @@
         tableConfig: {
           getTableList: getSpiderMachineList,
           firsrColumn: {
-            label: t('主库主机'),
+            label: 'remote_master',
             field: 'ip',
             role: 'remote_master',
           },
@@ -541,7 +563,7 @@
     RedisHost: [
       {
         id: 'RedisHost',
-        name: t('主库主机'),
+        name: t('Redis 主从'),
         topoConfig: {
           getTopoList: getRedisClusterList,
           countFunc: (clusterItem: { redis_master: { ip: string }[] }) => {
@@ -585,6 +607,76 @@
           displayKey: 'ip',
         },
         content: ManualInputHostContent,
+      },
+    ],
+    [ClusterTypes.SQLSERVER_HA]: [
+      {
+        id: ClusterTypes.SQLSERVER_HA,
+        name: t('SqlServer 主从'),
+        topoConfig: {
+          getTopoList: getSqlServerHaCluster,
+          countFunc: (item: ServiceReturnType<typeof getSqlServerHaCluster>[number]) => item.masters.length,
+        },
+        tableConfig: {
+          getTableList: getSqlServerInstanceList,
+          // firsrColumn: {
+          //   label: 'backend_master',
+          //   field: 'instance_address',
+          //   role: 'backend_master',
+          // },
+        },
+        content: SqlServerContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getSqlServerInstanceList,
+          firsrColumn: {
+            label: 'remote_master',
+            field: 'instance_address',
+          },
+        },
+        manualConfig: {
+          checkInstances: checkMysqlInstances,
+          checkType: 'instance',
+          checkKey: 'instance_address',
+          activePanelId: ClusterTypes.SQLSERVER_HA,
+        },
+        content: ManualInputContent,
+      },
+    ],
+    [ClusterTypes.SQLSERVER_SINGLE]: [
+      {
+        id: ClusterTypes.SQLSERVER_SINGLE,
+        name: t('SqlServer 单节点'),
+        topoConfig: {
+          getTopoList: (params: ServiceParameters<typeof getSingleClusterList>) =>
+            getSingleClusterList(params).then((data) => data.results),
+          countFunc: () => 1,
+        },
+        tableConfig: {
+          getTableList: getSqlServerSingleInstanceList,
+        },
+        content: SqlServerContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getSqlServerSingleInstanceList,
+          firsrColumn: {
+            label: 'remote_master',
+            field: 'instance_address',
+          },
+        },
+        manualConfig: {
+          checkInstances: checkMysqlInstances,
+          checkType: 'instance',
+          checkKey: 'instance_address',
+          activePanelId: ClusterTypes.SQLSERVER_SINGLE,
+        },
+        content: ManualInputContent,
       },
     ],
   };
@@ -659,28 +751,35 @@
   });
 
   const isEmpty = computed(() => Object.values(lastValues).every((values) => values.length < 1));
-  const renderCom = computed(() => activePanelObj.value?.content);
+  const renderCom = computed(() => (activePanelObj.value ? activePanelObj.value.content : 'div'));
+
+  let isInnerChange = false;
 
   watch(
-    () => props.clusterTypes,
-    (types) => {
-      if (types) {
-        const activeObj = clusterTabListMap.value[types[0]];
-        [activePanelObj.value] = activeObj;
-        panelTabActive.value = activeObj[0].id;
+    () => isShow,
+    (show) => {
+      if (!show) {
+        return;
+      }
+      if (isInnerChange) {
+        isInnerChange = false;
+        return;
+      }
+      if (props.selected) {
+        Object.assign(lastValues, props.selected);
+      }
+      if (
+        props.clusterTypes.length > 0 &&
+        (!panelTabActive.value || !props.clusterTypes.includes(panelTabActive.value as Props['clusterTypes'][number]))
+      ) {
+        [panelTabActive.value] = props.clusterTypes as string[];
+        [activePanelObj.value] = clusterTabListMap.value[panelTabActive.value];
       }
     },
     {
       immediate: true,
-      deep: true,
     },
   );
-
-  watch(isShow, (show) => {
-    if (show && props.selected) {
-      Object.assign(lastValues, props.selected);
-    }
-  });
 
   const handleChangePanel = (obj: PanelListItem) => {
     activePanelObj.value = obj;
@@ -710,9 +809,11 @@
     width: 80%;
     max-width: 1600px;
     min-width: 1200px;
+
     .bk-modal-header {
       display: none;
     }
+
     .bk-dialog-content {
       padding: 0;
       margin: 0;

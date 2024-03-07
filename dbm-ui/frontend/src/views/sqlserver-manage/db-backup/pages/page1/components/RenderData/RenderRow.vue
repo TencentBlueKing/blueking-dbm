@@ -13,43 +13,31 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
-      <RenderDomain
-        ref="domainRef"
-        :data="data.domain"
-        @input-finish="handleInputFinish" />
-    </td>
+    <FixedColumn fixed="left">
+      <RenderCluster
+        ref="clusterRef"
+        v-model="localClusterData" />
+    </FixedColumn>
     <td style="padding: 0">
       <RenderDbName
         ref="backupDbsRef"
-        :cluster-id="data.clusterId"
-        :model-value="data.backupDbs"
-        required
-        @change="handleBackupDbsChange" />
+        v-model="localDbList"
+        check-not-exist
+        :cluster-id="localClusterData?.id"
+        required />
     </td>
     <td style="padding: 0">
       <RenderDbName
         ref="ignoreDbsRef"
-        :cluster-id="data.clusterId"
-        :model-value="data.ignoreDbs"
-        @change="handleIgnoreDbsChange" />
+        v-model="localIgnoreDbList"
+        :required="false" />
     </td>
     <td style="padding: 0">
-      <div v-if="finalDbs?.length">
-        <BkButton
-          class="pl-16"
-          text
-          theme="primary"
-          @click="handleFinalDbsCountClick">
-          {{ finalDbs.length }}
-        </BkButton>
-      </div>
-      <div
-        v-else
-        v-bk-tooltips="t('请先设置 备份/忽略 DB')"
-        class="final-dbs-placeholder">
-        {{ t('自动生成') }}
-      </div>
+      <RenderFianlDb
+        ref="fianlDbRef"
+        :cluster-data="localClusterData"
+        :db-list="localDbList"
+        :ignore-db-list="localIgnoreDbList" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -58,48 +46,34 @@
   </tr>
 </template>
 <script lang="ts">
-  import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
-
-  import { getSqlserverDbs } from '@services/source/sqlserver'
-
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
 
   import { random } from '@utils';
 
-  import RenderDbName from './RenderDbName.vue';
-  import RenderDomain from './RenderDomain.vue';
+  import RenderCluster from './RenderCluster.vue';
+  import RenderFianlDb from './RenderFianlDb.vue';
 
   export interface IDataRow {
     rowKey: string;
-    isLoading: boolean;
-    domain: string;
-    clusterId: number;
-    clusterType: string;
-    backupDbs: string[];
-    ignoreDbs: string[];
+    clusterData?: {
+      id: number;
+      domain: string;
+      cloudId: number;
+    };
+    dbList: string[];
+    ignoreDbList: string[];
   }
 
   // 创建表格数据
-  export const createRowData = (params?: {
-    domain: string;
-    clusterId: number;
-    clusterType: string;
-    backupDbs: string[];
-    ignoreDbs: string[];
-  }): IDataRow =>
-    Object.assign(
-      {
-        rowKey: random(),
-        isLoading: false,
-        domain: '',
-        clusterId: 0,
-        clusterType: '',
-        backupDbs: [],
-        ignoreDbs: [],
-      },
-      params,
-    );
+  export const createRowData = (data = {} as Partial<IDataRow>) => ({
+    rowKey: random(),
+    clusterData: data.clusterData,
+    dbList: data.dbList || [],
+    ignoreDbList: data.ignoreDbList || [],
+  });
 </script>
 
 <script setup lang="ts">
@@ -107,70 +81,48 @@
     data: IDataRow;
     removeable: boolean;
   }
+
   interface Emits {
-    (e: 'add'): void;
+    (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'inputClusterFinish', value: string): void;
-    (e: 'showFinalReviewer'): void;
-    (e: 'inputBackupDbsFinish', value: string[]): void;
-    (e: 'inputIgnoreDbsFinish', value: string[]): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<{
-      cluster_id: number;
-      backup_dbs: string[]
-    }>;
+    getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-
-  const domainRef = ref<InstanceType<typeof RenderDomain>>();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
   const backupDbsRef = ref<InstanceType<typeof RenderDbName>>();
   const ignoreDbsRef = ref<InstanceType<typeof RenderDbName>>();
-  const backupDbs = ref(props.data.backupDbs);
-  const ignoreDbs = ref(props.data.ignoreDbs);
+  const fianlDbRef = ref<InstanceType<typeof RenderFianlDb>>();
 
-  const {
-    data: finalDbs,
-    run: getSqlserverDbsRun
-  } = useRequest(getSqlserverDbs, {
-    manual: true,
-  })
+  const localClusterData = ref<Props['data']['clusterData']>();
+  const localDbList = ref<Props['data']['dbList']>([]);
+  const localIgnoreDbList = ref<Props['data']['ignoreDbList']>([]);
 
-  const getFinalDbsNew = (backupDbs: string[], ignoreDbs: string[]) => {
-    getSqlserverDbsRun({
-      cluster_id: props.data.clusterId,
-      db_list: backupDbs,
-      ignore_db_list: ignoreDbs
-    })
-  }
-
-  const handleInputFinish = (domain: string) => {
-    emits('inputClusterFinish', domain);
-  };
-
-  const handleBackupDbsChange = (value: string[]) => {
-    backupDbs.value = value;
-    getFinalDbsNew(value, ignoreDbs.value)
-    emits('inputBackupDbsFinish', value);
-  };
-
-  const handleIgnoreDbsChange = (value: string[]) => {
-    ignoreDbs.value = value;
-    getFinalDbsNew(backupDbs.value, value)
-    emits('inputIgnoreDbsFinish', value);
-  };
-
-  const handleFinalDbsCountClick = () => {
-    emits('showFinalReviewer');
-  };
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.clusterData) {
+        localClusterData.value = props.data.clusterData;
+      }
+      if (props.data.dbList) {
+        localDbList.value = props.data.dbList;
+      }
+      if (props.data.ignoreDbList) {
+        localIgnoreDbList.value = props.data.ignoreDbList;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleAppend = () => {
-    emits('add');
+    emits('add', [createRowData()]);
   };
 
   const handleRemove = () => {
@@ -183,20 +135,16 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        domainRef.value!.getValue(),
-        backupDbsRef.value!.getValue(),
-        ignoreDbsRef.value!.getValue(),
-      ]).then(([clusterId]) => ({
-        cluster_id: clusterId,
-        backup_dbs: finalDbs?.value || []
+        clusterRef.value!.getValue(),
+        backupDbsRef.value!.getValue('db_list'),
+        ignoreDbsRef.value!.getValue('ignore_db_list'),
+        fianlDbRef.value!.getValue(),
+      ]).then(([clusterData, databasesData, ignoreDatabasesData, fianlDbData]) => ({
+        ...clusterData,
+        ...databasesData,
+        ...ignoreDatabasesData,
+        ...fianlDbData,
       }));
     },
   });
 </script>
-
-<style lang="less" scoped>
-  .final-dbs-placeholder {
-    padding-left: 16px;
-    color: #c4c6cc;
-  }
-</style>

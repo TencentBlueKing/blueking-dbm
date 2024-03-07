@@ -17,7 +17,7 @@ import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
 import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
-import { getUserSemanticTasks } from '@services/source/sqlImport';
+import { getUserSemanticTasks } from '@services/source/mysqlSqlImport';
 
 export const useSQLTaskNotify = () => {
   const { t } = useI18n();
@@ -39,6 +39,7 @@ export const useSQLTaskNotify = () => {
 
   const { cancel: cancelRequest } = useRequest(getUserSemanticTasks, {
     pollingInterval: 10000,
+    debounceInterval: 10000,
     onSuccess(data) {
       const isAlterItem = _.find(data, (item) => item.is_alter);
 
