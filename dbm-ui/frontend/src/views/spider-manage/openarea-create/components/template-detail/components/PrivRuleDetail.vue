@@ -114,6 +114,9 @@
   };
 
   onMounted(() => {
+    if (props.ruleIdList.length === 0) {
+      return;
+    }
     tableRef.value.fetchData({
       cluster_id: props.clusterId,
       rule_ids: props.ruleIdList.join(','),

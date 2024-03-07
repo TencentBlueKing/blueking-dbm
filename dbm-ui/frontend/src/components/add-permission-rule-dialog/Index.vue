@@ -13,6 +13,7 @@
         :columns="columns"
         :container-height="600"
         :data-source="getPermissionRules"
+        :remote-pagination="false"
         :settings="settings" />
     </div>
     <template #footer>
