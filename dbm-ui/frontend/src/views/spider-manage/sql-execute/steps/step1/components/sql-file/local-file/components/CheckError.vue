@@ -15,7 +15,9 @@
   <div
     v-if="(data.messageList.length < 1 && data.grammarCheck?.isError) || data.isUploadFailed"
     class="sql-execute-upload-check-error">
-    <span>{{ data.grammarCheck?.isError ? t('SQL语法错误') : t('文件上传失败') }}</span>
+    <span v-if="data.grammarCheck?.isError">{{ t('SQL语法错误') }}</span>
+    <span v-else-if="data.uploadErrorMessage">{{ data.uploadErrorMessage }}</span>
+    <span v-else>{{ t('文件上传失败') }}</span>
   </div>
 </template>
 <script setup lang="ts">

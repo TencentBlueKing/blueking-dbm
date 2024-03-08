@@ -84,7 +84,6 @@
   </div>
 </template>
 <script lang="ts">
-  import { useI18n } from 'vue-i18n';
   import Vuedraggable from 'vuedraggable';
 
   import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
@@ -94,6 +93,7 @@
     isCheckFailded: boolean;
     isUploading: boolean;
     isUploadFailed: boolean;
+    uploadErrorMessage: string;
     file: File | null;
     content: string;
     messageList: GrammarCheckModel['messageList'];
@@ -106,6 +106,7 @@
     isCheckFailded: data.isCheckFailded === undefined,
     isUploading: data.isUploading || false,
     isUploadFailed: data.isUploadFailed || false,
+    uploadErrorMessage: data.uploadErrorMessage || '',
     file: data.file || null,
     content: data.content || '',
     messageList: data.messageList || [],
@@ -116,6 +117,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { ref, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
     modelValue: string;

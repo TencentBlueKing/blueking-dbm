@@ -13,13 +13,13 @@
 
 <template>
   <BkFormItem
-    :label="$t('SQL文件')"
+    :label="t('SQL文件')"
     property="execute_sql_files"
     required
     :rules="rules">
     <template #labelAppend>
       <span style="font-size: 12px; font-weight: normal; color: #8a8f99">
-        （{{ $t('最终执行结果以SQL文件内容为准') }}）
+        （{{ t('最终执行结果以SQL文件内容为准') }}）
       </span>
     </template>
     <div class="sql-execute-local-file">
@@ -28,7 +28,7 @@
           <DbIcon
             style="margin-right: 3px"
             type="add" />
-          <span>{{ $t('添加文件') }}</span>
+          <span>{{ t('添加文件') }}</span>
         </BkButton>
         <span style="margin-left: 12px; font-size: 12px; color: #8a8f99">
           {{
@@ -257,23 +257,42 @@
       return;
     }
     const fileNameList: Array<string> = [];
-    const fileDataMap = {} as Record<string, IFileData>;
+    const currentFileDataMap = {} as Record<string, IFileData>;
     const params = new FormData();
 
 
     Array.from(files).forEach((curFile) => {
-      params.append('sql_files', curFile);
+
       fileNameList.push(curFile.name);
-      fileDataMap[curFile.name] = createFileData({
+      currentFileDataMap[curFile.name] = createFileData({
         file: curFile,
         isUploading: true,
       });
+
+      // 上传文件大小限制 1GB (1024 * 1024 * 1024 = 1073741824)
+      if (curFile.size > 1073741824){
+        currentFileDataMap[curFile.name] = {
+          ...currentFileDataMap[curFile.name],
+          realFilePath: '/',
+          isSuccess: true,
+          content: '--',
+          messageList: [],
+          isCheckFailded: true,
+          isUploadFailed: true,
+          isUploading: false,
+          uploadErrorMessage: t('文件上传失败——文件大小超过限制（最大为1GB）'),
+          grammarCheck: undefined,
+
+        };
+        return
+      }
+      params.append('sql_files', curFile);
     });
 
     uploadFileNameList.value = _.uniq([...uploadFileNameList.value, ...fileNameList]);
     uploadFileDataMap.value = {
       ...uploadFileDataMap.value,
-      ...fileDataMap,
+      ...currentFileDataMap,
     };
 
     if (!selectFileName.value || !uploadFileDataMap.value[selectFileName.value]) {
