@@ -9,47 +9,35 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import { intervalToDuration } from 'date-fns';
-
-const times = [{
-  key: 'years',
-  unit: 'y',
-}, {
-  key: 'months',
-  unit: 'M',
-}, {
-  key: 'days',
-  unit: 'd',
-}, {
-  key: 'hours',
-  unit: 'h',
-}, {
-  key: 'minutes',
-  unit: 'm',
-}, {
-  key: 'seconds',
-  unit: 's',
-}];
 /**
  * 获取耗时展示文本
  * @param time timestamp 秒级
  * @returns cost time display
  */
 export const getCostTimeDisplay = (time: number) => {
-  if (!time) return time === 0 ? '0s' : '--';
-
-  const duration: { [key: string]: number } = intervalToDuration({
-    start: 0,
-    end: time * 1000,
-  });
-  let timeDisplay = '';
-  for (const { key, unit } of times) {
-    const value = duration[key];
-    if (value || timeDisplay) {
-      timeDisplay += `${value}${unit}`;
-    }
+  const totalTime = time;
+  if (totalTime < 60) {
+    return `${totalTime}s`;
   }
-  return timeDisplay;
+  const dayUnit = 86400;
+  const hourUnit = 3600;
+  const minUnit = 60;
+  const stack = [];
+  const day = Math.floor(time / dayUnit);
+  if (day) {
+    stack.push(`${day}d`);
+  }
+  const hour = Math.floor((time % dayUnit) / hourUnit);
+  if (hour) {
+    stack.push(`${hour}h`);
+  }
+  const min = Math.floor((time % hourUnit) / minUnit);
+  if (min) {
+    stack.push(`${min}m`);
+  }
+  const second = Math.ceil(time % 60);
+  stack.push(`${second}s`);
+  return stack.join(' ');
 };
