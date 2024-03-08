@@ -473,7 +473,7 @@ class MySQLDBMeta(object):
         # 修改分区配置为禁用状态 - offlinewithclu
         disable_partition_params = {
             "cluster_type": cluster.cluster_type,
-            "operator": self.ticket_data["creator"],
+            "operator": self.ticket_data["created_by"],
             "cluster_ids": [cluster.id],
         }
         DBPartitionApi.disable_partition_cluster(params=disable_partition_params)
@@ -488,7 +488,7 @@ class MySQLDBMeta(object):
         # 修改分区配置为启用状态 - online
         disable_partition_params = {
             "cluster_type": cluster.cluster_type,
-            "operator": self.ticket_data["creator"],
+            "operator": self.ticket_data["created_by"],
             "cluster_ids": [cluster.id],
         }
         DBPartitionApi.enable_partition_cluster(params=disable_partition_params)
