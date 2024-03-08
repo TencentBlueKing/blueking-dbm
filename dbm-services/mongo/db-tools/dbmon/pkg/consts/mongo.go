@@ -14,7 +14,7 @@ import (
 // meta role
 const (
 	MetaRoleShardsvrBackup        = "shardsvr-backup"
-	MetaRoleShardsvrBackupNewName = "backup"
+	MetaRoleShardsvrBackupNewName = "mongo_backup"
 	MetaRoleMongos                = "mongos"
 )
 

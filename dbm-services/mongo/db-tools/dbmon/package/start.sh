@@ -6,10 +6,10 @@ cd $DIR
 nowtime=$(date "+%Y-%m-%d %H:%M:%S")
 confFile="dbmon-config.yaml"
 
-httpAddr=$(grep 'http_address' dbmon-config.yaml | awk '{print $2}' | sed -e "s/^'//" -e "s/'$//" -e 's/^"//' -e 's/$"//')
-httpAddr="http://$httpAddr/health"
+httpAddr=$(./gojq -r --yaml-input  '.http_address' $confFile)
+healthUrl="http://$httpAddr/health"
 
-if curl $httpAddr >/dev/null 2>&1; then
+if curl $healthUrl >/dev/null 2>&1; then
     echo "[$nowtime] bk-dbmon is running"
     exit 0
 fi

@@ -41,6 +41,11 @@ func NewJobGenericManager(uid, rootID, nodeID, versionID, payload, payloadFormat
 	return
 }
 
+// PrintVersion 打印版本信息
+func (m *JobGenericManager) PrintVersion(versionInfo string) {
+	m.runtime.Logger.Info(versionInfo)
+}
+
 // LoadAtomJobs 加载子任务
 func (m *JobGenericManager) LoadAtomJobs() (err error) {
 	defer func() {
@@ -141,6 +146,7 @@ func (m *JobGenericManager) RegisterAtomJob() {
 			atommongodb.NewRestoreJob,
 			atommongodb.NewPitrRecoverJob,
 			atommongodb.NewRemoveNsJob,
+			atommongodb.NewInstallDbmonJob,
 		} {
 			m.atomJobMapper[f().Name()] = f
 		}

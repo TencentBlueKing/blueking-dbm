@@ -68,7 +68,7 @@ func NewRestoreJob() jobruntime.JobRunner {
 
 // Name 获取原子任务的名字
 func (s *restoreJob) Name() string {
-	return "mongo_restore"
+	return "mongodb_restore"
 }
 
 // Run 运行原子任务
@@ -272,10 +272,11 @@ func (s *restoreJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 // checkParams 校验参数
 func (s *restoreJob) checkParams() error {
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.param); err != nil {
-		return errors.Wrap(err, "json.Unmarshal")
+		err = errors.Wrap(err, "payload json.Unmarshal failed")
+		s.runtime.Logger.Error(err.Error())
+		return err
 	}
 
-	// 校验配置参数
 	validate := validator.New()
 	if err := validate.Struct(s.param); err != nil {
 		return errors.Wrap(err, "validate params")

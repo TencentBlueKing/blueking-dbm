@@ -4,10 +4,11 @@ DIR=$(dirname $0)
 cd $DIR
 
 nowtime=$(date "+%Y-%m-%d %H:%M:%S")
+
 confFile="dbmon-config.yaml"
 
-httpAddr=$(grep 'http_address' dbmon-config.yaml | awk '{print $2}' | sed -e "s/^'//" -e "s/'$//" -e 's/^"//' -e 's/$"//')
-httpAddr="http://$httpAddr/health"
+httpAddr=$(./gojq -r --yaml-input  '.http_address' $confFile)
+healthUrl="http://$httpAddr/health"
 
 if curl $httpAddr >/dev/null 2>&1; then
     ps aux | grep 'bk-dbmon --config' | grep -v grep | awk '{print $2}' | xargs kill
