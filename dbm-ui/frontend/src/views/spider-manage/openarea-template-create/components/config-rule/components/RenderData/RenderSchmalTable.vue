@@ -20,6 +20,7 @@
       :list="dbNameList"
       multiple
       :placeholder="t('请选择')"
+      :rules="rules"
       show-select-all />
   </BkLoading>
 </template>
@@ -50,13 +51,14 @@
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<string[]>({
     default: [],
   });
 
+  const { t } = useI18n();
+
   const editRef = ref<InstanceType<typeof TableEditSelect>>();
+
   const dbNameList = shallowRef<{value: string, label: string}[]>([]);
 
   const {
@@ -74,6 +76,13 @@
       modelValue.value = dbNameList.value.map(item => item.value);
     },
   });
+
+  const rules = [
+    {
+      validator: (value: string[]) => value.length > 0,
+      message: t('克隆表结构不能为空'),
+    },
+  ];
 
   watch(() => props.sourceDb, () => {
     if (!props.sourceDb) {
