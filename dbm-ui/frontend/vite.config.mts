@@ -9,12 +9,12 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { resolve } from 'path';
 import AutoImport from 'unplugin-auto-import/vite';
 import { defineConfig, loadEnv } from 'vite';
-import  ViteHTMLEnv from 'vite-plugin-html-env';
+import ViteHTMLEnv from 'vite-plugin-html-env';
 import monacoEditorPlugin from 'vite-plugin-monaco-editor';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
@@ -74,7 +74,7 @@ export default defineConfig(({ mode }) => {
         },
       }),
       AutoImport({
-      // 生成自动引入 eslintrc 配置
+        // 生成自动引入 eslintrc 配置
         eslintrc: {
           enabled: false,
           filepath: './src/types/.eslintrc-auto-import.json',
@@ -83,14 +83,17 @@ export default defineConfig(({ mode }) => {
         dts: './src/types/auto-imports.d.ts', // 自动导出 ts types
       }),
       viteStaticCopy({
-        targets: [{
-          src: 'src/images/monitoring.png',
-          dest: './',
-          rename: uniqueKey,
-        }, {
-          src: 'lib',
-          dest: './',
-        }],
+        targets: [
+          {
+            src: 'src/images/monitoring.png',
+            dest: './',
+            rename: uniqueKey,
+          },
+          {
+            src: 'lib',
+            dest: './',
+          },
+        ],
       }),
       monacoEditorPlugin.default({}),
       ViteHTMLEnv({
@@ -106,10 +109,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     optimizeDeps: {
-      exclude: [
-        '@blueking/ip-selector/dist/vue3.x.js',
-        'lib/',
-      ],
+      exclude: ['@blueking/ip-selector/dist/vue3.x.js', 'lib/'],
     },
     server: {
       host: '127.0.0.1',
