@@ -90,7 +90,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             ).count()
             shard_node_count = len(mongodb) / shard_num
 
-        # 获取mongodb总机器数量、机器组数、单机部署实例数
+        # 获取单机部署实例数、mongodb总机器数量、机器组数
         machine_instance_num = mongodb_insts[0].machine.storageinstance_set.count()
         mongodb_machine_num = len(set([m.machine.bk_host_id for m in mongodb_insts]))
         mongodb_machine_pair = mongodb_machine_num // shard_node_count
