@@ -66,9 +66,12 @@ GoVersion: %s`, version, githash, buildstamp, goversion),
 			_, _ = fmt.Fprintf(os.Stdout, "%s %s\n", progName, consts.BkDbmonVersion)
 			return
 		}
-		config.InitConfig(cfgFile)
+
 		mylog.InitRotateLoger()
 		defer mylog.Logger.Sync()
+
+		config.InitConfig(cfgFile, mylog.Logger)
+
 		var err error
 		// 检查DbType，只支持Mongo
 		if err = checkDbType(config.GlobalConf.Servers); err != nil {

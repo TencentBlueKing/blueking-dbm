@@ -51,16 +51,16 @@ func (job *CheckHealthJob) Run() {
 	}()
 
 	for _, svrItem := range job.Conf.Servers {
-		mylog.Logger.Info(fmt.Sprintf("job %s server: %s:%v start", job.Name, svrItem.ServerIP, svrItem.ServerPort))
+		mylog.Logger.Info(fmt.Sprintf("job %s server: %s:%v start", job.Name, svrItem.IP, svrItem.Port))
 		job.runOneServer(&svrItem)
-		mylog.Logger.Info(fmt.Sprintf("job %s server: %s:%v end", job.Name, svrItem.ServerIP, svrItem.ServerPort))
+		mylog.Logger.Info(fmt.Sprintf("job %s server: %s:%v end", job.Name, svrItem.IP, svrItem.Port))
 	}
 
 }
 
 func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	if !consts.IsMongo(svrItem.ClusterType) {
-		mylog.Logger.Warn(fmt.Sprintf("server %+v is not a mongo instance", svrItem.ServerIP))
+		mylog.Logger.Warn(fmt.Sprintf("server %+v is not a mongo instance", svrItem.IP))
 		return
 	}
 
@@ -69,7 +69,7 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	err := checkService(loginTimeout, svrItem)
 
 	mylog.Logger.Info(fmt.Sprintf("checkService %s:%d cost %0.1f seconds, err: %v",
-		svrItem.ServerIP, svrItem.ServerPort, time.Now().Sub(t).Seconds(), err))
+		svrItem.IP, svrItem.Port, time.Now().Sub(t).Seconds(), err))
 	if err == nil {
 		return
 	}
@@ -77,10 +77,10 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 
 	// 检查 进程是否存在，存在： 发送消息LoginTimeout
 	// Port被别的进程占用，此处算是误告，但问题不大，反正都需要人工处理.
-	using, err := checkPortInUse(svrItem.ServerPort)
+	using, err := checkPortInUse(svrItem.Port)
 	if err != nil {
 		mylog.Logger.Info(fmt.Sprintf("checkService %s:%d cost %0.1f seconds, err: %v",
-			svrItem.ServerIP, svrItem.ServerPort, elapsedTime, err))
+			svrItem.IP, svrItem.Port, elapsedTime, err))
 	}
 	if using {
 		// 进程存在
@@ -97,7 +97,7 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	// 不存在，尝试启动
 	//  启动成功: 发送消息LoginSuccess
 	//  启动失败: 发送消息LoginFailed
-	startMongo(svrItem.ServerPort)
+	startMongo(svrItem.Port)
 	err = checkService(loginTimeout, svrItem)
 	if err == nil {
 		// 发送消息LoginSuccess
@@ -142,8 +142,8 @@ func checkService(loginTimeout int, svrItem *config.ConfServerItem) error {
 	user := svrItem.UserName
 	pass := svrItem.Password
 	authDb := "admin"
-	port := fmt.Sprintf("%d", svrItem.ServerPort)
-	outBuf, errBuf, err := ExecLoginJs(mongoBin, loginTimeout, svrItem.ServerIP, port, user, pass, authDb,
+	port := fmt.Sprintf("%d", svrItem.Port)
+	outBuf, errBuf, err := ExecLoginJs(mongoBin, loginTimeout, svrItem.IP, port, user, pass, authDb,
 		embedfiles.MongoLoginJs)
 	mylog.Logger.Info(fmt.Sprintf("ExecLoginJs %s stdout: %q, stderr: %q", port, outBuf, errBuf))
 	if err == nil {
