@@ -99,7 +99,7 @@ const (
 // tendisplus task type
 const (
 	TendisplusMakeSyncTaskType = "tendisplusMakeSync"
-	// 将存量数据同步 与 增量数据同步分开,原因是 存量数据同步讲占用较多内存,增量不占用内存
+	// TendisplusSendBulkTaskType 将存量数据同步 与 增量数据同步分开,原因是 存量数据同步讲占用较多内存,增量不占用内存
 	TendisplusSendBulkTaskType = "tendisplusSendBulk"
 	TendisplusSendIncrTaskType = "tendisplusSendIncr"
 )
@@ -146,31 +146,36 @@ var ListKeyFileReg = regexp.MustCompile(TredisdumpListRegMatch)
 
 // redis-sync 操作状态
 const (
+	// RedisSyncPauseTodo TODO
 	// pause,'SYNCADMIN stop'
 	RedisSyncPauseTodo = "SyncPauseTodo"
 	RedisSyncPauseFail = "SyncPauseFail"
 	RedisSyncPauseSucc = "SyncPauseSucc"
 
+	// RedisSyncResumeTodo TODO
 	// resume,'SYNCADMIN start'
 	RedisSyncResumeTodo = "SyncResumeTodo"
 	RedisSyncResumeFail = "SyncResumeFail"
 	RedisSyncResumeSucc = "SyncResumeSucc"
 
+	// RedisSyncUpgradeTodo TODO
 	// upgrade,upgrade redis-sync binary
 	RedisSyncUpgradeTodo = "SyncUpgradeTodo"
 	RedisSyncUpgradeFail = "SyncUpgradeFail"
 	RedisSyncUpgradeSucc = "SyncUpgradeSucc"
 
+	// RedisSyncStopTodo TODO
 	// Stop,kill redis-sync proccess
 	RedisSyncStopTodo = "SyncStopTodo"
 	RedisSyncStopFail = "SyncStopFail"
 	RedisSyncStopSucc = "SyncStopSucc"
 
-	// force kill migrate task
+	// RedisForceKillTaskTodo kill migrate task
 	RedisForceKillTaskTodo    = "ForceKillTaskTodo"
 	RedisForceKillTaskFail    = "ForceKillTaskFail"
 	RedisForceKillTaskSuccess = "ForceKillTaskSucc"
 
+	// ReSyncFromSpecTimeTodo TODO
 	// resyunc from specific time
 	ReSyncFromSpecTimeTodo = "ReSyncFromSpecTimeTodo"
 	ReSyncFromSpecTimeFail = "ReSyncFromSpecTimeFail"
@@ -185,6 +190,7 @@ const (
 // remote services' name
 const (
 	DtsRemoteTendisxk8s = "dtsRemoteTendisxk8s"
+	// K8sIsDtsSvrInBlacklistURL TODO
 	// tendisk8s mico service
 	K8sIsDtsSvrInBlacklistURL         = "/tendisxk8s/cluster/tendis-dts/is-dts-server-in-blacklist"
 	K8sDtsLockKeyURL                  = "/tendisxk8s/cluster/tendis-dts/dts-lock-key"
@@ -235,10 +241,24 @@ func ZonenameTransform(zoneName string) string {
 
 // dts write_mode
 const (
-	// 先删除同名redis key, 再执行写入(如:del $key + hset $key)
+	// WriteModeDeleteAndWriteToRedis 先删除同名redis key, 再执行写入(如:del $key + hset $key)
 	WriteModeDeleteAndWriteToRedis = "delete_and_write_to_redis"
-	// 保留同名redis key,追加写入(如hset $key)
+	// WriteModeKeepAndAppendToRedis 保留同名redis key,追加写入(如hset $key)
 	WriteModeKeepAndAppendToRedis = "keep_and_append_to_redis"
-	// 先清空目标集群所有数据,在写入(如flushall + hset $key)
+	// WriteModeFlushallAndWriteToRedis 先清空目标集群所有数据,在写入(如flushall + hset $key)
 	WriteModeFlushallAndWriteToRedis = "flushall_and_write_to_redis"
+)
+
+// dts copy type
+const (
+	// CopyTypeOneAppDiffCluster 同业务不同集群
+	CopyTypeOneAppDiffCluster = "one_app_diff_cluster"
+	// CopyTypeDiffAppDiffCluster 不同业务不同集群
+	CopyTypeDiffAppDiffCluster = "diff_app_diff_cluster"
+	// CopyTypeCopyToOtherSystem 业务内至第三方
+	CopyTypeCopyToOtherSystem = "copy_to_other_system"
+	// CopyTypeUserBuiltToDBM_built_to_dbm 自建集群至业务内
+	CopyTypeUserBuiltToDBM_built_to_dbm = "user_built_to_dbm"
+	// CopyTypeCopyFromRollbackInstance 构造实例至业务内
+	CopyTypeCopyFromRollbackInstance = "copy_from_rollback_instance"
 )

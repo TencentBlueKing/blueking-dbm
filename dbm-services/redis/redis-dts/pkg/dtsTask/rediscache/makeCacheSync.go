@@ -666,18 +666,6 @@ func (task *MakeCacheSyncTask) WatchShake() {
 			task.Logger.Info(fmt.Sprintf("end %q ...", task.RowData.SyncOperate))
 			return
 		}
-		// upgrade redis-shake
-		if task.RowData.SyncOperate == constvar.RedisSyncUpgradeTodo {
-			task.Logger.Info(fmt.Sprintf("start execute %q ...", task.RowData.SyncOperate))
-			task.UpgradeShakeMedia()
-			if task.Err != nil {
-				return
-			}
-			task.SetSyncOperate(constvar.RedisSyncUpgradeSucc)
-			task.UpdateDbAndLogLocal(constvar.RedisSyncUpgradeSucc + "...")
-			task.Logger.Info(fmt.Sprintf("end %q ...", task.RowData.SyncOperate))
-			continue
-		}
 		metric := task.GetShakeMerics()
 		if task.Err != nil {
 			return
@@ -778,6 +766,7 @@ func (task *MakeCacheSyncTask) GetShakeMerics() *RedisShakeMetric {
 		break
 	}
 	if task.Err != nil {
+		task.Err = fmt.Errorf("redis-shake错误退出")
 		return nil
 	}
 	shakeMeric := []RedisShakeMetric{}

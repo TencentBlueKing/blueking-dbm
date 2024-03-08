@@ -364,12 +364,25 @@ func (task *MakeSyncTask) WatchSync() {
 	}
 
 	lastSeqAndTime := dtsTask.SyncSeqItem{}
+	retryTimes := 0
 	for {
+		if retryTimes > 6 {
+			// 如果连续重试多次获取redis-sync状态都是异常的，则认为失败,kill redis-sync,退出
+			task.RedisSyncStop()
+			task.Logger.Error(fmt.Sprintf("watch redis-sync fail,err:%v,retryTimes:%d", task.Err, retryTimes))
+			return
+		}
 		time.Sleep(10 * time.Second)
 
 		task.RefreshRowData()
 		if task.Err != nil {
-			return
+			// 调用接口获取task row信息失败,不是redis-sync状态失败
+			// 不用kill redis-sync,直接返回即可
+			retryTimes++
+			if retryTimes > 3 {
+				return
+			}
+			continue
 		}
 		if task.RowData.KillSyncer == 1 ||
 			task.RowData.SyncOperate == constvar.RedisSyncStopTodo ||
@@ -396,51 +409,17 @@ func (task *MakeSyncTask) WatchSync() {
 			task.Logger.Info(fmt.Sprintf("end %q ...", task.RowData.SyncOperate))
 			return
 		}
-		// pause and resume redis-sync
-		if task.RowData.SyncOperate == constvar.RedisSyncPauseTodo {
-			task.Logger.Info(fmt.Sprintf("start execute %q ...", task.RowData.SyncOperate))
-			task.PauseAndResumeSync()
-			task.Logger.Info(fmt.Sprintf("end %q ...", task.RowData.SyncOperate))
-			if task.Err != nil {
-				return
-			}
-			continue
-		}
-		// upgrade redis-sync
-		if task.RowData.SyncOperate == constvar.RedisSyncUpgradeTodo {
-			task.Logger.Info(fmt.Sprintf("start execute %q ...", task.RowData.SyncOperate))
-			task.UpgradeSyncMedia()
-			if task.Err != nil {
-				return
-			}
-			task.SetSyncOperate(constvar.RedisSyncUpgradeSucc)
-			task.UpdateDbAndLogLocal(constvar.RedisSyncUpgradeSucc + "...")
-
-			task.Logger.Info(fmt.Sprintf("end %q ...", task.RowData.SyncOperate))
-			continue
-		}
-		// resync from specific time
-		if task.RowData.SyncOperate == constvar.ReSyncFromSpecTimeTodo {
-			task.Logger.Info(fmt.Sprintf("start execute %q ...", task.RowData.SyncOperate))
-			task.ReSyncFromSpecTime(task.RowData.ResyncFromTime.Time)
-			if task.Err != nil {
-				return
-			}
-			task.SetSyncOperate(constvar.ReSyncFromSpecTimeSucc)
-			task.UpdateDbAndLogLocal(constvar.ReSyncFromSpecTimeSucc + "...")
-
-			task.Logger.Info(fmt.Sprintf("end %q ...", task.RowData.SyncOperate))
-			continue
-		}
 		syncInfoMap := task.RedisSyncInfo("tendis-ssd")
 		if task.Err != nil {
-			return
+			retryTimes++
+			continue
 		}
 		binlogLag, _ := strconv.ParseInt(syncInfoMap["tendis_binlog_lag"], 10, 64)
 		if binlogLag < 0 { // 说明 redis-sync没有正常运行
 			task.SetTendisBinlogLag(binlogLag)
 			task.SetStatus(-1)
 			task.UpdateDbAndLogLocal("redis-sync 同步异常,binlog延迟:%d", binlogLag)
+			retryTimes++
 			continue
 		}
 		tendisIP := syncInfoMap["tendis-ssd_ip"]
@@ -452,13 +431,15 @@ func (task *MakeSyncTask) WatchSync() {
 				task.RowData.SrcIP, task.RowData.SrcPort)
 			task.SetStatus(-1)
 			task.UpdateDbAndLogLocal(task.Err.Error())
-			return
+			retryTimes++
+			continue
 		}
 		if binlogLag < 600 && slaveLogCountDecr == false {
 			// 如果redis-sync同步延迟在600s以内,则修改srcSlave slave-log-keep-count=1200w,避免告警
 			task.ChangeSrcSSDKeepCount(1200 * 10000)
 			if task.Err != nil {
-				return
+				retryTimes++
+				continue
 			}
 			slaveLogCountDecr = true
 		}
@@ -479,12 +460,12 @@ func (task *MakeSyncTask) WatchSync() {
 			task.SetMessage(task.Err.Error())
 			task.SetStatus(-1)
 			task.UpdateRow()
-			// not return
+			// 只是保存binlog位置失败了,继续
 		}
 		// 如果redis-sync seq 60分钟没有任何变化,则代表同步hang住了
 		// 例外情况:
 		// 1. 回档临时环境,不会有心跳写入,tendis_last_seq不会变;
-		if nowSeq.Seq == lastSeqAndTime.Seq && jobRows[0].SrcClusterType != constvar.UserTwemproxyType {
+		if nowSeq.Seq == lastSeqAndTime.Seq && jobRows[0].DtsCopyType != constvar.CopyTypeCopyFromRollbackInstance {
 			if time.Now().Local().Sub(lastSeqAndTime.Time.Time).Minutes() > 60 {
 				task.Err = fmt.Errorf("binlog seq 已经60分钟未更新,redis-sync是否hang住?")
 				task.SetStatus(-1)
@@ -494,6 +475,7 @@ func (task *MakeSyncTask) WatchSync() {
 		} else {
 			lastSeqAndTime = nowSeq
 		}
+		retryTimes = 0
 	}
 }
 
