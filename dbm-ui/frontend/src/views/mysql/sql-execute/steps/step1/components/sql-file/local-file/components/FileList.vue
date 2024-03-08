@@ -14,9 +14,9 @@
 <template>
   <div class="sql-execute-sql-file-list">
     <div class="file-list-title">
-      <span>{{ $t('文件列表') }}</span>
+      <span>{{ t('文件列表') }}</span>
       <span style="font-size: 12px; font-weight: normal; color: #979ba5">
-        {{ $t('按顺序执行') }}
+        {{ t('按顺序执行') }}
       </span>
     </div>
     <div class="file-list">
@@ -68,7 +68,7 @@
                     type="drag" />
                 </div>
                 <div
-                  v-bk-tooltips="$t('移除')"
+                  v-bk-tooltips="t('移除')"
                   class="action-btn remove-btn"
                   @click.stop="handleRemove(fileItemData.name)">
                   <DbIcon
@@ -93,6 +93,7 @@
     isCheckFailded: boolean;
     isUploading: boolean;
     isUploadFailed: boolean;
+    uploadErrorMessage: string;
     file: File | null;
     content: string;
     messageList: GrammarCheckModel['messageList'];
@@ -105,6 +106,7 @@
     isCheckFailded: data.isCheckFailded === undefined,
     isUploading: data.isUploading || false,
     isUploadFailed: data.isUploadFailed || false,
+    uploadErrorMessage: data.uploadErrorMessage || '',
     file: data.file || null,
     content: data.content || '',
     messageList: data.messageList || [],
@@ -115,6 +117,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { ref, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
     modelValue: string;
@@ -131,6 +134,8 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const localList = ref<Array<Record<'id' | 'name', string>>>([]);
 
