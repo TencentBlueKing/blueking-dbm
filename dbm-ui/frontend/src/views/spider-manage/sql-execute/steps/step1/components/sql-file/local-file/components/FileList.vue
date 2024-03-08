@@ -84,21 +84,21 @@
   </div>
 </template>
 <script lang="ts">
-  import { useI18n } from 'vue-i18n';
   import Vuedraggable from 'vuedraggable';
 
   import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
 
   export interface IFileData {
-    isSuccess: boolean,
-    isCheckFailded: boolean,
-    isUploading: boolean,
-    isUploadFailed: boolean,
-    file: File | null,
-    content: string,
-    messageList: GrammarCheckModel['messageList'],
-    grammarCheck?: GrammarCheckModel,
-    realFilePath: string,
+    isSuccess: boolean;
+    isCheckFailded: boolean;
+    isUploading: boolean;
+    isUploadFailed: boolean;
+    uploadErrorMessage: string;
+    file: File | null;
+    content: string;
+    messageList: GrammarCheckModel['messageList'];
+    grammarCheck?: GrammarCheckModel;
+    realFilePath: string;
   }
 
   export const createFileData = (data = {} as Partial<IFileData>) => ({
@@ -106,6 +106,7 @@
     isCheckFailded: data.isCheckFailded === undefined,
     isUploading: data.isUploading || false,
     isUploadFailed: data.isUploadFailed || false,
+    uploadErrorMessage: data.uploadErrorMessage || '',
     file: data.file || null,
     content: data.content || '',
     messageList: data.messageList || [],
@@ -116,10 +117,8 @@
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
     modelValue: string,

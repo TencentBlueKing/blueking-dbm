@@ -30,8 +30,12 @@
             type="add" />
           <span>{{ t('添加文件') }}</span>
         </BkButton>
-        <span style="margin-left: 12px; font-size: 12px; color: #8a8f99;">
-          {{ t('仅支持_sql文件_文件名不能包含空格_上传后_SQL执行顺序默认为从上至下_可拖动文件位置_变换文件的执行顺序文件') }}
+        <span style="margin-left: 12px; font-size: 12px; color: #8a8f99">
+          {{
+            t(
+              '仅支持_sql文件_文件名不能包含空格_上传后_SQL执行顺序默认为从上至下_可拖动文件位置_变换文件的执行顺序文件',
+            )
+          }}
         </span>
       </div>
       <div
@@ -83,6 +87,8 @@
   import { grammarCheck } from '@services/source/sqlImport';
   import { getFileContent } from '@services/source/storage';
 
+  import { getSQLFilename } from '@utils';
+
   import { updateFilePath } from '../../../Index.vue';
   import Editor from '../editor/Index.vue';
 
@@ -104,8 +110,6 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
-
-  const getLocalFileNamefromUploadFileName = (uploadFileName: string) => uploadFileName.replace(/[^_]+_/, '');
 
   const { t } = useI18n();
 
@@ -161,7 +165,7 @@
       file_path: `${updateFilePath.value}/${fileName}`,
     })
       .then((data) => {
-        fileDataMap[getLocalFileNamefromUploadFileName(fileName)].content = data.content;
+        fileDataMap[getSQLFilename(fileName)].content = data.content;
         uploadFileDataMap.value = fileDataMap;
       })
       .finally(() => {
@@ -185,7 +189,7 @@
 
     props.modelValue.forEach((filePath: string) => {
       // 本地 SQL 文件上传后会拼接随机数前缀，需要解析正确的文件名
-      const localFileName = getLocalFileNamefromUploadFileName(filePath);
+      const localFileName = getSQLFilename(filePath);
       localFileNameList.push(localFileName);
       filePathMap[localFileName] = filePath;
     });
@@ -253,23 +257,41 @@
       return;
     }
     const fileNameList: Array<string> = [];
-    const fileDataMap = {} as Record<string, IFileData>;
+    const currentFileDataMap = {} as Record<string, IFileData>;
     const params = new FormData();
 
 
     Array.from(files).forEach((curFile) => {
-      params.append('sql_files', curFile);
       fileNameList.push(curFile.name);
-      fileDataMap[curFile.name] = createFileData({
+      currentFileDataMap[curFile.name] = createFileData({
         file: curFile,
         isUploading: true,
       });
+
+      // 上传文件大小限制 1GB (1024 * 1024 * 1024 = 1073741824)
+      if (curFile.size > 1073741824) {
+        currentFileDataMap[curFile.name] = {
+          ...currentFileDataMap[curFile.name],
+          realFilePath: '/',
+          isSuccess: true,
+          content: '--',
+          messageList: [],
+          isCheckFailded: true,
+          isUploadFailed: true,
+          isUploading: false,
+          uploadErrorMessage: t('文件上传失败——文件大小超过限制（最大为1GB）'),
+          grammarCheck: undefined,
+
+        };
+        return;
+      }
+      params.append('sql_files', curFile);
     });
 
     uploadFileNameList.value = _.uniq([...uploadFileNameList.value, ...fileNameList]);
     uploadFileDataMap.value = {
       ...uploadFileDataMap.value,
-      ...fileDataMap,
+      ...currentFileDataMap,
     };
 
     if (!selectFileName.value || !uploadFileDataMap.value[selectFileName.value]) {
@@ -294,7 +316,6 @@
           };
         });
         uploadFileDataMap.value = lastUploadFileDataMap;
-
         triggerChange();
       })
       .catch(() => {
