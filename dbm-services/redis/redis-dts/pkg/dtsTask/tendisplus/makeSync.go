@@ -719,12 +719,25 @@ func (task *MakeSyncTask) WatchSync() {
 	task.SetTaskType(constvar.TendisplusSendBulkTaskType)
 	task.UpdateRow()
 
+	retryTimes := 0
 	for {
+		if retryTimes > 6 {
+			// 如果连续重试多次获取redis-sync状态都是异常的，则认为失败,kill redis-sync,退出
+			task.RedisSyncStop()
+			task.Logger.Error(fmt.Sprintf("watch redis-sync fail,err:%v,retryTimes:%d", task.Err, retryTimes))
+			return
+		}
 		time.Sleep(10 * time.Second)
 		row01, err := tendisdb.GetTaskByID(task.RowData.ID, task.Logger)
 		if err != nil {
+			// 调用接口获取task row信息失败,不是redis-sync状态失败
+			// 不用kill redis-sync,直接返回即可
 			task.Err = err
-			return
+			retryTimes++
+			if retryTimes > 3 {
+				return
+			}
+			continue
 		}
 		task.RowData = row01
 		if task.RowData.KillSyncer == 1 ||
@@ -755,7 +768,8 @@ func (task *MakeSyncTask) WatchSync() {
 		}
 		syncInfoMap := task.RedisSyncInfo("")
 		if task.Err != nil {
-			return
+			retryTimes++
+			continue
 		}
 		redisIP := syncInfoMap["redis_ip"]
 		redisPort := syncInfoMap["redis_port"]
@@ -765,7 +779,8 @@ func (task *MakeSyncTask) WatchSync() {
 			task.SetMessage(task.Err.Error())
 			task.SetStatus(-1)
 			task.UpdateDbAndLogLocal(task.Err.Error())
-			return
+			retryTimes++
+			continue
 		}
 		syncState := syncInfoMap["sync_redis_state"]
 		if syncState != constvar.SyncOnlineState {
@@ -773,7 +788,7 @@ func (task *MakeSyncTask) WatchSync() {
 				"127.0.0.1", task.RowData.SyncerPort, syncState, constvar.SyncOnlineState)
 			task.SetStatus(-1)
 			task.UpdateDbAndLogLocal(task.Err.Error())
-			// return
+			retryTimes++
 			continue
 		}
 		infoRepl, err := tenSlaveCli.TendisplusInfoRepl()
@@ -781,14 +796,16 @@ func (task *MakeSyncTask) WatchSync() {
 			task.Err = err
 			task.SetStatus(-1)
 			task.UpdateDbAndLogLocal(task.Err.Error())
-			return
+			retryTimes++
+			continue
 		}
 		if len(infoRepl.RocksdbSlaveList) == 0 {
 			task.Err = fmt.Errorf("tendisplus slave(%s) 'info replication' not found rocksdb slaves",
 				task.GetSrcRedisAddr())
 			task.SetStatus(-1)
 			task.UpdateDbAndLogLocal(task.Err.Error())
-			return
+			retryTimes++
+			continue
 		}
 		var myRockSlave *myredis.InfoReplRocksdbSlave = nil
 		for _, slave01 := range infoRepl.RocksdbSlaveList {
@@ -803,7 +820,8 @@ func (task *MakeSyncTask) WatchSync() {
 			task.SetStatus(-1)
 			task.UpdateDbAndLogLocal(task.Err.Error())
 			task.Logger.Info(infoRepl.String())
-			return
+			retryTimes++
+			continue
 		}
 		if myRockSlave.State != constvar.TendisplusReplSendbulk &&
 			myRockSlave.State != constvar.TendisplusReplOnline {
@@ -812,7 +830,8 @@ func (task *MakeSyncTask) WatchSync() {
 				constvar.TendisplusReplSendbulk, constvar.TendisplusReplOnline)
 			task.SetStatus(-1)
 			task.UpdateDbAndLogLocal(task.Err.Error())
-			return
+			retryTimes++
+			continue
 		}
 		task.SetStatus(1)
 		if myRockSlave.State == constvar.TendisplusReplSendbulk {
@@ -822,5 +841,6 @@ func (task *MakeSyncTask) WatchSync() {
 			task.SetTaskType(constvar.TendisplusSendIncrTaskType)
 			task.UpdateDbAndLogLocal("增量同步中,binlog_pos:%d,lag:%d", myRockSlave.BinlogPos, myRockSlave.Lag)
 		}
+		retryTimes = 0
 	}
 }

@@ -34,7 +34,7 @@ type RedisInstallParams struct {
 	Databases        int                    `json:"databases" validate:"required"`
 	RedisConfConfigs map[string]string      `json:"redis_conf_configs" validate:"required"`
 	DbType           string                 `json:"db_type" validate:"required"`
-	MaxMemory        uint64                 `json:"maxmemory" validate:"required"`
+	MaxMemory        uint64                 `json:"maxmemory"`
 }
 
 // RedisInstall redis install atomjob
