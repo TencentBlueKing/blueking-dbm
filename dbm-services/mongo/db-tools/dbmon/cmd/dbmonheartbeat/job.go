@@ -70,7 +70,7 @@ func SendHeartBeat(conf *config.BkMonitorBeatConfig, serverConf *config.ConfServ
 		SetInstanceRole(serverConf.MetaRole).
 		SendTimeSeriesMsg(conf.MetricConfig.DataID,
 			conf.MetricConfig.Token,
-			serverConf.ServerIP,
+			serverConf.IP,
 			MongoDbmonHeartBeatMetricName,
 			1)
 

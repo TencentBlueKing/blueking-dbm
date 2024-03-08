@@ -32,6 +32,7 @@ var user string
 var group string
 var printParamJson string
 var listJob bool
+var debugPs bool
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -110,6 +111,15 @@ var debugCmd = &cobra.Command{
 				}
 			}
 			os.Exit(0)
+		} else if debugPs {
+			if p, err := util.ListProcess(); err != nil {
+				fmt.Printf("err %s\n", err.Error())
+			} else {
+				for _, r := range p {
+					fmt.Printf("%+v\n", r)
+				}
+			}
+			os.Exit(0)
 		} else if printParamJson != "" {
 			doPrintParamJson()
 		} else {
@@ -144,6 +154,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&group, "group", "g", "", "开启进程的os用户属主")
 	debugCmd.PersistentFlags().StringVarP(&printParamJson, "param", "P", "", "print atom job param")
 	debugCmd.PersistentFlags().BoolVarP(&listJob, "list", "L", false, "list atom jobs")
+	debugCmd.PersistentFlags().BoolVarP(&debugPs, "ps", "S", false, "list process")
 
 	RootCmd.AddCommand(debugCmd)
 

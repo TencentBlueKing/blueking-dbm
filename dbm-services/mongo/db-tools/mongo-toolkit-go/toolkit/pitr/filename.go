@@ -129,7 +129,7 @@ func MakeFileNameV1(connInfo *mymongo.MongoHost, backupType string, startTime, e
 	}
 	// firstTs lastTs 最初由parseTs产生，不会为nil
 	if backupType == BackupTypeFull {
-		// 一致性时间点为 备份结束时间
+		// 一致性时间点为备份结束时间
 		if lastTs.Sec == 0 {
 			lastTs.Sec = uint32(endTime.Unix())
 		}

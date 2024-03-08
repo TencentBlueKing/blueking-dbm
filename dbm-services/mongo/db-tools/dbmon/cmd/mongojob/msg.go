@@ -70,7 +70,7 @@ func SendEvent(conf *config.BkMonitorBeatConfig, serverConf *config.ConfServerIt
 			SetInstanceRole(serverConf.MetaRole).SendEventMsg(
 			conf.EventConfig.DataID,
 			conf.EventConfig.Token,
-			eventName, warnMsg, warnLevel, serverConf.ServerIP)
+			eventName, warnMsg, warnLevel, serverConf.IP)
 	}
 
 	if err != nil {
