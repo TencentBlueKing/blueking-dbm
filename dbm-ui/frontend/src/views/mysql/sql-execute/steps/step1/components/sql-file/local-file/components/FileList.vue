@@ -14,15 +14,9 @@
 <template>
   <div class="sql-execute-sql-file-list">
     <div class="file-list-title">
-<<<<<<< HEAD
       <span>{{ t('文件列表') }}</span>
-      <span style="font-size: 12px; font-weight: normal;color: #979ba5;">
-        {{ t('按顺序执行') }}
-=======
-      <span>{{ $t('文件列表') }}</span>
       <span style="font-size: 12px; font-weight: normal; color: #979ba5">
-        {{ $t('按顺序执行') }}
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
+        {{ t('按顺序执行') }}
       </span>
     </div>
     <div class="file-list">
@@ -99,10 +93,7 @@
     isCheckFailded: boolean;
     isUploading: boolean;
     isUploadFailed: boolean;
-<<<<<<< HEAD
     uploadErrorMessage: string;
-=======
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     file: File | null;
     content: string;
     messageList: GrammarCheckModel['messageList'];
@@ -126,10 +117,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { ref, watch } from 'vue';
-<<<<<<< HEAD
   import { useI18n } from 'vue-i18n';
-=======
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
   interface Props {
     modelValue: string;
@@ -147,11 +135,8 @@
 
   const emits = defineEmits<Emits>();
 
-<<<<<<< HEAD
   const { t } = useI18n();
 
-=======
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
   const localList = ref<Array<Record<'id' | 'name', string>>>([]);
 
   watch(

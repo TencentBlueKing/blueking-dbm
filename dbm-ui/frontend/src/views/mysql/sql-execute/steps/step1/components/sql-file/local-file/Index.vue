@@ -18,13 +18,8 @@
     required
     :rules="rules">
     <template #labelAppend>
-<<<<<<< HEAD
-      <span style="font-size: 12px; font-weight: normal; color: #8a8f99;">
-        （{{ t('最终执行结果以SQL文件内容为准') }}）
-=======
       <span style="font-size: 12px; font-weight: normal; color: #8a8f99">
-        （{{ $t('最终执行结果以SQL文件内容为准') }}）
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
+        （{{ t('最终执行结果以SQL文件内容为准') }}）
       </span>
     </template>
     <div class="sql-execute-local-file">
@@ -35,17 +30,12 @@
             type="add" />
           <span>{{ t('添加文件') }}</span>
         </BkButton>
-<<<<<<< HEAD
-        <span style="margin-left: 12px; font-size: 12px; color: #8a8f99;">
-          {{ t('仅支持_sql文件_文件名不能包含空格_上传后_SQL执行顺序默认为从上至下_可拖动文件位置_变换文件的执行顺序文件') }}
-=======
         <span style="margin-left: 12px; font-size: 12px; color: #8a8f99">
           {{
-            $t(
+            t(
               '仅支持_sql文件_文件名不能包含空格_上传后_SQL执行顺序默认为从上至下_可拖动文件位置_变换文件的执行顺序文件',
             )
           }}
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
         </span>
       </div>
       <div

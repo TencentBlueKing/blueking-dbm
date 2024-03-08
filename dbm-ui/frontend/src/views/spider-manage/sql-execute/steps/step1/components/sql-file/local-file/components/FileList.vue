@@ -93,10 +93,7 @@
     isCheckFailded: boolean;
     isUploading: boolean;
     isUploadFailed: boolean;
-<<<<<<< HEAD
     uploadErrorMessage: string;
-=======
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     file: File | null;
     content: string;
     messageList: GrammarCheckModel['messageList'];
@@ -120,10 +117,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { ref, watch } from 'vue';
-<<<<<<< HEAD
   import { useI18n } from 'vue-i18n';
-=======
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
   interface Props {
     modelValue: string;
