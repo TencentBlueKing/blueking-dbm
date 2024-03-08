@@ -32,7 +32,7 @@
         </BkButton>
         <span style="margin-left: 12px; font-size: 12px; color: #8a8f99">
           {{
-            t(
+            $t(
               '仅支持_sql文件_文件名不能包含空格_上传后_SQL执行顺序默认为从上至下_可拖动文件位置_变换文件的执行顺序文件',
             )
           }}
