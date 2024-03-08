@@ -8,9 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
+from typing import Dict, List
+
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
@@ -71,14 +75,26 @@ class MongoDBScaleUpDownResourceParamBuilder(BaseMongoDBOperateResourceParamBuil
 
     def post_callback(self):
         with self.next_flow_manager() as next_flow:
+            cluster_ids = [info["cluster_id"] for info in next_flow.details["ticket_data"]["infos"]]
+            id__cluster = Cluster.objects.filter(id__in=cluster_ids)
+
+            mongo_type__apply_infos: Dict[str, List] = defaultdict(list)
             for info in next_flow.details["ticket_data"]["infos"]:
                 # 格式化mongodb节点信息和machine_specs规格信息
                 self.format_mongo_node_infos(info)
                 info["machine_specs"] = self.format_machine_specs(info["resource_spec"])
+                # 补充集群信息
+                cluster = id__cluster[info["cluster_id"]]
+                info["db_version"] = cluster.major_version
+                info["disaster_tolerance_level"] = cluster.disaster_tolerance_level
+                # 根据mongo集群类型归类
+                mongo_type__apply_infos[cluster.cluster_type].append(info)
+
+            next_flow.details["ticket_data"]["infos"] = mongo_type__apply_infos
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_SCALE_UPDOWN, is_apply=True)
-class MongoDBAddMongosApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+class MongoDBScaleUpDownFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBScaleUpDownDetailSerializer
     inner_flow_builder = MongoDBScaleUpDownFlowParamBuilder
     inner_flow_name = _("MongoDB 集群容量变更执行")
