@@ -15,7 +15,7 @@
   <div class="sql-execute-sql-file-list">
     <div class="file-list-title">
       <span>{{ t('文件列表') }}</span>
-      <span style="font-size: 12px; font-weight: normal; color: #979ba5">
+      <span style="font-size: 12px; font-weight: normal;color: #979ba5;">
         {{ t('按顺序执行') }}
       </span>
     </div>
