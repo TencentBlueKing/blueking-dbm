@@ -20,6 +20,8 @@ export type RedisFunctions =
   | 'PredixyTendisplusCluster'
   | 'TwemproxyRedisInstance'
   | 'TwemproxyTendisSSDInstance'
+  | 'PredixyRedisCluster'
+  | 'RedisInstance'
   | 'toolbox';
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
@@ -50,7 +52,7 @@ interface ControllerData {
   bigdata: ControllerItem<BigdataFunctions>;
   monitor: ControllerItem<MonitorFunctions>;
   mongodb: ControllerItem<MongoFunctions>;
-  sqlserver: ControllerItem<SqlServerFunctions>
+  sqlserver: ControllerItem<SqlServerFunctions>;
 }
 
 export type ExtractedControllerDataKeys = Extract<keyof ControllerData, string>;
