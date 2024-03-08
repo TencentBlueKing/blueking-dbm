@@ -146,6 +146,32 @@
       ],
     },
     {
+      moduleId: 'redis',
+      label: 'RedisCluster',
+      name: ClusterTypes.PREDIXY_REDIS_CLUSTER,
+      children: [
+        {
+          label: t('后端存储机型'),
+          name: 'tendiscache',
+        },
+        {
+          label: t('Proxy机型'),
+          name: 'predixy',
+        },
+      ],
+    },
+    {
+      moduleId: 'redis',
+      label: t('Redis主从'),
+      name: ClusterTypes.REDIS_INSTANCE,
+      children: [
+        {
+          label: t('后端存储机型'),
+          name: 'tendiscache',
+        },
+      ],
+    },
+    {
       moduleId: 'bigdata',
       label: 'ES',
       name: ClusterTypes.ES,
