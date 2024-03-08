@@ -61,12 +61,12 @@ class _PartitionApi(BaseApi):
         )
         self.enable_partition_cluster = self.generate_data_api(
             method="POST",
-            url="partition/disable_partition",
+            url="partition/enable_partition_cluster",
             description=_("禁用分区"),
         )
         self.disable_partition_cluster = self.generate_data_api(
             method="POST",
-            url="partition/disable_partition",
+            url="partition/disable_partition_cluster",
             description=_("禁用分区"),
         )
         self.query_log = self.generate_data_api(
