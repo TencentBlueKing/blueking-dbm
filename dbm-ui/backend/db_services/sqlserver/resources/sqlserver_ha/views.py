@@ -51,6 +51,14 @@ from backend.iam_app.dataclass.actions import ActionEnum
     ),
 )
 @method_decorator(
+    name="list_machines",
+    decorator=common_swagger_auto_schema(
+        query_serializer=serializers.ListMachineSLZ(),
+        responses={status.HTTP_200_OK: yasg_slz.PaginatedMachineResourceSLZ()},
+        tags=[constants.RESOURCE_TAG],
+    ),
+)
+@method_decorator(
     name="get_table_fields",
     decorator=common_swagger_auto_schema(
         responses={status.HTTP_200_OK: yasg_slz.ResourceFieldSLZ()},
