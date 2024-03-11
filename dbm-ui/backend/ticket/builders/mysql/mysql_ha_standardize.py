@@ -29,6 +29,7 @@ class TenDBHAStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
     infos = HAStandardizeDetailSerializer(help_text=_("标准化信息"))
 
     def validate(self, attrs):
+        self.__validate_clusters(attrs=attrs)
         return attrs
 
     def __validate_clusters(self, attrs):

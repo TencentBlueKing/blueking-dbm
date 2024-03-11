@@ -322,3 +322,8 @@ class MySQLHAImportMetadataContext:
 @dataclass()
 class TenDBClusterImportMetadataContext:
     cluster_ids: List = None
+
+
+@dataclass()
+class TenDBSingleImportMetadataContext:
+    cluster_ids: List = None
