@@ -37,7 +37,9 @@ class RedisOpenFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_OPEN, phase=ClusterPhase.ONLINE, iam=ActionEnum.REDIS_OPEN_CLOSE)
+@builders.BuilderFactory.register(
+    TicketType.REDIS_PROXY_OPEN, phase=ClusterPhase.ONLINE, iam=ActionEnum.REDIS_OPEN_CLOSE
+)
 class RedisOpenFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisOpenDetailSerializer
     inner_flow_builder = RedisOpenFlowParamBuilder

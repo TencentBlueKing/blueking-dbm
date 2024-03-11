@@ -262,8 +262,8 @@ class TicketType(str, StructuredEnum):
     REDIS_KEYS_EXTRACT = TicketEnumField("REDIS_KEYS_EXTRACT", _("Redis 提取 Key"), _("集群管理"))
     REDIS_KEYS_DELETE = TicketEnumField("REDIS_KEYS_DELETE", _("Redis 删除 key"), _("集群管理"))
     REDIS_BACKUP = TicketEnumField("REDIS_BACKUP", _("Redis 集群备份"), _("集群管理"))
-    REDIS_OPEN = TicketEnumField("REDIS_OPEN", _("Redis 集群启用"), register_iam=False)
-    REDIS_CLOSE = TicketEnumField("REDIS_CLOSE", _("Redis 集群禁用"), register_iam=False)
+    REDIS_PROXY_OPEN = TicketEnumField("REDIS_PROXY_OPEN", _("Redis 集群启用"), register_iam=False)
+    REDIS_PROXY_CLOSE = TicketEnumField("REDIS_PROXY_CLOSE", _("Redis 集群禁用"), register_iam=False)
     REDIS_DESTROY = TicketEnumField("REDIS_DESTROY", _("Redis 集群删除"), _("集群管理"))
     REDIS_PURGE = TicketEnumField("REDIS_PURGE", _("Redis 集群清档"), _("集群管理"))
 

@@ -1330,7 +1330,7 @@ class NewDstClusterCloseJobAndWatchStatus(BaseService):
             "uid": global_data["uid"],
             "bk_biz_id": global_data["bk_biz_id"],
             "created_by": global_data["created_by"],
-            "ticket_type": TicketType.REDIS_CLOSE.value,
+            "ticket_type": TicketType.REDIS_PROXY_CLOSE.value,
             "cluster_id": job_row.dst_cluster_id,
             "force": False,
         }

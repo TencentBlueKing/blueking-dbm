@@ -40,7 +40,9 @@ class RedisCloseFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLOSE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.REDIS_OPEN_CLOSE)
+@builders.BuilderFactory.register(
+    TicketType.REDIS_PROXY_CLOSE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.REDIS_OPEN_CLOSE
+)
 class RedisCloseFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisCloseDetailSerializer
     inner_flow_builder = RedisCloseFlowParamBuilder
