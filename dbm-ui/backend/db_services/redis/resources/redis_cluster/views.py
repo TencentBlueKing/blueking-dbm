@@ -79,6 +79,14 @@ from .query import ListRetrieveResource
     ),
 )
 @method_decorator(
+    name="list_machines",
+    decorator=common_swagger_auto_schema(
+        query_serializer=serializers.ListMachineSLZ(),
+        responses={status.HTTP_200_OK: yasg_slz.PaginatedMachineResourceSLZ()},
+        tags=[constants.RESOURCE_TAG],
+    ),
+)
+@method_decorator(
     name="get_nodes",
     decorator=common_swagger_auto_schema(
         operation_summary=_("获取集群节点"),

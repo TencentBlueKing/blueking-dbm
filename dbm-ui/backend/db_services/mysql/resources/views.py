@@ -19,11 +19,11 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.db_module import DBModule
-from backend.db_services.dbbase.resources import constants
 from backend.db_services.dbbase.resources.constants import ResourceNodeType
 from backend.db_services.dbbase.resources.serializers import SearchResourceTreeSLZ
 from backend.db_services.dbbase.resources.views import BaseListResourceViewSet
 from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
+from backend.db_services.mysql.resources import constants
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 

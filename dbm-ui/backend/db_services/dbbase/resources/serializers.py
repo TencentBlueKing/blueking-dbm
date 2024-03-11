@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 
@@ -103,3 +103,14 @@ class RetrieveInstancesSerializer(InstanceAddressSerializer):
 class ListNodesSLZ(serializers.Serializer):
     role = serializers.CharField(help_text=_("角色"))
     keyword = serializers.CharField(help_text=_("关键字过滤"), required=False, allow_blank=True)
+
+
+class ListMachineSLZ(serializers.Serializer):
+    bk_host_id = serializers.IntegerField(help_text=_("主机ID"), required=False)
+    ip = serializers.CharField(help_text=_("IP(多个IP过滤以逗号分隔)"), required=False)
+    machine_type = serializers.ChoiceField(help_text=_("机器类型"), choices=MachineType.get_choices(), required=False)
+    bk_os_name = serializers.CharField(help_text=_("os名字"), required=False)
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=False)
+    bk_agent_id = serializers.CharField(help_text=_("agent id"), required=False)
+    instance_role = serializers.CharField(help_text=_("机器部署的实例角色"), required=False)
+    creator = serializers.CharField(help_text=_("创建者"), required=False)

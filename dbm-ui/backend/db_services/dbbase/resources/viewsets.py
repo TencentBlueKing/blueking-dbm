@@ -8,15 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from functools import wraps
-from typing import Callable
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.viewsets import SystemViewSet
-from backend.iam_app.dataclass import ResourceEnum
-from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission
 from backend.iam_app.handlers.permission import Permission
@@ -24,33 +20,6 @@ from backend.iam_app.handlers.permission import Permission
 from . import serializers
 from .pagination import ResourceLimitOffsetPagination
 from .query import ListRetrieveResource
-
-
-def decorator_cluster_instance_permission_field(
-    id_field: Callable = lambda item: item["id"],
-    data_field: Callable = lambda data_list: data_list,
-    always_allowed: Callable = lambda item: False,
-    many: bool = True,
-):
-    def wrapper(view_func):
-        @wraps(view_func)
-        def wrapped_view(*args, **kwargs):
-            db_type = args[0].db_type.upper()
-
-            response = view_func(*args, **kwargs)
-            if not getattr(ActionEnum, f"{db_type}_VIEW", None):
-                return response
-
-            # 默认实例鉴权只有集群详情动作
-            actions = [getattr(ActionEnum, f"{db_type}_VIEW")]
-            resource_meta = getattr(ResourceEnum, db_type)
-            return Permission.insert_permission_field(
-                response, actions, resource_meta, id_field, data_field, always_allowed, many
-            )
-
-        return wrapped_view
-
-    return wrapper
 
 
 class ResourceViewSet(SystemViewSet):
@@ -69,6 +38,8 @@ class ResourceViewSet(SystemViewSet):
     list_instances_slz = serializers.ListInstancesSerializer
     # 实例详情serializer
     retrieve_instances_slz = serializers.RetrieveInstancesSerializer
+    # 机器列表serializer
+    list_machine_slz = serializers.ListMachineSLZ
     # 分页
     pagination_class = ResourceLimitOffsetPagination
 
@@ -133,6 +104,13 @@ class ResourceViewSet(SystemViewSet):
                 bk_biz_id, query_params.get("cluster_id"), query_params["ip"], query_params["port"]
             )
         )
+
+    @action(methods=["GET"], detail=False, url_path="list_machines")
+    def list_machines(self, request, bk_biz_id: int):
+        """查询机器列表"""
+        query_params = self.params_validate(self.retrieve_instances_slz)
+        data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_machines, query_params)
+        return self.get_paginated_response(data)
 
     @action(methods=["GET"], detail=False, url_path="get_table_fields")
     def get_table_fields(self, request, bk_biz_id):
