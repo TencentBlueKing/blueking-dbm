@@ -19,7 +19,11 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, TDBCTL_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow, init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
+    check_sub_flow,
+    init_machine_sub_flow,
+    update_machine_system_info_flow,
+)
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
@@ -383,6 +387,7 @@ def build_apps_for_spider_sub_flow(
     root_id: str,
     parent_global_data: dict,
     spider_role: TenDBClusterSpiderRole,
+    collect_sysinfo: False,
 ):
     """
     定义为spider机器部署周边组件的子流程
@@ -393,6 +398,7 @@ def build_apps_for_spider_sub_flow(
     @param spider_role: 这批spider的角色
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
+    spider_ips = list(filter(None, list(set(spiders))))
 
     sub_pipeline.add_act(
         act_name=_("下发Spider周边程序介质"),
@@ -400,13 +406,23 @@ def build_apps_for_spider_sub_flow(
         kwargs=asdict(
             DownloadMediaKwargs(
                 bk_cloud_id=bk_cloud_id,
-                exec_ip=list(filter(None, list(set(spiders)))),
+                exec_ip=spider_ips,
                 file_list=GetFileList(db_type=DBType.MySQL).get_spider_apps_package(),
             )
         ),
     )
 
     acts_list = []
+    # 是否采集系统信息
+    if collect_sysinfo:
+        acts_list.append(
+            update_machine_system_info_flow(
+                root_id=root_id,
+                bk_cloud_id=bk_cloud_id,
+                parent_global_data=parent_global_data,
+                ip_list=spider_ips,
+            )
+        )
     if isinstance(spiders, list) and len(spiders) != 0:
         for spider_ip in list(set(spiders)):
             acts_list.append(

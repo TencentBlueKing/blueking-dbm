@@ -343,6 +343,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(self.data),
                     is_init=True,
+                    collect_sysinfo=True,
                     cluster_type=ClusterType.TenDBHA.value,
                 )
             )
@@ -358,6 +359,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(self.data),
                     is_init=True,
+                    collect_sysinfo=True,
                     cluster_type=ClusterType.TenDBHA.value,
                 )
             )

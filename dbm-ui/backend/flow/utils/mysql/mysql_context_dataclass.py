@@ -37,6 +37,7 @@ class SingleApplyManualContext:
     """
 
     time_zone_info: dict = field(default_factory=dict)  # 新机器的时区设置信息
+    system_info: dict = field(default_factory=dict)
 
     @staticmethod
     def get_time_zone_var_name() -> str:
@@ -61,6 +62,7 @@ class ClusterInfoContext:
     slave_backup_file: dict = None
     show_master_status_info: dict = field(default_factory=dict)
     max_open_file: dict = field(default_factory=dict)
+    system_info: dict = field(default_factory=dict)
 
     @staticmethod
     def get_sync_info_var_name() -> str:
@@ -135,6 +137,7 @@ class HaApplyManualContext:
 
     master_ip_sync_info: dict = field(default_factory=dict)  # 代表获取到master的主从复制位点信息
     time_zone_info: dict = field(default_factory=dict)  # 新机器的时区设置信息
+    system_info: dict = field(default_factory=dict)
 
     @staticmethod
     def get_time_zone_var_name() -> str:
@@ -257,6 +260,7 @@ class SpiderApplyManualContext:
 
     master_ip_sync_info: dict = field(default_factory=dict)  # 代表获取到master的主从复制位点信息
     time_zone_info: dict = field(default_factory=dict)  # 新机器的时区设置信息
+    system_info: dict = field(default_factory=dict)
 
     @staticmethod
     def get_time_zone_var_name() -> str:

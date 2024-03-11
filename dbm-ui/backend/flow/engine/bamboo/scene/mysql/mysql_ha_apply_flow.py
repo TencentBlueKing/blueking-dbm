@@ -302,6 +302,7 @@ class MySQLHAApplyFlow(object):
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(sub_flow_context),
                     is_init=True,
+                    collect_sysinfo=True,
                     cluster_type=ClusterType.TenDBHA.value,
                 )
             )

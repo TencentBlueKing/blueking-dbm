@@ -19,7 +19,7 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS
+from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
@@ -29,6 +29,7 @@ from backend.flow.plugins.components.collections.common.install_nodeman_plugin i
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
     GetOsSysParamComponent,
     MySQLOsInitComponent,
@@ -39,6 +40,7 @@ from backend.flow.plugins.components.collections.mysql.verify_checksum import Ve
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
+    DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     InitCheckKwargs,
@@ -46,6 +48,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     YumInstallPerlKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
 """
 定义一些mysql流程上可能会用到的子流程，以便于减少代码的重复率
@@ -63,6 +66,7 @@ def build_surrounding_apps_sub_flow(
     proxy_ip_list: list = None,
     is_install_backup: bool = True,
     is_install_monitor: bool = True,
+    collect_sysinfo: bool = False,
 ):
     """
     定义重建备、数据检验程序、rotate_binlog程序等组件的子流程，面向整机操作
@@ -105,6 +109,74 @@ def build_surrounding_apps_sub_flow(
             ),
         )
 
+    acts_list = []
+    # 是否采集系统信息
+    if collect_sysinfo:
+        acts_list.append(
+            update_machine_system_info_flow(
+                root_id=root_id,
+                bk_cloud_id=bk_cloud_id,
+                parent_global_data=parent_global_data,
+                ip_list=master_ip_list[:] + slave_ip_list[:] + proxy_ip_list[:],
+            )
+        )
+    acts_list.extend(
+        build_surrounding_apps_for_master(
+            bk_cloud_id=bk_cloud_id,
+            cluster_type=cluster_type,
+            master_ip_list=master_ip_list,
+            is_init=is_init,
+            is_install_backup=is_install_backup,
+            is_install_monitor=is_install_monitor,
+        )
+    )
+    acts_list.extend(
+        build_surrounding_apps_for_slave(
+            bk_cloud_id=bk_cloud_id,
+            cluster_type=cluster_type,
+            slave_ip_list=slave_ip_list,
+            is_init=is_init,
+            is_install_backup=is_install_backup,
+            is_install_monitor=is_install_monitor,
+        )
+    )
+    acts_list.extend(
+        build_surrounding_apps_for_proxy(
+            bk_cloud_id=bk_cloud_id,
+            cluster_type=cluster_type,
+            proxy_ip_list=proxy_ip_list,
+        )
+    )
+
+    if is_init:
+        # 如果非重建模式（上架阶段）， 不需要重建安装backup-client工具,默认情况下部署时 proxy+mysql机器都会安装
+        acts_list.append(
+            {
+                "act_name": _("安装backup-client工具"),
+                "act_component_code": DownloadBackupClientComponent.code,
+                "kwargs": asdict(
+                    DownloadBackupClientKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        bk_biz_id=int(parent_global_data["bk_biz_id"]),
+                        download_host_list=list(
+                            filter(None, list(set(master_ip_list + slave_ip_list + proxy_ip_list)))
+                        ),
+                    )
+                ),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    return sub_pipeline.build_sub_process(sub_name=_("安装MySql周边程序"))
+
+
+def build_surrounding_apps_for_master(
+    bk_cloud_id: int,
+    cluster_type: Optional[ClusterType],
+    master_ip_list: list = None,
+    is_init: bool = False,
+    is_install_backup: bool = True,
+    is_install_monitor: bool = True,
+):
     acts_list = []
     if isinstance(master_ip_list, list) and len(master_ip_list) != 0:
         for master_ip in list(set(master_ip_list)):
@@ -191,7 +263,18 @@ def build_surrounding_apps_sub_flow(
                         ),
                     }
                 )
+    return acts_list
 
+
+def build_surrounding_apps_for_slave(
+    bk_cloud_id: int,
+    cluster_type: Optional[ClusterType],
+    slave_ip_list: list = None,
+    is_init: bool = False,
+    is_install_backup: bool = True,
+    is_install_monitor: bool = True,
+):
+    acts_list = []
     if isinstance(slave_ip_list, list) and len(slave_ip_list) != 0:
         for slave_ip in list(set(slave_ip_list)):
             acts_list.append(
@@ -277,7 +360,15 @@ def build_surrounding_apps_sub_flow(
                         ),
                     }
                 )
+    return acts_list
 
+
+def build_surrounding_apps_for_proxy(
+    bk_cloud_id: int,
+    cluster_type: Optional[ClusterType],
+    proxy_ip_list: list = None,
+):
+    acts_list = []
     if isinstance(proxy_ip_list, list) and len(proxy_ip_list) != 0:
         for proxy_ip in proxy_ip_list:
             acts_list.append(
@@ -295,27 +386,7 @@ def build_surrounding_apps_sub_flow(
                     ),
                 }
             )
-
-    if is_init:
-        # 如果非重建模式（上架阶段）， 不需要重建安装backup-client工具,默认情况下部署时 proxy+mysql机器都会安装
-        acts_list.append(
-            {
-                "act_name": _("安装backup-client工具"),
-                "act_component_code": DownloadBackupClientComponent.code,
-                "kwargs": asdict(
-                    DownloadBackupClientKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        bk_biz_id=int(parent_global_data["bk_biz_id"]),
-                        download_host_list=list(
-                            filter(None, list(set(master_ip_list + slave_ip_list + proxy_ip_list)))
-                        ),
-                    )
-                ),
-            }
-        )
-
-    sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    return sub_pipeline.build_sub_process(sub_name=_("安装MySql周边程序"))
+    return acts_list
 
 
 def build_repl_by_manual_input_sub_flow(
@@ -636,3 +707,39 @@ def init_machine_sub_flow(
             ),
         )
     return sub_pipeline.build_sub_process(sub_name=_("机器初始化"))
+
+
+def update_machine_system_info_flow(
+    root_id: str,
+    parent_global_data: dict,
+    bk_cloud_id: int,
+    ip_list: list = None,
+):
+    """
+    采集机器系统信息
+    """
+    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
+    sub_pipeline.add_act(
+        act_name=_("获取机器系统信息"),
+        act_component_code=GetOsSysParamComponent.code,
+        kwargs=asdict(
+            ExecActuatorKwargs(
+                bk_cloud_id=bk_cloud_id,
+                exec_ip=ip_list,
+                write_op=WriteContextOpType.APPEND.value,
+            )
+        ),
+    )
+    cluster = {"ip_list": ip_list, "bk_cloud_id": bk_cloud_id}
+    sub_pipeline.add_act(
+        act_name=_("更新主机system info"),
+        act_component_code=MySQLDBMetaComponent.code,
+        kwargs=asdict(
+            DBMetaOPKwargs(
+                db_meta_class_func=MySQLDBMeta.update_machine_system_info.__name__,
+                cluster=cluster,
+                is_update_trans_data=True,
+            )
+        ),
+    )
+    return sub_pipeline.build_sub_process(sub_name=_("获取机器系统信息"))

@@ -83,7 +83,6 @@ def create(
         bk_idc_city_id = inf.get("idc_city_id") or 0
 
         bk_city_obj = BKCity.objects.get(pk=bk_idc_city_id)
-
         machine_type = machine["machine_type"]
         spec_id = machine.get("spec_id", 0)
         spec_config = machine.get("spec_config", {})
@@ -127,3 +126,15 @@ def delete(machines: Optional[List], bk_cloud_id: int):
     bk_host_ids = list(machines.values_list("bk_host_id", flat=True))
     machines.delete()
     CcManage(bk_biz_id, DBType.MySQL.value).recycle_host(bk_host_ids)
+
+
+@transaction.atomic
+def update_system_info(bk_cloud_id: int, machines: Optional[List] = None):
+    """
+    更新主机 system info
+    """
+    for machine in machines:
+        if machine.get("system_info"):
+            Machine.objects.filter(ip=machine["ip"], bk_cloud_id=bk_cloud_id).update(
+                system_info=machine["system_info"]
+            )
