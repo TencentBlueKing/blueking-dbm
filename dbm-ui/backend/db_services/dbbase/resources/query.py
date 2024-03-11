@@ -22,6 +22,7 @@ from backend.db_meta.enums import ClusterEntryType, ClusterType
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import AppCache, Cluster, ClusterEntry, DBModule, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
+from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.utils.dns_manage import DnsManage
 from backend.ticket.models import ClusterOperateRecord
@@ -295,6 +296,26 @@ class BaseListRetrieveResource(CommonQueryResourceMixin):
         cluster = Cluster.objects.filter(id=cluster_id).last()
         instance["db_version"] = getattr(cluster, "major_version", None)
         return instance
+
+    @classmethod
+    def list_machines(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> ResourceList:
+        """查询机器列表"""
+        resource_list = cls._list_machines(bk_biz_id, query_params, limit, offset)
+        return resource_list
+
+    @classmethod
+    @abc.abstractmethod
+    def _list_machines(
+        cls,
+        bk_biz_id: int,
+        query_params: Dict,
+        limit: int,
+        offset: int,
+        filter_params_map: Dict[str, Q] = None,
+        **kwargs,
+    ) -> ResourceList:
+        """查询机器列表. 具体方法在子类中实现"""
+        raise NotImplementedError
 
     @classmethod
     @abc.abstractmethod
@@ -633,3 +654,128 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "create_at": datetime2str(instance["create_at"]),
             "spec_config": instance["machine__spec_config"],
         }
+
+    @classmethod
+    def _list_machines(
+        cls,
+        bk_biz_id: int,
+        query_params: Dict,
+        limit: int,
+        offset: int,
+        filter_params_map: Dict[str, Q] = None,
+        **kwargs,
+    ) -> ResourceList:
+        """
+        查询机器信息
+        @param bk_biz_id: 业务 ID
+        @param query_params: 查询条件. 通过 .serializers.ListResourceSLZ 完成数据校验
+        @param limit: 分页查询, 每页展示的数目
+        @param offset: 分页查询, 当前页的偏移数
+        @param filter_params_map: 过滤参数map
+        """
+        query_filters = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        # 定义内置的过滤参数map
+        filter_params_map = filter_params_map or {}
+        inner_filter_params_map = {
+            "bk_host_id": Q(bk_host_id=query_params.get("bk_host_id")),
+            "ip": Q(ip__in=query_params.get("ip", "").split(",")),
+            "machine_type": Q(machine_type=query_params.get("machine_type")),
+            "bk_os_name": Q(bk_os_name=query_params.get("bk_os_name")),
+            "bk_cloud_id": Q(region=query_params.get("bk_cloud_id")),
+            "bk_agent_id": Q(bk_agent_id=query_params.get("bk_agent_id")),
+            "instance_role": (
+                Q(storageinstance__instance_role=query_params.get("instance_role"))
+                | Q(proxyinstance__acces_layer=query_params.get("instance_role"))
+            ),
+            "creator": Q(creator__icontains=query_params.get("creator")),
+        }
+        filter_params_map = {**inner_filter_params_map, **filter_params_map}
+
+        # 通过基础过滤参数进行cluster过滤
+        for param in filter_params_map:
+            if query_params.get(param):
+                query_filters &= filter_params_map[param]
+
+        machine_queryset = Machine.objects.filter(query_filters)
+        machine_infos = cls._filter_machine_hook(bk_biz_id, machine_queryset, limit, offset, **kwargs)
+        return machine_infos
+
+    @classmethod
+    def _filter_machine_hook(
+        cls,
+        bk_biz_id,
+        machine_queryset: QuerySet,
+        limit: int,
+        offset: int,
+        **kwargs,
+    ) -> ResourceList:
+        """
+        为查询的集群填充额外信息, 子类可继承此方法实现其他回调
+        @param bk_biz_id: 业务ID
+        @param machine_queryset: 过滤机器查询集
+        @param limit: 分页限制
+        @param offset: 分页起始
+        """
+
+        count = machine_queryset.count()
+        limit = count if limit == -1 else limit
+        if count == 0:
+            return ResourceList(count=0, data=[])
+
+        # 预取proxy_queryset，storage_queryset，加块查询效率
+        machine_queryset = machine_queryset.order_by("-create_at")[offset : limit + offset].prefetch_related(
+            "storageinstance_set", "proxyinstance_set"
+        )
+
+        # 预取host的cc信息
+        bk_host_ids = list(machine_queryset.values_list("bk_host_id", flat=True))
+        host_infos = HostHandler.check([{"bk_biz_id": bk_biz_id, "scope_type": "biz"}], [], [], bk_host_ids)
+        host_id_info_map = {host_info["host_id"]: host_info for host_info in host_infos}
+
+        # 将集群的查询结果序列化为集群字典信息
+        machine_infos: List[Dict[str, Any]] = []
+        for machine in machine_queryset:
+            machine_infos.append(cls._to_machine_representation(machine, host_id_info_map, **kwargs))
+
+        return ResourceList(count=count, data=machine_infos)
+
+    @classmethod
+    def _to_machine_representation(
+        cls,
+        machine: Machine,
+        host_id_info_map: Dict[int, Dict],
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """
+        将机器对象转为可序列化的 dict 结构
+        @param machine: model Machine 对象, 增加了 storages 和 proxies 属性
+        @param host_id_info_map: key 是 bk_host_id, value 是 机器在cc的信息
+        """
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        bk_cloud_name = cloud_info.get(str(machine.bk_cloud_id), {}).get("bk_cloud_name", "")
+        instance_role = cls._get_machine_instance_role(machine)
+        return {
+            "bk_host_id": machine.bk_host_id,
+            "ip": machine.ip,
+            "bk_cloud_id": machine.bk_cloud_id,
+            "bk_cloud_name": bk_cloud_name,
+            "cluster_type": machine.cluster_type,
+            "machine_type": machine.machine_type,
+            "instance_role": instance_role,
+            "create_at": machine.create_at,
+            "spec_id": machine.spec_id,
+            "spec_config": machine.spec_config,
+            "host_info": host_id_info_map.get(machine.bk_host_id, {}),
+        }
+
+    @classmethod
+    def _get_machine_instance_role(cls, machine: Machine) -> str:
+        """
+        获取机器上部署的实例角色信息
+        @param machine: Machine 对象
+        """
+        if machine.storageinstance_set.count():
+            return machine.storageinstance_set.first().instance_role
+        if machine.proxyinstance_set.count():
+            return machine.proxyinstance_set.first().access_layer
+        return ""

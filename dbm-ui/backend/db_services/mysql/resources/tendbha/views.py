@@ -13,7 +13,8 @@ from rest_framework import status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
-from backend.db_services.dbbase.resources import constants, serializers, viewsets
+from backend.db_services.dbbase.resources import serializers, viewsets
+from backend.db_services.mysql.resources import constants
 from backend.db_services.mysql.resources.tendbha import yasg_slz
 from backend.db_services.mysql.resources.tendbha.query import ListRetrieveResource
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -46,6 +47,14 @@ from backend.iam_app.dataclass.actions import ActionEnum
     name="retrieve_instance",
     decorator=common_swagger_auto_schema(
         query_serializer=serializers.RetrieveInstancesSerializer(),
+        tags=[constants.RESOURCE_TAG],
+    ),
+)
+@method_decorator(
+    name="list_machines",
+    decorator=common_swagger_auto_schema(
+        query_serializer=serializers.ListMachineSLZ(),
+        responses={status.HTTP_200_OK: yasg_slz.PaginatedMachineResourceSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
 )
