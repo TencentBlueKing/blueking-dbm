@@ -47,6 +47,7 @@ class Machine(AuditedModel):
     net_device_id = models.CharField(max_length=256, default="", blank=True, null=True)  # 这个 id 是个逗号分割的字符串
     spec_id = models.PositiveBigIntegerField(default=0, help_text=_("虚拟规格ID"))
     spec_config = models.JSONField(default=dict, help_text=_("当前的虚拟规格配置"))
+    system_info = models.JSONField(default=dict, help_text=_("机器采集的系统信息"))
 
     class Meta:
         unique_together = ("ip", "bk_cloud_id")

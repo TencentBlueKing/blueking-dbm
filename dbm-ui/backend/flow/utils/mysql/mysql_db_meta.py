@@ -891,3 +891,15 @@ class MySQLDBMeta(object):
             ProxyInstance.objects.filter(
                 machine__ip=self.cluster["proxy_ip"],
             ).update(version=self.cluster["version"])
+
+    def update_machine_system_info(self):
+        """
+        更新machine system info
+        """
+        machines = []
+        if self.cluster.get("system_info"):
+            system_info = self.cluster.get("system_info")
+            for ip in self.cluster["ip_list"]:
+                machines.append({"ip": ip, "system_info": system_info[ip]})
+        if machines:
+            api.machine.update_system_info(bk_cloud_id=self.cluster["bk_cloud_id"], machines=machines)

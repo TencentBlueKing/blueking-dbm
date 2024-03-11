@@ -156,6 +156,9 @@ class Builder(object):
             raise Exception(_("传入的acts_list参数不合法，请检测"))
 
         for act_info in acts_list:
+            if type(act_info) == SubProcess:
+                acts.append(act_info)
+                continue
             act = ServiceActivity(name=act_info["act_name"], component_code=act_info["act_component_code"])
             act_info["kwargs"].update({"root_id": self.root_id, "node_id": act.id, "node_name": act_info["act_name"]})
             act.component.inputs.kwargs = Var(type=Var.PLAIN, value=act_info["kwargs"])
@@ -190,6 +193,10 @@ class Builder(object):
         add_parallel_sub_pipeline 方法： 为主流程并发加入子流程
         @param sub_flow_list: 子流程列表
         """
+        # 增加对传入的acts_list做合法判断
+        if not isinstance(sub_flow_list, list) or len(sub_flow_list) == 0:
+            raise Exception(_("传入的sub_flow_list参数不合法，请检测"))
+
         pg = ParallelGateway()
         cg = ConvergeGateway()
         self.pipe = self.pipe.extend(pg).connect(*sub_flow_list).to(pg).converge(cg)

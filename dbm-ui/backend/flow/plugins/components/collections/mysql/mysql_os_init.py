@@ -216,7 +216,7 @@ class SysInit(BkJobService):
         # 如果从从老机器获取max_open_file成功，则使用老实例的值
         try:
             if trans_data is not None:
-                max_open_file_old = trans_data.max_open_file
+                max_open_file_old = trans_data.system_info
                 if isinstance(max_open_file_old, dict):
                     if "sys_max_open_file" in max_open_file_old:
                         max_open_file = max_open_file_old["sys_max_open_file"]
@@ -274,7 +274,8 @@ get_os_sys_param = """
 #!/bin/bash 
     sys_max_open_file=`cat /proc/sys/fs/file-max`
     user_max_open_file=`ulimit -n`
-    printf "<ctx>{\\\"sys_max_open_file\\\":${sys_max_open_file},\\\"user_max_open_file\\\":${user_max_open_file}}</ctx>"
+    glibc_version=$(ldd --version | head -n 1 | awk '{print $NF}')
+    printf "<ctx>{\\\"sys_max_open_file\\\":${sys_max_open_file},\\\"user_max_open_file\\\":${user_max_open_file},\\\"glibc_version\\\":${glibc_version}}</ctx>"
 """  # noqa
 
 
@@ -300,7 +301,7 @@ class GetOsSysParam(BkJobService):
         # result = json.loads(re.search(cpl, resp["data"]["log_content"]).group("context"))
         # setattr(trans_data, "max_open_file", copy.deepcopy(result))
         # data.outputs["trans_data"] = trans_data
-        data.inputs.write_payload_var = "max_open_file"
+        data.inputs.write_payload_var = "system_info"
         data.outputs.ext_result = resp
         data.outputs.exec_ips = exec_ips
         return True

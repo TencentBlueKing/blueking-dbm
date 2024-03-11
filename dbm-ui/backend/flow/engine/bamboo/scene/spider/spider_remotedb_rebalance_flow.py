@@ -299,6 +299,7 @@ class TenDBRemoteRebalanceFlow(object):
                         root_id=self.root_id,
                         parent_global_data=copy.deepcopy(self.data),
                         is_init=True,
+                        collect_sysinfo=True,
                         cluster_type=ClusterType.TenDBCluster.value,
                         is_install_backup=False,
                     )
