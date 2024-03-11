@@ -724,7 +724,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
 
         # 预取proxy_queryset，storage_queryset，加块查询效率
         machine_queryset = machine_queryset.order_by("-create_at")[offset : limit + offset].prefetch_related(
-            "storageinstance_set", "proxyinstance_set"
+            "storageinstance_set__cluster", "proxyinstance_set__cluster"
         )
 
         # 预取host的cc信息
@@ -753,29 +753,39 @@ class ListRetrieveResource(BaseListRetrieveResource):
         """
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         bk_cloud_name = cloud_info.get(str(machine.bk_cloud_id), {}).get("bk_cloud_name", "")
-        instance_role = cls._get_machine_instance_role(machine)
-        return {
+        machine_info = {
             "bk_host_id": machine.bk_host_id,
             "ip": machine.ip,
             "bk_cloud_id": machine.bk_cloud_id,
             "bk_cloud_name": bk_cloud_name,
             "cluster_type": machine.cluster_type,
             "machine_type": machine.machine_type,
-            "instance_role": instance_role,
             "create_at": machine.create_at,
             "spec_id": machine.spec_id,
             "spec_config": machine.spec_config,
             "host_info": host_id_info_map.get(machine.bk_host_id, {}),
         }
+        machine_info.update(cls._get_machine_extra_info(machine))
+        return machine_info
 
     @classmethod
-    def _get_machine_instance_role(cls, machine: Machine) -> str:
+    def _get_machine_extra_info(cls, machine: Machine) -> dict:
         """
-        获取机器上部署的实例角色信息
+        获取机器上关联集群/实例的额外信息
         @param machine: Machine 对象
         """
+        # 获取machine关联的实例角色
+        instance_role: str = ""
         if machine.storageinstance_set.count():
-            return machine.storageinstance_set.first().instance_role
+            instance_role = machine.storageinstance_set.first().instance_role
         if machine.proxyinstance_set.count():
-            return machine.proxyinstance_set.first().access_layer
-        return ""
+            instance_role = machine.proxyinstance_set.first().access_layer
+
+        # 获取machine关联的集群信息，目前一个实例只关联一个集群
+        related_clusters: List[Dict] = []
+        for storage in machine.storageinstance_set.all():
+            related_clusters.append(storage.cluster.first().to_dict())
+        for proxy in machine.proxyinstance_set.all():
+            related_clusters.append(proxy.cluster.first().to_dict())
+
+        return {"instance_role": instance_role, "related_clusters": related_clusters}

@@ -165,7 +165,7 @@ class RedisDBMeta(object):
                     "ip": self.cluster["ip"],
                     "port": self.cluster["port"],
                     "status": InstanceStatus.RUNNING.value
-                    if self.ticket_data["ticket_type"] == TicketType.REDIS_OPEN
+                    if self.ticket_data["ticket_type"] == TicketType.REDIS_PROXY_OPEN
                     else InstanceStatus.UNAVAILABLE.value,
                 }
             ]
@@ -174,7 +174,7 @@ class RedisDBMeta(object):
 
     def cluster_status_update(self) -> bool:
         cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
-        if self.ticket_data["ticket_type"] == TicketType.REDIS_CLOSE:
+        if self.ticket_data["ticket_type"] == TicketType.REDIS_PROXY_CLOSE:
             cluster.phase = ClusterPhase.OFFLINE.value
         else:
             cluster.phase = ClusterPhase.ONLINE.value

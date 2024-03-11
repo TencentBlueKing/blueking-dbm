@@ -122,7 +122,7 @@ class RedisClusterOpenCloseSceneApiView(FlowTestView):
         "uid":"2022051612120001",
         "created_by":"xxxx",
         "bk_biz_id": 2005000194,
-        "ticket_type": "REDIS_OPEN/REDIS_CLOSE",
+        "ticket_type": "REDIS_PROXY_OPEN/REDIS_PROXY_CLOSE",
         "cluster_id": 123
     }
     """

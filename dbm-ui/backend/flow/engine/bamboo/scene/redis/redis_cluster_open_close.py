@@ -84,7 +84,7 @@ class RedisClusterOpenCloseFlow(object):
         act_kwargs.is_update_trans_data = True
         op = (
             RedisActuatorActionEnum.Open.value
-            if self.data["ticket_type"] == TicketType.REDIS_OPEN
+            if self.data["ticket_type"] == TicketType.REDIS_PROXY_OPEN
             else RedisActuatorActionEnum.Close.value
         )
         act_kwargs.cluster = {
@@ -107,7 +107,7 @@ class RedisClusterOpenCloseFlow(object):
         redis_pipeline.add_act(
             act_name=_("下发介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
-        if self.data["ticket_type"] == TicketType.REDIS_CLOSE and self.data["force"] is False:
+        if self.data["ticket_type"] == TicketType.REDIS_PROXY_CLOSE and self.data["force"] is False:
             acts_list = []
             for ip in proxy_ips:
                 act_kwargs.exec_ip = ip
@@ -151,7 +151,7 @@ class RedisClusterOpenCloseFlow(object):
                         "bk_cloud_id": act_kwargs.bk_cloud_id,
                         "server_ip": ip,
                         "server_ports": []
-                        if self.data["ticket_type"] == TicketType.REDIS_CLOSE
+                        if self.data["ticket_type"] == TicketType.REDIS_PROXY_CLOSE
                         else [cluster_info["proxy_map"][ip]],
                         "meta_role": meta_role,
                         "cluster_domain": cluster_info["domain_name"],
@@ -165,7 +165,7 @@ class RedisClusterOpenCloseFlow(object):
             act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
             sub_pipeline.add_act(
                 act_name=_("[{}]卸载bkdbmon").format(ip)
-                if self.data["ticket_type"] == TicketType.REDIS_CLOSE
+                if self.data["ticket_type"] == TicketType.REDIS_PROXY_CLOSE
                 else _("[{}]安装bkdbmon").format(ip),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(act_kwargs),
