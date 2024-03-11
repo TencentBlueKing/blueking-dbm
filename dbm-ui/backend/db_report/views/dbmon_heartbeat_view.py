@@ -37,6 +37,7 @@ class DbmonHeatbeartCheckReportBaseViewSet(ReportBaseViewSet):
     filter_fields = {  # 大部分时候不需要覆盖默认的filter
         "bk_biz_id": ["exact"],
         "cluster_type": ["exact", "in"],
+        "cluster": ["exact", "in"],
         "create_at": ["gte", "lte"],
         "status": ["exact", "in"],
     }
@@ -65,7 +66,7 @@ class DbmonHeatbeartCheckReportBaseViewSet(ReportBaseViewSet):
         {
             "name": "dba",
             "display_name": _("业务所属dba"),
-            "format": ReportFieldFormat.STATUS.value,
+            "format": ReportFieldFormat.TEXT.value,
         },
         {
             "name": "instance",

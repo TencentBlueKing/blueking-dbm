@@ -26,7 +26,7 @@ logger = logging.getLogger("root")
 class RedisBackupCheckReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = RedisBackupCheckReport
-        fields = ("bk_biz_id", "cluster", "cluster_type", "instance", "status", "msg")
+        fields = ("bk_biz_id", "cluster", "cluster_type", "instance", "status", "msg", "create_at")
         swagger_schema_fields = {"example": mock_data.REDIS_BACKUP_CHECK_DATA}
 
 
@@ -35,6 +35,7 @@ class RedisBackupCheckReportBaseViewSet(ReportBaseViewSet):
     serializer_class = RedisBackupCheckReportSerializer
     filter_fields = {  # 大部分时候不需要覆盖默认的filter
         "bk_biz_id": ["exact"],
+        "cluster": ["exact", "in"],
         "cluster_type": ["exact", "in"],
         "create_at": ["gte", "lte"],
         "status": ["exact", "in"],
@@ -71,6 +72,11 @@ class RedisBackupCheckReportBaseViewSet(ReportBaseViewSet):
             "display_name": _("详情"),
             "format": ReportFieldFormat.TEXT.value,
         },
+        {
+            "name": "create_at",
+            "display_name": _("时间"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
     ]
 
     @common_swagger_auto_schema(
@@ -86,10 +92,10 @@ class RedisBackupCheckReportBaseViewSet(ReportBaseViewSet):
 class RedisFullBackupCheckReportViewSet(RedisBackupCheckReportBaseViewSet):
     queryset = RedisBackupCheckReport.objects.filter(subtype=RedisBackupCheckSubType.FullBackup.value)
     serializer_class = RedisBackupCheckReportSerializer
-    report_name = _("全备检查")
+    report_name = _("Redis 全备检查")
 
     @common_swagger_auto_schema(
-        operation_summary=_("全备检查报告"),
+        operation_summary=_("Redis 全备检查报告"),
         responses={status.HTTP_200_OK: RedisBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
@@ -101,10 +107,10 @@ class RedisBinlogBackupCheckReportViewSet(RedisBackupCheckReportBaseViewSet):
     queryset = RedisBackupCheckReport.objects.filter(subtype=RedisBackupCheckSubType.BinlogBackup.value)
 
     serializer_class = RedisBackupCheckReportSerializer
-    report_name = _("集群binlog检查")
+    report_name = _("Redis集群binlog检查")
 
     @common_swagger_auto_schema(
-        operation_summary=_("binlog检查报告"),
+        operation_summary=_("Redis binlog检查报告"),
         responses={status.HTTP_200_OK: RedisBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )

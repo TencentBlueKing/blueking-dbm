@@ -27,7 +27,7 @@ logger = logging.getLogger("root")
 class MysqlBackupCheckReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = MysqlBackupCheckReport
-        fields = ("bk_biz_id", "cluster", "cluster_type", "status", "msg")
+        fields = ("bk_biz_id", "cluster", "cluster_type", "status", "msg", "create_at")
         swagger_schema_fields = {"example": mock_data.MYSQL_BACKUP_CHECK_DATA}
 
 
@@ -36,6 +36,7 @@ class MysqlBackupCheckReportBaseViewSet(ReportBaseViewSet):
     serializer_class = MysqlBackupCheckReportSerializer
     filter_fields = {  # 大部分时候不需要覆盖默认的filter
         "bk_biz_id": ["exact"],
+        "cluster": ["exact", "in"],
         "cluster_type": ["exact", "in"],
         "create_at": ["gte", "lte"],
         "status": ["exact", "in"],
@@ -67,6 +68,11 @@ class MysqlBackupCheckReportBaseViewSet(ReportBaseViewSet):
             "display_name": _("详情"),
             "format": ReportFieldFormat.TEXT.value,
         },
+        {
+            "name": "create_at",
+            "display_name": _("时间"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
     ]
 
     @common_swagger_auto_schema(
@@ -82,10 +88,10 @@ class MysqlBackupCheckReportBaseViewSet(ReportBaseViewSet):
 class MysqlFullBackupCheckReportViewSet(MysqlBackupCheckReportBaseViewSet):
     queryset = MysqlBackupCheckReport.objects.filter(subtype=MysqlBackupCheckSubType.FullBackup.value)
     serializer_class = MysqlBackupCheckReportSerializer
-    report_name = _("全备检查")
+    report_name = _("MySQL 全备检查")
 
     @common_swagger_auto_schema(
-        operation_summary=_("全备检查报告"),
+        operation_summary=_("MySQL 全备检查报告"),
         responses={status.HTTP_200_OK: MysqlBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
@@ -99,7 +105,7 @@ class MysqlBinlogBackupCheckReportViewSet(MysqlBackupCheckReportBaseViewSet):
     report_name = _("集群binlog检查")
 
     @common_swagger_auto_schema(
-        operation_summary=_("binlog检查报告"),
+        operation_summary=_("MySQL binlog检查报告"),
         responses={status.HTTP_200_OK: MysqlBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
