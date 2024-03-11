@@ -27,7 +27,7 @@ logger = logging.getLogger("root")
 class MetaCheckReportInstanceBelongSerializer(serializers.ModelSerializer):
     class Meta:
         model = MetaCheckReport
-        fields = ("bk_biz_id", "ip", "port", "machine_type", "status", "msg")
+        fields = ("bk_biz_id", "ip", "port", "machine_type", "status", "msg", "create_at")
         swagger_schema_fields = {"example": mock_data.META_CHECK_DATA}
 
 
@@ -70,6 +70,11 @@ class MetaCheckReportInstanceBelongViewSet(ReportBaseViewSet):
         {
             "name": "msg",
             "display_name": _("详情"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "create_at",
+            "display_name": _("创建时间"),
             "format": ReportFieldFormat.TEXT.value,
         },
     ]
