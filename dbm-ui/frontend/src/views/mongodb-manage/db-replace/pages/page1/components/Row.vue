@@ -33,7 +33,11 @@
       <RenderText
         :data="data.cluster.domain"
         :is-loading="data.isLoading"
-        :placeholder="t('选择主机后自动生成')" />
+        :placeholder="t('选择主机后自动生成')">
+        <RelatedClusters
+          v-if="data.cluster.domain && data.relatedClusters.length > 0"
+          :clusters="data.relatedClusters" />
+      </RenderText>
     </td>
     <td style="padding: 0">
       <RenderTargetSpec
@@ -64,6 +68,7 @@
   import type { SpecInfo } from '@views/mongodb-manage/components/edit-field/spec-select/components/Panel.vue';
   import type { IListItem } from '@views/mongodb-manage/components/edit-field/spec-select/components/Select.vue';
   import RenderTargetSpec from '@views/mongodb-manage/components/edit-field/spec-select/Index.vue';
+  import RelatedClusters from '@views/mongodb-manage/components/RelatedClusters.vue';
 
   import { random } from '@utils';
 
@@ -81,6 +86,7 @@
       isGeneral: boolean;
       rowSpan: number;
     };
+    relatedClusters: string[];
     currentSpec?: SpecInfo;
     bkCloudId?: number;
   }
@@ -94,6 +100,7 @@
     clusterType: '',
     machineType: '',
     role: '',
+    relatedClusters: [],
     cluster: {
       domain: '',
       isStart: false,

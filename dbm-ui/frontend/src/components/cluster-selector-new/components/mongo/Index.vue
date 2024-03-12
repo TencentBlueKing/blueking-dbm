@@ -62,6 +62,7 @@
     customColums?: TabItem['customColums'],
     searchSelectList?: TabItem['searchSelectList'],
     searchPlaceholder?: TabItem['searchPlaceholder'],
+    checkboxHoverTip?: TabItem['checkboxHoverTip'],
   }
 
   type ResourceItem = ValueOf<SelectedMap>[0];
@@ -118,20 +119,34 @@
             </bk-popover>
           );
         }
-        return props.multiple ? (
-          <bk-checkbox
-            style="vertical-align: middle;"
-            model-value={Boolean(selectedDomainMap.value[data.id])}
-            label={true}
-            onChange={(value: boolean) => handleSelecteRow(data, value)}
-          />
-          ) : (
-          <bk-radio
-            style="vertical-align: middle;"
-            model-value={Boolean(selectedDomainMap.value[data.id])}
-            label={true}
-            onChange={(value: boolean) => handleSelecteRow(data, value)}
-          />
+
+        return (
+          <bk-popover
+            popover-delay={[100, 200]}
+            disabled={!props.checkboxHoverTip}
+            width={270}
+            theme="light"
+            placement="top">
+            {{
+              default: () => (props.multiple ? (
+                <bk-checkbox
+                  style="vertical-align: middle;"
+                  model-value={Boolean(selectedDomainMap.value[data.id])}
+                  label={true}
+                  onChange={(value: boolean) => handleSelecteRow(data, value)}
+                />
+                ) : (
+                <bk-radio
+                  style="vertical-align: middle;"
+                  model-value={Boolean(selectedDomainMap.value[data.id])}
+                  label={true}
+                  onChange={(value: boolean) => handleSelecteRow(data, value)}
+                />
+                )
+              ),
+              content: () => <span>{props.checkboxHoverTip ? props.checkboxHoverTip(data) : '--'}</span>,
+            }}
+          </bk-popover>
         );
       },
     },
@@ -340,27 +355,26 @@
 </script>
 
 <style lang="less" scoped>
-.table-box {
-  :deep(.cluster-name-box) {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    overflow: hidden;
-
-    .cluster-name {
-      margin-right: 8px;
+  .table-box {
+    :deep(.cluster-name-box) {
+      display: flex;
+      width: 100%;
+      align-items: center;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      flex:1;
-    }
 
-    .tag-box {
-      height: 16px;
-      color: #3A84FF;
-      border-radius: 8px !important;
+      .cluster-name {
+        margin-right: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+      }
+
+      .tag-box {
+        height: 16px;
+        color: #3a84ff;
+        border-radius: 8px !important;
+      }
     }
   }
-}
 </style>
-

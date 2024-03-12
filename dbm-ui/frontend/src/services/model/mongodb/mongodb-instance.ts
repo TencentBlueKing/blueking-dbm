@@ -39,36 +39,36 @@ export default class MongodbInstance {
   create_at: string;
   db_module_id: string;
   host_info: {
-    alive: number,
+    alive: number;
     biz: {
-      id: number,
-      name: string
-    },
+      id: number;
+      name: string;
+    };
     cloud_area: {
-      id: number,
-      name: string
-    },
-    cloud_id: number,
-    host_id: number,
-    host_name?: string,
-    ip: string,
-    ipv6: string,
+      id: number;
+      name: string;
+    };
+    cloud_id: number;
+    host_id: number;
+    host_name?: string;
+    ip: string;
+    ipv6: string;
     meta: {
-      bk_biz_id: number,
-      scope_id: number,
-      scope_type: string
-    },
-    scope_id: string,
-    scope_type: string,
-    os_name: string,
-    bk_cpu?: number,
-    bk_disk?: number,
-    bk_mem?: number,
-    os_type: string,
-    agent_id: number,
-    cpu: string,
-    cloud_vendor: string,
-    bk_idc_name?: string,
+      bk_biz_id: number;
+      scope_id: number;
+      scope_type: string;
+    };
+    scope_id: string;
+    scope_type: string;
+    os_name: string;
+    bk_cpu?: number;
+    bk_disk?: number;
+    bk_mem?: number;
+    os_type: string;
+    agent_id: number;
+    cpu: string;
+    cloud_vendor: string;
+    bk_idc_name?: string;
   };
   id: number;
   instance_address: string;
@@ -85,6 +85,26 @@ export default class MongodbInstance {
     title: string;
   }>;
   port: number;
+  related_clusters: {
+    id: number;
+    creator: string;
+    updater: string;
+    name: string;
+    alias: string;
+    bk_biz_id: number;
+    cluster_type: string;
+    db_module_id: number;
+    immute_domain: string;
+    major_version: string;
+    phase: string;
+    status: string;
+    bk_cloud_id: number;
+    region: string;
+    disaster_tolerance_level: string;
+    time_zone: string;
+    cluster_name: string;
+    master_domain: string;
+  }[];
   role: string;
   shard: string;
   slave_domain: string;
@@ -93,18 +113,18 @@ export default class MongodbInstance {
     cpu: {
       max: number;
       min: number;
-    },
+    };
     id: number;
     mem: {
       max: number;
       min: number;
-    },
+    };
     name: string;
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    }[],
+    }[];
   };
   status: string;
   version: string;
@@ -126,6 +146,7 @@ export default class MongodbInstance {
     this.master_domain = payload.master_domain;
     this.operations = payload.operations || [];
     this.port = payload.port;
+    this.related_clusters = payload.related_clusters;
     this.role = payload.role;
     this.shard = payload.shard;
     this.slave_domain = payload.slave_domain;
@@ -149,12 +170,12 @@ export default class MongodbInstance {
   }
 
   get isRebooting() {
-    return Boolean(this.operations.find(item => item.ticket_type === MongodbInstance.MONGODB_INSTANCE_RELOAD));
+    return Boolean(this.operations.find((item) => item.ticket_type === MongodbInstance.MONGODB_INSTANCE_RELOAD));
   }
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(MongodbInstance.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态

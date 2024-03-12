@@ -37,6 +37,7 @@
           v-bk-tooltips="errorMessage"
           type="exclamation-fill" />
       </div>
+      <slot />
     </div>
   </BkLoading>
 </template>
@@ -80,7 +81,7 @@
   .render-text-box {
     position: relative;
     width: 100%;
-    height: 42px;
+    min-height: 42px;
     padding: 10px 16px;
     overflow: hidden;
     line-height: 20px;

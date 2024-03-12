@@ -120,6 +120,7 @@
     isLoading: false,
     ip: item.ip,
     role: item.role,
+    relatedClusters: item.related_clusters.map(obj => obj.immute_domain),
     bkCloudId: item.bk_cloud_id,
     clusterId: item.cluster_id,
     clusterType: item.cluster_type,
@@ -163,7 +164,10 @@
     }
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
-    const ret = await getMongoInstancesList({ instance_address: ip }).finally(() => {
+    const ret = await getMongoInstancesList({
+      instance_address: ip,
+      extra: 1,
+    }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (ret.results.length === 0) {
@@ -243,7 +247,7 @@
         infos,
       },
     };
-    
+
     InfoBox({
       title: t('确认提交n个整机替换任务', { n: totalNum.value }),
       subTitle: t('信息将会被替换，请谨慎操作！'),
