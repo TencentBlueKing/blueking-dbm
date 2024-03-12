@@ -85,7 +85,7 @@ from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import (
     check_cluster_proxy_backends_consistent,
     get_cache_backup_mode,
-    get_db_versions_by_cluster_type,
+    get_storage_versions_by_cluster_type,
     get_twemproxy_cluster_server_shards,
 )
 from backend.utils.time import datetime2str
@@ -383,13 +383,13 @@ class RedisClusterDataCopyFlow(object):
                         ),
                     )
                 if info.get("db_version", "") != "":
-                    if info["db_version"] not in get_db_versions_by_cluster_type(src_cluster.cluster_type):
+                    if info["db_version"] not in get_storage_versions_by_cluster_type(src_cluster.cluster_type):
                         raise Exception(
                             _("集群:{} 目标版本:{} 不在 集群类型:{} 版本列表:{}中").format(
                                 src_cluster.immute_domain,
                                 info["db_version"],
                                 src_cluster.cluster_type,
-                                get_db_versions_by_cluster_type(src_cluster.cluster_type),
+                                get_storage_versions_by_cluster_type(src_cluster.cluster_type),
                             )
                         )
             elif self.data["ticket_type"] == DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value:
@@ -405,13 +405,13 @@ class RedisClusterDataCopyFlow(object):
                     )
                 if info.get("db_version", "") == "":
                     raise Exception(_("集群:{} 目标版本为空").format(info["src_cluster"]))
-                if info["db_version"] not in get_db_versions_by_cluster_type(info["target_cluster_type"]):
+                if info["db_version"] not in get_storage_versions_by_cluster_type(info["target_cluster_type"]):
                     raise Exception(
                         _("集群:{} 目标版本:{} 不在 集群类型:{} 版本列表:{}中").format(
                             info["src_cluster"],
                             info["db_version"],
                             info["target_cluster_type"],
-                            get_db_versions_by_cluster_type(info["target_cluster_type"]),
+                            get_storage_versions_by_cluster_type(info["target_cluster_type"]),
                         )
                     )
             # 检查所有 src proxys backends 一致
