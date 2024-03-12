@@ -33,10 +33,14 @@ from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_backup
     ExecSqlserverBackupJobComponent,
 )
 from backend.flow.plugins.components.collections.sqlserver.restore_for_do_dr import RestoreForDoDrComponent
+from backend.flow.plugins.components.collections.sqlserver.sqlserver_download_backup_file import (
+    SqlserverDownloadBackupFileComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import UpdateDnsRecordKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
+    DownloadBackupFileKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     ExecBackupJobsKwargs,
@@ -525,7 +529,7 @@ def install_surrounding_apps_sub_flow(
     # 构建子流程global_data
     global_data = {
         "uid": uid,
-        "root_id": str,
+        "root_id": root_id,
     }
 
     # 声明子流程
@@ -626,3 +630,52 @@ def build_always_on_sub_flow(
     )
 
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]建立AlwaysOn可用组".format(cluster_name)))
+
+
+def download_backup_file_sub_flow(
+    uid: str,
+    root_id: str,
+    backup_file_list: list,
+    target_path: str,
+    write_payload_var: str,
+    target_instance: StorageInstance,
+    sub_name: str = _("下载备份文件"),
+):
+    # 构建子流程global_data
+    global_data = {
+        "uid": uid,
+        "root_id": root_id,
+    }
+
+    # 声明子流程
+    sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
+
+    # 判断备份文件是否存在，如果存在则移动对应恢复目录, 结果写入上下文
+    sub_pipeline.add_act(
+        act_name=_("判断备份文件存在本地机器"),
+        act_component_code=SqlserverActuatorScriptComponent.code,
+        kwargs=asdict(
+            ExecActuatorKwargs(
+                exec_ips=[Host(ip=target_instance.machine.ip, bk_cloud_id=target_instance.machine.bk_cloud_id)],
+                get_payload_func=SqlserverActPayload.check_backup_file_is_in_local.__name__,
+                custom_params={"target_path": target_path, "file_list": backup_file_list},
+            )
+        ),
+        write_payload_var=write_payload_var,
+    )
+
+    # 备份系统下载文件
+    sub_pipeline.add_act(
+        act_name=_("下载备份文件"),
+        act_component_code=SqlserverDownloadBackupFileComponent.code,
+        kwargs=asdict(
+            DownloadBackupFileKwargs(
+                bk_cloud_id=target_instance.machine.bk_cloud_id,
+                dest_ip=target_instance.machine.ip,
+                dest_dir=target_path,
+                get_backup_file_info_var=write_payload_var,
+            )
+        ),
+    )
+
+    return sub_pipeline.build_sub_process(sub_name=sub_name)

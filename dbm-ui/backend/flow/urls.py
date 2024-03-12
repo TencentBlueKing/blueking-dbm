@@ -198,6 +198,7 @@ from backend.flow.views.sqlserver import (
     SqlserverAddSlaveSceneApiView,
     SqlserverBackupDBSSceneApiView,
     SqlserverCleanDBSSceneApiView,
+    SqlserverDataConstructSceneApiView,
     SqlserverDBBuildSyncSceneApiView,
     SqlserverDestroySceneApiView,
     SqlserverDisableSceneApiView,
@@ -465,4 +466,5 @@ urlpatterns = [
     url("^scene/sqlserver_rebuild_in_new_slave$", SqlserverRebuildInNewSlaveSceneApiView.as_view()),
     url("^scene/sqlserver_full_dts$", SqlserverFullDtsSceneApiView.as_view()),
     url("^scene/sqlserver_incr_dts$", SqlserverIncrDtsSceneApiView.as_view()),
+    url("^scene/sqlserver_data_construct$", SqlserverDataConstructSceneApiView.as_view()),
 ]

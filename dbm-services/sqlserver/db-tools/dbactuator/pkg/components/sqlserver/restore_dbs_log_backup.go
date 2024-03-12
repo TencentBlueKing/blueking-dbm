@@ -33,6 +33,7 @@ type RestoreDBSForLogParam struct {
 	Port         int              `json:"port"  validate:"required,gt=0"`     // 需要操作的实例端口
 	RestoreInfos []LogRestoreInfo `json:"restore_infos"  validate:"required"` // 需要待恢复备份文件组
 	RestoreMode  string           `json:"restore_mode"`                       // 隐藏参数，恢复模式
+	RestoreTime  string           `json:"restore_time"`                       // 隐藏参数，恢复指定时间，针对最后一个log文件
 }
 
 // RestoreInfo 参数
@@ -112,21 +113,51 @@ func (r *RestoreDBSForLogComp) PreCheck() error {
 func (r *RestoreDBSForLogComp) DoRestoreForLogBackup() error {
 	var isGlobalErr bool
 	for _, info := range r.Params.RestoreInfos {
+		var dbState string
+		var restoreLogState bool
+		// 恢复日志
 		for i, logFile := range info.LogBakFiles {
 			var fileRestoreMode string
+			var restoreTime string
 			// 拼接恢复SQL，执行, 如果不是最后一个log file，每次恢复都传NORECOVERY
 			if i == len(info.LogBakFiles)-1 {
 				fileRestoreMode = r.RestoreMode
+				restoreTime = r.Params.RestoreTime
 			} else {
 				fileRestoreMode = "NORECOVERY"
+				restoreTime = ""
 			}
 			if err := r.LocalDB.DBRestoreForLogBackup(
 				info.TargetDBName,
 				logFile,
-				fileRestoreMode); err != nil {
+				fileRestoreMode,
+				restoreTime); err != nil {
 				logger.Error("restroe log [%s] in db [%s] error : [%v]", logFile, info.TargetDBName, err)
 				isGlobalErr = true
+				restoreLogState = true
+				continue
 			}
+		}
+
+		if restoreLogState {
+			continue
+		}
+
+		// 需要检查一下DB的状态是否恢复成功,确保DB正常访问
+		checkCmd := fmt.Sprintf("select state_desc from master.sys.databases where name = '%s'", info.TargetDBName)
+		if err := r.LocalDB.Queryxs(&dbState, checkCmd); err != nil {
+			logger.Error("check db[%s] state is error : [%s]", info.TargetDBName, err.Error())
+			isGlobalErr = true
+			continue
+		}
+		if r.RestoreMode == "RECOVERY" && dbState != "ONLINE" {
+			//指定恢复DB时，状态不是不是online，则报异常
+			logger.Error(
+				"DB[%s] state is not online after recovery marked RECOVERY, check. dbState:[%s]",
+				info.TargetDBName,
+				dbState,
+			)
+			isGlobalErr = true
 		}
 
 	}

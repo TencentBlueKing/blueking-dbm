@@ -26,13 +26,16 @@ class BKLogHandler(object):
     """封装bklog查询的通用函数"""
 
     @classmethod
-    def query_logs(cls, collector: str, start_time: datetime, end_time: datetime, query_string="*") -> List[Dict]:
+    def query_logs(
+        cls, collector: str, start_time: datetime, end_time: datetime, query_string="*", size=1000
+    ) -> List[Dict]:
         """
         从日志平台获取对应采集项的日志
         @param collector: 采集项名称
         @param start_time: 开始时间
         @param end_time: 结束时间
         @param query_string: 过滤条件
+        @param size: 返回条数
         """
         resp = BKLogApi.esquery_search(
             {
@@ -41,7 +44,7 @@ class BKLogHandler(object):
                 "end_time": datetime2str(end_time),
                 "query_string": query_string,
                 "start": 0,
-                "size": 1000,
+                "size": size,
                 "sort_list": [["dtEventTimeStamp", "asc"], ["gseIndex", "asc"], ["iterationIndex", "asc"]],
             },
             use_admin=True,

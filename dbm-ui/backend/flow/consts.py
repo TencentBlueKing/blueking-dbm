@@ -561,6 +561,7 @@ class SqlserverActuatorActionEnum(str, StructuredEnum):
     BuildAlwaysOn = EnumField("BuildAlwaysOn", _("建立Always-on通信"))
     AddDBSInAlwaysOn = EnumField("AddDBSInAlwaysOn", _("数据库加入到Always-on可用组"))
     Uninstall = EnumField("Uninstall", _("卸载sqlserver实例"))
+    MoveBackupFile = EnumField("MoveBackupFile", _("判断备份文件是否存在，存在则移动"))
 
 
 class RiakModuleId(int, StructuredEnum):
@@ -674,6 +675,9 @@ ACCOUNT_PREFIX = "_temp_"
 
 # sqlserver系统账号列表
 SQLSERVER_SYSTEM_DBS = ["master", "msdb", "model", "tempdb", "Monitor"]
+
+# sqlserver自定义系统库名
+SQLSERVER_CUSTOM_SYS_DB = "Monitor"
 
 # sqlserver的exporter账号名称
 MSSQL_EXPORTER = "mssql_exporter"

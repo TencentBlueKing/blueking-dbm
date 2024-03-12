@@ -500,6 +500,15 @@ func (i *InstallSqlServerComp) InitUsers() (err error) {
 			logger.Error("init admin login failed %v", err)
 			return err
 		}
+		// 初始化drs账号
+		if err := dbWork.CreateLoginUser(
+			i.GeneralParam.RuntimeAccountParam.DRSUser,
+			i.GeneralParam.RuntimeAccountParam.DRSPwd,
+			"sysadmin",
+		); err != nil {
+			logger.Error("init drs login failed %v", err)
+			return err
+		}
 		// 初始化mssql_exporter账号
 		if err := dbWork.CreateLoginUser(
 			i.GeneralParam.RuntimeAccountParam.MssqlExporterUser,

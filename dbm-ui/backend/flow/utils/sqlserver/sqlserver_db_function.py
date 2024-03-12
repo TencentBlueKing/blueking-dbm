@@ -15,7 +15,12 @@ from backend.components import DRSApi
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
-from backend.flow.consts import SqlserverBackupJobExecMode, SqlserverLoginExecMode, SqlserverSyncMode
+from backend.flow.consts import (
+    SQLSERVER_CUSTOM_SYS_DB,
+    SqlserverBackupJobExecMode,
+    SqlserverLoginExecMode,
+    SqlserverSyncMode,
+)
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 
 
@@ -37,7 +42,7 @@ def sqlserver_match_dbs(
         exclude_db_patterns=ignore_db_patterns,
         exclude_table_patterns=[""],
     )
-    db_filter.inject_system_dbs(["Monitor"])
+    db_filter.inject_system_dbs([SQLSERVER_CUSTOM_SYS_DB])
     db_filter_pattern = re.compile(db_filter.db_filter_regexp())
 
     # 获取过滤后db
@@ -63,7 +68,7 @@ def get_dbs_for_drs(cluster_id: int, db_list: list, ignore_db_list: list) -> lis
             "addresses": [master_instance.ip_port],
             "cmds": [
                 "select name from [master].[sys].[databases] where "
-                "database_id > 4 and name != 'Monitor' and source_database_id is null"
+                f"database_id > 4 and name != '{SQLSERVER_CUSTOM_SYS_DB}' and source_database_id is null"
             ],
             "force": False,
         }
@@ -77,33 +82,49 @@ def get_dbs_for_drs(cluster_id: int, db_list: list, ignore_db_list: list) -> lis
     return real_dbs
 
 
-def check_sqlserver_db_exist(cluster_id: int, check_db: str) -> bool:
+def check_sqlserver_db_exist(cluster_id: int, check_dbs: list) -> list:
     """
     根据存入的db名称，判断库名是否在集群存在
     @param cluster_id: 对应的cluster_id
-    @param check_db: 需要验证的check_db
+    @param check_dbs: 需要验证的check_dbs 列表
     """
+    cmds = []
+    result = []
+    if len(check_dbs) == 0:
+        raise Exception("no db check exist")
+
     cluster = Cluster.objects.get(id=cluster_id)
     # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
     master_instance = cluster.storageinstance_set.get(
         instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
     )
+    in_condition = ",".join(f"'{item}'" for item in check_dbs)
+    cmds.append(f"select name from [master].[sys].[databases] where name in ({in_condition})")
+
+    # 执行
     ret = DRSApi.sqlserver_rpc(
         {
             "bk_cloud_id": cluster.bk_cloud_id,
             "addresses": [master_instance.ip_port],
-            "cmds": [f"select count(0) as cnt from [master].[sys].[databases] where name = '{check_db}'"],
+            "cmds": cmds,
             "force": False,
         }
     )
     if ret[0]["error_msg"]:
         raise Exception(f"[{master_instance.ip_port}] check db failed: {ret[0]['error_msg']}")
-    if ret[0]["cmd_results"][0]["table_data"][0]["cnt"] > 0:
-        # 代表db存在
-        return True
-    else:
-        # 代表db不存在
-        return False
+    # 判断库是否存在
+    for db_name in check_dbs:
+        is_exists = False
+        for info in ret[0]["cmd_results"][0]["table_data"]:
+            if db_name == info["name"]:
+                is_exists = True
+                result.append({"name": db_name, "is_exists": is_exists})
+                break
+        # 不存在
+        if not is_exists:
+            result.append({"name": db_name, "is_exists": is_exists})
+
+    return result
 
 
 def get_no_sync_dbs(cluster_id: int) -> list:
@@ -118,19 +139,19 @@ def get_no_sync_dbs(cluster_id: int) -> list:
     sync_mode = SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
     if sync_mode == SqlserverSyncMode.MIRRORING:
         # mirroring 模式
-        check_sql = """select name from  master.sys.databases
+        check_sql = f"""select name from  master.sys.databases
 where state=0 and is_read_only=0 and database_id > 4
 and name != 'Monitor' and database_id in
 (select database_id from master.sys.database_mirroring
 where mirroring_guid is null or mirroring_state<>4) and
-name not in (select name from Monitor.dbo.MIRRORING_FILTER)"""
+name not in (select name from {SQLSERVER_CUSTOM_SYS_DB}.dbo.MIRRORING_FILTER)"""
     elif sync_mode == SqlserverSyncMode.ALWAYS_ON:
         # always_on 模式
-        check_sql = """select name from master.sys.databases
+        check_sql = f"""select name from master.sys.databases
 where state=0 and is_read_only=0 and  database_id>4 and name != 'Monitor'
 and database_id not in(SELECT database_id from sys.dm_hadr_database_replica_states
 where is_local=0 and synchronization_state=1) and
-name not in (select name from Monitor.dbo.MIRRORING_FILTER)"""
+name not in (select name from {SQLSERVER_CUSTOM_SYS_DB}.dbo.MIRRORING_FILTER)"""
     else:
         raise Exception(f"sync-mode [{sync_mode}] not support")
 
@@ -225,9 +246,9 @@ def exec_instance_app_login(cluster_id, exec_type: SqlserverLoginExecMode) -> bo
     )
 
     # 查询所有的业务账号名称
-    get_login_name_sql = """select a.name as login_name
+    get_login_name_sql = f"""select a.name as login_name
 from master.sys.sql_logins a left join sys.syslogins b
-on a.name=b.name where principal_id>4 and a.name not in('monitor') and a.name not like '#%'
+on a.name=b.name where principal_id>4 and a.name not in('{SQLSERVER_CUSTOM_SYS_DB}') and a.name not like '#%'
 """
 
     ret = DRSApi.sqlserver_rpc(
@@ -307,7 +328,10 @@ def get_cluster_database(cluster_ids: List[int]) -> Dict[int, List[str]]:
         {
             "bk_cloud_id": clusters.first().bk_cloud_id,
             "addresses": [inst.ip_port for inst in master_instances],
-            "cmds": ["select name from [master].[sys].[databases] where database_id > 4 and name != 'Monitor'"],
+            "cmds": [
+                "select name from [master].[sys].[databases] where "
+                f"database_id > 4 and name != '{SQLSERVER_CUSTOM_SYS_DB}'"
+            ],
             "force": False,
         }
     )
