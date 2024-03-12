@@ -65,7 +65,7 @@
               clearable
               :min="1"
               show-clear-only-hover
-              style="width: 185px;"
+              style="width: 185px"
               type="number" />
           </BkFormItem>
         </DbCard>
@@ -85,7 +85,7 @@
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
                   :machine-type="MachineTypes.MONGO_CONFIG"
-                  style="width: 314px;" />
+                  style="width: 314px" />
               </BkFormItem>
               <BkFormItem
                 :label="t('数量')"
@@ -114,7 +114,7 @@
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
                   :machine-type="MachineTypes.MONGOS"
-                  style="width: 314px;" />
+                  style="width: 314px" />
               </BkFormItem>
               <BkFormItem
                 :label="t('数量')"
@@ -138,7 +138,7 @@
               :cloud-id="formData.details.bk_cloud_id"
               :properties="{
                 capacity: 'details.resource_spec.mongodb.capacity',
-                specId: 'details.resource_spec.mongodb.spec_id'
+                specId: 'details.resource_spec.mongodb.spec_id',
               }"
               @current-change="handleMongoConfigSpecChange" />
           </BkFormItem>
@@ -152,7 +152,7 @@
               :max="100"
               :min="0"
               show-clear-only-hover
-              style="width: 185px;"
+              style="width: 185px"
               suffix="%"
               type="number" />
             <span class="input-desc">{{ t('预计容量nG', [estimatedCapacity]) }}</span>
@@ -162,7 +162,7 @@
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
-              style="width: 655px;"
+              style="width: 655px"
               type="textarea" />
           </BkFormItem>
         </DbCard>
@@ -200,17 +200,9 @@
   import { getVersions } from '@services/source/version';
   import type { BizItem } from '@services/types';
 
-  import {
-    useApplyBase,
-    useInfo,
-  } from '@hooks';
+  import { useApplyBase, useInfo } from '@hooks';
 
-  import {
-    ClusterTypes,
-    DBTypes,
-    MachineTypes,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';
@@ -261,26 +253,22 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const {
-    baseState,
-    bizState,
-    handleCancel,
-    handleCreateAppAbbr,
-    handleCreateTicket,
-  } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const formRef = ref<InstanceType<typeof DbForm>>();
   const regionItemRef = ref<InstanceType<typeof RegionItem>>();
   const mongoCofigSpecRef = ref<InstanceType<typeof SpecSelector>>();
   const mongosSpecRef = ref<InstanceType<typeof SpecSelector>>();
   const mongoConfigSpecRef = ref<InstanceType<typeof MongoConfigSpec>>();
-  const mongoConfigSpec = ref<ClusterSpecModel & {
-    shard_node_num: number;
-    shard_num: number;
-    shard_node_spec: string;
-    machine_num: number;
-    count: number;
-  } | null>(null);
+  const mongoConfigSpec = ref<
+    ClusterSpecModel & {
+      shard_node_num: number;
+      shard_num: number;
+      shard_node_spec: string;
+      machine_num: number;
+      count: number;
+    }
+  >();
   const cloudInfo = ref({
     id: '' as number | string,
     name: '',
@@ -313,10 +301,7 @@
     return Math.round(capacity * (capacityPercentage / 100));
   });
 
-  const {
-    data: versionList,
-    loading: getVersionsLoading,
-  } = useRequest(getVersions, {
+  const { data: versionList, loading: getVersionsLoading } = useRequest(getVersions, {
     defaultParams: [{ query_key: DBTypes.MONGODB }],
   });
 
@@ -325,10 +310,7 @@
     bizState.hasEnglishName = !!info.english_name;
   };
 
-  const handleChangeCloud = (info: {
-    id: number | string,
-    name: string
-  }) => {
+  const handleChangeCloud = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
   };
 
@@ -356,15 +338,8 @@
     baseState.isSubmitting = true;
 
     const { details } = formData;
-    const {
-      disaster_tolerance_level: disasterTolerenceLevel,
-      resource_spec: resourceSpec,
-    } = details;
-    const {
-      mongo_config: mongoConfig,
-      mongodb,
-      mongos,
-    } = resourceSpec;
+    const { disaster_tolerance_level: disasterTolerenceLevel, resource_spec: resourceSpec } = details;
+    const { mongo_config: mongoConfig, mongodb, mongos } = resourceSpec;
     const { cityName } = regionItemRef.value!.getValue();
     const mongoConfigSpecData = mongoConfigSpec.value as NonNullable<typeof mongoConfigSpec.value>;
 
@@ -387,9 +362,9 @@
           },
           mongodb: {
             ...mongodb,
-            affinity: cityName,
+            affinity: disasterTolerenceLevel,
             location_spec: {
-              city: disasterTolerenceLevel,
+              city: cityName,
               sub_zone_ids: [],
             },
             count: mongoConfigSpecData.machine_pair * 3, // shard_machine_group * 3(固定值)
@@ -430,15 +405,14 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/applyInstance.less";
+  @import '@styles/applyInstance.less';
 
   .shared-cluster-apply {
     .input-desc {
       margin-left: 12px;
       font-size: 12px;
-      color: #63656E;
+      color: #63656e;
     }
-
 
     :deep(.item-input) {
       width: 462px;
@@ -447,7 +421,7 @@
     .resource-pool-item {
       width: 655px;
       padding: 24px 0;
-      background-color: #F5F7FA;
+      background-color: #f5f7fa;
       border-radius: 2px;
 
       .bk-form-item {
