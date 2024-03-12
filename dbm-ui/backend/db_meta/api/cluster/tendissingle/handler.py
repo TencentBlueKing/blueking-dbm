@@ -34,28 +34,30 @@ class TendisSingleHandler(ClusterHandler):
         bk_biz_id: int,
         name: str,
         immute_domain: str,
+        slave_domain: str,
         db_module_id: int,
         alias: str = "",
         major_version: str = "",
         storages: Optional[List] = None,
-        slave_domain: Optional[str] = None,
         creator: str = "",
         bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
         region: str = "",
+        disaster_tolerance_level: str = "",
     ):
         """「必须」创建集群"""
         pkg_create_single(
             bk_biz_id=bk_biz_id,
             name=name,
             immute_domain=immute_domain,
+            slave_domain=slave_domain,
             db_module_id=db_module_id,
             alias=alias,
             major_version=major_version,
             storages=storages,
-            slave_domain=slave_domain,
             creator=creator,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            disaster_tolerance_level=disaster_tolerance_level,
         )
 
     @transaction.atomic

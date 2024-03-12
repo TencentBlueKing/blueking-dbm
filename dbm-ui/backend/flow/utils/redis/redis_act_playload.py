@@ -23,6 +23,7 @@ from backend.configuration.models.system import SystemSettings
 from backend.constants import BACKUP_SYS_STATUS, IP_PORT_DIVIDER
 from backend.db_meta import api as metaApi
 from backend.db_meta.api.cluster import nosqlcomm
+from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.db_package.models import Package
@@ -210,6 +211,14 @@ class RedisActPayload(object):
                         self.namespace,
                         cluster_map["backup_config"]["cache_backup_mode"],
                     )
+        # 如果是主从模式，这个地方就需要回写密码配置
+        if self.namespace == ClusterType.TendisRedisInstance.value:
+            PayloadHandler.redis_save_password_by_domain(
+                immute_domain=cluster_map["domain_name"],
+                redis_password=cluster_map["pwd_conf"]["redis_pwd"],
+                redis_proxy_password=cluster_map["pwd_conf"]["redis_pwd"],
+                redis_proxy_admin_password=cluster_map["pwd_conf"]["redis_pwd"],
+            )
 
         return data
 
@@ -1077,6 +1086,32 @@ class RedisActPayload(object):
             payload["servers"] = []
         else:
             payload["servers"] = [RedisActPayload.get_bkdbmon_servers_params(cluster, params["ip"])]
+        return {
+            "db_type": DBActuatorTypeEnum.Bkdbmon.value,
+            "action": DBActuatorTypeEnum.Bkdbmon.value + "_" + RedisActuatorActionEnum.Install.value,
+            "payload": payload,
+        }
+
+    def bkdbmon_install_list_new(self, **kwargs) -> dict:
+        """
+        根据ip去获取对应的域名，然后再安装bk-dbmon
+        {
+            "ip":"a.a.a.a",
+        }
+        """
+        ip = kwargs["params"]["ip"]
+        cluster_list = query_cluster_by_hosts([ip])
+
+        servers = []
+        cluster: Cluster = None
+        for c in cluster_list:
+            try:
+                cluster = Cluster.objects.get(id=c["cluster_id"])
+            except Cluster.DoesNotExist:
+                raise Exception("redis cluster {} does not exist".format(c["cluster"]))
+            servers.append(RedisActPayload.get_bkdbmon_servers_params(cluster, ip))
+        payload = self.get_bkdbmon_payload_header(str(cluster.bk_biz_id))
+        payload["servers"] = servers
         return {
             "db_type": DBActuatorTypeEnum.Bkdbmon.value,
             "action": DBActuatorTypeEnum.Bkdbmon.value + "_" + RedisActuatorActionEnum.Install.value,

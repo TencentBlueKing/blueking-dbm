@@ -15,8 +15,10 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceRole
+from backend.configuration.constants import AffinityEnum, DBType
+from backend.db_meta.api import common
+from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
+from backend.db_meta.enums import InstanceInnerRole, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, StorageInstance
 from backend.db_services.version.constants import RedisVersion
@@ -55,7 +57,7 @@ class RedisInstanceApplyFlow(object):
         "bk_cloud_id":0,
         "ticket_type":"REDIS_CLUSTER_APPLY",
         "cluster_type":"TendisRedisInstance",
-        "rules":[
+        "infos":[
             {
                 "port":30000,
                 "domain_name":"redis14.cloud.zbin.db",
@@ -118,14 +120,19 @@ class RedisInstanceApplyFlow(object):
         """
         获取ip相关的老实例信息
         ports/slave_ip/db_version
-        TODO 先不考虑追加情况
         """
         ports = []
         slave_ip = ""
         db_version = ""
-        sobj = StorageInstance.objects.filter(machine__ip=ip)
-        for s in sobj:
-            ports.append(s.port)
+        clusters = query_cluster_by_hosts([ip])
+        if len(clusters) != 0:
+            ports = clusters[0]["ports"]
+            db_version = clusters[0]["major_version"]
+
+            storages = [{"ip": ip, "port": ports[0]}]
+            storage_objs = common.filter_out_instance_obj(storages, StorageInstance.objects.all())
+            slave_objs = storage_objs.get(instance_inner_role=InstanceInnerRole.MASTER).as_ejector.get().receiver
+            slave_ip = slave_objs.machine.ip
         return {
             "ports": ports,
             "slave_ip": slave_ip,
@@ -158,7 +165,7 @@ class RedisInstanceApplyFlow(object):
         repl_dict = {}  # ip主从复制关系
         ip_install_dict = defaultdict(list)
 
-        for rule in data["rules"]:
+        for rule in data["infos"]:
             master_ip = rule["backend_group"]["master"]["ip"]
             slave_ip = rule["backend_group"]["slave"]["ip"]
             port = rule["port"]
@@ -172,19 +179,19 @@ class RedisInstanceApplyFlow(object):
                 machine_old_info = self.__get_old_ins_info(master_ip)
                 if len(machine_old_info["ports"]):
                     old_ports_dict[master_ip] = machine_old_info["ports"]
-                    # if machine_old_info["slave_ip"] != slave_ip:
-                    #     raise Exception(master_ip + " old slave is: " + machine_old_info["slave_ip"])
-                    # if machine_old_info["db_version"] != db_version:
-                    #     raise Exception(master_ip + " old db_version is: " + machine_old_info["db_version"])
+                    if machine_old_info["slave_ip"] != slave_ip:
+                        raise Exception(master_ip + " old slave is: " + machine_old_info["slave_ip"])
+                    if machine_old_info["db_version"] != db_version:
+                        raise Exception(master_ip + " old db_version is: " + machine_old_info["db_version"])
 
             if db_version != db_version_dict[master_ip]:
                 raise Exception(master_ip + " have more db_version")
             if slave_ip != repl_dict[master_ip]:
                 raise Exception("master have more slave")
             if port in new_ports_dict[master_ip]:
-                raise Exception(master_ip + " port have conflict: " + port)
+                raise Exception(master_ip + " port have conflict: " + str(port))
             if port in old_ports_dict[master_ip]:
-                raise Exception(master_ip + " port is exists: " + port)
+                raise Exception(master_ip + " port is exists: " + str(port))
             new_ports_dict[master_ip].append(port)
             ip_install_dict[master_ip].append(rule)
 
@@ -383,40 +390,42 @@ class RedisInstanceApplyFlow(object):
             sub_pipeline.add_act(
                 act_name=_("redis建立主从 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
             )
-
-            # 部署bkdbmon
-            # TODO servers需要将存在的老实例的配置也补充进去。这里暂时不考虑追加场景，所以后面在实现
             acts_list = []
-            act_kwargs.cluster = {}
-            act_kwargs.exec_ip = master_ip
-            act_kwargs.cluster["servers"] = master_servers
-            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
-            acts_list.append(
-                {
-                    "act_name": _("Redis-{}-安装监控").format(master_ip),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
+            for rule in info["ip_install_dict"][master_ip]:
+                act_kwargs.cluster = {
+                    "bk_biz_id": self.data["bk_biz_id"],
+                    "bk_cloud_id": self.data["bk_cloud_id"],
+                    "cluster_name": rule["cluster_name"],
+                    "cluster_alias": rule["cluster_alias"],
+                    "db_version": rule["db_version"],
+                    "immute_domain": rule["domain_name"],
+                    "master_ip": master_ip,
+                    "slave_ip": slave_ip,
+                    "port": rule["port"],
+                    "created_by": self.data["created_by"],
+                    "region": rule.get("city_code", ""),
+                    "meta_func_name": RedisDBMeta.redis_instance.__name__,
+                    "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
                 }
-            )
-            act_kwargs.exec_ip = slave_ip
-            act_kwargs.cluster["servers"] = slave_servers
-            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
-            acts_list.append(
-                {
-                    "act_name": _("Redis-{}-安装监控").format(slave_ip),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
+                acts_list.append(
+                    {
+                        "act_name": _("{}-主从实例集群元数据").format(rule["domain_name"]),
+                        "act_component_code": RedisDBMetaComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    },
+                )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-            # 写config
+            # 写config，需要在写集群元数据后面
             acts_list = []
             for rule in info["ip_install_dict"][master_ip]:
                 act_kwargs.cluster = {
                     "conf": {
                         "maxmemory": str(rule["maxmemory"]),
                         "databases": str(rule["databases"]),
+                    },
+                    "pwd_conf": {
+                        "redis_pwd": str(rule["redis_pwd"]),
                     },
                     "db_version": rule["db_version"],
                     "domain_name": rule["domain_name"],
@@ -435,6 +444,34 @@ class RedisInstanceApplyFlow(object):
                         "kwargs": asdict(act_kwargs),
                     },
                 )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # 部署bkdbmon
+            acts_list = []
+            act_kwargs.exec_ip = master_ip
+            act_kwargs.cluster = {
+                "ip": master_ip,
+            }
+            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+            acts_list.append(
+                {
+                    "act_name": _("{}-安装bkdbmon").format(master_ip),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+            act_kwargs.exec_ip = slave_ip
+            act_kwargs.cluster = {
+                "ip": slave_ip,
+            }
+            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+            acts_list.append(
+                {
+                    "act_name": _("{}-安装bkdbmon").format(slave_ip),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
             # 添加域名
@@ -470,7 +507,6 @@ class RedisInstanceApplyFlow(object):
                         "kwargs": {**asdict(act_kwargs), **asdict(dns_kwargs)},
                     }
                 )
-            # TODO 还需要增加一个节点，在元数据中将域名和ip对应起来(db_meta_cluster/db_meta_storageinstance_bind_entry)，类似于集群搭建的集群构造元数据操作
 
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("Redis主从安装-{}").format(master_ip)))

@@ -18,14 +18,9 @@ from django.db import IntegrityError, transaction
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_storage_cluster_type
-from backend.db_meta.api.cluster.nosqlcomm.create_instances import create_tendis_instances
-from backend.db_meta.api.cluster.nosqlcomm.precheck import (
-    before_create_domain_precheck,
-    before_create_storage_precheck,
-    create_domain_precheck,
-    create_storage_precheck,
-)
+from backend.db_meta.api.cluster.nosqlcomm.precheck import create_domain_precheck, create_storage_precheck
 from backend.db_meta.enums import (
+    ClusterEntryRole,
     ClusterEntryType,
     ClusterPhase,
     ClusterStatus,
@@ -33,7 +28,6 @@ from backend.db_meta.enums import (
     InstanceInnerRole,
     InstanceRole,
     InstanceStatus,
-    MachineType,
 )
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance, StorageInstanceTuple
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
@@ -47,18 +41,17 @@ def pkg_create_single(
     name: str,
     db_module_id: int,
     immute_domain: str,
-    slave_domain: Optional[str] = None,
+    slave_domain: str,
     storages: Optional[List] = None,
     alias: str = "",
     major_version: str = "",
     creator: str = "",
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
+    disaster_tolerance_level: str = "",
     cluster_type=ClusterType.TendisRedisInstance.value,
 ):
-    """一主一丛模式, Slave域名可选
-    storages:[{"master":{"ip":"","port":""},"slave":{}}]
-    """
+    """一主一丛模式, Slave域名可选"""
     bk_biz_id = request_validator.validated_integer(bk_biz_id)
     immute_domain = request_validator.validated_domain(immute_domain)
     db_module_id = request_validator.validated_integer(db_module_id)
@@ -66,60 +59,6 @@ def pkg_create_single(
     if slave_domain:
         slave_domain = request_validator.validated_domain(slave_domain)
         checked_domains.append(slave_domain)
-        if not slave_domain.__contains__("-slave."):
-            raise Exception("slave domain mast contain [-slave.] {}".format(slave_domain))
-    if immute_domain.__contains__("-slave."):
-        raise Exception("immute_domain mast not contain [-slave.] {}".format(immute_domain))
-    all_instances = []
-    for ins in storages:
-        all_instances.append(ins["master"])
-        all_instances.append(ins["slave"])
-    request_validator.validated_storage_list(all_instances, allow_empty=False, allow_null=False)
-
-    before_create_domain_precheck(checked_domains)
-    before_create_storage_precheck(all_instances)
-
-    create_tendis_instances(
-        bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id, machine_type=MachineType.TENDISCACHE.value, storages=storages
-    )
-    create_single(
-        bk_biz_id=bk_biz_id,
-        name=name,
-        immute_domain=immute_domain,
-        db_module_id=db_module_id,
-        alias=alias,
-        major_version=major_version,
-        storages=storages,
-        slave_domain=slave_domain,
-        creator=creator,
-        bk_cloud_id=bk_cloud_id,
-        cluster_type=cluster_type,
-        region=region,
-    )
-
-
-@transaction.atomic
-def create_single(
-    bk_biz_id: int,
-    name: str,
-    immute_domain: str,
-    db_module_id: int,
-    slave_domain: Optional[str] = None,
-    storages: Optional[List] = None,
-    alias: str = "",
-    major_version: str = "",
-    creator: str = "",
-    bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
-    region: str = "",
-    cluster_type=ClusterType.TendisRedisInstance.value,
-):
-    """一主一丛模式, Slave域名可选"""
-    bk_biz_id = request_validator.validated_integer(bk_biz_id)
-    immute_domain = request_validator.validated_domain(immute_domain)
-    db_module_id = request_validator.validated_integer(db_module_id)
-    storages = request_validator.validated_storage_list(storages, allow_empty=False, allow_null=False)
-    if slave_domain:
-        slave_domain = request_validator.validated_domain(slave_domain)
         if not slave_domain.__contains__("-slave."):
             raise Exception("slave domain mast contain [-slave.] {}".format(slave_domain))
     if immute_domain.__contains__("-slave."):
@@ -146,6 +85,7 @@ def create_single(
             updater=creator,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            disaster_tolerance_level=disaster_tolerance_level,
         )
         cluster.storageinstance_set.add(master_obj)
         cluster.storageinstance_set.add(slave_obj)
@@ -160,7 +100,11 @@ def create_single(
 
         if slave_domain:
             cluster_entry = ClusterEntry.objects.create(
-                cluster=cluster, cluster_entry_type=ClusterEntryType.DNS, entry=slave_domain, creator=creator
+                cluster=cluster,
+                cluster_entry_type=ClusterEntryType.DNS,
+                entry=slave_domain,
+                creator=creator,
+                role=ClusterEntryRole.SLAVE_ENTRY,
             )
             cluster_entry.storageinstance_set.add(slave_obj)
 
@@ -174,7 +118,8 @@ def create_single(
     for storage_obj in storage_objs:
         slave_obj = storage_obj.as_ejector.get().receiver
         slave_objs.append(slave_obj)
-    RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
+    RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs, is_increment=True)
+    RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(slave_objs, is_increment=True)
 
 
 @transaction.atomic
