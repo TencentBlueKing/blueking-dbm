@@ -2,7 +2,11 @@
   <div class="inspection-search-box">
     <BkForm form-type="vertical">
       <BkFormItem :label="t('日期')">
-        <BkDatePicker v-model="formData.create_at" />
+        <BkDatePicker
+          clearable
+          :model-value="[formData.create_at__gte, formData.create_at__lte]"
+          type="datetimerange"
+          @change="handleDateChange" />
       </BkFormItem>
       <BkFormItem :label="t('集群')">
         <BkSelect
@@ -51,6 +55,8 @@
 
   import { queryAllTypeCluster } from '@services/dbbase';
 
+  import { useUrlSearch } from '@hooks';
+
   interface Emits {
     (e: 'change', value: Record<string, any>): void;
   }
@@ -58,7 +64,8 @@
   const emits = defineEmits<Emits>();
 
   const genDefaultData = () => ({
-    create_at: '',
+    create_at__gte: '',
+    create_at__lte: '',
     cluster: '',
     status: '',
   });
@@ -74,8 +81,14 @@
     }, {});
 
   const { t } = useI18n();
+  const { getSearchParams } = useUrlSearch();
 
   const formData = reactive(genDefaultData());
+
+  const serachParams = getSearchParams();
+  Object.keys(formData).forEach((key) => {
+    formData[key as keyof typeof formData] = serachParams[key];
+  });
 
   const { data: clusterList } = useRequest(queryAllTypeCluster, {
     defaultParams: [
@@ -85,12 +98,17 @@
     ],
   });
 
+  const handleDateChange = (value: [string, string]) => {
+    [formData.create_at__gte, formData.create_at__lte] = value;
+  };
+
   const handleSubmit = () => {
     emits(
       'change',
       filterInvalidValue({
         ...formData,
-        create_at: formData.create_at ? dayjs(formData.create_at).format('YYYY-MM-DD') : '',
+        create_at__gte: formData.create_at__gte ? dayjs(formData.create_at__gte).format('YYYY-MM-DD HH:mm:ss') : '',
+        create_at__lte: formData.create_at__lte ? dayjs(formData.create_at__lte).format('YYYY-MM-DD HH:mm:ss') : '',
       }),
     );
   };
