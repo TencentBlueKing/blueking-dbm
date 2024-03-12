@@ -1873,7 +1873,7 @@ class RedisActPayload(object):
     # redis 原地升级
     def redis_cluster_version_update_online_payload(self, **kwargs) -> dict:
         params = kwargs["params"]
-        db_version = params["target_version"]
+        db_version = params["db_version"]
         redis_pkg = get_latest_redis_package_by_version(db_version)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,

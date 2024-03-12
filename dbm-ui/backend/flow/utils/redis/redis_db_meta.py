@@ -1110,7 +1110,7 @@ class RedisDBMeta(object):
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
-        cluster.major_version = self.cluster["target_version"]
+        cluster.major_version = self.cluster["db_version"]
         cluster.save(update_fields=["major_version"])
         return True
 
