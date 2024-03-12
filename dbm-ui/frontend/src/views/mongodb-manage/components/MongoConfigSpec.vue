@@ -23,7 +23,7 @@
       <BkInput
         :min="0"
         :model-value="modelValue.capacity"
-        style="width: 314px;"
+        style="width: 314px"
         type="number"
         @change="handleCapacityChange" />
       <span class="input-desc">G</span>
@@ -35,7 +35,7 @@
       :property="properties.specId"
       required>
       <DbOriginalTable
-        v-bkloading="{loading: isLoading}"
+        v-bkloading="{ loading: isLoading }"
         class="custom-edit-table"
         :columns="columns"
         :data="specList"
@@ -43,7 +43,7 @@
         <template #empty>
           <p
             v-if="!modelValue.capacity"
-            style="width: 100%; line-height: 128px; text-align: center;">
+            style="width: 100%; line-height: 128px; text-align: center">
             <DbIcon
               class="mr-4"
               type="attention" />
@@ -53,7 +53,7 @@
             v-else
             :description="t('无匹配的资源规格_请先修改容量设置')"
             scene="part"
-            style="font-size: 12px;"
+            style="font-size: 12px"
             type="empty" />
         </template>
       </DbOriginalTable>
@@ -101,7 +101,7 @@
   }
 
   interface Emits {
-    (e: 'currentChange', value: RedisClusterSpecRow | null): void
+    (e: 'currentChange', value?: RedisClusterSpecRow): void
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -296,7 +296,7 @@
     if (newSpecId) {
       specRef.value.clearValidate();
     } else {
-      emits('currentChange', null);
+      emits('currentChange');
     }
   });
 
@@ -406,7 +406,7 @@
 
   .mongo-config-spec-apply {
     padding: 24px 24px 24px 0;
-    background-color: #F5F7FA;
+    background-color: #f5f7fa;
   }
 </style>
 
