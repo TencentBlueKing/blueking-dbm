@@ -35,7 +35,7 @@
       <div class="bottom-opeartion">
         <BkCheckbox
           v-model="isIgnoreBusinessAccess"
-          style="padding-top: 6px;" />
+          style="padding-top: 6px" />
         <span
           v-bk-tooltips="{
             content: t('如忽略_有连接的情况下也会执行'),
@@ -128,6 +128,7 @@
     [ClusterTypes.MONGO_REPLICA_SET]: {
       name: t('副本集集群'),
       showPreviewResultTitle: true,
+      checkboxHoverTip: (data: MongoDBModel) => data.isMongoReplicaSet ? t('该集群关联了多个同机集群，将一同勾选') : ''
     },
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       name: t('分片集群'),
@@ -152,6 +153,9 @@
     clusterType: item.cluster_type,
     clusterTypeText: item.clusterTypeText,
     currentNodeNum: item.shard_node_count,
+    machineInstanceNum: item.machine_instance_num,
+    isMongoReplicaSet: item.isMongoReplicaSet,
+    shardNum: item.shard_num,
   });
 
   // 批量选择
@@ -237,7 +241,7 @@
         infos,
       },
     };
-    
+
     InfoBox({
       title: t('确认缩容n个集群的Shard节点数', { n: totalNum.value }),
       width: 400,
@@ -298,7 +302,7 @@
 
       .force-switch {
         font-size: 12px;
-        border-bottom: 1px dashed #63656E;
+        border-bottom: 1px dashed #63656e;
       }
     }
   }

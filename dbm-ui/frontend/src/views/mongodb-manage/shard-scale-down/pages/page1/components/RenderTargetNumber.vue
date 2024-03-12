@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="t('至少3台_且必须为奇数')"
+      :placeholder="t('至少n台', { n: 3 })"
       :rules="rules"
       type="number" />
   </BkLoading>
@@ -35,7 +35,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<number>
+    getValue: () => Promise<number>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -49,10 +49,10 @@
   const editRef = ref();
 
   const rules = [
-    {
-      validator: (value: number) => value % 2 === 1,
-      message: t('必须为奇数'),
-    },
+    // {
+    //   validator: (value: number) => value % 2 === 1,
+    //   message: t('必须为奇数'),
+    // },
     {
       validator: (value: number) => value < props.currentNodeNum,
       message: t('必须小于当前节点数'),
@@ -65,10 +65,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (Number(localValue.value)));
+      return editRef.value.getValue().then(() => Number(localValue.value));
     },
   });
-
 </script>

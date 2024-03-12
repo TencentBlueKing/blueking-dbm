@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="t('至少3台_且必须为奇数')"
+      :placeholder="t('至少n台', { n: 3 })"
       :rules="rules"
       type="number" />
   </BkLoading>
@@ -49,10 +49,10 @@
   const editRef = ref();
 
   const rules = [
-    {
-      validator: (value: number) => value % 2 === 1,
-      message: t('必须为奇数'),
-    },
+    // {
+    //   validator: (value: number) => value % 2 === 1,
+    //   message: t('必须为奇数'),
+    // },
     {
       validator: (value: number) => value > props.currentNodeNum,
       message: t('必须大于当前节点数'),
