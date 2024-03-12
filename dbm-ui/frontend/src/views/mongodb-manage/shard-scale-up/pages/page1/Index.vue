@@ -34,7 +34,7 @@
       <div class="bottom-opeartion">
         <BkCheckbox
           v-model="isIgnoreBusinessAccess"
-          style="padding-top: 6px;" />
+          style="padding-top: 6px" />
         <span
           v-bk-tooltips="{
             content: t('如忽略_有连接的情况下也会执行'),
@@ -83,21 +83,12 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector, {
-    type TabItem,
-  } from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector, { type TabItem } from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type InfoItem,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -115,10 +106,10 @@
   const isIgnoreBusinessAccess = ref(false);
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.clusterName)).length);
-  const selectedClusters = shallowRef<{[key: string]: Array<MongodbModel>}>({
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.clusterName)).length);
+  const selectedClusters = shallowRef<{ [key: string]: Array<MongodbModel> }>({
     [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
     [ClusterTypes.MONGO_REPLICA_SET]: [],
   });
@@ -127,6 +118,7 @@
     [ClusterTypes.MONGO_REPLICA_SET]: {
       name: t('副本集集群'),
       showPreviewResultTitle: true,
+      checkboxHoverTip: (data: MongodbModel) => data.isMongoReplicaSet ? t('该集群关联了多个同机集群，将一同勾选') : ''
     },
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       name: t('分片集群'),
@@ -151,12 +143,14 @@
     clusterType: item.cluster_type,
     clusterTypeText: item.clusterTypeText,
     currentNodeNum: item.shard_node_count,
+    machineInstanceNum: item.machine_instance_num,
+    isMongoReplicaSet: item.isMongoReplicaSet,
     shardNum: item.shard_num,
     sepcId: item.mongodb[0].spec_config.id,
   });
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<MongodbModel>}) => {
+  const handelClusterChange = (selected: { [key: string]: Array<MongodbModel> }) => {
     selectedClusters.value = selected;
     let list: MongodbModel[] = [];
     if (selected[ClusterTypes.MONGO_REPLICA_SET]) {
@@ -197,7 +191,7 @@
     if (result.results.length < 1) {
       return;
     }
-    const list = result.results.filter(item => item.master_domain === domain);
+    const list = result.results.filter((item) => item.master_domain === domain);
     if (list.length === 0) {
       return;
     }
@@ -215,21 +209,18 @@
 
   // 删除一个集群
   const handleRemove = (index: number) => {
-    const {
-      clusterName,
-      clusterType,
-    } = tableData.value[index];
+    const { clusterName, clusterType } = tableData.value[index];
     tableData.value.splice(index, 1);
     delete domainMemo[clusterName];
     const clustersArr = selectedClusters.value[clusterType];
-    selectedClusters.value[clusterType] = clustersArr.filter(item => item.master_domain !== clusterName);
+    selectedClusters.value[clusterType] = clustersArr.filter((item) => item.master_domain !== clusterName);
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all(rowRefs.value.map((item: {
-      getValue: () => Promise<InfoItem>
-    }) => item.getValue()));
+    const infos = await Promise.all(
+      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+    );
     const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.MONGODB_ADD_SHARD_NODES,
@@ -238,28 +229,30 @@
         infos,
       },
     };
-    
+
     InfoBox({
       title: t('确认扩容n个集群的Shard节点数', { n: totalNum.value }),
       width: 400,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'MongoShardScaleUp',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'MongoShardScaleUp',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   // 重置
@@ -299,7 +292,7 @@
 
       .force-switch {
         font-size: 12px;
-        border-bottom: 1px dashed #63656E;
+        border-bottom: 1px dashed #63656e;
       }
     }
   }

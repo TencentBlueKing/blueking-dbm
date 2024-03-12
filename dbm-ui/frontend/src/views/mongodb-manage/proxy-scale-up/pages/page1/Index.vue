@@ -176,6 +176,7 @@
     clusterId: item.id,
     shardNum: item.shard_num,
     machineNum: item.replicaset_machine_num,
+    mongosNum: item.mongos.length,
     currentSpec: {
       ...item.mongos[0].spec_config,
       count: item.shard_num,

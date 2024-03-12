@@ -17,7 +17,7 @@
       ref="editRef"
       v-model="localValue"
       :disabled="disabled"
-      :placeholder="t('请输入扩容数量')"
+      :placeholder="disabled ? t('请输入扩容数量') : t('不能少于n台', { n: min + 1 })"
       :rules="rules"
       type="number" />
   </BkLoading>
@@ -37,7 +37,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<number>
+    getValue: () => Promise<number>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -63,16 +63,13 @@
     },
     {
       validator: (value: string) => Number(value) > props.min,
-      message: t('必须大于当前台数'),
+      message: t('不能少于n台', { n: props.min + 1 }),
     },
   ];
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => (Number(localValue.value)));
+      return editRef.value.getValue().then(() => Number(localValue.value));
     },
   });
-
 </script>

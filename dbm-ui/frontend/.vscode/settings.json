@@ -34,5 +34,6 @@
     "titleBar.activeForeground": "#15202b",
     "titleBar.inactiveBackground": "#45e35f99",
     "titleBar.inactiveForeground": "#15202b99"
-  }
+  },
+  "i18n-lazyer.defaultFolder": "/src/locales"
 }

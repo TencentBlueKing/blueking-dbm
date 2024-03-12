@@ -91,6 +91,7 @@
             <Component
               :is="activePanelObj.tableContent"
               :active-tab="activeTab"
+              :checkbox-hover-tip="activePanelObj.checkboxHoverTip"
               :column-status-filter="activePanelObj.columnStatusFilter"
               :custom-colums="activePanelObj.customColums"
               :disabled-row-config="activePanelObj.disabledRowConfig"
@@ -169,6 +170,8 @@
     showPreviewResultTitle?: boolean,
     // 多选模式
     multiple?: boolean,
+    // checkbox hover 提示
+    checkboxHoverTip?: (data: any) => string,
     // 状态列
     columnStatusFilter?: (data: any) => boolean,
     // 查询接口

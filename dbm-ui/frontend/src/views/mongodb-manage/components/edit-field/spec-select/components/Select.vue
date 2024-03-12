@@ -46,9 +46,10 @@
                 {{ item.label }}
                 <BkTag
                   v-if="item.isCurrentSpec"
-                  :content="t('当前规格')"
                   size="small"
-                  theme="info" />
+                  theme="info">
+                  {{ t('当前规格') }}
+                </BkTag>
               </span>
               <span class="count">
                 {{ item.specData.count }}

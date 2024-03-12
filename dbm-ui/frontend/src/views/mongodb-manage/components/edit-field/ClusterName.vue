@@ -12,14 +12,17 @@
 -->
 
 <template>
-  <div class="render-cluster-box">
-    <TableEditInput
-      ref="editRef"
-      v-model="localValue"
-      :placeholder="t('请输入或选择集群')"
-      :rules="rules"
-      @submit="handleInputFinish" />
-  </div>
+  <TableEditInput
+    ref="editRef"
+    v-model="localValue"
+    :is-show-blur="isShowBlur"
+    :placeholder="t('请输入或选择集群')"
+    :rules="rules"
+    @submit="handleInputFinish">
+    <template #blur>
+      <slot name="blur" />
+    </template>
+  </TableEditInput>
 </template>
 
 <script lang="ts">
@@ -40,6 +43,7 @@
 
   interface Props {
     data?: string;
+    isShowBlur?: boolean,
   }
 
   interface Emits {
@@ -52,6 +56,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
+    isShowBlur: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -136,8 +141,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-cluster-box {
-    position: relative;
-  }
-</style>

@@ -18,7 +18,15 @@
         ref="clusterRef"
         :data="data.clusterName"
         :inputed="inputedClusters"
-        @input-finish="handleInputFinish" />
+        :is-show-blur="data.isMongoReplicaSet"
+        @input-finish="handleInputFinish">
+        <template #blur>
+          <RelatedClusters
+            v-if="data.clusterName && relatedClusterDomains.length > 0"
+            class="mb-10"
+            :clusters="relatedClusterDomains" />
+        </template>
+      </RenderTargetCluster>
     </td>
     <td style="padding: 0">
       <RenderText
@@ -50,6 +58,7 @@
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/mongodb-manage/components/edit-field/ClusterName.vue';
+  import RelatedClusters from '@views/mongodb-manage/components/RelatedClusters.vue';
 
   import { random } from '@utils';
 
@@ -61,13 +70,16 @@
     clusterName: string;
     clusterId: number;
     currentNodeNum: number;
+    machineInstanceNum: number;
+    shardNum: number;
     clusterType: string;
     clusterTypeText: string;
+    isMongoReplicaSet: boolean;
     targetNum?: string;
   }
 
   export interface InfoItem {
-    cluster_id: number;
+    cluster_ids: number[];
     reduce_shard_nodes: number;
   }
 
@@ -80,17 +92,23 @@
     clusterType: '',
     clusterTypeText: '',
     currentNodeNum: 0,
+    machineInstanceNum: 0,
+    isMongoReplicaSet: false,
+    shardNum: 0,
   });
 </script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getRelatedClustersByClusterIds } from '@services/source/mongodb';
 
   interface Props {
     data: IDataRow;
     removeable: boolean;
     inputedClusters?: string[];
   }
-  
+
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
@@ -111,6 +129,46 @@
 
   const clusterRef = ref();
   const targetNumRef = ref<InstanceType<typeof RenderTargetNumber>>();
+  const relatedClusterDomains = ref<string[]>([]);
+
+  let relatedClusterIds: number[] = [];
+
+  const { run: fetchRelatedClustersByClusterIds } = useRequest(getRelatedClustersByClusterIds, {
+    manual: true,
+    onSuccess(resultList) {
+      if (resultList.length > 0) {
+        const relatedClusters = resultList[0].related_clusters;
+        if (relatedClusters.length > 0) {
+          const domainList: string[] = [];
+          const idList: number[] = [];
+          relatedClusters.forEach((item) => {
+            domainList.push(item.immute_domain);
+            idList.push(item.id)
+          })
+          relatedClusterDomains.value = domainList;
+          relatedClusterIds = idList;
+        } else {
+          relatedClusterDomains.value = [];
+          relatedClusterIds = [];
+        }
+      }
+    },
+  });
+
+  watch(
+    () => props.data.isMongoReplicaSet,
+    () => {
+      if (props.data.isMongoReplicaSet) {
+        // 副本集查关联集群
+        fetchRelatedClustersByClusterIds({
+          cluster_ids: [props.data.clusterId],
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);
@@ -131,8 +189,13 @@
     async getValue() {
       await clusterRef.value.getValue();
       return targetNumRef.value!.getValue().then((nodeNum) => ({
-        cluster_id: props.data.clusterId,
-        reduce_shard_nodes: props.data.currentNodeNum - nodeNum,
+        cluster_ids: props.data.isMongoReplicaSet
+          ? [props.data.clusterId, ...relatedClusterIds]
+          : [props.data.clusterId],
+        reduce_shard_nodes: props.data.currentNodeNum - nodeNum, // 当前 - 缩容至
+        current_shard_nodes_num: props.data.currentNodeNum, // 当前shard节点数
+        shard_num: props.data.shardNum, // 分片数
+        machine_instance_num: props.data.machineInstanceNum, // 单机部署实例
       }));
     },
   });

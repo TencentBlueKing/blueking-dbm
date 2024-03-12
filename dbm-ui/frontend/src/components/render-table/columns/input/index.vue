@@ -30,6 +30,7 @@
       :type="type"
       @blur="handleBlur"
       @change="handleInput"
+      @focus="() => (isBlur = false)"
       @input="handleInput"
       @keydown="handleKeydown"
       @paste="handlePaste">
@@ -40,6 +41,11 @@
       v-bk-tooltips="errorMessage"
       class="error-icon"
       type="exclamation-fill" />
+    <div
+      v-if="isShowBlur && isBlur"
+      class="blur-dispaly-main">
+      <slot name="blur" />
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -53,7 +59,8 @@
     disabled?: boolean,
     type?: string,
     min?: number,
-    max?: number
+    max?: number,
+    isShowBlur?: boolean,
   }
 
   interface Emits {
@@ -72,6 +79,7 @@
     type: 'text',
     min: Number.MIN_SAFE_INTEGER,
     max: Number.MAX_SAFE_INTEGER,
+    isShowBlur: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -82,8 +90,11 @@
 
   const rootRef = ref<HTMLElement>();
   const localValue = ref('');
+  const isBlur = ref(true);
 
   const isPassword = computed(() => props.type === 'password');
+
+  let oldInputText = ''
 
   const {
     message: errorMessage,
@@ -93,7 +104,8 @@
   watch(modelValue, (value) => {
     nextTick(() => {
       if (localValue.value !== value) {
-        localValue.value = value;
+        localValue.value = value as string;
+        oldInputText = localValue.value;
         window.changeConfirm = true;
       }
     });
@@ -103,6 +115,7 @@
 
   // 响应输入
   const handleInput = (value: string) => {
+    isBlur.value = false;
     localValue.value = value;
     window.changeConfirm = true;
     modelValue.value = value;
@@ -110,11 +123,16 @@
 
   // 失去焦点
   const handleBlur = (event: FocusEvent) => {
+    isBlur.value = true;
     if (props.disabled) {
       event.preventDefault();
       return;
     }
     if (localValue.value) {
+      if (oldInputText === localValue.value) {
+        return;
+      }
+      oldInputText = localValue.value;
       validator(localValue.value)
         .then(() => {
           window.changeConfirm = true;
@@ -223,14 +241,13 @@
 
   .table-edit-input {
     position: relative;
-    display: block;
-    height: 42px;
+    min-height: 42px;
     cursor: pointer;
     background: #fff;
 
     .input-box {
       width: 100%;
-      height: 100%;
+      height: 42px;
       padding: 0;
       background: inherit;
       border: none;
@@ -266,6 +283,10 @@
       display: flex;
       font-size: 14px;
       color: #ea3636;
+    }
+
+    .blur-dispaly-main {
+      padding: 0 16px;
     }
   }
 </style>

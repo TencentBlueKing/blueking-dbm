@@ -89,6 +89,7 @@ export default class Mongodb {
   major_version: string;
   master_domain: string;
   machine_type: string;
+  machine_instance_num: number;
   mongodb_machine_num: number;
   mongodb_machine_pair: number;
   mongo_config: MongoInstance[];
@@ -135,6 +136,7 @@ export default class Mongodb {
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
     this.machine_type = payload.machine_type;
+    this.machine_instance_num = payload.machine_instance_num;
     this.mongodb_machine_num = payload.mongodb_machine_num;
     this.mongodb_machine_pair = payload.mongodb_machine_pair;
     this.mongo_config = payload.mongo_config;
@@ -267,5 +269,9 @@ export default class Mongodb {
       return this.mongo_config.length + this.mongos.length + this.mongodb.length;
     }
     return this.mongodb.length;
+  }
+
+  get isMongoReplicaSet() {
+    return this.cluster_type === 'MongoReplicaSet';
   }
 }
