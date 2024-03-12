@@ -55,11 +55,8 @@
 
   import { queryAllTypeCluster } from '@services/dbbase';
 
-<<<<<<< HEAD
   import { useUrlSearch } from '@hooks';
 
-=======
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
   interface Emits {
     (e: 'change', value: Record<string, any>): void;
   }
@@ -88,14 +85,11 @@
 
   const formData = reactive(genDefaultData());
 
-<<<<<<< HEAD
   const serachParams = getSearchParams();
   Object.keys(formData).forEach((key) => {
     formData[key as keyof typeof formData] = serachParams[key];
   });
 
-=======
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
   const { data: clusterList } = useRequest(queryAllTypeCluster, {
     defaultParams: [
       {
@@ -104,24 +98,17 @@
     ],
   });
 
-<<<<<<< HEAD
   const handleDateChange = (value: [string, string]) => {
     [formData.create_at__gte, formData.create_at__lte] = value;
   };
 
-=======
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
   const handleSubmit = () => {
     emits(
       'change',
       filterInvalidValue({
         ...formData,
-<<<<<<< HEAD
         create_at__gte: formData.create_at__gte ? dayjs(formData.create_at__gte).format('YYYY-MM-DD HH:mm:ss') : '',
         create_at__lte: formData.create_at__lte ? dayjs(formData.create_at__lte).format('YYYY-MM-DD HH:mm:ss') : '',
-=======
-        create_at: formData.create_at ? dayjs(formData.create_at).format('YYYY-MM-DD') : '',
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
       }),
     );
   };
