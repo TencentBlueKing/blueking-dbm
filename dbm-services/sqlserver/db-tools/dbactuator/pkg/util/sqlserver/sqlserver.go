@@ -281,12 +281,19 @@ func (h *DbWorker) DBRestoreForFullBackup(dbname string, fullBakFile string, mov
 }
 
 // 操作日志备份恢复命令
-func (h *DbWorker) DBRestoreForLogBackup(dbname string, logBakFile string, restoreMode string) error {
-
-	restoreSQL := fmt.Sprintf(
-		"restore log %s from disk='%s' with file = 1, %s",
-		dbname, logBakFile, restoreMode,
-	)
+func (h *DbWorker) DBRestoreForLogBackup(dbname string, logBakFile string, restoreMode string, restoreTime string) error {
+	var restoreSQL string
+	if restoreTime != "" {
+		restoreSQL = fmt.Sprintf(
+			"restore log %s from disk='%s' with file = 1, %s, STOPAT = N'%s'",
+			dbname, logBakFile, restoreMode, restoreTime,
+		)
+	} else {
+		restoreSQL = fmt.Sprintf(
+			"restore log %s from disk='%s' with file = 1, %s",
+			dbname, logBakFile, restoreMode,
+		)
+	}
 
 	logger.Info("execute restore log-backup-sql: %s", restoreSQL)
 	if _, err := h.Exec(restoreSQL); err != nil {

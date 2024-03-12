@@ -167,3 +167,13 @@ def find_nearby_time(
         raise IndexError(_("无法找到合适的附近时间点"))
 
     return index
+
+
+def trans_time_zone(o_datetime: datetime, time_zone_str: str) -> datetime:
+    """
+    根据时间和传入的时区，转换对应时区的datetime
+    @param o_datetime: 时间点
+    @param time_zone_str: 时区，格式"+08:00"
+    """
+    offset_hours = int(time_zone_str[:3])
+    return o_datetime.astimezone(datetime.timezone(datetime.timedelta(hours=offset_hours)))
