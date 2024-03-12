@@ -155,6 +155,69 @@ class TendisPlusSpecFilter(RedisSpecFilter):
         super().custom_filter()
 
 
+class RedisClusterSpecFilter(RedisSpecFilter):
+    """官方RedisCluster集群规格过滤器"""
+
+    # 最小机器组数
+    MIN_MACHINE_PAIR = 3
+    # 单个实例建议的容量规格
+    BASE_SINGLE_CAPCITY = 6
+    # 支持简单阔缩容倍数（非DTS方式/Slot迁移扩容方式）
+    SCALE_MULITPLE = 4
+
+    def calc_cluster_shard_num(self):
+        self.future_capacity = int(self.future_capacity)
+        self.capacity = int(self.capacity)
+        valid_specs: List[Dict[str, Any]] = []
+        max_capcity = self.capacity
+        if self.future_capacity > self.capacity:
+            max_capcity = min(self.future_capacity, int(self.capacity) * int(self.SCALE_MULITPLE) / 2)
+        # 先进行排序
+        self.specs.sort(key=lambda x: (x["capacity"]))
+
+        print(self.specs)
+
+        # 选取合适的规格
+        spec_idx, instance_cap, spec_cnt, avaiable_specs = 0, self.BASE_SINGLE_CAPCITY, len(self.specs), []
+        for spec in self.specs:
+            if self.capacity <= spec["capacity"] * self.MIN_MACHINE_PAIR:
+                avaiable_specs.append(spec)
+                if spec_idx >= 1:
+                    avaiable_specs.append(self.specs[spec_idx - 1])
+                if spec_idx >= 3:
+                    avaiable_specs.append(self.specs[spec_idx - 2])
+                break
+            spec_idx += 1
+
+        if self.capacity > self.specs[spec_cnt - 1]["capacity"] * self.SCALE_MULITPLE:
+            instance_cap = self.BASE_SINGLE_CAPCITY * self.SCALE_MULITPLE
+
+        if self.capacity > self.specs[spec_cnt - 1]["capacity"]:
+            avaiable_specs.append(self.specs[spec_cnt - 1])
+            if spec_cnt > 2:
+                avaiable_specs.append(self.specs[spec_cnt - 2])
+
+        for spec_new in avaiable_specs:
+            # 至少是三组机器
+            spec_new["machine_pair"] = max(math.ceil(self.capacity / spec["capacity"]), self.MIN_MACHINE_PAIR)
+
+            # 一定要保证集群总分片数是机器组数的整数倍，
+            cluster_shard_num = math.ceil(max_capcity / instance_cap)
+            single_machine_shard_num = math.ceil(cluster_shard_num / spec_new["machine_pair"])
+            # 并且单机分片数需要取整，取偶
+            single_machine_shard_num = max(single_machine_shard_num + (single_machine_shard_num & 1), 2)
+            # 保证3分片打底
+            spec_new["cluster_shard_num"] = max(
+                single_machine_shard_num * spec_new["machine_pair"], self.MIN_MACHINE_PAIR
+            )
+            valid_specs.append(spec_new)
+
+        self.specs = valid_specs
+
+    def custom_filter(self):
+        super().custom_filter()
+
+
 class TendisSSDSpecFilter(RedisSpecFilter):
     """TendisSSD集群规格过滤器"""
 

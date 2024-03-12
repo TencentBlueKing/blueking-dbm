@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbresource.handlers import (
     MongoDBShardSpecFilter,
+    RedisClusterSpecFilter,
     TenDBClusterSpecFilter,
     TendisCacheSpecFilter,
     TendisPlusSpecFilter,
@@ -32,6 +33,7 @@ GSE_AGENT_RUNNING_CODE = 2
 # 集群对应的规格筛选类
 CLUSTER_TYPE__SPEC_FILTER = {
     ClusterType.TenDBCluster: TenDBClusterSpecFilter,
+    ClusterType.TendisPredixyRedisCluster: RedisClusterSpecFilter,
     ClusterType.TendisPredixyTendisplusCluster: TendisPlusSpecFilter,
     ClusterType.TendisTwemproxyRedisInstance: TendisCacheSpecFilter,
     ClusterType.TwemproxyTendisSSDInstance: TendisSSDSpecFilter,
