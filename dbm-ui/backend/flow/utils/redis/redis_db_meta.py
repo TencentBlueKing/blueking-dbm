@@ -26,6 +26,7 @@ from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
+from backend.db_meta.api.cluster.tendissingle.handler import TendisSingleHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
 from backend.db_meta.enums import (
     AccessLayer,
@@ -409,6 +410,33 @@ class RedisDBMeta(object):
                 }
             )
         api.storage_instance_tuple.create(replic_tuple, creator=self.cluster["created_by"])
+        return True
+
+    def redis_instance(self) -> bool:
+        """
+        单redis主从实例填充cluster相关元数据
+        """
+        storages = [{"ip": self.cluster["master_ip"], "port": self.cluster["port"]}]
+        domain_split = str.split(self.cluster["immute_domain"], ".")
+        domain_split[0] = domain_split[0] + "-slave"
+        slave_domain = ".".join(domain_split)
+        handler = TendisSingleHandler
+        handler.create(
+            **{
+                "bk_biz_id": self.cluster["bk_biz_id"],
+                "bk_cloud_id": self.cluster["bk_cloud_id"],
+                "name": self.cluster["cluster_name"],
+                "alias": self.cluster["cluster_alias"],
+                "major_version": self.cluster["db_version"],
+                "db_module_id": DEFAULT_DB_MODULE_ID,
+                "storages": storages,
+                "immute_domain": self.cluster["immute_domain"],
+                "slave_domain": slave_domain,
+                "creator": self.cluster["created_by"],
+                "region": self.cluster.get("region", ""),
+                "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
+            }
+        )
         return True
 
     def redis_segment_make_cluster(self) -> bool:
