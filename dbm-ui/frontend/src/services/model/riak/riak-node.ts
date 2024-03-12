@@ -24,8 +24,8 @@ export default class RiakNode {
   static REBOOTING = 'REBOOTING';
 
   static labelMap: Record<string, string> = {
-    [RiakNode.DELETING]: 'shanchuzhong',
-    [RiakNode.REBOOTING]: 'zhongqizhong',
+    [RiakNode.DELETING]: t('删除中'),
+    [RiakNode.REBOOTING]: t('重启中'),
   };
 
   static keyPathMap: Record<string, string> = {

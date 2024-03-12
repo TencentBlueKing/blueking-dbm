@@ -27,7 +27,8 @@ export enum DBTypes {
   SPIDER = 'spider',
   RIAK = 'riak',
   MONGODB = 'mongodb',
-  SQLSERVER = 'sqlserver'
+  SQLSERVER = 'sqlserver',
+  DORIS = 'doris',
 }
 export type DBTypesValues = `${DBTypes}`;
 
@@ -61,6 +62,7 @@ export enum ClusterTypes {
   RIAK = 'riak',
   SQLSERVER_HA = 'sqlserver_ha',
   SQLSERVER_SINGLE = 'sqlserver_single',
+  DORIS = 'doris',
 }
 
 // 机器类型
@@ -145,6 +147,9 @@ export const clusterTypeInfos = {
   },
   [ClusterTypes.SQLSERVER_SINGLE]: {
     dbType: DBTypes.SQLSERVER,
+  },
+  [ClusterTypes.DORIS]: {
+    dbType: DBTypes.DORIS,
   },
 };
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;
@@ -319,6 +324,14 @@ export enum TicketTypes {
   MONGODB_BACKUP = 'MONGODB_BACKUP', // mongo 库表备份
   MONGODB_RESTORE = 'MONGODB_RESTORE', // mongo 定点构造
   MONGODB_TEMPORARY_DESTROY = 'MONGODB_TEMPORARY_DESTROY', // mongo 临时集群销毁
+  DORIS_APPLY = 'DORIS_APPLY',
+  DORIS_DISABLE = 'DORIS_DISABLE',
+  DORIS_DESTROY = 'DORIS_DESTROY',
+  DORIS_ENABLE = 'DORIS_ENABLE',
+  DORIS_SCALE_UP = 'DORIS_SCALE_UP',
+  DORIS_SHRINK = 'DORIS_SHRINK',
+  DORIS_REPLACE = 'DORIS_REPLACE',
+  DORIS_REBOOT = 'DORIS_REBOOT',
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -377,7 +390,7 @@ export const sqlServerType = {
   },
 };
 
-export type SqlServerTypeString = keyof typeof sqlServerType
+export type SqlServerTypeString = keyof typeof sqlServerType;
 
 export const bigDataType = {
   [TicketTypes.ES_APPLY]: {
@@ -409,6 +422,11 @@ export const bigDataType = {
     id: TicketTypes.RIAK_CLUSTER_APPLY,
     name: t('Riak集群部署'),
     type: ClusterTypes.RIAK,
+  },
+  [TicketTypes.DORIS_APPLY]: {
+    id: TicketTypes.DORIS_APPLY,
+    name: t('Doris集群部署'),
+    type: ClusterTypes.DORIS,
   },
 };
 
@@ -502,6 +520,7 @@ export enum UserPersonalSettings {
   MONGODB_INSTANCE_TABLE_SETTINGS = 'MONGODB_INSTANCE_TABLE_SETTINGS',
   MONGODB_REPLICA_SET_SETTINGS = 'MONGODB_REPLICA_SET_SETTINGS',
   MONGODB_SHARED_CLUSTER_SETTINGS = 'MONGODB_SHARED_CLUSTER_SETTINGS',
+  DORIS_TABLE_SETTINGS = 'DORIS_TABLE_SETTINGS',
 }
 
 /**

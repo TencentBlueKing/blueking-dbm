@@ -24,6 +24,7 @@
   import { TicketTypes } from '@common/const';
 
   import DetailsClusterOperation from './bigdata/DetailsClusterOperation.vue';
+  import DetailDoris from './bigdata/DetailsDoris.vue';
   import DetailsES from './bigdata/DetailsES.vue';
   import DetailsHDFS from './bigdata/DetailsHDFS.vue';
   import DetailsInfluxDB from './bigdata/DetailsInfluxDB.vue';
@@ -148,6 +149,9 @@
     TicketTypes.RIAK_CLUSTER_DISABLE,
     TicketTypes.RIAK_CLUSTER_ENABLE,
     TicketTypes.RIAK_CLUSTER_DESTROY,
+    TicketTypes.DORIS_DISABLE,
+    TicketTypes.DORIS_ENABLE,
+    TicketTypes.DORIS_DESTROY,
   ];
 
   const mysqlClusterTicketType = [
@@ -166,6 +170,7 @@
     TicketTypes.HDFS_REPLACE,
     TicketTypes.KAFKA_REPLACE,
     TicketTypes.PULSAR_REPLACE,
+    TicketTypes.DORIS_REPLACE,
   ];
 
   const mysqlSlaveType = [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, TicketTypes.MYSQL_ADD_SLAVE];
@@ -175,6 +180,7 @@
     TicketTypes.ES_REBOOT,
     TicketTypes.KAFKA_REBOOT,
     TicketTypes.PULSAR_REBOOT,
+    TicketTypes.DORIS_REBOOT,
   ];
 
   const bigDataCapacityType = [
@@ -186,6 +192,8 @@
     TicketTypes.KAFKA_SHRINK,
     TicketTypes.PULSAR_SHRINK,
     TicketTypes.PULSAR_SCALE_UP,
+    TicketTypes.DORIS_SHRINK,
+    TicketTypes.DORIS_SCALE_UP,
   ];
 
   const riakCapacityType = [TicketTypes.RIAK_CLUSTER_SCALE_IN, TicketTypes.RIAK_CLUSTER_SCALE_OUT];
@@ -304,6 +312,7 @@
     [TicketTypes.MONGODB_SCALE_UPDOWN]: MongoCapacityChange,
     [TicketTypes.MONGODB_ADD_MONGOS]: MongoProxyScaleUp,
     [TicketTypes.MONGODB_TEMPORARY_DESTROY]: MongoTemporaryDestrot,
+    [TicketTypes.DORIS_APPLY]: DetailDoris,
   };
 
   // 不同集群详情组件

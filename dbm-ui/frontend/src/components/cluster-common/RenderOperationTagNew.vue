@@ -58,8 +58,40 @@
 
   const iconMap: Record<string, Record<string, string>> = {
     [t('销毁中')]: {
-      color: ' #EA3536',
+      color: '#EA3536',
       background: '#FEEBEA',
+    },
+    [t('禁用中')]: {
+      color: '#FE9C00',
+      background: '#FFF1DB',
+    },
+    [t('替换中')]: {
+      color: '#29AAE8',
+      background: '#EDFBFF',
+    },
+    [t('扩容中')]: {
+      color: '#14A568',
+      background: '#E4FAF0',
+    },
+    [t('重启中')]: {
+      color: '#3A84FF',
+      background: '#EDF4FF',
+    },
+    [t('删除中')]: {
+      color: '#EA3536',
+      background: '#FEEBEA',
+    },
+    [t('缩容中')]: {
+      color: '#8E3AFF',
+      background: '#F2EDFF',
+    },
+    [t('启用中')]: {
+      color: '#74BC09',
+      background: '#EDFFD3',
+    },
+    [t('迁移中')]: {
+      color: '#D1AF09',
+      background: '#F9F6D7',
     },
   };
 
@@ -120,6 +152,7 @@
       padding: 0 4px;
       line-height: 16px;
       cursor: pointer;
+      border-radius: 2px;
 
       .icon-text {
         display: inline-block;

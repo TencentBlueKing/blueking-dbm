@@ -17,7 +17,7 @@ export default class HdfsInstance {
   static HDFS_REBOOT = 'HDFS_REBOOT';
 
   static operationIconMap = {
-    [HdfsInstance.HDFS_REBOOT]: 'zhongqizhong',
+    [HdfsInstance.HDFS_REBOOT]: t('重启中'),
   };
 
   static operationTextMap = {

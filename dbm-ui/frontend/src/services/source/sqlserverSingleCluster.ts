@@ -12,7 +12,7 @@
 */
 
 import SqlServerClusterDetailModel from '@services/model/sqlserver/sqlserver-cluster-detail';
-import SqlServerClusterListModel from '@services/model/sqlserver/sqlserver-ha-cluster';
+import SqlServerClusterListModel from '@services/model/sqlserver/sqlserver-single-cluster';
 
 import { useGlobalBizs } from '@stores';
 

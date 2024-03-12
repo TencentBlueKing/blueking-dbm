@@ -9,10 +9,10 @@ export default class MongodbInstance {
   static MONGODB_DESTROY = 'MONGODB_DESTROY';
 
   static operationIconMap = {
-    [MongodbInstance.MONGODB_DISABLE]: 'jinyongzhong',
-    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: 'zhongqizhong',
-    [MongodbInstance.MONGODB_ENABLE]: 'qiyongzhong',
-    [MongodbInstance.MONGODB_DESTROY]: 'shanchuzhong',
+    [MongodbInstance.MONGODB_DISABLE]: t('禁用中'),
+    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: t('重启中'),
+    [MongodbInstance.MONGODB_ENABLE]: t('启用中'),
+    [MongodbInstance.MONGODB_DESTROY]: t('删除中'),
   };
 
   static operationTextMap = {
@@ -39,36 +39,36 @@ export default class MongodbInstance {
   create_at: string;
   db_module_id: string;
   host_info: {
-    alive: number,
+    alive: number;
     biz: {
-      id: number,
-      name: string
-    },
+      id: number;
+      name: string;
+    };
     cloud_area: {
-      id: number,
-      name: string
-    },
-    cloud_id: number,
-    host_id: number,
-    host_name?: string,
-    ip: string,
-    ipv6: string,
+      id: number;
+      name: string;
+    };
+    cloud_id: number;
+    host_id: number;
+    host_name?: string;
+    ip: string;
+    ipv6: string;
     meta: {
-      bk_biz_id: number,
-      scope_id: number,
-      scope_type: string
-    },
-    scope_id: string,
-    scope_type: string,
-    os_name: string,
-    bk_cpu?: number,
-    bk_disk?: number,
-    bk_mem?: number,
-    os_type: string,
-    agent_id: number,
-    cpu: string,
-    cloud_vendor: string,
-    bk_idc_name?: string,
+      bk_biz_id: number;
+      scope_id: number;
+      scope_type: string;
+    };
+    scope_id: string;
+    scope_type: string;
+    os_name: string;
+    bk_cpu?: number;
+    bk_disk?: number;
+    bk_mem?: number;
+    os_type: string;
+    agent_id: number;
+    cpu: string;
+    cloud_vendor: string;
+    bk_idc_name?: string;
   };
   id: number;
   instance_address: string;
@@ -93,18 +93,18 @@ export default class MongodbInstance {
     cpu: {
       max: number;
       min: number;
-    },
+    };
     id: number;
     mem: {
       max: number;
       min: number;
-    },
+    };
     name: string;
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    }[],
+    }[];
   };
   status: string;
   version: string;
@@ -149,12 +149,12 @@ export default class MongodbInstance {
   }
 
   get isRebooting() {
-    return Boolean(this.operations.find(item => item.ticket_type === MongodbInstance.MONGODB_INSTANCE_RELOAD));
+    return Boolean(this.operations.find((item) => item.ticket_type === MongodbInstance.MONGODB_INSTANCE_RELOAD));
   }
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(MongodbInstance.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态
@@ -197,5 +197,13 @@ export default class MongodbInstance {
       return true;
     }
     return false;
+  }
+
+  get operationTagTips() {
+    return this.operations.map((item) => ({
+      icon: MongodbInstance.operationIconMap[item.ticket_type],
+      tip: MongodbInstance.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
   }
 }

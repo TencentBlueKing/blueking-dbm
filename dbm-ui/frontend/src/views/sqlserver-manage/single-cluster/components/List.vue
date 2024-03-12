@@ -9,11 +9,11 @@
         </BkButton>
         <BkDropdown
           class="ml-8"
-          @hide="() => isCopyDropdown = false"
-          @show="() => isCopyDropdown = true">
+          @hide="() => (isCopyDropdown = false)"
+          @show="() => (isCopyDropdown = true)">
           <BkButton
             class="dropdown-button"
-            :class="{ 'active': isCopyDropdown }">
+            :class="{ active: isCopyDropdown }">
             {{ t('复制') }}
             <DbIcon type="up-big dropdown-button-icon" />
           </BkButton>
@@ -73,7 +73,7 @@
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: t('请选择集群')
+            content: t('请选择集群'),
           }"
           class="inline-block">
           <BkButton
@@ -155,7 +155,7 @@
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
@@ -248,7 +248,7 @@
                   {
                     data.operationTagTips.map(item => (
                       <RenderOperationTag
-                        class="cluster-tag"
+                        class="cluster-tag ml-4"
                         data={item} />
                     ))
                   }
@@ -296,16 +296,16 @@
     },
     {
       label: t('实例'),
-      field: 'instance_name',
+      field: 'storages',
       render: ({ data }: { data: SqlServerSingleClusterModel }) => (
         <RenderInstances
-          data={ data.masters }
+          data={ data.storages }
           dataSource={ getSqlServerInstanceList }
           title={ t('【inst】实例预览', { inst: data.bk_cloud_name }) }
-          role="proxy"
+          role="storages"
           clusterId={ data.id }
         />
-    ),
+      )
     },
     {
       label: t('所属DB模块'),
@@ -478,8 +478,8 @@
 
   const handleCopy = (dataList: SqlServerSingleClusterModel[], isInstance = false) => {
     const list = dataList.reduce((prevList, tableItem) => {
-      const masterList = tableItem.masters.map(masterItem => (isInstance ? `${masterItem.ip}:${masterItem.port}` : `${masterItem.ip}`));
-      return [...prevList, ...masterList];
+      const storageList = tableItem.storages.map(storageItem => (isInstance ? `${storageItem.ip}:${storageItem.port}` : `${storageItem.ip}`));
+      return [...prevList, ...storageList];
     }, [] as string[]);
     copy(list.join('\n'));
   };
@@ -545,63 +545,63 @@
   };
 </script>
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.sqlserver-single-cluster-list {
-  height: 100%;
-  padding: 24px 0;
-  margin: 0 24px;
-  overflow: hidden;
+  .sqlserver-single-cluster-list {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
+    overflow: hidden;
 
-  .header-action {
-    display: flex;
-    flex-wrap: wrap;
-
-    .header-select {
-      flex: 1;
-      max-width: 320px;
-      min-width: 320px;
-      margin-left: auto;
-    }
-  }
-
-  :deep(.cell) {
-    line-height: normal !important;
-
-    .domain {
+    .header-action {
       display: flex;
-      align-items: center;
+      flex-wrap: wrap;
+
+      .header-select {
+        flex: 1;
+        max-width: 320px;
+        min-width: 320px;
+        margin-left: auto;
+      }
     }
 
-    .db-icon-copy,
-    .db-icon-link {
-      display: none;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
+    :deep(.cell) {
+      line-height: normal !important;
 
-    .operations-more {
-      .db-icon-more {
-        display: block;
-        font-size: @font-size-normal;
-        font-weight: bold;
-        color: @default-color;
+      .domain {
+        display: flex;
+        align-items: center;
+      }
+
+      .db-icon-copy,
+      .db-icon-link {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
         cursor: pointer;
+      }
 
-        &:hover {
-          background-color: @bg-disable;
-          border-radius: 2px;
+      .operations-more {
+        .db-icon-more {
+          display: block;
+          font-size: @font-size-normal;
+          font-weight: bold;
+          color: @default-color;
+          cursor: pointer;
+
+          &:hover {
+            background-color: @bg-disable;
+            border-radius: 2px;
+          }
         }
       }
     }
-  }
 
-  :deep(tr:hover) {
-    .db-icon-copy,
-    .db-icon-link {
-      display: inline-block !important;
+    :deep(tr:hover) {
+      .db-icon-copy,
+      .db-icon-link {
+        display: inline-block !important;
+      }
     }
   }
-}
 </style>

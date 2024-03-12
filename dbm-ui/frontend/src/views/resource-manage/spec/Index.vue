@@ -328,6 +328,25 @@
         },
       ],
     },
+    {
+      moduleId: 'bigdata',
+      label: 'Doris',
+      name: ClusterTypes.DORIS,
+      children: [
+        {
+          label: t('Follower节点规格'),
+          name: 'doris_follower',
+        },
+        {
+          label: t('Observer节点规格'),
+          name: 'doris_observer',
+        },
+        {
+          label: t('冷_热节点规格'),
+          name: 'doris_datanode',
+        },
+      ],
+    },
   ];
 
   const curTab = ref<string>(ClusterTypes.TENDBSINGLE);

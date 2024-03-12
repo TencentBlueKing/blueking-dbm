@@ -24,7 +24,13 @@
       </div>
       <template v-if="validateStatusMemo[nodeItem.key]">
         <div
-          v-if="nodeInfo[nodeItem.key].shrinkDisk"
+          v-if="nodeItem.key === 'observer' && nodeInfo[nodeItem.key].nodeList.length > 0"
+          class="disk-tips">
+          <span class="number">{{ nodeInfo[nodeItem.key].nodeList.length }}</span>
+          <span>{{ t('台') }}</span>
+        </div>
+        <div
+          v-else-if="nodeInfo[nodeItem.key].shrinkDisk"
           class="disk-tips">
           <span class="number">{{ nodeInfo[nodeItem.key].shrinkDisk }}</span>
           <span>G</span>
@@ -38,13 +44,17 @@
     </div>
   </div>
 </template>
-<script setup lang="ts" generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel">
+<script
+  setup
+  lang="ts"
+  generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
   import { useI18n } from 'vue-i18n';
 
-  import type EsNodeModel from '@services/model/es/es-node';
-  import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
+  import DorisNodeModel from '@services/model/doris/doris-node';
+  import EsNodeModel from '@services/model/es/es-node';
+  import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
+  import KafkaNodeModel from '@services/model/kafka/kafka-node';
+  import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 
   import type { TShrinkNode } from './Index.vue';
 

@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { t } from '@locales/index';
 
@@ -20,9 +20,9 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   static SQLSERVER_HA_DISABLE = 'SQLSERVER_HA_DISABLE';
   static SQLSERVER_HA_ENABLE = 'SQLSERVER_HA_ENABLE';
   static operationIconMap = {
-    [SqlServerHaCluster.SQLSERVER_HA_ENABLE]: 'qiyongzhong',
-    [SqlServerHaCluster.SQLSERVER_HA_DISABLE]: 'jinyongzhong',
-    [SqlServerHaCluster.SQLSERVER_HA_DESTROY]: 'shanchuzhong',
+    [SqlServerHaCluster.SQLSERVER_HA_ENABLE]: t('启用中'),
+    [SqlServerHaCluster.SQLSERVER_HA_DISABLE]: t('禁用中'),
+    [SqlServerHaCluster.SQLSERVER_HA_DESTROY]: t('删除中'),
   };
   static operationTextMap = {
     [SqlServerHaCluster.SQLSERVER_HA_DESTROY]: t('删除任务执行中'),
@@ -41,11 +41,13 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_access_port: number;
   cluster_alias: string;
   cluster_name: string;
   cluster_time_zone: string;
   cluster_type: string;
   cluster_type_name: string;
+  create_at: string;
   creator: string;
   db_module_id: number;
   db_module_name: string;
@@ -53,17 +55,17 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   major_version: string;
   master_domain: string;
   masters: Array<{
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    bk_host_id: number,
-    bk_instance_id: number,
-    instance: string,
-    ip: string,
-    name: string,
-    phase: string,
-    port: number,
-    spec_config: Record<'id', number>,
-    status: string,
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    bk_instance_id: number;
+    instance: string;
+    ip: string;
+    name: string;
+    phase: string;
+    port: number;
+    spec_config: Record<'id', number>;
+    status: string;
   }>;
   operations: Array<{
     cluster_id: number;
@@ -89,11 +91,13 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_name = payload.cluster_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
+    this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
@@ -123,7 +127,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(SqlServerHaCluster.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态
@@ -176,7 +180,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: SqlServerHaCluster.operationIconMap[item.ticket_type],
       tip: SqlServerHaCluster.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,

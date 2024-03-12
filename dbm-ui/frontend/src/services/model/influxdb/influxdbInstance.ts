@@ -21,9 +21,9 @@ export default class InfluxDBInstance {
   static INFLUXDB_ENABLE = 'INFLUXDB_ENABLE';
 
   static operationIconMap = {
-    [InfluxDBInstance.INFLUXDB_REBOOT]: 'zhongqizhong',
-    [InfluxDBInstance.INFLUXDB_REPLACE]: 'tihuanzong',
-    [InfluxDBInstance.INFLUXDB_ENABLE]: 'qiyongzhong',
+    [InfluxDBInstance.INFLUXDB_REBOOT]: t('重启中'),
+    [InfluxDBInstance.INFLUXDB_REPLACE]: t('替换中'),
+    [InfluxDBInstance.INFLUXDB_ENABLE]: t('启用中'),
   };
 
   static operationTextMap = {

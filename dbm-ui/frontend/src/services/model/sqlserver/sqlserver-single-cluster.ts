@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { t } from '@locales/index';
 
@@ -20,9 +20,9 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   static SQLSERVER_SINGLE_DISABLE = 'SQLSERVER_SINGLE_DISABLE';
   static SQLSERVER_SINGLE_ENABLE = 'SQLSERVER_SINGLE_ENABLE';
   static operationIconMap = {
-    [SqlServerSingleCluster.SQLSERVER_SINGLE_ENABLE]: 'qiyongzhong',
-    [SqlServerSingleCluster.SQLSERVER_SINGLE_DISABLE]: 'jinyongzhong',
-    [SqlServerSingleCluster.SQLSERVER_SINGLE_DESTROY]: 'shanchuzhong',
+    [SqlServerSingleCluster.SQLSERVER_SINGLE_ENABLE]: t('启用中'),
+    [SqlServerSingleCluster.SQLSERVER_SINGLE_DISABLE]: t('禁用中'),
+    [SqlServerSingleCluster.SQLSERVER_SINGLE_DESTROY]: t('删除中'),
   };
   static operationTextMap = {
     [SqlServerSingleCluster.SQLSERVER_SINGLE_DESTROY]: t('删除任务执行中'),
@@ -41,38 +41,27 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_access_port: number;
   cluster_alias: string;
   cluster_name: string;
   cluster_time_zone: string;
   cluster_type: string;
   cluster_type_name: string;
+  create_at: string;
   creator: string;
   db_module_id: number;
   db_module_name: string;
   id: number;
   major_version: string;
   master_domain: string;
-  masters: {
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    bk_host_id: number,
-    bk_instance_id: number,
-    instance: string,
-    ip: string,
-    name: string,
-    phase: string,
-    port: number,
-    spec_config: Record<'id', number>,
-    status: string,
-  }[];
   operations: Array<{
-    cluster_id: number,
-    flow_id: number,
-    operator: string,
-    status: string,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
+    cluster_id: number;
+    flow_id: number;
+    operator: string;
+    status: string;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
   }>;
   phase: string;
   phase_name: string;
@@ -93,12 +82,12 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
       cpu: {
         max: number;
         min: number;
-      },
+      };
       id: number;
       mem: {
         max: number;
         min: number;
-      },
+      };
       name: string;
       storage_spec: Array<{
         mount_point: string;
@@ -118,18 +107,19 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_name = payload.cluster_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
+    this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
-    this.masters = payload.masters;
     this.operations = payload.operations;
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
@@ -152,7 +142,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(SqlServerSingleCluster.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态
@@ -205,7 +195,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: SqlServerSingleCluster.operationIconMap[item.ticket_type],
       tip: SqlServerSingleCluster.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
