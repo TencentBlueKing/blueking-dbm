@@ -9,6 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import logging
+from typing import Tuple
 
 from django.utils.crypto import get_random_string
 
@@ -117,3 +118,18 @@ class PayloadHandler(object):
             return None
 
         return base64.b64decode(data["items"][0]["password"]).decode("utf-8")
+
+    @staticmethod
+    def get_download_backup_file_user() -> Tuple[str, str]:
+        """
+        获取在备份系统下载备份文件的本地访问账号
+        """
+        data = DBPrivManagerApi.get_password(
+            {
+                "instances": [DEFAULT_INSTANCE],
+                "users": [
+                    {"username": SqlserverUserName.MSSQL.value, "component": SqlserverComponent.SQLSERVER.value},
+                ],
+            }
+        )
+        return data["items"][0]["username"], base64.b64decode(data["items"][0]["password"]).decode("utf-8")

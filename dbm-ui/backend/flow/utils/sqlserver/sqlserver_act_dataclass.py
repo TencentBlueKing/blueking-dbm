@@ -163,3 +163,37 @@ class RestoreForDtsKwargs:
     restore_db_status: SqlserverRestoreDBStatus
     exec_ips: List[Host] = field(metadata={"validate": validate_hosts})
     job_timeout: int = DEFAULT_JOB_TIMEOUT
+
+
+@dataclass()
+class DownloadBackupFileKwargs:
+    """
+    定义执行sqlserver_Download_backup_file活动节点的私有变量结构体
+    @attributes bk_cloud_id 云区域id
+    @attributes dest_ip 目标ip
+    @attributes dest_dir 目标目录
+    @attributes get_backup_file_info_var 获取备份文件列表信息的上下文
+    """
+
+    bk_cloud_id: int
+    dest_ip: str
+    dest_dir: str
+    get_backup_file_info_var: str
+
+
+@dataclass()
+class SqlserverDBConstructContext:
+    """
+    定义数据构造的可交互上下文dataclass类
+    """
+
+    full_backup_infos: list = field(default_factory=list)
+    log_backup_infos: list = field(default_factory=list)
+
+    @staticmethod
+    def full_backup_infos_var_name() -> str:
+        return "full_backup_infos"
+
+    @staticmethod
+    def log_backup_infos_var_name() -> str:
+        return "log_backup_infos"

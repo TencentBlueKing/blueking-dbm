@@ -269,3 +269,17 @@ class SqlserverIncrDtsSceneApiView(FlowTestView):
         test = SqlserverController(root_id=root_id, ticket_data=request.data)
         test.incr_dts_scene()
         return Response({"root_id": root_id})
+
+
+class SqlserverDataConstructSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_data_construct
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.db_construct_scene()
+        return Response({"root_id": root_id})

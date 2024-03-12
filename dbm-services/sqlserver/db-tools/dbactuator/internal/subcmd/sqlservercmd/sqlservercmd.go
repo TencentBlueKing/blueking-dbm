@@ -56,6 +56,8 @@ func NewSQLserverCommand() *cobra.Command {
 				RenameDBSCommand(),
 				// clean dbs
 				CleanDBSCommand(),
+				// move backup file
+				MoveBackupFileCommand(),
 			},
 		},
 	}

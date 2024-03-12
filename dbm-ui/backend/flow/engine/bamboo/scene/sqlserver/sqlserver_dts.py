@@ -75,8 +75,8 @@ class SqlserverDTSFlow(BaseFlow):
 
         for info in self.data["infos"]:
             # 计算源集群和目标集群的master
-            cluster = Cluster.objects.get(id=info["cluster_id"])
-            target_cluster = Cluster.objects.get(id=info["target_cluster_id"])
+            cluster = Cluster.objects.get(id=info["src_cluster"])
+            target_cluster = Cluster.objects.get(id=info["dst_cluster"])
             master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
             target_master_instance = target_cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
 
@@ -255,8 +255,8 @@ class SqlserverDTSFlow(BaseFlow):
 
         for info in self.data["infos"]:
             # 计算源集群和目标集群的master
-            cluster = Cluster.objects.get(id=info["cluster_id"])
-            target_cluster = Cluster.objects.get(id=info["target_cluster_id"])
+            cluster = Cluster.objects.get(id=info["src_cluster"])
+            target_cluster = Cluster.objects.get(id=info["dst_cluster"])
             master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
             target_master_instance = target_cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
 

@@ -69,3 +69,19 @@ func (f *WINSFile) SetChown(user string) bool {
 	logger.Info(fmt.Sprintf("icacls %s /setowner %s /T /C successfully", f.FileName, user))
 	return true
 }
+
+// CopyFile copy 文件 到已存在的目录下
+func (f *WINSFile) CopyFile(targetPath string) bool {
+	cmd := exec.Command(
+		"powershell",
+		"-Command",
+		fmt.Sprintf("Copy-Item -Path '%s' -Destination '%s' -Force ", f.FileName, targetPath),
+	)
+	err := cmd.Run()
+	if err != nil {
+		logger.Error(err.Error())
+		return false
+	}
+	logger.Info(fmt.Sprintf("Copy-Item [%s]->[%s] successfully", f.FileName, targetPath))
+	return true
+}

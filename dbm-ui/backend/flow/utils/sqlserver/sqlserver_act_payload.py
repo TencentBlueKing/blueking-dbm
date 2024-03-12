@@ -332,6 +332,7 @@ class SqlserverActPayload(PayloadHandler):
                     "port": kwargs["custom_params"]["port"],
                     "restore_infos": kwargs["custom_params"]["restore_infos"],
                     "restore_mode": kwargs["custom_params"].get("restore_mode", ""),
+                    "restore_time": kwargs["custom_params"].get("restore_time", ""),
                 },
             },
         }
@@ -425,6 +426,23 @@ class SqlserverActPayload(PayloadHandler):
                     "host": kwargs["ips"][0]["ip"],
                     "ports": self.global_data["custom_params"]["ports"],
                     "force": self.global_data.get("force", False),
+                },
+            },
+        }
+
+    @staticmethod
+    def check_backup_file_is_in_local(**kwargs) -> dict:
+        """
+        移动备份文件
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.MoveBackupFile.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "target_path": kwargs["custom_params"]["target_path"],
+                    "file_list": kwargs["custom_params"]["file_list"],
                 },
             },
         }

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
@@ -30,23 +29,46 @@ class SQLServerRollbackHandler(object):
         self.cluster = Cluster.objects.get(id=cluster_id)
 
     @staticmethod
-    def _get_log_from_bklog(collector: str, start_time: datetime, end_time: datetime, query_string="*") -> List[Dict]:
-        return BKLogHandler.query_logs(collector, start_time, end_time, query_string)
+    def _get_log_from_bklog(
+        collector: str, start_time: datetime, end_time: datetime, query_string="*", size=1000
+    ) -> List[Dict]:
+        return BKLogHandler.query_logs(collector, start_time, end_time, query_string, size)
 
-    def query_binlogs(self, start_time: datetime, end_time: datetime):
+    def query_binlogs(self, start_time: datetime, end_time: datetime, dbname: str):
         """
         根据时间范围查询集群的binlog记录
         @param start_time: 查询开始时间
         @param end_time: 查询结束时间
+        @param dbname: 查询db
         """
+        # 单独获取最后一个binlog
+        last_binlogs = self._get_log_from_bklog(
+            collector="mssql_binlog_result",
+            start_time=end_time,
+            end_time=end_time + timedelta(days=BACKUP_LOG_RANGE_DAYS),
+            query_string=f"""cluster_id: {self.cluster.id} AND dbname: "{dbname}" """,
+            size=1,
+        )
+        if not last_binlogs:
+            raise Exception("get last_binlog is null")
+
+        # 然后获取时间范围内的binlog
         binlogs = self._get_log_from_bklog(
             collector="mssql_binlog_result",
             start_time=start_time,
             end_time=end_time,
-            query_string=f"cluster_id: {self.cluster.id}",
+            query_string=f"""cluster_id: {self.cluster.id} AND dbname: "{dbname}" """,
         )
         # TODO: binlog是否需要聚合 or 转义
-        return binlogs
+        # list去重
+        unique_list = []
+        seen_values = set()
+        for binlog in binlogs + last_binlogs:
+            if binlog["task_id"] not in seen_values:
+                unique_list.append(binlog)
+                seen_values.add(binlog["task_id"])
+
+        return unique_list
 
     def query_backup_logs(self, start_time: datetime, end_time: datetime):
         """
