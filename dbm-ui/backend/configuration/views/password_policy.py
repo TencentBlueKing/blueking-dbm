@@ -41,7 +41,12 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     pagination_class = None
 
     def _get_custom_permissions(self):
-        if self.action == self.get_password_policy.__name__:
+        if self.action == [
+            self.get_password_policy.__name__,
+            self.verify_password_strength.__name__,
+            self.get_random_password.__name__,
+            self.query_random_cycle.__name__,
+        ]:
             return []
 
         bk_biz_id = self.request.query_params.get("bk_biz_id", 0) or self.request.data.get("bk_biz_id", 0)
