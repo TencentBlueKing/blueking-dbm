@@ -149,6 +149,8 @@ class BaseTicketFlow(ABC):
 
         # 创建新加入的record，并批量创建
         object_ticket_tuples = list(to_update_records.values_list(object_key, "ticket"))
+        # 注意都转成int
+        object_ticket_tuples = list(map(lambda x: (int(x[0]), int(x[1])), object_ticket_tuples))
         to_create_records = [
             record_model(
                 **{object_key: obj_id, "flow": self.flow_obj, "ticket": self.ticket, "creator": self.ticket.creator}
