@@ -29,7 +29,7 @@
       <span
         v-bk-tooltips="{
           disabled: hasData,
-          content: t('请先申请集群')
+          content: t('请先申请集群'),
         }"
         class="inline-block">
         <BkButton
@@ -108,7 +108,7 @@
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
@@ -226,10 +226,11 @@
             }
             {
               data.isDisabled && (
-                <db-icon
-                  svg
-                  type="yijinyong"
-                  class="disabled-tag" />
+                <bk-tag
+                  class="ml-4"
+                  size="small">
+                  {t('已禁用')}
+                </bk-tag>
               )
             }
           </>
@@ -563,13 +564,13 @@
     :deep(.replica-set-list-table) {
       .is-new {
         td {
-          background-color: #F3FCF5 !important;
+          background-color: #f3fcf5 !important;
         }
       }
 
       .is-offline {
         .cell {
-          color: #C4C6CC !important;
+          color: #c4c6cc !important;
         }
       }
 
@@ -584,7 +585,7 @@
       }
 
       .cluster-alias {
-        color: #979BA5 !important
+        color: #979ba5 !important;
       }
 
       .db-icon-copy {

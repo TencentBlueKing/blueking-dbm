@@ -143,11 +143,11 @@
       <div class="cluster-name-box">
           <div class="cluster-name">{data.master_domain}</div>
           {data.phase === 'offline' && (
-            <db-icon
-              svg
-              type="yijinyong"
-              class="mr-8"
-              style="width: 38px; height: 16px;" />
+            <bk-tag
+              class="ml-8"
+              size="small">
+              {t('已禁用')}
+            </bk-tag>
           )}
           {data.operations && data.operations.length > 0 && (
             <bk-popover
@@ -340,27 +340,26 @@
 </script>
 
 <style lang="less" scoped>
-.table-box {
-  :deep(.cluster-name-box) {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    overflow: hidden;
-
-    .cluster-name {
-      margin-right: 8px;
+  .table-box {
+    :deep(.cluster-name-box) {
+      display: flex;
+      width: 100%;
+      align-items: center;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      flex:1;
-    }
 
-    .tag-box {
-      height: 16px;
-      color: #3A84FF;
-      border-radius: 8px !important;
+      .cluster-name {
+        margin-right: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+      }
+
+      .tag-box {
+        height: 16px;
+        color: #3a84ff;
+        border-radius: 8px !important;
+      }
     }
   }
-}
 </style>
-

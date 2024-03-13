@@ -111,6 +111,7 @@
       // 实际选择的缩容主机容量
       shrinkDisk: 0,
       minHost: 1,
+      tagText: t('接入层')
     },
     bookkeeper: {
       label: 'Bookkeeper',
@@ -120,6 +121,7 @@
       targetDisk: 0,
       shrinkDisk: 0,
       minHost: 2,
+      tagText: t('存储层')
     },
   });
 

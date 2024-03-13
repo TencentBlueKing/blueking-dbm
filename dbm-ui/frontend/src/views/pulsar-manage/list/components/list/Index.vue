@@ -111,7 +111,7 @@
 
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
@@ -252,11 +252,15 @@
             {
               data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
             }
-            <db-icon
-              v-show={!checkClusterOnline(data)}
-              svg
-              type="yijinyong"
-              style="width: 38px; height: 16px; margin-left: 4px; vertical-align: middle;" />
+            {
+              !checkClusterOnline(data) && (
+                <bk-tag
+                  class="ml-4"
+                  size="small">
+                  {t('已禁用')}
+                </bk-tag>
+              )
+            }
             { data.isNew && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" /> }
             <db-icon
               type="copy"

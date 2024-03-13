@@ -94,4 +94,11 @@ export const extraClusterConfs: ExtraClusterConf = {
 /**
  * 交互上没有模块级别配置的集群
  */
-export const notModuleClusters = [DBTypes.REDIS, DBTypes.ES, DBTypes.KAFKA, DBTypes.HDFS, DBTypes.MONGODB];
+export const notModuleClusters = [
+  DBTypes.REDIS,
+  DBTypes.ES,
+  DBTypes.KAFKA,
+  DBTypes.HDFS,
+  DBTypes.MONGODB,
+  DBTypes.DORIS,
+];

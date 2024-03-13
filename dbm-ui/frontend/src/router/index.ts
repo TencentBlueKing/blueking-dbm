@@ -34,6 +34,7 @@ import {
 import BizPermission from '@views/BizPermission.vue';
 import getDbConfRoutes from '@views/db-configure/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
+import getDorisRoutes from '@views/doris-manage/routes';
 import getESRoutes from '@views/es-manage/routes';
 import getHDFSRoutes from '@views/hdfs-manage/routes';
 import getInfluxDBRoutes from '@views/influxdb-manage/routes';
@@ -159,6 +160,7 @@ export default () => {
         ...getTicketFlowSettingRoutes(),
         ...getMongoRoutes(mongdbController),
         ...getSqlServerRouters(),
+        ...getDorisRoutes(bigdataController),
       ],
     },
     {

@@ -17,7 +17,7 @@ export default class PulsarInstance {
   static PULSAR_REBOOT = 'PULSAR_REBOOT';
 
   static operationIconMap = {
-    [PulsarInstance.PULSAR_REBOOT]: 'zhongqizhong',
+    [PulsarInstance.PULSAR_REBOOT]: t('重启中'),
   };
 
   static operationTextMap = {

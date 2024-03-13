@@ -129,6 +129,11 @@
       id: ClusterTypes.SQLSERVER_HA,
       name: t('SQLServer主从'),
     },
+    {
+      moduleId: 'bigdata',
+      id: ClusterTypes.DORIS,
+      name: 'Doris',
+    },
   ];
 
   const route = useRoute();

@@ -2,11 +2,11 @@
   <div class="instance-list-page">
     <div class="header-action">
       <BkDropdown
-        @hide="() => isInstanceDropdown = false"
-        @show="() => isInstanceDropdown = true">
+        @hide="() => (isInstanceDropdown = false)"
+        @show="() => (isInstanceDropdown = true)">
         <BkButton
           class="dropdown-button"
-          :class="{ 'active': isInstanceDropdown }">
+          :class="{ active: isInstanceDropdown }">
           {{ t('实例申请') }}
           <DbIcon type="up-big dropdown-button-icon" />
         </BkButton>
@@ -75,6 +75,7 @@
   } from '@common/const';
 
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
 
@@ -151,13 +152,11 @@
               </bk-button>
             </div>
             {
-              data.isRebooting && (
-                <db-icon
-                    svg
-                    type="zhongqizhong"
-                    class="cluster-tag ml-8"
-                    style="width: 38px; height: 16px;" />
-              )
+              data.operationTagTips.map(item => (
+                <RenderOperationTag
+                  class="cluster-tag ml-4"
+                  data={item} />
+              ))
             }
           </div>
       ),
@@ -410,9 +409,9 @@
   };
 </script>
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-  .instance-list-page{
+  .instance-list-page {
     height: 100%;
     padding: 24px 0;
     margin: 0 24px;
@@ -423,7 +422,7 @@
       padding-bottom: 16px;
       flex-wrap: wrap;
 
-      .header-select{
+      .header-select {
         flex: 1;
         max-width: 320px;
         min-width: 320px;

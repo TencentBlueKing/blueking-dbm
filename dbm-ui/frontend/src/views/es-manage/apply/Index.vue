@@ -123,7 +123,7 @@
               <BkAlert
                 style="width: 655px"
                 :theme="tipTheme"
-                :title="t('请保证冷热节点至少存在一台')" />
+                :title="t('请保证冷/热节点至少存在一台')" />
             </BkFormItem>
             <DbFormItem
               :label="t('热节点')"
@@ -216,7 +216,7 @@
               <BkAlert
                 style="width: 655px"
                 :theme="tipTheme"
-                :title="t('请保证冷热节点至少存在一台')" />
+                :title="t('请保证冷/热节点至少存在一台')" />
             </BkFormItem>
             <BkFormItem :label="t('热节点')">
               <div class="resource-pool-item">
@@ -619,7 +619,7 @@
     formRef.value.validate()
       .then(() => {
         if (tipTheme.value === 'danger' && formData.details.ip_source === 'resource_pool') {
-          return Promise.reject(t('请保证冷热节点至少存在一台'));
+          return Promise.reject(t('请保证冷/热节点至少存在一台'));
         }
         baseState.isSubmitting = true;
 

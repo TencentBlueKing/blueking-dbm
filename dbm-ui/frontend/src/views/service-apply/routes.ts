@@ -118,6 +118,14 @@ export default (): RouteRecordRaw[] => [
         component: () => import('@views/mongodb-manage/replica-set-apply/Index.vue'),
       },
       {
+        name: 'DorisApply',
+        path: 'doris',
+        meta: {
+          navName: t('申请Doris集群部署'),
+        },
+        component: () => import('@views/doris-manage/apply/Index.vue'),
+      },
+      {
         name: 'SelfServiceCreateDbModule',
         path: 'create-db-module/:type/:bk_biz_id/',
         meta: {

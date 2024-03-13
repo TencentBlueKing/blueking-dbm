@@ -9,11 +9,11 @@
         </BkButton>
         <BkDropdown
           class="ml-8"
-          @hide="() => isCopyDropdown = false"
-          @show="() => isCopyDropdown = true">
+          @hide="() => (isCopyDropdown = false)"
+          @show="() => (isCopyDropdown = true)">
           <BkButton
             class="dropdown-button"
-            :class="{ 'active': isCopyDropdown }">
+            :class="{ active: isCopyDropdown }">
             {{ t('复制') }}
             <DbIcon type="up-big dropdown-button-icon" />
           </BkButton>
@@ -73,7 +73,7 @@
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: t('请选择集群')
+            content: t('请选择集群'),
           }"
           class="inline-block">
           <BkButton
@@ -157,7 +157,7 @@
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
@@ -248,6 +248,7 @@
       label: t('主访问入口'),
       field: 'master_domain',
       fixed: 'left',
+      minWidth: 240,
       render: ({ data }: { data: SqlServerHaClusterModel }) => (
         <TextOverflowLayout>
           {{
@@ -299,7 +300,6 @@
     },
     {
       label: t('从访问入口'),
-      fixed: 'left',
       field: 'slave_domain',
     },
     {
@@ -570,70 +570,70 @@
   };
 </script>
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.sqlserver-ha-cluster-list {
-  height: 100%;
-  padding: 24px 0;
-  margin: 0 24px;
-  overflow: hidden;
+  .sqlserver-ha-cluster-list {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
+    overflow: hidden;
 
-  .cluster-tags {
-    display: flex;
-    margin-left: 4px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .header-action {
-    display: flex;
-    flex-wrap: wrap;
-
-    .header-select {
-      flex: 1;
-      max-width: 320px;
-      min-width: 320px;
-      margin-left: auto;
-    }
-  }
-
-  :deep(.cell) {
-    line-height: normal !important;
-
-    .domain {
+    .cluster-tags {
       display: flex;
-      align-items: center;
-    }
-
-    .db-icon-copy,
-    .db-icon-link {
-      display: none;
       margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
-    .operations-more {
-      .db-icon-more {
-        display: block;
-        font-size: @font-size-normal;
-        font-weight: bold;
-        color: @default-color;
-        cursor: pointer;
+    .header-action {
+      display: flex;
+      flex-wrap: wrap;
 
-        &:hover {
-          background-color: @bg-disable;
-          border-radius: 2px;
+      .header-select {
+        flex: 1;
+        max-width: 320px;
+        min-width: 320px;
+        margin-left: auto;
+      }
+    }
+
+    :deep(.cell) {
+      line-height: normal !important;
+
+      .domain {
+        display: flex;
+        align-items: center;
+      }
+
+      .db-icon-copy,
+      .db-icon-link {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+
+      .operations-more {
+        .db-icon-more {
+          display: block;
+          font-size: @font-size-normal;
+          font-weight: bold;
+          color: @default-color;
+          cursor: pointer;
+
+          &:hover {
+            background-color: @bg-disable;
+            border-radius: 2px;
+          }
         }
       }
     }
-  }
 
-  :deep(tr:hover) {
-    .db-icon-copy,
-    .db-icon-link {
-      display: inline-block !important;
+    :deep(tr:hover) {
+      .db-icon-copy,
+      .db-icon-link {
+        display: inline-block !important;
+      }
     }
   }
-}
 </style>

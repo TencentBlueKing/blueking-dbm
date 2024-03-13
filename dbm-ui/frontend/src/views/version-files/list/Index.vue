@@ -294,6 +294,20 @@
         },
       ],
     },
+    {
+      controller: {
+        moduleId: 'bigdata',
+        id: 'doris',
+      },
+      label: 'Doris',
+      name: DBTypes.DORIS,
+      children: [
+        {
+          label: 'Doris',
+          name: DBTypes.DORIS,
+        },
+      ],
+    },
   ];
 
   const renderTabs = tabs.filter((item) => {
@@ -332,9 +346,9 @@
     return tabList
       ? tabList
       : {
-          label: '',
-          name: '',
-        };
+        label: '',
+        name: '',
+      };
   });
 
   const pkgList = computed(() => packageTypeMap.value![tabActive.value] ?? []);

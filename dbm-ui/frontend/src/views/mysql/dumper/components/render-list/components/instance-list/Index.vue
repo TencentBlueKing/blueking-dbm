@@ -157,7 +157,7 @@
     ipv4,
   } from '@common/regex';
 
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
