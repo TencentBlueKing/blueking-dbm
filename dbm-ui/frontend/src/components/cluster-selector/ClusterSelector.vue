@@ -122,9 +122,9 @@
               <DbOriginalTable
                 :columns="columns"
                 :data="state.tableData"
-                :height="500"
                 :is-anomalies="state.isAnomalies"
                 :is-searching="state.search.length > 0"
+                :max-height="528"
                 :pagination="{
                   ...state.pagination,
                   small: true
