@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import copy
 import json
 import re
@@ -33,6 +32,7 @@ from backend.exceptions import AppBaseException
 from backend.flow.consts import SUCCESS_LIST, DBActuatorActionEnum, DBActuatorTypeEnum, InstanceStatus, JobStatusEnum
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_backup_list
 from backend.flow.utils.script_template import dba_toolkit_actuator_template, fast_execute_script_common_kwargs
+from backend.utils.string import base64_encode
 from backend.utils.time import compare_time, datetime2str, find_nearby_time
 
 
@@ -79,7 +79,7 @@ class FixPointRollbackHandler:
         }
         jinja_env = Environment()
         template = jinja_env.from_string(dba_toolkit_actuator_template)
-        return template.render(render_params).encode("utf-8")
+        return template.render(render_params)
 
     @staticmethod
     def _batch_make_job_requests(job_func: Callable, job_payloads: List[Dict]):
@@ -401,9 +401,7 @@ class FixPointRollbackHandler:
         execute_body: Dict[str, Any] = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": _("查询集群{}的备份日志").format(self.cluster.immute_domain),
-            "script_content": str(
-                base64.b64encode(self._find_local_backup_script(target_ip_infos[0]["port"])), "utf-8"
-            ),
+            "script_content": base64_encode(self._find_local_backup_script(target_ip_infos[0]["port"])),
             "script_language": 1,
             "target_server": {
                 "ip_list": [
