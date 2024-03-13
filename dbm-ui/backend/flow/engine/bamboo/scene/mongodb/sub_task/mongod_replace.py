@@ -28,11 +28,17 @@ from backend.flow.plugins.components.collections.mongodb.delete_password_from_db
     ExecDeletePasswordFromDBOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
 def mongod_replace(
-    root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: ActKwargs, cluster_role: str, info: dict
+    root_id: str,
+    ticket_data: Optional[Dict],
+    sub_sub_kwargs: ActKwargs,
+    cluster_role: str,
+    info: dict,
+    mongod_scale: bool,
 ) -> SubBuilder:
     """
     mongod替换流程
@@ -86,10 +92,8 @@ def mongod_replace(
         sub_sub_get_kwargs.cluster_type = ClusterType.MongoReplicaSet.value
         cluster_name = sub_sub_get_kwargs.db_instance["cluster_name"]
         sub_sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoReplicaSet.value
-        sub_sub_get_kwargs.payload["set_id"] = sub_sub_get_kwargs.db_instance["cluster_name"]
-        sub_sub_get_kwargs.replicaset_info["key_file"] = sub_sub_get_kwargs.get_key_file(
-            cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"]
-        )
+        sub_sub_get_kwargs.payload["set_id"] = cluster_name
+        sub_sub_get_kwargs.replicaset_info["key_file"] = sub_sub_get_kwargs.get_key_file(cluster_name=cluster_name)
     sub_sub_get_kwargs.replicaset_info["set_id"] = cluster_name
     sub_sub_get_kwargs.replicaset_info["nodes"] = [
         {
@@ -169,6 +173,13 @@ def mongod_replace(
         act_component_code=ExecDeletePasswordFromDBOperationComponent.code,
         kwargs=kwargs,
     )
+
+    # 修改meta信息
+    if mongod_scale:
+        kwargs = sub_sub_get_kwargs.get_change_meta_replace_kwargs(info=info, instance=sub_sub_get_kwargs.db_instance)
+        sub_sub_pipeline.add_act(
+            act_name=_("MongoDB-mongod修改meta"), act_component_code=CMRMongoDBMetaComponent.code, kwargs=kwargs
+        )
 
     # 下架老实例
     kwargs = sub_sub_get_kwargs.get_mongo_deinstall_kwargs(

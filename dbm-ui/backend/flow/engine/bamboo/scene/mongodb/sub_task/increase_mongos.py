@@ -43,7 +43,7 @@ def increase_mongos(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
     sub_get_kwargs.get_host_scale_mongos(info=info, increase=True)
 
     # 介质下发
-    kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="actuator")
+    kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="all")
     sub_pipeline.add_act(
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
     )
@@ -52,6 +52,12 @@ def increase_mongos(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
     kwargs = sub_get_kwargs.get_create_dir_kwargs()
     sub_pipeline.add_act(
         act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+    )
+
+    # 机器初始化
+    kwargs = sub_get_kwargs.get_os_init_kwargs()
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-机器初始化"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
     )
 
     # 获取信息
