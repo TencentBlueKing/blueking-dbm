@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import os
 from dataclasses import dataclass
 from typing import Any, List, Optional
@@ -40,7 +41,7 @@ from backend.flow.consts import (
 )
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.utils.mongodb import mongodb_script_template
-from backend.flow.utils.mongodb.calculate_cluster import get_cache_size, get_oplog_size
+from backend.flow.utils.mongodb.calculate_cluster import get_cache_size, get_oplog_size, machine_order_by_tolerance
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 
 
@@ -819,18 +820,31 @@ class ActKwargs:
         cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
         self.payload["cluster_type"] = cluster_info.cluster_type
         self.payload["set_id"] = cluster_info.name
+        self.payload["cluster_name"] = cluster_info.name
         self.payload["bk_cloud_id"] = cluster_info.bk_cloud_id
         nodes = []
         if cluster_info.cluster_type == ClusterType.MongoReplicaSet.value:
+            backup_node = {}
             for member in cluster_info.get_shards()[0].members:
+                if member.role == InstanceRole.MONGO_BACKUP.value:
+                    backup_node = {
+                        "ip": member.ip,
+                        "port": int(member.port),
+                        "bk_cloud_id": member.bk_cloud_id,
+                        "domain": member.domain,
+                        "instance_role": member.role,
+                    }
+                    continue
                 nodes.append(
                     {
                         "ip": member.ip,
                         "port": int(member.port),
                         "bk_cloud_id": member.bk_cloud_id,
                         "domain": member.domain,
+                        "instance_role": member.role,
                     }
                 )
+            nodes.append(backup_node)
             self.payload["nodes"] = nodes
         elif cluster_info.cluster_type == ClusterType.MongoShardedCluster.value:
             mongos = cluster_info.get_mongos()
@@ -846,12 +860,46 @@ class ActKwargs:
             for shard in shards:
                 shard_info = {"shard": shard.set_name}
                 nodes = []
+                backup_node = {}
                 for member in shard.members:
-                    nodes.append({"ip": member.ip, "port": int(member.port), "bk_cloud_id": member.bk_cloud_id})
+                    if member.role == InstanceRole.MONGO_BACKUP.value:
+                        backup_node = {
+                            "ip": member.ip,
+                            "port": int(member.port),
+                            "bk_cloud_id": member.bk_cloud_id,
+                            "instance_role": member.role,
+                        }
+                        continue
+                    nodes.append(
+                        {
+                            "ip": member.ip,
+                            "port": int(member.port),
+                            "bk_cloud_id": member.bk_cloud_id,
+                            "instance_role": member.role,
+                        }
+                    )
+                nodes.append(backup_node)
                 shard_info["nodes"] = nodes
                 shards_nodes.append(shard_info)
+            backup_node = {}
             for member in config.members:
-                config_nodes.append({"ip": member.ip, "port": int(member.port), "bk_cloud_id": member.bk_cloud_id})
+                if member.role == InstanceRole.MONGO_BACKUP.value:
+                    backup_node = {
+                        "ip": member.ip,
+                        "port": int(member.port),
+                        "bk_cloud_id": member.bk_cloud_id,
+                        "instance_role": member.role,
+                    }
+                    continue
+                config_nodes.append(
+                    {
+                        "ip": member.ip,
+                        "port": int(member.port),
+                        "bk_cloud_id": member.bk_cloud_id,
+                        "instance_role": member.role,
+                    }
+                )
+            config_nodes.append(backup_node)
             self.payload["mongos_nodes"] = mongos_nodes
             self.payload["shards_nodes"] = shards_nodes
             self.payload["config_nodes"] = config_nodes
@@ -1015,7 +1063,7 @@ class ActKwargs:
         }
 
     def get_host_replace(self, mongodb_type: str, info: dict):
-        """替换获取信息"""
+        """替换获取host信息"""
 
         hosts = []
         if mongodb_type == ClusterType.MongoReplicaSet.value:
@@ -1060,12 +1108,15 @@ class ActKwargs:
         for mongos in self.payload["mongos_nodes"]:
             self.payload["hosts"].append({"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]})
 
-    def calc_param_replace(self, info: dict):
+    def calc_param_replace(self, info: dict, instance_num: int):
         """"计算参数"""
 
         self.replicaset_info = {}
         # 同机器的实例数
-        instance_count = len(info["instances"])
+        if instance_num:
+            instance_count = instance_num
+        else:
+            instance_count = len(info["instances"])
         # 计算cacheSizeGB和oplogSizeMB
         self.replicaset_info["cacheSizeGB"] = get_cache_size(
             memory_size=info["target"]["bk_mem"],
@@ -1217,6 +1268,133 @@ class ActKwargs:
             "mongos_add": mongos_add,
             "mongos_del": mongos_del,
         }
+
+    def calc_scale(self, info: dict) -> dict:
+        """容量变更计算cluster对应关系"""
+
+        # 获取副本集老实例信息
+        cluster_id = info["cluster_id"]
+        self.get_cluster_info_deinstall(cluster_id=info["cluster_id"])
+        if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
+            # 获取副本集新机器的顺序 副本集容量变更独占机器
+            mongodb_host_order_by_tolerance = machine_order_by_tolerance(
+                disaster_tolerance_level=info["disaster_tolerance_level"], machine_set=info["mongodb"]
+            )
+            instances = self.payload["nodes"]
+            instance_relationships = []
+            for index, host in enumerate(mongodb_host_order_by_tolerance):
+                instance_relationships.append(
+                    {
+                        "created_by": self.payload["created_by"],
+                        "bk_biz_id": self.payload["bk_biz_id"],
+                        "ip": instances[index]["ip"],
+                        "bk_cloud_id": instances[index]["bk_cloud_id"],
+                        "spec_id": info["machine_specs"]["old_mongodb"]["spec_id"],
+                        "spec_config": info["machine_specs"]["old_mongodb"]["spec_config"],
+                        "target": {
+                            "ip": host["ip"],
+                            "bk_cloud_id": host["bk_cloud_id"],
+                            "spec_id": info["machine_specs"]["mongodb"]["spec_id"],
+                            "bk_cpu": host["bk_cpu"],
+                            "bk_mem": host["bk_mem"],
+                            "storage_device": host["storage_device"],
+                        },
+                        "instances": [
+                            {
+                                "cluster_id": cluster_id,
+                                "cluster_name": self.payload["set_id"],
+                                "db_version": info["db_version"],
+                                "domain": instances[index]["domain"],
+                                "port": instances[index]["port"],
+                            }
+                        ],
+                    }
+                )
+            self.payload["instance_relationships"] = instance_relationships
+
+        elif self.payload["cluster_type"] == ClusterType.MongoShardedCluster.value:
+            # 获取新机器顺序
+            mongodb_host_set = []
+            for host_set in info["mongodb"]:
+                mongodb_host_order_by_tolerance = machine_order_by_tolerance(
+                    disaster_tolerance_level=info["disaster_tolerance_level"], machine_set=host_set
+                )
+                mongodb_host_set.append(mongodb_host_order_by_tolerance)
+            # 每台机器部署的实例数
+            node_replica_count = int(info["shard_num"] / info["shard_machine_group"])
+            # 所有shard的实例对应关系
+            shards_instance_relationships = []
+            # 分配机器
+            for index, shard_host_set in enumerate(mongodb_host_set):
+                # 每组机器获取对应的shards
+                shards = self.payload["shards_nodes"][index * node_replica_count : (index + 1) * node_replica_count]
+                for shard in shards:
+                    # 单个shard的实例对应关系
+                    shard_instance_relationships = []
+                    for node_index, node in enumerate(shard["nodes"]):
+                        shard_instance_relationships.append(
+                            {
+                                "created_by": self.payload["created_by"],
+                                "bk_biz_id": self.payload["bk_biz_id"],
+                                "node_replica_count": node_replica_count,
+                                "ip": node["ip"],
+                                "bk_cloud_id": node["bk_cloud_id"],
+                                "spec_id": info["machine_specs"]["old_mongodb"]["spec_id"],
+                                "spec_config": info["machine_specs"]["old_mongodb"]["spec_config"],
+                                "target": {
+                                    "ip": shard_host_set[node_index]["ip"],
+                                    "bk_cloud_id": shard_host_set[node_index]["bk_cloud_id"],
+                                    "spec_id": info["machine_specs"]["mongodb"]["spec_id"],
+                                    "bk_cpu": shard_host_set[node_index]["bk_cpu"],
+                                    "bk_mem": shard_host_set[node_index]["bk_mem"],
+                                    "storage_device": shard_host_set[node_index]["storage_device"],
+                                },
+                                "instances": [
+                                    {
+                                        "cluster_id": cluster_id,
+                                        "cluster_name": self.payload["cluster_name"],
+                                        "seg_range": shard["shard"],
+                                        "db_version": info["db_version"],
+                                        "domain": node.get("domain", ""),
+                                        "port": node["port"],
+                                    }
+                                ],
+                            }
+                        )
+                    shards_instance_relationships.append(shard_instance_relationships)
+            self.payload["shards_instance_relationships"] = shards_instance_relationships
+
+    def get_host_scale(self, mongodb_type: str, info: dict):
+        """容量变更获取host信息"""
+
+        hosts = []
+        if mongodb_type == ClusterType.MongoReplicaSet.value:
+            for instance_relationship in self.payload["instance_relationships"]:
+                # 源ip
+                hosts.append({"ip": instance_relationship["ip"], "bk_cloud_id": instance_relationship["bk_cloud_id"]})
+                # 目标ip
+                hosts.append(
+                    {
+                        "ip": instance_relationship["target"]["ip"],
+                        "bk_cloud_id": instance_relationship["target"]["bk_cloud_id"],
+                    }
+                )
+                # db版本
+            self.payload["db_version"] = self.payload["instance_relationships"][0]["instances"][0]["db_version"]
+            self.db_main_version = self.payload["db_version"].split(".")[0]
+
+        elif mongodb_type == ClusterType.MongoShardedCluster.value:
+            hosts_set = set()
+            bk_cloud_id = info["mongodb"][0][0]["bk_cloud_id"]
+            for shards_instance_relationships in self.payload["shards_instance_relationships"]:
+                for instance_relationship in shards_instance_relationships:
+                    hosts_set.add(instance_relationship["ip"])
+                    hosts_set.add(instance_relationship["target"]["ip"])
+            for host in hosts_set:
+                hosts.append({"ip": host, "bk_cloud_id": bk_cloud_id})
+            self.payload["db_version"] = info["db_version"]
+            self.db_main_version = self.payload["db_version"].split(".")[0]
+        self.payload["hosts"] = hosts
 
 
 @dataclass()

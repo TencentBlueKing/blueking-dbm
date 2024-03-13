@@ -85,32 +85,28 @@ class ExecuteDBActuatorJobService(BkJobService):
 
         # 创建额外管理员账号
         if kwargs.get("create_extra_manager_user", False):
+            script = kwargs["db_act_template"]["payload"]["script"]
             if kwargs["set_name"]:
                 kwargs["db_act_template"]["payload"]["adminPassword"] = trans_data[kwargs["set_name"]][
                     kwargs["db_act_template"]["payload"]["adminUsername"]
                 ]
-                kwargs["db_act_template"]["payload"]["script"].replace(
+                script = script.replace(
                     "{{appdba_pwd}}", trans_data[kwargs["set_name"]][MongoDBManagerUser.AppDbaUser]
                 )
-                kwargs["db_act_template"]["payload"]["script"].replace(
+                script = script.replace(
                     "{{monitor_pwd}}", trans_data[kwargs["set_name"]][MongoDBManagerUser.MonitorUser]
                 )
-                kwargs["db_act_template"]["payload"]["script"].replace(
+                script = script.replace(
                     "{{appmonitor_pwd}}", trans_data[kwargs["set_name"]][MongoDBManagerUser.AppMonitorUser]
                 )
             else:
                 kwargs["db_act_template"]["payload"]["adminPassword"] = trans_data[
                     kwargs["db_act_template"]["payload"]["adminUsername"]
                 ]
-                kwargs["db_act_template"]["payload"]["script"].replace(
-                    "{{appdba_pwd}}", trans_data[MongoDBManagerUser.AppDbaUser]
-                )
-                kwargs["db_act_template"]["payload"]["script"].replace(
-                    "{{monitor_pwd}}", trans_data[MongoDBManagerUser.MonitorUser]
-                )
-                kwargs["db_act_template"]["payload"]["script"].replace(
-                    "{{appmonitor_pwd}}", trans_data[MongoDBManagerUser.AppMonitorUser]
-                )
+                script = script.replace("{{appdba_pwd}}", trans_data[MongoDBManagerUser.AppDbaUser])
+                script = script.replace("{{monitor_pwd}}", trans_data[MongoDBManagerUser.MonitorUser])
+                script = script.replace("{{appmonitor_pwd}}", trans_data[MongoDBManagerUser.AppMonitorUser])
+            kwargs["db_act_template"]["payload"]["script"] = script
 
         # 进行db初始设置获，从上游流程节点获取密码
         if kwargs.get("db_init_set", False):

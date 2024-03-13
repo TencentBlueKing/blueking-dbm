@@ -176,3 +176,15 @@ class MongoDBDeInstallSView(FlowTestView):
         root_id = uuid.uuid1().hex
         MongoDBController(root_id=root_id, ticket_data=request.data).deinstall_cluster()
         return Response({"root_id": root_id})
+
+
+class MongoDBScaleSView(FlowTestView):
+    """
+    mongodb容量变更
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).scale_cluster()
+        return Response({"root_id": root_id})

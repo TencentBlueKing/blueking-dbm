@@ -44,7 +44,7 @@ def replicaset_replace(
         sub_get_kwargs.get_host_replace(mongodb_type=ClusterType.MongoReplicaSet.value, info=info)
 
         # 介质下发
-        kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="actuator")
+        kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="all")
         sub_pipeline.add_act(
             act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
         )
@@ -55,8 +55,14 @@ def replicaset_replace(
             act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
         )
 
+        # 机器初始化
+        kwargs = sub_get_kwargs.get_os_init_kwargs()
+        sub_pipeline.add_act(
+            act_name=_("MongoDB-机器初始化"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+        )
+
     # 计算参数
-    sub_get_kwargs.calc_param_replace(info=info)
+    sub_get_kwargs.calc_param_replace(info=info, instance_num=0)
     # 进行替换——并行 以ip为维度
     sub_sub_pipelines = []
     for mongodb_instance in info["instances"]:

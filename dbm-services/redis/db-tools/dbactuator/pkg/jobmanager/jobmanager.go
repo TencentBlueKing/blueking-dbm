@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atommongodb"
 	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomproxy"
 	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomredis"
 	"dbm-services/redis/db-tools/dbactuator/pkg/atomjobs/atomsys"
@@ -213,21 +212,6 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		// 迁移
 		m.atomJobMapper[atomredis.NewRedisReuploadOldBackupRecords().Name()] = atomredis.NewRedisReuploadOldBackupRecords
 
-		// mongo atom jobs
-		m.atomJobMapper[atommongodb.NewMongoDBInstall().Name()] = atommongodb.NewMongoDBInstall
-		m.atomJobMapper[atommongodb.NewMongoSInstall().Name()] = atommongodb.NewMongoSInstall
-		m.atomJobMapper[atommongodb.NewInitiateReplicaset().Name()] = atommongodb.NewInitiateReplicaset
-		m.atomJobMapper[atommongodb.NewAddShardToCluster().Name()] = atommongodb.NewAddShardToCluster
-		m.atomJobMapper[atommongodb.NewAddUser().Name()] = atommongodb.NewAddUser
-		m.atomJobMapper[atommongodb.NewDelUser().Name()] = atommongodb.NewDelUser
-		m.atomJobMapper[atommongodb.NewMongoDReplace().Name()] = atommongodb.NewMongoDReplace
-		m.atomJobMapper[atommongodb.NewMongoRestart().Name()] = atommongodb.NewMongoRestart
-		m.atomJobMapper[atommongodb.NewStepDown().Name()] = atommongodb.NewStepDown
-		m.atomJobMapper[atommongodb.NewBalancer().Name()] = atommongodb.NewBalancer
-		m.atomJobMapper[atommongodb.NewDeInstall().Name()] = atommongodb.NewDeInstall
-		m.atomJobMapper[atommongodb.NewExecScript().Name()] = atommongodb.NewExecScript
-		m.atomJobMapper[atommongodb.NewSetProfiler().Name()] = atommongodb.NewSetProfiler
-		m.atomJobMapper[atomsys.NewOsMongoInit().Name()] = atomsys.NewOsMongoInit
 	})
 }
 

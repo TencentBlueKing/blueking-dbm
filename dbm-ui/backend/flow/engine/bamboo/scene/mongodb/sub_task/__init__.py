@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 
 from .cluster_replace import cluster_replace
+from .cluster_scale import cluster_scale
 from .deinstall import deinstall
 from .exec_script import exec_script
 from .increase_mongos import increase_mongos
@@ -21,4 +22,5 @@ from .mongos_replace import mongos_replace
 from .reduce_mongos import reduce_mongos
 from .replicaset_install import replicaset_install
 from .replicaset_replace import replicaset_replace
+from .replicaset_scale import replicaset_scale
 from .user import user
