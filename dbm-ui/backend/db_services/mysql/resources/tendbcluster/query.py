@@ -129,13 +129,14 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "cluster__db_module_id",
             "cluster__name",
             "role",
-            "machine__ip",
-            "machine__bk_cloud_id",
             "inst_port",
             "status",
             "create_at",
             "machine__bk_host_id",
             "machine__spec_config",
+            "machine__ip",
+            "machine__bk_cloud_id",
+            "machine__machine_type",
         ]
 
         # 获取remote实例的查询集
