@@ -566,3 +566,10 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}{mongodb_pkg.path}",
             # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
+
+    def get_latest_package(self, version: str, pkg_type: str, db_type: str) -> str:
+        """
+        获取dbtools的安装包
+        """
+        dbtools_pkg = Package.get_latest_package(version=version, pkg_type=MediumEnum.DBTools, db_type=self.db_type)
+        return f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{dbtools_pkg.path}"

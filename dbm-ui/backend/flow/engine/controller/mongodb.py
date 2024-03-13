@@ -12,6 +12,7 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_backup import MongoBackupF
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_exec_script import MongoExecScriptFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoFakeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import MongoInstallDBMon
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_restart import MongoRestartInstanceFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_remove_ns import MongoRemoveNsFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_replace import MongoReplaceFlow
@@ -52,6 +53,8 @@ class MongoDBController(BaseController):
             flow = MongoRestoreFlow(root_id=self.root_id, data=self.ticket_data)
         elif ticket_name == TicketType.MONGODB_FULL_BACKUP or ticket_name == TicketType.MONGODB_BACKUP:
             flow = MongoBackupFlow(root_id=self.root_id, data=self.ticket_data)
+        elif ticket_name == TicketType.MONGODB_INSTALL_DBMON:
+            flow = MongoInstallDBMon(root_id=self.root_id, data=self.ticket_data)
         else:
             raise Exception("Unknown ticket name: %s" % ticket_name)
 
