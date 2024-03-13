@@ -174,6 +174,7 @@ class SQLHandler(object):
             "charset": charset,
             "path": path,
             "cluster_ids": cluster_ids,
+            "execute_sql_files": execute_sql_files,
             "execute_objects": execute_objects,
             "highrisk_warnings": highrisk_warnings,
             "ticket_mode": ticket_mode,
