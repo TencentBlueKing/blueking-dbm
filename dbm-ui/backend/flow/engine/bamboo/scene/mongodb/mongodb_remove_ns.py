@@ -20,7 +20,7 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mongodb.base_flow import MongoBaseFlow
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.remove_ns import RemoveNsSubTask
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
-from backend.flow.utils.mongodb.mongodb_dataclass import get_mongo_global_config
+from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBNsFilter, MongoRepository
 
 logger = logging.getLogger("flow")
@@ -66,7 +66,7 @@ class MongoRemoveNsFlow(MongoBaseFlow):
         # 创建流程实例
         pipeline = Builder(root_id=self.root_id, data=self.payload)
         # actuator_workdir 提前创建好的，在部署的时候就创建好了.
-        actuator_workdir = get_mongo_global_config()["file_path"]
+        actuator_workdir = ActKwargs().get_mongodb_os_conf()["file_path"]
         file_list = GetFileList(db_type=DBType.MongoDB).get_db_actuator_package()
         sub_pipelines = []
         bk_host_list = []
