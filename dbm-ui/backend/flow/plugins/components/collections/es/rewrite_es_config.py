@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import base64
 import logging
 from typing import List
 
@@ -19,6 +18,7 @@ from pipeline.core.flow.activity import Service
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.flow.consts import MySQLPrivComponent, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("flow")
 
@@ -40,7 +40,7 @@ class WriteBackEsConfigService(BaseService):
                     "bk_cloud_id": global_data["bk_cloud_id"],
                 }
             ],
-            "password": base64.b64encode(str(global_data["username"]).encode("utf-8")).decode("utf-8"),
+            "password": base64_encode(str(global_data["username"])),
             "username": MySQLPrivComponent.ES_FAKE_USER.value,
             "component": NameSpaceEnum.Es,
             "operator": "admin",
@@ -55,7 +55,7 @@ class WriteBackEsConfigService(BaseService):
                     "bk_cloud_id": global_data["bk_cloud_id"],
                 }
             ],
-            "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
+            "password": base64_encode(str(global_data["password"])),
             "username": global_data["username"],
             "component": NameSpaceEnum.Es,
             "operator": "admin",

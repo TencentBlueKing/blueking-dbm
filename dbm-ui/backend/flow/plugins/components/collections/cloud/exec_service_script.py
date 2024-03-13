@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import base64
 import logging
 from typing import List
 
@@ -24,6 +23,7 @@ from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.cloud.cloud_act_payload import CloudServiceActPayload
 from backend.flow.utils.es.es_script_template import fast_execute_script_common_kwargs
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("json")
 
@@ -93,7 +93,7 @@ class ExecCloudScriptService(BkJobService):
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{kwargs['node_name']}_{kwargs['node_id']}",
-            "script_content": str(base64.b64encode(template.render(service_act_payload).encode("utf-8")), "utf-8"),
+            "script_content": base64_encode(template.render(service_act_payload)),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
         }

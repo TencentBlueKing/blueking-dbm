@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 from collections import defaultdict
 from typing import Any, Dict, List
 
@@ -24,6 +23,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, 
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.consts import MySQLPasswordRole
+from backend.utils.string import base64_decode, base64_encode
 
 
 class DBPasswordHandler(object):
@@ -40,7 +40,7 @@ class DBPasswordHandler(object):
             name=AsymmetricCipherConfigType.PASSWORD.value, content=password, salted=False
         )
         # 密码需要用base64加密后传输
-        b64_plain_password = base64.b64encode(plain_password.encode("utf-8")).decode("utf-8")
+        b64_plain_password = base64_encode(plain_password)
         check_result = MySQLPrivManagerApi.check_password(
             {"password": b64_plain_password, "security_rule_name": DBM_PASSWORD_SECURITY_NAME}
         )
@@ -84,7 +84,7 @@ class DBPasswordHandler(object):
         mysql_admin_password_data["results"] = mysql_admin_password_data.pop("items")
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         for data in mysql_admin_password_data["results"]:
-            data["password"] = base64.b64decode(data["password"]).decode("utf-8")
+            data["password"] = base64_decode(data["password"])
             data["bk_cloud_name"] = cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"]
 
         return mysql_admin_password_data
@@ -120,7 +120,7 @@ class DBPasswordHandler(object):
         modify_password_params = {
             "username": DBM_MYSQL_ADMIN_USER,
             "component": DBType.MySQL.value,
-            "password": base64.b64encode(password.encode("utf-8")).decode("utf-8"),
+            "password": base64_encode(password),
             "lock_hour": lock_hour,
             "operator": operator,
             "clusters": cluster_infos,
@@ -176,4 +176,4 @@ class DBPasswordHandler(object):
         }
         data = MySQLPrivManagerApi.get_password(params)["items"][0]
         # 注意要用base64解密
-        return base64.b64decode(data["password"]).decode("utf8")
+        return base64_decode(data["password"])

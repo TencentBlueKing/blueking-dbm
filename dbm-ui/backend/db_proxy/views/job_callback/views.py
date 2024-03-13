@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import base64
 import json
 import logging
 
@@ -29,6 +28,7 @@ from backend.db_proxy.views.views import BaseProxyPassViewSet
 from backend.flow.consts import SUCCESS_LIST
 from backend.flow.utils.script_template import fast_execute_script_common_kwargs
 from backend.utils.redis import RedisConn
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("root")
 
@@ -73,7 +73,7 @@ class JobCallBackViewSet(BaseProxyPassViewSet):
         job_payload = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "restart_nginx",
-            "script_content": str(base64.b64encode(restart_nginx_tpl.encode("utf-8")), "utf-8"),
+            "script_content": base64_encode(restart_nginx_tpl),
             "script_language": 1,
             "target_server": {
                 "ip_list": [

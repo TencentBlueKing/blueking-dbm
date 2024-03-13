@@ -5,7 +5,7 @@ source "${VENV_DIR}/bin/activate"
 DBM_DIR="./dbm-ui"
 
 cd $DBM_DIR
-TEST_LOGS=$(pytest)
+TEST_LOGS=$(pytest --cov)
 # TEST_LOGS e.g.
 # ============================= test session starts ==============================
 # platform linux -- Python 3.6.15, pytest-6.2.4, py-1.11.0, pluggy-0.13.1

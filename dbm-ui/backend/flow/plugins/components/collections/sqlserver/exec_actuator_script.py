@@ -8,7 +8,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import base64
 import json
 import logging
 import re
@@ -25,6 +24,7 @@ from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.script_template import sqlserver_actuator_template
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("json")
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
@@ -84,9 +84,8 @@ class SqlserverActuatorScriptService(BkJobService):
         )
 
         # payload参数转换base64格式
-        db_act_template["payload"] = str(
-            base64.b64encode(json.dumps(db_act_template["payload"]).encode("utf-8")), "utf-8"
-        )
+        db_act_template["payload"] = base64_encode(json.dumps(db_act_template["payload"]))
+
         # 更新节点信息
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
 
@@ -100,10 +99,10 @@ class SqlserverActuatorScriptService(BkJobService):
             "is_param_sensitive": 1,
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
-            "script_content": str(base64.b64encode(template.render(db_act_template).encode("utf-8")), "utf-8"),
+            "script_content": base64_encode(template.render(db_act_template)),
             "script_language": 5,
             "target_server": {"ip_list": exec_ips},
-            "script_param": str(base64.b64encode(json.dumps(db_act_template["payload"]).encode("utf-8")), "utf-8"),
+            "script_param": base64_encode(json.dumps(db_act_template["payload"])),
         }
         self.log_debug("[{}] ready start task with body {}".format(node_name, body))
 
