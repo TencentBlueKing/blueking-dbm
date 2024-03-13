@@ -114,12 +114,21 @@ dbm:
     slowQueryParseApigwDomain: ""
 
   ingress:
-    # 在跨云管控场景下，需要配置公网 clb 进行访问
     enabled: true
     className: ""
     annotations:
       nginx.ingress.kubernetes.io/proxy-body-size: 1024m
     hostname: "bkdbm.example.com"
+    paths:
+      - path: /
+        pathType: ImplementationSpecific
+    tls: []
+
+  ingressPublic:
+    # 在跨云管控场景下，需要配置公网 clb 进行访问
+    enabled: false
+    className: ""
+    hostname: "bkdbm-public.example.com"
     paths:
       - path: /
         pathType: ImplementationSpecific
