@@ -4,4 +4,4 @@ cd $SCRIPT_DIR && cd .. || exit 1
 
 source bin/environ.sh
 
-pytest backend/tests
+pytest backend/tests --cov

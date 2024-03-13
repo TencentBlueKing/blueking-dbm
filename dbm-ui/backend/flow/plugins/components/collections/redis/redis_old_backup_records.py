@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import json
 import logging
 from datetime import datetime, timedelta
@@ -24,6 +23,7 @@ from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.redis.redis_script_template import redis_fast_execute_script_common_kwargs
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("json")
 
@@ -90,7 +90,7 @@ class GetOldBackupRecordsAndSave(BkJobService):
         self.log_info(f"start get last {ndays} days old backup records of {server_ip}")
 
         query_result = get_last_n_days_backup_records(ndays, bk_cloud_id, server_ip)
-        encode_str = str(base64.b64encode(json.dumps(query_result).encode("utf-8")), "utf-8")
+        encode_str = base64_encode(json.dumps(query_result))
 
         self.log_info(f"success get last {ndays} days old backup records of {server_ip}")
 
@@ -104,7 +104,7 @@ EOF
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
-            "script_content": str(base64.b64encode(shell_command.encode("utf-8")), "utf-8"),
+            "script_content": base64_encode(shell_command),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
         }

@@ -8,7 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
+import gzip
+import io
+import json
 from dataclasses import asdict
 
 from django.db import models
@@ -21,6 +23,7 @@ from backend.constants import CommonHostDBMeta
 from backend.db_meta.enums import AccessLayer, ClusterType, MachineType
 from backend.db_meta.exceptions import HostDoseNotExistInCmdbException
 from backend.db_meta.models import AppCache, BKCity
+from backend.utils.string import base64_encode
 
 
 class Machine(AuditedModel):
@@ -56,95 +59,81 @@ class Machine(AuditedModel):
         return self.ip
 
     @property
-    def dbm_meta(self) -> list:
+    def dbm_meta(self) -> dict:
         proxies = self.proxyinstance_set.all()
         storages = self.storageinstance_set.all()
 
         host_labels = []
 
-        def shrink_dbm_meta(dbm_meta):
-            """数据裁剪"""
+        def compress_dbm_meta_content(dbm_meta: dict) -> str:
+            """
+            压缩 dbm_meta
+            """
+            # 使用gzip压缩
+            # python3.6 gzip 不支持 mtime 参数，python3.10 可以直接使用 gzip.compress 压缩
+            buf = io.BytesIO()
+            with gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as f:
+                f.write(json.dumps(dbm_meta).encode("utf-8"))
+            compressed_data = buf.getvalue()
 
-            if not dbm_meta:
-                return []
+            # 将压缩后的字节转换为Base64编码的字符串
+            base64_encoded_str = base64_encode(compressed_data)
+            return base64_encoded_str
 
-            # 剔除实例属性，仅保留集群属性
-            first_one = copy.deepcopy(dbm_meta[0])
-            for custom_attr in ["instance_role", "instance_port"]:
-                first_one.pop(custom_attr)
-
-            return {
-                "version": "v1",
-                "common": first_one,
-                "custom": list(
-                    map(lambda x: {"instance_role": x["instance_role"], "instance_port": x["instance_port"]}, dbm_meta)
-                ),
-            }
-
-        def remove_duplicates(seq):
-            unique = set()
-            for d in seq:
-                t = tuple(d.items())
-                unique.add(t)
-
-            return shrink_dbm_meta([dict(x) for x in unique])
-
-        if proxies:
-            for proxy in proxies:
-                for cluster in proxy.cluster.all():
-                    tendb_cluster_spider_ext = getattr(proxy, "tendbclusterspiderext", None)
-                    host_labels.append(
-                        asdict(
-                            CommonHostDBMeta(
-                                app=AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id),
-                                appid=str(cluster.bk_biz_id),
-                                cluster_type=cluster.cluster_type,
-                                cluster_domain=cluster.immute_domain,
-                                db_type=ClusterType.cluster_type_to_db_type(cluster.cluster_type),
-                                # tendbcluster中扩展了proxy的类型，需要特殊处理
-                                instance_role=tendb_cluster_spider_ext.spider_role
-                                if tendb_cluster_spider_ext
-                                else "proxy",
-                                instance_port=str(proxy.port),
-                            )
+        for proxy in proxies:
+            for cluster in proxy.cluster.all():
+                tendb_cluster_spider_ext = getattr(proxy, "tendbclusterspiderext", None)
+                host_labels.append(
+                    asdict(
+                        CommonHostDBMeta(
+                            app=AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id),
+                            appid=str(cluster.bk_biz_id),
+                            cluster_type=cluster.cluster_type,
+                            cluster_domain=cluster.immute_domain,
+                            db_type=ClusterType.cluster_type_to_db_type(cluster.cluster_type),
+                            # tendbcluster中扩展了proxy的类型，需要特殊处理
+                            instance_role=tendb_cluster_spider_ext.spider_role
+                            if tendb_cluster_spider_ext
+                            else "proxy",
+                            instance_port=str(proxy.port),
                         )
                     )
+                )
 
-        if storages:
-            for storage in storages:
-                # influxdb需要单独处理
-                if storage.cluster_type == ClusterType.Influxdb.value:
-                    host_labels.append(
-                        asdict(
-                            CommonHostDBMeta(
-                                app=AppCache.get_app_attr(storage.bk_biz_id, default=storage.bk_biz_id),
-                                appid=str(storage.bk_biz_id),
-                                cluster_domain=storage.machine.ip,
-                                cluster_type=storage.cluster_type,
-                                db_type=ClusterType.cluster_type_to_db_type(storage.cluster_type),
-                                instance_role=storage.instance_role,
-                                instance_port=str(storage.port),
-                            )
+        for storage in storages:
+            # influxdb需要单独处理
+            if storage.cluster_type == ClusterType.Influxdb.value:
+                host_labels.append(
+                    asdict(
+                        CommonHostDBMeta(
+                            app=AppCache.get_app_attr(storage.bk_biz_id, default=storage.bk_biz_id),
+                            appid=str(storage.bk_biz_id),
+                            cluster_domain=storage.machine.ip,
+                            cluster_type=storage.cluster_type,
+                            db_type=ClusterType.cluster_type_to_db_type(storage.cluster_type),
+                            instance_role=storage.instance_role,
+                            instance_port=str(storage.port),
                         )
                     )
-                    continue
+                )
+                continue
 
-                for cluster in storage.cluster.all():
-                    host_labels.append(
-                        asdict(
-                            CommonHostDBMeta(
-                                app=AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id),
-                                appid=str(cluster.bk_biz_id),
-                                cluster_domain=cluster.immute_domain,
-                                cluster_type=cluster.cluster_type,
-                                db_type=ClusterType.cluster_type_to_db_type(cluster.cluster_type),
-                                instance_role=storage.instance_role,
-                                instance_port=str(storage.port),
-                            )
+            for cluster in storage.cluster.all():
+                host_labels.append(
+                    asdict(
+                        CommonHostDBMeta(
+                            app=AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id),
+                            appid=str(cluster.bk_biz_id),
+                            cluster_domain=cluster.immute_domain,
+                            cluster_type=cluster.cluster_type,
+                            db_type=ClusterType.cluster_type_to_db_type(cluster.cluster_type),
+                            instance_role=storage.instance_role,
+                            instance_port=str(storage.port),
                         )
                     )
+                )
 
-        return remove_duplicates(host_labels)
+        return {"version": "v2", "content": compress_dbm_meta_content({"common": {}, "custom": host_labels})}
 
     @classmethod
     def get_host_info_from_cmdb(cls, bk_host_id: int) -> dict:

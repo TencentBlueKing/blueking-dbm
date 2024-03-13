@@ -20,6 +20,7 @@ from backend.components import JobApi, MySQLPrivManagerApi
 from backend.flow.consts import DBA_ROOT_USER, DEFAULT_INSTANCE, MySQLPrivComponent, UserName
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.script_template import fast_execute_script_common_kwargs
+from backend.utils.string import base64_encode
 
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")
 
@@ -99,7 +100,7 @@ class MySQLOsInit(BkJobService):
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "DBM_MySQL_OS_Init",
-            "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
+            "script_content": base64_encode(script_content),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
         }
@@ -234,7 +235,7 @@ class SysInit(BkJobService):
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "DBM-Init-Mysql-Os",
-            "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
+            "script_content": base64_encode(script_content),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
         }
@@ -287,7 +288,7 @@ class GetOsSysParam(BkJobService):
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "DBM-Get-Os-Sys-Param",
-            "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
+            "script_content": base64_encode(script_content),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
         }
