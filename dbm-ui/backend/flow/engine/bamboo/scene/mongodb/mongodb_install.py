@@ -15,6 +15,7 @@ from django.utils.translation import ugettext as _
 
 from backend.flow.consts import MongoDBClusterRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
 from backend.flow.engine.bamboo.scene.mongodb.sub_task import mongos_install, replicaset_install
 from backend.flow.plugins.components.collections.mongodb.add_domain_to_dns import ExecAddDomainToDnsOperationComponent
 from backend.flow.plugins.components.collections.mongodb.add_relationship_to_meta import (
@@ -73,6 +74,15 @@ class MongoDBInstallFlow(object):
             act_name=_("MongoDB-机器初始化"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
         )
 
+    def install_dbmon(self, data: dict, pipeline: Builder):
+        """
+        install_dbmon, please run this after add_relationship_to_meta
+        """
+        ip_list = self.get_kwargs.payload["hosts"]
+        exec_ips = [host["ip"] for host in ip_list]
+        bk_cloud_id = ip_list[0]["bk_cloud_id"]
+        add_install_dbmon(self, data, pipeline, exec_ips, bk_cloud_id, allow_empty_instance=True)
+
     def multi_replicaset_install_flow(self):
         """
         multi replicaset install流程
@@ -108,6 +118,8 @@ class MongoDBInstallFlow(object):
                 kwargs=kwargs,
             )
 
+        # dbmon
+        self.install_dbmon(data=self.data, pipeline=pipeline)
         # 运行流程
         pipeline.run_pipeline()
 

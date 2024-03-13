@@ -18,7 +18,7 @@ from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
 from backend.flow.utils.mongodb import mongodb_password
-from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext, get_mongo_global_config
+from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, MongoNodeWithLabel, ReplicaSet
 
 logger = logging.getLogger("flow")
@@ -48,7 +48,6 @@ class BackupSubTask(BaseSubTask):
         cls.parse_ns_filter(sub_payload)
         node = nodes[0]
 
-        # todo 改为提前批量获得，此处引用，减少Password接口交互次数
         dba_user = "dba"
         dba_pwd = mongodb_password.MongoDBPassword().get_password_from_db(
             node.ip, int(node.port), node.bk_cloud_id, dba_user
@@ -60,7 +59,7 @@ class BackupSubTask(BaseSubTask):
         if is_partial and oplog:
             raise Exception(_("oplog为True时, 不支持partial备份"))
         bk_dbm_instance = MongoNodeWithLabel.from_node(node, rs, cluster)
-        sudo_account = get_mongo_global_config()["user"]
+        sudo_account = ActKwargs().get_mongodb_os_conf()["user"]
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,

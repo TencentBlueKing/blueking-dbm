@@ -3,10 +3,12 @@ from typing import List, Union
 
 from rest_framework import serializers
 
+from backend.db_meta import request_validator
 from backend.db_meta.enums import machine_type
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.flow.utils.mongodb import mongodb_password
 
 # entities
 # Node -> ReplicaSet -> Cluster[Rs,ShardedCluster]
@@ -28,6 +30,7 @@ class MongoNode:
     def from_instance(cls, s: Union[ProxyInstance, StorageInstance]):
         return MongoNode(s.ip_port.split(":")[0], str(s.port), s.instance_role, s.machine.bk_cloud_id, s.machine_type)
 
+    # from_proxy_instance 能获得domain
     @classmethod
     def from_proxy_instance(cls, s: ProxyInstance):
         m = cls.from_instance(s)
@@ -277,6 +280,29 @@ class MongoRepository:
             clusters_map[cluster.cluster_id] = cluster
         return clusters_map
 
+    @staticmethod
+    def get_cluster_id_by_host(hosts: List, bk_cloud_id: int) -> List[int]:
+        """根据提供的IP 查询集群信息"""
+        hosts = request_validator.validated_str_list(hosts)
+        cluster_list = []
+        rows = Machine.objects.prefetch_related("storageinstance_set").filter(ip__in=hosts, bk_cloud_id=bk_cloud_id)
+        if rows is not None:
+            for machine_row in rows:
+                for storage in machine_row.storageinstance_set.prefetch_related("cluster"):  # 这里存在多个实例
+                    for cluster in storage.cluster.all():
+                        # todo 检查 只能是MongoDb的Cluster
+                        cluster_list.append(cluster.id)
+
+        rows = Machine.objects.prefetch_related("proxyinstance_set").filter(ip__in=hosts, bk_cloud_id=bk_cloud_id)
+        if rows is not None:
+            for machine_row in rows:
+                for storage in machine_row.proxyinstance_set.prefetch_related("cluster"):  # 这里存在多个实例
+                    for cluster in storage.cluster.all():
+                        # todo 检查 只能是MongoDb的Cluster
+                        cluster_list.append(cluster.id)
+
+        return list(set(cluster_list))
+
 
 class MongoDBNsFilter(object):
     class Serializer(serializers.Serializer):
@@ -343,8 +369,8 @@ class MongoNodeWithLabel(object):
     ClusterType   string `json:"cluster_type" mapstructure:"cluster_type" yaml:"cluster_type"`
     RoleType      string `json:"role_type" mapstructure:"role_type" yaml:"role_type"` // shardsvr,mongos,configsvr
     MetaRole      string `json:"meta_role" mapstructure:"meta_role" yaml:"meta_role"` // m0,m1,backup...|mongos
-    ServerIP      string `json:"server_ip" mapstructure:"server_ip" yaml:"server_ip"`
-    ServerPort    int    `json:"server_port" mapstructure:"server_port" yaml:"server_port" yaml:"server_port"`
+    ServerIP      string `json:"ip" mapstructure:"ip" yaml:"ip"`
+    ServerPort    int    `json:"port" mapstructure:"port" yaml:"port" yaml:"port"`
     SetName       string `json:"setname" mapstructure:"setname" yaml:"setname" yaml:"set_name"`
     """
 
@@ -358,9 +384,11 @@ class MongoNodeWithLabel(object):
     cluster_type: str = None
     role_type: str = None
     meta_role: str = None
-    server_ip: str = None
-    server_port: int = None
+    ip: str = None
+    port: int = None
     set_name: str = None
+    username: str = None
+    password: str = None
 
     def __init__(self):
         pass
@@ -369,16 +397,35 @@ class MongoNodeWithLabel(object):
         return {
             "bk_cloud_id": int(self.bk_cloud_id),
             "bk_biz_id": int(self.bk_biz_id),
-            "app": self.app,
-            "app_name": self.app_name,
-            "cluster_domain": self.cluster_domain,
+            "app": str(self.app),
+            "app_name": str(self.app_name),
+            "cluster_domain": str(self.cluster_domain),
             "cluster_id": int(self.cluster_id),
             "cluster_name": self.cluster_name,
             "cluster_type": self.cluster_type,
             "role_type": self.role_type,
             "meta_role": self.meta_role,
-            "server_ip": self.server_ip,
-            "server_port": int(self.server_port),
+            "ip": self.ip,
+            "port": int(self.port),
+            "set_name": self.set_name,
+            "username": self.username,
+            "password": self.password,
+        }
+
+    def __json__without_password__(self):
+        return {
+            "bk_cloud_id": int(self.bk_cloud_id),
+            "bk_biz_id": int(self.bk_biz_id),
+            "app": str(self.app),
+            "app_name": str(self.app_name),
+            "cluster_domain": str(self.cluster_domain),
+            "cluster_id": int(self.cluster_id),
+            "cluster_name": self.cluster_name,
+            "cluster_type": self.cluster_type,
+            "role_type": self.role_type,
+            "meta_role": self.meta_role,
+            "ip": self.ip,
+            "port": int(self.port),
             "set_name": self.set_name,
         }
 
@@ -400,8 +447,8 @@ class MongoNodeWithLabel(object):
     def from_node(cls, node: MongoNode, rs: ReplicaSet = None, clu: MongoDBCluster = None):
         m = MongoNodeWithLabel()
         m.bk_cloud_id = node.bk_cloud_id
-        m.server_ip = node.ip
-        m.server_port = node.port
+        m.ip = node.ip
+        m.port = int(node.port)
         m.meta_role = node.role
         # if mongos, set set_name && role_type to 'mongos' for compatibility
         if m.meta_role == machine_type.MachineType.MONGOS.value:
@@ -414,3 +461,55 @@ class MongoNodeWithLabel(object):
             m.append_cluster_info(clu)
 
         return m
+
+    @staticmethod
+    def from_hosts(iplist: List, bk_cloud_id: int) -> List:
+        """根据提供的IP 查询集群信息
+        Args:
+            iplist (List): ip 列表
+            bk_cloud_id (int): 云区域ID
+        Return:
+            List of storageinstance_set | proxyinstance_set
+        """
+        # todo 如果输入IP是其它类型DB的IP. 报错. or 跳过.
+        instance_list = []
+        cluster_id_list = MongoRepository.get_cluster_id_by_host(iplist, bk_cloud_id)
+        if not cluster_id_list:
+            return instance_list
+
+        clusters = MongoRepository.fetch_many_cluster_dict(id__in=cluster_id_list)
+        for cluster_id in clusters:
+            cluster = clusters[cluster_id]
+            for rs in cluster.get_shards():
+                for member in rs.members:
+                    if member.ip in iplist:
+                        instance_list.append(MongoNodeWithLabel.from_node(member, rs, cluster))
+            for m in cluster.get_mongos():
+                if m.ip in iplist:
+                    instance_list.append(MongoNodeWithLabel.from_node(m, None, cluster))
+
+        return instance_list
+
+    @staticmethod
+    def append_password(nodes: List, username: str):
+        """
+        为每个节点添加密码
+        """
+        bk_nodes = []
+        for node in nodes:
+            bk_nodes.append({"ip": node.ip, "port": node.port, "bk_cloud_id": node.bk_cloud_id})
+        result = mongodb_password.MongoDBPassword().get_nodes_password_from_db(bk_nodes, username)
+        if result["password"] is None:
+            raise Exception("get_nodes_password_from_db fail {}".format(result["info"]))
+
+        pwd_dict = {}
+        for row in result["password"]:
+            k = "{}:{}:{}:{}".format(row.get("ip"), row.get("port"), row.get("bk_cloud_id"), row.get("username"))
+            pwd_dict[k] = row
+
+        for node in nodes:
+            node.username = username
+            k = "{}:{}:{}:{}".format(node.ip, node.port, node.bk_cloud_id, username)
+            node.password = pwd_dict.get(k).get("password")
+
+        return result

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import os.path
 
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 
@@ -18,7 +19,7 @@ class SendMedia:
     SendMedia 将文件下发到指定机器的指定目录
     文件： file_list
     机器： bk_host_list
-    目录： file_target_path
+    目录： file_target_path + "/install"
     exec_ips : 也是bk_host_list，但是只包含ip
     """
 
@@ -30,7 +31,7 @@ class SendMedia:
         return {
             "file_list": file_list,
             "ip_list": bk_host_list,
-            "file_target_path": file_target_path,
+            "file_target_path": os.path.join(file_target_path, "install"),
             "exec_ips": [item["ip"] for item in bk_host_list],
         }
 

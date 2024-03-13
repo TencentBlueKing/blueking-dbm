@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import base64
+import importlib
 import json
 import logging
 import re
@@ -19,7 +20,7 @@ from jinja2 import Environment
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.redis.redis_context_dataclass as flow_context
+import backend.flow.utils.mongodb.mongodb_dataclass as mongo_flow_context
 from backend import env
 from backend.components import JobApi
 from backend.flow.models import FlowNode
@@ -58,7 +59,7 @@ class _ExecBkJobService(BkJobService):
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
-            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+            trans_data = getattr(mongo_flow_context, kwargs["set_trans_data_dataclass"])()
 
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]
@@ -78,6 +79,17 @@ class _ExecBkJobService(BkJobService):
 
         # 获取 actuator 组件所需要执行的参数,
         db_act_template = kwargs["db_act_template"]
+
+        # 此处，通过传入的payload_func，对db_act_template进行处理.
+        if kwargs.get("payload_func"):
+            payload_func = kwargs.get("payload_func")
+            self.log_info("payload_func {}".format(payload_func))
+            self.log_info("db_act_template {}".format(db_act_template))
+            module = importlib.import_module(payload_func["module"])
+            func = getattr(module, payload_func["function"])
+            db_act_template = func(db_act_template, trans_data)
+            self.log_info("db_act_template {}".format(db_act_template))
+
         db_act_template["root_id"] = root_id
         db_act_template["node_id"] = node_id
         db_act_template["version_id"] = self._runtime_attrs["version"]
