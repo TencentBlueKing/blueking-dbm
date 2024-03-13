@@ -29,8 +29,6 @@ TRIMPATH = -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}"
 
 
 LDFLAGS=-ldflags "-X 'main.VERSION=${VERSION}' -X 'main.BuildDate=${BUILD}' -X 'main.CommitSha1=${COMMIT_SHA1}' -X 'main.GoVersion=${GO_VERSION}'"
-
-
 all: check build
 	@echo "all"
 check:

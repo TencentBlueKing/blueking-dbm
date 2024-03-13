@@ -220,6 +220,7 @@ class MediumHandler:
                     if "commitId" not in medium_info:
                         continue
                     # 判断commit是否相等，不想等则进行版本号增加
+                    print("update lock: ", medium_info["buildPath"])
                     dir_commit, commit_date = (
                         subprocess.run(
                             [f"git -C {medium_info['buildPath'].rsplit('/', 2)[0]} log -n 1 --pretty=format:%H,%ci ."],

@@ -1,9 +1,10 @@
 PROJ="riak-monitor"
 MODULE="dbm-services/riak/db-tools/riak-monitor"
 VERSION = $(error please set VERSION flag)
+GITHASH=`git rev-parse HEAD`
 PKG = ${PROJ}.tar.gz
 OUTPUT_DIR = build
-RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.gitHash=`git rev-parse HEAD` "
+RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.gitHash=${GITHASH} "
 DEV_BUILD_FLAG = "-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.gitHash="" "
 
 
