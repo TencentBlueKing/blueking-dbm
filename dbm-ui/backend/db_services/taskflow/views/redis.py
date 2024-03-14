@@ -22,6 +22,9 @@ from backend.core.storages.storage import get_storage
 from backend.db_meta.models import Cluster
 from backend.db_services.taskflow.serializers import BatchDownloadSerializer, DirDownloadSerializer, FlowTaskSerializer
 from backend.flow.models import FlowTree
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.taskflow import TaskFlowPermission
 from backend.ticket.builders.redis.redis_key_extract import KEY_FILE_PREFIX
 from backend.ticket.models import Ticket
 from backend.utils.time import datetime2str
@@ -45,6 +48,11 @@ class KeyOpsViewSet(viewsets.ReadOnlyAuditedModelViewSet):
     lookup_field = "root_id"
     serializer_class = FlowTaskSerializer
     queryset = FlowTree.objects.all()
+
+    def _get_custom_permissions(self):
+        if self.action in ["key_files"]:
+            return [TaskFlowPermission([ActionEnum.FLOW_DETAIL], ResourceEnum.TASKFLOW)]
+        return []
 
     @common_swagger_auto_schema(
         operation_summary=_("结果文件列表"),

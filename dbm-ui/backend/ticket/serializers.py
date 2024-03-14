@@ -253,6 +253,9 @@ class QueryTicketFlowDescribeSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(help_text=_("单据分组类型"), choices=DBType.get_choices())
     ticket_types = serializers.CharField(help_text=_("单据类型"), default=False)
 
+    limit = serializers.IntegerField(help_text=_("每页限制"), required=False, default=10)
+    offset = serializers.IntegerField(help_text=_("起始"), required=False, default=0)
+
     def validate(self, attrs):
         if attrs.get("ticket_types"):
             attrs["ticket_types"] = attrs["ticket_types"].split(",")
@@ -289,3 +292,7 @@ class FastCreateCloudComponentSerializer(serializers.Serializer):
             raise serializers.ValidationError(_("请至少提供两台机器来部署云区域组件"))
 
         return attrs
+
+
+class ListTicketStatusSerializer(serializers.Serializer):
+    ticket_ids = serializers.CharField(help_text=_("单据ID(逗号分割)"))

@@ -22,6 +22,9 @@ TICKET_TAG = "user"
 
 
 class UserViewSet(viewsets.SystemViewSet):
+    def _get_custom_permissions(self):
+        return []
+
     @common_swagger_auto_schema(
         operation_summary=_("人员列表"),
         query_serializer=ListUsersSerializer(),

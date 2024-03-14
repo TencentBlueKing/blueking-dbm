@@ -122,9 +122,20 @@ class ActionEnum:
         name_en="ticket_view",
         type="view",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.TICKET],
         group=_("业务"),
-        subgroup=_(""),
+        subgroup=_("单据"),
+    )
+
+    TICKET_CONFIG_SET = ActionMeta(
+        id="ticket_config_set",
+        name=_("单据流程设置"),
+        name_en="ticket_config_set",
+        type="edit",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("配置管理"),
+        subgroup=_("监控策略"),
     )
 
     RESOURCE_MANAGE = ActionMeta(
@@ -140,13 +151,68 @@ class ActionEnum:
 
     FLOW_DETAIL = ActionMeta(
         id="flow_detail",
-        name=_("任务流程详情"),
+        name=_("任务流程管理"),
         name_en="Flow Detail",
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TASKFLOW],
         group=_("业务"),
-        subgroup=_("历史任务"),
+        subgroup=_("单据"),
+    )
+
+    DBCONFIG_VIEW = ActionMeta(
+        id="dbconfig_view",
+        name=_("数据库配置查看"),
+        name_en="dbconfig_view",
+        type="view",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        group=_("配置管理"),
+        subgroup=_("数据库配置"),
+    )
+
+    DBCONFIG_EDIT = ActionMeta(
+        id="dbconfig_edit",
+        name=_("数据库配置编辑"),
+        name_en="dbconfig_edit",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        group=_("配置管理"),
+        subgroup=_("数据库配置"),
+    )
+
+    GLOBAL_DBCONFIG_EDIT = ActionMeta(
+        id="global_dbconfig_edit",
+        name=_("全局数据库配置编辑"),
+        name_en="global_dbconfig_edit",
+        type="manage",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("平台管理"),
+        subgroup=_("数据库配置"),
+    )
+
+    GLOBAL_DBCONFIG_CREATE = ActionMeta(
+        id="global_dbconfig_create",
+        name=_("全局数据库配置新增"),
+        name_en="global_dbconfig_create",
+        type="create",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("平台管理"),
+        subgroup=_("数据库配置"),
+    )
+
+    GLOBAL_DBCONFIG_DESTROY = ActionMeta(
+        id="global_dbconfig_destroy",
+        name=_("全局数据库配置删除"),
+        name_en="global_dbconfig_destroy",
+        type="delete",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("平台管理"),
+        subgroup=_("数据库配置"),
     )
 
     MYSQL_APPLY = ActionMeta(
@@ -154,7 +220,7 @@ class ActionEnum:
         name=_("MySQL 部署"),
         name_en="MySQL Apply",
         type="execute",
-        related_actions=[DB_MANAGE.id],
+        related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MySQL"),
         subgroup=_("集群管理"),
@@ -550,6 +616,7 @@ class ActionEnum:
 
     TENDBCLUSTER_APPLY = ActionMeta(
         id=TicketType.TENDBCLUSTER_APPLY.lower(),
+        related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
         is_ticket_action=True
@@ -588,6 +655,14 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    REDIS_CLUSTER_APPLY = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_APPLY.lower(),
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        subgroup=_("集群管理"),
+        is_ticket_action=True
+    )
+
     REDIS_OPEN_CLOSE = ActionMeta(
         id="redis_open_close",
         name=_("Redis 集群禁用启用"),
@@ -601,6 +676,7 @@ class ActionEnum:
 
     INFLUXDB_APPLY = ActionMeta(
         id=TicketType.INFLUXDB_APPLY.lower(),
+        related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("实例管理"),
         is_ticket_action=True
@@ -750,6 +826,7 @@ class ActionEnum:
 
     RIAK_CLUSTER_APPLY = ActionMeta(
         id=TicketType.RIAK_CLUSTER_APPLY.lower(),
+        related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
         is_ticket_action=True
@@ -856,7 +933,7 @@ class ActionEnum:
         name=_("SQLServer 部署"),
         name_en="sqlserver_apply",
         type="execute",
-        related_actions=[DB_MANAGE.id],
+        related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
@@ -1133,26 +1210,15 @@ class ActionEnum:
         subgroup=_("监控策略"),
     )
 
-    DBCONFIG_VIEW = ActionMeta(
-        id="dbconfig_view",
-        name=_("数据库配置查看"),
-        name_en="dbconfig_view",
-        type="view",
-        related_actions=[],
-        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("配置管理"),
-        subgroup=_("数据库配置"),
-    )
-
-    DBCONFIG_EDIT = ActionMeta(
-        id="dbconfig_edit",
-        name=_("数据库配置编辑"),
-        name_en="dbconfig_edit",
-        type="manage",
-        related_actions=[],
-        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("配置管理"),
-        subgroup=_("数据库配置"),
+    GLOBAL_MONITOR_POLICY_CLONE_STRATEGY = ActionMeta(
+        id="global_monitor_policy_clone",
+        name=_("全局监控策略克隆"),
+        name_en="global_monitor_policy_clone",
+        type="create",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
+        group=_("平台管理"),
+        subgroup=_("监控策略"),
     )
 
     GLOBAL_DBCONFIG_VIEW = ActionMeta(
@@ -1160,39 +1226,6 @@ class ActionEnum:
         name=_("全局数据库配置查看"),
         name_en="global_dbconfig_view",
         type="view",
-        related_actions=[GLOBAL_MANAGE.id],
-        related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
-        subgroup=_("数据库配置"),
-    )
-
-    GLOBAL_DBCONFIG_EDIT = ActionMeta(
-        id="global_dbconfig_edit",
-        name=_("全局数据库配置编辑"),
-        name_en="global_dbconfig_edit",
-        type="manage",
-        related_actions=[GLOBAL_MANAGE.id],
-        related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
-        subgroup=_("数据库配置"),
-    )
-
-    GLOBAL_DBCONFIG_CREATE = ActionMeta(
-        id="global_dbconfig_create",
-        name=_("全局数据库配置新增"),
-        name_en="global_dbconfig_create",
-        type="create",
-        related_actions=[GLOBAL_MANAGE.id],
-        related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
-        subgroup=_("数据库配置"),
-    )
-
-    GLOBAL_DBCONFIG_DESTROY = ActionMeta(
-        id="global_dbconfig_destroy",
-        name=_("全局数据库配置删除"),
-        name_en="global_dbconfig_destroy",
-        type="delete",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("平台管理"),

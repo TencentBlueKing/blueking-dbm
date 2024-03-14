@@ -34,6 +34,7 @@ from backend.iam_app.views.flow_provider import FlowResourceProvider
 from backend.iam_app.views.instance_provider import InfluxDBInstanceResourceProvider
 from backend.iam_app.views.monitor_policy_provider import MonitorPolicyResourceProvider
 from backend.iam_app.views.openarea_config_provider import OpenareaConfigResourceProvider
+from backend.iam_app.views.ticket_provider import TicketResourceProvider
 from backend.iam_app.views.views import IAMViewSet
 
 router = DefaultRouter(trailing_slash=True)
@@ -41,6 +42,7 @@ router.register(r"", IAMViewSet, basename="iam")
 
 dispatcher = DjangoBasicResourceApiDispatcher(Permission.get_iam_client(), env.BK_IAM_SYSTEM_ID)
 dispatcher.register(r"flow", FlowResourceProvider())
+dispatcher.register(r"ticket", TicketResourceProvider())
 dispatcher.register(r"mysql", MySQLResourceProvider())
 dispatcher.register(r"tendbcluster", TendbClusterResourceProvider())
 dispatcher.register(r"redis", RedisClusterResourceProvider())

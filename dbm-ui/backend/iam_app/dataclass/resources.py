@@ -84,10 +84,8 @@ class ResourceMeta(metaclass=abc.ABCMeta):
         )
 
         if cls.parent:
-            # 默认是一层父类
-            _bk_iam_path_ = "/{},{},{}/".format(
-                cls.parent.system_id, cls.parent.id, getattr(instance, cls.parent.lookup_field)
-            )
+            # 默认是一层父类 TODO: 拓扑结构目前是/{resource_type},{resource_id}/
+            _bk_iam_path_ = "/{},{}/".format(cls.parent.id, getattr(instance, cls.parent.lookup_field))
             resource.attribute["_bk_iam_path_"] = _bk_iam_path_
 
         return resource, instance
@@ -166,6 +164,29 @@ class TaskFlowResourceMeta(ResourceMeta):
         from backend.flow.models import FlowTree
 
         resource, __ = cls.create_model_instance(FlowTree, instance_id, attr)
+        return resource
+
+
+@dataclass
+class TicketResourceMeta(ResourceMeta):
+    """单据resource 属性定义"""
+
+    system_id: str = BK_IAM_SYSTEM_ID
+    id: str = "ticket"
+    name: str = _("单据")
+    selection_mode: str = "all"
+
+    lookup_field: str = "id"
+    display_fields: list = ResourceMeta.Field(["id"])
+    attribute: str = "creator"
+    attribute_display: str = _("创建者")
+    parent: ResourceMeta = BusinessResourceMeta()
+
+    @classmethod
+    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+        from backend.ticket.models import Ticket
+
+        resource, __ = cls.create_model_instance(Ticket, instance_id, attr)
         return resource
 
 
@@ -314,8 +335,9 @@ class MonitorPolicyResourceMeta(ResourceMeta):
 
     @classmethod
     def get_bk_iam_path(cls, instance):
-        biz_topo = "/{},{},{}".format(BusinessResourceMeta.system_id, BusinessResourceMeta.id, instance.bk_biz_id)
-        dbtype_topo = "/{},{},{}".format(DBTypeResourceMeta.system_id, DBTypeResourceMeta.id, instance.db_type)
+        # TODO: 拓扑结构目前是/{resource_type},{resource_id}/
+        biz_topo = "/{},{}".format(BusinessResourceMeta.id, instance.bk_biz_id)
+        dbtype_topo = "/{},{}".format(DBTypeResourceMeta.id, instance.db_type)
         slash = "/"
         if not instance.bk_biz_id:
             return dbtype_topo + slash
@@ -437,6 +459,7 @@ class ResourceEnum:
 
     BUSINESS = BusinessResourceMeta()
     TASKFLOW = TaskFlowResourceMeta()
+    TICKET = TicketResourceMeta()
     MYSQL = MySQLResourceMeta()
     TENDBCLUSTER = TendbClusterResourceMeta()
     REDIS = RedisResourceMeta()

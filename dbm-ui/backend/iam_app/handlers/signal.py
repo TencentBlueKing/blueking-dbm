@@ -23,6 +23,7 @@ from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.flow.models import FlowTree
 from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.permission import Permission
+from backend.ticket.models import Ticket
 
 # 缓存已经授权过的资源属性
 __cache_resource_attr: Dict[str, List[Tuple]] = defaultdict(list)
@@ -52,6 +53,11 @@ def post_save_grant_iam(resource_meta, model, instance, creator, created):
 @receiver(post_save, sender=FlowTree)
 def post_save_flow(sender, instance, created, **kwargs):
     post_save_grant_iam(ResourceEnum.TASKFLOW, FlowTree, instance, instance.created_by, created)
+
+
+@receiver(post_save, sender=Ticket)
+def post_save_ticket(sender, instance, created, **kwargs):
+    post_save_grant_iam(ResourceEnum.TICKET, Ticket, instance, instance.creator, created)
 
 
 @receiver(post_save, sender=Cluster)

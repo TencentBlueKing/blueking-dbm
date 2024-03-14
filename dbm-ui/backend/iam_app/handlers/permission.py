@@ -234,7 +234,7 @@ class Permission(object):
         batch_permission = {}
         try:
             batch_permission = self._iam.batch_resource_multi_actions_allowed(multi_request, resources)
-        except AuthAPIError as e:
+        except Exception as e:  # pylint: disable=broad-except
             logger.exception(f"IAM AuthAPIError: {e}")
             for index in range(len(resources)):
                 batch_permission[str(index + 1)] = {action.id: False for action in actions}
@@ -363,10 +363,10 @@ class Permission(object):
         if not resource:
             return []
 
-        bk_iam_path = f"{resource.attribute.get('_bk_iam_path_', '/')}{resource.system},{resource.type},{resource.id}/"
+        bk_iam_path = f"{resource.attribute.get('_bk_iam_path_', '/')}{resource.type},{resource.id}/"
         topo_resources = []
         for topo in bk_iam_path.split("/")[1:-1]:
-            __, rtype, rid = topo.split(",")
+            rtype, rid = topo.split(",")
             topo_resources.append(ResourceEnum.get_resource_by_id(rtype).create_instance(rid))
         return topo_resources
 
@@ -481,6 +481,7 @@ class Permission(object):
             return response
 
         permission_result = Permission().batch_is_allowed(actions, resources)
+        false_actions_map = {action.id: False for action in actions}
 
         for item in result_list:
             item.setdefault("permission", {})
@@ -489,7 +490,7 @@ class Permission(object):
                 # 如果拿不到实例ID，则不处理
                 continue
             instance_id = str(origin_instance_id)
-            item["permission"].update(permission_result[instance_id])
+            item["permission"].update(permission_result.get(instance_id, false_actions_map))
 
             if always_allowed(item):
                 # 权限豁免
@@ -500,11 +501,15 @@ class Permission(object):
 
     @classmethod
     def insert_external_permission_field(
-        cls, response, actions: List[ActionMeta], resource_meta: Union[ResourceMeta, None], resource_id: Any
+        cls,
+        response,
+        actions: List[ActionMeta],
+        resource_meta: Union[ResourceMeta, List[ResourceMeta], None],
+        resource_id: Any,
     ):
         """
         视图函数返回后，在数据外部同层插入权限字段。认为资源通常是一种类型的一个(比如业务)或者没有(比如全局操作)
-        如果一个动作关联多种资源类型，请自定义实现（较为复杂暂不考虑）
+        如果一个动作关联多种资源，则resource_meta是list，且resource_id是map --- 资源类型：资源ID
         eg: 大数据返回节点列表，外部的permission字段表示是否有这个集群的操作权限
         {
             "permission": {"op": true},
@@ -518,16 +523,22 @@ class Permission(object):
         actions_with_resource = [action for action in actions if action.related_resource_types]
         actions_without_resource = [action for action in actions if not action.related_resource_types]
 
+        # 对关联资源的动作鉴权
         if actions_with_resource:
-            resources = [resource_meta.create_instance(instance_id=resource_id)]
+            if isinstance(resource_meta, list):
+                resources = [meta.create_instance(instance_id=resource_id[meta.id]) for meta in resource_meta]
+            else:
+                resources = [resource_meta.create_instance(instance_id=resource_id)]
             permission_result.update(Permission().multi_actions_is_allowed(actions_with_resource, resources))
 
+        # 对非关联资源的动作鉴权
         if actions_without_resource:
             client = Permission()
             permission_result.update(
                 {action.id: client.is_allowed(action, resource_id) for action in actions_without_resource}
             )
 
+        # 填充权限字段
         if isinstance(response.data, list):
             response.data = [{"permission": permission_result, **d} for d in response.data]
         elif isinstance(response.data, dict):
@@ -578,23 +589,27 @@ class Permission(object):
         actions: List[ActionMeta] = None,
         action_filed: Callable = lambda item: None,
         param_field: Callable = lambda item: None,
-        resource_meta: Union[ResourceMeta, None] = None,
+        resource_meta: Union[ResourceMeta, List[ResourceMeta], None] = None,
     ):
         def wrapper(view_func):
             @wraps(view_func)
             def wrapped_view(*args, **kwargs):
                 response = view_func(*args, **kwargs)
-
                 kwargs = {**args[1].data, **args[1].query_params.dict(), "view_class": args[0], **kwargs}
+
+                # 获取鉴权动作
                 perm_actions = actions or action_filed(kwargs)
                 if not perm_actions:
                     return response
 
+                # 获取鉴权的资源
                 if not resource_meta and not perm_actions[0].related_resource_types:
                     action_resource_meta = None
                 else:
+                    # 非特殊指明，默认只取动作关联的第一个资源(绝大多数情况一个动作关联一个资源)
                     action_resource_meta = resource_meta or perm_actions[0].related_resource_types[0]
                 resource = None if not action_resource_meta else param_field(kwargs)
+                # 填充权限字段
                 return cls.insert_external_permission_field(response, perm_actions, action_resource_meta, resource)
 
             return wrapped_view

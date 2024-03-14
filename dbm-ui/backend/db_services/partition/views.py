@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components.mysql_partition.client import DBPartitionApi
+from backend.db_meta.enums import ClusterType
 from backend.db_services.partition.serializers import (
     PartitionColumnVerifyResponseSerializer,
     PartitionColumnVerifySerializer,
@@ -37,7 +38,6 @@ from backend.db_services.partition.serializers import (
 )
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission, get_request_key_id
 
-from ...db_meta.enums import ClusterType
 from ...db_meta.models import Cluster
 from ...iam_app.dataclass import ResourceEnum
 from ...iam_app.dataclass.actions import ActionEnum

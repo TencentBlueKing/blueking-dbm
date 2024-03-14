@@ -49,6 +49,8 @@ class ConfigViewSet(viewsets.SystemViewSet):
             return [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_CREATE])]
         elif self.action in ["upsert_platform_config"]:
             return [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_EDIT])]
+        elif self.action in ["list_config_names"]:
+            return []
 
         return [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
 

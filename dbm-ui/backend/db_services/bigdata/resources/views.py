@@ -33,7 +33,7 @@ from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, UserName
 from backend.flow.utils.pulsar.consts import PulsarConfigEnum
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
-from backend.iam_app.handlers.drf_perm.base import get_request_key_id
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, get_request_key_id
 from backend.iam_app.handlers.permission import Permission
 
 
@@ -179,6 +179,9 @@ class BigdataResourceViewSet(ResourceViewSet):
 
 class ResourceTreeViewSet(SystemViewSet):
     serializer_class = SearchResourceTreeSLZ
+
+    def _get_custom_permissions(self):
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("获取资源拓扑树"),
