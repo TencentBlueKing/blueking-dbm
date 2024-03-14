@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import operator
+from functools import reduce
 from typing import Dict, List
 
 from django.db import transaction
@@ -30,6 +32,7 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import RejectPermission, ResourceActionPermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission, InstanceDetailPermission
 from backend.iam_app.handlers.drf_perm.ticket import CreateTicketPermission
+from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin, fetch_cluster_ids
 from backend.ticket.constants import DONE_STATUS, CountType, TicketStatus, TicketType, TodoStatus
@@ -45,6 +48,7 @@ from backend.ticket.serializers import (
     GetNodesSLZ,
     GetTodosSLZ,
     InstanceModifyOpSerializer,
+    ListTicketStatusSerializer,
     QueryTicketFlowDescribeSerializer,
     RetryFlowSLZ,
     TicketFlowDescribeSerializer,
@@ -78,28 +82,36 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     }
 
     def _get_custom_permissions(self):
+        # 创建单据，关联单据类型的动作
         if self.action == "create":
-            # 开区关联集群和开区模板，需特殊写一个permission类
             return [CreateTicketPermission(self.request.data["ticket_type"])]
+        # 查看集群/实例变更条件，关联集群详情
         elif self.action == "get_cluster_operate_records":
             return [ClusterDetailPermission()]
         elif self.action == "get_instance_operate_records":
             return [InstanceDetailPermission()]
-        elif self.action == "list" and "self_manage" not in self.request.query_params:
-            instance_getter = lambda request, view: [request.query_params.get("bk_biz_id", 0)]  # noqa
-            return [ResourceActionPermission([ActionEnum.TICKET_VIEW], ResourceEnum.BUSINESS, instance_getter)]
+        # 单据详情，关联单据查看动作
+        elif self.action in ["retrieve", "flows", "retry_flow", "process_todo"]:
+            instance_getter = lambda request, view: [request.parser_context["kwargs"]["pk"]]  # noqa
+            return [ResourceActionPermission([ActionEnum.TICKET_VIEW], ResourceEnum.TICKET, instance_getter)]
+        # 单据流程设置，关联单据流程设置动作
+        elif self.action == "update_ticket_flow_config":
+            instance_getter = lambda request, view: list(  # noqa
+                set([TicketType.get_db_type_by_ticket(d) for d in request.data["ticket_types"]])
+            )
+            return [ResourceActionPermission([ActionEnum.TICKET_CONFIG_SET], ResourceEnum.DBTYPE, instance_getter)]
+        # 其他非敏感GET接口，不鉴权
         elif self.action in [
-            "retrieve",
             "list",
-            "flows",
             "flow_types",
             "get_nodes",
             "get_todo_tickets",
             "get_tickets_count",
+            "query_ticket_flow_describe",
         ]:
             return []
-        # 回调和处理todo单据认为无需鉴权
-        elif self.action in ["callback", "process_todo"]:
+        # 回调和处理无需鉴权
+        elif self.action in ["callback"]:
             return []
 
         return [RejectPermission()]
@@ -110,37 +122,37 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         return {"post": [cls.callback.__name__], "put": [], "get": [], "delete": []}
 
     def get_queryset(self):
-        # 单据queryset规则：
+        # self_manage 单据queryset规则：
         # 1. 如果用户是超级管理员，则返回所有单据
         # 2. 如果用户是平台的MySQL/Redis/大数据管理员，则返回对应单据类型的单据
         # 3. 如果用户是某业务下的MySQL/Redis/大数据管理员，则返回当前业务对应单据类型的单据
         # 4. 返回用户自己创建的单据
         username = self.request.user.username
 
-        # (目前只用作为list)如果没有传入self_manage参数，返回业务全量单据.
-        if "self_manage" not in self.request.query_params and self.action == "list":
-            return Ticket.objects.filter(bk_biz_id=self.request.query_params.get("bk_biz_id", 0))
-
-        # 如果self_manage为假，则只返回个人单据
-        self_manage = self.request.data.get("self_manage") or self.request.query_params.get("self_manage") or False
-        if not int(self_manage) and self.action == "list":
-            return Ticket.objects.filter(creator=username)
-
         # 如果是管理员，则返回所有单据
         if username in env.ADMIN_USERS or self.request.user.is_superuser:
             return Ticket.objects.all()
 
-        # 默认返回个人管理单据
-        ticket_filter = Q(creator=username)
-        user_manage_queryset = DBAdministrator.objects.filter(users__contains=username)
-        for manage in user_manage_queryset:
-            manage_filter = Q(group=manage.db_type)
-            if manage.bk_biz_id:
-                manage_filter &= Q(bk_biz_id=manage.bk_biz_id)
+        # 如果是list，且有self_manage参数，说明返回自己创建/管理相关单据
+        if self.action == "list" and "self_manage" in self.request.query_params:
+            if not self.request.query_params["self_manage"]:
+                return Ticket.objects.filter(creator=username)
+            else:
+                manage_filters = [
+                    Q(group=manage.db_type) & Q(bk_biz_id=manage.bk_biz_id)
+                    if manage.bk_biz_id
+                    else Q(group=manage.db_type)
+                    for manage in DBAdministrator.objects.filter(users__contains=username)
+                ]
+                ticket_filter = Q(creator=username) | reduce(operator.or_, manage_filters or [Q()])
+                return Ticket.objects.filter(ticket_filter)
 
-            ticket_filter |= manage_filter
+        # 如果是业务侧单据列表，则按照业务过滤
+        if self.action == "list" and "bk_biz_id" in self.request.query_params:
+            return Ticket.objects.filter(bk_biz_id=self.request.query_params["bk_biz_id"])
 
-        return Ticket.objects.filter(ticket_filter)
+        # 其他情况返回全量的单据
+        return Ticket.objects.all()
 
     def get_serializer_context(self):
         context = super(TicketViewSet, self).get_serializer_context()
@@ -224,10 +236,33 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         auto_schema=PaginatedResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        actions=[ActionEnum.TICKET_VIEW],
+        resource_meta=ResourceEnum.TICKET,
+        always_allowed=lambda d: d.pop("skip_iam", False),
+    )
     def list(self, request, *args, **kwargs):
         resp = super().list(request, *args, **kwargs)
+        # 补充单据关联信息
         resp.data["results"] = TicketHandler.add_related_object(resp.data["results"])
+        # 如果是查询自身单据(self_manage)，则不进行鉴权
+        skip_iam = "self_manage" in request.query_params
+        resp.data["results"] = [{"skip_iam": skip_iam, **t} for t in resp.data["results"]]
         return resp
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询单据状态"),
+        query_serializer=ListTicketStatusSerializer(),
+        auto_schema=PaginatedResponseSwaggerAutoSchema,
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListTicketStatusSerializer, filter_fields=None)
+    def list_ticket_status(self, request, *args, **kwargs):
+        ticket_ids = self.params_validate(self.get_serializer_class())["ticket_ids"].split(",")
+        ticket_status_map = {ticket.id: ticket.status for ticket in Ticket.objects.filter(id__in=ticket_ids)}
+        return Response(ticket_status_map)
 
     @common_swagger_auto_schema(
         operation_summary=_("创建单据"),
@@ -475,18 +510,34 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         responses={status.HTTP_200_OK: TicketFlowDescribeSerializer},
         tags=[TICKET_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=QueryTicketFlowDescribeSerializer, filter_fields={})
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=QueryTicketFlowDescribeSerializer,
+        filter_fields=None,
+        pagination_class=None,
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["db_type"],
+        actions=[ActionEnum.TICKET_CONFIG_SET],
+        resource_meta=ResourceEnum.DBTYPE,
+    )
     def query_ticket_flow_describe(self, request, *args, **kwargs):
         from backend.ticket.builders import BuilderFactory
 
         data = self.params_validate(self.get_serializer_class())
+        limit, offset = data["limit"], data["offset"]
+
         ticket_flow_configs = TicketFlowConfig.objects.filter(group=data["db_type"], editable=True)
         if data.get("ticket_types"):
             ticket_flow_configs = ticket_flow_configs.filter(ticket_type__in=data["ticket_types"])
 
+        ticket_flow_config_count = ticket_flow_configs.count()
+        ticket_flow_configs = ticket_flow_configs[offset : offset + limit]
         # 获得单据类型与单据flow配置映射表
         flow_config_map = {config.ticket_type: config.configs for config in ticket_flow_configs}
 
+        # 获取单据流程配置信息
         flow_desc_list: List[Dict] = []
         for flow_config in ticket_flow_configs:
             flow_config_info = model_to_dict(flow_config)
@@ -497,7 +548,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             flow_config_info["flow_desc"] = flow_desc
             flow_desc_list.append(flow_config_info)
 
-        return Response(flow_desc_list)
+        return Response({"count": ticket_flow_config_count, "results": flow_desc_list})
 
     @swagger_auto_schema(
         operation_summary=_("修改可编辑的单据流程"),

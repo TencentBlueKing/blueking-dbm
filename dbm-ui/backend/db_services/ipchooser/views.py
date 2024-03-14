@@ -29,6 +29,9 @@ IP_CHOOSER_VIEW_TAGS = ["ipchooser"]
 class IpChooserTopoViewSet(viewsets.SystemViewSet):
     URL_BASE_NAME = "ipchooser_topo"
 
+    def _get_custom_permissions(self):
+        return []
+
     @swagger_auto_schema(
         operation_summary=_("批量获取含各节点主机数量的拓扑树"),
         tags=IP_CHOOSER_VIEW_TAGS,
@@ -102,6 +105,9 @@ class IpChooserHostViewSet(viewsets.SystemViewSet):
     URL_BASE_NAME = "ipchooser_host"
     pagination_class = None
 
+    def _get_custom_permissions(self):
+        return []
+
     @swagger_auto_schema(
         operation_summary=_("根据用户手动输入的`IP`/`IPv6`/`主机名`/`host_id`等关键字信息获取真实存在的机器信息"),
         tags=IP_CHOOSER_VIEW_TAGS,
@@ -140,6 +146,9 @@ class IpChooserHostViewSet(viewsets.SystemViewSet):
 class IpChooserSettingsViewSet(viewsets.SystemViewSet):
     LABEL_BASE_NAME = "ipchooser"
     pagination_class = None
+
+    def _get_custom_permissions(self):
+        return []
 
     DEFAULT_SETTINGS = {
         "settings_map": {

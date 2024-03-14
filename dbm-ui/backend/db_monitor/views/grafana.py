@@ -51,14 +51,11 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
 
         # instance = StorageInstance.objects.filter(id=instance_id).last()
 
-        try:
-            dashes = Dashboard.objects.filter(
-                org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, cluster_type=cluster_type
-            )
+        dashes = Dashboard.objects.filter(org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, cluster_type=cluster_type)
+        if dashes.exists():
             dash_urls = [{"view": dash.view, "url": dash.get_url(bk_biz_id, cluster_id)} for dash in dashes]
             url = dash_urls[0]["url"]
-        except Dashboard.DoesNotExist:
-            dash_urls = []
-            url = "#"
+        else:
+            dash_urls, url = [], "#"
 
         return Response({"url": url, "urls": dash_urls})

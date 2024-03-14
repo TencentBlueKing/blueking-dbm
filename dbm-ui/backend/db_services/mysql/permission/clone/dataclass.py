@@ -8,13 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import operator
 import re
 from dataclasses import asdict, dataclass
+from functools import reduce
 from typing import Dict, List
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db.models import Q
 
 from backend.constants import IP_RE_PATTERN
+from backend.db_meta.models import Cluster
 from backend.db_services.mysql.permission.constants import CloneType
 
 
@@ -30,14 +34,23 @@ class CloneMeta:
     clone_file: InMemoryUploadedFile = None
 
     def __post_init__(self):
-        if not self.clone_type == CloneType.CLIENT.value or not self.clone_list:
+        if not self.clone_list:
             return
 
-        # 将所有的target ip变为列表格式
-        ip_pattern = re.compile(IP_RE_PATTERN)
-        for clone_data in self.clone_list:
-            ip_match = ip_pattern.findall(clone_data["target"])
-            clone_data["target"] = list(ip_match)
+        # 客户端克隆：将所有的target ip变为列表格式
+        if self.clone_type == CloneType.CLIENT.value:
+            ip_pattern = re.compile(IP_RE_PATTERN)
+            for clone_data in self.clone_list:
+                ip_match = ip_pattern.findall(clone_data["target"])
+                clone_data["target"] = list(ip_match)
+        # 实例克隆：补充集群ID用作鉴权
+        else:
+            domain_filters = reduce(
+                operator.or_, [Q(immute_domain=data["cluster_domain"]) for data in self.clone_list]
+            )
+            domain__cluster = {cluster.immute_domain: cluster for cluster in Cluster.objects.filter(domain_filters)}
+            for clone_data in self.clone_list:
+                clone_data["cluster_id"] = domain__cluster[clone_data["cluster_domain"]].id
 
     def to_dict(self):
         return asdict(self)

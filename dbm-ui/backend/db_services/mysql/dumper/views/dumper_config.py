@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.translation import ugettext as _
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -17,8 +18,14 @@ from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.mysql.dumper.filters import DumperConfigListFilter
+from backend.db_services.mysql.dumper.handlers import DumperHandler
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
-from backend.db_services.mysql.dumper.serializers import DumperSubscribeConfigSerializer, VerifyDuplicateNamsSerializer
+from backend.db_services.mysql.dumper.serializers import (
+    DumperSubscribeConfigSerializer,
+    GetDumperConfigRunningTasksResponseSerializer,
+    GetDumperConfigRunningTasksSerializer,
+    VerifyDuplicateNamsSerializer,
+)
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission
@@ -101,3 +108,14 @@ class DumperConfigViewSet(viewsets.AuditedModelViewSet):
         name = self.params_validate(self.get_serializer_class())["name"]
         is_duplicate = self.queryset.filter(bk_biz_id=kwargs["bk_biz_id"], name=name).count() != 0
         return Response(is_duplicate)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询dumper配置正在运行的任务"),
+        query_serializer=GetDumperConfigRunningTasksSerializer(),
+        responses={status.HTTP_200_OK: GetDumperConfigRunningTasksResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=GetDumperConfigRunningTasksSerializer, filter_class=None)
+    def get_running_tasks(self, request, *args, **kwargs):
+        config_id = self.params_validate(self.get_serializer_class())["dumper_config_id"]
+        return Response(DumperHandler.get_dumper_config_running_tasks(config_id=config_id))

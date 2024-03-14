@@ -40,6 +40,7 @@ from backend.db_services.dbbase.serializers import (
     QueryBizClusterAttrsSerializer,
 )
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = _("集群通用接口")
 
@@ -50,6 +51,11 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     """
 
     pagination_class = AuditedLimitOffsetPagination
+
+    def _get_custom_permissions(self):
+        if self.action in ["verify_duplicated_cluster_name", "simple_query_cluster", "common_query_cluster"]:
+            return []
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群名字是否重复"),

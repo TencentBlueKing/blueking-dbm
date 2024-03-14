@@ -67,6 +67,9 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
 
         return queryset
 
+    def _get_custom_permissions(self):
+        return []
+
     @common_swagger_auto_schema(
         operation_summary=_("构造时间合法性检查"),
         request_body=CheckTimeSerializer(),

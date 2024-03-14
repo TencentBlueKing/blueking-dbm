@@ -16,8 +16,12 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.api import db_module
+from backend.db_meta.enums import ClusterType
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
+from ...iam_app.dataclass import ResourceEnum
+from ...iam_app.dataclass.actions import ActionEnum
+from ...iam_app.handlers.permission import Permission
 from . import biz, serializers
 
 SWAGGER_TAG = "db_services/cmdb"
@@ -49,6 +53,14 @@ class CMDBViewSet(viewsets.SystemViewSet):
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=True, serializer_class=serializers.ListModulesSLZ)
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: {
+            ResourceEnum.DBTYPE.id: ClusterType.cluster_type_to_db_type(d["cluster_type"]),
+            ResourceEnum.BUSINESS.id: d["bk_biz_id"],
+        },
+        actions=[ActionEnum.DBCONFIG_VIEW],
+        resource_meta=[ResourceEnum.DBTYPE, ResourceEnum.BUSINESS],
+    )
     def list_modules(self, request, bk_biz_id):
         validated_data = self.params_validate(self.get_serializer_class())
         cluster_type = validated_data["cluster_type"]

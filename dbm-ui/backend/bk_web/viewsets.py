@@ -17,6 +17,8 @@ from rest_framework import serializers, status, viewsets
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
+from backend.iam_app.handlers.drf_perm.base import RejectPermission
+
 
 class GenericMixin:
     queryset = ""
@@ -95,9 +97,8 @@ class GenericMixin:
 
     def _get_custom_permissions(self):
         """用户自定义的permission类,由子类继承覆写"""
-        # TODO: ⚠️为了避免权限泄露，希望默认权限是永假来兜底，所以请写每一个视图的时候都覆写该方法
-        # return [RejectPermission()]
-        return []
+        # ⚠️为了避免权限泄露，希望默认权限是永假来兜底，所以请写每一个视图的时候都覆写该方法
+        return [RejectPermission()]
 
     @classmethod
     def _get_login_exempt_view_func(cls):
@@ -144,5 +145,5 @@ class AuditedModelViewSet(GenericMixin, ModelViewSet):
         return Response(status=status.HTTP_200_OK)
 
 
-class ReadOnlyAuditedModelViewSet(ReadOnlyModelViewSet, GenericMixin):
+class ReadOnlyAuditedModelViewSet(GenericMixin, ReadOnlyModelViewSet):
     pass

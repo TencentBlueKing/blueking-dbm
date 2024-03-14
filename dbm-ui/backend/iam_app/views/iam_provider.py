@@ -32,8 +32,8 @@ class CommonProviderMixin(object):
         instances = model.objects.filter(pk__in=instance_ids)
         # 默认考虑一层父类
         id__bk_iam_path = {
-            instance.id: "/{},{},{}/".format(
-                self.resource_meta.parent.system_id,
+            # TODO: 拓扑结构目前是/{resource_type},{resource_id}/
+            instance.id: "/{},{}/".format(
                 self.resource_meta.parent.id,
                 getattr(instance, self.resource_meta.parent.lookup_field),
             )
@@ -171,9 +171,9 @@ class BaseResourceProvider(ResourceProvider, metaclass=abc.ABCMeta):
             if parent
         }
         conditions.update(ancestors_filter)
-
-        if filter.get("search") or filter.get("keyword"):
-            keyword = filter.get("search") or filter.get("keyword")
+        # iam页面过滤搜索
+        keyword = filter.get("search") or filter.get("keyword")
+        if keyword:
             conditions.update({f"{filter.keyword_field}__icontains": keyword})
 
         return self._list_instance(

@@ -38,6 +38,25 @@
     {
         "operation": "upsert_resource_type",
         "data": {
+            "id": "ticket",
+            "name": "单据",
+            "name_en": "ticket",
+            "description": "单据",
+            "provider_config": {
+                "path": "/apis/iam/resource/"
+            },
+            "version": 1,
+            "parents": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_resource_type",
+        "data": {
             "id": "mysql",
             "name": "MySQL集群",
             "name_en": "mysql",
@@ -348,6 +367,24 @@
                 {
                     "system_id": "bk_dbm",
                     "id": "flow"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_instance_selection",
+        "data": {
+            "id": "ticket_list",
+            "name": "单据 列表",
+            "name_en": "ticket list",
+            "resource_type_chain": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "ticket"
                 }
             ]
         }
@@ -705,6 +742,66 @@
     {
         "operation": "upsert_action",
         "data": {
+            "id": "ticket_view",
+            "name": "单据查看",
+            "name_en": "ticket_view",
+            "type": "view",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "ticket",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "ticket_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "业务",
+            "subgroup": "单据",
+            "description": "单据查看",
+            "description_en": "ticket_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "ticket_config_set",
+            "name": "单据流程设置",
+            "name_en": "ticket_config_set",
+            "type": "edit",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "dbtype",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "dbtype_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "global_manage"
+            ],
+            "version": 1,
+            "group": "配置管理",
+            "subgroup": "监控策略",
+            "description": "单据流程设置",
+            "description_en": "ticket_config_set"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
             "id": "resource_manage",
             "name": "资源管理访问",
             "name_en": "resource_manage",
@@ -722,7 +819,7 @@
         "operation": "upsert_action",
         "data": {
             "id": "flow_detail",
-            "name": "任务流程详情",
+            "name": "任务流程管理",
             "name_en": "Flow Detail",
             "type": "manage",
             "related_resource_types": [
@@ -743,9 +840,177 @@
             ],
             "version": 1,
             "group": "业务",
-            "subgroup": "历史任务",
-            "description": "任务流程详情",
+            "subgroup": "单据",
+            "description": "任务流程管理",
             "description_en": "Flow Detail"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "dbconfig_view",
+            "name": "数据库配置查看",
+            "name_en": "dbconfig_view",
+            "type": "view",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "dbtype",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "dbtype_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "配置管理",
+            "subgroup": "数据库配置",
+            "description": "数据库配置查看",
+            "description_en": "dbconfig_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "dbconfig_edit",
+            "name": "数据库配置编辑",
+            "name_en": "dbconfig_edit",
+            "type": "manage",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "dbtype",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "dbtype_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "配置管理",
+            "subgroup": "数据库配置",
+            "description": "数据库配置编辑",
+            "description_en": "dbconfig_edit"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "global_dbconfig_edit",
+            "name": "全局数据库配置编辑",
+            "name_en": "global_dbconfig_edit",
+            "type": "manage",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "dbtype",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "dbtype_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "global_manage"
+            ],
+            "version": 1,
+            "group": "平台管理",
+            "subgroup": "数据库配置",
+            "description": "全局数据库配置编辑",
+            "description_en": "global_dbconfig_edit"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "global_dbconfig_create",
+            "name": "全局数据库配置新增",
+            "name_en": "global_dbconfig_create",
+            "type": "create",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "dbtype",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "dbtype_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "global_manage"
+            ],
+            "version": 1,
+            "group": "平台管理",
+            "subgroup": "数据库配置",
+            "description": "全局数据库配置新增",
+            "description_en": "global_dbconfig_create"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "global_dbconfig_destroy",
+            "name": "全局数据库配置删除",
+            "name_en": "global_dbconfig_destroy",
+            "type": "delete",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "dbtype",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "dbtype_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "global_manage"
+            ],
+            "version": 1,
+            "group": "平台管理",
+            "subgroup": "数据库配置",
+            "description": "全局数据库配置删除",
+            "description_en": "global_dbconfig_destroy"
         }
     },
     {
@@ -769,7 +1034,8 @@
                 }
             ],
             "related_actions": [
-                "db_manage"
+                "db_manage",
+                "dbconfig_view"
             ],
             "version": 1,
             "group": "MySQL",
@@ -1862,7 +2128,10 @@
                     ]
                 }
             ],
-            "related_actions": [],
+            "related_actions": [
+                "db_manage",
+                "dbconfig_view"
+            ],
             "version": 1,
             "group": "TendbCluster",
             "subgroup": "集群管理",
@@ -1963,6 +2232,36 @@
     {
         "operation": "upsert_action",
         "data": {
+            "id": "redis_cluster_apply",
+            "name": "Redis 集群部署",
+            "name_en": "REDIS_CLUSTER_APPLY",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "Redis",
+            "subgroup": "集群管理",
+            "description": "Redis 集群部署",
+            "description_en": "REDIS_CLUSTER_APPLY"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
             "id": "redis_open_close",
             "name": "Redis 集群禁用启用",
             "name_en": "redis_open_close",
@@ -2010,7 +2309,10 @@
                     ]
                 }
             ],
-            "related_actions": [],
+            "related_actions": [
+                "db_manage",
+                "dbconfig_view"
+            ],
             "version": 1,
             "group": "InfluxDB",
             "subgroup": "实例管理",
@@ -2452,7 +2754,10 @@
                     ]
                 }
             ],
-            "related_actions": [],
+            "related_actions": [
+                "db_manage",
+                "dbconfig_view"
+            ],
             "version": 1,
             "group": "Riak",
             "subgroup": "集群管理",
@@ -2745,7 +3050,8 @@
                 }
             ],
             "related_actions": [
-                "db_manage"
+                "db_manage",
+                "dbconfig_view"
             ],
             "version": 1,
             "group": "SQLServer",
@@ -3442,79 +3748,31 @@
     {
         "operation": "upsert_action",
         "data": {
-            "id": "dbconfig_view",
-            "name": "数据库配置查看",
-            "name_en": "dbconfig_view",
-            "type": "view",
+            "id": "global_monitor_policy_clone",
+            "name": "全局监控策略克隆",
+            "name_en": "global_monitor_policy_clone",
+            "type": "create",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
-                        }
-                    ]
-                },
-                {
                     "system_id": "bk_dbm",
-                    "id": "dbtype",
-                    "selection_mode": "instance",
+                    "id": "monitor_policy",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
                             "system_id": "bk_dbm",
-                            "id": "dbtype_list"
+                            "id": "global_monitor_policy_list"
                         }
                     ]
                 }
             ],
-            "related_actions": [],
-            "version": 1,
-            "group": "配置管理",
-            "subgroup": "数据库配置",
-            "description": "数据库配置查看",
-            "description_en": "dbconfig_view"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
-            "id": "dbconfig_edit",
-            "name": "数据库配置编辑",
-            "name_en": "dbconfig_edit",
-            "type": "manage",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
-                        }
-                    ]
-                },
-                {
-                    "system_id": "bk_dbm",
-                    "id": "dbtype",
-                    "selection_mode": "instance",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "dbtype_list"
-                        }
-                    ]
-                }
+            "related_actions": [
+                "global_manage"
             ],
-            "related_actions": [],
             "version": 1,
-            "group": "配置管理",
-            "subgroup": "数据库配置",
-            "description": "数据库配置编辑",
-            "description_en": "dbconfig_edit"
+            "group": "平台管理",
+            "subgroup": "监控策略",
+            "description": "全局监控策略克隆",
+            "description_en": "global_monitor_policy_clone"
         }
     },
     {
@@ -3545,96 +3803,6 @@
             "subgroup": "数据库配置",
             "description": "全局数据库配置查看",
             "description_en": "global_dbconfig_view"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
-            "id": "global_dbconfig_edit",
-            "name": "全局数据库配置编辑",
-            "name_en": "global_dbconfig_edit",
-            "type": "manage",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_dbm",
-                    "id": "dbtype",
-                    "selection_mode": "instance",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "dbtype_list"
-                        }
-                    ]
-                }
-            ],
-            "related_actions": [
-                "global_manage"
-            ],
-            "version": 1,
-            "group": "平台管理",
-            "subgroup": "数据库配置",
-            "description": "全局数据库配置编辑",
-            "description_en": "global_dbconfig_edit"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
-            "id": "global_dbconfig_create",
-            "name": "全局数据库配置新增",
-            "name_en": "global_dbconfig_create",
-            "type": "create",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_dbm",
-                    "id": "dbtype",
-                    "selection_mode": "instance",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "dbtype_list"
-                        }
-                    ]
-                }
-            ],
-            "related_actions": [
-                "global_manage"
-            ],
-            "version": 1,
-            "group": "平台管理",
-            "subgroup": "数据库配置",
-            "description": "全局数据库配置新增",
-            "description_en": "global_dbconfig_create"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
-            "id": "global_dbconfig_destroy",
-            "name": "全局数据库配置删除",
-            "name_en": "global_dbconfig_destroy",
-            "type": "delete",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_dbm",
-                    "id": "dbtype",
-                    "selection_mode": "instance",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "dbtype_list"
-                        }
-                    ]
-                }
-            ],
-            "related_actions": [
-                "global_manage"
-            ],
-            "version": 1,
-            "group": "平台管理",
-            "subgroup": "数据库配置",
-            "description": "全局数据库配置删除",
-            "description_en": "global_dbconfig_destroy"
         }
     },
     {
@@ -5527,6 +5695,90 @@
     {
         "operation": "upsert_action",
         "data": {
+            "id": "sqlserver_rollback",
+            "name": "SQLServer 定点构造",
+            "name_en": "SQLSERVER_ROLLBACK",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "sqlserver",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "sqlserver_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "SQLServer",
+            "subgroup": "数据处理",
+            "description": "SQLServer 定点构造",
+            "description_en": "SQLSERVER_ROLLBACK"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "sqlserver_authorize_rules",
+            "name": "SQLServer 集群授权",
+            "name_en": "SQLSERVER_AUTHORIZE_RULES",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "sqlserver",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "sqlserver_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "SQLServer",
+            "subgroup": "权限管理",
+            "description": "SQLServer 集群授权",
+            "description_en": "SQLSERVER_AUTHORIZE_RULES"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "sqlserver_excel_authorize_rules",
+            "name": "SQLServer EXCEL授权",
+            "name_en": "SQLSERVER_EXCEL_AUTHORIZE_RULES",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "sqlserver",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "sqlserver_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "SQLServer",
+            "subgroup": "权限管理",
+            "description": "SQLServer EXCEL授权",
+            "description_en": "SQLSERVER_EXCEL_AUTHORIZE_RULES"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
             "id": "redis_plugin_create_clb",
             "name": "Redis 创建CLB",
             "name_en": "REDIS_PLUGIN_CREATE_CLB",
@@ -5690,34 +5942,6 @@
             "subgroup": "集群管理",
             "description": "Redis 删除Polaris",
             "description_en": "REDIS_PLUGIN_DELETE_POLARIS"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
-            "id": "redis_cluster_apply",
-            "name": "Redis 集群部署",
-            "name_en": "REDIS_CLUSTER_APPLY",
-            "type": "execute",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_dbm",
-                    "id": "redis",
-                    "selection_mode": "all",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "redis_list"
-                        }
-                    ]
-                }
-            ],
-            "related_actions": [],
-            "version": 1,
-            "group": "Redis",
-            "subgroup": "集群管理",
-            "description": "Redis 集群部署",
-            "description_en": "REDIS_CLUSTER_APPLY"
         }
     },
     {
@@ -7513,6 +7737,34 @@
         }
     },
     {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_install_dbmon",
+            "name": "MongoDB 安装DBMon",
+            "name_en": "MONGODB_INSTALL_DBMON",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "集群维护",
+            "description": "MongoDB 安装DBMon",
+            "description_en": "MONGODB_INSTALL_DBMON"
+        }
+    },
+    {
         "operation": "upsert_action_groups",
         "data": [
             {
@@ -7525,9 +7777,12 @@
                 ],
                 "sub_groups": [
                     {
-                        "name": "历史任务",
-                        "name_en": "历史任务",
+                        "name": "单据",
+                        "name_en": "单据",
                         "actions": [
+                            {
+                                "id": "ticket_view"
+                            },
                             {
                                 "id": "flow_detail"
                             }
@@ -7563,6 +7818,24 @@
                 ],
                 "sub_groups": [
                     {
+                        "name": "数据库配置",
+                        "name_en": "数据库配置",
+                        "actions": [
+                            {
+                                "id": "global_dbconfig_edit"
+                            },
+                            {
+                                "id": "global_dbconfig_create"
+                            },
+                            {
+                                "id": "global_dbconfig_destroy"
+                            },
+                            {
+                                "id": "global_dbconfig_view"
+                            }
+                        ]
+                    },
+                    {
                         "name": "告警组",
                         "name_en": "告警组",
                         "actions": [
@@ -7592,24 +7865,9 @@
                             },
                             {
                                 "id": "global_monitor_policy_start_stop"
-                            }
-                        ]
-                    },
-                    {
-                        "name": "数据库配置",
-                        "name_en": "数据库配置",
-                        "actions": [
-                            {
-                                "id": "global_dbconfig_view"
                             },
                             {
-                                "id": "global_dbconfig_edit"
-                            },
-                            {
-                                "id": "global_dbconfig_create"
-                            },
-                            {
-                                "id": "global_dbconfig_destroy"
+                                "id": "global_monitor_policy_clone"
                             }
                         ]
                     },
@@ -7643,6 +7901,77 @@
                             },
                             {
                                 "id": "update_duty_notices_config"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "配置管理",
+                "name_en": "配置管理",
+                "actions": [
+                    {
+                        "id": "dba_administrator_edit"
+                    },
+                    {
+                        "id": "ip_whitelist_manage"
+                    }
+                ],
+                "sub_groups": [
+                    {
+                        "name": "监控策略",
+                        "name_en": "监控策略",
+                        "actions": [
+                            {
+                                "id": "ticket_config_set"
+                            },
+                            {
+                                "id": "monitor_policy_view"
+                            },
+                            {
+                                "id": "monitor_policy_edit"
+                            },
+                            {
+                                "id": "monitor_policy_delete"
+                            },
+                            {
+                                "id": "monitor_policy_start_stop"
+                            },
+                            {
+                                "id": "monitor_policy_alarm_view"
+                            },
+                            {
+                                "id": "monitor_policy_clone"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "数据库配置",
+                        "name_en": "数据库配置",
+                        "actions": [
+                            {
+                                "id": "dbconfig_view"
+                            },
+                            {
+                                "id": "dbconfig_edit"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "告警组",
+                        "name_en": "告警组",
+                        "actions": [
+                            {
+                                "id": "notify_group_list"
+                            },
+                            {
+                                "id": "notify_group_create"
+                            },
+                            {
+                                "id": "notify_group_update"
+                            },
+                            {
+                                "id": "notify_group_delete"
                             }
                         ]
                     }
@@ -8097,6 +8426,9 @@
                                 "id": "redis_view"
                             },
                             {
+                                "id": "redis_cluster_apply"
+                            },
+                            {
                                 "id": "redis_open_close"
                             },
                             {
@@ -8116,9 +8448,6 @@
                             },
                             {
                                 "id": "redis_plugin_delete_polaris"
-                            },
-                            {
-                                "id": "redis_cluster_apply"
                             },
                             {
                                 "id": "redis_keys_extract"
@@ -8513,6 +8842,9 @@
                             },
                             {
                                 "id": "mongodb_temporary_destroy"
+                            },
+                            {
+                                "id": "mongodb_install_dbmon"
                             }
                         ]
                     }
@@ -8553,6 +8885,12 @@
                             },
                             {
                                 "id": "sqlserver_add_account_rule"
+                            },
+                            {
+                                "id": "sqlserver_authorize_rules"
+                            },
+                            {
+                                "id": "sqlserver_excel_authorize_rules"
                             }
                         ]
                     },
@@ -8583,6 +8921,9 @@
                             },
                             {
                                 "id": "sqlserver_data_migrate"
+                            },
+                            {
+                                "id": "sqlserver_rollback"
                             }
                         ]
                     },
@@ -8610,74 +8951,6 @@
                             },
                             {
                                 "id": "sqlserver_reset"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "name": "配置管理",
-                "name_en": "配置管理",
-                "actions": [
-                    {
-                        "id": "dba_administrator_edit"
-                    },
-                    {
-                        "id": "ip_whitelist_manage"
-                    }
-                ],
-                "sub_groups": [
-                    {
-                        "name": "告警组",
-                        "name_en": "告警组",
-                        "actions": [
-                            {
-                                "id": "notify_group_list"
-                            },
-                            {
-                                "id": "notify_group_create"
-                            },
-                            {
-                                "id": "notify_group_update"
-                            },
-                            {
-                                "id": "notify_group_delete"
-                            }
-                        ]
-                    },
-                    {
-                        "name": "监控策略",
-                        "name_en": "监控策略",
-                        "actions": [
-                            {
-                                "id": "monitor_policy_view"
-                            },
-                            {
-                                "id": "monitor_policy_edit"
-                            },
-                            {
-                                "id": "monitor_policy_delete"
-                            },
-                            {
-                                "id": "monitor_policy_start_stop"
-                            },
-                            {
-                                "id": "monitor_policy_alarm_view"
-                            },
-                            {
-                                "id": "monitor_policy_clone"
-                            }
-                        ]
-                    },
-                    {
-                        "name": "数据库配置",
-                        "name_en": "数据库配置",
-                        "actions": [
-                            {
-                                "id": "dbconfig_view"
-                            },
-                            {
-                                "id": "dbconfig_edit"
                             }
                         ]
                     }
@@ -8717,6 +8990,15 @@
         "operation": "upsert_resource_creator_actions",
         "data": {
             "config": [
+                {
+                    "id": "ticket",
+                    "actions": [
+                        {
+                            "id": "ticket_view",
+                            "required": true
+                        }
+                    ]
+                },
                 {
                     "id": "flow",
                     "actions": [
@@ -9011,10 +9293,6 @@
                         },
                         {
                             "id": "redis_plugin_delete_polaris",
-                            "required": true
-                        },
-                        {
-                            "id": "redis_cluster_apply",
                             "required": true
                         },
                         {
@@ -9363,6 +9641,10 @@
                         {
                             "id": "mongodb_temporary_destroy",
                             "required": true
+                        },
+                        {
+                            "id": "mongodb_install_dbmon",
+                            "required": true
                         }
                     ]
                 },
@@ -9424,6 +9706,18 @@
                         {
                             "id": "sqlserver_data_migrate",
                             "required": true
+                        },
+                        {
+                            "id": "sqlserver_rollback",
+                            "required": true
+                        },
+                        {
+                            "id": "sqlserver_authorize_rules",
+                            "required": true
+                        },
+                        {
+                            "id": "sqlserver_excel_authorize_rules",
+                            "required": true
                         }
                     ]
                 },
@@ -9456,6 +9750,10 @@
                         },
                         {
                             "id": "monitor_policy_clone",
+                            "required": true
+                        },
+                        {
+                            "id": "global_monitor_policy_clone",
                             "required": true
                         }
                     ]
