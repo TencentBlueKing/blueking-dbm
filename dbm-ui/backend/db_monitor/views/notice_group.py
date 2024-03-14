@@ -103,7 +103,7 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     def _get_custom_permissions(self):
         if self.action in ["list", "destroy", "create", "update"]:
             return [NotifyGroupPermission(view_action=self.action)]
-        elif self.action in ["get_msg_type"]:
+        elif self.action in ["get_msg_type", "list_group_name"]:
             return []
 
         return [DBManagePermission()]
@@ -133,3 +133,9 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(operation_summary=_("查询告警组名称"), tags=[SWAGGER_TAG])
+    @action(methods=["GET"], detail=False, filter_class=MonitorGroupListFilter)
+    def list_group_name(self, request, *args, **kwargs):
+        group_name_infos = list(self.filter_queryset(self.get_queryset()).values("id", "name", "receivers"))
+        return Response(group_name_infos)

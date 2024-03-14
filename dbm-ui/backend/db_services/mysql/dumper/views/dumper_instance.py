@@ -32,6 +32,9 @@ class DumperInstanceViewSet(viewsets.AuditedModelViewSet):
     serializer_class = DumperInstanceConfigSerializer
     filter_class = DumperInstanceListFilter
 
+    def _get_custom_permissions(self):
+        return []
+
     def get_queryset(self):
         return self.queryset.filter(bk_biz_id=self.kwargs["bk_biz_id"])
 
@@ -46,6 +49,7 @@ class DumperInstanceViewSet(viewsets.AuditedModelViewSet):
             ActionEnum.TBINLOGDUMPER_ENABLE_DISABLE,
             ActionEnum.TBINLOGDUMPER_REDUCE_NODES,
             ActionEnum.TBINLOGDUMPER_SWITCH_NODES,
+            ActionEnum.MYSQL_VIEW,
         ],
         resource_meta=ResourceEnum.MYSQL,
     )

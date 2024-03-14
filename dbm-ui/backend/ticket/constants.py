@@ -143,7 +143,7 @@ class TicketType(str, StructuredEnum):
     def get_db_type_by_ticket(cls, ticket_type):
         """根据单据类型找到组件类型"""
         db_type = ticket_type.upper().split("_")[0].lower()
-        if db_type == "TBINLOGDUMPER":
+        if db_type == "TBINLOGDUMPER".lower():
             return DBType.MySQL.value
         if db_type in DBType.get_values():
             return db_type
@@ -225,11 +225,11 @@ class TicketType(str, StructuredEnum):
     TENDBCLUSTER_APPEND_DEPLOY_CTL = TicketEnumField("TENDBCLUSTER_APPEND_DEPLOY_CTL", _("TenDB Cluster 追加部署中控"), register_iam=False)  # noqa
 
     # Tbinlogdumper
-    TBINLOGDUMPER_INSTALL = EnumField("TBINLOGDUMPER_INSTALL", _("TBINLOGDUMPER 上架"))
-    TBINLOGDUMPER_REDUCE_NODES = EnumField("TBINLOGDUMPER_REDUCE_NODES", _("TBINLOGDUMPER 下架"))
-    TBINLOGDUMPER_SWITCH_NODES = EnumField("TBINLOGDUMPER_SWITCH_NODES", _("TBINLOGDUMPER 切换"))
-    TBINLOGDUMPER_DISABLE_NODES = EnumField("TBINLOGDUMPER_DISABLE_NODES", _("TBINLOGDUMPER 禁用"))
-    TBINLOGDUMPER_ENABLE_NODES = EnumField("TBINLOGDUMPER_ENABLE_NODES", _("TBINLOGDUMPER 启用"))
+    TBINLOGDUMPER_INSTALL = TicketEnumField("TBINLOGDUMPER_INSTALL", _("TBINLOGDUMPER 上架"), register_iam=False)
+    TBINLOGDUMPER_REDUCE_NODES = TicketEnumField("TBINLOGDUMPER_REDUCE_NODES", _("TBINLOGDUMPER 下架"), register_iam=False)  # noqa
+    TBINLOGDUMPER_SWITCH_NODES = TicketEnumField("TBINLOGDUMPER_SWITCH_NODES", _("TBINLOGDUMPER 切换"), register_iam=False)  # noqa
+    TBINLOGDUMPER_DISABLE_NODES = TicketEnumField("TBINLOGDUMPER_DISABLE_NODES", _("TBINLOGDUMPER 禁用"), register_iam=False)  # noqa
+    TBINLOGDUMPER_ENABLE_NODES = TicketEnumField("TBINLOGDUMPER_ENABLE_NODES", _("TBINLOGDUMPER 启用"), register_iam=False)  # noqa
 
     # SQLServer
     SQLSERVER_SINGLE_APPLY = TicketEnumField("SQLSERVER_SINGLE_APPLY", _("SQLServer 单节点部署"), register_iam=False)

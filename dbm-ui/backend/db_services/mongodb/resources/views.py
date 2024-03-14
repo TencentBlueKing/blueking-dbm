@@ -28,6 +28,7 @@ from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
 from backend.db_services.mongodb.resources import constants, yasg_slz
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
 @method_decorator(
@@ -104,6 +105,9 @@ class MongoDBViewSet(ResourceViewSet):
 
 class ResourceTreeViewSet(SystemViewSet):
     serializer_class = SearchResourceTreeSLZ
+
+    def _get_custom_permissions(self):
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("获取资源拓扑树"),

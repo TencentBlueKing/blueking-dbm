@@ -16,6 +16,7 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 from backend.ticket.builders import BuilderFactory
+from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import TicketType
 from backend.utils.basic import get_target_items_from_details
 
@@ -65,8 +66,12 @@ class CreateTicketPermission(ResourceActionPermission):
 
     def instance_dumper_cluster_ids_getter(self, request, view):
         details = request.data.get("details") or request.data
-        dumper_instance_ids = details.get("dumper_instance_ids", [])
-        cluster_ids = list(
-            ExtraProcessInstance.objects.filter(id__in=dumper_instance_ids).values_list("cluster_id", flat=True)
-        )
+        # 如果是dumper部署，则从detail获取集群ID，否则从ExtraProcessInstance根据dumper获取集群ID
+        if request.data["ticket_type"] == TicketType.TBINLOGDUMPER_INSTALL:
+            cluster_ids = fetch_cluster_ids(details)
+        else:
+            dumper_instance_ids = details.get("dumper_instance_ids", [])
+            cluster_ids = list(
+                ExtraProcessInstance.objects.filter(id__in=dumper_instance_ids).values_list("cluster_id", flat=True)
+            )
         return cluster_ids

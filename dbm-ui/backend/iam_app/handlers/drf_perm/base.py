@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import itertools
 import logging
 from typing import Callable, Dict, List
 
@@ -77,7 +77,7 @@ class IAMPermission(permissions.BasePermission):
 
     resource_type = None
 
-    def __init__(self, actions: List[ActionMeta], resources: List[Resource] = None) -> None:
+    def __init__(self, actions: List[ActionMeta], resources: List[List[Resource]] = None) -> None:
         self.actions = actions
         self.resources = resources or []
 
@@ -90,7 +90,9 @@ class IAMPermission(permissions.BasePermission):
             for action in self.actions:
                 if not self.resources:
                     bk_audit_client.add_event(action=action, audit_context=context)
-                for resource in self.resources:
+                # 打散资源，平铺成资源列表
+                resources_list = list(itertools.chain(*self.resources))
+                for resource in resources_list:
                     bk_audit_client.add_event(
                         action=action,
                         resource_type=self.resource_type() if self.resource_type else resource,
@@ -107,7 +109,12 @@ class IAMPermission(permissions.BasePermission):
             return True
 
         for action in self.actions:
-            iam.is_allowed(action=action, resources=self.resources, is_raise_exception=True)
+            # 单个资源/无资源走is_allowed校验，否则走batch_is_allowed
+            if len(self.resources) <= 1:
+                resources = self.resources[0] if self.resources else []
+                iam.is_allowed(action=action, resources=resources, is_raise_exception=True)
+            else:
+                iam.batch_is_allowed(actions=[action], resources=self.resources, is_raise_exception=True)
 
         return True
 
@@ -121,7 +128,7 @@ class IAMPermission(permissions.BasePermission):
 
 class ResourceActionPermission(IAMPermission):
     """
-    关联资源(兼容无资源)动作的权限检查
+    关联单个类型资源(兼容无资源)动作的权限检查
     """
 
     def __init__(
@@ -168,7 +175,7 @@ class ResourceActionPermission(IAMPermission):
                 return True
             # 如果有资源定义，才进行资源创建
             if self.resource_meta:
-                self.resources = [self.resource_meta.create_instance(instance_id) for instance_id in instance_ids]
+                self.resources = [[self.resource_meta.create_instance(instance_id)] for instance_id in instance_ids]
 
         return super(ResourceActionPermission, self).has_permission(request, view)
 
@@ -195,9 +202,13 @@ class MoreResourceActionPermission(IAMPermission):
         return self.instance_ids_getters[resource.id](request, view)
 
     def has_permission(self, request, view):
+        more_resource_list = []
+        # 先按照资源类型获取资源实例
         for resource_meta in self.resource_metas:
             instance_ids = self.get_instance_ids(request, view, resource_meta)
-            self.resources.extend([resource_meta.create_instance(instance_id) for instance_id in instance_ids])
+            more_resource_list.append([resource_meta.create_instance(instance_id) for instance_id in instance_ids])
+        # 然后将多个资源实例列表分别组合
+        self.resources = [list(resource_tuple) for resource_tuple in zip(*more_resource_list)]
 
         # 如果无关联资源/动作，则无需鉴权
         if not self.resources or not self.actions:

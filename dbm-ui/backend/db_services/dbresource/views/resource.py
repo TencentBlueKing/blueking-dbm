@@ -59,6 +59,7 @@ from backend.db_services.ipchooser.types import ScopeList
 from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.models import FlowTree
+from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 from backend.iam_app.handlers.permission import Permission
@@ -374,6 +375,18 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         url_path="query_operation_list",
         serializer_class=QueryOperationListSerializer,
         pagination_class=None,
+    )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["task_id"],
+        data_field=lambda d: d["results"],
+        actions=[ActionEnum.FLOW_DETAIL],
+        resource_meta=ResourceEnum.TASKFLOW,
+    )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["ticket_id"],
+        data_field=lambda d: d["results"],
+        actions=[ActionEnum.TICKET_VIEW],
+        resource_meta=ResourceEnum.TICKET,
     )
     def query_operation_list(self, request):
         query_params = self.params_validate(self.get_serializer_class())
