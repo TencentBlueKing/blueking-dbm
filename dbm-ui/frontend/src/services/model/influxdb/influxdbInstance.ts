@@ -157,6 +157,10 @@ export default class InfluxDBInstance {
     return this.phase === 'online';
   }
 
+  get isOffline() {
+    return this.phase === 'offline';
+  }
+
   get isRebooting() {
     return Boolean(this.operations.find((item) => item.ticket_type === InfluxDBInstance.INFLUXDB_REBOOT));
   }

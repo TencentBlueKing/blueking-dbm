@@ -13,11 +13,21 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <TableEditInput
-      ref="editInputRef"
-      :model-value="renderText"
-      :placeholder="t('根据实例生成')"
-      readonly />
+    <div
+      class="slave-rebuild-related-cluster"
+      :style="{background: oldSlave ? '#FFF' : '#FAFBFD' }">
+      <template v-if="oldSlave">
+        <div
+          v-for="(domain, index) in renderDomainList"
+          :key="index"
+          class="domain-item">
+          <span>{{ domain }}</span>
+        </div>
+      </template>
+      <span
+        v-else
+        class="default-text">{{ t('自动生成') }}</span>
+    </div>
   </BkLoading>
 </template>
 <script setup lang="ts">
@@ -28,8 +38,6 @@
   import { checkMysqlInstances } from '@services/source/instances';
 
   import { useGlobalBizs } from '@stores';
-
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -49,11 +57,11 @@
   const editInputRef = ref();
   const localRelateClusterList = shallowRef<ServiceReturnType<typeof checkMysqlInstances>[0]['related_clusters']>([]);
 
-  const renderText = computed(() => {
+  const renderDomainList = computed(() => {
     if (localRelateClusterList.value?.length < 1) {
-      return '';
+      return [];
     }
-    return localRelateClusterList.value.map((item) => item.master_domain).join('\n');
+    return localRelateClusterList.value.map(item => item.master_domain);
   });
 
   const { loading: isLoading, run: fetchCheckMysqlInstances } = useRequest(checkMysqlInstances, {
@@ -94,3 +102,20 @@
     },
   });
 </script>
+<style lang="less">
+.slave-rebuild-related-cluster {
+  padding: 10px 16px;
+  line-height: 20px;
+
+  .domain-item {
+    width: 100%;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .default-text {
+    font-size: 12px;
+    color: #C4C6CC;
+  }
+}
+</style>

@@ -218,10 +218,8 @@
     },
   ];
 
-  const checkClusterOnline = (data: HdfsModel) => data.phase === 'online';
-
   const getRowClass = (data: HdfsModel) => {
-    const classList = [checkClusterOnline(data) ? '' : 'is-offline'];
+    const classList = [data.isOnline ? '' : 'is-offline'];
     const newClass = isRecentDays(data.create_at, 24 * 3) ? 'is-new-row' : '';
     classList.push(newClass);
     if (data.id === clusterId.value) {
@@ -309,7 +307,7 @@
             data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
           }
           <db-icon
-            v-show={!checkClusterOnline(data)}
+            v-show={!data.isOnline}
             svg
             type="yijinyong"
             style="width: 38px; height: 16px; margin-left: 4px;" />
@@ -444,7 +442,7 @@
               { t('查看访问配置') }
             </auth-button>,
           ];
-          if (!checkClusterOnline(data)) {
+          if (data.isOffline) {
             return [
               <auth-button
                 text
@@ -463,6 +461,7 @@
                 action-id="hdfs_destroy"
                 permission={data.permission.hdfs_destroy}
                 resource={data.id}
+                disabled={Boolean(data.operationTicketId)}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleRemove(data)}>

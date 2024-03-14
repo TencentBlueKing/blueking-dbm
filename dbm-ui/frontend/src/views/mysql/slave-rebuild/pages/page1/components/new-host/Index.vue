@@ -64,8 +64,9 @@
     </template>
     <InstanceSelector
       v-model:is-show="isShowInstanceSelecotr"
-      :panel-list="panelList"
-      role="slave"
+      :cluster-types="[ClusterTypes.TENDBHA]"
+      :selected="selectedIps"
+      :tab-list-config="tabListConfig"
       @change="handleInstancesChange" />
   </SmartAction>
 </template>
@@ -74,13 +75,17 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type PanelListType,
+  } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -95,17 +100,17 @@
   const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const selectedIps = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
 
-  const panelList = [
-    {
-      id: 'tendbha',
-      title: t('待重建从库主机'),
-    },
-    {
-      id: 'manualInput',
-      title: t('手动输入'),
-    },
-  ];
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        name: t('待重建从库主机'),
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
+
+  let ipMemo = {} as Record<string, boolean>;
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -121,20 +126,27 @@
     isShowInstanceSelecotr.value = true;
   };
 
-  const handleInstancesChange = (selected: InstanceSelectorValues) => {
-    const newList = selected[ClusterTypes.TENDBHA].map((instanceData) =>
-      createRowData({
-        oldSlave: {
-          bkCloudId: instanceData.bk_cloud_id,
-          bkCloudName: instanceData.bk_cloud_name,
-          bkHostId: instanceData.bk_host_id,
-          ip: instanceData.ip,
-          port: instanceData.port,
-          instanceAddress: instanceData.instance_address,
-          clusterId: instanceData.cluster_id,
-        },
-      }),
-    );
+  const handleInstancesChange = (selected: InstanceSelectorValues<TendbhaInstanceModel>) => {
+    selectedIps.value = selected;
+    const newList: IDataRow[] = [];
+    selected[ClusterTypes.TENDBHA].forEach((instanceData) => {
+      const { ip } = instanceData;
+      if (!ipMemo[ip]) {
+        const row = createRowData({
+          oldSlave: {
+            bkCloudId: instanceData.bk_cloud_id,
+            bkCloudName: instanceData.bk_cloud_name,
+            bkHostId: instanceData.bk_host_id,
+            ip,
+            port: instanceData.port,
+            instanceAddress: instanceData.instance_address,
+            clusterId: instanceData.cluster_id,
+          },
+        });
+        newList.push(row);
+        ipMemo[ip] = true;
+      }
+    });
 
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
@@ -153,6 +165,12 @@
 
   // 删除一个行
   const handleRemove = (index: number) => {
+    const ip = tableData.value[index].oldSlave?.ip;
+    if (ip) {
+      delete ipMemo[ip];
+      const clustersArr = selectedIps.value[ClusterTypes.TENDBHA];
+      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.ip !== ip);
+    }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
     tableData.value = dataList;
@@ -191,6 +209,8 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    ipMemo = {};
+    selectedIps.value[ClusterTypes.TENDBHA] = [];
     window.changeConfirm = false;
   };
 </script>
