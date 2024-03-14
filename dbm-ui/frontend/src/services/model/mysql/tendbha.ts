@@ -77,7 +77,7 @@ export default class Tendbha {
     title: string;
   }>;
   permission: {
-    mysql_authorize: boolean;
+    mysql_authorize_rules: boolean;
     mysql_destroy: boolean;
     mysql_enable_disable: boolean;
     mysql_view: boolean;

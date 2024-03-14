@@ -28,7 +28,7 @@
           }"
           class="inline-block">
           <AuthButton
-            action-id="mysql_authorize"
+            action-id="mysql_authorize_rules"
             class="ml-8"
             :disabled="!hasSelected"
             @click="handleShowAuthorize(state.selected)">
@@ -36,7 +36,7 @@
           </AuthButton>
         </span>
         <AuthButton
-          action-id="mysql_authorize"
+          action-id="mysql_excel_authorize_rules"
           class="ml-8"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
@@ -385,8 +385,8 @@
             text
             theme="primary"
             class="mr-8"
-            actionId="mysql_authorize"
-            permission={data.permission.mysql_authorize}
+            actionId="mysql_authorize_rules"
+            permission={data.permission.mysql_authorize_rules}
             resource={data.id}
             onClick={() => handleShowAuthorize([data])}>
             { t('授权') }
