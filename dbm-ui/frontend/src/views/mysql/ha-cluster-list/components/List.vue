@@ -27,13 +27,12 @@
             content: t('请选择集群'),
           }"
           class="inline-block">
-          <AuthButton
-            action-id="mysql_authorize"
+          <BkButton
             class="ml-8"
             :disabled="!hasSelected"
             @click="() => handleShowCreateSubscribeRuleSlider()">
             {{ t('批量订阅') }}
-          </AuthButton>
+          </BkButton>
         </span>
         <span
           v-bk-tooltips="{
@@ -41,15 +40,16 @@
             content: t('请选择集群'),
           }"
           class="inline-block">
-          <BkButton
+          <AuthButton
+            action-id="mysql_authorize_rules"
             class="ml-8"
             :disabled="!hasSelected"
             @click="handleShowAuthorize(state.selected)">
             {{ t('批量授权') }}
-          </BkButton>
+          </AuthButton>
         </span>
         <AuthButton
-          action-id="mysql_excel_authorize"
+          action-id="mysql_excel_authorize_rules"
           class="ml-8"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
@@ -501,8 +501,8 @@
               text
               theme="primary"
               class="mr-8"
-              actionId="mysql_authorize"
-              permission={data.permission.mysql_authorize}
+              actionId="mysql_authorize_rules"
+              permission={data.permission.mysql_authorize_rules}
               resource={data.id}
               onClick={() => handleShowAuthorize([data])}>
               { t('授权') }
