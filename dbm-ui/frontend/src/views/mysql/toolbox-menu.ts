@@ -59,7 +59,7 @@ export default [
     icon: 'db-icon-rollback',
     children: [
       {
-        name: t('定点回档'),
+        name: t('定点构造'),
         id: 'MySQLDBRollback',
         parentId: 'fileback',
       },
@@ -103,7 +103,7 @@ export default [
         parentId: 'migrate',
       },
       {
-        name: t('克隆主从'),
+        name: t('迁移主从'),
         id: 'MySQLMasterSlaveClone',
         parentId: 'migrate',
       },

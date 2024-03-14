@@ -14,7 +14,7 @@
 <template>
   <RenderSuccess :steps="steps">
     <template #title>
-      {{ $t('定点回档任务提交成功') }}
+      {{ $t('定点构造任务提交成功') }}
     </template>
     <I18nT
       keypath="接下来您可以通过xx查看任务最新动态"
@@ -65,7 +65,7 @@
       name: t('单据审批'),
     },
     {
-      name: t('定点回档执行'),
+      name: t('定点构造执行'),
     },
     {
       name: t('任务完成'),

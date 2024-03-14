@@ -35,34 +35,37 @@
     </BkLoading>
   </div>
 </template>
-<script setup lang="tsx">
+<script setup lang="tsx" generic="T extends IValue">
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import DbStatus from '@components/db-status/index.vue';
-  import type {
-    InstanceSelectorValues,
-    IValue,
-    PanelListType,
-    TableSetting,
-  } from '@components/instance-selector-new/Index.vue';
-  import { activePanelInjectionKey } from '@components/instance-selector-new/Index.vue';
 
   import { firstLetterToUpper } from '@utils';
+
+  import {
+    activePanelInjectionKey,
+    type InstanceSelectorValues,
+    type IValue,
+    type PanelListType,
+    type TableSetting,
+  } from '../../../../Index.vue';
 
   import { useTableData } from './useTableData';
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
 
-  type DataRow = Record<string, any>;
+  interface DataRow {
+    data: T,
+  }
 
   interface Props {
-    lastValues: InstanceSelectorValues,
+    lastValues: InstanceSelectorValues<T>,
     tableSetting: TableSetting,
     activePanelId?: string,
     clusterId?: number,
     isManul?: boolean,
-    manualTableData?: DataRow[];
+    manualTableData?: T[];
     isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
     roleFilterList?: TableConfigType['roleFilterList'],
@@ -73,7 +76,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void;
+    (e: 'change', value: InstanceSelectorValues<T>): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -91,7 +94,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const formatValue = (data: DataRow) => ({
+  const formatValue = (data: T) => ({
     bk_host_id: data.bk_host_id,
     instance_address: data.instance_address || '',
     cluster_id: data.cluster_id,
@@ -105,7 +108,7 @@
 
   const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
 
-  const checkedMap = shallowRef({} as Record<string, IValue>);
+  const checkedMap = shallowRef({} as Record<string, T>);
 
   const initRole = computed(() => props.firsrColumn?.role);
   const selectClusterId = computed(() => props.clusterId);
@@ -122,7 +125,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<DataRow>(initRole, selectClusterId);
+  } = useTableData<T>(initRole, selectClusterId);
 
   const renderManualData = computed(() => {
     if (searchValue.value === '') {
@@ -150,10 +153,11 @@
           label={true}
           model-value={isSelectedAll.value}
           disabled={mainSelectDisable.value}
+          onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelectPageAll}
         />
       ),
-      render: ({ data }: {data: DataRow}) => {
+      render: ({ data }: DataRow) => {
         if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
           return (
             <bk-popover theme="dark" placement="top" popoverDelay={0}>
@@ -169,6 +173,7 @@
             style="vertical-align: middle;"
             label={true}
             model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
+            onClick={(e: Event) => e.stopPropagation()}
             onChange={(value: boolean) => handleTableSelectOne(value, data)}
           />
         );
@@ -189,7 +194,7 @@
     {
       label: t('实例状态'),
       field: 'status',
-      render: ({ data }: {data: DataRow}) => {
+      render: ({ data }: DataRow) => {
         const isNormal = props.statusFilter ? props.statusFilter(data) : data.status === 'running';
         const info = isNormal ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
@@ -252,8 +257,8 @@
   watch(() => props.lastValues, () => {
     if (props.isManul) {
       checkedMap.value = {};
-      for (const checkedList of Object.values(props.lastValues)) {
-        for (const item of checkedList) {
+      if (props.lastValues[props.activePanelId]) {
+        for (const item of Object.values(props.lastValues[props.activePanelId])) {
           checkedMap.value[item[firstColumnFieldId.value]] = item;
         }
       }
@@ -281,13 +286,12 @@
 
   const triggerChange = () => {
     if (props.isManul) {
-      const lastValues: InstanceSelectorValues = {
+      const lastValues: InstanceSelectorValues<T> = {
         [props.activePanelId]: [],
       };
       for (const item of Object.values(checkedMap.value)) {
         lastValues[props.activePanelId].push(item);
       }
-
       emits('change', {
         ...props.lastValues,
         ...lastValues,
@@ -299,7 +303,7 @@
         ...item,
       });
       return result;
-    }, [] as IValue[]);
+    }, [] as T[]);
 
     if (activePanel?.value) {
       emits('change', {
@@ -325,18 +329,19 @@
     }
   };
 
-  const handleTableSelectOne = (checked: boolean, data: DataRow) => {
+  const handleTableSelectOne = (checked: boolean, data: T) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
-      lastCheckMap[data[firstColumnFieldId.value]] = formatValue(data);
+      lastCheckMap[data[firstColumnFieldId.value]] = formatValue(data) as T;
     } else {
       delete lastCheckMap[data[firstColumnFieldId.value]];
     }
+
     checkedMap.value = lastCheckMap;
     triggerChange();
   };
 
-  const handleRowClick = (e: PointerEvent, data: DataRow) => {
+  const handleRowClick = (key: number, data: T) => {
     if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
       return;
     }

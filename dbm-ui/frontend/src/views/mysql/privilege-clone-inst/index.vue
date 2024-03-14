@@ -64,6 +64,9 @@
     @change="handleBatchInput" />
   <InstanceSelector
     v-model:is-show="isShowInstanceSelecotr"
+    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    :selected="selectedIntances"
+    :tab-list-config="tabListConfig"
     @change="handleInstancesChange" />
 </template>
 
@@ -71,6 +74,7 @@
   import type FormItem from 'bkui-vue/lib/form/form-item';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { precheckPermissionClone } from '@services/permission';
   import { checkMysqlInstances } from '@services/source/instances';
   import { createTicket } from '@services/source/ticket';
@@ -78,11 +82,12 @@
 
   import { useInfo, useTableMaxHeight } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
+    type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
   import { generateId, messageError } from '@utils';
@@ -194,6 +199,47 @@
     target: [] as FormItemInstance[],
     source: [] as FormItemInstance[],
   });
+
+  const selectedIntances = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({});
+
+  let instanceMemo = {} as Record<string, boolean>;
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        tableConfig: {
+          firsrColumn: {
+            label: '',
+            field: '',
+            role: '',
+          },
+        },
+        previewConfig: {
+          displayKey: 'instance_address',
+          showTitle: true,
+          title: t('主从'),
+        },
+      },
+    ],
+    [ClusterTypes.TENDBSINGLE]: [
+      {
+        previewConfig: {
+          displayKey: 'instance_address',
+          showTitle: true,
+          title: t('单节点'),
+        },
+      },
+      {
+        manualConfig: {
+          activePanelId: 'manualInput',
+        },
+        previewConfig: {
+          showTitle: true,
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
+
   function setFormItemRefs(key: 'target' | 'source', vueInstance: FormItemInstance) {
     if (vueInstance) {
       const refs = formItemRefs[key];
@@ -351,6 +397,13 @@
   }
 
   function handleRemoveItem(index: number) {
+    const instanceAddress = tableData.value[index].source.split(':')[1];
+
+    if (instanceAddress) {
+      const clustersArr = selectedIntances.value[ClusterTypes.TENDBHA];
+      // eslint-disable-next-line max-len
+      selectedIntances.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.instance_address !== instanceAddress);
+    }
     tableData.value.splice(index, 1);
   }
 
@@ -360,6 +413,8 @@
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
+        instanceMemo = {};
+        selectedIntances.value[ClusterTypes.TENDBHA] = [];
         nextTick(() => {
           window.changeConfirm = false;
         });
@@ -368,17 +423,17 @@
     });
   }
 
-  async function handleInstancesChange(data: InstanceSelectorValues) {
+  async function handleInstancesChange(data: InstanceSelectorValues<TendbhaInstanceModel>) {
     const newList = [];
     const dataList = Object.values(data).reduce((res, items) => res.concat(items));
-    const existList = tableData.value.map(item => item.source);
     for (const item of dataList) {
       const source = `${item.bk_cloud_id}:${item.instance_address}`;
-      if (!existList.includes(source)) {
+      if (!instanceMemo[source]) {
         newList.push({
           ...getTableItem(),
           source,
         });
+        instanceMemo[source] = true;
       }
     }
     if (newList.length === 0) return;

@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('集群主从节点成对迁移到新的机器上_旧机器会下架掉')" />
+        :title="t('迁移主从：集群主从实例将成对迁移至新机器。默认迁移同机所有关联集群，也可迁移部分集群，迁移会下架旧实例')" />
       <div
         class="mt16"
         style="display: flex;">

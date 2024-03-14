@@ -408,7 +408,7 @@
               { t('获取访问方式') }
             </auth-button>,
           ];
-          if (!data.isOnline) {
+          if (data.isOffline) {
             return [
               <auth-button
                 text
@@ -425,7 +425,9 @@
                 text
                 theme="primary"
                 action-id="es_destroy"
+                class="mr8"
                 permission={data.permission.es_destroy}
+                disabled={Boolean(data.operationTicketId)}
                 resource={data.id}
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleRemove(data)}>

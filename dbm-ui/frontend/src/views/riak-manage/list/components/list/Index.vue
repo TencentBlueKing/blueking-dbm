@@ -326,7 +326,7 @@
                   text
                   class="ml-16"
                   theme="primary"
-                  disabled={data.operationDisabled}
+                  disabled={Boolean(data.operationTicketId)}
                   onclick={() => handleDelete(data)}
                 >
                   { t('删除') }

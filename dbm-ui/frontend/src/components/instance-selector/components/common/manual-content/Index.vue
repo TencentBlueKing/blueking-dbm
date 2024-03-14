@@ -70,7 +70,7 @@
             <BkButton
               class="w-88"
               size="small"
-              @click="() => inputState.values = ''">
+              @click="handleClear">
               {{ $t('清空') }}
             </BkButton>
           </div>
@@ -79,43 +79,51 @@
       <template #main>
         <BkLoading :loading="inputState.isLoading">
           <RenderManualHost
+            :active-panel-id="manualConfig.activePanelId"
+            :firsr-column="firsrColumn"
+            is-manul
             :last-values="lastValues"
-            :role="role"
-            :table-data="inputState.tableData"
-            :table-settings="tableSettings"
+            :manual-table-data="inputState.tableData"
+            :status-filter="statusFilter"
+            :table-setting="tableSetting"
             @change="handleHostChange" />
         </BkLoading>
       </template>
     </BkResizeLayout>
   </div>
 </template>
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends IValue">
   import { useI18n } from 'vue-i18n';
-
-  import { checkMysqlInstances } from '@services/source/instances';
-  import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ipPort } from '@common/regex';
+  import { ipPort, ipv4 } from '@common/regex';
 
-  import type { MySQLClusterTypes } from '../common/types';
-  import type { InstanceSelectorValues } from '../Index.vue';
+  import type { InstanceSelectorValues, IValue, PanelListType, TableSetting } from '../../../Index.vue';
 
-  import RenderManualHost from './RenderManualHost.vue';
+  import RenderManualHost from './table/Index.vue';
 
-  import type { TableProps } from '@/types/bkui-vue';
+  type TableConfigType = Required<PanelListType[number]>['tableConfig'];
+  type ManualConfigType = Required<PanelListType[number]>['manualConfig'];
 
   interface Props {
-    role?: string,
-    lastValues: InstanceSelectorValues,
-    tableSettings: TableProps['settings']
+    lastValues: InstanceSelectorValues<T>,
+    manualConfig: Required<ManualConfigType>,
+    // clusterId?: number,
+    tableSetting: TableSetting,
+    firsrColumn?: TableConfigType['firsrColumn'],
+    statusFilter?: TableConfigType['statusFilter'],
+
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'change', value: InstanceSelectorValues<T>): void
   }
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    firsrColumn: undefined,
+    statusFilter: undefined,
+    // clusterId: undefined,
+  });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -126,7 +134,7 @@
     values: '',
     placeholder: t('请输入IP_Port_如_1_1_1_1_10000_多个可使用换行_空格或_分隔'),
     isLoading: false,
-    tableData: [] as InstanceInfos[],
+    tableData: [] as T[],
   });
   const errorState = reactive({
     format: {
@@ -143,7 +151,7 @@
     },
   });
 
-  const handleHostChange = (values: InstanceSelectorValues) => {
+  const handleHostChange = (values: InstanceSelectorValues<T>) => {
     emits('change', values);
   };
 
@@ -182,9 +190,18 @@
     // 处理格式错误
     for (let i = lines.length - 1; i >= 0; i--) {
       const value = lines[i];
-      if (!ipPort.test(value)) {
-        const remove = lines.splice(i, 1);
-        newLines.push(...remove);
+      if (props.manualConfig.checkType === 'instance') {
+        if (!ipPort.test(value)) {
+          const remove = lines.splice(i, 1);
+          newLines.push(...remove);
+        }
+      }
+
+      if (props.manualConfig.checkType === 'ip') {
+        if (!ipv4.test(value)) {
+          const remove = lines.splice(i, 1);
+          newLines.push(...remove);
+        }
       }
     }
     const count = newLines.length;
@@ -195,17 +212,23 @@
     // 检查 IP:Port 是否存在
     inputState.isLoading = true;
     try {
-      const res = await checkMysqlInstances({
+      const params = {
         bizId: currentBizId,
         instance_addresses: lines,
-      });
-      const legalInstances: InstanceInfos[] = [];
+      };
+      // if (props.clusterId) {
+      //   Object.assign(params, {
+      //     cluster_ids: [props.clusterId],
+      //   });
+      // }
+      const res = await props.manualConfig.checkInstances(params);
+      const legalInstances = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];
         const infos = res[i];
         const remove = lines.splice(i, 1);
         const isExisted = res.find(existItem => (
-          existItem.instance_address === item && (!props.role || props.role === existItem.role)
+          existItem[props.manualConfig.checkKey] === item
         ));
         if (!isExisted) {
           newLines.push(...remove);
@@ -222,19 +245,22 @@
       // 解析完成后选中
       const lastValues = { ...props.lastValues };
       for (const item of inputState.tableData) {
-        const type = item.cluster_type as MySQLClusterTypes;
+        const type = props.manualConfig.activePanelId;
+        if (!lastValues[type]) {
+          lastValues[type] = [];
+        }
         const list = lastValues[type];
-        const isExisted = list.find(i => `${i.instance_address}_${i.bk_cloud_id}` === `${item.instance_address}_${item.bk_cloud_id}`);
+        const isExisted = list.length > 0 && list.find(i => `${i[props.manualConfig.checkKey]}_${i.bk_cloud_id}` === `${item[props.manualConfig.checkKey]}_${item.bk_cloud_id}`);
         if (!isExisted) {
           lastValues[type].push({
             bk_host_id: item.bk_host_id,
             instance_address: item.instance_address,
             cluster_id: item.cluster_id,
-            cluster_type: item.cluster_type as MySQLClusterTypes,
+            cluster_type: item.cluster_type,
             bk_cloud_id: item.host_info.cloud_id,
             port: item.port,
             ip: item.ip,
-          });
+          } as T);
         }
       }
       emits('change', {
@@ -242,7 +268,7 @@
         ...lastValues,
       });
     } catch (_) {
-      console.log(_);
+      console.error(_);
     }
     errorState.format.show = count > 0;
     errorState.instance.show = newLines.slice(count).length > 0;
@@ -252,11 +278,17 @@
     newLines.push(...lines); // 没有错误内容回填
     inputState.values = newLines.join('\n');
   };
+
+  const handleClear = () => {
+    inputState.values = '';
+    errorState.format.show = false;
+    errorState.instance.show = false;
+  };
 </script>
 
 <style lang="less">
   .instance-selector-manual-input {
-    height: 600px;
+    height: 585px;
     padding-top: 16px;
 
     .bk-resize-layout {
@@ -296,7 +328,7 @@
     .manual-input-buttons {
       display: flex;
       align-items: center;
-      margin-top: 12px;
+      margin-top: 5px;
 
       .bk-button {
         &:first-child {
