@@ -85,7 +85,8 @@
 
   import InstanceSelector, {
     type InstanceSelectorValues,
-  } from '@components/instance-selector-new/Index.vue';
+    type IValue,
+  } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -102,7 +103,7 @@
   const isSubmitting  = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedIps = shallowRef<InstanceSelectorValues>({ tendbcluster: [] });
+  const selectedIps = shallowRef<InstanceSelectorValues<IValue>>({ tendbcluster: [] });
 
   const formData = reactive({
     is_check_process: false,
@@ -129,7 +130,7 @@
   };
 
   // Master 批量选择
-  const handelMasterProxyChange = (data: InstanceSelectorValues) => {
+  const handelMasterProxyChange = (data: InstanceSelectorValues<IValue>) => {
     selectedIps.value = data;
     const newList = data.tendbcluster.reduce((result, item) => {
       const {

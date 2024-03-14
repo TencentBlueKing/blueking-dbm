@@ -54,8 +54,9 @@
       </div>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
-        :panel-list="panelList"
-        role="master"
+        :cluster-types="[ClusterTypes.TENDBHA]"
+        :selected="selectedIps"
+        :tab-list-config="tabListConfig"
         @change="handelMasterProxyChange" />
       <BatchEntry
         v-model:is-show="isShowBatchEntry"
@@ -91,12 +92,16 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
+  import { ClusterTypes } from '@common/const';
+
   import InstanceSelector, {
     type InstanceSelectorValues,
+    type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
   import BatchEntry, {
@@ -129,6 +134,7 @@
   const isSubmitting  = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const selectedIps = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
 
   const formData = reactive({
     is_check_process: true,
@@ -136,15 +142,15 @@
     is_check_delay: true,
   });
 
-  const panelList = [
-    {
-      id: 'tendbha',
-      title: t('目标主库'),
-    },
-    {
-      id: 'manualInput',
-      title: t('手动输入'),
-    }];
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        name: t('故障主库主机'),
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
+
+  let ipMemo = {} as Record<string, boolean>;
 
   // 批量录入
   const handleShowBatchEntry = () => {
@@ -165,8 +171,8 @@
     isShowMasterInstanceSelector.value = true;
   };
   // Master 批量选择
-  const handelMasterProxyChange = (data: InstanceSelectorValues) => {
-    const ipMemo = {} as Record<string, boolean>;
+  const handelMasterProxyChange = (data: InstanceSelectorValues<TendbhaInstanceModel>) => {
+    selectedIps.value = data;
     const newList = [] as IDataRow [];
     data.tendbha.forEach((proxyData) => {
       const {
@@ -200,6 +206,12 @@
   };
   // 删除一个集群
   const handleRemove = (index: number) => {
+    const ip = tableData.value[index].masterData?.ip;
+    if (ip) {
+      delete ipMemo[ip];
+      const clustersArr = selectedIps.value[ClusterTypes.TENDBHA];
+      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.ip !== ip);
+    }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
     tableData.value = dataList;
@@ -236,6 +248,9 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    ipMemo = {};
+    selectedIps.value[ClusterTypes.TENDBHA] = [];
+    window.changeConfirm = false;
   };
 </script>
 

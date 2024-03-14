@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkLoading :loading="isTreeDataLoading">
+  <BkLoading :loading="isLoading">
     <div class="instance-selector-topo">
       <BkResizeLayout
         :border="false"
@@ -26,7 +26,8 @@
               v-model="treeSearch"
               clearable
               :placeholder="$t('搜索拓扑节点')" />
-            <div style="height: calc(100% - 50px); margin-top: 12px;">
+            <div :class="TopoAlertContent ? 'topo-alert-box' : 'topo-box'">
+              <TopoAlertContent @close="handleCloseAlert" />
               <BkTree
                 ref="treeRef"
                 children="children"
@@ -41,7 +42,7 @@
                 <template #node="item">
                   <div class="custom-tree-node">
                     <span class="custom-tree-node__tag">
-                      {{ item.obj === 'biz' ? '业' : '集' }}
+                      {{ item.obj === 'biz' ? $t('业') : $t('集') }}
                     </span>
                     <span
                       v-overflow-tips
@@ -58,149 +59,133 @@
           </div>
         </template>
         <template #main>
-          <RenderTopoHost
-            :last-values="lastValues"
-            :node="selectNode"
-            :role="role"
-            :table-settings="tableSettings"
-            @change="handleHostChange" />
+          <div style="height: 570px;">
+            <RenderTopoHost
+              :cluster-id="selectClusterId"
+              :disabled-row-config="disabledRowConfig"
+              :firsr-column="firsrColumn"
+              :get-table-list="getTableList"
+              :is-remote-pagination="isRemotePagination"
+              :last-values="lastValues"
+              :role-filter-list="roleFilterList"
+              :status-filter="statusFilter"
+              :table-setting="tableSetting"
+              @change="handleHostChange" />
+          </div>
         </template>
       </BkResizeLayout>
     </div>
   </BkLoading>
 </template>
-<script setup lang="ts">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+<script setup lang="ts" generic="T extends IValue">
+  import type { InstanceSelectorValues, IValue, PanelListType, TableSetting } from '../../Index.vue';
 
-  import { queryClusters } from '@services/source/mysqlCluster';
+  import RenderTopoHost from './table/Index.vue';
+  import { useTopoData } from './useTopoData';
 
-  import { useGlobalBizs } from '@stores';
-
-  import getSettings from '../common/tableSettings';
-  import type { InstanceSelectorValues } from '../Index.vue';
-
-  import { activePanelInjectionKey } from './PanelTab.vue';
-  import RenderTopoHost from './RenderTopoHost.vue';
-
-  interface TTopoTreeData {
+  interface TopoTreeData {
     id: number;
     name: string;
     obj: 'biz' | 'cluster',
     count: number,
-    children: Array<TTopoTreeData>;
+    children: Array<TopoTreeData>;
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'change', value: InstanceSelectorValues<T>): void
   }
+
+  type TableConfigType = Required<PanelListType[number]>['tableConfig'];
+  type TopoConfigType = Required<PanelListType[number]>['topoConfig'];
 
   interface Props {
-    lastValues: InstanceSelectorValues,
-    role?: string
+    lastValues: InstanceSelectorValues<T>,
+    tableSetting: TableSetting,
+    firsrColumn?: TableConfigType['firsrColumn'],
+    roleFilterList?: TableConfigType['roleFilterList'],
+    isRemotePagination?: TableConfigType['isRemotePagination'],
+    disabledRowConfig?: TableConfigType['disabledRowConfig'],
+    topoAlertContent?: TopoConfigType['topoAlertContent'],
+    filterClusterId?: TopoConfigType['filterClusterId'], // 过滤的集群ID，单集群模式
+    // eslint-disable-next-line vue/no-unused-properties
+    getTopoList: NonNullable<TopoConfigType['getTopoList']>
+    // eslint-disable-next-line vue/no-unused-properties
+    getTableList: NonNullable<TableConfigType['getTableList']>,
+    statusFilter?: TableConfigType['statusFilter'],
+    // eslint-disable-next-line vue/no-unused-properties
+    countFunc?: TopoConfigType['countFunc'],
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    firsrColumn: undefined,
+    statusFilter: undefined,
+    isRemotePagination: true,
+    countFunc: undefined,
+    disabledRowConfig: undefined,
+    topoAlertContent: undefined,
+    roleFilterList: undefined,
+    filterClusterId: undefined,
+  });
   const emits = defineEmits<Emits>();
 
-  const { currentBizId, currentBizInfo } = useGlobalBizs();
-  const activePanel = inject(activePanelInjectionKey);
-  const tableSettings = getSettings(props.role);
-
-  const isTreeDataLoading = ref(false);
-  const treeRef = ref();
-  const treeData = shallowRef<TTopoTreeData []>([]);
   const treeSearch = ref('');
-  const selectNode = ref<TTopoTreeData>();
+  const isCloseAlert = ref(false);
 
-  const fetchClusterTopo = () => {
-    isTreeDataLoading.value = true;
-    queryClusters({
-      bk_biz_id: currentBizId,
-      cluster_filters: [
-        {
-          bk_biz_id: currentBizId,
-          cluster_type: activePanel?.value,
-        },
-      ],
-    }).then((data) => {
-      const formatData = data.map((item: any) => {
-        const res = { ...item, count: item.instance_count };
-        if (props.role === 'slave') {
-          res.count = item.slaves?.length || 0;
-        } else if (props.role === 'proxy') {
-          res.count = item.proxies?.length || 0;
-        } else if (props.role === 'master') {
-          res.count = item.masters?.length || 0;
-        }
-        return res;
-      });
-      treeData.value = [
-        {
-          name: currentBizInfo?.display_name || '--',
-          id: currentBizId,
-          obj: 'biz',
-          count: formatData.reduce((count: number, item: any) => count + item.count, 0),
-          children: formatData.map((item: any) => ({
-            id: item.id,
-            name: item.cluster_name,
-            obj: 'cluster',
-            count: item.count,
-            children: [],
-          })),
-        },
-      ];
-      setTimeout(() => {
-        if (data.length > 0) {
-          const [firstNode] = treeData.value;
-          treeRef.value.setOpen(firstNode);
-          treeRef.value.setSelect(firstNode);
-          selectNode.value = firstNode;
-        }
-      });
-    })
-      .finally(() => {
-        isTreeDataLoading.value = false;
-      });
-  };
+  const TopoAlertContent = computed(() => (!isCloseAlert.value ? props.topoAlertContent : null));
+  const filterClusterId = computed(() => props.filterClusterId);
 
-  fetchClusterTopo();
+  const {
+    treeRef,
+    isLoading,
+    treeData,
+    selectClusterId,
+    fetchResources,
+  } = useTopoData<Record<string, any>>(filterClusterId);
+
+  fetchResources();
 
   // 选中topo节点，获取topo节点下面的所有主机
   const handleNodeClick = (
-    node: TTopoTreeData,
-    status: any,
-    { __is_open: isOpen, __is_selected: isSelected }: { __is_open: boolean, __is_selected: boolean },
+    node: TopoTreeData,
+    info: unknown,
+    {
+      __is_open: isOpen,
+      __is_selected: isSelected }:
+      {
+        __is_open: boolean,
+        __is_selected: boolean
+      },
   ) => {
-    selectNode.value = node;
-
+    const rawNode = treeRef.value.getData().data.find((item: { id: number; }) => item.id === node.id);
+    selectClusterId.value = node.id;
     if (!isOpen && !isSelected) {
-      treeRef.value.setNodeOpened(node, true);
-      treeRef.value.setSelect(node, true);
+      treeRef.value.setNodeOpened(rawNode, true);
+      treeRef.value.setSelect(rawNode, true);
       return;
     }
 
     if (isOpen && !isSelected) {
-      treeRef.value.setSelect(node, true);
+      treeRef.value.setSelect(rawNode, true);
       return;
     }
 
     if (isSelected) {
-      treeRef.value.setNodeOpened(node, !isOpen);
+      treeRef.value.setNodeOpened(rawNode, !isOpen);
     }
   };
 
-  const handleHostChange = (values: InstanceSelectorValues) => {
+  const handleHostChange = (values: InstanceSelectorValues<T>) => {
     emits('change', values);
+  };
+
+  const handleCloseAlert = () => {
+    isCloseAlert.value = true;
   };
 
 </script>
 <style lang="less">
   .instance-selector-topo {
     display: block;
-    height: 600px;
     padding-top: 16px;
 
     .bk-resize-layout {
@@ -209,7 +194,18 @@
 
     .topo-tree-box {
       height: 100%;
+      max-height: 570px;
       padding: 0 16px;
+
+      .topo-box {
+        height: calc(100% - 50px);
+        margin-top: 12px;
+      }
+
+      .topo-alert-box {
+        height: calc(100% - 95px);
+        margin-top: 12px;
+      }
 
       .bk-tree {
         .bk-node-content {

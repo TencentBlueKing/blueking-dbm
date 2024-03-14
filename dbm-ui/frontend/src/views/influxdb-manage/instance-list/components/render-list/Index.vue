@@ -398,7 +398,7 @@
                   class="mr-8"
                   loading={tableDataActionLoadingMap.value[data?.id]}
                   text
-                  disabled={data.operationDisabled}
+                  disabled={Boolean(data.operationTicketId)}
                   theme="primary"
                   action-id="influxdb_destroy"
                   permission={data.permission.influxdb_destroy}

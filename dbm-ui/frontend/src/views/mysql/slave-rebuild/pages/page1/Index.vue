@@ -30,7 +30,7 @@
         <CardCheckbox
           v-model="ticketType"
           class="ml-8"
-          :desc="t('将故障从库主机的实例重建到新主机')"
+          :desc="t('将从库主机的全部实例重建到新主机')"
           icon="host"
           :title="t('新机重建')"
           true-value="MYSQL_RESTORE_SLAVE" />

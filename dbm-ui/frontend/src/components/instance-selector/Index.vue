@@ -13,12 +13,13 @@
 
 <template>
   <BkDialog
-    class="dbm-proxy-selector"
+    class="instance-selector-main"
     :close-icon="false"
     :draggable="false"
     :esc-close="false"
     :is-show="isShow"
-    :quick-close="false">
+    :quick-close="false"
+    @closed="handleClose">
     <BkResizeLayout
       :border="false"
       collapsible
@@ -29,25 +30,43 @@
       <template #main>
         <PanelTab
           v-model="panelTabActive"
-          :panel-list="panelList" />
+          :panel-list="panelList"
+          @change="handleChangePanel" />
         <Component
           :is="renderCom"
           :key="panelTabActive"
+          :active-panel-id="panelTabActive"
+          :check-instances="activePanelObj?.manualConfig?.checkInstances"
+          :count-func="activePanelObj?.topoConfig?.countFunc"
+          :disabled-row-config="activePanelObj?.tableConfig?.disabledRowConfig"
+          :filter-cluster-id="activePanelObj?.topoConfig?.filterClusterId"
+          :firsr-column="activePanelObj?.tableConfig?.firsrColumn"
+          :get-table-list="activePanelObj?.tableConfig?.getTableList"
+          :get-topo-list="activePanelObj?.topoConfig?.getTopoList"
+          :is-remote-pagination="activePanelObj?.tableConfig?.isRemotePagination"
           :last-values="lastValues"
-          :role="role"
+          :manual-config="activePanelObj?.manualConfig"
+          :role-filter-list="activePanelObj?.tableConfig?.roleFilterList"
+          :status-filter="activePanelObj?.tableConfig?.statusFilter"
+          :table-setting="tableSettings"
+          :topo-alert-content="activePanelObj?.topoConfig?.topoAlertContent"
           @change="handleChange" />
       </template>
       <template #aside>
         <PreviewResult
+          :active-panel-id="panelTabActive"
+          :display-key="activePanelObj?.previewConfig?.displayKey"
+          :get-table-list="activePanelObj?.tableConfig?.getTableList"
           :last-values="lastValues"
-          :panel-list="panelList"
+          :show-title="activePanelObj?.previewConfig?.showTitle"
+          :title-map="previewTitleMap"
           @change="handleChange" />
       </template>
     </BkResizeLayout>
     <template #footer>
       <span
         v-bk-tooltips="{
-          content: $t('请选择实例'),
+          content: t('请选择实例'),
           disabled: !isEmpty
         }"
         class="inline-block">
@@ -56,89 +75,464 @@
           :disabled="isEmpty"
           theme="primary"
           @click="handleSubmit">
-          {{ $t('确定') }}
+          {{ t('确定') }}
         </BkButton>
       </span>
       <BkButton
         class="ml8 w-88"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>
 </template>
-<script lang="ts">
-  import type { IValue, MySQLClusterTypes } from './common/types';
+<script lang="ts" generic="T extends IValue">
+  import { t } from '@locales/index';
+  export default { name: 'InstanceSelector' };
 
-  export type InstanceSelectorValue = IValue
-  export type SupportClusterTypes = MySQLClusterTypes
-  export type InstanceSelectorValues = {
-    tendbha: IValue[],
-    tendbsingle: IValue[],
+  export interface IValue {
+    bk_host_id: number,
+    bk_cloud_id: number,
+    ip: string,
+    port: number,
+    instance_address: string,
+    cluster_id: number,
+    cluster_type: string,
+    status?: string,
+    host_info?: any;
   }
 
-  export default {
-    name: 'InstanceSelector',
-  };
-</script>
-<script setup lang="ts">
-  import {
-    ref,
-  } from 'vue';
+  export type InstanceSelectorValues<T> = Record<string, T[]>
 
-  import PanelTab, {
-    activePanelInjectionKey,
-    defaultPanelList,
-    type PanelTypes,
-  } from './components/PanelTab.vue';
-  import PreviewResult from './components/PreviewResult.vue';
-  import RenderManualInput from './components/RenderManualInput.vue';
-  import RenderTopo from './components/RenderTopo.vue';
+  export const activePanelInjectionKey = Symbol('activePanel');
+
+  const getSettings = (role?: string) => ({
+    fields: [
+      {
+        label: role ? role.charAt(0).toUpperCase() + role.slice(1) : t('实例'),
+        field: 'instance_address',
+        disabled: true,
+      },
+      {
+        label: t('角色'),
+        field: 'role',
+      },
+      {
+        label: t('实例状态'),
+        field: 'status',
+      },
+      {
+        label: t('管控区域'),
+        field: 'cloud_area',
+      },
+      {
+        label: t('Agent状态'),
+        field: 'alive',
+      },
+      {
+        label: t('主机名称'),
+        field: 'host_name',
+      },
+      {
+        label: t('OS名称'),
+        field: 'os_name',
+      },
+      {
+        label: t('所属云厂商'),
+        field: 'cloud_vendor',
+      },
+      {
+        label: t('OS类型'),
+        field: 'os_type',
+      },
+      {
+        label: t('主机ID'),
+        field: 'host_id',
+      },
+      {
+        label: 'Agent ID',
+        field: 'agent_id',
+      },
+    ],
+    checked: ['instance_address', 'role', 'status', 'cloud_area', 'alive', 'host_name', 'os_name'],
+  });
+</script>
+
+<script setup lang="ts" generic="T extends IValue">
+  import _ from 'lodash';
+
+  import {
+    listClusterHostsMasterFailoverProxy,
+    listClustersMasterFailoverProxy,
+  } from '@services/redis/toolbox';
+  import {
+    checkMysqlInstances,
+    checkRedisInstances,
+  } from '@services/source/instances';
+  import { queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
+  import { getSpiderInstanceList } from '@services/source/spider';
+  import { getTendbhaInstanceList } from '@services/source/tendbha';
+  import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
+
+  import { ClusterTypes } from '@common/const';
+
+  import ManualInputContent from './components/common/manual-content/Index.vue';
+  import PanelTab  from './components/common/PanelTab.vue';
+  import PreviewResult from './components/common/preview-result/Index.vue';
+  import MysqlContent from './components/mysql/Index.vue';
+  import RedisContent from './components/redis/Index.vue';
+  import TendbClusterContent from './components/tendb-cluster/Index.vue';
+
+  export type TableSetting = ReturnType<typeof getSettings>;
+
+  export type PanelListType = {
+    name: string,
+    id: string,
+    topoConfig?: {
+      topoAlertContent?: Element,
+      filterClusterId?: number,
+      getTopoList?: (params: any) => Promise<any[]>,
+      countFunc?: (data: any) => number,
+    }
+    tableConfig?: {
+      isRemotePagination?: boolean,
+      columnsChecked?: string[],
+      firsrColumn?: {
+        label: string,
+        field: string,
+        role: string, // 接口过滤
+      },
+      roleFilterList?: {
+        list: { text: string, value: string }[],
+      }
+      disabledRowConfig?: {
+        handler: (data: any) => boolean,
+        tip?: string,
+      },
+      getTableList?: (params: any) => Promise<any>,
+      statusFilter?: (data: any) => boolean,
+    },
+    manualConfig?: {
+      checkType: 'ip' | 'instance',
+      checkKey: keyof IValue,
+      activePanelId?: string
+      checkInstances?: (params: any) => Promise<any[]>,
+    },
+    previewConfig?: {
+      displayKey?: keyof IValue,
+      showTitle?: boolean,
+      title?: string,
+    },
+    content?: any,
+  }[]
+
+  type PanelListItem = PanelListType[number];
+
+  type RedisModel = ServiceReturnType<typeof listClustersMasterFailoverProxy>[number]
+  type RedisHostModel = ServiceReturnType<typeof listClusterHostsMasterFailoverProxy>['results'][number]
 
   interface Props {
-    isShow?: boolean;
-    panelList?: Array<PanelTypes>,
-    role?: string,
-    values?: InstanceSelectorValues
+    clusterTypes: ClusterTypes[],
+    tabListConfig?: Record<string, PanelListType>,
+    selected?: InstanceSelectorValues<T>,
   }
 
   interface Emits {
-    (e: 'update:isShow', value: boolean): void,
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'change', value: InstanceSelectorValues<T>): void
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    isShow: false,
-    panelList: () => [...defaultPanelList],
-    role: '',
-    values: undefined,
+    tabListConfig: undefined,
+    selected: undefined,
   });
+
   const emits = defineEmits<Emits>();
 
-  const panelTabActive = ref<PanelTypes['id']>('tendbha');
-  // const lastValue = shallowRef<IValue []>([]);
-  const lastValues = reactive<InstanceSelectorValues>({
-    tendbha: [],
-    tendbsingle: [],
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
   });
-  const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
-  provide(activePanelInjectionKey, panelTabActive);
 
-  const comMap = {
-    tendbha: RenderTopo,
-    tendbsingle: RenderTopo,
-    manualInput: RenderManualInput,
+  const tabListMap: Record<string, PanelListType> = {
+    [ClusterTypes.REDIS]: [
+      {
+        id: 'redis',
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: listClustersMasterFailoverProxy,
+          countFunc: (item: RedisModel) => item.redisMasterCount,
+        },
+        tableConfig: {
+          getTableList: listClusterHostsMasterFailoverProxy,
+          firsrColumn: {
+            label: 'master Ip',
+            role: 'redis_master',
+            field: 'ip',
+          },
+          columnsChecked: ['ip', 'cloud_area', 'status', 'host_name', 'os_name'],
+          statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
+          isRemotePagination: false,
+        },
+        previewConfig: {
+          displayKey: 'ip',
+          showTitle: false,
+        },
+        content: RedisContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: listClusterHostsMasterFailoverProxy,
+          firsrColumn: {
+            label: 'master Ip',
+            role: 'redis_master',
+            field: 'ip',
+          },
+          columnsChecked: ['ip', 'cloud_area', 'status', 'host_name', 'os_name'],
+          statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
+          isRemotePagination: false,
+        },
+        manualConfig: {
+          checkInstances: checkRedisInstances,
+          checkType: 'ip',
+          checkKey: 'ip',
+          activePanelId: 'redis',
+        },
+        previewConfig: {
+          displayKey: 'ip',
+          showTitle: false,
+        },
+        content: ManualInputContent,
+      },
+    ],
+    [ClusterTypes.TENDBCLUSTER]: [
+      {
+        id: 'tendbcluster',
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: queryMysqlCluster,
+        },
+        tableConfig: {
+          getTableList: getSpiderInstanceList,
+          firsrColumn: {
+            label: 'remote_master',
+            field: 'instance_address',
+            role: 'remote_master',
+          },
+        },
+        content: TendbClusterContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getSpiderInstanceList,
+          firsrColumn: {
+            label: 'remote_master',
+            field: 'instance_address',
+            role: 'remote_master',
+          },
+        },
+        manualConfig: {
+          checkInstances: checkMysqlInstances,
+          checkType: 'instance',
+          checkKey: 'instance_address',
+          activePanelId: 'tendbcluster',
+        },
+        content: ManualInputContent,
+      },
+    ],
+    [ClusterTypes.TENDBSINGLE]: [
+      {
+        id: 'tendbsingle',
+        name: t('单节点'),
+        topoConfig: {
+          getTopoList: queryMysqlCluster,
+        },
+        tableConfig: {
+          getTableList: getTendbsingleInstanceList,
+          firsrColumn: {
+            label: '',
+            field: 'instance_address',
+            role: '',
+          },
+        },
+        content: MysqlContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getTendbsingleInstanceList,
+          firsrColumn: {
+            label: '',
+            field: 'instance_address',
+            role: '',
+          },
+        },
+        manualConfig: {
+          checkInstances: checkMysqlInstances,
+          checkType: 'instance',
+          checkKey: 'instance_address',
+          activePanelId: 'tendbsingle',
+        },
+        content: ManualInputContent,
+      },
+    ],
+    [ClusterTypes.TENDBHA]: [
+      {
+        id: 'tendbha',
+        name: t('主从'),
+        topoConfig: {
+          getTopoList: queryMysqlCluster,
+        },
+        tableConfig: {
+          getTableList: getTendbhaInstanceList,
+          firsrColumn: {
+            label: 'master',
+            field: 'instance_address',
+            role: 'master',
+          },
+        },
+        content: MysqlContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getTendbhaInstanceList,
+          firsrColumn: {
+            label: 'master',
+            field: 'instance_address',
+            role: 'master',
+          },
+        },
+        manualConfig: {
+          checkInstances: checkMysqlInstances,
+          checkType: 'instance',
+          checkKey: 'instance_address',
+          activePanelId: 'tendbha',
+        },
+        content: ManualInputContent,
+      },
+    ],
   };
 
-  const renderCom = computed(() => comMap[panelTabActive.value as keyof typeof comMap]);
+  const diffComposeObjs = (objA: Record<string, any>, objB: Record<string, any>) => {
+    const obj: Record<string, any> = {};
+    Object.keys(objA).forEach((key) => {
+      if (Object.prototype.toString.call(objB[key]) === '[object Object]') {
+        obj[key] = diffComposeObjs(_.cloneDeep(objA[key]), _.cloneDeep(objB[key]));
+        return;
+      }
+      if (objB[key] !== undefined) {
+        obj[key] = objB[key];
+        // eslint-disable-next-line no-param-reassign
+        delete objB[key];
+      } else {
+        obj[key] = objA[key];
+      }
+    });
+    if (Object.keys(objB).length > 0) {
+      Object.keys(objB).forEach((key) => {
+        if (obj[key] === undefined) {
+          obj[key] = objB[key];
+        }
+      });
+    }
+    return obj;
+  };
 
-  watch(() => props.isShow, (show) => {
-    if (show && props.values) {
-      Object.assign(lastValues, props.values);
+  const panelTabActive = ref<string>('');
+  const activePanelObj = ref<PanelListItem>();
+
+  const lastValues = reactive<InstanceSelectorValues<T>>({});
+
+  provide(activePanelInjectionKey, panelTabActive);
+
+  const clusterTabListMap = computed<Record<string, PanelListType>>(() => {
+    if (props.tabListConfig) {
+      Object.keys(props.tabListConfig).forEach((type) => {
+        const configArr = props.tabListConfig?.[type];
+        if (configArr) {
+          configArr.forEach((config, index) => {
+            let objItem = {};
+            const baseObj = tabListMap[type][index] as Record<string, any>;
+            if (baseObj) {
+              objItem = {
+                ...diffComposeObjs(_.cloneDeep(baseObj), _.cloneDeep(config)),
+              };
+            } else {
+              objItem = baseObj;
+            }
+            tabListMap[type][index] = objItem as PanelListItem;
+          });
+        }
+      });
+    }
+    return tabListMap;
+  });
+
+  const previewTitleMap = computed(() => {
+    const titleMap = Object.keys(clusterTabListMap.value).reduce((results, key) => {
+      // eslint-disable-next-line no-param-reassign
+      results[key] = clusterTabListMap.value[key][0].previewConfig?.title ?? '';
+      return results;
+    }, {} as Record<string, string>);
+    titleMap.manualInput = t('手动输入');
+    return titleMap;
+  });
+
+  const panelList = computed<PanelListType>(() => {
+    const pageList = _.flatMap(props.clusterTypes.map(type => tabListMap[type]));
+    if (pageList.length < 3) {
+      return pageList;
+    }
+    // 两个及以上的tabPanel，手动输入tab取最后一个tab
+    const newPageList: PanelListType = [];
+    pageList.forEach((item, index) => {
+      if (index % 2 === 0 || index === pageList.length - 1) {
+        newPageList.push(item);
+      }
+    });
+    return newPageList;
+  });
+
+  const tableSettings = computed(() => {
+    const setting = getSettings(activePanelObj.value?.tableConfig?.firsrColumn?.label);
+    const checked = activePanelObj?.value?.tableConfig?.columnsChecked;
+    if (checked) {
+      // 自定义列项
+      setting.checked = checked;
+    }
+    return setting;
+  });
+
+  const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
+  const renderCom = computed(() => activePanelObj.value?.content);
+
+  watch(() => props.clusterTypes, (types) => {
+    if (types) {
+      const activeObj = clusterTabListMap.value[types[0]];
+      [activePanelObj.value] = activeObj;
+      panelTabActive.value = activeObj[0].id;
+    }
+  }, {
+    immediate: true,
+    deep: true,
+  });
+
+  watch(() => isShow, (show) => {
+    if (show && props.selected) {
+      Object.assign(lastValues, props.selected);
     }
   });
 
-  const handleChange = (values: InstanceSelectorValues) => {
+  const handleChangePanel = (obj: PanelListItem) => {
+    activePanelObj.value = obj;
+  };
+
+  const handleChange = (values: InstanceSelectorValues<T>) => {
     Object.assign(lastValues, values);
   };
 
@@ -148,13 +542,11 @@
   };
 
   const handleClose = () => {
-    emits('update:isShow', false);
-    lastValues.tendbha = [];
-    lastValues.tendbsingle = [];
+    isShow.value = false;
   };
 </script>
 <style lang="less">
-  .dbm-proxy-selector {
+  .instance-selector-main {
     display: block;
     width: 80%;
     max-width: 1600px;
@@ -166,6 +558,7 @@
 
     .bk-modal-content {
       padding: 0 !important;
+      overflow-y: hidden !important;
     }
   }
 </style>
