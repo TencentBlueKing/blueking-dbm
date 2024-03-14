@@ -15,7 +15,7 @@ apiVersion: extensions/v1beta1
 {{- end }}
 kind: Ingress
 metadata:
-  name: {{ $fullName }}
+  name: {{ printf "%s-%s"  (include "bk-dbm.fullname" .) "public" }}
   labels:
     {{- include "bk-dbm.labels" . | nindent 4 }}
   {{- with .Values.ingressPublic.annotations }}
