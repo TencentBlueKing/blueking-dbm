@@ -17,13 +17,13 @@
     :key="item.id">
     <template v-if="item.status === 'TODO' && item.type === 'INNER_APPROVE'">
       <p class="mb-8">
-        {{ $t('请在') }} "
+        {{ t('请在') }} "
         <a
           href="javascript:"
           @click="handleGoTodos">
-          {{ $t('我的待办') }}
+          {{ t('我的待办') }}
         </a>
-        " {{ $t('中确认') }}。
+        " {{ t('中确认') }}。
       </p>
     </template>
     <FlowContentTodo
@@ -34,7 +34,7 @@
   <p>
     {{ content.summary }}
     <template v-if="content.summary">
-      ，{{ $t('耗时') }}：
+      ，{{ t('耗时') }}：
       <CostTimer
         :is-timing="content.status === 'RUNNING'"
         :value="content.cost_time" />
@@ -43,14 +43,14 @@
       ，<a
         :href="content.url"
         :target="getHrefTarget(content)">
-        {{ $t('查看详情') }} &gt;
+        {{ t('查看详情') }} &gt;
       </a>
     </template>
   </p>
   <p
     v-if="content.end_time"
     class="flow-time">
-    {{ content.end_time }}
+    {{ utcDisplayTime(content.end_time) }}
   </p>
   <BkPopover
     v-if="content.err_code === 2"
@@ -64,14 +64,14 @@
       :loading="state.isLoading"
       theme="primary"
       @click="handleConfirmToggle">
-      {{ $t('重试') }}
+      {{ t('重试') }}
     </BkButton>
     <template #content>
       <div
         v-clickoutside:[retryButtonRef?.$el]="handleConfirmCancel"
         class="ticket-flow-content">
         <div class="ticket-flow-content-desc">
-          {{ $t('是否确认重新执行单据') }}
+          {{ t('是否确认重新执行单据') }}
         </div>
         <div class="ticket-flow-content-buttons">
           <BkButton
@@ -79,13 +79,13 @@
             size="small"
             theme="primary"
             @click="handleConfirm(content)">
-            {{ $t('确认') }}
+            {{ t('确认') }}
           </BkButton>
           <BkButton
             :disabled="state.isLoading"
             size="small"
             @click="handleConfirmCancel">
-            {{ $t('取消') }}
+            {{ t('取消') }}
           </BkButton>
         </div>
       </div>
@@ -94,10 +94,14 @@
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { retryTicketFlow } from '@services/source/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
+
+  import { utcDisplayTime } from '@utils';
 
   import FlowContentTodo from './ContentTodo.vue';
 
@@ -113,6 +117,7 @@
   const emits = defineEmits<Emits>();
 
   const router = useRouter();
+  const { t } = useI18n();
 
   const retryButtonRef = ref();
   const state = reactive({

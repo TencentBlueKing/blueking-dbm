@@ -129,8 +129,7 @@
               default: () => (
                 <bk-button
                   text
-                  theme="primary"
-                  disabled={isNotActive || !data.is_enabled}
+                  theme={!isNotActive && "primary"}
                   onClick={() => handleOperate('edit', data)}>
                   {data.name}
                 </bk-button>
