@@ -13,23 +13,23 @@
 
 <template>
   <div class="flow-todo__infos">
-    {{ data.done_by }} {{ $t('处理完成') }}， {{ $t('操作') }}：
+    {{ data.done_by }} {{ t('处理完成') }}， {{ t('操作') }}：
     <span :class="String(data.status).toLowerCase()">
       {{ getOperation(data) }}
     </span>
-    ， {{ $t('耗时') }}：{{ getCostTimeDisplay(data.cost_time) }}
+    ， {{ t('耗时') }}：{{ getCostTimeDisplay(data.cost_time) }}
     <template v-if="data.url">
       ，
       <a
         :href="data.url"
         :target="hrefTarget">
-        {{ $t('查看详情') }} &gt;
+        {{ t('查看详情') }} &gt;
       </a>
     </template>
     <p
       v-if="data.done_at"
       class="flow-time">
-      {{ data.done_at }}
+      {{ utcDisplayTime(data.done_at) }}
     </p>
   </div>
 </template>
@@ -39,7 +39,7 @@
 
   import type { FlowItemTodo } from '@services/types/ticket';
 
-  import { getCostTimeDisplay } from '@utils';
+  import { getCostTimeDisplay, utcDisplayTime } from '@utils';
 
   interface Props {
     data: FlowItemTodo;

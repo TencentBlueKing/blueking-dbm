@@ -21,11 +21,11 @@
       'is-password': isPassword,
     }">
     <BkInput
-      v-model="localValue"
       class="input-box"
       :disabled="disabled"
       :max="max"
       :min="min"
+      :model-value="modelValue"
       :placeholder="placeholder"
       :type="type"
       @blur="handleBlur"
@@ -84,12 +84,11 @@
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<string | number>({
+  const modelValue = defineModel<string>({
     default: '',
   });
 
   const rootRef = ref<HTMLElement>();
-  const localValue = ref('');
   const isBlur = ref(true);
 
   const isPassword = computed(() => props.type === 'password');
@@ -102,21 +101,14 @@
   } = useValidtor(props.rules);
 
   watch(modelValue, (value) => {
-    nextTick(() => {
-      if (localValue.value !== value) {
-        localValue.value = value as string;
-        oldInputText = localValue.value;
-        window.changeConfirm = true;
-      }
-    });
-  }, {
-    immediate: true,
+    if (value) {
+      window.changeConfirm = true;
+    }
   });
 
   // 响应输入
   const handleInput = (value: string) => {
     isBlur.value = false;
-    localValue.value = value;
     window.changeConfirm = true;
     modelValue.value = value;
   };
@@ -128,19 +120,19 @@
       event.preventDefault();
       return;
     }
-    if (localValue.value) {
-      if (oldInputText === localValue.value) {
+    if (modelValue.value) {
+      if (oldInputText === modelValue.value) {
         return;
       }
-      oldInputText = localValue.value;
-      validator(localValue.value)
+      oldInputText = modelValue.value;
+      validator(modelValue.value)
         .then(() => {
           window.changeConfirm = true;
-          emits('submit', localValue.value);
+          emits('submit', modelValue.value);
         });
       return;
     }
-    emits('submit', localValue.value);
+    emits('submit', modelValue.value);
   };
 
   // enter键提交
@@ -154,12 +146,16 @@
       return;
     }
     if (event.which === 13 || event.key === 'Enter') {
+      if (oldInputText === modelValue.value) {
+        return;
+      }
+      oldInputText = modelValue.value;
       event.preventDefault();
-      validator(localValue.value)
+      validator(modelValue.value)
         .then((result) => {
           if (result) {
             window.changeConfirm = true;
-            emits('submit', localValue.value);
+            emits('submit', modelValue.value);
           }
         });
     }
@@ -170,14 +166,13 @@
     event.preventDefault();
     let paste = (event.clipboardData || window.clipboardData).getData('text');
     paste = encodeMult(paste);
-    localValue.value = paste.replace(/^\s+|\s+$/g, '');
+    modelValue.value = paste.replace(/^\s+|\s+$/g, '');
     window.changeConfirm = true;
-    modelValue.value = localValue.value;
   };
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localValue.value).then(() => localValue.value);
+      return validator(modelValue.value).then(() => modelValue.value);
     },
     focus() {
       (rootRef.value as HTMLElement).querySelector('input')?.focus();
