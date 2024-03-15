@@ -96,17 +96,11 @@
 
   const previewData = shallowRef<ServiceReturnType<typeof getPreview>>();
 
-<<<<<<< HEAD
-  const isExistedErrorMsg = computed(() => previewData.value?.config_data
-    .some(item => item.execute_objects.some(obj => obj.error_msg)));
+  const isExistedErrorMsg = computed(() =>
+    previewData.value?.config_data.some((item) => item.execute_objects.some((obj) => obj.error_msg)),
+  );
 
-  const {
-    loading: isLoading,
-    data: openareaTemplateData,
-  } = useRequest(getDetail, {
-=======
   const { loading: isLoading, data: openareaTemplateData } = useRequest(getDetail, {
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     defaultParams: [
       {
         id: Number(route.params.id),

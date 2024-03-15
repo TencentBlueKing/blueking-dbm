@@ -53,21 +53,10 @@
   const editRef = ref<InstanceType<typeof TableEditSelect>>();
   const dbNameList = shallowRef<{ value: string; label: string }[]>([]);
 
-<<<<<<< HEAD
   const {
     loading: isLoading,
     run: fetchList,
   } = useRequest(getClusterTablesNameList, {
-=======
-  const rules = [
-    {
-      validator: (value: string[]) => value.length > 0,
-      message: t('目标集群不能为空'),
-    },
-  ];
-
-  const { loading: isLoading, run: fetchList } = useRequest(getClusterTablesNameList, {
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     manual: true,
     onSuccess(data) {
       const [{ table_data: tableData }] = data;

@@ -22,12 +22,12 @@
       :z-index="2">
       <DbOriginalTable
         :columns="columns"
-        :data="isManul? renderManualData : tableData"
+        :data="isManul ? renderManualData : tableData"
         :max-height="530"
         :pagination="pagination.count < 10 ? false : pagination"
         :remote-pagination="isRemotePagination"
         :settings="tableSetting"
-        style="margin-top: 12px;"
+        style="margin-top: 12px"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
         @refresh="fetchResources"
@@ -45,8 +45,8 @@
     IValue,
     PanelListType,
     TableSetting,
-  } from '@components/instance-selector-new/Index.vue';
-  import { activePanelInjectionKey } from '@components/instance-selector-new/Index.vue';
+  } from '@components/instance-selector/Index.vue';
+  import { activePanelInjectionKey } from '@components/instance-selector/Index.vue';
 
   import { firstLetterToUpper } from '@utils';
 
@@ -339,7 +339,6 @@
     const checked = checkedMap.value[data[firstColumnFieldId.value]];
     handleTableSelectOne(!checked, data);
   };
-
 </script>
 
 <style lang="less">

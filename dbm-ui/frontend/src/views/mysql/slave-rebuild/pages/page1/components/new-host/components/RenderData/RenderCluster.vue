@@ -61,11 +61,7 @@
     if (localRelateClusterList.value?.length < 1) {
       return [];
     }
-<<<<<<< HEAD
     return localRelateClusterList.value.map(item => item.master_domain);
-=======
-    return localRelateClusterList.value.map((item) => item.master_domain).join('\n');
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
   });
 
   const { loading: isLoading, run: fetchCheckMysqlInstances } = useRequest(checkMysqlInstances, {

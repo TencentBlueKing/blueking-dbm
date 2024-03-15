@@ -83,14 +83,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-<<<<<<< HEAD
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-  } from '@components/instance-selector/Index.vue';
-=======
-  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector-new/Index.vue';
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
+  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';

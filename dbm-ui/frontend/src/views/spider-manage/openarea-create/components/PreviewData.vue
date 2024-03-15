@@ -148,23 +148,19 @@
     },
   });
 </script>
-<<<<<<< HEAD
 <style lang="less" scoped>
-.openarea-create-table {
-  :deep(.rules-main) {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .openarea-create-table {
+    :deep(.rules-main) {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
 
-    .error-icon {
-      font-size: 14px;
-      color: #ea3636;
-      cursor: pointer;
+      .error-icon {
+        font-size: 14px;
+        color: #ea3636;
+        cursor: pointer;
+      }
     }
   }
-}
 </style>
-
-=======
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)

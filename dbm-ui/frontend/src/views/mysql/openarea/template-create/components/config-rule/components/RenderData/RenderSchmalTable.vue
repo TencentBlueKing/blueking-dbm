@@ -55,21 +55,7 @@
 
   const dbNameList = shallowRef<{ value: string; label: string }[]>([]);
 
-<<<<<<< HEAD
-  const {
-    loading: isLoading,
-    run: fetchList,
-  } = useRequest(getClusterTablesNameList, {
-=======
-  const rules = [
-    {
-      validator: (value: string[]) => value.length > 0,
-      message: t('克隆表结构不能为空'),
-    },
-  ];
-
   const { loading: isLoading, run: fetchList } = useRequest(getClusterTablesNameList, {
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     manual: true,
     onSuccess(data) {
       const [{ table_data: tableData }] = data;
@@ -78,11 +64,10 @@
         label: item,
       }));
       // 默认全选
-      modelValue.value = dbNameList.value.map(item => item.value);
+      modelValue.value = dbNameList.value.map((item) => item.value);
     },
   });
 
-<<<<<<< HEAD
   const rules = [
     {
       validator: (value: string[]) => value.length > 0,
@@ -90,30 +75,6 @@
     },
   ];
 
-  watch(() => props.sourceDb, () => {
-    if (!props.sourceDb) {
-      return;
-    }
-    fetchList({
-      cluster_db_infos: [
-        {
-          cluster_id: props.clusterId,
-          dbs: [props.sourceDb],
-        },
-      ],
-    });
-  }, {
-    immediate: true,
-  });
-
-  defineExpose<Exposes>({
-    getValue() {
-      return (editRef.value as InstanceType<typeof TableEditSelect>)
-        .getValue()
-        .then(() => ({
-          schema_tblist: modelValue.value.length === dbNameList.value.length ? ['*all*'] : modelValue.value,
-        }));
-=======
   watch(
     () => props.sourceDb,
     () => {
@@ -137,9 +98,8 @@
   defineExpose<Exposes>({
     getValue() {
       return (editRef.value as InstanceType<typeof TableEditSelect>).getValue().then(() => ({
-        schema_tblist: modelValue.value,
+        schema_tblist: modelValue.value.length === dbNameList.value.length ? ['*all*'] : modelValue.value,
       }));
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     },
   });
 </script>

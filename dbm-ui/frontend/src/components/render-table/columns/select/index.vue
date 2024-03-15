@@ -151,14 +151,7 @@
   });
 </script>
 <style lang="less" scoped>
-<<<<<<< HEAD
-.is-error {
-  background-color: #fff0f1 !important;
-
-  :deep(.bk-input) {
-=======
   .is-error {
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     background-color: #fff0f1 !important;
 
     :deep(input) {

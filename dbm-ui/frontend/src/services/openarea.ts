@@ -58,18 +58,6 @@ export const getPreview = function (params: {
     config_data: {
       cluster_id: number;
       execute_objects: {
-<<<<<<< HEAD
-        authorize_ips: string[],
-        data_tblist: string[],
-        error_msg: string,
-        priv_data: number[],
-        schema_tblist: string[],
-        source_db: string,
-        target_db: string,
-      }[],
-      target_cluster_domain: string,
-    }[],
-=======
         authorize_ips: string[];
         data_tblist: string[];
         priv_data: number[];
@@ -79,7 +67,6 @@ export const getPreview = function (params: {
       }[];
       target_cluster_domain: string;
     }[];
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     rules_set: {
       account_rules: {
         bk_biz_id: number;

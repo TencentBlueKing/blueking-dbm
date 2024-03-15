@@ -33,14 +33,9 @@
         <BkCollapse v-model="activeCollapses">
           <Vuedraggable
             v-model="allRenderMenuGroupList"
-<<<<<<< HEAD
             item-key="id"
             @end="handleDragEnd">
-            <template #item="{element}">
-=======
-            item-key="id">
             <template #item="{ element }">
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
               <RenderMenuGroup
                 :id="element.id"
                 v-model:favor-map="favorRouteNameMap"
@@ -128,11 +123,7 @@
       label: UserPersonalSettings.SPIDER_TOOLBOX_MENUS,
       values: allRenderMenuGroupList.value.map((item) => item.id),
     });
-<<<<<<< HEAD
   };
-=======
-  });
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 </script>
 
 <style lang="less">

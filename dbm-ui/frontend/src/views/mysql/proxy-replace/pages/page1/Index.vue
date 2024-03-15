@@ -87,16 +87,12 @@
 
   import { useGlobalBizs } from '@stores';
 
-<<<<<<< HEAD
   import { ClusterTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
-=======
-  import ProxySelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
   import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
@@ -124,7 +120,6 @@
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedIntances = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
 
-<<<<<<< HEAD
   const tabListConfig = {
     [ClusterTypes.TENDBHA]: [
       {
@@ -139,18 +134,6 @@
       },
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
-=======
-  const panelList = [
-    {
-      id: 'tendbha',
-      title: t('目标Proxy'),
-    },
-    {
-      id: 'manualInput',
-      title: t('手动输入'),
-    },
-  ];
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
   // 批量录入
   const handleShowBatchEntry = () => {
@@ -174,20 +157,13 @@
     isShowBatchProxySelector.value = true;
   };
   // 批量选择
-<<<<<<< HEAD
   const handelProxySelectorChange = (data: InstanceSelectorValues<TendbhaInstanceModel>) => {
     selectedIntances.value = data;
-    const newList = data.tendbha.map(item => createRowData({
-      originProxyIp: item,
-    }));
-=======
-  const handelProxySelectorChange = (data: InstanceSelectorValues) => {
     const newList = data.tendbha.map((item) =>
       createRowData({
         originProxyIp: item,
       }),
     );
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     tableData.value = newList;
     window.changeConfirm = true;
   };
@@ -204,7 +180,9 @@
     if (instanceAddress) {
       const clustersArr = selectedIntances.value[ClusterTypes.TENDBHA];
       // eslint-disable-next-line max-len
-      selectedIntances.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.instance_address !== instanceAddress);
+      selectedIntances.value[ClusterTypes.TENDBHA] = clustersArr.filter(
+        (item) => item.instance_address !== instanceAddress,
+      );
     }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);

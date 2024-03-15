@@ -82,14 +82,10 @@
 
   import { ClusterTypes } from '@common/const';
 
-<<<<<<< HEAD
   import InstanceSelector, {
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
-=======
-  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -130,7 +126,6 @@
     isShowInstanceSelecotr.value = true;
   };
 
-<<<<<<< HEAD
   const handleInstancesChange = (selected: InstanceSelectorValues<TendbhaInstanceModel>) => {
     selectedIntances.value = selected;
     const newList: IDataRow[] = [];
@@ -151,21 +146,6 @@
         instanceMemo[instance] = true;
       }
     });
-=======
-  const handleInstancesChange = (selected: InstanceSelectorValues) => {
-    const newList = selected[ClusterTypes.TENDBHA].map((instanceData) =>
-      createRowData({
-        slave: {
-          bkCloudId: instanceData.bk_cloud_id,
-          bkHostId: instanceData.bk_host_id,
-          ip: instanceData.ip,
-          port: instanceData.port,
-          instanceAddress: instanceData.instance_address,
-          clusterId: instanceData.cluster_id,
-        },
-      }),
-    );
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
@@ -189,7 +169,9 @@
       delete instanceMemo[instanceAddress];
       const clustersArr = selectedIntances.value[ClusterTypes.TENDBHA];
       // eslint-disable-next-line max-len
-      selectedIntances.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.instance_address !== instanceAddress);
+      selectedIntances.value[ClusterTypes.TENDBHA] = clustersArr.filter(
+        (item) => item.instance_address !== instanceAddress,
+      );
     }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);

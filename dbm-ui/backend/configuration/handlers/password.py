@@ -40,13 +40,8 @@ class DBPasswordHandler(object):
             name=AsymmetricCipherConfigType.PASSWORD.value, content=password, salted=False
         )
         # 密码需要用base64加密后传输
-<<<<<<< HEAD
         b64_plain_password = base64_encode(plain_password)
-        check_result = MySQLPrivManagerApi.check_password(
-=======
-        b64_plain_password = base64.b64encode(plain_password.encode("utf-8")).decode("utf-8")
         check_result = DBPrivManagerApi.check_password(
->>>>>>> d6b3cdaa8 (feat(backend): mongodb 视图和工具箱单据相关接口开发 #2964)
             {"password": b64_plain_password, "security_rule_name": DBM_PASSWORD_SECURITY_NAME}
         )
         if echo:

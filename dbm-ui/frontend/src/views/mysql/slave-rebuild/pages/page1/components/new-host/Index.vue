@@ -82,14 +82,10 @@
 
   import { ClusterTypes } from '@common/const';
 
-<<<<<<< HEAD
   import InstanceSelector, {
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
-=======
-  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -130,7 +126,6 @@
     isShowInstanceSelecotr.value = true;
   };
 
-<<<<<<< HEAD
   const handleInstancesChange = (selected: InstanceSelectorValues<TendbhaInstanceModel>) => {
     selectedIps.value = selected;
     const newList: IDataRow[] = [];
@@ -152,22 +147,6 @@
         ipMemo[ip] = true;
       }
     });
-=======
-  const handleInstancesChange = (selected: InstanceSelectorValues) => {
-    const newList = selected[ClusterTypes.TENDBHA].map((instanceData) =>
-      createRowData({
-        oldSlave: {
-          bkCloudId: instanceData.bk_cloud_id,
-          bkCloudName: instanceData.bk_cloud_name,
-          bkHostId: instanceData.bk_host_id,
-          ip: instanceData.ip,
-          port: instanceData.port,
-          instanceAddress: instanceData.instance_address,
-          clusterId: instanceData.cluster_id,
-        },
-      }),
-    );
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
@@ -190,7 +169,7 @@
     if (ip) {
       delete ipMemo[ip];
       const clustersArr = selectedIps.value[ClusterTypes.TENDBHA];
-      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.ip !== ip);
+      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.ip !== ip);
     }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);

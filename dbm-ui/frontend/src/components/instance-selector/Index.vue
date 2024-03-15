@@ -67,7 +67,7 @@
       <span
         v-bk-tooltips="{
           content: t('请选择实例'),
-          disabled: !isEmpty
+          disabled: !isEmpty,
         }"
         class="inline-block">
         <BkButton
@@ -88,21 +88,22 @@
 </template>
 <script lang="ts" generic="T extends IValue">
   import { t } from '@locales/index';
+
   export default { name: 'InstanceSelector' };
 
   export interface IValue {
-    bk_host_id: number,
-    bk_cloud_id: number,
-    ip: string,
-    port: number,
-    instance_address: string,
-    cluster_id: number,
-    cluster_type: string,
-    status?: string,
+    bk_host_id: number;
+    bk_cloud_id: number;
+    ip: string;
+    port: number;
+    instance_address: string;
+    cluster_id: number;
+    cluster_type: string;
+    status?: string;
     host_info?: any;
   }
 
-  export type InstanceSelectorValues<T> = Record<string, T[]>
+  export type InstanceSelectorValues<T> = Record<string, T[]>;
 
   export const activePanelInjectionKey = Symbol('activePanel');
 
@@ -251,7 +252,7 @@
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
-  const isEmpty = computed(() => !Object.values(lastValues).some((values) => values.length > 0));
+
   provide(activePanelInjectionKey, panelTabActive);
 
   const tabListMap: Record<string, PanelListType> = {
@@ -414,6 +415,49 @@
           checkType: 'instance',
           checkKey: 'instance_address',
           activePanelId: 'tendbha',
+        },
+        content: ManualInputContent,
+      },
+    ],
+    [ClusterTypes.MONGOCLUSTER]: [
+      {
+        id: 'mongocluster',
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: getMongoTopoList,
+          countFunc: (item: MongodbModel) => item.instanceCount,
+        },
+        tableConfig: {
+          getTableList: getMongoInstancesList,
+          multiple: true,
+          firsrColumn: {
+            label: 'IP',
+            field: 'ip',
+          },
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: MongoClusterContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getSpiderInstanceList,
+          firsrColumn: {
+            label: 'IP',
+            field: 'ip',
+          },
+        },
+        manualConfig: {
+          checkInstances: checkMongoInstances,
+          checkType: 'instance',
+          checkKey: 'instance_address',
+          activePanelId: 'mongocluster',
+        },
+        previewConfig: {
+          displayKey: 'ip',
         },
         content: ManualInputContent,
       },

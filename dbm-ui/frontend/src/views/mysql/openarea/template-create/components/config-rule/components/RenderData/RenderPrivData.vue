@@ -43,7 +43,7 @@
     :cluster-id="clusterId"
     db-type="mysql" />
 </template>
-  <script setup lang="ts">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import PermissionRule from '@components/add-permission-rule-dialog/Index.vue';
@@ -86,37 +86,23 @@
       });
     },
   });
-<<<<<<< HEAD:dbm-ui/frontend/src/views/mysql/openarea/template-create/components/config-rule/components/RenderData/RenderPrivData.vue
-  </script>
-  <style lang="less" scoped>
-    .priv-data-box{
-      position: relative;
-      padding: 0 16px;
-=======
 </script>
 <style lang="less" scoped>
   .priv-data-box {
     position: relative;
     padding: 0 16px;
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408):dbm-ui/frontend/src/views/spider-manage/openarea-template-create/components/config-rule/components/RenderData/RenderPrivData/Index.vue
 
-      .error-flag {
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 99;
-        display: flex;
-        padding-right: 6px;
-        font-size: 14px;
-        color: #ea3636;
-        align-items: center;
-      }
+    .error-flag {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 99;
+      display: flex;
+      padding-right: 6px;
+      font-size: 14px;
+      color: #ea3636;
+      align-items: center;
     }
-<<<<<<< HEAD:dbm-ui/frontend/src/views/mysql/openarea/template-create/components/config-rule/components/RenderData/RenderPrivData.vue
-  </style>
-
-=======
   }
 </style>
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408):dbm-ui/frontend/src/views/spider-manage/openarea-template-create/components/config-rule/components/RenderData/RenderPrivData/Index.vue

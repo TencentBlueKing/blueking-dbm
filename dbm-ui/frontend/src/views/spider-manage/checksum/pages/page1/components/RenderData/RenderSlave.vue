@@ -52,7 +52,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import InstanceSelector,  {
+  import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
     type PanelListType,
@@ -102,13 +102,8 @@
   };
 
   // 批量选择
-<<<<<<< HEAD
   const handelInstanceSelectorChange = (payload: InstanceSelectorValues<IValue>) => {
-    localSlaveInstanceList.value = payload.tendbcluster.map(item => item.instance_address);
-=======
-  const handelInstanceSelectorChange = (payload: InstanceSelectorValues) => {
     localSlaveInstanceList.value = payload.tendbcluster.map((item) => item.instance_address);
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     emits('change', [...localSlaveInstanceList.value]);
   };
 

@@ -93,16 +93,12 @@
 
   import { useGlobalBizs } from '@stores';
 
-<<<<<<< HEAD
   import { ClusterTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
-=======
-  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
   import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
@@ -135,7 +131,6 @@
     is_check_delay: true,
   });
 
-<<<<<<< HEAD
   const tabListConfig = {
     [ClusterTypes.TENDBHA]: [
       {
@@ -145,18 +140,6 @@
   } as unknown as Record<ClusterTypes, PanelListType>;
 
   let ipMemo = {} as Record<string, boolean>;
-=======
-  const panelList = [
-    {
-      id: 'tendbha',
-      title: t('目标主库'),
-    },
-    {
-      id: 'manualInput',
-      title: t('手动输入'),
-    },
-  ];
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
 
   // 批量录入
   const handleShowBatchEntry = () => {
@@ -177,15 +160,9 @@
     isShowMasterInstanceSelector.value = true;
   };
   // Master 批量选择
-<<<<<<< HEAD
   const handelMasterProxyChange = (data: InstanceSelectorValues<TendbhaInstanceModel>) => {
     selectedIps.value = data;
-    const newList = [] as IDataRow [];
-=======
-  const handelMasterProxyChange = (data: InstanceSelectorValues) => {
-    const ipMemo = {} as Record<string, boolean>;
     const newList = [] as IDataRow[];
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
     data.tendbha.forEach((proxyData) => {
       const { ip, bk_host_id, bk_cloud_id } = proxyData;
       if (!ipMemo[ip]) {
@@ -220,7 +197,7 @@
     if (ip) {
       delete ipMemo[ip];
       const clustersArr = selectedIps.value[ClusterTypes.TENDBHA];
-      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.ip !== ip);
+      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.ip !== ip);
     }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);

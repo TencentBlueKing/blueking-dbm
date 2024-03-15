@@ -148,19 +148,6 @@
         params.id = Number(route.params.id);
       }
       const handler = isEditMode ? updateOpenarea : createOpenarea;
-<<<<<<< HEAD
-      return handler(params).then(() => {
-        messageSuccess(isEditMode ? t('编辑成功') : t('新建成功'));
-        window.changeConfirm = false;
-        router.push({
-          name: 'spiderOpenareaTemplate',
-        });
-      });
-    })
-      .finally(() => {
-        isSubmiting.value = false;
-      });
-=======
       handler(params)
         .then(() => {
           messageSuccess(isEditMode ? t('编辑成功') : t('新建成功'));
@@ -173,7 +160,6 @@
           isSubmiting.value = false;
         });
     });
->>>>>>> c3acfbeaf (style(frontend): 使用prettier代码格式化 #3408)
   };
 
   const handleReset = () => {
