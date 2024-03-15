@@ -27,7 +27,7 @@ class ClusterServiceHandler:
     def __init__(self, bk_biz_id: int):
         self.bk_biz_id = bk_biz_id
 
-    def check_cluster_databases(self, cluster_id: int, db_list: List[int]):
+    def check_cluster_databases(self, cluster_id: int, db_list: List[int]) -> Dict:
         """
         校验集群的库名是否存在，支持各个类型的集群
         注意：这个方法是通用查询库表是否存在，子类需要单独实现check_cluster_database,而不是覆写该方法
@@ -50,6 +50,8 @@ class ClusterServiceHandler:
             from backend.db_services.sqlserver.cluster.handlers import ClusterServiceHandler as SQLServer
 
             return SQLServer(self.bk_biz_id).check_cluster_database(cluster_id, db_list)
+        # 对于其他不存在单据校验逻辑的集群类型，直接抛错
+        raise NotImplementedError
 
     def check_cluster_database(self, cluster_id: int, db_list: List[int]):
         """子类可单独实现的校验库表是否存在的逻辑，非必须实现"""

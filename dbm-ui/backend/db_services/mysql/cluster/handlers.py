@@ -33,6 +33,7 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
 
     def query_clusters(self, cluster_filters: List[ClusterFilter]) -> List[Dict[str, Any]]:
         """
+        # TODO: Deprecated, 这个方法将被移除，请不要调用
         根据过滤条件查询集群，默认是精确匹配
         """
 

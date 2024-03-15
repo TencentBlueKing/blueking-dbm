@@ -16,8 +16,10 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.bigdata.resources.query import BigDataBaseListRetrieveResource
+from backend.db_services.dbbase.resources.register import register_resource_decorator
 
 
+@register_resource_decorator()
 class RiakListRetrieveResource(BigDataBaseListRetrieveResource):
 
     cluster_types = [ClusterType.Riak]

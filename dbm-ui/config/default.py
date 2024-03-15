@@ -75,6 +75,8 @@ INSTALLED_APPS += (
     "bk_audit.contrib.bk_audit",
     # apm
     "blueapps.opentelemetry.instrument_app",
+    #apigw
+    "apigw_manager.apigw",
     # backend
     "backend.core.storages",
     "backend.core.encrypt",
@@ -90,7 +92,6 @@ INSTALLED_APPS += (
     "backend.db_services.mysql.permission.clone",
     "backend.db_services.mysql.open_area",
     "backend.db_services.ipchooser",
-    "backend.dbm_init",
     "backend.dbm_tools",
     "backend.db_proxy",
     "backend.db_monitor",
@@ -98,11 +99,11 @@ INSTALLED_APPS += (
     "backend.db_services.redis.rollback",
     "backend.db_services.redis.autofix",
     "backend.db_dirty",
-    "apigw_manager.apigw",
     "backend.db_periodic_task",
     "backend.db_report",
     "backend.db_services.redis.slots_migrate",
     "backend.db_services.mysql.dumper",
+    "backend.dbm_init",
 )
 
 

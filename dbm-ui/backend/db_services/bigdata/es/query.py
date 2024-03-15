@@ -18,9 +18,11 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.bigdata.resources.query import BigDataBaseListRetrieveResource
+from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
 
+@register_resource_decorator()
 class ESListRetrieveResource(BigDataBaseListRetrieveResource):
     cluster_types = [ClusterType.Es]
     instance_roles = [
