@@ -47,6 +47,7 @@ class ClusterViewSet(BaseClusterViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=QueryClustersRequestSerializer)
     def query_clusters(self, request, bk_biz_id):
+        # TODO: Deprecated, 这个视图方法将被移除，请不要调用
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(
             ClusterServiceHandler(bk_biz_id).query_clusters(

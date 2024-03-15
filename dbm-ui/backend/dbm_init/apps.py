@@ -26,6 +26,13 @@ def init_config(sender, **kwargs):
         logger.warning(_("初始化配置异常，错误信息:{}").format(e))
 
 
+def register_resource_class():
+    """初始化注册resource类"""
+    from backend.db_services.dbbase.resources import register
+
+    register.register_all_resource()
+
+
 class DbmInitConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "backend.dbm_init"
@@ -35,4 +42,5 @@ class DbmInitConfig(AppConfig):
         项目初始化，自动生成配置文件和运行相关服务
         注：这部分目前统一挪到k8s的job进行初始化
         """
+        register_resource_class()
         pass

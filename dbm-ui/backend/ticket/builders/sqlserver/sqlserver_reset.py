@@ -26,7 +26,7 @@ class SQLServerResetDetailSerializer(MySQLBaseOperateDetailSerializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         new_cluster_name = serializers.CharField(help_text=_("重置集群名"))
         new_immutable_domain = serializers.CharField(help_text=_("重置集群主域名"))
-        new_slave_domain = serializers.CharField(help_text=_("重置集群从域名"))
+        new_slave_domain = serializers.CharField(help_text=_("重置集群从域名"), required=False)
 
     infos = serializers.ListField(help_text=_("集群重置信息"), child=ResetInfoSerializer())
 

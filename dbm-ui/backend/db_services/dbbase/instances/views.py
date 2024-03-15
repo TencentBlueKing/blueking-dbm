@@ -33,6 +33,7 @@ class InstanceViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=CheckInstancesSLZ)
     def check_instances(self, request, bk_biz_id):
+        # TODO: 这个作为一个通用的接口放在了外层的views.py，后续这里会删除
         validated_data = self.params_validate(self.get_serializer_class())
         db_type = request.stream.path.split("/")[2]
         return Response(

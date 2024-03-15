@@ -25,7 +25,7 @@ from backend.db_services.mysql.cluster.mock_data import (
 
 
 class QueryClustersRequestSerializer(serializers.Serializer):
-    class ClusterFilterSerializer(serializers.Serializer):
+    class FilterSerializer(serializers.Serializer):
         """集群过滤条件，后续有补充可以在这里添加"""
 
         bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
@@ -33,9 +33,7 @@ class QueryClustersRequestSerializer(serializers.Serializer):
         immute_domain = serializers.CharField(help_text=_("集群域名"), required=False)
         cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
 
-    cluster_filters = serializers.ListSerializer(
-        help_text=_("集群过滤条件列表"), child=ClusterFilterSerializer(), allow_empty=True
-    )
+    cluster_filters = serializers.ListSerializer(help_text=_("集群过滤条件列表"), child=FilterSerializer())
 
     class Meta:
         swagger_schema_fields = {"example": QUERY_CLUSTERS_REQUEST_DATA}

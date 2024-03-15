@@ -26,6 +26,7 @@ MYSQL_AUTHORIZE_FLOW_PARAMS = {
             "bk_biz_id": 1,
             "operator": "admin",
             "user": "admin",
+            "access_dbs": ["user"],
             "account_rules": [{"dbname": "user", "bk_biz_id": 1}],
             "source_ips": ["127.0.0.1", "127.0.0.2"],
             "target_instances": ["gamedb.privtest55.blueking.db"],

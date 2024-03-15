@@ -19,8 +19,10 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
+from backend.db_services.dbbase.resources.register import register_resource_decorator
 
 
+@register_resource_decorator()
 class ListRetrieveResource(query.ListRetrieveResource):
     """查看 mysql dbha 架构的资源"""
 

@@ -21,12 +21,14 @@ from backend.db_meta.models.instance import StorageInstance
 from backend.db_services.bigdata.resources.query import BigDataBaseListRetrieveResource
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.db_services.dbbase.resources import query
+from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.ticket.constants import InstanceType, TicketType
 from backend.ticket.models import InstanceOperateRecord
 from backend.utils.time import datetime2str
 
 
+@register_resource_decorator()
 class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource):
     instance_roles = []
     cluster_types = [ClusterType.Influxdb]

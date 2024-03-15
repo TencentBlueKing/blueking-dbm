@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -63,3 +64,15 @@ class CommonQueryClusterSerializer(serializers.Serializer):
 class CommonQueryClusterResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": []}
+
+
+class ClusterFilterSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    exact_domain = serializers.CharField(help_text=_("域名精确查询"), required=False)
+    # 后续有其他过滤条件可以再加
+
+    def validate(self, attrs):
+        filters = Q(bk_biz_id=attrs["bk_biz_id"])
+        filters &= Q(immute_domain=attrs["exact_domain"]) if attrs.get("exact_domain") else Q()
+        attrs["filters"] = filters
+        return attrs

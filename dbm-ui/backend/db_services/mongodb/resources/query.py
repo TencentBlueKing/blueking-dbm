@@ -19,11 +19,13 @@ from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import ResourceList
+from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.dbresource.handlers import MongoDBShardSpecFilter
 from backend.ticket.constants import TicketType
 from backend.ticket.models import InstanceOperateRecord
 
 
+@register_resource_decorator()
 class MongoDBListRetrieveResource(query.ListRetrieveResource):
     """查看 mysql dbha 架构的资源"""
 

@@ -8,6 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from datetime import datetime, timedelta
+
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -35,7 +38,7 @@ class SQLServerRollbackViewSet(viewsets.SystemViewSet):
         return [DBManagePermission()]
 
     @common_swagger_auto_schema(
-        operation_summary=_("根据时间范围查询集群备份记录"),
+        operation_summary=_("查询集群备份记录"),
         request_body=QueryBackupLogsSerializer(),
         tags=[SWAGGER_TAG],
         responses={status.HTTP_200_OK: QueryBackupLogsResponseSerializer()},
@@ -43,13 +46,10 @@ class SQLServerRollbackViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=QueryBackupLogsSerializer)
     def query_backup_logs(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        cluster_id = data.pop("cluster_id")
-        return Response(
-            SQLServerRollbackHandler(cluster_id).query_backup_logs(
-                start_time=str2datetime(data["start_time"]),
-                end_time=str2datetime(data["end_time"]),
-            )
-        )
+        end_time = datetime.now(timezone.utc)
+        start_time = end_time - timedelta(days=data["days"])
+        cluster_id = data["cluster_id"]
+        return Response(SQLServerRollbackHandler(cluster_id).query_backup_logs(start_time, end_time))
 
     @common_swagger_auto_schema(
         operation_summary=_("根据回档时间集群最近备份记录"),

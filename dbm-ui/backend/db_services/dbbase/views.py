@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
+from typing import Dict, List
 
 from django.utils.translation import ugettext as _
 from rest_framework import status
@@ -20,8 +22,12 @@ from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_aut
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
 from backend.db_services.dbbase.cluster.serializers import CheckClusterDbsResponseSerializer, CheckClusterDbsSerializer
-from backend.db_services.dbbase.resources.query import ListRetrieveResource
+from backend.db_services.dbbase.instances.handlers import InstanceHandler
+from backend.db_services.dbbase.instances.yasg_slz import CheckInstancesResSLZ, CheckInstancesSLZ
+from backend.db_services.dbbase.resources import register
+from backend.db_services.dbbase.resources.query import ListRetrieveResource, ResourceList
 from backend.db_services.dbbase.serializers import (
+    ClusterFilterSerializer,
     CommonQueryClusterResponseSerializer,
     CommonQueryClusterSerializer,
     IsClusterDuplicatedResponseSerializer,
@@ -80,6 +86,50 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         data = self.params_validate(self.get_serializer_class())
         __, cluster_infos = ListRetrieveResource.common_query_cluster(**data)
         return Response(cluster_infos)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据过滤条件查询集群详细信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=ClusterFilterSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ClusterFilterSerializer)
+    def filter_clusters(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        clusters = Cluster.objects.filter(data["filters"])
+        # 先按照集群类型聚合
+        cluster_type__clusters: Dict[str, List[Cluster]] = defaultdict(list)
+        for cluster in clusters:
+            cluster_type__clusters[cluster.cluster_type].append(cluster)
+        # 按照不同的集群类型，调用不同的query resource去查询集群数据
+        clusters_data: List[Dict] = []
+        for cluster_type, clusters in cluster_type__clusters.items():
+            query_params = {"cluster_ids": [cluster.id for cluster in clusters]}
+            resource_class: ListRetrieveResource = register.cluster_type__resource_class[cluster_type]
+            cluster_resource_data: ResourceList = resource_class.list_clusters(
+                bk_biz_id=data["bk_biz_id"], query_params=query_params, limit=-1, offset=0
+            )
+            clusters_data.extend(cluster_resource_data.data)
+
+        return Response(clusters_data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据用户手动输入的ip[:port]查询真实的实例"),
+        request_body=CheckInstancesSLZ(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: CheckInstancesResSLZ()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=CheckInstancesSLZ)
+    def check_instances(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        db_type = request.stream.path.split("/")[2]
+        return Response(
+            InstanceHandler(bk_biz_id=bk_biz_id).check_instances(
+                query_instances=validated_data["instance_addresses"],
+                cluster_ids=validated_data["cluster_ids"],
+                db_type=db_type,
+            )
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群的库是否存在"),
