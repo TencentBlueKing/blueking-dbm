@@ -42,7 +42,7 @@ class MySQLCloneRulesSerializer(SkipToRepresentationMixin, serializers.Serialize
     clone_uid = serializers.CharField(help_text=_("权限克隆数据缓存uid"), required=False)
     clone_type = serializers.ChoiceField(help_text=_("权限克隆类型"), choices=CloneType.get_choices())
     clone_cluster_type = serializers.ChoiceField(
-        help_text=_("克隆集群类型"), choices=ClusterType.get_choices(), required=False, default=CloneClusterType.TENDB
+        help_text=_("克隆集群类型"), choices=ClusterType.get_choices(), required=False, default=CloneClusterType.MYSQL
     )
 
 
