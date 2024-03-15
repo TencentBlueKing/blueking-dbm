@@ -39,6 +39,19 @@ MYSQL_AUTHORIZE_TICKET_DATA = {
     "ticket_type": "MYSQL_AUTHORIZE_RULES",
 }
 
+MYSQL_AUTHORIZE_CLONE_CLIENT_TICKET_DATA = {
+    "bk_biz_id": constant.BK_BIZ_ID,
+    "details": {
+        "clone_uid": "80fc459ae1d51xxxx17626xxxb38e5",
+        "clone_data_list": [
+            {"module": "Test/Server/", "source": "127.0.0.1", "target": ["127.0.0.2"], "bk_cloud_id": 0}
+        ],
+        "clone_type": "client",
+    },
+    "remark": "",
+    "ticket_type": "MYSQL_CLIENT_CLONE_RULES",
+}
+
 MYSQL_SINGLE_APPLY_TICKET_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "remark": "",
