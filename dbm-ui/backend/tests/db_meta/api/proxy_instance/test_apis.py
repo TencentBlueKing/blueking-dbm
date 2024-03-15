@@ -23,19 +23,6 @@ TEST_PROXY_PORT2 = 10001
 TEST_INVALID_PROXY_PORT = 99999
 
 
-@pytest.fixture
-def init_proxy_machine(create_city):
-    bk_city = models.BKCity.objects.first()
-    machine = models.Machine.objects.create(
-        ip=cc.NORMAL_IP,
-        bk_biz_id=constant.BK_BIZ_ID,
-        machine_type=MachineType.BACKEND.value,
-        bk_city=bk_city,
-        access_layer=AccessLayer.PROXY,
-    )
-    return machine
-
-
 class TestProxyInstance:
     def test_create_success(self, init_proxy_machine):
         """创建成功"""

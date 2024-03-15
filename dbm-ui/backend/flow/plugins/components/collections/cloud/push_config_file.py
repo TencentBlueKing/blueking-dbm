@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import base64
 import copy
 import logging
 
@@ -20,6 +19,7 @@ from pipeline.component_framework.component import Component
 from backend.components import JobApi
 from backend.core import consts
 from backend.flow.plugins.components.collections.cloud.exec_service_script import ExecCloudScriptService
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("json")
 
@@ -47,7 +47,7 @@ class PushConfigFiletService(ExecCloudScriptService):
         payload["file_list"] = [
             {
                 "file_name": kwargs["conf_file_name"],
-                "content": str(base64.b64encode(template.render(service_act_payload).encode("utf-8")), "utf-8"),
+                "content": base64_encode(template.render(service_act_payload)),
             }
         ]
         payload["target_server"]["ip_list"] = target_ip_info

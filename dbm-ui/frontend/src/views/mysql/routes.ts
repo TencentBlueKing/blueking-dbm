@@ -70,7 +70,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     name: 'MySQLMasterSlaveClone',
     path: 'master-slave-clone/:page?',
     meta: {
-      navName: t('克隆主从'),
+      navName: t('迁移主从'),
     },
     component: () => import('@views/mysql/master-slave-clone/index.vue'),
   },
@@ -134,7 +134,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     name: 'MySQLDBRollback',
     path: 'rollback/:page?',
     meta: {
-      navName: t('定点回档'),
+      navName: t('定点构造'),
     },
     component: () => import('@views/mysql/rollback/Index.vue'),
   },

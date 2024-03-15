@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import base64
 import json
 import re
 from typing import Any, List, Optional, Tuple, Union
@@ -186,3 +186,24 @@ def split_str_to_list(string: str) -> List[str]:
     for char in [" ", "\n", "\t", "\r", "\f", "\v"]:
         string = string.replace(char, ",")
     return string.split(",")
+
+
+def base64_encode(content: Union[str, bytes]) -> str:
+    """
+    将字符串转为base64编码
+    :param content: 待转换字符串
+    """
+    if isinstance(content, str):
+        content = content.encode("utf-8")
+
+    return base64.b64encode(content).decode("utf-8")
+
+
+def base64_decode(content: Union[str, bytes]) -> str:
+    """
+    将base64编码的字符串转为原始字符串
+    :param content: 待转换字符串
+    """
+    if isinstance(content, str):
+        content = content.encode("utf-8")
+    return base64.b64decode(content).decode("utf-8")

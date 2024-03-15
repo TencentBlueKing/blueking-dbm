@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import datetime
 import logging
 import re
@@ -61,6 +60,7 @@ from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDts
 from backend.flow.utils.redis.redis_proxy_util import get_twemproxy_cluster_hash_tag
 from backend.ticket.constants import TicketType
 from backend.utils.basic import generate_root_id
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("flow")
 
@@ -472,12 +472,8 @@ class RedisDtsExecuteService(BaseService):
                 job.save()
                 job_id = job.id
 
-                src_password_base64 = base64.b64encode(
-                    kwargs["cluster"]["src"]["redis_password"].encode("utf-8")
-                ).decode("utf-8")
-                dst_passsword_base64 = base64.b64encode(
-                    kwargs["cluster"]["dst"]["cluster_password"].encode("utf-8")
-                ).decode("utf-8")
+                src_password_base64 = base64_encode(kwargs["cluster"]["src"]["redis_password"])
+                dst_passsword_base64 = base64_encode(kwargs["cluster"]["dst"]["cluster_password"])
                 task_white_regex = get_safe_regex_pattern(kwargs["cluster"]["info"]["key_white_regex"])
                 task_black_regex = get_safe_regex_pattern(kwargs["cluster"]["info"]["key_black_regex"])
 

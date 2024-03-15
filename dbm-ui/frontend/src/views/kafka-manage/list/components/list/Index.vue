@@ -384,7 +384,7 @@
               { t('获取访问方式') }
             </auth-button>,
           ];
-          if (!data.isOnline) {
+          if (data.isOffline) {
             return [
             <OperationBtnStatusTips data={data}>
               <auth-button
@@ -406,7 +406,7 @@
                 theme="primary"
                 action-id="kafka_destroy"
                 permission={data.permission.kafka_destroy}
-                disabled={data.operationDisabled}
+                disabled={Boolean(data.operationTicketId)}
                 resource={data.id}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}

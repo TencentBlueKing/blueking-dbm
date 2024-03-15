@@ -86,8 +86,9 @@
 
   import InstanceSelector, {
     type InstanceSelectorValues,
+    type IValue,
     type PanelListType,
-  } from '@components/instance-selector-new/Index.vue';
+  } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
@@ -123,7 +124,7 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
-  const selected = shallowRef({ createSlaveIdleHosts: [] } as InstanceSelectorValues);
+  const selected = shallowRef({ createSlaveIdleHosts: [] } as InstanceSelectorValues<IValue>);
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
   const inputedIps = computed(() => tableData.value.map(item => item.ip));
 
@@ -199,7 +200,7 @@
   let ipMemo: Record<string, boolean> = {};
 
   // 批量选择
-  const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
+  const handelMasterProxyChange = async (data: InstanceSelectorValues<IValue>) => {
     selected.value = data;
     const newList: IDataRow[] = [];
     const ips = data.createSlaveIdleHosts.map(item => item.ip);

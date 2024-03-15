@@ -90,7 +90,7 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import type { IDataRow } from './Row.vue';
-  import useValidtor from './useValidtor';
+  import useValidtor, { type Rules } from './useValidtor';
 
   interface Props {
     clusterData?: IDataRow['clusterData'];
@@ -116,11 +116,11 @@
   const isShowOverflowTip = computed(() => isOverflow.value && showEditIcon.value);
 
   const rules = [
-    {
-      validator: (value: string[]) => value.length > 0,
-      message: t('授权 IP 不能为空'),
-    },
-  ];
+    // {
+    //   validator: (value: string[]) => value.length > 0,
+    //   message: t('授权 IP 不能为空'),
+    // },
+  ] as Rules;
 
   const { message: errorMessage, validator } = useValidtor(rules);
 

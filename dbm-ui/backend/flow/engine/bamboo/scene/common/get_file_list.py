@@ -517,8 +517,11 @@ class GetFileList(object):
         tdbctl_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.tdbCtl, db_type=DBType.MySQL
         )
+        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
+
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tdbctl_pkg.path}",
         ]
 

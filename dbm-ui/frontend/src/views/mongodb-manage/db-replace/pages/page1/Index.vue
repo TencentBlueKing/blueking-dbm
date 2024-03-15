@@ -75,7 +75,7 @@
 
   import InstanceSelector, {
     type InstanceSelectorValues,
-  } from '@components/instance-selector-new/Index.vue';
+  } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {

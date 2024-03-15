@@ -72,8 +72,9 @@
 
   import InstanceSelector, {
     type InstanceSelectorValues,
+    type IValue,
     type PanelListType,
-  } from '@components/instance-selector-new/Index.vue';
+  } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -87,7 +88,7 @@
   const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedIps = shallowRef<InstanceSelectorValues>({ tendbcluster: [] });
+  const selectedIps = shallowRef<InstanceSelectorValues<IValue>>({ tendbcluster: [] });
   let ipMemo = {} as Record<string, boolean>;
 
   const tabListConfig = {
@@ -112,7 +113,7 @@
     isShowBatchInstanceSelector.value = true;
   };
   // 批量选择
-  const handelInstanceSelectorChange = (data: InstanceSelectorValues) => {
+  const handelInstanceSelectorChange = (data: InstanceSelectorValues<IValue>) => {
     selectedIps.value = data;
     const newList = data.tendbcluster.reduce((result, item) => {
       const { instance_address: ip } = item;

@@ -1,11 +1,11 @@
 # public
-/.github @zhangzhw8 @gaohongsong @iSecloud
-/docs @zhangzhw8 @gaohongsong @iSecloud
-/*.md @zhangzhw8 @gaohongsong @iSecloud
-/helm-charts @zhangzhw8 @gaohongsong @iSecloud
+/.github @zhangzhw8 @iSecloud
+/docs @zhangzhw8 @iSecloud
+/*.md @zhangzhw8 @iSecloud
+/helm-charts @zhangzhw8 @iSecloud
 
 # dbm-ui
-/dbm-ui @zhangzhw8 @gaohongsong @iSecloud
+/dbm-ui @zhangzhw8 @iSecloud
 /dbm-ui/frontend @hLinx @jinquantianxia
 
 # dbm-services common
@@ -13,7 +13,7 @@
 /dbm-services/common/db-config @seanlook @xfwduke
 /dbm-services/common/db-resource @ymakedaq @seanlook @xfwduke
 /dbm-services/common/db-dns @omg-by @xiepaup @lukemakeit
-/dbm-services/common/dbha @zyqlzr @xjxia
+/dbm-services/common/dbha @xjxia
 
 # bigdata
 /dbm-services/bigdata @zhangrq5 @zvictorino @wangyao963
@@ -23,7 +23,7 @@
 
 # mysql
 /dbm-services/mysql @seanlook @xfwduke @yksitu @ymakedaq
-/dbm-services/mysql/db-partition @fanfanyangyang @xfwduke @seanlook
+/dbm-services/mysql/db-partition @fanfanyangyang @xfan0805
 /dbm-services/mysql/db-priv @fanfanyangyang @xfwduke @seanlook
 /dbm-services/mysql/db-remote-service @xfwduke @seanlook
 /dbm-services/mysql/db-simulation @seanlook @xfwduke @ymakedaq

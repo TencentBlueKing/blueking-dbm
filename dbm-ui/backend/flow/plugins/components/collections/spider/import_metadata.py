@@ -77,8 +77,8 @@ def _create_entries(cluster_json: Dict, cluster_obj: Cluster):
 
 
 class TenDBClusterImportMetadataService(BaseService):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, name=None):
+        super().__init__(name=name)
         self.bk_biz_id = 0
         self.db_module_id = 0
         self.spider_spec: Spec = Spec()

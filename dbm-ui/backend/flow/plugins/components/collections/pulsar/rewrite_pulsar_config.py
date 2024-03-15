@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 from typing import List
 
 from pipeline.component_framework.component import Component
@@ -24,6 +23,7 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 from backend.flow.utils.pulsar.consts import PulsarConfigEnum
 from backend.flow.utils.pulsar.pulsar_context_dataclass import PulsarApplyContext
 from backend.ticket.constants import TicketType
+from backend.utils.string import base64_encode
 
 
 class WriteBackPulsarConfigService(BaseService):
@@ -134,7 +134,7 @@ class WriteBackPulsarConfigService(BaseService):
         # 写入到密码服务，把用户名当密码存
         query_params = {
             "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
-            "password": base64.b64encode(str(global_data["username"]).encode("utf-8")).decode("utf-8"),
+            "password": base64_encode(str(global_data["username"])),
             "username": MySQLPrivComponent.PULSAR_FAKE_USER.value,
             "component": NameSpaceEnum.Pulsar,
             "operator": "admin",
@@ -143,7 +143,7 @@ class WriteBackPulsarConfigService(BaseService):
         # 存储真正的账号密码
         query_params = {
             "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
-            "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
+            "password": base64_encode(str(global_data["password"])),
             "username": global_data["username"],
             "component": NameSpaceEnum.Pulsar,
             "operator": "admin",
@@ -152,7 +152,7 @@ class WriteBackPulsarConfigService(BaseService):
         # 存储token
         query_params = {
             "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
-            "password": base64.b64encode(str(f"token:{token}").encode("utf-8")).decode("utf-8"),
+            "password": base64_encode(str(f"token:{token}")),
             "username": PulsarConfigEnum.ClientAuthenticationParameters,
             "component": NameSpaceEnum.Pulsar,
             "operator": "admin",

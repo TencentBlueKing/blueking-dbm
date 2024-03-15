@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import base64
 import copy
 import logging
 from collections import defaultdict
@@ -31,6 +30,7 @@ from backend.db_proxy.exceptions import ProxyPassBaseException
 from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.utils.redis import RedisConn
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("celery")
 
@@ -110,7 +110,7 @@ def fill_cluster_service_nginx_conf():
                     "service_url": f"http://{extension.ip}:{extension.port}",
                 }
                 file_name = f"{extension.bk_biz_id}_{extension.db_type}_{extension.cluster_name}_nginx.conf"
-                file_content = str(base64.b64encode(template.render(conf_payload).encode("utf-8")), "utf-8")
+                file_content = base64_encode(template.render(conf_payload))
                 file_list.append({"file_name": file_name, "content": file_content})
 
                 # 这里先提前写入access url，至于是否执行成功根据is_flush

@@ -705,12 +705,12 @@
                         )
                       }
                       {
-                        !data.isOnline && (
+                        data.isOffline && (
                           <bk-dropdown-item>
                             <OperationBtnStatusTips data={data}>
                               <bk-button
                                 style="width: 100%;height: 32px;"
-                                disabled={data.operationDisabled}
+                                disabled={Boolean(data.operationTicketId)}
                                 text
                                 onClick={() => handleDeleteCluster(data)}>
                                 { t('删除') }
