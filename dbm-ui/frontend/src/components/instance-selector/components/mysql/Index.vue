@@ -77,10 +77,13 @@
     </div>
   </BkLoading>
 </template>
-<script setup lang="ts">
-  import type { TableSetting } from '@components/instance-selector-new/Index.vue';
-
-  import type { InstanceSelectorValues, PanelListType } from '../../Index.vue';
+<script setup lang="ts" generic="T extends IValue">
+  import type {
+    InstanceSelectorValues,
+    IValue,
+    PanelListType,
+    TableSetting,
+  } from '../../Index.vue';
 
   import RenderTopoHost from './table/Index.vue';
   import { useTopoData } from './useTopoData';
@@ -94,21 +97,21 @@
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void;
+    (e: 'change', value: InstanceSelectorValues<T>): void
   }
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
   type TopoConfigType = Required<PanelListType[number]>['topoConfig'];
 
   interface Props {
-    lastValues: InstanceSelectorValues;
-    tableSetting: TableSetting;
-    firsrColumn?: TableConfigType['firsrColumn'];
-    roleFilterList?: TableConfigType['roleFilterList'];
-    isRemotePagination?: TableConfigType['isRemotePagination'];
-    disabledRowConfig?: TableConfigType['disabledRowConfig'];
-    topoAlertContent?: TopoConfigType['topoAlertContent'];
-    filterClusterId?: TopoConfigType['filterClusterId']; // 过滤的集群ID，单集群模式
+    lastValues: InstanceSelectorValues<T>,
+    tableSetting: TableSetting,
+    firsrColumn?: TableConfigType['firsrColumn'],
+    roleFilterList?: TableConfigType['roleFilterList'],
+    isRemotePagination?: TableConfigType['isRemotePagination'],
+    disabledRowConfig?: TableConfigType['disabledRowConfig'],
+    topoAlertContent?: TopoConfigType['topoAlertContent'],
+    filterClusterId?: TopoConfigType['filterClusterId'], // 过滤的集群ID，单集群模式
     // eslint-disable-next-line vue/no-unused-properties
     getTopoList: NonNullable<TopoConfigType['getTopoList']>;
     // eslint-disable-next-line vue/no-unused-properties
@@ -171,7 +174,7 @@
     }
   };
 
-  const handleHostChange = (values: InstanceSelectorValues) => {
+  const handleHostChange = (values: InstanceSelectorValues<T>) => {
     emits('change', values);
   };
 

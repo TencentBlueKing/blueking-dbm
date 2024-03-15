@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import logging
 import os.path
 from collections import defaultdict
@@ -34,6 +33,7 @@ from backend.db_periodic_task.local_tasks import update_host_dbmeta
 from backend.db_services.ipchooser.constants import DB_MANAGE_SET
 from backend.db_services.ipchooser.query import resource
 from backend.flow.utils.cc_manage import CcManage
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("root")
 
@@ -69,7 +69,7 @@ def remove_cluster(cluster_id, job_clean=True, cc_clean=True):
             JobApi.fast_execute_script(
                 {
                     "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-                    "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
+                    "script_content": base64_encode(script_content),
                     "task_name": _("清理集群"),
                     "account_alias": "root",
                     "script_language": 1,
@@ -141,7 +141,7 @@ def remove_cluster_ips(bk_host_ids, job_clean=True, cc_clean=True):
                 JobApi.fast_execute_script(
                     {
                         "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-                        "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
+                        "script_content": base64_encode(script_content),
                         "task_name": _("清理集群"),
                         "account_alias": "root",
                         "script_language": 1,

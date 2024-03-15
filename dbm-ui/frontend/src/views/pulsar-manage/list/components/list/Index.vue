@@ -139,10 +139,10 @@
   const copy = useCopy();
 
   const dataSource = getPulsarList;
-  const checkClusterOnline = (data: PulsarModel) => data.phase === 'online';
+
   const getRowClass = (data: PulsarModel) => {
     const classStack = [];
-    if (!checkClusterOnline(data)) {
+    if (data.isOffline) {
       classStack.push('is-offline');
     }
     if (data.isNew) {
@@ -253,7 +253,7 @@
               data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
             }
             <db-icon
-              v-show={!checkClusterOnline(data)}
+              v-show={data.isOffline}
               svg
               type="yijinyong"
               style="width: 38px; height: 16px; margin-left: 4px; vertical-align: middle;" />
@@ -362,7 +362,7 @@
               { t('获取访问方式') }
             </auth-button>,
           ];
-          if (!checkClusterOnline(data)) {
+          if (data.isOffline) {
             return [
               <auth-button
                 text
@@ -380,6 +380,7 @@
                 theme="primary"
                 action-id="pulsar_destroy"
                 permission={data.permission.pulsar_destroy}
+                disabled={Boolean(data.operationTicketId)}
                 resource={data.id}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}

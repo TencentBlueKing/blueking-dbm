@@ -222,6 +222,13 @@
       render: ({ data }: { data: RiakModel }) => <span>{data.major_version || '--'}</span>,
     },
     {
+      label: t('所属DB模块'),
+      field: 'db_module_name',
+      width: 140,
+      showOverflowTooltip: true,
+      render: ({ data }: { data: RiakModel }) => <span>{data.db_module_name || '--'}</span>,
+    },
+    {
       label: t('管控区域'),
       width: 120,
       field: 'bk_cloud_name',
@@ -319,7 +326,7 @@
                   text
                   class="ml-16"
                   theme="primary"
-                  disabled={data.operationDisabled}
+                  disabled={Boolean(data.operationTicketId)}
                   onclick={() => handleDelete(data)}
                 >
                   { t('删除') }

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import logging
 from typing import List
 
@@ -22,6 +21,7 @@ from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("flow")
 
@@ -56,7 +56,7 @@ class WriteBackHdfsConfigService(BaseService):
                         "bk_cloud_id": global_data["bk_cloud_id"],
                     }
                 ],
-                "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
+                "password": base64_encode(global_data["password"]),
                 "username": "root",
                 "component": NameSpaceEnum.Hdfs,
                 "operator": "admin",

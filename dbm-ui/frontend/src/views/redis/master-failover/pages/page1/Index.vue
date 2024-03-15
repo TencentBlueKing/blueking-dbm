@@ -87,7 +87,9 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector-new/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+  } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
@@ -137,7 +139,7 @@
   };
 
   // 批量选择
-  const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
+  const handelMasterProxyChange = async (data: InstanceSelectorValues<ChoosedFailedMasterItem>) => {
     selected.value = data;
     const ips = data.redis.map((item) => item.ip);
     isLoading.value = true;

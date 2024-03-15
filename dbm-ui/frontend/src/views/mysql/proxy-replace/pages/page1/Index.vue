@@ -17,11 +17,11 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('对集群的Proxy实例进行替换')" />
+        :title="t('对集群的Proxy实例进行替换')" />
       <div class="page-action-box mt16">
         <BkButton @click="handleShowBatchEntry">
           <DbIcon type="add" />
-          {{ $t('批量录入') }}
+          {{ t('批量录入') }}
         </BkButton>
       </div>
       <RenderData
@@ -39,16 +39,17 @@
       <div class="safe-action">
         <BkCheckbox
           v-model="isSafe"
-          v-bk-tooltips="$t('如忽略_在有连接的情况下Proxy也会执行替换')"
+          v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')"
           :false-label="false"
           true-label>
-          <span class="safe-action-text">{{ $t('忽略业务连接') }}</span>
+          <span class="safe-action-text">{{ t('忽略业务连接') }}</span>
         </BkCheckbox>
       </div>
-      <ProxySelector
+      <InstanceSelector
         v-model:is-show="isShowBatchProxySelector"
-        :panel-list="panelList"
-        role="proxy"
+        :cluster-types="[ClusterTypes.TENDBHA]"
+        :selected="selectedIntances"
+        :tab-list-config="tabListConfig"
         @change="handelProxySelectorChange" />
       <BatchEntry
         v-model:is-show="isShowBatchEntry"
@@ -60,16 +61,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -81,11 +82,17 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import ProxySelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
+  import { ClusterTypes } from '@common/const';
+
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type PanelListType,
+  } from '@components/instance-selector/Index.vue';
 
   import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
@@ -111,17 +118,22 @@
   const isSafe = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const selectedIntances = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
 
-  const panelList = [
-    {
-      id: 'tendbha',
-      title: t('目标Proxy'),
-    },
-    {
-      id: 'manualInput',
-      title: t('手动输入'),
-    },
-  ];
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        name: t('目标Proxy'),
+        tableConfig: {
+          firsrColumn: {
+            label: 'proxy',
+            field: 'instance_address',
+            role: 'proxy',
+          },
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
   // 批量录入
   const handleShowBatchEntry = () => {
@@ -145,12 +157,11 @@
     isShowBatchProxySelector.value = true;
   };
   // 批量选择
-  const handelProxySelectorChange = (data: InstanceSelectorValues) => {
-    const newList = data.tendbha.map((item) =>
-      createRowData({
-        originProxyIp: item,
-      }),
-    );
+  const handelProxySelectorChange = (data: InstanceSelectorValues<TendbhaInstanceModel>) => {
+    selectedIntances.value = data;
+    const newList = data.tendbha.map(item => createRowData({
+      originProxyIp: item,
+    }));
     tableData.value = newList;
     window.changeConfirm = true;
   };
@@ -163,6 +174,12 @@
   };
   // 删除一个集群
   const handleRemove = (index: number) => {
+    const instanceAddress = tableData.value[index].originProxyIp?.instance_address;
+    if (instanceAddress) {
+      const clustersArr = selectedIntances.value[ClusterTypes.TENDBHA];
+      // eslint-disable-next-line max-len
+      selectedIntances.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.instance_address !== instanceAddress);
+    }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
     tableData.value = dataList;
@@ -201,6 +218,8 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedIntances.value[ClusterTypes.TENDBHA] = [];
+    window.changeConfirm = false;
   };
 </script>
 

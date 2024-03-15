@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import copy
 import json
 import logging
@@ -28,6 +27,7 @@ from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.redis.redis_script_template import redis_data_structure_payload_template
 from backend.ticket.constants import TicketType
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("json")
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
@@ -103,9 +103,7 @@ class PushDataStructureJsonScriptService(BkJobService):
             self.log_info(_("[{}] kwargs['payload'] 是不完整，需要将{}内容加到payload中").format(node_name, kwargs["cluster"]))
             db_act_template["payload"].update(kwargs["cluster"])
 
-        db_act_template["payload"] = str(
-            base64.b64encode(json.dumps(db_act_template["payload"]).encode("utf-8")), "utf-8"
-        )
+        db_act_template["payload"] = base64_encode(json.dumps(db_act_template["payload"]))
 
         FlowNode.objects.filter(root_id=kwargs["root_id"], node_id=node_id).update(hosts=exec_ips)
         # 脚本内容

@@ -215,8 +215,12 @@ export default class Es {
     return this.phase === 'online';
   }
 
+  get isOffline() {
+    return this.phase === 'offline';
+  }
+
   get domainDisplayName() {
-    const port = this.es_datanode_hot[0]?.port;
+    const { port } = this.es_master[0];
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;
   }

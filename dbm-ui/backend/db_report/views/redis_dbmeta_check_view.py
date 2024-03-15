@@ -26,7 +26,7 @@ logger = logging.getLogger("root")
 class RedisDbmetaCheckReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = MetaCheckReport
-        fields = ("bk_biz_id", "cluster", "cluster_type", "status", "msg")
+        fields = ("bk_biz_id", "cluster", "cluster_type", "status", "msg", "create_at")
         swagger_schema_fields = {"example": mock_data.REDIS_META_CHECK_DATA}
 
 
@@ -35,6 +35,7 @@ class RedisDbmetaCheckReportBaseViewSet(ReportBaseViewSet):
     serializer_class = RedisDbmetaCheckReportSerializer
     filter_fields = {  # 大部分时候不需要覆盖默认的filter
         "bk_biz_id": ["exact"],
+        "cluster": ["exact", "in"],
         "cluster_type": ["exact", "in"],
         "create_at": ["gte", "lte"],
         "status": ["exact", "in"],
@@ -64,6 +65,11 @@ class RedisDbmetaCheckReportBaseViewSet(ReportBaseViewSet):
         {
             "name": "msg",
             "display_name": _("详情"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "create_at",
+            "display_name": _("时间"),
             "format": ReportFieldFormat.TEXT.value,
         },
     ]

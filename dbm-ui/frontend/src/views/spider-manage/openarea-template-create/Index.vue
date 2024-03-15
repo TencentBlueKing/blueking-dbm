@@ -36,7 +36,7 @@
                 v-for="item in clusterList"
                 :id="item.id"
                 :key="item.id"
-                :name="`${item.name} (${item.id})`" />
+                :name="`${item.immute_domain} (${item.id})`" />
             </BkSelect>
           </BkFormItem>
           <BkFormItem
@@ -136,30 +136,30 @@
     Promise.all([
       (configRuleRef.value as InstanceType<typeof ConfigRule>).getValue(),
       (formRef.value as InstanceType<typeof Form>).validate(),
-    ]).then(([configRule]) => {
-      const params: CreateOpenareaParams & { id: number } = {
-        id: 0,
-        bk_biz_id: currentBizId,
-        ...formData,
-        config_rules: configRule,
-        cluster_type: 'tendbcluster',
-      };
-      if (isEditMode) {
-        params.id = Number(route.params.id);
-      }
-      const handler = isEditMode ? updateOpenarea : createOpenarea;
-      handler(params)
-        .then(() => {
+    ])
+      .then(([configRule]) => {
+        const params: CreateOpenareaParams & { id: number } = {
+          id: 0,
+          bk_biz_id: currentBizId,
+          ...formData,
+          config_rules: configRule,
+          cluster_type: 'tendbcluster',
+        };
+        if (isEditMode) {
+          params.id = Number(route.params.id);
+        }
+        const handler = isEditMode ? updateOpenarea : createOpenarea;
+        return handler(params).then(() => {
           messageSuccess(isEditMode ? t('编辑成功') : t('新建成功'));
           window.changeConfirm = false;
           router.push({
             name: 'spiderOpenareaTemplate',
           });
-        })
-        .finally(() => {
-          isSubmiting.value = false;
         });
-    });
+      })
+      .finally(() => {
+        isSubmiting.value = false;
+      });
   };
 
   const handleReset = () => {

@@ -593,7 +593,7 @@
               </auth-button>
             </OperationBtnStatusTips>,
           ];
-          if (!data.isOnline) {
+          if (data.isOffline) {
             operations.push(...[
               <OperationBtnStatusTips data={data}>
                 <auth-button
@@ -613,7 +613,7 @@
                   text
                   theme={theme}
                   action-id="tendbcluster_destroy"
-                  disabled={data.operationDisabled}
+                  disabled={Boolean(data.operationTicketId)}
                   permission={data.permission.tendbcluster_destroy}
                   resource={data.id}
                   class="mr-8"

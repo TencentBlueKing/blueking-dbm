@@ -7,7 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/tarball"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/archivescenes"
 )
 
 type engineInnodbStatus struct {
@@ -19,7 +19,7 @@ type engineInnodbStatus struct {
 var engineInnodbStatusName = "engine-innodb-status"
 
 func engineInnodbStatusScene(db *sqlx.DB) error {
-	err := tarball.DeleteOld(engineInnodbStatusName, sceneBase, 1)
+	err := archivescenes.DeleteOld(engineInnodbStatusName, sceneBase, 1)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func engineInnodbStatusScene(db *sqlx.DB) error {
 
 	content := fmt.Sprintf("Type:%s\nName:%s\nStatus:%s", res[0].Type, res[0].Name, res[0].Status)
 
-	err = tarball.Write(engineInnodbStatusName, sceneBase, []byte(content))
+	err = archivescenes.Write(engineInnodbStatusName, sceneBase, []byte(content))
 	if err != nil {
 		return err
 	}

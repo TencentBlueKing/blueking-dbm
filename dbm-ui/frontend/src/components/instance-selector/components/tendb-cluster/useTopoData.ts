@@ -14,7 +14,7 @@ import { type ComponentInternalInstance } from 'vue';
 
 import { useGlobalBizs } from '@stores';
 
-import { activePanelInjectionKey } from '@components/instance-selector-new/Index.vue';
+import { activePanelInjectionKey } from '../../Index.vue';
 
 interface TopoTreeData {
   id: number;

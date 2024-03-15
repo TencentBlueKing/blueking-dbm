@@ -209,6 +209,10 @@ export default class Hdfs {
     return this.phase === 'online';
   }
 
+  get isOffline() {
+    return this.phase === 'offline';
+  }
+
   get domainDisplayName() {
     const port = this.hdfs_namenode[0]?.port;
     const displayName = port ? `${this.domain}:${port}` : this.domain;

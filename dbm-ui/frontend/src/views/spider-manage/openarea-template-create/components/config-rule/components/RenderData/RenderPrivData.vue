@@ -40,12 +40,14 @@
   <PermissionRule
     v-model="modelValue"
     v-model:is-show="isShow"
-    :cluster-id="clusterId" />
+    :cluster-id="clusterId"
+    db-type="tendbcluster" />
 </template>
 <script setup lang="ts">
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import PermissionRule from './components/PermissionRule.vue';
+  import PermissionRule from '@components/add-permission-rule-dialog/Index.vue';
 
   interface Props {
     clusterId: number;
@@ -74,12 +76,12 @@
 
   defineExpose<Exposes>({
     getValue() {
-      if (modelValue.value.length < 1) {
-        errorMessage.value = t('初始化授权不能为空');
-        return Promise.reject();
-      }
+      //   if (modelValue.value.length < 1) {
+      //     errorMessage.value = t('初始化授权不能为空');
+      //     return Promise.reject();
+      //   }
 
-      errorMessage.value = '';
+      //   errorMessage.value = '';
       return Promise.resolve({
         priv_data: modelValue.value,
       });

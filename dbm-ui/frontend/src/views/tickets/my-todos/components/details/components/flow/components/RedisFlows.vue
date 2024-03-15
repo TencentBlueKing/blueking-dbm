@@ -197,13 +197,13 @@
 
   const flowTimeline = computed(() => props.flows.map((flow: FlowItem, index: number) => {
     const isLast = index === props.flows.length - 1;
-    const prevFlow = props.flows[index - 1];
-    const flowObjId = isLast && prevFlow ? prevFlow.flow_obj_id : flow.flow_obj_id;
+    // const prevFlow = props.flows[index - 1];
+    // const flowObjId = isLast && prevFlow ? prevFlow.flow_obj_id : flow.flow_obj_id;
     return {
       tag: flow.flow_type_display,
       type: 'default',
       filled: true,
-      content: Object.assign(flow, { isLast, flow_obj_id: flowObjId }),
+      content: Object.assign(flow, { isLast }),
       // color,
       icon: () => <FlowIcon data={flow} />,
     };

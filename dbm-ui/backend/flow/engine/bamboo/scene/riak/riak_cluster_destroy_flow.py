@@ -60,7 +60,6 @@ class RiakClusterDestroyFlow(object):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
 
         sub_pipeline.add_act(act_name=_("获取集群中的节点"), act_component_code=GetRiakClusterNodeComponent.code, kwargs={})
-
         sub_pipeline.add_act(
             act_name=_("下发actuator"),
             act_component_code=TransFileComponent.code,

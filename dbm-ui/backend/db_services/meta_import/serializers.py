@@ -99,9 +99,8 @@ class TenDBClusterMetadataImportSerializer(serializers.Serializer):
 
 
 class TenDBClusterAppendCTLSerializer(serializers.Serializer):
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), default=0)
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("待标准的集群列表"))
+    bk_biz_id = BizChoiceField(help_text=_("业务"))
+    file = serializers.FileField(help_text=_("域名列表文件"))
     use_stream = serializers.BooleanField(help_text=_("是否使用mydumper流式备份迁移"), required=False, default=False)
     drop_before = serializers.BooleanField(help_text=_("导入到tdbctl前,是否先删除"), required=False, default=False)
     threads = serializers.IntegerField(help_text=_("mydumper 并发"), required=False, default=0)

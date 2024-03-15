@@ -1,6 +1,7 @@
 <template>
   <div style="padding: 16px 24px">
     <BkTable
+      class="openarea-create-table"
       :columns="columns"
       :data="tableData" />
   </div>
@@ -84,13 +85,21 @@
     },
     {
       label: t('授权规则'),
-      showOverflowTooltip: true,
+      showOverflowTooltip: false,
       render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => (
-        <bk-button
-          text
-          theme="primary">
-          {t('n 条全新规则', { n: data.priv_data.length })}
-        </bk-button>
+        <div class="rules-main">
+          <bk-button
+            text
+            theme="primary">
+            {t('n 条全新规则', { n: data.priv_data.length })}
+          </bk-button>
+          {data.error_msg && (
+            <db-icon
+              v-bk-tooltips={data.error_msg}
+              class="error-icon"
+              type="exclamation-fill" />
+          )}
+        </div>
       ),
     },
   ];
@@ -114,6 +123,9 @@
 
   defineExpose<Expose>({
     submit() {
+      if (tableData.value.some(item => item.error_msg)) {
+        return Promise.resolve(false);
+      }
       return createTicket({
         ticket_type: 'MYSQL_OPEN_AREA',
         remark: '',

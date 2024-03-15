@@ -46,7 +46,7 @@
           collapse
           :count="lastValues[key].length"
           :show-title="showTitle"
-          :title="title">
+          :title="titleMap[key]">
           <div
             v-for="(item, index) of lastValues[key]"
             :key="item[displayKey]"
@@ -65,29 +65,29 @@
     </div>
   </div>
 </template>
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends IValue">
   import { useI18n } from 'vue-i18n';
 
   import { useCopy } from '@hooks';
 
-  import type { InstanceSelectorValues, IValue } from '@components/instance-selector-new/Index.vue';
-
   import { messageWarn } from '@utils';
+
+  import type { InstanceSelectorValues, IValue } from '../../../Index.vue';
 
   import CollapseMini from './CollapseMini.vue';
 
   interface Props {
-    lastValues: InstanceSelectorValues;
-    showTitle?: boolean;
-    title?: string;
-    displayKey?: keyof IValue;
-    activePanelId?: string;
+    lastValues: InstanceSelectorValues<T>,
+    titleMap: Record<string, string>,
+    showTitle?: boolean,
+    displayKey?: keyof IValue,
+    activePanelId?: string,
   }
 
-  type Keys = keyof InstanceSelectorValues;
+  type Keys = keyof InstanceSelectorValues<T>;
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void;
+    (e: 'change', value: InstanceSelectorValues<T>): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -129,7 +129,7 @@
       return;
     }
 
-    const instances: IValue[] = [];
+    const instances: T[] = [];
     for (const key of keys.value) {
       instances.push(...props.lastValues[key]);
     }
