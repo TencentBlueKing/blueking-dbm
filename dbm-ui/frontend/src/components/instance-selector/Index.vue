@@ -67,7 +67,7 @@
       <span
         v-bk-tooltips="{
           content: t('请选择实例'),
-          disabled: !isEmpty
+          disabled: !isEmpty,
         }"
         class="inline-block">
         <BkButton
@@ -88,21 +88,22 @@
 </template>
 <script lang="ts" generic="T extends IValue">
   import { t } from '@locales/index';
+
   export default { name: 'InstanceSelector' };
 
   export interface IValue {
-    bk_host_id: number,
-    bk_cloud_id: number,
-    ip: string,
-    port: number,
-    instance_address: string,
-    cluster_id: number,
-    cluster_type: string,
-    status?: string,
+    bk_host_id: number;
+    bk_cloud_id: number;
+    ip: string;
+    port: number;
+    instance_address: string;
+    cluster_id: number;
+    cluster_type: string;
+    status?: string;
     host_info?: any;
   }
 
-  export type InstanceSelectorValues<T> = Record<string, T[]>
+  export type InstanceSelectorValues<T> = Record<string, T[]>;
 
   export const activePanelInjectionKey = Symbol('activePanel');
 
@@ -166,9 +167,11 @@
     listClustersMasterFailoverProxy,
   } from '@services/redis/toolbox';
   import {
+    checkMongoInstances,
     checkMysqlInstances,
     checkRedisInstances,
   } from '@services/source/instances';
+  import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
   import { queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
   import { getSpiderInstanceList } from '@services/source/spider';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
@@ -179,6 +182,7 @@
   import ManualInputContent from './components/common/manual-content/Index.vue';
   import PanelTab  from './components/common/PanelTab.vue';
   import PreviewResult from './components/common/preview-result/Index.vue';
+  import MongoClusterContent from './components/mongo/Index.vue';
   import MysqlContent from './components/mysql/Index.vue';
   import RedisContent from './components/redis/Index.vue';
   import TendbClusterContent from './components/tendb-cluster/Index.vue';
@@ -412,6 +416,49 @@
           checkType: 'instance',
           checkKey: 'instance_address',
           activePanelId: 'tendbha',
+        },
+        content: ManualInputContent,
+      },
+    ],
+    [ClusterTypes.MONGOCLUSTER]: [
+      {
+        id: 'mongocluster',
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: getMongoTopoList,
+          countFunc: (item: MongodbModel) => item.instanceCount,
+        },
+        tableConfig: {
+          getTableList: getMongoInstancesList,
+          multiple: true,
+          firsrColumn: {
+            label: 'IP',
+            field: 'ip',
+          },
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: MongoClusterContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getSpiderInstanceList,
+          firsrColumn: {
+            label: 'IP',
+            field: 'ip',
+          },
+        },
+        manualConfig: {
+          checkInstances: checkMongoInstances,
+          checkType: 'instance',
+          checkKey: 'instance_address',
+          activePanelId: 'mongocluster',
+        },
+        previewConfig: {
+          displayKey: 'ip',
         },
         content: ManualInputContent,
       },

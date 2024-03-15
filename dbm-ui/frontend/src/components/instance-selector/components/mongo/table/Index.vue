@@ -45,8 +45,8 @@
     IValue,
     PanelListType,
     TableSetting,
-  } from '@components/instance-selector-new/Index.vue';
-  import { activePanelInjectionKey } from '@components/instance-selector-new/Index.vue';
+  } from '@components/instance-selector/Index.vue';
+  import { activePanelInjectionKey } from '@components/instance-selector/Index.vue';
 
   import { firstLetterToUpper } from '@utils';
 

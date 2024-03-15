@@ -70,7 +70,7 @@
   import InstanceSelector, {
     type InstanceSelectorValues,
     type PanelListType,
-  } from '@components/instance-selector-new/Index.vue';
+  } from '@components/instance-selector/Index.vue';
   import useValidtor from '@components/render-table/hooks/useValidtor';
 
   interface Props {

@@ -79,7 +79,7 @@
   </BkLoading>
 </template>
 <script setup lang="ts" generic="T extends IValue">
-  import type { TableSetting } from '@components/instance-selector-new/Index.vue';
+  import type { TableSetting } from '@components/instance-selector/Index.vue';
 
   import type { InstanceSelectorValues, IValue, PanelListType } from '../../Index.vue';
 

@@ -18,8 +18,8 @@ from django.utils.translation import ugettext as _
 from backend.components import DBPrivManagerApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_services.dbpermission.constants import AccountType
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
-from backend.db_services.mysql.permission.constants import AccountType
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 
 
@@ -122,7 +122,9 @@ class OpenAreaHandler:
         if not priv_ids:
             return []
 
-        account_type = AccountType.TENDB if config.cluster_type == ClusterType.TenDBCluster else AccountType.MYSQL
+        account_type = (
+            AccountType.TENDBCLUSTER if config.cluster_type == ClusterType.TenDBCluster else AccountType.MYSQL
+        )
         authorize_rules = DBPrivManagerApi.list_account_rules(
             {"bk_biz_id": config.bk_biz_id, "ids": priv_ids, "cluster_type": account_type}
         )

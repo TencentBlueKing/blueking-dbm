@@ -24,6 +24,7 @@ class MySQLAccountHandler(AccountHandler):
     """
     封装账号相关的处理操作
     """
+
     def has_high_risk_privileges(self, rule_sets):
         """
         - 判断是否有高危权限

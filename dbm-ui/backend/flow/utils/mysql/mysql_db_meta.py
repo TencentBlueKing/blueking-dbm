@@ -13,6 +13,7 @@ import logging
 
 from django.db.transaction import atomic
 
+from backend.components import DBPrivManagerApi
 from backend.components.mysql_partition.client import DBPartitionApi
 from backend.configuration.constants import DBType
 from backend.db_meta import api
