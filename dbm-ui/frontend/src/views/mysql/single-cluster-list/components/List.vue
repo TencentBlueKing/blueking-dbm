@@ -428,7 +428,7 @@
                     class="mr-8"
                     action-id="mysql_destroy"
                     permission={data.permission.mysql_destroy}
-                    disabled={data.operationDisabled}
+                    disabled={Boolean(data.operationTicketId)}
                     resource={data.id}
                     onClick={() => handleDeleteCluster(data)}>
                     { t('删除') }

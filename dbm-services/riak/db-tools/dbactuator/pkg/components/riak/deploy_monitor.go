@@ -191,7 +191,6 @@ func (i *DeployMonitorComp) GenerateCrondConfigYaml() (err error) {
 		logger.Error("generate crond runtime.yaml error: %s", err.Error())
 		return err
 	}
-	// todo mysql-crond 模版中jobs_user不是固定值
 	cmd := fmt.Sprintf(`sed -i "s/jobs_user: mysql/jobs_user: root/g" %s`, path.Join(cst.CrondPath, "runtime.yaml"))
 	_, err = osutil.ExecShellCommand(false, cmd)
 	if err != nil {

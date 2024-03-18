@@ -25,6 +25,7 @@ from backend.db_proxy.models import DBExtension
 from backend.flow.consts import DEFAULT_INSTANCE, ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, UserName
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
 from backend.ticket.constants import TicketType
+from backend.utils.string import base64_encode
 
 apply_list = [
     TicketType.MYSQL_SINGLE_APPLY.value,
@@ -297,17 +298,17 @@ class PayloadHandler(object):
 
         if redis_password and (not redis_password.isspace()):
             query_params["component"] = MySQLPrivComponent.REDIS.value
-            query_params["password"] = base64.b64encode(redis_password.encode("utf-8")).decode("utf-8")
+            query_params["password"] = base64_encode(redis_password)
             DBPrivManagerApi.modify_password(params=query_params)
 
         if redis_proxy_password and (not redis_proxy_password.isspace()):
             query_params["component"] = MySQLPrivComponent.REDIS_PROXY.value
-            query_params["password"] = base64.b64encode(redis_proxy_password.encode("utf-8")).decode("utf-8")
+            query_params["password"] = base64_encode(redis_proxy_password)
             DBPrivManagerApi.modify_password(params=query_params)
 
         if redis_proxy_admin_password and (not redis_proxy_admin_password.isspace()):
             query_params["component"] = MySQLPrivComponent.REDIS_PROXY_ADMIN.value
-            query_params["password"] = base64.b64encode(redis_proxy_admin_password.encode("utf-8")).decode("utf-8")
+            query_params["password"] = base64_encode(redis_proxy_admin_password)
             DBPrivManagerApi.modify_password(params=query_params)
 
         return True

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import json
 import logging
 import re
@@ -29,6 +28,7 @@ from backend.flow.utils.redis.redis_script_template import (
     redis_actuator_template,
     redis_fast_execute_script_common_kwargs,
 )
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("json")
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
@@ -102,9 +102,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
         if getattr(trans_data, "tendis_backup_info"):
             db_act_template["payload"]["backup_tasks"] = trans_data.tendis_backup_info
 
-        db_act_template["payload"] = str(
-            base64.b64encode(json.dumps(db_act_template["payload"]).encode("utf-8")), "utf-8"
-        )
+        db_act_template["payload"] = base64_encode(json.dumps(db_act_template["payload"]))
 
         FlowNode.objects.filter(root_id=kwargs["root_id"], node_id=node_id).update(hosts=exec_ips)
 
@@ -115,7 +113,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
-            "script_content": str(base64.b64encode(template.render(db_act_template).encode("utf-8")), "utf-8"),
+            "script_content": base64_encode(template.render(db_act_template)),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
             "timeout": 86400,

@@ -16,6 +16,7 @@ const SpiderPartitionCronLogTable = "spider_partition_cron_log"
 
 const online = "online"
 const offline = "offline"
+const offlinewithclu = "offlinewithclu"
 const extraTime = 15
 
 // MysqlManageLogsTable TODO
@@ -99,6 +100,7 @@ type DisablePartitionInput struct {
 	ClusterType string `json:"cluster_type"`
 	Operator    string `json:"operator"`
 	Ids         []int  `json:"ids"`
+	ClusterIds  []int  `json:"cluster_ids"`
 }
 
 // EnablePartitionInput TODO
@@ -106,6 +108,7 @@ type EnablePartitionInput struct {
 	ClusterType string `json:"cluster_type"`
 	Operator    string `json:"operator"`
 	Ids         []int  `json:"ids"`
+	ClusterIds  []int  `json:"cluster_ids"`
 }
 
 // ManageLog 审计分区管理行为

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import json
 import logging
 
@@ -30,6 +29,7 @@ from backend.flow.consts import (
 )
 from backend.flow.engine.exceptions import ServiceDoesNotApply
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("flow")
 
@@ -199,7 +199,7 @@ class CloudServiceActPayload(object):
             "password": redis_os_acc["os_password"],
         }
         paylod_json = json.dumps(paylod_obj)
-        payload_base64 = str(base64.b64encode(paylod_json.encode("utf-8")), "utf-8")
+        payload_base64 = base64_encode(paylod_json)
         return {
             "bk_dbm_nginx_url": nginx_url,
             "bk_dbm_cloud_id": self.cloud_id,

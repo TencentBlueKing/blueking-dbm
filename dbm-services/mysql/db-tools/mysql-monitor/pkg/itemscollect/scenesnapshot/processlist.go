@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cast"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/tarball"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/archivescenes"
 )
 
 type mysqlProcess struct {
@@ -45,7 +45,7 @@ func queryProcesslist(db *sqlx.DB) (res []*mysqlProcess, err error) {
 }
 
 func processListScene(db *sqlx.DB) error {
-	err := tarball.DeleteOld(processListName, sceneBase, 1)
+	err := archivescenes.DeleteOld(processListName, sceneBase, 1)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func processListScene(db *sqlx.DB) error {
 
 	table.Render()
 
-	err = tarball.Write(processListName, sceneBase, b.Bytes())
+	err = archivescenes.Write(processListName, sceneBase, b.Bytes())
 	if err != nil {
 		return err
 	}

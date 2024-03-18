@@ -33,8 +33,9 @@
         <BkCollapse v-model="activeCollapses">
           <Vuedraggable
             v-model="allRenderMenuGroupList"
-            item-key="id">
-            <template #item="{ element }">
+            item-key="id"
+            @end="handleDragEnd">
+            <template #item="{element}">
               <RenderMenuGroup
                 :id="element.id"
                 v-model:favor-map="favorRouteNameMap"
@@ -117,13 +118,12 @@
     },
   );
 
-  // 拖动排序
-  watch(allRenderMenuGroupList, () => {
+  const handleDragEnd = () => {
     userProfileStore.updateProfile({
       label: UserPersonalSettings.SPIDER_TOOLBOX_MENUS,
       values: allRenderMenuGroupList.value.map((item) => item.id),
     });
-  });
+  };
 </script>
 
 <style lang="less">

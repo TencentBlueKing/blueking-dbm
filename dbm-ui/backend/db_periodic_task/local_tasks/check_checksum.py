@@ -38,8 +38,7 @@ class Checksum:
             self.details[db].append(table)
 
 
-# @register_periodic_task(run_every=crontab(minute="*/1"))
-@register_periodic_task(run_every=crontab(day_of_week="2,3,4,5,6", hour="3", minute="53"))
+@register_periodic_task(run_every=crontab(day_of_week="0,3,4,5,6", hour="3", minute="53"))
 def auto_check_checksum():
     """检查每天的校验结果，存入db_report数据库"""
     # 主库执行校验任务，备库第二天上报校验结果
@@ -105,6 +104,9 @@ def check_cluster_checksum(cluster_id: int, start_time: datetime, end_time: date
             "start_time": datetime2str(log_start_time),
             "end_time": datetime2str(end_time),
             "filter": machine_filter,
+            "start": 0,
+            "size": 10000,
+            "sort_list": [["dtEventTimeStamp", "desc"]],
         }
     )
 
@@ -121,7 +123,6 @@ def check_cluster_checksum(cluster_id: int, start_time: datetime, end_time: date
         checksum = Checksum(slave_ip, slave_port)
         for hit in resp["hits"]["hits"]:
             log = json.loads(hit["_source"]["log"])
-            print(log)
             # 过滤出本集群本实例的日志
             if log["cluster_id"] == cluster.id:
                 if log["ip"] == slave_ip and log["port"] == slave_port:

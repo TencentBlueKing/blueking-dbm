@@ -13,6 +13,7 @@ import base64
 from Crypto.Cipher import AES
 
 from backend.core.encrypt.constants import AES_BLOCK_SIZE, AES_PADDING
+from backend.utils.string import base64_encode
 
 
 def pad_it(data):
@@ -38,7 +39,7 @@ def encrypt(data: str, aes_key: str) -> str:
     aes_key = aes_key.encode("utf-8")
     cipher = AES.new(aes_key, AES.MODE_CBC, aes_key)
     data = cipher.encrypt(pad_it(data).encode("utf-8"))
-    return base64.b64encode(data).decode("utf-8")
+    return base64_encode(data)
 
 
 def decrypt(data: str, aes_key: str) -> str:

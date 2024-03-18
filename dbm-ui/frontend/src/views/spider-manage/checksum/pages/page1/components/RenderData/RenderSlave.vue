@@ -52,10 +52,11 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import InstanceSelector, {
+  import InstanceSelector,  {
     type InstanceSelectorValues,
+    type IValue,
     type PanelListType,
-  } from '@components/instance-selector-new/Index.vue';
+  } from '@components/instance-selector/Index.vue';
 
   interface Props {
     clusterId: number;
@@ -101,8 +102,8 @@
   };
 
   // 批量选择
-  const handelInstanceSelectorChange = (payload: InstanceSelectorValues) => {
-    localSlaveInstanceList.value = payload.tendbcluster.map((item) => item.instance_address);
+  const handelInstanceSelectorChange = (payload: InstanceSelectorValues<IValue>) => {
+    localSlaveInstanceList.value = payload.tendbcluster.map(item => item.instance_address);
     emits('change', [...localSlaveInstanceList.value]);
   };
 

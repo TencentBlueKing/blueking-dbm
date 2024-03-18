@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 from typing import Any, Dict
 
 from django.utils.translation import ugettext as _
@@ -31,6 +30,7 @@ from backend.db_proxy.views.jobapi.serializers import (
     TransferFileSerializer,
 )
 from backend.db_proxy.views.views import BaseProxyPassViewSet
+from backend.utils.string import base64_encode
 
 
 class JobApiProxyPassViewSet(BaseProxyPassViewSet):
@@ -55,7 +55,7 @@ class JobApiProxyPassViewSet(BaseProxyPassViewSet):
         job_payloads: Dict[str, Any] = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": _("DBM 快速脚本执行"),
-            "script_content": str(base64.b64encode(validated_data["script_content"].encode("utf-8")), "utf-8"),
+            "script_content": base64_encode(validated_data["script_content"]),
             "script_language": validated_data["script_language"],
             "target_server": {"ip_list": validated_data["ip_list"]},
             "timeout": validated_data["timeout"],

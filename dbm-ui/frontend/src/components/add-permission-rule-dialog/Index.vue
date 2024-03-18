@@ -13,7 +13,8 @@
         :columns="columns"
         :container-height="600"
         :data-source="getPermissionRules"
-        settings />
+        :remote-pagination="false"
+        :settings="settings" />
     </div>
     <template #footer>
       <div style="display: flex">
@@ -51,6 +52,7 @@
 
   interface Props {
     clusterId: number,
+    dbType: 'mysql' | 'tendbcluster',
   }
 
   const props = defineProps<Props>();
@@ -70,6 +72,24 @@
   const ruleCheckedMap = ref<Record<number, boolean>>({});
 
   const checkedCount = computed(() => Object.keys(ruleCheckedMap.value).length);
+
+  const settings = {
+    fields: [
+      {
+        label: t('账号名称'),
+        field: 'user',
+      },
+      {
+        label: t('访问DB'),
+        field: 'access_db',
+      },
+      {
+        label: t('权限'),
+        field: 'privilege',
+      },
+    ],
+    checked: ['user', 'access_db', 'privilege'],
+  };
 
   const columns = [
     {
@@ -96,7 +116,7 @@
     {
       label: t('访问DB'),
       width: 300,
-      field: 'access-db',
+      field: 'access_db',
       showOverflowTooltip: true,
       sort: true,
       render: ({ data }: { data: IColumnData }) => {
@@ -121,7 +141,7 @@
           <div class="inner-row">
             <bk-checkbox
               class="mr-8"
-              modleValue={ruleCheckedMap.value[item.rule_id]}
+              model-value={ruleCheckedMap.value[item.rule_id]}
               onChange={(value: boolean) => handleDbChange(value, item.rule_id)} />
             <bk-tag>
               {item.access_db}
@@ -149,6 +169,24 @@
     },
   ];
 
+  watch(isShow, () => {
+    if (!isShow.value) {
+      return;
+    }
+
+    ruleCheckedMap.value = modleValue.value.reduce((result, id) => Object.assign(result, {
+      [id]: true,
+    }), {});
+
+    nextTick(() => {
+      tableRef.value.fetchData({
+        cluster_id: props.clusterId,
+      }, {
+        account_type: props.dbType,
+      });
+    });
+  });
+
   const cellClassCallback = (data: any) => (data.field ? `cell-${data.field}` : '');
 
   const handleToogleExpand = (user: string) => {
@@ -166,25 +204,6 @@
       delete ruleCheckedMap.value[ruleId];
     }
   };
-
-  watch(isShow, () => {
-    if (!isShow.value) {
-      return;
-    }
-    nextTick(() => {
-      tableRef.value.fetchData({
-        cluster_id: props.clusterId,
-      });
-    });
-  });
-
-  watch(modleValue, () => {
-    if (isShow.value) {
-      ruleCheckedMap.value = modleValue.value.reduce((result, id) => Object.assign(result, {
-        [id]: true,
-      }), {});
-    }
-  });
 
   const handleSubmit = () => {
     modleValue.value = Object.keys(ruleCheckedMap.value).map(item => Number(item));

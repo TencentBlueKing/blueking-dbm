@@ -489,6 +489,42 @@ func (m *DisablePartitionInput) DisablePartitionConfig() error {
 	return nil
 }
 
+// DisablePartitionConfigByCluster TODO
+func (m *DisablePartitionInput) DisablePartitionConfigByCluster() error {
+	if len(m.ClusterIds) == 0 {
+		return errno.ConfigIdIsEmpty
+	}
+	var tbName string
+	// 判断是mysql集群还是spider集群
+	var logTbName string
+	switch strings.ToLower(m.ClusterType) {
+	case Tendbha, Tendbsingle:
+		tbName = MysqlPartitionConfig
+		logTbName = MysqlManageLogsTable
+	case Tendbcluster:
+		tbName = SpiderPartitionConfig
+		logTbName = SpiderManageLogsTable
+	default:
+		return errors.New("不支持的db类型")
+	}
+	var list []string
+	for _, item := range m.ClusterIds {
+		list = append(list, strconv.FormatInt(int64(item), 10))
+
+	}
+	db := model.DB.Self.Table(tbName)
+	result := db.
+		Where(fmt.Sprintf("cluster_id in (%s)", strings.Join(list, ","))).
+		Update("phase", offlinewithclu)
+	if result.Error != nil {
+		return result.Error
+	}
+	for _, id := range m.Ids {
+		CreateManageLog(tbName, logTbName, id, "DisableByCluster", m.Operator)
+	}
+	return nil
+}
+
 // EnablePartitionConfig TODO
 func (m *EnablePartitionInput) EnablePartitionConfig() error {
 	if len(m.Ids) == 0 {
@@ -521,6 +557,42 @@ func (m *EnablePartitionInput) EnablePartitionConfig() error {
 	}
 	for _, id := range m.Ids {
 		CreateManageLog(tbName, logTbName, id, "Enable", m.Operator)
+	}
+	return nil
+}
+
+// EnablePartitionByCluster TODO
+func (m *EnablePartitionInput) EnablePartitionByCluster() error {
+	if len(m.ClusterIds) == 0 {
+		return errno.ConfigIdIsEmpty
+	}
+	var tbName string
+	// 判断是mysql集群还是spider集群
+	var logTbName string
+	switch strings.ToLower(m.ClusterType) {
+	case Tendbha, Tendbsingle:
+		tbName = MysqlPartitionConfig
+		logTbName = MysqlManageLogsTable
+	case Tendbcluster:
+		tbName = SpiderPartitionConfig
+		logTbName = SpiderManageLogsTable
+	default:
+		return errors.New("不支持的db类型")
+	}
+	var list []string
+	for _, item := range m.ClusterIds {
+		list = append(list, strconv.FormatInt(int64(item), 10))
+
+	}
+	db := model.DB.Self.Table(tbName)
+	result := db.
+		Where(fmt.Sprintf("cluster_id in (%s)", strings.Join(list, ","))).
+		Update("phase", online)
+	if result.Error != nil {
+		return result.Error
+	}
+	for _, id := range m.Ids {
+		CreateManageLog(tbName, logTbName, id, "EnableByCluster", m.Operator)
 	}
 	return nil
 }

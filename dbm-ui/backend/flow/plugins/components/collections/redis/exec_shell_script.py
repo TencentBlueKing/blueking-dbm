@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import logging
 import traceback
 from typing import List
@@ -25,6 +24,7 @@ from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BaseService, BkJobService
 from backend.flow.utils.redis.redis_context_dataclass import RedisDataStructureContext
 from backend.flow.utils.redis.redis_script_template import redis_fast_execute_script_common_kwargs
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("json")
 
@@ -56,7 +56,7 @@ class ExecuteShellScriptService(BkJobService):
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
-            "script_content": str(base64.b64encode(shell_command.encode("utf-8")), "utf-8"),
+            "script_content": base64_encode(shell_command),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
         }
@@ -292,7 +292,7 @@ class ExecuteShellReloadMetaService(BkJobService):
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
-            "script_content": str(base64.b64encode(shell_command.encode("utf-8")), "utf-8"),
+            "script_content": base64_encode(shell_command),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
         }
