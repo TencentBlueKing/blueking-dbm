@@ -14,6 +14,7 @@
 <template>
   <BkSideslider
     :before-close="handleClose"
+    class="rotate-setting-edit-rule"
     :is-show="isShow"
     :width="960"
     @closed="handleClose">
@@ -359,6 +360,12 @@
 </script>
 
 <style lang="less" scoped>
+  .rotate-setting-edit-rule {
+    :deep(.bk-sideslider-footer) {
+      box-shadow: none;
+    }
+  }
+
   .rotation-edit-rule {
     display: flex;
     width: 100%;

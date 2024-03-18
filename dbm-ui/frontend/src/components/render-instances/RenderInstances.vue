@@ -24,7 +24,7 @@
         <slot :data="inst"> {{ inst.ip }}:{{ inst.port }} </slot>
       </span>
       <BkTag v-if="inst.status === 'unavailable'">
-        {{ $t('不可用') }}
+        {{ t('不可用') }}
       </BkTag>
       <template v-if="index === 0">
         <BkPopover
@@ -38,7 +38,7 @@
               text
               theme="primary"
               @click="handleCopyIps">
-              {{ $t('复制IP') }}
+              {{ t('复制IP') }}
             </BkButton>
             <span class="copy-trigger-split" />
             <BkButton
@@ -46,7 +46,7 @@
               text
               theme="primary"
               @click="handleCopyInstances">
-              {{ $t('复制实例') }}
+              {{ t('复制实例') }}
             </BkButton>
           </template>
         </BkPopover>
@@ -58,7 +58,7 @@
         text
         theme="primary"
         @click="handleShowMore">
-        {{ $t('查看更多') }}
+        {{ t('查看更多') }}
       </BkButton>
     </template>
   </div>
@@ -72,17 +72,17 @@
         <BkButton
           class="mr-8"
           @click="handleCopyAbnormal">
-          {{ $t('复制异常实例') }}
+          {{ t('复制异常实例') }}
         </BkButton>
         <BkButton
           class="mr-8"
           @click="handleCopyAll">
-          {{ $t('复制全部实例') }}
+          {{ t('复制全部实例') }}
         </BkButton>
         <BkInput
           v-model="dialogState.keyword"
           clearable
-          :placeholder="$t('搜索实例')"
+          :placeholder="t('搜索实例')"
           type="search"
           @clear="fetchInstance"
           @enter="fetchInstance" />
@@ -99,7 +99,7 @@
     </div>
     <template #footer>
       <BkButton @click="handleClose">
-        {{ $t('关闭') }}
+        {{ t('关闭') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -200,7 +200,7 @@
   /**
    * 获取节点列表
    */
-  function fetchInstance() {
+  const fetchInstance = () => {
     nextTick(() => {
       tableRef.value.fetchData({
         instance_address: dialogState.keyword,
@@ -212,24 +212,24 @@
     });
   }
 
-  function handleShowMore() {
+  const handleShowMore = () => {
     dialogState.isShow = true;
     fetchInstance();
   }
 
-  function handleClearSearch() {
+  const handleClearSearch = () => {
     dialogState.keyword = '';
     fetchInstance();
   }
 
-  function handleRequestFinished(data: InstanceListData[]) {
+  const handleRequestFinished = (data: InstanceListData[]) => {
     dialogState.data = data;
   }
 
   /**
    * 复制异常实例
    */
-  function handleCopyAbnormal() {
+  const handleCopyAbnormal = () => {
     const abnormalInstances = dialogState.data
       .filter(item => item.status !== ClusterInstStatusKeys.RUNNING)
       .map(item => item.instance_address);
@@ -243,7 +243,7 @@
   /**
    * 复制所有实例
    */
-  function handleCopyAll() {
+  const handleCopyAll = () => {
     const instances = dialogState.data.map(item => item.instance_address);
     if (instances.length === 0) {
       messageWarn(t('没有可复制实例'));
@@ -252,7 +252,7 @@
     copy(instances.join('\n'));
   }
 
-  function handleCopyIps() {
+  const handleCopyIps = () => {
     const { data } = props;
     const ips = [...new Set(data.map(item => item.ip))];
     if (ips.length === 0) {
@@ -262,13 +262,13 @@
     copy(ips.join('\n'));
   }
 
-  function handleCopyInstances() {
+  const handleCopyInstances = () => {
     const { data } = props;
     const instances = data.map(item => `${item.ip}:${item.port}`);
     copy(instances.join('\n'));
   }
 
-  function handleClose() {
+  const handleClose = () => {
     dialogState.isShow = false;
     dialogState.keyword = '';
     dialogState.data = [];
