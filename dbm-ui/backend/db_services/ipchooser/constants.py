@@ -66,6 +66,15 @@ class BkOsType(str, StructuredEnum):
     SOLARIS = EnumField("Solaris", "Solaris")
     FREEBSD = EnumField("FreeBSD", "FreeBSD")
 
+    @classmethod
+    def db_type_to_os_type(cls, db_type: str):
+        from backend.configuration.constants import DBType
+
+        # 目前只有sqlserver使用windows机器，其他组件都是linux
+        if db_type == DBType.Sqlserver:
+            return cls.WINDOWS.value
+        return cls.LINUX.value
+
 
 class BkOsTypeCode(str, StructuredEnum):
     """蓝鲸操作系统代码"""

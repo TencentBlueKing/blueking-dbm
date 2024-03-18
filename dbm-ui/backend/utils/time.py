@@ -18,7 +18,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import DATE_PATTERN, DATETIME_PATTERN
-from backend.exceptions import AppBaseException, ValidationError
+from backend.exceptions import ValidationError
 
 
 def strptime(date_string: Optional[str], raise_if_none: bool = False) -> datetime.datetime:
@@ -152,7 +152,7 @@ def find_nearby_time(
     :param flag: 搜索类型, 1 --> 小于等于；0 ---> 大于等于
     """
     if not time_keys:
-        raise AppBaseException(_("搜索的时间序列为空"))
+        raise IndexError(_("搜索的时间序列为空"))
 
     # 统一转换成timestamp进行比较
     match_time = timezone2timestamp(match_time)

@@ -22,6 +22,7 @@ from backend.configuration.constants import AffinityEnum, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.constants import INT_MAX
 from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_services.ipchooser.constants import BkOsType
 
 logger = logging.getLogger("root")
 
@@ -114,6 +115,8 @@ class Spec(AuditedModel):
             ],
             "count": count,
             "affinity": affinity,
+            # TODO: 后续os_type字段是否需要存储到单个规格上，比如一个集群可能用到不同的操作系统？
+            "os_type": BkOsType.db_type_to_os_type(ClusterType.cluster_type_to_db_type(self.spec_cluster_type)),
         }
         if location_spec:
             # 将bk_sub_zone_id转成str，本身为空也不影响

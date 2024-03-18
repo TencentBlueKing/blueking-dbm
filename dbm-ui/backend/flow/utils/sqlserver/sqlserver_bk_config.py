@@ -11,7 +11,8 @@ specific language governing permissions and limitations under the License.
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.db_meta.enums import ClusterType
-from backend.flow.consts import ConfigTypeEnum, SqlserverVersion
+from backend.db_services.version.constants import SqlserverVersion
+from backend.flow.consts import ConfigTypeEnum
 
 
 def get_module_infos(bk_biz_id: int, db_module_id: int, cluster_type: ClusterType) -> dict:

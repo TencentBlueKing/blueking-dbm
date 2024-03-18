@@ -8,12 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from datetime import datetime
 from typing import Dict, List
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
 
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler as BaseClusterServiceHandler
+from backend.db_services.sqlserver.rollback.handlers import SQLServerRollbackHandler
 from backend.exceptions import ValidationError
 from backend.flow.utils.sqlserver import sqlserver_db_function
 from backend.utils.excel import ExcelHandler
@@ -42,19 +44,35 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
 
     @classmethod
     def import_db_struct(
-        cls, cluster_id: int, db_list: list, ignore_db_list: list, db_excel: InMemoryUploadedFile
+        cls,
+        cluster_id: int,
+        db_list: list,
+        ignore_db_list: list,
+        db_excel: InMemoryUploadedFile,
+        backup_logs: list = None,
+        restore_time: datetime = None,
     ) -> List[Dict]:
-        """根据集群ID，库表正则和导入的excel解析数据"""
+        """
+        根据集群ID(或者备份记录)和库表正则和导入的excel解析数据
+        """
         # 解析excel的构造DB数据
         db_data_list = ExcelHandler.paser(db_excel.file)
         header_map = {_("构造 DB 名称"): "db_name", _("构造后 DB 名称"): "target_db_name", _("已存在的 DB"): "rename_db_name"}
         for data in db_data_list:
             for header in header_map:
                 data[header_map[header]] = data.pop(header)
+        source_data_dbs = [data["db_name"] for data in db_data_list]
+
+        # 根据库正则查询匹配的库表
+        if backup_logs:
+            source_cluster_dbs = [data["db_name"] for data in backup_logs]
+        elif restore_time:
+            restore_backup_file = SQLServerRollbackHandler(cluster_id).query_latest_backup_log(restore_time)
+            source_cluster_dbs = [data["db_name"] for data in restore_backup_file["logs"]]
+        else:
+            source_cluster_dbs = cls.get_dbs_for_drs(cluster_id, db_list, ignore_db_list)
 
         # 校验excel的源DB是否和集群的DB匹配
-        source_cluster_dbs = cls.get_dbs_for_drs(cluster_id, db_list, ignore_db_list)
-        source_data_dbs = [data["db_name"] for data in db_data_list]
         if set(source_data_dbs) != set(source_cluster_dbs):
             raise ValidationError(_("导入的源DB不与集群DB匹配，请检查excel数据"))
 

@@ -213,7 +213,9 @@ class SQLServerSingleApplyFlowBuilder(BaseSQLServerTicketFlowBuilder):
             cluster_type=self.cluster_type,
         )
         # 校验配置是否存在
-        if not db_config.get("db_version") or not db_config.get("charset"):
+        if not db_config.get("db_version") or not db_config.get("charset") or not db_config.get("sync_type"):
             raise TicketParamsVerifyException(_("获取数据库字符集或版本失败，请检查获取参数, db_config: {}").format(db_config))
 
-        self.ticket.update_details(db_version=db_config.get("db_version"), charset=db_config.get("charset"))
+        self.ticket.update_details(
+            db_version=db_config["db_version"], charset=db_config["charset"], sync_type=db_config["sync_type"]
+        )
