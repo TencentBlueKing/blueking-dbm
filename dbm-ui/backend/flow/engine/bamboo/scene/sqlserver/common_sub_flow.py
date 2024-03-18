@@ -56,6 +56,7 @@ def install_sqlserver_sub_flow(
     uid: str,
     root_id: str,
     bk_biz_id: int,
+    bk_cloud_id: int,
     db_module_id: int,
     install_ports: list,
     clusters: List[SqlserverCluster],
@@ -68,6 +69,7 @@ def install_sqlserver_sub_flow(
     @param uid: 单据id
     @param root_id: 主流程的id
     @param bk_biz_id: 对应的业务id
+    @param bk_cloud_id: 云区域ID
     @param db_module_id: 对应的db模块id
     @param install_ports: 机器部署的端口列表，多实例场景
     @param clusters: 机器部署所关联的集群列表，多实例场景
@@ -79,6 +81,7 @@ def install_sqlserver_sub_flow(
     global_data = {
         "uid": uid,
         "bk_biz_id": bk_biz_id,
+        "bk_cloud_id": bk_cloud_id,
         "db_module_id": db_module_id,
         "install_ports": install_ports,
         "clusters": [asdict(i) for i in clusters],

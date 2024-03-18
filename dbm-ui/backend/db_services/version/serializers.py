@@ -13,7 +13,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
 from backend.db_package.constants import PackageType
-from backend.flow.consts import SqlserverVersion
+from backend.db_services.version.constants import SqlserverVersion
 
 
 class ListVersionSerializer(serializers.Serializer):

@@ -80,6 +80,7 @@ class SqlserverSingleApplyFlow(BaseFlow):
                     uid=self.data["uid"],
                     root_id=self.root_id,
                     bk_biz_id=int(self.data["bk_biz_id"]),
+                    bk_cloud_id=int(self.data["bk_cloud_id"]),
                     db_module_id=int(self.data["db_module_id"]),
                     install_ports=sub_flow_context["install_ports"],
                     clusters=[SqlserverCluster(**i) for i in sub_flow_context["clusters"]],

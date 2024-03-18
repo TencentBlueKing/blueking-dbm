@@ -43,7 +43,7 @@ class SQLServerDataMigrateViewSet(viewsets.SystemViewSet):
         return Response({"ticket_id": ticket.id})
 
     @common_swagger_auto_schema(
-        operation_summary=_("手动断开同步"),
+        operation_summary=_("强制终止"),
         request_body=ForceFailedMigrateSerializer(),
         tags=[SWAGGER_TAG],
     )

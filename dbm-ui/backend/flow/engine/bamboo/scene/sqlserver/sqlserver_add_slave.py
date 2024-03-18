@@ -80,8 +80,9 @@ class SqlserverAddSlaveFlow(BaseFlow):
             sub_flow_context["install_ports"] = [i["port"] for i in sub_flow_context["clusters"]]
 
             # 已第一集群id的db_module_id/db_version 作为本次的安装依据，因为平台上同机相关联的集群的模块id/主版本都是一致的
-            sub_flow_context["db_module_id"] = Cluster.objects.get(id=info["cluster_ids"][0]).db_module_id
-            sub_flow_context["db_version"] = Cluster.objects.get(id=info["cluster_ids"][0]).major_version
+            cluster = Cluster.objects.get(id=info["cluster_ids"][0])
+            sub_flow_context["db_module_id"] = cluster.db_module_id
+            sub_flow_context["db_version"] = cluster.major_version
             sub_flow_context["is_first"] = False
 
             # 声明子流程
@@ -93,6 +94,7 @@ class SqlserverAddSlaveFlow(BaseFlow):
                     uid=self.data["uid"],
                     root_id=self.root_id,
                     bk_biz_id=int(self.data["bk_biz_id"]),
+                    bk_cloud_id=int(cluster.bk_cloud_id),
                     db_module_id=sub_flow_context["db_module_id"],
                     install_ports=sub_flow_context["install_ports"],
                     clusters=[SqlserverCluster(**i) for i in sub_flow_context["clusters"]],

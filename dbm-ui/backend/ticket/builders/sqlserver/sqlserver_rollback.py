@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_services.sqlserver.rollback.handlers import SQLServerRollbackHandler
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.common.field import DBTimezoneField
@@ -18,6 +19,7 @@ from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilde
 from backend.ticket.builders.sqlserver.sqlserver_data_migrate import SQLServerRenameFlowParamBuilder
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow, Ticket
+from backend.utils.time import str2datetime
 
 
 class SQLServerRollbackDetailSerializer(SQLServerBaseOperateDetailSerializer):
@@ -41,7 +43,7 @@ class SQLServerRollbackDetailSerializer(SQLServerBaseOperateDetailSerializer):
         db_list = serializers.ListField(help_text=_("库正则"), child=serializers.CharField(), required=False)
         ignore_db_list = serializers.ListField(help_text=_("忽略库正则"), child=serializers.CharField(), required=False)
         rename_infos = serializers.ListSerializer(help_text=_("迁移DB信息"), child=RenameInfoSerializer())
-        restore_backup_file = BackupFileSerializer(help_text=_("备份记录"))
+        restore_backup_file = BackupFileSerializer(help_text=_("备份记录"), required=False)
         restore_time = DBTimezoneField(help_text=_("回档时间"), required=False)
 
     infos = serializers.ListSerializer(help_text=_("迁移信息列表"), child=RollbackInfoSerializer())
@@ -51,6 +53,15 @@ class SQLServerRollbackDetailSerializer(SQLServerBaseOperateDetailSerializer):
         """验证库表数据库的数据"""
         # TODO: 验证target_db_name如果在目标集群存在，则rename_db_name不为空
         # TODO: 验证所有的rename_db_name一定不在目标集群存在
+
+        # 如果是指定回档时间，则查出最近的备份记录
+        for info in attrs["infos"]:
+            if not info.get("restore_time"):
+                continue
+            rollback_time = str2datetime(info["restore_time"])
+            restore_backup_file = SQLServerRollbackHandler(info["src_cluster"]).query_latest_backup_log(rollback_time)
+            info["restore_backup_file"] = restore_backup_file
+
         super().validate(attrs)
         return attrs
 

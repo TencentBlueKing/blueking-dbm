@@ -75,3 +75,17 @@ class PredixyVersion(str, StructuredEnum):
     """Predixy版本枚举"""
 
     PredixyLatest = EnumField("Predixy-latest", _("PredixyLatest"))
+
+
+class SqlserverVersion(str, StructuredEnum):
+    """
+    定义Sqlserver支持版本名称
+    """
+
+    MSSQL_Enterprise_2008 = EnumField("MSSQL_Enterprise_2008", _("2008企业版"))
+    MSSQL_Enterprise_2012 = EnumField("MSSQL_Enterprise_2012", _("2012企业版"))
+    MSSQL_Enterprise_2014 = EnumField("MSSQL_Enterprise_2014", _("2014企业版"))
+    MSSQL_Enterprise_2016 = EnumField("MSSQL_Enterprise_2016", _("2016企业版"))
+    MSSQL_Enterprise_2017 = EnumField("MSSQL_Enterprise_2017", _("2017企业版"))
+    MSSQL_Enterprise_2019 = EnumField("MSSQL_Enterprise_2019", _("2019企业版"))
+    MSSQL_Enterprise_2022 = EnumField("MSSQL_Enterprise_2022", _("2022企业版"))

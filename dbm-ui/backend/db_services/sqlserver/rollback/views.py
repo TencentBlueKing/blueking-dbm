@@ -18,8 +18,11 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_services.sqlserver.cluster.handlers import ClusterServiceHandler
 from backend.db_services.sqlserver.rollback.handlers import SQLServerRollbackHandler
 from backend.db_services.sqlserver.rollback.serializers import (
+    ImportDBStructByBackupResponseSerializer,
+    ImportDBStructByBackupSerializer,
     QueryBackupLogsResponseSerializer,
     QueryBackupLogsSerializer,
     QueryDbsByBackupLogResponseSerializer,
@@ -78,3 +81,14 @@ class SQLServerRollbackViewSet(viewsets.SystemViewSet):
         data = self.params_validate(self.get_serializer_class())
         cluster_id = data.pop("cluster_id")
         return Response(SQLServerRollbackHandler(cluster_id).query_dbs_by_backup_log(**data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("导入构造DB数据(备份信息校验)"),
+        request_body=ImportDBStructByBackupSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: ImportDBStructByBackupResponseSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=ImportDBStructByBackupSerializer)
+    def import_db_struct_with_backup(self, request, bk_biz_id):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(ClusterServiceHandler(bk_biz_id).import_db_struct(**data))
