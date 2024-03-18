@@ -91,6 +91,7 @@ class RedisDbmonSceneFlow(object):
         self.data (Dict):
         {
           "bk_biz_id":"",
+          "bk_cloud_id":0,
           "cluster_ids":[1,2,3],
           "is_stop": True/False, # 是否停止dbmon
         }

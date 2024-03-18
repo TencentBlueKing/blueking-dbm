@@ -19,6 +19,7 @@ from .redis_cluster_slave_rep import RedisClusterSlaveReplaceJob, StorageRepLink
 from .redis_dbmon import ClusterDbmonInstallAtomJob, ClusterIPsDbmonInstallAtomJob
 from .redis_install import RedisBatchInstallAtomJob
 from .redis_makesync import RedisMakeSyncAtomJob
+from .redis_maxmemory_set import ClusterMaxmemorySetAtomJob
 from .redis_repair import RedisLocalRepairAtomJob
 from .redis_shutdown import RedisBatchShutdownAtomJob
 from .redis_switch import RedisClusterSwitchAtomJob

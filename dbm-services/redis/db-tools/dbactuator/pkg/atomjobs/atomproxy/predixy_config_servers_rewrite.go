@@ -85,6 +85,9 @@ func (job *PredixyConfServersRewrite) Run() (err error) {
 	if err != nil {
 		return nil
 	}
+	// 先sleep 100s,便于proxy将一些 redis node标记为fail
+	job.runtime.Logger.Error("sleep 100s for proxy mark certain Redis nodes as failed")
+	time.Sleep(100 * time.Second)
 	// 获取 predixy running servers信息
 	infoServers, err := myredis.GetPredixyInfoServersDecoded(job.params.PredixyIP, job.params.PredixyPort, password)
 	if err != nil {
