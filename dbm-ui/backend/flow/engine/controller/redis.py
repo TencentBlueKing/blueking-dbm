@@ -17,6 +17,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import Redis
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_instance_shutdown import (
     RedisClusterInstanceShutdownSceneFlow,
 )
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_maxmemory_set import RedisClusterMaxmemorySetSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_compair import RedisClusterMigrateCompairFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_load import RedisClusterMigrateLoadFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_precheck import RedisClusterMigratePrecheckFlow
@@ -327,3 +328,10 @@ class RedisController(BaseController):
         """
         flow = RedisProxyVersionUpgradeSceneFlow(root_id=self.root_id, data=self.ticket_data)
         flow.batch_clusters_proxys_upgrade()
+
+    def redis_cluster_maxmemory_set(self):
+        """
+        tendis 集群maxmemory设置
+        """
+        flow = RedisClusterMaxmemorySetSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.batch_clusters_maxmemory_set()

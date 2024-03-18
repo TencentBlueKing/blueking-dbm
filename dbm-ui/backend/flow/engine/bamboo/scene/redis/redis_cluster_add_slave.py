@@ -20,10 +20,11 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.flow.consts import DEFAULT_REDIS_START_PORT, SyncType
+from backend.flow.consts import DEFAULT_REDIS_START_PORT, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterPredixyConfigServersRewriteAtomJob
+from backend.flow.engine.bamboo.scene.redis.atom_jobs.access_manager import ClusterNodesDnsManagerAtomJob
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_install import RedisBatchInstallAtomJob
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_makesync import RedisMakeSyncAtomJob
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_shutdown import RedisBatchShutdownAtomJob
@@ -124,9 +125,17 @@ class RedisClusterAddSlaveFlow(object):
             cluster_kwargs.cluster["created_by"] = self.data["created_by"]
 
             newslave_to_master = {}
+            master_ips = []
+            new_slave_ips = []
+            old_slave_ips = []
             for host_pair in input_item["pairs"]:
                 master_ip = host_pair["redis_master"]["ip"]
+                master_ips.append(master_ip)
+                old_slave_ip = cluster_info["master_slave_map"].get(master_ip)
+                if old_slave_ip:
+                    old_slave_ips.append(old_slave_ip)
                 for new_slave_item in host_pair["redis_slave"]:
+                    new_slave_ips.append(new_slave_item["ip"])
                     for port in cluster_info["master_ports"][master_ip]:
                         newslave_to_master[
                             "{}{}{}".format(new_slave_item["ip"], IP_PORT_DIVIDER, port)
@@ -212,6 +221,21 @@ class RedisClusterAddSlaveFlow(object):
                 act_component_code=RedisDBMetaComponent.code,
                 kwargs=asdict(cluster_kwargs),
             )
+            # 更新集群nodes域名
+            nodes_dns_sub = ClusterNodesDnsManagerAtomJob(
+                root_id=self.root_id,
+                ticket_data=self.data,
+                act_kwargs=deepcopy(cluster_kwargs),
+                param={
+                    "op_type": DnsOpType.ADD_AND_DELETE.value,
+                    "cluster_id": int(input_item["cluster_id"]),
+                    "add_ips": new_slave_ips,
+                    "del_ips": old_slave_ips,
+                    "port": DEFAULT_REDIS_START_PORT,
+                },
+            )
+            if nodes_dns_sub:
+                sub_pipeline.add_sub_pipeline(nodes_dns_sub)
 
             # #### 下架旧实例 ############################################################################
             child_pipelines = []

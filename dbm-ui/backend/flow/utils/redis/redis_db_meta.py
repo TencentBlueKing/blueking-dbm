@@ -29,6 +29,7 @@ from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClus
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
 from backend.db_meta.enums import (
     AccessLayer,
+    ClusterEntryRole,
     ClusterEntryType,
     ClusterPhase,
     ClusterType,
@@ -50,13 +51,15 @@ from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.db_services.redis.slots_migrate.models import TbTendisSlotsMigrateRecord
 from backend.db_services.redis.util import (
+    is_redis_cluster_protocal,
     is_redis_instance_type,
     is_tendisplus_instance_type,
     is_tendisssd_instance_type,
 )
-from backend.flow.consts import DEFAULT_DB_MODULE_ID, InstanceStatus
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, DEFAULT_REDIS_START_PORT, InstanceStatus
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.dns_manage import DnsManage
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 from backend.ticket.constants import TicketType
 
@@ -882,6 +885,51 @@ class RedisDBMeta(object):
             src_host.append({"host_id": inst.machine.bk_host_id, "ip": inst.machine.ip, "port": inst.port})
         return src_host
 
+    def dts_switch_update_cluster_entry(self, cluster: Cluster):
+        """
+        dts切换,更新集群的 cluster node_entry 信息
+        """
+        cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
+        nodes_domain = "nodes." + cluster.immute_domain
+        storageinstances = cluster.storageinstance_set.all()
+        if is_redis_cluster_protocal(cluster.cluster_type):
+            if not cluster_entry:
+                # 应该存在的,没存在,则新增
+                cluster_entry = ClusterEntry.objects.create(
+                    cluster=cluster,
+                    cluster_entry_type=ClusterEntryType.DNS,
+                    entry=nodes_domain,
+                    creator=cluster.creator,
+                    role=ClusterEntryRole.NODE_ENTRY,
+                )
+                cluster_entry.storageinstance_set.add(*storageinstances)
+                cluster_entry.save()
+                logger.info(
+                    _("redis集群:%s cluster_type:%s 新增 %s cluster_entry").format(
+                        cluster.immute_domain, cluster.cluster_type, nodes_domain
+                    )
+                )
+            else:
+                # 应该存在的,确实存在,则更新
+                cluster_entry.storageinstance_set.clear()
+                cluster_entry.storageinstance_set.add(*storageinstances)
+                cluster_entry.save()
+                logger.info(
+                    _("redis集群:%s cluster_type:%s 更新 cluster_entry:%s").format(
+                        cluster.immute_domain, cluster.cluster_type, cluster_entry.entry
+                    )
+                )
+        else:
+            if cluster_entry:
+                #  不该存在的,存在了,则删除
+                cluster_entry.storageinstance_set.clear()
+                cluster_entry.delete()
+                logger.info(
+                    _("redis集群:%s cluster_type:%s 删除 cluster_entry:%s").format(
+                        cluster.immute_domain, cluster.cluster_type, nodes_domain
+                    )
+                )
+
     def dts_online_switch_swap_two_cluster_storage(self):
         """
         dts在线切换,交换两个集群的storageinstances
@@ -996,6 +1044,10 @@ class RedisDBMeta(object):
                 dst_proxy.machine.save(update_fields=["machine_type"])
             update_cluster_type(dst_proxyinstances, src_cluster_info["cluster_type"])
 
+            # 更新cluster node_entry
+            self.dts_switch_update_cluster_entry(src_cluster)
+            self.dts_switch_update_cluster_entry(dst_cluster)
+
             # 交换 cc module
             logger.info(_("dts 交换两个集群的 cc module"))
             logger.info(
@@ -1015,6 +1067,41 @@ class RedisDBMeta(object):
             RedisCCTopoOperator(dst_cluster).transfer_instances_to_cluster_module(dst_proxyinstances)
 
         return True
+
+    def dts_online_switch_update_nodes_domain(self):
+        """
+        dts在线切换,更新两个集群的nodes域名
+        """
+        src_cluster_id: int = self.cluster["src_cluster_id"]
+        dst_cluster_id: int = self.cluster["dst_cluster_id"]
+        for cluster_id in [src_cluster_id, dst_cluster_id]:
+            cluster = Cluster.objects.get(id=cluster_id)
+            cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
+            nodes_domain = "nodes." + cluster.immute_domain
+            dns_manage = DnsManage(bk_biz_id=cluster.bk_biz_id, bk_cloud_id=cluster.bk_cloud_id)
+            if cluster_entry:
+                # 该集群存在 nodes 域名的映射关系
+                nodes_domain = cluster_entry.entry
+                exists_insts = []
+                for row in dns_manage.get_domain(domain_name=cluster_entry.entry):
+                    exists_insts.append("{}#{}".format(row["ip"], row["port"]))
+                # 先删除
+                if exists_insts:
+                    dns_manage.recycle_domain_record(del_instance_list=exists_insts)
+                # 再添加
+                inst_ips = set()
+                for row in cluster.storageinstance_set.all():
+                    inst_ips.add(row.machine.ip)
+                new_insts = [f"{ip}#{DEFAULT_REDIS_START_PORT}" for ip in inst_ips]
+                dns_manage.create_domain(instance_list=new_insts, add_domain_name=nodes_domain)
+            else:
+                # 该集群不应该存在 nodes域名映射关系
+                # 删除
+                exists_insts = []
+                for row in dns_manage.get_domain(domain_name=cluster_entry.entry):
+                    exists_insts.append("{}#{}".format(row["ip"], row["port"]))
+                if exists_insts:
+                    dns_manage.recycle_domain_record(del_instance_list=exists_insts)
 
     def redis_cluster_version_update(self):
         """

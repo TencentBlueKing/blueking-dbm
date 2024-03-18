@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import AppCache
+from backend.db_services.redis.util import is_redis_cluster_protocal
 from backend.flow.consts import SyncType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -92,7 +93,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
         act_kwargs.cluster["bk_biz_id"] = str(act_kwargs.cluster["bk_biz_id"])
         RedisSSDMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
         act_kwargs.cluster["bk_biz_id"] = int(act_kwargs.cluster["bk_biz_id"])
-    elif act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:
+    elif is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
         RedisClusterMakeSyncAtomJob(sub_pipeline=sub_pipeline, sub_kwargs=act_kwargs, params=params)
     else:
         raise Exception("unsupport cluster type 4 make sync {}".format(params["cluster_type"]))

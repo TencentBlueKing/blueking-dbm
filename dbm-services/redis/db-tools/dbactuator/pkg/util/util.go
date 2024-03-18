@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 
+	"github.com/dustin/go-humanize"
 	"golang.org/x/sys/unix"
 )
 
@@ -302,4 +304,13 @@ func AddrToIpPort(addr string) (ip string, port int, err error) {
 func ToString(param interface{}) string {
 	ret, _ := json.Marshal(param)
 	return string(ret)
+}
+
+// SizeToHumanStr 将字节大小转换为人类可读的字符串
+// 如: 1024 -> 1KiB, 1024*1024 -> 1MiB, 1024*1024*1024 -> 1GiB
+func SizeToHumanStr(ssize int64) string {
+	if ssize >= 0 {
+		return "+" + humanize.BigIBytes((&big.Int{}).SetInt64(ssize))
+	}
+	return "-" + humanize.BigIBytes((&big.Int{}).SetInt64(-ssize))
 }

@@ -15,8 +15,9 @@ from typing import Dict, Optional
 from bamboo_engine.builder import SubProcess
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.models import ClusterEntry
-from backend.flow.consts import AccessType, DnsOpType
+from backend.db_meta.enums import ClusterEntryRole
+from backend.db_meta.models import Cluster, ClusterEntry
+from backend.flow.consts import DEFAULT_REDIS_START_PORT, AccessType, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.common.clb_manage import RedisClbManageComponent
 from backend.flow.plugins.components.collections.common.polaris_manage import RedisPolarisManageComponent
@@ -66,6 +67,59 @@ def DNSManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) 
         )
 
     return dns_sub_pipeline.build_sub_process(sub_name=_("域名变更子流程"))
+
+
+def ClusterNodesDnsManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> Optional[SubProcess]:
+    """
+    集群节点域名变更
+    param: {
+        "op_type": "add_and_delete",
+        "cluster_id": 11,
+        "add_ips": ["a.a.a.a", "b.b.b.b"], # 可为空
+        "del_ips": ["c.c.c.c", "d.d.d.d","e.e.e.e"], # 可为空
+        "port": 30000,
+    }
+    """
+    cluster: Cluster = None
+    try:
+        cluster = Cluster.objects.get(id=param["cluster_id"])
+    except Exception:
+        return None
+    node_entry = ClusterEntry.objects.filter(cluster__id=cluster.id, role=ClusterEntryRole.NODE_ENTRY.value).first()
+    # nodeEntry 为空 or nodeEntry.entry 不是 nodes.开头的域名
+    if not node_entry or not node_entry.entry.startswith("nodes."):
+        return None
+    nodes_domain = node_entry.entry
+
+    # add_ips 和 del_ips 不能同时为空
+    if not param["add_ips"] and not param["del_ips"]:
+        raise Exception(_("add_ips 和 del_ips 不能同时为空"))
+
+    dns_sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+    if param["op_type"] == DnsOpType.ADD_AND_DELETE.value and param["add_ips"]:
+        dns_kwargs = DnsKwargs(
+            dns_op_type=DnsOpType.CREATE,
+            add_domain_name=nodes_domain,
+            dns_op_exec_port=param.get("port", DEFAULT_REDIS_START_PORT),
+        )
+        act_kwargs.exec_ip = param["add_ips"]
+        dns_sub_pipeline.add_act(
+            act_name=_("添加记录{}").format(nodes_domain),
+            act_component_code=RedisDnsManageComponent.code,
+            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+        )
+    if param["op_type"] == DnsOpType.ADD_AND_DELETE.value and param["del_ips"]:
+        dns_kwargs = DnsKwargs(
+            dns_op_type=DnsOpType.RECYCLE_RECORD,
+            dns_op_exec_port=param.get("port", DEFAULT_REDIS_START_PORT),
+        )
+        act_kwargs.exec_ip = param["del_ips"]
+        dns_sub_pipeline.add_act(
+            act_name=_("删除记录{}").format(nodes_domain),
+            act_component_code=RedisDnsManageComponent.code,
+            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+        )
+    return dns_sub_pipeline.build_sub_process(sub_name=_("更新域名{}").format(nodes_domain))
 
 
 def CLBManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> Optional[SubProcess]:

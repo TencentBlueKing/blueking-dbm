@@ -224,6 +224,11 @@ const (
 	TendisPlusFlushAllRename = "cleanall"
 )
 
+// redis maxmemory-policy
+const (
+	PolicyNoeviction = "noeviction"
+)
+
 // IsClusterDbType 存储端是否是cluster类型
 func IsClusterDbType(dbType string) bool {
 	if dbType == TendisTypePredixyRedisCluster ||

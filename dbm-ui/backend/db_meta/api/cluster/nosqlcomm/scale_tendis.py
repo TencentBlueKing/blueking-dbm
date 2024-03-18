@@ -16,7 +16,14 @@ from typing import Dict, List
 from django.db import transaction
 
 from backend.db_meta.api import common
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, InstanceStatus, SyncType
+from backend.db_meta.enums import (
+    ClusterEntryRole,
+    ClusterType,
+    InstanceInnerRole,
+    InstanceRole,
+    InstanceStatus,
+    SyncType,
+)
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
@@ -69,6 +76,11 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
             logger.info("create link info {} -> {}".format(ejector_obj, receiver_obj))
         # 修改表 db_meta_storageinstance_cluster
         cluster.storageinstance_set.add(*receiver_objs)
+
+        # 更新 nodes. 域名对应的 cluster_entry信息
+        cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
+        if cluster_entry and cluster_entry.entry.startswith("nodes."):
+            cluster_entry.storageinstance_set.add(*receiver_objs)
 
         RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
         logger.info("cluster {} add storageinstance {}".format(cluster.immute_domain, receiver_objs))

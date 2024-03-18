@@ -1358,10 +1358,17 @@ class RedisActPayload(object):
     def redis_shutdown_4_scene(self, **kwargs) -> dict:
         params = kwargs["params"]
 
+        ip = params["exec_ip"]
+        ports = params["shutdown_ports"]
+
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Shutdown.value,
-            "payload": {"ip": params["exec_ip"], "ports": params["shutdown_ports"]},
+            "payload": {
+                "ip": ip,
+                "ports": ports,
+                "is_all_instances_shutdown": self.__is_all_instances_shutdown(ip, ports),
+            },
         }
 
     # 调用redis_capturer工具统计请求
@@ -2110,5 +2117,19 @@ class RedisActPayload(object):
                 "predixy_ip": params["predixy_ip"],
                 "predixy_port": params["predixy_port"],
                 "to_remove_servers": params.get("to_remove_servers", []),
+            },
+        }
+
+    def redis_maxmemory_dynamically_set(self, **kwargs) -> dict:
+        """
+        Redis动态设置 maxmemory
+        """
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.MAXMEMORY_DYNAMICALLY_SET.value,
+            "payload": {
+                "ip": params["ip"],
+                "ports": params["ports"],
             },
         }
