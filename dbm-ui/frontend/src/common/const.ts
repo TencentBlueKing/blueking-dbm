@@ -27,7 +27,7 @@ export enum DBTypes {
   SPIDER = 'spider',
   RIAK = 'riak',
   MONGODB = 'mongodb',
-  SQLSERVER = 'sqlserver'
+  SQLSERVER = 'sqlserver',
 }
 export type DBTypesValues = `${DBTypes}`;
 
@@ -236,8 +236,8 @@ export enum TicketTypes {
   PULSAR_SHRINK = 'PULSAR_SHRINK',
   PULSAR_SCALE_UP = 'PULSAR_SCALE_UP',
   REDIS_CLUSTER_CUTOFF = 'REDIS_CLUSTER_CUTOFF', // redis 整机替换
-  REDIS_PROXY_SCALE_UP = 'PROXY_SCALE_UP', // redis 接入层扩容
-  REDIS_PROXY_SCALE_DOWN = 'PROXY_SCALE_DOWN', // redis 接入层缩容
+  REDIS_PROXY_SCALE_UP = 'REDIS_PROXY_SCALE_UP', // redis 接入层扩容
+  REDIS_PROXY_SCALE_DOWN = 'REDIS_PROXY_SCALE_DOWN', // redis 接入层缩容
   REDIS_SCALE_UPDOWN = 'REDIS_SCALE_UPDOWN', // redis 集群容量变更
   REDIS_SCALE_UP = 'REDIS_SCALE_UP', // redis 存储层扩容
   REDIS_SCALE_DOWN = 'REDIS_SCALE_DOWN', // redis 存储层缩容
@@ -377,7 +377,7 @@ export const sqlServerType = {
   },
 };
 
-export type SqlServerTypeString = keyof typeof sqlServerType
+export type SqlServerTypeString = keyof typeof sqlServerType;
 
 export const bigDataType = {
   [TicketTypes.ES_APPLY]: {
