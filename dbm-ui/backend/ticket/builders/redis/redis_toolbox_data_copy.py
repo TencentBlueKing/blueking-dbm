@@ -16,7 +16,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.enums import DtsCopyType
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
     ClusterValidateMixin,
@@ -25,7 +25,7 @@ from backend.ticket.builders.redis.base import (
 from backend.ticket.constants import RemindFrequencyType, SyncDisconnectSettingType, TicketType, WriteModeType
 
 
-class RedisDataCopyDetailSerializer(serializers.Serializer):
+class RedisDataCopyDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """数据复制"""
 
     class SyncDisconnectSettingSerializer(serializers.Serializer):

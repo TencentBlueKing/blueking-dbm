@@ -20,14 +20,14 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
 from backend.utils.time import str2datetime
 
 
-class RedisFixPointMakeDetailSerializer(serializers.Serializer):
+class RedisFixPointMakeDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """定点构造"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):

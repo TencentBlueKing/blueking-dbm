@@ -15,12 +15,12 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
-class RedisScaleUpDownDetailSerializer(serializers.Serializer):
+class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """redis集群容量变更"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):

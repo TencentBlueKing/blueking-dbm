@@ -23,7 +23,7 @@ class InstanceRole(str, StructuredEnum):
     BACKEND_REPEATER = EnumField("backend_repeater", _("backend_repeater"))
     BACKEND_SLAVE = EnumField("backend_slave", _("backend_slave"))
 
-    # mysql 集群
+    # tendbcluster 集群
     REMOTE_MASTER = EnumField("remote_master", _("remote_master"))
     REMOTE_REPEATER = EnumField("remote_repeater", _("remote_repeater"))
     REMOTE_SLAVE = EnumField("remote_slave", _("remote_slave"))
@@ -37,6 +37,7 @@ class InstanceRole(str, StructuredEnum):
     ES_MASTER = EnumField("es_master", _("es_master"))
     ES_CLIENT = EnumField("es_client", _("es_client"))
 
+    # kafka
     BROKER = EnumField("broker", _("broker"))
     ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
 

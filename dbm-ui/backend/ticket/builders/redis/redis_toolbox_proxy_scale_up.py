@@ -17,14 +17,14 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
 
 
-class ProxyScaleUpDetailSerializer(serializers.Serializer):
+class ProxyScaleUpDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """proxy扩容"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):

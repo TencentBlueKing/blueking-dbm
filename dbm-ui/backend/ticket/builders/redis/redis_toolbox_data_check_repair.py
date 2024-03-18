@@ -15,13 +15,13 @@ from rest_framework import serializers
 from backend.db_services.redis.redis_dts.enums import DtsDataRepairMode, ExecuteMode
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class RedisDataCheckRepairDetailSerializer(serializers.Serializer):
+class RedisDataCheckRepairDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """数据校验与修复"""
 
     class InfoSerializer(serializers.Serializer):
