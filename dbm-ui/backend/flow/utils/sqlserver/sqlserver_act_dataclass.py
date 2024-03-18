@@ -182,6 +182,32 @@ class DownloadBackupFileKwargs:
 
 
 @dataclass()
+class CreateRandomJobUserKwargs:
+    """
+    定义执行sqlserver_add_job_user活动节点的私有变量结构体
+    @attributes cluster_ids 集群id列表
+    @attributes user 随机账号名称
+    @attributes sid 随机账号sid
+    """
+
+    cluster_ids: list
+    sid: str
+    other_instances: list = field(default_factory=list)
+
+
+@dataclass()
+class DropRandomJobUserKwargs:
+    """
+    定义执行sqlserver_add_job_user活动节点的私有变量结构体
+    @attributes cluster_ids 集群id列表
+    @attributes user 随机账号名称
+    """
+
+    cluster_ids: list
+    other_instances: list = field(default_factory=list)
+
+
+@dataclass()
 class SqlserverDBConstructContext:
     """
     定义数据构造的可交互上下文dataclass类

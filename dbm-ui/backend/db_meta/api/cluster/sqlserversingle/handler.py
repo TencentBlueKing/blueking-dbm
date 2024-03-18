@@ -84,7 +84,6 @@ class SqlserverSingleClusterHandler(ClusterHandler):
                     storage=storage,
                     creator=creator,
                     bk_cloud_id=bk_cloud_id,
-                    time_zone=time_zone,
                     region=region,
                 )
             )

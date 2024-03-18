@@ -23,19 +23,23 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
+from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
+from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_login import ExecSqlserverLoginComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import CreateDnsKwargs, DeleteClusterDnsKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
+    CreateRandomJobUserKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
+    DropRandomJobUserKwargs,
     ExecActuatorKwargs,
     ExecLoginKwargs,
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
-from backend.flow.utils.sqlserver.sqlserver_db_function import get_dbs_for_drs
+from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid, get_dbs_for_drs
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
@@ -100,6 +104,18 @@ class SqlserverResetFlow(BaseFlow):
 
             # 声明子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
+
+            # 创建随机账号
+            sub_pipeline.add_act(
+                act_name=_("create job user"),
+                act_component_code=SqlserverAddJobUserComponent.code,
+                kwargs=asdict(
+                    CreateRandomJobUserKwargs(
+                        cluster_ids=[cluster.id],
+                        sid=create_sqlserver_login_sid(),
+                    ),
+                ),
+            )
 
             # 下发执行器
             sub_pipeline.add_act(
@@ -191,6 +207,13 @@ class SqlserverResetFlow(BaseFlow):
                         db_meta_class_func=SqlserverDBMeta.cluster_reset.__name__,
                     )
                 ),
+            )
+
+            # 删除随机账号
+            sub_pipeline.add_act(
+                act_name=_("drop job user"),
+                act_component_code=SqlserverDropJobUserComponent.code,
+                kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}集群重置".format(cluster.name))))

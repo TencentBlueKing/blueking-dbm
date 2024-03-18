@@ -1109,11 +1109,11 @@ class SqlserverSysVersion(str, StructuredEnum):
     定义Sqlserver支持操作系统版本名称
     """
 
-    Windows_Server_2008 = EnumField("Windows Server 2008", _("2008服务器版"))
-    Windows_Server_2012 = EnumField("Windows Server 2012", _("2012服务器版"))
-    Windows_Server_2016 = EnumField("Windows Server 2016", _("2016服务器版"))
-    Windows_Server_2019 = EnumField("Windows Server 2019", _("2019服务器版"))
-    Windows_Server_2022 = EnumField("Windows Server 2022", _("2022服务器版"))
+    Windows_Server_2008 = EnumField("WindowsServer2008", _("2008服务器版"))
+    Windows_Server_2012 = EnumField("WindowsServer2012", _("2012服务器版"))
+    Windows_Server_2016 = EnumField("WindowsServer2016", _("2016服务器版"))
+    Windows_Server_2019 = EnumField("WindowsServer2019", _("2019服务器版"))
+    Windows_Server_2022 = EnumField("WindowsServer2022", _("2022服务器版"))
 
 
 # mssql各版本的操作系统版本支持

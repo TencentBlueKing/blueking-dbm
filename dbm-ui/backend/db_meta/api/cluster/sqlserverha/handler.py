@@ -112,7 +112,6 @@ class SqlserverHAClusterHandler(ClusterHandler):
                     storages=storages,
                     creator=creator,
                     bk_cloud_id=bk_cloud_id,
-                    time_zone=time_zone,
                     major_version=major_version,
                     region=region,
                     sync_type=sync_type,

@@ -22,8 +22,7 @@ logger = logging.getLogger("flow")
 
 
 class SqlserverActPayload(PayloadHandler):
-    @staticmethod
-    def system_init_payload(**kwargs) -> dict:
+    def system_init_payload(self, **kwargs) -> dict:
         """
         系统初始化payload
         """
@@ -31,7 +30,7 @@ class SqlserverActPayload(PayloadHandler):
         return {
             "db_type": DBActuatorTypeEnum.Default.value,
             "action": SqlserverActuatorActionEnum.SysInit.value,
-            "payload": PayloadHandler.get_init_system_account(),
+            "payload": self.get_init_system_account(),
         }
 
     def get_install_sqlserver_payload(self, **kwargs) -> dict:
@@ -75,9 +74,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.Deploy.value,
             "payload": {
-                "general": {
-                    "runtime_account": PayloadHandler.get_create_sqlserver_account(self.global_data["bk_cloud_id"])
-                },
+                "general": {"runtime_account": self.get_create_sqlserver_account(self.global_data["bk_cloud_id"])},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "pkg": sqlserver_pkg.name,
@@ -101,7 +98,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.ExecSQLFiles.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "ports": self.global_data["ports"],
@@ -120,7 +117,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.BackupDBS.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
@@ -141,7 +138,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.BackupDBS.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
@@ -161,7 +158,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.RenameDBS.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
@@ -180,7 +177,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.CleanDBS.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
@@ -202,7 +199,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.RoleSwitch.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
@@ -222,7 +219,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver_check.value,
             "action": SqlserverActuatorActionEnum.CheckAbnormalDB.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
@@ -238,7 +235,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver_check.value,
             "action": SqlserverActuatorActionEnum.CheckInstProcess.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
@@ -254,7 +251,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.CloneLoginUsers.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
@@ -272,7 +269,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.CloneJobs.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
@@ -290,7 +287,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.CloneLinkservers.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
@@ -300,8 +297,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
-    @staticmethod
-    def get_restore_full_dbs_payload(**kwargs) -> dict:
+    def get_restore_full_dbs_payload(self, **kwargs) -> dict:
         """
         恢复全量备份的payload
         """
@@ -309,7 +305,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.RestoreDBSForFull.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
@@ -319,8 +315,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
-    @staticmethod
-    def get_restore_log_dbs_payload(**kwargs) -> dict:
+    def get_restore_log_dbs_payload(self, **kwargs) -> dict:
         """
         恢复增量备份的payload
         """
@@ -328,7 +323,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.RestoreDBSForLog.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
@@ -347,7 +342,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.BuildDBMirroring.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
@@ -366,7 +361,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.AddDBSInAlwaysOn.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
@@ -376,8 +371,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
-    @staticmethod
-    def get_build_always_on(**kwargs) -> dict:
+    def get_build_always_on(self, **kwargs) -> dict:
         """
         建立实例加入always_on可用组的payload
         """
@@ -385,7 +379,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.BuildAlwaysOn.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
@@ -396,8 +390,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
-    @staticmethod
-    def get_init_machine_for_always_on(**kwargs) -> dict:
+    def get_init_machine_for_always_on(self, **kwargs) -> dict:
         """
         建立always_on可用组之前初始化机器的payload
         """
@@ -405,7 +398,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.InitForAlwaysOn.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
@@ -423,7 +416,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.Uninstall.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "ports": self.global_data["custom_params"]["ports"],
@@ -432,8 +425,7 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
-    @staticmethod
-    def check_backup_file_is_in_local(**kwargs) -> dict:
+    def check_backup_file_is_in_local(self, **kwargs) -> dict:
         """
         移动备份文件
         """
@@ -441,7 +433,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.MoveBackupFile.value,
             "payload": {
-                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "target_path": kwargs["custom_params"]["target_path"],
                     "file_list": kwargs["custom_params"]["file_list"],
