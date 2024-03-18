@@ -121,6 +121,17 @@ class BaseMongoOperateFlowParamBuilder(builders.FlowParamBuilder):
             info["cluster_type"] = id__cluster[info["cluster_id"]].cluster_type
         return infos
 
+    @classmethod
+    def add_cluster_info(cls, infos):
+        """给每个info加上集群类型、版本信息、名称"""
+        cluster_ids = [info["cluster_id"] for info in infos]
+        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        for info in infos:
+            info["cluster_type"] = id__cluster[info["cluster_id"]].cluster_type
+            info["db_version"] = id__cluster[info["cluster_id"]].major_version
+            info["cluster_name"] = id__cluster[info["cluster_id"]].name
+        return infos
+
 
 class BaseMongoDBOperateResourceParamBuilder(BaseOperateResourceParamBuilder):
     @classmethod

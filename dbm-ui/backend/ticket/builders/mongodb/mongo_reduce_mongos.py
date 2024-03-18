@@ -12,11 +12,15 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, MachineType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import AppCache, Cluster
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate, HostInfoSerializer
-from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
+from backend.ticket.builders.mongodb.base import (
+    BaseMongoDBOperateDetailSerializer,
+    BaseMongoDBTicketFlowBuilder,
+    BaseMongoOperateFlowParamBuilder,
+)
 from backend.ticket.constants import TicketType
 
 
@@ -60,11 +64,13 @@ class MongoDBReduceMongosDetailSerializer(BaseMongoDBOperateDetailSerializer):
         return attrs
 
 
-class MongoDBReduceMongosFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.fake_scene
+class MongoDBReduceMongosFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
+    controller = MongoDBController.reduce_mongos
 
     def format_ticket_data(self):
-        pass
+        bk_biz_id = self.ticket_data["bk_biz_id"]
+        self.ticket_data["db_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
+        self.ticket_data["infos"] = self.add_cluster_info(self.ticket_data["infos"])
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_REDUCE_MONGOS)

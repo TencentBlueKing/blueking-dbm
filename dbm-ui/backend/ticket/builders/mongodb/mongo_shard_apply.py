@@ -66,6 +66,7 @@ class MongoShardedClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         self.ticket_data["bk_app_abbr"] = self.ticket_data["db_app_abbr"]
+        self.ticket_data["proxy_port"] = self.ticket_data["start_port"]
 
 
 class MongoShardedClusterResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):

@@ -12,6 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
@@ -20,8 +21,8 @@ from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
     BaseMongoDBTicketFlowBuilder,
+    BaseMongoOperateFlowParamBuilder,
 )
-from backend.ticket.builders.mongodb.mongo_backup import MongoDBBackupFlowParamBuilder
 from backend.ticket.constants import TicketType
 
 
@@ -43,11 +44,13 @@ class MongoDBAddMongosDetailSerializer(BaseMongoDBOperateDetailSerializer):
         return attrs
 
 
-class MongoDBAddMongosFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.fake_scene
+class MongoDBAddMongosFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
+    controller = MongoDBController.increase_mongos
 
     def format_ticket_data(self):
-        MongoDBBackupFlowParamBuilder.add_cluster_type_info(self.ticket_data["infos"])
+        bk_biz_id = self.ticket_data["bk_biz_id"]
+        self.ticket_data["db_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
+        self.ticket_data["infos"] = self.add_cluster_info(self.ticket_data["infos"])
 
 
 class MongoDBAddMongosResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
@@ -58,8 +61,10 @@ class MongoDBAddMongosResourceParamBuilder(BaseMongoDBOperateResourceParamBuilde
 
     def post_callback(self):
         with self.next_flow_manager() as next_flow:
-            machine_specs = self.format_machine_specs(next_flow.details["ticket_data"]["resource_spec"])
-            next_flow.details["ticket_data"].update(machine_specs=machine_specs)
+            for info in next_flow.details["ticket_data"]["infos"]:
+                # 格式化mongodb节点信息和machine_specs规格信息
+                self.format_mongo_node_infos(info)
+                info["machine_specs"] = self.format_machine_specs(info["resource_spec"])
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_ADD_MONGOS, is_apply=True)
