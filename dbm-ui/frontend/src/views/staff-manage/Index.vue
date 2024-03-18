@@ -82,7 +82,7 @@
   const bizId = isPlatform ? 0 : window.PROJECT_CONFIG.BIZ_ID;
 
   const staffFormRef = ref();
-  const adminList = shallowRef<AdminItem[]>([]);
+  const adminList = ref<AdminItem[]>([]);
 
   let adminListMemo:AdminItem[] = [];
 
