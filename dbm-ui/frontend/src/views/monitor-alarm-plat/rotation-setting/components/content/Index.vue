@@ -59,7 +59,10 @@
   import NumberInput from '@components/render-table/columns/input/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { messageSuccess } from '@utils';
+  import {
+    messageError,
+    messageSuccess,
+  } from '@utils';
 
   import EditRule from '../edit-rule/Index.vue';
 
@@ -394,18 +397,24 @@
     } else if (priority > 100) {
       priority = 100;
     }
-    const updateResult = await updatePartialDutyRule(row.id, {
-      priority,
-    });
-    if (updateResult.priority === priority) {
-      // 设置成功
-      messageSuccess(t('优先级设置成功'));
+    try {
+      const updateResult = await updatePartialDutyRule(row.id, {
+        priority,
+      })
+
+      if (updateResult.priority === priority) {
+        // 设置成功
+        messageSuccess(t('优先级设置成功'));
+      }
+      runGetPriorityDistinct();
+      await fetchHostNodes();
+      setTimeout(() => {
+        window.changeConfirm = false;
+      });
+    } catch {
+      messageError(t('优先级设置失败'));
+      fetchHostNodes();
     }
-    runGetPriorityDistinct();
-    await fetchHostNodes();
-    setTimeout(() => {
-      window.changeConfirm = false;
-    });
   };
 
   const handleChangeSwitch = async (row: DutyRuleModel) => {

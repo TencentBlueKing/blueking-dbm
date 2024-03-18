@@ -27,7 +27,7 @@
         <span
           v-if="item.status === 'unavailable'"
           class="unavailable-flag">
-          <span class="unavailable-flag-text">{{ $t('不可用') }}</span>
+          <span class="unavailable-flag-text">{{ t('不可用') }}</span>
         </span>
         <template v-if="index === 0">
           <BkPopover
@@ -40,14 +40,14 @@
                 class="copy-trigger"
                 href="javescript:"
                 @click="handleCopyAllIps">
-                {{ $t('复制IP') }}
+                {{ t('复制IP') }}
               </a>
               <span class="copy-trigger-split" />
               <a
                 class="copy-trigger"
                 href="javescript:"
                 @click="handleCopyAll">
-                {{ $t('复制实例') }}
+                {{ t('复制实例') }}
               </a>
             </template>
           </BkPopover>
@@ -61,29 +61,29 @@
       text
       theme="primary"
       @click="handleShowMore">
-      {{ $t('查看更多') }}
+      {{ t('查看更多') }}
     </BkButton>
     <BkDialog
       class="cluster-node-instance-dialog"
       :is-show="isShowMore"
-      :title="$t('xx预览', { name: title })"
+      :title="t('xx预览', { name: title })"
       width="1000"
       @closed="handleHideMore">
       <div class="action-box">
         <BkButton
           class="mr8"
           @click="handleCopyAbnormal">
-          {{ $t('复制异常实例') }}
+          {{ t('复制异常实例') }}
         </BkButton>
         <BkButton
           class="mr8"
           @click="handleCopyListAll">
-          {{ $t('复制全部实例') }}
+          {{ t('复制全部实例') }}
         </BkButton>
         <BkInput
           v-model="search"
           clearable
-          :placeholder="$t('请输入实例_enter进行搜索')"
+          :placeholder="t('请输入实例_enter进行搜索')"
           type="search"
           @clear="handleSearch"
           @enter="handleSearch" />
@@ -96,7 +96,7 @@
         style="margin-bottom: 34px" />
       <template #footer>
         <BkButton @click="handleHideMore">
-          {{ $t('关闭') }}
+          {{ t('关闭') }}
         </BkButton>
       </template>
     </BkDialog>

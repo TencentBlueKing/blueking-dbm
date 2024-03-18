@@ -110,7 +110,11 @@
           {
             data.timeRange.map((item, innerIndex) => (
               <div class="time-item" key={item.id}>
-                <bk-time-picker v-model={item.value} clearable={false} type="timerange" />
+                <bk-time-picker
+                  v-model={item.value}
+                  clearable={false}
+                  type="timerange"
+                  append-to-body />
                   {innerIndex === 0 && <db-icon
                     class="ml-10 icon"
                     type="plus-circle"
