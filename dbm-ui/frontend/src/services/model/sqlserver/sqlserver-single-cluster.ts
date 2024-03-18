@@ -9,7 +9,9 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
+
+import { PipelineStatus } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -53,26 +55,26 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   major_version: string;
   master_domain: string;
   masters: {
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    bk_host_id: number,
-    bk_instance_id: number,
-    instance: string,
-    ip: string,
-    name: string,
-    phase: string,
-    port: number,
-    spec_config: Record<'id', number>,
-    status: string,
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    bk_instance_id: number;
+    instance: string;
+    ip: string;
+    name: string;
+    phase: string;
+    port: number;
+    spec_config: Record<'id', number>;
+    status: string;
   }[];
   operations: Array<{
-    cluster_id: number,
-    flow_id: number,
-    operator: string,
-    status: string,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
+    cluster_id: number;
+    flow_id: number;
+    operator: string;
+    status: PipelineStatus;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
   }>;
   phase: string;
   phase_name: string;
@@ -93,12 +95,12 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
       cpu: {
         max: number;
         min: number;
-      },
+      };
       id: number;
       mem: {
         max: number;
         min: number;
-      },
+      };
       name: string;
       storage_spec: Array<{
         mount_point: string;
@@ -152,7 +154,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(SqlServerSingleCluster.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态
@@ -205,7 +207,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: SqlServerSingleCluster.operationIconMap[item.ticket_type],
       tip: SqlServerSingleCluster.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
@@ -214,5 +216,9 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
 
   get isAbnormal() {
     return this.status === 'ABNORMAL';
+  }
+
+  get isOnline() {
+    return this.phase === 'online';
   }
 }

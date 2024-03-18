@@ -121,16 +121,31 @@
     </template>
   </BkDialog>
 </template>
-<script setup lang="tsx" generic="T extends RedisModel | TendbhaModel | SpiderModel | MongodbModel">
+<script
+  setup
+  lang="tsx"
+  generic="
+    T extends
+      | RedisModel
+      | TendbhaModel
+      | SpiderModel
+      | MongodbModel
+      | SqlServerSingleClusterModel
+      | SqlServerHaClusterModel
+  ">
   import _ from 'lodash';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import TendbhaModel from '@services/model/mysql/tendbha';
   import RedisModel from '@services/model/redis/redis';
   import SpiderModel from '@services/model/spider/spider';
+  import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
+  import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
   import { getMongoList } from '@services/source/mongodb';
   import { getRedisList } from '@services/source/redis';
   import { getSpiderList } from '@services/source/spider';
+  import { getHaClusterList } from '@services/source/sqlserveHaCluster';
+  import { getSingleClusterList } from '@services/source/sqlserverSingleCluster';
   import { getTendbhaList } from '@services/source/tendbha';
   import type { ListBase } from '@services/types';
 
@@ -146,6 +161,7 @@
   import type { SearchSelectList } from './components/common/SearchBar.vue';
   import MongoTable from './components/mongo/Index.vue';
   import RedisTable from './components/redis/Index.vue';
+  import SqlserverTable from './components/sqlserver/Index.vue'
   import SpiderTable from './components/tendb-cluster/Index.vue';
   import TendbhaTable from './components/tendbha/Index.vue';
 
@@ -245,6 +261,22 @@
       multiple: true,
       getResourceList: getMongoList,
       tableContent: MongoTable,
+      resultContent: ResultPreview,
+    },
+    [ClusterTypes.SQLSERVER_SINGLE]: {
+      id: ClusterTypes.SQLSERVER_SINGLE,
+      name: t('集群选择'),
+      multiple: true,
+      getResourceList: getSingleClusterList,
+      tableContent: SqlserverTable,
+      resultContent: ResultPreview,
+    },
+    [ClusterTypes.SQLSERVER_HA]: {
+      id: ClusterTypes.SQLSERVER_HA,
+      name: t('集群选择'),
+      multiple: true,
+      getResourceList: getHaClusterList,
+      tableContent: SqlserverTable,
       resultContent: ResultPreview,
     },
   };
