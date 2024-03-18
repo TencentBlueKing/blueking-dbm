@@ -28,17 +28,21 @@ from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
 )
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_add_slave import SqlserverAddSlaveFlow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
+from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
+from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import UpdateDnsRecordKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
+    CreateRandomJobUserKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
+    DropRandomJobUserKwargs,
     ExecActuatorKwargs,
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
-from backend.flow.utils.sqlserver.sqlserver_db_function import get_dbs_for_drs
+from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid, get_dbs_for_drs
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.validate import SqlserverCluster
@@ -86,6 +90,18 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             # 声明子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
+            # 创建随机账号
+            sub_pipeline.add_act(
+                act_name=_("create job user"),
+                act_component_code=SqlserverAddJobUserComponent.code,
+                kwargs=asdict(
+                    CreateRandomJobUserKwargs(
+                        cluster_ids=[cluster.id],
+                        sid=create_sqlserver_login_sid(),
+                    ),
+                ),
+            )
+
             # 下发执行器
             sub_pipeline.add_act(
                 act_name=_("下发执行器"),
@@ -119,6 +135,13 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     sync_slaves=[Host(**info["slave_host"])],
                     sync_dbs=sub_flow_context["clean_dbs"],
                 )
+            )
+
+            # 删除随机账号
+            sub_pipeline.add_act(
+                act_name=_("drop job user"),
+                act_component_code=SqlserverDropJobUserComponent.code,
+                kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
             )
 
             sub_pipelines.append(
@@ -187,6 +210,19 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 old_slave = cluster.storageinstance_set.get(machine__ip=info["old_slave_host"]["ip"])
                 cluster_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
+                # 创建随机账号
+                cluster_sub_pipeline.add_act(
+                    act_name=_("create job user"),
+                    act_component_code=SqlserverAddJobUserComponent.code,
+                    kwargs=asdict(
+                        CreateRandomJobUserKwargs(
+                            cluster_ids=[cluster.id],
+                            sid=create_sqlserver_login_sid(),
+                            other_instances=[f"{info['new_slave_host']['ip']}:{old_slave.port}"],
+                        ),
+                    ),
+                )
+
                 # 数据库建立新的同步关系
                 cluster_sub_pipeline.add_sub_pipeline(
                     sub_flow=sync_dbs_for_cluster_sub_flow(
@@ -218,6 +254,18 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                             }
                         )
                     cluster_sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+                # 删除随机账号
+                cluster_sub_pipeline.add_act(
+                    act_name=_("drop job user"),
+                    act_component_code=SqlserverDropJobUserComponent.code,
+                    kwargs=asdict(
+                        DropRandomJobUserKwargs(
+                            cluster_ids=[cluster.id],
+                            other_instances=[f"{info['new_slave_host']['ip']}:{old_slave.port}"],
+                        ),
+                    ),
+                )
 
                 cluster_flows.append(
                     cluster_sub_pipeline.build_sub_process(sub_name=_("[{}]集群与新slave建立关系".format(cluster.name)))

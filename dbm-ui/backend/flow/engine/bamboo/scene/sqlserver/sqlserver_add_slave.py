@@ -23,9 +23,19 @@ from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
     install_sqlserver_sub_flow,
     sync_dbs_for_cluster_sub_flow,
 )
+from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
+from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
-from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DBMetaOPKwargs
-from backend.flow.utils.sqlserver.sqlserver_db_function import get_dbs_for_drs, get_group_name
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
+    CreateRandomJobUserKwargs,
+    DBMetaOPKwargs,
+    DropRandomJobUserKwargs,
+)
+from backend.flow.utils.sqlserver.sqlserver_db_function import (
+    create_sqlserver_login_sid,
+    get_dbs_for_drs,
+    get_group_name,
+)
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.validate import SqlserverCluster, SqlserverInstance
@@ -128,6 +138,19 @@ class SqlserverAddSlaveFlow(BaseFlow):
                     )
                 )
 
+                # 创建随机账号
+                cluster_sub_pipeline.add_act(
+                    act_name=_("create job user"),
+                    act_component_code=SqlserverAddJobUserComponent.code,
+                    kwargs=asdict(
+                        CreateRandomJobUserKwargs(
+                            cluster_ids=[cluster.id],
+                            sid=create_sqlserver_login_sid(),
+                            other_instances=[f"{info['new_slave_host']['ip']}:{master_instance.port}"],
+                        ),
+                    ),
+                )
+
                 # 加入到集群的AlwaysOn可用组
                 cluster_sub_pipeline.add_sub_pipeline(
                     sub_flow=build_always_on_sub_flow(
@@ -154,6 +177,18 @@ class SqlserverAddSlaveFlow(BaseFlow):
                         sync_slaves=[Host(**info["new_slave_host"])],
                         sync_dbs=get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[]),
                     )
+                )
+
+                # 删除随机账号
+                cluster_sub_pipeline.add_act(
+                    act_name=_("drop job user"),
+                    act_component_code=SqlserverDropJobUserComponent.code,
+                    kwargs=asdict(
+                        DropRandomJobUserKwargs(
+                            cluster_ids=[cluster.id],
+                            other_instances=[f"{info['new_slave_host']['ip']}:{master_instance.port}"],
+                        ),
+                    ),
                 )
 
                 cluster_flows.append(

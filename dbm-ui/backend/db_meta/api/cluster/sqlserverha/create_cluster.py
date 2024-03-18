@@ -26,6 +26,7 @@ from backend.db_meta.enums import (
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
+from backend.flow.utils.sqlserver.sqlserver_db_function import get_instance_time_zone
 
 logger = logging.getLogger("root")
 
@@ -70,7 +71,6 @@ def create(
     major_version: str,
     db_module_id: int,
     bk_cloud_id: int,
-    time_zone: str,
     region: str,
     sync_type: str,
     slave_domain: Optional[str] = None,
@@ -104,7 +104,7 @@ def create(
         phase=ClusterPhase.ONLINE.value,
         status=ClusterStatus.NORMAL.value,
         bk_cloud_id=bk_cloud_id,
-        time_zone=time_zone,
+        time_zone=get_instance_time_zone(master_storage_obj),
         major_version=major_version,
         region=region,
     )
@@ -138,6 +138,8 @@ def create(
         m = ins.machine
         ins.db_module_id = db_module_id
         m.db_module_id = db_module_id
+        # 保存最新的time_zone
+        ins.time_zone = get_instance_time_zone(ins)
         ins.save(update_fields=["db_module_id"])
         m.save(update_fields=["db_module_id"])
 

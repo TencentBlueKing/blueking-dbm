@@ -26,15 +26,20 @@ from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
     pre_check_sub_flow,
     switch_domain_sub_flow_for_cluster,
 )
+from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
+from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
+    CreateRandomJobUserKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
+    DropRandomJobUserKwargs,
     ExecActuatorKwargs,
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
+from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
@@ -109,6 +114,18 @@ class SqlserverSwitchFlow(BaseFlow):
                 # 启动子流程
                 cluster_pipeline = SubBuilder(root_id=self.root_id, data=cluster_context)
 
+                # 创建随机账号
+                cluster_pipeline.add_act(
+                    act_name=_("create job user"),
+                    act_component_code=SqlserverAddJobUserComponent.code,
+                    kwargs=asdict(
+                        CreateRandomJobUserKwargs(
+                            cluster_ids=[cluster.id],
+                            sid=create_sqlserver_login_sid(),
+                        ),
+                    ),
+                )
+
                 if not self.data["force"]:
                     # 如果是强制模式，不做预检测, 不做克隆
                     cluster_pipeline.add_sub_pipeline(
@@ -153,6 +170,13 @@ class SqlserverSwitchFlow(BaseFlow):
                         old_master=old_master,
                         new_master=new_master,
                     )
+                )
+
+                # 删除随机账号
+                cluster_pipeline.add_act(
+                    act_name=_("drop job user"),
+                    act_component_code=SqlserverDropJobUserComponent.code,
+                    kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
                 )
 
                 act_list.append(cluster_pipeline.build_sub_process(sub_name=_("{}集群互切".format(cluster.name))))

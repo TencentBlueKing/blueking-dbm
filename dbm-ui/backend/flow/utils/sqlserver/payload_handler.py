@@ -20,6 +20,7 @@ from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
 from backend.flow.consts import DEFAULT_INSTANCE, MSSQL_ADMIN, MSSQL_EXPORTER, SqlserverComponent, SqlserverUserName
+from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
 
 logger = logging.getLogger("flow")
 
@@ -46,26 +47,14 @@ class PayloadHandler(object):
             "drs_pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
         }
 
-    @staticmethod
-    def get_sqlserver_account():
+    def get_sqlserver_account(self):
         """
-        获取sqlserver实例sa内置帐户密码，后续做单据的临时sa账号随机化 todo
+        获取sqlserver实例sa内置帐户密码，用单据的临时sa账号随机化
         """
-        user_map = {}
-        value_to_name = {member.value: member.name.lower() for member in SqlserverUserName}
-        data = DBPrivManagerApi.get_password(
-            {
-                "instances": [DEFAULT_INSTANCE],
-                "users": [
-                    {"username": SqlserverUserName.SA.value, "component": SqlserverComponent.SQLSERVER.value},
-                ],
-            }
-        )
-        for user in data["items"]:
-            user_map[value_to_name[user["username"]] + "_user"] = user["username"]
-            user_map[value_to_name[user["username"]] + "_pwd"] = base64.b64decode(user["password"]).decode("utf-8")
-
-        return user_map
+        return {
+            "sa_user": generate_mysql_tmp_user(self.global_data["job_root_id"]),
+            "sa_pwd": self.global_data["job_root_id"],
+        }
 
     @staticmethod
     def get_init_system_account():

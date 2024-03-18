@@ -22,10 +22,18 @@ from backend.flow.consts import NoSync, SqlserverSyncModeMaps
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
+from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
+from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
-from backend.flow.utils.sqlserver.sqlserver_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
+    CreateRandomJobUserKwargs,
+    DownloadMediaKwargs,
+    DropRandomJobUserKwargs,
+    ExecActuatorKwargs,
+)
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
+from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("flow")
@@ -78,6 +86,18 @@ class SqlserverCleanDBSFlow(BaseFlow):
             # 声明子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
+            # 创建随机账号
+            sub_pipeline.add_act(
+                act_name=_("create job user"),
+                act_component_code=SqlserverAddJobUserComponent.code,
+                kwargs=asdict(
+                    CreateRandomJobUserKwargs(
+                        cluster_ids=[cluster.id],
+                        sid=create_sqlserver_login_sid(),
+                    ),
+                ),
+            )
+
             sub_pipeline.add_act(
                 act_name=_("下发执行器"),
                 act_component_code=TransFileInWindowsComponent.code,
@@ -99,6 +119,13 @@ class SqlserverCleanDBSFlow(BaseFlow):
                         get_payload_func=SqlserverActPayload.get_clean_dbs_payload.__name__,
                     )
                 ),
+            )
+
+            # 删除随机账号
+            sub_pipeline.add_act(
+                act_name=_("drop job user"),
+                act_component_code=SqlserverDropJobUserComponent.code,
+                kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}集群执行清档".format(cluster.name))))

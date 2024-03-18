@@ -8,8 +8,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import re
+import secrets
 from collections import defaultdict
 from typing import Dict, List
+
+from django.db.models import QuerySet
 
 from backend.components import DRSApi
 from backend.db_meta.enums import InstanceRole
@@ -22,6 +25,7 @@ from backend.flow.consts import (
     SqlserverSyncMode,
 )
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
+from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
 
 
 def sqlserver_match_dbs(
@@ -378,3 +382,80 @@ def get_cluster_database(cluster_ids: List[int]) -> Dict[int, List[str]]:
         cluster_dbs_info = get_cluster_database_with_cloud(bk_cloud_id, clusters)
         cluster_id__database.update(cluster_dbs_info)
     return cluster_id__database
+
+
+def get_instance_time_zone(instance: StorageInstance) -> str:
+    """
+    获取实例配置的时区信息
+    """
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": instance.machine.bk_cloud_id,
+            "addresses": [instance.ip_port],
+            "cmds": ["select DATENAME(TzOffset, SYSDATETIMEOFFSET()) as time_zone"],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{instance.ip_port}] get_time_zone failed: {ret[0]['error_msg']}")
+
+    return ret[0]["cmd_results"][0]["table_data"][0]["time_zone"]
+
+
+def create_sqlserver_login_sid() -> str:
+    """
+    生成login的sid，sid格式："0x" + 32位16进制字符串
+    """
+    num_bytes = 16  # 每个字节对应两个十六进制字符
+    random_bytes = secrets.token_bytes(num_bytes)
+    hex_string = random_bytes.hex()
+    return "0x" + hex_string
+
+
+def create_sqlserver_random_job_user(
+    job_root_id: str, sid: str, pwd: str, storages: QuerySet, other_instances: list, bk_cloud_id: int
+) -> list:
+    """
+    创建随机账号的基本函数
+    @param job_root_id: 任务root_id
+    @param sid: 用户的sid
+    @param pwd: 用户密码
+    @param storages: 添加随机账号的实例
+    @param other_instances: 作为额外的实例传入，目标是满足集群添加实例且没有暂时没有元数据的场景， 每个元素是ip:port字符串
+    @param bk_cloud_id: 云区域id
+    """
+    user = generate_mysql_tmp_user(job_root_id)
+    create_cmds = [
+        f"use master IF SUSER_SID('{user}') IS NOT NULL drop login [{user}];"
+        f"CREATE LOGIN {user} WITH PASSWORD=N'{pwd}', DEFAULT_DATABASE=[MASTER],SID={sid},CHECK_POLICY=OFF;"
+        f"EXEC sp_addsrvrolemember @loginame = '{user}', @rolename = N'sysadmin';",
+    ]
+    return DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": bk_cloud_id,
+            "addresses": [s.ip_port for s in storages] + other_instances,
+            "cmds": create_cmds,
+            "force": False,
+        }
+    )
+
+
+def drop_sqlserver_random_job_user(
+    job_root_id: str, bk_cloud_id: int, storages: QuerySet, other_instances: list
+) -> list:
+    """
+    删除随机账号的基本函数
+    @param job_root_id: 任务root_id
+    @param storages: 添加随机账号的实例
+    @param other_instances: 作为额外的实例传入，目标是满足集群添加实例且没有暂时没有元数据的场景， 每个元素是ip:port字符串
+    @param bk_cloud_id: 云区域id
+    """
+    user = generate_mysql_tmp_user(job_root_id)
+    return DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": bk_cloud_id,
+            "addresses": [s.ip_port for s in storages] + other_instances,
+            "cmds": [f"use master IF SUSER_SID('{user}') IS NOT NULL drop login [{user}]"],
+            "force": False,
+        }
+    )
