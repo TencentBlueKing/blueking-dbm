@@ -14,11 +14,12 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class RedisClusterInstShutdownDetailSerializer(serializers.Serializer):
+class RedisClusterInstShutdownDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """实例下架"""
 
     class InfoSerializer(serializers.Serializer):

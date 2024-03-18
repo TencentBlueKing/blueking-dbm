@@ -18,13 +18,13 @@ from backend.db_meta.models import Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate
+from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin
 from backend.ticket.builders.common.constants import REDIS_PROXY_MIN, RedisRole
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import TicketType
 
 
-class RedisClusterApplyDetailSerializer(serializers.Serializer):
+class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     proxy_port = serializers.IntegerField(help_text=_("集群端口"))
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))

@@ -21,7 +21,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.redis.constants import KeyDeleteType
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
-from backend.ticket.builders.common.base import RedisTicketFlowBuilderPatchMixin
+from backend.ticket.builders.common.base import RedisTicketFlowBuilderPatchMixin, SkipToRepresentationMixin
 from backend.ticket.constants import CheckRepairFrequencyType, DataCheckRepairSettingType
 
 KEY_FILE_PREFIX = "/redis/keyfiles"
@@ -31,11 +31,8 @@ class BaseRedisTicketFlowBuilder(RedisTicketFlowBuilderPatchMixin, TicketFlowBui
     group = DBType.Redis.value
 
 
-class RedisSingleOpsBaseDetailSerializer(serializers.Serializer):
+class RedisSingleOpsBaseDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-
-    def to_representation(self, details):
-        return details
 
     def validate(self, attrs):
         """
@@ -55,12 +52,9 @@ class RedisSingleOpsBaseDetailSerializer(serializers.Serializer):
         return attrs
 
 
-class RedisOpsBaseDetailSerializer(serializers.Serializer):
+class RedisOpsBaseDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     # TODO: rules内部校验
     rules = serializers.JSONField(help_text=_("提取/删除/备份规则列表"))
-
-    def to_representation(self, details):
-        return details
 
     def validate(self, attrs):
         """
@@ -72,7 +66,7 @@ class RedisOpsBaseDetailSerializer(serializers.Serializer):
 
 class RedisKeyBaseDetailSerializer(RedisOpsBaseDetailSerializer):
     def to_representation(self, instance):
-        result = super().to_representation(instance)
+        result = instance
         ticket = self.context["ticket_ctx"].ticket
 
         # 提单，跳过信息补充

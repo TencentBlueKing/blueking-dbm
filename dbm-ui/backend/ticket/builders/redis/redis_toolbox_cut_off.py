@@ -17,12 +17,12 @@ from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
 
 
-class RedisClusterCutOffDetailSerializer(ClusterValidateMixin, serializers.Serializer):
+class RedisClusterCutOffDetailSerializer(SkipToRepresentationMixin, ClusterValidateMixin, serializers.Serializer):
     """整机替换"""
 
     class InfoSerializer(serializers.Serializer):

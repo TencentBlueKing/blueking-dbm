@@ -18,11 +18,12 @@ from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import TicketType
 
 
-class RedisDataStructureTaskDeleteDetailSerializer(serializers.Serializer):
+class RedisDataStructureTaskDeleteDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """数据构造与实例销毁"""
 
     class InfoSerializer(serializers.Serializer):

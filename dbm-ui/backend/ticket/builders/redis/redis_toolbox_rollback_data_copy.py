@@ -16,12 +16,13 @@ from backend.db_services.redis.redis_dts.enums import DtsCopyType
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType, WriteModeType
 
 
-class RedisRollbackDataCopyDetailSerializer(serializers.Serializer):
+class RedisRollbackDataCopyDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     class InfoSerializer(serializers.Serializer):
         src_cluster = serializers.CharField(help_text=_("构造产物访问入口（ip:port）"))
         dst_cluster = serializers.IntegerField(help_text=_("目标集群ID"))

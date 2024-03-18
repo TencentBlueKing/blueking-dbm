@@ -16,13 +16,13 @@ from backend.db_meta.models import Cluster, Machine, StorageInstanceTuple
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
 from backend.utils.basic import get_target_items_from_details
 
 
-class RedisAddSlaveDetailSerializer(serializers.Serializer):
+class RedisAddSlaveDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """新建从库"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):

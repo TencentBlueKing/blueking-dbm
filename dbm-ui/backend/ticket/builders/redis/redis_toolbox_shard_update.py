@@ -18,6 +18,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.version.utils import query_versions_by_key
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
     ClusterValidateMixin,
@@ -27,7 +28,7 @@ from backend.ticket.builders.redis.base import (
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
-class RedisShardUpdateDetailSerializer(serializers.Serializer):
+class RedisShardUpdateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """集群分片变更"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
