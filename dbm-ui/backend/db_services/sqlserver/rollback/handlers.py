@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 from django.utils.translation import ugettext as _
 
@@ -89,9 +89,18 @@ class SQLServerRollbackHandler(object):
             if log["data_schema_grant"] == "all":
                 backup_id__logs[log["backup_id"]].append(log)
 
+        # 对每一份备份记录去重，相同的backup id不能出现重复的dbname
+        backup_id__valid_logs: Dict[str, List] = defaultdict(list)
+        for backup_id, logs in backup_id__logs.items():
+            dbname_set: Set[str] = set()
+            for log in logs:
+                if log["dbname"] not in dbname_set:
+                    backup_id__valid_logs[backup_id].append(log)
+                dbname_set.add(log["dbname"])
+
         # 对每个聚合记录补充信息
         backup_logs: List[Dict[str, Any]] = []
-        for backup_id, logs in backup_id__logs.items():
+        for backup_id, logs in backup_id__valid_logs.items():
             start_time = min(map(str2datetime, [log["backup_begin_time"] for log in logs]))
             end_time = max(map(str2datetime, [log["backup_end_time"] for log in logs]))
             backup_log_info = {
@@ -99,6 +108,9 @@ class SQLServerRollbackHandler(object):
                 "end_time": datetime2str(end_time),
                 "backup_id": backup_id,
                 "logs": logs,
+                "complete": len(logs) == logs[0]["file_cnt"],
+                "expected_cnt": logs[0]["file_cnt"],
+                "real_cnt": len(logs),
                 # 是否只取第一个log的角色就好了？
                 "role": logs[0]["role"],
             }

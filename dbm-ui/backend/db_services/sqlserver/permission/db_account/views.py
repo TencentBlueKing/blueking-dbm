@@ -10,7 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 from backend.db_services.dbpermission.constants import AccountType
 from backend.db_services.dbpermission.db_account.views import BaseDBAccountViewSet
+from backend.db_services.sqlserver.permission.db_account.handlers import SQLServerDBAccountHandler
 
 
 class DBAccountViewSet(BaseDBAccountViewSet):
     account_type = AccountType.SQLServer
+    account_handler = SQLServerDBAccountHandler

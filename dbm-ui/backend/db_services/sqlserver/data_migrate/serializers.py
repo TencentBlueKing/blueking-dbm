@@ -42,3 +42,12 @@ class ForceFailedMigrateSerializer(serializers.Serializer):
         if not SqlserverDtsInfo.objects.filter(id=attrs["dts_id"]).count():
             raise serializers.ValidationError(_("迁移记录{}不存在").format(attrs["dts_id"]))
         return attrs
+
+
+class QueryMigrateRecordsSerializer(serializers.Serializer):
+    cluster_name = serializers.CharField(help_text=_("集群名称"), required=False, default="")
+
+
+class QueryMigrateRecordsResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": []}

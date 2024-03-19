@@ -38,7 +38,7 @@ class PayloadHandler(object):
         获取sqlserver在drs的admin账号密码
         """
         if env.DRS_USERNAME:
-            return {"user": env.DRS_USERNAME, "pwd": env.DRS_PASSWORD}
+            return {"drs_user": env.DRS_USERNAME, "drs_pwd": env.DRS_PASSWORD}
 
         bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
         drs = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.DRS)
