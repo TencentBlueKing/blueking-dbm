@@ -55,6 +55,7 @@ type DiskInfo struct {
 type WindowDiskDetail struct {
 	DriveLetter string `json:"DriveLetter"`
 	TotalSize   uint64 `json:"TotalSize"`
+	FileSystem  string `json:"FileSystem"`
 }
 
 func diskFormartTrans(windisks []WindowDiskDetail) (commDisk []DiskInfo) {
@@ -62,7 +63,8 @@ func diskFormartTrans(windisks []WindowDiskDetail) (commDisk []DiskInfo) {
 		commDisk = append(commDisk, DiskInfo{
 			MountPoint: v.DriveLetter,
 			DiskDetail: DiskDetail{
-				Size: int(v.TotalSize / 1024 / 1024 / 1024),
+				Size:     int(v.TotalSize / 1024 / 1024 / 1024),
+				FileType: v.FileSystem,
 			},
 		})
 	}
@@ -222,7 +224,7 @@ func GetWindowsDiskInfo(hosts []IPList, bk_biz_id int) (ipFailedLogMap map[strin
 		ScriptContent:  base64.StdEncoding.EncodeToString(GetWinDiskInfoShellContent),
 		ScriptTimeout:  300,
 		ScriptLanguage: 5,
-		AccountAlias:   "Administrator",
+		AccountAlias:   "system",
 		TargetServer: TargetServer{
 			IPList: hosts,
 		},
@@ -235,17 +237,7 @@ func getDiskInfoBase(hosts []IPList, bk_biz_id int, param *FastExecuteScriptPara
 	jober := JobV3{
 		Client: EsbClient,
 	}
-	job, err := jober.ExecuteJob(&FastExecuteScriptParam{
-		BkBizID:        bk_biz_id,
-		ScriptContent:  base64.StdEncoding.EncodeToString(GetDiskInfoShellContent),
-		ScriptTimeout:  300,
-		ScriptLanguage: 1,
-		AccountAlias:   "root",
-		TargetServer: TargetServer{
-			IPList: hosts,
-		},
-	},
-	)
+	job, err := jober.ExecuteJob(param)
 	if err != nil {
 		logger.Error("call execute job failed %s", err.Error())
 		return nil, BatchGetJobInstanceIpLogRpData{}, err
@@ -290,15 +282,6 @@ func getDiskInfoBase(hosts []IPList, bk_biz_id int, param *FastExecuteScriptPara
 		StepInstanceID: job.StepInstanceID,
 		IPList:         hosts,
 	})
-	// resp.IpLogContentMap = make(map[string]*ShellResCollection)
-	// for _, d := range ipLogs.ScriptTaskLogs {
-	// 	var dl ShellResCollection
-	// 	if err = json.Unmarshal([]byte(d.LogContent), &dl); err != nil {
-	// 		logger.Error("unmarshal log content failed %s", err.Error())
-	// 		continue
-	// 	}
-	// 	resp.IpLogContentMap[d.Ip] = &dl
-	// }
 	return ipFailedLogMap, ipLogs, err
 }
 

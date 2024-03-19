@@ -13,6 +13,7 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -270,6 +271,7 @@ func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz, labe
 		OsType:          model.ConvertOsTypeToHuman(osType),
 		OsBit:           h.BkOsBit,
 		OsVerion:        h.BkOsVersion,
+		OsName:          strings.TrimSpace(strings.ToLower(strings.ReplaceAll(h.OSName, " ", ""))),
 		UpdateTime:      time.Now(),
 		CreateTime:      time.Now(),
 	}

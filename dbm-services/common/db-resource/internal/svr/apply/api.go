@@ -163,8 +163,9 @@ type ApplyObjectDetail struct {
 	// NONE: 无需亲和性处理
 	Affinity string `json:"affinity"`
 	// Windows,Linux
-	OsType string `json:"os_type"`
-	Count  int    `json:"count" binding:"required,min=1"` // 申请数量
+	OsType  string   `json:"os_type"`
+	OsNames []string `json:"os_names"`
+	Count   int      `json:"count" binding:"required,min=1"` // 申请数量
 }
 
 // GetDiskMatchInfo TODO

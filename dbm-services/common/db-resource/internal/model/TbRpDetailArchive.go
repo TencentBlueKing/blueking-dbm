@@ -41,6 +41,7 @@ type TbRpDetailArchive struct {
 	OsType      string            `gorm:"column:os_type;type:varchar(32);not null;comment:'操作系统类型'" json:"os_type"` //  操作系统类型 Liunx,Windows
 	OsBit       string            `gorm:"column:os_bit;type:varchar(32);not null;comment:'操作系统位数'" json:"os_bit"`
 	OsVerion    string            `gorm:"column:os_version;type:varchar(64);not null;comment:'操作系统版本'" json:"os_version"` //  操作系统版本
+	OsName      string            `gorm:"column:os_name;type:varchar(64);not null;comment:'操作系统名称'" json:"os_name"`       //  操作系统名称
 	Raid        string            `gorm:"column:raid;type:varchar(20);not null" json:"raid"`                              // 磁盘Raid
 	CityID      string            `gorm:"column:city_id;type:varchar(64);not null" json:"city_id"`                        //  实际城市ID
 	City        string            `gorm:"column:city;type:varchar(128);not null" json:"city"`                             // 实际城市名称

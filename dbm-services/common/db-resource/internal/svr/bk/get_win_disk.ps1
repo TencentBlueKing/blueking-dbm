@@ -2,11 +2,12 @@ $diskInfo = Get-WmiObject -Class Win32_LogicalDisk -Filter "DriveType=3" | ForEa
     [PSCustomObject]@{
         DriveLetter = $_.DeviceID
         TotalSize   = $_.Size
+        FileSystem  = $_.FileSystem
     }
 }
 
 
-$cpuInfo = (Get-WmiObject -Class Win32_Processor).NumberOfCores
+$cpuInfo = (Get-WmiObject -Query "SELECT * FROM Win32_Processor").NumberOfCores
 
 $memoryInfo = (Get-WmiObject -Class Win32_OperatingSystem).TotalVisibleMemorySize
 
