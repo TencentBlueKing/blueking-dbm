@@ -21,6 +21,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import DBModule
 from backend.db_services.cmdb.biz import get_db_app_abbr
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.ipchooser.constants import BkOsType
 from backend.db_services.mysql.constants import DEFAULT_ORIGIN_MYSQL_PORT, SERVER_PORT_LIMIT_MAX, SERVER_PORT_LIMIT_MIN
 from backend.exceptions import ValidationError
 from backend.flow.engine.controller.sqlserver import SqlserverController
@@ -183,6 +184,13 @@ class SQLServerSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class SQLServerSingleApplyResourceParamBuilder(SQLServerBaseOperateResourceParamBuilder):
+    def format(self):
+        os_names = self.ticket_data["system_version"]
+        os_type = BkOsType.db_type_to_os_type(TicketType.get_db_type_by_ticket(self.ticket.ticket_type))
+        # 增加os_names和os_type过滤
+        self.ticket_data["resource_params"] = {"os_names": os_names, "os_type": os_type}
+        super().format()
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         infos = next_flow.details["ticket_data"]["infos"]
@@ -217,5 +225,8 @@ class SQLServerSingleApplyFlowBuilder(BaseSQLServerTicketFlowBuilder):
             raise TicketParamsVerifyException(_("获取数据库字符集或版本失败，请检查获取参数, db_config: {}").format(db_config))
 
         self.ticket.update_details(
-            db_version=db_config["db_version"], charset=db_config["charset"], sync_type=db_config["sync_type"]
+            db_version=db_config["db_version"],
+            charset=db_config["charset"],
+            sync_type=db_config["sync_type"],
+            system_version=db_config["system_version"].split(","),
         )

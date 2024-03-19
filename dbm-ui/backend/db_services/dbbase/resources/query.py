@@ -363,7 +363,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "domain": Q(immute_domain__icontains=query_params.get("domain")),
             "version": Q(major_version=query_params.get("version")),
             "region": Q(region=query_params.get("region")),
-            "cluster_ids": Q(id__in=query_params.get("cluster_ids")),
+            "cluster_ids": Q(id__in=query_params.get("cluster_ids", "").split(",")),
             "creator": Q(creator__icontains=query_params.get("creator")),
             # 域名精确查询，主要用于工具箱手动填入域名查询
             "exact_domain": Q(immute_domain=query_params.get("exact_domain")),
