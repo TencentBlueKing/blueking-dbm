@@ -59,7 +59,7 @@ func PredixyTendisPlusSwitchTest(serverIP,
 	// TODO (新实例加入集群中。。s)
 
 	return DoSwitchActionTest(serverIP,
-		consts.TestPredixyPort,
+		consts.TestTendisplusPredixyPort,
 		consts.TestTendisPlusMasterStartPort,
 		consts.TestTendisPlusSlaveStartPort,
 		consts.TestSyncTendisPlusMasterStartPort,

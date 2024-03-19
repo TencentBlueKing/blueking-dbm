@@ -63,7 +63,7 @@ func (test *RedisKeysFilesDeleteJobTest) SetPorts(proxyPort int) *RedisKeysFiles
 	}
 	// 不传端口， 则测试本地创建集群，传线上端口，开通访问也是可以的
 	if proxyPort == 0 {
-		proxyPort = consts.TestPredixyPort
+		proxyPort = consts.TestTendisplusPredixyPort
 	}
 	test.ProxyPort = proxyPort
 	return test
@@ -171,9 +171,9 @@ func KeysFilesDelete(serverIP string, proxyPort int,
 	repoUser, repoPassword, repoUrl, dbtoolsPkgName, dbtoolsPkgMd5 string) (err error) {
 	keysFilesDeleteTest := RedisKeysFilesDeleteJobTest{}
 	var clientPort int
-	if proxyPort == consts.TestPredixyPort {
+	if proxyPort == consts.TestTendisplusPredixyPort {
 		clientPort = consts.TestTendisPlusMasterStartPort
-	} else if proxyPort == consts.TestTwemproxyPort {
+	} else if proxyPort == consts.TestRedisTwemproxyPort {
 		clientPort = consts.TestRedisMasterStartPort
 	} else if proxyPort == consts.TestSSDClusterTwemproxyPort {
 		clientPort = consts.TestTendisSSDMasterStartPort

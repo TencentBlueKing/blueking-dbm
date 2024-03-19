@@ -48,6 +48,7 @@ from backend.db_services.redis.redis_dts.util import (
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.db_services.redis.util import (
     is_predixy_proxy_type,
+    is_redis_cluster_protocal,
     is_redis_instance_type,
     is_tendisplus_instance_type,
     is_tendisssd_instance_type,
@@ -57,6 +58,7 @@ from backend.flow.consts import ConfigFileEnum, StateType, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.atom_jobs.set_dns_sub_job import set_dns_atom_job
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterIPsClientConnsKillAtomJob
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_dts import (
     redis_dst_cluster_backup_and_flush,
     redis_dts_data_copy_atom_job,
@@ -950,6 +952,21 @@ class RedisClusterDataCopyFlow(object):
                 }
             )
             redis_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # client kill 源集群 nodes 域名上的相关连接
+            src_redis_ips = self.__get_cluster_master_slave_ips(int(job_row.app), job_row.src_cluster_id)
+            if is_redis_cluster_protocal(src_cluster_info["cluster_type"]):
+                act_kwargs.cluster = {}
+                kill_sub_builder = ClusterIPsClientConnsKillAtomJob(
+                    self.root_id,
+                    self.data,
+                    act_kwargs,
+                    {
+                        "cluster_id": dst_cluster_info["cluster_id"],
+                        "ips": src_redis_ips,
+                    },
+                )
+                redis_pipeline.add_sub_pipeline(kill_sub_builder)
 
             # src_cluster的 new master/salve 重装 dbmon
             app = AppCache.get_app_attr(job_row.app, "db_app_abbr")

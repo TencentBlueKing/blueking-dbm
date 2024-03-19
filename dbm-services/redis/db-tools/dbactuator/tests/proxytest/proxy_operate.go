@@ -157,7 +157,7 @@ func (test *PredixyOperateTest) RunPredixyOpenClose() {
 // PredixyOpenClose predixy操作测试
 func PredixyOpenClose(serverIP string) (err error) {
 	predixyOpenCloseTest := PredixyOperateTest{}
-	predixyOpenCloseTest.SetIP(serverIP).SetPort(consts.TestPredixyPort).SetOp(consts.ProxyStop)
+	predixyOpenCloseTest.SetIP(serverIP).SetPort(consts.TestTendisplusPredixyPort).SetOp(consts.ProxyStop)
 	if predixyOpenCloseTest.Err != nil {
 		return
 	}
@@ -165,7 +165,7 @@ func PredixyOpenClose(serverIP string) (err error) {
 	if predixyOpenCloseTest.Err != nil {
 		return
 	}
-	predixyOpenCloseTest.SetIP(serverIP).SetPort(consts.TestPredixyPort).SetOp(consts.ProxyStart)
+	predixyOpenCloseTest.SetIP(serverIP).SetPort(consts.TestTendisplusPredixyPort).SetOp(consts.ProxyStart)
 	if predixyOpenCloseTest.Err != nil {
 		return
 	}
@@ -179,7 +179,7 @@ func PredixyOpenClose(serverIP string) (err error) {
 // PredixyShutdown predixy关闭测试
 func PredixyShutdown(serverIP string) (err error) {
 	predixyOpenCloseTest := PredixyOperateTest{}
-	predixyOpenCloseTest.SetIP(serverIP).SetPort(consts.TestPredixyPort).SetOp(consts.ProxyShutdown).SetTest()
+	predixyOpenCloseTest.SetIP(serverIP).SetPort(consts.TestTendisplusPredixyPort).SetOp(consts.ProxyShutdown).SetTest()
 	if predixyOpenCloseTest.Err != nil {
 		return
 	}
@@ -193,7 +193,7 @@ func PredixyShutdown(serverIP string) (err error) {
 // TwemproxyOpenClose twemproxy操作测试
 func TwemproxyOpenClose(serverIP string) (err error) {
 	twempOpenCloseTest := TwemproxyOperateTest{}
-	twempOpenCloseTest.SetIP(serverIP).SetPort(consts.TestTwemproxyPort).SetOp(consts.ProxyStop)
+	twempOpenCloseTest.SetIP(serverIP).SetPort(consts.TestRedisTwemproxyPort).SetOp(consts.ProxyStop)
 	if twempOpenCloseTest.Err != nil {
 		return
 	}
@@ -201,7 +201,7 @@ func TwemproxyOpenClose(serverIP string) (err error) {
 	if twempOpenCloseTest.Err != nil {
 		return
 	}
-	twempOpenCloseTest.SetIP(serverIP).SetPort(consts.TestTwemproxyPort).SetOp(consts.ProxyStart)
+	twempOpenCloseTest.SetIP(serverIP).SetPort(consts.TestRedisTwemproxyPort).SetOp(consts.ProxyStart)
 	if twempOpenCloseTest.Err != nil {
 		return
 	}
@@ -215,7 +215,7 @@ func TwemproxyOpenClose(serverIP string) (err error) {
 // TwemproxyShutDown twemproxy关闭测试
 func TwemproxyShutDown(localIP string) (err error) {
 	twempOpenCloseTest := TwemproxyOperateTest{}
-	twempOpenCloseTest.SetIP(localIP).SetPort(consts.TestTwemproxyPort).SetOp(consts.ProxyShutdown).SetTest()
+	twempOpenCloseTest.SetIP(localIP).SetPort(consts.TestRedisTwemproxyPort).SetOp(consts.ProxyShutdown).SetTest()
 	if twempOpenCloseTest.Err != nil {
 		return
 	}

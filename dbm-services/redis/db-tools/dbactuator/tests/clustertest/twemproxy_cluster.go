@@ -50,13 +50,13 @@ func TwemproxyRedisInstanceInstall(serverIP,
 	err = proxytest.TwemproxyInstall(serverIP, twemproxyPkgName, twemproxyPkgMd5,
 		consts.TendisTypeTwemproxyRedisInstance,
 		consts.TestRedisMasterStartPort, consts.TestRedisInstanceNum,
-		consts.TestTwemproxyPort)
+		consts.TestRedisTwemproxyPort)
 	if err != nil {
 		return
 	}
 
 	// 写入数据测试
-	cmdTest, err := redistest.NewCommandTest(serverIP, consts.TestTwemproxyPort, consts.ProxyTestPasswd,
+	cmdTest, err := redistest.NewCommandTest(serverIP, consts.TestRedisTwemproxyPort, consts.ProxyTestPasswd,
 		consts.TendisTypeRedisInstance, 0)
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func TwemproxyRedisInstanceInstall(serverIP,
 
 // TwemproxyRedisInstanceClear twemproxy+redis_instance 集群清理
 func TwemproxyRedisInstanceClear(serverIP string, clearDataDir bool) (err error) {
-	proxytest.TwemproxyClear(serverIP, consts.TestTwemproxyPort, clearDataDir)
+	proxytest.TwemproxyClear(serverIP, consts.TestRedisTwemproxyPort, clearDataDir)
 	// master清理时, /usr/local/redis 先保留
 	redistest.RedisInstanceMasterClear(serverIP, consts.TendisTypeTwemproxyRedisInstance, clearDataDir)
 	redistest.RedisInstanceSlaveClear(serverIP, consts.TendisTypeTwemproxyRedisInstance, clearDataDir)

@@ -24,6 +24,7 @@ from backend.configuration.models.system import SystemSettings
 from backend.constants import BACKUP_SYS_STATUS, IP_PORT_DIVIDER
 from backend.db_meta import api as metaApi
 from backend.db_meta.api.cluster import nosqlcomm
+from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.db_package.models import Package
@@ -2132,4 +2133,24 @@ class RedisActPayload(object):
                 "ip": params["ip"],
                 "ports": params["ports"],
             },
+        }
+
+    def redis_client_conns_kill(self, **kwargs) -> dict:
+        """
+        Redis kill客户端连接
+        """
+        params = kwargs["params"]
+        cluster = Cluster.objects.get(id=params["cluster_id"])
+        # proxy ips排除在kill client conn之外
+        proxy_ips = set()
+        for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            proxy_ips.add(proxy.machine.ip)
+        # 获取 ip 上的ports
+        ports = []
+        for inst in cluster.storageinstance_set.filter(machine__ip=params["ip"]):
+            ports.append(inst.port)
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.CLIENT_CONNS_KILL.value,
+            "payload": {"ip": params["ip"], "ports": ports, "excluded_ips": list(proxy_ips), "is_force": False},
         }

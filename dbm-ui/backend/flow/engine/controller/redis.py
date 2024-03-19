@@ -45,6 +45,9 @@ from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyS
 from backend.flow.engine.bamboo.scene.redis.redis_remove_dts_server import RedisRemoveDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.redis_reupload_old_backup_records import RedisReuploadOldBackupRecordsFlow
 from backend.flow.engine.bamboo.scene.redis.redis_slots_migrate import RedisSlotsMigrateFlow
+from backend.flow.engine.bamboo.scene.redis.redis_storages_client_conns_kill import (
+    RedisStoragesClientConnsKillSceneFlow,
+)
 from backend.flow.engine.bamboo.scene.redis.redis_twemproxy_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.singele_redis_shutdown import SingleRedisShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.single_proxy_shutdown import SingleProxyShutdownFlow
@@ -335,3 +338,10 @@ class RedisController(BaseController):
         """
         flow = RedisClusterMaxmemorySetSceneFlow(root_id=self.root_id, data=self.ticket_data)
         flow.batch_clusters_maxmemory_set()
+
+    def redis_cluster_storages_client_conns_kill(self):
+        """
+        tendis 集群存储节点 客户端连接 kill
+        """
+        flow = RedisStoragesClientConnsKillSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.batch_clusters_storages_cli_conns_kill()

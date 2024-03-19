@@ -195,6 +195,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewRedisDtsDataRepair().Name()] = atomredis.NewRedisDtsDataRepair
 		m.atomJobMapper[atomredis.NewRedisAddDtsServer().Name()] = atomredis.NewRedisAddDtsServer
 		m.atomJobMapper[atomredis.NewRedisRemoveDtsServer().Name()] = atomredis.NewRedisRemoveDtsServer
+		m.atomJobMapper[atomredis.NewRedisCliConnsKill().Name()] = atomredis.NewRedisCliConnsKill
 		m.atomJobMapper[atomproxy.NewPredixyConfServersRewrite().Name()] = atomproxy.NewPredixyConfServersRewrite
 		m.atomJobMapper[atomproxy.NewProxyVersionUpgrade().Name()] = atomproxy.NewProxyVersionUpgrade
 		m.atomJobMapper[atomredis.NewRedisMaxMemoryDynamicalSet().Name()] = atomredis.NewRedisMaxMemoryDynamicalSet
