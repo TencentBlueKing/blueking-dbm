@@ -170,6 +170,7 @@
     `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_predixy`,
     `${ClusterTypes.ES}_es_client`,
     `${ClusterTypes.PULSAE}_pulsar_broker`,
+    `${ClusterTypes.TENDBCLUSTER}_spider`,
   ];
   const isRequired = !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`);
 
