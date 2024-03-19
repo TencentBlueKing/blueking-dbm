@@ -12,29 +12,31 @@
 -->
 
 <template>
-  <SerachBar
-    v-model="searchSelectValue"
-    :cluster-type="activeTab"
-    :placeholder="searchPlaceholder"
-    :search-select-list="searchSelectList" />
-  <BkLoading
-    :loading="isLoading"
-    :z-index="2">
-    <DbOriginalTable
-      class="table-box"
-      :columns="generatedColumns"
-      :data="tableData"
-      :is-anomalies="isAnomalies"
-      :is-searching="searchSelectValue.length > 0"
-      :max-height="528"
-      :pagination="pagination.count < 10 ? false : pagination"
-      remote-pagination
-      row-style="cursor: pointer;"
-      @page-limit-change="handleTableLimitChange"
-      @page-value-change="handleTablePageChange"
-      @refresh="fetchResources"
-      @row-click.stop.prevent="handleRowClick" />
-  </BkLoading>
+  <div>
+    <SerachBar
+      v-model="searchSelectValue"
+      :cluster-type="activeTab"
+      :placeholder="searchPlaceholder"
+      :search-select-list="searchSelectList" />
+    <BkLoading
+      :loading="isLoading"
+      :z-index="2">
+      <DbOriginalTable
+        class="table-box"
+        :columns="generatedColumns"
+        :data="tableData"
+        :is-anomalies="isAnomalies"
+        :is-searching="searchSelectValue.length > 0"
+        :max-height="528"
+        :pagination="pagination.count < 10 ? false : pagination"
+        remote-pagination
+        row-style="cursor: pointer;"
+        @page-limit-change="handleTableLimitChange"
+        @page-value-change="handleTablePageChange"
+        @refresh="fetchResources"
+        @row-click.stop.prevent="handleRowClick" />
+    </BkLoading>
+  </div>
 </template>
 
 <script setup lang="tsx">
@@ -272,7 +274,7 @@
       return;
     }
     for (const data of tableData.value) {
-      if (!data.isOnline) {
+      if (data.isOnline) {
         handleSelecteRow(data, value);
       }
     }

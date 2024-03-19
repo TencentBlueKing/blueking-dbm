@@ -26,25 +26,28 @@
   </div>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="tsx" generic="T extends MongodbPermissonAccountModel | SqlserverPermissionAccountModel">
   import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import MongodbPermissonAccountModel from '@services/model/mongodb-permission/mongodb-permission-account';
+  import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
   import { getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
+  import { getSqlserverPermissionRules } from '@services/source/sqlserverPermissionAccount';
 
   import { AccountTypes } from '@common/const';
 
   interface Props {
+    accountType: string,
     selectMode?: boolean,
-    selectedList?: MongodbPermissonAccountModel[]
+    selectedList?: T[]
   }
 
   interface Emits {
     (e: 'change', value: UnwrapRef<typeof selectedMap>): void,
-    (e: 'delete', value: MongodbPermissonAccountModel[]): void
+    (e: 'delete', value: T[]): void
   }
 
   interface Expose {
@@ -57,7 +60,7 @@
   });
   const emits = defineEmits<Emits>();
 
-  const renderList = (row: MongodbPermissonAccountModel) => (
+  const renderList = (row: T) => (
     expandMap.value[row.account.account_id]
       ? row.rules.slice(0, 1)
       : row.rules
@@ -67,8 +70,8 @@
   const router = useRouter();
 
   const selectedMap = shallowRef<Record<string, {
-    account: MongodbPermissonAccountModel['account'],
-    rule: MongodbPermissonAccountModel['rules'][number]
+    account: T['account'],
+    rule: T['rules'][number]
   }>>({});
   const expandMap = ref<Record<number, boolean>>({});
 
@@ -78,7 +81,7 @@
         label: t('账号名称'),
         field: 'user',
         showOverflowTooltip: false,
-        render: ({ data }: { data: MongodbPermissonAccountModel }) => (
+        render: ({ data }: { data: T }) => (
           <div
             class="mongo-permission-cell"
             onClick={ () => handleToggleExpand(data) }>
@@ -111,7 +114,7 @@
         label: t('访问DB'),
         field: 'access_db',
         showOverflowTooltip: true,
-        render: ({ data, index }: { data: MongodbPermissonAccountModel, index: number }) => {
+        render: ({ data, index }: { data: T, index: number }) => {
           if (data.rules.length === 0) {
             return (
             <div class="mongo-permission-cell access-db">
@@ -159,7 +162,7 @@
         label: t('权限'),
         field: 'privilege',
         showOverflowTooltip: false,
-        render: ({ data, index }: { data: MongodbPermissonAccountModel, index: number }) => {
+        render: ({ data, index }: { data: T, index: number }) => {
           if (data.rules.length > 0) {
             return renderList(data).map((rule, ruleIndex) => {
               const { privilege } = rule;
@@ -183,7 +186,7 @@
     const operationColumn = {
       label: t('操作'),
       width: 100,
-      render: ({ data, index }: { data: MongodbPermissonAccountModel, index: number }) => (
+      render: ({ data, index }: { data: T, index: number }) => (
         renderList(data).map((rule, ruleIndex) => (
           <div class="mongo-permission-cell">
             <bk-button
@@ -211,11 +214,16 @@
     return _.cloneDeep(props.selectedList);
   });
 
+  const apiMap: Record<string, (params: any) => Promise<any>> = {
+    [AccountTypes.MONGODB]: getMongodbPermissionRules,
+    [AccountTypes.SQLSERVER]: getSqlserverPermissionRules
+  }
+
   const {
     data: ruleList,
-    run: getMongodbPermissionRulesRun,
+    run: getPermissionRulesRun,
     loading,
-  } = useRequest(getMongodbPermissionRules, {
+  } = useRequest(apiMap[props.accountType], {
     manual: true,
     onSuccess() {
       expandMap.value = {};
@@ -238,10 +246,10 @@
     immediate: true,
   });
 
-  const getList = (searchSelectorParams: object = {}) => {
-    getMongodbPermissionRulesRun({
+  const getList = (searchSelectorParams: Record<string, string> = {}) => {
+    getPermissionRulesRun({
       ...searchSelectorParams,
-      account_type: AccountTypes.MONGODB,
+      account_type: props.accountType,
     });
   };
 
@@ -249,7 +257,7 @@
     getList();
   };
 
-  const handleToggleExpand = (data: MongodbPermissonAccountModel) => {
+  const handleToggleExpand = (data: T) => {
     // 长度小于等于 1 则没有展开收起功能
     if (data.rules.length <= 1) {
       return;
@@ -257,10 +265,14 @@
     expandMap.value[data.account.account_id] = !expandMap.value[data.account.account_id];
   };
 
-  const handleShowCreateRule = (row: MongodbPermissonAccountModel, event: Event) => {
+  const handleShowCreateRule = (row: T, event: Event) => {
     event.stopPropagation();
+    const routeMap: Record<string, string> = {
+      [AccountTypes.MONGODB]: 'MongodbPermission',
+      [AccountTypes.SQLSERVER]: 'SqlServerPermissionRules'
+    }
     const route = router.resolve({
-      name: 'MongodbPermission',
+      name: routeMap[props.accountType],
     });
     window.open(route.href);
   };
@@ -306,82 +318,80 @@
 </script>
 
 <style lang="less" scoped>
-.mongo-permission {
-  height: calc(100% - 48px);
+  .mongo-permission {
+    height: calc(100% - 48px);
 
-  .mongo-permission-operations {
-    display: flex;
-    padding-bottom: 16px;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  :deep(.mongo-permission-cell) {
-    position: relative;
-    padding: 0 15px;
-    overflow: hidden;
-    line-height: calc(var(--row-height) - 1px);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    border-bottom: 1px solid @border-disable;
-
-  }
-
-  :deep(.access-db) {
-    display: flex;
-    align-items: center;
-    height: 42px;
-  }
-
-  :deep(.mongo-permission-cell:last-child) {
-    border-bottom: 0;
-  }
-
-  :deep(.user-icon) {
-    position: absolute;
-    top: 50%;
-    left: 15px;
-    transform: translateY(-50%) rotate(-90deg);
-    transition: all 0.2s;
-  }
-
-  :deep(.user-icon-expand) {
-    transform: translateY(-50%) rotate(0);
-  }
-
-  :deep(.user-name) {
-    display: flex;
-    height: 100%;
-    padding-left: 24px;
-    font-weight: 700;
-    color: #63656E;
-    cursor: pointer;
-    align-items: center;
-  }
-
-  :deep(.user-name-text) {
-    margin-right: 16px;
-    font-weight: bold;
-  }
-}
-
-:deep(.mongo-permission-table) {
-  height: 100% !important;
-  transition: all 0.5s;
-
-  td {
-    .cell {
-      padding: 0 !important;
+    .mongo-permission-operations {
+      display: flex;
+      padding-bottom: 16px;
+      justify-content: space-between;
+      align-items: center;
     }
 
-  }
+    :deep(.mongo-permission-cell) {
+      position: relative;
+      padding: 0 15px;
+      overflow: hidden;
+      line-height: calc(var(--row-height) - 1px);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-bottom: 1px solid @border-disable;
+    }
 
-  td:first-child {
-    .cell,
-    .mongo-permission-cell {
-      // height: 100% !important;
-      height: calc(var(--row-height) - 1px);
+    :deep(.access-db) {
+      display: flex;
+      align-items: center;
+      height: 42px;
+    }
+
+    :deep(.mongo-permission-cell:last-child) {
+      border-bottom: 0;
+    }
+
+    :deep(.user-icon) {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      transform: translateY(-50%) rotate(-90deg);
+      transition: all 0.2s;
+    }
+
+    :deep(.user-icon-expand) {
+      transform: translateY(-50%) rotate(0);
+    }
+
+    :deep(.user-name) {
+      display: flex;
+      height: 100%;
+      padding-left: 24px;
+      font-weight: 700;
+      color: #63656e;
+      cursor: pointer;
+      align-items: center;
+    }
+
+    :deep(.user-name-text) {
+      margin-right: 16px;
+      font-weight: bold;
     }
   }
-}
+
+  :deep(.mongo-permission-table) {
+    height: 100% !important;
+    transition: all 0.5s;
+
+    td {
+      .cell {
+        padding: 0 !important;
+      }
+    }
+
+    td:first-child {
+      .cell,
+      .mongo-permission-cell {
+        // height: 100% !important;
+        height: calc(var(--row-height) - 1px);
+      }
+    }
+  }
 </style>

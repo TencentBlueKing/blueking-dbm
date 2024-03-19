@@ -166,7 +166,12 @@
         downloadTemplatePath: `${basePath}mongo_cluster_authorize.xlsx`,
       };
     }
-
+    if ([ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(props.clusterType)) {
+      return {
+        uploadLink: `/apis/sqlserver/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
+        downloadTemplatePath: `${basePath}sqlserver_cluster_authorize.xlsx`,
+      };
+    }
     return {
       uploadLink: `/apis/mysql/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
       downloadTemplatePath: `${basePath}cluster-authorize.xlsx`,
@@ -195,7 +200,10 @@
         excel_url: excelState.precheck.excelUrl,
         authorize_data_list: excelState.precheck.authorizeDataList.map((authorizeItem) => {
           const authorizeItemCopy = { ...authorizeItem };
-          if ([ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER].includes(props.clusterType)) {
+          if ([
+            ClusterTypes.MONGO_REPLICA_SET,
+            ClusterTypes.MONGO_SHARED_CLUSTER,
+          ].includes(props.clusterType)) {
             delete authorizeItemCopy.source_ips;
           }
           return authorizeItemCopy;

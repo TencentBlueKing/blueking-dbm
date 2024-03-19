@@ -6,7 +6,7 @@
     :width="640"
     @closed="handleClose">
     <DbForm
-      ref="ruleRef"
+      ref="formRef"
       class="rule-form"
       form-type="vertical"
       :model="formData"
@@ -85,7 +85,7 @@
             <BkCheckbox
               :model-value="checkAllPrivileges"
               @change="(value: boolean) => handleSelectAllPrivileges(value)">
-              db_owner({{ t('包含所有权限，其他权限无需授予') }})
+              db_owner ( {{ t('包含所有权限，其他权限无需授予') }} )
             </BkCheckbox>
           </BkFormItem>
         </div>
@@ -113,22 +113,26 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
   import {
     addSqlserverAccountRule,
     querySqlserverAccountRules,
   } from '@services/source/sqlserverPermissionAccount';
-  import type { PermissionRuleAccount } from '@services/types/permission';
 
   import {
     useInfo,
     useStickyFooter,
   } from '@hooks';
 
+  import DbForm from '@components/db-form/index.vue'
+
   import { messageSuccess } from '@utils';
+
+  import { AccountTypes } from '@/common/const';
 
   interface Props {
     accountId: number
-    accountMapList: PermissionRuleAccount[]
+    accountMapList: SqlserverPermissionAccountModel['account'][]
     dbOperations: string[]
   }
 
@@ -147,14 +151,14 @@
     default: false,
   });
 
-  const ruleRef = ref();
+  const formRef = ref<InstanceType<typeof DbForm>>();
   const checkAllPrivileges = ref(false);
-  const existDBs = ref();
+  const existDBs = ref<string[]>([]);
   const textareaRef = ref();
   const textareaHeight = ref(0);
 
   /** 设置底部按钮粘性布局 */
-  useStickyFooter(ruleRef);
+  useStickyFooter(formRef);
 
   const { t } = useI18n();
 
@@ -170,19 +174,27 @@
   /**
    *  校验规则重复性
    */
-  const verifyAccountRules = async () => {
+  const verifyAccountRules = () => {
+    existDBs.value = [];
+
+    const userInfo = props.accountMapList.find((item) => item.account_id === formData.account_id)
     const dbs = formData.access_db.replace(/\n|;/g, ',')
       .split(',')
       .filter(db => db);
-    if (!dbs.length) {
+
+    if (!userInfo || dbs.length === 0) {
       return false;
     }
-    const res = await querySqlserverAccountRules({
-      user: String(formData.account_id),
+
+    return querySqlserverAccountRules({
+      user: userInfo.user,
       access_dbs: dbs,
-    });
-    existDBs.value = res.results[0].rules.map(item => item.access_db);
-    return !res.results[0].rules.length;
+    })
+      .then((res) => {
+        const rules = res.results[0]?.rules || [];
+        existDBs.value = rules.map(item => item.access_db);
+        return rules.length === 0;
+      });
   };
 
   const rules = {
@@ -202,7 +214,7 @@
       },
       {
         trigger: 'blur',
-        message: () => t('该账号下已存在xx规则', [existDBs.value?.join('，')]),
+        message: () => t('该账号下已存在xx规则', [existDBs.value.join('，')]),
         validator: verifyAccountRules,
       },
     ],
@@ -214,7 +226,7 @@
 
   const {
     loading: isSubmitting,
-    run: runaddSqlserverAccountRule,
+    run: addSqlserverAccountRuleRun,
   } = useRequest(addSqlserverAccountRule, {
     manual: true,
     onSuccess() {
@@ -294,16 +306,23 @@
    * 提交功能
    */
   const handleSubmit = async () => {
-    await ruleRef.value.validate();
-    if (checkAllPrivileges.value) {
-      // 包含所有权限
-      formData.privilege = ['all privileges'];
-    }
-    runaddSqlserverAccountRule({
+    await formRef.value!.validate();
+    const params = {
       access_db: formData.access_db.replace(/\n|;/g, ','), // 统一分隔符
-      privilege: formData.privilege,
+      privilege: {},
       account_id: formData.account_id,
-    });
+      account_type: AccountTypes.SQLSERVER
+    }
+    if (checkAllPrivileges.value) {
+      Object.assign(params.privilege, {
+        sqlserver_owner: ['db_owner']
+      })
+    } else {
+      Object.assign(params.privilege, {
+        sqlserver_dml: formData.privilege
+      })
+    }
+    addSqlserverAccountRuleRun(params);
   };
 </script>
 
@@ -363,12 +382,8 @@
 
     .check-all {
       position: relative;
-      width: 48px;
+      width: 50px;
       margin-right: 48px;
-
-      :deep(.bk-checkbox-label) {
-        font-weight: bold;
-      }
 
       &::after {
         position: absolute;

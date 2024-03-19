@@ -106,6 +106,7 @@
   } from '@services/permission';
   import { createSqlserverAccount } from '@services/source/sqlserverPermissionAccount';
 
+  import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import { messageSuccess } from '@utils';
@@ -408,6 +409,7 @@
     runCreateAccount({
       password: getEncryptPassword(),
       user: formData.user,
+      account_type: AccountTypes.SQLSERVER
     });
   };
 </script>
