@@ -419,6 +419,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     REUPLOAD_OLD_BACKUP_RECORDS = EnumField("reupload_old_backup_records", _("reupload_old_backup_records"))
     PREDIXY_CONFIG_SERVERS_REWRITE = EnumField("predixy_config_servers_rewrite", _("predixy_config_servers_rewrite"))
     MAXMEMORY_DYNAMICALLY_SET = EnumField("maxmemory_dynamically_set", _("maxmemory_dynamically_set"))
+    CLIENT_CONNS_KILL = EnumField("client_conns_kill", _("client_conns_kill"))
 
 
 class MongoDBActuatorActionEnum(str, StructuredEnum):

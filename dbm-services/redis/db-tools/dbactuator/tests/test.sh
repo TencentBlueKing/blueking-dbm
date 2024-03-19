@@ -3,29 +3,6 @@
 repoUser=""
 repoPassword=""
 
-tendisplusPkgName="tendisplus-2.6.0-rocksdb-v6.23.3.tgz"
-tendisplusPkgMd5="eaf90d7072740fd232b157d9cb32a425"
-
-redisPkgName="redis-6.2.7.tar.gz"
-redisPkgMd5="1fc9e5c3a044ce523844a6f2717e5ac3"
-
-#tendisssdPkgName="redis-2.8.17-rocksdb-v1.3.10.tar.gz"
-#tendisssdPkgMd5="26fb850222e9666595a48a6f2e9b0382"
-tendisssdPkgName="redis-2.8.17-rocksdb-v1.2.20.tar.gz"
-tendisssdPkgMd5="7bfe87efbe017c689c3f4a11bb2a8be9"
-
-predixyPkgName="predixy-1.4.0.tar.gz"
-predixyPkgMd5="24aba4a96dcf7f8581d2fde89d062455"
-
-twemproxyPkgName="twemproxy-0.4.1-v27.tar.gz"
-twemproxyPkgMd5="b7fcec49a43da9fdb5acde0a42287d43"
-
-dbtoolsPkgName="dbtools.tar.gz"
-dbtoolsPkgMd5="ced0fa280c63cb31536fefc1845f3ff0"
-
-bkdbmonPkgName="bk-dbmon-v0.12.tar.gz"
-bkdbmonPkgMd5="2a3a51c3b4a7dce4300e894e19f2f0ea"
-
 repoUrl=""
 
 usage() {
@@ -90,137 +67,97 @@ cd .. && make build
 
 cp ./build/dbactuator_redis /data/install/
 
-localTendisplusPkgName="/data/install/$tendisplusPkgName"
-localTendisplusPkgMd5=""
+# 如果要使用不同版本的集群,就改这里
+tendisssdIndexUrl="$repoUrl/tendisssd/TendisSSD-1.2/"
+tendisplusIndexUrl="$repoUrl/tendisplus/Tendisplus-2.6/"
+redisIndexUrl="$repoUrl/redis/Redis-6/"
+predixyIndexUrl="$repoUrl/predixy/Predixy-latest/"
+twemproxyIndexUrl="$repoUrl/twemproxy/Twemproxy-latest/"
+dbtoolsIndexUrl="$repoUrl/tools/latest/"
+bkdbmonIndexUrl="$repoUrl/dbmon/latest/"
 
-localRedisPkgName="/data/install/$redisPkgName"
-localRedisPkgMd5=""
+wget --user=$repoUser --password=$repoPassword $tendisssdIndexUrl -O  /tmp/tendisssd-latest.html
 
-localTendisssdPkgName="/data/install/$tendisssdPkgName"
-localTendisssdPkgMd5=""
+tendisssdPkgName=$(grep -P --only-match "redis-2.8.17-rocksdb-v\d+.\d+.\d+.tar.gz" /tmp/tendisssd-latest.html|head -1)
 
-localPredixyPkgName="/data/install/$predixyPkgName"
-localPredixyPkgMd5=""
-
-localTwemproxyPkgName="/data/install/$twemproxyPkgName"
-localTwemproxyPkgMd5=""
-
-localDbToolsPkgName="/data/install/$dbtoolsPkgName"
-localDbToolsPkgMd5=""
-
-localBkDbmonPkgName="/data/install/$bkdbmonPkgName"
-localBkDbmonPkgMd5=""
-
-if [[ -e $localTendisplusPkgName ]]; then
-
-    localTendisplusPkgMd5=$(md5sum $localTendisplusPkgName | awk '{print $1}')
+if [[ ! -e "/data/install/$tendisssdPkgName" ]]
+then
+  wget --user=$repoUser --password=$repoPassword $tendisssdIndexUrl/$tendisssdPkgName -O /data/install/$tendisssdPkgName
 fi
+tendisssdPkgMd5=$(md5sum  /data/install/$tendisssdPkgName| awk '{print $1}')
 
-if [[ -e $localRedisPkgName ]]; then
-    localRedisPkgMd5=$(md5sum $localRedisPkgName | awk '{print $1}')
-fi
+wget --user=$repoUser --password=$repoPassword $tendisplusIndexUrl -O  /tmp/tendisplus-latest.html
 
-if [[ -e $localTendisssdPkgName ]]; then
-    localTendisssdPkgMd5=$(md5sum $localTendisssdPkgName | awk '{print $1}')
-fi
+tendisplusPkgName=$(grep -P --only-match "tendisplus-\d+.\d+.\d+-rocksdb-v\d+.\d+.\d+.tgz" /tmp/tendisplus-latest.html|head -1)
 
-if [[ -e $localPredixyPkgName ]]; then
-    localPredixyPkgMd5=$(md5sum $localPredixyPkgName | awk '{print $1}')
+if [[ ! -e "/data/install/$tendisplusPkgName" ]]
+then
+  wget --user=$repoUser --password=$repoPassword $tendisplusIndexUrl/$tendisplusPkgName -O /data/install/$tendisplusPkgName
 fi
+tendisplusPkgMd5=$(md5sum  /data/install/$tendisplusPkgName| awk '{print $1}')
 
-if [[ -e $localTwemproxyPkgName ]]; then
-    localTwemproxyPkgMd5=$(md5sum $localTwemproxyPkgName | awk '{print $1}')
-fi
 
-if [[ -e $localKeyToolsPkgName ]]; then
-    localKeyToolsPkgMd5=$(md5sum $localKeyToolsPkgName | awk '{print $1}')
-fi
+wget --user=$repoUser --password=$repoPassword $redisIndexUrl -O  /tmp/redis-latest.html
 
-if [[ -e $localDbToolsPkgName ]]; then
-    localDbToolsPkgMd5=$(md5sum $localDbToolsPkgName | awk '{print $1}')
-fi
+redisPkgName=$(grep -P --only-match "redis-\d+.\d+.\d+.tar.gz" /tmp/redis-latest.html|head -1)
 
-if [[ -e $localBkDbmonPkgName ]]; then
-    localBkDbmonPkgMd5=$(md5sum $localBkDbmonPkgName | awk '{print $1}')
+if [[ ! -e "/data/install/$redisPkgName" ]]
+then
+  wget --user=$repoUser --password=$repoPassword $redisIndexUrl/$redisPkgName -O /data/install/$redisPkgName
 fi
+redisPkgMd5=$(md5sum  /data/install/$redisPkgName| awk '{print $1}')
 
-wgetCmd="wget --user=$repoUser --password=$repoPassword $repoUrl/tendisplus/Tendisplus-2.6/$tendisplusPkgName -O $localTendisplusPkgName"
-if [[ ! -e $localTendisplusPkgName ]]; then
-    echo $wgetCmd
-    $wgetCmd
-elif [[ -n $localTendisplusPkgMd5 && $localTendisplusPkgMd5 != $tendisplusPkgMd5 ]]; then
-    echo "rm -f $localTendisplusPkgName"
-    rm -f $localTendisplusPkgName
-    echo $wgetCmd
-    $wgetCmd
-fi
+wget --user=$repoUser --password=$repoPassword $predixyIndexUrl -O /tmp/predixy-latest.html
 
-wgetCmd="wget --user=$repoUser --password=$repoPassword $repoUrl/predixy/Predixy-latest/$predixyPkgName -O $localPredixyPkgName"
-if [[ ! -e $localPredixyPkgName ]]; then
-    echo $wgetCmd
-    $wgetCmd
-elif [[ -n $localPredixyPkgMd5 && $localPredixyPkgMd5 != $predixyPkgMd5 ]]; then
-    echo "rm -f $localPredixyPkgName"
-    rm -f $localPredixyPkgName
-    echo $wgetCmd
-    $wgetCmd
-fi
+predixyPkgName=$(grep -P --only-match "predixy-\d+.\d+.\d+.tar.gz" /tmp/predixy-latest.html|head -1)
 
-wgetCmd="wget --user=$repoUser --password=$repoPassword $repoUrl/redis/Redis-6/$redisPkgName -O $localRedisPkgName"
-if [[ ! -e $localRedisPkgName ]]; then
-    echo $wgetCmd
-    $wgetCmd
-elif [[ -n $localRedisPkgMd5 && $localRedisPkgMd5 != $redisPkgMd5 ]]; then
-    echo "rm -f $localRedisPkgName"
-    rm -f $localRedisPkgName
-    echo $wgetCmd
-    $wgetCmd
+if [[ ! -e "/data/install/$predixyPkgName" ]]
+then
+  wget --user=$repoUser --password=$repoPassword $predixyIndexUrl/$predixyPkgName -O /data/install/$predixyPkgName
 fi
+predixyPkgMd5=$(md5sum  /data/install/$predixyPkgName| awk '{print $1}')
 
-wgetCmd="wget --user=$repoUser --password=$repoPassword $repoUrl/tendisssd/TendisSSD-1.2/$tendisssdPkgName -O $localTendisssdPkgName"
-#wgetCmd="wget --user=$repoUser --password=$repoPassword $repoUrl/tendisssd/TendisSSD-1.3/$tendisssdPkgName -O $localTendisssdPkgName"
-if [[ ! -e $localTendisssdPkgName ]]; then
-    echo $wgetCmd
-    $wgetCmd
-elif [[ -n $localTendisssdPkgMd5 && $localTendisssdPkgMd5 != $tendisssdPkgMd5 ]]; then
-    echo "rm -f $localTendisssdPkgName"
-    rm -f $localTendisssdPkgName
-    echo $wgetCmd
-    $wgetCmd
-fi
 
-wgetCmd="wget --user=$repoUser --password=$repoPassword $repoUrl/twemproxy/Twemproxy-latest/$twemproxyPkgName -O $localTwemproxyPkgName"
-if [[ ! -e $localTwemproxyPkgName ]]; then
-    echo $wgetCmd
-    $wgetCmd
-elif [[ -n $localTwemproxyPkgMd5 && $localTwemproxyPkgMd5 != $twemproxyPkgMd5 ]]; then
-    echo "rm -f $localTwemproxyPkgName"
-    rm -f $localTwemproxyPkgName
-    echo $wgetCmd
-    $wgetCmd
-fi
+wget --user=$repoUser --password=$repoPassword $twemproxyIndexUrl -O /tmp/twemproxy-latest.html
 
-wgetCmd="wget --user=$repoUser --password=$repoPassword $repoUrl/tools/latest/$dbtoolsPkgName -O $localDbToolsPkgName"
-if [[ ! -e $localDbToolsPkgName ]]; then
-    echo $wgetCmd
-    $wgetCmd
-elif [[ -n $localDbToolsPkgMd5 && $localDbToolsPkgMd5 != $dbtoolsPkgMd5 ]]; then
-    echo "rm -f $localDbToolsPkgName"
-    rm -f $localDbToolsPkgName
-    echo $wgetCmd
-    $wgetCmd
-fi
+twemproxyPkgName=$(grep -P --only-match "twemproxy-\d+.\d+.\d+-v\d+.tar.gz" /tmp/twemproxy-latest.html|head -1)
 
-wgetCmd="wget --user=$repoUser --password=$repoPassword $repoUrl/dbmon/latest/$bkdbmonPkgName -O $localBkDbmonPkgName"
-if [[ ! -e $localBkDbmonPkgName ]]; then
-    echo $wgetCmd
-    $wgetCmd
-elif [[ -n $localBkDbmonPkgMd5 && $localBkDbmonPkgMd5 != $bkdbmonPkgMd5 ]]; then
-    echo "rm -f $localBkDbmonPkgName"
-    rm -f $localBkDbmonPkgName
-    echo $wgetCmd
-    $wgetCmd
+if [[ ! -e "/data/install/$twemproxyPkgName" ]]
+then
+  wget --user=$repoUser --password=$repoPassword $twemproxyIndexUrl/$twemproxyPkgName -O /data/install/$twemproxyPkgName
 fi
+twemproxyPkgMd5=$(md5sum  /data/install/$twemproxyPkgName| awk '{print $1}')
+
+
+wget --user=$repoUser --password=$repoPassword $dbtoolsIndexUrl -O /tmp/dbtools-latest.html
+
+dbtoolsPkgName=$(grep -P --only-match "dbtools.tar.gz" /tmp/dbtools-latest.html|head -1)
+
+if [[ ! -e "/data/install/$dbtoolsPkgName" ]]
+then
+  wget --user=$repoUser --password=$repoPassword $dbtoolsIndexUrl/$dbtoolsPkgName -O /data/install/$dbtoolsPkgName
+fi
+dbtoolsPkgMd5=$(md5sum  /data/install/$dbtoolsPkgName| awk '{print $1}')
+
+
+wget --user=$repoUser --password=$repoPassword $bkdbmonIndexUrl -O /tmp/dbmon-latest.html
+
+bkdbmonPkgName=$(grep -P --only-match "bk-dbmon-v\d+.\d+.tar.gz" /tmp/dbmon-latest.html|head -1)
+
+if [[ ! -e "/data/install/$bkdbmonPkgName" ]]
+then
+  wget --user=$repoUser --password=$repoPassword $bkdbmonIndexUrl/$bkdbmonPkgName -O /data/install/$bkdbmonPkgName
+fi
+bkdbmonPkgMd5=$(md5sum  /data/install/$bkdbmonPkgName| awk '{print $1}')
+
+
+echo "tendisssdPkgName===>$tendisssdPkgName"
+echo "tendisplusPkgName===>$tendisplusPkgName"
+echo "redisPkgName===>$redisPkgName"
+echo "predixyPkgName==>$predixyPkgName"
+echo "twemproxyPkgName==>$twemproxyPkgName"
+echo "dbtoolsPkgName==>$dbtoolsPkgName"
+echo "bkdbmonPkgName==>$bkdbmonPkgName"
 
 cd $DIR
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dbactuator-test -v test.go

@@ -24,7 +24,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend import env
 from backend.components.bklog.client import BKLogApi
-from backend.db_meta.enums import InstanceInnerRole, InstanceRole, InstanceStatus
+from backend.db_meta.enums import ClusterEntryRole, InstanceInnerRole, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_services.redis.autofix.enums import AutofixStatus
@@ -33,7 +33,8 @@ from backend.db_services.redis.autofix.models import (
     RedisAutofixCore,
     TbRedisClusterNodesUpdateTask,
 )
-from backend.flow.consts import RedisRole
+from backend.flow.consts import DEFAULT_REDIS_START_PORT, RedisRole
+from backend.flow.utils.dns_manage import DnsManage
 from backend.flow.utils.redis.redis_cluster_nodes import ClusterNodeData, decode_cluster_nodes
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 from backend.ticket.constants import TicketType
@@ -88,7 +89,7 @@ def redis_cluster_nodes_group_by_domain(nodes_records: list):
     return domain_latest_nodes
 
 
-@register_periodic_task(run_every=crontab(minute="*/2"))
+@register_periodic_task(run_every=crontab(minute="*/1"))
 def redis_clusternodes_update_record():
     """
     保存"redis cluster nodes更新"记录
@@ -145,7 +146,7 @@ def redis_clusternodes_update_record():
         row.save()
 
 
-@register_periodic_task(run_every=crontab(minute="*/2"))
+@register_periodic_task(run_every=crontab(minute="*/1"))
 def redis_clusternodes_update_deal():
     """
     处理'redis cluster nodes更新'
@@ -197,14 +198,40 @@ class RedisClusterNodesUpdateJob:
         if meta_obj.status == InstanceStatus.UNAVAILABLE.value and (not cluster_node.is_running()):
             # 节点状态没变
             return
+
+        cluster = Cluster.objects.get(id=self.task_row.cluster_id)
+        cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
+        dns_manage = DnsManage(bk_biz_id=cluster.bk_biz_id, bk_cloud_id=cluster.bk_cloud_id)
+        nodes_domain = "nodes." + cluster.immute_domain
+        if cluster_entry:
+            # 该集群存在 nodes 域名的映射关系
+            nodes_domain = cluster_entry.entry
         if meta_obj.status == InstanceStatus.RUNNING.value and (not cluster_node.is_running()):
             # 节点状态变成了不可用
             self.detail_msg += _("{}:{} 状态变成了不可用\n").format(meta_obj.instance_inner_role, meta_obj.ip_port)
             meta_obj.status = InstanceStatus.UNAVAILABLE.value
+            if cluster_entry and meta_obj.port == DEFAULT_REDIS_START_PORT:
+                # 更新 nodes 域名的映射关系
+                exists_insts = [f"{meta_obj.machine.ip}#{meta_obj.port}"]
+                try:
+                    dns_manage.recycle_domain_record(del_instance_list=exists_insts)
+                    self.detail_msg += _("域名{} 删除 {} 记录成功").format(nodes_domain, exists_insts)
+                except Exception as e:
+                    logger.error(traceback.format_exc())
+                    self.detail_msg += _("域名{} 删除 {} 记录失败,{}").format(nodes_domain, exists_insts, e)
         if meta_obj.status == InstanceStatus.UNAVAILABLE.value and cluster_node.is_running():
             # 节点状态变成了可用
             self.detail_msg += _("{}:{} 状态变成了可用\n").format(meta_obj.instance_inner_role, meta_obj.ip_port)
             meta_obj.status = InstanceStatus.RUNNING.value
+            if cluster_entry and meta_obj.port == DEFAULT_REDIS_START_PORT:
+                # 更新 nodes 域名的映射关系
+                new_insts = [f"{meta_obj.machine.ip}#{meta_obj.port}"]
+                try:
+                    dns_manage.create_domain(instance_list=new_insts, add_domain_name=nodes_domain)
+                    self.detail_msg += _("域名{} 新增 {} 记录成功").format(nodes_domain, new_insts)
+                except Exception as e:
+                    logger.error(traceback.format_exc())
+                    self.detail_msg += _("域名{} 新增 {} 记录失败,{}").format(nodes_domain, new_insts, e)
         meta_obj.save(update_fields=["status"])
 
     def deal_slave_node_update(

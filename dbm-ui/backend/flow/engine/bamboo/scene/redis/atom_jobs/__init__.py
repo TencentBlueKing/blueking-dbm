@@ -14,6 +14,7 @@ from .predixy_config_servers_rewrite import ClusterPredixyConfigServersRewriteAt
 from .proxy_install import ProxyBatchInstallAtomJob
 from .proxy_uninstall import ProxyUnInstallAtomJob
 from .proxy_upgrade import ClusterProxysUpgradeAtomJob
+from .redis_client_conns_kill import ClusterIPsClientConnsKillAtomJob, ClusterStoragesClientConnsKillAtomJob
 from .redis_cluster_master_rep import RedisClusterMasterReplaceJob
 from .redis_cluster_slave_rep import RedisClusterSlaveReplaceJob, StorageRepLink
 from .redis_dbmon import ClusterDbmonInstallAtomJob, ClusterIPsDbmonInstallAtomJob

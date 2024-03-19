@@ -16,7 +16,7 @@ func PredixyTendisplusClusterInstallTest(serverIP,
 	// 先清理
 	redistest.TendisplusMasterClear(serverIP, consts.TendisTypePredixyTendisplusCluster, true)
 	redistest.TendisplusSlaveClear(serverIP, consts.TendisTypePredixyTendisplusCluster, true)
-	proxytest.PredixyClear(serverIP, consts.TestPredixyPort, true)
+	proxytest.PredixyClear(serverIP, consts.TestTendisplusPredixyPort, true)
 	// 再安装tendisplus
 	err = redistest.TendisplusMasterInstall(serverIP, tendisplusPkgName, tendisplusPkgMd5,
 		dbtoolsPkgName, dbtoolsPkgMd5, consts.TendisTypePredixyTendisplusCluster)
@@ -37,14 +37,14 @@ func PredixyTendisplusClusterInstallTest(serverIP,
 	err = proxytest.PredixyInstall(serverIP, predixyPkgName, predixyPkgMd5,
 		consts.TendisTypePredixyTendisplusCluster,
 		consts.TestTendisPlusMasterStartPort, consts.TestRedisInstanceNum,
-		consts.TestPredixyPort,
+		consts.TestTendisplusPredixyPort,
 	)
 	if err != nil {
 		return
 	}
 
 	// 写入数据
-	cmdTest, err := redistest.NewCommandTest(serverIP, consts.TestPredixyPort, consts.ProxyTestPasswd,
+	cmdTest, err := redistest.NewCommandTest(serverIP, consts.TestTendisplusPredixyPort, consts.ProxyTestPasswd,
 		consts.TendisTypeRedisInstance, 0)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func TendisplusScaleNodesInstall(serverIP,
 
 // PredixyTendisplusClusterClear predixy+tendisplus_cluster清理
 func PredixyTendisplusClusterClear(serverIP string, clearDataDir bool) (err error) {
-	proxytest.PredixyClear(serverIP, consts.TestPredixyPort, clearDataDir)
+	proxytest.PredixyClear(serverIP, consts.TestTendisplusPredixyPort, clearDataDir)
 	// master清理时, /usr/local/redis 先保留
 	redistest.TendisplusClear(serverIP, consts.TendisTypePredixyTendisplusCluster,
 		clearDataDir, consts.TestTendisPlusMasterStartPort, consts.TestRedisInstanceNum)
@@ -152,8 +152,7 @@ func PredixyRedisClusterInstallTest(serverIP,
 	// 先清理
 	redistest.RedisInstanceMasterClear(serverIP, consts.TendisTypePredixyRedisCluster, true)
 	redistest.RedisInstanceSlaveClear(serverIP, consts.TendisTypePredixyRedisCluster, true)
-	proxytest.PredixyClear(serverIP, consts.TestPredixyPort, true)
-	return
+	proxytest.PredixyClear(serverIP, consts.TestRedisPredixyPort, true)
 
 	// 安装 redis_master 和 redis_slave
 	err = redistest.RedisInstanceMasterInstall(serverIP, redisPkgName, redisPkgMd5,
@@ -177,14 +176,14 @@ func PredixyRedisClusterInstallTest(serverIP,
 	err = proxytest.PredixyInstall(serverIP, predixyPkgName, predixyPkgMd5,
 		consts.TendisTypePredixyTendisplusCluster,
 		consts.TestRedisMasterStartPort, consts.TestRedisInstanceNum,
-		consts.TestPredixyPort,
+		consts.TestRedisPredixyPort,
 	)
 	if err != nil {
 		return
 	}
 
 	// 写入数据
-	cmdTest, err := redistest.NewCommandTest(serverIP, consts.TestPredixyPort, consts.ProxyTestPasswd,
+	cmdTest, err := redistest.NewCommandTest(serverIP, consts.TestRedisPredixyPort, consts.ProxyTestPasswd,
 		consts.TendisTypeRedisInstance, 0)
 	if err != nil {
 		return err
