@@ -101,10 +101,9 @@
         render: ({ index }: { index: number }) => (
           <div class="domain-address">
             <span>
-              { props.moduleName }db.
+              {props.moduleName}db.
             </span>
             <bk-form-item
-              class="domain-address__item"
               errorDisplayType="tooltips"
               property={`details.domains.${index}.key`}
               key={index }
@@ -139,7 +138,7 @@
             <span>
               {props.moduleName}dr.
             </span>
-            <span class="domain-address__placeholder">
+            <span >
               {domains.value[index]?.key}
             </span>
             <span>

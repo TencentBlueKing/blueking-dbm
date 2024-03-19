@@ -57,7 +57,7 @@
 
   interface Props {
     id: number, // 集群 or 实例 id
-    isFetchInstance: boolean
+    isFetchInstance?: boolean
   }
 
   const props = withDefaults(defineProps<Props>(), {

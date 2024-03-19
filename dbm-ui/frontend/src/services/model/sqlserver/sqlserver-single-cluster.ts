@@ -43,6 +43,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_access_port: number;
   cluster_alias: string;
   cluster_name: string;
   cluster_time_zone: string;
@@ -54,19 +55,6 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   id: number;
   major_version: string;
   master_domain: string;
-  masters: {
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    bk_host_id: number;
-    bk_instance_id: number;
-    instance: string;
-    ip: string;
-    name: string;
-    phase: string;
-    port: number;
-    spec_config: Record<'id', number>;
-    status: string;
-  }[];
   operations: Array<{
     cluster_id: number;
     flow_id: number;
@@ -120,6 +108,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_name = payload.cluster_name;
     this.cluster_time_zone = payload.cluster_time_zone;
@@ -131,7 +120,6 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
-    this.masters = payload.masters;
     this.operations = payload.operations;
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
@@ -192,11 +180,11 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
 
   get operationDisabled() {
     // 集群异常不支持操作
-    if (this.status === 'abnormal') {
+    if (this.isAbnormal) {
       return true;
     }
     // 被禁用的集群不支持操作
-    if (this.phase !== 'online') {
+    if (!this.isOnline) {
       return true;
     }
     // 各个操作互斥，有其他任务进行中禁用操作按钮
@@ -215,7 +203,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   }
 
   get isAbnormal() {
-    return this.status === 'ABNORMAL';
+    return this.status === 'abnormal';
   }
 
   get isOnline() {

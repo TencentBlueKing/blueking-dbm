@@ -42,6 +42,14 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/sqlserver-manage/permission/Index.vue'),
       },
+      {
+        name: 'SqlServerDbBackup',
+        path: 'sqlserver-db-backup/:page?',
+        meta: {
+          navName: t('数据库备份'),
+        },
+        component: () => import('@views/sqlserver-manage/db-backup/Index.vue'),
+      },
     ],
   },
 ];

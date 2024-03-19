@@ -9,10 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
-
-
-import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
+ */
 
 import { useGlobalBizs } from '@stores';
 
@@ -20,34 +17,36 @@ import http from '../http';
 
 const { currentBizId } = useGlobalBizs();
 
-const path = `/apis/sqlserver/bizs/${currentBizId}`
+const path = `/apis/sqlserver/bizs/${currentBizId}/permission/authorize`;
 
 /**
- * 判断库名是否在集群存在
+ * Sqlserver 授权规则前置检查
  */
-export function checkSqlserverDbExist(params: {
-  cluster_id: number,
-  db_list: string[]
+export function preCheckSqlserverAuthorizeRules(params: {
+  sqlserver_users: {
+    user: string;
+    access_dbs: string[];
+  }[];
+  target_instances: string[];
+  cluster_type: string;
+  cluster_ids?: number[];
 }) {
-  return http.post<Record<string, boolean>>(`${path}/cluster/check_sqlserver_db_exist/`, params);
+  return http.post<{
+    authorize_data: {
+      bk_biz_id: number,
+      operator: string,
+      user: string,
+      access_dbs: string[],
+      account_rules: {
+          bk_biz_id: number,
+          dbname: string
+      }[],
+      source_ips: string[],
+      target_instances: string[],
+      cluster_type: string
+    }[];
+    authorize_uid: string;
+    message: string;
+    pre_check: boolean;
+  }>(`${path}/pre_check_rules/`, params);
 }
-
-/**
- * 通过库表匹配查询db
- */
-export function getSqlserverDbs(params: {
-  cluster_id: number,
-  db_list: string[]
-  ignore_db_list: string[]
-}) {
-  return http.post<string[]>(`${path}/cluster/get_sqlserver_dbs/`, params);
-}
-
-
-/**
- * 获取业务拓扑树
- */
-export function geSqlserverResourceTree(params: { cluster_type: string }) {
-  return http.get<BizConfTopoTreeModel[]>(`${path}/resource_tree/`, params);
-}
-

@@ -186,7 +186,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   }
 
   get isAbnormal() {
-    return this.status === 'ABNORMAL';
+    return this.status === 'abnormal';
   }
 
   get isOnline() {

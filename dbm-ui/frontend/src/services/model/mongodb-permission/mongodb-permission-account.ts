@@ -9,27 +9,27 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import dayjs from 'dayjs';
 
 export default class MongodbPermissonAccount {
   account: {
-    account_id: number,
-    bk_biz_id: number,
-    user: string
-    creator: string,
-    create_time: string,
-    password: string
+    account_id: number;
+    bk_biz_id: number;
+    create_time: string;
+    creator: string;
+    password: string;
+    user: string;
   };
   rules: Array<{
-    access_db: string
-    account_id: number
-    bk_biz_id: number
-    create_time: string
-    creator: string
-    privilege: string
-    rule_id: number,
+    access_db: string;
+    account_id: number;
+    bk_biz_id: number;
+    create_time: string;
+    creator: string;
+    privilege: string;
+    rule_id: number;
   }>;
 
   constructor(payload = {} as MongodbPermissonAccount) {

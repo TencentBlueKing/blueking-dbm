@@ -29,7 +29,7 @@
         v-model="searchData"
         :data="filters"
         :placeholder="t('账号名称_DB名称_权限名称')"
-        style="width: 500px;"
+        style="width: 500px"
         unique-select
         @change="handleSearch" />
     </div>
@@ -40,13 +40,13 @@
         :data="sqlserverPermissionRulesData?.results || []"
         :max-height="tableMaxHeight"
         :row-class="setRowClass"
-        @refresh="runAccountRulesList" />
+        @refresh="fetchAccountRuleList" />
     </BkLoading>
   </div>
   <!-- 创建账户 -->
   <AccountDialog
     v-model="accountDialogIsShow"
-    @success="() => runAccountRulesList({})" />
+    @success="fetchAccountRuleList" />
   <!-- 账号信息 dialog -->
   <BkDialog
     v-model:is-show="accountInformationShow"
@@ -63,7 +63,7 @@
         class="account-details-item">
         <span class="account-details-label">{{ column.label }}：</span>
         <span class="account-details-value">
-          {{ column.value ?? accountInformationData.account[column.key] }}
+          {{ column.value ?? accountInformationData.account[column.key] ?? accountInformationData[column.key] }}
         </span>
       </div>
       <div
@@ -82,63 +82,53 @@
   </BkDialog>
   <!-- 添加授权规则 -->
   <CreateRuleSlider
-    ref="createRuleRef"
     v-model="ruleShow"
     :account-id="ruleAccountId"
     :account-map-list="accountMapList"
     :db-operations="dbOperations"
-    @success="() => runAccountRulesList({})" />
+    @success="fetchAccountRuleList" />
   <!-- 集群授权 -->
   <ClusterAuthorize
     v-model="authorizeShow"
     :access-dbs="authorizeDbs"
+    :account-type="AccountTypes.SQLSERVER"
+    :cluster-types="[ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA]"
     :user="authorizeUser" />
 </template>
 
 <script setup lang="tsx">
-  import BkButton from 'bkui-vue/lib/button';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import SqlserverPermissionModel from '@services/model/sqlserver/sqlserver-permission';
+  import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
   import {
     deleteSqlserverAccount,
     getSqlserverPermissionRules,
   } from '@services/source/sqlserverPermissionAccount';
-  import type { PermissionRuleAccount } from '@services/types/permission';
 
   import {
     useInfoWithIcon,
     useTableMaxHeight,
   } from '@hooks';
 
-  import { OccupiedInnerHeight } from '@common/const';
+  import { AccountTypes, ClusterTypes, OccupiedInnerHeight } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
-  import MiniTag from '@components/mini-tag/index.vue';
 
-  import { messageSuccess } from '@utils';
+  import { getSearchSelectorParams , messageSuccess } from '@utils';
 
   import AccountDialog from './components/AccountDialog.vue';
   import CreateRuleSlider from './components/CreateRule.vue';
 
-  interface PermissionRuleItemType {
-    access_db: string
-    account_id: number
-    bk_biz_id: number
-    creator: string
-    privilege: string
-    rule_id: number
-  }
-
   const { t } = useI18n();
+  const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
 
   const columns = [
     {
       label: t('账号名称'),
       field: 'user',
       showOverflowTooltip: false,
-      render: ({ data }: { data: SqlserverPermissionModel }) => (
+      render: ({ data }: { data: SqlserverPermissionAccountModel }) => (
         <div
           class="permission-rules-cell"
           onClick={ () => handleToggleExpand(data) }>
@@ -159,14 +149,16 @@
               </bk-button>
               {
                 data.isNew && (
-                  <MiniTag
+                  <bk-tag
+                    size="small"
                     theme="success"
-                    content="NEW"
-                    class="ml-4" />
+                    class="ml-4">
+                    NEW
+                  </bk-tag>
                 )
               }
               <bk-button
-                class="add-rule ml-4"
+                class="add-rule ml-8"
                 size="small"
                 onClick={() => handleShowCreateRule(data)}>
                  {t('新建规则')}
@@ -178,8 +170,7 @@
     {
       label: t('访问的DB名'),
       field: 'access_db',
-      sort: true,
-      render: ({ data }: { data: SqlserverPermissionModel }) => {
+      render: ({ data }: { data: SqlserverPermissionAccountModel }) => {
         if (!data.rules.length) {
           return (
             <div class="permission-rules-cell">
@@ -206,8 +197,7 @@
     {
       label: t('权限'),
       field: 'privilege',
-      sort: true,
-      render: ({ data }: { data: SqlserverPermissionModel }) => (
+      render: ({ data }: { data: SqlserverPermissionAccountModel }) => (
         getRenderList(data).map(rule => (
           <div
             class="permission-rules-cell"
@@ -220,7 +210,7 @@
     {
       label: t('操作'),
       width: 140,
-      render: ({ data }: { data: SqlserverPermissionModel }) => {
+      render: ({ data }: { data: SqlserverPermissionAccountModel }) => {
         if (data.rules.length === 0) {
           return (
           <div class="permission-rules-cell">
@@ -250,11 +240,9 @@
     },
   ];
 
-  const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
-
   const accountColumns: Array<{
     label: string,
-    key: keyof PermissionRuleAccount,
+    key: keyof SqlserverPermissionAccountModel['account'] | 'createAtDisplay'
     value?: string
   }> = [
     {
@@ -268,7 +256,7 @@
     },
     {
       label: t('创建时间'),
-      key: 'create_time',
+      key: 'createAtDisplay',
     },
     {
       label: t('创建人'),
@@ -277,6 +265,18 @@
   ];
 
   const dbOperations = ['db_datawriter', 'db_datareader'];
+
+  const accountInformationData = ref();
+  const accountInformationShow = ref(false);
+  const ruleShow = ref(false);
+  const ruleAccountId = ref();
+  const accountMapList = ref<SqlserverPermissionAccountModel['account'][]>([]);
+  const searchData = ref([]);
+  const accountDialogIsShow = ref(false);
+  const authorizeShow = ref(false);
+  const authorizeUser = ref();
+  const authorizeDbs = ref();
+  const rowExpandMap = shallowRef<Record<number, boolean>>({});
 
   /**
    * search select 过滤参数
@@ -294,25 +294,12 @@
       name: t('权限'),
       id: 'privilege',
       multiple: true,
-      children: dbOperations.map((id: string) => ({
+      children: [...dbOperations, 'db_owner'].map((id: string) => ({
         id: id.toLowerCase(),
         name: id,
       })),
     },
   ]);
-
-  const createRuleRef = ref();
-  const accountInformationData = ref();
-  const accountInformationShow = ref(false);
-  const ruleShow = ref(false);
-  const ruleAccountId = ref();
-  const accountMapList = ref();
-  const searchData = ref();
-  const accountDialogIsShow = ref(false);
-  const authorizeShow = ref(false);
-  const authorizeUser = ref();
-  const authorizeDbs = ref();
-  const rowExpandMap = shallowRef<Record<number, boolean>>({});
 
   const {
     data: sqlserverPermissionRulesData,
@@ -330,23 +317,29 @@
     onSuccess() {
       messageSuccess(t('成功删除账号'));
       accountInformationShow.value = false;
-      runAccountRulesList({});
+      fetchAccountRuleList();
     },
   });
 
-  runAccountRulesList({});
+  const fetchAccountRuleList = () => {
+    runAccountRulesList({
+      ...getSearchSelectorParams(searchData.value),
+      account_type: AccountTypes.SQLSERVER
+    });
+  }
+  fetchAccountRuleList()
 
   const handleSearch = () => {
-    runAccountRulesList({});
+    fetchAccountRuleList();
   };
 
   // 设置行样式
-  const setRowClass = (row: SqlserverPermissionModel) => (row.isNew ? 'is-new' : '');
+  const setRowClass = (row: SqlserverPermissionAccountModel) => (row.isNew ? 'is-new' : '');
 
   /**
    * 列表项展开/收起
    */
-  const handleToggleExpand = (data: SqlserverPermissionModel) => {
+  const handleToggleExpand = (data: SqlserverPermissionAccountModel) => {
     if (data.rules.length <= 1) {
       return;
     }
@@ -355,13 +348,16 @@
     rowExpandMap.value = expandMap;
   };
 
-  const handleDeleteAccount = (data: SqlserverPermissionModel) => {
+  const handleDeleteAccount = (data: SqlserverPermissionAccountModel) => {
     useInfoWithIcon({
       type: 'warnning',
       title: t('确认删除该账号'),
       content: t('即将删除账号xx_删除后将不能恢复', { name: data.account.user }),
       onConfirm: async () => {
-        runDeleteAccount({ account_id: data.account.account_id });
+        runDeleteAccount({
+          account_id: data.account.account_id,
+          account_type: AccountTypes.SQLSERVER
+        });
         return true;
       },
     });
@@ -370,22 +366,22 @@
   /**
    * 展开/收起渲染列表
    */
-  const getRenderList = (data: SqlserverPermissionModel) => (!rowExpandMap.value[data.account.account_id]
+  const getRenderList = (data: SqlserverPermissionAccountModel) => (!rowExpandMap.value[data.account.account_id]
     ? data.rules : data.rules.slice(0, 1));
 
-  const handleViewAccount = (data: SqlserverPermissionModel) => {
+  const handleViewAccount = (data: SqlserverPermissionAccountModel) => {
     accountInformationData.value = data;
     accountInformationShow.value = true;
   };
 
-  const handleShowCreateRule = (data: SqlserverPermissionModel) => {
+  const handleShowCreateRule = (data: SqlserverPermissionAccountModel) => {
     ruleAccountId.value = data.account.account_id;
     ruleShow.value = true;
   };
 
   const handleShowAuthorize = (
-    data: SqlserverPermissionModel,
-    item: PermissionRuleItemType,
+    data: SqlserverPermissionAccountModel,
+    item: SqlserverPermissionAccountModel['rules'][number],
   ) => {
     authorizeShow.value = true;
     authorizeUser.value = data.account.user;
@@ -394,112 +390,112 @@
 </script>
 
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.permission-rules {
-  .permission-info-alert {
-    margin-bottom: 16px;
+  .permission-rules {
+    .permission-info-alert {
+      margin-bottom: 16px;
 
-    :deep(.label) {
-      font-weight: 700;
-    }
-  }
-
-  .permission-rules-operations {
-    justify-content: space-between;
-    padding-bottom: 16px;
-    .flex-center();
-  }
-
-  :deep(.user-name) {
-    height: 100%;
-    padding-left: 24px;
-    cursor: pointer;
-    align-items: center;
-    .flex-center();
-
-    .user-name-text {
-      font-weight: bold;
+      :deep(.label) {
+        font-weight: 700;
+      }
     }
 
-    .add-rule {
-      display: none;
+    .permission-rules-operations {
+      justify-content: space-between;
+      padding-bottom: 16px;
+      .flex-center();
     }
-  }
 
-  :deep(.permission-rules-cell) {
-    position: relative;
-    padding: 0 15px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    border-bottom: 1px solid @border-disable;
+    :deep(.user-name) {
+      height: 100%;
+      padding-left: 24px;
+      cursor: pointer;
+      align-items: center;
+      .flex-center();
 
-    &:last-child {
-      border-bottom: 0;
-    }
-  }
-
-  :deep(.user-icon) {
-    position: absolute;
-    top: 50%;
-    left: 15px;
-    transform: translateY(-50%) rotate(-90deg);
-    transition: all 0.2s;
-  }
-
-  :deep(.user-icon-expand) {
-    transform: translateY(-50%) rotate(0);
-  }
-
-  .permission-rules-table {
-    transition: all 0.5s;
-
-    :deep(.bk-table-body table tbody tr) {
-      &:hover {
-        .add-rule {
-          display: flex;
-        }
+      .user-name-text {
+        font-weight: bold;
       }
 
-      &.is-new {
+      .add-rule {
+        display: none;
+      }
+    }
+
+    :deep(.permission-rules-cell) {
+      position: relative;
+      padding: 0 15px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-bottom: 1px solid @border-disable;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+
+    :deep(.user-icon) {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      transform: translateY(-50%) rotate(-90deg);
+      transition: all 0.2s;
+    }
+
+    :deep(.user-icon-expand) {
+      transform: translateY(-50%) rotate(0);
+    }
+
+    .permission-rules-table {
+      transition: all 0.5s;
+
+      :deep(.bk-table-body table tbody tr) {
+        &:hover {
+          .add-rule {
+            display: flex;
+          }
+        }
+
+        &.is-new {
+          td {
+            background-color: #f3fcf5 !important;
+          }
+        }
+
         td {
-          background-color: #f3fcf5 !important;
-        }
-      }
+          .cell {
+            padding: 0 !important;
+          }
 
-      td {
-        .cell {
-          padding: 0 !important;
-        }
-
-        &:first-child {
-          .cell,
-          .permission-rules-cell {
-            height: 100% !important;
+          &:first-child {
+            .cell,
+            .permission-rules-cell {
+              height: 100% !important;
+            }
           }
         }
       }
     }
   }
-}
 
-.account-details {
-  font-size: @font-size-mini;
+  .account-details {
+    font-size: @font-size-mini;
 
-  .account-details-item {
-    display: flex;
-    padding-bottom: 16px;
+    .account-details-item {
+      display: flex;
+      padding-bottom: 16px;
+    }
+
+    .account-details-label {
+      width: 90px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .account-details-value {
+      color: @title-color;
+    }
   }
-
-  .account-details-label {
-    width: 90px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-
-  .account-details-value {
-    color: @title-color;
-  }
-}
 </style>

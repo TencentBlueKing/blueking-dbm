@@ -88,6 +88,7 @@
     "vite-plugin-html-env": "1.2.8",
     "vite-plugin-imp": "2.4.0",
     "vite-plugin-style-import": "2.0.0",
+    "vue-component-type-helpers": "^2.0.6",
     "vue-tsc": "^1.8.22"
   },
   "simple-git-hooks": {
