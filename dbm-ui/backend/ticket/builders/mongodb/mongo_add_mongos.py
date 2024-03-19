@@ -58,8 +58,10 @@ class MongoDBAddMongosResourceParamBuilder(BaseMongoDBOperateResourceParamBuilde
 
     def post_callback(self):
         with self.next_flow_manager() as next_flow:
-            machine_specs = self.format_machine_specs(next_flow.details["ticket_data"]["resource_spec"])
-            next_flow.details["ticket_data"].update(machine_specs=machine_specs)
+            for info in next_flow.details["ticket_data"]["infos"]:
+                # 格式化mongodb节点信息和machine_specs规格信息
+                self.format_mongo_node_infos(info)
+                info["machine_specs"] = self.format_machine_specs(info["resource_spec"])
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_ADD_MONGOS, is_apply=True)
