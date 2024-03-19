@@ -12,6 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase
+from backend.db_meta.models import AppCache
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
@@ -26,10 +27,11 @@ class MongoDBDestroyDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
 
 class MongoDBDestroyFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.fake_scene
+    controller = MongoDBController.deinstall_cluster
 
     def format_ticket_data(self):
-        pass
+        bk_biz_id = self.ticket_data["bk_biz_id"]
+        self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_DESTROY, phase=ClusterPhase.DESTROY)

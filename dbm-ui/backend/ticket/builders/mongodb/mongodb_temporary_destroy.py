@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
+from backend.db_meta.models import AppCache
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
@@ -33,7 +34,11 @@ class MongoDBTemporaryDisableFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class MongoDBTemporaryDestroyFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.fake_scene
+    controller = MongoDBController.deinstall_cluster
+
+    def format_ticket_data(self):
+        bk_biz_id = self.ticket_data["bk_biz_id"]
+        self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_TEMPORARY_DESTROY)
