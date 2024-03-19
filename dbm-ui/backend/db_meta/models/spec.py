@@ -63,7 +63,7 @@ class Spec(AuditedModel):
         """
         mount_point__size: Dict[str, int] = {disk["mount_point"]: disk["size"] for disk in self.storage_spec}
         if self.spec_cluster_type == ClusterType.TenDBCluster:
-            return mount_point__size.get("data1") or mount_point__size["/data"] / 2
+            return mount_point__size.get("/data1") or mount_point__size["/data"] / 2
 
         if self.spec_cluster_type in [
             ClusterType.TwemproxyTendisSSDInstance,
