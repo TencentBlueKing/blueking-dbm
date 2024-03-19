@@ -13,50 +13,13 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import type { HostDetails } from '@services/types';
-
   import { nameRegx } from '@common/regex';
 
   import BatchEdit from './BatchEdit.vue';
 
-  interface IFormdata {
-    ticket_type: string;
-    remark: string;
-    details: {
-      db_app_abbr: string;
-      bk_cloud_id: number;
-      city_code: string;
-      db_module_id: number;
-      cluster_count: number;
-      inst_num: number;
-      domains: { key: string }[];
-      ip_source: string;
-      nodes: {
-        backend: HostDetails[];
-      };
-      resource_spec: {
-        backend: {
-          spec_id: number | string;
-          spec_name: string;
-          spec_cluster_type: string;
-          spec_machine_type: string;
-          affinity: string;
-          location_spec: {
-            city: string;
-            sub_zone_ids: string[];
-          };
-          count: number;
-        };
-      };
-      start_mssql_port: number;
-      disaster_tolerance_level: string;
-    };
-    bk_biz_id: number | string;
-  }
-
   interface Props {
     moduleName: string,
-    formData: IFormdata,
+    dbAppAbbr: string,
     isSqlserverSingle: boolean,
   }
 
@@ -75,10 +38,10 @@
   const tableData = computed(() => {
     const {
       moduleName,
-      formData,
+      dbAppAbbr,
     } = props;
-    if (moduleName && (formData.details.db_app_abbr)) {
-      return formData.details.domains;
+    if (moduleName && dbAppAbbr) {
+      return domains.value;
     }
     return [];
   });
@@ -125,9 +88,9 @@
               tableData.value.length !== 0 && (
                 <span v-bk-tooltips={t('快捷编辑_可通过换行分隔_快速编辑多个域名')}>
                   <BatchEdit
-                    moduleName={ props.moduleName }
-                    appName={ props.formData.details.db_app_abbr }
-                    onChange={ handleBatchEditDomains } />
+                    moduleName={props.moduleName}
+                    appName={props.dbAppAbbr}
+                    onChange={handleBatchEditDomains} />
                 </span>
               )
             }
@@ -143,25 +106,25 @@
             <bk-form-item
               class="domain-address__item"
               errorDisplayType="tooltips"
-              property={`details.domains.${index}.key` }
+              property={`details.domains.${index}.key`}
               key={index }
               rules={domainRule}
               label-width={0}>
                 <bk-input
                   style="width:260px"
-                  model-value={ props.formData.details.domains[index]?.key }
-                  placeholder={ t('请输入') }
+                  model-value={domains.value[index]?.key}
+                  placeholder={t('请输入')}
                   v-bk-tooltips={{
                     trigger: 'click',
                     placement: 'top',
                     theme: 'light',
                     content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
                   }}
-                  onInput={(value: string) => handleChangeDomain(value, index)}
+                  onChange={(value: string) => handleChangeDomain(value, index)}
                 />
             </bk-form-item>
             <span>
-              {`.${props.formData.details.db_app_abbr}.db`}
+              {`.${props.dbAppAbbr}.db`}
             </span>
           </div>
         ),
@@ -174,13 +137,13 @@
         render: ({ index }: { index: number }) => (
           <div class="domain-address">
             <span>
-              { props.moduleName }dr.
+              {props.moduleName}dr.
             </span>
             <span class="domain-address__placeholder">
-              { props.formData.details.domains[index]?.key }
+              {domains.value[index]?.key}
             </span>
             <span>
-              { `.${props.formData.details.db_app_abbr}.db` }
+              {`.${props.dbAppAbbr}.db`}
             </span>
           </div>
         ),
@@ -210,11 +173,11 @@
 </script>
 
 <style lang="less" scoped>
-.sqlserver-domains {
-  :deep(.bk-table) {
-    .bk-form-content {
-      margin-left: 0 !important;
+  .sqlserver-domains {
+    :deep(.bk-table) {
+      .bk-form-content {
+        margin-left: 0 !important;
+      }
     }
   }
-}
 </style>

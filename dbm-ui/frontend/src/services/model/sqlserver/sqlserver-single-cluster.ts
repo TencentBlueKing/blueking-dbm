@@ -18,18 +18,18 @@ import { t } from '@locales/index';
 import TimeBaseClassModel from '../utils/time-base-class';
 
 export default class SqlServerSingleCluster extends TimeBaseClassModel {
-  static SQLSERVER_SINGLE_DESTROY = 'SQLSERVER_SINGLE_DESTROY';
-  static SQLSERVER_SINGLE_DISABLE = 'SQLSERVER_SINGLE_DISABLE';
-  static SQLSERVER_SINGLE_ENABLE = 'SQLSERVER_SINGLE_ENABLE';
+  static SQLSERVER_DESTROY = 'SQLSERVER_DESTROY';
+  static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
+  static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
   static operationIconMap = {
-    [SqlServerSingleCluster.SQLSERVER_SINGLE_ENABLE]: 'qiyongzhong',
-    [SqlServerSingleCluster.SQLSERVER_SINGLE_DISABLE]: 'jinyongzhong',
-    [SqlServerSingleCluster.SQLSERVER_SINGLE_DESTROY]: 'shanchuzhong',
+    [SqlServerSingleCluster.SQLSERVER_ENABLE]: 'qiyongzhong',
+    [SqlServerSingleCluster.SQLSERVER_DISABLE]: 'jinyongzhong',
+    [SqlServerSingleCluster.SQLSERVER_DESTROY]: 'shanchuzhong',
   };
   static operationTextMap = {
-    [SqlServerSingleCluster.SQLSERVER_SINGLE_DESTROY]: t('删除任务执行中'),
-    [SqlServerSingleCluster.SQLSERVER_SINGLE_DISABLE]: t('禁用任务执行中'),
-    [SqlServerSingleCluster.SQLSERVER_SINGLE_ENABLE]: t('启用任务执行中'),
+    [SqlServerSingleCluster.SQLSERVER_DESTROY]: t('删除任务执行中'),
+    [SqlServerSingleCluster.SQLSERVER_DISABLE]: t('禁用任务执行中'),
+    [SqlServerSingleCluster.SQLSERVER_ENABLE]: t('启用任务执行中'),
   };
   static statusMap: Record<string, string> = {
     running: t('正常'),

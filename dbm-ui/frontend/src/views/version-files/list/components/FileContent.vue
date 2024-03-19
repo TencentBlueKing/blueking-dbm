@@ -204,7 +204,7 @@
   // 版本是否为输入框
   const isInputType = computed(() => {
     const bigData: string[] = [DBTypes.KAFKA, DBTypes.ES, DBTypes.HDFS, DBTypes.PULSAR, DBTypes.INFLUXDB];
-    return bigData.includes(props.info.name) && state.active !== 'actuator';
+    return (bigData.includes(props.info.name) && state.active !== 'actuator' || props.info.name === DBTypes.MONGODB);
   });
   const fileTips = computed(() => ({
     content: isInputType.value ? t('请输入版本名称') : t('请选择版本名称'),
@@ -424,7 +424,7 @@
     if (value && value !== old) {
       state.search = '';
       handleChangePage(1);
-      // 大数据类型不需要拉取版本
+      // 大数据类型和 Mongodb 不需要拉取版本
       if (!isInputType.value) {
         fetchVersions();
       }

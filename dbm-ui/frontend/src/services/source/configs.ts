@@ -232,6 +232,7 @@ interface CreateModuleDeployInfo {
     conf_name: string;
     conf_value: string;
     op_type: string;
+    description: string;
   }[];
   version: string;
   meta_cluster_type: string;
