@@ -135,7 +135,7 @@ export const useBaseDetails = (immediateFetch = true) => {
         const parentInfo = (node.value.parentId as string).split('-');
         id = Number(parentInfo[1]);
       }
-      if (dbType.value === DBTypes.MYSQL) {
+      if ([DBTypes.MYSQL, DBTypes.SQLSERVER].includes(dbType.value)) {
         fetchModuleConfig(id);
       } else if (notModuleClusters.includes(dbType.value)) {
         fetchLevelConfig();

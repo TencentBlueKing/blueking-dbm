@@ -25,7 +25,7 @@
               :clearable="false"
               filterable
               :input-search="false"
-              style="display: inline-block;">
+              style="display: inline-block">
               <BkOption
                 v-for="item in moduleList"
                 :key="item.db_module_id"
@@ -50,19 +50,17 @@
               class="spec-refresh-icon ml-6"
               type="refresh"
               @click="getModulesConfig" />
-            <div class="apply-form-database">
+            <div
+              v-if="formData.details.db_module_id"
+              class="apply-form-database">
               <BkLoading :loading="isModuleLoading">
-                <div v-if="levelConfigData && levelConfigData.conf_items.length">
+                <div v-if="levelConfigList.length">
                   <div
-                    v-for="(item, index) in levelConfigData.conf_items"
+                    v-for="(item, index) in levelConfigList"
                     :key="index"
                     class="apply-form-database-item">
-                    <span class="apply-form-database-label">
-                      {{ item.description || item.conf_name }}:
-                    </span>
-                    <span class="apply-form-database-value">
-                      {{ item.conf_value }}
-                    </span>
+                    <div class="apply-form-database-label">{{ item.label }} ：</div>
+                    <div class="apply-form-database-value">{{ item.value }}</div>
                   </div>
                 </div>
                 <div
@@ -138,7 +136,7 @@
             required>
             <DomainTable
               v-model:domains="formData.details.domains"
-              :form-data="formData"
+              :db-app-abbr="formData.details.db_app_abbr"
               :is-sqlserver-single="isSingleType"
               :module-name="moduleName" />
           </BkFormItem>
@@ -180,12 +178,12 @@
                   <template #submitTips="{ hostList }">
                     <I18nT
                       keypath="需n台_已选n台"
-                      style="font-size: 14px; color: #63656e;"
+                      style="font-size: 14px; color: #63656e"
                       tag="span">
-                      <span style="font-weight: bold; color: #2dcb56;">
+                      <span style="font-weight: bold; color: #2dcb56">
                         {{ hostNums }}
                       </span>
-                      <span style="font-weight: bold; color: #3a84ff;">
+                      <span style="font-weight: bold; color: #3a84ff">
                         {{ hostList.length }}
                       </span>
                     </I18nT>
@@ -207,7 +205,7 @@
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="clusterType"
                   :machine-type="clusterType"
-                  style="width: 435px;" />
+                  style="width: 435px" />
               </BkFormItem>
             </div>
           </Transition>
@@ -216,7 +214,7 @@
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
-              style="width: 655px;"
+              style="width: 655px"
               type="textarea" />
           </BkFormItem>
         </DbCard>
@@ -226,24 +224,27 @@
       <div>
         <BkButton
           class="w-88"
-          :loading="isSubmitting"
+          :loading="baseState.isSubmitting"
           theme="primary"
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
         <BkButton
           class="ml-8 w-88"
-          @click="() => isShowPreview = true">
+          :loading="baseState.isSubmitting"
+          @click="() => (isShowPreview = true)">
           {{ t('预览') }}
         </BkButton>
         <BkButton
           class="ml-8 w-88"
+          :disabled="baseState.isSubmitting"
           @click="handleResetFormdata">
           {{ t('重置') }}
         </BkButton>
         <BkButton
           class="ml-8 w-88"
-          @click="() => router.push({ name: String(route.query.from) })">
+          :disabled="baseState.isSubmitting"
+          @click="handleCancel">
           {{ t('取消') }}
         </BkButton>
       </div>
@@ -258,7 +259,7 @@
     <template #header>
       {{ t('实例预览') }}
       <span class="apply-dialog-quantity">
-        {{ t('共n条',{ n: formData.details.cluster_count }) }}
+        {{ t('共n条', { n: formData.details.cluster_count }) }}
       </span>
     </template>
     <PreviewTable
@@ -267,7 +268,7 @@
       :is-single-type="isSingleType"
       :nodes="previewNodes" />
     <template #footer>
-      <BkButton @click="() => isShowPreview = false">
+      <BkButton @click="() => (isShowPreview = false)">
         {{ t('关闭') }}
       </BkButton>
     </template>
@@ -281,10 +282,9 @@
 
   import { getModules } from '@services/source/cmdb';
   import { getLevelConfig } from '@services/source/configs';
-  import { createTicket } from '@services/source/ticket';
-  import type { HostDetails } from '@services/types';
+  import type { BizItem, HostDetails } from '@services/types';
 
-  import { useInfo } from '@hooks';
+  import { useApplyBase, useInfo } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -307,6 +307,7 @@
   const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const isSingleType = route.name === 'SqlServiceSingleApply';
   const clusterType = isSingleType ? 'sqlserver_single' : 'sqlserver_ha';
@@ -318,7 +319,7 @@
       db_app_abbr: '', // 业务 Code
       bk_cloud_id: 0,
       city_code: '',
-      db_module_id: 0,
+      db_module_id: null as null | number,
       cluster_count: 1,
       inst_num: 1,
       domains: [{ key: '' }],
@@ -334,13 +335,13 @@
           spec_machine_type: 'backend',
           affinity: '',
           location_spec: {
-            city: '深圳', // 城市
+            city: '', // 城市
             sub_zone_ids: [],
           },
           count: 0,
         },
       },
-      start_mssql_port: 1000, // SQLServer起始端口
+      start_mssql_port: 48322, // SQLServer起始端口
       disaster_tolerance_level: '', // 容灾
     },
     bk_biz_id: currentBizId,
@@ -352,10 +353,11 @@
   const moduleRef = ref();
   const isBindModule = ref(false);
   const isShowPreview = ref(false);
-  const specBackendRef = ref();
   const dbVersion = ref();
   const charset = ref();
   const maxInstNum = ref();
+  const regionItemRef = ref<InstanceType<typeof RegionItem>>()
+  const specBackendRef = ref<InstanceType<typeof SpecSelector>>();
 
   const cloudInfo = ref<{
     id: string | number,
@@ -364,6 +366,11 @@
     id: '',
     name: '',
   });
+
+  const levelConfigList = shallowRef<{
+    label: string,
+    value?: string
+  }[]>([])
 
   const formData = reactive(getDefaultformData());
 
@@ -438,14 +445,54 @@
   } = useRequest(getLevelConfig, {
     manual: true,
     onSuccess(result) {
+      const labelMap: Record<string, string> = {
+        buffer_percent: t('实例内存分配比例'),
+        charset: t('字符集'),
+        db_version: t('数据库版本'),
+        max_remain_mem_gb: t('最大系统保留内存'),
+        sync_type: t('主从方式'),
+        system_version: t('操作系统版本')
+      }
+
       if (result.conf_items) {
-        result.conf_items.forEach((item) => {
-          if (item.conf_name === 'charset') {
-            charset.value = item.conf_value;
-          } else if (item.conf_name === 'db_version') {
-            dbVersion.value = item.conf_value;
+        const configMap: Record<string, string | undefined> = {}
+        result.conf_items.forEach((configItem) => {
+          const { conf_name: configName, conf_value: confValue } = configItem
+          switch(configName) {
+          case 'buffer_percent':
+            configMap[configName] = `${confValue}%`
+            break
+          case 'charset':
+            charset.value = confValue
+            configMap[configName] = confValue
+            break
+          case 'db_version':
+            dbVersion.value = confValue
+            configMap[configName] = confValue
+            break
+          case 'max_remain_mem_gb':
+            configMap[configName] = `${confValue}GB`
+            break
+          case 'sync_type':
+            configMap[configName] = confValue === 'image' ? t('镜像') : 'always on'
+            break
+          case 'system_version':
+            configMap[configName] = confValue
+            break
           }
         });
+
+        levelConfigList.value = [
+          'db_version',
+          'charset',
+          'system_version',
+          'buffer_percent',
+          'max_remain_mem_gb',
+          'sync_type'
+        ].map(key => ({
+          label: labelMap[key],
+          value: configMap[key]
+        }))
       }
     },
   });
@@ -458,22 +505,6 @@
     loading: isModuleLoading,
     run: fetchModulesConfig,
   } = useRequest(getModules, {
-    manual: true,
-    onSuccess(result) {
-      if (result.length) {
-        const module = result.find(item => item.db_module_id === formData.details.db_module_id);
-        moduleName.value = module ? module.name : '';
-      }
-    },
-  });
-
-  /**
-   * 创建表单
-   */
-  const {
-    loading: isSubmitting,
-    run: fetchCreatTicket,
-  } = useRequest(createTicket, {
     manual: true,
   });
 
@@ -541,18 +572,52 @@
     }
   };
 
+  const formatNodes = (hosts: HostDetails[]) => hosts.map((host) => ({
+    ip: host.ip,
+    bk_host_id: host.host_id,
+    bk_cloud_id: host.cloud_id,
+    bk_biz_id: host.biz.id,
+  }))
+
   /**
    * 提交申请
    */
   const handleSubmit = async () => {
     await formRef.value.validate();
-    if (formData.details.ip_source === 'resource_pool') {
-      const { spec_name: specName } = specBackendRef.value.getData();
-      formData.details.resource_spec.backend.affinity = formData.details.disaster_tolerance_level;
-      formData.details.resource_spec.backend.spec_name = specName;
-      formData.details.resource_spec.backend.count =  hostNums.value;
-    }
-    fetchCreatTicket(formData);
+    baseState.isSubmitting = true;
+    const getDetails = () => {
+      const { details } = formData;
+      const { cityName } = regionItemRef.value!.getValue();
+      if (details.ip_source === 'resource_pool') {
+        return {
+          ...details,
+          resource_spec: {
+            backend: {
+              ...details.resource_spec.backend,
+              ...specBackendRef.value!.getData(),
+              affinity: details.disaster_tolerance_level,
+              location_spec: {
+                city: cityName,
+                sub_zone_ids: [],
+              },
+              count: hostNums.value,
+            },
+          },
+        };
+      }
+      return {
+        ...details,
+        nodes: {
+          backend: formatNodes(details.nodes.backend),
+        }
+      }
+    };
+    const params = {
+      ...formData,
+      details: getDetails(),
+    };
+    // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
+    bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
   };
 
   /**
@@ -593,8 +658,10 @@
   /**
    * 变更业务选择
    */
-  const handleChangeBiz = () => {
-    formData.details.db_module_id = 0;
+  const handleChangeBiz = (info: BizItem) => {
+    bizState.info = info;
+    bizState.hasEnglishName = !!info.english_name;
+    formData.details.db_module_id = null;
     formData.details.nodes.backend = [];
     moduleRef.value.clearValidate();
   };
@@ -605,13 +672,16 @@
   });
 
   // 根据DM模块 获取配置下拉展示详情
-  watch(() => formData.details.db_module_id, (value) => {
-    if (value) {
+  watch(() => formData.details.db_module_id, (newDbModuleId) => {
+    if (newDbModuleId) {
+      const module = (moduleList.value || []).find(item => item.db_module_id === formData.details.db_module_id);
+      moduleName.value = module ? module.name : '';
+
       fetchModulesDetails({
         bk_biz_id: Number(formData.bk_biz_id),
         meta_cluster_type: sqlServerType[formData.ticket_type as SqlServerTypeString].type,
         conf_type: 'deploy',
-        level_value: value,
+        level_value: newDbModuleId,
         level_name: 'module',
         version: 'deploy_info',
       });
@@ -650,60 +720,74 @@
 </script>
 
 <style lang="less" scoped>
-:deep(.domain-address) {
-  display: flex;
-  align-items: center;
+  :deep(.domain-address) {
+    display: flex;
+    align-items: center;
 
-  .bk-form-item{
-    margin-bottom: 0;
-  }
-}
-
-.choose-business {
-  color: black;
-}
-
-.apply-sqlserver-instance {
-  display: block;
-
-  .apply-form-database {
-    width: 398px;
-    padding:  8px 12px;
-    margin-top: 16px;
-    font-size: 12px;
-    background-color: #f5f7fa;
-    border-radius: 2px;
-  }
-
-  .db-card {
-    .spec-refresh-icon {
-      margin-left: 8px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-
-    & ~ .db-card {
-      margin-top: 20px;
-    }
-
-    .bind-module {
-      color: @primary-color;
-      cursor: pointer;
+    .bk-form-item {
+      margin-bottom: 0;
     }
   }
 
-  :deep(.item-input) {
-    width: 435px;
+  .choose-business {
+    color: black;
+  }
 
-    >.bk-radio-button{
-      width: 50%;
+  .apply-sqlserver-instance {
+    display: block;
+
+    .apply-form-database {
+      width: 435px;
+      padding: 8px 12px;
+      margin-top: 16px;
+      font-size: 12px;
+      background-color: #f5f7fa;
+      border-radius: 2px;
+
+      .apply-form-database-item {
+        display: flex;
+        line-height: 20px;
+
+        .apply-form-database-label {
+          width: 140px;
+          text-align: right;
+        }
+
+        .apply-form-database-value {
+          color: #313238;
+        }
+      }
+    }
+
+    .db-card {
+      .spec-refresh-icon {
+        margin-left: 8px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+
+      & ~ .db-card {
+        margin-top: 20px;
+      }
+
+      .bind-module {
+        color: @primary-color;
+        cursor: pointer;
+      }
+    }
+
+    :deep(.item-input) {
+      width: 435px;
+
+      > .bk-radio-button {
+        width: 50%;
+      }
     }
   }
-}
 
-.apply-dialog-quantity {
-  margin-left: 15px;
-  font-size: @font-size-normal;
-  color: @default-color;
-}
+  .apply-dialog-quantity {
+    margin-left: 15px;
+    font-size: @font-size-normal;
+    color: @default-color;
+  }
 </style>

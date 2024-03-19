@@ -9,11 +9,11 @@
         </BkButton>
         <BkDropdown
           class="ml-8"
-          @hide="() => isCopyDropdown = false"
-          @show="() => isCopyDropdown = true">
+          @hide="() => (isCopyDropdown = false)"
+          @show="() => (isCopyDropdown = true)">
           <BkButton
             class="dropdown-button"
-            :class="{ 'active': isCopyDropdown }">
+            :class="{ active: isCopyDropdown }">
             {{ t('复制') }}
             <DbIcon type="up-big dropdown-button-icon" />
           </BkButton>
@@ -73,7 +73,7 @@
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: t('请选择集群')
+            content: t('请选择集群'),
           }"
           class="inline-block">
           <BkButton
@@ -221,7 +221,7 @@
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 270 : 420;
+      return isCN.value ? 150 : 200;
     }
     return 100;
   });
@@ -231,6 +231,7 @@
       label: t('访问入口'),
       field: 'master_domain',
       fixed: 'left',
+      width: 300,
       render: ({ data }: { data: SqlServerSingleClusterModel }) => (
         <TextOverflowLayout>
           {{
@@ -296,13 +297,13 @@
     },
     {
       label: t('实例'),
-      field: 'instance_name',
+      field: 'storages',
       render: ({ data }: { data: SqlServerSingleClusterModel }) => (
         <RenderInstances
-          data={ data.masters }
+          data={ data.storages }
           dataSource={ getSqlServerInstanceList }
           title={ t('【inst】实例预览', { inst: data.bk_cloud_name }) }
-          role="proxy"
+          role="storages"
           clusterId={ data.id }
         />
     ),
@@ -345,7 +346,7 @@
                 text
                 theme="primary"
                 class="mr-8"
-                onClick={ () => handleSwitchCluster(TicketTypes.SQLSERVER_SINGLE_DISABLE, data) }>
+                onClick={ () => handleSwitchCluster(TicketTypes.SQLSERVER_DISABLE, data) }>
              { t('禁用') }
              </bk-button>
             </OperationBtnStatusTips>
@@ -357,7 +358,7 @@
                 text
                 theme="primary"
                 class="mr-8"
-                onClick={ () => handleSwitchCluster(TicketTypes.SQLSERVER_SINGLE_ENABLE, data) }>
+                onClick={ () => handleSwitchCluster(TicketTypes.SQLSERVER_ENABLE, data) }>
                  { t('启用') }
               </bk-button>
             </OperationBtnStatusTips>
@@ -406,7 +407,7 @@
   ) => {
     if (!type) return;
 
-    const isOpen = type === TicketTypes.SQLSERVER_SINGLE_ENABLE;
+    const isOpen = type === TicketTypes.SQLSERVER_ENABLE;
     const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
     useInfoWithIcon({
       type: 'warnning',
@@ -454,7 +455,7 @@
       onConfirm: () => {
         runDeleteTicket({
           bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.SQLSERVER_SINGLE_DESTROY,
+          ticket_type: TicketTypes.SQLSERVER_DESTROY,
           details: {
             cluster_ids: [data.id],
           },
@@ -545,63 +546,63 @@
   };
 </script>
 <style lang="less" scoped>
-@import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-.sqlserver-single-cluster-list {
-  height: 100%;
-  padding: 24px 0;
-  margin: 0 24px;
-  overflow: hidden;
+  .sqlserver-single-cluster-list {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
+    overflow: hidden;
 
-  .header-action {
-    display: flex;
-    flex-wrap: wrap;
-
-    .header-select {
-      flex: 1;
-      max-width: 320px;
-      min-width: 320px;
-      margin-left: auto;
-    }
-  }
-
-  :deep(.cell) {
-    line-height: normal !important;
-
-    .domain {
+    .header-action {
       display: flex;
-      align-items: center;
+      flex-wrap: wrap;
+
+      .header-select {
+        flex: 1;
+        max-width: 320px;
+        min-width: 320px;
+        margin-left: auto;
+      }
     }
 
-    .db-icon-copy,
-    .db-icon-link {
-      display: none;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
+    :deep(.cell) {
+      line-height: normal !important;
 
-    .operations-more {
-      .db-icon-more {
-        display: block;
-        font-size: @font-size-normal;
-        font-weight: bold;
-        color: @default-color;
+      .domain {
+        display: flex;
+        align-items: center;
+      }
+
+      .db-icon-copy,
+      .db-icon-link {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
         cursor: pointer;
+      }
 
-        &:hover {
-          background-color: @bg-disable;
-          border-radius: 2px;
+      .operations-more {
+        .db-icon-more {
+          display: block;
+          font-size: @font-size-normal;
+          font-weight: bold;
+          color: @default-color;
+          cursor: pointer;
+
+          &:hover {
+            background-color: @bg-disable;
+            border-radius: 2px;
+          }
         }
       }
     }
-  }
 
-  :deep(tr:hover) {
-    .db-icon-copy,
-    .db-icon-link {
-      display: inline-block !important;
+    :deep(tr:hover) {
+      .db-icon-copy,
+      .db-icon-link {
+        display: inline-block !important;
+      }
     }
   }
-}
 </style>

@@ -18,18 +18,18 @@ import { t } from '@locales/index';
 import TimeBaseClassModel from '../utils/time-base-class';
 
 export default class SqlServerHaCluster extends TimeBaseClassModel {
-  static SQLSERVER_HA_DESTROY = 'SQLSERVER_HA_DESTROY';
-  static SQLSERVER_HA_DISABLE = 'SQLSERVER_HA_DISABLE';
-  static SQLSERVER_HA_ENABLE = 'SQLSERVER_HA_ENABLE';
+  static SQLSERVER_DESTROY = 'SQLSERVER_DESTROY';
+  static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
+  static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
   static operationIconMap = {
-    [SqlServerHaCluster.SQLSERVER_HA_ENABLE]: 'qiyongzhong',
-    [SqlServerHaCluster.SQLSERVER_HA_DISABLE]: 'jinyongzhong',
-    [SqlServerHaCluster.SQLSERVER_HA_DESTROY]: 'shanchuzhong',
+    [SqlServerHaCluster.SQLSERVER_ENABLE]: 'qiyongzhong',
+    [SqlServerHaCluster.SQLSERVER_DISABLE]: 'jinyongzhong',
+    [SqlServerHaCluster.SQLSERVER_DESTROY]: 'shanchuzhong',
   };
   static operationTextMap = {
-    [SqlServerHaCluster.SQLSERVER_HA_DESTROY]: t('删除任务执行中'),
-    [SqlServerHaCluster.SQLSERVER_HA_DISABLE]: t('禁用任务执行中'),
-    [SqlServerHaCluster.SQLSERVER_HA_ENABLE]: t('启用任务执行中'),
+    [SqlServerHaCluster.SQLSERVER_DESTROY]: t('删除任务执行中'),
+    [SqlServerHaCluster.SQLSERVER_DISABLE]: t('禁用任务执行中'),
+    [SqlServerHaCluster.SQLSERVER_ENABLE]: t('启用任务执行中'),
   };
   static statusMap: Record<string, string> = {
     running: t('正常'),
