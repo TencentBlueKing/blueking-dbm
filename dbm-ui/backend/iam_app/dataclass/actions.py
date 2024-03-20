@@ -74,9 +74,9 @@ class ActionEnum:
     def get_action_by_id(cls, action_id: Union[(ActionMeta, str)]) -> ActionMeta:
         if isinstance(action_id, ActionMeta):
             return action_id
-        if action_id not in cls.__dict__:
+        if action_id.lower() not in _all_actions:
             raise ActionNotExistError(_("动作ID不存在: {}").format(action_id))
-        return cls.__dict__[action_id]
+        return _all_actions[action_id.lower()]
 
 
 _all_actions = {action.id: action for action in ActionEnum.__dict__.values() if isinstance(action, ActionMeta)}
