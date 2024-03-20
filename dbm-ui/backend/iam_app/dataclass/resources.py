@@ -90,10 +90,10 @@ class ResourceEnum:
         if isinstance(resource_id, ResourceMeta):
             return resource_id
 
-        if resource_id not in cls.__dict__:
+        if resource_id not in _all_resources:
             raise ResourceNotExistError(_("资源类型ID不存在: {}").format(resource_id))
 
-        return cls.__dict__[resource_id]
+        return _all_resources[resource_id]
 
 
 _all_resources = {resource.id: resource for resource in ResourceEnum.__dict__.values() if hasattr(resource, "id")}
