@@ -238,8 +238,8 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 	return passwords, len(passwords), nil
 }
 
-// ModifyMysqlAdminPassword 修改mysql实例中用户的密码，可用于随机化密码
-func (m *ModifyAdminUserPasswordPara) ModifyMysqlAdminPassword() (BatchResult, error) {
+// ModifyAdminPassword 修改mysql实例中用户的密码，可用于随机化密码
+func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword() (BatchResult, error) {
 	var errMsg Err
 	var success Resource
 	var fail Resource
@@ -335,86 +335,17 @@ func (m *ModifyAdminUserPasswordPara) ModifyMysqlAdminPassword() (BatchResult, e
 				<-tokenBucket
 				wg.Done()
 			}()
-			var successList []InstanceList
-			var failList []InstanceList
-			for _, instanceList := range cluster.MultiRoleInstanceLists {
-				var base []string
-				ok := InstanceList{instanceList.Role, []IpPort{}}
-				notOK := InstanceList{instanceList.Role, []IpPort{}}
-				role := instanceList.Role
-				if *cluster.ClusterType == tendbcluster && role == machineTypeSpider {
-					base = append(base, flushPriv, setBinlogOff, setDdlByCtlOFF)
-				} else if *cluster.ClusterType == tendbcluster && role == tdbctl {
-					base = append(base, flushPriv, setBinlogOff, setTcAdminOFF)
-				} else {
-					base = append(base, flushPriv, setBinlogOff)
-				}
-				for _, address := range instanceList.Addresses {
-					// 获取修改密码的语句
-					sqls := base
-					hostPort := fmt.Sprintf("%s:%d", address.Ip, address.Port)
-					mysqlVersion, err := GetMySQLVersion(hostPort, *cluster.BkCloudId)
-					if err != nil {
-						notOK.Addresses = append(notOK.Addresses, address)
-						slog.Error("mysqlVersion", err)
-						AddError(&errMsg, hostPort, err)
-						continue
-					}
-					userLocalhost := fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'localhost' "+
-						"IDENTIFIED BY '%s' WITH GRANT OPTION", m.UserName, psw)
-					userIp := fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' "+
-						"IDENTIFIED BY '%s' WITH GRANT OPTION", m.UserName, address.Ip, psw)
-					if !(*cluster.ClusterType == tendbcluster && role == machineTypeSpider) &&
-						MySQLVersionParse(mysqlVersion, "") >=
-							MySQLVersionParse("8.0.0", "") {
-						userLocalhost = fmt.Sprintf("ALTER USER '%s'@'localhost' "+
-							"IDENTIFIED WITH mysql_native_password BY '%s'", m.UserName, psw)
-						userIp = fmt.Sprintf("ALTER USER '%s'@'%s' "+
-							"IDENTIFIED WITH mysql_native_password BY '%s'", m.UserName, address.Ip, psw)
-					}
-					sqls = append(sqls, userLocalhost, userIp, setBinlogOn, flushPriv)
-					// 到实例更新密码
-					var queryRequest = QueryRequest{[]string{hostPort}, sqls, true,
-						60, *cluster.BkCloudId}
-					_, err = OneAddressExecuteSql(queryRequest)
-					if err != nil {
-						notOK.Addresses = append(notOK.Addresses, address)
-						slog.Error("msg", "OneAddressExecuteSql", err)
-						AddError(&errMsg, hostPort, err)
-						continue
-					}
-					// 更新tb_passwords中实例的密码
-					sql := fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
-						"password,component,operator) values('%s',%d,%d,'%s','%s','%s','%s')",
-						address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component, m.Operator)
-					if m.LockHour != 0 {
-						sql = fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
-							"password,component,operator,lock_until) values('%s',%d,%d,'%s','%s','%s','%s',date_add("+
-							"now(),INTERVAL %d hour))",
-							address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component,
-							m.Operator, m.LockHour)
-					}
-					result := DB.Self.Exec(sql)
-					if result.Error != nil {
-						notOK.Addresses = append(notOK.Addresses, address)
-						slog.Error("msg", "sql", sql, "excute sql error", result.Error)
-						AddError(&errMsg, hostPort, result.Error)
-						continue
-					}
-					ok.Addresses = append(ok.Addresses, address)
-				}
-				if len(ok.Addresses) > 0 {
-					successList = append(successList, ok)
-				}
-				if len(notOK.Addresses) > 0 {
-					failList = append(failList, notOK)
-				}
-			}
-			if len(successList) > 0 {
-				AddResource(&success, OneCluster{cluster.BkCloudId, cluster.ClusterType, successList})
-			}
-			if len(failList) > 0 {
-				AddResource(&fail, OneCluster{cluster.BkCloudId, cluster.ClusterType, failList})
+			// 如果是sqlserver授权，走sqlserver授权通道
+			if m.Component == "sqlserver" {
+				m.ModifyAdminPasswordForSqlserver(
+					psw, encrypt, cluster, &errMsg, &success, &fail,
+				)
+
+			} else {
+				// 默认走mysql授权通道
+				m.ModifyAdminPasswordForMysql(
+					psw, encrypt, cluster, &errMsg, &success, &fail,
+				)
 			}
 		}(psw, encrypt, cluster)
 	}
@@ -428,6 +359,172 @@ func (m *ModifyAdminUserPasswordPara) ModifyMysqlAdminPassword() (BatchResult, e
 		return batch, errOuter
 	}
 	return batch, nil
+}
+
+// ModifyAdminPasswordForSqlserver 专属sqlserver 修改admin密码函数
+func (m *ModifyAdminUserPasswordPara) ModifyAdminPasswordForSqlserver(
+	psw string,
+	encrypt string,
+	cluster OneCluster,
+	errMsg *Err,
+	success *Resource,
+	fail *Resource,
+) {
+
+	var successList []InstanceList
+	var failList []InstanceList
+	for _, instanceList := range cluster.MultiRoleInstanceLists {
+		// 理论上只循环一次
+		ok := InstanceList{instanceList.Role, []IpPort{}}
+		notOK := InstanceList{instanceList.Role, []IpPort{}}
+
+		for _, address := range instanceList.Addresses {
+			// 获取集群内所有的instance信息
+			hostPort := fmt.Sprintf("%s:%d", address.Ip, address.Port)
+			sqls := []string{fmt.Sprintf("ALTER LOGIN [%s] WITH PASSWORD=N'%s'", m.UserName, psw)}
+			// 远程变更密码
+			var queryRequest = QueryRequest{
+				[]string{hostPort},
+				sqls,
+				true,
+				60,
+				*cluster.BkCloudId,
+			}
+			_, err := OneAddressExecuteSqlserverSql(queryRequest)
+			if err != nil {
+				notOK.Addresses = append(notOK.Addresses, address)
+				slog.Error("msg", "OneAddressExecuteSqlserverSql", err)
+				AddError(errMsg, hostPort, err)
+				continue
+			}
+
+			// 更新tb_passwords中实例的密码
+			sql := fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
+				"password,component,operator) values('%s',%d,%d,'%s','%s','%s','%s')",
+				address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component, m.Operator)
+			if m.LockHour != 0 {
+				sql = fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
+					"password,component,operator,lock_until) values('%s',%d,%d,'%s','%s','%s','%s',date_add("+
+					"now(),INTERVAL %d hour))",
+					address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component,
+					m.Operator, m.LockHour)
+			}
+			result := DB.Self.Exec(sql)
+			if result.Error != nil {
+				notOK.Addresses = append(notOK.Addresses, address)
+				slog.Error("msg", "sql", sql, "excute sql error", result.Error)
+				AddError(errMsg, hostPort, result.Error)
+				continue
+			}
+			// 录入正确日志
+			ok.Addresses = append(ok.Addresses, address)
+		}
+		if len(ok.Addresses) > 0 {
+			successList = append(successList, ok)
+		}
+		if len(notOK.Addresses) > 0 {
+			failList = append(failList, notOK)
+		}
+	}
+	if len(successList) > 0 {
+		AddResource(success, OneCluster{cluster.BkCloudId, cluster.ClusterType, successList})
+	}
+	if len(failList) > 0 {
+		AddResource(fail, OneCluster{cluster.BkCloudId, cluster.ClusterType, failList})
+	}
+
+}
+
+// ModifyAdminPasswordForMysql 专属mysql 修改admin密码函数
+func (m *ModifyAdminUserPasswordPara) ModifyAdminPasswordForMysql(
+	psw string,
+	encrypt string,
+	cluster OneCluster,
+	errMsg *Err,
+	success *Resource,
+	fail *Resource,
+) {
+	var successList []InstanceList
+	var failList []InstanceList
+	for _, instanceList := range cluster.MultiRoleInstanceLists {
+		var base []string
+		ok := InstanceList{instanceList.Role, []IpPort{}}
+		notOK := InstanceList{instanceList.Role, []IpPort{}}
+		role := instanceList.Role
+		if *cluster.ClusterType == tendbcluster && role == machineTypeSpider {
+			base = append(base, flushPriv, setBinlogOff, setDdlByCtlOFF)
+		} else if *cluster.ClusterType == tendbcluster && role == tdbctl {
+			base = append(base, flushPriv, setBinlogOff, setTcAdminOFF)
+		} else {
+			base = append(base, flushPriv, setBinlogOff)
+		}
+		for _, address := range instanceList.Addresses {
+			// 获取修改密码的语句
+			sqls := base
+			hostPort := fmt.Sprintf("%s:%d", address.Ip, address.Port)
+			mysqlVersion, err := GetMySQLVersion(hostPort, *cluster.BkCloudId)
+			if err != nil {
+				notOK.Addresses = append(notOK.Addresses, address)
+				slog.Error("mysqlVersion", err)
+				AddError(errMsg, hostPort, err)
+				continue
+			}
+			userLocalhost := fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'localhost' "+
+				"IDENTIFIED BY '%s' WITH GRANT OPTION", m.UserName, psw)
+			userIp := fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' "+
+				"IDENTIFIED BY '%s' WITH GRANT OPTION", m.UserName, address.Ip, psw)
+			if !(*cluster.ClusterType == tendbcluster && role == machineTypeSpider) &&
+				MySQLVersionParse(mysqlVersion, "") >=
+					MySQLVersionParse("8.0.0", "") {
+				userLocalhost = fmt.Sprintf("ALTER USER '%s'@'localhost' "+
+					"IDENTIFIED WITH mysql_native_password BY '%s'", m.UserName, psw)
+				userIp = fmt.Sprintf("ALTER USER '%s'@'%s' "+
+					"IDENTIFIED WITH mysql_native_password BY '%s'", m.UserName, address.Ip, psw)
+			}
+			sqls = append(sqls, userLocalhost, userIp, setBinlogOn, flushPriv)
+			// 到实例更新密码
+			var queryRequest = QueryRequest{[]string{hostPort}, sqls, true,
+				60, *cluster.BkCloudId}
+			_, err = OneAddressExecuteSql(queryRequest)
+			if err != nil {
+				notOK.Addresses = append(notOK.Addresses, address)
+				slog.Error("msg", "OneAddressExecuteSql", err)
+				AddError(errMsg, hostPort, err)
+				continue
+			}
+			// 更新tb_passwords中实例的密码
+			sql := fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
+				"password,component,operator) values('%s',%d,%d,'%s','%s','%s','%s')",
+				address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component, m.Operator)
+			if m.LockHour != 0 {
+				sql = fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
+					"password,component,operator,lock_until) values('%s',%d,%d,'%s','%s','%s','%s',date_add("+
+					"now(),INTERVAL %d hour))",
+					address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component,
+					m.Operator, m.LockHour)
+			}
+			result := DB.Self.Exec(sql)
+			if result.Error != nil {
+				notOK.Addresses = append(notOK.Addresses, address)
+				slog.Error("msg", "sql", sql, "excute sql error", result.Error)
+				AddError(errMsg, hostPort, result.Error)
+				continue
+			}
+			ok.Addresses = append(ok.Addresses, address)
+		}
+		if len(ok.Addresses) > 0 {
+			successList = append(successList, ok)
+		}
+		if len(notOK.Addresses) > 0 {
+			failList = append(failList, notOK)
+		}
+	}
+	if len(successList) > 0 {
+		AddResource(success, OneCluster{cluster.BkCloudId, cluster.ClusterType, successList})
+	}
+	if len(failList) > 0 {
+		AddResource(fail, OneCluster{cluster.BkCloudId, cluster.ClusterType, failList})
+	}
 }
 
 // MigratePlatformPassword 从dbconfig迁移帐号信息，内部使用

@@ -14,12 +14,12 @@ import logging
 from django.utils.translation import ugettext as _
 
 from backend.components import DBPrivManagerApi
-from backend.configuration.constants import DBM_MYSQL_ADMIN_USER
+from backend.configuration.constants import DBM_MYSQL_ADMIN_USER, DBType
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.exceptions import ApiResultError
-from backend.flow.consts import MySQLPasswordRole
+from backend.flow.consts import MSSQL_ADMIN, MySQLPasswordRole
 
 logger = logging.getLogger("root")
 
@@ -32,12 +32,36 @@ def randomize_admin_password(if_async: bool, range_type: str):
     for cluster_id in cluster_ids:
         clusters.append(get_mysql_instance(cluster_id))
     try:
-        DBPrivManagerApi.modify_mysql_admin_password(
+        DBPrivManagerApi.modify_admin_password(
             params={  # 管理用户
                 "component": "mysql",
                 "username": DBM_MYSQL_ADMIN_USER,  # 管理用户
                 "operator": range_type,
                 "clusters": clusters,
+                "security_rule_name": "password",  # 用于生成随机化密码的安全规则
+                "async": if_async,  # 异步执行，避免占用资源
+                "range": range_type,  # 被锁定的密码到期，需要被随机化
+            },
+            raw=True,
+        )
+    except ApiResultError as e:
+        # 捕获接口返回结果异常
+        logger.error(_("「接口modify_mysql_admin_password返回结果异常」{}").format(e.message))
+    except Exception as e:
+        # 捕获接口其他未知异常
+        logger.error(_("「接口modify_mysql_admin_password调用异常」{}").format(e))
+    return
+
+
+def randomize_admin_pwd_for_sqlserver(if_async: bool, range_type: str):
+    """密码随机化定时任务，只随机化sqlserver数据库"""
+    try:
+        DBPrivManagerApi.modify_admin_password(
+            params={  # 管理用户
+                "component": DBType.Sqlserver.value,
+                "username": MSSQL_ADMIN,  # 管理用户
+                "operator": range_type,
+                "clusters": get_all_sqlserver_clusters(),
                 "security_rule_name": "password",  # 用于生成随机化密码的安全规则
                 "async": if_async,  # 异步执行，避免占用资源
                 "range": range_type,  # 被锁定的密码到期，需要被随机化
@@ -79,6 +103,31 @@ def get_mysql_instance(cluster_id: int):
         instances.append(_get_instances(MySQLPasswordRole.TDBCTL.value, dbctls))
 
     return {"bk_cloud_id": cluster.bk_cloud_id, "cluster_type": cluster.cluster_type, "instances": instances}
+
+
+def get_all_sqlserver_clusters():
+    """
+    获取sqlserver所有集群的实例信息
+    """
+    cluster_infos = []
+    clusters = Cluster.objects.filter(
+        cluster_type__in=[ClusterType.SqlserverHA.value, ClusterType.SqlserverSingle.value]
+    )
+    for cluster in clusters:
+        storages = cluster.storageinstance_set.all()
+        cluster_infos.append(
+            {
+                "bk_cloud_id": cluster.bk_cloud_id,
+                "cluster_type": cluster.cluster_type,
+                "instances": [
+                    {
+                        "role": MySQLPasswordRole.STORAGE.value,
+                        "addresses": [{"ip": s.machine.ip, "port": s.port} for s in storages],
+                    }
+                ],
+            }
+        )
+    return cluster_infos
 
 
 def get_periodic_task_run_every(func_name):
