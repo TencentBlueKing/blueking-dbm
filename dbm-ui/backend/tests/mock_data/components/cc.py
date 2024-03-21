@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 
+from backend.components import CCApi
 from backend.tests.mock_data import constant
 
 MOCK_SEARCH_BUSINESS_RETURN = {"info": [{"bk_biz_id": constant.BK_BIZ_ID, "bk_biz_name": "蓝鲸"}], "count": 1}
@@ -147,7 +148,7 @@ MOCK_CLOUD_AREA = [
 ]
 
 
-class CCApiMock(object):
+class CCApiMock(CCApi):
     """
     cc的mock接口
     """
