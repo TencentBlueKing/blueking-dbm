@@ -208,6 +208,8 @@ class TendisCacheSpecFilter(RedisSpecFilter):
             avaiable_specs.append(self.specs[spec_cnt - 1])
             if spec_cnt > 2:
                 avaiable_specs.append(self.specs[spec_cnt - 2])
+            if spec_cnt > 3:
+                avaiable_specs.append(self.specs[spec_cnt - 3])
 
         for spec_new in avaiable_specs:
             # 一定要保证集群总分片数是机器组数的整数倍，并且单机分片数需要取整，取偶
