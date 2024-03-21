@@ -125,6 +125,12 @@
   const router = useRouter();
   const route = useRoute();
 
+  const { clusterType, confType, version } = route.params as {
+    clusterType: string,
+    confType: string,
+    version: string,
+  };
+
   const loading = ref(false);
   const diffData = reactive({
     origin: [] as ServiceReturnType<typeof getConfigBaseDetails>['conf_items'],
@@ -237,12 +243,6 @@
       const data = item.status === 'delete' ?  item.before : item.after;
       return Object.assign(data, { op_type: type });
     });
-
-    const { clusterType, confType, version } = route.params as {
-      clusterType: string,
-      confType: string,
-      version: string,
-    };
 
     const params = {
       meta_cluster_type: clusterType,

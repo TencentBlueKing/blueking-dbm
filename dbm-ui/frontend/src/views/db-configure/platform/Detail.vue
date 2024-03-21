@@ -55,17 +55,15 @@
   import DetailsBase from '../components/DetailsBase.vue';
   import PublishRecord from '../components/PublishRecord.vue';
 
-  interface Props {
-    clusterType: string,
-    confType: string,
-    version: string,
-  }
-
-  const props = defineProps<Props>();
-
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+
+  const { clusterType, confType, version } = route.params as {
+    clusterType: string,
+    confType: string,
+    version: string,
+  };
 
   const state = reactive({
     loading: false,
@@ -74,9 +72,9 @@
     // extraParametersCards: [] as ExtraConfListItem[]
   });
   const baseParams = computed(() => ({
-    meta_cluster_type: props.clusterType,
-    conf_type: props.confType,
-    version: props.version,
+    meta_cluster_type: clusterType,
+    conf_type: confType,
+    version,
   }));
   const publishFetchParams = computed(() => ({
     ...baseParams.value,
