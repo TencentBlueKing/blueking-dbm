@@ -49,7 +49,6 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
     ) -> ResourceList:
         """查询集群信息"""
         filter_params_map = {
-            "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
             "domains": Q(immute_domain__in=query_params.get("domains", "").split(",")),
         }
         return super()._list_clusters(

@@ -76,7 +76,7 @@ class TendbClusterMigrateRemoteFlow(object):
         # 构建流程
         cluster_ids = []
         for i in self.ticket_data["infos"]:
-            cluster_ids.extend(i["cluster_ids"])
+            cluster_ids.append(i["cluster_id"])
 
         tendb_migrate_pipeline_all = Builder(
             root_id=self.root_id,
@@ -353,7 +353,7 @@ class TendbClusterMigrateRemoteFlow(object):
                     )
                 )
                 uninstall_svr_sub_pipeline_list.append(
-                    uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}".format(ip)))
+                    uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}").format(ip))
                 )
 
             # 安装实例

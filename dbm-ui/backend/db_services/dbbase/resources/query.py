@@ -368,6 +368,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 Q(name__in=query_params.get("name", "").split(","))
                 | Q(alias__in=query_params.get("name", "").split(","))
             ),
+            # 集群类型
+            "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
             # 版本
             "major_version": Q(major_version__in=query_params.get("major_version", "").split(",")),
             # 地域
@@ -568,6 +570,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "port": Q(port__in=query_params.get("port", "").split(",")),
             "status": Q(status__in=query_params.get("status", "").split(",")),
             "cluster_id": Q(cluster__id=query_params.get("cluster_id")),
+            "cluster_type": Q(cluster__cluster_type=query_params.get("cluster_type")),
             "region": Q(region=query_params.get("region")),
             "role": Q(role__in=query_params.get("role", "").split(",")),
             "name": Q(cluster__name__in=query_params.get("name", "").split(",")),
@@ -597,18 +600,20 @@ class ListRetrieveResource(BaseListRetrieveResource):
         instance_infos = [cls._to_instance_representation(inst, cluster_entry_map, **kwargs) for inst in instances]
         # 特例：如果有extra参数，则补充额外实例信息
         if query_params.get("extra"):
-            cls._fill_instance_extra_info(bk_biz_id, instance_infos)
+            cls._fill_instance_extra_info(bk_biz_id, instance_infos, **kwargs)
 
         return instance_infos
 
     @classmethod
-    def _fill_instance_extra_info(cls, bk_biz_id: int, instance_infos: List[Dict]):
+    def _fill_instance_extra_info(cls, bk_biz_id: int, instance_infos: List[Dict], **kwargs):
         """
         补充实例的额外信息，这里的一个实现是补充主机和关联集群信息
         @param bk_biz_id: 业务ID
         @param instance_infos: 实例字典信息
         """
-        instances_extra_info = InstanceHandler(bk_biz_id).check_instances(query_instances=instance_infos)
+        # db_type优先以指定的为准(比如mysql和tendbcluster是用的同一个handler)，然后以集群类型对应的组件为准
+        db_type = kwargs.get("handler_db_type") or ClusterType.cluster_type_to_db_type(cls.cluster_types[0])
+        instances_extra_info = InstanceHandler(bk_biz_id).check_instances(instance_infos, db_type=db_type)
         address__instance_extra_info = {inst["instance_address"]: inst for inst in instances_extra_info}
         for inst in instance_infos:
             extra_info = address__instance_extra_info[inst["instance_address"]]
@@ -718,12 +723,17 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "bk_host_id": Q(bk_host_id=query_params.get("bk_host_id")),
             "ip": Q(ip__in=query_params.get("ip", "").split(",")),
             "machine_type": Q(machine_type=query_params.get("machine_type")),
+            "bk_city_name": Q(bk_city__bk_idc_city_name__in=query_params.get("region", "").split(",")),
             "bk_os_name": Q(bk_os_name=query_params.get("bk_os_name")),
             "bk_cloud_id": Q(bk_cloud_id=query_params.get("bk_cloud_id")),
             "bk_agent_id": Q(bk_agent_id=query_params.get("bk_agent_id")),
             "instance_role": (
                 Q(storageinstance__instance_role=query_params.get("instance_role"))
                 | Q(proxyinstance__access_layer=query_params.get("instance_role"))
+            ),
+            "cluster_ids": (
+                Q(storageinstance__cluster__in=query_params.get("cluster_ids", "").split(","))
+                | Q(proxyinstance__cluster__in=query_params.get("cluster_ids", "").split(","))
             ),
             "creator": Q(creator__icontains=query_params.get("creator")),
         }

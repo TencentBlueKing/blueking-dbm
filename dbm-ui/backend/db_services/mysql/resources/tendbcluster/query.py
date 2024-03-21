@@ -15,6 +15,7 @@ from django.db.models import F, Q, Value
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
@@ -190,6 +191,12 @@ class ListRetrieveResource(query.ListRetrieveResource):
             instances = remote_insts.union(spider_insts).values(*fields).order_by("-create_at")
 
         return instances
+
+    @classmethod
+    def _filter_instance_hook(cls, bk_biz_id, query_params, instances, **kwargs):
+        # cluster handler
+        kwargs.update(handler_db_type=DBType.MySQL.value)
+        return super()._filter_instance_hook(bk_biz_id, query_params, instances, **kwargs)
 
     @classmethod
     def _to_instance_representation(cls, instance: dict, cluster_entry_map: dict, **kwargs) -> Dict[str, Any]:

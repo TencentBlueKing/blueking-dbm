@@ -38,6 +38,15 @@ class DBPasswordHandler(object):
     """密码策略相关处理"""
 
     @classmethod
+    def get_random_password(cls):
+        """
+        获取符合密码强度的字符串
+        """
+        random_password = DBPrivManagerApi.get_random_string({"security_rule_name": DBM_PASSWORD_SECURITY_NAME})
+        random_password = base64_decode(random_password)
+        return random_password
+
+    @classmethod
     def verify_password_strength(cls, password: str, echo: bool = False):
         """
         校验密码强度

@@ -46,9 +46,7 @@ class BigDataDetailsSerializer(serializers.Serializer):
             role_host_list = [node["bk_host_id"] for node in nodes[role] if node.get("bk_host_id")]
             hosts_set.update(role_host_list)
 
-        hosts_not_in_idle_pool = CommonValidate.validate_hosts_from_idle_pool(bk_biz_id, list(hosts_set))
-        if hosts_not_in_idle_pool:
-            raise serializers.ValidationError(_("主机{}不在空闲机池，请保证所选的主机均来自空闲机").format(hosts_not_in_idle_pool))
+        CommonValidate.validate_hosts_from_idle_pool(bk_biz_id, list(hosts_set))
 
     @classmethod
     def validate_hosts_not_in_db_meta(cls, nodes: Dict):

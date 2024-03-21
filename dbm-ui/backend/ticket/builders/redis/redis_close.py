@@ -9,11 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
+from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisSingleOpsBaseDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -46,4 +48,22 @@ class RedisCloseFlowParamBuilder(builders.FlowParamBuilder):
 class RedisCloseFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisCloseDetailSerializer
     inner_flow_builder = RedisCloseFlowParamBuilder
+    inner_flow_name = _("禁用集群")
+
+
+class RedisInstanceCloseDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+    force = serializers.BooleanField(help_text=_("是否强制"), required=False, default=True)
+
+
+class RedisInstanceCloseFlowParamBuilder(builders.FlowParamBuilder):
+    controller = RedisController.fake_scene
+
+
+@builders.BuilderFactory.register(
+    TicketType.REDIS_INSTANCE_PROXY_CLOSE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.REDIS_OPEN_CLOSE
+)
+class RedisInstanceCloseFlowBuilder(BaseRedisTicketFlowBuilder):
+    serializer = RedisInstanceCloseDetailSerializer
+    inner_flow_builder = RedisInstanceCloseFlowParamBuilder
     inner_flow_name = _("禁用集群")

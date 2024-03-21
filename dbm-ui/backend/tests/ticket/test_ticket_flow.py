@@ -180,7 +180,7 @@ class TestTicketFlow:
         lambda resource_request_id, node_infos: (1, APPLY_RESOURCE_RETURN_DATA),
     )
     @patch(
-        "backend.ticket.flow_manager.resource.ResourceApplyFlow.patch_resource_params", lambda self, ticket_data: None
+        "backend.ticket.flow_manager.resource.ResourceApplyFlow.patch_resource_spec", lambda self, ticket_data: None
     )
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
     @patch("backend.ticket.builders.mysql.mysql_ha_apply.DBConfigApi", DBConfigApiMock)

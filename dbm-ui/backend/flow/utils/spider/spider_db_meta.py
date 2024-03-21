@@ -161,6 +161,8 @@ class SpiderDBMeta(object):
         """
         remotedb 成对迁移添加初始化节点元数据
         """
+        cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
+        old_resource_spec = {MachineType.REMOTE.value: cluster.storageinstance_set.first().machine.spec_config}
         TenDBClusterMigrateRemoteDb.storage_create(
             cluster_id=self.cluster["cluster_id"],
             master_ip=self.cluster["new_master_ip"],
@@ -168,7 +170,8 @@ class SpiderDBMeta(object):
             ports=self.cluster["ports"],
             creator=self.global_data["created_by"],
             mysql_version=self.cluster["version"],
-            resource_spec=self.global_data["resource_spec"],
+            # 兼容资源池和手输机器两种情况
+            resource_spec=self.global_data.get("resource_spec") or old_resource_spec,
         )
         return True
 
@@ -242,13 +245,16 @@ class SpiderDBMeta(object):
         """
         remotedb 成对迁移添加初始化节点元数据
         """
+        cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
+        old_resource_spec = {MachineType.REMOTE.value: cluster.storageinstance_set.first().machine.spec_config}
         TenDBClusterMigrateRemoteDb.storage_create(
             cluster_id=self.cluster["cluster_id"],
             slave_ip=self.cluster["new_slave_ip"],
             ports=self.cluster["ports"],
             creator=self.global_data["created_by"],
             mysql_version=self.cluster["version"],
-            resource_spec=self.global_data["resource_spec"],
+            # 兼容资源池和手输机器两种情况
+            resource_spec=self.global_data.get("resource_spec") or old_resource_spec,
         )
         return True
 

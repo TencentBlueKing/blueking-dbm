@@ -15,6 +15,7 @@ from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
+from backend.db_meta.api.cluster.redisinstance.handler import RedisInstanceHandler
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
@@ -45,6 +46,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         ClusterType.TendisTwemproxyRedisInstance: TendisCacheClusterHandler,
         ClusterType.TendisPredixyTendisplusCluster: TendisPlusClusterHandler,
         ClusterType.TendisPredixyRedisCluster: RedisClusterHandler,
+        ClusterType.RedisInstance: RedisInstanceHandler,
     }
 
     fields = [
