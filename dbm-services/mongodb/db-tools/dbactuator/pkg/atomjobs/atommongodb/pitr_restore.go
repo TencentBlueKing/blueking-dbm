@@ -59,7 +59,7 @@ func NewPitrRecoverJob() jobruntime.JobRunner {
 
 // Name 获取原子任务的名字
 func (s *pitrRecoverJob) Name() string {
-	return "mongo_pitr_restore"
+	return "mongodb_pitr_restore"
 }
 
 // Run 运行原子任务
@@ -236,7 +236,9 @@ func (s *pitrRecoverJob) checkVersion() error {
 // checkParams 校验参数
 func (s *pitrRecoverJob) checkParams() error {
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.param); err != nil {
-		return errors.Wrap(err, "json.Unmarshal")
+		tmpErr := errors.Wrap(err, "payload json.Unmarshal failed")
+		s.runtime.Logger.Error(tmpErr.Error())
+		return tmpErr
 	}
 
 	// 校验配置参数

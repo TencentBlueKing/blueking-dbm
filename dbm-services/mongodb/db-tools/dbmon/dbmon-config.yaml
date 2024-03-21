@@ -7,15 +7,15 @@ bkmonitorbeat:
   beat_path: /usr/local/gse_bkte/plugins/bin/bkmonitorbeat
   event_config:
     data_id: 1572877
-    token: 91049f4d2cb74881bcef201ebb7302fe
+    token: xxxx
   metric_config:
     data_id: 1572876
-    token: 122a95858b174a908a2ab5f7443d546a
+    token: xxxx
 
 servers:
   - bk_biz_id: "3"
-    username: root
-    password: root
+    username: xxxx
+    password: xxxx
     bk_cloud_id: 0
     app: dba
     app_name: DBA业务

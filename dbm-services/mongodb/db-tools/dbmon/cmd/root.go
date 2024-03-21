@@ -4,6 +4,7 @@ package cmd
 import (
 	"dbm-services/mongodb/db-tools/dbmon/cmd/dbmonheartbeat"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/mongojob"
+	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/buildinfo"
 	"fmt"
 	"log"
 	_ "net/http/pprof" // pprof TODO
@@ -24,10 +25,6 @@ import (
 
 var cfgFile string
 var showversion = false
-var version string
-var githash string
-var buildstamp string
-var goversion string
 
 const progName = "bk-dbmon-mg"
 
@@ -36,23 +33,16 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "dbmon-config.yaml",
 		"required,config file (default is ./dbmon-config.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&showversion, "version", "v", false, "show bk-dbmon version")
-
 }
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use: progName,
 	Short: fmt.Sprintf(`bk-dbmon for mongodb
-Version: %s
-Githash: %s
-Buildstamp:%s
-GoVersion: %s`, version, githash, buildstamp, goversion),
+%s`, buildinfo.VersionInfo()),
 	Long: fmt.Sprintf(`mongodb local crontab job,include routine_backup,heartbeat etc.
 Wait each job finish,the job result would write to local file, and other program would report the result.
-Version: %s
-Githash: %s
-Buildstamp:%s
-GoVersion: %s`, version, githash, buildstamp, goversion),
+%s`, buildinfo.VersionInfo()),
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
@@ -66,9 +56,12 @@ GoVersion: %s`, version, githash, buildstamp, goversion),
 			_, _ = fmt.Fprintf(os.Stdout, "%s %s\n", progName, consts.BkDbmonVersion)
 			return
 		}
-		config.InitConfig(cfgFile)
+
 		mylog.InitRotateLoger()
 		defer mylog.Logger.Sync()
+
+		config.InitConfig(cfgFile, mylog.Logger)
+
 		var err error
 		// 检查DbType，只支持Mongo
 		if err = checkDbType(config.GlobalConf.Servers); err != nil {

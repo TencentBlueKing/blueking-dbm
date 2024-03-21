@@ -94,7 +94,7 @@ func ConvertFileNameTimeStringToTs(sec, i string) (*TS, error) {
 	} else {
 		ts.Sec = vv
 	}
-	if vv, err := strconv.ParseUint(i, 10, 64); err != nil {
+	if vv, err := strconv.ParseUint(i, 10, 32); err != nil {
 		return nil, fmt.Errorf("bad format: I:%v", err)
 	} else {
 		ts.I = uint32(vv)
@@ -103,7 +103,7 @@ func ConvertFileNameTimeStringToTs(sec, i string) (*TS, error) {
 }
 
 /*
-ParseTs 在mongo.log中找到firstTS和lastTS
+ParseTs 在log中找到firstTS和lastTS
 2019-12-17T18:01:40.883+0800	firstTS=(1576576891 1)
 2019-12-17T18:01:40.883+0800	lastTS=(1576576892 3)
 */

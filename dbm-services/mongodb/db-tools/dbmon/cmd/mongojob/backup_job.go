@@ -79,7 +79,7 @@ func (job *BackupJob) Run() {
 			svrItem.MetaRole == consts.MetaRoleShardsvrBackupNewName {
 			job.runOneServer(&svrItem)
 		} else {
-			mylog.Logger.Info(fmt.Sprintf("skip backup for %s %s", svrItem.MetaRole))
+			mylog.Logger.Info(fmt.Sprintf("skip backup for %s", svrItem.MetaRole))
 		}
 	}
 
@@ -101,8 +101,8 @@ func (job *BackupJob) runOneServer(svrItem *config.ConfServerItem) {
 		TaskName:           "",
 		BackupDir:          job.getBackupDir(),
 		BackupType:         "AUTO",
-		Host:               svrItem.ServerIP,
-		Port:               strconv.Itoa(svrItem.ServerPort),
+		Host:               svrItem.IP,
+		Port:               strconv.Itoa(svrItem.Port),
 		User:               svrItem.UserName,
 		Password:           svrItem.Password,
 		SendToBs:           true,
