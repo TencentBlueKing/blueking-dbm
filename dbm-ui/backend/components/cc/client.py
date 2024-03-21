@@ -22,6 +22,7 @@ class _CCApi(BaseApi):
     class ErrorCode:
         HOST_NOT_BELONG_BIZ = 1113002
         HOST_NOT_BELONG_MODULE = 1110056
+        CUSTOM_FIELD_ALREADY_EXISTS = 1101107
 
     def __init__(self):
         self.list_hosts_without_biz = self.generate_data_api(

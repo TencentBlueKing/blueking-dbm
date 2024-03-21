@@ -200,8 +200,7 @@ class Services:
         if exist_dbm_attr:
             logger.info("skip exist dbm attr in host model")
             return True
-
-        CCApi.create_biz_custom_field(
+        resp = CCApi.create_biz_custom_field(
             {
                 "bk_biz_id": bk_biz_id,
                 "bk_obj_id": "host",
@@ -217,9 +216,16 @@ class Services:
                 "option": "",
             },
             use_admin=True,
+            raw=True,
         )
+        if resp.get("result"):
+            return
 
-        logger.info("init cc db_app_abbr for english app")
+        # 已经存在，忽略即可
+        if resp.get("code") == CCApi.ErrorCode.CUSTOM_FIELD_ALREADY_EXISTS:
+            logger.warning(f"create_biz_custom_field({CC_HOST_DBM_ATTR}), resp:{resp}")
+        else:
+            raise ApiError(f"create_biz_custom_field({CC_HOST_DBM_ATTR}) error, resp:{resp}")
 
     @staticmethod
     def auto_create_bkcc_service() -> bool:
