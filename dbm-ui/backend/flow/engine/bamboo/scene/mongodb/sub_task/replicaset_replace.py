@@ -73,6 +73,7 @@ def replicaset_replace(
             sub_sub_kwargs=sub_get_kwargs,
             cluster_role=cluster_role,
             info=info,
+            mongod_scale=False,
         )
         sub_sub_pipelines.append(sub_sub_pipeline)
     sub_pipeline.add_parallel_sub_pipeline(sub_sub_pipelines)
