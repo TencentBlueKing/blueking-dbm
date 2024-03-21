@@ -94,6 +94,7 @@ class AddTempUserForClusterService(BaseService):
             "role": "",
         }
 
+        err_num = 0
         for cluster_id in kwargs["cluster_ids"]:
             # 获取每个cluster_id对应的对象
             try:
@@ -110,25 +111,23 @@ class AddTempUserForClusterService(BaseService):
             instance_list = self._get_instance_for_cluster(cluster=cluster)
 
             # 开始遍历集群每个实例，添加临时账号
-            err_num = 0
             for inst in instance_list:
                 if not inst.get("priv_role"):
                     self.log_error(_("不支持改实例的主机类型授权[{}]: machine_type: {}").format(inst.ip_port, inst.machine_type))
+                    err_num = err_num + 1
                     continue
 
                 # 按照实例维度进行添加账号
                 common_param["address"] = inst["instance"]
                 common_param["hosts"] = ["localhost", inst["instance"].split(":")[0]]
                 common_param["role"] = inst["priv_role"]
-                # if not self.__add_priv(common_param) and global_data["ticket_type"] not in allow_list:
-                #     return False
                 if not self.__add_priv(common_param):
                     err_num = err_num + 1
 
-            if err_num == len(instance_list):
-                # 如果一套集群内所有节点添加失败，则直接返回异常
-                self.log_error(f"all instances add priv failed in the cluster[{cluster_id}]")
-                return False
+        if err_num > 0:
+            # 有错误先返回则直接返回异常
+            self.log_error("instances add priv failed")
+            return False
 
         return True
 
