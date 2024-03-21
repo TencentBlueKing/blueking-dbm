@@ -1,13 +1,15 @@
 package service
 
 import (
+	crand "crypto/rand"
+	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log/slog"
-	"math/rand"
 	"os"
 	"time"
 
@@ -175,17 +177,28 @@ func SM4Decrypt(input string) (string, error) {
 	return base64.StdEncoding.EncodeToString(output), nil
 }
 
-// SM4 加密方式
+// SM4 加密解密
 func SM4(input string, vtype string) ([]byte, error) {
-	rand.Seed(time.Now().UnixNano())
-	r := rand.Intn(1000)
-	name := fmt.Sprintf("%d%03d", time.Now().UnixNano()/1e6, r)
+	salt := make([]byte, 16)
+	_, err := io.ReadFull(crand.Reader, salt)
+	if err != nil {
+		slog.Error("msg", "get random string error", err)
+		return nil, fmt.Errorf("get random string error: %s", err.Error())
+	}
+	name := fmt.Sprintf("%d.%x.%x.%s", sha1.Sum([]byte(input)), time.Now().UnixNano(), salt, vtype)
 	inputName := fmt.Sprintf("%s.input", name)
 	outputName := fmt.Sprintf("%s.output", name)
+
 	//由于部分特殊字符可能导致命令行执行会失败，存入文件后解密或者机密
 	//cmd := fmt.Sprintf(`echo -n '%s' | openssl  enc -e -sm4-ctr -pbkdf2 -k %s`, plain, viper.GetString("bk_app_secret"))
 	//cmd := fmt.Sprintf(`echo -n '%s' | openssl  enc -d -sm4-ctr -pbkdf2 -k %s`, cipher, viper.GetString("bk_app_secret"))
-	_, err := os.Stat(inputName)
+
+	_, err = os.Stat(inputName)
+	if err == nil || !os.IsNotExist(err) {
+		slog.Error("msg", "check file exist", os.ErrExist)
+		return nil, os.ErrExist
+	}
+	_, err = os.Stat(outputName)
 	if err == nil || !os.IsNotExist(err) {
 		slog.Error("msg", "check file exist", os.ErrExist)
 		return nil, os.ErrExist
@@ -195,12 +208,10 @@ func SM4(input string, vtype string) ([]byte, error) {
 		slog.Error("msg", "file", inputName, "create file error", err)
 		return nil, err
 	}
-	defer func() {
-		inputFile.Close()
-		_ = os.Remove(inputName)
-		_ = os.Remove(outputName)
-	}()
+
 	if _, err = inputFile.Write([]byte(input)); err != nil {
+		_ = inputFile.Close()
+		_ = os.Remove(inputName)
 		slog.Error("msg", "file", inputName, "write file error")
 		return nil, err
 	}
@@ -214,13 +225,22 @@ func SM4(input string, vtype string) ([]byte, error) {
 	_, err = util.ExecShellCommand(false, cmd)
 	if err != nil {
 		slog.Error("msg", "exec command error", err)
+		_ = inputFile.Close()
+		_ = os.Remove(inputName)
+		_ = os.Remove(outputName)
 		return nil, err
 	}
 	output, err := ioutil.ReadFile(outputName)
 	if err != nil {
 		slog.Error("msg", "file", outputName, "read file error", err)
+		_ = inputFile.Close()
+		_ = os.Remove(inputName)
+		_ = os.Remove(outputName)
 		return nil, err
 	}
+	_ = inputFile.Close()
+	_ = os.Remove(inputName)
+	_ = os.Remove(outputName)
 	return output, nil
 }
 
