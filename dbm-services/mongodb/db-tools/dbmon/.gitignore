@@ -7,3 +7,5 @@ bk-dbmon/
 build
 nohup.out
 .idea
+dbmon-config.yaml
+package/bk-dbmon.*

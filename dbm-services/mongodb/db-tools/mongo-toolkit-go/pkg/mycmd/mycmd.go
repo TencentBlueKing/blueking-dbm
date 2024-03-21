@@ -6,9 +6,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 type arg struct {
@@ -157,5 +161,43 @@ func (c *CmdBuilder) Run3(timeout time.Duration, stdout, stderr io.Writer) (*Exe
 	ret.End = time.Now()
 	ret.Cmdline = c.GetCmdLine("", false)
 	return ret, err
+
+}
+
+// RunBg run in background
+func (c *CmdBuilder) RunBackground(outputFileName string) (pid int, err error) {
+	bin, args := c.GetCmd()
+	cmd := exec.Command(bin, args...)
+	// 设置进程属性，使其在 Go 程序退出后继续运行
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+
+	if outputFileName != "" {
+		var outputFile *os.File
+		if outputFile, err = os.Create(outputFileName); err != nil {
+			err = errors.Wrap(err, "os.Create output.log")
+			return
+		} else {
+			defer outputFile.Close()
+			cmd.Stdout = outputFile
+			cmd.Stderr = outputFile
+		}
+	}
+
+	err = cmd.Start()
+	if err != nil {
+		err = errors.Wrap(err, "cmd.Start")
+		return
+	}
+	pid = cmd.Process.Pid
+	// 确保命令在后台运行
+	err = cmd.Process.Release()
+	if err != nil {
+		err = errors.Wrap(err, "cmd.Process.Release")
+		return
+	}
+
+	return pid, err
 
 }

@@ -71,7 +71,7 @@ func NewBackupJob() jobruntime.JobRunner {
 
 // Name 获取原子任务的名字
 func (s *backupJob) Name() string {
-	return "mongo_backup"
+	return "mongodb_backup"
 }
 
 // Run 运行原子任务
@@ -119,7 +119,7 @@ func getMongoDumpOutPath() (string, string, error) {
 	return "", "", errors.New("getBackupPath failed")
 }
 
-// doLogicalBackup do MongoDump
+// doLogicalBackup backup by mongodump
 func (s *backupJob) doLogicalBackup() error {
 	tmpPath, tmpDir, err := getMongoDumpOutPath()
 	if err != nil {
@@ -127,12 +127,10 @@ func (s *backupJob) doLogicalBackup() error {
 	}
 	helper := logical.NewMongoDumpHelper(s.MongoInst, s.MongoDump,
 		s.ConfParams.AdminUsername, s.ConfParams.AdminPassword, "admin", s.OsUser)
-	backupType := ""
-	_ = backupType
 	var startTime, endTime time.Time
 	startTime = time.Now()
 	if s.ConfParams.Args.IsPartial {
-		backupType = "dumpPartial"
+		// backupType = "dumpPartial"
 		partialArgs := s.ConfParams.Args.NsFilter
 		filter := logical.NewNsFilter(
 			partialArgs.DbList, partialArgs.IgnoreDbList,
@@ -146,14 +144,13 @@ func (s *backupJob) doLogicalBackup() error {
 		}
 		s.runtime.Logger.Info("exec cmd success, cmd: %+v", cmdLineList)
 	} else {
-		backupType = "dumpAll"
+		// backupType = "dumpAll"
 		cmdLine, err := helper.LogicalDumpAll(tmpPath, "dump.log")
 		if err != nil {
 			s.runtime.Logger.Error("exec cmd fail, cmd: %s, error:%s", cmdLine, err)
 			return err
 		}
 		s.runtime.Logger.Info("exec cmd success, cmd: %s", cmdLine)
-		// 全量备份
 		// admin 目录不备份 s.param.Args.IsPartial == false
 		if s.ConfParams.SkipBackupSystemDb {
 			err = helper.RemoveAdminDir(tmpPath)
@@ -181,10 +178,8 @@ func (s *backupJob) doLogicalBackup() error {
 		return err
 	}
 	endTime = time.Now()
-
 	fSize, _ := util.GetFileSize(tarPath)
 	s.runtime.Logger.Info("backup file: %s size: %d", tarPath, fSize)
-
 	// 上报备份记录。
 	task, err := backupsys.UploadFile(tarPath, s.ConfParams.BsTag)
 	// 如果此处失败，任务失败。
@@ -196,7 +191,17 @@ func (s *backupJob) doLogicalBackup() error {
 	s.runtime.Logger.Info("BackupSys taskid %s", task.TaskId)
 	// 上报备份记录
 
-	err = task.SaveToFile()
+	if err = task.SaveToFile(); err != nil {
+		s.runtime.Logger.Error("SaveToFile Failed, err:%v", err)
+		return errors.Wrap(err, "SaveToFile")
+	}
+
+	return s.appendToReportFile(startTime, endTime, task, tarPath, tarFile, fSize)
+}
+
+func (s *backupJob) appendToReportFile(
+	startTime, endTime time.Time, task *backupsys.TaskInfo,
+	tarPath, tarFile string, fSize int64) error {
 	rec := report.NewBackupRecord()
 	rec.AppendFileInfo(startTime.Local().Format(time.RFC3339),
 		endTime.Local().Format(time.RFC3339),
@@ -204,7 +209,7 @@ func (s *backupJob) doLogicalBackup() error {
 	rec.AppendMetaLabel(&s.ConfParams.BkDbmInstance)
 	rec.AppendBillSrc(s.runtime.UID, "todo", 1, 1)
 	rec.AppendBsInfo(task.TaskId, task.Tag)
-	err = report.AppendObjectToFile(s.ReportFilePath, rec)
+	err := report.AppendObjectToFile(s.ReportFilePath, rec)
 	if err != nil {
 		s.runtime.Logger.Error("Add Record to BackupReport Failedreport file:%s, record %+v", s.ReportFilePath, err)
 		return errors.Wrap(err, "Add Record to BackupReport")
@@ -212,11 +217,7 @@ func (s *backupJob) doLogicalBackup() error {
 		s.runtime.Logger.Info("Add Record to BackupReport Success, report file:%s, record %+v", s.ReportFilePath, rec)
 	}
 	return nil
-}
 
-func (s *backupJob) sendToBackupSystem() error {
-
-	return nil
 }
 
 // Retry 重试
@@ -240,7 +241,7 @@ func (s *backupJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 		return errors.New("This job cannot be executed as root user")
 	}
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.ConfParams); err != nil {
-		tmpErr := fmt.Errorf("get parameters of stepDown fail by json.Unmarshal, error:%s", err)
+		tmpErr := errors.Wrap(err, "payload json.Unmarshal failed")
 		s.runtime.Logger.Error(tmpErr.Error())
 		return tmpErr
 	}

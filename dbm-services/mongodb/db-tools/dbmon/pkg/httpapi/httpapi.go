@@ -2,12 +2,14 @@
 package httpapi
 
 import (
+	"dbm-services/mongodb/db-tools/dbmon/mylog"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"dbm-services/mongodb/db-tools/dbmon/config"
-	"dbm-services/mongodb/db-tools/dbmon/mylog"
+
 	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 
 	"github.com/gin-gonic/gin"
@@ -39,5 +41,12 @@ func StartListen(conf *config.Configuration) {
 	r.GET("/health", health)
 	r.GET("/version", version)
 	mylog.Logger.Info(fmt.Sprintf("start listen %s", conf.HttpAddress))
-	r.Run(conf.HttpAddress)
+	err := r.Run(conf.HttpAddress)
+	if err != nil {
+		msg := fmt.Sprintf("start listen %s error:%v", conf.HttpAddress, err)
+		mylog.Logger.Error(msg)
+		fmt.Println(msg)
+		os.Exit(1)
+	}
+
 }

@@ -66,6 +66,7 @@ func (h *MongoHost) Addr() string {
 	return fmt.Sprintf("%s:%s", h.Host, h.Port)
 }
 
+// String Just for debug. xxx is not real password
 func (h *MongoHost) String() string {
 	if h.User == "" {
 		return fmt.Sprintf("mongodb://%s:%s", h.Host, h.Port)

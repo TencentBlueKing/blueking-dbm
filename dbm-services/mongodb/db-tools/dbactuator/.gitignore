@@ -1,7 +1,7 @@
 .idea
 .vscode
 logs/*
-build/mongo-dbactuator
+bin/mongo-dbactuator
 scripts/upload_media.sh
 .codecc
 gonote

@@ -6,10 +6,13 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/buildinfo"
 	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/pkg/errors"
 
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobmanager"
@@ -32,6 +35,36 @@ var user string
 var group string
 var printParamJson string
 var listJob bool
+var debugPs bool
+
+func exitWithError(err error) {
+	log.Println("err:", err)
+	fmt.Println(buildinfo.VersionInfoOneLine())
+	os.Exit(-1)
+}
+
+func initEnv() error {
+	var err error
+	// 设置mongo环境变量
+	err = consts.SetMongoDataDir(dataDir)
+	if err != nil {
+		return errors.Wrap(err, "SetMongoDataDir")
+	}
+	err = consts.SetMongoBackupDir(backupDir)
+	if err != nil {
+		return errors.Wrap(err, "SetMongoBackupDir")
+	}
+
+	err = consts.SetProcessUser(user)
+	if err != nil {
+		return errors.Wrap(err, "SetProcessUser")
+	}
+	err = consts.SetProcessUserGroup(group)
+	if err != nil {
+		return errors.Wrap(err, "SetProcessUserGroup")
+	}
+	return nil
+}
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -44,7 +77,7 @@ var RootCmd = &cobra.Command{
 		var err error
 		dir, _ := util.GetCurrentDirectory()
 
-		// 优先使用payLoad。 payLoadFile 个人测试的时候使用的.
+		// 优先使用payLoad
 		if payLoad == "" && payLoadFile != "" {
 			if o, err := os.ReadFile(payLoadFile); err == nil {
 				payLoad = base64.StdEncoding.EncodeToString(o)
@@ -53,35 +86,16 @@ var RootCmd = &cobra.Command{
 				log.Printf("using payload file %s err %v", payLoadFile, err)
 			}
 		}
-
-		// 设置mongo环境变量
-		err = consts.SetMongoDataDir(dataDir)
-		if err != nil {
-			log.Println(err.Error())
-			os.Exit(-1)
+		// 设置mongo环境
+		if err = initEnv(); err != nil {
+			exitWithError(err)
 		}
-		err = consts.SetMongoBackupDir(backupDir)
-		if err != nil {
-			log.Println(err.Error())
-			os.Exit(-1)
-		}
-
-		err = consts.SetProcessUser(user)
-		if err != nil {
-			log.Println(err.Error())
-			os.Exit(-1)
-		}
-		err = consts.SetProcessUserGroup(group)
-		if err != nil {
-			log.Println(err.Error())
-			os.Exit(-1)
-		}
-
 		manager, err := jobmanager.NewJobGenericManager(uid, rootID, nodeID, versionID,
 			payLoad, payLoadFormat, atomJobList, dir)
 		if err != nil {
-			return
+			exitWithError(err)
 		}
+		manager.PrintVersion(buildinfo.VersionInfoOneLine()) // 打印版本信息
 		err = manager.LoadAtomJobs()
 		if err != nil {
 			os.Exit(-1)
@@ -110,9 +124,19 @@ var debugCmd = &cobra.Command{
 				}
 			}
 			os.Exit(0)
+		} else if debugPs {
+			if p, err := util.ListProcess(); err != nil {
+				fmt.Printf("err %s\n", err.Error())
+			} else {
+				for _, r := range p {
+					fmt.Printf("%+v\n", r)
+				}
+			}
+			os.Exit(0)
 		} else if printParamJson != "" {
 			doPrintParamJson()
 		} else {
+			fmt.Printf("%s", buildinfo.VersionInfo())
 			cmd.Help()
 		}
 	},
@@ -144,6 +168,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&group, "group", "g", "", "开启进程的os用户属主")
 	debugCmd.PersistentFlags().StringVarP(&printParamJson, "param", "P", "", "print atom job param")
 	debugCmd.PersistentFlags().BoolVarP(&listJob, "list", "L", false, "list atom jobs")
+	debugCmd.PersistentFlags().BoolVarP(&debugPs, "ps", "S", false, "list process")
 
 	RootCmd.AddCommand(debugCmd)
 
