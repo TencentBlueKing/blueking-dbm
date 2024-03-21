@@ -44,6 +44,13 @@ MANGODB_REDUCE_MANGOS_DATA = {
     },
 }
 
+# mangodb 集群下架请求单据
+MANGODB_DESTROY_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.MONGODB_DESTROY,
+    "details": {"cluster_ids": [CLUSTER_ID]},
+}
+
 # mangos 扩容资源池数据
 MANGOS_ADD_SOURCE_DATA = {
     "0_mongos": [
