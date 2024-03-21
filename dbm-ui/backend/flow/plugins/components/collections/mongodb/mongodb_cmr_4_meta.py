@@ -32,7 +32,7 @@ from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInsta
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
 
-logger = logging.getLogger("root")
+logger = logging.getLogger("flow")
 
 
 class CMRMongoDBMetaService(BaseService):
@@ -222,7 +222,12 @@ class CMRMongoDBMetaService(BaseService):
                 StorageInstanceTuple.objects.create(ejector=old_tuple.ejector, receiver=new_obj, creator=created_by)
                 old_tuple.delete()
             # 转移模块
-            MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(instances=[new_obj])
+            ins_is_increment = False
+            if cluster.cluster_type == ClusterType.MongoReplicaSet.value:
+                ins_is_increment = True
+            MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(
+                instances=[new_obj], is_increment=ins_is_increment
+            )
 
     # mongos(proxy) 替换
     @transaction.atomic
