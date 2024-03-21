@@ -19,8 +19,15 @@ from pipeline.core.flow.activity import Service
 
 from backend.configuration.constants import DBType
 from backend.db_meta import api
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, InstanceStatus, MachineType
-from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.db_meta.enums import (
+    ClusterEntryType,
+    ClusterType,
+    InstanceInnerRole,
+    InstanceRole,
+    InstanceStatus,
+    MachineType,
+)
+from backend.db_meta.models import Cluster, ClusterEntry, Machine, StorageInstance, StorageInstanceTuple
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
@@ -40,21 +47,23 @@ class MongoScaleReplsMetaService(BaseService):
       "cluster_id":1111,  # 必须的
       "bk_biz_id":0,
       "scale_out":[
-                {"shard": "S1","ip": "1.a.b.c","port":20000,"spec_id":112,"sepc_config":{}}
+                {"shard": "S1","ip": "1.a.b.c","port":20000,"spec_id":112,
+                "sepc_config":{},"reuse_machine":False,"role":"m1"}
       ],
       "scale_in": [
                 {"shard": "S1","ip": "1.a.b.d","port":20000}
             ]
     }
 
-    # 副本集 参数
+    # 副本集 参数  ---> 这里需要兼容 多实例情况
     {
       "created_by":"xxxx",
       "immute_domain":"xxx", # 可选
       "cluster_id":1111,  # 必须的
       "bk_biz_id":0,
       "scale_out":[
-                {"ip": "1.a.b.c","port":20000,"spec_id":112,"sepc_config":{}}
+                {"ip": "1.a.b.c","port":20000,"spec_id":112,"sepc_config":{},
+                "reuse_machine":False,"role":"m1","domain":"xx.x.a.c"}
       ],
       "scale_in": [
                 {"ip": "1.a.b.d","port":20000}
@@ -171,19 +180,33 @@ class MongoScaleReplsMetaService(BaseService):
             m1_obj, role = self.get_cluster_master_and_role(cluster, scale_item)
 
             # 创建实例
-            api.machine.create(
-                machines=[
-                    {
-                        "bk_biz_id": cluster.bk_biz_id,
-                        "ip": scale_item["ip"],
-                        "machine_type": MachineType.MONGODB.value,
-                        "spec_id": scale_item["spec_id"],
-                        "spec_config": scale_item.get("spec_config", {}),
-                    }
-                ],
-                bk_cloud_id=cluster.bk_cloud_id,
-                creator=created_by,
-            )
+            machine_exist = Machine.objects.filter(
+                bk_biz_id=cluster.bk_biz_id, ip=scale_item["ip"], bk_cloud_id=cluster.bk_cloud_id
+            ).exists()
+            if scale_item.get("reuse_machine", False) and not machine_exist:
+                api.machine.create(
+                    machines=[
+                        {
+                            "bk_biz_id": cluster.bk_biz_id,
+                            "ip": scale_item["ip"],
+                            "machine_type": MachineType.MONGODB.value,
+                            "spec_id": scale_item["spec_id"],
+                            "spec_config": scale_item.get("spec_config", {}),
+                        }
+                    ],
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    creator=created_by,
+                )
+            else:
+                raise Exception(
+                    "machine will not create reuseFlag:{} and machineExist:{} bizID:{};IP:{};CloudID:{}".format(
+                        scale_item.get("reuse_machine", False),
+                        machine_exist,
+                        cluster.bk_biz_id,
+                        scale_item["ip"],
+                        cluster.bk_cloud_id,
+                    )
+                )
             mongo_obj = api.storage_instance.create(
                 instances=[{"ip": scale_item["ip"], "port": scale_item["port"], "instance_role": role}],
                 status=InstanceStatus.RUNNING.value,
@@ -211,8 +234,24 @@ class MongoScaleReplsMetaService(BaseService):
             tmp_entries = m1_obj.bind_entry.all()
             mongo_obj.bind_entry.add(*tmp_entries)
 
+            is_increment = False
+            if m1_obj.cluster_type == ClusterType.MongoReplicaSet.value:
+                is_increment = True
+                # 给复制集增加域名
+                cluster_entry = ClusterEntry.objects.create(
+                    cluster=cluster,
+                    cluster_entry_type=ClusterEntryType.DNS,
+                    entry=scale_item["domain"],
+                    creator=created_by,
+                )
+                cluster_entry.storageinstance_set.add(
+                    StorageInstance.objects.get(machine__ip=scale_item["ip"], port=scale_item["port"])
+                )
+                cluster_entry.save()
             # 转移模块
-            MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(instances=[mongo_obj])
+            MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(
+                instances=[mongo_obj], is_increment=is_increment
+            )
             logger.info(
                 "add instance {}:{} 2 cluster {}:{} done".format(
                     mongo_obj, role, cluster.immute_domain, scale_item["shard"]
@@ -221,7 +260,7 @@ class MongoScaleReplsMetaService(BaseService):
 
     # 获取到集群的master 节点， repSet 和 shardCluster 获取方式不一样
     def get_cluster_master_and_role(self, cluster: Cluster, scale_item: Dict):
-        m1_obj, ava_role = "", ""
+        m1_obj, ava_role = "", scale_item.get("role")
         if cluster.cluster_type == ClusterType.MongoShardedCluster.value:
             m1_obj = cluster.storageinstance_set.get(
                 id=cluster.nosqlstoragesetdtl_set.get(seg_range=scale_item["shard"]).instance_id
@@ -229,14 +268,19 @@ class MongoScaleReplsMetaService(BaseService):
         else:
             m1_obj = cluster.storageinstance_set.get(instance_role=InstanceRole.MONGO_M1.value)
 
-        instance_roles = [ins.receiver.instance_role for ins in StorageInstanceTuple.objects.filter(ejector=m1_obj)]
-        ava_roles = list(set(self.get_mongo_slave_roles()) - set(instance_roles))
-        if len(ava_roles) > 0:
-            ava_role = ava_roles[0]  # 可以排个序, 再取一个
-        else:
-            raise Exception(
-                "unsupport more than 10 nodes per shard ------.{}=> {}".format(cluster.immute_domain, instance_roles)
-            )
+        if ava_role is None:
+            instance_roles = [
+                ins.receiver.instance_role for ins in StorageInstanceTuple.objects.filter(ejector=m1_obj)
+            ]
+            ava_roles = list(set(self.get_mongo_slave_roles()) - set(instance_roles))
+            if len(ava_roles) > 0:
+                ava_role = ava_roles[0]  # 可以排个序, 再取一个
+            else:
+                raise Exception(
+                    "unsupport more than 10 nodes per shard ------.{}=> {}".format(
+                        cluster.immute_domain, instance_roles
+                    )
+                )
         logger.info(
             "get mongo m1 {} 4 cluster {}, with avaiable role : {}".format(m1_obj, cluster.immute_domain, ava_role)
         )

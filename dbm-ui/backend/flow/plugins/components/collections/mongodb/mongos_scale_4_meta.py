@@ -31,7 +31,7 @@ from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
 
-logger = logging.getLogger("root")
+logger = logging.getLogger("flow")
 
 
 class MongosScaleMetaService(BaseService):
