@@ -149,9 +149,3 @@ class ClusterValidateMixin(object):
 
     def validate_cluster_id(self, cluster_id):
         return self.check_cluster_phase(cluster_id)
-
-    def validate_src_cluster(self, cluster_id):
-        return self.check_cluster_phase(cluster_id)
-
-    def validate_dst_cluster(self, cluster_id):
-        return self.check_cluster_phase(cluster_id)

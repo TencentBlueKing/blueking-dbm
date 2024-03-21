@@ -69,6 +69,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
             self.data["root_id"] = self.root_id
             self.data["uid"] = self.ticket_data["uid"]
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
+            self.data["created_by"] = self.ticket_data["created_by"]
             self.data["bk_biz_id"] = cluster_class.bk_biz_id
             self.data["db_module_id"] = cluster_class.db_module_id
             self.data["cluster_type"] = cluster_class.cluster_type

@@ -31,6 +31,7 @@ class ListResourceSLZ(serializers.Serializer):
     status = serializers.CharField(required=False, help_text=_("状态"))
     db_module_id = serializers.CharField(required=False, help_text=_("所属DB模块"))
     bk_cloud_id = serializers.CharField(required=False, help_text=_("管控区域"))
+    cluster_type = serializers.ChoiceField(required=False, choices=ClusterType.get_choices())
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
@@ -42,7 +43,6 @@ class ListSQLServerResourceSLZ(ListResourceSLZ):
 
 
 class ListMongoDBResourceSLZ(ListResourceSLZ):
-    cluster_type = serializers.ChoiceField(required=False, choices=ClusterType.get_choices())
     domains = serializers.CharField(help_text=_("批量域名查询(逗号分割)"), required=False)
 
 
@@ -96,11 +96,11 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     status = serializers.CharField(help_text=_("状态"), required=False)
     role = serializers.CharField(help_text=_("角色"), required=False)
     cluster_id = serializers.CharField(help_text=_("集群ID"), required=False)
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), required=False, choices=ClusterType.get_choices())
     ip = serializers.CharField(required=False)
 
 
 class MongoDBListInstancesSerializer(ListInstancesSerializer):
-    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), required=False, choices=ClusterType.get_choices())
     exact_ip = serializers.CharField(help_text=_("精确IP查询"), required=False)
 
 
@@ -119,6 +119,8 @@ class ListNodesSLZ(serializers.Serializer):
 class ListMachineSLZ(serializers.Serializer):
     bk_host_id = serializers.IntegerField(help_text=_("主机ID"), required=False)
     ip = serializers.CharField(help_text=_("IP(多个IP过滤以逗号分隔)"), required=False)
+    cluster_ids = serializers.CharField(help_text=_("集群ID(多个过滤以逗号分隔)"), required=False)
+    bk_city_name = serializers.CharField(help_text=_("城市名(多个过滤以逗号分隔)"), required=False)
     machine_type = serializers.ChoiceField(help_text=_("机器类型"), choices=MachineType.get_choices(), required=False)
     bk_os_name = serializers.CharField(help_text=_("os名字"), required=False)
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=False)

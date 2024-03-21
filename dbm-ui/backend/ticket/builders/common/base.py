@@ -134,7 +134,9 @@ class CommonValidate(object):
         )
         idle_host_list = [host["bk_host_id"] for host in idle_host_info_list]
 
-        return set(host_list) - set(idle_host_list)
+        host_not_in_idle = set(host_list) - set(idle_host_list)
+        if host_not_in_idle:
+            raise serializers.ValidationError(_("主机{}不在空闲机池，请保证所选的主机均来自空闲机").format(host_not_in_idle))
 
     @classmethod
     def validate_hosts_not_in_db_meta(cls, host_infos: List[Dict]):

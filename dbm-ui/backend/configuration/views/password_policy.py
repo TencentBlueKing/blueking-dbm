@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import json
 
 from celery.schedules import crontab
@@ -91,8 +90,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False)
     def get_random_password(self, request, *args, **kwargs):
-        random_password = DBPrivManagerApi.get_random_string({"security_rule_name": DBM_PASSWORD_SECURITY_NAME})
-        random_password = base64.b64decode(random_password).decode("utf-8")
+        random_password = DBPasswordHandler.get_random_password()
         return Response({"password": random_password})
 
     @common_swagger_auto_schema(

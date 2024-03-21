@@ -9,10 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
+from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
     RedisBasePauseParamBuilder,
@@ -44,5 +46,21 @@ class RedisDestroyFlowParamBuilder(builders.FlowParamBuilder):
 class RedisDestroyFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisDestroyDetailSerializer
     inner_flow_builder = RedisDestroyFlowParamBuilder
+    inner_flow_name = _("下架集群")
+    pause_node_builder = RedisBasePauseParamBuilder
+
+
+class RedisInstanceDestroyDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+
+
+class RedisInstanceDestroyFlowParamBuilder(builders.FlowParamBuilder):
+    controller = RedisController.fake_scene
+
+
+@builders.BuilderFactory.register(TicketType.REDIS_INSTANCE_DESTROY, phase=ClusterPhase.DESTROY)
+class RedisInstanceCloseFlowBuilder(BaseRedisTicketFlowBuilder):
+    serializer = RedisInstanceDestroyDetailSerializer
+    inner_flow_builder = RedisInstanceDestroyFlowParamBuilder
     inner_flow_name = _("下架集群")
     pause_node_builder = RedisBasePauseParamBuilder

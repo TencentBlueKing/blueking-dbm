@@ -8,13 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
+from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
@@ -42,10 +41,10 @@ class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.S
 
     cluster_name = serializers.CharField(help_text=_("集群ID（英文数字及下划线）"))
     cluster_alias = serializers.CharField(help_text=_("集群别名（一般为中文别名）"), required=False, allow_blank=True)
+    proxy_pwd = serializers.CharField(help_text=_("proxy访问密码"), required=False)
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     nodes = serializers.JSONField(help_text=_("部署节点"), required=False)
-
     resource_spec = serializers.JSONField(help_text=_("proxy部署方案"), required=False)
     cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"), required=False)
 
@@ -68,11 +67,22 @@ class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.S
         # 判断主机角色是否互斥
         super().validate(attrs)
 
+        # 集群分片数至少>=3
+        if attrs["cluster_shard_num"] < 3:
+            raise serializers.ValidationError(_("redis集群部署的集群分片数至少大于3"))
+
         # 集群名校验
         bk_biz_id, ticket_type = self.context["bk_biz_id"], self.context["ticket_type"]
         CommonValidate.validate_duplicate_cluster_name(bk_biz_id, ticket_type, attrs["cluster_name"])
 
-        # 仅校验手工选择主机的情况
+        # proxy密码校验，如果是用户输入，则必须满足密码强度
+        if attrs.get("proxy_pwd"):
+            verify_result = DBPasswordHandler.verify_password_strength(attrs["proxy_pwd"], echo=True)
+            attrs["proxy_pwd"] = verify_result["password"]
+            if not verify_result["is_strength"]:
+                raise serializers.ValidationError(_("密码强度不符合要求，请重新输入密码。"))
+
+        # 仅校验手工选择主机的情况 TODO: 目前redis已经不支持手动部署
         if attrs["ip_source"] != IpSource.MANUAL_INPUT:
             return attrs
 
@@ -83,35 +93,19 @@ class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.S
         all_nodes = [*master_nodes, *slave_nodes, *proxy_nodes]
 
         # 集群元数据检查
-        exist_nodes = Machine.objects.filter(bk_host_id__in=all_nodes)
-        if exist_nodes.exists():
-            exist_hosts = ",".join((exist_nodes.values_list("ip", flat=True)))
-            raise serializers.ValidationError(_("主机【{}】已经被注册到了集群元数据，请检查").format(exist_hosts))
+        CommonValidate.validate_hosts_not_in_db_meta(host_infos=[{"bk_host_id": host_id} for host_id in all_nodes])
 
         # 空闲机校验
-        hosts_not_in_idle_pool = CommonValidate.validate_hosts_from_idle_pool(bk_biz_id, all_nodes)
-        if hosts_not_in_idle_pool:
-            host_id_to_ips = {
-                h["bk_host_id"]: h["ip"] for __, role_hosts in role__nodes_map.items() for h in role_hosts
-            }
-            hosts_not_in_idle_pool = {host_id_to_ips[h] for h in hosts_not_in_idle_pool}
-            raise serializers.ValidationError(_("主机{}不在空闲机池，请保证所选的主机均来自空闲机").format(hosts_not_in_idle_pool))
+        CommonValidate.validate_hosts_from_idle_pool(bk_biz_id, all_nodes)
 
-        # TODO: master&slave 规格检查: cpu/mem/disk...
-        if master_nodes & slave_nodes:
-            raise serializers.ValidationError(_("master和slave中存在重复节点"))
-
-        if master_nodes & proxy_nodes:
-            raise serializers.ValidationError(_("master和proxy中存在重复节点"))
-
-        if slave_nodes & proxy_nodes:
-            raise serializers.ValidationError(_("slave和proxy中存在重复节点"))
+        # 校验不存在重复节点
+        if (master_nodes & slave_nodes) or (master_nodes & proxy_nodes) or (slave_nodes & proxy_nodes):
+            raise serializers.ValidationError(_("master、slave、proxy中存在重复节点"))
 
         # 节点数检查
         if not (len(master_nodes) and len(master_nodes) == len(slave_nodes)):
             raise serializers.ValidationError(_("至少提供1台master节点和1台slave节点，且master与slave节点数要保持一致"))
-
-        if len(proxy_nodes) < REDIS_PROXY_MIN:
+        if len(proxy_nodes) < REDIS_PROXY_MIN and attrs["cluster_type"] != ClusterType.TendisRedisInstance:
             raise serializers.ValidationError(_("proxy至少提供2台机器"))
 
         return attrs
@@ -119,9 +113,14 @@ class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.S
 
 class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
     controllers = {
+        # tendis-cache部署flow
         ClusterType.TendisTwemproxyRedisInstance: RedisController.twemproxy_cluster_apply_scene,
+        # tendis-plus部署flow
         ClusterType.TendisPredixyTendisplusCluster: RedisController.predixy_cluster_apply_scene,
+        # tendis-ssd部署flow
         ClusterType.TwemproxyTendisSSDInstance: RedisController.twemproxy_cluster_apply_scene,
+        # redis-cluster部署flow
+        ClusterType.TendisPredixyRedisCluster: RedisController.predixy_cluster_apply_scene,
     }
 
     def build_controller_info(self) -> dict:
@@ -174,40 +173,36 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
                     }
                 ]
             },
-            "redis_pwd": "JWe5UeSUAAvcpcY3",
+            "redis_pwd": "xxxxxxx",
             "ticket_type": "REDIS_CLUSTER_APPLY",
-            "proxy_pwd": "6Lenke4rWl6VU8lj",
+            "proxy_pwd": "xxxxxxx",
             "uid": 342
         }
         """
-        # 生成随机密码，长度16位，英文大小写+数字
-        proxy_pwd = get_random_string(16)
-        proxy_admin_pwd = get_random_string(16)
-        redis_pwd = get_random_string(16)
+        # 生成随机密码，密码强度符合平台密码策略
+        proxy_admin_pwd = DBPasswordHandler.get_random_password()
+        redis_pwd = DBPasswordHandler.get_random_password()
+        # proxy访问密码优先以用户为准
+        proxy_pwd = self.ticket_data.get("proxy_pwd") or DBPasswordHandler.get_random_password()
         ticket_type = self.ticket_data["cluster_type"]
 
         # 默认db数量
         DEFAULT_DATABASES = 2
 
         # 域名映射
-        if ticket_type in [
-            ClusterType.TwemproxyTendisSSDInstance,
-        ]:
+        if ticket_type == ClusterType.TwemproxyTendisSSDInstance:
             domain_prefix = "ssd"
-        elif ticket_type in [
-            ClusterType.TendisTwemproxyTendisplusIns,
-            ClusterType.TendisPredixyTendisplusCluster,
-        ]:
-            domain_prefix = "tendisplus"
-        else:
+        elif ticket_type == ClusterType.TendisPredixyRedisCluster:
+            domain_prefix = "rediscluster"
+        elif ticket_type == ClusterType.TendisTwemproxyRedisInstance:
             domain_prefix = "cache"
-
+        elif ticket_type in [ClusterType.TendisTwemproxyTendisplusIns, ClusterType.TendisPredixyTendisplusCluster]:
+            domain_prefix = "tendisplus"
         domain_name = "{}.{}.{}.db".format(
             domain_prefix,
             self.ticket_data["cluster_name"],
             self.ticket_data["db_app_abbr"],
         )
-
         # 校验域名是否合法
         CommonValidate._validate_domain_valid(domain_name)
 
@@ -228,6 +223,7 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
             }
         )
 
+        # TODO: 目前redis已经不支持手动部署
         if self.ticket_data["ip_source"] == IpSource.MANUAL_INPUT:
             # 如果是手动部署，根据前端传入的cap_key需充maxmemory, max_disk等参数
             cap_key = self.ticket_data["cap_key"]
@@ -279,6 +275,6 @@ class RedisApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
 class RedisClusterApplyFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisClusterApplyDetailSerializer
     inner_flow_builder = RedisClusterApplyFlowParamBuilder
-    inner_flow_name = _("集群部署")
+    inner_flow_name = _("Redis 集群部署")
     resource_apply_builder = RedisApplyResourceParamBuilder
     pause_node_builder = RedisBasePauseParamBuilder

@@ -253,7 +253,7 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         return details
 
-    def patch_resource_params(self, ticket_data, spec_map: Dict[int, Spec] = None):
+    def patch_resource_spec(self, ticket_data, spec_map: Dict[int, Spec] = None):
         """
         将资源池部署信息写入到ticket_data。
         @param ticket_data: 待填充的字典
@@ -293,7 +293,7 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         # 将机器信息写入ticket和inner flow
         self.write_node_infos(next_flow.details["ticket_data"], node_infos)
-        self.patch_resource_params(next_flow.details["ticket_data"])
+        self.patch_resource_spec(next_flow.details["ticket_data"])
         next_flow.save(update_fields=["details"])
         # 相关信息回填到单据和resource flow中
         self.ticket.update_details(resource_request_id=resource_request_id, nodes=node_infos)
@@ -322,7 +322,7 @@ class ResourceBatchApplyFlow(ResourceApplyFlow):
     ]
     """
 
-    def patch_resource_params(self, ticket_data):
+    def patch_resource_spec(self, ticket_data):
         spec_ids: List[int] = []
         for info in ticket_data["infos"]:
             spec_ids.extend([data["spec_id"] for data in info["resource_spec"].values()])
@@ -330,7 +330,7 @@ class ResourceBatchApplyFlow(ResourceApplyFlow):
         # 提前缓存数据库查询数据，避免多次IO
         spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(spec_id__in=spec_ids)}
         for info in ticket_data["infos"]:
-            super().patch_resource_params(info, spec_map)
+            super().patch_resource_spec(info, spec_map)
 
     def write_node_infos(self, ticket_data, node_infos):
         """

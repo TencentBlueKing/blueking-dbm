@@ -207,6 +207,9 @@ class TicketType(str, StructuredEnum):
     TENDBCLUSTER_SPIDER_MNT_DESTROY = TicketEnumField("TENDBCLUSTER_SPIDER_MNT_DESTROY", _("TenDB Cluster 下架运维节点"), _("运维 Spider 管理"))  # noqa
     TENDBCLUSTER_SPIDER_SLAVE_APPLY = TicketEnumField("TENDBCLUSTER_SPIDER_SLAVE_APPLY", _("TenDB Cluster 部署只读接入层"), _("访问入口"))
     TENDBCLUSTER_SPIDER_SLAVE_DESTROY = TicketEnumField("TENDBCLUSTER_SPIDER_SLAVE_DESTROY", _("TenDB Cluster 只读接入层下架"), _("访问入口"))  # noqa
+    TENDBCLUSTER_RESTORE_SLAVE = TicketEnumField("TENDBCLUSTER_RESTORE_SLAVE", _("TenDB Cluster Slave重建"), _("集群维护"))  # noqa
+    TENDBCLUSTER_RESTORE_LOCAL_SLAVE = TicketEnumField("TENDBCLUSTER_RESTORE_LOCAL_SLAVE", _("TenDB Cluster Slave原地重建"), _("集群维护"))  # noqa
+    TENDBCLUSTER_MIGRATE_CLUSTER = TicketEnumField("TENDBCLUSTER_MIGRATE_CLUSTER", _("TenDB Cluster 主从迁移"), _("集群维护"))  # noqa
     TENDBCLUSTER_APPLY = TicketEnumField("TENDBCLUSTER_APPLY", _("TenDB Cluster 集群部署"))
     TENDBCLUSTER_ENABLE = TicketEnumField("TENDBCLUSTER_ENABLE", _("TenDB Cluster 集群启用"), register_iam=False)
     TENDBCLUSTER_DISABLE = TicketEnumField("TENDBCLUSTER_DISABLE", _("TenDB Cluster 集群禁用"), register_iam=False)
@@ -263,13 +266,16 @@ class TicketType(str, StructuredEnum):
     REDIS_PLUGIN_DELETE_POLARIS = TicketEnumField("REDIS_PLUGIN_DELETE_POLARIS", _("Redis 删除Polaris"), _("集群管理"))
     REDIS_SINGLE_APPLY = TicketEnumField("REDIS_SINGLE_APPLY", _("Redis 单节点部署"), register_iam=False)
     REDIS_INS_APPLY = TicketEnumField("REDIS_INS_APPLY", _("Redis 主从节点部署"), register_iam=False)
-    REDIS_CLUSTER_APPLY = TicketEnumField("REDIS_CLUSTER_APPLY", _("Redis 集群部署"), _("集群管理"), register_iam=False)
+    REDIS_CLUSTER_APPLY = TicketEnumField("REDIS_CLUSTER_APPLY", _("Redis 集群部署"), _("集群管理"))
     REDIS_KEYS_EXTRACT = TicketEnumField("REDIS_KEYS_EXTRACT", _("Redis 提取 Key"), _("集群管理"))
     REDIS_KEYS_DELETE = TicketEnumField("REDIS_KEYS_DELETE", _("Redis 删除 key"), _("集群管理"))
     REDIS_BACKUP = TicketEnumField("REDIS_BACKUP", _("Redis 集群备份"), _("集群管理"))
     REDIS_PROXY_OPEN = TicketEnumField("REDIS_PROXY_OPEN", _("Redis 集群启用"), register_iam=False)
     REDIS_PROXY_CLOSE = TicketEnumField("REDIS_PROXY_CLOSE", _("Redis 集群禁用"), register_iam=False)
     REDIS_DESTROY = TicketEnumField("REDIS_DESTROY", _("Redis 集群删除"), _("集群管理"))
+    REDIS_INSTANCE_PROXY_OPEN = TicketEnumField("REDIS_INSTANCE_PROXY_OPEN", _("Redis 主从集群启用"), register_iam=False)
+    REDIS_INSTANCE_PROXY_CLOSE = TicketEnumField("REDIS_INSTANCE_PROXY_CLOSE", _("Redis 主从集群禁用"), register_iam=False)
+    REDIS_INSTANCE_DESTROY = TicketEnumField("REDIS_INSTANCE_DESTROY", _("Redis 主从集群删除"), _("集群管理"))
     REDIS_PURGE = TicketEnumField("REDIS_PURGE", _("Redis 集群清档"), _("集群管理"))
 
     REDIS_SCALE_UPDOWN = TicketEnumField("REDIS_SCALE_UPDOWN", _("Redis 集群容量变更"), _("集群维护"))
