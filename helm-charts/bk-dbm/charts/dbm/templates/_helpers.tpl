@@ -99,6 +99,10 @@ environment variables
 {{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-ssl-init" .Release.Revision }}
 {{- end }}
 
+{{- define "dbm.bknoticeInitJobName" -}}
+{{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-notice-init" .Release.Revision }}
+{{- end }}
+
 {{- define "dbm.mediumInitJobName" -}}
 {{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-medium-init" .Release.Revision }}
 {{- end }}
