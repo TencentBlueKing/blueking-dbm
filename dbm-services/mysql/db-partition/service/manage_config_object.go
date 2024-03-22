@@ -47,6 +47,8 @@ type QueryParititionsInput struct {
 	TbLikes       []string `json:"tblikes"`
 	Limit         int      `json:"limit"`
 	Offset        int      `json:"offset"`
+	OrderBy       string   `json:"order_by"`
+	AscDesc       string   `json:"asc_desc"`
 }
 
 // QueryLogInput TODO
