@@ -8,9 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import os
-import re
-from typing import Dict
+from typing import Dict, Tuple
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.transaction import atomic
@@ -22,7 +22,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.core.storages.storage import get_storage
-from backend.db_package.constants import INSTALL_PACKAGE_LIST
+from backend.db_package.constants import DB_PACKAGE_TAG, INSTALL_PACKAGE_LIST, PARSE_FILE_EXT, PackageType
 from backend.db_package.exceptions import PackageNotExistException
 from backend.db_package.filters import PackageListFilter
 from backend.db_package.models import Package
@@ -36,8 +36,7 @@ from backend.flow.consts import MediumEnum
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 from backend.utils.files import md5sum
 
-DB_PACKAGE_TAG = "db_package"
-PARSE_FILE_EXT = re.compile(r"^.*?[.](?P<ext>tar\.gz|tar\.bz2|\w+)$")
+logger = logging.getLogger("root")
 
 
 class DBPackageViewSet(viewsets.AuditedModelViewSet):
@@ -67,12 +66,17 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         db_type, sync_medium_infos = data["db_type"], data["sync_medium_infos"]
         # 获取原来介质的优先级信息
         old_packages = Package.objects.filter(db_type=db_type)
-        old_package_persist: Dict[str, int] = {
+        old_package_persist: Dict[str, Tuple[int, bool]] = {
             f"{package.pkg_type}-{package.name}-{package.version}": (package.priority, package.enable)
             for package in old_packages
         }
         # 更新新介质的优先级和启用信息，如果没有在原来介质中存在，则默认为0和启用
         for info in sync_medium_infos:
+            if info.get("pkg_type") not in PackageType.get_values():
+                logger.warning(
+                    f"pkg type({info.get('pkg_type')}) not in PackageType Enum, ignore",
+                )
+                continue
             persistent_info = old_package_persist.get(
                 f"{info['pkg_type']}-{info['name']}-{info['version']}", (0, True)
             )
