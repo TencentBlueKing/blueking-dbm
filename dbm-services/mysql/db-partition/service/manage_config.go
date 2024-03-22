@@ -28,7 +28,7 @@ import (
 // GetPartitionsConfig TODO
 func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog, int64, error) {
 	allResults := make([]*PartitionConfigWithLog, 0)
-	var configTb, logTb string
+	var configTb, logTb, orderBy, ascDesc string
 	// Cnt 用于返回匹配到的行数
 	type Cnt struct {
 		Count int64 `gorm:"column:cnt"`
@@ -77,7 +77,14 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 	}
 
 	limitCondition := fmt.Sprintf("limit %d offset %d", m.Limit, m.Offset)
-	condition := fmt.Sprintf("%s order by config.id desc %s", where, limitCondition)
+	if m.OrderBy == "" {
+		orderBy = "id"
+		ascDesc = "desc"
+	} else {
+		orderBy = m.OrderBy
+		ascDesc = m.AscDesc
+	}
+	condition := fmt.Sprintf("%s order by %s %s %s", where, orderBy, ascDesc, limitCondition)
 	/*
 		一、ticket_id是非0的整数，则表示，最近一次任务生成了分区单据，单据执行状态就是最近这次任务的状态，需要从dbm ticket_ticket表中获取状态。
 		二、ticket_id是0，表示最近一次任务没有生成分区单据，status状态表示最近这次任务的状态，FAILED或者SUCCEEDED。
