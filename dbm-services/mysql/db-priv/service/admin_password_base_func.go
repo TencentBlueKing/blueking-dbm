@@ -3,6 +3,8 @@ package service
 import (
 	crand "crypto/rand"
 	"crypto/sha1"
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -12,9 +14,6 @@ import (
 	"log/slog"
 	"os"
 	"time"
-
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 )
@@ -185,7 +184,7 @@ func SM4(input string, vtype string) ([]byte, error) {
 		slog.Error("msg", "get random string error", err)
 		return nil, fmt.Errorf("get random string error: %s", err.Error())
 	}
-	name := fmt.Sprintf("%d.%x.%x.%s", sha1.Sum([]byte(input)), time.Now().UnixNano(), salt, vtype)
+	name := fmt.Sprintf("%d.%x.%x.%s", time.Now().UnixNano(), sha1.Sum([]byte(input)), salt, vtype)
 	inputName := fmt.Sprintf("%s.input", name)
 	outputName := fmt.Sprintf("%s.output", name)
 
@@ -224,7 +223,7 @@ func SM4(input string, vtype string) ([]byte, error) {
 	}
 	_, err = util.ExecShellCommand(false, cmd)
 	if err != nil {
-		slog.Error("msg", "exec command error", err)
+		slog.Error("msg", "cmd", cmd, "exec command error", err)
 		_ = inputFile.Close()
 		_ = os.Remove(inputName)
 		_ = os.Remove(outputName)
