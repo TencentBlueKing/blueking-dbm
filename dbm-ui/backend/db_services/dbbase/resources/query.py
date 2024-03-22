@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import abc
+import operator
+from functools import reduce
 from typing import Any, Callable, Dict, List, Tuple, Union
 
 import attr
@@ -361,10 +363,20 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "id": Q(id=query_params.get("id")),
             "name": (Q(name__icontains=query_params.get("name")) | Q(alias__icontains=query_params.get("name"))),
             "domain": Q(immute_domain__icontains=query_params.get("domain")),
+            # 版本
             "version": Q(major_version=query_params.get("version")),
+            # 地域
             "region": Q(region=query_params.get("region")),
             "cluster_ids": Q(id__in=query_params.get("cluster_ids")),
             "creator": Q(creator__icontains=query_params.get("creator")),
+            # 所属DB模块
+            "db_module_id": Q(db_module_id=query_params.get("db_module_id")),
+            # 管控区域
+            "bk_cloud_id": Q(bk_cloud_id=query_params.get("bk_cloud_id")),
+            # 状态
+            "status": Q(status=query_params.get("status")),
+            # 时区
+            "time_zone": Q(time_zone=query_params.get("time_zone")),
             # 域名精确查询，主要用于工具箱手动填入域名查询
             "exact_domain": Q(immute_domain=query_params.get("exact_domain")),
         }
@@ -375,22 +387,55 @@ class ListRetrieveResource(BaseListRetrieveResource):
             if query_params.get(param):
                 query_filters &= filter_params_map[param]
         cluster_queryset = Cluster.objects.filter(query_filters)
+        # 部署时间表头排序
+        if query_params.get("ordering"):
+            cluster_queryset = cluster_queryset.order_by(query_params.get("ordering"))
 
-        # 定义内置的过滤函数map，默认过滤函数接收这四个参数：
-        # query_params, cluster_queryset, proxy_queryset, storage_queryset
-        def filter_ip_func(_query_params, _cluster_queryset, _proxy_queryset, _storage_queryset):
-            filter_ip = query_params.get("ip").split(",")
-            _proxy_filter_ip_queryset = _proxy_queryset.filter(machine__ip__in=filter_ip)
-            _storage_filter_ip_queryset = _storage_queryset.filter(machine__ip__in=filter_ip)
+        # 从访问入口
+        def filter_cluster_by_slave_domain(_query_params, _cluster_queryset, *args):
+            slave_domain = query_params.get("slave_domain")
+            cluster_queryset = _cluster_queryset.filter(
+                clusterentry__entry=slave_domain, clusterentry__cluster_entry_type=ClusterEntryType.DNS
+            ).distinct()
+
+            return cluster_queryset
+
+        def filter_inst_queryset(_cluster_queryset, _proxy_queryset, _storage_queryset, _filters):
+            # 注意这里用新的变量获取过滤后的queryset，不要用原queryset过滤，会影响后续集群关联实例的获取
+            _proxy_filter_queryset = _proxy_queryset.filter(_filters)
+            _storage_filter_queryset = _storage_queryset.filter(_filters)
             # 这里如果不用distinct，会查询出重复记录。TODO: 排查查询重复记录的原因
             _cluster_queryset = _cluster_queryset.filter(
-                Q(proxyinstance__in=_proxy_filter_ip_queryset) | Q(storageinstance__in=_storage_filter_ip_queryset)
+                Q(proxyinstance__in=_proxy_filter_queryset) | Q(storageinstance__in=_storage_filter_queryset)
             ).distinct()
             return _cluster_queryset
 
-        filter_func_map = filter_func_map or {}
-        filter_func_map.update(ip=filter_ip_func)
+        # ip筛选
+        def filter_ip_func(_query_params, _cluster_queryset, _proxy_queryset, _storage_queryset):
+            """实例过滤ip"""
+            filter_ip = Q(machine__ip__in=_query_params.get("ip").split(","))
+            _cluster_queryset = filter_inst_queryset(_cluster_queryset, _proxy_queryset, _storage_queryset, filter_ip)
+            return _cluster_queryset
 
+        # 实例筛选
+        def filter_instance_func(_query_params, _cluster_queryset, _proxy_queryset, _storage_queryset):
+            """实例过滤ip:port"""
+            insts = _query_params.get("instance").split(",")
+            filter_inst = reduce(
+                operator.or_, [Q(machine__ip=inst.split(":")[0], port=inst.split(":")[1]) for inst in insts]
+            )
+            _cluster_queryset = filter_inst_queryset(
+                _cluster_queryset, _proxy_queryset, _storage_queryset, filter_inst
+            )
+            return _cluster_queryset
+
+        filter_func_map = filter_func_map or {}
+        filter_func_map = {
+            "ip": filter_ip_func,
+            "instance": filter_instance_func,
+            "slave_domain": filter_cluster_by_slave_domain,
+            **filter_func_map,
+        }
         # 通过基础过滤函数进行cluster过滤
         for params in filter_func_map:
             if params in query_params:

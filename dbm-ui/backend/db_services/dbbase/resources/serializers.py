@@ -20,16 +20,21 @@ class ListResourceSLZ(serializers.Serializer):
     id = serializers.IntegerField(required=False)
     name = serializers.CharField(required=False)
     ip = serializers.CharField(required=False)
+    instance = serializers.CharField(required=False)
     domain = serializers.CharField(required=False)
     creator = serializers.CharField(required=False)
     version = serializers.CharField(required=False)
     region = serializers.CharField(required=False)
     cluster_ids = serializers.ListField(child=serializers.IntegerField(), required=False, allow_empty=True)
     exact_domain = serializers.CharField(help_text=_("精确域名查询"), required=False)
+    ordering = serializers.CharField(required=False, help_text=_("排序字段,非必填"))
+    status = serializers.CharField(required=False, help_text=_("状态"))
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
     db_module_id = serializers.IntegerField(required=False)
+    master_domain = serializers.CharField(required=False, help_text=_("主访问入口"))
+    slave_domain = serializers.CharField(required=False, help_text=_("从访问入口"))
 
 
 class ListMongoDBResourceSLZ(ListResourceSLZ):

@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 from django.db.models import F, Q, Value
 from django.forms import model_to_dict
@@ -23,6 +23,7 @@ from backend.db_meta.models import Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
+from backend.db_services.dbbase.resources.query import ResourceList
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.ticket.constants import TicketType
 
@@ -47,6 +48,26 @@ class ListRetrieveResource(query.ListRetrieveResource):
         {"name": _("创建人"), "key": "creator"},
         {"name": _("创建时间"), "key": "create_at"},
     ]
+
+    @classmethod
+    def _list_clusters(
+        cls,
+        bk_biz_id: int,
+        query_params: Dict,
+        limit: int,
+        offset: int,
+        filter_params_map: Dict[str, Q] = None,
+        filter_func_map: Dict[str, Callable] = None,
+        **kwargs,
+    ) -> ResourceList:
+        """查询集群信息"""
+        filter_params_map = {
+            # 主访问入口
+            "master_domain": Q(immute_domain=query_params.get("master_domain"))
+        }
+        return super()._list_clusters(
+            bk_biz_id, query_params, limit, offset, filter_params_map, filter_func_map, **kwargs
+        )
 
     @classmethod
     def _to_cluster_representation(

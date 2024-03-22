@@ -8,7 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any, Dict, List
+import operator
+from functools import reduce
+from typing import Any, Callable, Dict, List
 
 from django.db.models import F, Q
 from django.utils.translation import ugettext_lazy as _
@@ -19,6 +21,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
+from backend.db_services.dbbase.resources.query import ResourceList
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 
 
@@ -41,6 +44,26 @@ class ListRetrieveResource(query.ListRetrieveResource):
     ]
 
     @classmethod
+    def _list_clusters(
+        cls,
+        bk_biz_id: int,
+        query_params: Dict,
+        limit: int,
+        offset: int,
+        filter_params_map: Dict[str, Q] = None,
+        filter_func_map: Dict[str, Callable] = None,
+        **kwargs,
+    ) -> ResourceList:
+        """查询集群信息"""
+        filter_params_map = {
+            # 主访问入口
+            "master_domain": Q(immute_domain=query_params.get("master_domain"))
+        }
+        return super()._list_clusters(
+            bk_biz_id, query_params, limit, offset, filter_params_map, filter_func_map, **kwargs
+        )
+
+    @classmethod
     def _list_instances(
         cls,
         bk_biz_id: int,
@@ -50,8 +73,18 @@ class ListRetrieveResource(query.ListRetrieveResource):
         filter_params_map: Dict[str, Q] = None,
         **kwargs,
     ) -> query.ResourceList:
+        def join_instance_by_q(instances: str) -> Q:
+            insts = instances.split(",")
+            filter_inst = reduce(
+                operator.or_, [Q(machine__ip=inst.split(":")[0], port=inst.split(":")[1]) for inst in insts]
+            )
+            return filter_inst
+
         filter_params_map = filter_params_map or {}
         filter_params_map.update(role_exclude=(~Q(role=query_params.get("role_exclude"))))
+        if query_params.get("instance"):
+            filter_params_map.update({"instance": join_instance_by_q(query_params.get("instance"))})
+
         return super()._list_instances(bk_biz_id, query_params, limit, offset, filter_params_map)
 
     @classmethod

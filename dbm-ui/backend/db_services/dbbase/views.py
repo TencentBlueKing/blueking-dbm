@@ -9,8 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Set, Union
 
+from django.db.models import Q
 from django.utils.translation import ugettext as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -19,7 +20,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
 from backend.db_services.dbbase.cluster.serializers import CheckClusterDbsResponseSerializer, CheckClusterDbsSerializer
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
@@ -34,7 +35,10 @@ from backend.db_services.dbbase.serializers import (
     IsClusterDuplicatedSerializer,
     QueryAllTypeClusterResponseSerializer,
     QueryAllTypeClusterSerializer,
+    QueryBizClusterAttrsResponseSerializer,
+    QueryBizClusterAttrsSerializer,
 )
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
 SWAGGER_TAG = _("集群通用接口")
 
@@ -86,6 +90,57 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         data = self.params_validate(self.get_serializer_class())
         __, cluster_infos = ListRetrieveResource.common_query_cluster(**data)
         return Response(cluster_infos)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询业务下集群的属性字段"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryBizClusterAttrsSerializer(),
+        responses={status.HTTP_200_OK: QueryBizClusterAttrsResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryBizClusterAttrsSerializer)
+    def query_biz_cluster_attrs(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        clusters = Cluster.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type=data["cluster_type"])
+        # 聚合每个属性字段
+        cluster_attrs: Dict[str, Union[List, Set]] = defaultdict(list)
+        existing_values: Dict[str, Set[str]] = defaultdict(set)
+        if data["cluster_attrs"]:
+            for attr in clusters.values(*data["cluster_attrs"]):
+                for key, value in attr.items():
+                    # bk_cloud_id有等于0的情况以及region字段有空字符串情况
+                    if value != "" and value not in existing_values[key]:
+                        existing_values[key].add(value)
+                        cluster_attrs[key].append({"value": value, "text": value})
+
+        # 如果需要查询模块信息，则需要同时提供db_module_id/db_module_name
+        if "db_module_id" in cluster_attrs:
+            db_modules = DBModule.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type=data["cluster_type"])
+            db_module_names_map = {module.db_module_id: module.db_module_name for module in db_modules}
+            cluster_attrs["db_module_id"] = [
+                {"value": module, "text": db_module_names_map.get(module)}
+                for module in existing_values["db_module_id"]
+            ]
+        # 如果需要查询管控区域信息
+        if "bk_cloud_id" in cluster_attrs:
+            cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+            cluster_attrs["bk_cloud_id"] = [
+                {"value": bk_cloud_id, "text": cloud_info.get(str(bk_cloud_id), {}).get("bk_cloud_name", "")}
+                for bk_cloud_id in existing_values["bk_cloud_id"]
+            ]
+
+        # 实例的部署角色
+        if "role" in data["instances_attrs"]:
+            query_filters = Q(bk_biz_id=data["bk_biz_id"], cluster_type=data["cluster_type"])
+            # 获取storage实例的查询集
+            storage_roles = StorageInstance.objects.filter(query_filters).values_list("instance_role", flat=True)
+            # 获取proxy实例的查询集
+            proxy_roles = ProxyInstance.objects.filter(query_filters).values_list("access_layer", flat=True)
+            unique_roles = set(storage_roles) | (set(proxy_roles))
+            roles_dicts = [{"name": role, "values": role} for role in unique_roles]
+            cluster_attrs["role"] = roles_dicts
+
+        return Response(cluster_attrs)
 
     @common_swagger_auto_schema(
         operation_summary=_("根据过滤条件查询集群详细信息"),

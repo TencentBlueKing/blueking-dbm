@@ -69,6 +69,7 @@ class CommonQueryClusterResponseSerializer(serializers.Serializer):
 class ClusterFilterSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     exact_domain = serializers.CharField(help_text=_("域名精确查询"), required=False)
+
     # 后续有其他过滤条件可以再加
 
     def validate(self, attrs):
@@ -76,3 +77,20 @@ class ClusterFilterSerializer(serializers.Serializer):
         filters &= Q(immute_domain=attrs["exact_domain"]) if attrs.get("exact_domain") else Q()
         attrs["filters"] = filters
         return attrs
+
+
+class QueryBizClusterAttrsSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    cluster_attrs = serializers.CharField(help_text=_("查询集群属性字段(逗号分隔)"), default="")
+    instances_attrs = serializers.CharField(help_text=_("查询实例属性字段(逗号分隔)"), default="")
+
+    def validate(self, attrs):
+        attrs["cluster_attrs"] = attrs["cluster_attrs"].split(",") if attrs["cluster_attrs"] else []
+        attrs["instances_attrs"] = attrs["instances_attrs"].split(",") if attrs["instances_attrs"] else []
+        return attrs
+
+
+class QueryBizClusterAttrsResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": {"id": [1, 2, 3], "region": ["sz", "sh"]}}
