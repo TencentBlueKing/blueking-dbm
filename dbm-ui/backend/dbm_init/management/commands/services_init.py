@@ -21,7 +21,17 @@ class Command(BaseCommand):
         parser.add_argument(
             "srv_type",
             type=str,
-            choices=["all", "itsm", "bklog", "bkcc", "bkmonitor_alarm", "bkmonitor_channel", "bkjob", "ssl"],
+            choices=[
+                "all",
+                "itsm",
+                "bklog",
+                "bkcc",
+                "bkmonitor_alarm",
+                "bkmonitor_channel",
+                "bkjob",
+                "ssl",
+                "register_application",
+            ],
             help="all: initialize all services, "
             "itsm: initialize itsm service, "
             "bklog: initialize bk-log services"
@@ -29,7 +39,8 @@ class Command(BaseCommand):
             "bkjob: initialize bk-job services"
             "ssl: create and upload ssl files to bkrepo"
             "bkmonitor_channel: initialize bk-monitor report services"
-            "bkmonitor_alarm: initialize bk-bkmonitor alarm services",
+            "bkmonitor_alarm: initialize bk-bkmonitor alarm services"
+            "register_application: register applications into bk_notice",
         )
 
     def handle(self, *args, **options):
@@ -55,3 +66,6 @@ class Command(BaseCommand):
 
         if srv_type == "all" or srv_type == "ssl":
             Services.auto_create_ssl_service()
+
+        if srv_type == "all" or srv_type == "register_application":
+            Services.auto_register_application()

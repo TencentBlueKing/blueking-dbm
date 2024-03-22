@@ -74,6 +74,7 @@ dbm:
     mediumEnabled: true
     bkmonitorEnabled: true
     sslEnabled: true
+    bknoticeEnabled: true
 
   image:
     registry: "mirrors.tencent.com"

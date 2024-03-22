@@ -14,6 +14,7 @@ import logging
 import os
 import subprocess
 
+from bk_notice_sdk.views import api_call
 from django.conf import settings
 from django.utils import timezone
 
@@ -482,3 +483,17 @@ class Services:
             access_params={"base_url": settings.BKREPO_ENDPOINT_URL},
         )
         logger.info("auto_create_bkjob_service success")
+
+    @classmethod
+    def auto_register_application(cls):
+        """初始化注册 dbm 到通知中心"""
+        try:
+            response = api_call(
+                api_method="register_application", success_message="注册平台成功", error_message="注册平台异常", success_code=201
+            )
+            if response.get("result") is True:
+                logger.info("dbm成功注册平台到通知中心")
+            else:
+                logger.info("dbm注册平台失败:" + response["message"])
+        except Exception as e:
+            logger.info("dbm注册平台异常: %s" % str(e))
