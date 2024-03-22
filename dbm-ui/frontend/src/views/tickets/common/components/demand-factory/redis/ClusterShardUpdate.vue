@@ -55,9 +55,53 @@
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisClusterShardUpdateDetails, TicketDetails } from '@services/types/ticket';
+  import type {  TicketDetails } from '@services/types/ticket';
 
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
+
+  import type {
+    DetailClusters,
+    DetailSpecs,
+  } from '../common/types'
+
+  // redis 集群分片变更
+  export interface RedisClusterShardUpdateDetails {
+    clusters: DetailClusters;
+    data_check_repair_setting: {
+      /**
+       * type值
+       * - data_check_and_repair: 数据校验并修复
+       * - data_check_only: 仅进行数据校验，不进行修复
+       * - no_check_no_repair: 不校验不修复
+       */
+      type: 'data_check_and_repair' | 'data_check_only' | 'no_check_no_repair';
+      execution_frequency: '';
+    };
+    ip_source: 'resource_pool';
+    infos: {
+      src_cluster: number;
+      current_shard_num: number;
+      current_spec_id: string;
+      cluster_shard_num: number;
+      db_version: string;
+      online_switch_type: 'user_confirm';
+      capacity: number;
+      future_capacity: number;
+      resource_spec: {
+        proxy: {
+          spec_id: number;
+          count: number;
+          affinity: 'CROS_SUBZONE';
+        };
+        backend_group: {
+          spec_id: number;
+          count: number; // 机器组数
+          affinity: 'CROS_SUBZONE';
+        };
+      };
+    }[];
+    specs: DetailSpecs;
+  }
 
   interface Props {
     ticketDetails: TicketDetails<RedisClusterShardUpdateDetails>
@@ -75,9 +119,9 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
+
+  const { infos } = props.ticketDetails.details;
 
   const columns = [
     {

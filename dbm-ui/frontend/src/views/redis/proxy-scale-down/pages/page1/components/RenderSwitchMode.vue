@@ -36,6 +36,7 @@
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   interface Props {
+    data?: string;
     isLoading?: boolean;
   }
 
@@ -43,12 +44,15 @@
     getValue: () => Promise<string>;
   }
 
-  defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    data: OnlineSwitchType.USER_CONFIRM,
+    isLoading: false,
+  });
 
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref(OnlineSwitchType.USER_CONFIRM);
+  const localValue = ref(props.data);
 
   const selectList = [
     {

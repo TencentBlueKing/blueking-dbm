@@ -80,7 +80,7 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useTicketCloneInfo } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -120,11 +120,19 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+  const {
+    ticketType,
+    cloneData,
+    update: updateTicketCloneInfoStore,
+  } = useTicketCloneInfo();
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
+
   const selected = shallowRef({ createSlaveIdleHosts: [] } as InstanceSelectorValues<IValue>);
+
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
   const inputedIps = computed(() => tableData.value.map(item => item.ip));
 
@@ -166,6 +174,22 @@
       },
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
+
+  // 单据克隆
+  watch(() => ticketType, () => {
+    if (!ticketType) {
+      return
+    }
+
+    tableData.value = cloneData;
+    window.changeConfirm = true;
+
+    setTimeout(() => {
+      updateTicketCloneInfoStore();
+    })
+  }, {
+    immediate: true,
+  })
 
   // 检测列表是否为空
   const checkListEmpty = (list: IDataRow[]) => {

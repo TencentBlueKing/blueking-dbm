@@ -43,6 +43,7 @@
   import { encodeMult } from '@utils';
 
   interface Props {
+    data?: string;
     srcCluster: string;
     dstCluster: string;
   }
@@ -51,10 +52,12 @@
     getValue: () => Promise<string>
   }
 
-  const props = defineProps<Props>();
+  const props =  withDefaults(defineProps<Props>(), {
+    data: ''
+  });
 
   const { t } = useI18n();
-  const localValue = ref('');
+  const localValue = ref(props.data);
 
   const rules = [
     {

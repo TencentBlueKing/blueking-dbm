@@ -88,6 +88,8 @@
   import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
   import { getRedisList } from '@services/source/redis';
 
+  import { useTicketCloneInfo } from '@stores';
+
   import { ClusterTypes, LocalStorageKeys } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
@@ -110,6 +112,7 @@
   }>();
 
   const { t } = useI18n();
+  const { ticketType, cloneData, update: updateTicketCloneInfoStore } = useTicketCloneInfo();
 
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
@@ -133,6 +136,26 @@
 
   // 集群域名是否已存在表格的映射表
   let domainMemo = {} as Record<string, boolean>;
+
+  // 单据克隆
+  watch(
+    () => ticketType,
+    () => {
+      if (!ticketType) {
+        return;
+      }
+
+      tableData.value = cloneData.tableList;
+      window.changeConfirm = true;
+
+      setTimeout(() => {
+        updateTicketCloneInfoStore();
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(tableAvailable, (status) => {
     emits('change-table-available', status);
@@ -231,8 +254,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    // TODO: 使用精确查询接口替换
-    const result = await getRedisList({ domain }).finally(() => {
+    const result = await getRedisList({ exact_domain: domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length < 1) {

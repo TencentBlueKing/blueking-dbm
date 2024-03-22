@@ -76,7 +76,7 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useTicketCloneInfo } from '@stores';
 
   import { TicketTypes } from '@common/const';
 
@@ -107,6 +107,12 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+  const {
+    ticketType,
+    cloneData,
+    update: updateTicketCloneInfoStore,
+  } = useTicketCloneInfo();
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
@@ -120,6 +126,25 @@
 
   // slave <-> master
   const slaveMasterMap: Record<string, string> = {};
+
+  // 单据克隆
+  watch(() => ticketType, () => {
+    if (!ticketType) {
+      return
+    }
+
+    tableData.value = cloneData;
+
+    sortTableByCluster();
+    updateSlaveMasterMap();
+    window.changeConfirm = true;
+
+    setTimeout(() => {
+      updateTicketCloneInfoStore();
+    })
+  }, {
+    immediate: true,
+  })
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {

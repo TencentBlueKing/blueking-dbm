@@ -182,7 +182,7 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useTicketCloneInfo } from '@stores';
 
   import { LocalStorageKeys, TicketTypes } from '@common/const';
 
@@ -223,6 +223,8 @@
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+  const { ticketType, cloneData } = useTicketCloneInfo();
+
   const isSubmitting = ref(false);
   const copyType = ref(CopyModes.INTRA_BISNESS);
   const writeType = ref(WriteModes.DELETE_AND_WRITE_TO_REDIS);
@@ -245,6 +247,26 @@
       ? comMap[copyType.value as keyof typeof comMap]
       : RenderSelfbuiltToIntraBusinessTable;
   });
+
+  // 单据克隆
+  watch(
+    () => ticketType,
+    () => {
+      if (!ticketType) {
+        return;
+      }
+
+      const { copyMode, writeMode, disconnectSetting } = cloneData;
+      copyType.value = copyMode;
+      writeType.value = writeMode;
+      disconnectType.value = disconnectSetting.type;
+      remindFrequencyType.value = disconnectSetting.reminder_frequency;
+      window.changeConfirm = true;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   onMounted(() => {
     checkandRecoverDataListFromLocalStorage();

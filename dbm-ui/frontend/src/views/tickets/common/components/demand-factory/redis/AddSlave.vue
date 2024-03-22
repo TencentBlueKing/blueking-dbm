@@ -26,7 +26,34 @@
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisAddSlaveDetails, TicketDetails } from '@services/types/ticket';
+  import type { TicketDetails } from '@services/types/ticket';
+
+  import type {
+    DetailClusters,
+    DetailSpecs,
+  } from '../common/types'
+
+  // redis 新建从库
+  export interface RedisAddSlaveDetails {
+    clusters: DetailClusters;
+    ip_source: 'resource_pool';
+    infos: {
+      cluster_id: number;
+      bk_cloud_id: number;
+      pairs: {
+        redis_master: {
+          ip: string;
+          bk_cloud_id: number;
+          bk_host_id: number;
+        };
+        redis_slave: {
+          spec_id: number;
+          count: number;
+        };
+      }[];
+    }[];
+    specs: DetailSpecs;
+  }
 
   interface Props {
     ticketDetails: TicketDetails<RedisAddSlaveDetails>
@@ -47,9 +74,10 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
+
+  const { infos } = props.ticketDetails.details;
+
   const columns = [
     {
       label: t('目标主库主机'),

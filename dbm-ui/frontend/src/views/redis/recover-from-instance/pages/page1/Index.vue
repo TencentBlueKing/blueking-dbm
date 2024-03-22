@@ -87,7 +87,7 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useTicketCloneInfo } from '@stores';
 
   import { ClusterTypes, LocalStorageKeys, TicketTypes } from '@common/const';
 
@@ -103,13 +103,16 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+  const { ticketType, cloneData, update: updateTicketCloneInfoStore } = useTicketCloneInfo();
+
   const rowRefs = ref();
   const isSubmitting = ref(false);
   const writeType = ref(WriteModes.DELETE_AND_WRITE_TO_REDIS);
-
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
+
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisRollbackModel> }>({ [ClusterTypes.REDIS]: [] });
+
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.srcCluster)).length);
   const inputedClusters = computed(() => tableData.value.map((item) => item.srcCluster));
 
@@ -166,6 +169,29 @@
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
+
+  // 单据克隆
+  watch(
+    () => ticketType,
+    () => {
+      if (!ticketType) {
+        return;
+      }
+
+      const { tableList, writeMode } = cloneData;
+
+      tableData.value = tableList;
+      writeType.value = writeMode;
+      window.changeConfirm = true;
+
+      setTimeout(() => {
+        updateTicketCloneInfoStore();
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const recoverDataListFromLocalStorage = () => {
     const r = localStorage.getItem(LocalStorageKeys.REDIS_ROLLBACK_LIST);

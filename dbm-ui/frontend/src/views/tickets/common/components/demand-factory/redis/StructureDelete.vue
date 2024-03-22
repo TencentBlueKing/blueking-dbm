@@ -20,7 +20,16 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { RedisStructureDeleteDetails, TicketDetails } from '@services/types/ticket';
+  import type { TicketDetails } from '@services/types/ticket';
+
+  // redis 构造销毁
+  export interface RedisStructureDeleteDetails {
+    infos: {
+      related_rollback_bill_id: number;
+      prod_cluster: string;
+      bk_cloud_id: number;
+    }[];
+  }
 
   interface Props {
     ticketDetails: TicketDetails<RedisStructureDeleteDetails>;
