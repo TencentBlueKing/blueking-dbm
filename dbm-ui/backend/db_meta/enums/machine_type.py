@@ -49,5 +49,9 @@ class MachineType(str, StructuredEnum):
 
     RIAK = EnumField("riak", _("riak"))
 
+    DORIS_BACKEND = EnumField("doris_backend", _("doris_backend"))
+    DORIS_FOLLOWER = EnumField("doris_follower", _("doris_follower"))
+    DORIS_OBSERVER = EnumField("doris_observer", _("doris_observer"))
+
     SQLSERVER_SINGLE = EnumField("sqlserver_single", _("sqlserver_single"))
     SQLSERVER_HA = EnumField("sqlserver_ha", _("sqlserver_ha"))

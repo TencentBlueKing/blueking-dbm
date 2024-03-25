@@ -52,6 +52,11 @@ class InstanceRole(str, StructuredEnum):
     PULSAR_ZOOKEEPER = EnumField("pulsar_zookeeper", _("pulsar_zookeeper"))
     PULSAR_BROKER = EnumField("pulsar_broker", _("pulsar_broker"))
 
+    DORIS_BACKEND_HOT = EnumField("doris_backend_hot", _("doris_backend_hot"))
+    DORIS_BACKEND_COLD = EnumField("doris_backend_cold", _("doris_backend_cold"))
+    DORIS_FOLLOWER = EnumField("doris_follower", _("doris_follower"))
+    DORIS_OBSERVER = EnumField("doris_observer", _("doris_observer"))
+
     MONGO_M1 = EnumField("mongo_m1", _("mongo_m1"))
     MONGO_M2 = EnumField("mongo_m2", _("mongo_m2"))
     MONGO_M3 = EnumField("mongo_m3", _("mongo_m3"))

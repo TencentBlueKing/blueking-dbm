@@ -176,6 +176,7 @@ class NameSpaceEnum(str, StructuredEnum):
     TenDBCluster = EnumField("tendbcluster", _("tendbcluster"))
     Riak = EnumField("riak", _("Riak"))
     MongoDBCommon = EnumField("mongodbcommon", _("mongodbcommon"))
+    Doris = EnumField("doris", _("Doris"))
 
 
 class ConfigTypeEnum(str, StructuredEnum):
@@ -255,6 +256,7 @@ class MediumEnum(str, StructuredEnum):
     TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper实例"))
     Sqlserver = EnumField("sqlserver", _("sqlserver实例"))
     MongoDB = EnumField("mongodb", _("mongodb"))
+    Doris = EnumField("doris", _("doris"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -324,6 +326,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper"))
     Sqlserver = EnumField("sqlserver", _("sqlserer"))
     Sqlserver_check = EnumField("check", _("sqlserer_check"))
+    Doris = EnumField("doris", _("doris"))
 
 
 class DBActuatorActionEnum(str, StructuredEnum):
@@ -569,6 +572,21 @@ class SqlserverActuatorActionEnum(str, StructuredEnum):
     MoveBackupFile = EnumField("MoveBackupFile", _("判断备份文件是否存在，存在则移动"))
 
 
+class DorisActuatorActionEnum(str, StructuredEnum):
+    Init = EnumField("init", _("init"))
+    DecompressPkg = EnumField("decompress_pkg", _("decompress_pkg"))
+    InstallSupervisor = EnumField("install_supervisor", _("install_supervisor"))
+    InstallDoris = EnumField("install_doris", _("install_doris"))
+    RenderConfig = EnumField("render_config", _("render_config"))
+    InitGrant = EnumField("init_grant", _("init_grant"))
+    StartProcess = EnumField("start_process", _("start_process"))
+    StartFeByHelper = EnumField("start_fe_by_helper", _("start_fe_by_helper"))
+    StopProcess = EnumField("stop_process", _("stop_process"))
+    RestartProcess = EnumField("restart_process", _("restart_process"))
+    CleanData = EnumField("clean_data", _("clean_data"))
+    UpdateMetadata = EnumField("update_metadata", _("update_metadata"))
+
+
 class RiakModuleId(int, StructuredEnum):
     """
     Riak模块id
@@ -634,6 +652,7 @@ class ManagerServiceType(str, StructuredEnum):
     KAFKA_MANAGER = EnumField("kafka_manager", _("kafka_manager"))
     PULSAR_MANAGER = EnumField("pulsar_manager", _("pulsar_manager"))
     HA_PROXY = EnumField("ha_proxy", _("ha_proxy"))
+    DORIS_WEB_UI = EnumField("doris_web_ui", _("doris_web_ui"))
 
 
 class ManagerDefaultPort(int, StructuredEnum):
@@ -973,6 +992,13 @@ class TBinlogDumperAddType(str, StructuredEnum):
     INCR_SYNC = EnumField("incr_sync", _("增量同步"))
 
 
+class DorisRoleEnum(str, StructuredEnum):
+    HOT = EnumField("hot", _("hot"))
+    COLD = EnumField("cold", _("cold"))
+    FOLLOWER = EnumField("follower", _("follower"))
+    OBSERVER = EnumField("observer", _("observer"))
+
+
 # 定义根据不同的MachineType获取对应的PrivRole
 MachinePrivRoleMap = {
     MachineType.REMOTE: PrivRole.MYSQL.value,
@@ -1015,6 +1041,7 @@ class MySQLPrivComponent(str, StructuredEnum):
     INFLUXDB_FAKE_USER = EnumField("influxdb_user", _("influxdb_user"))
     HDFS_FAKE_USER = EnumField("hdfs_user", _("hdfs_user"))
     PULSAR_FAKE_USER = EnumField("pulsar_user", _("pulsar_user"))
+    DORIS_FAKE_USER = EnumField("doris_user", _("doris_user"))
 
 
 class RequestResultCode(int, StructuredEnum):

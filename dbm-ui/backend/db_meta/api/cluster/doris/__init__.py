@@ -8,25 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from .create import create
+from .destroy import destroy
+from .disable import disable
+from .enable import enable
+from .scale_up import scale_up
 
-from . import (
-    doris,
-    es,
-    hdfs,
-    influxdb,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    riak,
-    sqlserverha,
-    sqlserversingle,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-)
-from .apis import domain_exists, query_instances
+# from .shrink import shrink

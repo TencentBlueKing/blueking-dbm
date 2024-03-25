@@ -82,6 +82,11 @@ INSTANCE_MONITOR_PLUGINS = {
         MachineType.SQLSERVER_SINGLE: {"name": "sqlserver", "plugin_id": "dbm_mssql_exporter", "func_name": "mssql"},
         MachineType.SQLSERVER_HA: {"name": "sqlserver", "plugin_id": "dbm_mssql_exporter", "func_name": "mssql"},
     },
+    DBType.Doris: {
+        MachineType.DORIS_OBSERVER: {"name": "doris", "plugin_id": "dbm_doris_exporter", "func_name": "java"},
+        MachineType.DORIS_FOLLOWER: {"name": "doris", "plugin_id": "dbm_doris_exporter", "func_name": "java"},
+        MachineType.DORIS_BACKEND: {"name": "doris", "plugin_id": "dbm_doris_exporter", "func_name": "doris"},
+    },
 }
 
 SET_NAME_TEMPLATE = "db.{db_type}.{monitor_plugin_name}"
