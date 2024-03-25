@@ -72,7 +72,6 @@
   import type { TableColumnRender } from '@/types/bkui-vue';
 
   const route = useRoute();
-  const router = useRouter();
   const { t } = useI18n();
 
   /**
@@ -142,7 +141,10 @@
       showOverflowTooltip: false,
       render: ({ cell, data }: TableColumnRender) => (
           <div class="text-overflow" v-overflow-tips>
-            <router-link
+            <auth-router-link
+              action-id="flow_detail"
+              resource={data.root_id}
+              permission={data.permission.flow_detail}
               to={{
                 name: 'taskHistoryDetail',
                 params: {
@@ -153,7 +155,7 @@
                 },
               }}>
               { cell }
-            </router-link>
+            </auth-router-link>
           </div>
         ),
     },
@@ -185,13 +187,19 @@
     {
       label: t('关联单据'),
       field: 'uid',
-      render: ({ cell }: TableColumnRender) => (
-          <bk-button
-            text
-            theme="primary"
-            onClick={() => handleToTicket(cell)}>
-            { cell }
-          </bk-button>
+      render: ({ data }: { data: TaskFlowModel }) => (
+          <auth-router-link
+            action-id="ticket_view"
+            resource={data.uid}
+            to={{
+              name: 'SelfServiceMyTickets',
+              query: {
+                id: data.uid,
+              }
+            }}
+            target="_blank">
+            { data.uid }
+          </auth-router-link>
         ),
     },
     {
@@ -216,6 +224,9 @@
       render: ({ data }: { data: TaskFlowModel }) => (
         <div class="table-operations">
           <router-link
+            action-id="flow_detail"
+            resource={data.root_id}
+            permission={data.permission.flow_detail}
             to={{
               name: 'taskHistoryDetail',
               params: {
@@ -300,20 +311,6 @@
     state.filter.searchValues = [];
     state.filter.daterange = ['', ''];
     fetchTableData();
-  };
-
-
-  /**
-   * 跳转到关联单据
-   */
-  const handleToTicket = (id: string) => {
-    const url = router.resolve({
-      name: 'SelfServiceMyTickets',
-      query: {
-        id,
-      },
-    });
-    window.open(url.href, '_blank');
   };
 
 

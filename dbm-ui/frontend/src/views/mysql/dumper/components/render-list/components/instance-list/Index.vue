@@ -87,14 +87,14 @@
       </div>
     </div>
     <BkAlert
-      v-if="tableDataCount === 0 && runningTickets.length > 0"
+      v-if="tableDataCount === 0 && runningTicketList.length > 0"
       style="margin-bottom: 16px"
       theme="warning">
       <template #title>
         <div>
-          {{ t('已有n个订阅单据正在进行中', { n: data?.running_tickets?.length ?? 0 }) }}
+          {{ t('已有n个订阅单据正在进行中', { n: runningTicketList.length }) }}
           <BkButton
-            v-for="item in data?.running_tickets"
+            v-for="item in runningTicketList"
             :key="item"
             class="mr-8"
             text
@@ -139,8 +139,9 @@
 
   import DumperInstanceModel from '@services/model/dumper/dumper';
   import {
+    getRunningTaskList,
     listDumperConfig,
-    listDumperInstance,
+    listDumperInstance
   } from '@services/source/dumper';
   import { createTicket } from '@services/source/ticket';
 
@@ -246,13 +247,14 @@
   const showAppendSubscribeSlider = ref(false);
   const showManualMigration = ref(false);
   const activeRow = ref<DumperInstanceModel>();
+  const runningTicketList = ref<number[]>([]);
 
   const batchSelectInstances = shallowRef<Record<number, DumperInstanceModel>>({});
 
   const selectedInstances = computed(() => Object.entries(batchSelectInstances.value));
 
   const hasSelectedInstances = computed(() => selectedInstances.value.length > 0);
-  const runningTickets = computed(() => props.data?.running_tickets ?? []);
+
   const isCN = computed(() => locale.value === 'zh-cn');
 
   const syncTypeMap = {
@@ -316,13 +318,19 @@
       minWidth: 200,
       width: 250,
       render: ({ data }: {data: DumperInstanceModel}) => (data.source_cluster ? (
-        <bk-button
-          class="source-cluster-btn"
-          text
-          theme="primary"
-          onClick={() => handleOpenClusterDetailPage(data.source_cluster!.id)}>
+        <auth-router-link
+          action-id="mysql_view"
+          resource={data.source_cluster.id}
+          permission={data.permission.mysql_view}
+          to={{
+            name: 'DatabaseTendbha',
+            query: {
+              id: data.id,
+            },
+          }}
+          target="_blank">
           {data.source_cluster.immute_domain}:{data.source_cluster.master_port}
-        </bk-button>) : '--'
+        </auth-router-link>) : '--'
       ),
     },
     {
@@ -363,14 +371,17 @@
             data={data}
             disabled={!data.isOperating}>
             <span>
-              <bk-button
-              text
-              disabled={data.isOperating}
-              class='mr-8'
-              theme="primary"
-              onClick={() => handleOpenOrCloseInstance(data)}>
-                { data.isOnline ? t('禁用') : t('启用') }
-            </bk-button>
+              <auth-button
+                action-id="tbinlogdumper_enable_disable"
+                resource={data.id}
+                permission={data.permission.tbinlogdumper_enable_disable}
+                text
+                disabled={data.isOperating}
+                class='mr-8'
+                theme="primary"
+                onClick={() => handleOpenOrCloseInstance(data)}>
+                  { data.isOnline ? t('禁用') : t('启用') }
+              </auth-button>
             </span>
           </OperationBtnTip>
           {!data.isOnline && (
@@ -378,29 +389,35 @@
               data={data}
               disabled={!data.isOperating}>
               <span>
-                <bk-button
+                <auth-button
+                  action-id="tbinlogdumper_reduce_nodes"
+                  resource={data.id}
+                  permission={data.permission.tbinlogdumper_reduce_nodes}
                   text
                   disabled={data.isOperating}
                   class='mr-8'
                   theme="primary"
                   onClick={() => handleDeleteInstance(data)}>
                     { t('删除') }
-                </bk-button>
+                </auth-button>
               </span>
             </OperationBtnTip>
           )}
-          {data.need_transfer && data.source_cluster.immute_domain && (
+          {data.need_transfer && data.source_cluster && (
             <OperationBtnTip
               data={data}
               disabled={!data.isOperating}>
               <span>
-                <bk-button
+                <auth-button
+                  action-id="tbinlogdumper_switch_nodes"
+                  resource={data.id}
+                  permission={data.permission.tbinlogdumper_switch_nodes}
                   text
                   disabled={data.isOperating}
                   theme="primary"
                   onClick={() => handleOpenManualMigration(data)}>
                     { t('手动迁移') }
-                </bk-button>
+                </auth-button>
               </span>
             </OperationBtnTip>
           )}
@@ -440,6 +457,13 @@
     checked: ['instance', 'dumper_id', 'source_cluster', 'protocol_type', 'receiver', 'add_type'],
   };
 
+  const {run: fetchRunningTaskList} = useRequest(getRunningTaskList, {
+    manual: true,
+    onSuccess(result) {
+      runningTicketList.value = result
+    }
+  })
+
   const { run: runCreateTicket } = useRequest(createTicket, {
     manual: true,
     onSuccess: (data) => {
@@ -459,6 +483,12 @@
 
   watch(() => [props.data, search], () => {
     fetchTableData();
+    if (props.data){
+      fetchRunningTaskList({
+        dumper_config_id: props.data?.id
+      })
+    }
+
   }, {
     immediate: true,
   });
@@ -479,16 +509,6 @@
       return  true;
     }
     return false;
-  };
-
-  const handleOpenClusterDetailPage = (id: number) => {
-    const routerData = router.resolve({
-      name: 'DatabaseTendbha',
-      query: {
-        id,
-      },
-    });
-    window.open(routerData.href);
   };
 
   const handleGoTicket = (ticketId?: number) => {
@@ -868,18 +888,6 @@
         margin-left: 4px;
         color: @primary-color;
         cursor: pointer;
-      }
-    }
-
-    .source-cluster-btn {
-      width: auto;
-      max-width: 100%;
-      overflow: hidden;
-
-      .bk-button-text {
-        width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
     }
 

@@ -5,6 +5,7 @@ declare module 'vue' {
     AuthOption: typeof import('../components/auth-component/option.vue').default;
     AuthRouterLink: typeof import('../components/auth-component/router-link.vue').default;
     AuthSwitch: typeof import('../components/auth-component/switch.vue').default;
+    AuthTemplate: typeof import('../components/auth-component/component.tsx').default;
   }
 }
 

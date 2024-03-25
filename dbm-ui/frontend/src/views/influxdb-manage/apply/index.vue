@@ -25,6 +25,7 @@
         <BusinessItems
           v-model:app-abbr="formdata.details.db_app_abbr"
           v-model:biz-id="formdata.bk_biz_id"
+          perrmision-action-id="influxdb_apply"
           @change-biz="handleChangeBiz" />
         <GroupItem
           v-model="formdata.details.group_id"

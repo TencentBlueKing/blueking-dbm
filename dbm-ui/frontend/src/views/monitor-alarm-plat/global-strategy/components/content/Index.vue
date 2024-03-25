@@ -28,6 +28,7 @@
           class="table-box"
           :columns="columns"
           :data-source="queryMonitorPolicyList"
+          releate-url-query
           :row-class="updateRowClass"
           :settings="settings"
           @clear-search="handleClearSearch" />
@@ -50,7 +51,7 @@
     queryMonitorPolicyList,
   } from '@services/monitor';
 
-  import ApplyPermissionCatch from '@components/apply-permission/catch.vue';
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import MiniTag from '@components/mini-tag/index.vue';
 
   import { messageSuccess } from '@utils';

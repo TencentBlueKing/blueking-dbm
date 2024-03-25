@@ -21,7 +21,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderSqlExecute',
     meta: {
       navName: t('SQL变更执行'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/sql-execute/Index.vue'),
   },
@@ -30,7 +29,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderDbRename',
     meta: {
       navName: t('DB 重命名'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/db-rename/Index.vue'),
   },
@@ -39,7 +37,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderMasterSlaveSwap',
     meta: {
       navName: t('主从互切'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/master-slave-swap/Index.vue'),
   },
@@ -48,7 +45,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderMasterFailover',
     meta: {
       navName: t('主库故障切换'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/master-failover/Index.vue'),
   },
@@ -57,7 +53,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderCapacityChange',
     meta: {
       navName: t('集群容量变更'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/capacity-change/Index.vue'),
   },
@@ -66,7 +61,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'proxy-scale-up/:page?',
     meta: {
       navName: t('扩容接入层'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/proxy-scale-up/Index.vue'),
   },
@@ -75,7 +69,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'proxy-scale-down/:page?',
     meta: {
       navName: t('缩容接入层'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/proxy-scale-down/Index.vue'),
   },
@@ -84,7 +77,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'proxy-slave-apply/:page?',
     meta: {
       navName: t('部署只读接入层'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/proxy-slave-apply/Index.vue'),
   },
@@ -93,7 +85,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderAddMnt',
     meta: {
       navName: t('添加运维节点'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/add-mnt/Index.vue'),
   },
@@ -102,7 +93,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderDbTableBackup',
     meta: {
       navName: t('库表备份'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/db-table-backup/Index.vue'),
   },
@@ -111,7 +101,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderDbBackup',
     meta: {
       navName: t('全库备份'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/db-backup/Index.vue'),
   },
@@ -120,7 +109,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderFlashback',
     meta: {
       navName: t('闪回'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/flashback/Index.vue'),
   },
@@ -129,7 +117,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderRollback',
     meta: {
       navName: t('定点构造'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/rollback/Index.vue'),
   },
@@ -138,7 +125,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderRollbackRecord',
     meta: {
       navName: t('构造实例'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/rollback-record/Index.vue'),
   },
@@ -147,7 +133,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderDbClear',
     meta: {
       navName: t('清档'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/db-clear/Index.vue'),
   },
@@ -156,7 +141,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderChecksum',
     meta: {
       navName: t('数据校验修复'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/checksum/Index.vue'),
   },
@@ -165,7 +149,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderPrivilegeCloneClient',
     meta: {
       navName: t('客户端权限克隆'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/privilege-clone-client/Index.vue'),
   },
@@ -174,7 +157,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderPrivilegeCloneInst',
     meta: {
       navName: t('DB 实例权限克隆'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/privilege-clone-inst/Index.vue'),
   },
@@ -183,7 +165,6 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'spiderOpenareaTemplate',
     meta: {
       navName: t('开区模版'),
-      activeMenu: 'spiderToolbox',
     },
     component: () => import('@views/spider-manage/openarea-template/Index.vue'),
   },

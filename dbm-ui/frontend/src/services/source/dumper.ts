@@ -15,7 +15,7 @@ import DumperModel from '@services/model/dumper/dumper';
 
 import { useGlobalBizs } from '@stores';
 
-import http from '../http';
+import http, { type IRequestPayload } from '../http';
 import type { ListBase } from '../types/common';
 
 const { currentBizId } = useGlobalBizs();
@@ -47,8 +47,23 @@ interface DumperConfig {
 /**
  * 查询数据订阅配置列表
  */
-export function listDumperConfig(params: { db_name?: string; table_name?: string; limit?: number; offset?: number }) {
-  return http.get<ListBase<DumperConfig[]>>(`/apis/mysql/bizs/${currentBizId}/dumper_config/`, params);
+export function listDumperConfig(
+  params: { db_name?: string; table_name?: string; limit?: number; offset?: number },
+  payload = {} as IRequestPayload,
+) {
+  return http.get<
+    ListBase<
+      {
+        instance_count: number;
+        id: number;
+        name: string;
+        permission: {
+          dumper_config_destroy: boolean;
+          dumper_config_update: boolean;
+        };
+      }[]
+    >
+  >(`/apis/mysql/bizs/${currentBizId}/dumper_config/`, params, payload);
 }
 
 /**
@@ -68,8 +83,8 @@ export function verifyDuplicateName(params: { name: string }) {
 /**
  * 数据订阅配置详情
  */
-export function getDumperConfigDetail(params: { id: number }) {
-  return http.get<DumperConfig>(`/apis/mysql/bizs/${currentBizId}/dumper_config/${params.id}/`, params);
+export function getDumperConfigDetail(params: { id: number }, payload = {} as IRequestPayload) {
+  return http.get<DumperConfig>(`/apis/mysql/bizs/${currentBizId}/dumper_config/${params.id}/`, {}, payload);
 }
 
 /**
@@ -110,4 +125,9 @@ export function listDumperInstance(params: {
       ...data,
       results: data.results.map((item) => new DumperModel(item)),
     }));
+}
+
+// 查询dumper配置正在运行的任务
+export function getRunningTaskList(params: { dumper_config_id: number }) {
+  return http.get<number[]>(`/apis/mysql/bizs/${currentBizId}/dumper_config/get_running_tasks/`, params);
 }

@@ -35,28 +35,30 @@ export default class TaskFlow {
     FINISHED: 'success',
   };
 
-  root_id: string;
-  ticket_type_display: string;
-  ticket_type: TicketTypesStrings;
-  status: string;
-  uid: string;
-  created_by: string;
-  created_at: string;
   cost_time: number;
-  bk_biz_id: number;
-  bk_host_ids?: number[];
+  created_at: string;
+  created_by: string;
+  permission: {
+    flow_detail: boolean;
+  };
+  root_id: string;
+  status: string;
+  ticket_type: TicketTypesStrings;
+  ticket_type_display: string;
+  uid: string;
+  updated_at: string;
 
   constructor(payload = {} as TaskFlow) {
-    this.root_id = payload.root_id;
-    this.ticket_type_display = payload.ticket_type_display;
-    this.ticket_type = payload.ticket_type;
-    this.status = payload.status;
-    this.uid = payload.uid;
-    this.created_by = payload.created_by;
-    this.created_at = payload.created_at;
     this.cost_time = payload.cost_time;
-    this.bk_biz_id = payload.bk_biz_id;
-    this.bk_host_ids = payload.bk_host_ids || [];
+    this.created_at = payload.created_at;
+    this.created_by = payload.created_by;
+    this.permission = payload.permission;
+    this.root_id = payload.root_id;
+    this.status = payload.status;
+    this.ticket_type = payload.ticket_type;
+    this.ticket_type_display = payload.ticket_type_display;
+    this.uid = payload.uid;
+    this.updated_at = payload.updated_at;
   }
 
   get statusText() {

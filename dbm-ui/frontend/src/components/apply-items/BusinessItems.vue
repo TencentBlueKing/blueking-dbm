@@ -16,10 +16,39 @@
     :label="t('所属业务')"
     property="bk_biz_id"
     required>
-    <BusinessSelector
-      v-model="state.bizId"
-      class="item-input"
-      @change="handleChangeBizId" />
+    <AppSelect
+      :data="withFavorBizList"
+      :generate-key="(item: IAppItem) => item.bk_biz_id"
+      :generate-name="(item: IAppItem) => item.display_name"
+      style="width: 435px"
+      :value="currentBiz"
+      @change="handleAppChange">
+      <template #default="{ data }">
+        <AuthTemplate
+          :action-id="perrmisionActionId"
+          :biz-id="data.bk_biz_id"
+          :permission="data.permission.db_manage"
+          :resource="data.bk_biz_id"
+          style="width: 100%">
+          <div class="db-app-select-item">
+            <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
+            <div style="margin-left: auto">
+              <DbIcon
+                v-if="favorBizIdMap[data.bk_biz_id]"
+                class="unfavor-btn"
+                style="color: #ffb848"
+                type="star-fill"
+                @click.stop="handleUnfavor(data.bk_biz_id)" />
+              <DbIcon
+                v-else
+                class="favor-btn"
+                type="star"
+                @click.stop="handleFavor(data.bk_biz_id)" />
+            </div>
+          </div>
+        </AuthTemplate>
+      </template>
+    </AppSelect>
   </BkFormItem>
   <BkFormItem
     ref="appAbbrRef"
@@ -28,7 +57,7 @@
     required
     :rules="bkAppAbbrRuels">
     <BkInput
-      v-model="state.appAbbr"
+      v-model="appAbbr"
       v-bk-tooltips="{
         trigger: 'click',
         placement: 'top',
@@ -36,30 +65,44 @@
         content: dbAppAbbrPlaceholder,
       }"
       class="item-input"
-      :disabled="state.hasEnglishName"
+      :disabled="hasEnglishName"
       :placeholder="dbAppAbbrPlaceholder"
       @input="handleChangeAppAbbr" />
   </BkFormItem>
 </template>
 
 <script setup lang="ts">
-  import { onMounted } from 'vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
   import { getBizs } from '@services/source/cmdb';
   import type { BizItem } from '@services/types';
 
+  import { useGlobalBizs, useUserProfile } from '@stores';
+
+  import { UserPersonalSettings } from '@common/const';
   import { nameRegx } from '@common/regex';
 
-  import BusinessSelector from '@components/business-selector/BusinessSelector.vue';
+  import { makeMap } from '@utils';
+
+  import AppSelect from '@blueking/app-select';
+
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
+
+  interface Props {
+    perrmisionActionId: string;
+  }
+
+  defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   interface Emits {
     (e: 'changeBiz', value: BizItem): void;
     (e: 'changeAppAbbr', value: string): void;
   }
 
-  const emits = defineEmits<Emits>();
   const bizId = defineModel<number | string>('bizId', {
     required: true,
   });
@@ -67,8 +110,17 @@
     default: '',
   });
 
-  const route = useRoute();
   const { t } = useI18n();
+
+  const route = useRoute();
+  const { bizs: bizList } = useGlobalBizs();
+  const userProfile = useUserProfile();
+
+  const currentBiz = shallowRef<IAppItem>();
+  const favorBizIdMap = shallowRef(makeMap(userProfile.profile[UserPersonalSettings.APP_FAVOR] || []));
+  const hasEnglishName = ref(false);
+
+  const withFavorBizList = computed(() => _.sortBy(bizList, (item) => favorBizIdMap.value[item.bk_biz_id]));
 
   const dbAppAbbrPlaceholder = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
 
@@ -80,22 +132,14 @@
     },
   ];
 
-  const state = reactive({
-    isLoading: false,
-    bizList: [] as BizItem[],
-    bizId: null as number | null,
-    appAbbr: '',
-    hasEnglishName: false,
-  });
   const appAbbrRef = ref();
 
   watch(
-    bizId,
-    (value) => {
-      if (typeof value === 'number' || value === null) {
-        state.bizId = value;
-      } else if (value === '') {
-        state.bizId = null;
+    route,
+    () => {
+      const currentBiz = Number(route.query.bizId);
+      if (currentBiz > 0) {
+        bizId.value = currentBiz;
       }
     },
     {
@@ -104,64 +148,48 @@
   );
 
   watch(
-    appAbbr,
-    (value) => {
-      state.appAbbr = value;
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  // 组件外部：创建业务英文名称后会回写到列表内
-  watch(
-    () => state.bizList,
+    bizId,
     () => {
-      const info = state.bizList.find((item) => state.bizId === item.bk_biz_id);
-      state.hasEnglishName = !!info?.english_name;
+      currentBiz.value = _.find(bizList, (item) => item.bk_biz_id === bizId.value);
     },
     {
       immediate: true,
-      deep: true,
     },
   );
 
-  /**
-   * 获取业务列表
-   */
-  function fetchBizs() {
-    state.isLoading = true;
-    return getBizs()
-      .then((res) => {
-        state.bizList = res;
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
-  }
-
-  function handleChangeBizId(value: number) {
-    bizId.value = value;
-    const info = state.bizList.find((item) => value === item.bk_biz_id);
-    if (info) {
-      state.appAbbr = info.english_name;
-      handleChangeAppAbbr(state.appAbbr);
-      info.english_name && appAbbrRef.value?.clearValidate();
-    }
-    state.hasEnglishName = !!info?.english_name;
-    emits('changeBiz', info || ({} as BizItem));
-  }
-
-  function handleChangeAppAbbr(value: string) {
+  const handleChangeAppAbbr = (value: string) => {
     appAbbr.value = value;
     emits('changeAppAbbr', value);
-  }
+  };
 
-  onMounted(() => {
-    fetchBizs().finally(() => {
-      if (route.query.bizId) {
-        handleChangeBizId(~~route.query.bizId);
-      }
+  const handleAppChange = (appInfo: IAppItem) => {
+    handleChangeAppAbbr(appInfo.english_name);
+    hasEnglishName.value = !!appInfo?.english_name;
+    appInfo.english_name && appAbbrRef.value?.clearValidate();
+
+    bizId.value = appInfo.bk_biz_id;
+    emits('changeBiz', { ...appInfo });
+  };
+
+  const handleUnfavor = (bizId: number) => {
+    const lastFavorBizIdMap = { ...favorBizIdMap.value };
+    delete lastFavorBizIdMap[bizId];
+    favorBizIdMap.value = lastFavorBizIdMap;
+
+    userProfile.updateProfile({
+      label: UserPersonalSettings.APP_FAVOR,
+      values: Object.keys(lastFavorBizIdMap),
     });
-  });
+  };
+
+  const handleFavor = (bizId: number) => {
+    favorBizIdMap.value = {
+      ...favorBizIdMap.value,
+      [bizId]: true,
+    };
+    userProfile.updateProfile({
+      label: UserPersonalSettings.APP_FAVOR,
+      values: Object.keys(favorBizIdMap.value),
+    });
+  };
 </script>

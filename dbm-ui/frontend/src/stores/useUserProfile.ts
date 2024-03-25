@@ -22,7 +22,6 @@ type ProfileItem = ServiceReturnType<typeof getProfile>['profile'][number];
 interface State {
   globalManage: boolean;
   profile: Record<string, any>;
-  isManager: boolean;
   rerourceManage: boolean;
   username: string;
 }
@@ -34,7 +33,6 @@ export const useUserProfile = defineStore('UserProfile', {
   state: (): State => ({
     globalManage: false,
     profile: {} as State['profile'],
-    isManager: false,
     rerourceManage: false,
     username: '',
   }),
@@ -44,12 +42,9 @@ export const useUserProfile = defineStore('UserProfile', {
      */
     fetchProfile() {
       return getProfile().then((result) => {
-        // this.globalManage = Boolean(result.global_manage);
-        // this.rerourceManage = Boolean(result.resource_manage);
-        this.globalManage = true;
-        this.rerourceManage = true;
+        this.globalManage = Boolean(result.global_manage);
+        this.rerourceManage = Boolean(result.resource_manage);
         this.username = result.username;
-        this.isManager = result.is_manager;
 
         this.profile = result.profile.reduce(
           (result, item) =>

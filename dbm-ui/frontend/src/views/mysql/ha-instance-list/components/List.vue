@@ -158,12 +158,15 @@
         <TextOverflowLayout>
           {{
             default: () => (
-              <bk-button
+              <auth-button
+                action-id="mysql_view"
+                resource={data.cluster_id}
+                permission={data.permission.mysql_view}
                 text
                 theme="primary"
                 onClick={() => handleToClusterDetails(data)}>
                 {cell}
-              </bk-button>
+              </auth-button>
             ),
             append: () => (
               <db-icon

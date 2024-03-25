@@ -72,7 +72,7 @@
         </BkMenuItem>
       </BkSubmenu>
       <FunController
-        :controller-id="dumperControlId"
+        controller-id="toolbox"
         module-id="mysql">
         <BkMenuItem key="DumperDataSubscription">
           <template #icon>
@@ -85,7 +85,6 @@
           </span>
         </BkMenuItem>
       </FunController>
-
       <div
         v-if="Object.keys(favorMeunMap).length > 0"
         class="split-line" />
@@ -96,7 +95,7 @@
         :favor-map="favorMeunMap"
         :toolbox-menu-config="toolboxMenuConfig" />
       <FunController
-        controller-id="toolbox"
+        :controller-id="dumperControlId"
         module-id="mysql">
         <BkMenuItem key="MySQLToolbox">
           <template #icon>

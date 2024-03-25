@@ -59,6 +59,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe'
   import {
     getTicketTypes,
     queryTicketFlowDescribe,
@@ -67,12 +68,9 @@
 
   import {
     messageSuccess,
-    utcDisplayTime,
   } from '@utils';
 
   import BatchConfigDialog from './BatchConfigDialog.vue';
-
-  export type RowData = ServiceReturnType<typeof queryTicketFlowDescribe>['results'][number];
 
   interface Props {
     activeDbType: string;
@@ -89,8 +87,6 @@
 
   const tableRef = ref();
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
-  const currentChoosedRow = ref<RowData>();
-  const currentFlow = ref('');
   const isTableLoading = ref(false);
   const isShowBatchConfigDialog = ref(false);
 
@@ -99,7 +95,7 @@
     name: string;
   }[]>([]);
 
-  const selected = shallowRef<RowData[]>([]);
+  const selected = shallowRef<TicketFlowDescribeModel[]>([]);
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selecedTicketTypes = computed(() => selected.value.map(item => item.ticket_type));
@@ -125,7 +121,7 @@
     },
   ]));
 
-  const configMap: Record<string, string> = {
+  const configMap = {
     need_itsm: t('单据审批'),
     need_manual_confirm: t('人工确认'),
   };
@@ -138,7 +134,7 @@
     {
       label: t('可增加的流程节点'),
       field: 'configs',
-      render: ({ data }: { data: RowData }) => Object.keys(data.configs).map(key => (
+      render: ({ data }: { data: TicketFlowDescribeModel }) => (Object.keys(data.configs) as (keyof TicketFlowDescribeModel['configs'])[]).map((key) => (
         <bk-pop-confirm
           title={data.configs[key] ? t('确认删除“单据审批”流程节点？') : t('确认添加“单据审批”流程节点？')}
           content={
@@ -155,7 +151,7 @@
                       !data.configs[key] && <>
                         <span
                             class={{ 'add-node': !data.configs[key] }}>
-                            {configMap[currentFlow.value]}
+                            {configMap[key]}
                           </span>
                           <span>{' -> '}</span>
                       </>
@@ -164,7 +160,7 @@
                       data.flow_desc.map((flow, index) => (
                         <>
                           <span
-                            class={{ 'delete-node': data.configs[key] && configMap[currentFlow.value] === flow }}>
+                            class={{ 'delete-node': data.configs[key] && configMap[key] === flow }}>
                             {flow}
                           </span>
                           <span>{index !== data.flow_desc.length - 1 ? ' -> ' : ''}</span>
@@ -181,14 +177,19 @@
           placement="top"
           trigger="click"
           confirm-text={data.configs[key] ? t('删除') : t('确定')}
-          onConfirm={() => handleConfirmCheck(data)}
+          onConfirm={() => handleConfirmCheck(data, key, !data.configs[key])}
         >
-          <bk-checkbox
-            v-model={data.configs[key]}
-            immediateEmitChange={false}
-            onChange={(checked: boolean) => handleCheckBoxValueChange(data, key, checked)}>
-            {configMap[key]}
-          </bk-checkbox>
+          <auth-template
+            class="flow-node-action"
+            action-id="ticket_config_set"
+            resource={data.ticket_type}
+            permission={data.permission.ticket_config_set}>
+            <bk-checkbox
+              modelValue={data.configs[key]}
+              style="pointer-events: none;">
+              {configMap[key]}
+            </bk-checkbox>
+          </auth-template>
         </bk-pop-confirm>
       )),
     },
@@ -197,7 +198,7 @@
       field: 'flow_desc',
       showOverflowTooltip: true,
       width: 520,
-      render: ({ data }: { data: RowData }) => <span>{data.flow_desc.join(' -> ')}</span>,
+      render: ({ data }: { data: TicketFlowDescribeModel }) => <span>{data.flow_desc.join(' -> ')}</span>,
     },
     {
       label: t('更新人'),
@@ -210,7 +211,7 @@
       field: 'update_at',
       showOverflowTooltip: true,
       sort: true,
-      render: ({ data }: { data: RowData }) => <span>{utcDisplayTime(data.update_at)}</span>,
+      render: ({ data }: { data: TicketFlowDescribeModel }) => data.updateAtDisplay,
     },
   ];
 
@@ -257,34 +258,24 @@
     }
   });
 
-  const handleCheckBoxValueChange = (row: RowData, key: string, checked: boolean) => {
-    currentChoosedRow.value = row;
-    currentFlow.value = key;
-    // TODO: 组件有bug, 暂时先这样处理
-    nextTick(() => {
-      Object.assign(row.configs, {
-        [key]: !checked,
+  const handleConfirmCheck = _.debounce((
+    row: TicketFlowDescribeModel,
+    key: keyof TicketFlowDescribeModel['configs'],
+    value: boolean) => {
+      runUpdateTicketFlowConfig({
+        ticket_types: [row.ticket_type],
+        configs: {
+          ...row.configs,
+          [key]: value
+        },
       });
-    });
-  };
-
-  const handleConfirmCheck = _.debounce((row: RowData) => {
-    const { configs } = _.cloneDeep(row);
-    Object.assign(configs, {
-      [currentFlow.value]: !configs[currentFlow.value],
-    });
-    const params = {
-      ticket_types: [row.ticket_type],
-      configs,
-    };
-    runUpdateTicketFlowConfig(params);
-  }, 500);
+    }, 500);
 
   const handleBatchEditSuccess = () => {
     fetchHostNodes();
   };
 
-  const handleSelection = (data: RowData, list: RowData[]) => {
+  const handleSelection = (data: TicketFlowDescribeModel, list: TicketFlowDescribeModel[]) => {
     selected.value = list;
   };
 
@@ -352,6 +343,15 @@
 </style>
 
 <style lang="less">
+  .flow-node-action{
+      display: inline-block;
+      cursor: pointer;
+
+      & ~ .flow-node-action{
+        margin-left: 24px;
+      }
+    }
+
   .ticket-flow-change-node-box {
     .item-box {
       display: flex;

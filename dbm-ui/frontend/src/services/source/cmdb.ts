@@ -89,6 +89,9 @@ export function getModules(params: { bk_biz_id: number; cluster_type: string }) 
       bk_biz_id: number;
       db_module_id: number;
       name: string;
+      permission: {
+        dbconfig_view: boolean;
+      };
     }[]
   >(`${path}/${params.bk_biz_id}/list_modules/`, params);
 }

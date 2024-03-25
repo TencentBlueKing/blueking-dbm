@@ -24,6 +24,7 @@
           <BusinessItems
             v-model:app-abbr="formData.details.db_app_abbr"
             v-model:biz-id="formData.bk_biz_id"
+            perrmision-action-id="mongodb_apply"
             @change-biz="handleChangeBiz" />
           <CloudItem
             v-model="formData.details.bk_cloud_id"
@@ -63,7 +64,7 @@
               :max="28999"
               :min="27000"
               show-clear-only-hover
-              style="width: 185px;"
+              style="width: 185px"
               type="number" />
             <span class="input-desc">{{ t('默认从n开始分配', [formData.details.start_port]) }}</span>
           </BkFormItem>
@@ -80,7 +81,7 @@
               :min="3"
               show-clear-only-hover
               :step="2"
-              style="width: 185px;"
+              style="width: 185px"
               type="number" />
           </BkFormItem>
           <BkFormItem
@@ -92,7 +93,7 @@
               clearable
               :min="1"
               show-clear-only-hover
-              style="width: 185px;"
+              style="width: 185px"
               type="number" />
           </BkFormItem>
           <BkFormItem
@@ -104,7 +105,7 @@
               clearable
               :min="1"
               show-clear-only-hover
-              style="width: 185px;"
+              style="width: 185px"
               type="number" />
           </BkFormItem>
           <BkFormItem
@@ -127,7 +128,7 @@
               :cloud-id="formData.details.bk_cloud_id"
               :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
               :machine-type="MachineTypes.MONGOS"
-              style="width: 314px;" />
+              style="width: 314px" />
             <span class="input-desc ml-32">
               {{ t('共需n台', [hostNumber]) }} ,
               <BkPopover
@@ -141,9 +142,9 @@
                 </BkButton>
               </BkPopover>
             </span>
-            <div style="display: none;">
+            <div style="display: none">
               <div id="calculate_rule_content">
-                <span style="font-weight: bolder;">{{ t('所需主机数量') }}</span>
+                <span style="font-weight: bolder">{{ t('所需主机数量') }}</span>
                 = ( {{ t('部署副本集数量') }} / {{ t('每台主机部署副本集数量') }} ) * {{ t('主从节点数') }}
               </div>
             </div>
@@ -157,7 +158,7 @@
               clearable
               :min="1"
               show-clear-only-hover
-              style="width: 185px;"
+              style="width: 185px"
               suffix="%"
               type="number" />
             <span class="input-desc">{{ t('预计容量nG', [estimatedCapacity]) }}</span>
@@ -167,7 +168,7 @@
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
-              style="width: 655px;"
+              style="width: 655px"
               type="textarea" />
           </BkFormItem>
         </DbCard>
@@ -398,7 +399,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/applyInstance.less";
+  @import '@styles/applyInstance.less';
 
   .apply-instance {
     :deep(.item-input) {
@@ -414,7 +415,7 @@
     .resource-pool-item {
       width: 655px;
       padding: 24px 0;
-      background-color: #F5F7FA;
+      background-color: #f5f7fa;
       border-radius: 2px;
 
       .bk-form-item {

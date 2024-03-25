@@ -15,17 +15,17 @@
   <div class="dumper-render-list">
     <div class="instances-view-header">
       <DbIcon
-        v-if="activeGroup?.id"
+        v-if="data?.id"
         class="instances-view-header-icon mr-6"
         type="folder-open" />
       <DbIcon
         v-else
         class="instances-view-header-icon mr-6"
         type="summation" />
-      <strong>{{ activeGroup?.name || t('全部实例') }}</strong>
+      <strong>{{ data?.name || t('全部实例') }}</strong>
     </div>
     <BkTab
-      v-if="activeGroup !== null"
+      v-if="data !== null"
       v-model:active="activePanel"
       type="unborder-card">
       <BkTabPanel
@@ -34,60 +34,42 @@
         :label="item.label"
         :name="item.name" />
     </BkTab>
-    <BkLoading :loading="loading">
-      <InstanceList
-        v-if="activePanel === 'instance'"
-        :data="activeGroup" />
-      <RuleList
-        v-else
-        :data="activeGroup" />
-    </BkLoading>
+    <InstanceList
+      v-if="activePanel === 'instance'"
+      :data="data" />
+    <RuleList
+      v-else
+      :data="data" />
   </div>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { getDumperConfigDetail, listDumperConfig } from '@services/source/dumper';
+  import { listDumperConfig } from '@services/source/dumper';
 
   import InstanceList from './components/instance-list/Index.vue';
   import RuleList from './components/RuleList.vue';
 
   interface Props {
-    data: DumperConfig | null;
+    data: ServiceReturnType<typeof listDumperConfig>['results'][number] | null;
   }
-
-  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number];
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
   const activePanel = ref('instance');
-  const activeGroup = ref<DumperConfig | null>(null);
 
   const panels = [
     { name: 'instance', label: t('实例列表') },
     { name: 'rule', label: t('订阅规则') },
   ];
 
-  const { loading, run: runGetDumperConfigDetail } = useRequest(getDumperConfigDetail, {
-    manual: true,
-    onSuccess: (res) => {
-      activeGroup.value = res;
-    },
-  });
-
   watch(
     () => props.data,
     () => {
-      if (props.data?.id) {
-        runGetDumperConfigDetail({ id: props.data.id });
-        return;
-      }
       activePanel.value = 'instance';
-      activeGroup.value = null;
     },
     {
       immediate: true,
