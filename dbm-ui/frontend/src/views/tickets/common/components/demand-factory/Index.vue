@@ -102,6 +102,7 @@
   import SpiderFlashback from './spider/Flashback.vue';
   import SpiderFullBackup from './spider/FullBackup.vue';
   import SpiderMasterSlaveSwitch from './spider/MasterSlaveSwitch.vue';
+  import SpiderMigrateCluster from './spider/MigrateCluster.vue';
   import SpiderMNTApply from './spider/MNTApply.vue';
   import SpiderMNTDestroy from './spider/MNTDestroy.vue';
   import SpiderNodeRebalance from './spider/NodeRebalance.vue';
@@ -111,6 +112,7 @@
   import SpiderRollback from './spider/Rollback.vue';
   import SpiderSlaveApply from './spider/SlaveApply.vue';
   import SpiderSlaveDestroy from './spider/SlaveDestroy.vue';
+  import SpiderSlaveRebuild from './spider/SlaveRebuild.vue'
   import SpiderTableBackup from './spider/TableBackup.vue';
   import SpiderTruncateDatabase from './spider/TruncateDatabase.vue';
   import SqlserverAuthrizeRules from './sqlserver/AuthorizeRules.vue';
@@ -185,6 +187,8 @@
   ];
 
   const mysqlSlaveType = [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, TicketTypes.MYSQL_ADD_SLAVE];
+
+  const spiderSlaveType = [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, TicketTypes.TENDBCLUSTER_RESTORE_SLAVE];
 
   const bigDataRebootType = [
     TicketTypes.HDFS_REBOOT,
@@ -323,7 +327,8 @@
     [TicketTypes.MONGODB_ADD_MONGOS]: MongoProxyScaleUp,
     [TicketTypes.MONGODB_TEMPORARY_DESTROY]: MongoTemporaryDestrot,
     [TicketTypes.SQLSERVER_RESET]: SqlserverClusterReset,
-    [TicketTypes.SQLSERVER_BACKUP_DBS]: SqlserverDbBackup
+    [TicketTypes.SQLSERVER_BACKUP_DBS]: SqlserverDbBackup,
+    [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: SpiderMigrateCluster,
   };
 
   // 不同集群详情组件
@@ -410,6 +415,10 @@
     // SQLServer 授权
     if (sqlserverAuthorizeRulesTypes.includes(ticketType)) {
       return SqlserverAuthrizeRules;
+    }
+    // Spider 重建从库
+    if (spiderSlaveType.includes(ticketType)) {
+      return SpiderSlaveRebuild;
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];

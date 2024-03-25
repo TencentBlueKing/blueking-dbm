@@ -93,4 +93,8 @@ export default class DbResource {
   get bkMemText() {
     return bytePretty(this.bk_mem * 1024 * 1024);
   }
+
+  get isAbnormal() {
+    return this.agent_status === 0
+  }
 }

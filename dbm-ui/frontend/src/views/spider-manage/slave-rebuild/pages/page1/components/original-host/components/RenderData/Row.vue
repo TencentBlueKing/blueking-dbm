@@ -14,21 +14,16 @@
 <template>
   <tr>
     <td style="padding: 0">
-      <RenderMaster
-        ref="masterHostRef"
-        :model-value="localMasterData"
-        @change="handleMasterHostChange" />
-    </td>
-    <td style="padding: 0">
       <RenderSlave
-        ref="slaveHostRef"
-        :master-data="localMasterData"
-        :model-value="data.slaveData" />
+        ref="slaveRef"
+        :instance="instance"
+        @input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0">
-      <RenderCluster
-        ref="clusterRef"
-        :master-data="localMasterData" />
+      <RenderText
+        :data="data.slave?.domain"
+        :is-loading="data.isLoading"
+        :placeholder="t('输入集群后自动生成')" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -36,75 +31,93 @@
       @remove="handleRemove" />
   </tr>
 </template>
+
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import { random } from '@utils';
 
-  import RenderCluster from './RenderCluster.vue';
-  import RenderMaster from './RenderMaster.vue';
   import RenderSlave from './RenderSlave.vue';
-
-  export type IHostData = {
-    bk_host_id: number;
-    bk_cloud_id: number;
-    ip: string;
-  };
 
   export interface IDataRow {
     rowKey: string;
-    masterData?: IHostData;
-    slaveData?: IHostData;
-    clusterData?: {
-      id: number;
+    isLoading: boolean;
+    slave: {
+      bkCloudId: number;
+      bkHostId: number;
+      ip: string;
+      port: number;
+      instanceAddress: string;
+      clusterId: number;
       domain: string;
     };
   }
 
   // 创建表格数据
-  export const createRowData = (data = {} as Partial<IDataRow>) => ({
+  export const createRowData = () => ({
     rowKey: random(),
-    masterData: data.masterData,
-    slaveData: data.slaveData,
-    clusterData: data.clusterData,
+    isLoading: false,
+    slave: {
+      bkCloudId: 0,
+      bkHostId: 0,
+      ip: '',
+      port: 0,
+      instanceAddress: '',
+      clusterId: 0,
+      domain: '',
+    },
   });
 </script>
+
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   interface Props {
     data: IDataRow;
     removeable: boolean;
   }
+
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'hostInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<any>;
+    getValue: () => Promise<string>;
   }
 
   const props = defineProps<Props>();
-
   const emits = defineEmits<Emits>();
 
-  const masterHostRef = ref();
-  const slaveHostRef = ref();
-  const clusterRef = ref();
+  const { t } = useI18n();
 
-  const localMasterData = ref<IHostData>();
+  const slaveRef = ref<InstanceType<typeof RenderSlave>>();
+  const localSlave = ref<IDataRow['slave']>();
+
+  const instance = computed(() => {
+    const { ip, port } = props.data.slave;
+    if (ip && port) {
+      return `${ip}:${port}`;
+    }
+    return '';
+  });
 
   watch(
     () => props.data,
     () => {
-      localMasterData.value = props.data.masterData;
+      if (props.data) {
+        localSlave.value = props.data.slave;
+      }
     },
     {
       immediate: true,
     },
   );
 
-  const handleMasterHostChange = (data?: IHostData) => {
-    localMasterData.value = data;
+  const handleInputFinish = (value: string) => {
+    emits('hostInputFinish', value);
   };
 
   const handleAppend = () => {
@@ -120,19 +133,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        masterHostRef.value.getValue(),
-        slaveHostRef.value.getValue(),
-        clusterRef.value.getValue(),
-      ]).then(([masterHostData, slaveHostData, clusterData]) => ({
-        ...clusterData,
-        switch_tuples: [
-          {
-            ...masterHostData,
-            ...slaveHostData,
-          },
-        ],
-      }));
+      return slaveRef.value!.getValue();
     },
   });
 </script>

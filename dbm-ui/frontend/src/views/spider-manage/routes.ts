@@ -168,6 +168,24 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/spider-manage/openarea-template/Index.vue'),
   },
+  {
+    path: 'master-slave-clone/:page?',
+    name: 'spiderMasterSlaveClone',
+    meta: {
+      navName: t('迁移主从'),
+      activeMenu: 'spiderToolbox',
+    },
+    component: () => import('@views/spider-manage/master-slave-clone/Index.vue'),
+  },
+  {
+    path: 'slave-rebuild/:page?',
+    name: 'spiderSlaveRebuild',
+    meta: {
+      navName: t('重建从库'),
+      activeMenu: 'spiderToolbox',
+    },
+    component: () => import('@views/spider-manage/slave-rebuild/Index.vue'),
+  },
 ];
 
 const renderRoutes: RouteRecordRaw[] = [

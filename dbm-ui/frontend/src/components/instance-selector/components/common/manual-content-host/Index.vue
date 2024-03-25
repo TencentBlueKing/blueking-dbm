@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="instance-selector-manual-input">
+  <div class="instance-selector-manual-input-host">
     <BkResizeLayout
       :border="false"
       collapsible
@@ -38,22 +38,22 @@
                 <strong>{{ errorState.format.count }}</strong>
               </I18nT>
               <DbIcon
-                v-bk-tooltips="$t('标记错误')"
+                v-bk-tooltips="t('标记错误')"
                 class="manual-input-icons"
                 type="audit"
                 @click="handleSelectionError('format')" />
             </span>
-            <span v-if="errorState.instance.show">
+            <span v-if="errorState.ip.show">
               <I18nT
-                keypath="n处IP_Port不存在"
+                keypath="n处IP不存在"
                 tag="span">
-                <strong>{{ errorState.instance.count }}</strong>
+                <strong>{{ errorState.ip.count }}</strong>
               </I18nT>
               <DbIcon
-                v-bk-tooltips="$t('标记错误')"
+                v-bk-tooltips="t('标记错误')"
                 class="manual-input-icons"
                 type="audit"
-                @click="handleSelectionError('instance')" />
+                @click="handleSelectionError('ip')" />
             </span>
           </div>
           <div class="manual-input-buttons">
@@ -65,13 +65,13 @@
               size="small"
               theme="primary"
               @click="handleParsingValues">
-              {{ $t('解析并添加') }}
+              {{ t('解析并添加') }}
             </BkButton>
             <BkButton
               class="w-88"
               size="small"
               @click="handleClear">
-              {{ $t('清空') }}
+              {{ t('清空') }}
             </BkButton>
           </div>
         </div>
@@ -95,9 +95,11 @@
 <script setup lang="ts" generic="T extends IValue">
   import { useI18n } from 'vue-i18n';
 
+  import type { ListBase } from '@services/types'
+
   import { useGlobalBizs } from '@stores';
 
-  import { ipPort, ipv4 } from '@common/regex';
+  import { ipv4 } from '@common/regex';
 
   import type { InstanceSelectorValues, IValue, PanelListType, TableSetting } from '../../../Index.vue';
 
@@ -113,11 +115,10 @@
     tableSetting: TableSetting,
     firsrColumn?: TableConfigType['firsrColumn'],
     statusFilter?: TableConfigType['statusFilter'],
-
   }
 
   interface Emits {
-    (e: 'change', value: Props['lastValues']): void
+    (e: 'change', value: InstanceSelectorValues<T>): void
   }
   const props = withDefaults(defineProps<Props>(), {
     firsrColumn: undefined,
@@ -132,7 +133,7 @@
 
   const inputState = reactive({
     values: '',
-    placeholder: t('请输入IP_Port_如_1_1_1_1_10000_多个可使用换行_空格或_分隔'),
+    placeholder: t('请输入IP_如_1_1_1_1多个可使用换行_空格或_分隔'),
     isLoading: false,
     tableData: [] as T[],
   });
@@ -143,7 +144,7 @@
       selectionEnd: 0,
       count: 0,
     },
-    instance: {
+    ip: {
       show: false,
       selectionStart: 0,
       selectionEnd: 0,
@@ -151,19 +152,19 @@
     },
   });
 
-  const handleHostChange = (values: Props['lastValues']) => {
+  const handleHostChange = (values: InstanceSelectorValues<T>) => {
     emits('change', values);
   };
 
   const handleInput = () => {
     errorState.format.show = false;
-    errorState.instance.show = false;
+    errorState.ip.show = false;
   };
 
   /**
    * 标记错误
    */
-  const handleSelectionError = (key: 'format' | 'instance') => {
+  const handleSelectionError = (key: 'format' | 'ip') => {
     const { selectionStart, selectionEnd } = errorState[key];
     const textarea = inputRef.value?.$el?.getElementsByTagName?.('textarea')?.[0];
     if (textarea) {
@@ -190,18 +191,9 @@
     // 处理格式错误
     for (let i = lines.length - 1; i >= 0; i--) {
       const value = lines[i];
-      if (props.manualConfig.checkType === 'instance') {
-        if (!ipPort.test(value)) {
-          const remove = lines.splice(i, 1);
-          newLines.push(...remove);
-        }
-      }
-
-      if (props.manualConfig.checkType === 'ip') {
-        if (!ipv4.test(value)) {
-          const remove = lines.splice(i, 1);
-          newLines.push(...remove);
-        }
+      if (!ipv4.test(value)) {
+        const remove = lines.splice(i, 1);
+        newLines.push(...remove);
       }
     }
     const count = newLines.length;
@@ -209,25 +201,26 @@
     errorState.format.selectionStart = 0;
     errorState.format.selectionEnd = newLines.join('\n').length;
 
-    // 检查 IP:Port 是否存在
+    // 检查 IP 是否存在
     inputState.isLoading = true;
     try {
       const params = {
         bizId: currentBizId,
-        instance_addresses: lines,
+        ip: lines.join(','),
       };
       // if (props.clusterId) {
       //   Object.assign(params, {
       //     cluster_ids: [props.clusterId],
       //   });
       // }
-      const res = await (props.manualConfig.checkInstances as (params: any) => Promise<any[]>)(params);
+      const res = await (props.manualConfig.checkInstances as (params: any) => Promise<ListBase<any[]>>)(params);
+      const hostList = res.results
       const legalInstances = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];
-        const infos = res[i];
+        const infos = hostList[i];
         const remove = lines.splice(i, 1);
-        const isExisted = res.find(existItem => (
+        const isExisted = hostList.find(existItem => (
           existItem[props.manualConfig.checkKey] === item
         ));
         if (!isExisted) {
@@ -237,10 +230,10 @@
         }
       }
       inputState.tableData.splice(0, inputState.tableData.length, ...legalInstances);
-      errorState.instance.count = newLines.length - count;
+      errorState.ip.count = newLines.length - count;
       const { selectionEnd } = errorState.format;
-      errorState.instance.selectionStart = selectionEnd === 0 ? 0 : selectionEnd + 1;
-      errorState.instance.selectionEnd = newLines.join('\n').length;
+      errorState.ip.selectionStart = selectionEnd === 0 ? 0 : selectionEnd + 1;
+      errorState.ip.selectionEnd = newLines.join('\n').length;
 
       // 解析完成后选中
       const lastValues = { ...props.lastValues };
@@ -254,12 +247,19 @@
         if (!isExisted) {
           lastValues[type].push({
             bk_host_id: item.bk_host_id,
-            instance_address: item.instance_address,
-            cluster_id: item.cluster_id,
-            cluster_type: item.cluster_type,
-            bk_cloud_id: item.host_info.cloud_id,
-            port: item.port,
+            bk_cloud_id: item.bk_cloud_id,
             ip: item.ip,
+            cluster_id: item.related_clusters[0].id,
+            port: 0,
+            instance_address: '',
+            cluster_type: '',
+            master_domain: item.related_clusters[0].immute_domain,
+            bk_cloud_name: item.bk_cloud_name,
+            related_instances: (item.related_instances || []).map(instanceItem => ({
+              instance: instanceItem.instance,
+              status: instanceItem.status
+            })),
+            spec_config: item.spec_config
           } as T);
         }
       }
@@ -271,7 +271,7 @@
       console.error(_);
     }
     errorState.format.show = count > 0;
-    errorState.instance.show = newLines.slice(count).length > 0;
+    errorState.ip.show = newLines.slice(count).length > 0;
     inputState.isLoading = false;
 
     // 将调整好的内容回填显示
@@ -282,12 +282,12 @@
   const handleClear = () => {
     inputState.values = '';
     errorState.format.show = false;
-    errorState.instance.show = false;
+    errorState.ip.show = false;
   };
 </script>
 
 <style lang="less">
-  .instance-selector-manual-input {
+  .instance-selector-manual-input-host {
     height: 585px;
     padding-top: 16px;
 
