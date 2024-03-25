@@ -65,6 +65,7 @@ func (gcm *GCM) Process(switchInstance dbutil.DataBaseSwitch) {
 // DoSwitchSingle gcm do instance switch
 func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 	var err error
+	log.Logger.Debugf("switch instance detail info:%#v", switchInstance)
 	switchQueueInfo := &model.HASwitchQueue{}
 
 	// 这里先将实例获取锁设为unavailable，再插入switch_queue。原因是如果先插switch_queue，如果其他gm同时更新，则会有多条
@@ -128,6 +129,11 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 			break
 		}
 		switchInstance.ReportLogs(constvar.InfoResult, "update meta info success")
+		err = switchInstance.DoFinal()
+		if err != nil {
+			log.Logger.Errorf("switch do final failed:%s", err.Error())
+			break
+		}
 	}
 	if err != nil {
 		monitor.MonitorSendSwitch(switchInstance, err.Error(), false)
