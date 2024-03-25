@@ -26,7 +26,36 @@
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisScaleUpDownDetails, TicketDetails } from '@services/types/ticket';
+  import type { TicketDetails } from '@services/types/ticket';
+
+  import type {
+    DetailClusters,
+    DetailSpecs,
+  } from '../common/types'
+
+  // redis 集群容量变更
+  export interface RedisScaleUpDownDetails {
+    clusters: DetailClusters;
+    ip_source: 'resource_pool';
+    infos: {
+      cluster_id: number;
+      bk_cloud_id: number;
+      db_version: string;
+      shard_num: number;
+      group_num: number;
+      online_switch_type: 'user_confirm' | 'no_confirm';
+      capacity: number;
+      future_capacity: number;
+      resource_spec: {
+        backend_group: {
+          spec_id: number;
+          count: number; // 机器组数
+          affinity: 'CROS_SUBZONE';
+        };
+      };
+    }[];
+    specs: DetailSpecs;
+  }
 
   interface Props {
     ticketDetails: TicketDetails<RedisScaleUpDownDetails>
@@ -52,9 +81,9 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
+
+  const { infos } = props.ticketDetails.details;
 
   const columns = [
     {

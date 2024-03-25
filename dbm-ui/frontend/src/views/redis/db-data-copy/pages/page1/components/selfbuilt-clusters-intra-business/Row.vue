@@ -28,6 +28,7 @@
     <td style="padding: 0">
       <RenderAccessCode
         ref="sccessCodeRef"
+        :data="data.password"
         :dst-cluster="targetCluster"
         :src-cluster="data.srcCluster" />
     </td>

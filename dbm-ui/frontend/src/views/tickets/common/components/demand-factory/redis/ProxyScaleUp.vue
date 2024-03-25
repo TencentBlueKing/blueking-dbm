@@ -26,7 +26,30 @@
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisProxyScaleUpDetails, TicketDetails } from '@services/types/ticket';
+  import type { TicketDetails } from '@services/types/ticket';
+
+  import type {
+    DetailClusters,
+    DetailSpecs,
+  } from '../common/types'
+
+  // redis 接入层扩容
+  export interface RedisProxyScaleUpDetails {
+    clusters: DetailClusters;
+    ip_source: 'resource_pool';
+    infos: {
+      cluster_id: number;
+      bk_cloud_id: number;
+      target_proxy_count: number;
+      resource_spec: {
+        proxy: {
+          spec_id: number;
+          count: number;
+        };
+      };
+    }[];
+    specs: DetailSpecs;
+  }
 
   interface Props {
     ticketDetails: TicketDetails<RedisProxyScaleUpDetails>
@@ -47,9 +70,9 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
+
+  const { infos } = props.ticketDetails.details;
 
   const columns = [
     {

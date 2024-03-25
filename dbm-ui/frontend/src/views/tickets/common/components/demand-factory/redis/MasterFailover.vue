@@ -18,11 +18,9 @@
       style="align-items: flex-start">
       <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
       <span class="ticket-details__item-value">
-        <BkLoading :loading="loading">
-          <DbOriginalTable
-            :columns="columns"
-            :data="tableData" />
-        </BkLoading>
+        <DbOriginalTable
+          :columns="columns"
+          :data="tableData" />
       </span>
     </div>
   </div>
@@ -40,10 +38,24 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisMasterSlaveSwitchDetails, TicketDetails } from '@services/types/ticket';
+  import type { TicketDetails } from '@services/types/ticket';
+
+  import type { DetailClusters } from '../common/types'
+
+  // redis 主从切换
+  export interface RedisMasterSlaveSwitchDetails {
+    clusters: DetailClusters;
+    force: boolean;
+    infos: {
+      cluster_id: number;
+      online_switch_type: 'user_confirm' | 'no_confirm';
+      pairs: {
+        redis_master: string;
+        redis_slave: string;
+      }[];
+    }[];
+  }
 
   interface Props {
     ticketDetails: TicketDetails<RedisMasterSlaveSwitchDetails>
@@ -56,14 +68,14 @@
     switchMode: string,
   }
 
-
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
-  const tableData = ref<RowData[]>([]);
+  const {
+    clusters,
+    infos,
+  } = props.ticketDetails.details;
 
   const columns = [
     {
@@ -89,35 +101,18 @@
     },
   ];
 
-  const { loading } = useRequest(getRedisListByBizId, {
-    defaultParams: [{
-      bk_biz_id: props.ticketDetails.bk_biz_id,
-      offset: 0,
-      limit: -1,
-    }],
-    onSuccess: async (result) => {
-      if (result.results.length < 1) {
-        return;
-      }
-      const clusterMap = result.results.reduce((obj, item) => {
-        Object.assign(obj, { [item.id]: item.master_domain });
-        return obj;
-      }, {} as Record<number, string>);
-
-      tableData.value = infos.reduce((results, item) => {
-        item.pairs.forEach((pair) => {
-          const obj = {
-            clusterName: clusterMap[item.cluster_id],
-            masterIp: pair.redis_master,
-            slaveIp: pair.redis_slave,
-            switchMode: item.online_switch_type,
-          };
-          results.push(obj);
-        });
-        return results;
-      }, [] as RowData[]);
-    },
-  });
+  const tableData = infos.reduce((results, item) => {
+    item.pairs.forEach((pair) => {
+      const obj = {
+        clusterName: clusters[item.cluster_id].immute_domain,
+        masterIp: pair.redis_master,
+        slaveIp: pair.redis_slave,
+        switchMode: item.online_switch_type,
+      };
+      results.push(obj);
+    });
+    return results;
+  }, [] as RowData[]);
 </script>
 
 <style lang="less" scoped>

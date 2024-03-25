@@ -143,6 +143,7 @@
 
   import {
     useGlobalBizs,
+    useTicketCloneInfo,
   } from '@stores';
 
   import {
@@ -201,6 +202,12 @@
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
+
+  const {
+    ticketType,
+    cloneData,
+    update: updateTicketCloneInfoStore
+  } = useTicketCloneInfo();
 
   const filterItems = [
     {
@@ -728,6 +735,40 @@
       },
     },
   ];
+
+  // 单据克隆
+  watch(() => ticketType, () => {
+    if (!ticketType) {
+      return
+    }
+
+    switch (ticketType) {
+    case TicketTypes.REDIS_KEYS_EXTRACT:
+      extractState.isShow = true;
+      extractState.data = cloneData;
+      break;
+    case TicketTypes.REDIS_KEYS_DELETE:
+      deleteKeyState.isShow = true;
+      deleteKeyState.data = cloneData;
+      break;
+    case TicketTypes.REDIS_BACKUP:
+      backupState.isShow = true;
+      backupState.data = cloneData;
+      break;
+    case TicketTypes.REDIS_PURGE:
+      purgeState.isShow = true;
+      purgeState.data = cloneData;
+      break;
+    default:
+      break;
+    }
+
+    setTimeout(() => {
+      updateTicketCloneInfoStore();
+    })
+  }, {
+    immediate: true,
+  })
 
   // 设置用户个人表头信息
   const defaultSettings = {

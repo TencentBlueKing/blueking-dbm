@@ -67,6 +67,7 @@
     <td style="padding: 0">
       <RenderSwitchMode
         ref="switchModeRef"
+        :data="data.switchMode"
         :is-loading="data.isLoading" />
     </td>
     <OperateColumn
@@ -100,9 +101,6 @@
     targetCluster: string;
     clusterId: number;
     bkCloudId: number;
-    sepcId: number;
-    targetShardNum: number;
-    targetGroupNum: number;
     shardNum?: number;
     groupNum?: number;
     currentSepc?: string;
@@ -145,9 +143,6 @@
     targetCluster: '',
     clusterId: 0,
     bkCloudId: 0,
-    sepcId: 0,
-    targetShardNum: 0,
-    targetGroupNum: 0,
   });
 </script>
 <script setup lang="ts">
@@ -181,7 +176,7 @@
   const targetCapacityRef = ref();
 
   const versionList = computed(() => {
-    if (props.versionsMap && props.data.clusterType) {
+    if (Object.keys(props.versionsMap).length > 0 && props.data.clusterType) {
       return props.versionsMap[props.data.clusterType].map((item) => ({
         value: item,
         label: item,

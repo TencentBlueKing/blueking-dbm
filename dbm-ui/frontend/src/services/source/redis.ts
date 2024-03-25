@@ -31,8 +31,9 @@ export function getRedisList(
   params: {
     limit?: number;
     offset?: number;
-    cluster_ids?: number[] | number;
+    cluster_ids?: string;
     domain?: string;
+    exact_domain?: string;
     bk_biz_id?: number;
   } = {},
 ) {

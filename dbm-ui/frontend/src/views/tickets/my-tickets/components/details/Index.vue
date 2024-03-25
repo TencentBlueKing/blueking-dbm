@@ -72,7 +72,13 @@
     data: TicketModel | null,
   }
 
+  interface Emits {
+    (e: 'updateActiveTicket', value: TicketModel): void
+  }
+
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   /**
    * 获取单据详情
@@ -82,6 +88,7 @@
     getTicketDetails({ id })
       .then((res) => {
         state.ticketData = res;
+        emits('updateActiveTicket', res);
         // 设置轮询
         if (currentScope?.active) {
           !isActive.value && ['PENDING', 'RUNNING'].includes(state.ticketData?.status) && resume();

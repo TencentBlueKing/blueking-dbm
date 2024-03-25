@@ -74,7 +74,7 @@
   import { useRequest } from 'vue-request';
 
   import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisDataCopyDetails, TicketDetails } from '@services/types/ticket';
+  import type { TicketDetails } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
@@ -86,6 +86,32 @@
     repairAndVerifyTypeList,
     writeTypeList,
   } from '@views/redis/common/const';
+
+  import type { DetailClusters } from '../common/types';
+
+  // redis 数据复制
+  export interface RedisDataCopyDetails {
+    clusters: DetailClusters;
+    dts_copy_type: 'one_app_diff_cluster' | 'diff_app_diff_cluster' | 'copy_to_other_system' | 'user_built_to_dbm';
+    write_mode: 'delete_and_write_to_redis' | 'keep_and_append_to_redis' | 'flushall_and_write_to_redis';
+    sync_disconnect_setting: {
+      type: 'auto_disconnect_after_replication' | 'keep_sync_with_reminder';
+      reminder_frequency: 'once_daily' | 'once_weekly';
+    };
+    data_check_repair_setting: {
+      type: 'data_check_and_repair' | 'data_check_only' | 'no_check_no_repair';
+      execution_frequency: 'once_after_replication' | 'once_every_three_days' | 'once_weekly';
+    };
+    infos: {
+      src_cluster: number;
+      dst_cluster: number;
+      key_white_regex: string; // 包含key
+      key_black_regex: string; // 排除key
+      src_cluster_type: 'RedisInstance' | 'RedisCluster';
+      src_cluster_password: string;
+      dst_bk_biz_id: number;
+    }[];
+  }
 
   interface Props {
     ticketDetails: TicketDetails<RedisDataCopyDetails>
@@ -129,7 +155,7 @@
       obj = {
         ...obj,
         srcClusterName: clusterMap[item.src_cluster],
-        dstClusterName: item.dst_cluster,
+        dstClusterName: `${item.dst_cluster}`,
       };
       break;
     case 'one_app_diff_cluster':
@@ -145,7 +171,7 @@
       // 自建集群至业务内
       obj = {
         ...obj,
-        srcClusterName: item.src_cluster,
+        srcClusterName: `${item.src_cluster}`,
         srcClusterType: item.src_cluster_type,
         dstClusterName: clusterMap[item.dst_cluster],
       };

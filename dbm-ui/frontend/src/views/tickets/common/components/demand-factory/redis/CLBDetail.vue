@@ -20,7 +20,33 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { RedisCLBDetails, TicketDetails } from '@services/types/ticket';
+  import type { TicketDetails } from '@services/types/ticket';
+
+  // redis CLB
+  export interface RedisCLBDetails {
+    cluster_id: number;
+    clusters: {
+      [key: string]: {
+        alias: string;
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        cluster_type: string;
+        cluster_type_name: string;
+        creator: string;
+        db_module_id: number;
+        id: number;
+        immute_domain: string;
+        major_version: string;
+        name: string;
+        phase: string;
+        region: string;
+        status: string;
+        tag: string[];
+        time_zone: string;
+        updater: string;
+      };
+    };
+  }
 
   interface Props {
     ticketDetails: TicketDetails<RedisCLBDetails>;

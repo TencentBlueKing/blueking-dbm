@@ -73,7 +73,7 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useTicketCloneInfo } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -86,16 +86,40 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+  const { ticketType, cloneData, update: updateTicketCloneInfoStore } = useTicketCloneInfo();
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
+
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
+
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length);
   const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
+
+  // 单据克隆
+  watch(
+    () => ticketType,
+    () => {
+      if (!ticketType) {
+        return;
+      }
+
+      tableData.value = cloneData;
+      window.changeConfirm = true;
+
+      setTimeout(() => {
+        updateTicketCloneInfoStore();
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -160,8 +184,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    // TODO: 使用精确查询接口替换
-    const result = await getRedisList({ domain }).finally(() => {
+    const result = await getRedisList({ exact_domain: domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length < 1) {

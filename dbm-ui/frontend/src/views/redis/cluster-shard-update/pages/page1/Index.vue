@@ -119,7 +119,7 @@
   import { getClusterTypeToVersions } from '@services/source/version';
   import type { SubmitTicket } from '@services/types/ticket';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useTicketCloneInfo } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -142,6 +142,8 @@
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+  const { ticketType, cloneData, update: updateTicketCloneInfoStore } = useTicketCloneInfo();
+
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
   const isSubmitting = ref(false);
@@ -156,15 +158,35 @@
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
 
-  onMounted(() => {
-    queryDBVersions();
-  });
+  // 单据克隆
+  watch(
+    () => ticketType,
+    () => {
+      if (!ticketType) {
+        return;
+      }
+
+      const { tableList, type, frequency } = cloneData;
+      tableData.value = tableList;
+      repairAndVerifyType.value = type;
+      repairAndVerifyFrequency.value = frequency;
+
+      setTimeout(() => {
+        updateTicketCloneInfoStore();
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 查询全部的集群类型映射表
   const queryDBVersions = async () => {
     const ret = await getClusterTypeToVersions();
     clusterTypesMap.value = ret;
   };
+
+  queryDBVersions();
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -242,8 +264,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    // TODO: 使用精确查询接口替换
-    const result = await getRedisList({ domain }).finally(() => {
+    const result = await getRedisList({ exact_domain: domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length < 1) {

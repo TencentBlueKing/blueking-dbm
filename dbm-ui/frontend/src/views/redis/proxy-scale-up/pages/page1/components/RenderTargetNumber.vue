@@ -48,7 +48,7 @@
   });
 
   const { t } = useI18n();
-  const localValue = ref(props.data);
+  const localValue = ref(props.data as string);
   const editRef = ref();
 
   const nonInterger = /\D/g;

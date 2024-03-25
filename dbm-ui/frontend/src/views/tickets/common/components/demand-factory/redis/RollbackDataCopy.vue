@@ -18,15 +18,12 @@
       style="align-items: flex-start">
       <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
       <span class="ticket-details__item-value">
-        <BkLoading :loading="loading">
-          <DbOriginalTable
-            :columns="columns"
-            :data="tableData" />
-        </BkLoading>
+        <DbOriginalTable
+          :columns="columns"
+          :data="tableData" />
       </span>
     </div>
   </div>
-  <BkLoading :loading="loading" />
   <div class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -39,12 +36,33 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisRollbackDataCopyDetails, TicketDetails } from '@services/types/ticket';
+  import type {TicketDetails } from '@services/types/ticket';
 
   import { writeTypeList } from '@views/redis/common/const';
+
+  import type { DetailClusters } from '../common/types'
+
+  // redis 以构造实例恢复
+  export interface RedisRollbackDataCopyDetails {
+    clusters: DetailClusters;
+    //  dts 复制类型: 回档临时实例数据回写
+    dts_copy_type: 'copy_from_rollback_instance';
+    /**
+     * write_mode值
+     * - delete_and_write_to_redis 先删除同名redis key, 再执行写入 (如: del $key + hset $key)
+     * - keep_and_append_to_redis 保留同名redis key,追加写入
+     * - flushall_and_write_to_redis 先清空目标集群所有数据,在写入
+     */
+    write_mode: 'delete_and_write_to_redis' | 'keep_and_append_to_redis' | 'flushall_and_write_to_redis';
+    infos: {
+      src_cluster: string; // 构造产物访问入口
+      dst_cluster: number;
+      key_white_regex: string; // 包含key
+      key_black_regex: string; // 排除key
+      recovery_time_point: string; // 构造到指定时间
+    }[];
+  }
 
   interface Props {
     ticketDetails: TicketDetails<RedisRollbackDataCopyDetails>
@@ -62,9 +80,10 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
-  const tableData = ref<RowData[]>([]);
+  const {
+    clusters,
+    infos,
+  } = props.ticketDetails.details;
 
   const writeTypesMap = writeTypeList.reduce((obj, item) => {
     Object.assign(obj, { [item.value]: item.label });
@@ -111,30 +130,13 @@
     },
   ];
 
-  const { loading } = useRequest(getRedisListByBizId, {
-    defaultParams: [{
-      bk_biz_id: props.ticketDetails.bk_biz_id,
-      offset: 0,
-      limit: -1,
-    }],
-    onSuccess: async (result) => {
-      if (result.results.length < 1) {
-        return;
-      }
-      const clusterMap = result.results.reduce((obj, item) => {
-        Object.assign(obj, { [item.id]: item.master_domain });
-        return obj;
-      }, {} as Record<string, string>);
-
-      tableData.value = infos.map(item => ({
-        entry: item.src_cluster,
-        taregtClusterName: clusterMap[item.dst_cluster],
-        time: item.recovery_time_point,
-        includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
-        excludeKeys: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
-      }));
-    },
-  });
+  const tableData = infos.map(item => ({
+    entry: item.src_cluster,
+    taregtClusterName: clusters[item.dst_cluster].immute_domain,
+    time: item.recovery_time_point,
+    includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
+    excludeKeys: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
+  }));
 </script>
 
 <style lang="less" scoped>
