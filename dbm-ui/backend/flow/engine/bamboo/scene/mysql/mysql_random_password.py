@@ -53,7 +53,7 @@ class MySQLRandomizePassword(object):
                 "params": self.data,
                 "api_import_path": DBPrivManagerApi.__module__,
                 "api_import_module": "DBPrivManagerApi",
-                "api_call_func": "modify_mysql_admin_password",
+                "api_call_func": "modify_admin_password",
                 "success_callback_path": f"{random_password_callback.__module__}.{random_password_callback.__name__}",
             },
         )

@@ -140,12 +140,12 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
         return Response(DBPasswordHandler.query_mysql_admin_password(**validated_data))
 
     @common_swagger_auto_schema(
-        operation_summary=_("修改mysql实例密码(admin)"),
+        operation_summary=_("修改db实例密码(admin)"),
         request_body=ModifyMySQLAdminPasswordSerializer(),
         tags=[SWAGGER_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=ModifyMySQLAdminPasswordSerializer)
-    def modify_mysql_admin_password(self, request, *args, **kwargs):
+    def modify_admin_password(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
         validated_data["operator"] = request.user.username
-        return Response(DBPasswordHandler.modify_mysql_admin_password(**validated_data))
+        return Response(DBPasswordHandler.modify_admin_password(**validated_data))

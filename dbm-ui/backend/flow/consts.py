@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
+from backend.configuration.constants import SQLSERVER_ADMIN_USER
 from backend.db_meta.enums import MachineType
 from backend.db_services.version.constants import SqlserverVersion
 from blue_krill.data_types.enum import EnumField, StructuredEnum
@@ -688,7 +689,7 @@ SQLSERVER_CUSTOM_SYS_DB = "Monitor"
 MSSQL_EXPORTER = "mssql_exporter"
 
 # sqlserver的用户登录admin账号名称
-MSSQL_ADMIN = "dbm_admin"
+MSSQL_ADMIN = SQLSERVER_ADMIN_USER
 
 # tbinlogdumper连接kafka的global config的定义
 TBINLOGDUMPER_KAFKA_GLOBAL_CONF = {
@@ -970,16 +971,6 @@ class TBinlogDumperAddType(str, StructuredEnum):
 
     FULL_SYNC = EnumField("full_sync", _("全量同步"))
     INCR_SYNC = EnumField("incr_sync", _("增量同步"))
-
-
-class MySQLPasswordRole(str, StructuredEnum):
-    """
-    定义每个MySQL/TendbCluster集群中每个node的内置账号名称
-    """
-
-    TDBCTL = EnumField("tdbctl", _("tdbctl"))
-    SPIDER = EnumField("spider", _("spider"))
-    STORAGE = EnumField("storage", _("storage"))
 
 
 # 定义根据不同的MachineType获取对应的PrivRole
