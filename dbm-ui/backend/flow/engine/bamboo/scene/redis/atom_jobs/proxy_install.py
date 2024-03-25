@@ -39,7 +39,9 @@ cluster_apply_ticket = [TicketType.REDIS_SINGLE_APPLY.value, TicketType.REDIS_CL
 logger = logging.getLogger("flow")
 
 
-def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def ProxyBatchInstallAtomJob(
+    root_id, ticket_data, act_kwargs: ActKwargs, param: Dict, dbmon_install: True
+) -> SubBuilder:
     """
     ### SubBuilder: Proxy安装原子任务
     act_kwargs.cluster = {
@@ -86,20 +88,21 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
         kwargs=asdict(act_kwargs),
     )
 
-    sub_pipeline.add_act(
-        act_name=_("Proxy-002-{}-安装backup-client工具").format(exec_ip),
-        act_component_code=DownloadBackupClientComponent.code,
-        kwargs=asdict(
-            DownloadBackupClientKwargs(
-                bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
-                bk_biz_id=int(act_kwargs.cluster["bk_biz_id"]),
-                download_host_list=[exec_ip],
-            ),
-        ),
-    )
-
     # 安装插件
     acts_list = []
+    acts_list.append(
+        {
+            "act_name": _("Proxy-002-{}-安装backup-client工具").format(exec_ip),
+            "act_component_code": DownloadBackupClientComponent.code,
+            "kwargs": asdict(
+                DownloadBackupClientKwargs(
+                    bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
+                    bk_biz_id=int(act_kwargs.cluster["bk_biz_id"]),
+                    download_host_list=[exec_ip],
+                ),
+            ),
+        }
+    )
     for plugin_name in DEPENDENCIES_PLUGINS:
         acts_list.append(
             {
@@ -160,25 +163,26 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
     )
 
     # 部署bkdbmon
-    act_kwargs.cluster["servers"] = [
-        {
-            "app": app,
-            "app_name": app_name,
-            "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
-            "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
-            "server_ip": exec_ip,
-            "server_ports": [param["proxy_port"]],
-            "meta_role": act_kwargs.cluster["machine_type"],
-            "cluster_domain": act_kwargs.cluster["immute_domain"],
-            "cluster_name": act_kwargs.cluster["cluster_name"],
-            "cluster_type": act_kwargs.cluster["cluster_type"],
-        }
-    ]
-    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
-    sub_pipeline.add_act(
-        act_name=_("Proxy-005-{}-安装监控").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
+    if dbmon_install:
+        act_kwargs.cluster["servers"] = [
+            {
+                "app": app,
+                "app_name": app_name,
+                "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
+                "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
+                "server_ip": exec_ip,
+                "server_ports": [param["proxy_port"]],
+                "meta_role": act_kwargs.cluster["machine_type"],
+                "cluster_domain": act_kwargs.cluster["immute_domain"],
+                "cluster_name": act_kwargs.cluster["cluster_name"],
+                "cluster_type": act_kwargs.cluster["cluster_type"],
+            }
+        ]
+        act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+        sub_pipeline.add_act(
+            act_name=_("Proxy-005-{}-安装监控").format(exec_ip),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
     return sub_pipeline.build_sub_process(sub_name=_("Proxy-{}-安装原子任务").format(exec_ip))

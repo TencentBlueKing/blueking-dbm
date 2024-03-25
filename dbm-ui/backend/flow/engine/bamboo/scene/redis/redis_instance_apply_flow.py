@@ -405,7 +405,7 @@ class RedisInstanceApplyFlow(object):
                     "created_by": self.data["created_by"],
                     "region": rule.get("city_code", ""),
                     "meta_func_name": RedisDBMeta.redis_instance.__name__,
-                    "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
+                    "disaster_tolerance_level": rule.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
                 }
                 acts_list.append(
                     {
@@ -446,34 +446,6 @@ class RedisInstanceApplyFlow(object):
                 )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-            # 部署bkdbmon
-            acts_list = []
-            act_kwargs.exec_ip = master_ip
-            act_kwargs.cluster = {
-                "ip": master_ip,
-            }
-            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
-            acts_list.append(
-                {
-                    "act_name": _("{}-安装bkdbmon").format(master_ip),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-            act_kwargs.exec_ip = slave_ip
-            act_kwargs.cluster = {
-                "ip": slave_ip,
-            }
-            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
-            acts_list.append(
-                {
-                    "act_name": _("{}-安装bkdbmon").format(slave_ip),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-            sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
             # 添加域名
             acts_list = []
             for rule in info["ip_install_dict"][master_ip]:
@@ -507,8 +479,23 @@ class RedisInstanceApplyFlow(object):
                         "kwargs": {**asdict(act_kwargs), **asdict(dns_kwargs)},
                     }
                 )
-
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # 部署bkdbmon
+            acts_list = []
+            for ip in [master_ip, slave_ip]:
+                act_kwargs.exec_ip = ip
+                act_kwargs.cluster = {"ip": ip}
+                act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("{}-安装bkdbmon").format(ip),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("Redis主从安装-{}").format(master_ip)))
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         redis_pipeline.run_pipeline()

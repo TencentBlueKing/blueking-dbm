@@ -157,60 +157,9 @@ class RedisClusterShutdownFlow(object):
         access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
         redis_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
 
+        # 卸载dbmon前置
         acts_list = []
-        for ip in proxy_ips:
-            # proxy执行下架
-            act_kwargs.exec_ip = ip
-            act_kwargs.cluster = {
-                "ip": ip,
-                "port": cluster_info["proxy_map"][ip],
-                "operate": DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value,
-            }
-            act_kwargs.get_redis_payload_func = RedisActPayload.proxy_operate_payload.__name__
-            acts_list.append(
-                {
-                    "act_name": _("{}下架proxy实例").format(ip),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-
-            act_kwargs.cluster = {
-                "servers": [
-                    {
-                        "bk_biz_id": str(self.data["bk_biz_id"]),
-                        "bk_cloud_id": act_kwargs.bk_cloud_id,
-                        "server_ports": [],
-                        "meta_role": "",
-                        "cluster_domain": cluster_info["domain_name"],
-                        "app": app,
-                        "app_name": app_name,
-                        "cluster_name": cluster_info["cluster_name"],
-                        "cluster_type": cluster_info["cluster_type"],
-                    }
-                ]
-            }
-            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
-            acts_list.append(
-                {
-                    "act_name": _("{}卸载bkdbmon").format(ip),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-
-        for ip in redis_ips:
-            act_kwargs.cluster = {}
-            act_kwargs.exec_ip = ip
-            act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_payload.__name__
-            acts_list.append(
-                {
-                    "act_name": _("{}下架redis实例").format(ip),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-
+        for ip in proxy_ips + redis_ips:
             act_kwargs.cluster = {
                 "servers": [
                     {
@@ -231,6 +180,37 @@ class RedisClusterShutdownFlow(object):
             acts_list.append(
                 {
                     "act_name": _("{}卸载bkdbmon").format(ip),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+        redis_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        acts_list = []
+        for ip in proxy_ips:
+            # proxy执行下架
+            act_kwargs.exec_ip = ip
+            act_kwargs.cluster = {
+                "ip": ip,
+                "port": cluster_info["proxy_map"][ip],
+                "operate": DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value,
+            }
+            act_kwargs.get_redis_payload_func = RedisActPayload.proxy_operate_payload.__name__
+            acts_list.append(
+                {
+                    "act_name": _("{}下架proxy实例").format(ip),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+
+        for ip in redis_ips:
+            act_kwargs.cluster = {}
+            act_kwargs.exec_ip = ip
+            act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_payload.__name__
+            acts_list.append(
+                {
+                    "act_name": _("{}下架redis实例").format(ip),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
                     "kwargs": asdict(act_kwargs),
                 }
