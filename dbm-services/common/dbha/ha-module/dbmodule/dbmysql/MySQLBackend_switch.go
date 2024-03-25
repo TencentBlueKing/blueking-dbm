@@ -6,7 +6,6 @@ import (
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
 	"fmt"
-	"strconv"
 )
 
 // MySQLSwitch defined mysql switch struct
@@ -15,7 +14,8 @@ type MySQLSwitch struct {
 	//proxy layer instance used(spider, proxy)
 	AdminPort int
 	//storage layer instance used
-	Proxy []dbutil.ProxyInfo
+	Proxy  []dbutil.ProxyInfo
+	Dumper []dbutil.DumperInfo
 }
 
 // ShowSwitchInstanceInfo show mysql instance's switch info
@@ -111,7 +111,7 @@ func (ins *MySQLSwitch) DoSwitch() error {
 		return fmt.Errorf("reset slave failed")
 	}
 	ins.StandBySlave.BinlogFile = binlogFile
-	ins.StandBySlave.BinlogPosition = strconv.Itoa(int(binlogPosition))
+	ins.StandBySlave.BinlogPosition = binlogPosition
 	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("reset slave success, consistent binlog info:%s,%s",
 		ins.StandBySlave.BinlogFile, ins.StandBySlave.BinlogPosition))
 
@@ -151,6 +151,39 @@ func (ins *MySQLSwitch) UpdateMetaInfo() error {
 		ins.ReportLogs(constvar.FailResult, updateErrLog)
 		return err
 	}
-	ins.ReportLogs(constvar.InfoResult, "update meta info success")
+	ins.ReportLogs(constvar.InfoResult, "mysql switch update meta info success")
+	return nil
+}
+
+// DoFinal after switch done, check whether to do dumper switch
+func (ins *MySQLSwitch) DoFinal() error {
+	ins.ReportLogs(constvar.InfoResult, "mysql switch do final")
+	log.Logger.Debugf("final switch detail info:%#v", ins)
+	if ins.Role == constvar.TenDBStorageMaster && len(ins.Dumper) > 0 {
+		//all dumper under this master need to do switch with same position
+		ins.ReportLogs(constvar.InfoResult, "begin to switch tbinlogdumper")
+		dumperSwitchInfo := []client.SlaveInfo{}
+		for _, dumper := range ins.Dumper {
+			dumperSwitchInfo = append(dumperSwitchInfo, client.SlaveInfo{
+				Ip:             dumper.Ip,
+				Port:           dumper.Port,
+				BinlogFile:     ins.StandBySlave.BinlogFile,
+				BinlogPosition: ins.StandBySlave.BinlogPosition,
+			})
+		}
+
+		switchInfos := []client.DumperSwitchInfo{
+			{
+				ClusterDomain:   ins.Cluster,
+				SwitchInstances: dumperSwitchInfo,
+			},
+		}
+		cmdbClient := client.NewCmDBClient(&ins.Config.DBConf.CMDB, ins.Config.GetCloudId())
+		if err := cmdbClient.DoDumperSwitch(ins.App, switchInfos); err != nil {
+
+		}
+		ins.ReportLogs(constvar.InfoResult, "call api do dumper migrate success")
+	}
+
 	return nil
 }

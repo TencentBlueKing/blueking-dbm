@@ -17,8 +17,14 @@ type SlaveInfo struct {
 	Port           int    `json:"port"`
 	IsStandBy      bool   `json:"is_stand_by"`
 	Status         string `json:"status"`
-	BinlogFile     string
-	BinlogPosition string
+	BinlogFile     string `json:"binlog_file"`
+	BinlogPosition uint64 `json:"binlog_position"`
+}
+
+// DumperInfo tbinlogdumper info
+type DumperInfo struct {
+	Ip   string `json:"ip"`
+	Port int    `json:"port"`
 }
 
 // DBInstanceInfoDetail instance detail info from cmdb api
@@ -29,16 +35,17 @@ type DBInstanceInfoDetail struct {
 	BKIdcCityID  int    `json:"bk_idc_city_id"`
 	InstanceRole string `json:"instance_role"`
 	//only TenDBCluster's spider node used
-	SpiderRole       string      `json:"spider_role"`
-	Status           string      `json:"status"`
-	Cluster          string      `json:"cluster"`
-	BKBizID          int         `json:"bk_biz_id"`
-	ClusterType      string      `json:"cluster_type"`
-	MachineType      string      `json:"machine_type"`
-	Receiver         []SlaveInfo `json:"receiver"`
-	ProxyInstanceSet []ProxyInfo `json:"proxyinstance_set"`
-	BindEntry        BindEntry   `json:"bind_entry"`
-	ClusterId        int         `json:"cluster_id"`
+	SpiderRole       string       `json:"spider_role"`
+	Status           string       `json:"status"`
+	Cluster          string       `json:"cluster"`
+	BKBizID          int          `json:"bk_biz_id"`
+	ClusterType      string       `json:"cluster_type"`
+	MachineType      string       `json:"machine_type"`
+	Receiver         []SlaveInfo  `json:"receiver"`
+	ProxyInstanceSet []ProxyInfo  `json:"proxyinstance_set"`
+	BindEntry        BindEntry    `json:"bind_entry"`
+	ClusterId        int          `json:"cluster_id"`
+	BinlogDumperSet  []DumperInfo `json:"tbinlogdumpers"`
 }
 
 // DataBaseDetect interface

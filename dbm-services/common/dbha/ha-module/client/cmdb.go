@@ -5,6 +5,7 @@ import (
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/util"
+
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -82,6 +83,31 @@ type GetClusterDetailByDomainRequest struct {
 	DBCloudToken string   `json:"db_cloud_token"`
 	BKCloudID    int      `json:"bk_cloud_id"`
 	Domains      []string `json:"domains"`
+}
+
+// SlaveInfo defined slave switch info
+type SlaveInfo struct {
+	Ip             string `json:"ip"`
+	Port           int    `json:"port"`
+	IsStandBy      bool   `json:"is_stand_by"`
+	Status         string `json:"status"`
+	BinlogFile     string `json:"binlog_file"`
+	BinlogPosition uint64 `json:"binlog_position"`
+}
+
+// DumperSwitchInfo redis instance need to swap role
+type DumperSwitchInfo struct {
+	ClusterDomain   string      `json:"cluster_domain"`
+	SwitchInstances []SlaveInfo `json:"switch_instances"`
+}
+
+// DumperSwitchRequest switch tbinlogdumper instance
+type DumperSwitchRequest struct {
+	DBCloudToken string             `json:"db_cloud_token"`
+	BKCloudID    int                `json:"bk_cloud_id"`
+	BKBizID      string             `json:"bk_biz_id"`
+	SafeSwitch   bool               `json:"is_safe"`
+	SwitchInfos  []DumperSwitchInfo `json:"infos"`
 }
 
 // NewCmDBClient init an new cmdb client to request
@@ -289,4 +315,26 @@ func (c *CmDBClient) GetEntryDetail(cluster string) (map[string]interface{}, err
 	}
 
 	return res, nil
+}
+
+func (c *CmDBClient) DoDumperSwitch(app string, switchInfos []DumperSwitchInfo) error {
+	req := DumperSwitchRequest{
+		DBCloudToken: c.Conf.BKConf.BkToken,
+		BKCloudID:    c.CloudId,
+		SwitchInfos:  switchInfos,
+		SafeSwitch:   true,
+		BKBizID:      app,
+	}
+
+	log.Logger.Debugf("UpdateDBStatus param:%v", req)
+
+	response, err := c.DoNew(http.MethodPost,
+		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBMigrateDumper, ""), req, nil)
+	if err != nil {
+		return err
+	}
+	if response.Code != 0 {
+		return fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+	return nil
 }

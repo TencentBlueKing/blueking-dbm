@@ -18,6 +18,7 @@ type DataBaseSwitch interface {
 	RollBack() error
 	UpdateMetaInfo() error
 	DeleteNameService(entry BindEntry) error
+	DoFinal() error
 
 	GetAddress() (string, int)
 	GetIdcID() int
@@ -90,8 +91,9 @@ type BaseSwitch struct {
 	App         string
 	ClusterType string
 	//machine type in cmdb api response
-	MetaType   string
-	SwitchUid  uint
+	MetaType  string
+	SwitchUid uint
+	//cluster domain
 	Cluster    string
 	ClusterId  int
 	CmDBClient *client.CmDBClient
@@ -286,4 +288,9 @@ func (ins *BaseSwitch) ReportLogs(result string, comment string) bool {
 	} else {
 		return true
 	}
+}
+
+// DoFinal do final thing
+func (ins *BaseSwitch) DoFinal() error {
+	return nil
 }
