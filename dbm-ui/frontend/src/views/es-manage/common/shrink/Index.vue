@@ -111,7 +111,7 @@
       totalDisk: 0,
       targetDisk: 0,
       shrinkDisk: 0,
-      minHost: 1,
+      minHost: 0,
     },
     cold: {
       label: t('冷节点'),
@@ -120,7 +120,7 @@
       totalDisk: 0,
       targetDisk: 0,
       shrinkDisk: 0,
-      minHost: 2,
+      minHost: 0,
     },
     client: {
       label: 'Client',
@@ -129,7 +129,7 @@
       totalDisk: 0,
       targetDisk: 0,
       shrinkDisk: 0,
-      minHost: 2,
+      minHost: 0,
     },
   });
 
@@ -231,6 +231,25 @@
     const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
     nodeInfoMap[nodeType.value].nodeList = nodeList;
     nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
+    if (nodeInfoMap.hot.nodeList.length === nodeInfoMap.hot.originalNodeList.length) {
+      // 热节点全缩容后，限制冷节点至少留1台
+      nodeInfoMap.cold.minHost = 1;
+      if (nodeInfoMap.cold.originalNodeList.length === 1) {
+        // 冷节点只有1台并且已经不可编辑状态，需要初始化已填写的目标容量值
+        nodeInfoMap.cold.targetDisk = 0;
+      }
+    } else if (nodeInfoMap.cold.nodeList.length === nodeInfoMap.cold.originalNodeList.length) {
+      // 冷节点全缩容后，限制热节点至少留1台
+      nodeInfoMap.hot.minHost = 1;
+      if (nodeInfoMap.hot.originalNodeList.length === 1) {
+        // 热节点只有1台并且已经不可编辑状态，需要初始化已填写的目标容量值
+        nodeInfoMap.hot.targetDisk = 0;
+      }
+    } else {
+      // 取消限制
+      nodeInfoMap.cold.minHost = 0;
+      nodeInfoMap.hot.minHost = 0;
+    }
   };
 
   defineExpose<Exposes>({
