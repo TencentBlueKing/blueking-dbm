@@ -85,7 +85,7 @@ def sync_plat_monitor_policy():
             dirs.remove(skip_dir)
 
         for alarm_tpl in files:
-            with open(os.path.join(root, alarm_tpl), "r") as f:
+            with open(os.path.join(root, alarm_tpl), "r", encoding="utf-8") as f:
                 try:
                     template_dict = json.loads(f.read())
                     policy_name = template_dict["name"]
