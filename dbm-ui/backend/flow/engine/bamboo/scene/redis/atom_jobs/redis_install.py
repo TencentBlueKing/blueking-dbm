@@ -44,7 +44,9 @@ cluster_apply_ticket = [
 logger = logging.getLogger("flow")
 
 
-def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def RedisBatchInstallAtomJob(
+    root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict, dbmon_install: True
+) -> SubBuilder:
     """
     ### SubBuilder: Redis安装原籽任务
     #### 备注： 主从创建的时候， 不创建主从关系(包含元数据 以及真实的同步状态)
@@ -90,20 +92,21 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param:
         kwargs=asdict(act_kwargs),
     )
 
-    sub_pipeline.add_act(
-        act_name=_("Redis-{}-安装backup-client工具").format(exec_ip),
-        act_component_code=DownloadBackupClientComponent.code,
-        kwargs=asdict(
-            DownloadBackupClientKwargs(
-                bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
-                bk_biz_id=int(act_kwargs.cluster["bk_biz_id"]),
-                download_host_list=[exec_ip],
-            ),
-        ),
-    )
-
     # 安装插件
     acts_list = []
+    acts_list.append(
+        {
+            "act_name": _("Redis-{}-安装backup-client工具").format(exec_ip),
+            "act_component_code": DownloadBackupClientComponent.code,
+            "kwargs": asdict(
+                DownloadBackupClientKwargs(
+                    bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
+                    bk_biz_id=int(act_kwargs.cluster["bk_biz_id"]),
+                    download_host_list=[exec_ip],
+                ),
+            ),
+        }
+    )
     for plugin_name in DEPENDENCIES_PLUGINS:
         acts_list.append(
             {
@@ -156,27 +159,28 @@ def RedisBatchInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param:
     )
 
     # 部署bkdbmon
-    act_kwargs.cluster["servers"] = [
-        {
-            "app": app,
-            "app_name": app_name,
-            "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
-            "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
-            "server_ip": exec_ip,
-            "server_ports": param["ports"],
-            "meta_role": param["meta_role"],
-            "cluster_name": act_kwargs.cluster["cluster_name"],
-            "cluster_type": act_kwargs.cluster["cluster_type"],
-            "cluster_domain": act_kwargs.cluster["immute_domain"],
-            "server_shards": param.get("server_shards", {}),
-            "cache_backup_mode": param.get("cache_backup_mode", ""),
-        }
-    ]
-    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
-    sub_pipeline.add_act(
-        act_name=_("Redis-{}-安装监控").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
+    if dbmon_install:
+        act_kwargs.cluster["servers"] = [
+            {
+                "app": app,
+                "app_name": app_name,
+                "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
+                "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
+                "server_ip": exec_ip,
+                "server_ports": param["ports"],
+                "meta_role": param["meta_role"],
+                "cluster_name": act_kwargs.cluster["cluster_name"],
+                "cluster_type": act_kwargs.cluster["cluster_type"],
+                "cluster_domain": act_kwargs.cluster["immute_domain"],
+                "server_shards": param.get("server_shards", {}),
+                "cache_backup_mode": param.get("cache_backup_mode", ""),
+            }
+        ]
+        act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+        sub_pipeline.add_act(
+            act_name=_("Redis-{}-安装监控").format(exec_ip),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
     return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-安装原子任务").format(exec_ip))
