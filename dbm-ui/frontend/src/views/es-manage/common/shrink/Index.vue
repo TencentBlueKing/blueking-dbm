@@ -120,7 +120,7 @@
       totalDisk: 0,
       targetDisk: 0,
       shrinkDisk: 0,
-      minHost: 2,
+      minHost: 0,
     },
     client: {
       label: 'Client',
