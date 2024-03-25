@@ -86,22 +86,34 @@
     </template>
   </BkDialog>
 </template>
+
 <script lang="ts">
+  import SpiderMachineModel from '@services/model/spider/spiderMachine';
+  import type { ListBase } from '@services/types';
+
   import { t } from '@locales/index';
 
   export default { name: 'InstanceSelector' };
 
   export interface IValue {
-    bk_host_id: number,
-    bk_cloud_id: number,
-    bk_cloud_name: string,
-    ip: string,
-    port: number,
-    instance_address: string,
-    cluster_id: number,
-    cluster_type: string,
-    status?: string,
+    [key: string]: any;
+    bk_host_id: number;
+    bk_cloud_id: number;
+    bk_cloud_name: string;
+    ip: string;
+    port: number;
+    instance_address: string;
+    cluster_id: number;
+    cluster_type: string;
+    status?: string;
     host_info?: any;
+    id?: number;
+    master_domain?: string;
+    related_instances?: {
+      instance: string;
+      status: string;
+    }[];
+    spec_config?: SpiderMachineModel['spec_config'];
   }
 
   export type InstanceSelectorValues<T> = Record<string, T[]>;
@@ -163,29 +175,31 @@
 <script setup lang="ts" generic="T extends IValue">
   import _ from 'lodash';
 
+  import MongodbModel from '@services/model/mongodb/mongodb';
   import {
     checkMongoInstances,
     checkMysqlInstances,
     checkRedisInstances,
   } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
-  import { queryClusters as getMysqlClusterList } from '@services/source/mysqlCluster';
+  import { queryClusters as getMysqlClusterList , queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
   import { getRedisClusterList } from '@services/source/redis';
   import { getRedisHostList } from '@services/source/redisToolbox';
-  import { getSpiderInstanceList } from '@services/source/spider';
+  import { getSpiderInstanceList, getSpiderMachineList } from '@services/source/spider';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
   import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
 
   import { ClusterTypes } from '@common/const';
 
   import ManualInputContent from './components/common/manual-content/Index.vue';
+  import ManualInputHostContent from './components/common/manual-content-host/Index.vue';
   import PanelTab  from './components/common/PanelTab.vue';
   import PreviewResult from './components/common/preview-result/Index.vue';
   import MongoClusterContent from './components/mongo/Index.vue';
   import MysqlContent from './components/mysql/Index.vue';
   import RedisContent from './components/redis/Index.vue';
   import TendbClusterContent from './components/tendb-cluster/Index.vue';
-  import MongodbModel from '@services/model/mongodb/mongodb';
+  import TendbClusterHostContent from './components/tendb-cluster-host/Index.vue';
 
   export type TableSetting = ReturnType<typeof getSettings>;
 
@@ -220,7 +234,7 @@
       checkType: 'ip' | 'instance',
       checkKey: keyof IValue,
       activePanelId?: string
-      checkInstances?: (params: any) => Promise<any[]>,
+      checkInstances?: (params: any) => Promise<any[] | ListBase<any[]>>,
     },
     previewConfig?: {
       displayKey?: keyof IValue,
@@ -236,7 +250,7 @@
   type RedisHostModel = ServiceReturnType<typeof getRedisHostList>['results'][number]
 
   interface Props {
-    clusterTypes: ClusterTypes[],
+    clusterTypes: (ClusterTypes | 'TendbClusterHost')[],
     tabListConfig?: Record<string, PanelListType>,
     selected?: InstanceSelectorValues<T>,
   }
@@ -461,6 +475,55 @@
           displayKey: 'ip',
         },
         content: ManualInputContent,
+      },
+    ],
+    TendbClusterHost: [
+      {
+        id: 'TendbClusterHost',
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: queryMysqlCluster,
+          countFunc: (clusterItem: { remote_db: { ip: string }[]}) => {
+            const ipList = clusterItem.remote_db.map(hostItem => hostItem.ip)
+            return new Set(ipList).size
+          }
+        },
+        tableConfig: {
+          getTableList: getSpiderMachineList,
+          firsrColumn: {
+            label: t('主库主机'),
+            field: 'ip',
+            role: 'remote_master',
+          },
+          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name']
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: TendbClusterHostContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getSpiderMachineList,
+          firsrColumn: {
+            label: t('主库主机'),
+            field: 'ip',
+            role: 'remote_master',
+          },
+          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name']
+        },
+        manualConfig: {
+          checkInstances: getSpiderMachineList,
+          checkType: 'ip',
+          checkKey: 'ip',
+          activePanelId: 'TendbClusterHost',
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: ManualInputHostContent,
       },
     ],
   };

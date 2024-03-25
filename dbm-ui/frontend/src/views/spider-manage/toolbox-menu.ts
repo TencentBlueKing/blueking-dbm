@@ -67,6 +67,16 @@ export default [
         id: 'SpiderProxyScaleDown',
         parentId: 'spider_cluster_maintain',
       },
+      {
+        name: t('迁移主从'),
+        id: 'spiderMasterSlaveClone',
+        parentId: 'spider_cluster_maintain',
+      },
+      {
+        name: t('重建从库'),
+        id: 'spiderSlaveRebuild',
+        parentId: 'spider_cluster_maintain',
+      },
     ],
   },
   {

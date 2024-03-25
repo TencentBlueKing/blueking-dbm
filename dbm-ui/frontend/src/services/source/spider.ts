@@ -12,6 +12,7 @@
  */
 
 import SpiderModel from '@services/model/spider/spider';
+import SpiderMachineModel from '@services/model/spider/spiderMachine';
 import TendbClusterModel from '@services/model/spider/tendbCluster';
 
 import { useGlobalBizs } from '@stores';
@@ -209,4 +210,26 @@ export function exportSpiderClusterToExcel(params: { cluster_ids?: number[] }) {
  */
 export function exportSpiderInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 查询主机列表
+ */
+export function getSpiderMachineList(params: {
+  limit?: number;
+  offset?: number;
+  bk_host_id?: number;
+  ip?: string;
+  machine_type?: string;
+  bk_os_name?: string;
+  bk_cloud_id?: number;
+  bk_agent_id?: string;
+  instance_role?: string;
+  creator?: string;
+}) {
+  return http.get<ListBase<SpiderMachineModel[]>>(`${path}/list_machines/`, params)
+    .then((data) => ({
+    ...data,
+    results: data.results.map(item => new SpiderMachineModel(item)),
+  }));;
 }
