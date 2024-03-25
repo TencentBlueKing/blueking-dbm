@@ -272,7 +272,6 @@
     {
       "key": "consumergroup",
       "value": [
-        "gsin"
       ],
       "method": "eq",
       "condition": "and",
@@ -281,7 +280,6 @@
     {
       "key": "topic",
       "value": [
-        "sinsin"
       ],
       "method": "eq",
       "condition": "and",
