@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 from django.db.models import F, Q
 from django.utils.translation import ugettext_lazy as _
@@ -19,6 +19,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
+from backend.db_services.dbbase.resources.query import ResourceList
 
 
 class ListRetrieveResource(query.ListRetrieveResource):
@@ -37,6 +38,22 @@ class ListRetrieveResource(query.ListRetrieveResource):
         {"name": _("创建人"), "key": "creator"},
         {"name": _("创建时间"), "key": "create_at"},
     ]
+
+    @classmethod
+    def _list_clusters(
+        cls,
+        bk_biz_id: int,
+        query_params: Dict,
+        limit: int,
+        offset: int,
+        filter_params_map: Dict[str, Q] = None,
+        filter_func_map: Dict[str, Callable] = None,
+        **kwargs,
+    ) -> ResourceList:
+        """查询集群信息"""
+        return super()._list_clusters(
+            bk_biz_id, query_params, limit, offset, filter_params_map, filter_func_map, **kwargs
+        )
 
     @classmethod
     def _list_instances(
@@ -87,5 +104,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
             .annotate(role=F("instance_inner_role"))
             .filter(query_filters)
         )
-        instance_queryset = storage_queryset.union(proxy_queryset).values(*inst_fields).order_by("-create_at")
+        instance_queryset = storage_queryset.union(proxy_queryset).values(*inst_fields).order_by("create_at")
+        #  部署时间表头排序
+        if query_params.get("ordering"):
+            instance_queryset = instance_queryset.order_by(query_params.get("ordering"))
         return instance_queryset

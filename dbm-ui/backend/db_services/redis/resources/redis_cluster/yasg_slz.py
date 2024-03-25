@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework import serializers
 
-from .query import ListRetrieveResource
+from .query import RedisListRetrieveResource
 
 REF_NAME = "tendiscache"
 
@@ -91,7 +91,7 @@ class PaginatedResourceSLZ(serializers.Serializer):
 
 class ResourceFieldSLZ(serializers.Serializer):
     class Meta:
-        swagger_schema_fields = {"example": ListRetrieveResource.get_fields()}
+        swagger_schema_fields = {"example": RedisListRetrieveResource.get_fields()}
         ref_name = f"{REF_NAME}_ResourceFieldSLZ"
 
 
