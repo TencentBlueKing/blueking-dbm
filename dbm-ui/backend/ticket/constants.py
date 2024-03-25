@@ -339,6 +339,15 @@ class TicketType(str, StructuredEnum):
     INFLUXDB_DESTROY = TicketEnumField("INFLUXDB_DESTROY", _("InfluxDB 实例删除"), _("实例管理"))
     INFLUXDB_REPLACE = TicketEnumField("INFLUXDB_REPLACE", _("InfluxDB 实例替换"), _("实例管理"))
 
+    DORIS_APPLY = EnumField("DORIS_APPLY", _("DORIS 集群部署"))
+    DORIS_SCALE_UP = EnumField("DORIS_SCALE_UP", _("DORIS 集群扩容"))
+    DORIS_SHRINK = EnumField("DORIS_SHRINK", _("DORIS 集群缩容"))
+    DORIS_REBOOT = EnumField("DORIS_REBOOT", _("DORIS 实例重启"))
+    DORIS_REPLACE = EnumField("DORIS_REPLACE", _("DORIS 集群替换"))
+    DORIS_ENABLE = EnumField("DORIS_ENABLE", _("DORIS 集群启用"))
+    DORIS_DISABLE = EnumField("DORIS_DISABLE", _("DORIS 集群禁用"))
+    DORIS_DESTROY = EnumField("DORIS_DESTROY", _("DORIS 集群删除"))
+
     # Riak
     RIAK_CLUSTER_APPLY = TicketEnumField("RIAK_CLUSTER_APPLY", _("Riak 集群部署"), register_iam=False)
     RIAK_CLUSTER_SCALE_OUT = TicketEnumField("RIAK_CLUSTER_SCALE_OUT", _("Riak 集群扩容"), _("集群管理"))

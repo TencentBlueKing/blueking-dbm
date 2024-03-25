@@ -39,6 +39,9 @@ MachineTypeAccessLayerMap = {
     MachineType.RIAK: AccessLayer.STORAGE,
     MachineType.SQLSERVER_SINGLE: AccessLayer.STORAGE,
     MachineType.SQLSERVER_HA: AccessLayer.STORAGE,
+    MachineType.DORIS_FOLLOWER: AccessLayer.STORAGE,
+    MachineType.DORIS_OBSERVER: AccessLayer.STORAGE,
+    MachineType.DORIS_BACKEND: AccessLayer.STORAGE,
 }
 
 ClusterTypeMachineTypeDefine = {
@@ -65,6 +68,7 @@ ClusterTypeMachineTypeDefine = {
     ClusterType.Riak: [MachineType.RIAK],
     ClusterType.SqlserverSingle: [MachineType.SQLSERVER_SINGLE],
     ClusterType.SqlserverHA: [MachineType.SQLSERVER_HA],
+    ClusterType.Doris: [MachineType.DORIS_BACKEND, MachineType.DORIS_FOLLOWER, MachineType.DORIS_OBSERVER],
 }
 
 ClusterMachineAccessTypeDefine = {
@@ -204,6 +208,9 @@ MachineTypeInstanceRoleMap = {
         InstanceRole.BACKEND_REPEATER,
         InstanceRole.BACKEND_SLAVE,
     ],
+    MachineType.DORIS_BACKEND: [InstanceRole.DORIS_BACKEND_HOT, InstanceRole.DORIS_BACKEND_COLD],
+    MachineType.DORIS_FOLLOWER: [InstanceRole.DORIS_FOLLOWER],
+    MachineType.DORIS_OBSERVER: [InstanceRole.DORIS_OBSERVER],
 }
 
 InstanceRoleInstanceInnerRoleMap = {
@@ -242,6 +249,10 @@ InstanceRoleInstanceInnerRoleMap = {
     InstanceRole.PULSAR_ZOOKEEPER: InstanceInnerRole.ORPHAN,
     InstanceRole.INFLUXDB: InstanceInnerRole.ORPHAN,
     InstanceRole.RIAK_NODE: InstanceInnerRole.ORPHAN,
+    InstanceRole.DORIS_FOLLOWER: InstanceInnerRole.ORPHAN,
+    InstanceRole.DORIS_OBSERVER: InstanceInnerRole.ORPHAN,
+    InstanceRole.DORIS_BACKEND_COLD: InstanceInnerRole.ORPHAN,
+    InstanceRole.DORIS_BACKEND_HOT: InstanceInnerRole.ORPHAN,
 }
 
 

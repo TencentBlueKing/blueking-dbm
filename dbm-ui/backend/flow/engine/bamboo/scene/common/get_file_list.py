@@ -551,6 +551,20 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
         ]
 
+    def doris_apply(self, db_version: str) -> list:
+        # 部署doris所有节点需要的pkg列表
+        doris_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Doris, db_type=DBType.Doris)
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{doris_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+        ]
+
+    def doris_actuator(self) -> list:
+        # 执行doris actor需要的文件列表
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+        ]
+
     def get_sqlserver_package(self, db_version: str):
         """
         获取Sqlserver的安装包

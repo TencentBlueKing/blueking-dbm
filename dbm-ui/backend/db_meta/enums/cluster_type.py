@@ -43,6 +43,8 @@ class ClusterType(str, StructuredEnum):
     Hdfs = EnumField("hdfs", _("Hdfs集群"))
     Influxdb = EnumField("influxdb", _("Influxdb实例"))
     Pulsar = EnumField("pulsar", _("Pulsar集群"))
+    Doris = EnumField("doris", _("Doris集群"))
+
     Dbmon = EnumField("dbmon", _("redis监控"))
 
     MongoReplicaSet = EnumField("MongoReplicaSet", _("Mongo副本集"))
@@ -85,6 +87,7 @@ class ClusterType(str, StructuredEnum):
             DBType.MongoDB.value: [cls.MongoShardedCluster, cls.MongoReplicaSet],
             DBType.Riak.value: [cls.Riak],
             DBType.Sqlserver.value: [cls.SqlserverHA, cls.SqlserverSingle],
+            DBType.Doris.value: [cls.Doris],
         }
 
     @classmethod

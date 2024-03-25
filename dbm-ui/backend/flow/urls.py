@@ -20,6 +20,12 @@ from backend.flow.views.cloud_redis_dts_server_apply import (
     CloudRedisDTSServerApplySceneApiView,
     CloudRedisDTSServerReduceSceneApiView,
 )
+from backend.flow.views.doris_apply import InstallDorisSceneApiView
+from backend.flow.views.doris_destroy import DestroyDorisSceneApiView
+from backend.flow.views.doris_disable import DisableDorisSceneApiView
+from backend.flow.views.doris_enable import EnableDorisSceneApiView
+from backend.flow.views.doris_reboot import RebootDorisSceneApiView
+from backend.flow.views.doris_scale_up import ScaleUpDorisSceneApiView
 from backend.flow.views.es_apply import InstallEsSceneApiView
 from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
@@ -469,4 +475,11 @@ urlpatterns = [
     url("^scene/sqlserver_full_dts$", SqlserverFullDtsSceneApiView.as_view()),
     url("^scene/sqlserver_incr_dts$", SqlserverIncrDtsSceneApiView.as_view()),
     url("^scene/sqlserver_data_construct$", SqlserverDataConstructSceneApiView.as_view()),
+    # doris
+    url(r"^scene/install_doris$", InstallDorisSceneApiView.as_view()),
+    url(r"^scene/scale_up_doris$", ScaleUpDorisSceneApiView.as_view()),
+    url(r"^scene/enable_doris$", EnableDorisSceneApiView.as_view()),
+    url(r"^scene/disable_doris$", DisableDorisSceneApiView.as_view()),
+    url(r"^scene/destroy_doris$", DestroyDorisSceneApiView.as_view()),
+    url(r"^scene/reboot_doris$", RebootDorisSceneApiView.as_view()),
 ]
