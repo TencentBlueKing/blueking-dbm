@@ -23,10 +23,10 @@ type ProxySetBackendCom struct {
 
 // ProxySetBackendParam TODO
 type ProxySetBackendParam struct {
-	Host        string `json:"host" validate:"required,ip" `     // 当前实例的主机地址
-	Port        int    `json:"port" validate:"required,gt=3306"` // 当前实例的端口
+	Host        string `json:"host" validate:"required,ip" `      // 当前实例的主机地址
+	Port        int    `json:"port" validate:"required,gte=3306"` // 当前实例的端口
 	BackendHost string `json:"backend_host" validate:"required,ip"`
-	BackendPort int    `json:"backend_port" validate:"required,gt=3306"`
+	BackendPort int    `json:"backend_port" validate:"required,gte=3306"`
 }
 
 // Example TODO
