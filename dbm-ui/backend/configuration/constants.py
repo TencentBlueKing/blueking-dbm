@@ -14,12 +14,26 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 # 平台业务ID
 PLAT_BIZ_ID = 0
+# 密码服务策略名称
 DBM_PASSWORD_SECURITY_NAME = "password"
-DBM_MYSQL_ADMIN_USER = "ADMIN"
+# mysql的用户登录admin账号名称
+MYSQL_ADMIN_USER = "ADMIN"
+# sqlserver的用户登录admin账号名称
+SQLSERVER_ADMIN_USER = "dbm_admin"
 # TODO: job超时时间最大为86400，后续考虑让job平台调大限制
 MYSQL_DATA_RESTORE_TIME = 86400
 MYSQL_USUAL_JOB_TIME = 7200
 MYSQL8_VER_PARSE_NUM = 8000000
+
+
+class AdminPasswordRole(str, StructuredEnum):
+    """
+    定义每个集群中每个node的内置账号名称
+    """
+
+    TDBCTL = EnumField("tdbctl", _("tdbctl"))
+    SPIDER = EnumField("spider", _("spider"))
+    STORAGE = EnumField("storage", _("storage"))
 
 
 class AffinityEnum(str, StructuredEnum):
@@ -168,3 +182,6 @@ DEFAULT_SETTINGS = [
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
 DOMAIN_RESOLUTION_SUPPORT = "DOMAIN_RESOLUTION_SUPPORT"
+
+# DB组件和admin用户的映射
+DB_ADMIN_USER_MAP = {DBType.MySQL: MYSQL_ADMIN_USER, DBType.Sqlserver: SQLSERVER_ADMIN_USER}
