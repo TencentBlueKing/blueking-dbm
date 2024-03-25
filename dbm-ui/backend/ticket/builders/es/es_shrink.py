@@ -44,20 +44,19 @@ class EsShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
 
         cluster = Cluster.objects.get(id=attrs["cluster_id"])
 
-        all_shrink_hosts = []
-        all_exist_hosts = []
-        # 暂时只需要校验hot节点至少保留一台，cold和client不校验
-        for role in [InstanceRole.ES_DATANODE_HOT]:
-            shrink_hosts = {host["bk_host_id"] for host in role_hash[role]}
-            exist_hosts = set(
-                cluster.storageinstance_set.filter(instance_role=role).values_list("machine__bk_host_id", flat=True)
-            )
+        # 暂时只需要校验hot+cold节点至少保留一台，client不校验
+        backend_es_role = [InstanceRole.ES_DATANODE_HOT, InstanceRole.ES_DATANODE_COLD]
+        shrink_backend_hosts = {host["bk_host_id"] for role in backend_es_role for host in role_hash[role]}
+        exist_storages = cluster.storageinstance_set.filter(instance_role__in=backend_es_role)
+        exist_backend_hosts = set(exist_storages.values_list("machine__bk_host_id", flat=True))
 
-            all_shrink_hosts.extend(shrink_hosts)
-            all_exist_hosts.extend(exist_hosts)
+        if not (exist_backend_hosts - shrink_backend_hosts):
+            raise serializers.ValidationError(_("热节点和冷节点至少保留1台!"))
 
-            if not (exist_hosts - shrink_hosts):
-                raise serializers.ValidationError(_("{}: 至少保留1台!").format(role.name))
+        # 不允许缩容master节点
+        all_shrink_hosts = {host["bk_host_id"] for role in role_hash for host in role_hash[role]}
+        all_exist_storages = cluster.storageinstance_set.exclude(instance_role=InstanceRole.ES_MASTER)
+        all_exist_hosts = all_exist_storages.values_list("machine__bk_host_id", flat=True)
 
         if not set(all_exist_hosts).issuperset(set(all_shrink_hosts)):
             raise serializers.ValidationError(_("缩容仅支持hot、cold和client"))

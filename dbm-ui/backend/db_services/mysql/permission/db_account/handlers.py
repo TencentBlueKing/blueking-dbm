@@ -141,7 +141,7 @@ class AccountHandler(object):
         resp = MySQLPrivManagerApi.add_account_rule(
             {
                 "bk_biz_id": self.bk_biz_id,
-                "creator": self.operator,
+                "operator": self.operator,
                 "cluster_type": self.account_type,
                 "account_id": account_rule.account_id,
                 "priv": account_rule.privilege,
