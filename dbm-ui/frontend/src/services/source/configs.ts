@@ -157,7 +157,7 @@ export function getBusinessConfigList(
         updated_at: string;
         updated_by: string;
         version: string;
-        permission: Record<'dbconfig_view' | 'dbconfig_edit', boolean>;
+        permission: Record<'dbconfig_edit', boolean>;
       }[]
     >(`${path}/list_biz_configs/`, params, payload)
     .then((data) =>

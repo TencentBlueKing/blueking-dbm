@@ -62,13 +62,14 @@
               :label="item.label"
               :value="item.value" />
             <template #extension>
-              <BkButton
+              <AuthButton
+                action-id="tbinlogdumper_install"
                 class="create-module"
                 text
                 @click="handleGoDumper">
                 <i class="db-icon-plus-circle" />
-                {{ $t('新建订阅规则') }}
-              </BkButton>
+                {{ t('新建订阅规则') }}
+              </AuthButton>
             </template>
           </BkSelect>
         </BkFormItem>

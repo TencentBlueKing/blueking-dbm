@@ -156,7 +156,7 @@
 
   import { DBTypes } from '@common/const';
 
-  import ApplyPermissionCatch from '@components/apply-permission/catch.vue';
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {

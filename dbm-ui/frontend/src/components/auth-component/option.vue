@@ -6,7 +6,7 @@
       <slot />
     </template>
     <template v-else>
-      {{ attrs.label }}
+      {{ attrs.label || attrs.name }}
     </template>
   </BkOption>
   <BkOption
@@ -21,29 +21,28 @@
         <slot />
       </template>
       <template v-else>
-        {{ attrs.label }}
+        {{ attrs.label || attrs.name }}
       </template>
     </div>
   </BkOption>
 </template>
 <script setup lang="ts">
-  import {
-    useAttrs,
-    useSlots,
-  } from 'vue';
+  import { useAttrs, useSlots } from 'vue';
 
   import useBase from './use-base';
 
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    permission?: boolean | string,
-    actionId: string,
-    resource?: string | number,
+    permission?: boolean | string;
+    actionId: string;
+    resource?: string | number;
+    bizId?: string | number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     permission: 'normal',
     resource: '',
+    bizId: undefined,
   });
   defineOptions({
     inheritAttrs: false,
@@ -52,14 +51,11 @@
   const attrs = useAttrs();
   const slots = useSlots();
 
-  const {
-    isShowRaw,
-    handleRequestPermission,
-  } = useBase(props);
-
+  const { isShowRaw, handleRequestPermission } = useBase(props);
 </script>
 <style lang="less" scoped>
   .auth-option-disabled {
+    position: relative;
     color: #c4c6cc !important;
 
     & > * {
@@ -68,6 +64,13 @@
 
     .auth-option-label {
       pointer-events: all !important;
+      flex: 1;
+
+      &::after {
+        position: absolute;
+        inset: 0;
+        content: '';
+      }
     }
   }
 </style>

@@ -17,21 +17,18 @@ import {
   FlowTypes,
   getTaskflowDetails,
 } from '@services/source/taskflow';
-import {
-  type FlowItem,
-  type FlowsData,
-} from '@services/types/taskflow';
 
 import type { RenderCollectionKey } from './graphRender';
 
-type FlowLine = ServiceReturnType<typeof getTaskflowDetails>['flows'][string]
-type FlowType = ServiceReturnType<typeof getTaskflowDetails>['end_event']['type']
+type FlowDetail = ServiceReturnType<typeof getTaskflowDetails>;
+type FlowLine = FlowDetail['flows'][string]
+type FlowType = FlowDetail['end_event']['type']
 
 export type RenderKey = 'start_event' | 'end_event' | 'activities' | 'gateways';
 export interface GraphNode {
   id: string,
   tpl: RenderCollectionKey,
-  data: FlowItem,
+  data: FlowDetail & FlowDetail['activities'][string],
   width: number,
   height: number,
   level: number,
@@ -61,8 +58,8 @@ const bothEndTypes: FlowType[] = [FlowTypes.EmptyStartEvent, FlowTypes.EmptyEndE
  * @returns targets
  */
 const getLineTargets = (
-  node: FlowItem,
-  nodeMap: { [key: string]: FlowItem },
+  node: FlowDetail['activities'][number],
+  nodeMap: { [key: string]: FlowDetail },
   flows: { [key: string]: FlowLine },
   isCurrent = false,
   targets: string[] = [],
@@ -100,7 +97,7 @@ const getLineTargets = (
  * @param lines 画布渲染 lines
  * @returns lines
  */
-const formartLines = (data: FlowsData, level = 0, lines: GraphLine[] = []) => {
+const formartLines = (data: FlowDetail, level = 0, lines: GraphLine[] = []) => {
   const {
     gateways,
     activities,
@@ -137,7 +134,7 @@ const formartLines = (data: FlowsData, level = 0, lines: GraphLine[] = []) => {
       const { outgoing } = node;
       const addLine = (lineId: string) => {
         const { target } = flows[lineId];
-        const targets = getLineTargets(nodesMap[target], nodesMap, flows, true);
+        const targets = getLineTargets(nodesMap[target] as any, nodesMap, flows, true);
         for (const id of targets) {
           lines.push({
             id: flows[lineId].id,
@@ -182,7 +179,7 @@ const formartLines = (data: FlowsData, level = 0, lines: GraphLine[] = []) => {
  *  lines
  * }
  */
-export const formatGraphData = (data: FlowsData, expandNodes: string[] = []) => {
+export const formatGraphData = (data: FlowDetail, expandNodes: string[] = []) => {
   const rootNodes = getLevelNodes(data, null, 0, expandNodes); // 所有根节点
   const bothEndNodes = []; // 开始、结束根节点
   const roots = []; // 非开始、结束的根节点
@@ -286,7 +283,7 @@ const config = {
  * @param level 节点层级
  */
 function addNode(
-  node: FlowItem,
+  node: FlowDetail,
   parent: null | GraphNode = null,
   nodes: GraphNode[][],
   index: number,
@@ -319,32 +316,36 @@ function addNode(
  * @returns 当层每列节点信息
  */
 function getLevelNodes(
-  data: FlowsData,
+  data: FlowDetail,
   parent: null | GraphNode = null,
   level = 0,
   expandNodes: string[] = [],
   includesBothEnd = true,
 ) {
   const nodes: GraphNode[][] = [];
+
   const {
-    gateways,
-    activities,
+    gateways = {},
+    activities = {},
     end_event: endNode,
     start_event: startNode,
     flows,
   } = data;
+
   // 当层节点映射
-  const nodesMap: { [key: string]: FlowItem } = {
+  const nodesMap = {
     ...gateways,
     ...activities,
     [startNode.id]: startNode,
     [endNode.id]: endNode,
   };
+
+
   let index = 0;
 
   // 处理开始节点
   nodes[index] = [];
-  addNode(startNode, parent, nodes, index, level, expandNodes);
+  addNode(startNode as any as FlowDetail, parent, nodes, index, level, expandNodes);
 
   const queue = [[startNode]];
   while (queue.length > 0) {
@@ -361,7 +362,7 @@ function getLevelNodes(
           const targetNode = nodesMap[flows[targetId].target];
           // 网关节点不处理
           const isGetewaysType = getewayTypes.includes(targetNode.type);
-          !isGetewaysType && addNode(targetNode, parent, nodes, index, level, expandNodes);
+          !isGetewaysType && addNode(targetNode as any as FlowDetail, parent, nodes, index, level, expandNodes);
           nextColumnNodes.push(targetNode);
         }
       }

@@ -461,7 +461,12 @@
       label: t('权限'),
       field: 'privilege',
       showOverflowTooltip: true,
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      render: ({ cell }: { cell: string }) => {
+        if (!cell){
+          return '--'
+        }
+        return cell.replace(/,/g, ', ')
+      },
     },
   ];
 

@@ -1,6 +1,4 @@
-import {
-  defineComponent,
-} from 'vue';
+import { defineComponent } from 'vue';
 
 import { attrsWithoutListener } from '@utils';
 
@@ -23,13 +21,12 @@ export default defineComponent({
       type: [String, Number],
       default: '',
     },
+    bizId: {
+      type: [String, Number],
+    },
   },
   setup(props) {
-    const {
-      loading,
-      isShowRaw,
-      handleRequestPermission,
-    } = useBase(props);
+    const { loading, isShowRaw, handleRequestPermission } = useBase(props);
 
     return {
       loading,
@@ -39,22 +36,21 @@ export default defineComponent({
   },
   render() {
     if (this.isShowRaw) {
-      return (
-        <span {...this.$attrs}>
-          {this.$slots.default?.()}
-        </span>
-      );
+      return <span {...this.$attrs}>{this.$slots.default?.()}</span>;
     }
 
     const inheritAttrs = attrsWithoutListener(this.$attrs);
 
     return (
-      <div {...inheritAttrs} class="permission-disable-component">
+      <div
+        {...inheritAttrs}
+        class='permission-disable-component'>
         {this.$slots.default?.()}
         <div
-          class="permission-disable-mask"
+          class='permission-disable-mask'
           v-cursor
-          onClick={this.handleRequestPermission} />
+          onClick={this.handleRequestPermission}
+        />
       </div>
     );
   },

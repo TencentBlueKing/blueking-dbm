@@ -281,7 +281,6 @@
     revokePipeline,
     skipTaskflowNode,
   } from '@services/source/taskflow';
-  import type { FlowsData } from '@services/types/taskflow';
 
   import { dbTippy } from '@common/tippy';
 
@@ -338,7 +337,7 @@
 
   const flowState = reactive({
     flowSelectorId: generateId('mission_flow_'),
-    details: {} as FlowsData,
+    details: {} as ServiceReturnType<typeof getTaskflowDetails>,
     flowData: {
       locations: [] as GraphNode[],
       lines: [] as GraphLine[],
@@ -608,7 +607,9 @@
    */
   const fetchTaskflowDetails = (loading = false) => {
     flowState.loading = loading;
-    getTaskflowDetails({ rootId: rootId.value })
+    getTaskflowDetails({ rootId: rootId.value }, {
+      permission: 'page'
+    })
       .then((res) => {
         flowState.details = res;
         retryRenderFailedTips();

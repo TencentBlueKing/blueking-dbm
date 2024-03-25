@@ -24,6 +24,7 @@
           <BusinessItems
             v-model:app-abbr="state.formdata.details.db_app_abbr"
             v-model:biz-id="state.formdata.bk_biz_id"
+            perrmision-action-id="redis_cluster_apply"
             @change-biz="handleChangeBiz" />
           <ClusterName v-model="state.formdata.details.cluster_name" />
           <ClusterAlias

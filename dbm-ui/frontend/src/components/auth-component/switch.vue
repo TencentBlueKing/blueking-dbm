@@ -15,9 +15,7 @@
   </span>
 </template>
 <script setup lang="ts">
-  import {
-    useAttrs,
-  } from 'vue';
+  import { useAttrs } from 'vue';
 
   import { attrsWithoutListener } from '@utils';
 
@@ -25,14 +23,16 @@
 
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    permission?: boolean | string,
-    actionId: string,
-    resource?: string | number,
+    permission?: boolean | string;
+    actionId: string;
+    resource?: string | number;
+    bizId?: string | number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     permission: 'normal',
     resource: '',
+    bizId: undefined,
   });
 
   defineOptions({
@@ -43,12 +43,7 @@
 
   const inheritAttrs = attrsWithoutListener(attrs);
 
-  const {
-    loading,
-    isShowRaw,
-    handleRequestPermission,
-  } = useBase(props);
-
+  const { loading, isShowRaw, handleRequestPermission } = useBase(props);
 </script>
 <style lang="less" scoped>
   .auth-switch-disable {

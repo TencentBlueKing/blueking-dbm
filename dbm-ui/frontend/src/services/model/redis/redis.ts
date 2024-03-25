@@ -135,12 +135,12 @@ export default class Redis {
     title: string;
   }[];
   permission: {
+    redis_backup: boolean;
     redis_destroy: boolean;
     redis_keys_delete: boolean;
     redis_keys_extract: boolean;
     redis_open_close: boolean;
     redis_purge: boolean;
-    redis_backup: boolean;
     redis_view: boolean;
     access_entry_edit: boolean;
   };

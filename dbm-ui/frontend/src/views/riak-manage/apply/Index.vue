@@ -25,6 +25,7 @@
         <BusinessItems
           v-model:app-abbr="formData.details.db_app_abbr"
           v-model:biz-id="formData.bk_biz_id"
+          perrmision-action-id="riak_apply"
           @change-biz="handleChangeBiz" />
         <BkFormItem
           ref="moduleRef"
@@ -41,10 +42,15 @@
             :input-search="false"
             :loading="getModulesLoading"
             :placeholder="t('请选择xx', [t('DB模块名')])">
-            <BkOption
+            <AuthOption
               v-for="item in moduleList"
               :key="item.db_module_id"
+              action-id="dbconfig_view"
+              :biz-id="formData.bk_biz_id"
               :label="item.name"
+              :name="item.name"
+              :permission="item.permission.dbconfig_view"
+              resource="riak"
               :value="item.db_module_id" />
           </BkSelect>
         </BkFormItem>

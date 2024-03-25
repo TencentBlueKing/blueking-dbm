@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
-    <div class="apply-instance">
+    <div class="spider-apply-instance-page">
       <DbForm
         ref="formRef"
         auto-label-width
@@ -23,6 +23,7 @@
           <BusinessItems
             v-model:app-abbr="formdata.details.db_app_abbr"
             v-model:biz-id="formdata.bk_biz_id"
+            perrmision-action-id="tendbcluster_apply"
             @change-biz="handleChangeBiz" />
           <ClusterName v-model="formdata.details.cluster_name" />
           <ClusterAlias
@@ -306,11 +307,11 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   @import '@styles/applyInstance.less';
 
-  .apply-instance {
-    :deep(.item-input) {
+  .spider-apply-instance-page {
+    .item-input {
       width: 462px;
     }
 
@@ -321,7 +322,7 @@
       color: #63656e;
     }
 
-    :deep(.resource-pool-item) {
+    .resource-pool-item {
       width: 655px;
       padding: 24px 0;
       background-color: #f5f7fa;
@@ -340,6 +341,12 @@
             width: 314px;
           }
         }
+      }
+    }
+
+    .db-card {
+      & ~ .db-card {
+        margin-top: 20px;
       }
     }
   }

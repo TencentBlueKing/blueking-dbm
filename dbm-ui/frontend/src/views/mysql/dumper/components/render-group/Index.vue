@@ -31,7 +31,7 @@
         <span class="group-item-nums">{{ totalInstances }}</span>
       </div>
       <span class="split-line" />
-      <div class="group-list db-scroll-y">
+      <ScrollFaker class="group-list">
         <div
           v-for="item in groupList"
           :key="item.id"
@@ -55,11 +55,16 @@
             </span>
             <span class="group-item-nums">{{ item.instance_count }}</span>
             <div class="group-item-operations">
-              <DbIcon
-                v-bk-tooltips="t('修改名称')"
-                class="group-item-btn mr-8"
-                type="edit"
-                @click.stop="handleEdit(item.id)" />
+              <AuthTemplate
+                action-id="dumper_config_update"
+                :permission="item.permission.dumper_config_update"
+                :resource="item.id">
+                <DbIcon
+                  v-bk-tooltips="t('修改名称')"
+                  class="group-item-btn mr-8"
+                  type="edit"
+                  @click.stop="handleEdit(item.id)" />
+              </AuthTemplate>
               <DbIcon
                 v-if="item.instance_count > 0"
                 v-bk-tooltips="t('规则下存在实例_不可删除')"
@@ -71,24 +76,29 @@
                 :confirm-handler="() => handleDelete(item)"
                 :content="t('删除后将不可恢复_请确认操作')"
                 :title="t('确认删除该规则？')">
-                <DbIcon
-                  v-bk-tooltips="t('删除')"
-                  class="group-item-btn"
-                  type="delete"
-                  @click.stop />
+                <AuthTemplate
+                  action-id="dumper_config_destroy"
+                  :permission="item.permission.dumper_config_destroy"
+                  :resource="item.id">
+                  <DbIcon
+                    v-bk-tooltips="t('删除')"
+                    class="group-item-btn"
+                    type="delete" />
+                </AuthTemplate>
               </DbPopconfirm>
             </div>
           </template>
         </div>
-      </div>
+      </ScrollFaker>
       <div class="rule-footer">
-        <BkButton
+        <AuthButton
+          action-id="tbinlogdumper_install"
           class="rule-add"
           text
           theme="primary"
           @click="handleShowCreateRule">
           <DbIcon type="plus-circle" /> {{ t('新建订阅规则') }}
-        </BkButton>
+        </AuthButton>
       </div>
     </BkLoading>
   </div>
@@ -142,6 +152,8 @@
     listDumperConfig({
       offset: 0,
       limit: -1,
+    }, {
+      permission: 'page'
     })
       .then((data) => {
         groupList.value = data.results;

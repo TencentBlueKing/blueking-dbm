@@ -28,7 +28,10 @@
       style="font-size: 12px; line-height: 16px; color: #63656e"
       tag="div">
       <span>{{ data.tip }}</span>
-      <RouterLink
+      <AuthRouterLink
+        v-if="isShown"
+        action-id="ticket_view"
+        :resource="data.ticketId"
         target="_blank"
         :to="{
           name: 'SelfServiceMyTickets',
@@ -37,7 +40,7 @@
           },
         }">
         {{ $t('我的服务单') }}
-      </RouterLink>
+      </AuthRouterLink>
     </I18nT>
   </div>
 </template>
@@ -56,6 +59,7 @@
 
   const rootRef = ref();
   const popRef = ref();
+  const isShown = ref(false);
 
   const isRender = computed(() => props.data.icon && props.data.tip && props.data.ticketId);
 
@@ -86,6 +90,12 @@
             offset: [0, 8],
             zIndex: 999999,
             hideOnClick: true,
+            onShow() {
+              isShown.value = true
+            },
+            onHide(){
+              isShown.value = false
+            }
           });
         });
       }

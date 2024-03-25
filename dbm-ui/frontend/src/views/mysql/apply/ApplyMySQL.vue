@@ -24,6 +24,7 @@
           <BusinessItems
             v-model:app-abbr="formdata.details.db_app_abbr"
             v-model:biz-id="formdata.bk_biz_id"
+            perrmision-action-id="mysql_apply"
             @change-biz="handleChangeBiz" />
           <BkFormItem
             ref="moduleRef"
@@ -39,26 +40,36 @@
               :input-search="false"
               :loading="loading.modules"
               style="display: inline-block">
-              <BkOption
+              <AuthOption
                 v-for="item in fetchState.moduleList"
+                :id="item.db_module_id"
                 :key="item.db_module_id"
-                :label="item.name"
-                :value="item.db_module_id" />
-              <template #extension>
-                <p
+                action-id="dbconfig_view"
+                :biz-id="formdata.bk_biz_id"
+                :name="item.name"
+                :permission="item.permission.dbconfig_view"
+                resource="mysql" />
+              <template
+                v-if="formdata.bk_biz_id"
+                #extension>
+                <div
                   v-bk-tooltips.top="{
                     content: t('请先选择所属业务'),
                     disabled: !!formdata.bk_biz_id,
-                  }">
-                  <BkButton
+                  }"
+                  style="padding: 0 12px">
+                  <AuthButton
+                    action-id="dbconfig_edit"
+                    :biz-id="formdata.bk_biz_id"
                     class="create-module"
                     :disabled="!formdata.bk_biz_id"
+                    resource="mysql"
                     text
                     @click="handleCreateModule">
-                    <i class="db-icon-plus-circle" />
+                    <DbIcon type="plus-circle" />
                     {{ t('新建模块') }}
-                  </BkButton>
-                </p>
+                  </AuthButton>
+                </div>
               </template>
             </BkSelect>
             <span

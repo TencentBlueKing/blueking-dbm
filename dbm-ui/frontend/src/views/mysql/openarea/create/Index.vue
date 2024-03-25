@@ -145,4 +145,12 @@
       name: 'mysqlOpenareaTemplate',
     });
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'mysqlOpenareaTemplate',
+      });
+    },
+  });
 </script>
