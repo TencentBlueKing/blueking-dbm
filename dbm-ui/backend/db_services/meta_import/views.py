@@ -30,6 +30,8 @@ from backend.db_services.meta_import.serializers import (
     TenDBClusterStandardizeSerializer,
     TenDBHAMetadataImportSerializer,
     TenDBHAStandardizeSerializer,
+    TenDBSingleMetadataImportSerializer,
+    TenDBSingleStandardizeSerializer,
 )
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
 from backend.ticket.builders.mysql.mysql_ha_metadata_import import TenDBHAMetadataImportDetailSerializer
@@ -37,6 +39,8 @@ from backend.ticket.builders.mysql.mysql_ha_standardize import TenDBHAStandardiz
 from backend.ticket.builders.spider.metadata_import import TenDBClusterMetadataImportDetailSerializer
 from backend.ticket.builders.spider.mysql_spider_standardize import TenDBClusterStandardizeDetailSerializer
 from backend.ticket.builders.tendbcluster.append_deploy_ctl import TenDBClusterAppendDeployCTLDetailSerializer
+from backend.ticket.builders.tendbsingle.metadata_import import TenDBSingleMetadataImportDetailSerializer
+from backend.ticket.builders.tendbsingle.standardize import TenDBSingleStandardizeDetailSerializer
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
@@ -96,16 +100,16 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
             domain_list.append(line.decode("utf-8").strip().rstrip("."))
 
         cluster_ids = list(
-            Cluster.objects.filter(
-                bk_biz_id=data["bk_biz_id"], immute_domain__in=domain_list, cluster_type=ClusterType.TenDBHA.value
-            ).values_list("id", flat=True)
+            Cluster.objects.filter(immute_domain__in=domain_list, cluster_type=ClusterType.TenDBHA.value).values_list(
+                "id", flat=True
+            )
         )
         logger.info("domains: {}, ids: {}".format(domain_list, cluster_ids))
 
         exists_domains = list(
-            Cluster.objects.filter(
-                bk_biz_id=data["bk_biz_id"], immute_domain__in=domain_list, cluster_type=ClusterType.TenDBHA.value
-            ).values_list("immute_domain", flat=True)
+            Cluster.objects.filter(immute_domain__in=domain_list, cluster_type=ClusterType.TenDBHA.value).values_list(
+                "immute_domain", flat=True
+            )
         )
         diff = list(set(domain_list) - set(exists_domains))
         if diff:
@@ -237,6 +241,76 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
             creator=request.user.username,
             bk_biz_id=data["bk_biz_id"],
             remark=self.tendbcluster_append_deploy_ctl.__name__,
+            details=data,
+        )
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("TenDB Single 元数据导入"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=TenDBSingleMetadataImportSerializer,
+        parser_classes=[MultiPartParser],
+    )
+    def tendbsingle_metadata_import(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        data["json_content"] = json.loads(data.pop("file").read().decode("utf-8"))
+        TenDBSingleMetadataImportDetailSerializer(data=data).is_valid(raise_exception=True)
+        Ticket.create_ticket(
+            ticket_type=TicketType.TENDBSINGLE_METADATA_IMPORT,
+            creator=request.user.username,
+            bk_biz_id=data["bk_biz_id"],
+            remark=self.tendbsingle_metadata_import.__name__,
+            details=data,
+        )
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("TenDB Single 集群标准化"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=TenDBSingleStandardizeSerializer,
+        parser_classes=[MultiPartParser],
+    )
+    def tendbsingle_standardize(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+
+        domain_list = []
+        for line in data.pop("file").readlines():
+            domain_list.append(line.decode("utf-8").strip().rstrip("."))
+
+        cluster_ids = list(
+            Cluster.objects.filter(
+                immute_domain__in=domain_list, cluster_type=ClusterType.TenDBSingle.value
+            ).values_list("id", flat=True)
+        )
+        logger.info("domains: {}, ids: {}".format(domain_list, cluster_ids))
+
+        exists_domains = list(
+            Cluster.objects.filter(
+                immute_domain__in=domain_list, cluster_type=ClusterType.TenDBSingle.value
+            ).values_list("immute_domain", flat=True)
+        )
+        diff = list(set(domain_list) - set(exists_domains))
+        if diff:
+            raise serializers.ValidationError(_("cluster {} not found".format(diff)))
+
+        data["cluster_ids"] = cluster_ids
+
+        data["infos"] = {"cluster_ids": data["cluster_ids"]}
+
+        TenDBSingleStandardizeDetailSerializer(data=data).is_valid(raise_exception=True)
+        Ticket.create_ticket(
+            ticket_type=TicketType.TENDBSINGLE_STANDARDIZE,
+            creator=request.user.username,
+            bk_biz_id=data["bk_biz_id"],
+            remark=self.tendbsingle_standardize.__name__,
             details=data,
         )
         return Response(data)

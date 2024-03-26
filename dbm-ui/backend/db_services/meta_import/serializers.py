@@ -108,3 +108,23 @@ class TenDBClusterAppendCTLSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         return attrs
+
+
+class TenDBSingleMetadataImportSerializer(serializers.Serializer):
+    bk_biz_id = BizChoiceField(help_text=_("业务"))
+    file = serializers.FileField(help_text=_("元数据json文件"))
+    db_module_id = MetadataImportDBModuleField(help_text=_("模块ID"), cluster_type=ClusterType.TenDBSingle.value)
+    storage_spec_id = MetadataImportSpecField(
+        help_text=_("存储机规格ID"), cluster_type=ClusterType.TenDBSingle.value, machine_type=MachineType.SINGLE.value
+    )
+
+    def validate(self, attrs):
+        return attrs
+
+
+class TenDBSingleStandardizeSerializer(serializers.Serializer):
+    bk_biz_id = BizChoiceField(help_text=_("业务ID"))
+    file = serializers.FileField(help_text=_("域名列表文件"))
+
+    def validate(self, attrs):
+        return attrs
