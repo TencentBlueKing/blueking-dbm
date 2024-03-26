@@ -324,7 +324,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "name": (Q(name__icontains=query_params.get("name")) | Q(alias__icontains=query_params.get("name"))),
             "domain": Q(immute_domain__icontains=query_params.get("domain")),
             # 版本
-            "version": Q(major_version=query_params.get("version")),
+            "version": Q(major_version=query_params.get("major_version")),
             # 地域
             "region": Q(region=query_params.get("region")),
             "cluster_ids": Q(id__in=query_params.get("cluster_ids")),
@@ -435,7 +435,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             return ResourceList(count=0, data=[])
 
         # 预取proxy_queryset，storage_queryset，加块查询效率
-        cluster_queryset = cluster_queryset.order_by("-create_at")[offset : limit + offset].prefetch_related(
+        cluster_queryset = cluster_queryset[offset : limit + offset].prefetch_related(
             Prefetch("proxyinstance_set", queryset=proxy_queryset.select_related("machine"), to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_queryset.select_related("machine"), to_attr="storages"),
             "tag_set",
@@ -549,9 +549,20 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 | Q(bind_entry__entry__icontains=query_params.get("domain"))
             ),
         }
+
+        def join_instance_by_q(instances: str) -> Q:
+            insts = instances.split(",")
+            filter_inst = reduce(
+                operator.or_, [Q(machine__ip=inst.split(":")[0], port=inst.split(":")[1]) for inst in insts]
+            )
+            return filter_inst
+
+        # 判断是否需要实例过滤
+        if query_params.get("instance"):
+            filter_params_map.update({"instance": join_instance_by_q(query_params.get("instance"))})
+
         filter_params_map = filter_params_map or {}
         filter_params_map.update(inner_filter_params_map)
-
         # 通过基础过滤参数进行instance过滤
         for param in filter_params_map:
             if query_params.get(param):

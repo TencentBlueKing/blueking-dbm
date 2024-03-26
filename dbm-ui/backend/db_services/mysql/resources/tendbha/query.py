@@ -8,8 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import operator
-from functools import reduce
 from typing import Any, Callable, Dict, List
 
 from django.db.models import F, Q
@@ -71,18 +69,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
         filter_params_map: Dict[str, Q] = None,
         **kwargs,
     ) -> query.ResourceList:
-        def join_instance_by_q(instances: str) -> Q:
-            insts = instances.split(",")
-            filter_inst = reduce(
-                operator.or_, [Q(machine__ip=inst.split(":")[0], port=inst.split(":")[1]) for inst in insts]
-            )
-            return filter_inst
-
         filter_params_map = filter_params_map or {}
         filter_params_map.update(role_exclude=(~Q(role=query_params.get("role_exclude"))))
-        if query_params.get("instance"):
-            filter_params_map.update({"instance": join_instance_by_q(query_params.get("instance"))})
-
         return super()._list_instances(bk_biz_id, query_params, limit, offset, filter_params_map)
 
     @classmethod

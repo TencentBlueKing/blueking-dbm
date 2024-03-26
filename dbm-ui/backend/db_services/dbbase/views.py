@@ -20,9 +20,8 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
-from backend.db_services.dbbase.instances.handlers import InstanceHandler
-from backend.db_services.dbbase.instances.yasg_slz import CheckInstancesResSLZ, CheckInstancesSLZ
 from backend.db_services.dbbase.resources.query import ListRetrieveResource
 from backend.db_services.dbbase.serializers import (
     CommonQueryClusterResponseSerializer,
@@ -128,30 +127,18 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         # 实例的部署角色
         if "role" in data["instances_attrs"]:
             query_filters = Q(bk_biz_id=data["bk_biz_id"], cluster_type=data["cluster_type"])
-            # 获取storage实例的查询集
-            storage_roles = StorageInstance.objects.filter(query_filters).values_list("instance_role", flat=True)
             # 获取proxy实例的查询集
             proxy_roles = ProxyInstance.objects.filter(query_filters).values_list("access_layer", flat=True)
+            # 获取storage实例的查询集
+            storage_queryset = StorageInstance.objects.filter(query_filters)
+            # mysql的实例角色返回的是InstanceInnerRole 其他集群实例InstanceRole
+            if data["cluster_type"] in [ClusterType.TenDBSingle.value, ClusterType.TenDBHA.value]:
+                storage_roles = storage_queryset.values_list("instance_inner_role", flat=True)
+            else:
+                storage_roles = storage_queryset.values_list("instance_role", flat=True)
+
             unique_roles = set(storage_roles) | (set(proxy_roles))
             roles_dicts = [{"name": role, "values": role} for role in unique_roles]
             cluster_attrs["role"] = roles_dicts
 
         return Response(cluster_attrs)
-
-    @common_swagger_auto_schema(
-        operation_summary=_("根据用户手动输入的ip[:port]查询真实的实例"),
-        request_body=CheckInstancesSLZ(),
-        tags=[SWAGGER_TAG],
-        responses={status.HTTP_200_OK: CheckInstancesResSLZ()},
-    )
-    @action(methods=["POST"], detail=False, serializer_class=CheckInstancesSLZ)
-    def check_instances(self, request, bk_biz_id):
-        validated_data = self.params_validate(self.get_serializer_class())
-        db_type = request.stream.path.split("/")[2]
-        return Response(
-            InstanceHandler(bk_biz_id=bk_biz_id).check_instances(
-                query_instances=validated_data["instance_addresses"],
-                cluster_ids=validated_data["cluster_ids"],
-                db_type=db_type,
-            )
-        )

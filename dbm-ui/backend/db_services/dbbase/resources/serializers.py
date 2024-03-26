@@ -23,7 +23,7 @@ class ListResourceSLZ(serializers.Serializer):
     instance = serializers.CharField(required=False)
     domain = serializers.CharField(required=False)
     creator = serializers.CharField(required=False)
-    version = serializers.CharField(required=False)
+    major_version = serializers.CharField(required=False)
     region = serializers.CharField(required=False)
     cluster_ids = serializers.ListField(child=serializers.IntegerField(), required=False, allow_empty=True)
     exact_domain = serializers.CharField(help_text=_("精确域名查询"), required=False)
