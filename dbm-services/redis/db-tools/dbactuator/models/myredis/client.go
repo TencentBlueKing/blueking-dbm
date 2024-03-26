@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -146,6 +147,33 @@ func (db *RedisClient) RedisClusterConfigSetOnlyMasters(confName string, val str
 		node01 := nodeItem
 		if IsRunningMaster(node01) {
 			ret, err := confSetFunc(node01, confName, val)
+			if err != nil {
+				return rets, err
+			}
+			rets = append(rets, ret)
+		}
+	}
+	return
+}
+
+// RedisClusterMastersRunCmd run cmd on all redis cluster running masters
+func (db *RedisClient) RedisClusterMastersRunCmd(cmdArgv []string) (rets []interface{}, err error) {
+	nodes, err := db.GetClusterNodes()
+	if err != nil {
+		return
+	}
+	confSetFunc := func(node001 *ClusterNodeData, cmdArgv []string) (ret interface{}, err error) {
+		cli01, err := NewRedisClient(node001.Addr, db.Password, 0, consts.TendisTypeRedisInstance)
+		if err != nil {
+			return
+		}
+		defer cli01.Close()
+		return cli01.DoCommand(cmdArgv, 0)
+	}
+	for _, nodeItem := range nodes {
+		node01 := nodeItem
+		if IsRunningMaster(node01) {
+			ret, err := confSetFunc(node01, cmdArgv)
 			if err != nil {
 				return rets, err
 			}
@@ -2052,4 +2080,51 @@ func (db *RedisClient) ClientKillAddr(addr string) (err error) {
 		return err
 	}
 	return
+}
+
+// TailRedisLogFile 获取redis日志数据,如果 tailNLine>0,则返回日志尾部部分,否则返回日志全部
+func (db *RedisClient) TailRedisLogFile(tailNLine int) (data string, err error) {
+	var logFile string
+	tendisType, err := db.GetTendisType()
+	if err != nil {
+		return "", err
+	}
+	// 获取 logfile 位置
+	if tendisType == consts.TendisTypeTendisplusInsance {
+		confRet, err := db.ConfigGet("logdir")
+		if err != nil {
+			return "", err
+		}
+		logDir := confRet["logdir"]
+		logDir = strings.TrimPrefix(logDir, "\"")
+		logDir = strings.TrimSuffix(logDir, "\"")
+		logFile = filepath.Join(logDir, "tendisplus.ERROR")
+	} else {
+		confRet, err := db.ConfigGet("logfile")
+		if err != nil {
+			return "", err
+		}
+		logFile = confRet["logfile"]
+	}
+	if !util.FileExists(logFile) {
+		err = fmt.Errorf("redis %s logfile:%s not exists", db.Addr, logFile)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	// 获取日志尾部部分,执行tail -n 命令
+	if tailNLine > 0 {
+		tailCmd := fmt.Sprintf("tail -%d %s", tailNLine, logFile)
+		data, err = util.RunBashCmd(tailCmd, "", nil, 1*time.Minute)
+		if err != nil {
+			return
+		}
+	}
+	// 读取文件内容
+	dataBytes, err := os.ReadFile(logFile)
+	if err != nil {
+		err = fmt.Errorf("redis %s logfile:%s ioutil.ReadFile failed,err:%v", db.Addr, logFile, err)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	return string(dataBytes), nil
 }
