@@ -25,10 +25,12 @@ from backend.tests.mock_data.ticket.mongodb_flow import (
     APPCACHE_DATA,
     MANGODB_ADD_MANGOS_TICKET_DATA,
     MANGODB_CLUSTER_DATA,
+    MANGODB_CUTOFF_TICKET_DATA,
     MANGODB_DESTROY_TICKET_DATA,
     MANGODB_MACHINE_DATA,
     MANGODB_PROXYINSTANCE_DATA,
     MANGODB_REDUCE_MANGOS_DATA,
+    MANGODB_SOURCE_APPLICATION_DATA,
     MANGODB_SPEC_DATA,
     MANGOS_ADD_SOURCE_DATA,
 )
@@ -178,6 +180,45 @@ class TestMangodbFlow:
 
         # itsm流程
         mangos_add_data = copy.deepcopy(MANGODB_DESTROY_TICKET_DATA)
+        client.post("/apis/tickets/", data=mangos_add_data)
+        current_flow = Flow.objects.filter(flow_obj_id=SN).first()
+        assert current_flow is not None
+
+        # PAUSE流程
+        client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
+        current_flow = Flow.objects.exclude(flow_obj_id="").last()
+        assert current_flow.flow_type == FlowType.PAUSE
+        # RESOURCE_APPLY -> INNER_FLOW
+        client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
+        current_flow = Flow.objects.exclude(flow_obj_id="").last()
+        assert current_flow.flow_type == FlowType.INNER_FLOW
+
+    @patch.object(TicketViewSet, "permission_classes")
+    @patch.object(InnerFlow, "_run")
+    @patch.object(InnerFlow, "status", new_callable=PropertyMock)
+    @patch.object(PauseFlow, "status", new_callable=PropertyMock)
+    @patch.object(TicketViewSet, "get_permissions", lambda x: [])
+    @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
+    @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
+    @patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条MANGO 整机替换待办需要您处理")
+    @patch(
+        "backend.ticket.flow_manager.resource.ResourceApplyFlow.apply_resource",
+        lambda resource_request_id, node_infos: (1, MANGODB_SOURCE_APPLICATION_DATA),
+    )
+    @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
+    def test_mango_outoff_flow(
+        self, mock_pause_status, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db
+    ):
+        # MANGODB 整机替换: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
+        mocked_status.return_value = TicketStatus.SUCCEEDED
+        mock_pause_status.return_value = TicketFlowStatus.SKIPPED
+        mocked__run.return_value = ROOT_ID
+        mocked_permission_classes.return_value = [AllowAny]
+
+        client.login(username="admin")
+
+        # itsm流程
+        mangos_add_data = copy.deepcopy(MANGODB_CUTOFF_TICKET_DATA)
         client.post("/apis/tickets/", data=mangos_add_data)
         current_flow = Flow.objects.filter(flow_obj_id=SN).first()
         assert current_flow is not None

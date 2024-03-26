@@ -72,6 +72,78 @@ MANGOS_ADD_SOURCE_DATA = {
     ]
 }
 
+# mango 整机替换请求单据
+MANGODB_CUTOFF_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": "MONGODB_CUTOFF",
+    "details": {
+        "ip_source": "resource_pool",
+        "infos": [
+            {
+                "cluster_id": CLUSTER_ID,
+                "mongos": [{"ip": "1.1.1.3", "spec_id": 3, "bk_cloud_id": 0}],
+                "mongodb": [{"ip": "1.1.1.4", "spec_id": 3, "bk_cloud_id": 0}],
+                "mongo_config": [{"ip": "1.1.1.5", "spec_id": 3, "bk_cloud_id": 0}],
+            }
+        ],
+    },
+}
+
+# mango 整机替换资源申请数据
+MANGODB_SOURCE_APPLICATION_DATA = {
+    "0_mongodb_1.1.1.4": [
+        {
+            "bk_biz_id": BK_BIZ_ID,
+            "ip": "2.2.2.1",
+            "bk_cloud_id": 0,
+            "bk_host_id": 3,
+            "bk_cpu": 2,
+            "bk_disk": 147,
+            "bk_mem": 3663,
+            "storage_device": {"/data": {"size": 50, "disk_id": "disk-01", "disk_type": "HDD", "file_type": "ext4"}},
+            "city": "",
+            "sub_zone": "",
+            "sub_zone_id": "",
+            "rack_id": "",
+            "device_class": "",
+        }
+    ],
+    "0_mongos_1.1.1.3": [
+        {
+            "bk_biz_id": BK_BIZ_ID,
+            "ip": "2.2.2.3",
+            "bk_cloud_id": 0,
+            "bk_host_id": 3,
+            "bk_cpu": 2,
+            "bk_disk": 147,
+            "bk_mem": 3663,
+            "storage_device": {"/data": {"size": 50, "disk_id": "disk-01", "disk_type": "HDD", "file_type": "ext4"}},
+            "city": "",
+            "sub_zone": "",
+            "sub_zone_id": "",
+            "rack_id": "",
+            "device_class": "",
+        }
+    ],
+    "0_mongo_config_1.1.1.5": [
+        {
+            "bk_biz_id": BK_BIZ_ID,
+            "ip": "2.2.2.5",
+            "bk_cloud_id": 0,
+            "bk_host_id": 3,
+            "bk_cpu": 2,
+            "bk_disk": 147,
+            "bk_mem": 3663,
+            "storage_device": {"/data": {"size": 50, "disk_id": "disk-01", "disk_type": "HDD", "file_type": "ext4"}},
+            "city": "",
+            "sub_zone": "",
+            "sub_zone_id": "",
+            "rack_id": "",
+            "device_class": "",
+        }
+    ],
+}
+
 # 初始化mongodb集群
 MANGODB_CLUSTER_DATA = {
     "id": CLUSTER_ID,
