@@ -153,12 +153,12 @@ FROM medium-builder as mongodb-medium-builder
 ## 构建mongodb介质
 RUN set -ex && \
     cd /blueking-dbm/dbm-services/mongodb/db-tools/dbactuator && \
-    make build VERSION=$(/lock.sh mongodb actuator version) GITHASH=$(/lock.sh mongodb actuator commitId) -j4 && \
+    make build VERSION=$(/lock.sh mongodb actuator version) GITHASH=$(/lock.sh mongodb actuator commitId) BUILDSTAMP=$(/lock.sh mongodb actuator commitDate) -j4 && \
     cd /blueking-dbm/dbm-services/mongodb/db-tools/dbmon && \
     cat package.sh | tr -d '\r' > package.sh.tmp && mv package.sh.tmp package.sh && \
     bash package.sh --version=$(/lock.sh mongodb dbmon version) --git-hash=$(/lock.sh mongodb dbmon commitId) --git-date=$(/lock.sh mongodb dbmon commitDate) && \
     cd /blueking-dbm/dbm-services/mongodb/db-tools/mongo-toolkit-go && \
-    make build VERSION=$(/lock.sh mongodb mongo-toolkit version) GITHASH=$(/lock.sh mongodb mongo-toolkit commitId) -j4
+    make build VERSION=$(/lock.sh mongodb mongo-toolkit version) GITHASH=$(/lock.sh mongodb mongo-toolkit commitId) BUILDSTAMP=$(/lock.sh mongodb mongo-toolkit commitDate) -j4
 
 
 FROM medium-builder as bigdata-medium-builder
