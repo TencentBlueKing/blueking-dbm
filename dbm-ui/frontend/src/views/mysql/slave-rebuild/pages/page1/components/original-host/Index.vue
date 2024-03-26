@@ -109,6 +109,12 @@
     [ClusterTypes.TENDBHA]: [
       {
         name: t('目标从库实例'),
+        tableConfig: {
+          firsrColumn: {
+            label: 'slave',
+            role: 'slave',
+          },
+        },
       },
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
