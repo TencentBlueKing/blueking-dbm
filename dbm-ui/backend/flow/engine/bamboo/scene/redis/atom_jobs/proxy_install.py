@@ -40,7 +40,7 @@ logger = logging.getLogger("flow")
 
 
 def ProxyBatchInstallAtomJob(
-    root_id, ticket_data, act_kwargs: ActKwargs, param: Dict, dbmon_install: True
+    root_id, ticket_data, act_kwargs: ActKwargs, param: Dict, dbmon_install: bool = True
 ) -> SubBuilder:
     """
     ### SubBuilder: Proxy安装原子任务
