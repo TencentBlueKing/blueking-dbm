@@ -45,7 +45,7 @@ logger = logging.getLogger("flow")
 
 
 def RedisBatchInstallAtomJob(
-    root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict, dbmon_install: True
+    root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict, dbmon_install: bool = True
 ) -> SubBuilder:
     """
     ### SubBuilder: Redis安装原籽任务
