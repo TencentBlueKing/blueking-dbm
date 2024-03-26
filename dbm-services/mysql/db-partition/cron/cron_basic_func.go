@@ -13,6 +13,7 @@ package cron
 import (
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"dbm-services/common/go-pubpkg/errno"
@@ -58,29 +59,40 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 		slog.Error("msg", "get need partition list fail", errOuter)
 		return
 	}
+	var wg sync.WaitGroup
+	tokenBucket := make(chan int, 10)
 	for _, item := range needMysql {
-		objects, err := (*item).DryRun()
-		if err != nil {
-			code, _ := errno.DecodeErr(err)
-			if code == errno.NothingToDo.Code {
-				// 当天首次执行发现没有需要执行的sql，记录日志。重试没有执行的sql，不需要记录日志。
-				if m.CronType == "daily" {
+		wg.Add(1)
+		tokenBucket <- 0
+		go func(item *service.Checker) {
+			defer func() {
+				<-tokenBucket
+				wg.Done()
+			}()
+			objects, err := (*item).DryRun()
+			if err != nil {
+				code, _ := errno.DecodeErr(err)
+				if code == errno.NothingToDo.Code {
+					// 当天首次执行发现没有需要执行的sql，记录日志。重试没有执行的sql，不需要记录日志。
+					if m.CronType == "daily" {
+						_ = service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
+							item.ImmuteDomain, zone, m.CronDate, Scheduler, errno.NothingToDo.Message, service.CheckSucceeded,
+							item.ClusterType)
+					}
+				} else {
+					dimension := monitor.NewPartitionEventDimension(item.BkBizId, *item.BkCloudId, item.ImmuteDomain)
+					content := fmt.Sprintf("partition error. get partition sql fail: %s", err.Error())
+					monitor.SendEvent(monitor.PartitionEvent, dimension, content, "127.0.0.1")
 					_ = service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
-						item.ImmuteDomain, zone, m.CronDate, Scheduler, errno.NothingToDo.Message, service.CheckSucceeded,
-						item.ClusterType)
+						item.ImmuteDomain, zone, m.CronDate, Scheduler, content, service.CheckFailed, item.ClusterType)
+					slog.Error(fmt.Sprintf("%v", *item), "get partition sql fail", err)
 				}
-				continue
-			} else {
-				dimension := monitor.NewPartitionEventDimension(item.BkBizId, *item.BkCloudId, item.ImmuteDomain)
-				content := fmt.Sprintf("partition error. get partition sql fail: %s", err.Error())
-				monitor.SendEvent(monitor.PartitionEvent, dimension, content, "127.0.0.1")
-				_ = service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
-					item.ImmuteDomain, zone, m.CronDate, Scheduler, content, service.CheckFailed, item.ClusterType)
-				slog.Error(fmt.Sprintf("%v", *item), "get partition sql fail", err)
-				continue
+				return
 			}
-		}
-		slog.Info("do create partition ticket")
-		service.CreatePartitionTicket(*item, objects, m.ZoneOffset, m.CronDate, Scheduler)
+			slog.Info("do create partition ticket")
+			service.CreatePartitionTicket(*item, objects, m.ZoneOffset, m.CronDate, Scheduler)
+		}(item)
 	}
+	wg.Wait()
+	close(tokenBucket)
 }

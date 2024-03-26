@@ -31,7 +31,7 @@ func InitEnv() {
 
 	// pt-osc参数
 	viper.BindEnv("pt.max_load.threads_running", "PT_MAX_LOAD_THREADS_RUNNING")
-	viper.BindEnv("pt.critical_load.threads_running", "PT_CRITICAL_LOAD_THREADs_RUNNING")
+	viper.BindEnv("pt.critical_load.threads_running", "PT_CRITICAL_LOAD_THREADS_RUNNING")
 	viper.BindEnv("pt.lock_wait_timeout", "PT_LOCK_WAIT_TIMEOUT")
 	viper.BindEnv("pt.max_size", "PT_MAX_SIZE")
 	viper.BindEnv("pt.max_rows", "PT_MAX_ROWS")
