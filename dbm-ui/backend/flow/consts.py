@@ -35,6 +35,11 @@ DEFAULT_FACTOR = 3
 
 # 默认Redis起始端口
 DEFAULT_REDIS_START_PORT = 30000
+# twemproxy admin port 默认增加值
+DEFAULT_TWEMPROXY_ADMIN_PORT_EXTRA = 1000
+# 默认Redis dbnum
+DEFAULT_REDIS_DBNUM = 0
+
 # 切换时， 默认允许多久心跳
 DEFAULT_MASTER_DIFF_TIME = 61
 # 切换时， 允许多少秒丢失

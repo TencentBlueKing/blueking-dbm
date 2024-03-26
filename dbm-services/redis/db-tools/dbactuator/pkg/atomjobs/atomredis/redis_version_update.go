@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -260,6 +261,7 @@ func (job *RedisVersionUpdate) isAllInstanceMaster() (err error) {
 	return nil
 }
 func (job *RedisVersionUpdate) isAllInstanceSlave() (err error) {
+	var logTailNData string
 	for _, item := range job.AddrMapCli {
 		cli := item
 		repls, err := cli.Info("replication")
@@ -272,6 +274,14 @@ func (job *RedisVersionUpdate) isAllInstanceSlave() (err error) {
 			return err
 		}
 		if repls["master_link_status"] != consts.MasterLinkStatusUP {
+			logTailNData, _ = cli.TailRedisLogFile(40)
+			if strings.Contains(logTailNData, "Can't handle RDB format") {
+				// RDB格式不兼容,忽略
+				job.runtime.Logger.Warn(
+					"redis instance(%s) master_link_status:%s is not UP, but RDB format is not compatible,ignore", cli.Addr,
+					repls["master_link_status"])
+				continue
+			}
 			err = fmt.Errorf("redis instance(%s) master_link_status:%s is not UP", cli.Addr, repls["master_link_status"])
 			job.runtime.Logger.Error(err.Error())
 			return err
