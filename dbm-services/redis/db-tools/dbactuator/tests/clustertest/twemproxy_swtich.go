@@ -81,7 +81,7 @@ func TwemproxyCacheSwitch(serverIP,
 		return installTest.Err
 	}
 	// 开始切换
-	err = DoSwitchActionTest(serverIP, consts.TestTwemproxyPort, consts.TestRedisMasterStartPort,
+	err = DoSwitchActionTest(serverIP, consts.TestRedisTwemproxyPort, consts.TestRedisMasterStartPort,
 		consts.TestRedisSlaveStartPort, consts.TestSyncRedisMasterStartPort,
 		consts.TestSyncRedisSlaveStartPort,
 		consts.TendisTypeTwemproxyRedisInstance)
@@ -90,7 +90,7 @@ func TwemproxyCacheSwitch(serverIP,
 	}
 
 	// 切换成功,再次检查 twemproxy的配置中包含了 syncMasterIP:syncMasterPort
-	twemport := strconv.Itoa(consts.TestTwemproxyPort)
+	twemport := strconv.Itoa(consts.TestRedisTwemproxyPort)
 	twemConfFile := filepath.Join(consts.GetRedisDataDir(), "twemproxy-0.2.4", twemport, "nutcracker."+twemport+".yml")
 	if util.FileExists(twemConfFile) {
 		var grepRet string
@@ -105,7 +105,7 @@ func TwemproxyCacheSwitch(serverIP,
 
 	// 检测后端Md5 ,这里只有1个ip，就校验程序的一般性问题吧
 	twemproxyMd5 := proxytest.TwemproxyBackendsMd5Test{}
-	twemproxyMd5.SetProxiesList([]string{serverIP}, consts.TestTwemproxyPort)
+	twemproxyMd5.SetProxiesList([]string{serverIP}, consts.TestRedisTwemproxyPort)
 	if err = twemproxyMd5.RunCheckProxyBackends(); err != nil {
 		return
 	}
@@ -187,7 +187,7 @@ func TwemproxyCacheSwitchRestoreEnv(serverIP,
 		return installTest.Err
 	}
 	// 开始切换
-	err = DoSwitchActionTest(serverIP, consts.TestTwemproxyPort,
+	err = DoSwitchActionTest(serverIP, consts.TestRedisTwemproxyPort,
 		consts.TestSyncRedisMasterStartPort, consts.TestSyncRedisSlaveStartPort,
 		consts.TestRedisMasterStartPort, consts.TestRedisSlaveStartPort,
 		consts.TendisTypeTwemproxyRedisInstance)
@@ -196,7 +196,7 @@ func TwemproxyCacheSwitchRestoreEnv(serverIP,
 	}
 
 	// 切换成功,再次检查 twemproxy的配置中包含了 syncMasterIP:syncMasterPort
-	twemport := strconv.Itoa(consts.TestTwemproxyPort)
+	twemport := strconv.Itoa(consts.TestRedisTwemproxyPort)
 	twemConfFile := filepath.Join(consts.GetRedisDataDir(), "twemproxy-0.2.4", twemport, "nutcracker."+twemport+".yml")
 	if util.FileExists(twemConfFile) {
 		var grepRet string

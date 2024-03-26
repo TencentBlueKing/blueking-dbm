@@ -51,11 +51,14 @@ export function getApplyDataLink(params: IAMParams) {
   return http.post<ApplyDataModel>(`${path}/get_apply_data/`, params).then((data) => new ApplyDataModel(data));
 }
 
-export function simpleGetApplyData(params: { action_id: string; resource_ids: Array<string | number> }) {
+export function simpleGetApplyData(params: {
+  action_id: string;
+  resource_ids: Array<string | number>;
+  bk_biz_id?: number;
+}) {
   return http
     .post<ApplyDataModel>(`${path}/simple_get_apply_data/`, {
       ...params,
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     })
     .then((data) => new ApplyDataModel(data));
 }

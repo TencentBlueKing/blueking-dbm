@@ -192,7 +192,8 @@ func doRemoveInfoFile(r *BackupFileName, taskInfo *backupsys.TaskInfo) {
 func NewBackupMetaV2(dir string, conn *mymongo.MongoHost) (*BackupMetaV2, error) {
 	m := new(BackupMetaV2)
 	m.MetaDir = dir
-	m.ConnInfo = conn
+	m.ConnInfo = new(mymongo.MongoHost)
+	*m.ConnInfo = *conn
 
 	if false == TestFileWriteable(m.GetMetaFileName()) {
 		return nil, fmt.Errorf("write %s err", m.GetMetaFileName())

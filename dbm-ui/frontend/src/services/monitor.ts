@@ -193,8 +193,10 @@ export const getAlarmGroupList = (params: { bk_biz_id: number; db_type?: string;
   http.get<ListBase<AlarmGroupItem[]>>('/apis/monitor/notice_group/', params);
 
 // 查询轮值规则列表
-export const queryDutyRuleList = (params: { db_type: string; limit: number; offset: number }) =>
-  http.get<ListBase<DutyRuleModel[]>>('/apis/monitor/duty_rule/', params).then((data) => ({
+export const queryDutyRuleList = (
+  params: { db_type: string; limit: number; offset: number },
+  payload = {} as IRequestPayload,) =>
+  http.get<ListBase<DutyRuleModel[]>>('/apis/monitor/duty_rule/', params, payload).then((data) => ({
     ...data,
     results: data.results.map((item) => new DutyRuleModel(item)),
   }));

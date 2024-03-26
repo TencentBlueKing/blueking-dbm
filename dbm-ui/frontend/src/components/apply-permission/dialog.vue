@@ -21,7 +21,8 @@
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
-    width="768">
+    width="768"
+    :z-index="9999999">
     <BkLoading :loading="loading">
       <RenderResult :data="renderPermissionResult" />
     </BkLoading>

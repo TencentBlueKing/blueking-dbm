@@ -66,7 +66,7 @@ func NewRemoveNsJob() jobruntime.JobRunner {
 
 // Name 获取原子任务的名字
 func (s *removeNsJob) Name() string {
-	return "mongo_remove_ns"
+	return "mongodb_remove_ns"
 }
 
 // Run 运行原子任务
@@ -75,24 +75,12 @@ func (s *removeNsJob) Run() error {
 	// 2 Backup Index If Need
 	// 3 Drop Ns
 	// 4 Restore Index If Need
-	type execFunc struct {
-		name string
-		f    func() (err error)
-	}
-
-	for _, f := range []execFunc{
+	return s.runSteps([]stepFunc{
 		{"getNsList", s.getNsList},
 		{"dropCollection", s.dropCollection},
-		// {"restoreIndex", s.restoreIndex},
-	} {
-		s.runtime.Logger.Info("Run %s start", f.name)
-		if err := f.f(); err != nil {
-			s.runtime.Logger.Error("Run %s failed. err %s", f.name, err.Error())
-			return errors.Wrap(err, f.name)
-		}
-		s.runtime.Logger.Info("Run %s done", f.name)
-	}
-	return nil
+		// todo restore index
+	})
+
 }
 
 func connectPrimary(host *mymongo.MongoHost) (client *mongo.Client, err error) {
@@ -344,7 +332,7 @@ func (s *removeNsJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 	s.OsUser = "" // 不再需要sudo，请以普通用户执行
 
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.ConfParams); err != nil {
-		tmpErr := fmt.Errorf("get parameters of stepDown fail by json.Unmarshal, error:%s", err)
+		tmpErr := errors.Wrap(err, "payload json.Unmarshal failed")
 		s.runtime.Logger.Error(tmpErr.Error())
 		return tmpErr
 	}

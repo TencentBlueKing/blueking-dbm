@@ -99,6 +99,9 @@ class SQLServerHAApplyFlowParamBuilder(SQLServerSingleApplyFlowParamBuilder):
 
 
 class SQLServerHaApplyResourceParamBuilder(SQLServerSingleApplyResourceParamBuilder):
+    def format(self):
+        super().format()
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         infos = next_flow.details["ticket_data"]["infos"]

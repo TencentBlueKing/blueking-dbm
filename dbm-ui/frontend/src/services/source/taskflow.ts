@@ -13,7 +13,7 @@
 
 import TaskFlowModel from '@services/model/taskflow/taskflow';
 
-import http from '../http';
+import http, { type IRequestPayload } from '../http';
 import type { ListBase } from '../types';
 
 const path = '/apis/taskflow';
@@ -37,9 +37,9 @@ export enum FlowTypes {
 }
 
 /**
- * 查询任务列表参数
+ * 查询任务列表
  */
-interface GetTaskflowParams {
+export function getTaskflow(params: {
   bk_biz_id: number;
   limit: number;
   offset: number;
@@ -51,12 +51,7 @@ interface GetTaskflowParams {
   ticket_type__in?: string;
   created_at__gte?: string;
   created_at__lte?: string;
-}
-
-/**
- * 查询任务列表
- */
-export function getTaskflow(params: GetTaskflowParams) {
+}) {
   return http.get<ListBase<TaskFlowModel[]>>(`${path}/`, params).then((res) => ({
     ...res,
     results: res.results.map((item) => new TaskFlowModel(item)),
@@ -71,83 +66,100 @@ export function getRedisFileUrls(params: { root_id: string; paths: string[] }) {
 }
 
 /**
- * 结果文件列表信息
- */
-interface KeyFileItem {
-  name: string;
-  size: number;
-  size_display: string;
-  domain: string;
-  created_time: string;
-  cluster_alias: string;
-  path: string;
-  cluster_id: number;
-  files: {
-    size: string;
-    name: string;
-    md5: string;
-    full_path: string;
-    created_time: string;
-  }[];
-}
-
-/**
  * 结果文件列表
  */
 export function getKeyFiles(params: { rootId: string }) {
-  return http.get<KeyFileItem[]>(`${path}/redis/${params.rootId}/key_files/`);
-}
-
-/**
- * 任务流程节点数据
- */
-interface FlowItem {
-  id: string;
-  name: string | null;
-  incoming: string | string[];
-  outgoing: string | string[];
-  type: keyof typeof FlowTypes;
-  error_ignorable?: boolean;
-  optional?: boolean;
-  retryable?: boolean;
-  skippable?: boolean;
-  status?: 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED' | 'SKIPPED';
-  timeout?: number;
-  started_at?: number;
-  created_at?: number;
-  updated_at?: number;
-  component?: {
-    code: string;
-  };
-  pipeline?: FlowsData;
+  return http.get<
+    {
+      name: string;
+      size: number;
+      size_display: string;
+      domain: string;
+      created_time: string;
+      cluster_alias: string;
+      path: string;
+      cluster_id: number;
+      files: {
+        size: string;
+        name: string;
+        md5: string;
+        full_path: string;
+        created_time: string;
+      }[];
+    }[]
+  >(`${path}/redis/${params.rootId}/key_files/`);
 }
 
 /**
  * 任务流程数据
  */
-interface FlowsData {
-  id: string;
-  data: any;
-  end_event: FlowItem;
-  start_event: FlowItem;
+interface FlowsDetail {
+  activities: {
+    [key: string]: {
+      component?: {
+        code: string;
+      };
+      created_at?: number;
+      error_ignorable?: boolean;
+      hosts: string[];
+      id: string;
+      incoming: string[];
+      name?: string;
+      optional: boolean;
+      outgoing: string;
+      pipeline?: FlowsDetail;
+      retryable: boolean;
+      skippable: boolean;
+      started_at: number;
+      status: 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED' | 'SKIPPED';
+      timeout?: number;
+      type: keyof typeof FlowTypes;
+      updated_at: number;
+    };
+  };
+  data: {
+    outputs: any[];
+    pre_render_keys: any[];
+  };
+  end_event: {
+    id: string;
+    incoming: string[];
+    name?: string;
+    outgoing: string;
+    type: keyof typeof FlowTypes;
+    error_ignorable?: boolean;
+  };
+  flow_info: {
+    bk_biz_id: number;
+    bk_host_ids: number[];
+    cost_time: number;
+    created_at: string;
+    created_by: string;
+    root_id: string;
+    status: string;
+    ticket_type: string;
+    ticket_type_display: string;
+    uid: string;
+    updated_at: string;
+  };
   flows: {
     [key: string]: {
       id: string;
+      is_default: boolean;
       source: string;
       target: string;
-      is_default: boolean;
     };
   };
-  gateways: { [key: string]: FlowItem };
-  activities: { [key: string]: FlowItem };
-  flow_info: TaskFlowModel;
+  gateways: { [key: string]: FlowsDetail['end_event'] };
+  id: string;
+  start_event: FlowsDetail['end_event'];
 }
 
 /**
  * 任务详情
  */
-export function getTaskflowDetails(params: { rootId: string }) {
-  return http.get<FlowsData>(`${path}/${params.rootId}/`);
+export function getTaskflowDetails(params: { rootId: string }, payload = {} as IRequestPayload) {
+  return http.get<FlowsDetail>(`${path}/${params.rootId}/`, {}, payload);
 }
 
 /**

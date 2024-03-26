@@ -213,7 +213,11 @@ class ResourceApplyFlow(BaseTicketFlow):
         )
 
     def fetch_apply_params(self, ticket_data):
-        """构造资源申请参数"""
+        """
+        构造资源申请参数, ticket_data主要包含两项信息：
+        resource_spec: 资源申请的规格信息
+        resource_params: 资源申请的额外过滤信息, 主要用于拓展资源申请的维度(比如操作系统，网卡等等)
+        """
         bk_cloud_id: int = ticket_data["bk_cloud_id"]
         details: List[Dict[str, Any]] = []
 
@@ -241,6 +245,11 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         if not details:
             raise ResourceApplyException(_("申请的资源总数为0，资源申请不合法"))
+
+        # 如果有额外的过滤条件，则补充到每个申请group的details中
+        if ticket_data.get("resource_params"):
+            resource_params = ticket_data["resource_params"]
+            details = [{**detail, **resource_params} for detail in details]
 
         return details
 

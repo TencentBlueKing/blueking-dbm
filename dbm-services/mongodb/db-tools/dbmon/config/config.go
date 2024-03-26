@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"path"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
@@ -28,9 +31,9 @@ type BkDbmLabel struct {
 	ClusterType   string `json:"cluster_type" mapstructure:"cluster_type" yaml:"cluster_type"`
 	RoleType      string `json:"role_type" mapstructure:"role_type" yaml:"role_type"` // shardsvr,mongos,configsvr
 	MetaRole      string `json:"meta_role" mapstructure:"meta_role" yaml:"meta_role"` // m0,m1,backup...|mongos
-	ServerIP      string `json:"server_ip" mapstructure:"server_ip" yaml:"server_ip"`
-	ServerPort    int    `json:"server_port" mapstructure:"server_port" yaml:"server_port" yaml:"server_port"`
-	SetName       string `json:"set_name" mapstructure:"set_name" yaml:"set_name" yaml:"set_name"`
+	IP            string `json:"ip" mapstructure:"ip" yaml:"ip"`
+	Port          int    `json:"port" mapstructure:"port" yaml:"port" `
+	SetName       string `json:"set_name" mapstructure:"set_name" yaml:"set_name"`
 }
 
 // ParseBkDbmLabel 解析BkDbmLabel, 允许为空
@@ -48,15 +51,16 @@ func ParseBkDbmLabel(labels string) (*BkDbmLabel, error) {
 }
 
 // ConfServerItem servers配置项
+// User Password 可以为空
 type ConfServerItem struct {
 	BkDbmLabel `yaml:",inline" json:",inline" mapstructure:",squash"`
-	UserName   string `yaml:"username" json:"username" mapstructure:"username"`
-	Password   string `yaml:"password" json:"password" mapstructure:"password"`
+	UserName   string `yaml:"username" json:"username,omitempty" mapstructure:"username"`
+	Password   string `yaml:"password" json:"password,omitempty" mapstructure:"password"`
 }
 
 // Addr return ip:port
 func (c *ConfServerItem) Addr() string {
-	return fmt.Sprintf("%s:%d", c.ServerIP, c.ServerPort)
+	return fmt.Sprintf("%s:%d", c.IP, c.Port)
 }
 
 // BkMonitorData 注册在Bk的Event.
@@ -128,20 +132,34 @@ func loadConfigFile(first bool) {
 	GlobalConf = conf
 }
 
+func WriteConfig(path string, conf *Configuration) error {
+	viper.SetConfigFile(path)
+	viper.SetConfigType("yaml")
+	viper.Set("report_save_dir", conf.ReportSaveDir)
+	viper.Set("report_left_day", conf.ReportLeftDay)
+	viper.Set("backup_client_storage_type", conf.BackupClientStrorageType)
+	viper.Set("http_address", conf.HttpAddress)
+	viper.Set("bkmonitorbeat", conf.BkMonitorBeat)
+	viper.Set("servers", conf.Servers)
+	return viper.WriteConfig()
+}
+
 // InitConfig reads in config file and ENV variables if set.
-func InitConfig(cfgFile string) {
+func InitConfig(cfgFile string, logger *zap.Logger) {
 	var err error
 	viper.SetConfigFile(cfgFile)
+	viper.AddConfigPath(path.Dir(cfgFile))
 	viper.SetConfigType("yaml")
 	if err = viper.ReadInConfig(); err != nil {
-		log.Fatal(err) // 读取配置文件失败致命错误
+		logger.Fatal(fmt.Sprintf("ReadInConfig error %v", err)) // 读取配置文件失败
 	}
 
-	fmt.Printf("Using config file: %s\n", viper.ConfigFileUsed())
+	logger.Info(fmt.Sprintf("Using config file: %s and watch file change event\n", viper.ConfigFileUsed()))
 	/* Read Config File && Watch file change event */
 	loadConfigFile(true)
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		log.Printf("Config file changed: %s", e.Name)
+		// 重新加载配置文件。 测试不生效. todo 改为接收信号
+		logger.Info(fmt.Sprintf("Config file changed: %s", e.Name))
 		loadConfigFile(false)
 	})
 	viper.WatchConfig()

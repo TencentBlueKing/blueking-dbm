@@ -9,6 +9,7 @@ export interface Props {
   permission?: string | boolean;
   actionId: string;
   resource?: string | number;
+  bizId?: string | number;
 }
 
 const withBizActionList = [
@@ -72,23 +73,31 @@ export default function (props: Props) {
     return checkResult.value;
   });
 
-  // 检测权限
-  const checkPermission = () => {
-    if (!props.actionId) {
-      return;
-    }
+  const realParams = computed(() => {
     const params = {
       action_id: props.actionId,
       resource_ids: props.resource ? [props.resource] : [],
     };
 
-    if (withBizActionList.includes(props.actionId)) {
+    if (props.bizId !== undefined) {
+      Object.assign(params, {
+        bk_biz_id: props.bizId,
+      });
+    } else if (withBizActionList.includes(props.actionId)) {
       Object.assign(params, {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       });
     }
 
-    run(params);
+    return params;
+  });
+
+  // 检测权限
+  const checkPermission = () => {
+    if (!props.actionId) {
+      return;
+    }
+    run(realParams.value);
   };
 
   const handleRequestPermission = (event: Event) => {
@@ -97,10 +106,7 @@ export default function (props: Props) {
     }
     event.preventDefault();
     event.stopPropagation();
-    permissionDialog(undefined, {
-      action_id: props.actionId,
-      resource_ids: props.resource ? [props.resource] : [],
-    });
+    permissionDialog(undefined, realParams.value);
   };
 
   onMounted(() => {

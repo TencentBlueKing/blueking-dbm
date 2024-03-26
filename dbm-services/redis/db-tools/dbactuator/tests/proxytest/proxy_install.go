@@ -66,6 +66,7 @@ func (test *PredixyInstallTest) SetProxyPassword(proxyPasswd string) *PredixyIns
 		proxyPasswd = "xxxx"
 	}
 	test.PredixyPasswd = proxyPasswd
+	test.PredixyAdminPasswd = proxyPasswd
 	return test
 }
 
@@ -107,6 +108,8 @@ func (test *PredixyInstallTest) SetOtherParamsDefault() *PredixyInstallTest {
 	test.DbConfig.ServerRetryTimeout = "1"
 	test.DbConfig.KeepAlive = "0"
 	test.DbConfig.ServerTimeout = "0"
+	test.DbConfig.SlowlogLogSlowerThan = "100000"
+	test.DbConfig.SlowlogMaxLen = "1024"
 	return test
 }
 

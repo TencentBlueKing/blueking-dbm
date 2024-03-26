@@ -28,6 +28,7 @@
           class="table-box"
           :columns="columns"
           :data-source="queryDutyRuleList"
+          releate-url-query
           :row-class="updateRowClass"
           :settings="settings" />
       </BkLoading>
@@ -54,7 +55,7 @@
     updatePartialDutyRule,
   } from '@services/monitor';
 
-  import ApplyPermissionCatch from '@components/apply-permission/catch.vue';
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import NumberInput from '@components/render-table/columns/input/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';

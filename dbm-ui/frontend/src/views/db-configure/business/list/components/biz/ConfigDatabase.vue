@@ -78,15 +78,12 @@
     label: t('名称'),
     field: 'name',
     render: ({ cell, data }: { cell: string, data: ConfigListItem[number] }) => (
-      <auth-button
+      <bk-button
         text
         theme="primary"
-        action-id="dbconfig_view"
-        resource={activeTab?.value}
-        permission={data.permission.dbconfig_view}
         onClick={() => handleToDetails(data)}>
         {cell}
-      </auth-button>
+      </bk-button>
     ),
   }, {
     label: t('数据库版本'),
@@ -106,17 +103,16 @@
     field: 'operation',
     width: '80px',
     render: ({ data }: { data: ConfigListItem[number] }) => (
-      <div class="operation">
-        <auth-button
-          text
-          action-id="dbconfig_edit"
-          resource={activeTab?.value}
-          theme="primary"
-          class="mr-24"
-          onClick={() => handleToEdit(data)}>
-          { t('编辑') }
-        </auth-button>
-      </div>
+      <auth-button
+        text
+        action-id="dbconfig_edit"
+        resource={activeTab?.value}
+        permission={data.permission.dbconfig_edit}
+        theme="primary"
+        class="mr-24"
+        onClick={() => handleToEdit(data)}>
+        { t('编辑') }
+      </auth-button>
     ),
   }];
 

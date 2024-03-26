@@ -20,7 +20,7 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mongodb.base_flow import MongoBaseFlow
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.backup import BackupSubTask
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
-from backend.flow.utils.mongodb.mongodb_dataclass import get_mongo_global_config
+from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBNsFilter, MongoRepository
 
 logger = logging.getLogger("flow")
@@ -67,7 +67,7 @@ class MongoBackupFlow(MongoBaseFlow):
         """
         logger.debug("MongoBackupFlow start, payload", self.payload)
         # actuator_workdir 提前创建好的，在部署的时候就创建好了.
-        actuator_workdir = get_mongo_global_config()["file_path"]
+        actuator_workdir = ActKwargs().get_mongodb_os_conf()["file_path"]
         file_list = GetFileList(db_type=DBType.MongoDB).get_db_actuator_package()
 
         # 创建流程实例
@@ -95,7 +95,7 @@ class MongoBackupFlow(MongoBaseFlow):
             except Exception as e:
                 logger.exception("check_cluster_valid fail")
                 raise Exception("check_cluster_valid fail cluster_id:{} {}".format(row["cluster_id"], e))
-            print("sub_pipline start row", row)
+            logger.debug("sub_pipline start row", row)
             print("sub_pipline start cluster", cluster)
 
             sub_pl, sub_bk_host_list = BackupSubTask.process_cluster(

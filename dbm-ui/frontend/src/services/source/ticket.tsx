@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 import TicketModel from '@services/model/ticket/ticket';
+import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe'
 
 import { useInfo } from '@hooks';
 
@@ -20,7 +21,7 @@ import { messageError } from '@utils';
 
 import { locale, t } from '@locales/index';
 
-import http from '../http';
+import http, { type IRequestPayload } from '../http';
 import type {
   HostNode,
   ListBase,
@@ -144,7 +145,6 @@ export function createTicket(formData: Record<string, any>) {
         });
       }
 
-      messageError(e?.message);
       return Promise.reject(e);
     });
 }
@@ -200,8 +200,8 @@ export function getTodoTickets(params: {
 export function getTicketDetails(params: {
   id: number,
   is_reviewed?: number
-}) {
-  return http.get<TicketModel>(`${path}/${params.id}/`, params)
+}, payload = {} as IRequestPayload) {
+  return http.get<TicketModel>(`${path}/${params.id}/`, params, payload)
     .then(data => new TicketModel(data));
 }
 
@@ -255,19 +255,16 @@ export function queryTicketFlowDescribe(params: {
   limit?: number,
   offset?: number,
 }) {
-  return http.get<{
-    configs: Record<string, boolean>;
-    creator: string;
-    editable: boolean;
-    flow_desc: string[];
-    group: string;
-    ticket_type: string;
-    ticket_type_display: string;
-    updater: string;
-    update_at: string;
-  }[]>(`${path}/query_ticket_flow_describe/`, params).then(data => ({
-    count: data.length,
-    results: data,
+  return http.get<ListBase<TicketFlowDescribeModel[]>>(`${path}/query_ticket_flow_describe/`, params).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item) =>
+        new TicketFlowDescribeModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
   }));
 }
 

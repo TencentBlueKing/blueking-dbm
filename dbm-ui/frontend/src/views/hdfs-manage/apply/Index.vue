@@ -26,6 +26,7 @@
         <BusinessItems
           v-model:app-abbr="formData.details.db_app_abbr"
           v-model:biz-id="formData.bk_biz_id"
+          perrmision-action-id="hdfs_apply"
           @change-biz="handleChangeBiz" />
         <ClusterName v-model="formData.details.cluster_name" />
         <ClusterAlias

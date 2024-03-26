@@ -52,6 +52,7 @@ const (
 // path dirs
 const (
 	UsrLocal           = "/usr/local"
+	PackageCachePath   = "/data/dbbak"
 	PackageSavePath    = "/data/install"
 	Data1Path          = "/data1"
 	DataPath           = "/data"

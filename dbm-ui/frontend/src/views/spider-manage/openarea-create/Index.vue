@@ -146,4 +146,12 @@
       name: 'spiderOpenareaTemplate',
     });
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'spiderOpenareaTemplate',
+      });
+    },
+  });
 </script>

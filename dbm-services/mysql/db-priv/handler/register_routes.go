@@ -46,7 +46,7 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "clone_client_priv", HandlerFunc: m.CloneClientPriv},
 
 		// 修改mysql实例管理用户的密码
-		{Method: http.MethodPost, Path: "modify_mysql_admin_password", HandlerFunc: m.ModifyMysqlAdminPassword},
+		{Method: http.MethodPost, Path: "modify_admin_password", HandlerFunc: m.ModifyAdminPassword},
 		// 查看mysql实例管理用户的密码
 		{Method: http.MethodPost, Path: "get_mysql_admin_password", HandlerFunc: m.GetMysqlAdminPassword},
 

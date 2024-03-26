@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
+from backend.configuration.constants import SQLSERVER_ADMIN_USER
 from backend.db_meta.enums import MachineType
 from backend.db_services.version.constants import SqlserverVersion
 from blue_krill.data_types.enum import EnumField, StructuredEnum
@@ -419,6 +420,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     REUPLOAD_OLD_BACKUP_RECORDS = EnumField("reupload_old_backup_records", _("reupload_old_backup_records"))
     PREDIXY_CONFIG_SERVERS_REWRITE = EnumField("predixy_config_servers_rewrite", _("predixy_config_servers_rewrite"))
     MAXMEMORY_DYNAMICALLY_SET = EnumField("maxmemory_dynamically_set", _("maxmemory_dynamically_set"))
+    CLIENT_CONNS_KILL = EnumField("client_conns_kill", _("client_conns_kill"))
 
 
 class MongoDBActuatorActionEnum(str, StructuredEnum):
@@ -437,6 +439,7 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     MongoRestart = EnumField("mongo_restart", _("mongo_restart"))
     MongoDReplace = EnumField("mongod_replace", _("mongod_replace"))
     MongoDeInstall = EnumField("mongo_deinstall", _("mongo_deinstall"))
+    InstallDBMon = EnumField("install_dbmon", _("install_dbmon"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -686,7 +689,7 @@ SQLSERVER_CUSTOM_SYS_DB = "Monitor"
 MSSQL_EXPORTER = "mssql_exporter"
 
 # sqlserver的用户登录admin账号名称
-MSSQL_ADMIN = "dbm_admin"
+MSSQL_ADMIN = SQLSERVER_ADMIN_USER
 
 # tbinlogdumper连接kafka的global config的定义
 TBINLOGDUMPER_KAFKA_GLOBAL_CONF = {
@@ -968,16 +971,6 @@ class TBinlogDumperAddType(str, StructuredEnum):
 
     FULL_SYNC = EnumField("full_sync", _("全量同步"))
     INCR_SYNC = EnumField("incr_sync", _("增量同步"))
-
-
-class MySQLPasswordRole(str, StructuredEnum):
-    """
-    定义每个MySQL/TendbCluster集群中每个node的内置账号名称
-    """
-
-    TDBCTL = EnumField("tdbctl", _("tdbctl"))
-    SPIDER = EnumField("spider", _("spider"))
-    STORAGE = EnumField("storage", _("storage"))
 
 
 # 定义根据不同的MachineType获取对应的PrivRole

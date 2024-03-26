@@ -57,6 +57,26 @@ kafka:
     commitId: ce513137085dbf931362ae85897f78fb6bdb336e
     name: dbactuator
     version: 1.0.3
+pulsar:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitDate: '202401311048'
+    commitId: ce513137085dbf931362ae85897f78fb6bdb336e
+    name: dbactuator
+    version: 1.0.3
+riak:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/riak/db-tools/dbactuator/build/dbactuator
+    commitId: "xxxxx"
+    commitDate: 200001010101
+    name: dbactuator
+    version: 1.0.0
+- riak-monitor:
+    buildPath: /blueking-dbm/dbm-services/riak/db-tools/riak-monitor/build/riak-monitor.tar.gz
+    commitId: "xxxxx"
+    commitDate: 200001010101
+    name: riak-monitor.tar.gz
+    version: 1.0.0
 mysql:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/dbactuator/build/dbactuator
@@ -98,13 +118,6 @@ mysql:
     buildPath: /toolkit/dba-toolkit.tar.gz
     name: dba-toolkit.tar.gz
     version: 1.0.0
-pulsar:
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitDate: '202401311048'
-    commitId: ce513137085dbf931362ae85897f78fb6bdb336e
-    name: dbactuator
-    version: 1.0.3
 redis:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbactuator/build/dbactuator_redis
@@ -121,4 +134,34 @@ redis:
 - redis-dts:
     buildPath: /toolkit/redis_dts.tar.gz
     name: redis_dts.tar.gz
+    version: 1.0.0
+mongodb:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbactuator/build/mongo-dbactuator
+    commitId: "xxxxx"
+    commitDate: 200001010101
+    name: mongo-dbactuator
+    version: 1.0.0
+- dbmon:
+    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbmon/build/bk-dbmon-mg.tar.gz
+    commitId: "xxxxx"
+    commitDate: 200001010101
+    name: bk-dbmon-mg.tar.gz
+    version: 1.0.0
+- mongo-toolkit:
+    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/mongo-toolkit-go/build/mongo-toolkit-go_Linux
+    commitId: "xxxxx"
+    commitDate: 200001010101
+    name: mongo-toolkit-go_Linux
+    version: 1.0.0
+- dbtools:
+    buildPath: /toolkit/mongotools.tar.gz
+    name: mongotools.tar.gz
+    version: 1.0.0
+sqlserver:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/sqlserver/db-tools/dbactuator/build/dbactuator.exe
+    commitId: "xxxxx"
+    commitDate: 200001010101
+    name: dbactuator.exe
     version: 1.0.0

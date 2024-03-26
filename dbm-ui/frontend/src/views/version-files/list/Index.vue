@@ -294,6 +294,19 @@
         },
       ],
     },
+    {
+      controller: {
+        moduleId: 'sqlserver',
+      },
+      label: 'SQLServer',
+      name: DBTypes.SQLSERVER,
+      children: [
+        {
+          label: 'SQLServer',
+          name: DBTypes.SQLSERVER,
+        },
+      ],
+    },
   ];
 
   const renderTabs = tabs.filter((item) => {

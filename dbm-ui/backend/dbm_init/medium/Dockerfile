@@ -79,7 +79,7 @@ ARG GITHUB_TOKEN=''
 ARG GITHUB_USERNAME=''
 ARG GITHUB_USER_EMAIL=''
 
-##更新并提交medicum.lock文件
+## 更新并提交medicum.lock文件
 RUN set -ex && \
     # 克隆线上的dbm仓库
     git config --global user.email ${GITHUB_USER_EMAIL} && \
@@ -145,14 +145,42 @@ RUN set -ex && \
     make VERSION=$(/lock.sh redis actuator version) GITHASH=$(/lock.sh redis actuator commitId) -j4 && \
     cd /blueking-dbm/dbm-services/redis/db-tools/dbmon && \
     cat package.sh | tr -d '\r' > package.sh.tmp && mv package.sh.tmp package.sh && \
-    bash package.sh --version=$(/lock.sh redis actuator version) --git-hash=$(/lock.sh redis actuator commitId) --git-date=$(/lock.sh redis actuator commitDate)
+    bash package.sh --version=$(/lock.sh redis dbmon version) --git-hash=$(/lock.sh redis dbmon commitId) --git-date=$(/lock.sh redis dbmon commitDate)
+
+
+FROM medium-builder as mongodb-medium-builder
+
+## 构建mongodb介质
+RUN set -ex && \
+    cd /blueking-dbm/dbm-services/mongodb/db-tools/dbactuator && \
+    make build VERSION=$(/lock.sh mongodb actuator version) GITHASH=$(/lock.sh mongodb actuator commitId) BUILDSTAMP=$(/lock.sh mongodb actuator commitDate) -j4 && \
+    cd /blueking-dbm/dbm-services/mongodb/db-tools/dbmon && \
+    cat package.sh | tr -d '\r' > package.sh.tmp && mv package.sh.tmp package.sh && \
+    bash package.sh --version=$(/lock.sh mongodb dbmon version) --git-hash=$(/lock.sh mongodb dbmon commitId) --git-date=$(/lock.sh mongodb dbmon commitDate) && \
+    cd /blueking-dbm/dbm-services/mongodb/db-tools/mongo-toolkit-go && \
+    make build VERSION=$(/lock.sh mongodb mongo-toolkit version) GITHASH=$(/lock.sh mongodb mongo-toolkit commitId) BUILDSTAMP=$(/lock.sh mongodb mongo-toolkit commitDate) -j4
+
 
 FROM medium-builder as bigdata-medium-builder
 
 ## 构建大数据介质
 RUN set -ex && \
+    ## 大数据的actuator都是一个，任意编译即可
     cd /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator && \
-    make VERSION=$(/lock.sh es actuator version) GITHASH=$(/lock.sh es actuator commitId) -j4
+    make VERSION=$(/lock.sh es actuator version) GITHASH=$(/lock.sh es actuator commitId) -j4 && \
+    ## riak的介质需要单独编译
+    cd /blueking-dbm/dbm-services/riak/db-tools/dbactuator && \
+    make build VERSION=$(/lock.sh riak actuator version) GITHASH=$(/lock.sh riak actuator commitId) -j4 && \
+    cd /blueking-dbm/dbm-services/riak/db-tools/riak-monitor && \
+    make release-bin VERSION=$(/lock.sh riak riak-monitor version) GITHASH=$(/lock.sh riak riak-monitor commitId) -j4
+
+
+FROM medium-builder as sqlserver-medium-builder
+
+## 构建sqlserver介质
+RUN set -ex && \
+    cd /blueking-dbm/dbm-services/sqlserver/db-tools/dbactuator && \
+    make build VERSION=$(/lock.sh sqlserver actuator version) GITHASH=$(/lock.sh sqlserver actuator commitId) -j4
 
 
 FROM medium-builder as cloud-medium-builder
@@ -175,10 +203,15 @@ WORKDIR /app
 COPY --from=medium-builder /toolkit /toolkit
 # 复制mysql的编译介质
 COPY --from=mysql-medium-builder /blueking-dbm/dbm-services/mysql /blueking-dbm/dbm-services/mysql
-# 复制大数据的编译介质
-COPY --from=redis-medium-builder /blueking-dbm/dbm-services/redis /blueking-dbm/dbm-services/redis
 # 复制redis的编译介质
+COPY --from=redis-medium-builder /blueking-dbm/dbm-services/redis /blueking-dbm/dbm-services/redis
+# 复制mongo的编译介质
+COPY --from=mongodb-medium-builder /blueking-dbm/dbm-services/mongodb /blueking-dbm/dbm-services/mongodb
+# 复制sqlserver的编译介质
+COPY --from=sqlserver-medium-builder /blueking-dbm/dbm-services/sqlserver /blueking-dbm/dbm-services/sqlserver
+# 复制大数据的编译介质
 COPY --from=bigdata-medium-builder /blueking-dbm/dbm-services/bigdata /blueking-dbm/dbm-services/bigdata
+COPY --from=bigdata-medium-builder /blueking-dbm/dbm-services/riak /blueking-dbm/dbm-services/riak
 # 复制云区域组件的编译介质
 COPY --from=cloud-medium-builder /blueking-dbm/dbm-services/common /blueking-dbm/dbm-services/common
 COPY --from=cloud-medium-builder /blueking-dbm/dbm-services/mysql/db-remote-service /blueking-dbm/dbm-services/mysql/db-remote-service

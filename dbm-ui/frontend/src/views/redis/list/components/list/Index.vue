@@ -541,43 +541,55 @@
             <OperationBtnStatusTips
               data={data}
               disabled={!data.isOffline}>
-              <bk-button
+              <auth-button
+                action-id="redis_backup"
+                resource={data.id}
+                permission={data.permission.redis_backup}
                 disabled={data.isOffline}
                 text
                 theme={theme}
                 onClick={() => handleShowBackup([data])}>
                 { t('备份') }
-              </bk-button>
+              </auth-button>
             </OperationBtnStatusTips>,
             <OperationBtnStatusTips
               data={data}
               disabled={!data.isOffline}>
-              <bk-button
+              <auth-button
+                action-id="redis_purge"
+                resource={data.id}
+                permission={data.permission.redis_purge}
                 disabled={data.isOffline}
                 text
                 theme={theme}
                 onClick={() => handleShowPurge([data])}>
                 { t('清档') }
-              </bk-button>
+              </auth-button>
             </OperationBtnStatusTips>,
           ];
           if (data.bk_cloud_id > 0) {
             return [
               <span v-bk-tooltips={t('暂不支持跨管控区域提取Key')}>
-                <bk-button
+                <auth-button
+                  action-id="redis_keys_extract"
+                  resource={data.id}
+                  permission={data.permission.redis_keys_extract}
                   text
                   theme={theme}
                   disabled>
                   {t('提取Key')}
-                </bk-button>
+                </auth-button>
               </span>,
               <span v-bk-tooltips={t('暂不支持跨管控区域删除Key')}>
-                <bk-button
+                <auth-button
+                  action-id="redis_keys_delete"
+                  resource={data.id}
+                  permission={data.permission.redis_keys_delete}
                   text
                   theme={theme}
                   disabled>
                   { t('删除Key') }
-                </bk-button>
+                </auth-button>
               </span>,
               ...baseOperations,
             ];
@@ -586,24 +598,30 @@
             <OperationBtnStatusTips
               data={data}
               disabled={!data.isOffline}>
-              <bk-button
+              <auth-button
+                action-id="redis_keys_extract"
+                resource={data.id}
+                permission={data.permission.redis_keys_extract}
                 disabled={data.isOffline}
                 text
                 theme={theme}
                 onClick={() => handleShowExtract([data])}>
                 {t('提取Key')}
-              </bk-button>
+              </auth-button>
             </OperationBtnStatusTips>,
             <OperationBtnStatusTips
               data={data}
               disabled={!data.isOffline}>
-              <bk-button
+              <auth-button
+                action-id="redis_keys_delete"
+                resource={data.id}
+                permission={data.permission.redis_keys_delete}
                 disabled={data.isOffline}
                 text
                 theme={theme}
                 onClick={() => handlShowDeleteKeys([data])}>
                 { t('删除Key') }
-              </bk-button>
+              </auth-button>
             </OperationBtnStatusTips>,
             ...baseOperations,
           ];
@@ -624,13 +642,16 @@
                         <OperationBtnStatusTips
                         data={data}
                         disabled={!data.isOffline}>
-                          <bk-button
+                          <auth-button
+                            action-id="access_entry_edit"
+                            resource={data.id}
+                            permission={data.permission.access_entry_edit}
                             style="width: 100%;height: 32px;"
                             disabled={data.isOffline}
                             text
                             onClick={() => handleShowPassword(data.id)}>
                             { t('获取访问方式') }
-                          </bk-button>
+                          </auth-button>
                         </OperationBtnStatusTips>
                       </bk-dropdown-item>
                       <fun-controller moduleId="addons" controllerId="redis_nameservice">
@@ -678,13 +699,16 @@
                         data.isOnline && (
                           <bk-dropdown-item>
                             <OperationBtnStatusTips data={data}>
-                              <bk-button
+                              <auth-button
+                                action-id="redis_open_close"
+                                resource={data.id}
+                                permission={data.permission.redis_open_close}
                                 style="width: 100%;height: 32px;"
                                 disabled={data.operationDisabled}
                                 text
                                 onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_CLOSE, data)}>
                                 { t('禁用') }
-                              </bk-button>
+                              </auth-button>
                             </OperationBtnStatusTips>
                           </bk-dropdown-item>
                         )
@@ -693,13 +717,16 @@
                         !data.isOnline && (
                           <bk-dropdown-item>
                             <OperationBtnStatusTips data={data}>
-                              <bk-button
+                              <auth-button
+                                action-id="redis_open_close"
+                                resource={data.id}
+                                permission={data.permission.redis_open_close}
                                 style="width: 100%;height: 32px;"
                                 text
                                 disabled={data.isStarting}
                                 onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_OPEN, data)}>
                                 { t('启用') }
-                              </bk-button>
+                              </auth-button>
                             </OperationBtnStatusTips>
                           </bk-dropdown-item>
                         )
@@ -708,13 +735,16 @@
                         data.isOffline && (
                           <bk-dropdown-item>
                             <OperationBtnStatusTips data={data}>
-                              <bk-button
+                              <auth-button
+                                action-id="redis_destroy"
+                                resource={data.id}
+                                permission={data.permission.redis_destroy}
                                 style="width: 100%;height: 32px;"
                                 disabled={Boolean(data.operationTicketId)}
                                 text
                                 onClick={() => handleDeleteCluster(data)}>
                                 { t('删除') }
-                              </bk-button>
+                              </auth-button>
                             </OperationBtnStatusTips>
                           </bk-dropdown-item>
                         )

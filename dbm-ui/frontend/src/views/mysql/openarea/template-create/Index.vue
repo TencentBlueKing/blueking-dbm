@@ -164,4 +164,12 @@
   const handleReset = () => {
     Object.assign(formData, genDefaultValue());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'mysqlOpenareaTemplate',
+      });
+    },
+  });
 </script>

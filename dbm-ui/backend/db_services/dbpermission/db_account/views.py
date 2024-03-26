@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Type, Union
+from typing import Union
 
 from django.utils.translation import ugettext as _
 from rest_framework import status
@@ -38,7 +38,10 @@ SWAGGER_TAG = "db_services/permission/account"
 
 
 class BaseDBAccountViewSet(viewsets.SystemViewSet):
-    account_type = None
+    account_type: str = None
+    account_meta: AccountMeta = AccountMeta
+    account_rule_meta: AccountRuleMeta = AccountRuleMeta
+    account_handler: AccountHandler = AccountHandler
 
     @staticmethod
     def instance_getter(request, view):
@@ -53,7 +56,7 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         return [ResourceActionPermission([account_action], ResourceEnum.BUSINESS, self.instance_getter)]
 
     def _view_common_handler(
-        self, request, bk_biz_id: int, meta: Union[Type[AccountMeta], Type[AccountRuleMeta]], func: str
+        self, request, bk_biz_id: int, meta: Union[AccountMeta, AccountRuleMeta], func: str
     ) -> Response:
         """
         - 视图通用处理函数, 方便统一管理
@@ -70,35 +73,55 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
             "context": {},
         }
         meta_init_data = meta.from_dict(validated_data)
-        return Response(getattr(AccountHandler(**base_info), func)(meta_init_data))
+        return Response(getattr(self.account_handler(**base_info), func)(meta_init_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("创建账号"), request_body=CreateAccountSerializer(), tags=[SWAGGER_TAG]
     )
     @action(methods=["POST"], detail=False, serializer_class=CreateAccountSerializer)
     def create_account(self, request, bk_biz_id):
-        return self._view_common_handler(request, bk_biz_id, AccountMeta, AccountHandler.create_account.__name__)
+        return self._view_common_handler(
+            request=request,
+            bk_biz_id=bk_biz_id,
+            meta=self.account_meta,
+            func=self.account_handler.create_account.__name__,
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("删除账号"), request_body=DeleteAccountSerializer(), tags=[SWAGGER_TAG]
     )
     @action(methods=["DELETE"], detail=False, serializer_class=DeleteAccountSerializer)
     def delete_account(self, request, bk_biz_id):
-        return self._view_common_handler(request, bk_biz_id, AccountMeta, AccountHandler.delete_account.__name__)
+        return self._view_common_handler(
+            request=request,
+            bk_biz_id=bk_biz_id,
+            meta=self.account_meta,
+            func=self.account_handler.delete_account.__name__,
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("修改密码"), request_body=UpdateAccountSerializer(), tags=[SWAGGER_TAG]
     )
     @action(methods=["POST"], detail=False, serializer_class=UpdateAccountSerializer)
     def update_password(self, request, bk_biz_id):
-        return self._view_common_handler(request, bk_biz_id, AccountMeta, AccountHandler.update_password.__name__)
+        return self._view_common_handler(
+            request=request,
+            bk_biz_id=bk_biz_id,
+            meta=self.account_meta,
+            func=self.account_handler.update_password.__name__,
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("添加账号规则"), request_body=AddAccountRuleSerializer(), tags=[SWAGGER_TAG]
     )
     @action(methods=["POST"], detail=False, serializer_class=AddAccountRuleSerializer)
     def add_account_rule(self, request, bk_biz_id):
-        return self._view_common_handler(request, bk_biz_id, AccountRuleMeta, AccountHandler.add_account_rule.__name__)
+        return self._view_common_handler(
+            request=request,
+            bk_biz_id=bk_biz_id,
+            meta=self.account_rule_meta,
+            func=self.account_handler.add_account_rule.__name__,
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("查询账号规则清单"),
@@ -109,7 +132,10 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=FilterAccountRulesSerializer)
     def list_account_rules(self, request, bk_biz_id):
         return self._view_common_handler(
-            request, bk_biz_id, AccountRuleMeta, AccountHandler.list_account_rules.__name__
+            request=request,
+            bk_biz_id=bk_biz_id,
+            meta=self.account_rule_meta,
+            func=self.account_handler.list_account_rules.__name__,
         )
 
     @common_swagger_auto_schema(
@@ -121,7 +147,10 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=QueryAccountRulesSerializer)
     def query_account_rules(self, request, bk_biz_id):
         return self._view_common_handler(
-            request, bk_biz_id, AccountRuleMeta, AccountHandler.query_account_rules.__name__
+            request=request,
+            bk_biz_id=bk_biz_id,
+            meta=self.account_rule_meta,
+            func=self.account_handler.query_account_rules.__name__,
         )
 
     @common_swagger_auto_schema(
@@ -130,7 +159,10 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=ModifyMySQLAccountRuleSerializer)
     def modify_account_rule(self, request, bk_biz_id):
         return self._view_common_handler(
-            request, bk_biz_id, AccountRuleMeta, AccountHandler.modify_account_rule.__name__
+            request=request,
+            bk_biz_id=bk_biz_id,
+            meta=self.account_rule_meta,
+            func=self.account_handler.modify_account_rule.__name__,
         )
 
     @common_swagger_auto_schema(
@@ -139,5 +171,8 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
     @action(methods=["DELETE"], detail=False, serializer_class=DeleteAccountRuleSerializer)
     def delete_account_rule(self, request, bk_biz_id):
         return self._view_common_handler(
-            request, bk_biz_id, AccountRuleMeta, AccountHandler.delete_account_rule.__name__
+            request=request,
+            bk_biz_id=bk_biz_id,
+            meta=self.account_rule_meta,
+            func=self.account_handler.delete_account_rule.__name__,
         )

@@ -62,6 +62,7 @@ func init() {
 		"bk_os_type",
 		"bk_os_bit",
 		"bk_os_version",
+		"bk_os_name",
 	}
 }
 

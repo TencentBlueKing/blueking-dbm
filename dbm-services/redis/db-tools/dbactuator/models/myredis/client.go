@@ -1924,3 +1924,132 @@ func (db *RedisClient) RedisClusterGetMasterNode(addr string) (masterNode *Clust
 	}
 	return
 }
+
+// RedisClientItem 解析:id=335 addr=a.a.a.a:60088 laddr=b.b.b.b:6379 \
+// fd=9 name= age=4 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 \
+// qbuf=26 qbuf-free=40928 argv-mem=10 obl=0 oll=0 omem=0 tot-mem=61466
+// events=r cmd=client user=default redir=-1
+type RedisClientItem struct {
+	ID       int64  `json:"id"`
+	Addr     string `json:"addr"`
+	LAddr    string `json:"laddr"`
+	Fd       int64  `json:"fd"`
+	Name     string `json:"name"`
+	Age      int64  `json:"age"`
+	Idle     int64  `json:"idle"`
+	Flags    string `json:"flags"`
+	DB       int64  `json:"db"`
+	Sub      int64  `json:"sub"`
+	PSub     int64  `json:"psub"`
+	Multi    int64  `json:"multi"`
+	QBuf     int64  `json:"qbuf"`
+	QBufFree int64  `json:"qbuf-free"`
+	ArgvMem  int64  `json:"argv-mem"`
+	Obl      int64  `json:"obl"`
+	Oll      int64  `json:"oll"`
+	OMem     int64  `json:"omem"`
+	TotMem   int64  `json:"tot-mem"`
+	Events   string `json:"events"`
+	Cmd      string `json:"cmd"`
+	User     string `json:"user"`
+	Redir    int64  `json:"redir"`
+}
+
+// GetClientIP TODO
+func (r *RedisClientItem) GetClientIP() string {
+	return strings.Split(r.Addr, ":")[0]
+}
+
+// ClientList 执行client list命令,返回客户端连接信息列表
+func (db *RedisClient) ClientList() (ret []*RedisClientItem, err error) {
+	// 命令'client list ',只能用 普通redis client
+	if db.InstanceClient == nil {
+		err = fmt.Errorf("'client list' redis:%s must create a standalone client", db.Addr)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	var retStr string
+	retStr, err = db.InstanceClient.ClientList(context.TODO()).Result()
+	if err != nil {
+		err = fmt.Errorf("'client list' fail,err:%v,addr:%s", err, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	retStrArr := strings.Split(strings.TrimSpace(retStr), "\n")
+	for _, v := range retStrArr {
+		item := &RedisClientItem{}
+		arr := strings.Fields(v)
+		for _, field := range arr {
+			arr1 := strings.SplitN(field, "=", 2)
+			if len(arr1) != 2 {
+				continue
+			}
+			switch arr1[0] {
+			case "id":
+				item.ID, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "addr":
+				item.Addr = arr1[1]
+			case "laddr":
+				item.LAddr = arr1[1]
+			case "fd":
+				item.Fd, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "name":
+				item.Name = arr1[1]
+			case "age":
+				item.Age, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "idle":
+				item.Idle, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "flags":
+				item.Flags = arr1[1]
+			case "db":
+				item.DB, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "sub":
+				item.Sub, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "psub":
+				item.PSub, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "multi":
+				item.Multi, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "qbuf":
+				item.QBuf, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "qbuf-free":
+				item.QBufFree, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "argv-mem":
+				item.ArgvMem, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "obl":
+				item.Obl, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "oll":
+				item.Oll, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "omem":
+				item.OMem, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "tot-mem":
+				item.TotMem, _ = strconv.ParseInt(arr1[1], 10, 64)
+			case "events":
+				item.Events = arr1[1]
+			case "cmd":
+				item.Cmd = arr1[1]
+			case "user":
+				item.User = arr1[1]
+			case "redir":
+				item.Redir, _ = strconv.ParseInt(arr1[1], 10, 64)
+			}
+		}
+		ret = append(ret, item)
+	}
+	return
+}
+
+// ClientKillAddr 执行client kill addr
+func (db *RedisClient) ClientKillAddr(addr string) (err error) {
+	if db.InstanceClient == nil {
+		err := fmt.Errorf("'client kill %s' redis:%s must create a standalone client", addr, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return err
+	}
+	err = db.InstanceClient.ClientKill(context.TODO(), addr).Err()
+	if err != nil {
+		err = fmt.Errorf("'client kill %s' fail,err:%v,addr:%s", addr, err, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return err
+	}
+	return
+}

@@ -24,6 +24,7 @@
         <BusinessItems
           v-model:app-abbr="formdata.details.db_app_abbr"
           v-model:biz-id="formdata.bk_biz_id"
+          perrmision-action-id="pulsar_apply"
           @change-biz="handleChangeBiz" />
         <ClusterName v-model="formdata.details.cluster_name" />
         <ClusterAlias

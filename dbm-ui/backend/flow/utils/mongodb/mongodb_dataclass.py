@@ -11,17 +11,17 @@ specific language governing permissions and limitations under the License.
 
 import os
 from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from django.conf import settings
 
+from backend import env
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import machine_type
+from backend.configuration.models import SystemSettings
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
-from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import (
     DEFAULT_CONFIG_CONFIRM,
@@ -43,6 +43,7 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.utils.mongodb import mongodb_script_template
 from backend.flow.utils.mongodb.calculate_cluster import get_cache_size, get_oplog_size, machine_order_by_tolerance
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
+from backend.flow.utils.mongodb.mongodb_repo import MongoRepository
 
 
 @dataclass()
@@ -82,12 +83,12 @@ class ActKwargs:
 
     def __get_define_config(self, namespace: str, conf_file: str, conf_type: str) -> Any:
         """获取一些全局的参数配置"""
-
+        bk_biz_id = str(self.payload["bk_biz_id"])
         data = DBConfigApi.query_conf_item(
             params={
-                "bk_biz_id": str(self.payload["bk_biz_id"]),
+                "bk_biz_id": bk_biz_id,
                 "level_name": LevelName.APP,
-                "level_value": str(self.payload["bk_biz_id"]),
+                "level_value": bk_biz_id,
                 "conf_file": conf_file,
                 "conf_type": conf_type,
                 "namespace": namespace,
@@ -178,6 +179,24 @@ class ActKwargs:
             conf_type=ConfigTypeEnum.Config.value,
             conf_file=ConfigFileEnum.OsConf.value,
         )
+        return self.os_conf
+
+    @staticmethod
+    def get_mongodb_monitor_conf():
+        """获取监控配置信息"""
+        bkm_dbm_report = SystemSettings.get_setting_value(key="BKM_DBM_REPORT")
+        return {
+            "agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
+            "beat_path": env.MYSQL_CROND_BEAT_PATH,
+            "event_config": {
+                "data_id": int(bkm_dbm_report["event"]["data_id"]),
+                "token": bkm_dbm_report["event"]["token"],
+            },
+            "metric_config": {
+                "data_id": int(bkm_dbm_report["metric"]["data_id"]),
+                "token": bkm_dbm_report["metric"]["token"],
+            },
+        }
 
     def get_file_path(self):
         """安装文件存放路径"""
@@ -1417,235 +1436,10 @@ class CommonContext:
     output: Optional[Any] = None
 
 
-def get_mongo_global_config():
-    """获取mongo配置, todo 改为从配置中心获取"""
-    return {
-        "file_path": "/data",  # actuator工作目录
-        "install_dir": "",  # 数据文件存放目录，为空表示使用默认目录，优先 /data1，其次/data
-        "backup_dir": "",  # 备份文件存放目录，为空表示使用默认目录，优先 /data，其次/data1
-        "user": "mysql",  # 用户名
-    }
-
-
-# entities
-# Node -> ReplicaSet -> Cluster[Rs,ShardedCluster]
-
-
-class MongoNode:
-    def __init__(self, ip, port, role, bk_cloud_id, domain):
-        self.ip: str = ip
-        self.port: str = port
-        self.role: str = role
-        self.bk_cloud_id: int = bk_cloud_id
-        self.domain: str = domain
-
-
-class ReplicaSet:
-    def __init__(self):
-        self.set_name: str = None
-        self.members: List[MongoNode] = None
-
-    # get_backup_node 返回MONGO_BACKUP member
-    def get_backup_node(self):
-        i = len(self.members) - 1
-        while i >= 0:
-            if self.members[i].role == InstanceRole.MONGO_BACKUP:
-                return self.members[i]
-            i = i - 1
-
-        return None
-
-    # get_not_backup_nodes 返回非MONGO_BACKUP的member
-    def get_not_backup_nodes(self):
-        members = []
-        # i = len(self.members) - 1
-        for m in self.members:
-            if m.role == InstanceRole.MONGO_BACKUP:
-                members.append(m)
-
-        return members
-
-    def get_bk_cloud_id(self):
-        for i in self.members:
-            return i.bk_cloud_id
-        return None
-
-
-# MongoDBCluster 有cluster_id cluster_name cluster_type
-class MongoDBCluster:
-    bk_cloud_id: int
-    bk_biz_id: int
-    creator: str
-    name: str
-    app: str
-    immute_domain: str
-    alias: str
-    major_version: str
-    region: str
-    cluster_type: str
-    id: str
-
-    def __init__(self):
-        self.id: str = None
-        self.name: str = None
-        self.cluster_type: str = None
-
-    # get_shards interface
-    def get_shards(self) -> List[ReplicaSet]:
-        pass
-
-    def get_mongos(self) -> List[MongoNode]:
-        return None
-
-    def get_config(self) -> ReplicaSet:
-        return None
-
-    def get_bk_cloud_id(self):
-        pass
-
-
-class ReplicaSetCluster(MongoDBCluster):
-    shard: ReplicaSet  # storages
-
-    def __init__(self):
-        self.cluster_type: str = ClusterType.MongoReplicaSet.value
-
-    def get_shards(self):
-        return [self.shard]
-
-    def get_mongos(self) -> List[MongoNode]:
-        return None
-
-
-class ShardedCluster(MongoDBCluster):
-    shards: List[ReplicaSet]  # storages
-    mongos: List[MongoNode]  # proxies
-    config: ReplicaSet  # configs
-
-    def __init__(self):
-        self.cluster_type: str = ClusterType.MongoShardedCluster.value
-
-    def get_shards(self) -> List[ReplicaSet]:
-        return self.shards
-
-    def get_config(self) -> ReplicaSet:
-        return self.config
-
-    def get_mongos(self) -> List[MongoNode]:
-        return self.mongos
-
-
-# MongoRepository
-#
-class MongoRepository:
-    def __init__(self):
-        pass
-
-    @classmethod
-    def fetch_many_cluster(cls, **kwargs):
-        rows: List[MongoDBCluster] = []
-        v = Cluster.objects.filter(**kwargs)
-        for i in v:
-            if i.cluster_type == ClusterType.MongoReplicaSet.value:
-                row = ReplicaSetCluster()
-                row.id = i.id
-                row.name = i.name
-                row.cluster_type = i.cluster_type
-                row.major_version = i.major_version
-                row.bk_biz_id = i.bk_biz_id
-                row.immute_domain = i.immute_domain
-                row.bk_cloud_id = i.bk_cloud_id
-
-                # MongoReplicaSet 只有一个Set
-                row.shard = ReplicaSet()
-                row.shard.set_name = row.name
-                row.shard.members = []
-
-                for m in i.storageinstance_set.all():
-                    row.shard.members.append(
-                        MongoNode(
-                            m.ip_port.split(":")[0],
-                            str(m.port),
-                            m.instance_role,
-                            m.machine.bk_cloud_id,
-                            m.bind_entry.first().entry,
-                        )
-                    )
-
-                rows.append(row)
-            elif i.cluster_type == ClusterType.MongoShardedCluster.value:
-                row = ShardedCluster()
-                row.id = i.id
-                row.name = i.name
-                row.cluster_type = i.cluster_type
-                row.major_version = i.major_version
-                row.bk_biz_id = i.bk_biz_id
-                row.bk_cloud_id = i.bk_cloud_id
-                row.immute_domain = i.immute_domain
-                row.mongos = []
-                row.shards = []
-
-                for m in i.proxyinstance_set.all():
-                    row.mongos.append(
-                        MongoNode(
-                            m.ip_port.split(":")[0],
-                            str(m.port),
-                            m.instance_role,
-                            m.machine.bk_cloud_id,
-                            m.bind_entry.first().entry,
-                        )
-                    )
-
-                for m in i.nosqlstoragesetdtl_set.all():
-                    # seg_range
-                    shard = ReplicaSet()
-                    shard.set_name = m.seg_range
-                    shard.members = []
-                    # add primary
-                    node = m.instance
-                    shard.members.append(
-                        MongoNode(
-                            node.ip_port.split(":")[0],
-                            str(node.port),
-                            node.instance_role,
-                            node.machine.bk_cloud_id,
-                            "",
-                        )
-                    )
-
-                    # add secondary
-                    for e in m.instance.as_ejector.all():
-                        node = e.receiver
-                        shard.members.append(
-                            MongoNode(
-                                node.ip_port.split(":")[0],
-                                str(node.port),
-                                node.instance_role,
-                                node.machine.bk_cloud_id,
-                                "",
-                            )
-                        )
-
-                    if m.instance.machine_type == machine_type.MachineType.MONOG_CONFIG.value:
-                        row.config = shard
-                    else:
-                        row.shards.append(shard)
-
-                rows.append(row)
-
-        return rows
-
-    @classmethod
-    def fetch_one_cluster(cls, **kwargs):
-        rows = cls.fetch_many_cluster(**kwargs)
-        if len(rows) > 0:
-            return rows[0]
-        return None
-
-    @classmethod
-    def fetch_many_cluster_dict(cls, **kwargs):
-        clusters = cls.fetch_many_cluster(**kwargs)
-        clusters_map = {}
-        for cluster in clusters:
-            clusters_map[cluster.immute_domain.lower()] = cluster
-        return clusters_map
+def payload_func_install_dbmon(db_act_template: dict, ctx: CommonContext) -> dict:
+    """安装dbmon"""
+    instances_by_ip = ctx.get("instances_by_ip")
+    exec_ip = db_act_template["exec_ip"]
+    nodes = instances_by_ip[exec_ip]
+    db_act_template["payload"]["servers"] = [node.__json__() for node in nodes]  # 必须强制为list，默认是set，为啥
+    return db_act_template

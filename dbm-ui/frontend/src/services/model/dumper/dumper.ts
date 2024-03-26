@@ -65,10 +65,16 @@ export default class Dumper {
     ticket_type?: string;
     ticket_id?: number;
   }[];
+  permission: {
+    mysql_view: boolean;
+    tbinlogdumper_enable_disable: boolean;
+    tbinlogdumper_reduce_nodes: boolean;
+    tbinlogdumper_switch_nodes: boolean;
+  };
   phase: string;
   proc_type: string;
   protocol_type: string;
-  source_cluster: {
+  source_cluster?: {
     bk_cloud_id: number;
     cluster_type: string;
     id: number;
@@ -100,16 +106,16 @@ export default class Dumper {
     this.listen_port = payload.listen_port;
     this.need_transfer = payload.need_transfer;
     this.operations = payload.operations;
+    this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.proc_type = payload.proc_type;
     this.protocol_type = payload.protocol_type;
-    this.source_cluster = payload.source_cluster || {};
+    this.source_cluster = payload.source_cluster;
     this.target_address = payload.target_address;
     this.target_port = payload.target_port;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
     this.version = payload.version;
-    console.log('prig model = ', this);
   }
 
   // 操作中的状态

@@ -131,6 +131,11 @@ func (job *RedisShutdown) Shutdown(port int) {
 	shutDownSucc := false
 	status := true
 	var err error
+	status, err = job.IsRedisRunning(port)
+	if err == nil && !status {
+		job.runtime.Logger.Info("redis port[%d] is not running", port)
+		return
+	}
 	stopScript := filepath.Join(job.RedisBinDir, "stop-redis.sh")
 	job.runtime.Logger.Info("get port[%d] pwd begin.", port)
 	pwd, err := myredis.GetRedisPasswdFromConfFile(port)
@@ -265,7 +270,7 @@ func (job *RedisShutdown) ClearWhenAllInstancesShutdown() (err error) {
 	}
 	var psRet string
 	// 再次判断是否还有不必要的进程存在
-	psCmd := `ps aux|grep -iwE "tendisplus|redis-server"|grep -v grep || { true; }`
+	psCmd := `ps aux|grep -iwE "tendisplus|redis-server"|grep -vE "grep|IEDBACKUP" || { true; }`
 	job.runtime.Logger.Info(psCmd)
 	psRet, err = util.RunBashCmd(psCmd, "", nil, 10*time.Second)
 	if err != nil {

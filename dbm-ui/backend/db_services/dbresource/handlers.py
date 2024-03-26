@@ -348,6 +348,8 @@ class ResourceHandler(object):
     @classmethod
     def spec_resource_count(cls, bk_biz_id: int, bk_cloud_id: int, spec_ids: List[int]):
         specs = Spec.objects.filter(spec_id__in=spec_ids)
+        if not specs.exists():
+            return {}
         # 获取resource_type
         spec_cluster_type = list(set(specs.values_list("spec_cluster_type", flat=True)))
         if len(spec_cluster_type) > 1:

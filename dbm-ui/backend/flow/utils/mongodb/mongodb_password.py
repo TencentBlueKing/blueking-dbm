@@ -87,14 +87,26 @@ class MongoDBPassword(object):
 
     def get_password_from_db(self, ip: str, port: int, bk_cloud_id: int, username: str) -> dict:
         """从db获取密码"""
+        nodes = [{"ip": ip, "port": port, "bk_cloud_id": bk_cloud_id}]
+        result = self.get_nodes_password_from_db(nodes, username)
+        if result["password"] is None:
+            return {"password": None, "info": result["info"]}
+        return {"password": result["password"][0].get("password"), "info": None}
+
+    def get_nodes_password_from_db(self, instances, username: str) -> list:
+        """从db获取密码"""
+        # nodes for format [{"ip":"x.x.x.x","port":1234,"bk_cloud_id":0}]
 
         result = DBPrivManagerApi.get_password(
             {
-                "instances": [{"ip": ip, "port": port, "bk_cloud_id": bk_cloud_id}],
+                "instances": instances,
                 "users": [{"username": username, "component": self.component}],
             },
             raw=True,
         )
         if result["code"] != RequestResultCode.Success.value:
             return {"password": None, "info": result["message"]}
-        return {"password": self.base64_decode(result["data"]["items"][0]["password"]), "info": None}
+
+        for item in result["data"]["items"]:
+            item["password"] = self.base64_decode(item["password"])
+        return {"password": result["data"]["items"], "info": None}

@@ -46,6 +46,16 @@
           </span>
         </BkMenuItem>
       </BkSubmenu>
+      <BkMenuItem key="SqlServerDbBackup">
+        <template #icon>
+          <DbIcon type="node" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('数据库备份') }}
+        </span>
+      </BkMenuItem>
     </BkMenuGroup>
   </FunController>
 </template>

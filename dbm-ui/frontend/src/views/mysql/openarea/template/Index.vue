@@ -5,12 +5,13 @@
       theme="info"
       :title="t('开区模板：通过开区模板，可以快速创建集群开区')" />
     <div class="header-action mt-16 mb-16">
-      <BkButton
+      <AuthButton
+        action-id="mysql_openarea_config_create"
         class="w-88"
         theme="primary"
         @click="handleGoCreate">
         {{ t('新建') }}
-      </BkButton>
+      </AuthButton>
       <BkInput
         v-model="serachKey"
         class="search-box"
@@ -24,7 +25,7 @@
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
   import {
@@ -38,6 +39,7 @@
 
   const { t } = useI18n();
   const router = useRouter();
+  const route = useRoute();
 
   const tableRef = ref();
   const serachKey = useDebouncedRef('');
@@ -72,29 +74,41 @@
               params: {
                 id: data.id,
               },
+              query: {
+                from: route.name
+              }
             }}>
             { t('开区') }
           </router-link>
-          <router-link
+          <auth-router-link
+            action-id="mysql_openarea_config_update"
+            resource={data.id}
+            permission={data.permission.mysql_openarea_config_update}
             class="ml-16"
             to={{
               name: 'mysqlOpenareaTemplateEdit',
               params: {
                 id: data.id,
               },
+              query: {
+                from: route.name
+              }
             }}>
             { t('编辑') }
-          </router-link>
+          </auth-router-link>
           <db-popconfirm
             title={t('确认删除该模板？')}
             content={t('删除操作无法撤回，请谨慎操作！')}
             confirmHandler={() => handleRemove(data)}>
-            <bk-button
+            <auth-button
+              action-id="mysql_openarea_config_destroy"
+              resource={data.id}
+              permission={data.permission.mysql_openarea_config_destroy}
               class="ml-16"
               text
               theme="primary">
               { t('删除') }
-            </bk-button>
+            </auth-button>
           </db-popconfirm>
         </>
       ),

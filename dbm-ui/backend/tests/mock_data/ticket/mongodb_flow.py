@@ -82,9 +82,37 @@ MANGODB_REDUCE_MANGOS_DATA = {
     },
 }
 
+# mangodb 集群下架请求单据
+MANGODB_DESTROY_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.MONGODB_DESTROY,
+    "details": {"cluster_ids": [CLUSTER_ID]},
+}
+
+# mangos 扩容资源池数据
+MANGOS_ADD_SOURCE_DATA = {
+    "0_mongos": [
+        {
+            "bk_biz_id": BK_BIZ_ID,
+            "ip": "127.0.0.1",
+            "bk_cloud_id": 0,
+            "bk_host_id": 3,
+            "bk_cpu": 2,
+            "bk_disk": 147,
+            "bk_mem": 3663,
+            "storage_device": {"/data": {"size": 50, "disk_id": "disk-01", "disk_type": "HDD", "file_type": "ext4"}},
+            "city": "",
+            "sub_zone": "",
+            "sub_zone_id": "",
+            "rack_id": "",
+            "device_class": "",
+        }
+    ]
+}
+      
 # mango 整机替换资源申请数据
 MANGODB_SOURCE_APPLICATION_DATA = {
-    "0_mongodb_1.1.1.4": [
+    "0_mongodb_1.1.1.4": [      
         {
             "bk_biz_id": BK_BIZ_ID,
             "ip": "2.2.2.1",

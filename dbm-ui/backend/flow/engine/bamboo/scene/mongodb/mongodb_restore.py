@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import logging.config
 from typing import Dict, Optional
 
@@ -22,7 +23,7 @@ from backend.flow.engine.bamboo.scene.mongodb.sub_task.download_subtask import D
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.exec_shell_script import ExecShellScript
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.restore_sub import RestoreSubTask
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
-from backend.flow.utils.mongodb.mongodb_dataclass import get_mongo_global_config
+from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBNsFilter, MongoRepository
 from backend.flow.utils.mongodb.mongodb_script_template import prepare_recover_dir_script
 
@@ -82,7 +83,7 @@ class MongoRestoreFlow(MongoBaseFlow):
         """
         logger.debug("MongoDBRestoreFlow start, payload", self.payload)
         # actuator_workdir 提前创建好的，在部署的时候就创建好了.
-        actuator_workdir = get_mongo_global_config()["file_path"]
+        actuator_workdir = ActKwargs().get_mongodb_os_conf()["file_path"]
         file_list = GetFileList(db_type=DBType.MongoDB).get_db_actuator_package()
 
         # 创建流程实例
@@ -114,8 +115,8 @@ class MongoRestoreFlow(MongoBaseFlow):
             except Exception as e:
                 logger.exception("check_cluster_valid fail")
                 raise Exception("check_cluster_valid fail cluster_id:{} {}".format(row["cluster_id"], e))
-            print("sub_pipline start row", row)
-            print("sub_pipline start cluster", cluster)
+            logger.debug("sub_pipline start row", row)
+            logger.debug("sub_pipline start cluster", cluster)
 
             sub_pl, sub_bk_host_list = DownloadSubTask.process_cluster(
                 root_id=self.root_id,

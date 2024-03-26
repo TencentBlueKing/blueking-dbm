@@ -25,6 +25,12 @@ export default class Opeanarea {
   create_at: string;
   creator: string;
   id: number;
+  permission: {
+    mysql_openarea_config_destroy: boolean;
+    mysql_openarea_config_update: boolean;
+    tendb_openarea_config_destroy: boolean;
+    tendb_openarea_config_update: boolean;
+  };
   source_cluster: {
     bk_cloud_id: number;
     cluster_type: string;
@@ -45,6 +51,7 @@ export default class Opeanarea {
     this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.id = payload.id;
+    this.permission = payload.permission || {};
     this.source_cluster = payload.source_cluster || {};
     this.source_cluster_id = payload.source_cluster_id;
     this.update_at = payload.update_at;

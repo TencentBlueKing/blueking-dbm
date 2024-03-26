@@ -16,6 +16,7 @@ import (
 	"path"
 	"sort"
 	"strconv"
+	"strings"
 
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/model"
@@ -26,6 +27,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // SearchContext TODO
@@ -131,6 +133,18 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 		os_type = "Linux"
 	}
 	db.Where("os_type = ? ", os_type)
+
+	// match os name  like  Windows Server 2012
+	if len(o.ApplyObjectDetail.OsNames) > 0 {
+		conditions := []clause.Expression{}
+		for _, osname := range o.ApplyObjectDetail.OsNames {
+			conditions = append(conditions, clause.Like{
+				Column: "os_name",
+				Value:  "%" + strings.TrimSpace(strings.ToLower(osname)) + "%",
+			})
+		}
+		db.Clauses(clause.OrConditions{Exprs: conditions})
+	}
 
 	// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
 	// 没有资源类型标签的资源可以被所有其他类型使用

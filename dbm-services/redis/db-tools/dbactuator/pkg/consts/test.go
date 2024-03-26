@@ -4,6 +4,7 @@ import "fmt"
 
 // test consts
 const (
+	// TestTendisPlusMasterStartPort TODO
 	// ----- tendisplus  master指定的端口范围 [11000,11999] ------
 	// ----- tendisplus slave指定的端口范围 [12000,12999] ------
 	// TestTendisPlusMasterStartPort master start port
@@ -51,12 +52,14 @@ const (
 	// TestTendisSSDSlaveStartPort slave start port
 	TestTendisSSDSlaveStartPort = 16000
 
-	// TestTwemproxyPort twemproxy port
-	TestTwemproxyPort = 50100
-	// TestPredixyPort predixy port
-	TestPredixyPort = 50200
+	// TestRedisTwemproxyPort twemproxy port
+	TestRedisTwemproxyPort = 50100
+	// TestTendisplusPredixyPort predixy port
+	TestTendisplusPredixyPort = 50200
+	// TestRedisPredixyPort predixy port
+	TestRedisPredixyPort = 50300
 	// TestSSDClusterTwemproxyPort twemproxy port
-	TestSSDClusterTwemproxyPort = 50300
+	TestSSDClusterTwemproxyPort = 50400
 
 	// TestRedisInstanceNum instance number
 	TestRedisInstanceNum = 4

@@ -12,43 +12,45 @@
 -->
 
 <template>
-  <div class="ticket-details">
-    <BkLoading
-      :loading="state.isLoading"
-      style="min-height: 200px">
-      <template v-if="state.ticketData">
-        <DbCard
-          mode="collapse"
-          :title="t('基本信息')">
-          <Baseinfo
-            :columns="baseColumns"
-            :data="state.ticketData"
-            width="30%" />
-        </DbCard>
-        <Teleport
-          :disabled="!isFullscreen"
-          to="body">
+  <BkLoading
+    :loading="state.isLoading"
+    style="min-height: calc(100vh - 120px)">
+    <PermissionCatch>
+      <div class="ticket-details">
+        <template v-if="state.ticketData">
           <DbCard
-            v-model:collapse="demandCollapse"
-            :class="{ 'tickets-main-is-fullscreen': isFullscreen }"
             mode="collapse"
-            :title="t('需求信息')">
-            <DemandInfo
+            :title="t('基本信息')">
+            <Baseinfo
+              :columns="baseColumns"
               :data="state.ticketData"
-              :is-loading="state.isLoading" />
+              width="30%" />
           </DbCard>
-        </Teleport>
-        <DbCard
-          class="ticket-flows"
-          mode="collapse"
-          :title="t('实施进度')">
-          <FlowInfo
-            :data="state.ticketData"
-            @fetch-data="handleFetchData" />
-        </DbCard>
-      </template>
-    </BkLoading>
-  </div>
+          <Teleport
+            :disabled="!isFullscreen"
+            to="body">
+            <DbCard
+              v-model:collapse="demandCollapse"
+              :class="{ 'tickets-main-is-fullscreen': isFullscreen }"
+              mode="collapse"
+              :title="t('需求信息')">
+              <DemandInfo
+                :data="state.ticketData"
+                :is-loading="state.isLoading" />
+            </DbCard>
+          </Teleport>
+          <DbCard
+            class="ticket-flows"
+            mode="collapse"
+            :title="t('实施进度')">
+            <FlowInfo
+              :data="state.ticketData"
+              @fetch-data="handleFetchData" />
+          </DbCard>
+        </template>
+      </div>
+    </PermissionCatch>
+  </BkLoading>
 </template>
 
 <script setup lang="tsx">
@@ -59,6 +61,7 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketDetails } from '@services/source/ticket';
 
+  import PermissionCatch from '@components/apply-permission/Catch.vue';
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import Baseinfo, { type InfoColumn } from '@views/tickets/common/components/baseinfo/Index.vue';
@@ -79,7 +82,9 @@
    */
   const fetchTicketDetails = (id: number, isPoll = false) => {
     state.isLoading = !isPoll;
-    getTicketDetails({ id })
+    getTicketDetails({ id }, {
+      permission: 'catch'
+    })
       .then((res) => {
         state.ticketData = res;
         // 设置轮询

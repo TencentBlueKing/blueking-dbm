@@ -44,7 +44,7 @@ func init() {
 	sendMsgCmd.Flags().StringVar(&msgEventName, "name", "redis_login", "")
 	sendMsgCmd.Flags().StringVar(&msgEventMsg, "msg", "msg", "")
 	sendMsgCmd.Flags().StringVar(&msgEventLevel, "level", "warning", "warning|critical|error")
-	sendMsgCmd.Flags().StringVar(&msgTargetIp, "targetIp", "", "default: servers[port].ServerIp")
+	sendMsgCmd.Flags().StringVar(&msgTargetIp, "targetIp", "", "default: servers[port].Ip")
 	debugCmd.AddCommand(sendMsgCmd)
 }
 
@@ -55,20 +55,20 @@ func debugMain() {
 
 // sendmsgCmdMain go run main.go debug sendmsg --type=event --name=event_name --msg="msg" --level=warning --port=27017
 func sendmsgCmdMain() {
-	config.InitConfig(cfgFile)
+	config.InitConfig(cfgFile, mylog.Logger)
 	mylog.InitRotateLoger()
 	jsonTxt, _ := json.Marshal(config.GlobalConf)
 	log.Printf("cfgFile:\n%s\n", jsonTxt)
 	servers := config.GlobalConf.Servers
 	idx := slices.IndexFunc(servers, func(s config.ConfServerItem) bool {
-		return s.ServerPort == instancePort
+		return s.Port == instancePort
 	})
 	if idx < 0 {
 		log.Fatalf("config文件:%q中不存在port==%d的server\n", cfgFile, instancePort)
 	}
 	server := servers[idx]
 	if msgTargetIp == "" {
-		msgTargetIp = server.ServerIP
+		msgTargetIp = server.IP
 	}
 	beatConfig := &config.GlobalConf.BkMonitorBeat
 	if msgType == "event" {

@@ -111,7 +111,15 @@ mongodb_actuator_template2 = """
 # mongodb actuator script
 mkdir -p {{file_path}}/install/dbactuator-{{uid}}/logs
 # debug
-cp {{file_path}}/install/mongo-dbactuator.cyc {{file_path}}/install/dbactuator-{{uid}}/mongo-dbactuator
+exe={{file_path}}/install/mongo-dbactuator
+debug_exe={{file_path}}/install/mongo-dbactuator.cyc
+if [ -f "$debug_exe" ];then
+    cp $debug_exe {{file_path}}/install/dbactuator-{{uid}}/mongo-dbactuator
+    echo "using debug version $debug_exe"
+else
+    cp $exe {{file_path}}/install/dbactuator-{{uid}}
+fi
+
 cd {{file_path}}/install/dbactuator-{{uid}}
 chmod +x mongo-dbactuator
 

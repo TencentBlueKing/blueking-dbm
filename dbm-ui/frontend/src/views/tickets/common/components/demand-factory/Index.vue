@@ -113,6 +113,11 @@
   import SpiderSlaveDestroy from './spider/SlaveDestroy.vue';
   import SpiderTableBackup from './spider/TableBackup.vue';
   import SpiderTruncateDatabase from './spider/TruncateDatabase.vue';
+  import SqlserverAuthrizeRules from './sqlserver/AuthorizeRules.vue';
+  import SqlserverClusterOperation from './sqlserver/ClusterOperation.vue';
+  import SqlserverClusterReset from './sqlserver/ClusterReset.vue';
+  import SqlserverDbBackup from './sqlserver/DbBackup.vue'
+  import SqlserverDetails from './sqlserver/Details.vue';
 
   interface Props {
     data: TicketModel;
@@ -157,6 +162,17 @@
     TicketTypes.MYSQL_SINGLE_ENABLE,
     TicketTypes.MYSQL_HA_DESTROY,
     TicketTypes.MYSQL_SINGLE_DESTROY,
+  ];
+
+  const sqlserverApplyTiketType = [TicketTypes.SQLSERVER_SINGLE_APPLY, TicketTypes.SQLSERVER_HA_APPLY];
+
+  const sqlserverClusterTicketType = [
+    TicketTypes.SQLSERVER_DISABLE,
+    TicketTypes.SQLSERVER_DISABLE,
+    TicketTypes.SQLSERVER_ENABLE,
+    TicketTypes.SQLSERVER_ENABLE,
+    TicketTypes.SQLSERVER_DESTROY,
+    TicketTypes.SQLSERVER_DESTROY,
   ];
 
   const dumperNodeStatusUpdateType = [TicketTypes.TBINLOGDUMPER_DISABLE_NODES, TicketTypes.TBINLOGDUMPER_ENABLE_NODES];
@@ -231,6 +247,8 @@
 
   const mongoAuthorizeRulesTypes = [TicketTypes.MONGODB_AUTHORIZE, TicketTypes.MONGODB_EXCEL_AUTHORIZE];
 
+  const sqlserverAuthorizeRulesTypes = [TicketTypes.SQLSERVER_AUTHORIZE_RULES, TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES];
+
   // 单一情况映射表
   const SingleDemandMap = {
     [TicketTypes.ES_APPLY]: DetailsES,
@@ -304,6 +322,8 @@
     [TicketTypes.MONGODB_SCALE_UPDOWN]: MongoCapacityChange,
     [TicketTypes.MONGODB_ADD_MONGOS]: MongoProxyScaleUp,
     [TicketTypes.MONGODB_TEMPORARY_DESTROY]: MongoTemporaryDestrot,
+    [TicketTypes.SQLSERVER_RESET]: SqlserverClusterReset,
+    [TicketTypes.SQLSERVER_BACKUP_DBS]: SqlserverDbBackup
   };
 
   // 不同集群详情组件
@@ -378,6 +398,18 @@
     // mongo 授权
     if (mongoAuthorizeRulesTypes.includes(ticketType)) {
       return MongoAuthrizeRules;
+    }
+    // SQLServer 申请
+    if (sqlserverApplyTiketType.includes(ticketType)) {
+      return SqlserverDetails;
+    }
+    // SQLServer 启停删
+    if (sqlserverClusterTicketType.includes(ticketType)) {
+      return SqlserverClusterOperation;
+    }
+    // SQLServer 授权
+    if (sqlserverAuthorizeRulesTypes.includes(ticketType)) {
+      return SqlserverAuthrizeRules;
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];

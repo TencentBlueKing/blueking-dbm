@@ -20,11 +20,34 @@ import http from '../http';
 
 const { currentBizId } = useGlobalBizs();
 
+const path = `/apis/sqlserver/bizs/${currentBizId}`
+
+/**
+ * 判断库名是否在集群存在
+ */
+export function checkSqlserverDbExist(params: {
+  cluster_id: number,
+  db_list: string[]
+}) {
+  return http.post<Record<string, boolean>>(`${path}/cluster/check_sqlserver_db_exist/`, params);
+}
+
+/**
+ * 通过库表匹配查询db
+ */
+export function getSqlserverDbs(params: {
+  cluster_id: number,
+  db_list: string[]
+  ignore_db_list: string[]
+}) {
+  return http.post<string[]>(`${path}/cluster/get_sqlserver_dbs/`, params);
+}
+
+
 /**
  * 获取业务拓扑树
  */
 export function geSqlserverResourceTree(params: { cluster_type: string }) {
-  // return http.get<BizConfTopoTreeModel[]>('http://127.0.0.1:8083/mock/20/apis/sqlserver/bizs/3/resource_tree/', params);
-  return http.get<BizConfTopoTreeModel[]>(`/apis/sqlserver/bizs/${currentBizId}/resource_tree/`, params);
+  return http.get<BizConfTopoTreeModel[]>(`${path}/resource_tree/`, params);
 }
 

@@ -15,14 +15,19 @@ from django.utils.translation import ugettext as _
 from django_celery_beat.schedulers import ModelEntry
 
 from backend.components import DBPrivManagerApi
-from backend.configuration.constants import DBM_MYSQL_ADMIN_USER, DBM_PASSWORD_SECURITY_NAME, DBType
+from backend.configuration.constants import (
+    DB_ADMIN_USER_MAP,
+    DBM_PASSWORD_SECURITY_NAME,
+    MYSQL_ADMIN_USER,
+    AdminPasswordRole,
+    DBType,
+)
 from backend.configuration.exceptions import PasswordPolicyBaseException
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, TenDBClusterSpiderRole
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.flow.consts import MySQLPasswordRole
 from backend.utils.string import base64_decode, base64_encode
 
 
@@ -71,7 +76,7 @@ class DBPasswordHandler(object):
         except (IndexError, ValueError):
             raise PasswordPolicyBaseException(_("请保证查询的实例输入格式合法，格式为[云区域:IP:PORT]"))
 
-        filters = {"limit": limit, "offset": offset, "component": DBType.MySQL.value, "username": DBM_MYSQL_ADMIN_USER}
+        filters = {"limit": limit, "offset": offset, "component": DBType.MySQL.value, "username": MYSQL_ADMIN_USER}
         if instance_list:
             filters.update(instances=instance_list)
         if begin_time:
@@ -90,9 +95,9 @@ class DBPasswordHandler(object):
         return mysql_admin_password_data
 
     @classmethod
-    def modify_mysql_admin_password(cls, operator: str, password: str, lock_hour: int, instance_list: List[Dict]):
+    def modify_admin_password(cls, operator: str, password: str, lock_hour: int, instance_list: List[Dict]):
         """
-        修改mysql的admin密码
+        修改db的admin密码
         @param operator: 操作人
         @param password: 修改密码
         @param lock_until: 到期时间
@@ -105,7 +110,7 @@ class DBPasswordHandler(object):
         )
         cluster_infos: List[Dict[str, Any]] = []
         for instance in instance_list:
-            role = cls._get_mysql_password_role(instance["cluster_type"], instance["role"])
+            role = cls._get_password_role(instance["cluster_type"], instance["role"])
             aggregate_instance[instance["bk_cloud_id"]][instance["cluster_type"]][role].append(
                 {"ip": instance["ip"], "port": int(instance["port"])}
             )
@@ -116,10 +121,17 @@ class DBPasswordHandler(object):
                     {"bk_cloud_id": bk_cloud_id, "cluster_type": cluster_type, "instances": instances_info}
                 )
 
-        # 填充参数，修改mysql admin的密码
+        # 根据cluster info获取DB类型，这里保证修改的实例属于同一组件
+        db_type = set([ClusterType.cluster_type_to_db_type(cluster["cluster_type"]) for cluster in cluster_infos])
+        if len(db_type) > 1:
+            raise PasswordPolicyBaseException(_("请保证修改密码的实例属于同一DB组件"))
+
+        # 填充参数，修改admin的密码
+        db_type = db_type.pop()
         modify_password_params = {
-            "username": DBM_MYSQL_ADMIN_USER,
-            "component": DBType.MySQL.value,
+            # username固定是ADMIN，与DBM_MYSQL_ADMIN_USER保持一致
+            "username": DB_ADMIN_USER_MAP[db_type],
+            "component": db_type,
             "password": base64_encode(password),
             "lock_hour": lock_hour,
             "operator": operator,
@@ -127,33 +139,37 @@ class DBPasswordHandler(object):
             "security_rule_name": DBM_PASSWORD_SECURITY_NAME,
             "async": False,
         }
-        data = DBPrivManagerApi.modify_mysql_admin_password(params=modify_password_params, raw=True)["data"]
+        data = DBPrivManagerApi.modify_admin_password(params=modify_password_params, raw=True)["data"]
         return data
 
     @classmethod
-    def _get_mysql_password_role(cls, cluster_type, role):
+    def _get_password_role(cls, cluster_type, role):
         """获取实例对应的密码角色"""
         # 映射tendbcluster的角色
         if cluster_type == ClusterType.TenDBCluster:
             if role == "spider_ctl":
-                return MySQLPasswordRole.TDBCTL.value
+                return AdminPasswordRole.TDBCTL.value
             if role in TenDBClusterSpiderRole.get_values():
-                return MySQLPasswordRole.SPIDER.value
+                return AdminPasswordRole.SPIDER.value
             if role in [
                 InstanceRole.REMOTE_MASTER.value,
                 InstanceRole.REMOTE_SLAVE.value,
                 InstanceRole.REMOTE_REPEATER.value,
             ]:
-                return MySQLPasswordRole.STORAGE.value
+                return AdminPasswordRole.STORAGE.value
 
-        # 映射mysql的角色
+        # 映射后端角色
         if role in [
             InstanceInnerRole.MASTER.value,
             InstanceInnerRole.SLAVE.value,
             InstanceInnerRole.REPEATER.value,
             InstanceInnerRole.ORPHAN.value,
+            InstanceRole.BACKEND_REPEATER,
+            InstanceRole.BACKEND_MASTER,
+            InstanceRole.BACKEND_SLAVE,
+            InstanceRole.ORPHAN,
         ]:
-            return MySQLPasswordRole.STORAGE.value
+            return AdminPasswordRole.STORAGE.value
 
         raise PasswordPolicyBaseException(_("{}-{}不存在相应的password角色").format(cluster_type, role))
 

@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 
 from ..base import BaseApi
-from ..domains import BKLOG_APIGW_DOMAIN, ESB_PREFIX
+from ..domains import BKLOG_APIGW_DOMAIN
 
 
 class _BKLogApi(BaseApi):
@@ -19,7 +19,7 @@ class _BKLogApi(BaseApi):
     BASE = BKLOG_APIGW_DOMAIN
 
     def __init__(self):
-        is_esb = ESB_PREFIX in BKLOG_APIGW_DOMAIN
+        is_esb = self.is_esb()
         self.esquery_search = self.generate_data_api(
             method="POST",
             url="esquery_search/",

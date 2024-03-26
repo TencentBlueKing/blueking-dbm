@@ -26,7 +26,7 @@
         </p>
       </div>
       <DbFormItem
-        v-if="accountType !== AccountTypes.MONGODB"
+        v-if="isMysql"
         class="cluster-authorize__bold"
         :label="t('访问源')"
         property="source_ips"
@@ -63,38 +63,7 @@
           }"
           :title="clusterTypeTitle" />
       </BkFormItem>
-      <template v-if="accountType === AccountTypes.MONGODB">
-        <BkFormItem
-          class="cluster-authorize__bold"
-          :label="t('权限规则')"
-          property="mongo_users"
-          required>
-          <div class="permission-item">
-            <BkButton
-              class="cluster-authorize__button"
-              @click="handleShowAccoutRules">
-              <DbIcon
-                class="button-icon"
-                type="db-icon-add" />
-              {{ t('添加账号规则') }}
-            </BkButton>
-            <BkButton
-              v-if="selectedList.length > 0"
-              text
-              theme="primary"
-              @click="handleDeleteAll">
-              <DbIcon type="delete" />
-              <span class="ml-6">{{ t('全部清空') }}</span>
-            </BkButton>
-          </div>
-          <AccountRulesTable
-            v-if="selectedList.length > 0"
-            class="mt-16"
-            :selected-list="selectedList"
-            @delete="handleRowDelete" />
-        </BkFormItem>
-      </template>
-      <template v-else>
+      <template v-if="isMysql">
         <h5 class="cluster-authorize__bold cluster-authorize__label pb-16">
           {{ t('权限规则') }}
         </h5>
@@ -160,6 +129,38 @@
             :empty-text="t('请选择访问DB')" />
         </BkFormItem>
       </template>
+      <template v-else>
+        <BkFormItem
+          class="cluster-authorize__bold"
+          :label="t('权限规则')"
+          property="mongo_users"
+          required>
+          <div class="permission-item">
+            <BkButton
+              class="cluster-authorize__button"
+              @click="handleShowAccoutRules">
+              <DbIcon
+                class="button-icon"
+                type="db-icon-add" />
+              {{ t('添加账号规则') }}
+            </BkButton>
+            <BkButton
+              v-if="selectedList.length > 0"
+              text
+              theme="primary"
+              @click="handleDeleteAll">
+              <DbIcon type="delete" />
+              <span class="ml-6">{{ t('全部清空') }}</span>
+            </BkButton>
+          </div>
+          <AccountRulesTable
+            v-if="selectedList.length > 0"
+            :account-type="accountType"
+            class="mt-16"
+            :selected-list="selectedList"
+            @delete="handleRowDelete" />
+        </BkFormItem>
+      </template>
     </DbForm>
     <template #footer>
       <BkButton
@@ -176,24 +177,25 @@
       </BkButton>
     </template>
   </BkSideslider>
-  <ClusterSelectorNew
-    v-if="accountType === AccountTypes.MONGODB"
-    v-model:is-show="clusterState.isShow"
-    :cluster-types="clusterTypes"
-    only-one-type
-    :selected="newClusterSelectorSelected"
-    :tab-list-config="tabListConfig"
-    @change="handleNewClusterChange" />
   <MySqlClusterSelector
-    v-else
+    v-if="isMysql"
     v-model:is-show="clusterState.isShow"
     :cluster-types="clusterTypes"
     only-one-type
     :selected="clusterSelectorSelected"
     :tab-list="tabList"
     @change="handleClusterSelected" />
+  <ClusterSelectorNew
+    v-else
+    v-model:is-show="clusterState.isShow"
+    :cluster-types="clusterTypes"
+    only-one-type
+    :selected="newClusterSelectorSelected"
+    :tab-list-config="tabListConfig"
+    @change="handleNewClusterChange" />
   <AccountRulesSelector
     v-model:is-show="accoutRulesShow"
+    :account-type="accountType"
     :selected-list="selectedList"
     @change="handleAccountRulesChange" />
 </template>
@@ -203,17 +205,19 @@
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import MongodbPermissonAccountModel from '@services/model/mongodb-permission/mongodb-permission-account';
+  import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
   import { getPermissionRules, preCheckAuthorizeRules } from '@services/permission';
   import { checkHost } from '@services/source/ipchooser';
   import { getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
   import { preCheckMongodbAuthorizeRules } from '@services/source/mongodbPermissionAuthorize';
+  import { getSqlserverPermissionRules } from '@services/source/sqlserverPermissionAccount';
+  import { preCheckSqlserverAuthorizeRules } from '@services/source/sqlserverPermissionAuthorize';
   import { createTicket } from '@services/source/ticket';
   import { getWhitelist } from '@services/source/whitelist';
   import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
 
   import { useCopy, useInfo, useStickyFooter, useTicketMessage } from '@hooks';
 
-  import type { AccountTypesValues } from '@common/const';
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelectorNew, { type TabConfig } from '@components/cluster-selector-new/Index.vue';
@@ -234,9 +238,10 @@
   type ResourceItem = NonNullable<Props['selected']>[number] & { isMaster?: boolean };
   type MysqlPreCheckResulst = ServiceReturnType<typeof preCheckAuthorizeRules>
   type MongoPreCheckResulst = ServiceReturnType<typeof preCheckMongodbAuthorizeRules>
+  type SqlserverPreCheckResulst = ServiceReturnType<typeof preCheckSqlserverAuthorizeRules>
 
   interface Props {
-    accountType: AccountTypesValues,
+    accountType: AccountTypes,
     user?: string,
     accessDbs?: string[],
     selected?: {
@@ -281,6 +286,14 @@
       name: t('分片集群'),
       showPreviewResultTitle: true,
     },
+    [ClusterTypes.SQLSERVER_SINGLE]: {
+      name: t('单节点集群'),
+      showPreviewResultTitle: true,
+    },
+    [ClusterTypes.SQLSERVER_HA]: {
+      name: t('主从集群'),
+      showPreviewResultTitle: true,
+    },
   };
 
   /**
@@ -314,7 +327,7 @@
   /** 权限规则功能 */
   const accountState = reactive({
     isLoading: false,
-    rules: [] as PermissionRule[] | MongodbPermissonAccountModel[],
+    rules: [] as PermissionRule[] | MongodbPermissonAccountModel[] | SqlserverPermissionAccountModel[],
   });
 
   const clusterState = reactive({
@@ -343,6 +356,8 @@
       },
     ],
   });
+
+  const isMysql = computed(() => [AccountTypes.MYSQL, AccountTypes.TENDBCLUSTER].includes(props.accountType))
 
   const collapseTableColumns = computed(() => {
     const columns = [
@@ -419,7 +434,7 @@
       tableProps,
     } = clusterState;
     selected[clusterType] = tableProps.data;
-    return selected as unknown as Record<string, MongodbModel[]>;
+    return selected as unknown as Record<string, (MongodbModel)[]>;
   });
 
   const tabListConfig = computed(() => props.clusterTypes.reduce((prevConfig, clusterTypeItem) => ({
@@ -431,6 +446,7 @@
     [AccountTypes.MYSQL]: TicketTypes.MYSQL_AUTHORIZE_RULES,
     [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
     [AccountTypes.MONGODB]: TicketTypes.MONGODB_AUTHORIZE,
+    [AccountTypes.SQLSERVER]: TicketTypes.SQLSERVER_AUTHORIZE_RULES
   };
 
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
@@ -445,7 +461,12 @@
       label: t('权限'),
       field: 'privilege',
       showOverflowTooltip: true,
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      render: ({ cell }: { cell: string }) => {
+        if (!cell){
+          return '--'
+        }
+        return cell.replace(/,/g, ', ')
+      },
     },
   ];
 
@@ -497,6 +518,7 @@
       [AccountTypes.MYSQL]: getPermissionRules,
       [AccountTypes.TENDBCLUSTER]: getPermissionRules,
       [AccountTypes.MONGODB]: getMongodbPermissionRules,
+      [AccountTypes.SQLSERVER]: getSqlserverPermissionRules
     };
 
     apiMap[props.accountType]({
@@ -522,6 +544,8 @@
       [ClusterTypes.TENDBCLUSTER]: 'Spider',
       [ClusterTypes.MONGO_REPLICA_SET]: t('副本集'),
       [ClusterTypes.MONGO_SHARED_CLUSTER]: t('分片集群'),
+      [ClusterTypes.SQLSERVER_SINGLE]: t('单节点'),
+      [ClusterTypes.SQLSERVER_HA]: t('主从'),
     };
     return clusterTextMap[clusterState.clusterType];
   });
@@ -621,6 +645,7 @@
       [AccountTypes.MYSQL]: 'PermissionRules',
       [AccountTypes.TENDBCLUSTER]: 'spiderPermission',
       [AccountTypes.MONGODB]: 'MongodbPermission',
+      [AccountTypes.SQLSERVER]: 'SqlServerPermissionRules'
     };
     const url = router.resolve({ name: routeMap[props.accountType] });
     window.open(url.href, '_blank');
@@ -629,7 +654,10 @@
   /**
    * 创建授权单据
    */
-  const createAuthorizeTicket = (uid: string, data: MysqlPreCheckResulst['authorize_data'] | MongoPreCheckResulst['authorize_data']) => {
+  const createAuthorizeTicket = (
+    uid: string,
+    data: MysqlPreCheckResulst['authorize_data'] | MongoPreCheckResulst['authorize_data'] | SqlserverPreCheckResulst['authorize_data']
+  ) => {
     const params = {
       bk_biz_id: bizId,
       details: {
@@ -664,6 +692,7 @@
       [AccountTypes.MYSQL]: preCheckAuthorizeRules,
       [AccountTypes.TENDBCLUSTER]: preCheckAuthorizeRules,
       [AccountTypes.MONGODB]: preCheckMongodbAuthorizeRules,
+      [AccountTypes.SQLSERVER]: preCheckSqlserverAuthorizeRules
     };
     const params = {
       target_instances: formdata.target_instances,
@@ -673,6 +702,13 @@
     if (props.accountType === AccountTypes.MONGODB) {
       Object.assign(params, {
         mongo_users: selectedList.value.map(selectedItem => ({
+          user: selectedItem.account.user,
+          access_dbs: selectedItem.rules.map(mapItem => mapItem.access_db),
+        })),
+      });
+    } else if (props.accountType === AccountTypes.SQLSERVER) {
+      Object.assign(params, {
+        sqlserver_users: selectedList.value.map(selectedItem => ({
           user: selectedItem.account.user,
           access_dbs: selectedItem.rules.map(mapItem => mapItem.access_db),
         })),

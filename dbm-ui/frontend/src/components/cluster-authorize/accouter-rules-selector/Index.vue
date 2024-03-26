@@ -27,11 +27,12 @@
       class="mb-16"
       :data="filters"
       :placeholder="t('请输入账号或DB名')"
-      style="width: 520px;"
+      style="width: 520px"
       unique-select
       @change="handleSearchSelectChange" />
     <AccountRulesTable
       ref="accountRulesTableRef"
+      :account-type="accountType"
       select-mode
       :selected-list="selectedList"
       @change="handleChange" />
@@ -54,24 +55,27 @@
         </BkButton>
       </div>
     </template>
-  </bkdialog>
+  </BkDialog>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends MongodbPermissonAccountModel | SqlserverPermissionAccountModel">
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import MongodbPermissonAccountModel from '@services/model/mongodb-permission/mongodb-permission-account';
+  import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
 
   import { getSearchSelectorParams } from '@utils';
 
   import AccountRulesTable from './components/AccountRulesTable.vue';
 
   interface Props {
-    selectedList?: MongodbPermissonAccountModel[]
+    accountType: string;
+    selectedList?: T[];
   }
 
   interface Emits {
-    (e: 'change', value: MongodbPermissonAccountModel[]): void,
+    (e: 'change', value: T[]): void;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -97,12 +101,13 @@
     },
   ];
 
-  const accountRulesTableRef = ref<InstanceType<typeof AccountRulesTable>>();
+  const accountRulesTableRef = ref<ComponentExposed<typeof AccountRulesTable>>();
   const tableSearch = ref([]);
-  const dataList = shallowRef<MongodbPermissonAccountModel[]>([]);
+  const dataList = shallowRef<T[]>([]);
 
-  const selectedCount = computed(() => dataList.value
-    .reduce((prevCount, dataItem) => prevCount + dataItem.rules.length, 0));
+  const selectedCount = computed(() =>
+    dataList.value.reduce((prevCount, dataItem) => prevCount + dataItem.rules.length, 0),
+  );
 
   watch(isShow, (newShow) => {
     nextTick(() => {
@@ -116,21 +121,29 @@
     accountRulesTableRef.value!.searchData(getSearchSelectorParams(tableSearch.value));
   };
 
-  const handleChange = (value: Record<number, {
-    account: MongodbPermissonAccountModel['account'],
-    rule: MongodbPermissonAccountModel['rules'][number]
-  }>) => {
-    const dataMap = Object.keys(value).reduce((prev, key) => {
-      const item = value[Number(key)];
-      const resultItem = prev[item.account.account_id];
-      if (!resultItem) {
-        return Object.assign({}, prev, {
-          [item.account.account_id]: Object.assign({}, item, { rules: [item.rule] }),
-        });
+  const handleChange = (
+    value: Record<
+      number,
+      {
+        account: T['account'];
+        rule: T['rules'][number];
       }
-      resultItem.rules.push(item.rule);
-      return prev;
-    }, {} as Record<number, MongodbPermissonAccountModel>);
+    >,
+  ) => {
+    const dataMap = Object.keys(value).reduce(
+      (prev, key) => {
+        const item = value[Number(key)];
+        const resultItem = prev[item.account.account_id];
+        if (!resultItem) {
+          return Object.assign({}, prev, {
+            [item.account.account_id]: Object.assign({}, item, { rules: [item.rule] }),
+          });
+        }
+        resultItem.rules.push(item.rule);
+        return prev;
+      },
+      {} as Record<number, T>,
+    );
     dataList.value = Object.values(dataMap);
   };
 
@@ -144,28 +157,28 @@
   };
 
   const handleClose = () => {
-    isShow.value =  false;
+    isShow.value = false;
   };
 </script>
 
 <style lang="less" scoped>
-.account-rules-selector {
-  :deep(.bk-dialog-header) {
-    padding-bottom: 12px;
-  }
+  .account-rules-selector {
+    :deep(.bk-dialog-header) {
+      padding-bottom: 12px;
+    }
 
-  .footer-wrapper {
-    display: flex;
-    align-items: center;
+    .footer-wrapper {
+      display: flex;
+      align-items: center;
 
-    .selected-text {
-      margin-right: auto;
+      .selected-text {
+        margin-right: auto;
 
-      .selected-count {
-        font-size: 700;
-        color: #2dcb56;
+        .selected-count {
+          font-size: 700;
+          color: #2dcb56;
+        }
       }
     }
   }
-}
 </style>

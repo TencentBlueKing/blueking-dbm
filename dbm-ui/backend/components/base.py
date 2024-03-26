@@ -25,6 +25,7 @@ from urllib3.exceptions import ConnectTimeoutError
 
 from backend import env
 from backend.components.constants import CLIENT_CRT_PATH, SSL_KEY, SSLEnum
+from backend.components.domains import ESB_PREFIX
 from backend.components.exception import DataAPIException
 from backend.components.utils.params import add_esb_info_before_request, remove_auth_args
 from backend.configuration.models.system import SystemSettings
@@ -539,6 +540,10 @@ class BaseApi(object):
 
     MODULE = ""
     BASE = ""
+
+    @classmethod
+    def is_esb(cls):
+        return ESB_PREFIX in cls.BASE
 
     def generate_data_api(self, method, url, description, **kwargs):
         """

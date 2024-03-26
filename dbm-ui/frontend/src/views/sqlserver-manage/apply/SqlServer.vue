@@ -11,6 +11,7 @@
           <BusinessItems
             v-model:app-abbr="formData.details.db_app_abbr"
             v-model:biz-id="formData.bk_biz_id"
+            perrmision-action-id="sqlserver_apply"
             @change-biz="handleChangeBiz" />
           <BkFormItem
             ref="moduleRef"
@@ -26,23 +27,32 @@
               filterable
               :input-search="false"
               style="display: inline-block">
-              <BkOption
+              <AuthOption
                 v-for="item in moduleList"
                 :key="item.db_module_id"
+                action-id="dbconfig_view"
+                :biz-id="formData.bk_biz_id"
                 :label="item.name"
+                :permission="item.permission.dbconfig_view"
+                resource="sqlserver"
                 :value="item.db_module_id" />
-              <template #extension>
-                <p
+              <template
+                v-if="formData.bk_biz_id"
+                #extension>
+                <div
                   v-bk-tooltips.top="{ content: t('请先选择所属业务') }"
                   class="ml-8">
                   <BkButton
+                    action-id="dbconfig_edit"
+                    :biz-id="formData.bk_biz_id"
                     class="create-module"
+                    resource="sqlserver"
                     text
                     @click="handleCreateModule">
                     <DbIcon type="plus-circle" />
                     <span class="ml-4">{{ t('新建模块') }}</span>
                   </BkButton>
-                </p>
+                </div>
               </template>
             </BkSelect>
             <DbIcon
@@ -171,6 +181,8 @@
                   :cloud-info="cloudInfo"
                   :data="formData.details.nodes.backend"
                   :disable-dialog-submit-method="backendHost"
+                  :disable-host-method="disableHostMethod"
+                  :disable-tips="formData.details.db_module_id ? '' : t('请选择模块')"
                   @change="handleBackendIpChange">
                   <template #desc>
                     {{ t('需n台', { n: hostNums }) }}
@@ -291,6 +303,7 @@
   import {
     sqlServerType,
     type SqlServerTypeString,
+    TicketTypes,
   } from '@common/const';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';
@@ -313,7 +326,7 @@
   const clusterType = isSingleType ? 'sqlserver_single' : 'sqlserver_ha';
 
   const getDefaultformData = () => ({
-    ticket_type: isSingleType ? 'SQLSERVER_SINGLE_APPLY' : 'SQLSERVER_HA_APPLY',
+    ticket_type: isSingleType ? TicketTypes.SQLSERVER_SINGLE_APPLY : TicketTypes.SQLSERVER_HA_APPLY,
     remark: '',
     details: {
       db_app_abbr: '', // 业务 Code
@@ -356,6 +369,7 @@
   const dbVersion = ref();
   const charset = ref();
   const maxInstNum = ref();
+  const systemVersionList = ref<string[]>([]);
   const regionItemRef = ref<InstanceType<typeof RegionItem>>()
   const specBackendRef = ref<InstanceType<typeof SpecSelector>>();
 
@@ -477,6 +491,7 @@
             configMap[configName] = confValue === 'image' ? t('镜像') : 'always on'
             break
           case 'system_version':
+            systemVersionList.value = (confValue || '').split(',')
             configMap[configName] = confValue
             break
           }
@@ -510,7 +525,13 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const backendHost = (hostList: Array<any>) => (hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Master / Slave', n: hostNums.value }) : false);
+  const backendHost = (hostList: Array<HostDetails>) => (hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Master / Slave', n: hostNums.value }) : false);
+
+  // 只能选择 module 配置中对应操作系统版本的机器
+  const disableHostMethod = (data: HostDetails) => {
+    const osName = data.os_name.replace(/\s+/g, '')
+    return systemVersionList.value.every(versionItem => !osName.includes(versionItem)) ? t('操作系统版本不符合模块配置') : false
+  }
 
   const handleChangeClusterCount = (value: number) => {
     if (formData.details.inst_num > value) {
@@ -664,12 +685,20 @@
     formData.details.db_module_id = null;
     formData.details.nodes.backend = [];
     moduleRef.value.clearValidate();
+    levelConfigList.value = []
+    systemVersionList.value = []
+
+    if (info.bk_biz_id) {
+      getModulesConfig()
+    } else {
+      moduleList.value = []
+    }
   };
 
   // 获取 DM模块
-  watch(route.query, () => getModulesConfig(), {
-    immediate: true,
-  });
+  // watch(route.query, () => getModulesConfig(), {
+  //   immediate: true,
+  // });
 
   // 根据DM模块 获取配置下拉展示详情
   watch(() => formData.details.db_module_id, (newDbModuleId) => {
@@ -718,7 +747,6 @@
     },
   });
 </script>
-
 <style lang="less" scoped>
   :deep(.domain-address) {
     display: flex;

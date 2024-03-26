@@ -12,53 +12,60 @@
 -->
 
 <template>
-  <div class="dumper-rule-list">
-    <div class="rules-view-operations">
-      <div class="row-title">
-        {{ t('订阅的库表') }}
+  <BkLoading :loading="loading">
+    <ApplyPermissionCatch>
+      <div class="dumper-rule-list">
+        <div class="rules-view-operations">
+          <div class="row-title">
+            {{ t('订阅的库表') }}
+          </div>
+          <div class="rules-view-operations-right">
+            <DbSearchSelect
+              v-model="search"
+              :data="searchSelectData"
+              :placeholder="t('请输入DB/表名')"
+              style="width: 500px"
+              @change="handleLocalSearch" />
+          </div>
+        </div>
+        <BkTable
+          class="subscribe-table"
+          :columns="subscribeColumns"
+          :data="subscribeTableData" />
+        <div
+          class="row-title"
+          style="margin-top: 35px; margin-bottom: 16px">
+          {{ t('数据源与接收端') }}
+        </div>
+        <BkTable
+          class="subscribe-table"
+          :columns="receiverColumns"
+          :data="receiverTableData" />
+        <div
+          class="info-item"
+          style="margin-top: 20px; margin-bottom: 15px">
+          {{ t('部署位置') }}：<span class="content">{{ t('集群Master所在主机') }}</span>
+        </div>
       </div>
-      <div class="rules-view-operations-right">
-        <DbSearchSelect
-          v-model="search"
-          :data="searchSelectData"
-          :placeholder="t('请输入DB/表名')"
-          style="width: 500px"
-          @change="handleLocalSearch" />
-      </div>
-    </div>
-    <BkTable
-      class="subscribe-table"
-      :columns="subscribeColumns"
-      :data="subscribeTableData" />
-    <div
-      class="row-title"
-      style="margin-top: 35px; margin-bottom: 16px">
-      {{ t('数据源与接收端') }}
-    </div>
-    <BkTable
-      class="subscribe-table"
-      :columns="receiverColumns"
-      :data="receiverTableData" />
-    <div
-      class="info-item"
-      style="margin-top: 20px; margin-bottom: 15px">
-      {{ t('部署位置') }}：<span class="content">{{ t('集群Master所在主机') }}</span>
-    </div>
-  </div>
+    </ApplyPermissionCatch>
+  </BkLoading>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import { listDumperConfig } from '@services/source/dumper';
+  import { getDumperConfigDetail,listDumperConfig } from '@services/source/dumper';
+
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
-  interface Props {
-    data: DumperConfig | null
-  }
+  type DumperConfig = ServiceReturnType<typeof getDumperConfigDetail>
 
-  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number]
+  interface Props {
+    data: ServiceReturnType<typeof listDumperConfig>['results'][number] | null
+  }
 
   const props = defineProps<Props>();
 
@@ -130,11 +137,22 @@
     },
   ];
 
+  const { loading, run: fetchGetDumperConfigDetail } = useRequest(getDumperConfigDetail, {
+    manual: true,
+    onSuccess: (result) => {
+      subscribeRawTableData = result.repl_tables;
+      subscribeTableData.value = result.repl_tables;
+      receiverTableData.value = result.dumper_instances;
+    },
+  });
+
   watch(() => props.data, (data) => {
     if (data) {
-      subscribeRawTableData = data.repl_tables;
-      subscribeTableData.value = data.repl_tables;
-      receiverTableData.value = data.dumper_instances;
+      fetchGetDumperConfigDetail({
+        id: data.id
+      }, {
+        permission: 'catch'
+      });
     }
   }, {
     immediate: true,
