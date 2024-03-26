@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import hashlib
 import json
 import logging.config
+import re
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
@@ -20,7 +21,7 @@ from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.db_services.redis.util import (
@@ -33,6 +34,8 @@ from backend.db_services.redis.util import (
 from backend.flow.consts import (
     DEFAULT_CONFIG_CONFIRM,
     DEFAULT_DB_MODULE_ID,
+    DEFAULT_REDIS_DBNUM,
+    DEFAULT_TWEMPROXY_ADMIN_PORT_EXTRA,
     ConfigFileEnum,
     ConfigTypeEnum,
     MediumEnum,
@@ -165,11 +168,11 @@ def check_cluster_proxy_backends_consistent(cluster_id: int):
     if is_twemproxy_proxy_type(cluster.cluster_type):
         # twemproxy 集群
         for proxy in cluster.proxyinstance_set.all():
-            proxy_addrs.append(proxy.machine.ip + ":" + str(proxy.port + 1000))
+            proxy_addrs.append(proxy.machine.ip + ":" + str(proxy.port + DEFAULT_TWEMPROXY_ADMIN_PORT_EXTRA))
         resp = DRSApi.twemproxy_rpc(
             {
                 "addresses": proxy_addrs,
-                "db_num": 0,
+                "db_num": DEFAULT_REDIS_DBNUM,
                 "password": "",
                 "command": "get nosqlproxy servers",
                 "bk_cloud_id": cluster.bk_cloud_id,
@@ -196,7 +199,7 @@ def check_cluster_proxy_backends_consistent(cluster_id: int):
         resp = DRSApi.redis_rpc(
             {
                 "addresses": proxy_addrs,
-                "db_num": 0,
+                "db_num": DEFAULT_REDIS_DBNUM,
                 "password": passwd_ret.get("redis_proxy_password"),
                 "command": "info servers",
                 "bk_cloud_id": cluster.bk_cloud_id,
@@ -361,6 +364,91 @@ def get_db_versions_by_cluster_type(cluster_type: str) -> list:
     raise Exception(_("集群类型:{} 不是一个 redis 集群类型?").format(cluster_type))
 
 
+def get_storage_version_names_by_cluster_type(cluster_type: str, trimSuffix: bool = False) -> list:
+    """
+    根据 cluster_type 返回对应存储详细版本
+    如: cluster_type==ClusterType.TendisPredixyRedisCluster
+    返回结果 ['redis-7.2.3.tar.gz','redis-6.2.14.tar.gz']
+
+    trimSuffix默认为False,如果trimSuffix==True,则返回结果 ['redis-7.2.3','redis-6.2.14']
+    """
+    versions = []
+    if is_redis_instance_type(cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Redis.value).values_list(
+            "name", flat=True
+        )
+        versions = list(ret)
+    elif is_tendisplus_instance_type(cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisPlus.value).values_list(
+            "name", flat=True
+        )
+        versions = list(ret)
+    elif is_tendisssd_instance_type(cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisSsd.value).values_list(
+            "name", flat=True
+        )
+        versions = list(ret)
+    else:
+        raise Exception(_("集群类型:{} 不是一个 redis 集群类型?").format(cluster_type))
+
+    if trimSuffix:
+        versions = [version.replace(".tar.gz", "") for version in versions]
+        versions = [version.replace(".tgz", "") for version in versions]
+    return versions
+
+
+def get_major_version_by_version_name(name: str) -> str:
+    """
+    根据 name 返回对应主版本
+    如: name=='redis-6.2.14'
+    返回结果 'Redis-6'
+    如: name=='predixy-1.4.0'
+    返回结果 'Predixy-latest'
+    """
+    row = Package.objects.filter(
+        db_type=DBType.Redis.value,
+        pkg_type__in=(
+            MediumEnum.Redis.value,
+            MediumEnum.TendisPlus.value,
+            MediumEnum.TendisSsd.value,
+            MediumEnum.Predixy.value,
+            MediumEnum.Twemproxy.value,
+        ),
+        name__startswith=name,
+    ).first()
+    if not row:
+        return ""
+    return row.version
+
+
+def get_proxy_version_names_by_cluster_type(cluster_type: str, trimSuffix: bool = False) -> list:
+    """
+    根据 cluster_type 返回对应proxy详细版本
+    如: cluster_type==ClusterType.TendisPredixyRedisCluster
+    返回结果 ['predixy-1.4.0.tar.gz']
+
+    trimSuffix默认为False,如果trimSuffix==True,则返回结果 ['predixy-1.4.0']
+    """
+    versions = []
+    if is_predixy_proxy_type(cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Predixy.value).values_list(
+            "name", flat=True
+        )
+        versions = list(ret)
+    elif is_twemproxy_proxy_type(cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Twemproxy.value).values_list(
+            "name", flat=True
+        )
+        versions = list(ret)
+    else:
+        raise Exception(_("集群类型:{} 不是一个 redis 集群类型?").format(cluster_type))
+
+    if trimSuffix:
+        versions = [version.replace(".tar.gz", "") for version in versions]
+        versions = [version.replace(".tgz", "") for version in versions]
+    return versions
+
+
 def get_twemproxy_cluster_hash_tag(cluster_type: str, cluster_id: int) -> str:
     """
     获取twemproxy集群的hash_tag值
@@ -390,16 +478,16 @@ def get_twemproxy_cluster_hash_tag(cluster_type: str, cluster_id: int) -> str:
         return ""
 
 
-def get_twemproxy_version(ip: str, port: int, bk_cloud_id: int) -> str:
+def get_online_twemproxy_version(ip: str, port: int, bk_cloud_id: int) -> str:
     """
     连接twemproxy执行 stats 获取版本信息
     返回结果示例: 0.4.1-rc-v0.28
     """
-    admin_port = port + 1000
+    admin_port = port + DEFAULT_TWEMPROXY_ADMIN_PORT_EXTRA
     resp = DRSApi.twemproxy_rpc(
         {
             "addresses": [f"{ip}:{admin_port}"],
-            "db_num": 0,
+            "db_num": DEFAULT_REDIS_DBNUM,
             "password": "",
             "command": "stats",
             "bk_cloud_id": bk_cloud_id,
@@ -407,10 +495,11 @@ def get_twemproxy_version(ip: str, port: int, bk_cloud_id: int) -> str:
     )
     if not resp or len(resp) == 0:
         return ""
-    return json.loads(resp[0]["result"])["version"]
+    version_str = json.loads(resp[0]["result"])["version"]
+    return "twemproxy-" + version_str.replace("rc-", "")
 
 
-def get_predixy_version(ip: str, port: int, bk_cloud_id: int, proxy_password: str) -> str:
+def get_online_predixy_version(ip: str, port: int, bk_cloud_id: int, proxy_password: str) -> str:
     """
     连接predixy执行 info Proxy 获取版本信息
     返回结果示例: 1.4.0
@@ -418,7 +507,7 @@ def get_predixy_version(ip: str, port: int, bk_cloud_id: int, proxy_password: st
     resp = DRSApi.redis_rpc(
         {
             "addresses": [f"{ip}:{port}"],
-            "db_num": 0,
+            "db_num": DEFAULT_REDIS_DBNUM,
             "password": proxy_password,
             "command": "info Proxy",
             "bk_cloud_id": bk_cloud_id,
@@ -428,5 +517,68 @@ def get_predixy_version(ip: str, port: int, bk_cloud_id: int, proxy_password: st
         return ""
     for line in resp[0]["result"].split("\n"):
         if line.startswith("Version:"):
-            return line.split(":")[1]
+            return "predixy-" + line.split(":")[1]
     return ""
+
+
+def get_online_redis_version(ip: str, port: int, bk_cloud_id: int, redis_password: str) -> str:
+    """
+    连接redis 连接rediso server 获取版本信息
+    返回结果示例: Redis v=6.2.5 sha=00000000:0 malloc=jemalloc-5.1.0 bits=64 build=973eacbbcafaadec
+    """
+    resp = DRSApi.redis_rpc(
+        {
+            "addresses": [f"{ip}:{port}"],
+            "db_num": DEFAULT_REDIS_DBNUM,
+            "password": redis_password,
+            "command": "INFO SERVER",
+            "bk_cloud_id": bk_cloud_id,
+        }
+    )
+    if not resp or len(resp) == 0:
+        return ""
+    result = resp[0].get("result")
+    version_str = re.search(r"redis_version:(.*)\r\n", result).group(1)
+    if version_str.find("-Tredis-") > 0:
+        version_str = version_str.replace("TRedis", "rocksdb")
+        return "redis-" + version_str
+    elif version_str.find("-rocksdb-") > 0:
+        return "tendisplus-" + version_str
+    else:
+        return "redis-" + version_str
+
+
+def get_cluster_proxy_version(cluster_id: int) -> list:
+    """
+    获取redis cluster proxy版本列表
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    versions = set()
+    passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster_id)
+    if is_predixy_proxy_type(cluster.cluster_type):
+        for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            versions.add(
+                get_online_predixy_version(
+                    proxy.machine.ip, proxy.port, cluster.bk_cloud_id, passwd_ret.get("redis_proxy_password")
+                )
+            )
+    elif is_twemproxy_proxy_type(cluster.cluster_type):
+        for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            versions.add(get_online_twemproxy_version(proxy.machine.ip, proxy.port, cluster.bk_cloud_id))
+    return list(versions)
+
+
+def get_cluster_redis_version(cluster_id: int) -> str:
+    """
+    获取redis cluster redis版本
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster_id)
+    one_running_master = cluster.storageinstance_set.filter(
+        instance_role=InstanceRole.REDIS_MASTER.value, status=InstanceStatus.RUNNING
+    ).first()
+    if not one_running_master:
+        raise Exception(_("redis集群 {} 没有running_master??").format(cluster.immute_domain))
+    return get_online_redis_version(
+        one_running_master.machine.ip, one_running_master.port, cluster.bk_cloud_id, passwd_ret.get("redis_password")
+    )

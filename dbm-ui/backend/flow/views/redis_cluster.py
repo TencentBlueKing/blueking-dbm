@@ -553,12 +553,19 @@ class RedisClusterVersionUpdateOnlineApiView(FlowTestView):
         "created_by":"admin",
         "uid":"1111",
         "infos": [
-          {
-            "cluster_id": 1,
-            "current_version": "Redis-5",
-            "target_version": "Redis-6",
-          }
-        ]
+             {
+                "cluster_id": 41,
+                "node_type":"Proxy",
+                "current_versions": ["twemproxy-0.4.1-v28"],
+                "target_version": "twemproxy-0.4.1-v29",
+             },
+             {
+                "cluster_id": 41,
+                "node_type":"Backend",
+                "current_versions": ["redis-6.2.7"],
+                "target_version": "redis-6.2.14",
+             }
+         ]
     }
     """
 

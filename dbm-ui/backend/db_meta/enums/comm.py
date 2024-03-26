@@ -34,3 +34,10 @@ class SystemTagEnum(str, StructuredEnum):
     """系统内置的tag名称"""
 
     TEMPORARY = EnumField("temporary", _("temporary"))
+
+
+class RedisVerUpdateNodeType(str, StructuredEnum):
+    """redis版本升级节点类型"""
+
+    Proxy = EnumField("Proxy", _("Proxy"))
+    Backend = EnumField("Backend", _("Backend"))
