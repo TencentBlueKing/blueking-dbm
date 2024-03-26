@@ -64,8 +64,10 @@
   const emits = defineEmits<Emits>();
 
   const genDefaultData = () => ({
-    create_at__gte: '',
-    create_at__lte: '',
+    create_at__gte: dayjs().startOf('day')
+      .format('YYYY-MM-DD HH:mm:ss'),
+    create_at__lte: dayjs().endOf('day')
+      .format('YYYY-MM-DD HH:mm:ss'),
     cluster: '',
     status: '',
   });
@@ -86,7 +88,9 @@
 
   const serachParams = getSearchParams();
   Object.keys(formData).forEach((key) => {
-    formData[key as keyof typeof formData] = serachParams[key];
+    if (serachParams[key] !== undefined) {
+      formData[key as keyof typeof formData] = serachParams[key];
+    }
   });
 
   const { data: clusterList } = useRequest(queryAllTypeCluster, {
