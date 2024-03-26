@@ -20,6 +20,7 @@ from django.utils.translation import ugettext as _
 from backend import env
 from backend.bk_web.constants import CACHE_1D
 from backend.components import CCApi
+from backend.components.bknodeman.client import BKNodeManApi
 from backend.components.gse.client import GseApi
 from backend.utils.batch_request import batch_request
 from backend.utils.cache import func_cache_decorator
@@ -196,6 +197,44 @@ class ResourceQueryHelper:
         return resp
 
     @staticmethod
+    def query_agent_status_from_nodeman(cc_hosts, fill_key="status"):
+        """查询agent状态"""
+        host_list, host_map, scope_list = [], {}, []
+        # 构建bk_host_id对bk_biz_id的映射
+        bk_host_id_to_biz_id = {
+            item["bk_host_id"]: item["bk_biz_id"]
+            for item in CCApi.find_host_biz_relations({"bk_host_id": [host["bk_host_id"] for host in cc_hosts]})
+        }
+
+        for index, cc_host in enumerate(cc_hosts):
+            bk_host_id = cc_host["bk_host_id"]
+            bk_biz_id = bk_host_id_to_biz_id.get(bk_host_id, env.DBA_APP_BK_BIZ_ID)
+            # 构建meta数据
+            meta = {"scope_type": constants.ScopeType.BIZ.value, "scope_id": str(bk_biz_id), "bk_biz_id": bk_biz_id}
+            host_list.append({"host_id": bk_host_id, "meta": meta})
+
+            # 构建scope_list数据
+            meta_bak = meta.copy()
+            del meta_bak["bk_biz_id"]
+            scope_list.append(meta_bak)
+
+            # 使用index
+            host_map[str(bk_host_id)] = index
+
+        # 准备request参数
+        request_params = {
+            "host_list": host_list,
+            "scope_list": scope_list,
+        }
+        try:
+            status_map = BKNodeManApi.ipchooser_host_details(request_params)
+            for status in status_map:
+                # agent在线状态，0为不在线，1为在线
+                cc_hosts[host_map[str(status["host_id"])]][fill_key] = status["alive"]
+        except KeyError as e:
+            logger.error("query_agent_one_status exception: %s", e)
+
+    @staticmethod
     def query_agent_one_status(cc_hosts, fill_key="status"):
         """查询agent1.0状态"""
 
@@ -241,6 +280,10 @@ class ResourceQueryHelper:
     @staticmethod
     def fill_agent_status(cc_hosts, fill_key="status"):
         if not cc_hosts:
+            return
+
+        if not BKNodeManApi.is_esb():
+            ResourceQueryHelper.query_agent_status_from_nodeman(cc_hosts, fill_key)
             return
 
         if env.GSE_AGENT_VERSION == "1.0":
