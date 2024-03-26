@@ -27,8 +27,16 @@ class _BKNodeManApi(BaseApi):
         PROCESSING_STATUS = [PENDING, RUNNING]
 
     def __init__(self):
+        is_esb = self.is_esb()
         self.operate_plugin = self.generate_data_api(method="POST", url="api/plugin/operate/", description=_("插件操作任务"))
-        self.job_details = self.generate_data_api(method="GET", url="api/job/details/", description=_("查询任务详情"))
+        self.job_details = self.generate_data_api(
+            method="GET" if is_esb else "POST",
+            url="api/job/details/" if is_esb else "api/job/{job_id}/details/",
+            description=_("查询任务详情"),
+        )
+        self.ipchooser_host_details = self.generate_data_api(
+            method="POST", url="core/api/ipchooser_host/details/", description=_("查询agent状态")
+        )
 
 
 BKNodeManApi = _BKNodeManApi()

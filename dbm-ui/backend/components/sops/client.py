@@ -13,7 +13,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 
 from ..base import BaseApi
-from ..domains import ESB_PREFIX, SOPS_APIGW_DOMAIN
+from ..domains import SOPS_APIGW_DOMAIN
 
 
 class _BkSopsApi(BaseApi):
@@ -21,7 +21,7 @@ class _BkSopsApi(BaseApi):
     BASE = SOPS_APIGW_DOMAIN
 
     def __init__(self):
-        is_esb = ESB_PREFIX in SOPS_APIGW_DOMAIN
+        is_esb = self.is_esb()
         self.create_task = self.generate_data_api(
             method="POST",
             url="create_task/" if is_esb else "create_task/{template_id}/{bk_biz_id}/",
