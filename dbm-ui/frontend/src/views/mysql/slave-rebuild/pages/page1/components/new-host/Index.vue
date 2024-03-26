@@ -109,6 +109,12 @@
     [ClusterTypes.TENDBHA]: [
       {
         name: t('待重建从库主机'),
+        tableConfig: {
+          firsrColumn: {
+            label: 'slave',
+            role: 'slave',
+          },
+        },
       },
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
