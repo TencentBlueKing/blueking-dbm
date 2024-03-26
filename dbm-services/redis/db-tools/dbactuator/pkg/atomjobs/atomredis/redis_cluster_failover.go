@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -95,6 +96,10 @@ func (job *RedisClusterFailover) Run() (err error) {
 		if err != nil {
 			return
 		}
+		err = job.allClusterMastersConfSetMasterauth()
+		if err != nil {
+			return
+		}
 	} else {
 		err = job.checkAllRedisConnected()
 		if err != nil {
@@ -109,6 +114,10 @@ func (job *RedisClusterFailover) Run() (err error) {
 			return
 		}
 		err = job.checkAllSlaveLinkStatus()
+		if err != nil {
+			return
+		}
+		err = job.allClusterMastersConfSetMasterauth()
 		if err != nil {
 			return
 		}
@@ -205,6 +214,31 @@ func (job *RedisClusterFailover) checkAllRedisInCluster() (err error) {
 		}
 	}
 	job.runtime.Logger.Info("checkAllRedisInCluster success")
+	return nil
+}
+
+// allClusterMastersConfSetMasterauth 集群masters执行config set masterauth + config rewrite
+func (job *RedisClusterFailover) allClusterMastersConfSetMasterauth() (err error) {
+	firstSlaveAddr := ""
+	for _, ms := range job.params.RedisMasterSlavePairs {
+		firstSlaveAddr = ms.Slave.Addr()
+		break
+	}
+	rc, err := myredis.NewRedisClientWithTimeout(firstSlaveAddr, job.params.RedisPassword, 0,
+		consts.TendisTypeRedisInstance, 5*time.Second)
+	if err != nil {
+		return
+	}
+	defer rc.Close()
+	_, err = rc.RedisClusterConfigSetOnlyMasters("masterauth", job.params.RedisPassword)
+	if err != nil {
+		return
+	}
+	_, err = rc.RedisClusterMastersRunCmd([]string{"confxx", "rewrite"})
+	if err != nil {
+		return
+	}
+	job.runtime.Logger.Info("allClusterMastersConfSetMasterauth success")
 	return nil
 }
 
@@ -448,7 +482,13 @@ func (task *redisFailOverTask) WaitReplicateStateOK() {
 		mylog.Logger.Info(fmt.Sprintf("force failover,not wait old_master:%s replicate state ok", task.MasterAddr))
 		return
 	}
+	task.newSlaveCli()
+	if task.Err != nil {
+		return
+	}
+	defer task.slaveCli.Close()
 	var masterCli *myredis.RedisClient
+	var logTailNData string
 	masterCli, task.Err = myredis.NewRedisClientWithTimeout(task.MasterAddr, task.RedisPassword, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if task.Err != nil {
@@ -474,6 +514,20 @@ func (task *redisFailOverTask) WaitReplicateStateOK() {
 		if i%15 == 0 {
 			mylog.Logger.Info("waitReplicateStateOK master:%s not become slave of slave:%s and master_link_status:%s,wait 30s",
 				task.MasterAddr, task.SlaveAddr, infoRepl["master_link_status"])
+		}
+		logTailNData, err = masterCli.TailRedisLogFile(40)
+		if err != nil {
+			task.Err = err
+			return
+		}
+		if strings.Contains(logTailNData, "Can't handle RDB format") {
+			// RDB格式不兼容,忽略
+			slaveVer, _ := task.slaveCli.GetTendisVersion()
+			masterVer, _ := masterCli.GetTendisVersion()
+			msg := fmt.Sprintf("redis_master(%s) redis_version:%s redis_slave(%s) redis_version:%s RDB format not compatible",
+				masterCli.Addr, masterVer, task.SlaveAddr, slaveVer)
+			mylog.Logger.Warn(msg)
+			return
 		}
 	}
 	task.Err = fmt.Errorf("waitReplicateStateOK master:%s not become slave of slave:%s,wait 2h timeout",

@@ -43,6 +43,7 @@ class RedisVersion(str, StructuredEnum):
     Redis50 = EnumField("Redis-5", _("Redis-5"))
     Redis60 = EnumField("Redis-6", _("Redis-6"))
     Redis70 = EnumField("Redis-7", _("Redis-7"))
+    Redis72 = EnumField("Redis-72", _("Redis-72"))
 
 
 class MongodbVersion(str, StructuredEnum):

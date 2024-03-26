@@ -960,13 +960,13 @@ class RedisActPayload(object):
         """
         ip = kwargs["ip"]
         params = kwargs["params"]
-        domain_name = params.get("domain_name", self.cluster["domain_name"])
-        db_version = params.get("db_version", self.cluster["db_version"])
-        cluster_type = params.get("cluster_type", self.cluster["cluster_type"])
-        ports = params.get("ports", self.cluster[ip])
-        force = params.get("force", self.cluster["force"])
-        db_list = params.get("db_list", self.cluster["db_list"])
-        flushall = params.get("flushall", self.cluster["flushall"])
+        domain_name = params.get("domain_name", self.cluster.get("domain_name", ""))
+        db_version = params.get("db_version", self.cluster.get("db_version", ""))
+        cluster_type = params.get("cluster_type", self.cluster.get("cluster_type", ""))
+        ports = params.get("ports", self.cluster.get(ip, []))
+        force = params.get("force", self.cluster.get("force", False))
+        db_list = params.get("db_list", self.cluster.get("db_list", [0]))
+        flushall = params.get("flushall", self.cluster.get("flushall", True))
 
         redis_config = self.__get_cluster_config(domain_name, db_version, ConfigTypeEnum.DBConf)
         return {
