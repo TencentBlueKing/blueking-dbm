@@ -25,6 +25,9 @@ spec:
         {{- include "dbm.initMedium" (list . "pulsar") | nindent 8 }}
         {{- include "dbm.initMedium" (list . "influxdb") | nindent 8 }}
         {{- include "dbm.initMedium" (list . "redis") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "mongodb") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "riak") | nindent 8 }}
+        {{- include "dbm.initMedium" (list . "sqlserver") | nindent 8 }}
         {{- include "dbm.initMedium" (list . "cloud") | nindent 8 }}
       {{- include "dbm.initContainersWaitForSaaS" . | nindent 6 }}
 {{- end }}
