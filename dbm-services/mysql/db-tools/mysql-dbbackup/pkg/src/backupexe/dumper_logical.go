@@ -21,8 +21,10 @@ import (
 
 // LogicalDumper TODO
 type LogicalDumper struct {
-	cnf          *config.BackupConfig
-	dbbackupHome string
+	cnf             *config.BackupConfig
+	dbbackupHome    string
+	backupStartTime time.Time
+	backupEndTime   time.Time
 }
 
 func (l *LogicalDumper) initConfig(mysqlVerStr string) error {
@@ -40,6 +42,10 @@ func (l *LogicalDumper) initConfig(mysqlVerStr string) error {
 
 // Execute excute dumping backup with logical backup tool
 func (l *LogicalDumper) Execute(enableTimeOut bool) error {
+	l.backupStartTime = time.Now()
+	defer func() {
+		l.backupEndTime = time.Now()
+	}()
 	binPath := filepath.Join(l.dbbackupHome, "/bin/mydumper")
 	args := []string{
 		"-h", l.cnf.Public.MysqlHost,

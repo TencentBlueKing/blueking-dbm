@@ -112,12 +112,12 @@ func openXtrabackupFile(binpath string, fileName string, tmpFileName string) (*o
 // return startTime,endTime,error
 func parseXtraInfo(qpress string, fileName string, tmpFileName string, metaInfo *dbareport.IndexContent) error {
 	tmpFile, err := openXtrabackupFile(qpress, fileName, tmpFileName)
-	if err != nil {
-		return err
-	}
 	defer func() {
 		_ = tmpFile.Close()
 	}()
+	if err != nil {
+		return err
+	}
 
 	buf := bufio.NewScanner(tmpFile)
 	var startTimeStr, endTimeStr string
@@ -144,15 +144,12 @@ func parseXtraInfo(qpress string, fileName string, tmpFileName string, metaInfo 
 // parseXtraTimestamp get consistentTime from xtrabackup_timestamp_info(if exists)
 func parseXtraTimestamp(qpress string, fileName string, tmpFileName string, metaInfo *dbareport.IndexContent) error {
 	tmpFile, err := openXtrabackupFile(qpress, fileName, tmpFileName)
-	xtrabackupTimestampFileExist := true
-	if err != nil {
-		xtrabackupTimestampFileExist = false
-		//return nil
-	}
 	defer func() {
 		_ = tmpFile.Close()
 	}()
-	if xtrabackupTimestampFileExist {
+	if err != nil {
+		return err
+	} else {
 		buf := bufio.NewScanner(tmpFile)
 		for buf.Scan() {
 			line := buf.Text()
@@ -161,12 +158,6 @@ func parseXtraTimestamp(qpress string, fileName string, tmpFileName string, meta
 				return errors.Wrapf(err, "parse BackupConsistentTime %s", line)
 			}
 		}
-	} else {
-		// 此时刚备份完成，还没有开始打包，这里把当前时间认为是 consistent_time，不完善！
-		logger.Log.Warnf("xtrabackup_info file not found: %s, use current time as Consistent Time", fileName)
-		// TODO 时区问题，待处理
-		timeNowStr := time.Now().Format(time.RFC3339) // 去除秒以后的时间，保持格式化
-		metaInfo.BackupConsistentTime, _ = time.Parse(time.RFC3339, timeNowStr)
 	}
 	return nil
 }

@@ -21,12 +21,14 @@ import (
 
 // PhysicalDumper TODO
 type PhysicalDumper struct {
-	cnf           *config.BackupConfig
-	dbbackupHome  string
-	mysqlVersion  string // parsed
-	isOfficial    bool
-	innodbCmd     InnodbCommand
-	storageEngine string
+	cnf             *config.BackupConfig
+	dbbackupHome    string
+	mysqlVersion    string // parsed
+	isOfficial      bool
+	innodbCmd       InnodbCommand
+	storageEngine   string
+	backupStartTime time.Time
+	backupEndTime   time.Time
 }
 
 func (p *PhysicalDumper) initConfig(mysqlVerStr string) error {
@@ -61,6 +63,10 @@ func (p *PhysicalDumper) initConfig(mysqlVerStr string) error {
 
 // Execute excute dumping backup with physical backup tool
 func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
+	p.backupStartTime = time.Now()
+	defer func() {
+		p.backupEndTime = time.Now()
+	}()
 	if p.storageEngine != "innodb" {
 		err := fmt.Errorf("%s engine not support", p.storageEngine)
 		logger.Log.Error(err.Error())
@@ -204,13 +210,17 @@ func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbare
 	}
 	// parse xtrabackup_info
 	if err = parseXtraInfo(qpressPath, xtrabackupInfoFileName, tmpFileName, &metaInfo); err != nil {
-		return nil, err
+		logger.Log.Warnf("xtrabackup_info file not found, use current time as BackupEndTime")
+		metaInfo.BackupBeginTime, _ = time.Parse(time.DateTime, p.backupStartTime.Format(time.DateTime))
+		metaInfo.BackupEndTime, _ = time.Parse(time.DateTime, p.backupEndTime.Format(time.DateTime))
 	}
 	// parse xtrabackup_timestamp_info
 	if err := parseXtraTimestamp(qpressPath, xtrabackupTimestampFileName, tmpFileName, &metaInfo); err != nil {
-		return nil, err
+		// 此时刚备份完成，还没有开始打包，这里把当前时间认为是 consistent_time，不完善！
+		logger.Log.Warnf("xtrabackup_timestamp_info file found, use current time as Consistent Time")
+		metaInfo.BackupConsistentTime, _ = time.Parse(time.DateTime, p.backupEndTime.Format(time.DateTime))
 	}
-	// parse xtrabackup_binlog_info
+	// parse xtrabackup_binlog_info 本机的 binlog file,pos
 	if masterStatus, err := parseXtraBinlogInfo(qpressPath, xtrabackupBinlogInfoFileName, tmpFileName); err != nil {
 		return nil, err
 	} else {
@@ -219,7 +229,7 @@ func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbare
 		metaInfo.BinlogInfo.ShowMasterStatus.MasterPort = cnf.Public.MysqlPort
 	}
 
-	// parse xtrabackup_slave_info
+	// parse xtrabackup_slave_info 如果是 slave，获取它的 master file,pos
 	if mysqlRole := strings.ToLower(cnf.Public.MysqlRole); mysqlRole == cst.RoleSlave || mysqlRole == cst.RoleRepeater {
 		if slaveStatus, err := parseXtraSlaveInfo(qpressPath, xtrabackupSlaveInfoFileName, tmpFileName); err != nil {
 			return nil, err

@@ -349,7 +349,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 		metaInfo.AddIndexFileItem(indexFilePath)
 	}
 
-	var err2 error
+	var err2 error // 是否备份上传出错
 	if upload {
 		// 上传、上报备份文件
 		for _, f := range metaInfo.FileList {
@@ -357,10 +357,8 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 			var taskId string
 			var err22 error
 			if taskId, err22 = r.ExecuteBackupClient(filePath); err22 != nil {
-				err2 = errs.Join(err, err22)
-				//return err
-			} else {
-				taskId = "-1"
+				err2 = errs.Join(err2, err22)
+				taskId = ""
 			}
 			f.TaskId = taskId
 			backupTaskResult := BackupLogReport{}

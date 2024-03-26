@@ -14,7 +14,7 @@ import (
 
 // GetConfigItemsAssociateNodes TODO
 // 获取与本层级节点相关的节点：当前节点的 所有父节点 与 所有子节点
-// 暂时允许的层级级别 plat,app,module,cluster
+// 暂时允许的层级级别 plat,app,bk_cloud_id,module,cluster
 func (c *ConfigModelView) GetConfigItemsAssociateNodes() (map[string]interface{}, map[string]interface{}, error) {
 	upLevels := cst.GetConfigLevelsUp(c.LevelName)
 	downLevels := cst.GetConfigLevelsDown(c.LevelName)

@@ -77,7 +77,7 @@ func (v *UpLevelInfo) GetLevelValue(levelName string) string {
 type BaseLevelDef struct {
 	// 配置层级名，当前允许值 `app`,`module`,`cluster`,`instance`
 	// 配合 flag_locked 锁定标记，可以知道 锁定级别
-	LevelName string `json:"level_name" label:"level" form:"level_name" validate:"required,enums" enums:"plat,app,module,cluster,instance" example:"cluster"`
+	LevelName string `json:"level_name" label:"level" form:"level_name" validate:"required,enums" enums:"plat,app,bk_cloud_id,module,cluster,instance" example:"cluster"`
 	// 配置层级值
 	LevelValue string `json:"level_value" form:"level_value"`
 }
@@ -85,7 +85,7 @@ type BaseLevelDef struct {
 // BaseLevelsDef TODO
 type BaseLevelsDef struct {
 	// 配置层级名，当前允许值 `app`,`module`,`cluster`,`instance`
-	LevelName string `json:"level_name" form:"level_name" validate:"required,enums" enums:"plat,app,module,cluster,instance" example:"cluster"`
+	LevelName string `json:"level_name" form:"level_name" validate:"required,enums" enums:"plat,app,bk_cloud_id,module,cluster,instance" example:"cluster"`
 	// 配置层级值, array 多个
 	LevelValues []string `json:"level_values" form:"level_values" validate:"required"`
 }
