@@ -9,6 +9,7 @@ var ConfigLevelMap = map[string]int{
 	constvar.LevelPlat: 10,
 	"app":              20,
 	"bk_biz_id":        20,
+	"bk_cloud_id":      25,
 	"module":           30,
 	"db_module_id":     30,
 	"cluster":          50,

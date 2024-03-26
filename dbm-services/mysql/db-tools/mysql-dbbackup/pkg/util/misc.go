@@ -116,6 +116,18 @@ func CalServerDataSize(port int) (uint64, error) {
 	return strconv.ParseUint(words[0], 10, 64)
 }
 
+func CalBackupDataSize() (uint64, error) {
+	// 如果不是全部数据备份，
+
+	// 逻辑备份, total_filesize*1.5 + 20G
+	// 物理备份, total_filesize*1.2 + 20G
+
+	// 如果没有找到历史备份
+	// 逻辑备份*1
+	// 物理备份
+	return 0, nil
+}
+
 // DiskUsage Get disk usage info
 func DiskUsage(path string) (disk DiskStatus, err error) {
 	switch runtime.GOOS {
@@ -144,7 +156,8 @@ func CheckDiskSpace(backupDir string, mysqlPort int) error {
 	if err != nil {
 		return err
 	}
-	if diskSpaceInfo.Free < backupSize*2 {
+
+	if diskSpaceInfo.Free < backupSize*1 {
 		err = errors.New("free space is not enough")
 		return err
 	}

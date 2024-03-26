@@ -20,7 +20,6 @@ from .check_full_backup import check_full_backup
 logger = logging.getLogger("celery")
 
 
-# @register_periodic_task(run_every=crontab(minute="*/1"))
 @register_periodic_task(run_every=crontab(minute=33, hour=2))
 def mysql_backup_check_task():
     """
