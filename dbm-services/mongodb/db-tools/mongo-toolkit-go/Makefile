@@ -4,8 +4,10 @@ bscli:=bs-cli
 OS:= $(shell uname -s)
 
 # default values for BUILD, VERSION and GITHASH
-ifneq ($(BUILD),)
-	BUILD := $(shell date +%FT%T%z)
+ifneq ($(BUILDSTAMP),)
+	BUILDSTAMP := $(BUILDSTAMP)
+else
+	BUILDSTAMP := $(shell date +%FT%T%z)
 endif
 
 ifneq ($(VERSION),)
@@ -23,7 +25,7 @@ endif
 GOVERSION=$(shell go  env GOVERSION)
 
 MODULE="dbm-services/mongo/db-tools/mongo-toolkit-go/pkg/buildinfo"
-BUILD_FLAG = -ldflags "-X '${MODULE}.version=${VERSION}' -X '${MODULE}.githash=${GITHASH}' -X '${MODULE}.buildstamp=`date +%FT%T%z`' -X '${MODULE}.goversion=${GOVERSION}' "
+BUILD_FLAG = -ldflags "-X '${MODULE}.version=${VERSION}' -X '${MODULE}.githash=${GITHASH}' -X '${MODULE}.buildstamp=${BUILDSTAMP}' -X '${MODULE}.goversion=${GOVERSION}' "
 TRIMPATH = -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}"
 .DEFAULT_GOAL := build
 
