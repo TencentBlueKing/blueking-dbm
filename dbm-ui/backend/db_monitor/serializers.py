@@ -19,9 +19,12 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_monitor import mock_data
 from backend.db_monitor.constants import AlertLevelEnum, DetectAlgEnum, OperatorEnum, TargetLevel
+from backend.db_monitor.exceptions import AutofixException
+from backend.db_monitor.mock_data import CALLBACK_REQUEST
 from backend.db_monitor.models import CollectTemplate, MonitorPolicy, NoticeGroup, RuleTemplate
 from backend.db_monitor.models.alarm import DutyRule
 from backend.db_periodic_task.constants import NoticeSignalEnum
+from backend.ticket.constants import TicketType
 
 
 class GetDashboardSerializer(serializers.Serializer):
@@ -209,3 +212,36 @@ class ListClusterSerializer(serializers.Serializer):
 
 class ListModuleSerializer(ListClusterSerializer):
     pass
+
+
+class AlarmCallBackDataSerializer(serializers.Serializer):
+    class CallBackMessageSerializer(serializers.Serializer):
+        event = serializers.DictField(help_text=_("告警事件"))
+        strategy = serializers.DictField(help_text=_("监控策略"))
+        latest_anomaly_record = serializers.DictField(help_text=_("最新异常点信息"))
+        labels = serializers.ListSerializer(help_text=_("标签"), child=serializers.CharField())
+
+    appointees = serializers.CharField(help_text=_("告警负责人"))
+    callback_message = CallBackMessageSerializer(help_text=_("回调消息体"))
+
+    class Meta:
+        swagger_schema_fields = {"example": CALLBACK_REQUEST}
+
+    def to_internal_value(self, data):
+        data = super().to_internal_value(data)
+
+        # 取告警负责人作为单据创建人
+        data["creator"] = data["appointees"].split(",")[0]
+
+        # 判断是否需要自愈
+        labels = data["callback_message"].get("labels") or []
+        if "need_autofix" not in labels:
+            raise AutofixException(_("此策略无需进行故障自愈"))
+
+        # 取关联的的故障自愈处理单据
+        for label in labels:
+            if label in TicketType.get_values():
+                data["ticket_type"] = label
+        if data.get("ticket_type") is None:
+            raise AutofixException(_("未匹配到对应的故障自愈处理单据，请确认"))
+        return data

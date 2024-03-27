@@ -34,3 +34,9 @@ class BkMonitorDeleteAlarmException(DBMonitorBaseException):
     ERROR_CODE = "202"
     MESSAGE = _("监控策略删除失败")
     MESSAGE_TPL = _("监控策略删除失败: {message}")
+
+
+class AutofixException(DBMonitorBaseException):
+    ERROR_CODE = "203"
+    MESSAGE = _("故障自愈异常")
+    MESSAGE_TPL = _("故障自愈异常: {message}")

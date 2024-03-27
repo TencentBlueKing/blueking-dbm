@@ -259,6 +259,7 @@ class TicketFlowBuilder:
     ticket_type = None
     group = None
     serializer = None
+    alarm_transform_serializer = None
 
     # 默认的参数构造器
     inner_flow_name: str = ""
@@ -387,8 +388,16 @@ class TicketFlowBuilder:
         Flow.objects.bulk_create(flows)
         return list(Flow.objects.filter(ticket=self.ticket))
 
+    def transform_alarm_to_ticket_details(self):
+        """把监控时间转换为单据详情"""
+        pass
+
     def patch_ticket_detail(self):
         """自定义补充单据详情，留给子类实现"""
+        pass
+
+    def alarm_callback_to_ticket_detail(self):
+        """告警回调转化为单据详情"""
         pass
 
     @classmethod
