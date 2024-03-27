@@ -65,13 +65,22 @@ class MySQLSingleApplyFlow(object):
 
         return install_mysql_ports
 
-    def deploy_mysql_single_flow_with_manual(self):
+    def deploy_flow(self):
+        """
+        父流程
+        """
+        pipeline = Builder(root_id=self.root_id, data=self.data)
+        pipeline.add_sub_pipeline(sub_flow=self.deploy_mysql_single_flow())
+        pipeline.run_pipeline(init_trans_data_class=SingleApplyManualContext())
+
+    def deploy_mysql_single_flow(self):
         """
         定义部署单节点集群的流程，资源是通过手动录入方式，兼容单机多实例的部署
         目前资源池已经在saas层适配，目前flow统一为手动模式即可
+        更新为子流程，方便别的流程调用
         """
 
-        mysql_single_pipeline = Builder(root_id=self.root_id, data=self.data)
+        mysql_single_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
         for info in self.data["apply_infos"]:
@@ -196,4 +205,4 @@ class MySQLSingleApplyFlow(object):
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("部署单节点集群")))
 
         mysql_single_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        mysql_single_pipeline.run_pipeline(init_trans_data_class=SingleApplyManualContext())
+        return mysql_single_pipeline.build_sub_process(sub_name=_("部署子流程"))

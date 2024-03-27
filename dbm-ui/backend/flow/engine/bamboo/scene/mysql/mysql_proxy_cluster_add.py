@@ -137,6 +137,7 @@ class MySQLProxyClusterAddFlow(object):
                     sys_init_ips=[info["proxy_ip"]["ip"]],
                     init_check_ips=[info["proxy_ip"]["ip"]],
                     yum_install_perl_ips=[info["proxy_ip"]["ip"]],
+                    bk_host_ids=[info["proxy_ip"]["bk_host_id"]],
                 )
             )
 
