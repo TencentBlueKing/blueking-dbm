@@ -1700,6 +1700,470 @@
             }
         ]
     },
+    "PredixyRedisCluster": {
+        "predixy": [
+            {
+                "spec_name": "2c_4g_50g",
+                "cpu": {
+                    "max": 2,
+                    "min": 2
+                },
+                "mem": {
+                    "max": 4,
+                    "min": 3
+                },
+                "device_class": [
+                    "S5.MEDIUM4",
+                    "S5t.MEDIUM4",
+                    "SA2.MEDIUM4"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "基础机型",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "4c_16g_50g",
+                "cpu": {
+                    "max": 6,
+                    "min": 4
+                },
+                "mem": {
+                    "max": 16,
+                    "min": 15
+                },
+                "device_class": [
+                    "S5.LARGE16",
+                    "S5.2XLARGE16",
+                    "S5t.2XLARGE16",
+                    "S5t.LARGE16",
+                    "SA2.2XLARGE16",
+                    "SA3.LARGE16"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "中等机型",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "8c_32g_100db",
+                "cpu": {
+                    "max": 8,
+                    "min": 6
+                },
+                "mem": {
+                    "max": 32,
+                    "min": 30
+                },
+                "device_class": [
+                    "S5.2XLARGE32",
+                    "S5.4XLARGE32",
+                    "S5t.2XLARGE32",
+                    "SA2.4XLARGE32",
+                    "SA3.2XLARGE32",
+                    "SN3ne.2XLARGE32",
+                    "SN3ne.4XLARGE32"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 100,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "高等机型",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            }
+        ],
+        "tendiscache": [
+            {
+                "spec_name": "2c_4g_50gb",
+                "cpu": {
+                    "max": 2,
+                    "min": 2
+                },
+                "mem": {
+                    "max": 4,
+                    "min": 3
+                },
+                "device_class": [
+                    "S5.MEDIUM4",
+                    "S5t.MEDIUM4",
+                    "SA2.MEDIUM4"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "2c_8g_100gb",
+                "cpu": {
+                    "max": 4,
+                    "min": 2
+                },
+                "mem": {
+                    "max": 8,
+                    "min": 7
+                },
+                "device_class": [
+                    "S5.MEDIUM8",
+                    "S5t.MEDIUM8",
+                    "S5.LARGE8",
+                    "S5t.LARGE8",
+                    "SA2.LARGE8",
+                    "SN3ne.LARGE8"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 100,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "4c_16g_200db",
+                "cpu": {
+                    "max": 6,
+                    "min": 4
+                },
+                "mem": {
+                    "max": 16,
+                    "min": 15
+                },
+                "device_class": [
+                    "S5.LARGE16",
+                    "S5.2XLARGE16",
+                    "S5t.2XLARGE16",
+                    "SA2.2XLARGE16"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 200,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "4c_32g_300db",
+                "cpu": {
+                    "max": 8,
+                    "min": 4
+                },
+                "mem": {
+                    "max": 32,
+                    "min": 30
+                },
+                "device_class": [
+                    "S5.2XLARGE32",
+                    "S5.4XLARGE32",
+                    "S5t.2XLARGE32",
+                    "SA3.2XLARGE32",
+                    "SN3ne.2XLARGE32"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 300,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "8c_64g_400db",
+                "cpu": {
+                    "max": 16,
+                    "min": 8
+                },
+                "mem": {
+                    "max": 64,
+                    "min": 61
+                },
+                "device_class": [
+                    "S5.4XLARGE64",
+                    "S5t.4XLARGE64",
+                    "S5t.8XLARGE64",
+                    "SA3.4XLARGE64",
+                    "SN3ne.4XLARGE64"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 400,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "16c_128g_600db",
+                "cpu": {
+                    "max": 32,
+                    "min": 16
+                },
+                "mem": {
+                    "max": 128,
+                    "min": 125
+                },
+                "device_class": [
+                    "S5.8XLARGE128"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 600,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            }
+        ]
+    },
+    "RedisInstance": {
+        "tendiscache": [
+            {
+                "spec_name": "2c_4g_50gb",
+                "cpu": {
+                    "max": 2,
+                    "min": 2
+                },
+                "mem": {
+                    "max": 4,
+                    "min": 3
+                },
+                "device_class": [
+                    "S5.MEDIUM4",
+                    "S5t.MEDIUM4",
+                    "SA2.MEDIUM4"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "2c_8g_100gb",
+                "cpu": {
+                    "max": 4,
+                    "min": 2
+                },
+                "mem": {
+                    "max": 8,
+                    "min": 7
+                },
+                "device_class": [
+                    "S5.MEDIUM8",
+                    "S5t.MEDIUM8",
+                    "S5.LARGE8",
+                    "S5t.LARGE8",
+                    "SA2.LARGE8",
+                    "SN3ne.LARGE8"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 100,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "4c_16g_200gb",
+                "cpu": {
+                    "max": 6,
+                    "min": 4
+                },
+                "mem": {
+                    "max": 16,
+                    "min": 15
+                },
+                "device_class": [
+                    "S5.LARGE16",
+                    "S5t.LARGE16",
+                    "S5.2XLARGE16",
+                    "SA2.2XLARGE16",
+                    "SN3ne.2XLARGE16"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 200,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "4c_32g_300db",
+                "cpu": {
+                    "max": 8,
+                    "min": 4
+                },
+                "mem": {
+                    "max": 32,
+                    "min": 30
+                },
+                "device_class": [
+                    "S5.2XLARGE32",
+                    "S5.4XLARGE32",
+                    "S5t.2XLARGE32",
+                    "SN3ne.2XLARGE32",
+                    "SA3.2XLARGE32"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 300,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "8c_64g_400db",
+                "cpu": {
+                    "max": 16,
+                    "min": 8
+                },
+                "mem": {
+                    "max": 64,
+                    "min": 61
+                },
+                "device_class": [
+                    "S5.4XLARGE64",
+                    "S5.8XLARGE64",
+                    "SA3.4XLARGE64",
+                    "SN3ne.4XLARGE64"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 400,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            },
+            {
+                "spec_name": "16c_128g_600gb",
+                "cpu": {
+                    "max": 32,
+                    "min": 16
+                },
+                "mem": {
+                    "max": 128,
+                    "min": 125
+                },
+                "device_class": [
+                    "S5.8XLARGE128"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 600,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 0,
+                    "min": 0
+                }
+            }
+        ]
+    },
     "tendbcluster": {
         "spider": [
             {
