@@ -342,9 +342,7 @@ func (m *ModifyAdminUserPasswordPara) ModifyMysqlAdminPassword() (BatchResult, e
 				ok := InstanceList{instanceList.Role, []IpPort{}}
 				notOK := InstanceList{instanceList.Role, []IpPort{}}
 				role := instanceList.Role
-				if *cluster.ClusterType == tendbcluster && role == machineTypeSpider {
-					base = append(base, flushPriv, setBinlogOff, setDdlByCtlOFF)
-				} else if *cluster.ClusterType == tendbcluster && role == tdbctl {
+				if *cluster.ClusterType == tendbcluster && role == tdbctl {
 					base = append(base, flushPriv, setBinlogOff, setTcAdminOFF)
 				} else {
 					base = append(base, flushPriv, setBinlogOff)
