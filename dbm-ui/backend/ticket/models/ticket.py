@@ -21,6 +21,7 @@ from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
+from backend.db_monitor.exceptions import AutofixException
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
     FlowRetryType,
@@ -203,6 +204,26 @@ class Ticket(AuditedModel):
             TicketFlowManager(ticket=ticket).run_next_flow()
 
         return ticket
+
+    @classmethod
+    def create_ticket_from_bk_monitor(cls, callback_data):
+        """
+        从蓝鲸监控告警事件发起创建单据
+        """
+        from backend.ticket.builders import BuilderFactory
+
+        ticket_type = callback_data["ticket_type"]
+        alarm_transform_serializer = BuilderFactory.get_builder_cls(ticket_type).alarm_transform_serializer
+        if alarm_transform_serializer is None:
+            raise AutofixException(_("不支持该类型的单据"))
+        ticket_details = alarm_transform_serializer().to_internal_value(callback_data)
+        cls.create_ticket(
+            ticket_type=ticket_type,
+            creator=callback_data["creator"],
+            bk_biz_id=callback_data["callback_message"]["event"]["dimensions"]["appid"],
+            remark=_("发起故障自愈，告警事件 ID：").format(callback_data["callback_message"]["event"]["id"]),
+            details=ticket_details,
+        )
 
 
 class TicketFlowConfig(AuditedModel):

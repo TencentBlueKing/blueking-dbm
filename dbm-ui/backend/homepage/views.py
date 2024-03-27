@@ -8,6 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
+import logging
+
 from blueapps.account.decorators import login_exempt
 from django.conf import settings
 from django.contrib import auth
@@ -22,6 +25,8 @@ from rest_framework.views import APIView
 
 from backend import env
 from backend.version_log.utils import get_latest_version
+
+logger = logging.getLogger("root")
 
 
 class HomeView(APIView):
@@ -49,6 +54,11 @@ class VersionView(APIView):
 
 @login_exempt
 def ping(request):
+    if request.method == "POST":
+        try:
+            logger.info(json.loads(request.body))
+        except TypeError:
+            pass
     return HttpResponse("pong")
 
 

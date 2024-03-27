@@ -36,6 +36,7 @@ from ...iam_app.handlers.drf_perm.base import (
 )
 from ...iam_app.handlers.drf_perm.monitor import MonitorPolicyPermission
 from ...iam_app.handlers.permission import Permission
+from ...ticket.models import Ticket
 from .. import constants
 from ..models import MonitorPolicy
 
@@ -261,3 +262,21 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
                 "db_module_id", "db_module_name"
             )
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("告警策略回调（处理套餐、故障自愈）"),
+        tags=[constants.SWAGGER_TAG],
+        request_body=serializers.AlarmCallBackDataSerializer,
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=serializers.AlarmCallBackDataSerializer,
+    )
+    def callback(self, request, *args, **kwargs):
+        # 监控回调需要使用 Bearer Token 进行验证
+        bearer_token = request.META.get("HTTP_AUTHORIZATION", "")
+        print(f"{bearer_token} bearer_token")
+        # if settings.SECRET_KEY not in bearer_token:
+        #     raise AuthenticationFailed(_('Bearer token is invalid'))
+        return Response(Ticket.create_ticket_from_bk_monitor(self.validated_data))
