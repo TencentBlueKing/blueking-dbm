@@ -75,6 +75,8 @@ INSTALLED_APPS += (
     "bk_audit.contrib.bk_audit",
     # apm
     "blueapps.opentelemetry.instrument_app",
+    # DB重连
+    "backend.django_dbconn_retry",
     # backend
     "backend.core.storages",
     "backend.core.encrypt",
@@ -166,6 +168,7 @@ WSGI_APPLICATION = "wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
+MAX_DBCONN_RETRY_TIMES = 3
 
 DATABASES = {
     "default": {
