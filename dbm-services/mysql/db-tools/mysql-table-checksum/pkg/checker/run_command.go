@@ -16,18 +16,18 @@ import (
 var roundStartStr = "_dba_fake_round_start"
 
 func (r *Checker) Run() error {
-	isEmptyResultTbl, err := r.isEmptyResultTbl()
-	if err != nil {
-		return err
-	}
-	if isEmptyResultTbl {
-		err := r.writeFakeResult(roundStartStr, roundStartStr)
-		if err != nil {
-			slog.Error("write round start", slog.String("error", err.Error()))
-			return err
-		}
-		slog.Info("round start")
-	}
+	//isEmptyResultTbl, err := r.isEmptyResultTbl()
+	//if err != nil {
+	//	return err
+	//}
+	//if isEmptyResultTbl {
+	//	err := r.writeFakeResult(roundStartStr, roundStartStr)
+	//	if err != nil {
+	//		slog.Error("write round start", slog.String("error", err.Error()))
+	//		return err
+	//	}
+	//	slog.Info("round start")
+	//}
 
 	stackDepth := 0
 
@@ -47,6 +47,19 @@ RunCheckLabel:
 
 	if r.Mode == config.GeneralMode {
 		slog.Info("run in general mode")
+
+		isEmptyResultTbl, err := r.isEmptyResultTbl()
+		if err != nil {
+			return err
+		}
+		if isEmptyResultTbl {
+			err := r.writeFakeResult(roundStartStr, roundStartStr)
+			if err != nil {
+				slog.Error("write round start", slog.String("error", err.Error()))
+				return err
+			}
+			slog.Info("round start")
+		}
 
 		// 校验摘要是空的, 有两种可能
 		// 1. 应用过滤器后, 没有库表需要校验
@@ -110,6 +123,7 @@ func (r *Checker) isEmptyResultTbl() (bool, error) {
 	err := r.db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s.%s", r.resultDB, r.resultTbl)).Scan(&resultCnt)
 	if err != nil {
 		slog.Error("check result table is empty", slog.String("error", err.Error()))
+		return false, err
 	}
 
 	return resultCnt == 0, nil
