@@ -22,10 +22,11 @@ class BaseHandler:
         return {"scope_type": constants.ScopeType.BIZ.value, "scope_id": str(bk_biz_id), "bk_biz_id": bk_biz_id}
 
     @classmethod
-    def format_hosts(cls, hosts: typing.List[types.HostInfo], bk_biz_id: int) -> typing.List[types.FormatHostInfo]:
+    def format_hosts(cls, hosts: typing.List[types.HostInfo], bk_biz_id: int = 0) -> typing.List[types.FormatHostInfo]:
         """
         格式化主机信息
         :param hosts: 尚未进行格式化处理的主机信息
+        :param bk_biz_id: 业务id(非必须)
         :return: 格式化后的主机列表
         """
         biz_id__info_map: typing.Dict[int, typing.Dict] = {
@@ -51,38 +52,38 @@ class BaseHandler:
         formatted_hosts: typing.List[types.HostInfo] = []
         for host in hosts:
             bk_cloud_id = host["bk_cloud_id"]
-            formatted_hosts.append(
-                {
-                    "meta": BaseHandler.get_meta_data(bk_biz_id),
-                    "host_id": host["bk_host_id"],
-                    "ip": host["bk_host_innerip"],
-                    "ipv6": host.get("bk_host_innerip_v6", ""),
-                    "bk_host_outerip": host.get("bk_host_outerip", ""),
-                    "cloud_id": host["bk_cloud_id"],
-                    "cloud_vendor": host.get("bk_cloud_vendor", ""),
-                    "agent_id": host.get("bk_agent_id", ""),
-                    "host_name": host.get("bk_host_name", ""),
-                    "os_name": host.get("bk_os_name", ""),
-                    "os_type": host.get("bk_os_type", ""),
-                    "alive": host.get("status"),
-                    "cloud_area": {
-                        "id": bk_cloud_id,
-                        "name": cloud_id__info_map.get(bk_cloud_id, bk_cloud_id),
-                    },
-                    "biz": {
-                        "id": bk_biz_id,
-                        "name": biz_id__info_map.get(bk_biz_id, {}).get("bk_biz_name", bk_biz_id),
-                    },
-                    # 暂不需要的字段，留作扩展
-                    "bk_mem": host.get("bk_mem"),
-                    "bk_disk": host.get("bk_disk"),
-                    "bk_cpu": host.get("bk_cpu"),
-                    "bk_idc_name": host.get("idc_city_name"),
-                    "bk_idc_id": host.get("idc_city_id"),
-                    "bk_cpu_architecture": host.get("bk_cpu_architecture"),
-                    "bk_cpu_module": host.get("bk_cpu_module"),
-                }
-            )
+            formatted_host_info = {
+                "host_id": host["bk_host_id"],
+                "ip": host["bk_host_innerip"],
+                "ipv6": host.get("bk_host_innerip_v6", ""),
+                "bk_host_outerip": host.get("bk_host_outerip", ""),
+                "cloud_id": host["bk_cloud_id"],
+                "cloud_vendor": host.get("bk_cloud_vendor", ""),
+                "agent_id": host.get("bk_agent_id", ""),
+                "host_name": host.get("bk_host_name", ""),
+                "os_name": host.get("bk_os_name", ""),
+                "os_type": host.get("bk_os_type", ""),
+                "alive": host.get("status"),
+                "cloud_area": {
+                    "id": bk_cloud_id,
+                    "name": cloud_id__info_map.get(bk_cloud_id, bk_cloud_id),
+                },
+                # 暂不需要的字段，留作扩展
+                "bk_mem": host.get("bk_mem"),
+                "bk_disk": host.get("bk_disk"),
+                "bk_cpu": host.get("bk_cpu"),
+                "bk_idc_name": host.get("idc_city_name"),
+                "bk_idc_id": host.get("idc_city_id"),
+                "bk_cpu_architecture": host.get("bk_cpu_architecture"),
+                "bk_cpu_module": host.get("bk_cpu_module"),
+            }
+            if bk_biz_id:
+                formatted_host_info.update(
+                    meta=BaseHandler.get_meta_data(bk_biz_id),
+                    biz={"id": bk_biz_id, "name": biz_id__info_map.get(bk_biz_id, {}).get("bk_biz_name", bk_biz_id)},
+                )
+
+            formatted_hosts.append(formatted_host_info)
 
         return formatted_hosts
 
