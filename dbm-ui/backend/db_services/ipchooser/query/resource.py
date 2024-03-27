@@ -456,25 +456,9 @@ class ResourceQueryHelper:
                     ],
                 }
             )
-
         list_biz_hosts_filter = {
             "bk_biz_id": bk_biz_id,
-            "fields": [
-                "bk_host_id",
-                "bk_host_innerip",
-                "bk_host_innerip_v6",
-                "bk_cloud_id",
-                "bk_host_name",
-                "bk_os_name",
-                "bk_os_type",
-                "bk_agent_id",
-                "bk_cloud_vendor",
-                "bk_mem",
-                "bk_cpu",
-                "bk_disk",
-                "bk_machine_type",
-                "bk_module_name",
-            ],
+            "fields": constants.CommonEnum.DEFAULT_HOST_FIELDS.value,
             "page": {"start": 0, "limit": limit, "sort": "bk_host_innerip"},
             "host_property_filter": {"condition": "AND", "rules": rules},
         }

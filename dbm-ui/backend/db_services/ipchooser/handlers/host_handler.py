@@ -34,12 +34,14 @@ class HostHandler:
         """
 
         # 不支持多业务同时查询
-        biz_scope = [scope["bk_biz_id"] for scope in scope_list]
-        bk_biz_id = biz_scope[0]
+        try:
+            biz_scope = [scope["bk_biz_id"] for scope in scope_list]
+            bk_biz_id = biz_scope[0]
+        except IndexError:
+            bk_biz_id = 0
 
         # 查询主机
         params = {
-            "bk_biz_id": bk_biz_id,
             "fields": CommonEnum.DEFAULT_HOST_FIELDS.value,
             "host_property_filter": host_property_filter,
             # TODO: 搜到的条数大于1000，需要循环查询，该接口当前协议不做分页，可能需要循环查询
@@ -55,9 +57,13 @@ class HostHandler:
             )
 
         # 获取主机信息
-        resp = CCApi.list_biz_hosts(params, use_admin=True)
-        hosts = resp["info"]
+        if bk_biz_id:
+            params.update(bk_biz_id=bk_biz_id)
+            resp = CCApi.list_biz_hosts(params, use_admin=True)
+        else:
+            resp = CCApi.list_hosts_without_biz(params, use_admin=True)
 
+        hosts = resp["info"]
         ResourceQueryHelper.fill_agent_status(hosts)
 
         return BaseHandler.format_hosts(hosts, bk_biz_id)
@@ -68,7 +74,7 @@ class HostHandler:
         scope_list: types.ScopeList,
         ip_list: typing.List[str],
         ipv6_list: typing.List[str],
-        key_list: typing.List[str],
+        key_list: typing.List[typing.Union[int, str]],
         mode: str = ModeType.ALL.value,
     ) -> typing.List[types.FormatHostInfo]:
         """
@@ -76,23 +82,21 @@ class HostHandler:
         :param scope_list: 资源范围数组
         :param ip_list: IPv4 列表
         :param ipv6_list: IPv6 列表
-        :param key_list: 关键字列表
+        :param key_list: 关键字列表(主机ID or 主机名)
         :param mode: all（全部）/idle_only（空闲机）
         :return:
         """
-        if not scope_list:
-            return []
-
         inner_ip_set: typing.Set[str] = set()
         bk_host_id_set: typing.Set[int] = set()
         bk_host_name_set: typing.Set[str] = set()
         cloud_inner_ip_set: typing.Set[str] = set()
 
-        # 获取bk_biz_id
-        host_filter_cloud_id: typing.int = None
+        # 获取bk_cloud_id
+        host_filter_cloud_id: int = None
         if scope_list and "bk_cloud_id" in scope_list[0].keys():
             host_filter_cloud_id = scope_list[0]["bk_cloud_id"]
 
+        # 获取云区域:IP
         for ip_or_cloud_ip in ip_list:
             # 按分隔符切割，获取切割后长度
             block_num: int = len(ip_or_cloud_ip.split(constants.CommonEnum.SEP.value, 1))
@@ -108,12 +112,11 @@ class HostHandler:
                 cloud_inner_ip_set.add(f"{host_filter_cloud_id}{constants.CommonEnum.SEP.value}{ip}")
 
         for key in key_list:
-            # 尝试将关键字解析为主机 ID
+            # 尝试将关键字解析为主机 ID，否则就认为是主机名
             try:
                 bk_host_id_set.add(int(key))
             except ValueError:
-                pass
-            bk_host_name_set.add(key)
+                bk_host_name_set.add(key)
 
         # 构造逻辑或查询条件
         cloud_ip_rules = []

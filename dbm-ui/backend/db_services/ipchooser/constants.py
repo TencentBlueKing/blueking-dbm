@@ -40,6 +40,8 @@ class CommonEnum(EnhanceEnum):
         "bk_cpu",
         "bk_cpu_architecture",
         "bk_cpu_module",
+        "bk_machine_type",
+        "bk_module_name",
         "idc_name",
         "idc_city_id",
         "idc_city_name",
