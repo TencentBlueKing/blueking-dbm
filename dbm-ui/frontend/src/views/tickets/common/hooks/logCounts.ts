@@ -87,10 +87,11 @@ export default function () {
     const successLogs: any[] = [];
     const failLogs: any[] = [];
     wholeLogList.value.forEach((item) => {
-      if (item.message.match(fileStartReg)) {
+      const message = item.message.slice(0, 300);
+      if (message.match(fileStartReg)) {
         successLogs.push(item);
       }
-      if (item.message.match(fileEndReg)) {
+      if (message.match(fileEndReg)) {
         failLogs.push(item);
       }
     });

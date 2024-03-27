@@ -112,6 +112,7 @@ export default defineConfig(({ mode }) => {
       exclude: ['@blueking/ip-selector/dist/vue3.x.js', 'lib/'],
     },
     server: {
+      strictPort: true,
       host: '127.0.0.1',
       port: 8088,
     },
