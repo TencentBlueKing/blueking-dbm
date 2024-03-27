@@ -60,10 +60,10 @@ kafka:
 mysql:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/dbactuator/build/dbactuator
-    commitDate: '202402231651'
-    commitId: 39076645f480dfbb3d5042d47a50ed7145e96d28
+    commitDate: '202403271434'
+    commitId: 734f458d16230b00726279989e4c0055d52e79c8
     name: dbactuator
-    version: 1.0.4
+    version: 1.0.5
 - dbbackup:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup/build/dbbackup-go-community.tar.gz
     commitDate: '202402011539'
@@ -72,16 +72,16 @@ mysql:
     version: 1.0.3
 - mysql-checksum:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum/build/mysql-checksum.tar.gz
-    commitDate: '202401151151'
-    commitId: b161746db1a253c6f536d610b019eeca87f69d18
+    commitDate: '202403271618'
+    commitId: e1b1d32feb4a9962050c372b86da2add002dcb28
     name: mysql-checksum.tar.gz
-    version: 1.0.4
+    version: 1.0.5
 - mysql-crond:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond/build/mysql-crond.tar.gz
-    commitDate: '202402021702'
-    commitId: e235802e3886165b27d28f4244f883b8000efeb7
+    commitDate: '202403251644'
+    commitId: 3a97258f2cf63b270674c9594d9b68d4e1cad075
     name: mysql-crond.tar.gz
-    version: 1.0.4
+    version: 1.0.5
 - rotate-binlog:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog/build/mysql-rotatebinlog.tar.gz
     commitDate: '202401220953'
@@ -90,10 +90,10 @@ mysql:
     version: 1.0.4
 - mysql-monitor:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor/build/mysql-monitor.tar.gz
-    commitDate: '202403111541'
-    commitId: 9e2b9eb7c0c516a3595b7fb83495fe8343145bf8
+    commitDate: '202403221500'
+    commitId: 016415c7e828c6bc1b6f377af25d03633f34ea4d
     name: mysql-monitor.tar.gz
-    version: 1.0.4
+    version: 1.0.5
 - dba-toolkit:
     buildPath: /toolkit/dba-toolkit.tar.gz
     name: dba-toolkit.tar.gz
