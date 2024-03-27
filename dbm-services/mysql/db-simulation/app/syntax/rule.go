@@ -120,6 +120,14 @@ func (c *CheckerResult) ParseBultinBan(f func() (bool, string)) {
 	}
 }
 
+// ParseBultinRisk TODO
+func (c *CheckerResult) ParseBultinRisk(f func() (bool, string)) {
+	matched, msg := f()
+	if matched {
+		c.RiskWarns = append(c.RiskWarns, msg)
+	}
+}
+
 // RuleItem TODO
 type RuleItem struct {
 	Item        interface{} `yaml:"item"`

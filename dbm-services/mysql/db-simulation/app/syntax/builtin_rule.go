@@ -13,6 +13,7 @@ package syntax
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"dbm-services/mysql/db-simulation/app/keyworld"
 )
@@ -60,7 +61,7 @@ func KeyWordValidator(ver, name string) (matched bool, msg string) {
 	default:
 		kwmap = defaultWordMap
 	}
-	if existInKeywords(name, kwmap) {
+	if existInKeywords(strings.ToUpper(name), kwmap) {
 		return true, name + " is  mysql keyword"
 	}
 	return

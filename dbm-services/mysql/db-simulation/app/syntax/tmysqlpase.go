@@ -12,6 +12,11 @@ package syntax
 
 import util "dbm-services/common/go-pubpkg/cmutil"
 
+const (
+	// ALTER_TYPE_ADD_COLUMN add_column
+	ALTER_TYPE_ADD_COLUMN = "add_column"
+)
+
 // ColDef TODO
 type ColDef struct {
 	Type        string `json:"type"`
@@ -117,8 +122,6 @@ type AlterCommand struct {
 	ColDef       ColDef        `json:"col_def,omitempty"`
 	After        string        `json:"after,omitempty"`
 	KeyDef       KeyDef        `json:"key_def,omitempty"`
-	ColName      string        `json:"col_name,omitempty"`
-	KeyName      string        `json:"key_name,omitempty"`
 	DropPrimary  bool          `json:"drop_primary,omitempty"`
 	DropForeign  bool          `json:"drop_foreign,omitempty"`
 	DbName       string        `json:"db_name,omitempty"`
