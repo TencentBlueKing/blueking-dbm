@@ -84,6 +84,9 @@ class MySQLMasterFailOverFlow(object):
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
 
+            # 做个标记位，代表切换后旧master的statues标记为unavailable
+            sub_flow_context["is_unavailable"] = True
+
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
             sub_pipeline.add_act(

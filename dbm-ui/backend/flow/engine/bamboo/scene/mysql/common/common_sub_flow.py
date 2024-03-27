@@ -456,7 +456,12 @@ def build_repl_by_manual_input_sub_flow(
 
 
 def install_mysql_in_cluster_sub_flow(
-    uid: str, root_id: str, cluster: Cluster, new_mysql_list: list, install_ports: list
+    uid: str,
+    root_id: str,
+    cluster: Cluster,
+    new_mysql_list: list,
+    install_ports: list,
+    bk_host_ids: list = None,
 ):
     """
     设计基于某个cluster，以及计算好的实例安装端口列表，对新机器安装mysql实例的公共子流
@@ -466,6 +471,7 @@ def install_mysql_in_cluster_sub_flow(
     @param cluster: 关联的cluster对象
     @param new_mysql_list: 新机器列表，每个元素是ip
     @param install_ports: 每台机器按照的实例端口列表
+    @param bk_host_ids: 新机器列表，每个元素是bk_host_id
     """
 
     # 目前先根据cluster对应，请求bk-config服务去获取对应的
@@ -516,6 +522,7 @@ def install_mysql_in_cluster_sub_flow(
             sys_init_ips=new_mysql_list,
             init_check_ips=new_mysql_list,
             yum_install_perl_ips=new_mysql_list,
+            bk_host_ids=bk_host_ids,
         )
     )
 

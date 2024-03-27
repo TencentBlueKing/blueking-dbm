@@ -422,11 +422,16 @@ class MySQLDBMeta(object):
                 # 对换主从实例的角色信息
                 slave_storage_objs.instance_role = InstanceRole.BACKEND_MASTER
                 slave_storage_objs.instance_inner_role = InstanceInnerRole.MASTER
-                slave_storage_objs.save(update_fields=["instance_role", "instance_inner_role"])
+                slave_storage_objs.save()
 
                 master_storage_objs.instance_role = InstanceRole.BACKEND_SLAVE
                 master_storage_objs.instance_inner_role = InstanceInnerRole.SLAVE
-                master_storage_objs.save(update_fields=["instance_role", "instance_inner_role"])
+
+                # 如果是主故障切换，旧master的状态设置为UNAVAILABLE
+                if self.ticket_data.get("is_unavailable", False):
+                    master_storage_objs.status = InstanceStatus.UNAVAILABLE
+
+                master_storage_objs.save()
 
                 # 修改db-meta主从的映射关系
                 StorageInstanceTuple.objects.filter(ejector=master_storage_objs, receiver=slave_storage_objs).update(

@@ -45,7 +45,6 @@ class MySQLProxyClusterSwitchFlow(object):
     构建mysql集群替换proxy实例申请流程抽象类
     替换proxy 是属于整机替换，新的机器必须不在dbm系统记录上线过
     兼容跨云区域的场景支持
-    todo 后续需要优化实例下架逻辑，避免误报
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):

@@ -59,7 +59,7 @@ class MySQLController(BaseController):
         部署tenDB(mysql)单实例场景(新flow编排)
         """
         flow = MySQLSingleApplyFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.deploy_mysql_single_flow_with_manual()
+        flow.deploy_flow()
 
     def mysql_restore_slave_scene(self):
         """
