@@ -29,10 +29,11 @@ class ListResourceSLZ(serializers.Serializer):
     exact_domain = serializers.CharField(help_text=_("精确域名查询"), required=False)
     ordering = serializers.CharField(required=False, help_text=_("排序字段,非必填"))
     status = serializers.CharField(required=False, help_text=_("状态"))
+    db_module_id = serializers.CharField(required=False, help_text=_("所属DB模块"))
+    bk_cloud_id = serializers.CharField(required=False, help_text=_("管控区域"))
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
-    db_module_id = serializers.IntegerField(required=False)
     master_domain = serializers.CharField(required=False, help_text=_("主访问入口"))
     slave_domain = serializers.CharField(required=False, help_text=_("从访问入口"))
 

@@ -108,5 +108,9 @@ class ListRetrieveResource(query.ListRetrieveResource):
             .annotate(role=F("instance_inner_role"))
             .filter(query_filters)
         )
-        instance_queryset = storage_queryset.union(proxy_queryset).values(*inst_fields).order_by("-create_at")
+        instance_queryset = (
+            storage_queryset.union(proxy_queryset)
+            .values(*inst_fields)
+            .order_by(query_params.get("ordering", "create_at"))
+        )
         return instance_queryset

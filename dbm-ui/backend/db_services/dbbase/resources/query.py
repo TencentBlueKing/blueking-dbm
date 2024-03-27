@@ -321,24 +321,31 @@ class ListRetrieveResource(BaseListRetrieveResource):
         filter_params_map = filter_params_map or {}
         inner_filter_params_map = {
             "id": Q(id=query_params.get("id")),
-            "name": (Q(name__icontains=query_params.get("name")) | Q(alias__icontains=query_params.get("name"))),
-            "domain": Q(immute_domain__icontains=query_params.get("domain")),
+            "name": (
+                Q(name__in=query_params.get("name", "").split(","))
+                | Q(alias__in=query_params.get("name", "").split(","))
+            ),
             # 版本
-            "version": Q(major_version=query_params.get("major_version")),
+            "major_version": Q(major_version=query_params.get("major_version")),
             # 地域
-            "region": Q(region=query_params.get("region")),
+            "region": Q(region__in=query_params.get("region", "").split(",")),
             "cluster_ids": Q(id__in=query_params.get("cluster_ids")),
             "creator": Q(creator__icontains=query_params.get("creator")),
             # 所属DB模块
-            "db_module_id": Q(db_module_id=query_params.get("db_module_id")),
+            "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             # 管控区域
-            "bk_cloud_id": Q(bk_cloud_id=query_params.get("bk_cloud_id")),
+            "bk_cloud_id": Q(bk_cloud_id__in=query_params.get("bk_cloud_id", "").split(",")),
             # 状态
-            "status": Q(status=query_params.get("status")),
+            "status": Q(status__in=query_params.get("status", "").split(",")),
             # 时区
-            "time_zone": Q(time_zone=query_params.get("time_zone")),
+            "time_zone": Q(time_zone=query_params.get("time_zone", "").split(",")),
             # 域名精确查询，主要用于工具箱手动填入域名查询
             "exact_domain": Q(immute_domain=query_params.get("exact_domain")),
+            # 域名
+            "domain": Q(
+                clusterentry__cluster_entry_type=ClusterEntryType.DNS.value,
+                clusterentry__entry__in=query_params.get("domain", "").split(","),
+            ),
         }
         filter_params_map.update(inner_filter_params_map)
 
@@ -350,15 +357,6 @@ class ListRetrieveResource(BaseListRetrieveResource):
         # 部署时间表头排序
         if query_params.get("ordering"):
             cluster_queryset = cluster_queryset.order_by(query_params.get("ordering"))
-
-        # 从访问入口
-        def filter_cluster_by_slave_domain(_query_params, _cluster_queryset, *args):
-            slave_domain = query_params.get("slave_domain")
-            cluster_queryset = _cluster_queryset.filter(
-                clusterentry__entry=slave_domain, clusterentry__cluster_entry_type=ClusterEntryType.DNS
-            ).distinct()
-
-            return cluster_queryset
 
         def filter_inst_queryset(_cluster_queryset, _proxy_queryset, _storage_queryset, _filters):
             # 注意这里用新的变量获取过滤后的queryset，不要用原queryset过滤，会影响后续集群关联实例的获取
@@ -393,7 +391,6 @@ class ListRetrieveResource(BaseListRetrieveResource):
         filter_func_map = {
             "ip": filter_ip_func,
             "instance": filter_instance_func,
-            "slave_domain": filter_cluster_by_slave_domain,
             **filter_func_map,
         }
         # 通过基础过滤函数进行cluster过滤
@@ -539,14 +536,15 @@ class ListRetrieveResource(BaseListRetrieveResource):
         # 定义内置的过滤参数map
         inner_filter_params_map = {
             "ip": Q(machine__ip__in=query_params.get("ip", "").split(",")),
-            "port": Q(port=query_params.get("port")),
-            "status": Q(status=query_params.get("status")),
+            "port": Q(port__in=query_params.get("port", "").split(",")),
+            "status": Q(status__in=query_params.get("status", "").split(",")),
             "cluster_id": Q(cluster__id=query_params.get("cluster_id")),
             "region": Q(region=query_params.get("region")),
-            "role": Q(role=query_params.get("role")),
-            "domain": (
-                Q(cluster__immute_domain__icontains=query_params.get("domain"))
-                | Q(bind_entry__entry__icontains=query_params.get("domain"))
+            "role": Q(role__in=query_params.get("role", "").split(",")),
+            "name": Q(cluster__name__in=query_params.get("name", "").split(",")),
+            "domain": Q(
+                cluster__clusterentry__cluster_entry_type=ClusterEntryType.DNS.value,
+                cluster__clusterentry__entry__in=query_params.get("domain", "").split(","),
             ),
         }
 
@@ -643,7 +641,11 @@ class ListRetrieveResource(BaseListRetrieveResource):
 
     @classmethod
     def _filter_instance_qs_hook(cls, storage_queryset, proxy_queryset, inst_fields, query_filters, query_params):
-        instance_queryset = storage_queryset.union(proxy_queryset).values(*inst_fields).order_by("-create_at")
+        instance_queryset = (
+            storage_queryset.union(proxy_queryset)
+            .values(*inst_fields)
+            .order_by(query_params.get("ordering", "create_at"))
+        )
         return instance_queryset
 
     @classmethod
