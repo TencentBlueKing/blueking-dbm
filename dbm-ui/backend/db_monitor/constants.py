@@ -126,7 +126,7 @@ DEFAULT_ALERT_NOTICE = [
         "time_range": "00:00:00--23:59:00",
         "notify_config": [
             {"notice_ways": [{"name": "rtx"}], "level": 3},
-            {"notice_ways": [{"name": "rtx"}, {"name": "sms"}], "level": 2},
+            {"notice_ways": [{"name": "rtx"}], "level": 2},
             {"notice_ways": [{"name": "rtx"}, {"name": "voice"}], "level": 1},
         ],
     }
