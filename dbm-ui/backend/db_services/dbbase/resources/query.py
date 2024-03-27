@@ -683,11 +683,11 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "ip": Q(ip__in=query_params.get("ip", "").split(",")),
             "machine_type": Q(machine_type=query_params.get("machine_type")),
             "bk_os_name": Q(bk_os_name=query_params.get("bk_os_name")),
-            "bk_cloud_id": Q(region=query_params.get("bk_cloud_id")),
+            "bk_cloud_id": Q(bk_cloud_id=query_params.get("bk_cloud_id")),
             "bk_agent_id": Q(bk_agent_id=query_params.get("bk_agent_id")),
             "instance_role": (
                 Q(storageinstance__instance_role=query_params.get("instance_role"))
-                | Q(proxyinstance__acces_layer=query_params.get("instance_role"))
+                | Q(proxyinstance__access_layer=query_params.get("instance_role"))
             ),
             "creator": Q(creator__icontains=query_params.get("creator")),
         }
@@ -698,7 +698,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             if query_params.get(param):
                 query_filters &= filter_params_map[param]
 
-        machine_queryset = Machine.objects.filter(query_filters)
+        machine_queryset = Machine.objects.filter(query_filters).distinct()
         machine_infos = cls._filter_machine_hook(bk_biz_id, machine_queryset, limit, offset, **kwargs)
         return machine_infos
 
@@ -778,16 +778,22 @@ class ListRetrieveResource(BaseListRetrieveResource):
         """
         # 获取machine关联的实例角色
         instance_role: str = ""
+        instances: list = []
         if machine.storageinstance_set.count():
             instance_role = machine.storageinstance_set.first().instance_role
+            instances = [inst.simple_desc for inst in machine.storageinstance_set.all()]
         if machine.proxyinstance_set.count():
             instance_role = machine.proxyinstance_set.first().access_layer
+            instances = [inst.simple_desc for inst in machine.proxyinstance_set.all()]
 
         # 获取machine关联的集群信息，目前一个实例只关联一个集群
-        related_clusters: List[Dict] = []
-        for storage in machine.storageinstance_set.all():
-            related_clusters.append(storage.cluster.first().to_dict())
-        for proxy in machine.proxyinstance_set.all():
-            related_clusters.append(proxy.cluster.first().to_dict())
+        related_clusters_map: Dict[int, List[Dict]] = {}
+        for inst in [*list(machine.storageinstance_set.all()), *list(machine.proxyinstance_set.all())]:
+            cluster = inst.cluster.first()
+            related_clusters_map[cluster.id] = cluster.to_dict()
 
-        return {"instance_role": instance_role, "related_clusters": related_clusters}
+        return {
+            "instance_role": instance_role,
+            "related_instances": instances,
+            "related_clusters": related_clusters_map.values(),
+        }
