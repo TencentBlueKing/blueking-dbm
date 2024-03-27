@@ -19,10 +19,12 @@ from django.utils.translation import ugettext as _
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import ConfType, FormatType, LevelName
 from backend.configuration.constants import AffinityEnum, DBType
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.api import common
+from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
+from backend.db_meta.enums import InstanceInnerRole, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
-from backend.db_meta.models import AppCache, Spec
+from backend.db_meta.models import AppCache, Spec, StorageInstance
 from backend.db_services.version.constants import RedisVersion
 from backend.flow.consts import DEPENDENCIES_PLUGINS, ClusterStatus, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -50,7 +52,7 @@ logger = logging.getLogger("flow")
 
 class RedisClusterMigrateLoadFlow(object):
     """
-    redis清档
+    redis cache/ssd集群 迁移元数据
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -532,5 +534,341 @@ class RedisClusterMigrateLoadFlow(object):
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("{}迁移子任务").format(params["clusterinfo"]["immute_domain"]))
             )
+        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+        redis_pipeline.run_pipeline()
+
+
+class RedisInsMigrateLoadFlow(object):
+    """
+    redis 单实例 迁移元数据
+    """
+
+    def __init__(self, root_id: str, data: Optional[Dict]):
+        """
+        @param root_id : 任务流程定义的root_id
+        @param data : 单据传递过来的参数列表，是dict格式
+        """
+        self.root_id = root_id
+        self.data = data
+
+    def __get_old_ins_info(self, ip: str) -> dict:
+        """
+        获取ip相关的老实例信息
+        ports/slave_ip/db_version
+        """
+        ports = []
+        slave_ip = ""
+        db_version = ""
+        clusters = query_cluster_by_hosts([ip])
+        if len(clusters) != 0:
+            ports = clusters[0]["ports"]
+            db_version = clusters[0]["major_version"]
+
+            storages = [{"ip": ip, "port": ports[0]}]
+            storage_objs = common.filter_out_instance_obj(storages, StorageInstance.objects.all())
+            slave_objs = storage_objs.get(instance_inner_role=InstanceInnerRole.MASTER).as_ejector.get().receiver
+            slave_ip = slave_objs.machine.ip
+        return {
+            "ports": ports,
+            "slave_ip": slave_ip,
+            "db_version": db_version,
+        }
+
+    def __dispose_cluster_params(self, cluster_info: dict) -> dict:
+        """
+        处理参数
+        返回需要的处理后的数据格式
+        """
+
+        master_ip_list = []
+        old_ports_dict = defaultdict(list)  # ip对应历史已安装端口
+        new_ports_dict = defaultdict(list)  # ip对应需要新安装端口
+        db_version_dict = {}  # ip对应的版本
+        spec_id_dict = {}  # 机器对应规格
+        repl_dict = {}  # ip主从复制关系
+        ip_install_dict = defaultdict(list)
+
+        for ins in cluster_info["tendis_instance"]:
+            master_ip = ins["backends"]["master"]["ip"]
+            slave_ip = ins["backends"]["slave"]["ip"]
+            port = ins["backends"]["master"]["port"]
+            spec_id = ins["backends"]["master"]["spec_id"]
+            db_version = ins["clusterinfo"]["db_version"]
+
+            if master_ip not in master_ip_list:
+                master_ip_list.append(master_ip)
+                repl_dict[master_ip] = slave_ip
+                spec_id_dict[master_ip] = spec_id
+                db_version_dict[master_ip] = db_version
+
+                machine_old_info = self.__get_old_ins_info(master_ip)
+                if len(machine_old_info["ports"]):
+                    old_ports_dict[master_ip] = machine_old_info["ports"]
+                    if machine_old_info["slave_ip"] != slave_ip:
+                        raise Exception(master_ip + " old slave is: " + machine_old_info["slave_ip"])
+                    if machine_old_info["db_version"] != db_version:
+                        raise Exception(master_ip + " old db_version is: " + machine_old_info["db_version"])
+
+            if db_version != db_version_dict[master_ip]:
+                raise Exception(master_ip + " have more db_version")
+            if slave_ip != repl_dict[master_ip]:
+                raise Exception("master have more slave")
+            if port in new_ports_dict[master_ip]:
+                raise Exception(master_ip + " port have conflict: " + str(port))
+            if port in old_ports_dict[master_ip]:
+                raise Exception(master_ip + " port is exists: " + str(port))
+            new_ports_dict[master_ip].append(port)
+            ip_install_dict[master_ip].append(ins)
+
+        return {
+            "master_ip_list": master_ip_list,
+            "new_ports_dict": dict(new_ports_dict),
+            "spec_id_dict": spec_id_dict,
+            "db_version_dict": db_version_dict,
+            "old_ports_dict": dict(old_ports_dict),
+            "repl_dict": repl_dict,
+            "ip_install_dict": dict(ip_install_dict),
+        }
+
+    def redis_ins_migrate_load_flow(self):
+        redis_pipeline = Builder(root_id=self.root_id, data=self.data)
+        act_kwargs = ActKwargs()
+        act_kwargs.set_trans_data_dataclass = CommonContext.__name__
+        act_kwargs.is_update_trans_data = True
+        act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
+        info = self.__dispose_cluster_params(self.data)
+
+        sub_pipelines = []
+        for master_ip in info["ip_install_dict"]:
+            old_ports = info["old_ports_dict"][master_ip]
+            db_version = info["db_version_dict"][master_ip]
+            slave_ip = info["repl_dict"][master_ip]
+            all_ip = [master_ip, slave_ip]
+            spec_id = info["spec_id_dict"][master_ip]
+
+            # 初始化配置
+            act_kwargs.cluster["db_version"] = db_version
+            act_kwargs.cluster["cluster_type"] = ClusterType.TendisRedisInstance.value
+            sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+            sub_pipeline.add_act(
+                act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
+            )
+
+            # 下发介质包
+            trans_files = GetFileList(db_type=DBType.Redis)
+            act_kwargs.file_list = trans_files.redis_cluster_apply_backend(db_version)
+            act_kwargs.exec_ip = all_ip
+            sub_pipeline.add_act(
+                act_name=_("Redis-{}-下发介质包").format(all_ip),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+            if len(old_ports) == 0:
+                "如果之前没有安装过实例，则需要做初始化和安装工具操作"
+                act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
+                sub_pipeline.add_act(
+                    act_name=_("Redis-{}-初始化机器").format(all_ip),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
+
+                acts_list = []
+                acts_list.append(
+                    {
+                        "act_name": _("Redis-{}-安装backup-client工具").format(all_ip),
+                        "act_component_code": DownloadBackupClientComponent.code,
+                        "kwargs": asdict(
+                            DownloadBackupClientKwargs(
+                                bk_cloud_id=self.data["bk_cloud_id"],
+                                bk_biz_id=int(self.data["bk_biz_id"]),
+                                download_host_list=all_ip,
+                            ),
+                        ),
+                    }
+                )
+                for plugin_name in DEPENDENCIES_PLUGINS:
+                    acts_list.append(
+                        {
+                            "act_name": _("安装[{}]插件".format(plugin_name)),
+                            "act_component_code": InstallNodemanPluginServiceComponent.code,
+                            "kwargs": asdict(
+                                InstallNodemanPluginKwargs(
+                                    bk_cloud_id=int(self.data["bk_cloud_id"]), ips=all_ip, plugin_name=plugin_name
+                                )
+                            ),
+                        }
+                    )
+                sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # 写入元数据
+            act_kwargs.cluster["spec_id"] = spec_id
+            act_kwargs.cluster["spec_config"] = Spec.objects.get(spec_id=spec_id).get_spec_info()
+            act_kwargs.cluster["ports"] = info["new_ports_dict"][master_ip]
+            act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_install_append.__name__
+            act_kwargs.cluster["master_ip"] = master_ip
+            act_kwargs.cluster["slave_ip"] = slave_ip
+            sub_pipeline.add_act(
+                act_name=_("Redis-{}-写入元数据").format(master_ip),
+                act_component_code=RedisDBMetaComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+            # 建立主从元数据
+            replica_pairs = []
+            for ins in info["ip_install_dict"][master_ip]:
+                replica_pairs.append(
+                    {
+                        "master_ip": master_ip,
+                        "master_port": ins["backends"]["master"]["port"],
+                        "master_auth": ins["config"]["requirepass"],
+                        "slave_ip": info["repl_dict"][master_ip],
+                        "slave_port": ins["backends"]["slave"]["port"],
+                        "slave_password": ins["config"]["requirepass"],
+                    }
+                )
+            act_kwargs.cluster = {
+                "bacth_pairs": replica_pairs,
+                "created_by": self.data["created_by"],
+                "meta_func_name": RedisDBMeta.replicaof_ins.__name__,
+            }
+            sub_pipeline.add_act(
+                act_name=_("redis建立主从 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+            )
+
+            # 主从集群元数据
+            acts_list = []
+            for ins in info["ip_install_dict"][master_ip]:
+                act_kwargs.cluster = {
+                    "bk_biz_id": self.data["bk_biz_id"],
+                    "bk_cloud_id": self.data["bk_cloud_id"],
+                    "cluster_name": ins["clusterinfo"]["name"],
+                    "cluster_alias": ins["clusterinfo"]["alias"],
+                    "db_version": ins["clusterinfo"]["db_version"],
+                    "immute_domain": ins["clusterinfo"]["immute_domain"],
+                    "master_ip": master_ip,
+                    "slave_ip": slave_ip,
+                    "port": ins["backends"]["master"]["port"],
+                    "created_by": self.data["created_by"],
+                    "region": ins.get("city_code", ""),
+                    "meta_func_name": RedisDBMeta.redis_instance.__name__,
+                    "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
+                }
+                acts_list.append(
+                    {
+                        "act_name": _("{}-主从实例集群元数据").format(ins["clusterinfo"]["immute_domain"]),
+                        "act_component_code": RedisDBMetaComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    },
+                )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            db_admin = {"db_type": DBType.Redis.value, "users": str.split(self.data["nosqldbas"], ",")}
+            act_kwargs.cluster = {
+                "db_admins": [db_admin],
+                "meta_func_name": RedisDBMeta.update_nosql_dba.__name__,
+            }
+            sub_pipeline.add_act(
+                act_name=_("更新业务NOSQL DBA"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+            )
+
+            # 写config，需要在写集群元数据后面
+            acts_list = []
+            for ins in info["ip_install_dict"][master_ip]:
+                act_kwargs.cluster = {
+                    "pwd_conf": {
+                        "redis_pwd": ins["config"].pop("requirepass"),
+                    },
+                    "conf": ins["config"],
+                    "db_version": ins["clusterinfo"]["db_version"],
+                    "domain_name": ins["clusterinfo"]["immute_domain"],
+                }
+                if (
+                    ins["clusterinfo"]["cluster_type"] == ClusterType.TendisRedisInstance.value
+                    and ins["clusterinfo"]["db_version"] != RedisVersion.Redis20.value
+                ):
+                    act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
+
+                act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("{}-回写集群配置[Redis]").format(ins["clusterinfo"]["immute_domain"]),
+                        "act_component_code": RedisConfigComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    },
+                )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # 部署bkdbmon
+            acts_list = []
+            act_kwargs.exec_ip = master_ip
+            act_kwargs.cluster = {
+                "ip": master_ip,
+            }
+            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+            acts_list.append(
+                {
+                    "act_name": _("{}-安装bkdbmon").format(master_ip),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+            act_kwargs.exec_ip = slave_ip
+            act_kwargs.cluster = {
+                "ip": slave_ip,
+            }
+            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+            acts_list.append(
+                {
+                    "act_name": _("{}-安装bkdbmon").format(slave_ip),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # 历史备份记录上报
+            upload_backup_sub_pipelines = []
+            for ins in info["ip_install_dict"][master_ip]:
+                upload_backup_sub_pipelines.append(
+                    RedisReuploadOldBackupRecordsAtomJob(
+                        self.root_id,
+                        self.data,
+                        act_kwargs,
+                        {
+                            "bk_biz_id": self.data["bk_biz_id"],
+                            "bk_cloud_id": self.data["bk_cloud_id"],
+                            "server_ip": slave_ip,
+                            "server_ports": ins["backends"]["master"]["port"],
+                            "cluster_domain": ins["clusterinfo"]["immute_domain"],
+                            "cluster_type": ins["clusterinfo"]["cluster_type"],
+                            "meta_role": InstanceRole.REDIS_SLAVE.value,
+                            "server_shards": {},
+                        },
+                    )
+                )
+            sub_pipeline.add_parallel_sub_pipeline(upload_backup_sub_pipelines)
+
+            # clb、北极星需要写元数据
+            if len(ins["entry"]["clb"]) != 0:
+                act_kwargs.cluster = ins["entry"]["clb"]
+                act_kwargs.cluster["bk_cloud_id"] = self.data["bk_cloud_id"]
+                act_kwargs.cluster["immute_domain"] = ins["clusterinfo"]["immute_domain"]
+                act_kwargs.cluster["created_by"] = self.data["created_by"]
+                act_kwargs.cluster["meta_func_name"] = RedisDBMeta.add_clb_domain.__name__
+                sub_pipeline.add_act(
+                    act_name=_("clb元数据写入"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+                )
+
+            if len(ins["entry"]["polairs"]) != 0:
+                act_kwargs.cluster = ins["entry"]["polairs"]
+                act_kwargs.cluster["bk_cloud_id"] = self.data["bk_cloud_id"]
+                act_kwargs.cluster["immute_domain"] = ins["clusterinfo"]["immute_domain"]
+                act_kwargs.cluster["created_by"] = self.data["created_by"]
+                act_kwargs.cluster["meta_func_name"] = RedisDBMeta.add_polairs_domain.__name__
+                sub_pipeline.add_act(
+                    act_name=_("polairs元数据写入"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+                )
+
+            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}迁移子任务").format(master_ip)))
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         redis_pipeline.run_pipeline()
