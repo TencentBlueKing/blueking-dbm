@@ -18,7 +18,10 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_instance_shutdown impo
     RedisClusterInstanceShutdownSceneFlow,
 )
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_compair import RedisClusterMigrateCompairFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_load import RedisClusterMigrateLoadFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_load import (
+    RedisClusterMigrateLoadFlow,
+    RedisInsMigrateLoadFlow,
+)
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_precheck import RedisClusterMigratePrecheckFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_auotfix import RedisClusterAutoFixSceneFlow
@@ -264,10 +267,24 @@ class RedisController(BaseController):
 
     def redis_cluster_migrate_load(self):
         """
-        redis迁移
+        redis cache/ssd 迁移
         """
         flow = RedisClusterMigrateLoadFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_cluster_migrate_load_flow()
+
+    def redis_ins_migrate_load(self):
+        """
+        redis 主从迁移
+        """
+        flow = RedisInsMigrateLoadFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_ins_migrate_load_flow()
+
+    def redis_origin_cluster_migrate_load(self):
+        """
+        TODO redis cluster 迁移
+        """
+        # flow = RedisClusterMigrateLoadFlow(root_id=self.root_id, data=self.ticket_data)
+        # flow.redis_cluster_migrate_load_flow()
 
     def redis_cluster_migrate_compair(self):
         """
