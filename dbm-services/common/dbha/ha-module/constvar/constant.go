@@ -185,6 +185,8 @@ const (
 	CmDBSwapRoleUrl = "dbmeta/dbha/swap_role/"
 	// CmDBUpdateStatusUrl TODO
 	CmDBUpdateStatusUrl = "dbmeta/dbha/update_status/"
+	//CmDBMigrateDumper migrate dumper from master to slave
+	CmDBMigrateDumper = "dumper/switch/"
 	// GetDomainInfoUrl TODO
 	GetDomainInfoUrl = "dns/domain/get/"
 	// DeleteDomainUrl TODO

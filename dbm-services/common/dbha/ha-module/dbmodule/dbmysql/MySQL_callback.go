@@ -102,6 +102,7 @@ func NewSpiderClusterByCmDB(instances []interface{}, conf *config.Config) ([]dbu
 func NewMySQLSwitchInstance(instances []interface{}, conf *config.Config) ([]dbutil.DataBaseSwitch, error) {
 	var ret []dbutil.DataBaseSwitch
 	initFunc := func(ins dbutil.DBInstanceInfoDetail) (dbutil.DataBaseSwitch, error) {
+		log.Logger.Debugf("mysql instance detail info:%#v", ins)
 		mysqlCommon := MySQLCommonSwitch{
 			BaseSwitch: dbutil.BaseSwitch{
 				Ip:          ins.IP,
@@ -126,6 +127,7 @@ func NewMySQLSwitchInstance(instances []interface{}, conf *config.Config) ([]dbu
 			swIns.SetStandbySlave(ins.Receiver)
 			swIns.SetInstanceRole(ins.InstanceRole)
 			swIns.Proxy = ins.ProxyInstanceSet
+			swIns.Dumper = ins.BinlogDumperSet
 			return swIns, nil
 		case constvar.TenDBProxyType:
 			swIns := &MySQLProxySwitch{
