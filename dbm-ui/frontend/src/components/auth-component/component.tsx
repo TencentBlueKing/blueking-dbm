@@ -23,6 +23,7 @@ export default defineComponent({
     },
     bizId: {
       type: [String, Number],
+      default: undefined,
     },
   },
   setup(props) {

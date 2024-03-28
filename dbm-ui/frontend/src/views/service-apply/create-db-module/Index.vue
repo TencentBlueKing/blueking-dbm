@@ -111,7 +111,7 @@
       <BkButton
         class="w-88 ml-8"
         :disabled="loadingState.submit"
-        @click="resetFormData()">
+        @click="handleReset()">
         {{ t('重置') }}
       </BkButton>
     </template>
@@ -119,7 +119,6 @@
 </template>
 
 <script setup lang="ts">
-  import { Message } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -151,34 +150,38 @@
   const globalBizsStore = useGlobalBizs();
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+
+  const ticketType = route.params.type as MysqlTypeString;
+  const ticketInfo = mysqlType[ticketType];
+  const bizId = Number(route.params.bk_biz_id);
+  const isNewModule = !route.params.db_module_id;
+
   /**
    * 获取表单基础信息
    */
   const getFormData = () => ({
     module_name: (route.query.module_name ?? '') as string,
-    mysql_type: ticketType.value,
+    mysql_type: ticketType,
     version: '',
     character_set: '',
   });
 
   const isBindSuccessfully = ref(false);
   const paramsConfigDataStringify = ref('');
+  // 模块信息
+  const moduleId = ref(Number(route.params.db_module_id) ?? '');
   const disabledSubmit = computed(() => {
     if (isBindSuccessfully.value === false) {
       return false;
     }
     return paramsConfigDataStringify.value === JSON.stringify(configState.data.conf_items);
   });
-  // 数据库类型信息
-  const ticketType = computed(() => route.params.type as MysqlTypeString);
-  const ticketInfo = computed(() => mysqlType[ticketType.value]);
+
   // 业务信息
-  const bizId = computed(() => Number(route.params.bk_biz_id));
-  const bizInfo = computed(() => globalBizsStore.bizs.find((info) => info.bk_biz_id === bizId.value) || { name: '' });
-  // 模块信息
-  const moduleId = ref(Number(route.params.db_module_id) ?? '');
-  const isNewModule = computed(() => !route.params.db_module_id);
-  const isReadonly = computed(() => (isNewModule.value ? !!moduleId.value : true));
+
+  const bizInfo = computed(() => globalBizsStore.bizs.find((info) => info.bk_biz_id === bizId) || { name: '' });
+
+  const isReadonly = computed(() => (isNewModule ? !!moduleId.value : true));
 
   const formData = reactive(getFormData());
   const listState = reactive({
@@ -211,96 +214,6 @@
 
   const createModuleFormRef = ref();
   const parameterTableRef = ref();
-  /**
-   * 提交表单
-   */
-  async function handleSubmit() {
-    loadingState.submit = true;
-    try {
-      // 校验表单信息
-      await Promise.all([createModuleFormRef.value?.validate(), parameterTableRef.value?.validate()]);
-
-      // 新建模块或已经新建成功则不执行创建
-      if (!isReadonly.value) {
-        const createResult = await createModules({
-          id: bizId.value,
-          db_module_name: formData.module_name,
-          cluster_type: ticketInfo.value.type,
-        });
-        moduleId.value = createResult.db_module_id;
-      }
-
-      // 绑定模块数据库配置
-      await bindModulesDeployInfo();
-
-      // 绑定参数配置
-      await bindConfigParameters();
-
-      Message({
-        message: isNewModule.value ? t('创建DB模块并绑定数据库配置成功') : t('绑定配置成功'),
-        theme: 'success',
-      });
-      window.changeConfirm = false;
-      router.go(-1);
-    } catch (e) {
-      console.log(e);
-    }
-    loadingState.submit = false;
-  }
-
-  /**
-   * 绑定数据库配置
-   */
-  function bindModulesDeployInfo() {
-    const params = {
-      level_name: 'module',
-      version: 'deploy_info',
-      conf_type: 'deploy',
-      bk_biz_id: bizId.value,
-      level_value: moduleId.value,
-      meta_cluster_type: ticketInfo.value.type,
-      conf_items: [
-        {
-          conf_name: 'charset',
-          conf_value: formData.character_set,
-          op_type: 'update',
-          description: t('字符集'),
-        },
-        {
-          conf_name: 'db_version',
-          conf_value: formData.version,
-          op_type: 'update',
-          description: t('数据库版本'),
-        },
-      ],
-    };
-    return saveModulesDeployInfo(params).then(() => {
-      isBindSuccessfully.value = true;
-    });
-  }
-
-  function resetFormData() {
-    useInfo({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        const resetData = isNewModule.value ? getFormData() : { version: '', character_set: '' };
-        _.merge(formData, resetData);
-        configState.data = {
-          name: '',
-          version: '',
-          description: '',
-          conf_items: [],
-        };
-        configState.parameters = [];
-        configState.originConfItems = [];
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-    });
-  }
 
   const configState = reactive({
     loading: false,
@@ -315,10 +228,10 @@
     originConfItems: [] as ParameterConfigItem[],
   });
   const fetchParams = computed(() => ({
-    bk_biz_id: bizId.value,
+    bk_biz_id: bizId,
     level_name: isReadonly.value ? 'module' : 'app',
-    level_value: isReadonly.value ? moduleId.value : bizId.value,
-    meta_cluster_type: ticketInfo.value.type,
+    level_value: isReadonly.value ? moduleId.value : bizId,
+    meta_cluster_type: ticketInfo.type,
     conf_type: 'dbconf',
     version: formData.version,
   }));
@@ -326,7 +239,7 @@
   /**
    * 查询参数配置
    */
-  function fetchLevelConfig() {
+  const fetchLevelConfig = () => {
     configState.loading = true;
 
     // 若没有 module_id 则拉取业务配置，反之获取模块配置
@@ -352,14 +265,14 @@
       .finally(() => {
         configState.loading = false;
       });
-  }
+  };
 
   /**
    * 查询配置项名称列表
    */
   const fetchConfigNames = () => {
     getConfigNames({
-      meta_cluster_type: ticketInfo.value.type,
+      meta_cluster_type: ticketInfo.type,
       conf_type: 'dbconf',
       version: formData.version,
     }).then((res) => {
@@ -377,29 +290,6 @@
     },
     { immediate: true },
   );
-
-  /**
-   * 绑定参数配置
-   */
-  const bindConfigParameters = () => {
-    // 获取 conf_items
-    const { data } = useDiff(configState.data.conf_items, configState.originConfItems);
-    const confItems = data.map((item: DiffItem) => {
-      const type = item.status === 'delete' ? 'remove' : 'update';
-      const data = item.status === 'delete' ? item.before : item.after;
-      return Object.assign(data, { op_type: type });
-    });
-
-    const params = {
-      name: formData.module_name,
-      conf_items: confItems,
-      description: '',
-      publish_description: '',
-      confirm: 0,
-      ...fetchParams.value,
-    };
-    return updateBusinessConfig(params);
-  };
 
   // 添加配置项
   const handleAddConfItem = (index: number) => {
@@ -466,6 +356,95 @@
   // 选择参数项
   const handleChangeParameterItem = (index: number, selected: ParameterConfigItem) => {
     configState.data.conf_items[index] = Object.assign(_.cloneDeep(selected), { op_type: 'add' });
+  };
+
+  /**
+   * 提交表单
+   */
+  const handleSubmit = async () => {
+    loadingState.submit = true;
+    try {
+      // 校验表单信息
+      await Promise.all([createModuleFormRef.value?.validate(), parameterTableRef.value?.validate()]);
+
+      // 新建模块或已经新建成功则不执行创建
+      if (!isReadonly.value) {
+        const createResult = await createModules({
+          id: bizId,
+          db_module_name: formData.module_name,
+          cluster_type: ticketInfo.type,
+        });
+        moduleId.value = createResult.db_module_id;
+      }
+
+      // 绑定模块数据库配置
+      await saveModulesDeployInfo({
+        level_name: 'module',
+        version: 'deploy_info',
+        conf_type: 'deploy',
+        bk_biz_id: bizId,
+        level_value: moduleId.value,
+        meta_cluster_type: ticketInfo.type,
+        conf_items: [
+          {
+            conf_name: 'charset',
+            conf_value: formData.character_set,
+            op_type: 'update',
+            description: t('字符集'),
+          },
+          {
+            conf_name: 'db_version',
+            conf_value: formData.version,
+            op_type: 'update',
+            description: t('数据库版本'),
+          },
+        ],
+      });
+      isBindSuccessfully.value = true;
+
+      // 绑定参数配置
+      const { data } = useDiff(configState.data.conf_items, configState.originConfItems);
+      const confItems = data.map((item: DiffItem) => {
+        const type = item.status === 'delete' ? 'remove' : 'update';
+        const data = item.status === 'delete' ? item.before : item.after;
+        return Object.assign(data, { op_type: type });
+      });
+
+      await updateBusinessConfig({
+        name: formData.module_name,
+        conf_items: confItems,
+        description: '',
+        publish_description: '',
+        confirm: 0,
+        ...fetchParams.value,
+      });
+    } catch (e) {
+      console.log(e);
+    }
+    loadingState.submit = false;
+  };
+
+  const handleReset = () => {
+    useInfo({
+      title: t('确认重置表单内容'),
+      content: t('重置后_将会清空当前填写的内容'),
+      onConfirm: () => {
+        const resetData = isNewModule ? getFormData() : { version: '', character_set: '' };
+        _.merge(formData, resetData);
+        configState.data = {
+          name: '',
+          version: '',
+          description: '',
+          conf_items: [],
+        };
+        configState.parameters = [];
+        configState.originConfItems = [];
+        nextTick(() => {
+          window.changeConfirm = false;
+        });
+        return true;
+      },
+    });
   };
 
   defineExpose({

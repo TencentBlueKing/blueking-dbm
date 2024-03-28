@@ -100,13 +100,14 @@
         </BkFormItem>
       </DbCard>
       <BkFormItem class="password-policy-footer">
-        <BkButton
+        <AuthButton
+          action-id="password_policy_set"
           class="mr-8"
           :loading="isSubmitting"
           theme="primary"
           @click="handleSubmit()">
           {{ t('保存') }}
-        </BkButton>
+        </AuthButton>
         <BkButton
           :disabled="isSubmitting"
           @click="handleReset">

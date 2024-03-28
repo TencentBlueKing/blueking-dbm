@@ -15,12 +15,13 @@
   <div class="redis-cluster-list-page">
     <div class="operation-box">
       <div>
-        <BkButton
+        <AuthButton
+          action-id="redis_cluster_apply"
           class="mr-8 mb-16"
           theme="primary"
           @click="handleApply">
           {{ t('申请实例') }}
-        </BkButton>
+        </AuthButton>
         <BkDropdown
           v-bk-tooltips="{
             disabled: hasSelected,

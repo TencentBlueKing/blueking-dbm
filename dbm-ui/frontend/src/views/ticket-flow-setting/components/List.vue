@@ -137,59 +137,64 @@
       render: ({ data }: { data: TicketFlowDescribeModel }) => (Object.keys(data.configs) as (keyof TicketFlowDescribeModel['configs'])[]).map((key) => (
         <bk-pop-confirm
           title={data.configs[key] ? t('确认删除“单据审批”流程节点？') : t('确认添加“单据审批”流程节点？')}
-          content={
-            <div class="ticket-flow-change-node-box">
-              <div class="item-box">
-                <div class="title">{t('单据类型')}：</div>
-                <div class="content" style="color: #313238;">{data.ticket_type_display}</div>
-              </div>
-              <div class="item-box mb-16 mt-6">
-                <div class="title">{t('流程预览')}：</div>
-                <div class="content">{
-                  <>
-                    {
-                      !data.configs[key] && <>
-                        <span
-                            class={{ 'add-node': !data.configs[key] }}>
-                            {configMap[key]}
-                          </span>
-                          <span>{' -> '}</span>
-                      </>
-                    }
-                    {
-                      data.flow_desc.map((flow, index) => (
-                        <>
-                          <span
-                            class={{ 'delete-node': data.configs[key] && configMap[key] === flow }}>
-                            {flow}
-                          </span>
-                          <span>{index !== data.flow_desc.length - 1 ? ' -> ' : ''}</span>
-                        </>
-                      ))
-                    }
-                  </>
-                  }
-                </div>
-              </div>
-            </div>
-          }
           width="400"
           placement="top"
           trigger="click"
           confirm-text={data.configs[key] ? t('删除') : t('确定')}
           onConfirm={() => handleConfirmCheck(data, key, !data.configs[key])}
         >
-          <auth-template
-            class="flow-node-action"
-            action-id="ticket_config_set"
-            resource={data.ticket_type}
-            permission={data.permission.ticket_config_set}>
-            <bk-checkbox
-              modelValue={data.configs[key]}
-              style="pointer-events: none;">
-              {configMap[key]}
-            </bk-checkbox>
-          </auth-template>
+          {{
+            default: () => (
+              <auth-template
+                class="flow-node-action"
+                action-id="ticket_config_set"
+                resource={props.activeDbType}
+                permission={data.permission.ticket_config_set}>
+                <bk-checkbox
+                  modelValue={data.configs[key]}
+                  style="pointer-events: none;">
+                  {configMap[key]}
+                </bk-checkbox>
+              </auth-template>
+            ),
+            content: () => (
+              <div class="ticket-flow-change-node-box">
+                <div class="item-box">
+                  <div class="title">{t('单据类型')}：</div>
+                  <div class="content" style="color: #313238;">{data.ticket_type_display}</div>
+                </div>
+                <div class="item-box mb-16 mt-6">
+                  <div class="title">{t('流程预览')}：</div>
+                  <div class="content">{
+                    <>
+                      {
+                        !data.configs[key] && <>
+                          <span
+                              class={{ 'add-node': !data.configs[key] }}>
+                              {configMap[key]}
+                            </span>
+                            <span>{' -> '}</span>
+                        </>
+                      }
+                      {
+                        data.flow_desc.map((flow, index) => (
+                          <>
+                            <span
+                              class={{ 'delete-node': data.configs[key] && configMap[key] === flow }}>
+                              {flow}
+                            </span>
+                            <span>{index !== data.flow_desc.length - 1 ? ' -> ' : ''}</span>
+                          </>
+                        ))
+                      }
+                    </>
+                    }
+                  </div>
+                </div>
+              </div>
+            )
+          }}
+
         </bk-pop-confirm>
       )),
     },
@@ -343,14 +348,14 @@
 </style>
 
 <style lang="less">
-  .flow-node-action{
-      display: inline-block;
-      cursor: pointer;
+  .flow-node-action {
+    display: inline-block;
+    cursor: pointer;
 
-      & ~ .flow-node-action{
-        margin-left: 24px;
-      }
+    & ~ .flow-node-action {
+      margin-left: 24px;
     }
+  }
 
   .ticket-flow-change-node-box {
     .item-box {

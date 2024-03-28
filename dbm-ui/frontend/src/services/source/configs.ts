@@ -252,6 +252,7 @@ export function saveModulesDeployInfo(params: CreateModuleDeployInfo) {
  * 修改业务配置信息
  */
 interface BizConfDetailsUpdateParams {
+  name: string;
   meta_cluster_type: string;
   conf_type: string;
   bk_biz_id: number;

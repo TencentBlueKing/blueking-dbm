@@ -88,3 +88,16 @@ export function getAlarmGroupNotifyList(params: { bk_biz_id: number; name?: stri
     }[]
   >(`${path}/get_msg_type/`, params);
 }
+
+export function getSimpleList(params: { bk_biz_id: number; db_type: string }) {
+  return http.get<
+    {
+      id: string;
+      name: string;
+      receivers: {
+        id: string;
+        type: string;
+      }[];
+    }[]
+  >(`${path}/list_group_name/`, params);
+}

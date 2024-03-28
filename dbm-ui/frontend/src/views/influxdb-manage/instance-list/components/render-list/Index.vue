@@ -34,22 +34,20 @@
       <span
         v-bk-tooltips="{ content: $t('请选择实例'), disabled: hasSelectedInstances }"
         class="inline-block">
-        <AuthButton
-          action-id="influxdb_reboot"
+        <BkButton
           :disabled="!hasSelectedInstances"
           @click="handleBatchRestart">
           {{ $t('重启') }}
-        </AuthButton>
+        </BkButton>
       </span>
       <span
         v-bk-tooltips="{ content: $t('请选择实例'), disabled: hasSelectedInstances }"
         class="inline-block">
-        <AuthButton
-          action-id="influxdb_replace"
+        <BkButton
           :disabled="!hasSelectedInstances"
           @click="handleShowReplace()">
           {{ $t('替换') }}
-        </AuthButton>
+        </BkButton>
       </span>
       <BkDropdown
         :disabled="!hasSelectedInstances"
@@ -262,7 +260,10 @@
           <TextOverflowLayout>
             {{
               default: () => (
-                <router-link
+                <auth-router-link
+                  action-id="influxdb_view"
+                  resource={data.id}
+                  permission={data.permission.influxdb_view}
                   to={{
                     name: 'InfluxDBInstDetails',
                     params: {
@@ -273,7 +274,7 @@
                     },
                   }}>
                   {data.instance_address}
-                </router-link>
+                </auth-router-link>
               ),
               append: () => (
                 <>

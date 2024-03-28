@@ -4,7 +4,7 @@ export default class TicketFlowDescribe {
   configs: {
     need_itsm: boolean;
     need_manual_confirm: boolean;
-  }
+  };
   creator: string;
   editable: boolean;
   flow_desc: string[];
@@ -17,15 +17,13 @@ export default class TicketFlowDescribe {
   update_at: string;
   updater: string;
 
-  constructor(payload = {} as TicketFlowDescribe){
+  constructor(payload = {} as TicketFlowDescribe) {
     this.configs = payload.configs;
     this.creator = payload.creator;
     this.editable = payload.editable;
     this.flow_desc = payload.flow_desc || [];
     this.group = payload.group;
-    this.permission = {
-      ticket_config_set: false
-    };
+    this.permission = payload.permission;
     this.ticket_type = payload.ticket_type;
     this.ticket_type_display = payload.ticket_type_display;
     this.update_at = payload.update_at;
@@ -35,5 +33,4 @@ export default class TicketFlowDescribe {
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
   }
-
 }

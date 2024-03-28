@@ -12,38 +12,39 @@
 -->
 
 <template>
-  <div class="monitor-strategy-type-content">
-    <BkSearchSelect
-      v-model="searchValue"
-      class="input-box"
-      :data="searchSelectList"
-      :placeholder="t('请选择条件搜索')"
-      unique-select
-      value-split-code="+"
-      @search="fetchHostNodes" />
-    <DbTable
-      ref="tableRef"
-      class="table-box"
-      :columns="columns"
-      :data-source="queryMonitorPolicyList"
-      releate-url-query
-      :row-class="updateRowClass"
-      @clear-search="handleClearSearch" />
-  </div>
-  <EditStrategy
-    v-model="isShowEditStrrategySideSilder"
-    :alarm-group-list="alarmGroupList"
-    :alarm-group-name-map="alarmGroupNameMap"
-    :bizs-map="bizsMap"
-    :cluster-list="clusterList"
-    :data="currentChoosedRow"
-    :db-type="activeDbType"
-    :default-notify-id="defaultNotifyId"
-    :existed-names="existedNames"
-    :module-list="moduleList"
-    :page-status="sliderPageType"
-    @cancel="handleUpdatePolicyCancel"
-    @success="handleUpdatePolicySuccess" />
+  <ApplyPermissionCatch>
+    <div class="monitor-strategy-type-content">
+      <BkSearchSelect
+        v-model="searchValue"
+        class="input-box"
+        :data="searchSelectList"
+        :placeholder="t('请选择条件搜索')"
+        unique-select
+        value-split-code="+"
+        @search="fetchHostNodes" />
+      <DbTable
+        ref="tableRef"
+        class="table-box"
+        :columns="columns"
+        :data-source="dataSource"
+        :row-class="updateRowClass"
+        @clear-search="handleClearSearch" />
+    </div>
+    <EditStrategy
+      v-model="isShowEditStrrategySideSilder"
+      :alarm-group-list="alarmGroupList"
+      :alarm-group-name-map="alarmGroupNameMap"
+      :bizs-map="bizsMap"
+      :cluster-list="clusterList"
+      :data="currentChoosedRow"
+      :db-type="activeDbType"
+      :default-notify-id="defaultNotifyId"
+      :existed-names="existedNames"
+      :module-list="moduleList"
+      :page-status="sliderPageType"
+      @cancel="handleUpdatePolicyCancel"
+      @success="handleUpdatePolicySuccess" />
+  </ApplyPermissionCatch>
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
@@ -56,14 +57,15 @@
     deletePolicy,
     disablePolicy,
     enablePolicy,
-    getAlarmGroupList,
     getClusterList,
     getDbModuleList,
     queryMonitorPolicyList,
   } from '@services/monitor';
+  import { getSimpleList } from '@services/source/monitorNoticeGroup'
 
   import { useGlobalBizs } from '@stores';
 
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue'
   import MiniTag from '@components/mini-tag/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -91,11 +93,15 @@
   const { currentBizId, bizs } = useGlobalBizs();
   const { notifyGroupId } = useRoute().query as { notifyGroupId: string };
 
+  const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) => queryMonitorPolicyList(params, {
+    permission: 'catch'
+  })
+
   const tableRef = ref();
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as MonitorPolicyModel);
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
-  const alarmGroupList = ref<SelectItem<number>[]>([]);
+  const alarmGroupList = ref<SelectItem<string>[]>([]);
   const sliderPageType = ref('edit');
   const moduleList = ref<SelectItem<string>[]>([]);
   const clusterList = ref<SelectItem<string>[]>([]);
@@ -176,13 +182,16 @@
           <TextOverflowLayout>
             {{
               default: () => (
-                <bk-button
+                <auth-button
+                  action-id="monitor_policy_edit"
+                  resource={data.id}
+                  permission={data.permission.monitor_policy_edit}
                   text
                   theme="primary"
                   disabled={!data.is_enabled}
                   onClick={() => handleOpenSlider(data, pageType)}>
                   {data.name}
-                </bk-button>
+                </auth-button>
               ),
               append: () => (
                 <>
@@ -273,7 +282,10 @@
             placement="bottom"
             onConfirm={() => handleClickConfirm(data)}
             onCancel={() => handleCancelConfirm(data)}>
-            <bk-switcher
+            <auth-switcher
+              action-id="monitor_policy_start_stop"
+              resource={data.id}
+              permission={data.permission.monitor_policy_start_stop}
               size="small"
               disabled={isInner}
               v-model={data.is_enabled}
@@ -311,18 +323,22 @@
             <auth-button
               text
               action-id="monitor_policy_edit"
+              resource={data.id}
               permission={data.permission.monitor_policy_edit}
               theme="primary"
               onClick={() => handleOpenSlider(data, 'edit')}>
               {t('编辑')}
             </auth-button>
           )}
-          <bk-button
+          <auth-button
+            action-id="monitor_policy_clone"
+            resource={data.id}
+            permission={data.permission.monitor_policy_clone}
             text
             theme="primary"
             onClick={() => handleOpenSlider(data, 'clone')}>
             {t('克隆')}
-          </bk-button>
+          </auth-button>
           <bk-button
             text
             theme="primary"
@@ -341,6 +357,7 @@
                       disabled={isInner}
                       text
                       action-id="monitor_policy_delete"
+                      results={data.permission.monitor_policy_delete}
                       permission={data.permission.monitor_policy_delete}
                       onClick={() => handleClickDelete(data)}>
                         {t('删除')}
@@ -356,19 +373,20 @@
     },
   ];
 
-  const { run: fetchAlarmGroupList } = useRequest(getAlarmGroupList, {
+  const { run: fetchAlarmGroupList } = useRequest(getSimpleList, {
     manual: true,
     onSuccess: (res) => {
-      const groupList: SelectItem<number>[] = [];
-      res.results.forEach((item) => {
+      const groupList: SelectItem<string>[] = [];
+      res.forEach((item) => {
         groupList.push({
           label: item.name,
           value: item.id,
         });
         alarmGroupNameMap[item.id] = item.name;
-        if (item.db_type === props.activeDbType) {
-          defaultNotifyId.value = item.id;
-        }
+        // todo
+        // if (item.db_type === props.activeDbType) {
+        //   defaultNotifyId.value = item.id;
+        // }
       });
       alarmGroupList.value = groupList;
       if (notifyGroupId !== undefined) {
@@ -458,9 +476,7 @@
           bk_biz_id: currentBizId,
         });
         fetchAlarmGroupList({
-          bk_biz_id: currentBizId,
-          offset: 0,
-          limit: -1,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           db_type: type,
         });
         fetchDbModuleList({

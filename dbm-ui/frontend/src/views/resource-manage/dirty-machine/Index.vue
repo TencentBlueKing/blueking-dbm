@@ -139,12 +139,15 @@
       field: 'ticket_id',
       width: 170,
       render: ({ data }: {data: DirtyMachinesModel}) => (data.ticket_id
-        ? <bk-button
+        ? <auth-button
+            action-id="ticket_view"
+            resource={data.ticket_id}
+            permission={data.permission.ticket_view}
             text
             theme="primary"
             onClick={() => handleGoTicketDetail(data)}>
             {data.ticket_id}
-          </bk-button>
+          </auth-button>
         : '--')
       ,
     },
@@ -152,12 +155,15 @@
       label: t('关联任务'),
       field: 'task_id',
       render: ({ data }: {data: DirtyMachinesModel}) => (data.task_id
-        ? <bk-button
+        ? <auth-button
+            action-id="flow_detail"
+            resource={data.task_id}
+            permission={data.permission.flow_detail}
             text
             theme="primary"
             onClick={() => handleGoTaskHistoryDetail(data)}>
             {data.task_id}
-          </bk-button>
+          </auth-button>
         : '--'),
     },
     {
@@ -170,9 +176,14 @@
       width: 150,
       flexd: 'right',
       render: ({ data }: {data: DirtyMachinesModel}) => (
-        <div>
-          <bk-button theme="primary" text onClick={() => transferHosts([data])}>{t('移入待回收')}</bk-button>
-        </div>
+          <auth-button
+            action-id="dirty_pool_manage"
+            permission={data.permission.dirty_pool_manage}
+            theme="primary"
+            text
+            onClick={() => transferHosts([data])}>
+            {t('移入待回收')}
+          </auth-button>
       ),
     },
   ];

@@ -40,20 +40,18 @@
             content: t('请选择集群'),
           }"
           class="inline-block">
-          <AuthButton
-            action-id="mysql_authorize_rules"
+          <BkButton
             class="ml-8"
             :disabled="!hasSelected"
             @click="handleShowAuthorize(state.selected)">
             {{ t('批量授权') }}
-          </AuthButton>
+          </BkButton>
         </span>
-        <AuthButton
-          action-id="mysql_excel_authorize_rules"
+        <BkButton
           class="ml-8"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
-        </AuthButton>
+        </BkButton>
         <DropdownExportExcel
           :has-selected="hasSelected"
           :ids="selectedIds"
@@ -508,13 +506,16 @@
               { t('授权') }
             </auth-button>
             {isShowDumperEntry.value && (
-              <bk-button
+              <auth-button
+                action-id="tbinlogdumper_install"
+                resource={data.id}
+                permission={data.permission.tbinlogdumper_install}
                 text
                 theme="primary"
                 class="mr-8"
                 onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
                 { t('数据订阅') }
-              </bk-button>
+              </auth-button>
             )}
             {
               data.isOnline ? (

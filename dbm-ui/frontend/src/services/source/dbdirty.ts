@@ -28,7 +28,14 @@ export function getDirtyMachines(params: { limit: number; offset: number }) {
     })
     .then((res) => ({
       ...res,
-      results: res.results.map((item) => new DirtyMachinesModel(item)),
+      results: res.results.map(
+        (item) =>
+          new DirtyMachinesModel(
+            Object.assign(item, {
+              permission: Object.assign(item.permission, res.permission),
+            }),
+          ),
+      ),
     }));
 }
 
