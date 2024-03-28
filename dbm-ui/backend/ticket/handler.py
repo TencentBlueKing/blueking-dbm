@@ -140,6 +140,7 @@ class TicketHandler:
         """初始化单据配置"""
 
         exist_ticket_types = list(TicketFlowConfig.objects.all().values_list("ticket_type", flat=True))
+        # 系统新增单据类型配置
         created_configs = [
             TicketFlowConfig(
                 creator="admin",
@@ -155,4 +156,9 @@ class TicketHandler:
             for ticket_type, flow_class in BuilderFactory.registry.items()
             if ticket_type not in exist_ticket_types
         ]
+        # 系统已删除的单据类型
+        deleted_config_ticket_types = [
+            ticket_type for ticket_type in exist_ticket_types if ticket_type not in BuilderFactory.registry.keys()
+        ]
         TicketFlowConfig.objects.bulk_create(created_configs)
+        TicketFlowConfig.objects.filter(ticket_type__in=deleted_config_ticket_types).delete()

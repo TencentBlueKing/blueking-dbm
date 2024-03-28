@@ -13,8 +13,9 @@ from typing import Dict, List
 
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster
-from backend.ticket.constants import TicketStatus, TicketType
-from backend.ticket.models import Ticket
+from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
+from backend.ticket.constants import FlowType, TicketFlowStatus, TicketStatus, TicketType
+from backend.ticket.models import Flow, Ticket
 
 
 class DumperHandler:
@@ -89,3 +90,27 @@ class DumperHandler:
                         "ticket_id": dumper_inst_id__ticket[data["id"]][1],
                     }
                 ]
+
+    @classmethod
+    def get_dumper_config_running_tasks(cls, config_id: int):
+        """
+        查询dumper配置正在运行的单据
+        @param config_id: 配置ID
+        """
+        dumper_config = DumperSubscribeConfig.objects.get(id=config_id)
+
+        # 获取正在安装dumper的单据
+        ticket_ids = Ticket.objects.filter(
+            bk_biz_id=dumper_config.bk_biz_id,
+            ticket_type=TicketType.TBINLOGDUMPER_INSTALL,
+            status=TicketStatus.RUNNING,
+            details__name=dumper_config.name,
+        ).values_list("id", flat=True)
+
+        # 获取正在安装dumper的flow流程
+        flow_obj_ids = Flow.objects.filter(
+            ticket_id__in=list(ticket_ids), flow_type=FlowType.INNER_FLOW, status=TicketFlowStatus.RUNNING
+        ).values_list("flow_obj_id", flat=True)
+
+        # 返回流程ID列表
+        return list(flow_obj_ids)

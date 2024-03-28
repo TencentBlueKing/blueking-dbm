@@ -29,6 +29,7 @@ from backend.db_dirty.serializers import (
 )
 from backend.db_meta.models import AppCache
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 from backend.iam_app.handlers.permission import Permission
@@ -52,6 +53,18 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
         param_field=lambda d: None,
         actions=[ActionEnum.DIRTY_POLL_MANAGE],
         resource_meta=None,
+    )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["task_id"],
+        data_field=lambda d: d["results"],
+        actions=[ActionEnum.FLOW_DETAIL],
+        resource_meta=ResourceEnum.TASKFLOW,
+    )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["ticket_id"],
+        data_field=lambda d: d["results"],
+        actions=[ActionEnum.TICKET_VIEW],
+        resource_meta=ResourceEnum.TICKET,
     )
     @action(
         detail=False,

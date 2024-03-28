@@ -103,7 +103,7 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     def _get_custom_permissions(self):
         if self.action in ["list", "destroy", "create", "update"]:
             return [NotifyGroupPermission(view_action=self.action)]
-        elif self.action in ["get_msg_type"]:
+        elif self.action in ["get_msg_type", "list_group_name"]:
             return []
 
         return [DBManagePermission()]
@@ -133,3 +133,16 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(operation_summary=_("查询告警组名称"), tags=[SWAGGER_TAG])
+    @action(methods=["GET"], detail=False, filter_class=MonitorGroupListFilter)
+    def list_group_name(self, request, *args, **kwargs):
+        group_name_infos = list(self.filter_queryset(self.get_queryset()).values("id", "name"))
+        return Response(group_name_infos)
+
+    @common_swagger_auto_schema(operation_summary=_("获取默认告警组名称"), tags=[SWAGGER_TAG])
+    @action(methods=["GET"], detail=False, filter_class=None, pagination_class=None)
+    def list_default_group(self, request, *args, **kwargs):
+        default_groups = list(self.get_queryset().exclude(db_type="").values("id", "name", "db_type"))
+        default_group_map = {group.pop("db_type"): group for group in default_groups}
+        return Response(default_group_map)

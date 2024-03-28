@@ -23,6 +23,9 @@ SWAGGER_TAG = "version"
 
 
 class VersionViewSet(viewsets.SystemViewSet):
+    def _get_custom_permissions(self):
+        return []
+
     @common_swagger_auto_schema(
         operation_summary=_("查询所有数据库的版本列表"),
         tags=[SWAGGER_TAG],

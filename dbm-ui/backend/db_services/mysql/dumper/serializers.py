@@ -14,10 +14,9 @@ from rest_framework import serializers
 
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.extra_process import ExtraProcessInstance
-from backend.ticket.constants import FlowType, TicketFlowStatus, TicketStatus, TicketType
-from backend.ticket.models import Flow, Ticket
 
 from . import mock_data
+from .handlers import DumperHandler
 from .models import DumperSubscribeConfig
 
 
@@ -35,6 +34,12 @@ class DumperSubscribeConfigSerializer(serializers.ModelSerializer):
         model = DumperSubscribeConfig
         fields = "__all__"
         swagger_schema_fields = {"example": mock_data.DUMPER_CONFIG_DATA}
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context["view"].action == "list":
+            return {"id": data["id"], "name": data["name"], "instance_count": data["instance_count"]}
+        return data
 
     def get_instance_count(self, obj):
         return len(obj.dumper_process_ids)
@@ -68,17 +73,7 @@ class DumperSubscribeConfigSerializer(serializers.ModelSerializer):
         if self.context["view"].action != "retrieve":
             return None
 
-        ticket_ids = Ticket.objects.filter(
-            bk_biz_id=obj.bk_biz_id,
-            ticket_type=TicketType.TBINLOGDUMPER_INSTALL,
-            status=TicketStatus.RUNNING,
-            details__name=obj.name,
-        ).values_list("id", flat=True)
-
-        flow_obj_ids = Flow.objects.filter(
-            ticket_id__in=list(ticket_ids), flow_type=FlowType.INNER_FLOW, status=TicketFlowStatus.RUNNING
-        ).values_list("flow_obj_id", flat=True)
-
+        flow_obj_ids = DumperHandler.get_dumper_config_running_tasks(obj.id)
         return list(flow_obj_ids)
 
 
@@ -91,3 +86,12 @@ class DumperInstanceConfigSerializer(serializers.ModelSerializer):
 
 class VerifyDuplicateNamsSerializer(serializers.Serializer):
     name = serializers.CharField(help_text=_("订阅配置名称"))
+
+
+class GetDumperConfigRunningTasksSerializer(serializers.Serializer):
+    dumper_config_id = serializers.IntegerField(help_text=_("dumper配置ID"))
+
+
+class GetDumperConfigRunningTasksResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": ["2020111xsa", "2020111cdcds"]}

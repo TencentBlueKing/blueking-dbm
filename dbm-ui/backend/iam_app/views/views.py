@@ -30,6 +30,9 @@ class IAMViewSet(viewsets.SystemViewSet):
     serializer_class = None
     permission_classes = ()
 
+    def _get_custom_permissions(self):
+        return []
+
     @common_swagger_auto_schema(operation_summary=_("获取系统权限中心信息"), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False)
     def get_system_info(self, request, *args, **kwargs):
