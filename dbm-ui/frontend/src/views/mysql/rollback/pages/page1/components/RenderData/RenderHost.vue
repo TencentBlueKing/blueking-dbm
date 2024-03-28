@@ -42,7 +42,14 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<Array<string>>;
+    getValue: () => Promise<{
+      rollback_host: {
+        ip: string;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        bk_biz_id: number;
+      };
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -56,6 +63,13 @@
   const isCN = computed(() => locale.value === 'zh-cn');
 
   let errorMessage = t('IP不存在');
+
+  const rollbackHost = {
+    ip: '',
+    bk_cloud_id: 0,
+    bk_host_id: 0,
+    bk_biz_id: 0,
+  };
 
   const rules = [
     {
@@ -76,6 +90,13 @@
             errorMessage = t('IP不在x业务空闲机模块', { name: bizName });
             return false;
           }
+
+          const { bk_cloud_id: bkCloudId, bk_host_id: bkHostId, ip } = data.hosts_topo_info[0];
+          rollbackHost.ip = ip;
+          rollbackHost.bk_cloud_id = bkCloudId;
+          rollbackHost.bk_host_id = bkHostId;
+          rollbackHost.bk_biz_id = currentBizId;
+
           const hostData = data.hosts_topo_info.find((item) => item.bk_cloud_id === props.cloudId);
           if (!hostData) {
             errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
@@ -103,7 +124,7 @@
   defineExpose<Exposes>({
     getValue() {
       return inputRef.value.getValue().then(() => ({
-        rollback_ip: localValue.value,
+        rollback_host: rollbackHost,
       }));
     },
   });
