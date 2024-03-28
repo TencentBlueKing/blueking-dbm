@@ -100,22 +100,26 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         # 聚合每个属性字段
         cluster_attrs: Dict[str, Union[List, Set]] = defaultdict(list)
         existing_values: Dict[str, Set[str]] = defaultdict(set)
+        # 过滤一些不合格的数据
         if data["cluster_attrs"]:
             for attr in clusters.values(*data["cluster_attrs"]):
                 for key, value in attr.items():
-                    # bk_cloud_id有等于0的情况以及region字段有空字符串情况
-                    if value != "" and value not in existing_values[key]:
+                    # 保留bk_cloud_id有等于0的情况
+                    if value is not None and value not in existing_values[key]:
                         existing_values[key].add(value)
                         cluster_attrs[key].append({"value": value, "text": value})
 
         # 如果需要查询模块信息，则需要同时提供db_module_id/db_module_name
         if "db_module_id" in cluster_attrs:
-            db_modules = DBModule.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type=data["cluster_type"])
-            db_module_names_map = {module.db_module_id: module.db_module_name for module in db_modules}
-            cluster_attrs["db_module_id"] = [
-                {"value": module, "text": db_module_names_map.get(module)}
-                for module in existing_values["db_module_id"]
-            ]
+            db_modules = DBModule.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
+            if db_modules:
+                db_module_names_map = {module.db_module_id: module.db_module_name for module in db_modules}
+                cluster_attrs["db_module_id"] = [
+                    {"value": module, "text": db_module_names_map.get(module)}
+                    for module in existing_values["db_module_id"]
+                ]
+            else:
+                cluster_attrs["db_module_id"] = []
         # 如果需要查询管控区域信息
         if "bk_cloud_id" in cluster_attrs:
             cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
@@ -126,7 +130,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
 
         # 实例的部署角色
         if "role" in data["instances_attrs"]:
-            query_filters = Q(bk_biz_id=data["bk_biz_id"], cluster_type=data["cluster_type"])
+            query_filters = Q(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
             # 获取proxy实例的查询集
             proxy_roles = ProxyInstance.objects.filter(query_filters).values_list("access_layer", flat=True)
             # 获取storage实例的查询集
