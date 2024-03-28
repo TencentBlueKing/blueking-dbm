@@ -27,7 +27,7 @@ from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
 
-class ListRetrieveResource(query.ListRetrieveResource):
+class RedisListRetrieveResource(query.ListRetrieveResource):
     """查看twemproxy-redis架构的资源"""
 
     cluster_types = [

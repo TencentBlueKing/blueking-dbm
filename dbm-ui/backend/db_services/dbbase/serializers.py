@@ -9,10 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase, ClusterType
+from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 
 
 class IsClusterDuplicatedSerializer(serializers.Serializer):
@@ -63,3 +65,38 @@ class CommonQueryClusterSerializer(serializers.Serializer):
 class CommonQueryClusterResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": []}
+
+
+class ClusterFilterSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    exact_domain = serializers.CharField(help_text=_("域名精确查询"), required=False)
+
+    # 后续有其他过滤条件可以再加
+
+    def validate(self, attrs):
+        filters = Q(bk_biz_id=attrs["bk_biz_id"])
+        filters &= Q(immute_domain=attrs["exact_domain"]) if attrs.get("exact_domain") else Q()
+        attrs["filters"] = filters
+        return attrs
+
+
+class QueryBizClusterAttrsSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    cluster_attrs = serializers.CharField(help_text=_("查询集群属性字段(逗号分隔)"), default="")
+    instances_attrs = serializers.CharField(help_text=_("查询实例属性字段(逗号分隔)"), default="")
+
+    def validate(self, attrs):
+        attrs["cluster_attrs"] = attrs["cluster_attrs"].split(",") if attrs["cluster_attrs"] else []
+        attrs["instances_attrs"] = attrs["instances_attrs"].split(",") if attrs["instances_attrs"] else []
+        if attrs["cluster_type"] == "redis":
+            attrs["cluster_type"] = RedisListRetrieveResource.cluster_types
+        else:
+            attrs["cluster_type"] = attrs["cluster_type"].split(",")
+
+        return attrs
+
+
+class QueryBizClusterAttrsResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": {"id": [1, 2, 3], "region": ["sz", "sh"]}}
