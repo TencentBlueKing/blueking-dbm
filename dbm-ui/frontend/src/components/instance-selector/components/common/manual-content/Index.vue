@@ -117,7 +117,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void
+    (e: 'change', value: Props['lastValues']): void
   }
   const props = withDefaults(defineProps<Props>(), {
     firsrColumn: undefined,
@@ -151,7 +151,7 @@
     },
   });
 
-  const handleHostChange = (values: InstanceSelectorValues<T>) => {
+  const handleHostChange = (values: Props['lastValues']) => {
     emits('change', values);
   };
 

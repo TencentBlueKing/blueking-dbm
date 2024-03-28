@@ -62,7 +62,7 @@
 
   interface Props {
     hostIds: number[],
-    bizId: number,
+    // bizId: number,
   }
 
   const props = defineProps<Props>();
@@ -153,16 +153,17 @@
       mode: 'all',
       host_list: props.hostIds.map(hostId => ({
         host_id: hostId,
-        meta: {
-          bk_biz_id: props.bizId,
-          scope_id: props.bizId,
-          scope_type: 'biz',
-        },
+        // meta: {
+        //   bk_biz_id: props.bizId,
+        //   scope_id: props.bizId,
+        //   scope_type: 'biz',
+        // },
       })),
-      scope_list: [{
-        scope_id: props.bizId,
-        scope_type: 'biz',
-      }],
+      scope_list: [],
+      // scope_list: [{
+      //   scope_id: props.bizId,
+      //   scope_type: 'biz',
+      // }],
     });
   };
 

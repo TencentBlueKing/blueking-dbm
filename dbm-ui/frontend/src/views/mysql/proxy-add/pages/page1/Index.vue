@@ -17,12 +17,12 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('给集群添加Proxy实例')" />
+        :title="t('给集群添加Proxy实例')" />
       <div class="mt16">
         <BkButton
           @click="handleShowBatchEntry">
           <DbIcon type="add" />
-          {{ $t('批量录入') }}
+          {{ t('批量录入') }}
         </BkButton>
       </div>
       <RenderData
@@ -39,7 +39,8 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :tab-list="clusterSelectorTabList"
+        :cluster-types="[ClusterTypes.TENDBHA]"
+        :selected="selectedClusters"
         @change="handelClusterChange" />
       <BatchEntry
         v-model:is-show="isShowBatchEntry"
@@ -51,16 +52,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -68,19 +69,17 @@
 </template>
 
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import BatchEntry, {
     type IValue as IBatchEntryValue,
@@ -91,12 +90,6 @@
     type IDataRow,
   } from './components/RenderData/Row.vue';
 
-  interface IClusterData {
-    id: number,
-    master_domain: string,
-    bk_cloud_id: number,
-  }
-
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
     if (list.length > 1) {
@@ -106,10 +99,9 @@
     return !firstRow.clusterData && !firstRow.proxyIp;
   };
 
-  const clusterSelectorTabList = [ClusterTypes.TENDBHA];
-
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
@@ -117,6 +109,10 @@
   const isSubmitting  = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+
+  // 集群域名是否已存在表格的映射表
+  let domainMemo: Record<string, boolean> = {};
 
   // 批量录入
   const handleShowBatchEntry = () => {
@@ -137,7 +133,8 @@
     isShowBatchSelector.value = true;
   };
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
+  const handelClusterChange = (selected: Record<string, Array<TendbhaModel>>) => {
+    selectedClusters.value = selected;
     const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
       clusterData: {
         id: clusterData.id,
@@ -152,15 +149,23 @@
     }
     window.changeConfirm = true;
   };
+
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
     dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
   };
+
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const domain = dataList[index].clusterData?.domain;
+    if (domain) {
+      delete domainMemo[domain];
+      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+    }
     dataList.splice(index, 1);
     tableData.value = dataList;
   };
@@ -195,6 +200,9 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.TENDBHA] = [];
+    domainMemo = {};
+    window.changeConfirm = false;
   };
 </script>
 

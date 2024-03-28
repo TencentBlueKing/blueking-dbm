@@ -12,24 +12,28 @@
 -->
 
 <template>
-  <div class="item">
+  <div class="task-item">
     <DbIcon
       :class="{ 'loading-flag': isRunning }"
       svg
       :type="isRunning ? 'sync-pending' : isFailed ? 'sync-failed' : 'sync-default'" />
-    <span>【{{ data.title }}】{{ $t('单据ID') }}：</span>
+    <span>【{{ data.title }}】{{ t('单据ID') }}：</span>
     <span
       class="ticket-id"
       @click="() => handleClickRelatedTicket(data.ticket_id)">#{{ data.ticket_id }}</span>
     <div
       v-if="isFailed"
       class="fail-tip">
-      &nbsp;,&nbsp;<span style="color:#EA3636">{{ $t('执行失败') }}</span>&nbsp;,&nbsp;{{ $t('待确认') }}
+      &nbsp;,&nbsp;<span style="color:#EA3636">{{ t('执行失败') }}</span>&nbsp;,&nbsp;{{ t('待确认') }}
     </div>
   </div>
 </template>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
 
-<script lang="ts">
+  import { PipelineStatus } from '@common/const';
+
   export interface Props {
     data: {
       cluster_id: number,
@@ -40,15 +44,11 @@
       title: string,
     }
   }
-</script>
-<script setup lang="ts">
-  import { useRouter } from 'vue-router';
-
-  import { PipelineStatus } from '@common/const';
 
   const props = defineProps<Props>();
 
   const router = useRouter();
+  const { t } = useI18n();
 
   const isRunning = computed(() => props.data.status === PipelineStatus.RUNNING);
   const isFailed = computed(() => props.data.status === PipelineStatus.FAILED);
@@ -65,7 +65,7 @@
 
 </script>
 <style lang="less" scoped>
-  .item {
+  .task-item {
     display: flex;
     width: 100%;
     height: 20px;

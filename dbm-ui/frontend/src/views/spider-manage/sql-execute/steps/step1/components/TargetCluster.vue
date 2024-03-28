@@ -68,7 +68,7 @@
   import { ClusterTypes } from '@common/const';
 
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
-  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   interface Props {
     modelValue: Array<number>

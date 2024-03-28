@@ -91,10 +91,6 @@
     children: Array<TopoTreeData>;
   }
 
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void
-  }
-
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
   type TopoConfigType = Required<PanelListType[number]>['topoConfig'];
 
@@ -114,6 +110,10 @@
     statusFilter?: TableConfigType['statusFilter'],
     // eslint-disable-next-line vue/no-unused-properties
     countFunc?: TopoConfigType['countFunc'],
+  }
+
+  interface Emits {
+    (e: 'change', value: Props['lastValues']): void
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -174,7 +174,7 @@
     }
   };
 
-  const handleHostChange = (values: InstanceSelectorValues<T>) => {
+  const handleHostChange = (values: Props['lastValues']) => {
     emits('change', values);
   };
 

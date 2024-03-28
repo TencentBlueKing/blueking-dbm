@@ -30,12 +30,12 @@
         <div
           v-for="clusterItem in tabSelected"
           :key="clusterItem.id"
-          class="result__item">
+          class="result-item">
           <span
             v-overflow-tips
             class="text-overflow">{{ clusterItem[displayKey] }}</span>
           <i
-            class="db-icon-close result__remove"
+            class="db-icon-close result-remove"
             @click="handleDeleteItem(clusterItem, false)" />
         </div>
       </CollapseMini>
@@ -82,7 +82,7 @@
 <style lang="less" scoped>
   @import "@styles/mixins.less";
 
-  .result__item {
+  .result-item {
     padding: 0 12px;
     margin-bottom: 2px;
     line-height: 32px;
@@ -91,7 +91,7 @@
     justify-content: space-between;
     .flex-center();
 
-    .result__remove {
+    .result-remove {
       display: none;
       font-size: @font-size-large;
       font-weight: bold;
@@ -104,7 +104,7 @@
     }
 
     &:hover {
-      .result__remove {
+      .result-remove {
         display: block;
       }
     }

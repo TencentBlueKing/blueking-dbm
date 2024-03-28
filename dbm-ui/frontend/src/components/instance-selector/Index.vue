@@ -86,7 +86,7 @@
     </template>
   </BkDialog>
 </template>
-<script lang="ts" generic="T extends IValue">
+<script lang="ts">
   import { t } from '@locales/index';
   export default { name: 'InstanceSelector' };
 
@@ -104,7 +104,7 @@
 
   export type InstanceSelectorValues<T> = Record<string, T[]>
 
-  export const activePanelInjectionKey = Symbol('activePanel');
+  export const activePanelInjectionKey: InjectionKey<Ref<string>> = Symbol('activePanel');
 
   const getSettings = (role?: string) => ({
     fields: [
@@ -162,14 +162,12 @@
   import _ from 'lodash';
 
   import {
-    listClusterHostsMasterFailoverProxy,
-    listClustersMasterFailoverProxy,
-  } from '@services/redis/toolbox';
-  import {
     checkMysqlInstances,
     checkRedisInstances,
   } from '@services/source/instances';
-  import { queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
+  import { queryClusters as getMysqlClusterList } from '@services/source/mysqlCluster';
+  import { getRedisClusterList } from '@services/source/redis';
+  import { getRedisHostList } from '@services/source/redisToolbox';
   import { getSpiderInstanceList } from '@services/source/spider';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
   import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
@@ -228,8 +226,8 @@
 
   type PanelListItem = PanelListType[number];
 
-  type RedisModel = ServiceReturnType<typeof listClustersMasterFailoverProxy>[number]
-  type RedisHostModel = ServiceReturnType<typeof listClusterHostsMasterFailoverProxy>['results'][number]
+  type RedisModel = ServiceReturnType<typeof getRedisClusterList>[number]
+  type RedisHostModel = ServiceReturnType<typeof getRedisHostList>['results'][number]
 
   interface Props {
     clusterTypes: ClusterTypes[],
@@ -238,7 +236,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void
+    (e: 'change', value: Props['selected']): void
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -258,11 +256,11 @@
         id: 'redis',
         name: t('主库主机'),
         topoConfig: {
-          getTopoList: listClustersMasterFailoverProxy,
+          getTopoList: getRedisClusterList,
           countFunc: (item: RedisModel) => item.redisMasterCount,
         },
         tableConfig: {
-          getTableList: listClusterHostsMasterFailoverProxy,
+          getTableList: getRedisHostList,
           firsrColumn: {
             label: 'master Ip',
             role: 'redis_master',
@@ -282,7 +280,7 @@
         id: 'manualInput',
         name: t('手动输入'),
         tableConfig: {
-          getTableList: listClusterHostsMasterFailoverProxy,
+          getTableList: getRedisHostList,
           firsrColumn: {
             label: 'master Ip',
             role: 'redis_master',
@@ -310,7 +308,7 @@
         id: 'tendbcluster',
         name: t('主库主机'),
         topoConfig: {
-          getTopoList: queryMysqlCluster,
+          getTopoList: getMysqlClusterList,
         },
         tableConfig: {
           getTableList: getSpiderInstanceList,
@@ -347,7 +345,7 @@
         id: 'tendbsingle',
         name: t('单节点'),
         topoConfig: {
-          getTopoList: queryMysqlCluster,
+          getTopoList: getMysqlClusterList,
         },
         tableConfig: {
           getTableList: getTendbsingleInstanceList,
@@ -384,7 +382,7 @@
         id: 'tendbha',
         name: t('主从'),
         topoConfig: {
-          getTopoList: queryMysqlCluster,
+          getTopoList: getMysqlClusterList,
         },
         tableConfig: {
           getTableList: getTendbhaInstanceList,
@@ -418,35 +416,10 @@
     ],
   };
 
-  const diffComposeObjs = (objA: Record<string, any>, objB: Record<string, any>) => {
-    const obj: Record<string, any> = {};
-    Object.keys(objA).forEach((key) => {
-      if (Object.prototype.toString.call(objB[key]) === '[object Object]') {
-        obj[key] = diffComposeObjs(_.cloneDeep(objA[key]), _.cloneDeep(objB[key]));
-        return;
-      }
-      if (objB[key] !== undefined) {
-        obj[key] = objB[key];
-        // eslint-disable-next-line no-param-reassign
-        delete objB[key];
-      } else {
-        obj[key] = objA[key];
-      }
-    });
-    if (Object.keys(objB).length > 0) {
-      Object.keys(objB).forEach((key) => {
-        if (obj[key] === undefined) {
-          obj[key] = objB[key];
-        }
-      });
-    }
-    return obj;
-  };
-
   const panelTabActive = ref<string>('');
   const activePanelObj = ref<PanelListItem>();
 
-  const lastValues = reactive<InstanceSelectorValues<T>>({});
+  const lastValues = reactive<NonNullable<Props['selected']>>({});
 
   provide(activePanelInjectionKey, panelTabActive);
 
@@ -457,10 +430,10 @@
         if (configArr) {
           configArr.forEach((config, index) => {
             let objItem = {};
-            const baseObj = tabListMap[type][index] as Record<string, any>;
+            const baseObj = tabListMap[type][index];
             if (baseObj) {
               objItem = {
-                ...diffComposeObjs(_.cloneDeep(baseObj), _.cloneDeep(config)),
+                ..._.merge(baseObj, config),
               };
             } else {
               objItem = baseObj;
@@ -475,8 +448,9 @@
 
   const previewTitleMap = computed(() => {
     const titleMap = Object.keys(clusterTabListMap.value).reduce((results, key) => {
-      // eslint-disable-next-line no-param-reassign
-      results[key] = clusterTabListMap.value[key][0].previewConfig?.title ?? '';
+      Object.assign(results, {
+        [key]: clusterTabListMap.value[key][0].previewConfig?.title ?? '',
+      });
       return results;
     }, {} as Record<string, string>);
     titleMap.manualInput = t('手动输入');
@@ -508,7 +482,7 @@
     return setting;
   });
 
-  const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
+  const isEmpty = computed(() => Object.values(lastValues).every(values => values.length < 1));
   const renderCom = computed(() => activePanelObj.value?.content);
 
   watch(() => props.clusterTypes, (types) => {
@@ -532,7 +506,7 @@
     activePanelObj.value = obj;
   };
 
-  const handleChange = (values: InstanceSelectorValues<T>) => {
+  const handleChange = (values: Props['selected']) => {
     Object.assign(lastValues, values);
   };
 

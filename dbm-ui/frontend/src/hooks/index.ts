@@ -23,6 +23,7 @@ export * from './useFullscreenStyle';
 export * from './useInfo';
 export * from './useInfoWithIcon';
 export * from './useIsWidthOverflow';
+export * from './useLinkQueryColumnSerach';
 export * from './useListeners';
 export * from './useLocalPagination';
 export * from './useLocation';

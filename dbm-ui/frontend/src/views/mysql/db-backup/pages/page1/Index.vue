@@ -64,7 +64,8 @@
       </DbForm>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :tab-list="clusterSelectorTabList"
+        :cluster-types="[ClusterTypes.TENDBHA]"
+        :selected="selectedClusters"
         @change="handelClusterChange" />
     </div>
     <template #action>
@@ -93,14 +94,14 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import SpiderModel from '@services/model/spider/spider';
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -117,8 +118,6 @@
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
 
-  const clusterSelectorTabList = [ClusterTypes.TENDBHA];
-
   const formRef = ref();
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
@@ -126,7 +125,7 @@
   const formData = reactive(createDefaultData());
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -146,12 +145,8 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: {
-    [key: string]: Array<{
-      id: number,
-      master_domain: string
-    }>
-  }) => {
+  const handelClusterChange = (selected: Record<string, Array<TendbhaModel>>) => {
+    selectedClusters.value = selected;
     const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
       clusterData: {
         id: clusterData.id,

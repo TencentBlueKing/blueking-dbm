@@ -26,12 +26,12 @@
         :ids="selectedIds"
         type="es" />
       <DbSearchSelect
-        v-model="searchValues"
+        v-model="searchValue"
         class="mb16"
         :data="serachData"
-        :placeholder="t('输入集群名_IP_访问入口关键字')"
-        unique-select
-        @change="handleSearch" />
+        :get-menu-list="getMenuList"
+        :placeholder="t('请输入或选择条件搜索')"
+        unique-select />
     </div>
     <div
       class="table-wrapper"
@@ -45,7 +45,9 @@
         :row-class="getRowClass"
         selectable
         :settings="tableSetting"
-        @clear-search="handleClearSearch"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
+        @column-sort="columnSortChange"
         @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
@@ -106,9 +108,11 @@
     getEsList,
   } from '@services/source/es';
   import { createTicket  } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
 
   import {
     useCopy,
+    useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
     useTicketMessage,
@@ -118,7 +122,10 @@
     useGlobalBizs,
   } from '@stores';
 
-  import { UserPersonalSettings } from '@common/const';
+  import {
+    ClusterTypes,
+    UserPersonalSettings,
+  } from '@common/const';
 
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
@@ -133,11 +140,17 @@
   import ClusterShrink from '@views/es-manage/common/shrink/Index.vue';
 
   import {
+    getMenuListSearch,
     getSearchSelectorParams,
     isRecentDays,
   } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
+
+  import type {
+    SearchSelectData,
+    SearchSelectItem,
+  } from '@/types/bkui-vue';
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -151,26 +164,93 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
 
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+  } = useLinkQueryColumnSerach(ClusterTypes.ES, [
+    'bk_cloud_id',
+    'db_module_id',
+    'major_version',
+    'region',
+    'time_zone',
+  ], () => fetchTableData());
+
   const copy = useCopy();
 
-  const serachData = [
+  const serachData = computed(() => [
     {
       name: 'ID',
       id: 'id',
     },
     {
-      name: t('集群名'),
+      name: t('集群名称'),
       id: 'name',
+      logical: ',',
     },
     {
       name: t('访问入口'),
       id: 'domain',
+      logical: ',',
     },
     {
       name: 'IP',
       id: 'ip',
+      logical: ',',
     },
-  ];
+    {
+      name: t('实例'),
+      id: 'instance',
+      logical: ',',
+    },
+    {
+      name: t('管控区域'),
+      id: 'bk_cloud_id',
+      multiple: true,
+      children: searchAttrs.value.bk_cloud_id,
+    },
+    {
+      name: t('创建人'),
+      id: 'creator',
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'normal',
+          name: t('正常'),
+        },
+        {
+          id: 'abnormal',
+          name: t('异常'),
+        },
+      ],
+    },
+    {
+      name: t('版本'),
+      id: 'major_version',
+      multiple: true,
+      children: searchAttrs.value.major_version,
+    },
+    {
+      name: t('地域'),
+      id: 'region',
+      multiple: true,
+      children: searchAttrs.value.region,
+    },
+    {
+      name: t('时区'),
+      id: 'time_zone',
+      multiple: true,
+      children: searchAttrs.value.time_zone,
+    },
+  ] as SearchSelectData);
 
   const dataSource = getEsList;
   const tableRef = ref();
@@ -179,7 +259,6 @@
   const isShowPassword = ref(false);
   const isInit = ref(true);
   const showEditEntryConfig = ref(false);
-  const searchValues = ref([]);
 
   const selected = shallowRef<EsModel[]>([]);
   const operationData = shallowRef<EsModel>();
@@ -305,22 +384,43 @@
     {
       label: t('管控区域'),
       field: 'bk_cloud_name',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+      },
     },
     {
       label: t('状态'),
       field: 'status',
       minWidth: 100,
+      filter: {
+        list: [
+          {
+            value: 'normal',
+            text: t('正常'),
+          },
+          {
+            value: 'abnormal',
+            text: t('异常'),
+          },
+        ],
+      },
       render: ({ data }: {data: EsModel}) => <RenderClusterStatus data={data.status} />,
     },
     {
       label: t('版本'),
       field: 'major_version',
       minWidth: 100,
+      filter: {
+        list: columnAttrs.value.major_version,
+      },
     },
     {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
+      filter: {
+        list: columnAttrs.value.region,
+      },
       render: ({ data }: {data: EsModel}) => <span>{data?.region || '--'}</span>,
     },
     {
@@ -380,15 +480,25 @@
       ),
     },
     {
+      label: t('创建人'),
+      field: 'creator',
+      width: 140,
+      render: ({ data }: {data: EsModel}) => <span>{data.creator || '--'}</span>,
+    },
+    {
       label: t('部署时间'),
       field: 'create_at',
       width: 160,
+      sort: true,
       render: ({ data }: {data: EsModel}) => <span>{data.createAtDisplay}</span>,
     },
     {
       label: t('时区'),
       field: 'cluster_time_zone',
       width: 100,
+      filter: {
+        list: columnAttrs.value.time_zone,
+      },
     },
     {
       label: t('操作'),
@@ -517,6 +627,7 @@
       'es_datanode_cold',
       'cluster_time_zone',
     ],
+    trigger: 'manual' as const,
   };
 
   const {
@@ -524,14 +635,43 @@
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.ES_TABLE_SETTINGS, defaultSettings);
 
+  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+    if (item?.id !== 'creator' && keyword) {
+      return getMenuListSearch(item, keyword, serachData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map(value => value.id);
+      return serachData.value.filter(item => !selected.includes(item.id));
+    }
+
+    // 远程加载执行人
+    if (item.id === 'creator') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then(res => res.results.map(item => ({
+        id: item.username,
+        name: item.username,
+      })));
+    }
+
+    // 不需要远层加载
+    return serachData.value.find(set => set.id === item.id)?.children || [];
+  };
+
   const handleOpenEntryConfig = (row: EsModel) => {
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
   };
 
   const fetchTableData = (loading?:boolean) => {
-    const searchParams = getSearchSelectorParams(searchValues.value);
-    tableRef.value?.fetchData(searchParams, {}, loading);
+    const searchParams = getSearchSelectorParams(searchValue.value);
+    tableRef.value?.fetchData(searchParams, { ...sortValue }, loading);
     isInit.value = false;
   };
 
@@ -554,15 +694,6 @@
         from: route.name as string,
       },
     });
-  };
-  // 搜索
-  const handleSearch = () => {
-    fetchTableData();
-  };
-  // 清空搜索
-  const handleClearSearch = () => {
-    searchValues.value = [];
-    fetchTableData();
   };
 
   /**
@@ -717,7 +848,7 @@
 
       .bk-search-select {
         flex: 1;
-        max-width: 320px;
+        max-width: 500px;
         min-width: 320px;
         margin-left: auto;
       }
