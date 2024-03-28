@@ -98,11 +98,12 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40780,
+      "config_id": 97483,
       "user_groups": [],
+      "user_type": "main",
       "signal": [
-        "abnormal",
-        "no_data"
+        "no_data",
+        "abnormal"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -250,13 +251,15 @@
     "path": "",
     "priority": 0,
     "priority_group_key": "6d660153fc4e76bb",
+    "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,
   "monitor_indicator": "MAX(elasticsearch_thread_pool_queue_count)",
-  "version": 16,
+  "version": 19,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [],
+  "export_at": "2024-03-28T21:19:53+08:00"
 }
