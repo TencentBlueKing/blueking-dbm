@@ -13,9 +13,10 @@
 
 <template>
   <SerachBar
-    v-model="searchSelectValue"
+    v-model="searchValue"
     :cluster-type="activeTab"
     :placeholder="searchPlaceholder"
+    :search-attrs="searchAttrs"
     :search-select-list="searchSelectList" />
   <BkLoading
     :loading="isLoading"
@@ -25,11 +26,12 @@
       :columns="generatedColumns"
       :data="tableData"
       :is-anomalies="isAnomalies"
-      :is-searching="searchSelectValue.length > 0"
+      :is-searching="searchValue.length > 0"
       :max-height="528"
       :pagination="pagination.count < 10 ? false: pagination"
       remote-pagination
       row-style="cursor: pointer;"
+      @column-filter="columnFilterChange"
       @page-limit-change="handleTableLimitChange"
       @page-value-change="handleTablePageChange"
       @refresh="fetchResources"
@@ -39,6 +41,10 @@
 <script setup lang="tsx">
   import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { useLinkQueryColumnSerach } from '@hooks';
+
+  import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -51,7 +57,7 @@
   import { useClusterData } from './useClusterData';
 
   interface Props {
-    activeTab: string,
+    activeTab: ClusterTypes,
     selected: Record<string, any[]>,
     // eslint-disable-next-line vue/no-unused-properties
     getResourceList: TabItem['getResourceList'],
@@ -76,7 +82,30 @@
 
   const { t } = useI18n();
 
-  const columns = [
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    columnFilterChange,
+  } = useLinkQueryColumnSerach(ClusterTypes.TENDBSINGLE, [
+    'bk_cloud_id',
+    'db_module_id',
+    'major_version',
+    'region',
+    'time_zone',
+  ]);
+
+  const {
+    isLoading,
+    pagination,
+    isAnomalies,
+    data: tableData,
+    fetchResources,
+    handleChangePage,
+    handeChangeLimit,
+  } = useClusterData<ResourceItem>(searchValue);
+
+  const columns = computed(() => [
     {
       width: 60,
       label: () => (
@@ -86,6 +115,7 @@
           indeterminate={isIndeterminate.value}
           disabled={mainSelectDisable.value}
           label={true}
+          onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelecteAll}
         />
       ),
@@ -105,13 +135,14 @@
             style="vertical-align: middle;"
             model-value={Boolean(selectedDomainMap.value[data.id])}
             label={true}
+            onClick={(e: Event) => e.stopPropagation()}
             onChange={(value: boolean) => handleSelecteRow(data, value)}
           />
         );
       },
     },
     {
-      label: t('集群'),
+      label: t('访问入口'),
       field: 'cluster_name',
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (
@@ -131,6 +162,18 @@
       label: t('状态'),
       field: 'status',
       width: 100,
+      filter: {
+        list: [
+          {
+            value: 'normal',
+            text: t('正常'),
+          },
+          {
+            value: 'abnormal',
+            text: t('异常'),
+          },
+        ],
+      },
       render: ({ data }: { data: ResourceItem }) => {
         const isNormal = props.columnStatusFilter ? props.columnStatusFilter(data) : data.status === 'normal';
         const info = isNormal ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
@@ -138,40 +181,37 @@
       },
     },
     {
-      label: t('集群别名'),
+      label: t('集群名称'),
       field: 'cluster_name',
       showOverflowTooltip: true,
     },
     {
       label: t('所属模块'),
-      field: 'db_module_name',
+      field: 'db_module_id',
       width: 130,
       showOverflowTooltip: true,
+      filter: {
+        list: columnAttrs.value.db_module_id,
+      },
+      render: ({ data }: { data: ResourceItem }) => <span>{data.db_module_name || '--'}</span>,
     },
     {
       label: t('管控区域'),
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
       width: 140,
       showOverflowTooltip: true,
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+      },
+      render: ({ data }: { data: ResourceItem }) => <span>{data.bk_cloud_name}</span>,
     },
-  ];
+  ]);
 
   let isSelectedAllReal = false;
 
   const activeTab = ref(props.activeTab);
   const selectedMap = shallowRef<Record<string, Record<string, ResourceItem>>>({});
   const isSelectedAll = ref(false);
-
-  const {
-    isLoading,
-    pagination,
-    isAnomalies,
-    data: tableData,
-    searchSelectValue,
-    fetchResources,
-    handleChangePage,
-    handeChangeLimit,
-  } = useClusterData<ResourceItem>();
 
   // 选中域名列表
   const selectedDomainMap = computed(() => Object.values(selectedMap.value)
@@ -183,29 +223,28 @@
   const isIndeterminate = computed(() => !isSelectedAll.value
     && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value[activeTab.value]).length > 0);
 
-  const mainSelectDisable = computed(() => (props.disabledRowConfig
-    // eslint-disable-next-line max-len
-    ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
+  // eslint-disable-next-line max-len
+  const mainSelectDisable = computed(() => (props.disabledRowConfig ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
 
   const generatedColumns = computed(() => {
     if (props.customColums) {
-      return [columns[0], ...props.customColums];
+      return [columns.value[0], ...props.customColums];
     }
-    return columns;
+    return columns.value;
   });
 
-  watch(() => [props.activeTab, props.selected] as [string, Record<string, any[]>], ([tabKey, selected]) => {
-    if (tabKey) {
-      activeTab.value = tabKey;
-      if (!selected[tabKey] || !props.selected) {
+  watch(() => [props.activeTab, props.selected] as [string, Record<string, any[]>], () => {
+    if (props.activeTab) {
+      activeTab.value = props.activeTab;
+      if (!props.selected || !props.selected[props.activeTab]) {
         return;
       }
-      const tabSelectMap = selected[tabKey].reduce((selectResult, selectItem) => ({
-        ...selectResult,
+      // eslint-disable-next-line max-len
+      const tabSelectMap = props.selected[props.activeTab].reduce((selectResult, selectItem) => Object.assign({}, selectResult, {
         [selectItem.id]: selectItem,
       }), {} as Record<string, ResourceItem>);
       selectedMap.value = {
-        [tabKey]: tabSelectMap,
+        [props.activeTab]: tabSelectMap,
       };
     }
   }, {
@@ -215,7 +254,7 @@
 
   watch(() => activeTab.value, (tab) => {
     if (tab) {
-      searchSelectValue.value = [];
+      searchValue.value = [];
       handleTablePageChange(1);
     }
   });

@@ -134,7 +134,8 @@
     @change="handleBatchInput" />
   <ClusterSelector
     v-model:is-show="isShowBatchSelector"
-    :tab-list="['tendbha']"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    :selected="selectedClusters"
     @change="handleBatchSelectorChange" />
   <div
     v-show="isShowInputTips"
@@ -155,11 +156,11 @@
   import type { Instance, SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { checkMysqlInstances } from '@services/source/instances';
   import { getClusterInfoByDomains } from '@services/source/mysqlCluster';
   import { getClusterDatabaseNameList } from '@services/source/remoteService';
   import { createTicket } from '@services/source/ticket';
-  import type { ResourceItem } from '@services/types';
   import type { InstanceInfos } from '@services/types/clusters';
 
   import {
@@ -168,12 +169,11 @@
     useTimeZoneFormat,
   } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
   import { ipPort } from '@common/regex';
   import { dbTippy } from '@common/tippy';
 
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
-  import type { ClusterSelectorResult } from '@components/cluster-selector/types';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
@@ -187,7 +187,7 @@
   import type { TableProps } from '@/types/bkui-vue';
 
   type FormItemInstance = InstanceType<typeof FormItem>;
-  type ResourceItemInstInfo = ResourceItem['masters'][number]
+  type ResourceItemInstInfo = TendbhaModel['masters'][number]
 
   interface TableItem {
     cluster_domain: string,
@@ -233,7 +233,10 @@
   const isSubmitting = ref(false);
   const popRef = ref<HTMLDivElement>();
   const isShowInputTips = ref(false);
-  const clusterInfoMap: Map<string, ResourceItem> = reactive(new Map());
+
+  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+
+  const clusterInfoMap: Map<string, TendbhaModel> = reactive(new Map());
   const clusterDBNameMap: Map<number, Array<string>> = reactive(new Map());
   const instanceMap: Map<string, InstanceInfos> = reactive(new Map());
   const formdata = reactive({
@@ -464,6 +467,9 @@
     },
   ];
 
+  // 集群域名是否已存在表格的映射表
+  let domainMemo: Record<string, boolean> = {};
+
   const tagInputPasteFn = (value: string) => value.split('\n').map(item => ({ id: item }));
 
   // 设置 target|source form-item
@@ -487,6 +493,10 @@
       instance: '',
       port: 0,
       status: 'running',
+      phase: '',
+      spec_config: {
+        id: 0,
+      },
     };
   }
 
@@ -862,23 +872,22 @@
   /**
    * 集群选择器批量选择
    */
-  function handleBatchSelectorChange(selected: ClusterSelectorResult) {
+  function handleBatchSelectorChange(selected: Record<string, Array<TendbhaModel>>) {
+    selectedClusters.value = selected;
     const list: Array<TableItem> = [];
-    for (const key of Object.keys(selected)) {
-      const formatList = selected[key].map((item) => {
-        clusterInfoMap.set(item.master_domain, item);
-        const masterInfo = item.masters[0];
-        return {
-          ...getTableItem(),
-          cluster_domain: item.master_domain,
-          cluster_id: item.id,
-          master: masterInfo ? `${masterInfo.ip}:${masterInfo.port}` : '',
-          masterInstance: masterInfo || createInstanceData(),
-          slaveList: item.slaves || [],
-        };
-      });
-      list.push(...formatList);
-    }
+    const formatList = selected[ClusterTypes.TENDBHA].map((item) => {
+      clusterInfoMap.set(item.master_domain, item);
+      const masterInfo = item.masters[0];
+      return {
+        ...getTableItem(),
+        cluster_domain: item.master_domain,
+        cluster_id: item.id,
+        master: masterInfo ? `${masterInfo.ip}:${masterInfo.port}` : '',
+        masterInstance: masterInfo || createInstanceData(),
+        slaveList: item.slaves || [],
+      };
+    });
+    list.push(...formatList);
 
     clearEmptyTableData();
     tableData.value.push(...list);
@@ -933,6 +942,13 @@
   }
 
   function handleRemoveItem(index: number) {
+    const dataList = [...tableData.value];
+    const domain = dataList[index].cluster_domain;
+    if (domain) {
+      delete domainMemo[domain];
+      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+    }
     tableData.value.splice(index, 1);
   }
 
@@ -945,9 +961,9 @@
         formdata.data_repair.is_repair = true;
         formdata.timing = getCurrentDate();
         formdata.runtime_hour = 48;
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
+        selectedClusters.value[ClusterTypes.TENDBHA] = [];
+        domainMemo = {};
+        window.changeConfirm = false;
         return true;
       },
     });

@@ -30,11 +30,11 @@
       :min="300"
       placement="right">
       <template #aside>
-        <div class="cluster-selector__result">
-          <div class="result__title">
+        <div class="cluster-selector-result">
+          <div class="result-title">
             <span>{{ t('结果预览') }}</span>
-            <BkDropdown class="result__dropdown">
-              <i class="db-icon-more result__trigger" />
+            <BkDropdown class="result-dropdown">
+              <i class="db-icon-more result-trigger" />
               <template #content>
                 <BkDropdownMenu>
                   <BkDropdownItem @click="handleClearSelected">
@@ -57,82 +57,79 @@
         </div>
       </template>
       <template #main>
-        <div class="cluster-selector__main">
-          <div
-            ref="clusterTabsRef"
-            class="cluster-selector__tabs">
-            <BkPopover
-              v-for="tabItem of tabList"
-              :key="tabItem.id"
-              ref="tabTipsRef"
-              :disabled="!showSwitchTabTips"
-              theme="light">
-              <div
-                class="tabs__item"
-                :class="[{ 'tabs__item--active': tabItem.id === activeTab }]"
-                @click.stop="handleChangeTab(tabItem)">
-                {{ tabItem.name }}
+        <div
+          ref="clusterTabsRef"
+          class="cluster-selector-tabs">
+          <BkPopover
+            v-for="tabItem of tabList"
+            :key="tabItem.id"
+            ref="tabTipsRef"
+            disabled
+            theme="light">
+            <div
+              class="tabs-item"
+              :class="[{ 'tabs-item-active': tabItem.id === activeTab }]"
+              @click.stop="handleChangeTab(tabItem)">
+              {{ tabItem.name }}
+            </div>
+            <template
+              #content>
+              <div class="tab-tips">
+                <h4>{{ t('切换类型说明') }}</h4>
+                <p>{{ t('切换后如果重新选择_选择结果将会覆盖原来选择的内容') }}</p>
+                <BkButton
+                  size="small"
+                  theme="primary"
+                  @click="handleCloseTabTips">
+                  {{ t('我知道了') }}
+                </BkButton>
               </div>
-              <template
-                #content>
-                <div class="tab-tips">
-                  <h4>{{ t('切换类型说明') }}</h4>
-                  <p>{{ t('切换后如果重新选择_选择结果将会覆盖原来选择的内容') }}</p>
-                  <BkButton
-                    size="small"
-                    theme="primary"
-                    @click="handleCloseTabTips">
-                    {{ t('我知道了') }}
-                  </BkButton>
-                </div>
-              </template>
-            </BkPopover>
-          </div>
-          <div class="cluster-selector__content">
-            <Component
-              :is="activePanelObj.tableContent"
-              :active-tab="activeTab"
-              :column-status-filter="activePanelObj.columnStatusFilter"
-              :custom-colums="activePanelObj.customColums"
-              :disabled-row-config="activePanelObj.disabledRowConfig"
-              :get-resource-list="activePanelObj.getResourceList"
-              :search-placeholder="activePanelObj.searchPlaceholder"
-              :search-select-list="activePanelObj.searchSelectList"
-              :selected="selectedArr"
-              @change="handleSelectTable" />
-          </div>
+            </template>
+          </BkPopover>
+        </div>
+        <div class="cluster-selector-content">
+          <Component
+            :is="activePanelObj.tableContent"
+            :active-tab="activeTab"
+            :column-status-filter="activePanelObj.columnStatusFilter"
+            :custom-colums="activePanelObj.customColums"
+            :disabled-row-config="activePanelObj.disabledRowConfig"
+            :get-resource-list="activePanelObj.getResourceList"
+            :search-placeholder="activePanelObj.searchPlaceholder"
+            :search-select-list="activePanelObj.searchSelectList"
+            :selected="selectedArr"
+            @change="handleSelectTable" />
         </div>
       </template>
     </BkResizeLayout>
     <template #footer>
       <BkButton
-        class="cluster-selector__button mr-8"
+        class="cluster-selector-button mr-8"
         :disabled="isEmpty"
         theme="primary"
         @click="handleConfirm">
         {{ t('确定') }}
       </BkButton>
       <BkButton
-        class="cluster-selector__button"
+        class="cluster-selector-button"
         @click="handleClose">
         {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>
 </template>
-<script setup lang="tsx" generic="T extends RedisModel | TendbhaModel | SpiderModel">
+<script setup lang="tsx" generic="T extends RedisModel | TendbhaModel | SpiderModel | TendbsingleModel">
   import _ from 'lodash';
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import RedisModel from '@services/model/redis/redis';
   import SpiderModel from '@services/model/spider/spider';
   import { getRedisList } from '@services/source/redis';
   import { getSpiderList } from '@services/source/spider';
   import { getTendbhaList } from '@services/source/tendbha';
+  import { getTendbsingleList } from '@services/source/tendbsingle';
   import type { ListBase } from '@services/types';
 
   import { useCopy, useSelectorDialogWidth } from '@hooks';
@@ -141,12 +138,11 @@
 
   import { messageWarn } from '@utils';
 
-  import { t } from '@locales/index';
-
   import ResultPreview from './components/common/result-preview/Index.vue';
   import type { SearchSelectList } from './components/common/SearchBar.vue';
   import RedisTable from './components/redis/Index.vue';
   import SpiderTable from './components/tendb-cluster/Index.vue';
+  import TendbSingleTable from './components/tendb-single/Index.vue';
   import TendbhaTable from './components/tendbha/Index.vue';
 
   export type TabListType = {
@@ -176,11 +172,7 @@
 
   export type TabItem = TabListType[number];
 
-  type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>
-
-  const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
+  export type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>;
 
   interface Props {
     selected: Record<string, T[]>,
@@ -192,9 +184,17 @@
     (e: 'change', value: Props['selected']): void,
   }
 
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
+
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
+
+  const copy = useCopy();
+  const { dialogWidth } = useSelectorDialogWidth();
+  const { t } = useI18n();
 
   const tabListMap: Record<string, TabItem> = {
     [ClusterTypes.TENDBCLUSTER]: {
@@ -210,34 +210,30 @@
       getResourceList: getRedisList,
       tableContent: RedisTable,
       resultContent: ResultPreview,
-      searchSelectList: [{
-        name: t('集群'),
-        id: 'domain',
-      }, {
-        name: t('集群别名'),
-        id: 'name',
-      }],
-      searchPlaceholder: t('集群_集群别名'),
     },
     [ClusterTypes.TENDBHA]: {
       id: ClusterTypes.TENDBHA,
-      name: t('集群选择'),
+      name: t('主从集群'),
       getResourceList: getTendbhaList,
       tableContent: TendbhaTable,
       resultContent: ResultPreview,
     },
+    [ClusterTypes.TENDBSINGLE]: {
+      id: ClusterTypes.TENDBSINGLE,
+      name: t('单节点'),
+      getResourceList: getTendbsingleList,
+      tableContent: TendbSingleTable,
+      resultContent: ResultPreview,
+    },
   };
 
-  const copy = useCopy();
-  const { dialogWidth } = useSelectorDialogWidth();
-
   const tabTipsRef = ref();
-  const activeTab = ref();
+  const activeTab = ref<ClusterTypes>(ClusterTypes.TENDBCLUSTER);
   const activePanelObj = shallowRef(tabListMap[ClusterTypes.TENDBCLUSTER]);
   const showTabTips = ref(false);
   const isSelectedAll = ref(false);
 
-  const selectedMap = shallowRef<Record<string, Record<string, any>>>({});
+  const selectedMap = ref<Record<string, Record<string, any>>>({});
 
   const clusterTabListMap = computed<Record<string, TabItem>>(() => {
     if (props.tabListConfig) {
@@ -253,14 +249,14 @@
     return tabListMap;
   });
 
-  // eslint-disable-next-line max-len
-  const tabList = computed(() => (props.clusterTypes ? props.clusterTypes.map(type => clusterTabListMap.value[type]) : []));
+  const tabList = computed(() => (props.clusterTypes
+    ? props.clusterTypes.map(type => clusterTabListMap.value[type]) : []));
 
   const selectedArr = computed(() => (activeTab.value && (Object.keys(selectedMap.value).length > 0)
     ? ({ [activeTab.value]: Object.values(selectedMap.value[activeTab.value]) }) :  {}));
 
   // 显示切换 tab tips
-  const showSwitchTabTips = computed(() => showTabTips.value && tabList.value.length > 1);
+  // const showSwitchTabTips = computed(() => showTabTips.value && tabList.value.length > 1);
   // 选中结果是否为空
   const isEmpty = computed(() => _.every(Object.values(selectedMap.value), item => Object.keys(item).length < 1));
 
@@ -330,7 +326,7 @@
   /**
    * 复制集群域名
    */
-  function handleCopyCluster() {
+  const handleCopyCluster = () => {
     const copyValues = Object.values(selectedMap.value).reduce((result, selectItem) => {
       result.push(...Object.values(selectItem).map(item => item.master_domain));
       return result;
@@ -342,20 +338,20 @@
     }
 
     copy(copyValues.join('\n'));
-  }
+  };
 
-  function handleConfirm() {
+  const handleConfirm = () => {
     const result = Object.keys(selectedMap.value).reduce((result, tabKey) => ({
       ...result,
       [tabKey]: Object.values(selectedMap.value[tabKey]),
     }), {});
     emits('change', result);
     handleClose();
-  }
+  };
 
-  function handleClose() {
+  const handleClose = () => {
     isShow.value =  false;
-  }
+  };
 
   /**
    * 选择当行数据
@@ -374,7 +370,7 @@
   };
 
   const handleSelectTable = (selected: Record<string, Record<string, any>>) => {
-    selectedMap.value = selected;
+    Object.assign(selectedMap.value, selected);
   };
 </script>
 
@@ -392,7 +388,7 @@
       padding: 0;
     }
 
-    &__tabs {
+    .cluster-selector-tabs {
       height: 42px;
       font-size: @font-size-mini;
       line-height: 42px;
@@ -400,7 +396,7 @@
       border-bottom: 1px solid @border-disable;
       .flex-center();
 
-      .tabs__item {
+      .tabs-item {
         min-width: 200px;
         margin-bottom: -1px;
         text-align: center;
@@ -409,15 +405,14 @@
         border-top: 0;
         border-left: 0;
         border-bottom-color: transparent;
-
-        &--active {
+      }
+      .tabs-item-active {
           background-color: @bg-white;
           border-bottom-color: @border-white;
         }
-      }
     }
 
-    &__content {
+    .cluster-selector-content {
       height: 580px;
       padding: 16px 24px 0;
 
@@ -428,13 +423,13 @@
       }
     }
 
-    &__result {
+    .cluster-selector-result {
       height: 100%;
       padding: 12px 24px;
       font-size: @font-size-mini;
       background-color: #f5f6fa;
 
-      .result__title {
+      .result-title {
         padding-bottom: 16px;
         .flex-center();
 
@@ -444,12 +439,12 @@
           color: @title-color;
         }
 
-        .result__dropdown {
+        .result-dropdown {
           font-size: 0;
           line-height: 20px;
         }
 
-        .result__trigger {
+        .result-trigger {
           display: block;
           font-size: 18px;
           color: @gray-color;
@@ -461,37 +456,9 @@
           }
         }
       }
-
-      .result__item {
-        padding: 0 12px;
-        margin-bottom: 2px;
-        line-height: 32px;
-        background-color: @bg-white;
-        border-radius: 2px;
-        justify-content: space-between;
-        .flex-center();
-
-        .result__remove {
-          display: none;
-          font-size: @font-size-large;
-          font-weight: bold;
-          color: @gray-color;
-          cursor: pointer;
-
-          &:hover {
-            color: @default-color;
-          }
-        }
-
-        &:hover {
-          .result__remove {
-            display: block;
-          }
-        }
-      }
     }
 
-    &__button {
+    .cluster-selector-button {
       width: 88px;
     }
   }

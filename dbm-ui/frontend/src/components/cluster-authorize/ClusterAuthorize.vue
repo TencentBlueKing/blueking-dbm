@@ -173,7 +173,6 @@
     TicketTypes,
   } from '@common/const';
 
-  import type { ClusterSelectorResult } from '@components/cluster-selector/types';
   import DBCollapseTable, {
     type ClusterTableProps,
   } from '@components/db-collapse-table/DBCollapseTable.vue';
@@ -203,6 +202,8 @@
   interface Emits {
     (e: 'success'): void,
   }
+
+  type ClusterSelectorResult = Record<string, Array<ResourceItem>>
 
   const props = withDefaults(defineProps<Props>(), {
     user: '',

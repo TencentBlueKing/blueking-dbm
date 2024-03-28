@@ -36,7 +36,6 @@
   </div>
 </template>
 <script setup lang="tsx" generic="T extends IValue">
-  import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -76,7 +75,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void;
+    (e: 'change', value: Props['lastValues']): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -106,7 +105,7 @@
 
   const { t } = useI18n();
 
-  const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
+  const activePanel = inject(activePanelInjectionKey);
 
   const checkedMap = shallowRef({} as Record<string, T>);
 
@@ -284,7 +283,7 @@
 
   const triggerChange = () => {
     if (props.isManul) {
-      const lastValues: InstanceSelectorValues<T> = {
+      const lastValues: Props['lastValues'] = {
         [props.activePanelId]: [],
       };
       for (const item of Object.values(checkedMap.value)) {

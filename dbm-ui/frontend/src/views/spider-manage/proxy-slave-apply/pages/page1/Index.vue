@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('部署只读接入层：在原集群上增加Spider Slave节点，一个集群最多只能有一个')" />
+        :title="t('部署只读接入层：在原集群上增加Spider Slave节点，一个集群最多只能有一个')" />
       <RenderData
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
@@ -45,16 +45,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml-8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -78,7 +78,7 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import { random } from '@utils';
 

@@ -14,15 +14,15 @@
 <template>
   <div
     class="collapse-mini"
-    :class="[{ 'collapse-mini--collapse': state.collapse }]">
+    :class="[{ 'collapse-mini-collapse': state.collapse }]">
     <div
-      class="collapse-mini__header"
+      class="collapse-mini-header"
       @click="handleToggle">
-      <i class="db-icon-down-big collapse-mini__icon" />
+      <i class="db-icon-down-big collapse-mini-icon" />
       <slot name="title">
-        <strong>【{{ title }}】</strong>
+        <strong>{{ title ? `【${title}】` : '' }}</strong>
         <p>
-          -
+          {{ title ? `-` : '' }}
           <I18nT
             keypath="共n个"
             tag="span">
@@ -31,11 +31,10 @@
         </p>
       </slot>
     </div>
-
     <Transition mode="in-out">
       <div
         v-show="state.collapse"
-        class="collapse-mini__content">
+        class="collapse-mini-content">
         <slot />
       </div>
     </Transition>
@@ -48,16 +47,19 @@
 </script>
 
 <script setup lang="ts">
-  interface Props {
-    collapse?: boolean,
-    title?: string,
-    count?: number,
-  }
-
-  const props = withDefaults(defineProps<Props>(), {
-    collapse: true,
-    title: 'Title',
-    count: 0,
+  const props = defineProps({
+    collapse: {
+      type: Boolean,
+      default: true,
+    },
+    title: {
+      type: String,
+      default: 'Title',
+    },
+    count: {
+      type: Number,
+      default: 0,
+    },
   });
 
   const state = reactive({
@@ -68,9 +70,9 @@
     state.collapse = props.collapse;
   });
 
-  function handleToggle() {
+  const handleToggle = () => {
     state.collapse = !state.collapse;
-  }
+  };
 </script>
 
 <style lang="less" scoped>
@@ -83,23 +85,28 @@
       margin-top: 0;
     }
 
-    &__header {
+    .collapse-mini-header {
       height: 24px;
       padding-bottom: 4px;
       cursor: pointer;
       .flex-center();
     }
 
-    &__icon {
+    .collapse-mini-icon {
       font-size: @font-size-normal;
       transform: rotate(-90deg);
       transition: all 0.2s;
     }
 
-    &--collapse {
-      .collapse-mini__icon {
-        transform: rotate(0);
-      }
+    .collapse-mini-content {
+      max-height: 520px;
+      overflow-y: auto;
+    }
+  }
+
+  .collapse-mini-collapse {
+    .collapse-mini-icon {
+      transform: rotate(0);
     }
   }
 </style>

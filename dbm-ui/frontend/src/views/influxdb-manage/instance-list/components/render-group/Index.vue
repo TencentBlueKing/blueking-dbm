@@ -32,6 +32,13 @@
       </div>
       <span class="split-line" />
       <div class="group-list db-scroll-y">
+        <!-- <div class="search-main">
+          <BkInput
+            v-model="searchValue"
+            :placeholder="t('搜索分组')"
+            type="search"
+            @enter="fetchGroupList" />
+        </div> -->
         <div
           v-for="item in groupList"
           :key="item.id"
@@ -127,6 +134,8 @@
   const groupList = ref<Array<InfluxDBGroupItem>>([]);
   const curEditGroupId = ref(0);
   const isShowCreateGroup = ref(false);
+  // const searchValue = ref('');
+
   const totalInstances = computed(() => (
     groupList.value.reduce((total: number, item) => total + (item.instance_count ?? 0), 0)
   ));
@@ -247,6 +256,11 @@
 
   .group-list {
     max-height: calc(100% - 86px);
+    .search-main {
+      width: 100%;
+      padding: 0 16px;
+    }
+
   }
 
   .group-item {

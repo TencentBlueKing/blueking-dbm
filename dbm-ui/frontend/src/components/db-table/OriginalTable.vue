@@ -13,6 +13,8 @@
 
 <template>
   <BkTable
+    :key="tableKey"
+    :columns="columns"
     :pagination-heihgt="60"
     show-overflow-tooltip
     v-bind="$attrs">
@@ -30,6 +32,8 @@
 </template>
 
 <script setup lang="ts">
+  import type { Table } from 'bkui-vue';
+
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   interface Emits {
@@ -37,16 +41,23 @@
     (e: 'clearSearch'): void
   }
   interface Props {
+    columns: InstanceType<typeof Table>['$props']['columns'],
     isAnomalies?: boolean,
     isSearching?: boolean,
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     isAnomalies: false,
     isSearching: false,
   });
 
   const emits = defineEmits<Emits>();
+
+  const tableKey = ref(Date.now().toString());
+
+  watch(() => props.columns, () => {
+    tableKey.value = Date.now().toString();
+  });
 
   const handleRefresh = () => emits('refresh');
   const handleClearSearch = () => emits('clearSearch');

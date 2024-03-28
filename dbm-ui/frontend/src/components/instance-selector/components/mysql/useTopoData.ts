@@ -41,7 +41,7 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
     },
   };
 
-  const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
+  const activePanel = inject(activePanelInjectionKey);
 
   const isLoading = ref(false);
   const selectClusterId = ref<number>();
