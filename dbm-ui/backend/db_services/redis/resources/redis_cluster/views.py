@@ -25,7 +25,7 @@ from backend.db_services.redis.resources import constants
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum, MySQLPrivComponent, UserName
 
 from . import yasg_slz
-from .query import ListRetrieveResource
+from .query import RedisListRetrieveResource
 
 
 @method_decorator(
@@ -84,7 +84,7 @@ from .query import ListRetrieveResource
     ),
 )
 class RedisClusterViewSet(viewsets.ResourceViewSet):
-    query_class = ListRetrieveResource
+    query_class = RedisListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)

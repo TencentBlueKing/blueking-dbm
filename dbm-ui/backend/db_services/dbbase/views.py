@@ -96,7 +96,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=QueryBizClusterAttrsSerializer)
     def query_biz_cluster_attrs(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        clusters = Cluster.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type=data["cluster_type"])
+        clusters = Cluster.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
         # 聚合每个属性字段
         cluster_attrs: Dict[str, Union[List, Set]] = defaultdict(list)
         existing_values: Dict[str, Set[str]] = defaultdict(set)
@@ -138,7 +138,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
                 storage_roles = storage_queryset.values_list("instance_role", flat=True)
 
             unique_roles = set(storage_roles) | (set(proxy_roles))
-            roles_dicts = [{"name": role, "values": role} for role in unique_roles]
+            roles_dicts = [{"value": role, "text": role} for role in unique_roles]
             cluster_attrs["role"] = roles_dicts
 
         return Response(cluster_attrs)

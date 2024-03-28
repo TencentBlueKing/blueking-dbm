@@ -14,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase, ClusterType
+from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 
 
 class IsClusterDuplicatedSerializer(serializers.Serializer):
@@ -88,6 +89,11 @@ class QueryBizClusterAttrsSerializer(serializers.Serializer):
     def validate(self, attrs):
         attrs["cluster_attrs"] = attrs["cluster_attrs"].split(",") if attrs["cluster_attrs"] else []
         attrs["instances_attrs"] = attrs["instances_attrs"].split(",") if attrs["instances_attrs"] else []
+        if attrs["cluster_type"] == "redis":
+            attrs["cluster_type"] = RedisListRetrieveResource.cluster_types
+        else:
+            attrs["cluster_type"] = attrs["cluster_type"].split(",")
+
         return attrs
 
 

@@ -108,9 +108,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
             .annotate(role=F("instance_inner_role"))
             .filter(query_filters)
         )
-        instance_queryset = (
-            storage_queryset.union(proxy_queryset)
-            .values(*inst_fields)
-            .order_by(query_params.get("ordering", "create_at"))
-        )
+        instance_queryset = storage_queryset.union(proxy_queryset).values(*inst_fields).order_by("create_at")
+        #  部署时间表头排序
+        if query_params.get("ordering"):
+            instance_queryset = instance_queryset.order_by(query_params.get("ordering"))
         return instance_queryset

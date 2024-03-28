@@ -326,7 +326,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 | Q(alias__in=query_params.get("name", "").split(","))
             ),
             # 版本
-            "major_version": Q(major_version=query_params.get("major_version")),
+            "major_version": Q(major_version__in=query_params.get("major_version", "").split(",")),
             # 地域
             "region": Q(region__in=query_params.get("region", "").split(",")),
             "cluster_ids": Q(id__in=query_params.get("cluster_ids")),
@@ -353,8 +353,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         for param in filter_params_map:
             if query_params.get(param):
                 query_filters &= filter_params_map[param]
-        cluster_queryset = Cluster.objects.filter(query_filters)
-        # 部署时间表头排序
+        cluster_queryset = Cluster.objects.filter(query_filters).order_by("create_at")
+
+        #  部署时间表头排序
         if query_params.get("ordering"):
             cluster_queryset = cluster_queryset.order_by(query_params.get("ordering"))
 
@@ -641,11 +642,10 @@ class ListRetrieveResource(BaseListRetrieveResource):
 
     @classmethod
     def _filter_instance_qs_hook(cls, storage_queryset, proxy_queryset, inst_fields, query_filters, query_params):
-        instance_queryset = (
-            storage_queryset.union(proxy_queryset)
-            .values(*inst_fields)
-            .order_by(query_params.get("ordering", "create_at"))
-        )
+        instance_queryset = storage_queryset.union(proxy_queryset).values(*inst_fields).order_by("create_at")
+        #  部署时间表头排序
+        if query_params.get("ordering"):
+            instance_queryset = instance_queryset.order_by(query_params.get("ordering"))
         return instance_queryset
 
     @classmethod
