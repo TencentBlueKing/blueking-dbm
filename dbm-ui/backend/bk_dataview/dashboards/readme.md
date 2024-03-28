@@ -1,5 +1,24 @@
 # 导出仪表盘
 到开发环境中，配置好仪表盘后，在设置中点击 JSON Model，复制对应的仪表盘到本目录对应的 json 文件中
+保留 __inputs 为:
+```
+{
+    "__inputs": [
+        {
+          "name": "DS_蓝鲸监控_- 指标数据",
+          "label": "蓝鲸监控 - 指标数据",
+          "description": "",
+          "type": "datasource",
+          "pluginId": "bkmonitor-timeseries-datasource",
+          "pluginName": "BlueKing Monitor TimeSeries"
+        }
+      ],
+    这里粘贴从 JSON Model 复制出来的内容，如:
+    "annotations": {},
+    "templating": {},
+    ....
+}
+```
 ![export_dashboard.png](export_dashboard.png)
 
 # 添加tags
