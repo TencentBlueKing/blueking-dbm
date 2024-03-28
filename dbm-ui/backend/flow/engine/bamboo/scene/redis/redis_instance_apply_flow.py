@@ -287,6 +287,7 @@ class RedisInstanceApplyFlow(object):
             master_servers = []
             slave_servers = []
             for rule in info["ip_install_dict"][master_ip]:
+                act_kwargs.exec_ip = master_ip
                 act_kwargs.cluster["exec_ip"] = master_ip
                 #  集群申请单据时，下面参数需要从param中获取，不能从已有配置中获取
                 act_kwargs.cluster["requirepass"] = rule["redis_pwd"]
@@ -304,6 +305,7 @@ class RedisInstanceApplyFlow(object):
                     }
                 )
 
+                act_kwargs.exec_ip = info["repl_dict"][master_ip]
                 act_kwargs.cluster["exec_ip"] = info["repl_dict"][master_ip]
                 acts_list.append(
                     {
