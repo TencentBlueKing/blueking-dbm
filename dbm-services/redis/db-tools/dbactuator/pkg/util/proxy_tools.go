@@ -79,7 +79,7 @@ func GetTwemproxyBackends(ip string, port int) (segs map[string]string, err erro
 
 // GetSegDetails echo stats |nc twempip port
 func GetSegDetails(nc net.Conn) (map[string]string, error) {
-	_, err := nc.Write([]byte("stats"))
+	_, err := nc.Write([]byte("get nosqlproxy servers"))
 	if err != nil {
 		return nil, err
 	}

@@ -10,8 +10,8 @@ import (
 	"dbm-services/common/dbha/ha-module/log"
 )
 
-// RedisClusterNewIns Agent通过CMDB获取的信息来生成需要探测的实例
-func RedisClusterNewIns(instances []interface{},
+// TendisCacheClusterNewIns Agent通过CMDB获取的信息来生成需要探测的实例
+func TendisCacheClusterNewIns(instances []interface{},
 	conf *config.Config) ([]dbutil.DataBaseDetect, error) {
 
 	var (
@@ -70,8 +70,8 @@ func RedisClusterNewIns(instances []interface{},
 	return ret, err
 }
 
-// RedisClusterDeserialize 反序列化从Agent上报上来的故障实例
-func RedisClusterDeserialize(jsonInfo []byte,
+// TendisCacheClusterDeserialize 反序列化从Agent上报上来的故障实例
+func TendisCacheClusterDeserialize(jsonInfo []byte,
 	conf *config.Config) (dbutil.DataBaseDetect, error) {
 	response := RedisDetectResponse{}
 	err := json.Unmarshal(jsonInfo, &response)
@@ -106,8 +106,8 @@ func RedisClusterDeserialize(jsonInfo []byte,
 	}
 }
 
-// RedisClusterNewSwitchIns create redis cluster switch ins
-func RedisClusterNewSwitchIns(instances []interface{},
+// TendisCacheClusterNewSwitchIns create redis cluster switch ins
+func TendisCacheClusterNewSwitchIns(instances []interface{},
 	conf *config.Config) ([]dbutil.DataBaseSwitch, error) {
 	var err error
 	var ret []dbutil.DataBaseSwitch
@@ -172,7 +172,7 @@ func NewRedisSwitchIns(instance interface{},
 	pw := RedisSwitch{
 		RedisSwitchInfo: *swIns,
 		Config:          conf,
-		NoNeed:          false,
+		IsSkipSwitch:    false,
 	}
 
 	// get the password of redis switch instance

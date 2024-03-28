@@ -59,45 +59,27 @@ func (ins *RedisDetectInstance) DoRedisDetection() error {
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 	defer r.Close()
 
-	rsp, err := r.Info()
+	rsp, err := r.InfoV2("Replication")
 	if err != nil {
 		redisErr := fmt.Errorf("redis do cmd err,err: %s", err.Error())
 		if util.CheckRedisErrIsAuthFail(err) {
 			ins.Status = constvar.AUTHCheckFailed
-			log.Logger.Errorf("redis detect auth failed,err:%s,status:%s",
-				redisErr.Error(), ins.Status)
+			log.Logger.Errorf("redis detect auth failed %s,err:%s,status:%s", addr, redisErr.Error(), ins.Status)
 		} else {
 			ins.Status = constvar.DBCheckFailed
-			log.Logger.Errorf("redis detect failed,err:%s,status:%s",
-				redisErr.Error(), ins.Status)
+			log.Logger.Errorf("redis detect failed %s,err:%s,status:%s", addr, redisErr.Error(), ins.Status)
 		}
 		return redisErr
 	}
 
-	rspInfo, ok := rsp.(string)
-	if !ok {
-		redisErr := fmt.Errorf("redis info response type is not string")
+	if _, ok := rsp["role"]; !ok {
+		redisErr := fmt.Errorf("response un-find role, rsp %s:%+v", addr, rsp)
 		log.Logger.Errorf(redisErr.Error())
 		ins.Status = constvar.DBCheckFailed
 		return redisErr
 	}
 
-	if !strings.Contains(rspInfo, "redis_version:") {
-		redisErr := fmt.Errorf("response un-find redis_version, rsp:%s", rspInfo)
-		log.Logger.Errorf(redisErr.Error())
-		ins.Status = constvar.DBCheckFailed
-		return redisErr
-	}
-
-	role, err := ins.GetRole(rspInfo)
-	if nil != err {
-		redisErr := fmt.Errorf("response un-find role, rsp:%s", rspInfo)
-		log.Logger.Errorf(redisErr.Error())
-		ins.Status = constvar.DBCheckFailed
-		return redisErr
-	}
-
-	if role == "master" {
+	if rsp["role"] == "master" {
 		return ins.DoSetCheck(r)
 	}
 

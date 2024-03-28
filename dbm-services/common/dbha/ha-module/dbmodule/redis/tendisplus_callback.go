@@ -10,8 +10,8 @@ import (
 	"dbm-services/common/dbha/ha-module/log"
 )
 
-// TendisClusterNewIns create tendisplus and predixy detect instance
-func TendisClusterNewIns(instances []interface{},
+// TendisplusClusterNewIns create tendisplus and predixy detect instance
+func TendisplusClusterNewIns(instances []interface{},
 	conf *config.Config) ([]dbutil.DataBaseDetect, error) {
 	var (
 		err          error
@@ -52,8 +52,8 @@ func TendisClusterNewIns(instances []interface{},
 	return ret, err
 }
 
-// TendisClusterDeserialize deserialize tendisplus and predixy detect instance
-func TendisClusterDeserialize(jsonInfo []byte,
+// TendisplusClusterDeserialize deserialize tendisplus and predixy detect instance
+func TendisplusClusterDeserialize(jsonInfo []byte,
 	conf *config.Config) (dbutil.DataBaseDetect, error) {
 	response := RedisDetectResponse{}
 	err := json.Unmarshal(jsonInfo, &response)
@@ -83,8 +83,8 @@ func TendisClusterDeserialize(jsonInfo []byte,
 	}
 }
 
-// TendisClusterNewSwitchIns create tendisplus and predixy switch instance
-func TendisClusterNewSwitchIns(instances []interface{},
+// TendisplusClusterNewSwitchIns create tendisplus and predixy switch instance
+func TendisplusClusterNewSwitchIns(instances []interface{},
 	conf *config.Config) ([]dbutil.DataBaseSwitch, error) {
 	var err error
 	var ret []dbutil.DataBaseSwitch
