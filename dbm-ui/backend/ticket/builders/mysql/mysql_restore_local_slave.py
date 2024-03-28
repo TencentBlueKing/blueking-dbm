@@ -59,8 +59,10 @@ class MysqlRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         for index, info in enumerate(self.ticket_data["infos"]):
-            slave_ip, slave_port = info["slave"]["ip"], info["slave"]["port"]
-            self.ticket_data["infos"][index].update({"slave_ip": slave_ip, "slave_port": int(slave_port)})
+            bk_slave = info.pop("slave")
+            self.ticket_data["infos"][index].update(
+                slave_ip=bk_slave["ip"], slave_port=int(bk_slave["port"]), bk_slave=bk_slave
+            )
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_RESTORE_LOCAL_SLAVE)

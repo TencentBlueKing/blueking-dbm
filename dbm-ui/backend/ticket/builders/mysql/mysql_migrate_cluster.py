@@ -68,8 +68,8 @@ class MysqlMigrateClusterParamBuilder(builders.FlowParamBuilder):
             return
 
         for info in self.ticket_data["infos"]:
-            info["new_master_ip"] = info["new_master"]["ip"]
-            info["new_slave_ip"] = info["new_slave"]["ip"]
+            info["new_master_ip"], info["new_slave_ip"] = info["new_master"]["ip"], info["new_slave"]["ip"]
+            info["bk_new_master"], info["bk_new_slave"] = info.pop("new_master"), info.pop("new_slave")
 
 
 class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
@@ -77,8 +77,8 @@ class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
         for info in ticket_data["infos"]:
-            info["new_master"], info["new_slave"] = info.pop("new_master")[0], info.pop("new_slave")[0]
-            info["new_master_ip"], info["new_slave_ip"] = info["new_master"]["ip"], info["new_slave"]["ip"]
+            info["bk_new_master"], info["bk_new_slave"] = info.pop("new_master")[0], info.pop("new_slave")[0]
+            info["new_master_ip"], info["new_slave_ip"] = info["bk_new_master"]["ip"], info["bk_new_slave"]["ip"]
 
         next_flow.save(update_fields=["details"])
 

@@ -16,6 +16,7 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mysql.base import (
@@ -30,7 +31,7 @@ from backend.utils.time import str2datetime
 class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
     class FixPointRollbackSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        rollback_ip = serializers.CharField(help_text=_("备份新机器"))
+        rollback_host = HostInfoSerializer(help_text=_("备份新机器"))
         backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
         rollback_time = DBTimezoneField(
             help_text=_("回档时间"), required=False, allow_blank=True, allow_null=True, default=""
@@ -80,6 +81,8 @@ class MySQLFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
         for info in self.ticket_data["infos"]:
             op_type = "BACKUPID" if info.get("backupinfo") else "TIME"
             info["rollback_type"] = f"{info['backup_source'].upper()}_AND_{op_type}"
+            info["rollback_ip"] = info["rollback_host"]["ip"]
+            info["bk_rollback"] = info.pop("rollback_host")
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_ROLLBACK_CLUSTER)

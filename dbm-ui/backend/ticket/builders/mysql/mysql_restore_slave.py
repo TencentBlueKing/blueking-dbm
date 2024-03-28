@@ -66,6 +66,7 @@ class MysqlRestoreSlaveParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["add_slave_only"] = False
         for info in self.ticket_data["infos"]:
             info["old_slave_ip"], info["new_slave_ip"] = info["old_slave"]["ip"], info["new_slave"]["ip"]
+            info["bk_old_slave"], info["bk_new_slave"] = info.pop("old_slave"), info.pop("new_slave")
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_RESTORE_SLAVE, is_apply=True)
