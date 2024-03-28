@@ -158,7 +158,7 @@ class TenDBClusterMetadataImportDetailSerializer(MySQLBaseOperateDetailSerialize
         remotes = []
         for s in cluster_json["sets"]:
             remotes.append(s["master"])
-            remotes.append(s["slave"])
+            # remotes.append(s["slave"])
 
         ips = list(set([ele["ip"] for ele in remotes]))
 
