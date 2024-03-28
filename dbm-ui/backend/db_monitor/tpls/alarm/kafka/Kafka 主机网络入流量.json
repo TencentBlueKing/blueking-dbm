@@ -100,8 +100,9 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40789,
+      "config_id": 97502,
       "user_groups": [],
+      "user_type": "main",
       "signal": [
         "no_data",
         "abnormal"
@@ -252,13 +253,15 @@
     "path": "",
     "priority": 0,
     "priority_group_key": "60e9ccf82fb915eb",
+    "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
     "is_enabled": false
   },
   "is_enabled": false,
   "monitor_indicator": "AVG(网卡入流量)",
-  "version": 16,
+  "version": 17,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [],
+  "export_at": "2024-03-28T21:20:51+08:00"
 }

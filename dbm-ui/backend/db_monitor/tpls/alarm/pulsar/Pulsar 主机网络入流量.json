@@ -48,7 +48,16 @@
                 ],
                 "method": "eq",
                 "condition": "and",
-                "dimension_name": "db_type"
+                "dimension_name": "dbm db type"
+              },
+              {
+                "key": "instance_role",
+                "value": [
+                  "pulsar_broker"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "dbm_meta instance role"
               }
             ],
             "metric_field": "speed_recv",
@@ -64,7 +73,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 250
+                  "threshold": 500
                 }
               ]
             ],
@@ -100,8 +109,9 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40777,
+      "config_id": 97540,
       "user_groups": [],
+      "user_type": "main",
       "signal": [
         "abnormal",
         "no_data"
@@ -251,14 +261,16 @@
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "60e9ccf82fb915eb",
+    "priority_group_key": "",
+    "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(网卡入流量)",
-  "version": 16,
+  "version": 17,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [],
+  "export_at": "2024-03-28T21:20:55+08:00"
 }

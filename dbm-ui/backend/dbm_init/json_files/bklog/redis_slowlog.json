@@ -10,14 +10,14 @@
     "target_object_type": "SERVICE",
     "target_node_type": "TOPO",
     "target_nodes": [],
-    "clean_type": "bk_log_json",
+    "etl_config": "bk_log_json",
     "etl_params": {
         "retain_original_text": true,
         "separator_regexp": "",
         "separator": "",
         "retain_extra_json": false
     },
-    "etl_fields": [
+    "fields": [
         {
             "option": {
                 "time_zone": "",

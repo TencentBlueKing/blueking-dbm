@@ -48,7 +48,7 @@
                 ],
                 "method": "eq",
                 "condition": "and",
-                "dimension_name": "db_type"
+                "dimension_name": "dbm db type"
               }
             ],
             "metric_field": "util",
@@ -79,7 +79,7 @@
         "level": 2,
         "expression": "",
         "trigger_config": {
-          "count": 1,
+          "count": 10,
           "uptime": {
             "calendars": [],
             "time_ranges": [
@@ -89,7 +89,7 @@
               }
             ]
           },
-          "check_window": 5
+          "check_window": 15
         },
         "recovery_config": {
           "check_window": 5,
@@ -100,11 +100,12 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40764,
+      "config_id": 97479,
       "user_groups": [],
+      "user_type": "main",
       "signal": [
-        "abnormal",
-        "no_data"
+        "no_data",
+        "abnormal"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -251,14 +252,16 @@
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "17022b5bca8405f1",
+    "priority_group_key": "",
+    "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(I/O使用率)",
-  "version": 16,
+  "version": 18,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [],
+  "export_at": "2024-03-28T21:19:53+08:00"
 }

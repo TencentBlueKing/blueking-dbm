@@ -9,17 +9,21 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import datetime
 import json
 import logging
 import os
 from collections import OrderedDict
+from json import JSONDecodeError
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from backend import env
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DBType
 from backend.db_monitor.constants import TPLS_ALARM_DIR, TargetLevel, TargetPriority
+from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
 
@@ -194,9 +198,14 @@ class Command(BaseCommand):
 
             self.clear_id(strategy_template["items"])
 
-            with open(
-                os.path.join(TPLS_ALARM_DIR, db_type, f"{template_name}.json"), "w", encoding="utf-8"
-            ) as template_file:
+            file_name = os.path.join(TPLS_ALARM_DIR, db_type, f"{template_name}.json")
+            with open(file_name, "r", encoding="utf-8") as template_file:
+                try:
+                    template_file_content = json.loads(template_file.read())
+                    current_version = template_file_content.get("version")
+                except (TypeError, AttributeError, JSONDecodeError):
+                    current_version = 0
+            with open(file_name, "w", encoding="utf-8") as template_file:
                 is_enabled = not is_disabled
                 strategy_template["is_enabled"] = is_enabled
                 template_dict = OrderedDict(
@@ -207,9 +216,10 @@ class Command(BaseCommand):
                         "details": strategy_template,
                         "is_enabled": is_enabled,
                         "monitor_indicator": strategy_template["items"][0]["name"],
-                        "version": 16,
+                        "version": current_version + 1,
                         "alert_source": data_type_label,
                         "custom_conditions": custom_agg_conditions,
+                        "export_at": datetime2str(datetime.datetime.now(timezone.utc)),
                     }
                 )
                 json.dump(template_dict, template_file, ensure_ascii=False, indent=2)
