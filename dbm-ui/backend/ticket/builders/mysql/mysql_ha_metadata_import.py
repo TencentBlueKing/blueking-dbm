@@ -163,9 +163,9 @@ class TenDBHAMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
             self.__validate_machine_spec_match(machine_json=mj[0], spec_obj=self.__proxy_spec)
 
     def __validate_storage_spec_match(self, cluster_json):
-        slaves = cluster_json["slaves"]
-        ips = list(set([ele["ip"] for ele in slaves]))
-        ips.append(cluster_json["master"]["ip"])
+        # slaves = cluster_json["slaves"]
+        # ips = list(set([ele["ip"] for ele in slaves]))
+        ips = [cluster_json["master"]["ip"]]
         for ip in ips:
             mj = list(filter(lambda e: e["IP"] == ip, cluster_json["machines"]))
             if not mj:
