@@ -19,7 +19,7 @@
         class="mb-16"
         theme="primary"
         @click="handleApply">
-        {{ $t('实例申请') }}
+        {{ t('实例申请') }}
       </AuthButton>
       <DropdownExportExcel
         export-type="instance"
@@ -27,12 +27,11 @@
         :ids="selectedIds"
         type="spider" />
       <DbSearchSelect
-        v-model="filterData"
+        v-model="searchValue"
         class="mb-16"
         :data="searchSelectData"
-        :placeholder="$t('实例_域名_IP_端口_状态')"
-        unique-select
-        @change="fetchTableData" />
+        :placeholder="t('请输入或选择条件搜索')"
+        unique-select />
     </div>
     <div
       class="table-wrapper"
@@ -45,7 +44,9 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
-        @clear-search="handleClearSearch"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
+        @column-sort="columnSortChange"
         @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
@@ -59,6 +60,7 @@
 
   import {
     useCopy,
+    useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
   } from '@hooks';
@@ -68,6 +70,7 @@
   import {
     type ClusterInstStatus,
     clusterInstStatus,
+    ClusterTypes,
     UserPersonalSettings,
   } from '@common/const';
 
@@ -79,8 +82,6 @@
     isRecentDays,
     utcDisplayTime,
   } from '@utils';
-
-  import type { SearchSelectValues } from '@/types/bkui-vue';
 
   interface IColumn {
     cell: string,
@@ -97,11 +98,19 @@
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+  } = useLinkQueryColumnSerach(ClusterTypes.TENDBCLUSTER, ['role'], () => fetchTableData(), false);
 
   const tableRef = ref();
 
   const selected = shallowRef<TendbInstanceModel[]>([]);
-  const filterData = shallowRef<SearchSelectValues>([]);
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.bk_host_id));
@@ -119,14 +128,14 @@
     const list = [
       {
         label: t('实例'),
-        field: 'instance_address',
+        field: 'instance',
         fixed: 'left',
         minWidth: 200,
         showOverflowTooltip: false,
-        render: ({ cell, data }: IColumn) => (
+        render: ({ data }: IColumn) => (
           <div style="display: flex; align-items: center;">
             <div class="text-overflow" v-overflow-tips>
-              <a href="javascript:" onClick={e => handleToDetails(e, data)}>{cell}</a>
+              <a href="javascript:" onClick={e => handleToDetails(e, data)}>{data.instance_address}</a>
             </div>
             {
               isRecentDays(data.create_at, 24 * 3)
@@ -160,6 +169,18 @@
         label: t('状态'),
         field: 'status',
         width: 140,
+        filter: {
+          list: [
+            {
+              value: 'normal',
+              text: t('正常'),
+            },
+            {
+              value: 'abnormal',
+              text: t('异常'),
+            },
+          ],
+        },
         render: ({ cell }: { cell: ClusterInstStatus }) => {
           const info = clusterInstStatus[cell] || clusterInstStatus.unavailable;
           return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
@@ -206,10 +227,14 @@
       {
         label: t('部署角色'),
         field: 'role',
+        filter: {
+          list: columnAttrs.value.role,
+        },
       },
       {
         label: t('部署时间'),
         field: 'create_at',
+        sort: true,
         width: 160,
         render: ({ cell }: IColumn) => <span>{utcDisplayTime(cell)}</span>,
       },
@@ -237,29 +262,52 @@
     return list;
   });
 
-  const searchSelectData = [
-    {
-      name: t('实例'),
-      id: 'instance_address',
-    },
-    {
-      name: t('域名'),
-      id: 'domain',
-    },
+  const searchSelectData = computed(() => [
     {
       name: 'IP',
       id: 'ip',
+      multiple: true,
+    },
+    {
+      name: t('实例'),
+      id: 'instance',
+      multiple: true,
+    },
+    {
+      name: t('集群名称'),
+      id: 'name',
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'normal',
+          name: t('正常'),
+        },
+        {
+          id: 'abnormal',
+          name: t('异常'),
+        },
+      ],
+    },
+    {
+      name: t('访问入口'),
+      id: 'domain',
+      multiple: true,
     },
     {
       name: t('端口'),
       id: 'port',
     },
     {
-      name: t('状态'),
-      id: 'status',
-      children: Object.values(clusterInstStatus).map(item => ({ id: item.key, name: item.text })),
+      name: t('部署角色'),
+      id: 'role',
+      multiple: true,
+      children: searchAttrs.value.role,
     },
-  ];
+  ]);
 
   // 设置行样式
   const setRowClass = (row: TendbInstanceModel) => {
@@ -284,6 +332,7 @@
     })),
     checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
   const {
     settings,
@@ -292,19 +341,14 @@
 
   const fetchTableData = () => {
     tableRef.value.fetchData({
-      ...getSearchSelectorParams(filterData.value),
-    }, {});
+      ...getSearchSelectorParams(searchValue.value),
+    }, { ...sortValue });
   };
 
   const handleSelection = (data: TendbInstanceModel, list: TendbInstanceModel[]) => {
     selected.value = list;
   };
 
-  // 清空搜索条件
-  const handleClearSearch = () => {
-    filterData.value = [];
-    fetchTableData();
-  };
 
   // 查看实例详情
   const handleToDetails = (e: Event, data: TendbInstanceModel) => {
@@ -356,7 +400,7 @@
 
       .bk-search-select {
         flex: 1;
-        max-width: 320px;
+        max-width: 500px;
         min-width: 320px;
         margin-left: auto;
       }

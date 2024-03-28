@@ -11,18 +11,27 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { type ComponentInternalInstance } from 'vue';
+import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
+import {
+  type ComponentInternalInstance,
+  getCurrentInstance,
+  reactive,
+  ref,
+  shallowRef,
+} from 'vue';
 
 import { useGlobalBizs } from '@stores';
+
+import { getSearchSelectorParams } from '@utils';
 
 /**
  * 处理集群列表数据
  */
-export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<number | undefined>) {
-  const { currentBizId } = useGlobalBizs();
+export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
+  const globalBizsStore = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
-      getTableList: (params: any) => Promise<any>
+      getResourceList: (params: any) => Promise<any>
     }
   };
 
@@ -30,45 +39,35 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
   const tableData = shallowRef<T[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
-    count: 0,
     current: 1,
+    count: 0,
     limit: 10,
-    limitList: [10, 20, 50, 100],
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
+    small: true,
   });
-  const searchValue = ref('');
 
-  watch(searchValue, () => {
+  watch(searchSelectValue, () => {
     setTimeout(() => {
       handleChangePage(1);
     });
+  }, {
+    immediate: true,
+    deep: true,
   });
 
+  /**
+   * 获取列表
+   */
   const fetchResources = async () => {
     isLoading.value = true;
-    const params = {
-      bk_biz_id: currentBizId,
-      instance_address: searchValue.value,
+    return currentInstance.proxy.getResourceList({
+      bk_biz_id: globalBizsStore.currentBizId,
       limit: pagination.limit,
-      offset: (pagination.current - 1) * pagination.limit,
-      extra: 1,
-    };
-    if (role?.value) {
-      Object.assign(params, {
-        role: role.value,
-      });
-    }
-    if (clusterId?.value && clusterId.value !== currentBizId) {
-      Object.assign(params, {
-        cluster_id: clusterId.value,
-      });
-    }
-    return currentInstance.proxy.getTableList(params)
-      .then((data) => {
-        const ret = data;
-        tableData.value = ret.results;
-        pagination.count = ret.count;
+      offset: pagination.limit * (pagination.current - 1),
+      ...getSearchSelectorParams(searchSelectValue.value),
+    })
+      .then((res) => {
+        pagination.count = res.count;
+        tableData.value = res.results;
         isAnomalies.value = false;
       })
       .catch(() => {
@@ -95,7 +94,7 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
     isLoading,
     data: tableData,
     pagination,
-    searchValue,
+    isAnomalies,
     fetchResources,
     handleChangePage,
     handeChangeLimit,

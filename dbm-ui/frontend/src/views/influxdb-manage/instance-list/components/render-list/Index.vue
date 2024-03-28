@@ -22,33 +22,33 @@
         v-else
         class="instances-view-header-icon mr-6"
         type="summation" />
-      <strong>{{ curGroupInfo?.name || $t('全部实例') }}</strong>
+      <strong>{{ curGroupInfo?.name || t('全部实例') }}</strong>
     </div>
     <div class="instances-view-operations">
       <AuthButton
         action-id="influxdb_apply"
         theme="primary"
         @click="handleApply">
-        {{ $t('实例申请') }}
+        {{ t('实例申请') }}
       </AuthButton>
       <span
-        v-bk-tooltips="{content: $t('请选择实例'), disabled: hasSelectedInstances }"
+        v-bk-tooltips="{content: t('请选择实例'), disabled: hasSelectedInstances }"
         class="inline-block">
         <AuthButton
           action-id="influxdb_reboot"
           :disabled="!hasSelectedInstances"
           @click="handleBatchRestart">
-          {{ $t('重启') }}
+          {{ t('重启') }}
         </AuthButton>
       </span>
       <span
-        v-bk-tooltips="{content: $t('请选择实例'), disabled: hasSelectedInstances }"
+        v-bk-tooltips="{content: t('请选择实例'), disabled: hasSelectedInstances }"
         class="inline-block">
         <AuthButton
           action-id="influxdb_replace"
           :disabled="!hasSelectedInstances"
           @click="handleShowReplace()">
-          {{ $t('替换') }}
+          {{ t('替换') }}
         </AuthButton>
       </span>
       <BkDropdown
@@ -56,13 +56,13 @@
         @hide="() => isShowGroupMove = false"
         @show="() => isShowGroupMove = true">
         <span
-          v-bk-tooltips="{content: $t('请选择实例'), disabled: hasSelectedInstances }"
+          v-bk-tooltips="{content: t('请选择实例'), disabled: hasSelectedInstances }"
           class="inline-block">
           <BkButton
             class="dropdown-button"
             :class="{ 'active': isShowGroupMove }"
             :disabled="!hasSelectedInstances">
-            {{ $t('移动至') }}
+            {{ t('移动至') }}
             <DbIcon type="up-big dropdown-button-icon" />
           </BkButton>
         </span>
@@ -87,22 +87,22 @@
         <BkButton
           class="dropdown-button"
           :class="{ 'active': isCopyDropdown }">
-          {{ $t('复制IP') }}
+          {{ t('复制IP') }}
           <DbIcon type="up-big dropdown-button-icon" />
         </BkButton>
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll()">
-              {{ $t('复制全部实例') }}
+              {{ t('复制全部实例') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopy()">
-              {{ $t('复制已选实例') }}
+              {{ t('复制已选实例') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopyAll(true)">
-              {{ $t('复制全部IP') }}
+              {{ t('复制全部IP') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopy(true)">
-              {{ $t('复制已选IP') }}
+              {{ t('复制已选IP') }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
@@ -114,10 +114,10 @@
         type="influxdb" />
       <div class="instances-view-operations-right">
         <DbSearchSelect
-          v-model="search"
+          v-model="searchValue"
           :data="searchSelectData"
-          style="width: 500px;"
-          @change="fetchTableData()" />
+          :get-menu-list="getMenuList"
+          :placeholder="t('请输入或选择条件搜索')" />
       </div>
     </div>
     <DbTable
@@ -127,8 +127,10 @@
       :data-source="getInfluxdbInstanceList"
       :row-class="setRowClass"
       :settings="renderSettings"
-      style="margin-bottom: 34px;"
-      @clear-search="handleClearFilters"
+      style="margin-bottom: 34px"
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
       @select="handleSelect"
       @select-all="handleSelectAll"
       @setting-change="updateTableSettings" />
@@ -136,7 +138,7 @@
   <DbSideslider
     v-model:is-show="isShowReplace"
     :disabled-confirm="operationNodeList.length === 0"
-    :title="$t('InfluxDB实例替换')"
+    :title="t('InfluxDB实例替换')"
     :width="960">
     <ClusterReplace
       :node-list="operationNodeList"
@@ -154,13 +156,14 @@
   import { getInfluxdbInstanceList } from '@services/source/influxdb';
   import { moveInstancesToGroup } from '@services/source/influxdbGroup';
   import { createTicket } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
-  import { useCopy, useInfoWithIcon, useTableSettings, useTicketMessage } from '@hooks';
+  import { useCopy, useInfoWithIcon, useLinkQueryColumnSerach, useTableSettings, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderInstanceStatus from '@components/cluster-common/RenderInstanceStatus.vue';
@@ -169,6 +172,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
+    getMenuListSearch,
     getSearchSelectorParams,
     isRecentDays,
     messageSuccess,
@@ -179,15 +183,28 @@
 
   import ClusterReplace from './components/Replace.vue';
 
+  import type { SearchSelectItem } from '@/types/bkui-vue';
+
   const route = useRoute();
   const router = useRouter();
   const ticketMessage = useTicketMessage();
   const { currentBizId } = useGlobalBizs();
   const { t, locale } = useI18n();
   const copy = useCopy();
+
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+  } = useLinkQueryColumnSerach(ClusterTypes.INFLUXDB, ['bk_cloud_id'], () => fetchTableData(), false);
+
   const eventBus = inject('eventBus') as Emitter<any>;
 
-  const searchSelectData = [
+  const searchSelectData = computed(() => [
     {
       name: 'ID',
       id: 'id',
@@ -195,10 +212,12 @@
     {
       name: t('实例'),
       id: 'instance_address',
+      multiple: true,
     },
     {
       name: 'IP',
       id: 'ip',
+      multiple: true,
     },
     {
       name: t('端口'),
@@ -207,12 +226,23 @@
     {
       name: t('状态'),
       id: 'status',
+      multiple: true,
       children: [
         { id: 'running', name: t('正常') },
         { id: 'unavailable', name: t('异常') },
       ],
     },
-  ];
+    {
+      name: t('创建人'),
+      id: 'creator',
+    },
+    {
+      name: t('管控区域'),
+      id: 'bk_cloud_id',
+      multiple: true,
+      children: searchAttrs.value.bk_cloud_id,
+    },
+  ]);
 
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableRef = ref();
@@ -220,7 +250,6 @@
   const isShowGroupMove = ref(false);
   const isCopyDropdown = ref(false);
   const isShowReplace = ref(false);
-  const search = ref([]);
   const operationNodeList = shallowRef<Array<InfluxDBInstanceModel>>([]);
   const groupList = shallowRef<InfluxDBGroupItem[]>([]);
   const batchSelectInstances = shallowRef<Record<number, InfluxDBInstanceModel>>({});
@@ -305,11 +334,26 @@
       {
         label: t('管控区域'),
         field: 'bk_cloud_name',
+        filter: {
+          list: columnAttrs.value.bk_cloud_id,
+        },
       },
       {
         label: t('状态'),
         field: 'status',
         minWidth: 100,
+        filter: {
+          list: [
+            {
+              value: 'running',
+              text: t('正常'),
+            },
+            {
+              value: 'unavailable',
+              text: t('异常'),
+            },
+          ],
+        },
         render: ({ data }: {data: InfluxDBInstanceModel}) => <RenderInstanceStatus data={data.status} />,
       },
       {
@@ -320,6 +364,7 @@
       {
         label: t('部署时间'),
         field: 'create_at',
+        sort: true,
         width: 200,
         render: ({ data }: {data: InfluxDBInstanceModel}) => <span>{data.createAtDisplay}</span>,
       },
@@ -415,7 +460,15 @@
     if (groupId.value === 0) {
       columns.splice(2, 0, {
         label: t('所属分组'),
-        field: 'group_name',
+        field: 'group_id',
+        minWidth: 100,
+        filter: {
+          list: groupList.value.map(item => ({
+            value: `${item.id}`,
+            text: item.name,
+          })),
+        },
+        render: ({ data }: {data: InfluxDBInstanceModel}) => <span>{data.group_name}</span>,
       });
     }
     return columns;
@@ -437,12 +490,12 @@
       'create_at',
     ],
     showLineHeight: true,
+    trigger: 'manual' as const,
   };
   const {
     settings,
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.INFLUXDB_TABLE_SETTINGS, defaultSettings);
-
 
   // 设置行样式
   const setRowClass = (row: InfluxDBInstanceModel) => {
@@ -465,16 +518,12 @@
   });
 
   const fetchTableData = (loading?:boolean) => {
-    const searchParams = getSearchSelectorParams(search.value);
+    const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value?.fetchData(searchParams, {
       group_id: groupId.value === 0 ? undefined : groupId.value,
+      ...sortValue,
     }, loading);
     isInit.value = false;
-  };
-
-  const handleClearFilters = () => {
-    search.value = [];
-    fetchTableData();
   };
 
   const {
@@ -491,6 +540,35 @@
   onMounted(() => {
     resumeFetchTableData();
   });
+
+  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+    if (item?.id !== 'creator' && keyword) {
+      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map(value => value.id);
+      return searchSelectData.value.filter(item => !selected.includes(item.id));
+    }
+
+    // 远程加载执行人
+    if (item.id === 'creator') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then(res => res.results.map(item => ({
+        id: item.username,
+        name: item.username,
+      })));
+    }
+
+    // 不需要远层加载
+    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+  };
 
   const updateGroupList = (list: InfluxDBGroupItem[] = []) => {
     groupList.value = list;
@@ -815,6 +893,13 @@
       flex: 1;
       display: flex;
       justify-content: flex-end;
+
+      .bk-search-select {
+        flex: 1;
+        max-width: 500px;
+        min-width: 320px;
+        margin-left: auto;
+      }
     }
 
     .bk-button {

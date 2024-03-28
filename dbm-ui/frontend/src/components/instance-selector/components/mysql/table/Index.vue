@@ -13,21 +13,22 @@
 
 <template>
   <div class="instance-selector-render-topo-host">
-    <BkInput
+    <SerachBar
       v-model="searchValue"
-      clearable
-      :placeholder="t('请输入实例')" />
+      :placeholder="t('请输入或选择条件搜索')"
+      :search-attrs="searchAttrs" />
     <BkLoading
       :loading="isLoading"
       :z-index="2">
       <DbOriginalTable
         :columns="columns"
-        :data="isManul? renderManualData : tableData"
+        :data="tableData"
         :max-height="530"
         :pagination="pagination.count < 10 ? false : pagination"
         :remote-pagination="isRemotePagination"
         :settings="tableSetting"
         style="margin-top: 12px;"
+        @column-filter="columnFilterChange"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
         @refresh="fetchResources"
@@ -36,8 +37,11 @@
   </div>
 </template>
 <script setup lang="tsx" generic="T extends IValue">
-  import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { useLinkQueryColumnSerach } from '@hooks';
+
+  import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -50,6 +54,7 @@
     type PanelListType,
     type TableSetting,
   } from '../../../Index.vue';
+  import SerachBar from '../../common/SearchBar.vue';
 
   import { useTableData } from './useTableData';
 
@@ -62,10 +67,7 @@
   interface Props {
     lastValues: InstanceSelectorValues<T>,
     tableSetting: TableSetting,
-    activePanelId?: string,
     clusterId?: number,
-    isManul?: boolean,
-    manualTableData?: T[];
     isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
     roleFilterList?: TableConfigType['roleFilterList'],
@@ -76,7 +78,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void;
+    (e: 'change', value: Props['lastValues']): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -106,6 +108,15 @@
 
   const { t } = useI18n();
 
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    columnFilterChange,
+  } = useLinkQueryColumnSerach(ClusterTypes.TENDBHA, [
+    'bk_cloud_id',
+  ]);
+
   const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
 
   const checkedMap = shallowRef({} as Record<string, T>);
@@ -121,20 +132,10 @@
     isLoading,
     data: tableData,
     pagination,
-    searchValue,
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<T>(initRole, selectClusterId);
-
-  const renderManualData = computed(() => {
-    if (searchValue.value === '') {
-      return props.manualTableData;
-    }
-    return props.manualTableData.filter(item => (
-      (item[firstColumnFieldId.value] as string).includes(searchValue.value)
-    ));
-  });
+  } = useTableData<T>(searchValue, initRole, selectClusterId);
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
@@ -144,7 +145,7 @@
 
   let isSelectedAllReal = false;
 
-  const columns = [
+  const columns = computed(() => [
     {
       width: 60,
       fixed: 'left',
@@ -192,6 +193,18 @@
     {
       label: t('实例状态'),
       field: 'status',
+      filter: {
+        list: [
+          {
+            value: 'running',
+            text: t('正常'),
+          },
+          {
+            value: 'unavailable',
+            text: t('异常'),
+          },
+        ],
+      },
       render: ({ data }: DataRow) => {
         const isNormal = props.statusFilter ? props.statusFilter(data) : data.status === 'running';
         const info = isNormal ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
@@ -203,6 +216,9 @@
       label: t('管控区域'),
       field: 'bk_cloud_name',
       showOverflowTooltip: true,
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+      },
     },
     {
       minWidth: 100,
@@ -249,18 +265,9 @@
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
     },
-  ];
+  ]);
 
   watch(() => props.lastValues, () => {
-    if (props.isManul) {
-      checkedMap.value = {};
-      for (const checkedList of Object.values(props.lastValues)) {
-        for (const item of checkedList) {
-          checkedMap.value[item[firstColumnFieldId.value]] = item;
-        }
-      }
-      return;
-    }
     // 切换 tab 回显选中状态 \ 预览结果操作选中状态
     if (activePanel?.value && activePanel.value !== 'manualInput') {
       checkedMap.value = {};
@@ -282,20 +289,6 @@
   });
 
   const triggerChange = () => {
-    if (props.isManul) {
-      const lastValues: InstanceSelectorValues<T> = {
-        [props.activePanelId]: [],
-      };
-      for (const item of Object.values(checkedMap.value)) {
-        lastValues[props.activePanelId].push(item);
-      }
-
-      emits('change', {
-        ...props.lastValues,
-        ...lastValues,
-      });
-      return;
-    }
     const result = Object.values(checkedMap.value).reduce((result, item) => {
       result.push({
         ...item,
@@ -312,7 +305,7 @@
   };
 
   const handleSelectPageAll = (checked: boolean) => {
-    const list = props.isManul ? renderManualData.value : tableData.value;
+    const list = tableData.value;
     if (props.disabledRowConfig) {
       isSelectedAllReal = !isSelectedAllReal;
       for (const data of list) {

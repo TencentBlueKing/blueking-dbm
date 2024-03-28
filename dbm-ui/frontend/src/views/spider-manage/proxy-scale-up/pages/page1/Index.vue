@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('扩容接入层：增加集群的Proxy数量')" />
+        :title="t('扩容接入层：增加集群的Proxy数量')" />
       <RenderData
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
@@ -47,16 +47,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml-8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -80,7 +80,7 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import { random } from '@utils';
 

@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 const path = '/apis/dbbase';
@@ -24,4 +26,27 @@ export function verifyDuplicatedClusterName(params: {
   bk_biz_id: number
 }) {
   return http.get<boolean>(`${path}/verify_duplicated_cluster_name/`, params);
+}
+
+/**
+ * 查询业务下集群的属性字段
+ * 集群通用接口，用于查询/操作集群公共的属性
+ */
+export function queryBizClusterAttrs(params: {
+  bk_biz_id: number;
+  cluster_type: ClusterTypes;
+  cluster_attrs?: string;
+  instances_attrs?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return http.get<
+    Record<
+      string,
+      {
+        value: string;
+        text: string;
+      }[]
+    >
+  >(`${path}/query_biz_cluster_attrs/`, params);
 }

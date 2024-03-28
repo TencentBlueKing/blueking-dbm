@@ -32,12 +32,12 @@
       </RenderData>
       <div class="page-action-box">
         <div
-          v-bk-tooltips="$t('安全模式下_存在业务连接时需要人工确认')">
+          v-bk-tooltips="t('安全模式下_存在业务连接时需要人工确认')">
           <BkCheckbox
             v-model="isSafe"
             :false-label="false"
             true-label>
-            <span class="safe-action-text">{{ $t('安全模式') }}</span>
+            <span class="safe-action-text">{{ t('安全模式') }}</span>
           </BkCheckbox>
         </div>
       </div>
@@ -80,7 +80,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {

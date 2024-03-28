@@ -16,23 +16,18 @@ import {
   type ComponentInternalInstance,
   getCurrentInstance,
   reactive,
-  type Ref,
   ref,
   shallowRef,
 } from 'vue';
 
-import { getModules } from '@services/source/cmdb';
-
 import { useGlobalBizs } from '@stores';
 
-import {
-  getSearchSelectorParams,
-} from '@utils';
+import { getSearchSelectorParams } from '@utils';
 
 /**
  * 处理集群列表数据
  */
-export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISearchValue[]>) {
+export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
   const globalBizsStore = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
@@ -42,7 +37,6 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISea
 
   const isLoading = ref(false);
   const tableData = shallowRef<T[]>([]);
-  const dbModuleList = shallowRef<{ id: number, name: string }[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
     current: 1,
@@ -51,17 +45,25 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISea
     small: true,
   });
 
+  watch(searchSelectValue, () => {
+    setTimeout(() => {
+      handleChangePage(1);
+    });
+  }, {
+    immediate: true,
+    deep: true,
+  });
+
   /**
    * 获取列表
    */
-  const fetchResources = () => {
+  const fetchResources = async () => {
     isLoading.value = true;
     return currentInstance.proxy.getResourceList({
-      type: activeTab.value,
       bk_biz_id: globalBizsStore.currentBizId,
       limit: pagination.limit,
       offset: pagination.limit * (pagination.current - 1),
-      ...getSearchSelectorParams(searchParams.value),
+      ...getSearchSelectorParams(searchSelectValue.value),
     })
       .then((res) => {
         pagination.count = res.count;
@@ -78,46 +80,22 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISea
       });
   };
 
-  /**
-   * change page
-   */
   const handleChangePage = (value: number) => {
     pagination.current = value;
     return fetchResources();
   };
 
-  /**
-   * change limit
-   */
   const handeChangeLimit = (value: number) => {
     pagination.limit = value;
     return handleChangePage(1);
-  };
-
-  /**
-   * 获取模块列表
-   */
-  const fetchModules = () => {
-    getModules({
-      bk_biz_id: globalBizsStore.currentBizId,
-      cluster_type: activeTab.value,
-    }).then((res) => {
-      dbModuleList.value = res.map(item => ({
-        id: item.db_module_id,
-        name: item.name,
-      }));
-      return dbModuleList.value;
-    });
   };
 
   return {
     isLoading,
     data: tableData,
     pagination,
-    dbModuleList,
     isAnomalies,
     fetchResources,
-    fetchModules,
     handleChangePage,
     handeChangeLimit,
   };

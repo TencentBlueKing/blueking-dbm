@@ -63,12 +63,12 @@
           type="redis" />
       </div>
       <DbSearchSelect
-        v-model="state.searchValues"
+        v-model="searchValue"
         class="operations-right mb-16"
-        :data="filterItems"
-        :placeholder="t('输入集群名_IP_访问入口关键字')"
-        unique-select
-        @change="handleSearchChange" />
+        :data="searchSelectData"
+        :get-menu-list="getMenuList"
+        :placeholder="t('请输入或选择条件搜索')"
+        unique-select />
     </div>
     <div class="table-wrapper-out">
       <div
@@ -84,7 +84,9 @@
           :row-class="getRowClass"
           selectable
           :settings="settings"
-          @clear-search="handleClearSearch"
+          @clear-search="clearSearchValue"
+          @column-filter="columnFilterChange"
+          @column-sort="columnSortChange"
           @selection="handleSelection"
           @setting-change="updateTableSettings" />
       </div>
@@ -131,6 +133,7 @@
     getRedisList,
   } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
   import {
     ClusterNodeKeys,
   } from '@services/types/clusters';
@@ -138,6 +141,7 @@
   import {
     useCopy,
     useInfoWithIcon,
+    useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
     useTicketMessage,
@@ -148,6 +152,7 @@
   } from '@stores';
 
   import {
+    ClusterTypes,
     DBTypes,
     TicketTypes,
     type TicketTypesStrings,
@@ -164,6 +169,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
+    getMenuListSearch,
     getSearchSelectorParams,
     messageWarn,
   } from '@utils';
@@ -175,18 +181,14 @@
   import ExtractKeys from './components/ExtractKeys.vue';
   import RedisPurge from './components/Purge.vue';
 
-  import type { TableColumnRender } from '@/types/bkui-vue';
+  import type {
+    SearchSelectData,
+    SearchSelectItem,
+    TableColumnRender,
+  } from '@/types/bkui-vue';
 
   interface RedisState {
-    selected: RedisModel[],
-    searchValues: {
-      id: string,
-      name: string,
-      values: {
-        id: string,
-        name: string,
-      }[]
-    }[],
+    selected: RedisModel[]
   }
 
   type ColumnRenderData = { data: RedisModel }
@@ -204,24 +206,20 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
 
-  const filterItems = [
-    {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: t('集群名'),
-      id: 'name',
-    },
-    {
-      name: t('域名'),
-      id: 'domain',
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-    },
-  ];
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+  } = useLinkQueryColumnSerach(ClusterTypes.REDIS, [
+    'bk_cloud_id',
+    'major_version',
+    'region',
+    'time_zone',
+  ], () => fetchData(isInit));
 
   const disabledOperations: string[] = [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_CLOSE];
 
@@ -231,7 +229,6 @@
 
   const state = reactive<RedisState>({
     selected: [],
-    searchValues: [],
   });
 
   /** 查看密码 */
@@ -269,6 +266,72 @@
     data: [] as RedisModel[],
   });
 
+  const searchSelectData = computed(() => [
+    {
+      name: 'ID',
+      id: 'id',
+    },
+    {
+      name: 'IP',
+      id: 'ip',
+    },
+    {
+      name: t('实例'),
+      id: 'instance',
+    },
+    {
+      name: t('访问入口'),
+      id: 'domain',
+    },
+    {
+      name: t('集群名称'),
+      id: 'name',
+    },
+    {
+      name: t('管控区域'),
+      id: 'bk_cloud_id',
+      multiple: true,
+      children: searchAttrs.value.bk_cloud_id,
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'normal',
+          name: t('正常'),
+        },
+        {
+          id: 'abnormal',
+          name: t('异常'),
+        },
+      ],
+    },
+    {
+      name: t('版本'),
+      id: 'major_version',
+      multiple: true,
+      children: searchAttrs.value.major_version,
+    },
+    {
+      name: t('地域'),
+      id: 'region',
+      multiple: true,
+      children: searchAttrs.value.region,
+    },
+    {
+      name: t('创建人'),
+      id: 'creator',
+    },
+    {
+      name: t('时区'),
+      id: 'time_zone',
+      multiple: true,
+      children: searchAttrs.value.time_zone,
+    },
+  ] as SearchSelectData);
+
   const paginationExtra = computed(() => {
     if (isStretchLayoutOpen.value) {
       return { small: false };
@@ -291,14 +354,14 @@
   });
 
   const searchIp = computed<string[]>(() => {
-    const ipObj = state.searchValues.find(item => item.id === 'ip');
-    if (ipObj) {
+    const ipObj = searchValue.value.find(item => item.id === 'ip');
+    if (ipObj && ipObj.values) {
       return [ipObj.values[0].id];
     }
     return [];
   });
 
-  const columns = [
+  const columns = computed(() => [
     {
       label: 'ID',
       field: 'id',
@@ -421,11 +484,26 @@
     {
       label: t('管控区域'),
       field: 'bk_cloud_name',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+      },
     },
     {
       label: t('状态'),
       field: 'status',
       width: 100,
+      filter: {
+        list: [
+          {
+            value: 'normal',
+            text: t('正常'),
+          },
+          {
+            value: 'abnormal',
+            text: t('异常'),
+          },
+        ],
+      },
       render: ({ data }: ColumnRenderData) => {
         const info = data.status === 'normal'
           ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
@@ -494,12 +572,18 @@
       label: t('版本'),
       field: 'major_version',
       minWidth: 100,
+      filter: {
+        list: columnAttrs.value.major_version,
+      },
       render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
     },
     {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
+      filter: {
+        list: columnAttrs.value.region,
+      },
       render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
     },
     {
@@ -521,8 +605,9 @@
       render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
     },
     {
-      label: t('创建时间'),
+      label: t('部署时间'),
       field: 'create_at',
+      sort: true,
       width: 160,
       render: ({ data }: ColumnRenderData) => <span>{data.createAtDisplay || '--'}</span>,
     },
@@ -530,6 +615,9 @@
       label: t('时区'),
       field: 'cluster_time_zone',
       width: 100,
+      filter: {
+        list: columnAttrs.value.time_zone,
+      },
       render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
     },
     {
@@ -729,11 +817,11 @@
         );
       },
     },
-  ];
+  ]);
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: (columns || []).filter(item => item.field).map(item => ({
+    fields: (columns.value || []).filter(item => item.field).map(item => ({
       label: item.label as string,
       field: item.field as string,
       disabled: ['master_domain'].includes(item.field as string),
@@ -752,12 +840,42 @@
       ClusterNodeKeys.REDIS_SLAVE,
     ],
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
 
   const {
     settings,
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.REDIS_TABLE_SETTINGS, defaultSettings);
+
+  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+    if (item?.id !== 'creator' && keyword) {
+      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map(value => value.id);
+      return searchSelectData.value.filter(item => !selected.includes(item.id));
+    }
+
+    // 远程加载执行人
+    if (item.id === 'creator') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then(res => res.results.map(item => ({
+        id: item.username,
+        name: item.username,
+      })));
+    }
+
+    // 不需要远层加载
+    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+  };
 
   const getRowClass = (data: RedisModel) => {
     const classList = [data.isOnline ? '' : 'is-offline'];
@@ -784,8 +902,10 @@
 
   let isInit = true;
   const fetchData = (loading?:boolean) => {
-    const params = getSearchSelectorParams(state.searchValues);
-    tableRef.value.fetchData(params, {}, loading);
+    const params = getSearchSelectorParams(searchValue.value);
+    tableRef.value.fetchData(params, {
+      ...sortValue,
+    }, loading);
     isInit = false;
   };
 
@@ -802,16 +922,8 @@
     });
   };
 
-  const handleSearchChange = () => {
-    fetchData(isInit);
-  };
-
   const handleSelection = (data: RedisModel, list: RedisModel[]) => {
     state.selected = list;
-  };
-
-  const handleClearSearch = () => {
-    state.searchValues = [];
   };
 
   /**
@@ -1117,7 +1229,7 @@
 
     .bk-search-select {
       flex: 1;
-      max-width: 320px;
+      max-width: 500px;
       min-width: 320px;
       margin-left: auto;
     }
@@ -1164,6 +1276,32 @@
       display: flex;
       align-items: flex-start;
       padding: 8px 0;
+      flex-wrap: wrap;
+
+      .bk-search-select {
+        flex: 1;
+        max-width: 500px;
+        min-width: 320px;
+        margin-left: auto;
+      }
+    }
+
+    .cluster-dropdown {
+      margin-right: auto;
+
+      .cluster-dropdown-icon {
+        color: @gray-color;
+        transform: rotate(0);
+        transition: all 0.2s;
+      }
+
+      .cluster-dropdown-icon-active {
+        transform: rotate(-90deg);
+      }
+    }
+
+    .table-wrapper-out {
+      flex: 1;
       overflow: hidden;
 
       .cluster-name {

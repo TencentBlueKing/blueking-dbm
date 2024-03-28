@@ -14,60 +14,56 @@
 <template>
   <div class="mysql-ha-cluster-list">
     <div class="operation-box">
-      <div class="mb-16">
+      <AuthButton
+        action-id="mysql_apply"
+        theme="primary"
+        @click="handleApply">
+        {{ t('实例申请') }}
+      </AuthButton>
+      <span
+        v-bk-tooltips="{
+          disabled: hasSelected,
+          content: t('请选择集群')
+        }"
+        class="inline-block">
         <AuthButton
-          action-id="mysql_apply"
-          theme="primary"
-          @click="handleApply">
-          {{ t('实例申请') }}
-        </AuthButton>
-        <span
-          v-bk-tooltips="{
-            disabled: hasSelected,
-            content: t('请选择集群')
-          }"
-          class="inline-block">
-          <AuthButton
-            action-id="mysql_authorize"
-            class="ml-8"
-            :disabled="!hasSelected"
-            @click="() => handleShowCreateSubscribeRuleSlider()">
-            {{ t('批量订阅') }}
-          </AuthButton>
-        </span>
-        <span
-          v-bk-tooltips="{
-            disabled: hasSelected,
-            content: t('请选择集群')
-          }"
-          class="inline-block">
-          <BkButton
-            class="ml-8"
-            :disabled="!hasSelected"
-            @click="handleShowAuthorize(state.selected)">
-            {{ t('批量授权') }}
-          </BkButton>
-        </span>
-        <AuthButton
-          action-id="mysql_excel_authorize"
+          action-id="mysql_authorize"
           class="ml-8"
-          @click="handleShowExcelAuthorize">
-          {{ t('导入授权') }}
+          :disabled="!hasSelected"
+          @click="() => handleShowCreateSubscribeRuleSlider()">
+          {{ t('批量订阅') }}
         </AuthButton>
-        <DropdownExportExcel
-          :has-selected="hasSelected"
-          :ids="selectedIds"
-          type="tendbha" />
-      </div>
+      </span>
+      <span
+        v-bk-tooltips="{
+          disabled: hasSelected,
+          content: t('请选择集群')
+        }"
+        class="inline-block">
+        <BkButton
+          class="ml-8"
+          :disabled="!hasSelected"
+          @click="handleShowAuthorize(state.selected)">
+          {{ t('批量授权') }}
+        </BkButton>
+      </span>
+      <AuthButton
+        action-id="mysql_excel_authorize"
+        class="ml-8"
+        @click="handleShowExcelAuthorize">
+        {{ t('导入授权') }}
+      </AuthButton>
+      <DropdownExportExcel
+        :has-selected="hasSelected"
+        :ids="selectedIds"
+        type="tendbha" />
       <DbSearchSelect
-        v-model="state.filters"
-        class="mb-16"
+        v-model="searchValue"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
-        :placeholder="t('域名_IP_模块')"
+        :placeholder="t('请输入或选择条件搜索')"
         style="width: 320px;"
-        unique-select
-        @change="handleSearch" />
+        unique-select />
     </div>
     <div
       class="table-wrapper"
@@ -80,7 +76,9 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
-        @clear-search="handleClearSearch"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
+        @column-sort="columnSortChange"
         @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
@@ -107,10 +105,6 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
 
   import type { MySQLFunctions } from '@services/model/function-controller/functionController';
   import TendbhaModel from '@services/model/mysql/tendbha';
@@ -129,6 +123,7 @@
   import {
     useCopy,
     useInfoWithIcon,
+    useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
     useTicketMessage,
@@ -164,7 +159,10 @@
     isRecentDays,
   } from '@utils';
 
-  import type { SearchSelectItem } from '@/types/bkui-vue';
+  import type {
+    SearchSelectData,
+    SearchSelectItem,
+  } from '@/types/bkui-vue';
 
   interface ColumnData {
     cell: string,
@@ -173,7 +171,6 @@
 
   interface State {
     selected: Array<TendbhaModel>,
-    filters: Array<any>,
     dbModuleList: Array<SearchFilterItem>,
   }
 
@@ -202,6 +199,22 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
 
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+  } = useLinkQueryColumnSerach(ClusterTypes.TENDBHA, [
+    'bk_cloud_id',
+    'db_module_id',
+    'major_version',
+    'region',
+    'time_zone',
+  ], () => fetchData());
+
 
   const tableRef = ref();
   const isShowExcelAuthorize = ref(false);
@@ -212,7 +225,6 @@
 
   const state = reactive<State>({
     selected: [],
-    filters: [],
     dbModuleList: [],
   });
 
@@ -225,29 +237,79 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const hasSelected = computed(() => state.selected.length > 0);
   const selectedIds = computed(() => state.selected.map(item => item.id));
+
   const searchSelectData = computed(() => [
     {
       name: 'ID',
       id: 'id',
     },
     {
-      name: t('主访问入口'),
+      name: 'IP',
+      id: 'ip',
+    },
+    {
+      name: t('实例'),
+      id: 'instance',
+    },
+    {
+      name: t('访问入口'),
       id: 'domain',
     },
     {
-      name: 'IP',
-      id: 'ip',
+      name: t('集群名称'),
+      id: 'name',
+    },
+    {
+      name: t('管控区域'),
+      id: 'bk_cloud_id',
+      multiple: true,
+      children: searchAttrs.value.bk_cloud_id,
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'normal',
+          name: t('正常'),
+        },
+        {
+          id: 'abnormal',
+          name: t('异常'),
+        },
+      ],
+    },
+    {
+      name: t('所属DB模块'),
+      id: 'db_module_id',
+      multiple: true,
+      children: searchAttrs.value.db_module_id,
+    },
+    {
+      name: t('版本'),
+      id: 'major_version',
+      multiple: true,
+      children: searchAttrs.value.major_version,
+    },
+    {
+      name: t('地域'),
+      id: 'region',
+      multiple: true,
+      children: searchAttrs.value.region,
     },
     {
       name: t('创建人'),
       id: 'creator',
     },
     {
-      name: t('模块'),
-      id: 'db_module_id',
-      children: [],
+      name: t('时区'),
+      id: 'time_zone',
+      multiple: true,
+      children: searchAttrs.value.time_zone,
     },
-  ]);
+  ] as SearchSelectData);
+
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
       return isCN.value ? 200 : 280;
@@ -256,8 +318,8 @@
   });
 
   const searchIp = computed<string[]>(() => {
-    const ipObj = state.filters.find(item => item.id === 'ip');
-    if (ipObj) {
+    const ipObj = searchValue.value.find(item => item.id === 'ip');
+    if (ipObj && ipObj.values) {
       return [ipObj.values[0].id];
     }
     return [];
@@ -362,12 +424,27 @@
     {
       label: t('管控区域'),
       field: 'bk_cloud_name',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+      },
       width: 90,
     },
     {
       label: t('状态'),
       field: 'status',
       width: 90,
+      filter: {
+        list: [
+          {
+            value: 'normal',
+            text: t('正常'),
+          },
+          {
+            value: 'abnormal',
+            text: t('异常'),
+          },
+        ],
+      },
       render: ({ data }: ColumnData) => {
         const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
@@ -454,20 +531,29 @@
     },
     {
       label: t('所属DB模块'),
-      field: 'db_module_name',
+      field: 'db_module_id',
       width: 140,
-      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+      filter: {
+        list: columnAttrs.value.db_module_id,
+      },
+      render: ({ data }: ColumnData) => <span>{data.db_module_name || '--'}</span>,
     },
     {
       label: t('版本'),
       field: 'major_version',
       minWidth: 100,
+      filter: {
+        list: columnAttrs.value.major_version,
+      },
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
     {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
+      filter: {
+        list: columnAttrs.value.region,
+      },
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
     {
@@ -477,15 +563,19 @@
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
     {
-      label: t('创建时间'),
+      label: t('部署时间'),
       field: 'create_at',
       width: 200,
+      sort: true,
       render: ({ data }: ColumnData) => <span>{data.createAtDisplay || '--'}</span>,
     },
     {
       label: t('时区'),
       field: 'cluster_time_zone',
       width: 100,
+      filter: {
+        list: columnAttrs.value.time_zone,
+      },
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
     {
@@ -565,7 +655,6 @@
     },
   ]);
 
-  // 设置用户个人表头信息
   const defaultSettings = {
     fields: (columns.value || []).filter(item => item.field).map(item => ({
       label: item.label as string,
@@ -574,6 +663,7 @@
     })),
     checked: (columns.value || []).map(item => item.field).filter(key => !!key && key !== 'id') as string[],
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
 
   const {
@@ -581,15 +671,16 @@
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.TENDBHA_TABLE_SETTINGS, defaultSettings);
 
+
   const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, state.filters);
+      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
     }
 
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
-      const selected = (state.filters || []).map(value => value.id);
+      const selected = (searchValue.value || []).map(value => value.id);
       return searchSelectData.value.filter(item => !selected.includes(item.id));
     }
 
@@ -611,8 +702,8 @@
   };
 
   const fetchData = (loading?:boolean) => {
-    const params = getSearchSelectorParams(state.filters);
-    tableRef.value.fetchData(params, {}, loading);
+    const params = getSearchSelectorParams(searchValue.value);
+    tableRef.value.fetchData(params, { ...sortValue }, loading);
     isInit.value = false;
   };
 
@@ -664,20 +755,12 @@
   });
   fetchModules();
 
-  const handleClearSearch = () => {
-    state.filters = [];
-  };
-
   /**
    * 查看详情
    */
   const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
     clusterId.value = id;
-  };
-
-  const handleSearch = () => {
-    fetchData();
   };
 
   /**
@@ -792,10 +875,11 @@
   .operation-box{
     display: flex;
     flex-wrap: wrap;
+    margin-bottom: 16px;
 
     .bk-search-select {
       flex: 1;
-      max-width: 320px;
+      max-width: 500px;
       min-width: 320px;
       margin-left: auto;
     }

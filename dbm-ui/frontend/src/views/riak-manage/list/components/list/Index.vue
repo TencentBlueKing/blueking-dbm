@@ -25,12 +25,12 @@
         :ids="selectedIds"
         type="riak" />
       <DbSearchSelect
-        v-model="searchValues"
+        v-model="searchValue"
         class="header-action-search-select"
         :data="serachData"
-        :placeholder="t('输入集群名_IP_访问入口关键字')"
-        unique-select
-        @change="() => fetchData()" />
+        :get-menu-list="getMenuList"
+        :placeholder="t('请输入或选择条件搜索')"
+        unique-select />
       <BkDatePicker
         v-model="deployTime"
         append-to-body
@@ -47,8 +47,9 @@
       :data-source="getRiakList"
       :row-class="setRowClass"
       selectable
-      @column-filter="handleColunmFilter"
-      @colunm-sort="fetchData"
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
       @selection="handleSelection" />
     <DbSideslider
       v-if="detailData"
@@ -74,7 +75,6 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
@@ -85,15 +85,17 @@
     getRiakList,
   } from '@services/source/riak';
   import { createTicket } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
 
   import {
+    useLinkQueryColumnSerach,
     useStretchLayout,
     useTicketMessage,
   } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
@@ -104,10 +106,18 @@
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
-  import { getSearchSelectorParams } from '@utils';
+  import {
+    getMenuListSearch,
+    getSearchSelectorParams,
+  } from '@utils';
 
   import AddNodes from '../components/AddNodes.vue';
   import DeleteNodes from '../components/DeleteNodes.vue';
+
+  import type {
+    SearchSelectData,
+    SearchSelectItem,
+  } from '@/types/bkui-vue';
 
   interface Emits {
     (e: 'detailOpenChange', data: boolean): void
@@ -129,28 +139,94 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
   const ticketMessage = useTicketMessage();
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+  } = useLinkQueryColumnSerach(ClusterTypes.RIAK, [
+    'bk_cloud_id',
+    'db_module_id',
+    'major_version',
+    'region',
+    'time_zone',
+  ], () => fetchData());
 
-  const serachData = [
+  const serachData = computed(() => [
     {
       name: 'ID',
       id: 'id',
     },
     {
-      name: t('集群名'),
+      name: t('集群名称'),
       id: 'name',
+      logical: ',',
+    },
+    {
+      name: 'IP',
+      id: 'ip',
+      logical: ',',
+    },
+    {
+      name: t('实例'),
+      id: 'instance',
+      logical: ',',
     },
     {
       name: t('创建人'),
       id: 'creator',
     },
     {
-      name: 'IP',
-      id: 'ip',
+      name: t('模块'),
+      id: 'db_module_id',
+      multiple: true,
+      children: searchAttrs.value.db_module_id,
     },
-  ];
+    {
+      name: t('管控区域'),
+      id: 'bk_cloud_id',
+      multiple: true,
+      children: searchAttrs.value.bk_cloud_id,
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'normal',
+          name: t('正常'),
+        },
+        {
+          id: 'abnormal',
+          name: t('异常'),
+        },
+      ],
+    },
+    {
+      name: t('版本'),
+      id: 'major_version',
+      multiple: true,
+      children: searchAttrs.value.major_version,
+    },
+    {
+      name: t('地域'),
+      id: 'region',
+      multiple: true,
+      children: searchAttrs.value.region,
+    },
+    {
+      name: t('时区'),
+      id: 'time_zone',
+      multiple: true,
+      children: searchAttrs.value.time_zone,
+    },
+  ] as SearchSelectData);
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const searchValues = ref<ISearchValue[]>([]);
   const deployTime = ref<[string, string]>(['', '']);
   const addNodeShow = ref(false);
   const deleteNodeShow = ref(false);
@@ -161,7 +237,7 @@
   const selectedIds = computed(() => selected.value.map(item => item.id));
 
   const searchIp = computed<string[]>(() => {
-    const ipObj = searchValues.value.find(item => item.id === 'ip');
+    const ipObj = searchValue.value.find(item => item.id === 'ip');
     if (ipObj && ipObj.values) {
       return [ipObj.values[0].id];
     }
@@ -218,7 +294,9 @@
       label: t('版本'),
       field: 'major_version',
       width: 80,
-      sort: true,
+      filter: {
+        list: columnAttrs.value.major_version,
+      },
       render: ({ data }: { data: RiakModel }) => <span>{data.major_version || '--'}</span>,
     },
     {
@@ -226,19 +304,36 @@
       field: 'db_module_name',
       width: 140,
       showOverflowTooltip: true,
+      filter: {
+        list: columnAttrs.value.db_module_id,
+      },
       render: ({ data }: { data: RiakModel }) => <span>{data.db_module_name || '--'}</span>,
     },
     {
       label: t('管控区域'),
       width: 120,
       field: 'bk_cloud_name',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+      },
       render: ({ data }: { data: RiakModel }) => <span>{data.bk_cloud_name || '--'}</span>,
     },
     {
       label: t('状态'),
       field: 'status',
-      sort: true,
       width: 100,
+      filter: {
+        list: [
+          {
+            value: 'normal',
+            text: t('正常'),
+          },
+          {
+            value: 'abnormal',
+            text: t('异常'),
+          },
+        ],
+      },
       render: ({ data }: { data: RiakModel }) => <RenderClusterStatus data={data.status} />,
     },
     {
@@ -340,6 +435,35 @@
   watch(isStretchLayoutOpen, (newVal) => {
     emits('detailOpenChange', newVal);
   });
+
+  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+    if (item?.id !== 'creator' && keyword) {
+      return getMenuListSearch(item, keyword, serachData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map(value => value.id);
+      return serachData.value.filter(item => !selected.includes(item.id));
+    }
+
+    // 远程加载执行人
+    if (item.id === 'creator') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then(res => res.results.map(item => ({
+        id: item.username,
+        name: item.username,
+      })));
+    }
+
+    // 不需要远层加载
+    return serachData.value.find(set => set.id === item.id)?.children || [];
+  };
 
   const setRowClass = (row: RiakModel) => {
     const classList = [];
@@ -486,7 +610,7 @@
   } = {}) => {
     const params = {
       ...otherParamas,
-      ...getSearchSelectorParams(searchValues.value),
+      ...getSearchSelectorParams(searchValue.value),
     };
     const [startTime, endTime] = deployTime.value;
     if (startTime && endTime) {
@@ -496,11 +620,7 @@
       });
     }
 
-    tableRef.value!.fetchData({ ...params }, {});
-  };
-
-  const handleColunmFilter = ({ checked }: { checked: string[] }) => {
-    fetchData({ status: checked.join(',') });
+    tableRef.value!.fetchData({ ...params }, sortValue);
   };
 
   onMounted(() => {
