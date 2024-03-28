@@ -38,6 +38,10 @@ export default class Operation {
   create_time: string;
   operation_type: string;
   operator: string;
+  permission: {
+    flow_detail: boolean;
+    ticket_view: boolean;
+  };
   request_id: string;
   status: string;
   task_id: string;
@@ -52,6 +56,7 @@ export default class Operation {
     this.create_time = payload.create_time;
     this.operation_type = payload.operation_type;
     this.operator = payload.operator;
+    this.permission = payload.permission;
     this.request_id = payload.request_id;
     this.status = payload.status;
     this.task_id = payload.task_id;

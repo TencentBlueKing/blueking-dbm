@@ -41,6 +41,7 @@ export default class MonitorPolicy {
   policy_status: string; // 策略状态：valid(正常)|invalid（异常）
   parent_id: number;
   permission: {
+    global_monitor_policy_clone: boolean;
     global_monitor_policy_edit: boolean;
     global_monitor_policy_start_stop: boolean;
     monitor_policy_alarm_view: boolean;

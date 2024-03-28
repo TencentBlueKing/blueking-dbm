@@ -126,7 +126,7 @@
       label: t('操作时间'),
       field: 'update_time',
       fixed: true,
-      width: 170,
+      width: 200,
       sort: true,
       render: ({ data }: {data: OperationModel}) => data.updateTimeDisplay,
     },
@@ -152,7 +152,10 @@
       field: 'ticket_id',
       width: 170,
       render: ({ data }: {data: OperationModel}) => (data.ticket_id
-        ? <router-link
+        ? <auth-router-link
+            action-id="ticket_view"
+            resource={data.ticket_id}
+            permission={data.permission.ticket_view}
             to={{
               name: 'SelfServiceMyTickets',
               query: {
@@ -161,7 +164,7 @@
             }}
             target="_blank">
             {data.ticket_id}
-          </router-link>
+          </auth-router-link>
         : '--')
       ,
     },
@@ -169,7 +172,10 @@
       label: t('关联任务'),
       field: 'task_id',
       render: ({ data }: {data: OperationModel}) => (data.task_id
-        ? <router-link
+        ? <auth-router-link
+            action-id="flow_detail"
+            resource={data.task_id}
+            permission={data.permission.flow_detail}
             to={{
               name: 'taskHistoryDetail',
               params: {
@@ -181,7 +187,7 @@
             }}
             target="_blank">
             {data.task_id}
-          </router-link>
+          </auth-router-link>
         : '--'),
     },
     {

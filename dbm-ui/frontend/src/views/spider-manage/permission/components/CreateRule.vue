@@ -391,7 +391,7 @@
     }
     const params = {
       ...formDataClone,
-      bizId: window.PROJECT_CONFIG.BIZ_ID,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       access_db: formdata.value.access_db.replace(replaceReg, ','), // 统一分隔符
       account_type: TENDBCLUSTER,
     };

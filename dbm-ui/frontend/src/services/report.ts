@@ -48,26 +48,26 @@ export const getmysqlCheckFullBackup = function (params: Record<string, any>, pa
 };
 
 // dbmon心跳超时检查报告
-export const getDbmonHeartbeat = function (params: Record<string, any>) {
-  return http.get<IResult>('/db_report/dbmon/heartbeat', params);
+export const getDbmonHeartbeat = function (params: Record<string, any>, payload = {} as IRequestPayload) {
+  return http.get<IResult>('/db_report/dbmon/heartbeat', params, payload);
 };
 
 // redis binlog检查报告
-export const getRedisCheckBinlogBackup = function (params: Record<string, any>) {
-  return http.get<IResult>('/db_report/redis_check/binlog_backup', params);
+export const getRedisCheckBinlogBackup = function (params: Record<string, any>, payload = {} as IRequestPayload) {
+  return http.get<IResult>('/db_report/redis_check/binlog_backup', params, payload);
 };
 
 // redis 全备检查报告
-export const getRedisCheckFullBackup = function (params: Record<string, any>) {
-  return http.get<IResult>('/db_report/redis_check/full_backup', params);
+export const getRedisCheckFullBackup = function (params: Record<string, any>, payload = {} as IRequestPayload) {
+  return http.get<IResult>('/db_report/redis_check/full_backup', params, payload);
 };
 
 // redis 孤立节点检查报告
-export const getRedisMetaCheckAloneInstance = function (params: Record<string, any>) {
-  return http.get<IResult>('/db_report/redis_meta_check/alone_instance', params);
+export const getRedisMetaCheckAloneInstance = function (params: Record<string, any>, payload = {} as IRequestPayload) {
+  return http.get<IResult>('/db_report/redis_meta_check/alone_instance', params, payload);
 };
 
 // 实例状态异常检查
-export const getRedisMetaCheckStatusAbnormal = function (params: Record<string, any>) {
-  return http.get<IResult>('/db_report/redis_meta_check/status_abnormal', params);
+export const getRedisMetaCheckStatusAbnormal = function (params: Record<string, any>, payload = {} as IRequestPayload) {
+  return http.get<IResult>('/db_report/redis_meta_check/status_abnormal', params, payload);
 };

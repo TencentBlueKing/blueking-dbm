@@ -10,6 +10,11 @@ export default class DirtyMachines {
   ticket_type: string;
   ticket_type_display: string;
   operator: string;
+  permission: {
+    dirty_pool_manage: boolean;
+    flow_detail: boolean;
+    ticket_view: boolean;
+  };
 
   constructor(payload = {} as DirtyMachines) {
     this.bk_biz_id = payload.bk_biz_id;
@@ -23,5 +28,6 @@ export default class DirtyMachines {
     this.ticket_type = payload.ticket_type;
     this.ticket_type_display = payload.ticket_type_display;
     this.operator = payload.operator;
+    this.permission = payload.permission;
   }
 }

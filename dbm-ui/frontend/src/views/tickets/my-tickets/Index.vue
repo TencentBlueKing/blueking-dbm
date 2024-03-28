@@ -17,7 +17,9 @@
     <div
       v-if="activeTicket?.id"
       class="ticket-detail-wrapper db-scroll-y">
-      <Details :data="activeTicket" />
+      <Details
+        :key="activeTicket?.id"
+        :data="activeTicket" />
     </div>
   </div>
 </template>

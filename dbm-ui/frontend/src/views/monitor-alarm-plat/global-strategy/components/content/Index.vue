@@ -27,8 +27,7 @@
           ref="tableRef"
           class="table-box"
           :columns="columns"
-          :data-source="queryMonitorPolicyList"
-          releate-url-query
+          :data-source="dataSource"
           :row-class="updateRowClass"
           :settings="settings"
           @clear-search="handleClearSearch" />
@@ -70,6 +69,10 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) => queryMonitorPolicyList(params, {
+    permission: 'catch'
+  })
 
   const tableRef = ref();
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
@@ -121,12 +124,15 @@
       minWidth: 150,
       render: ({ data }: { data: MonitorPolicyModel }) => (
         <span>
-          <bk-button
+          <auth-button
+            action-id="global_monitor_policy_edit"
+            resource={data.id}
+            permission={data.permission.global_monitor_policy_edit}
             text
             theme="primary"
             onClick={() => handleEdit(data)}>
             {data.name}
-          </bk-button>
+          </auth-button>
           {data.isNewCreated && <MiniTag theme='success' content="NEW" />}
         </span>
       ),
@@ -141,7 +147,7 @@
       label: t('默认通知对象'),
       field: 'notify_groups',
       showOverflowTooltip: true,
-      width: 130,
+      width: 180,
       render: () => (
         <span class="notify-box">
           <db-icon type="yonghuzu" style="font-size: 16px;color: #979BA5" />
@@ -153,7 +159,7 @@
       field: 'update_at',
       showOverflowTooltip: true,
       sort: true,
-      width: 180,
+      width: 220,
       render: ({ data }: { data: MonitorPolicyModel }) => <span>{data.updateAtDisplay}</span>,
     },
     {
@@ -178,8 +184,11 @@
         onConfirm={() => handleClickConfirm(data)}
         onCancel={() => handleCancelConfirm(data)}
       >
-        <bk-switcher
+        <auth-switcher
           v-model={data.is_enabled}
+          action-id="global_monitor_policy_start_stop"
+          resource={data.id}
+          permission={data.permission.global_monitor_policy_start_stop}
           size="small"
           theme="primary"
           onChange={() => handleChangeSwitch(data)} />
@@ -193,14 +202,16 @@
       field: '',
       width: 120,
       render: ({ data }: { data: MonitorPolicyModel }) => (
-      <div class="operate-box">
-        <bk-button
+        <auth-button
+          action-id="global_monitor_policy_edit"
+          resource={data.id}
+          permission={data.permission.global_monitor_policy_edit}
           text
           theme="primary"
           onClick={() => handleEdit(data)}>
           {t('编辑')}
-        </bk-button>
-      </div>),
+        </auth-button>
+      ),
     },
   ];
 

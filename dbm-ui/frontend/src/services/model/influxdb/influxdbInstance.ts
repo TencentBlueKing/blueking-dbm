@@ -35,13 +35,16 @@ export default class InfluxDBInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
+  cpu: number;
   create_at: string;
-  restart_at: string;
-  update_at: string;
-  domain: string;
+  creator: string;
+  disk: number;
+  group_id: null | number;
+  group_name: null | string;
   id: number;
   instance_address: string;
   instance_name: string;
+  mem: number;
   operations: Array<{
     flow_id: number;
     instance_id: number;
@@ -51,41 +54,41 @@ export default class InfluxDBInstance {
     ticket_type: string;
     title: string;
   }>;
+  permission: {
+    influxdb_destroy: boolean;
+    influxdb_enable_disable: boolean;
+    influxdb_reboot: boolean;
+    influxdb_replace: boolean;
+    influxdb_view: boolean;
+  };
+  phase: string;
+  restart_at: string;
   role: string;
   status: string;
-  group_id: null | number;
-  group_name: null | string;
-  creator: string;
-  phase: string;
-  disk: number;
-  cpu: number;
-  mem: number;
-  permission: Record<
-    'influxdb_view' | 'influxdb_enable_disable' | 'influxdb_destroy' | 'influxdb_replace' | 'influxdb_reboot',
-    boolean
-  >;
+  update_at: string;
+  version: string;
 
   constructor(payload = {} as InfluxDBInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
+    this.cpu = payload.cpu;
     this.create_at = payload.create_at;
-    this.restart_at = payload.restart_at;
-    this.update_at = payload.update_at;
-    this.domain = payload.domain;
+    this.creator = payload.creator;
+    this.disk = payload.disk;
+    this.group_id = payload.group_id;
+    this.group_name = payload.group_name;
     this.id = payload.id;
     this.instance_address = payload.instance_address;
     this.instance_name = payload.instance_name;
+    this.mem = payload.mem;
+    this.permission = payload.permission;
+    this.phase = payload.phase;
+    this.restart_at = payload.restart_at;
     this.role = payload.role;
     this.status = payload.status;
-    this.group_id = payload.group_id;
-    this.group_name = payload.group_name;
-    this.creator = payload.creator;
-    this.phase = payload.phase;
-    this.disk = payload.disk;
-    this.mem = payload.mem;
-    this.cpu = payload.cpu;
-    this.permission = payload.permission || {};
+    this.update_at = payload.update_at;
+    this.version = payload.version;
 
     this.operations = this.initOperations(payload.operations);
   }

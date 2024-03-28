@@ -255,13 +255,13 @@ export function queryTicketFlowDescribe(params: {
   limit?: number,
   offset?: number,
 }) {
-  return http.get<ListBase<TicketFlowDescribeModel[]>>(`${path}/query_ticket_flow_describe/`, params).then((data) => ({
-    ...data,
-    results: data.results.map(
+  return http.get<ListBase<TicketFlowDescribeModel[]>>(`${path}/query_ticket_flow_describe/`, params).then((result) => ({
+    ...result,
+    results: result.results.map(
       (item) =>
         new TicketFlowDescribeModel(
           Object.assign(item, {
-            permission: Object.assign({}, item.permission, data.permission),
+            permission: Object.assign({}, item.permission, result.permission),
           }),
         ),
     ),

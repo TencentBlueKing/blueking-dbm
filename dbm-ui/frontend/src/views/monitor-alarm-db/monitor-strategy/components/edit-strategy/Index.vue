@@ -198,7 +198,7 @@
     data: MonitorPolicyModel,
     bizsMap: Record<string, string>,
     dbType: string,
-    alarmGroupList: SelectItem<number>[],
+    alarmGroupList: SelectItem<string>[],
     alarmGroupNameMap: Record<string, string>,
     moduleList: SelectItem<string>[],
     clusterList: SelectItem<string>[],
