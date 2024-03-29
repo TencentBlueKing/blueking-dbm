@@ -166,7 +166,7 @@ class MongoDBReduceMongoSView(FlowTestView):
         return Response({"root_id": root_id})
 
 
-class MongoDBDeInstallSView(FlowTestView):
+class MongoDBDeInstallView(FlowTestView):
     """
     mongodb卸载
     """
@@ -178,7 +178,7 @@ class MongoDBDeInstallSView(FlowTestView):
         return Response({"root_id": root_id})
 
 
-class MongoDBScaleSView(FlowTestView):
+class MongoDBScaleView(FlowTestView):
     """
     mongodb容量变更
     """
@@ -187,4 +187,28 @@ class MongoDBScaleSView(FlowTestView):
     def post(request):
         root_id = uuid.uuid1().hex
         MongoDBController(root_id=root_id, ticket_data=request.data).scale_cluster()
+        return Response({"root_id": root_id})
+
+
+class MongoDBIncreaseNodeView(FlowTestView):
+    """
+    mongodb增加node
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).increase_node()
+        return Response({"root_id": root_id})
+
+
+class MongoDBReduceNodeView(FlowTestView):
+    """
+    mongodb减少node
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).reduce_node()
         return Response({"root_id": root_id})

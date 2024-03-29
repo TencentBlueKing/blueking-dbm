@@ -137,19 +137,21 @@ func (r *MongoDReplace) Init(runtime *jobruntime.JobGenericRuntime) error {
 	r.StatusCh = make(chan int, 1)
 
 	// 获取源端的配置信息
-	_, _, _, hidden, priority, _, err := common.GetNodeInfo(r.Mongo, r.PrimaryIP, r.PrimaryPort,
-		r.ConfParams.AdminUsername, r.ConfParams.AdminPassword, r.ConfParams.SourceIP, r.ConfParams.SourcePort)
-	if err != nil {
-		return err
+	if r.ConfParams.SourceIP != "" {
+		_, _, _, hidden, priority, _, err := common.GetNodeInfo(r.Mongo, r.PrimaryIP, r.PrimaryPort,
+			r.ConfParams.AdminUsername, r.ConfParams.AdminPassword, r.ConfParams.SourceIP, r.ConfParams.SourcePort)
+		if err != nil {
+			return err
+		}
+		r.TargetPriority = priority
+		r.TargetHidden = hidden
 	}
-	r.TargetHidden = hidden
 	if r.ConfParams.TargetHidden == "0" {
 		r.TargetHidden = false
 	} else if r.ConfParams.TargetHidden == "1" {
 		r.TargetHidden = true
 	}
 
-	r.TargetPriority = priority
 	if r.ConfParams.TargetPriority != "" {
 		r.TargetPriority, _ = strconv.Atoi(r.ConfParams.TargetPriority)
 	}
@@ -359,7 +361,7 @@ func (r *MongoDReplace) checkTargetStatusAndRemoveSource() error {
 		case <-time.After(50 * time.Second):
 			return fmt.Errorf("check target status timeout")
 		case status := <-r.StatusCh:
-			if status == 2 && r.ConfParams.SourceDown == false {
+			if status == 2 && r.ConfParams.SourceDown == false && r.ConfParams.SourceIP != "" {
 				if err := r.shutdownSourceProcess(); err != nil {
 					return err
 				}

@@ -19,6 +19,7 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_restart import Mo
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_remove_ns import MongoRemoveNsFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_replace import MongoReplaceFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_restore import MongoRestoreFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_node import MongoScaleNodeFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_storage import MongoScaleFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_user import MongoUserFlow
 from backend.flow.engine.controller.base import BaseController
@@ -147,3 +148,19 @@ class MongoDBController(BaseController):
 
         flow = MongoScaleFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_cluster_scale_flow()
+
+    def increase_node(self):
+        """
+        增加node数
+        """
+
+        flow = MongoScaleNodeFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_scale_node_flow(increase=True)
+
+    def reduce_node(self):
+        """
+        减少node数
+        """
+
+        flow = MongoScaleNodeFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_scale_node_flow(increase=False)

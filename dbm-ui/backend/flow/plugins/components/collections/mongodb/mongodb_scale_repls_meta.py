@@ -183,7 +183,7 @@ class MongoScaleReplsMetaService(BaseService):
             machine_exist = Machine.objects.filter(
                 bk_biz_id=cluster.bk_biz_id, ip=scale_item["ip"], bk_cloud_id=cluster.bk_cloud_id
             ).exists()
-            if scale_item.get("reuse_machine", False) and not machine_exist:
+            if not machine_exist:
                 api.machine.create(
                     machines=[
                         {
@@ -196,16 +196,6 @@ class MongoScaleReplsMetaService(BaseService):
                     ],
                     bk_cloud_id=cluster.bk_cloud_id,
                     creator=created_by,
-                )
-            else:
-                raise Exception(
-                    "machine will not create reuseFlag:{} and machineExist:{} bizID:{};IP:{};CloudID:{}".format(
-                        scale_item.get("reuse_machine", False),
-                        machine_exist,
-                        cluster.bk_biz_id,
-                        scale_item["ip"],
-                        cluster.bk_cloud_id,
-                    )
                 )
             mongo_obj = api.storage_instance.create(
                 instances=[{"ip": scale_item["ip"], "port": scale_item["port"], "instance_role": role}],
@@ -231,8 +221,9 @@ class MongoScaleReplsMetaService(BaseService):
             cluster.storageinstance_set.add(mongo_obj)
 
             # storageinstance_bind_entry 增加记录
-            tmp_entries = m1_obj.bind_entry.all()
-            mongo_obj.bind_entry.add(*tmp_entries)
+            if m1_obj.cluster_type != ClusterType.MongoReplicaSet.value:
+                tmp_entries = m1_obj.bind_entry.all()
+                mongo_obj.bind_entry.add(*tmp_entries)
 
             is_increment = False
             if m1_obj.cluster_type == ClusterType.MongoReplicaSet.value:
@@ -246,6 +237,9 @@ class MongoScaleReplsMetaService(BaseService):
                 )
                 cluster_entry.storageinstance_set.add(
                     StorageInstance.objects.get(machine__ip=scale_item["ip"], port=scale_item["port"])
+                )
+                logger.info(
+                    "add domain {}:{} 2 add_node:info::: {} done".format(mongo_obj, cluster.immute_domain, scale_item)
                 )
                 cluster_entry.save()
             # 转移模块
