@@ -67,6 +67,10 @@ func (d *DeployMySQLAct) Init() (err error) {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
+	if err = d.DeserializeNonSensitivePayload(&d.Service.MySQLConfigParams); err != nil {
+		logger.Error("DeserializeAndValidate failed, %v", err)
+		return err
+	}
 	d.Service.GeneralParam = subcmd.GeneralRuntimeParam
 	return d.Service.InitDefaultParam()
 }

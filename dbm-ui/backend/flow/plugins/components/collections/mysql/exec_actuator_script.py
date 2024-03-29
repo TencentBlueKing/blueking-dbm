@@ -101,12 +101,17 @@ class ExecuteDBActuatorScriptService(BkJobService):
         db_act_template["node_id"] = node_id
         db_act_template["version_id"] = self._runtime_attrs.get("version")
         db_act_template["uid"] = global_data["uid"]
-
-        # 拼接mysql系统账号固定参数
         if "general" in db_act_template["payload"]:
             db_act_template["payload"]["general"].update(
                 {"runtime_extend": {"mysql_sys_users": get_mysql_sys_users(kwargs["bk_cloud_id"])}}
             )
+
+        # mycnf_configs 参数很多，放到非敏感参数去处理
+        if "mycnf_configs" in db_act_template["payload"]["extend"]:
+            db_act_template["non_sensitive_payload"] = base64_encode(
+                json.dumps({"mycnf_configs": db_act_template["payload"]["extend"].get("mycnf_configs", "")})
+            )
+            del db_act_template["payload"]["extend"]["mycnf_configs"]
 
         # payload参数转换base64格式
         db_act_template["payload"] = base64_encode(json.dumps(db_act_template["payload"]))

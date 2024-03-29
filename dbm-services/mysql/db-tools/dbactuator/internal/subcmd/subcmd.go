@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -53,14 +54,15 @@ func init() {
 	此参数是json字符串的base64编码之后的字符串
 */
 type BaseOptions struct {
-	Uid           string
-	RootId        string
-	NodeId        string
-	VersionId     string
-	Payload       string
-	PayloadFormat string
-	RollBack      bool
-	Helper        bool
+	Uid                 string
+	RootId              string
+	NodeId              string
+	VersionId           string
+	Payload             string
+	PayloadFormat       string
+	NotSensitivePayload string
+	RollBack            bool
+	Helper              bool
 	// 是否为外部版本
 	// on ON
 	External string
@@ -191,6 +193,25 @@ func Deserialize(s interface{}) (p *BaseOptions, err error) {
 	return GBaseOptions, nil
 }
 
+// DeserializeNonSensitivePayload 反序列化非敏感payload,不校验参数
+func (b *BaseOptions) DeserializeNonSensitivePayload(s interface{}) (err error) {
+	var bp []byte
+	if cmutil.IsEmpty(b.NotSensitivePayload) {
+		return errors.New("non-sensitive payload need input")
+	}
+	bp, err = base64.StdEncoding.DecodeString(b.NotSensitivePayload)
+	if err != nil {
+		return err
+	}
+	logger.Local("DeserializeSimple not sensitive payload body: %s", b.NotSensitivePayload)
+	if err = json.Unmarshal(bp, &s); err != nil {
+		logger.Error("json.Unmarshal failed, %v", s, err)
+		err = errors.WithMessage(err, "error in resolving parameter")
+		return err
+	}
+	return nil
+}
+
 // Deserialize 反序列化payload,并校验参数
 //
 //	ps: 参数校验 from golang validate v10
@@ -266,7 +287,7 @@ func (b *BaseOptions) DeserializeSimple(s interface{}) (err error) {
 	return nil
 }
 
-// Validate TODO
+// Validate validate payload
 func (b *BaseOptions) Validate() (err error) {
 	if len(b.Payload) == 0 {
 		return fmt.Errorf("payload need input")
@@ -274,7 +295,7 @@ func (b *BaseOptions) Validate() (err error) {
 	return nil
 }
 
-// OutputCtx TODO
+// OutputCtx  output ctx
 //
 //	@receiver b
 func (b *BaseOptions) OutputCtx(ctx string) {
@@ -326,7 +347,7 @@ func SetLogger(cmd *cobra.Command, opt *BaseOptions) {
 	defer logger.Sync()
 }
 
-// ValidateSubCommand TODO
+// ValidateSubCommand validate sub command
 func ValidateSubCommand() func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if len(args) <= 0 {
