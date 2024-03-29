@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -38,11 +39,18 @@ type Allocation struct {
 
 // Conn TODO
 func (o EsInsObject) Conn() (*elasticsearch.Client, error) {
+	username := os.Getenv("ES_USERNAME")
+	password := os.Getenv("ES_PASSWORD")
+	if username == "" || password == "" {
+		err := errors.New("环境变量ES_USERNAME、ES_PASSWORD为空，或不存在")
+		return nil, err
+
+	}
 	return elasticsearch.NewClient(
 		elasticsearch.Config{
 			Addresses: []string{fmt.Sprintf("http://%s:%d", o.Host, o.HTTPPort)},
-			Username:  o.UserName,
-			Password:  o.Password,
+			Username:  username,
+			Password:  password,
 		})
 }
 
