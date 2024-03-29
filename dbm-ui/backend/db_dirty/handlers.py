@@ -76,7 +76,8 @@ class DBDirtyMachineHandler(object):
                 "page": {"start": 0, "limit": 500, "sort": "bk_host_id"},
                 "host_property_filter": host_property_filter,
                 "fields": ["bk_host_id", "bk_cloud_id", "bk_host_innerip"],
-            }
+            },
+            use_admin=True,
         )["info"]
 
         # 获取空闲机模块，资源池模块和污点池模块
