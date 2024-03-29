@@ -11,8 +11,10 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
+from datetime import datetime
 from typing import Dict, Optional
 
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
@@ -22,10 +24,6 @@ from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import InstanceStatus, MediumEnum, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
-    build_surrounding_apps_sub_flow,
-    install_mysql_in_cluster_sub_flow,
-)
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_rollback_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import (
@@ -33,6 +31,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import 
     rollback_remote_and_backupid,
     rollback_remote_and_time,
 )
+from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -42,6 +41,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, ExecAct
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -85,6 +85,7 @@ class MySQLRollbackDataFlow(object):
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["cluster_type"] = cluster_class.cluster_type
             self.data["uid"] = self.ticket_data["uid"]
+            self.data["city"] = info["city"]
             self.data["package"] = Package.get_latest_package(
                 version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
             ).name
@@ -95,59 +96,26 @@ class MySQLRollbackDataFlow(object):
                 db_module_id=self.data["db_module_id"],
                 cluster_type=self.data["cluster_type"],
             )
-
+            #  todo 之前安装流程整改为调用统一的单节点安装流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            install_ticket = copy.deepcopy(self.data)
+            datetime_str = datetime.strftime(datetime.now(), "%Y%m%d%H%M%S%f")
+            cluster_name = "{}-{}".format(cluster_class.name, datetime_str)
+            if len(cluster_name) > 48:
+                cluster_name = get_random_string(24)
+            master_domain = "tmpdb.{}.dba.db".format(cluster_name)
+            install_ticket["start_mysql_port"] = master.port
+            install_ticket["inst_num"] = 1
+            install_ticket["ticket_type"] = TicketType.MYSQL_SINGLE_APPLY.value
+            install_ticket["resource_spec"] = {}
+            # install_ticket["resource_spec"] = {"single": {id: 2, "xxx": "xxx"}}
+            install_ticket["apply_infos"] = [
+                {"new_ip": self.data["bk_rollback"], "clusters": [{"name": cluster_name, "master": master_domain}]}
+            ]
             sub_pipeline.add_sub_pipeline(
-                sub_flow=install_mysql_in_cluster_sub_flow(
-                    uid=self.ticket_data["uid"],
-                    root_id=self.root_id,
-                    cluster=cluster_class,
-                    new_mysql_list=[self.data["rollback_ip"]],
-                    install_ports=[master.port],
-                )
-            )
-            cluster = {
-                "install_ip": self.data["rollback_ip"],
-                "cluster_ids": [cluster_class.id],
-                "package": self.data["package"],
-            }
-            sub_pipeline.add_act(
-                act_name=_("写入初始化实例的db_meta元信息"),
-                act_component_code=MySQLDBMetaComponent.code,
-                kwargs=asdict(
-                    DBMetaOPKwargs(
-                        db_meta_class_func=MySQLDBMeta.slave_recover_add_instance.__name__,
-                        cluster=copy.deepcopy(cluster),
-                        is_update_trans_data=False,
-                    )
-                ),
-            )
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=cluster_class.bk_cloud_id,
-                    master_ip_list=None,
-                    slave_ip_list=[self.data["rollback_ip"]],
-                    root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(self.data),
-                    is_init=True,
-                    cluster_type=ClusterType.TenDBHA.value,
-                    is_install_backup=False,
-                    is_install_monitor=False,
-                )
+                MySQLSingleApplyFlow(root_id=self.root_id, data=install_ticket).deploy_mysql_single_flow()
             )
 
-            exec_act_kwargs = ExecActuatorKwargs(
-                cluster=cluster,
-                bk_cloud_id=cluster_class.bk_cloud_id,
-                cluster_type=cluster_class.cluster_type,
-                get_mysql_payload_func=MysqlActPayload.get_install_tmp_db_backup_payload.__name__,
-            )
-            exec_act_kwargs.exec_ip = [self.data["rollback_ip"]]
-            sub_pipeline.add_act(
-                act_name=_("安装临时备份程序"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
             mycluster = {
                 "name": cluster_class.name,
                 "cluster_id": cluster_class.id,

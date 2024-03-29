@@ -110,6 +110,9 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 db_module_id=self.data["db_module_id"],
                 cluster_type=self.data["cluster_type"],
             )
+            bk_host_ids = []
+            if "bk_new_slave" in self.data.keys():
+                bk_host_ids.append(self.data["bk_new_slave"]["bk_host_id"])
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             #  获取信息
             # 整机安装数据库
@@ -122,6 +125,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     cluster=cluster_class,
                     new_mysql_list=[self.data["new_slave_ip"]],
                     install_ports=self.data["ports"],
+                    bk_host_ids=bk_host_ids,
                 )
             )
 
@@ -193,7 +197,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     )
                 )
                 sync_data_sub_pipeline.add_act(
-                    act_name=_("同步数据完毕,写入数据节点的主从关系相关元数据"),
+                    act_name=_("同步数据完毕,写入数据节点的主从关系相关元数据,设置新节点为running状态"),
                     act_component_code=MySQLDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(

@@ -114,6 +114,12 @@ class MySQLMigrateClusterFlow(object):
                 db_module_id=self.data["db_module_id"],
                 cluster_type=self.data["cluster_type"],
             )
+            bk_host_ids = []
+            if "bk_new_slave" in self.data.keys():
+                bk_host_ids.append(self.data["bk_new_slave"]["bk_host_id"])
+            if "bk_new_master" in self.data.keys():
+                bk_host_ids.append(self.data["bk_new_master"]["bk_host_id"])
+
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             # 整机安装数据库
             install_sub_pipeline_list = []
@@ -125,6 +131,7 @@ class MySQLMigrateClusterFlow(object):
                     cluster=cluster_class,
                     new_mysql_list=[self.data["new_slave_ip"], self.data["new_master_ip"]],
                     install_ports=self.data["ports"],
+                    bk_host_ids=bk_host_ids,
                 )
             )
 

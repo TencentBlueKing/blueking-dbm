@@ -876,13 +876,17 @@ class MySQLDBMeta(object):
                 bk_cloud_id=self.cluster["bk_cloud_id"],
                 port_list=[self.cluster["master_port"]],
             )
-            #  安装时候已经写入
-            # api.cluster.tendbha.storage_tuple.add_storage_tuple(
-            #     master_ip=self.cluster["new_master_ip"],
-            #     slave_ip=self.cluster["new_slave_ip"],
-            #     bk_cloud_id=self.cluster["bk_cloud_id"],
-            #     port_list=[self.cluster["master_port"]],
-            # )
+            # 数据恢复完毕,修改新实例为running状态
+            new_master_storage = StorageInstance.objects.get(
+                machine__ip=self.cluster["new_master_ip"], machine__bk_cloud_id=self.cluster["bk_cloud_id"]
+            )
+            new_master_storage.status = InstanceStatus.RUNNING.value
+            new_master_storage.save()
+            new_slave_storage = StorageInstance.objects.get(
+                machine__ip=self.cluster["new_slave_ip"], machine__bk_cloud_id=self.cluster["bk_cloud_id"]
+            )
+            new_slave_storage.status = InstanceStatus.RUNNING.value
+            new_slave_storage.save()
 
     def uninstall_instance(self):
         """
