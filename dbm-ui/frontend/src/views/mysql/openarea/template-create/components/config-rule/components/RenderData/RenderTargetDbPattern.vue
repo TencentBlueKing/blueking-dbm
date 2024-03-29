@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="modelValue"
-      :placeholder="t('可使用全局变量，如：{test}')"
+      :placeholder="t('可使用全局变量，如_test', { var: '{test}'})"
       :rules="rules" />
   </div>
 </template>
