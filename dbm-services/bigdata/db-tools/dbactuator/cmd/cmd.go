@@ -20,6 +20,7 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd/kafkacmd"
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd/pulsarcmd"
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd/sysinitcmd"
+	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd/vmcmd"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/templates"
 	"dbm-services/common/go-pubpkg/logger"
@@ -147,6 +148,12 @@ func NewDbActuatorCommand() *cobra.Command {
 			Message: "hdfs operation sets",
 			Commands: []*cobra.Command{
 				hdfscmd.HdfsCommand(),
+			},
+		},
+		{
+			Message: "vm operation sets",
+			Commands: []*cobra.Command{
+				vmcmd.VMCommand(),
 			},
 		},
 	}
