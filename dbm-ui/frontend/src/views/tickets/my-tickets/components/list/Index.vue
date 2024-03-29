@@ -191,6 +191,7 @@
   const globalBizsStore = useGlobalBizs();
 
   const isBizTicketManagePage = route.name === 'bizTicketManage';
+  const isSelfManage = route.query.self_manage === '1';
   const searchPlaceholder = isBizTicketManagePage ? t('单号_单据类型_申请人') : t('单号_单据类型_业务');
 
   const needPollIds: {
@@ -207,7 +208,7 @@
   const isShowDropdown = ref(false);
   // 视图定位到激活项
   const sideListRef = ref<HTMLDivElement>();
-  const selfManage = ref<'0'|'1'>('0');
+  const selfManage = ref<'0'|'1'>(isSelfManage ? '1' : '0');
   const state = reactive<TicketsState>({
     list: [],
     isLoading: false,
@@ -302,6 +303,8 @@
           if (!state.activeTicket) {
             [state.activeTicket] = results;
           }
+
+          handleSelected(state.activeTicket);
 
           nextTick(() => {
             if (sideListRef.value) {
@@ -429,6 +432,7 @@
         limit: state.page.limit,
         current: state.page.current,
         id: data.id,
+        self_manage: selfManage.value,
       },
     });
   };
