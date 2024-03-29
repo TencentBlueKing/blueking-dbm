@@ -60,7 +60,7 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 		return
 	}
 	var wg sync.WaitGroup
-	tokenBucket := make(chan int, 10)
+	tokenBucket := make(chan int, 30)
 	for _, item := range needMysql {
 		wg.Add(1)
 		tokenBucket <- 0
