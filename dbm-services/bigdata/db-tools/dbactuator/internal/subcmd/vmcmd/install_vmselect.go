@@ -13,63 +13,60 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// InstallVMSelectAct TODO
+// InstallVMSelectAct 定义了一个结构体，用于表示部署 vmselect 实例的行为。
 type InstallVMSelectAct struct {
-	*subcmd.BaseOptions
-	Service victoriametrics.InstallVMComp
+	*subcmd.BaseOptions                               // 嵌入了 BaseOptions 结构体，用于处理通用的命令行选项
+	Service             victoriametrics.InstallVMComp // Service 是一个 VictoriaMetrics 安装组件
 }
 
-// InstallVMSelectCommand TODO
+// InstallVMSelectCommand 创建并返回一个部署 vmselect 命令的实例。
 func InstallVMSelectCommand() *cobra.Command {
 	act := InstallVMSelectAct{
-		BaseOptions: subcmd.GBaseOptions,
+		BaseOptions: subcmd.GBaseOptions, // 初始化 BaseOptions
 	}
 	cmd := &cobra.Command{
-		Use:     "install_vmselect",
-		Short:   "部署vmselect实例",
-		Example: fmt.Sprintf(`dbactuator vm install_vmselect %s`, subcmd.CmdBaseExapmleStr),
-		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(act.Validate())
-			if act.RollBack {
-				util.CheckErr(act.Rollback())
+		Use:     "install_vmselect",                                                         // 命令的使用方式
+		Short:   "部署vmselect实例",                                                             // 命令的简短描述
+		Example: fmt.Sprintf(`dbactuator vm install_vmselect %s`, subcmd.CmdBaseExapmleStr), // 命令的示例
+		Run: func(cmd *cobra.Command, args []string) { // 命令的执行函数
+			util.CheckErr(act.Validate()) // 验证参数
+			if act.RollBack {             // 如果需要回滚
+				util.CheckErr(act.Rollback()) // 执行回滚操作
 				return
 			}
-			util.CheckErr(act.Init())
-			util.CheckErr(act.Run())
+			util.CheckErr(act.Init()) // 初始化操作
+			util.CheckErr(act.Run())  // 执行部署操作
 		},
 	}
-	return cmd
+	return cmd // 返回命令实例
 }
 
-// Validate TODO
+// Validate 验证函数，用于验证命令行参数。
 func (d *InstallVMSelectAct) Validate() (err error) {
-	return d.BaseOptions.Validate()
+	return d.BaseOptions.Validate() // 调用 BaseOptions 的验证方法
 }
 
-// Init TODO
+// Init 初始化函数，用于初始化操作。
 func (d *InstallVMSelectAct) Init() (err error) {
-	logger.Info("InstallVMSelectAct Init")
-	if err = d.Deserialize(&d.Service.Params); err != nil {
-		logger.Error("DeserializeAndValidate failed, %v", err)
+	logger.Info("InstallVMSelectAct Init")                  // 记录日志
+	if err = d.Deserialize(&d.Service.Params); err != nil { // 反序列化参数
+		logger.Error("DeserializeAndValidate failed, %v", err) // 记录错误日志
 		return err
 	}
-	d.Service.GeneralParam = subcmd.GeneralRuntimeParam
-	return d.Service.InitDefaultParam()
+	d.Service.GeneralParam = subcmd.GeneralRuntimeParam // 设置通用运行时参数
+	return d.Service.InitDefaultParam()                 // 初始化默认参数
 }
 
-// Rollback TODO
-//
-//	@receiver d
-//	@return err
+// Rollback 回滚函数，用于执行回滚操作。
 func (d *InstallVMSelectAct) Rollback() (err error) {
-	var r rollback.RollBackObjects
-	if err = d.DeserializeAndValidate(&r); err != nil {
-		logger.Error("DeserializeAndValidate failed, %v", err)
+	var r rollback.RollBackObjects                      // 定义回滚对象
+	if err = d.DeserializeAndValidate(&r); err != nil { // 反序列化并验证回滚对象
+		logger.Error("DeserializeAndValidate failed, %v", err) // 记录错误日志
 		return err
 	}
-	err = r.RollBack()
+	err = r.RollBack() // 执行回滚
 	if err != nil {
-		logger.Error("roll back failed %s", err.Error())
+		logger.Error("roll back failed %s", err.Error()) // 记录回滚失败的日志
 	}
 	return
 }
