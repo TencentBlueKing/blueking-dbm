@@ -6569,7 +6569,7 @@ sub _nibble_params {
          . " /*explain $comments->{nibble}*/";
       PTDEBUG && _d('Explain nibble statement:', $explain_nibble_sql);
 
-      my $limit = $chunk_size - 1;
+      my $limit = 999;
       PTDEBUG && _d('Initial chunk size (LIMIT):', $limit);
 
       my $params = {
@@ -6795,7 +6795,7 @@ sub can_nibble {
 
    my $chunk_size_limit = $o->get('chunk-size-limit') || 1;
    my $one_nibble = !defined $args{one_nibble} || $args{one_nibble}
-                  ? $row_est <= $chunk_size * $chunk_size_limit
+                  ? $row_est <= 999 * $chunk_size_limit
                   : 0;
    PTDEBUG && _d('One nibble:', $one_nibble ? 'yes' : 'no');
 
