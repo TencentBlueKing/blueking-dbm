@@ -130,6 +130,11 @@
       message: dbAppAbbrPlaceholder,
       trigger: 'change',
     },
+    {
+      validator: (val: string) => !bizList.find((item) => item.english_name === val),
+      message: t('业务code不允许重复'),
+      trigger: 'blur',
+    },
   ];
 
   const appAbbrRef = ref();
@@ -151,6 +156,9 @@
     bizId,
     () => {
       currentBiz.value = _.find(bizList, (item) => item.bk_biz_id === bizId.value);
+      const englishName = currentBiz.value?.english_name;
+      hasEnglishName.value = !!englishName;
+      appAbbr.value = englishName ?? '';
     },
     {
       immediate: true,
