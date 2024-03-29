@@ -710,6 +710,9 @@ MSSQL_EXPORTER = "mssql_exporter"
 # sqlserver的用户登录admin账号名称
 MSSQL_ADMIN = SQLSERVER_ADMIN_USER
 
+# sqlserver自定义系统账号列表
+SQLSERVER_CUSTOM_SYS_USER = [MSSQL_EXPORTER, MSSQL_ADMIN, "sa"]
+
 # tbinlogdumper连接kafka的global config的定义
 TBINLOGDUMPER_KAFKA_GLOBAL_CONF = {
     "sasl.mechanisms": "SCRAM-SHA-512",
