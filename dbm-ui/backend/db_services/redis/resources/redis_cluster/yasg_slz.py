@@ -12,7 +12,7 @@ from rest_framework import serializers
 
 from backend.db_services.dbbase.resources.yasg_slz import paginated_machine_resource_example
 
-from .query import ListRetrieveResource
+from .query import RedisListRetrieveResource
 
 REF_NAME = "tendiscache"
 
@@ -93,7 +93,7 @@ class PaginatedResourceSLZ(serializers.Serializer):
 
 class ResourceFieldSLZ(serializers.Serializer):
     class Meta:
-        swagger_schema_fields = {"example": ListRetrieveResource.get_fields()}
+        swagger_schema_fields = {"example": RedisListRetrieveResource.get_fields()}
         ref_name = f"{REF_NAME}_ResourceFieldSLZ"
 
 

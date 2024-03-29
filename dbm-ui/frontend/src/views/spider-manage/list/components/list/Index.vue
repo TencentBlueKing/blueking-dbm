@@ -54,12 +54,11 @@
           type="spider" />
       </div>
       <DbSearchSelect
-        v-model="searchValues"
+        v-model="searchValue"
         :data="searchData"
-        :placeholder="t('集群名称_访问入口_IP')"
+        :placeholder="t('请输入或选择条件搜索')"
         style="width: 320px; margin-left: auto"
-        unique-select
-        @change="fetchTableData" />
+        unique-select />
     </div>
     <div
       class="table-wrapper"
@@ -74,6 +73,9 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
+        @column-sort="columnSortChange"
         @selection="handleTableSelected"
         @setting-change="updateTableSettings" />
     </div>
@@ -144,6 +146,7 @@
     useCopy,
     useInfo,
     useInfoWithIcon,
+    useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
     useTicketMessage,
@@ -193,25 +196,21 @@
   const { currentBizId } = useGlobalBizs();
   const copy = useCopy();
   const ticketMessage = useTicketMessage();
-
-  const searchData = [
-    {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: t('集群名'),
-      id: 'name',
-    },
-    {
-      name: t('域名'),
-      id: 'domain',
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-    },
-  ];
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+  } = useLinkQueryColumnSerach(ClusterTypes.TENDBCLUSTER, [
+    'bk_cloud_id',
+    'db_module_id',
+    'major_version',
+    'region',
+    'time_zone',
+  ], () => fetchTableData());
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -223,7 +222,6 @@
   const isChangeShrinkForm = ref(false);
   const isChangeCapacityForm = ref(false);
   const removeMNTInstanceIds = ref<number[]>([]);
-  const searchValues = ref<Array<any>>([]);
   const excelAuthorizeShow = ref(false);
   const showEditEntryConfig = ref(false);
   const clusterAuthorizeShow = ref(false);
@@ -235,6 +233,71 @@
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const hasData = computed(() => tableRef.value?.getData().length > 0);
   const isCN = computed(() => locale.value === 'zh-cn');
+  const searchData = computed(() => [
+    {
+      name: 'ID',
+      id: 'id',
+    },
+    {
+      name: 'IP',
+      id: 'ip',
+      multiple: true,
+    },
+    {
+      name: t('实例'),
+      id: 'instance',
+      multiple: true,
+    },
+    {
+      name: t('访问入口'),
+      id: 'domain',
+      multiple: true,
+    },
+    {
+      name: t('集群名称'),
+      id: 'name',
+      multiple: true,
+    },
+    {
+      name: t('管控区域'),
+      id: 'bk_cloud_id',
+      multiple: true,
+      children: searchAttrs.value.bk_cloud_id,
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'normal',
+          name: t('正常'),
+        },
+        {
+          id: 'abnormal',
+          name: t('异常'),
+        },
+      ],
+    },
+    {
+      name: t('版本'),
+      id: 'major_version',
+      multiple: true,
+      children: searchAttrs.value.major_version,
+    },
+    {
+      name: t('地域'),
+      id: 'region',
+      multiple: true,
+      children: searchAttrs.value.region,
+    },
+    {
+      name: t('时区'),
+      id: 'time_zone',
+      multiple: true,
+      children: searchAttrs.value.time_zone,
+    },
+  ]);
   const paginationExtra = computed(() => {
     if (isStretchLayoutOpen.value) {
       return { small: false };
@@ -253,8 +316,8 @@
     return 60;
   });
   const searchIp = computed<string[]>(() => {
-    const ipObj = searchValues.value.find(item => item.id === 'ip');
-    if (ipObj) {
+    const ipObj = searchValue.value.find(item => item.id === 'ip');
+    if (ipObj && ipObj.values) {
       return [ipObj.values[0].id];
     }
     return [];
@@ -416,11 +479,26 @@
       label: t('管控区域'),
       width: 120,
       field: 'bk_cloud_name',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+      },
     },
     {
       label: t('状态'),
       field: 'status',
       minWidth: 100,
+      filter: {
+        list: [
+          {
+            value: 'normal',
+            text: t('正常'),
+          },
+          {
+            value: 'abnormal',
+            text: t('异常'),
+          },
+        ],
+      },
       render: ({ data }: IColumn) => {
         const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
@@ -547,12 +625,18 @@
       label: t('版本'),
       field: 'major_version',
       minWidth: 100,
+      filter: {
+        list: columnAttrs.value.major_version,
+      },
       render: ({ data }: IColumn) => <span>{data.major_version || '--'}</span>,
     },
     {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
+      filter: {
+        list: columnAttrs.value.region,
+      },
       render: ({ data }: IColumn) => <span>{data.region || '--'}</span>,
     },
     {
@@ -562,8 +646,9 @@
       render: ({ data }: IColumn) => <span>{data.creator || '--'}</span>,
     },
     {
-      label: t('创建时间'),
+      label: t('部署时间'),
       field: 'create_at',
+      sort: true,
       width: 160,
       render: ({ data }: IColumn) => <span>{data.createAtDisplay || '--'}</span>,
     },
@@ -571,6 +656,9 @@
       label: t('时区'),
       field: 'cluster_time_zone',
       width: 100,
+      filter: {
+        list: columnAttrs.value.time_zone,
+      },
       render: ({ data }: IColumn) => <span>{data.cluster_time_zone || '--'}</span>,
     },
     {
@@ -760,6 +848,7 @@
     })),
     checked: (columns.value || []).map(item => item.field).filter(key => !!key && key !== 'id') as string[],
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
 
   const {
@@ -770,8 +859,8 @@
   let isInitData = true;
   const fetchTableData = () => {
     tableRef.value?.fetchData({
-      ...getSearchSelectorParams(searchValues.value),
-    }, {}, isInitData);
+      ...getSearchSelectorParams(searchValue.value),
+    }, { ...sortValue }, isInitData);
     isInitData = false;
 
     return Promise.resolve([]);
@@ -984,10 +1073,82 @@
 </script>
 
 <style lang="less" scoped>
-  .spider-manage-list-page {
-    height: 100%;
-    padding: 24px 0;
-    margin: 0 24px;
+.spider-manage-list-page {
+  height: 100%;
+  padding: 24px 0;
+  margin: 0 24px;
+  overflow: hidden;
+
+  .operations {
+    display: flex;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+
+    .bk-search-select {
+      flex: 1;
+      max-width: 500px;
+      min-width: 320px;
+      margin-left: auto;
+    }
+
+  }
+
+  .is-shrink-table {
+    :deep(.bk-table-body) {
+      overflow: hidden auto;
+    }
+  }
+
+  :deep(.cell) {
+    line-height: normal !important;
+
+    .domain {
+      display: flex;
+      align-items: center;
+    }
+
+    .db-icon-copy, .db-icon-edit {
+      display: none;
+      margin-left: 4px;
+      color: @primary-color;
+      cursor: pointer;
+    }
+
+    .operations-more {
+      .db-icon-more {
+        display: block;
+        font-size: @font-size-normal;
+        color: @default-color;
+        cursor: pointer;
+
+        &:hover {
+          background-color: @bg-disable;
+          border-radius: 2px;
+        }
+      }
+    }
+  }
+
+  :deep(tr:hover) {
+    .db-icon-copy, .db-icon-edit {
+      display: inline-block !important;
+    }
+  }
+
+  :deep(.is-offline) {
+    a {
+      color: @gray-color;
+    }
+
+    .cell {
+      color: @disable-color;
+    }
+  }
+
+  :deep(.cluster-name-container) {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
     overflow: hidden;
 
     .operations {
@@ -1077,6 +1238,7 @@
       }
     }
   }
+}
 </style>
 
 <style lang="less">

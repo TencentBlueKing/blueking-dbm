@@ -459,12 +459,10 @@ class ResourceEnum:
     def get_resource_by_id(cls, resource_id: Union[ResourceMeta, str]):
         if isinstance(resource_id, ResourceMeta):
             return resource_id
-        if resource_id in cls.__dict__:
-            return cls.__dict__[resource_id]
-        if resource_id in _all_resources:
-            return _all_resources[resource_id]
+        if resource_id not in _all_resources:
+            raise ResourceNotExistError(_("资源类型ID不存在: {}").format(resource_id))
 
-        raise ResourceNotExistError(_("资源类型ID不存在: {}").format(resource_id))
+        return _all_resources[resource_id]
 
     @classmethod
     def cluster_type_to_resource_meta(cls, cluster_type):

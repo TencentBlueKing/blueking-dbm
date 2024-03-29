@@ -9,6 +9,12 @@
     "target_node_type": "TOPO",
     "target_nodes": [],
     "params": {
+      "collector": {
+        "period": 60,
+        "timeout": 60,
+        "metrics_url": "http://{{ target.host.bk_host_innerip }}:{{ target.service.labels[\"metrics_port\"] }}/metrics",
+        "password": false
+      },
       "plugin": {
         "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
           "app": "app",
@@ -22,19 +28,14 @@
           "cluster_domain": "cluster_domain"
         }
       },
-      "collector": {
-        "period": 60,
-        "password": false,
-        "bk_username": "",
-        "metrics_url": "http://{{ target.host.bk_host_innerip }}:{{ target.service.labels[\"metrics_port\"] }}/metrics"
-      },
       "target_node_type": "TOPO",
       "target_object_type": "SERVICE"
     },
     "plugin_id": "dbm_pulsarzookeeper_bkpull"
   },
   "db_type": "pulsar",
-  "version": 15,
+  "version": 16,
   "machine_types": [],
-  "plugin_id": "dbm_pulsarzookeeper_bkpull"
+  "plugin_id": "dbm_pulsarzookeeper_bkpull",
+  "export_at": "2024-03-28T21:05:09+08:00"
 }

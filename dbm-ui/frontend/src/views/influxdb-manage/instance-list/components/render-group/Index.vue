@@ -32,6 +32,13 @@
       </div>
       <span class="split-line" />
       <div class="group-list db-scroll-y">
+        <!-- <div class="search-main">
+          <BkInput
+            v-model="searchValue"
+            :placeholder="t('搜索分组')"
+            type="search"
+            @enter="fetchGroupList" />
+        </div> -->
         <div
           v-for="item in groupList"
           :key="item.id"

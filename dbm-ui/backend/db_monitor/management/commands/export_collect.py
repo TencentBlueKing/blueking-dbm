@@ -99,18 +99,16 @@ class Command(BaseCommand):
             template = self.to_template(instance)
             print(template)
 
-            # obj, _ = CollectTemplate.objects.update_or_create(
-            #     defaults={
-            #         "name": template["name"],
-            #         "details": template,
-            #     },
-            #     db_type=db_type,
-            #     machine_types=machine_types,
-            #     plugin_id=plugin_id,
-            # )
-
             logger.info(f"[{db_type}-{collect_id}] update collect template: {template['name']}")
-            with open(os.path.join(TPLS_COLLECT_DIR, template["name"]) + ".json", "w") as template_file:
+            file_name = os.path.join(TPLS_COLLECT_DIR, template["name"]) + ".json"
+            with open(file_name, "r") as template_file:
+                try:
+                    template_file_content = json.loads(template_file.read())
+                    current_version = template_file_content.get("version")
+                except (TypeError, AttributeError):
+                    current_version = 0
+
+            with open(file_name, "w") as template_file:
                 template_file.write(
                     json.dumps(
                         OrderedDict(
@@ -119,7 +117,7 @@ class Command(BaseCommand):
                                 "name": template["name"],
                                 "details": template,
                                 "db_type": db_type,
-                                "version": template.get("version", 0) + 1,
+                                "version": current_version + 1,
                                 "machine_types": machine_types,
                                 "plugin_id": plugin_id,
                                 "export_at": datetime2str(datetime.datetime.now(timezone.utc)),

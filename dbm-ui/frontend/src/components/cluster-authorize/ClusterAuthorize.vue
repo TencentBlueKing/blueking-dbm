@@ -220,14 +220,13 @@
 
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelectorNew, { type TabConfig } from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelectorNew, { type TabConfig } from '@components/cluster-selector/Index.vue';
   import DBCollapseTable, { type ClusterTableProps } from '@components/db-collapse-table/DBCollapseTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import AccountRulesTable from './accouter-rules-selector/components/AccountRulesTable.vue';
   import AccountRulesSelector from './accouter-rules-selector/Index.vue';
   import MySqlClusterSelector, { getClusterSelectorSelected } from './cluster-selector/ClusterSelector.vue';
-  import type { ClusterSelectorResult } from './cluster-selector/types';
 
   export default {
     name: 'ClusterAuthorize',
@@ -257,6 +256,8 @@
   interface Emits {
     (e: 'success'): void,
   }
+
+  type ClusterSelectorResult = Record<string, Array<ResourceItem>>
 
   const props = withDefaults(defineProps<Props>(), {
     user: '',

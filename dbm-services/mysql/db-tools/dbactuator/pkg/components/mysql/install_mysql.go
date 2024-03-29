@@ -177,23 +177,47 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	if err := i.initMySQLInstanceMem(); err != nil {
 		return err
 	}
-	// 数据目录优先放在 /data1 盘下
-	mountpoint, err = osutil.FindFirstMountPoint(cst.DefaultMysqlDataRootPath, cst.AlterNativeMysqlDataRootPath)
-	if err != nil {
-		logger.Error("not found mount point /data1")
-		return err
-	}
-	i.DataRootPath = mountpoint
-	i.DataBaseDir = path.Join(mountpoint, cst.DefaultMysqlDataBasePath)
-	// 日志目录优先放在 /data 盘下
-	mountpoint, err = osutil.FindFirstMountPoint(cst.DefaultMysqlLogRootPath, cst.AlterNativeMysqlLogRootPath)
-	if err != nil {
-		logger.Error("not found mount point /data")
-		return err
-	}
-	i.LogRootPath = mountpoint
-	i.LogBaseDir = path.Join(mountpoint, cst.DefaultMysqlLogBasePath)
+	// var findMountPoint func(paths ...string) (string, error)
+	if i.Params.GetPkgTypeName() != cst.PkgTypeMysql {
+		// 日志目录优先放在 /data 盘下
+		mountpoint, err = osutil.FindFirstMountPointProxy(cst.DefaultMysqlLogRootPath, cst.AlterNativeMysqlLogRootPath)
+		if err != nil {
+			logger.Error("not found mount point /data")
+			return err
+		}
+		i.DataRootPath = mountpoint
+		i.DataBaseDir = path.Join(mountpoint, cst.DefaultMysqlDataBasePath)
+		i.LogRootPath = mountpoint
+		i.LogBaseDir = path.Join(mountpoint, cst.DefaultMysqlLogBasePath)
+		// 如果单独挂盘,就用单独挂的盘去作为数据盘
+		ok, _ := osutil.IsMountPoint(cst.DefaultMysqlDataRootPath)
+		if ok {
+			var errx error
+			mountpoint, errx = osutil.FindFirstMountPointProxy(cst.DefaultMysqlDataRootPath, cst.AlterNativeMysqlDataRootPath)
+			if errx == nil {
+				i.DataRootPath = mountpoint
+				i.DataBaseDir = path.Join(mountpoint, cst.DefaultMysqlDataBasePath)
+			}
+		}
+	} else {
+		// 数据目录优先放在 /data1 盘下
+		mountpoint, err = osutil.FindFirstMountPoint(cst.DefaultMysqlDataRootPath, cst.AlterNativeMysqlDataRootPath)
+		if err != nil {
+			logger.Error("not found mount point /data1")
+			return err
+		}
+		i.DataRootPath = mountpoint
+		i.DataBaseDir = path.Join(mountpoint, cst.DefaultMysqlDataBasePath)
 
+		// 日志目录优先放在 /data 盘下
+		mountpoint, err = osutil.FindFirstMountPoint(cst.DefaultMysqlLogRootPath, cst.AlterNativeMysqlLogRootPath)
+		if err != nil {
+			logger.Error("not found mount point /data")
+			return err
+		}
+		i.LogRootPath = mountpoint
+		i.LogBaseDir = path.Join(mountpoint, cst.DefaultMysqlLogBasePath)
+	}
 	// 反序列化mycnf 配置
 	var mycnfs map[Port]json.RawMessage
 	if err = json.Unmarshal([]byte(i.Params.MyCnfConfigs), &mycnfs); err != nil {
@@ -238,7 +262,11 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlProcess)
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlPackageBitOS)
 	i.Checkfunc = append(i.Checkfunc, i.Params.Medium.Check)
-	i.Checkfunc = append(i.Checkfunc, i.precheckFilesystemType)
+	// spider && tdbctl 不一定有挂载磁盘点，忽略检查
+	// 本身也不存储实际数据
+	if i.Params.GetPkgTypeName() == cst.PkgTypeMysql {
+		i.Checkfunc = append(i.Checkfunc, i.precheckFilesystemType)
+	}
 	return nil
 }
 

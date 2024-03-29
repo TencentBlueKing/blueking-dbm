@@ -35,7 +35,9 @@ class TruncateDataReCreateTableService(BaseService):
             tables = trans_data.targets[db]
             for table in tables:
 
-                recreate_table_cmd = "create table `{}`.`{}` like `{}`.`{}`".format(db, table, old_new_map[db], table)
+                recreate_table_cmd = "create table if not exists `{}`.`{}` like `{}`.`{}`".format(
+                    db, table, old_new_map[db], table
+                )
                 sql_cmds.append(recreate_table_cmd)
 
         recreate_table_res = DRSApi.rpc(

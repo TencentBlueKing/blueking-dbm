@@ -38,7 +38,7 @@
 
   import ClusterSelector, {
     type TabItem,
-  } from '@components/cluster-selector-new/Index.vue';
+  } from '@components/cluster-selector/Index.vue';
 
   import TableEditInput from './Input.vue';
 

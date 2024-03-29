@@ -14,6 +14,7 @@
 import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
 import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
 
+import type { ClusterTypes } from '@common/const';
 import { ClusterTypes } from '@common/const';
 
 import http from '../http';
@@ -38,4 +39,27 @@ export function filterClusters(params: { bk_biz_id: number; exact_domain: string
     };
     return data.map((item) => new ModelMap[data[0].cluster_type](item));
   });
+}
+
+/*
+ * 查询业务下集群的属性字段
+ * 集群通用接口，用于查询/操作集群公共的属性
+ */
+export function queryBizClusterAttrs(params: {
+  bk_biz_id: number;
+  cluster_type: ClusterTypes;
+  cluster_attrs?: string;
+  instances_attrs?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return http.get<
+    Record<
+      string,
+      {
+        value: string;
+        text: string;
+      }[]
+    >
+  >(`${path}/query_biz_cluster_attrs/`, params);
 }

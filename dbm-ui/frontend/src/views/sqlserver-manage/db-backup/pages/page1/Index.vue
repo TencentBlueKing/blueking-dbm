@@ -150,7 +150,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector, { type TabItem } from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector, { type TabItem } from '@components/cluster-selector/Index.vue';
 
   // import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry/Index.vue';
   import FianlDbReviewer from './components/FianlDbReviewer/Index.vue';

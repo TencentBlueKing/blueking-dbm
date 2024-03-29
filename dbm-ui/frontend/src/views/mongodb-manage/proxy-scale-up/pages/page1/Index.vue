@@ -78,7 +78,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import type { IListItem } from '@views/mongodb-manage/components/edit-field/spec-select/components/Select.vue';
 

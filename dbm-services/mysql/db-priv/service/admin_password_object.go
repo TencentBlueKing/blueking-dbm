@@ -6,10 +6,9 @@ import (
 
 // ModifyAdminUserPasswordPara 函数的入参
 type ModifyAdminUserPasswordPara struct {
-	UserName  string `json:"username"`
-	Component string `json:"component"`
-	Psw       string `json:"password"`
-	//LockUntil        time.Time `json:"lock_until"`
+	UserName         string       `json:"username"`
+	Component        string       `json:"component"`
+	Psw              string       `json:"password"`
 	LockHour         int          `json:"lock_hour"`
 	Operator         string       `json:"operator"`
 	Clusters         []OneCluster `json:"clusters"`

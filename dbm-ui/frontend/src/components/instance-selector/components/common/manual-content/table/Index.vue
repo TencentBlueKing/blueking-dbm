@@ -17,26 +17,18 @@
       v-model="searchValue"
       clearable
       :placeholder="t('请输入实例')" />
-    <BkLoading
-      :loading="isLoading"
-      :z-index="2">
-      <DbOriginalTable
-        :columns="columns"
-        :data="isManul ? renderManualData : tableData"
-        :max-height="530"
-        :pagination="pagination.count < 10 ? false : pagination"
-        :remote-pagination="isRemotePagination"
-        :settings="tableSetting"
-        style="margin-top: 12px"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchResources"
-        @row-click.stop.prevent="handleRowClick" />
-    </BkLoading>
+    <DbOriginalTable
+      class="mt-12"
+      :columns="columns"
+      :data="renderManualData"
+      :max-height="530"
+      :pagination="pagination.count < 10 ? false : pagination"
+      :remote-pagination="false"
+      :settings="tableSetting"
+      @row-click.stop.prevent="handleRowClick" />
   </div>
 </template>
 <script setup lang="tsx" generic="T extends IValue">
-  import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -44,14 +36,11 @@
   import { firstLetterToUpper } from '@utils';
 
   import {
-    activePanelInjectionKey,
     type InstanceSelectorValues,
     type IValue,
     type PanelListType,
     type TableSetting,
   } from '../../../../Index.vue';
-
-  import { useTableData } from './useTableData';
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
 
@@ -63,29 +52,21 @@
     lastValues: InstanceSelectorValues<T>,
     tableSetting: TableSetting,
     activePanelId?: string,
-    clusterId?: number,
-    isManul?: boolean,
     manualTableData?: T[];
-    isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
     roleFilterList?: TableConfigType['roleFilterList'],
     disabledRowConfig?: TableConfigType['disabledRowConfig'],
-    // eslint-disable-next-line vue/no-unused-properties
-    getTableList?: TableConfigType['getTableList'],
     statusFilter?: TableConfigType['statusFilter'],
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void;
+    (e: 'change', value: Props['lastValues']): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    clusterId: undefined,
-    isManul: false,
     manualTableData: () => ([]),
     firsrColumn: undefined,
     statusFilter: undefined,
-    isRemotePagination: true,
     activePanelId: 'tendbcluster',
     disabledRowConfig: undefined,
     roleFilterList: undefined,
@@ -106,27 +87,19 @@
 
   const { t } = useI18n();
 
-  const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
+  const searchValue = ref('');
+  const pagination = ref({
+    count: 0,
+    current: 1,
+    limit: 10,
+    limitList: [10, 20, 50, 100],
+    align: 'right',
+    layout: ['total', 'limit', 'list'],
+  });
 
   const checkedMap = shallowRef({} as Record<string, T>);
 
-  const initRole = computed(() => props.firsrColumn?.role);
-  const selectClusterId = computed(() => props.clusterId);
   const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
-  const mainSelectDisable = computed(() => (props.disabledRowConfig
-    // eslint-disable-next-line max-len
-    ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
-
-  const {
-    isLoading,
-    data: tableData,
-    pagination,
-    searchValue,
-    fetchResources,
-    handleChangePage,
-    handeChangeLimit,
-  } = useTableData<T>(initRole, selectClusterId);
-
   const renderManualData = computed(() => {
     if (searchValue.value === '') {
       return props.manualTableData;
@@ -135,11 +108,13 @@
       (item[firstColumnFieldId.value] as string).includes(searchValue.value)
     ));
   });
-
-  const isSelectedAll = computed(() => (
-    tableData.value.length > 0
+  const mainSelectDisable = computed(() => (props.disabledRowConfig
     // eslint-disable-next-line max-len
-    && tableData.value.length === tableData.value.filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
+    ? renderManualData.value.filter(data => props.disabledRowConfig?.handler(data)).length === renderManualData.value.length : false));
+
+  const isSelectedAll = computed(() => (renderManualData.value.length > 0
+    // eslint-disable-next-line max-len
+    && renderManualData.value.length === renderManualData.value.filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
   ));
 
   let isSelectedAllReal = false;
@@ -255,66 +230,38 @@
   ];
 
   watch(() => props.lastValues, () => {
-    if (props.isManul) {
-      checkedMap.value = {};
-      if (props.lastValues[props.activePanelId]) {
-        for (const item of Object.values(props.lastValues[props.activePanelId])) {
-          checkedMap.value[item[firstColumnFieldId.value]] = item;
-        }
-      }
-      return;
-    }
-    // 切换 tab 回显选中状态 \ 预览结果操作选中状态
-    if (activePanel?.value && activePanel.value !== 'manualInput') {
-      checkedMap.value = {};
-      const checkedList = props.lastValues[activePanel.value];
-      if (checkedList) {
-        for (const item of checkedList) {
-          checkedMap.value[item[firstColumnFieldId.value]] = item;
-        }
+    checkedMap.value = {};
+    if (props.lastValues[props.activePanelId]) {
+      for (const item of Object.values(props.lastValues[props.activePanelId])) {
+        checkedMap.value[item[firstColumnFieldId.value]] = item;
       }
     }
-  }, { immediate: true, deep: true });
+  }, {
+    immediate: true,
+    deep: true,
+  });
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchResources();
-    }
+  watch(() => props.manualTableData, () => {
+    pagination.value.count = props.manualTableData.length;
   }, {
     immediate: true,
   });
 
   const triggerChange = () => {
-    if (props.isManul) {
-      const lastValues: InstanceSelectorValues<T> = {
-        [props.activePanelId]: [],
-      };
-      for (const item of Object.values(checkedMap.value)) {
-        lastValues[props.activePanelId].push(item);
-      }
-      emits('change', {
-        ...props.lastValues,
-        ...lastValues,
-      });
-      return;
+    const lastValues: InstanceSelectorValues<T> = {
+      [props.activePanelId]: [],
+    };
+    for (const item of Object.values(checkedMap.value)) {
+      lastValues[props.activePanelId].push(item);
     }
-    const result = Object.values(checkedMap.value).reduce((result, item) => {
-      result.push({
-        ...item,
-      });
-      return result;
-    }, [] as T[]);
-
-    if (activePanel?.value) {
-      emits('change', {
-        ...props.lastValues,
-        [activePanel.value]: result,
-      });
-    }
+    emits('change', {
+      ...props.lastValues,
+      ...lastValues,
+    });
   };
 
   const handleSelectPageAll = (checked: boolean) => {
-    const list = props.isManul ? renderManualData.value : tableData.value;
+    const list = renderManualData.value;
     if (props.disabledRowConfig) {
       isSelectedAllReal = !isSelectedAllReal;
       for (const data of list) {

@@ -192,7 +192,7 @@ func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
 	)
 	conf := ins.Config
 	if entry.Dns != nil {
-		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release dns entry"))
+		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release dns entry [%s:%d]", ins.Ip, ins.Port))
 		dnsClient := client.NewNameServiceClient(&conf.NameServices.DnsConf, conf.GetCloudId())
 		for _, dns := range entry.Dns {
 			for _, ip := range dns.BindIps {
@@ -207,12 +207,12 @@ func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
 			}
 		}
 		if dnsFlag {
-			ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("release dns entry success"))
+			ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("release dns entry success [%s:%d]", ins.Ip, ins.Port))
 		}
 	}
 
 	if entry.Clb != nil {
-		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release clb entry"))
+		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release clb entry [%s:%d]", ins.Ip, ins.Port))
 		clbClient := client.NewNameServiceClient(&conf.NameServices.ClbConf, conf.GetCloudId())
 		for _, clb := range entry.Clb {
 			addr := fmt.Sprintf("%s:%d", ins.Ip, clb.BindPort)
@@ -237,7 +237,7 @@ func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
 	}
 
 	if entry.Polaris != nil {
-		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release polaris entry"))
+		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to release polaris entry [%s:%d]", ins.Ip, ins.Port))
 		polarisClient := client.NewNameServiceClient(&conf.NameServices.PolarisConf, conf.GetCloudId())
 		for _, pinfo := range entry.Polaris {
 			addr := fmt.Sprintf("%s:%d", ins.Ip, pinfo.BindPort)
@@ -261,10 +261,11 @@ func (ins *BaseSwitch) DeleteNameService(entry BindEntry) error {
 	}
 
 	if !(dnsFlag && clbFlag && polarisFlag) {
-		return fmt.Errorf("release broken-down ip from all entry failed")
+		return fmt.Errorf("release broken-down ip from all entry failed [%s:%d]", ins.Ip, ins.Port)
 	}
 
-	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("release all cluster entry success"))
+	ins.ReportLogs(constvar.InfoResult,
+		fmt.Sprintf("release all entry [dns/clb/polaris] success [%s:%d]", ins.Ip, ins.Port))
 	return nil
 }
 

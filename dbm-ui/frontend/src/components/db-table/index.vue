@@ -101,10 +101,7 @@
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
-  import {
-    getOffset,
-    random,
-  } from '@utils';
+  import { getOffset } from '@utils';
 
   interface Props {
     columns: InstanceType<typeof Table>['$props']['columns'],
@@ -124,6 +121,7 @@
     remotePagination?: boolean,
     // 是否允许行点击选中
     allowRowClickSelect?: boolean,
+    remoteSort?: boolean,
   }
 
   interface Emits {
@@ -155,6 +153,7 @@
     containerHeight: undefined,
     remotePagination: true,
     allowRowClickSelect: false,
+    remoteSort: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -224,7 +223,7 @@
 
   const rootRef = ref();
   const bkTableRef = ref();
-  const tableKey = ref(random());
+  const tableKey = ref(Date.now().toString());
   const isLoading = ref(false);
   const tableMaxHeight = ref<number | 'auto'>('auto');
   const tableData = ref<ListBase<any>>({
@@ -266,7 +265,6 @@
     if (!props.selectable || !props.columns) {
       return props.columns;
     }
-
     return [
       genSelectionColumn(),
       ...props.columns,
@@ -354,6 +352,10 @@
           });
       });
   };
+
+  watch(() => props.columns, () => {
+    tableKey.value = Date.now().toString();
+  });
 
   const triggerSelection = () => {
     emits('selection', Object.keys(rowSelectMemo.value), Object.values(rowSelectMemo.value));
@@ -495,6 +497,9 @@
 
   // 排序
   const handleColumnSortChange = (sortPayload: any) => {
+    if (!props.remoteSort) {
+      return;
+    }
     const valueMap = {
       null: undefined,
       desc: 0,
@@ -579,7 +584,7 @@
       bkTableRef.value?.clearSelection();
     },
     updateTableKey() {
-      tableKey.value = random();
+      tableKey.value = Date.now().toString();
     },
     removeSelectByKey(key: string) {
       delete rowSelectMemo.value[key];

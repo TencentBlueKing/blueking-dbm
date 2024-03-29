@@ -14,30 +14,27 @@
 <template>
   <SuccessView
     v-if="ticketId"
-    :steps="[
-      {
-        title: $t('单据审批'),
-        status: 'loading',
-      },
-      {
-        title: $t('DB重命名_执行'),
-      },
-    ]"
+    :steps="[{
+      title: t('单据审批'),
+      status: 'loading',
+    }, {
+      title: t('DB重命名_执行'),
+    }]"
     :ticket-id="ticketId"
-    :title="$t('DB重命名任务提交成功')"
+    :title="t('DB重命名任务提交成功')"
     @close="handleCloseSuccess" />
   <SmartAction
     v-else
     class="db-rename">
     <BkAlert
       closable
-      :title="$t('DB重命名_database重命名')" />
+      :title="t('DB重命名_database重命名')" />
     <div class="db-rename-operations">
       <BkButton
         class="db-rename-batch"
         @click="() => (isShowBatchInput = true)">
         <DbIcon type="add" />
-        {{ $t('批量录入') }}
+        {{ t('批量录入') }}
       </BkButton>
     </div>
     <ToolboxTable
@@ -50,13 +47,13 @@
       @remove="handleRemoveItem" />
     <BkCheckbox
       v-model="isForce"
-      v-bk-tooltips="$t('如忽略_有连接的情况下也会执行')"
+      v-bk-tooltips="t('如忽略_有连接的情况下也会执行')"
       class="mb-20"
       :false-label="false">
       <span
         class="inline-block"
-        style="margin-top: -2px; border-bottom: 1px dashed #979ba5">
-        {{ $t('忽略业务连接') }}
+        style=" margin-top: -2px;border-bottom: 1px dashed #979ba5;">
+        {{ t('忽略业务连接') }}
       </span>
     </BkCheckbox>
     <template #action>
@@ -65,13 +62,13 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <BkButton
         class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
-        {{ $t('重置') }}
+        {{ t('重置') }}
       </BkButton>
     </template>
   </SmartAction>
@@ -80,7 +77,8 @@
     @change="handleBatchInput" />
   <ClusterSelector
     v-model:is-show="isShowBatchSelector"
-    :tab-list="clusterSelectorTabList"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    :selected="selectedClusters"
     @change="handleBatchSelectorChange" />
 </template>
 
@@ -88,17 +86,16 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { getClusterInfoByDomains } from '@services/source/mysqlCluster';
   import { getClusterDatabaseNameList } from '@services/source/remoteService';
   import { createTicket } from '@services/source/ticket';
-  import type { ResourceItem } from '@services/types';
 
   import { useInfo, useTableMaxHeight } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
-  import type { ClusterSelectorResult } from '@components/cluster-selector/types';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
 
@@ -128,16 +125,18 @@
   const globalBizsStore = useGlobalBizs();
   const tableMaxHeight = useTableMaxHeight(334);
 
-  const clusterSelectorTabList = [ClusterTypes.TENDBHA];
   const ticketId = ref(0);
   const toolboxTableRef = ref();
   const isShowBatchInput = ref(false);
   const isShowBatchSelector = ref(false);
   const isSubmitting = ref(false);
   const clusterDBNameMap: Map<number, ClusterDBNameInfo> = reactive(new Map());
-  const clusterInfoMap: Map<string, ResourceItem> = reactive(new Map());
+  const clusterInfoMap: Map<string, TendbhaModel> = reactive(new Map());
   const isForce = ref(false);
   const tableData = ref<Array<TableItem>>([getTableItem()]);
+
+  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+
   const clusterRules = [
     {
       validator: (value: string) => !!value,
@@ -202,6 +201,9 @@
       ),
     },
   ];
+
+  // 集群域名是否已存在表格的映射表
+  let domainMemo: Record<string, boolean> = {};
 
   /**
    * 获取表格数据
@@ -476,13 +478,21 @@
   }
 
   function handleRemoveItem(index: number) {
+    const dataList = [...tableData.value];
+    const domain = dataList[index].cluster_domain;
+    if (domain) {
+      delete domainMemo[domain];
+      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+    }
     tableData.value.splice(index, 1);
   }
 
   /**
    * 集群选择器批量选择
    */
-  function handleBatchSelectorChange(selected: ClusterSelectorResult) {
+  function handleBatchSelectorChange(selected: Record<string, Array<TendbhaModel>>) {
+    selectedClusters.value = selected;
     const list: Array<TableItem> = [];
     for (const key of Object.keys(selected)) {
       const formatList = selected[key].map((item) => {
@@ -507,6 +517,8 @@
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
+        selectedClusters.value[ClusterTypes.TENDBHA] = [];
+        domainMemo = {};
         nextTick(() => {
           window.changeConfirm = false;
         });

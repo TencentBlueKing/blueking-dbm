@@ -80,8 +80,8 @@ const (
 	// DetectTenDBCluster detect TenDBCluster
 	DetectTenDBCluster = "tendbcluster"
 
-	// DetectRedis detect tendiscache and twemproxy
-	DetectRedis = "TwemproxyRedisInstance"
+	// DetectTendisCache detect tendiscache and twemproxy
+	DetectTendisCache = "TwemproxyRedisInstance"
 	// DetectTendisplus detect tendisplus and predixy
 	DetectTendisplus = "PredixyTendisplusCluster"
 	// DetectTendisSSD detect tendisssd and twemproxy

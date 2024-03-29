@@ -18,10 +18,10 @@
         <RenderTableHeadColumn
           :min-width="120"
           :width="220">
-          <span>{{ $t('源集群') }}</span>
+          <span>{{ t('源集群') }}</span>
           <template #append>
             <BkPopover
-              :content="$t('批量添加')"
+              :content="t('批量添加')"
               theme="dark">
               <span
                 class="batch-edit-btn"
@@ -34,24 +34,24 @@
         <RenderTableHeadColumn
           :min-width="130"
           :width="300">
-          <span>{{ $t('目标集群') }}</span>
+          <span>{{ t('目标集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="120"
           :width="220">
-          <span>{{ $t('包含Key') }}</span>
+          <span>{{ t('包含Key') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="120"
           :required="false"
           :width="220">
-          <span>{{ $t('排除Key') }}</span>
+          <span>{{ t('排除Key') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
           :required="false"
           :width="100">
-          {{ $t('操作') }}
+          {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
@@ -86,7 +86,7 @@
 
   import { ClusterTypes, LocalStorageKeys } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 

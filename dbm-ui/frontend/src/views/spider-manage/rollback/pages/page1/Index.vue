@@ -17,13 +17,11 @@
       <BkAlert
         closable
         theme="info"
-        :title="
-          $t(
-            '定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态',
-          )
-        " />
-      <div class="title-spot mt-12 mb-10">{{ $t('时区') }}<span class="required" /></div>
-      <TimeZonePicker style="width: 450px" />
+        :title="t('定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')" />
+      <div class="title-spot mt-12 mb-10">
+        {{ t('时区') }}<span class="required" />
+      </div>
+      <TimeZonePicker style="width: 450px;" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -48,16 +46,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -65,6 +63,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
@@ -74,7 +73,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
@@ -83,6 +82,7 @@
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);

@@ -17,17 +17,19 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('通过flashback工具_对row格式的binlog做逆向操作')" />
+        :title="t('通过flashback工具_对row格式的binlog做逆向操作')" />
       <div
         class="mt16"
         style="display: flex">
         <BkButton @click="handleShowBatchEntry">
           <DbIcon type="add" />
-          {{ $t('批量录入') }}
+          {{ t('批量录入') }}
         </BkButton>
       </div>
-      <div class="title-spot mt-12 mb-10">{{ $t('时区') }}<span class="required" /></div>
-      <TimeZonePicker style="width: 450px" />
+      <div class="title-spot mt-12 mb-10">
+        {{ t('时区') }}<span class="required" />
+      </div>
+      <TimeZonePicker style="width: 450px;" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -42,7 +44,8 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :tab-list="clusterSelectorTabList"
+        :cluster-types="[ClusterTypes.TENDBHA]"
+        :selected="selectedClusters"
         @change="handelClusterChange" />
       <BatchEntry
         v-model:is-show="isShowBatchEntry"
@@ -54,16 +57,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -71,26 +74,22 @@
 </template>
 
 <script setup lang="tsx">
-  import { ref, shallowRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
-
-  interface IClusterData {
-    id: number;
-    master_domain: string;
-  }
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -103,10 +102,9 @@
     );
   };
 
-  const clusterSelectorTabList = [ClusterTypes.TENDBHA];
-
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
@@ -114,11 +112,16 @@
   const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+
+  // 集群域名是否已存在表格的映射表
+  let domainMemo: Record<string, boolean> = {};
 
   // 批量录入
   const handleShowBatchEntry = () => {
     isShowBatchEntry.value = true;
   };
+
   // 批量录入
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
     const newList = list.map((item) => createRowData(item));
@@ -128,35 +131,44 @@
       tableData.value = [...tableData.value, ...newList];
     }
   };
+
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
   };
+
   // 批量选择
-  const handelClusterChange = (selected: { [key: string]: Array<IClusterData> }) => {
-    const newList = selected[ClusterTypes.TENDBHA].map((clusterData) =>
-      createRowData({
-        clusterData: {
-          id: clusterData.id,
-          domain: clusterData.master_domain,
-        },
-      }),
-    );
+  const handelClusterChange = (selected: Record<string, Array<TendbhaModel>>) => {
+    selectedClusters.value = selected;
+    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
+      clusterData: {
+        id: clusterData.id,
+        domain: clusterData.master_domain,
+      },
+    }));
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
       tableData.value = [...tableData.value, ...newList];
     }
   };
+
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
     dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
   };
+
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const domain = dataList[index].clusterData?.domain;
+    if (domain) {
+      delete domainMemo[domain];
+      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+    }
     dataList.splice(index, 1);
     tableData.value = dataList;
   };
@@ -192,6 +204,9 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.TENDBHA] = [];
+    domainMemo = {};
+    window.changeConfirm = false;
   };
 </script>
 
