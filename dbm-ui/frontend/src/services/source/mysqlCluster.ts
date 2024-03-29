@@ -11,12 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import TendbhaModel from '@services/model/mysql/tendbha';
 import RemotePairInstanceModel from '@services/model/mysql-cluster/remote-pair-instance';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ResourceItem } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -160,8 +160,6 @@ export function queryClusters(params: {
 /**
  * 通过集群域名获取集群详情
  */
-export function getClusterInfoByDomains(
-  params: Record<'cluster_filters', Array<{ immute_domain: string }>> & { bizId: number },
-) {
-  return http.post<ResourceItem[]>(`${path}/query_clusters/`, params);
+export function getClusterInfoByDomains(params: Record<'cluster_filters', Array<{ immute_domain: string }>> & { bizId: number }) {
+  return http.post<TendbhaModel[]>(`${path}/query_clusters/`, params);
 }

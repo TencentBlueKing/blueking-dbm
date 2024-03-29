@@ -30,15 +30,17 @@ def cluster_instances(entry_name: str):
             "db_module_id": cluster.db_module_id,
             "bk_cloud_id": cluster.bk_cloud_id,
             "immute_domain": cluster.immute_domain,
-            "storages": {
-                "ip": storage_instance.machine.ip,
-                "port": storage_instance.port,
-                "instance_inner_role": storage_instance.instance_inner_role,
-                "instance_role": storage_instance.instance_role,
-                "bk_cloud_id": storage_instance.machine.bk_cloud_id,
-                "status": storage_instance.status,
-                "bk_instance_id": storage_instance.bk_instance_id,
-            },
+            "storages": [
+                {
+                    "ip": storage_instance.machine.ip,
+                    "port": storage_instance.port,
+                    "instance_inner_role": storage_instance.instance_inner_role,
+                    "instance_role": storage_instance.instance_role,
+                    "bk_cloud_id": storage_instance.machine.bk_cloud_id,
+                    "status": storage_instance.status,
+                    "bk_instance_id": storage_instance.bk_instance_id,
+                }
+            ],
         }
 
     except ObjectDoesNotExist:

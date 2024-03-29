@@ -37,6 +37,7 @@ class SyncMediumSerializer(serializers.Serializer):
     class MediumDetailSerializer(serializers.ModelSerializer):
         create_at = serializers.DateTimeField(required=False, default=datetime.now(timezone.utc))
         update_at = serializers.DateTimeField(required=False, default=datetime.now(timezone.utc))
+        pkg_type = serializers.CharField(help_text=_("包类型"), required=False)
 
         class Meta:
             model = Package

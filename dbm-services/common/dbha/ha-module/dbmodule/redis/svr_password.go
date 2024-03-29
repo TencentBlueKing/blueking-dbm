@@ -1,8 +1,10 @@
 package redis
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"math/big"
 	"strconv"
 	"time"
 
@@ -16,7 +18,7 @@ import (
 
 var passwdCache Cache
 var (
-	passwdCacheSize = 3000
+	passwdCacheSize = 8000
 	passwdCacheTime = 10 * time.Minute
 )
 
@@ -56,7 +58,7 @@ func GetRedisMachinePasswdDBConfig(
 	}
 
 	passwd := passwdVal.(string)
-	passwdCache.Add(key, passwd, passwdCacheTime)
+	passwdCache.Add(key, passwd, GetPassExpireTime())
 	log.Logger.Debugf("RedisSSHPWD %s get passwd[%s] ok", key, passwd)
 	return passwd
 }
@@ -143,7 +145,7 @@ func GetInstancePassDBConfig(dbType types.DBType,
 		clusterPasswd[k] = v
 		key := fmt.Sprintf("%s-%s-%s-%s-%s-%s",
 			cFile, cType, cName, lName, namespace, k)
-		passwdCache.Add(key, v, passwdCacheTime)
+		passwdCache.Add(key, v, GetPassExpireTime())
 	}
 
 	succCount := 0
@@ -200,7 +202,7 @@ func GetInstancePassByClusterDBConfig(dbType types.DBType,
 
 	passwdStr, ok := clusterPasswds[cluster]
 	if ok {
-		passwdCache.Add(key, passwdStr, passwdCacheTime)
+		passwdCache.Add(key, passwdStr, GetPassExpireTime())
 		return passwdStr, nil
 	} else {
 		passErr := fmt.Errorf("PassWDCluster key[%s] unfind passwd", key)
@@ -419,7 +421,7 @@ func GetInstancePass(insArr []dbutil.DataBaseDetect,
 				passwd, setCache := ProcessSinglePassword(key, pw, cluster2Passwd)
 				if setCache {
 					log.Logger.Debugf("passwd add cache, key:%s,passwd:%v", key, passwd)
-					passwdCache.Add(key, passwd, passwdCacheTime)
+					passwdCache.Add(key, passwd, GetPassExpireTime())
 				}
 			}
 		}
@@ -556,7 +558,7 @@ func GetInstancePassByClusterId(dbType string, clusterId int,
 
 		// set password to cache
 		if len(passwdCluster.Proxy) > 0 && len(passwdCluster.Redis) > 0 {
-			passwdCache.Add(key, passwdCluster, passwdCacheTime)
+			passwdCache.Add(key, passwdCluster, GetPassExpireTime())
 		}
 	}
 
@@ -617,7 +619,7 @@ func GetRedisMachinePasswd(
 	}
 
 	// set password to cache
-	passwdCache.Add(key, passwd, passwdCacheTime)
+	passwdCache.Add(key, passwd, GetPassExpireTime())
 	return passwd
 }
 
@@ -663,4 +665,9 @@ func SetPasswordToInstanceEx(dbType types.DBType,
 		return passwdErr
 	}
 	return nil
+}
+
+func GetPassExpireTime() time.Duration {
+	n, _ := rand.Int(rand.Reader, big.NewInt(600))
+	return passwdCacheTime + time.Duration(n.Int64())*time.Second
 }

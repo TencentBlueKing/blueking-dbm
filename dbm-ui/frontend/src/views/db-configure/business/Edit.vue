@@ -158,17 +158,15 @@
   } from '../hooks/useDiff';
   import { useLevelParams } from '../hooks/useLevelParams';
 
-  interface Props {
-    clusterType: string,
-    confType: string,
-    version: string
-  }
-
-  const props = defineProps<Props>();
-
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
+
+  const { clusterType, confType, version } = route.params as {
+    clusterType: string,
+    confType: string,
+    version: string,
+  };
 
   // 获取业务层级相关参数
   const levelParams = useLevelParams(false);
@@ -301,9 +299,9 @@
     });
 
     const params = {
-      meta_cluster_type: props.clusterType,
-      conf_type: props.confType,
-      version: props.version,
+      meta_cluster_type: clusterType,
+      conf_type: confType,
+      version,
       conf_items: confItems,
       name: diffData.data.name,
       description: diffData.data.description,
@@ -316,7 +314,7 @@
       .then(() => {
         window.changeConfirm = false;
         Message({
-          message: isCluster ? t('保存成功') : t('保存并发布成功'),
+          message: isCluster.value ? t('保存成功') : t('保存并发布成功'),
           theme: 'success',
         });
         handleCancel();
@@ -338,7 +336,7 @@
       const query = { ...route.query };
       if (!isApp) {
         Object.assign(params, {
-          clusterType: props.clusterType,
+          clusterType,
         });
         Object.assign(query, {
           treeId: route.params.treeId,

@@ -1261,15 +1261,31 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         ports = []
         machine = Machine.objects.get(ip=kwargs["ip"])
         if machine.machine_type == MachineType.PROXY.value:
-            ports = [self.cluster["proxy_port"]]
+            ports = (
+                self.cluster["proxy_port"]
+                if isinstance(self.cluster["proxy_port"], list)
+                else [self.cluster["proxy_port"]]
+            )
         elif machine.machine_type in (MachineType.BACKEND.value, MachineType.SINGLE.value):
-            ports = [self.cluster["backend_port"]]
+            ports = (
+                self.cluster["backend_port"]
+                if isinstance(self.cluster["backend_port"], list)
+                else [self.cluster["backend_port"]]
+            )
         elif machine.machine_type == MachineType.REMOTE.value:
-            ports = [self.cluster["remote_port"]]
+            ports = (
+                self.cluster["remote_port"]
+                if isinstance(self.cluster["remote_port"], list)
+                else [self.cluster["remote_port"]]
+            )
         elif machine.machine_type == MachineType.SPIDER.value:
-            ports = [self.cluster["spider_port"]]
+            ports = (
+                self.cluster["spider_port"]
+                if isinstance(self.cluster["spider_port"], list)
+                else [self.cluster["spider_port"]]
+            )
         else:
-            pass  # ToDo
+            raise Exception(f"not support machine_type:{machine.machine_type}")
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,

@@ -84,10 +84,10 @@
     activePanelId?: string,
   }
 
-  type Keys = keyof InstanceSelectorValues<T>;
+  type Keys = keyof Props['lastValues'];
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void;
+    (e: 'change', value: Props['lastValues']): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -102,7 +102,7 @@
   const copy = useCopy();
 
   const keys = computed(() => Object.keys(props.lastValues) as Keys[]);
-  const isEmpty = computed(() => !keys.value.some((key) => props.lastValues[key].length > 0));
+  const isEmpty = computed(() => keys.value.every(key => props.lastValues[key].length < 1));
   const mainKey = computed(() => props.displayKey);
 
   const handleClear = () => {

@@ -91,7 +91,7 @@
 
   import { ClusterTypes, LocalStorageKeys, TicketTypes } from '@common/const';
 
-  import VisitEntrySelector from '@components/cluster-selector-new/Index.vue';
+  import VisitEntrySelector from '@components/cluster-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';

@@ -70,7 +70,7 @@ class DropTempUserForClusterService(BaseService):
         """
         # 拼接临时用户的名称
         user = generate_mysql_tmp_user(root_id)
-
+        err_num = 0
         try:
             # 删除localhost和 local_ip用户
             for instance in self._get_instance_for_cluster(cluster=cluster):
@@ -102,11 +102,16 @@ class DropTempUserForClusterService(BaseService):
                             f"The result [drop user if exists `{user}`] in {info['address']}"
                             f"is [{info['error_msg']}]"
                         )
+                        err_num = err_num + 1
                     else:
                         self.log_info(f"The result [drop user if exists `{user}`] in {info['address']} is [success]")
 
         except Exception as e:  # pylint: disable=broad-except
             self.log_error(f"drop user error in cluster [{cluster.name}]: {e}")
+            return False
+
+        if err_num > 0:
+            self.log_error(f"drop user error in cluster [{cluster.name}]")
             return False
 
         self.log_info(f"drop user finish in cluster [{cluster.name}]")
@@ -116,6 +121,7 @@ class DropTempUserForClusterService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
 
+        err_num = 0
         for cluster_id in kwargs["cluster_ids"]:
             # 获取每个cluster_id对应的对象
             try:
@@ -125,7 +131,11 @@ class DropTempUserForClusterService(BaseService):
                     cluster_id=cluster_id, bk_biz_id=global_data["bk_biz_id"], message=_("集群不存在")
                 )
             if not self.drop_jor_user(cluster=cluster, root_id=global_data["job_root_id"]):
-                return False
+                err_num = err_num + 1
+
+        if err_num > 0:
+            self.log_error("drop user error")
+            return False
 
         return True
 

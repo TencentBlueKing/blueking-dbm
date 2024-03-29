@@ -104,7 +104,7 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {

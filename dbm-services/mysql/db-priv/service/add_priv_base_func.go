@@ -102,9 +102,7 @@ func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, m
 	// Meanwhile, binlogging grants can cause problems, eg. when starting a MySQL 8.0 replica for MySQL 5.7,
 	// because MySQL 8.0 does not recognize "GRANT ... IDENTIFIED BY ...".
 
-	if clusterType == tendbcluster {
-		result.backendSQL = append(result.backendSQL, flushPriv, setBinlogOff, setDdlByCtlOFF)
-	} else if clusterType == tdbctl {
+	if clusterType == tdbctl {
 		// 仅AddPrivWithoutAccountRule内部接口使用
 		result.backendSQL = append(result.backendSQL, flushPriv, setBinlogOff, setTcAdminOFF)
 		clusterType = tendbsingle

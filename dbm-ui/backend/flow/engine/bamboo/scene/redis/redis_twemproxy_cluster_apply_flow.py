@@ -183,7 +183,7 @@ class RedisClusterApplyFlow(object):
             params["meta_role"] = InstanceRole.REDIS_MASTER.value
             params["server_shards"] = twemproxy_server_shards[ip]
             params["cache_backup_mode"] = get_cache_backup_mode(self.data["bk_biz_id"], 0)
-            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, dbmon_install=False)
             sub_pipelines.append(sub_builder)
         for ip in slave_ips:
             # 为了解决重复问题，cluster重新赋值一下
@@ -195,7 +195,7 @@ class RedisClusterApplyFlow(object):
             params["meta_role"] = InstanceRole.REDIS_SLAVE.value
             params["server_shards"] = twemproxy_server_shards[ip]
             params["cache_backup_mode"] = get_cache_backup_mode(self.data["bk_biz_id"], 0)
-            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, dbmon_install=False)
             sub_pipelines.append(sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
@@ -248,7 +248,7 @@ class RedisClusterApplyFlow(object):
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
 
             params["ip"] = ip
-            sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, dbmon_install=False)
             sub_pipelines.append(sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
@@ -331,6 +331,21 @@ class RedisClusterApplyFlow(object):
                 "kwargs": {**asdict(act_kwargs), **asdict(dns_kwargs)},
             }
         )
+        redis_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        # dbmon后置安装
+        acts_list = []
+        for ip in master_ips + slave_ips + proxy_ips:
+            act_kwargs.exec_ip = ip
+            act_kwargs.cluster = {"ip": ip}
+            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+            acts_list.append(
+                {
+                    "act_name": _("{}-安装bkdbmon").format(ip),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
         redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
         redis_pipeline.run_pipeline()

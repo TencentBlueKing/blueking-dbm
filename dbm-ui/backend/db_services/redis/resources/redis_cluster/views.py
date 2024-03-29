@@ -21,14 +21,13 @@ from backend.components import DBConfigApi, DBPrivManagerApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster
-from backend.db_services.dbbase.resources import serializers
-from backend.db_services.dbbase.resources.viewsets import ResourceViewSet
+from backend.db_services.dbbase.resources import serializers, viewsets
 from backend.db_services.redis.resources import constants
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum, MySQLPrivComponent, UserName
 from backend.iam_app.dataclass.actions import ActionEnum
 
 from . import yasg_slz
-from .query import ListRetrieveResource
+from .query import RedisListRetrieveResource
 
 
 @method_decorator(
@@ -94,8 +93,8 @@ from .query import ListRetrieveResource
         tags=[constants.RESOURCE_TAG],
     ),
 )
-class RedisClusterViewSet(ResourceViewSet):
-    query_class = ListRetrieveResource
+class RedisClusterViewSet(viewsets.ResourceViewSet):
+    query_class = RedisListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
     db_type = DBType.Redis
 

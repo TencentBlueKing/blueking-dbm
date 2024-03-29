@@ -374,7 +374,7 @@
                 permission={data.permission.spec_delete}
                 theme="primary"
                 text
-                onClick={() => handleDelete([data])}>
+                onClick={() => handleDelete([data], false)}>
                 {t('删除')}
               </auth-button>
             )}
@@ -496,7 +496,7 @@
     });
   };
 
-  const handleDelete = (list: ResourceSpecModel[]) => {
+  const handleDelete = (list: ResourceSpecModel[], isBatch = true) => {
     useInfoWithIcon({
       type: 'warnning',
       title: t('确认删除以下规格'),
@@ -508,7 +508,7 @@
       onConfirm: async () => {
         try {
           await batchDeleteResourceSpec({
-            spec_ids: selectedList.value.map(item => item.spec_id),
+            spec_ids: isBatch ? selectedList.value.map(item => item.spec_id) : list.map(item => item.spec_id),
           });
           messageSuccess(t('删除成功'));
           fetchData();

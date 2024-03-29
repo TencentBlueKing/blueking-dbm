@@ -59,7 +59,7 @@
 
   import ClusterSelector, {
     type TabItem,
-  } from '@components/cluster-selector-new/Index.vue';
+  } from '@components/cluster-selector/Index.vue';
 
   import RenderData from './render-table/Index.vue';
   import RenderDataRow from './render-table/Row.vue';

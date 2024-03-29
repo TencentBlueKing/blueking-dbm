@@ -26,7 +26,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import RenderTable from './components/RenderTable.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';

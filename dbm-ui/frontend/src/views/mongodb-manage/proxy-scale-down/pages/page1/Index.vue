@@ -85,7 +85,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector, { type TabItem }  from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector, { type TabItem }  from '@components/cluster-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {

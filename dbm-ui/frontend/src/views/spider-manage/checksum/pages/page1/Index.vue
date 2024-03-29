@@ -143,7 +143,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import RenderData from './components/RenderData/Index.vue';

@@ -63,9 +63,15 @@
   });
   const emits = defineEmits<Emits>();
 
+  const createData = () => ({
+    mount_point: '',
+    size: '' as string | number,
+    type: '',
+  });
+
   const { t } = useI18n();
 
-  const tableData = ref([...props.modelValue]);
+  const tableData = ref(props.modelValue.length > 0 ? props.modelValue : [createData()]);
   const deviceClass = ref<{label: string, value: string}[]>([]);
   const isLoadDeviceClass = ref(true);
 
@@ -231,12 +237,6 @@
       ),
     },
   ];
-
-  const createData = () => ({
-    mount_point: '',
-    size: '' as string | number,
-    type: '',
-  });
 
   const handleAdd = (index: number) => {
     tableData.value.splice(index + 1, 0, createData());

@@ -216,7 +216,7 @@ dbpartition:
     PT_MAX_ROWS: "10000000"
     PT_MAX_SIZE: "322122547200"
     DB_REMOTE_SERVICE: "http://bk-dbm/apis/proxypass/drs/"
-    CRON_RETRY_HOUR: "7,15"
+    CRON_RETRY_HOUR: "9,15"
     CRON_TIMING_HOUR: "3"
     DBM_TICKET_SERVICE: "http://bk-dbm/apis/"
     LISTEN_ADDRESS: "0.0.0.0:80"

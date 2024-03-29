@@ -14,30 +14,27 @@
 <template>
   <SuccessView
     v-if="ticketId"
-    :steps="[
-      {
-        title: $t('单据审批'),
-        status: 'loading',
-      },
-      {
-        title: $t('清档_执行'),
-      },
-    ]"
+    :steps="[{
+      title: t('单据审批'),
+      status: 'loading',
+    }, {
+      title: t('清档_执行'),
+    }]"
     :ticket-id="ticketId"
-    :title="$t('清档任务提交成功')"
+    :title="t('清档任务提交成功')"
     @close="handleCloseSuccess" />
   <SmartAction
     v-else
     class="db-clear">
     <BkAlert
       closable
-      :title="$t('清档_删除目标数据库数据_数据会暂存在不可见的备份库中_只有在执行删除备份库后_才会真正的删除数据')" />
+      :title="t('清档_删除目标数据库数据_数据会暂存在不可见的备份库中_只有在执行删除备份库后_才会真正的删除数据')" />
     <div class="db-clear-operations">
       <BkButton
         class="db-clear-batch"
         @click="() => (isShowBatchInput = true)">
         <i class="db-icon-add" />
-        {{ $t('批量录入') }}
+        {{ t('批量录入') }}
       </BkButton>
     </div>
     <ToolboxTable
@@ -50,13 +47,13 @@
       @remove="handleRemoveItem" />
     <BkCheckbox
       v-model="isForce"
-      v-bk-tooltips="$t('安全模式下_存在业务连接时需要人工确认')"
+      v-bk-tooltips="t('安全模式下_存在业务连接时需要人工确认')"
       class="mb-20"
       :false-label="false">
       <span
         class="inline-block"
-        style="margin-top: -2px; border-bottom: 1px dashed #979ba5">
-        {{ $t('安全模式') }}
+        style=" margin-top: -2px;border-bottom: 1px dashed #979ba5;">
+        {{ t('安全模式') }}
       </span>
     </BkCheckbox>
     <template #action>
@@ -65,13 +62,13 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <BkButton
         class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
-        {{ $t('重置') }}
+        {{ t('重置') }}
       </BkButton>
     </template>
   </SmartAction>
@@ -80,17 +77,18 @@
     @change="handleBatchInput" />
   <ClusterSelector
     v-model:is-show="isShowBatchSelector"
-    :tab-list="clusterSelectorTabList"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    :selected="selectedClusters"
     @change="handleBatchSelectorChange" />
   <div
     v-show="isShowInputTips"
     ref="popRef"
-    style="font-size: 12px; line-height: 24px; color: #63656e">
-    <p>{{ $t('匹配任意长度字符串_如a_不允许独立使用') }}</p>
-    <p>{{ $t('匹配任意单一字符_如a_d') }}</p>
-    <p>{{ $t('专门指代ALL语义_只能独立使用') }}</p>
-    <p>{{ $t('注_含通配符的单元格仅支持输入单个对象') }}</p>
-    <p>{{ $t('Enter完成内容输入') }}</p>
+    style=" font-size: 12px; line-height: 24px;color: #63656e;">
+    <p>{{ t('匹配任意长度字符串_如a_不允许独立使用') }}</p>
+    <p>{{ t('匹配任意单一字符_如a_d') }}</p>
+    <p>{{ t('专门指代ALL语义_只能独立使用') }}</p>
+    <p>{{ t('注_含通配符的单元格仅支持输入单个对象') }}</p>
+    <p>{{ t('Enter完成内容输入') }}</p>
   </div>
 </template>
 
@@ -100,10 +98,10 @@
   import type { Instance, SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { getClusterInfoByDomains } from '@services/source/mysqlCluster';
   import { getClusterDatabaseNameList } from '@services/source/remoteService';
   import { createTicket } from '@services/source/ticket';
-  import type { ResourceItem } from '@services/types';
 
   import {
     useInfo,
@@ -116,8 +114,7 @@
   } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
-  import type { ClusterSelectorResult } from '@components/cluster-selector/types';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
 
@@ -151,7 +148,6 @@
   const globalBizsStore = useGlobalBizs();
   const tableMaxHeight = useTableMaxHeight(334);
   let tippyInst:Instance | undefined;
-  const clusterSelectorTabList = [ClusterTypes.TENDBHA];
 
   const ticketId = ref(0);
   const toolboxTableRef = ref();
@@ -161,9 +157,12 @@
   const isForce = ref(false);
   const popRef = ref<HTMLDivElement>();
   const isShowInputTips = ref(false);
-  const clusterInfoMap: Map<string, ResourceItem> = reactive(new Map());
+  const clusterInfoMap: Map<string, TendbhaModel> = reactive(new Map());
   const clusterDBNameMap: Map<number, Array<string>> = reactive(new Map());
   const tableData = ref<Array<TableItem>>([getTableItem()]);
+
+  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+
   const rules = {
     cluster: [
       {
@@ -334,6 +333,9 @@
       ),
     },
   ];
+
+  // 集群域名是否已存在表格的映射表
+  let domainMemo: Record<string, boolean> = {};
 
   const tagInputPasteFn = (value: string) => value.split('\n').map(item => ({ id: item }));
 
@@ -663,7 +665,8 @@
   /**
    * 集群选择器批量选择
    */
-  function handleBatchSelectorChange(selected: ClusterSelectorResult) {
+  function handleBatchSelectorChange(selected: Record<string, Array<TendbhaModel>>) {
+    selectedClusters.value = selected;
     const list: Array<TableItem> = [];
     for (const key of Object.keys(selected)) {
       const formatList = selected[key].map((item) => {
@@ -726,6 +729,13 @@
   }
 
   function handleRemoveItem(index: number) {
+    const dataList = [...tableData.value];
+    const domain = dataList[index].cluster_domain;
+    if (domain) {
+      delete domainMemo[domain];
+      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+    }
     tableData.value.splice(index, 1);
   }
 
@@ -735,6 +745,8 @@
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
+        selectedClusters.value[ClusterTypes.TENDBHA] = [];
+        domainMemo = {};
         nextTick(() => {
           window.changeConfirm = false;
         });

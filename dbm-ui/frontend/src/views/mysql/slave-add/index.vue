@@ -14,29 +14,26 @@
 <template>
   <SuccessView
     v-if="ticketId"
-    :steps="[
-      {
-        title: $t('单据审批'),
-        status: 'loading',
-      },
-      {
-        title: $t('添加从库_执行'),
-      },
-    ]"
+    :steps="[{
+      title: t('单据审批'),
+      status: 'loading',
+    }, {
+      title: t('添加从库_执行'),
+    }]"
     :ticket-id="ticketId"
-    :title="$t('添加从库任务提交成功')"
+    :title="t('添加从库任务提交成功')"
     @close="handleCloseSuccess" />
   <SmartAction
     v-else
     class="slave-add">
     <BkAlert
       closable
-      :title="$t('添加从库_同机的所有集群会统一新增从库_但新机器不添加到域名解析中去')" />
+      :title="t('添加从库_同机的所有集群会统一新增从库_但新机器不添加到域名解析中去')" />
     <BkButton
       class="slave-add-batch"
       @click="() => (isShowBatchInput = true)">
       <i class="db-icon-add" />
-      {{ $t('批量录入') }}
+      {{ t('批量录入') }}
     </BkButton>
     <ToolboxTable
       ref="toolboxTableRef"
@@ -66,13 +63,13 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <BkButton
         class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
-        {{ $t('重置') }}
+        {{ t('重置') }}
       </BkButton>
     </template>
   </SmartAction>
@@ -81,7 +78,8 @@
     @change="handleBatchInput" />
   <ClusterSelector
     v-model:is-show="isShowBatchSelector"
-    :tab-list="[ClusterTypes.TENDBHA]"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    :selected="selectedClusters"
     @change="handleBatchSelectorChange" />
 </template>
 
@@ -89,13 +87,13 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { checkHost } from '@services/source/ipchooser';
   import {
     findRelatedClustersByClusterIds,
     getClusterInfoByDomains,
   } from '@services/source/mysqlCluster';
   import { createTicket } from '@services/source/ticket';
-  import type { ResourceItem } from '@services/types';
 
   import { useInfo, useTableMaxHeight } from '@hooks';
 
@@ -104,8 +102,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
-  import type { ClusterSelectorResult } from '@components/cluster-selector/types';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
 
@@ -129,10 +126,12 @@
   const isShowBatchInput = ref(false);
   const isShowBatchSelector = ref(false);
   const isSubmitting = ref(false);
-  const clusterInfoMap: Map<string, ResourceItem> = reactive(new Map());
+  const clusterInfoMap: Map<string, TendbhaModel> = reactive(new Map());
   const hostInfoMap: Map<string, ServiceReturnType<typeof checkHost>[number]> = reactive(new Map());
   const tableData = ref<Array<TableItem>>([getTableItem()]);
   const backupSource = ref('local');
+
+  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
 
   const isCN = computed(() => locale.value === 'zh-cn');
 
@@ -177,6 +176,9 @@
       ),
     },
   ];
+
+  // 集群域名是否已存在表格的映射表
+  let domainMemo: Record<string, boolean> = {};
 
   const getHostInfo = (domain: string, ip: string) => {
     const clusterInfo = clusterInfoMap.get(domain);
@@ -389,7 +391,8 @@
   /**
    * 集群选择器批量选择
    */
-  function handleBatchSelectorChange(selected: ClusterSelectorResult) {
+  function handleBatchSelectorChange(selected: Record<string, Array<TendbhaModel>>) {
+    selectedClusters.value = selected;
     const formatList = selected[ClusterTypes.TENDBHA].map((item) => {
       clusterInfoMap.set(item.master_domain, item);
       return {
@@ -446,6 +449,13 @@
   }
 
   function handleRemoveItem(index: number) {
+    const dataList = [...tableData.value];
+    const domain = dataList[index].cluster_domain;
+    if (domain) {
+      delete domainMemo[domain];
+      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+    }
     tableData.value.splice(index, 1);
   }
 
@@ -455,9 +465,9 @@
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
+        selectedClusters.value[ClusterTypes.TENDBHA] = [];
+        domainMemo = {};
+        window.changeConfirm = false;
         return true;
       },
     });

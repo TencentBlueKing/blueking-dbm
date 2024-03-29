@@ -121,17 +121,15 @@
     useDiff,
   } from '../hooks/useDiff';
 
-  interface Props {
-    clusterType: string,
-    confType: string,
-    version: string,
-  }
-
-  const props = defineProps<Props>();
-
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
+
+  const { clusterType, confType, version } = route.params as {
+    clusterType: string,
+    confType: string,
+    version: string,
+  };
 
   const loading = ref(false);
   const diffData = reactive({
@@ -247,15 +245,16 @@
     });
 
     const params = {
-      meta_cluster_type: props.clusterType,
-      conf_type: props.confType,
-      version: props.version,
+      meta_cluster_type: clusterType,
+      conf_type: confType,
+      version,
       conf_items: confItems,
       name: diffData.data.name,
       description: diffData.data.description,
       publish_description: publishDialog.publish_description,
       confirm: 0,
     };
+
     loading.value = true;
     updatePlatformConfig(params)
       .then(() => {

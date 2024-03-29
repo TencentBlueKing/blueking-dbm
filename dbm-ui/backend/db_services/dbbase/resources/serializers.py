@@ -17,28 +17,33 @@ from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 
 
 class ListResourceSLZ(serializers.Serializer):
-    id = serializers.IntegerField(help_text=_("集群ID"), required=False)
-    name = serializers.CharField(help_text=_("集群名"), required=False)
-    ip = serializers.CharField(help_text=_("部署IP"), required=False)
-    domain = serializers.CharField(help_text=_("集群域名"), required=False)
-    creator = serializers.CharField(help_text=_("创建者"), required=False)
-    version = serializers.CharField(help_text=_("集群版本"), required=False)
-    region = serializers.CharField(help_text=_("部署地域"), required=False)
-    cluster_ids = serializers.CharField(help_text=_("集群ID批量查询(逗号分割)"), required=False)
+    id = serializers.IntegerField(required=False)
+    name = serializers.CharField(required=False)
+    ip = serializers.CharField(required=False)
+    instance = serializers.CharField(required=False)
+    domain = serializers.CharField(required=False)
+    creator = serializers.CharField(required=False)
+    major_version = serializers.CharField(required=False)
+    region = serializers.CharField(required=False)
+    cluster_ids = serializers.ListField(child=serializers.IntegerField(), required=False, allow_empty=True)
     exact_domain = serializers.CharField(help_text=_("精确域名查询"), required=False)
+    ordering = serializers.CharField(required=False, help_text=_("排序字段,非必填"))
+    status = serializers.CharField(required=False, help_text=_("状态"))
+    db_module_id = serializers.CharField(required=False, help_text=_("所属DB模块"))
+    bk_cloud_id = serializers.CharField(required=False, help_text=_("管控区域"))
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
+    pass
+
+
+class ListSQLServerResourceSLZ(ListResourceSLZ):
     db_module_id = serializers.IntegerField(required=False)
 
 
 class ListMongoDBResourceSLZ(ListResourceSLZ):
     cluster_type = serializers.ChoiceField(required=False, choices=ClusterType.get_choices())
     domains = serializers.CharField(help_text=_("批量域名查询(逗号分割)"), required=False)
-
-
-class ListSQLServerResourceSLZ(ListResourceSLZ):
-    db_module_id = serializers.IntegerField(required=False)
 
 
 class ClusterSLZ(serializers.ModelSerializer):

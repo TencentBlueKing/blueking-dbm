@@ -22,12 +22,11 @@
         {{ t('实例申请') }}
       </AuthButton>
       <DbSearchSelect
-        v-model="searchSelectValue"
+        v-model="searchValue"
         class="mb-16"
         :data="searchSelectData"
-        :placeholder="t('实例_域名_IP_端口_状态')"
-        unique-select
-        @change="handleSearchChnage" />
+        :placeholder="t('请输入或选择条件搜索')"
+        unique-select />
     </div>
     <div
       class="table-wrapper"
@@ -39,14 +38,15 @@
         releate-url-query
         :row-class="setRowClass"
         :settings="settings"
-        @clear-search="handleClearSearch"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
+        @column-sort="columnSortChange"
         @setting-change="updateTableSettings" />
     </div>
   </div>
 </template>
 
 <script setup lang="tsx">
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
@@ -54,6 +54,7 @@
 
   import {
     useCopy,
+    useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
   } from '@hooks';
@@ -63,6 +64,7 @@
   import {
     type ClusterInstStatus,
     clusterInstStatus,
+    ClusterTypes,
     UserPersonalSettings,
   } from '@common/const';
 
@@ -81,6 +83,13 @@
 
   const instanceData = defineModel<{instanceAddress: string, clusterId: number}>('instanceData');
 
+  let isInit = true;
+  const fetchData = (loading?:boolean) => {
+    const params = getSearchSelectorParams(searchValue.value);
+    tableRef.value.fetchData(params, { ...sortValue }, loading);
+    isInit = false;
+  };
+
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const copy = useCopy();
@@ -90,36 +99,68 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
 
-  const searchSelectData = [
-    {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: t('实例'),
-      id: 'instance_address',
-    },
-    {
-      name: t('域名'),
-      id: 'domain',
-    },
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+  } = useLinkQueryColumnSerach(ClusterTypes.TENDBHA, ['role'], () => fetchData(isInit), false);
+
+  const searchSelectData = computed(() => [
     {
       name: 'IP',
       id: 'ip',
+      multiple: true,
+    },
+    {
+      name: t('实例'),
+      id: 'instance',
+      multiple: true,
+    },
+    {
+      name: t('集群名称'),
+      id: 'name',
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'running',
+          name: t('正常'),
+        },
+        {
+          id: 'unavailable',
+          name: t('异常'),
+        },
+        {
+          id: 'loading',
+          name: t('重建中'),
+        },
+      ],
+    },
+    {
+      name: t('访问入口'),
+      id: 'domain',
+      multiple: true,
+    },
+    {
+      name: t('部署角色'),
+      id: 'role',
+      multiple: true,
+      children: searchAttrs.value.role,
     },
     {
       name: t('端口'),
       id: 'port',
     },
-    {
-      name: t('状态'),
-      id: 'status',
-      children: Object.values(clusterInstStatus).map(item => ({ id: item.key, name: item.text })),
-    },
-  ];
+  ]);
 
   const tableRef = ref();
-  const searchSelectValue = ref<ISearchValue[]>([]);
 
   const columns = computed(() => {
     const list = [
@@ -183,6 +224,22 @@
         label: t('状态'),
         field: 'status',
         width: 140,
+        filter: {
+          list: [
+            {
+              value: 'running',
+              text: t('正常'),
+            },
+            {
+              value: 'unavailable',
+              text: t('异常'),
+            },
+            {
+              value: 'restoring',
+              text: t('重建中'),
+            },
+          ],
+        },
         render: ({ cell }: { cell: ClusterInstStatus }) => {
           const info = clusterInstStatus[cell] || clusterInstStatus.unavailable;
           return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
@@ -231,11 +288,15 @@
       {
         label: t('部署角色'),
         field: 'role',
+        filter: {
+          list: columnAttrs.value.role,
+        },
       },
       {
         label: t('部署时间'),
         field: 'create_at',
         width: 160,
+        sort: true,
         render: ({ data }: { data: TendbhaInstanceModel }) => data.createAtDisplay || '--',
       },
       {
@@ -286,19 +347,13 @@
     })),
     checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
 
   const {
     settings,
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.TENDBHA_INSTANCE_SETTINGS, defaultSettings);
-
-  let isInit = true;
-  const fetchData = (loading?:boolean) => {
-    const params = getSearchSelectorParams(searchSelectValue.value);
-    tableRef.value.fetchData(params, {}, loading);
-    isInit = false;
-  };
 
   /**
    * 申请实例
@@ -310,17 +365,6 @@
         bizId: globalBizsStore.currentBizId,
       },
     });
-  };
-
-  /**
-   * 按条件过滤
-   */
-  const handleSearchChnage = () => {
-    fetchData(isInit);
-  };
-
-  const handleClearSearch = () => {
-    searchSelectValue.value = [];
   };
 
   /**
@@ -383,7 +427,7 @@
 
       .bk-search-select {
         flex: 1;
-        max-width: 320px;
+        max-width: 500px;
         min-width: 320px;
         margin-left: auto;
       }

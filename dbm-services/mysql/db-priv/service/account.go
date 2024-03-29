@@ -59,7 +59,7 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 			return err
 		}
 	} else {
-		// 兼容其他数据库类型比如，密码不存储mysql password函数，而是SM4，需要能够查询
+		// 兼容其他数据库类型比如mongo，密码不存储mysql password函数，而是SM4，需要能够查询
 		psw, err = SM4Encrypt(psw)
 		if err != nil {
 			slog.Error("SM4Encrypt", "error", err)

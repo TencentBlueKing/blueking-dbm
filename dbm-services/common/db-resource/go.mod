@@ -9,6 +9,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/samber/lo v1.39.0
 	github.com/spf13/viper v1.16.0
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cbs v1.0.750
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.750
@@ -58,6 +59,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	golang.org/x/arch v0.5.0 // indirect
 	golang.org/x/crypto v0.15.0 // indirect
+	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

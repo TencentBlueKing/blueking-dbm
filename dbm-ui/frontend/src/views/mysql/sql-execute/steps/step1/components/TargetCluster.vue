@@ -15,7 +15,7 @@
   <div class="sql-execute-target-cluster">
     <DbFormItem
       ref="formItemRef"
-      :label="$t('目标集群')"
+      :label="t('目标集群')"
       property="cluster_ids"
       required
       :rules="rules">
@@ -23,7 +23,7 @@
         <DbIcon
           style="margin-right: 3px"
           type="add" />
-        <span>{{ $t('添加目标集群') }}</span>
+        <span>{{ t('添加目标集群') }}</span>
       </BkButton>
       <div :class="{ 'cluster-checking': isLoading }">
         <BkLoading :loading="isLoading">
@@ -37,7 +37,9 @@
     </DbFormItem>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
+      :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
       :selected="clusterSelectorValue"
+      :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
   </div>
 </template>
@@ -52,19 +54,18 @@
 </script>
 <script setup lang="tsx">
   import _ from 'lodash';
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import { queryClusters } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
 
+  import { ClusterTypes } from '@common/const';
+
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
-  import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   interface Props {
     modelValue: Array<number>
@@ -78,6 +79,15 @@
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: {
+      showPreviewResultTitle: true,
+    },
+    [ClusterTypes.TENDBSINGLE]: {
+      showPreviewResultTitle: true,
+    },
+  } as Record<string, TabConfig>;
 
   const colums = [
     {
@@ -121,7 +131,10 @@
   const isLoading = ref(false);
   const isShowClusterSelector = ref(false);
   const formItemRef = ref();
-  const clusterSelectorValue = shallowRef();
+  const clusterSelectorValue = shallowRef<Record<string, TendbhaModel[] | TendbsingleModel[]>>({
+    [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
+    [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
+  });
   const targetClusterList = shallowRef<Array<IClusterData>>([]);
 
   let isInnerChange = false;
@@ -174,13 +187,13 @@
 
     // ClusterSelector 的值回填
     clusterSelectorValue.value = {
-      tendbha: _.filter(result, item => item.cluster_type === 'tendbha'),
-      tendbsingle: _.filter(result, item => item.cluster_type === 'tendbsingle'),
+      [ClusterTypes.TENDBHA]: _.filter(result, item => item.cluster_type === 'tendbha') as TendbhaModel[],
+      [ClusterTypes.TENDBSINGLE]: _.filter(result, item => item.cluster_type === 'tendbsingle') as TendbsingleModel[],
     };
     triggerChange();
   };
 
-  const handelClusterChange = (selected: { [key: string]: Array<IClusterData> }) => {
+  const handelClusterChange = (selected: Record<string, TendbhaModel[] | TendbsingleModel[]>) => {
     targetClusterList.value = Object.keys(selected).reduce(
       (list: IClusterData[], key) => list.concat(...selected[key]),
       [],
