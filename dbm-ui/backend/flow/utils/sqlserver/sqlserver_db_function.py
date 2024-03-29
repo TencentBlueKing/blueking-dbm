@@ -20,12 +20,14 @@ from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import (
     SQLSERVER_CUSTOM_SYS_DB,
+    SQLSERVER_CUSTOM_SYS_USER,
     SqlserverBackupJobExecMode,
     SqlserverLoginExecMode,
     SqlserverSyncMode,
 )
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
+from backend.flow.utils.sqlserver.payload_handler import PayloadHandler
 
 
 def sqlserver_match_dbs(
@@ -263,12 +265,16 @@ def exec_instance_app_login(cluster_id, exec_type: SqlserverLoginExecMode) -> bo
         instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
     )
 
+    # 获取系统账号
+    sys_users = SQLSERVER_CUSTOM_SYS_USER
+    sys_users.append(PayloadHandler.get_sqlserver_drs_account(cluster.bk_cloud_id)["drs_user"])
+    sys_users_str = ",".join([f"'{i}'" for i in sys_users])
+
     # 查询所有的业务账号名称
     get_login_name_sql = f"""select a.name as login_name
-from master.sys.sql_logins a left join sys.syslogins b
-on a.name=b.name where principal_id>4 and a.name not in('{SQLSERVER_CUSTOM_SYS_DB}') and a.name not like '#%'
+from master.sys.sql_logins a left join master.sys.syslogins b
+on a.name=b.name where principal_id>4 and a.name not in({sys_users_str}) and a.name not like '#%'
 """
-
     ret = DRSApi.sqlserver_rpc(
         {
             "bk_cloud_id": cluster.bk_cloud_id,
