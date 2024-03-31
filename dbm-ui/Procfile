@@ -1,0 +1,4 @@
+web: gunicorn wsgi -w 4 -b :8000 --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
+beat: celery beat -A config.prod -l info
+worker: celery worker -A config.prod -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800 -l info
+pipeline: celery worker -A config.prod -Q er_execute,er_schedule -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800 -l info

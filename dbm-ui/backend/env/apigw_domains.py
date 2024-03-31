@@ -46,3 +46,6 @@ BACKUP_DOWNLOAD_USER = get_type_env(key="BACKUP_DOWNLOAD_USER", _type=str, defau
 BACKUP_DOWNLOAD_USER_PWD = get_type_env(key="BACKUP_DOWNLOAD_USER", _type=str, default="")
 
 CELERY_SERVICE_APIGW_DOMAIN = get_type_env(key="CELERY_SERVICE_APIGW_DOMAIN", _type=str)
+
+# 外部访问代理地址
+EXTERNAL_PROXY_DOMAIN = get_type_env(key="EXTERNAL_PROXY_DOMAIN", _type=str, default="http://bk-dbm")

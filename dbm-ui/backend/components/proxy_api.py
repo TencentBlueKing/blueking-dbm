@@ -39,3 +39,47 @@ class ProxyAPI(DataAPI):
         host = "https://" if self.ssl else "http://"
         external_address = f"{host}{proxy.external_address}"
         return url.replace(self.base.rstrip("/"), external_address)
+
+
+class ExternalProxyAPI(DataAPI):
+    """
+    外部代理API，用于将API接口从外部路由转发到内部
+    """
+
+    def __call__(
+        self,
+        params=None,
+        data=None,
+        raw=False,
+        timeout=None,
+        raise_exception=True,
+        use_admin=False,
+        headers=None,
+        current_retry_times=0,
+    ):
+        # 解析url
+        params = params or None
+        if "_url_path" not in params and not self.url:
+            raise DataAPIException(_("必须在请求体中传入 url 参数"))
+
+        self.url = f'{self.base.rstrip("/")}/{params["_url_path"].lstrip("/")}'
+
+        # 添加自定义headers
+        headers = headers or {}
+        headers.update({"IS-EXTERNAL": "true"})
+
+        # 调用父类的call，请求接口
+        return super().__call__(
+            params=params,
+            data=data,
+            raw=raw,
+            timeout=timeout,
+            raise_exception=raise_exception,
+            use_admin=use_admin,
+            headers=headers,
+            current_retry_times=current_retry_times,
+        )
+
+    def _set_session_cookies(self, session, cookies=None, use_admin=False):
+        # 转发路由要设置session为空，否则网关会优先以session的用户认证，而忽略headers的bk_username
+        session.cookies.clear()

@@ -40,10 +40,11 @@ class ErrorCode(object):
     RESOURCE_POOL_CODE = "12"
     REDIS_DTS_CODE = "13"
     DB_REMOTE_SERVICE_CODE = "14"
-    CONFIGURATION_CODE = "20"
     DB_MONITOR_CODE = "15"
     TENDB_OPEN_AREA_CODE = "16"
     SQL_IMPORT_CODE = "17"
+    EXTERNAL_PROXY_CODE = "18"
+    CONFIGURATION_CODE = "20"
 
 
 class AppBaseException(Exception):
