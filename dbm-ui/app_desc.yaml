@@ -1,0 +1,45 @@
+spec_version: 2
+app:
+    region: default
+    bk_app_code: "bk-dbm"
+    bk_app_name: "数据库管理"
+    market:
+        category: 运维工具
+        introduction: |
+            DBM数据库管理，集成了MySQL、Redis、ES、Kafka、HDFS、InfluxDB、Pulsar等多种数据库组件的全生命周期管理，
+            提供了海量集群的批量管理能力，以及相应DB组件的集群管理工具箱，
+            并配套DB个性化配置、高可用切换、域名管理等DB个性化服务，同时全方位的监控告警可观测能力，
+            让数据库管理员、运维、开发等用户可以轻松完成数据库管理工作，更高效、更安全、更全面的管理数据库。
+        display_options:
+            width: 1300
+            height: 720
+            is_win_maximize: True
+            open_mode: "new_tab"
+modules:
+    default:
+        is_default: true
+        source_dir: src
+        language: python
+        services:
+            - name: mysql
+            - name: redis
+            - name: bkrepo
+        processes:
+            web:
+                command: gunicorn wsgi -w 4 -b :8000 --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
+                plan: 4C2G5R
+                replicas: 3
+            beat:
+                command: celery beat -A config.prod -l info
+                plan: 4C2G5R
+                replicas: 1
+            worker:
+                command: celery worker -A config.prod -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800 -l info
+                plan: 4C2G5R
+                replicas: 1
+            pipeline:
+                command: celery worker -A config.prod -Q er_execute,er_schedule -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800 -l info
+                plan: 4C2G5R
+                replicas: 1
+        scripts:
+            pre_release_hook: bash -c "python manage.py migrate && python manage.py migrate db_report --database=report_db && python manage.py createcachetable django_cache"
