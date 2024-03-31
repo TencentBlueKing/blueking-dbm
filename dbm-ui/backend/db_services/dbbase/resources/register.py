@@ -35,7 +35,7 @@ def register_resource_decorator(*args, **kwargs):
     return decorator
 
 
-def register_all_resource(path=os.path.join(BASE_DIR, "backend/db_services"), module_path="backend.db_services"):
+def register_all_resource(path=os.path.dirname(__file__).rsplit("/", 2)[0], module_path="backend.db_services"):
     """递归注册当前目录下所有的resource类"""
     for name in os.listdir(path):
         if os.path.isdir(os.path.join(path, name)):

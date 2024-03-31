@@ -388,15 +388,12 @@ class DataAPI(object):
         """
         cache.set(cache_key, data, self.cache_time)
 
-    def _send(self, params: Any, headers: Dict, use_admin: bool = False):
+    def _set_session_headers(self, session, headers: Dict, params: Dict):
         """
-        发送和接受返回请求的包装
-        @param params: 请求的参数,预期是一个字典
-        @return: requests response
+        设置session的headers
+        @param headers: 用户自定义headers
+        @param params: 请求参数
         """
-
-        # 增加request id
-        session = requests.session()
         session.headers.update(headers)
         session.headers.update(
             {
@@ -405,20 +402,29 @@ class DataAPI(object):
             }
         )
         # 增加鉴权信息
-        if isinstance(params, dict):
-            session.headers.update(
-                {
-                    "X-Bkapi-Authorization": json.dumps(
-                        {
-                            "bk_app_code": params.pop("bk_app_code", ""),
-                            "bk_app_secret": params.pop("bk_app_secret", ""),
-                            "bk_username": params.pop("bk_username", env.DEFAULT_USERNAME),
-                        }
-                    ),
-                }
-            )
+        if not isinstance(params, dict):
+            return
+        session.headers.update(
+            {
+                "X-Bkapi-Authorization": json.dumps(
+                    {
+                        "bk_app_code": params.pop("bk_app_code", ""),
+                        "bk_app_secret": params.pop("bk_app_secret", ""),
+                        "bk_username": params.pop("bk_username", env.DEFAULT_USERNAME),
+                    }
+                ),
+            }
+        )
+        # headers 申明重载请求方法
+        if self.method_override is not None:
+            session.headers.update({"X-METHOD-OVERRIDE": self.method_override})
 
-        # 设置cookies
+    def _set_session_cookies(self, session, cookies: Dict = None, use_admin: bool = False):
+        """
+        设置session的cookies
+        @param cookies: 用户自定义cookies
+        @param use_admin: 是否以admin请求
+        """
         try:
             local_request = local.request
         except AppBaseException:
@@ -427,12 +433,20 @@ class DataAPI(object):
         if local_request and local_request.COOKIES and not use_admin:
             session.cookies.update(local_request.COOKIES)
 
-        # headers 申明重载请求方法
-        if self.method_override is not None:
-            session.headers.update({"X-METHOD-OVERRIDE": self.method_override})
+        if cookies:
+            session.cookies.update(cookies)
+
+    def _send(self, params: Any, headers: Dict, use_admin: bool = False):
+        """
+        发送和接受返回请求的包装
+        @param params: 请求的参数,预期是一个字典
+        @return: requests response
+        """
+        session = requests.session()
+        self._set_session_headers(session, headers, params)
+        self._set_session_cookies(session, use_admin=use_admin)
 
         url = self.build_actual_url(params)
-        # 发出请求并返回结果
         non_file_data, file_data = self._split_file_data(params)
         request_method = self.method.upper()
 
@@ -441,6 +455,7 @@ class DataAPI(object):
             client_crt, client_key = self._fetch_client_crt()
             session.cert = (client_crt, client_key)
 
+        # 发出请求并返回结果
         if request_method == "GET":
             result = session.request(method=self.method, url=url, params=params, verify=False, timeout=self.timeout)
         elif request_method == "DELETE":
