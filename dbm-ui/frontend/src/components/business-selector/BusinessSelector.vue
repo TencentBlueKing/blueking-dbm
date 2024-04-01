@@ -24,7 +24,7 @@
       action-id="DB_MANAGE"
       :permission="item.permission.db_manage"
       :resource-id="item.bk_biz_id"
-      resource-type="BUSINESS">
+      resource-type="biz">
       <BkOption
         :label="item.display_name"
         :value="item.bk_biz_id">
