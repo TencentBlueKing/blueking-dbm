@@ -17,6 +17,7 @@
       :is="flowComponent"
       :key="data.id"
       :flows="state.flows"
+      :ticket-data="data"
       @fetch-data="handleFecthData" />
   </BkLoading>
 </template>

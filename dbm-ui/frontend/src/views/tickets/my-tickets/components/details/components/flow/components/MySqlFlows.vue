@@ -37,6 +37,8 @@
       <FlowContent
         v-else
         :content="content"
+        :flows="flows"
+        :ticket-data="ticketData"
         @fetch-data="handleFetchData" />
     </template>
   </BkTimeline>
@@ -53,6 +55,7 @@
 </template>
 
 <script setup lang="tsx">
+  import TicketModel from '@services/model/ticket/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
   import SqlFileComponent from '@views/tickets/common/components/demand-factory/mysql/LogDetails.vue';
@@ -63,6 +66,7 @@
   import { getCostTimeDisplay } from '@utils';
 
   interface Props {
+    ticketData: TicketModel,
     flows?: FlowItem[]
   }
 

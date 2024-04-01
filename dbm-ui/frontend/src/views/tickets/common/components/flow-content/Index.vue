@@ -23,6 +23,12 @@
       :data="item"
       :href-target="getHrefTarget(content)" />
   </template>
+  <!-- 人工确认 -->
+  <template
+    v-else-if="(content.status === 'PENDING' && content.flow_type === 'PAUSE') ||
+      (content.status === 'RUNNING' && !isSamePeople)">
+    <span>等待 {{ ticketData.creator }} 确认是否执行 "{{ manualNexFlowDisaply }}"</span>
+  </template>
   <template v-else>
     <p>
       <template
@@ -119,8 +125,11 @@
 </template>
 
 <script setup lang="ts">
+  import TicketModel from '@services/model/ticket/ticket';
   import { retryTicketFlow } from '@services/source/ticket';
   import type { FlowItem } from '@services/types/ticket';
+
+  import { useUserProfile  } from '@stores';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
@@ -132,26 +141,43 @@
   }
 
   interface Props {
+    ticketData: TicketModel,
     content: FlowItem,
+    flows?: FlowItem[],
     isTodos?: boolean
   }
 
   const props = withDefaults(defineProps<Props>(), {
     isTodos: false,
+    flows: () => [],
   });
   const emits = defineEmits<Emits>();
 
   const router = useRouter();
+  const { username } = useUserProfile();
 
   const retryButtonRef = ref();
   const state = reactive({
     confirmTips: false,
     isLoading: false,
   });
+
+  const manualNexFlowDisaply = computed(() => {
+    if (props.flows.length > 0) {
+      const manualIndex = props.flows.findIndex(item => item.flow_type === 'PAUSE');
+      if (manualIndex > -1) {
+        return props.flows[manualIndex + 1].flow_type_display;
+      }
+    }
+    return '';
+  });
+
   const isPause = computed(() => {
     const { content } = props;
     return content.status === 'RUNNING' && content.flow_type === 'PAUSE';
   });
+
+  const isSamePeople = computed(() => props.ticketData.creator === username);
 
   function getHrefTarget(content: FlowItem) {
     return content.flow_type === 'BK_ITSM' ? '_blank' : '_self';
