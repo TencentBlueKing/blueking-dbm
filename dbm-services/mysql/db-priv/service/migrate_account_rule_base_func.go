@@ -135,8 +135,8 @@ func DoAddAccounts(apps map[string]int64, users []PrivModule, clusterType string
 
 // DoAddAccountRule 创建帐号规则
 func DoAddAccountRule(rule *PrivModule, apps map[string]int64, clusterType string, priv map[string]string) error {
-	account := AccountPara{BkBizId: apps[rule.App], User: rule.User, ClusterType: &clusterType}
-	items, cnt, err := account.GetAccount()
+	account := GetAccountListPara{BkBizId: apps[rule.App], User: rule.User, ClusterType: &clusterType}
+	items, cnt, err := account.GetAccountList()
 	if err != nil {
 		return fmt.Errorf("add rule failed when get account: %s", err.Error())
 	}

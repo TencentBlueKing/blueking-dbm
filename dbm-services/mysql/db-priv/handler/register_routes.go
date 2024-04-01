@@ -22,9 +22,12 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 	return []*gin.RouteInfo{
 		// 账号
 		{Method: http.MethodPost, Path: "add_account", HandlerFunc: m.AddAccount},
-		{Method: http.MethodPost, Path: "get_account", HandlerFunc: m.GetAccount},
 		{Method: http.MethodPost, Path: "modify_account", HandlerFunc: m.ModifyAccount},
 		{Method: http.MethodPost, Path: "delete_account", HandlerFunc: m.DeleteAccount},
+		// 查询帐号清单
+		{Method: http.MethodPost, Path: "get_account", HandlerFunc: m.GetAccountList},
+		// 查询帐号，并且包含密码，为mongodb等非mysql数据库类型使用
+		{Method: http.MethodPost, Path: "get_account_include_psw", HandlerFunc: m.GetAccountIncludePsw},
 
 		// 账号规则
 		{Method: http.MethodPost, Path: "get_account_rule_list", HandlerFunc: m.GetAccountRuleList},
@@ -73,9 +76,6 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 
 		// 检查和迁移账号规则
 		{Method: http.MethodPost, Path: "migrate_account_rule", HandlerFunc: m.MigrateAccountRule},
-
-		// 查询帐号，并且包含密码，为mongodb等非mysql数据库类型使用
-		{Method: http.MethodPost, Path: "get_account_include_psw", HandlerFunc: m.GetAccountIncludePsw},
 	}
 }
 
