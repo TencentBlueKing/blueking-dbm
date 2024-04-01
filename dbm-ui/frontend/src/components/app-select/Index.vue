@@ -9,7 +9,7 @@
     @change="handleAppChange">
     <template #default="{ data }">
       <AuthTemplate
-        action-id="DB_MANAGE"
+        action-id="biz"
         :permission="data.permission.db_manage"
         :resource="data.bk_biz_id"
         style="width: 100%">
