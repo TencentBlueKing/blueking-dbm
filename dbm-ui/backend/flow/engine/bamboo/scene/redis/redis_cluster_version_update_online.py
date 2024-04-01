@@ -113,7 +113,8 @@ class RedisClusterVersionUpdateOnline(object):
             if err:
                 raise Exception(err)
 
-    def get_cluster_meta_data(self, bk_biz_id: int, cluster_id: int):
+    @staticmethod
+    def get_cluster_meta_data(bk_biz_id: int, cluster_id: int):
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
 
         master_ports, slave_ports = defaultdict(list), defaultdict(list)
