@@ -130,6 +130,7 @@ export default () => {
         ...getPasswordManageRoutes(),
         ...getServiceApplyRoutes(),
         ...getQuickSearchRoutes(),
+        ...getTicketsRoutes(),
       ],
     },
     {
@@ -151,7 +152,6 @@ export default () => {
         ...getSpiderManageRoutes(),
         ...getStaffManageRoutes(),
         ...getTaskHistoryRoutes(),
-        ...getTicketsRoutes(),
         ...getWhitelistRoutes(),
         ...getTicketManageRoutes(),
         ...getTemporaryPasswordModify(),
