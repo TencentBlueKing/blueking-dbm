@@ -223,6 +223,7 @@ class ConfigFileEnum(str, StructuredEnum):
     BigKey = EnumField("bigkey", _("大key配置"))
     DefaultConf = EnumField("defaultconf", _("默认配置"))
     OsConf = EnumField("osconf", _("os配置"))
+    MaxMemorySet = EnumField("maxmemory_set", _("maxmemory配置"))
 
 
 class DbBackupRoleEnum(str, StructuredEnum):

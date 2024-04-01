@@ -9,8 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import re
+from typing import Dict, List
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 
@@ -109,3 +111,74 @@ def get_latest_redis_package_by_version(db_version):
         pkg_type = MediumEnum.TendisPlus
     redis_pkg = Package.get_latest_package(version=db_version, pkg_type=pkg_type, db_type=DBType.Redis)
     return redis_pkg
+
+
+def humanbytes(B):
+    """
+    将字节数转换为更易读的的字符串
+    如: 11111111111 -> 10.35 GB
+    如: 891743743 -> 850.43 MB
+    """
+    # 定义不同单位的字节数
+    KB = float(1024)
+    MB = float(KB**2)
+    GB = float(KB**3)
+    TB = float(KB**4)
+    PB = float(KB**5)
+
+    # 根据字节数选择合适的单位
+    if B < KB:
+        return f"{B:.0f} {'Bytes' if B == 1 else 'Byte'}"
+    elif KB <= B < MB:
+        return f"{B / KB:.2f} KB"
+    elif MB <= B < GB:
+        return f"{B / MB:.2f} MB"
+    elif GB <= B < TB:
+        return f"{B / GB:.2f} GB"
+    elif TB <= B < PB:
+        return f"{B / TB:.2f} TB"
+    elif B >= PB:
+        return f"{B / PB:.2f} PB"
+
+
+UNITS = {None: 1, "B": 1, "KB": 2**10, "MB": 2**20, "GB": 2**30, "TB": 2**40, "PB": 2**50}
+
+
+def parse_human_size(size):
+    """
+    解析人类可读的字符串为字节数
+    如: 100GB -> 107374182400
+    如: 11.1 MB -> 11639193
+    """
+    if isinstance(size, int):
+        return size
+    m = re.match(r"^(\d+(?:\.\d+)?)\s*([KMGTP]?B)?$", size.upper())
+    if m:
+        number, unit = m.groups()
+        return int(float(number) * UNITS[unit])
+    raise ValueError("Invalid human size")
+
+
+def decode_info_cmd(info_str: str) -> Dict:
+    """
+    将info命令返回的 used_memory:12241256\r\nused_memory_human:11.67M
+    接些成字典:{
+        "used_memory":"12241256",
+        "used_memory_human":"11.67M"
+    }
+    """
+    info_ret: Dict[str, dict] = {}
+    info_list: List = info_str.split("\n")
+    for info_item in info_list:
+        info_item = info_item.strip()
+        if info_item.startswith("#"):
+            continue
+        if len(info_item) == 0:
+            continue
+        tmp_list = info_item.split(IP_PORT_DIVIDER, 1)
+        if len(tmp_list) < 2:
+            continue
+        tmp_list[0] = tmp_list[0].strip()
+        tmp_list[1] = tmp_list[1].strip()
+        info_ret[tmp_list[0]] = tmp_list[1]
+    return info_ret

@@ -38,6 +38,7 @@ from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_cluster_nodes import get_masters_with_slots
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.redis.redis_proxy_util import decode_twemproxy_backends
+from backend.flow.utils.redis.redis_util import decode_info_cmd
 from backend.utils.time import datetime2str
 
 from .models import TendisDtsServer
@@ -431,24 +432,6 @@ def get_user_built_cluster_masters_data(
                 }
             )
     return master_instances, master_hosts
-
-
-def decode_info_cmd(info_str: str) -> Dict:
-    info_ret: Dict[str, dict] = {}
-    info_list: List = info_str.split("\n")
-    for info_item in info_list:
-        info_item = info_item.strip()
-        if info_item.startswith("#"):
-            continue
-        if len(info_item) == 0:
-            continue
-        tmp_list = info_item.split(IP_PORT_DIVIDER, 1)
-        if len(tmp_list) < 2:
-            continue
-        tmp_list[0] = tmp_list[0].strip()
-        tmp_list[1] = tmp_list[1].strip()
-        info_ret[tmp_list[0]] = tmp_list[1]
-    return info_ret
 
 
 def get_redis_slaves_data_size(cluster_data: dict) -> list:

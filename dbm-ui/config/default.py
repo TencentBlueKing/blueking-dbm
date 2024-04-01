@@ -116,6 +116,7 @@ INSTALLED_APPS += (
     "backend.db_services.redis.redis_dts",
     "backend.db_services.redis.rollback",
     "backend.db_services.redis.autofix",
+    "backend.db_services.redis.maxmemory_set",
     "backend.db_dirty",
     "backend.db_periodic_task",
     "backend.db_report",
