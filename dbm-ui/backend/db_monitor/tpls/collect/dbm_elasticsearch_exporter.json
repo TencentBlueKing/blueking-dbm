@@ -38,7 +38,7 @@
     "plugin_id": "dbm_elasticsearch_exporter"
   },
   "db_type": "es",
-  "version": 16,
+  "version": 17,
   "machine_types": [],
   "plugin_id": "dbm_elasticsearch_exporter"
 }

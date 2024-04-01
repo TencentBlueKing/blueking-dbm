@@ -208,7 +208,7 @@
           "timedelta": 60,
           "is_enabled": true,
           "converge_func": "collect",
-          "need_biz_converge": true,
+          "need_biz_converge": false,
           "sub_converge_config": {
             "timedelta": 60,
             "count": 2,
@@ -300,7 +300,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MIN(hadoop_namenode_State)",
-  "version": 16,
+  "version": 17,
   "alert_source": "time_series",
   "custom_conditions": []
 }
