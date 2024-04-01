@@ -34,7 +34,7 @@
     "plugin_id": "dbm_pulsarzookeeper_bkpull"
   },
   "db_type": "pulsar",
-  "version": 16,
+  "version": 17,
   "machine_types": [],
   "plugin_id": "dbm_pulsarzookeeper_bkpull",
   "export_at": "2024-03-28T21:05:09+08:00"

@@ -37,7 +37,7 @@
     "plugin_id": "dbm_redis_exporter"
   },
   "db_type": "redis",
-  "version": 16,
+  "version": 17,
   "machine_types": [],
   "plugin_id": "dbm_redis_exporter"
 }

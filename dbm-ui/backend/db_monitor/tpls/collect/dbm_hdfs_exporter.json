@@ -38,7 +38,7 @@
     "plugin_id": "dbm_hdfs_exporter"
   },
   "db_type": "hdfs",
-  "version": 16,
+  "version": 17,
   "machine_types": [],
   "plugin_id": "dbm_hdfs_exporter"
 }

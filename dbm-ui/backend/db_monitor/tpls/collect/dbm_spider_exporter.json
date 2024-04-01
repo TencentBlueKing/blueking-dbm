@@ -52,7 +52,7 @@
     "plugin_id": "dbm_mysqld_exporter"
   },
   "db_type": "mysql",
-  "version": 16,
+  "version": 17,
   "machine_types": [
     "spider"
   ],
