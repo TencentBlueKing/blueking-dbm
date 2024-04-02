@@ -61,22 +61,29 @@ class InstanceAddressSerializer(serializers.Serializer):
     port = serializers.CharField(help_text=_("端口"), required=False)
 
     def to_internal_value(self, data):
+
+        all_ports_valid = True
+
         """获取根据address获取ip和port，优先考虑从address获取"""
         if "instance_address" not in data:
             return data
 
         instance_address = data["instance_address"]
-        if IP_PORT_DIVIDER not in instance_address:
-            data["ip"] = instance_address or data.get("ip", "")
-            return data
+        # 用于分隔IP地址和端口号的部分
+        parts = instance_address.split(",")
+        for part in parts:
+            if IP_PORT_DIVIDER in part:
+                # 存在端口号,进行验证
+                ip, port = part.split(IP_PORT_DIVIDER, maxsplit=1)
+                if not port.isdigit():
+                    # 非法端口
+                    all_ports_valid = False
+                    break
 
-        ip, port = instance_address.split(IP_PORT_DIVIDER, maxsplit=1)
-        data["ip"] = ip
-        try:
-            data["port"] = int(port)
-        except ValueError:
-            # 非法端口，不进行查询过滤
+        if not all_ports_valid:
             pass
+        # 如果所有端口都有效，则将instance_address保存到data字典
+        data = {"instance": instance_address}
         return data
 
 
