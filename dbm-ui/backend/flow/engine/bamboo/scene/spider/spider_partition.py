@@ -9,7 +9,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.core.consts import BK_PKG_INSTALL_PATH
-from backend.flow.consts import DBA_ROOT_USER
+from backend.flow.consts import DBA_ROOT_USER, LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -151,6 +151,7 @@ class SpiderPartitionFlow(object):
                         run_as_system_user=DBA_ROOT_USER,
                         get_mysql_payload_func=MysqlActPayload.get_partition_payload.__name__,
                         cluster=cluster,
+                        job_timeout=LONG_JOB_TIMEOUT,
                     )
                 )
                 actuator_exec_list.append(exec_info)
