@@ -15,6 +15,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
 )
 
@@ -29,17 +30,6 @@ type CheckInstProcessComp struct {
 type CheckInstProcessParam struct {
 	Host string `json:"host" validate:"required,ip" `   // 本地hostip
 	Port int    `json:"port"  validate:"required,gt=0"` // 需要操作的实例端口
-}
-
-// 定义连接状态的结构
-type ProcessInfo struct {
-	Spid        int    `db:"spid"`
-	DbName      string `db:"dbname"`
-	Cmd         string `db:"cmd"`
-	Status      string `db:"status"`
-	ProgramName string `db:"program_name"`
-	Hostname    string `db:"hostname"`
-	LoginTime   string `db:"login_time"`
 }
 
 // Init 初始化
@@ -65,10 +55,8 @@ func (c *CheckInstProcessComp) Init() error {
 
 // CheckInstProcess 检查db连接情况
 func (c *CheckInstProcessComp) CheckInstProcess() error {
-	var procinfos []ProcessInfo
-	checkCmd := "select spid, DB_NAME(dbid) as dbname ,cmd, status, program_name,hostname, login_time" +
-		" from master.sys.sysprocesses where dbid >4  and dbid != DB_ID('Monitor') order by login_time desc;"
-	if err := c.DB.Queryx(&procinfos, checkCmd); err != nil {
+	var procinfos []sqlserver.ProcessInfo
+	if err := c.DB.Queryx(&procinfos, cst.CHECK_INST_SQL); err != nil {
 		return fmt.Errorf("check-abnormal-db failed %v", err)
 	}
 	if len(procinfos) == 0 {

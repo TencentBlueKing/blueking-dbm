@@ -199,12 +199,12 @@ class Command(BaseCommand):
             self.clear_id(strategy_template["items"])
 
             file_name = os.path.join(TPLS_ALARM_DIR, db_type, f"{template_name}.json")
-            with open(file_name, "r", encoding="utf-8") as template_file:
-                try:
+            try:
+                with open(file_name, "r", encoding="utf-8") as template_file:
                     template_file_content = json.loads(template_file.read())
                     current_version = template_file_content.get("version")
-                except (TypeError, AttributeError, JSONDecodeError):
-                    current_version = 0
+            except (TypeError, AttributeError, JSONDecodeError, FileNotFoundError):
+                current_version = 0
             with open(file_name, "w", encoding="utf-8") as template_file:
                 is_enabled = not is_disabled
                 strategy_template["is_enabled"] = is_enabled

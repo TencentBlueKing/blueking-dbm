@@ -30,6 +30,7 @@ python manage.py export_collect kafka 3 8
 python manage.py export_collect pulsar 4 12 13
 python manage.py export_collect hdfs 11
 python manage.py export_collect influxdb 6
+python manage.py export_collect sqlserver 93
 ```
 
 
@@ -54,6 +55,7 @@ python manage.py export_alarm hdfs 39735 39716 39766 39781 39736 39720
 python manage.py export_alarm influxdb 39784 39780 39732 39749 39746 39719 39761
 python manage.py export_alarm riak 39904 39905 39909 39903 39899 39902 39906
 python manage.py export_alarm cloud 46288
+python manage.py export_alarm sqlserver 46653 46660 46659 46665 46664 46663 46662 46661 46658 46657 46656 46655 46654 46652 46649 46651
 ```
 
 prod 策略:

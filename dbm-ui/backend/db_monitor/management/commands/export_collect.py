@@ -31,7 +31,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "db_type", choices=["mysql", "redis", "es", "hdfs", "kafka", "pulsar", "influxdb"], type=str, help="db类型"
+            "db_type",
+            choices=["mysql", "redis", "es", "hdfs", "kafka", "pulsar", "influxdb", "sqlserver"],
+            type=str,
+            help="db类型",
         )
         parser.add_argument("collect_list", nargs="+", type=str, help="监控采集策略ID列表")
         parser.add_argument("-m", "--machine_types", nargs="*", help="machine类型列表，可以为空", type=str)
@@ -101,12 +104,12 @@ class Command(BaseCommand):
 
             logger.info(f"[{db_type}-{collect_id}] update collect template: {template['name']}")
             file_name = os.path.join(TPLS_COLLECT_DIR, template["name"]) + ".json"
-            with open(file_name, "r") as template_file:
-                try:
+            try:
+                with open(file_name, "r") as template_file:
                     template_file_content = json.loads(template_file.read())
                     current_version = template_file_content.get("version")
-                except (TypeError, AttributeError):
-                    current_version = 0
+            except (TypeError, AttributeError, FileNotFoundError):
+                current_version = 0
 
             with open(file_name, "w") as template_file:
                 template_file.write(

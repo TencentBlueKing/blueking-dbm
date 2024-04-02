@@ -160,6 +160,12 @@ const (
 		"on a.name=b.name where principal_id>4 and a.name not in('monitor') and a.is_disabled = 0"
 )
 
+// 判断实例是否有业务进程
+const (
+	CHECK_INST_SQL = "select spid, DB_NAME(dbid) as dbname ,cmd, status, program_name,hostname, login_time" +
+		" from master.sys.sysprocesses where dbid >4  and dbid != DB_ID('Monitor') order by login_time desc;"
+)
+
 // 定义SQL版本兼容性级别范围
 
 type SQLServerVersionYear int
