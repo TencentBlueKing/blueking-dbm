@@ -22,7 +22,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstanceTuple
-from backend.flow.consts import TruncateDataTypeEnum
+from backend.flow.consts import LONG_JOB_TIMEOUT, TruncateDataTypeEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -174,6 +174,7 @@ class TenDBClusterFlashbackFlow(object):
                             "act_component_code": ExecuteDBActuatorScriptComponent.code,
                             "kwargs": asdict(
                                 ExecActuatorKwargs(
+                                    job_timeout=LONG_JOB_TIMEOUT,
                                     exec_ip=ip,
                                     bk_cloud_id=cluster_obj.bk_cloud_id,
                                     cluster=port_job,
