@@ -241,7 +241,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(engine)",
-  "version": 17,
+  "version": 18,
   "alert_source": "event",
   "custom_conditions": []
 }

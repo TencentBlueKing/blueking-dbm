@@ -268,7 +268,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "max_without_time(elasticsearch_thread_pool_rejected_count)",
-  "version": 3,
+  "version": 21,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-03-28T21:19:53+08:00"

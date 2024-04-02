@@ -260,7 +260,7 @@
   },
   "is_enabled": false,
   "monitor_indicator": "AVG(网卡入流量)",
-  "version": 17,
+  "version": 18,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-03-28T21:20:51+08:00"
