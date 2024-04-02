@@ -419,7 +419,7 @@ class SqlserverActPayload(PayloadHandler):
                 "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
-                    "ports": self.global_data["custom_params"]["ports"],
+                    "ports": kwargs["custom_params"]["ports"],
                     "force": self.global_data.get("force", False),
                 },
             },

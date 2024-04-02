@@ -15,6 +15,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
 )
@@ -62,12 +63,11 @@ func (u *UnInstallSQLServerComp) Init() error {
 // 检查实例连接
 func (u *UnInstallSQLServerComp) PreCheck() error {
 	var isPass bool = true
-	checkCmd := "SELECT count(0) FROM SYS.SYSPROCESSES WHERE LOGINAME NOT LIKE '%\\%' " +
-		"AND LOGINAME NOT LIKE '%#%' AND  LOGINAME NOT LIKE  'distributor%' AND  LOGINAME not in('sa','monitor')"
+
 	for _, port := range u.Params.Ports {
 		var dbWork *sqlserver.DbWorker
 		var err error
-		var cnt int
+		var procinfos []sqlserver.ProcessInfo
 		if dbWork, err = sqlserver.NewDbWorker(
 			u.GeneralParam.RuntimeAccountParam.SAUser,
 			u.GeneralParam.RuntimeAccountParam.SAPwd,
@@ -83,13 +83,16 @@ func (u *UnInstallSQLServerComp) PreCheck() error {
 		// 到最后回收db连接
 		defer dbWork.Stop()
 
-		if err := dbWork.Queryxs(&cnt, checkCmd); err != nil {
+		if err := dbWork.Queryx(&procinfos, cst.CHECK_INST_SQL); err != nil {
 			logger.Error("check processlist failed %v", err)
 			isPass = false
 		}
-		if cnt != 0 && !u.Params.Force {
+		if len(procinfos) != 0 && !u.Params.Force {
 			// 存在用户连接且安全下架情况，退出异常
-			logger.Error("There is a business connections [%d] on this port [%d]", cnt, port)
+			for _, info := range procinfos {
+				logger.Error("process:[%+v]", info)
+			}
+			logger.Error("There is a business connections [%d] on this port [%d]", len(procinfos), port)
 			isPass = false
 
 		} else {
