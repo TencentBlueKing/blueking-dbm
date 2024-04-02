@@ -258,7 +258,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "[TendisPlus]实例同步落后",
-  "version": 17,
+  "version": 18,
   "alert_source": "time_series",
   "custom_conditions": []
 }
