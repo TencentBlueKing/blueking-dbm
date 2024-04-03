@@ -33,8 +33,8 @@ SWAGGER_TAG = "db_services/permission/clone"
 
 
 class DBCloneViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
 
     def _view_common_handler(
         self, request, bk_biz_id: int, meta: Type[CloneMeta], func: str

@@ -17,6 +17,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_services.dbpermission.constants import AccountType
 from backend.db_services.dbpermission.db_account.dataclass import AccountMeta, AccountRuleMeta
 from backend.db_services.dbpermission.db_account.handlers import AccountHandler
 from backend.db_services.dbpermission.db_account.serializers import (
@@ -32,7 +33,9 @@ from backend.db_services.dbpermission.db_account.serializers import (
 )
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.account import AccountPermission
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission, get_request_key_id
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = "db_services/permission/account"
 
@@ -48,12 +51,14 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         return [get_request_key_id(request, "bk_biz_id")]
 
     def _get_custom_permissions(self):
-        if self.action not in ["create_account", "delete_account", "add_account_rule"]:
+        if self.action in ["query_account_rules"]:
             return [DBManagePermission()]
-
-        account_type = self.request.data.get("account_type", self.account_type)
-        account_action = getattr(ActionEnum, f"{account_type}_{self.action}".upper())
-        return [ResourceActionPermission([account_action], ResourceEnum.BUSINESS, self.instance_getter)]
+        elif self.action in ["list_account_rules"]:
+            account_type = self.request.query_params.get("account_type", AccountType.MYSQL)
+            view_action = getattr(ActionEnum, f"{account_type}_account_rules_view".upper())
+            return [ResourceActionPermission([view_action], ResourceEnum.BUSINESS, self.instance_getter)]
+        else:
+            return [AccountPermission(account_type=self.account_type, view_action=self.action)]
 
     def _view_common_handler(
         self, request, bk_biz_id: int, meta: Union[AccountMeta, AccountRuleMeta], func: str
@@ -130,6 +135,14 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=FilterAccountRulesSerializer)
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["account"]["account_id"],
+        data_field=lambda d: d["results"],
+        action_filed=lambda k: [
+            getattr(ActionEnum, f'{k["view_class"].account_type.upper()}_DELETE_ACCOUNT'),
+            getattr(ActionEnum, f'{k["view_class"].account_type.upper()}_ADD_ACCOUNT_RULE'),
+        ],
+    )
     def list_account_rules(self, request, bk_biz_id):
         return self._view_common_handler(
             request=request,

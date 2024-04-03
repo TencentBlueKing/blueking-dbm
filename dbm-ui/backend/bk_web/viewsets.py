@@ -9,11 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from blueapps.account.decorators import login_exempt
 from django.utils.decorators import classonlymethod
-from rest_framework import serializers, status, viewsets
+from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
@@ -23,13 +23,23 @@ from backend.iam_app.handlers.drf_perm.base import RejectPermission
 class GenericMixin:
     queryset = ""
     # 是否支持全局豁免
-    global_login_exempt = False
+    global_login_exempt: bool = False
+    # 权限动作映射表。如果权限映射逻辑复杂，可考虑覆写_get_custom_permissions
+    action_permission_map: Dict[Union[Tuple[str], str], List[permissions.BasePermission]] = {}
+    # ⚠️为了避免权限泄露，希望默认权限是永假来兜底，所以请定义好每个视图的权限类
+    default_permission_class: List[permissions.BasePermission] = [RejectPermission()]
 
     @staticmethod
     def get_request_data(request, **kwargs) -> Dict[str, Any]:
         request_data = request.data.copy() or {}
         request_data.update(**kwargs)
         return request_data
+
+    def get_action_permission_map(self) -> dict:
+        return self.action_permission_map
+
+    def get_default_permission_class(self) -> list:
+        return self.default_permission_class
 
     @property
     def validated_data(self):
@@ -98,7 +108,10 @@ class GenericMixin:
     def _get_custom_permissions(self):
         """用户自定义的permission类,由子类继承覆写"""
         # ⚠️为了避免权限泄露，希望默认权限是永假来兜底，所以请写每一个视图的时候都覆写该方法
-        return [RejectPermission()]
+        for actions, custom_perms in self.get_action_permission_map().items():
+            if actions == self.action or self.action in actions:
+                return custom_perms
+        return self.get_default_permission_class()
 
     @classmethod
     def _get_login_exempt_view_func(cls):

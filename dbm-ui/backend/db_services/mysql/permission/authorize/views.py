@@ -31,8 +31,8 @@ class DBAuthorizeViewSet(BaseDBAuthorizeViewSet):
     authorize_meta = MySQLAuthorizeMeta
     excel_authorize_meta = MySQLExcelAuthorizeMeta
 
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询授权主机的信息"),

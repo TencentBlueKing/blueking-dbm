@@ -9,8 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from functools import wraps
-
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -36,10 +34,9 @@ from backend.db_services.partition.serializers import (
     PartitionRunSerializer,
     PartitionUpdateSerializer,
 )
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission, get_request_key_id
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 from ...db_meta.models import Cluster
-from ...iam_app.dataclass import ResourceEnum
 from ...iam_app.dataclass.actions import ActionEnum
 from ...iam_app.handlers.drf_perm.cluster import PartitionManagePermission
 from ...iam_app.handlers.permission import Permission
@@ -49,46 +46,12 @@ from .constants import SWAGGER_TAG
 from .handlers import PartitionHandler
 
 
-def decorator_permission_field():
-    def wrapper(view_func):
-        @wraps(view_func)
-        def wrapped_view(*args, **kwargs):
-            request = args[1]
-            response = view_func(*args, **kwargs)
-            # 嵌入是否有执行分区的权限
-            cluster_type = get_request_key_id(request, "cluster_type")
-            bk_biz_id = get_request_key_id(request, "bk_biz_id")
-            if cluster_type == ClusterType.TenDBHA:
-                actions, resource_meta = [ActionEnum.MYSQL_PARTITION], ResourceEnum.MYSQL
-            else:
-                actions, resource_meta = [ActionEnum.TENDBCLUSTER_PARTITION], ResourceEnum.TENDBCLUSTER
-
-            Permission.insert_permission_field(
-                response, actions, resource_meta, id_field=lambda x: x["cluster_id"], data_field=lambda x: x["results"]
-            )
-
-            # 嵌入是否有分区管理策略的管理权限
-            resource_meta = ResourceEnum.BUSINESS
-            actions = ActionEnum.get_match_actions(
-                name="partition", exclude=[ActionEnum.MYSQL_PARTITION, ActionEnum.TENDBCLUSTER_PARTITION]
-            )
-            Permission.insert_external_permission_field(response, actions, resource_meta, bk_biz_id)
-
-            return response
-
-        return wrapped_view
-
-    return wrapper
-
-
 class DBPartitionViewSet(viewsets.AuditedModelViewSet):
 
     pagination_class = None
 
-    def _get_custom_permissions(self):
-        if self.action in ["list", "query_log", "verify_partition_field"]:
-            return [DBManagePermission()]
-        return [PartitionManagePermission()]
+    action_permission_map = {("list", "verify_partition_field"): [DBManagePermission()]}
+    default_permission_class = [PartitionManagePermission()]
 
     @staticmethod
     def _update_log_status(log_list):
@@ -107,7 +70,14 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
         responses={status.HTTP_200_OK: PartitionListResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @decorator_permission_field()
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["cluster_id"],
+        data_field=lambda d: d["results"],
+        action_filed=lambda d: ActionEnum.get_match_actions(
+            name=f"{ClusterType.cluster_type_to_db_type(d['cluster_type'])}_partition",
+            exclude=[ActionEnum.MYSQL_PARTITION_CREATE, ActionEnum.TENDBCLUSTER_PARTITION_CREATE],
+        ),
+    )
     def list(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionListSerializer)
         partition_data = DBPartitionApi.query_conf(params=validated_data)

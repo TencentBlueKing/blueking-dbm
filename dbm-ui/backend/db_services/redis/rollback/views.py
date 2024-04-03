@@ -58,6 +58,7 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
     )
     serializer_class = RollbackSerializer
     filter_class = RollbackListFilter
+    default_permission_class = []
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -66,9 +67,6 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
             queryset = queryset.filter(bk_biz_id=bk_biz_id)
 
         return queryset
-
-    def _get_custom_permissions(self):
-        return []
 
     @common_swagger_auto_schema(
         operation_summary=_("构造时间合法性检查"),

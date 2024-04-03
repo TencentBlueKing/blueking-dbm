@@ -33,9 +33,14 @@ class MongoDBAuthorizeHandler(AuthorizeHandler):
     EXCEL_ERROR_TEMPLATE: str = AUTHORIZE_EXCEL_ERROR_TEMPLATE
     authorize_meta: AuthorizeMeta = MongoDBAuthorizeMeta
     excel_authorize_meta: ExcelAuthorizeMeta = MongoDBExcelAuthorizeMeta
+    account_type: AccountType = AccountType.MONGODB
 
     def _pre_check_rules(
-        self, authorize: MongoDBAuthorizeMeta, user_db__rules: Dict = None, user__password: Dict = None
+        self,
+        authorize: MongoDBAuthorizeMeta,
+        user_info_map: Dict = None,
+        user_db__rules: Dict = None,
+        user__password: Dict = None,
     ) -> Tuple[bool, str, Dict]:
         """前置校验"""
 
@@ -45,6 +50,7 @@ class MongoDBAuthorizeHandler(AuthorizeHandler):
             "cluster_ids": authorize.cluster_ids,
             "target_instances": authorize.target_instances,
             "access_dbs": authorize.access_dbs,
+            "account_id": user_info_map.get(username, {}).get("id"),
             "username": username,
             "password": "",
             "auth_db": auth_db,
@@ -82,18 +88,32 @@ class MongoDBAuthorizeHandler(AuthorizeHandler):
 
     def pre_check_excel_rules(self, excel_authorize: ExcelAuthorizeMeta, **kwargs) -> Dict:
         users = [d[AuthorizeExcelHeader.USER] for d in excel_authorize.authorize_excel_data]
+        # 获取授权用户相关数据，缓存成字典减少重复请求
         user_db__rules, user_password_map = self._get_user_rules_and_password_map(users)
+        user_info_map = self._get_user_info_map(self.account_type, self.bk_biz_id)
+        # 获取授权检查数据
         return super().pre_check_excel_rules(
-            excel_authorize, user_db__rules=user_db__rules, user__password=user_password_map, **kwargs
+            excel_authorize,
+            user_db__rules=user_db__rules,
+            user_info_map=user_info_map,
+            user__password=user_password_map,
+            **kwargs
         )
 
     def multi_user_pre_check_rules(self, authorize: MongoDBAuthorizeMeta, **kwargs):
         """多个账号的前置校验，适合mongodb的授权"""
         users = [user["user"] for user in authorize.mongo_users]
+        # 获取授权用户相关数据，缓存成字典减少重复请求
         user_db__rules, user_password_map = self._get_user_rules_and_password_map(users)
+        user_info_map = self._get_user_info_map(self.account_type, self.bk_biz_id)
         # 获取授权检查数据
         authorize_check_result = self._multi_user_pre_check_rules(
-            authorize, users_key="mongo_users", user_db__rules=user_db__rules, user_password_map=user_password_map
+            authorize,
+            users_key="mongo_users",
+            user_db__rules=user_db__rules,
+            user_password_map=user_password_map,
+            user_info_map=user_info_map,
+            **kwargs
         )
         return authorize_check_result
 

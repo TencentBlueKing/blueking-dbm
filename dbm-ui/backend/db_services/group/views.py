@@ -24,7 +24,10 @@ from backend.bk_web.swagger import (
 from backend.db_meta.models import Group
 from backend.db_services.group.handlers import GroupHandler
 from backend.db_services.group.serializers import GroupMoveInstancesSerializer, GroupSerializer
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission, get_request_key_id
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission, get_request_key_id
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = _("分组")
 
@@ -38,12 +41,28 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
     serializer_class = GroupSerializer
     pagination_class = AuditedLimitOffsetPagination
 
-    def _get_custom_permissions(self):
-        bk_biz_id = get_request_key_id(self.request, key="bk_biz_id", default=0)
-        if int(bk_biz_id):
-            return [DBManagePermission()]
+    def get_action_permission_map(self):
+        return {
+            (
+                "create",
+                "update",
+                "destroy",
+                "move_instances",
+            ): [ResourceActionPermission([ActionEnum.GROUP_MANAGE], ResourceEnum.BUSINESS, self.inst_getter)]
+        }
 
-        return []
+    def get_default_permission_class(self):
+        return [DBManagePermission()]
+
+    @staticmethod
+    def inst_getter(request, view):
+        if view.action == "move_instances":
+            bk_biz_id = Group.objects.get(id=request.data["new_group_id"]).bk_biz_id
+        elif view.detail:
+            bk_biz_id = Group.objects.get(id=view.kwargs["pk"]).bk_biz_id
+        else:
+            bk_biz_id = get_request_key_id(request, "bk_biz_id")
+        return [bk_biz_id]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -66,6 +85,11 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
         operation_summary=_("分组列表"),
         auto_schema=PaginatedResponseSwaggerAutoSchema,
         tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["bk_biz_id"],
+        actions=[ActionEnum.GROUP_MANAGE],
+        resource_meta=ResourceEnum.BUSINESS,
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)

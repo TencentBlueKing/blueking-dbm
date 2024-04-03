@@ -78,14 +78,16 @@ def generate_iam_migration_json():
             action_group_content[action.group][action.subgroup].append(action.id)
         elif action.group:
             action_group_content[action.group]["actions"].append(action.id)
-        # 顺便获取资源关联操作，用于创建自动授权
-        for related_resource in action.related_resource_types:
-            # 不关联跨系统和特殊资源(dbtype)
-            if related_resource.system_id != BK_IAM_SYSTEM_ID:
-                continue
-            if related_resource in [ResourceEnum.DBTYPE]:
-                continue
-            resource_creator_actions[related_resource.id].append(action.id)
+        # 顺便获取资源关联操作，用于创建自动授权。目前仅支持动作关联一种资源
+        if len(action.related_resource_types) != 1:
+            continue
+        related_resource = action.related_resource_types[0]
+        # 不关联跨系统和特殊资源(dbtype)
+        if related_resource.system_id != BK_IAM_SYSTEM_ID:
+            continue
+        if related_resource in [ResourceEnum.DBTYPE]:
+            continue
+        resource_creator_actions[related_resource.id].append(action.id)
 
     # 获取动作操作组的json内容
     iam_action_group = []

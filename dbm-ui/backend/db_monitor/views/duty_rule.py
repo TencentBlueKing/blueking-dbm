@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -66,36 +67,39 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
     queryset = DutyRule.objects.all().order_by("-update_at")
     serializer_class = DutyRuleSerializer
     pagination_class = AuditedLimitOffsetPagination
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     filter_fields = {"db_type": ["exact"], "name": ["exact"]}
     search_fields = ["name"]
+
+    default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
+
+    def get_action_permission_map(self):
+        return {
+            ("list",): [ResourceActionPermission([ActionEnum.DUTY_RULE_LIST], ResourceEnum.DBTYPE, self.inst_getter)],
+            ("create",): [
+                ResourceActionPermission([ActionEnum.DUTY_RULE_CREATE], ResourceEnum.DBTYPE, self.inst_getter)
+            ],
+            ("update", "partial_update"): [
+                ResourceActionPermission([ActionEnum.DUTY_RULE_UPDATE], ResourceEnum.DBTYPE, self.inst_getter)
+            ],
+            ("destroy",): [
+                ResourceActionPermission([ActionEnum.DUTY_RULE_DESTROY], ResourceEnum.DBTYPE, self.inst_getter)
+            ],
+            ("priority_distinct",): [],
+        }
 
     @staticmethod
     def inst_getter(request, view):
         if view.action in ["list", "create"]:
             return [get_request_key_id(request, key="db_type")]
         if view.action in ["update", "partial_update", "destroy"]:
-            return [view.kwargs.get("pk")]
-
-    def _get_custom_permissions(self):
-        if self.action == "list":
-            return [ResourceActionPermission([ActionEnum.DUTY_RULE_LIST], ResourceEnum.DBTYPE, self.inst_getter)]
-        elif self.action == "create":
-            return [ResourceActionPermission([ActionEnum.DUTY_RULE_CREATE], ResourceEnum.DBTYPE, self.inst_getter)]
-        elif self.action in ["update", "partial_update"]:
-            return [ResourceActionPermission([ActionEnum.DUTY_RULE_UPDATE], ResourceEnum.DUTY_RULE, self.inst_getter)]
-        elif self.action == "destroy":
-            return [ResourceActionPermission([ActionEnum.DUTY_RULE_DESTROY], ResourceEnum.DUTY_RULE, self.inst_getter)]
-        elif self.action in ["priority_distinct"]:
-            return []
-
-        return [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
+            return [DutyRule.objects.get(id=view.kwargs.get("pk")).db_type]
 
     @Permission.decorator_permission_field(
-        id_field=lambda d: d["id"],
+        id_field=lambda d: d["db_type"],
         data_field=lambda d: d["results"],
-        actions=ActionEnum.get_actions_by_resource(ResourceEnum.DUTY_RULE.id),
-        resource_meta=ResourceEnum.DUTY_RULE,
+        actions=[ActionEnum.DUTY_RULE_CREATE, ActionEnum.DUTY_RULE_UPDATE, ActionEnum.DUTY_RULE_DESTROY],
+        resource_meta=ResourceEnum.DBTYPE,
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)

@@ -237,6 +237,17 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    MYSQL_ADMIN_PWD_MODIFY = ActionMeta(
+        id="mysql_admin_pwd_modify",
+        name=_("MySQL 临时密码修改"),
+        name_en="mysql_admin_pwd_modify",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("集群管理"),
+    )
+
     MYSQL_ENABLE_DISABLE = ActionMeta(
         id="mysql_enable_disable",
         name=_("MySQL 集群禁用和启用"),
@@ -287,18 +298,40 @@ class ActionEnum:
         name_en="MySQL Account Delete",
         type="delete",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.MYSQL_ACCOUNT],
         group=_("MySQL"),
         subgroup=_("权限管理"),
     )
 
     MYSQL_ADD_ACCOUNT_RULE = ActionMeta(
-        id="mysql_account_rule_create",
-        name=_("MySQL 账号规则创建"),
-        name_en="MySQL Account Rule Create",
+        id="mysql_add_account_rule",
+        name=_("MySQL账号规则创建"),
+        name_en="mysql_add_account_rule",
         type="create",
         related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MYSQL_ACCOUNT],
+        group=_("MySQL"),
+        subgroup=_("权限管理"),
+    )
+
+    MYSQL_ACCOUNT_RULES_VIEW = ActionMeta(
+        id="mysql_account_rules_view",
+        name=_("MySQL 账号规则查看"),
+        name_en="mysql_account_rules_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MySQL"),
+        subgroup=_("权限管理"),
+    )
+
+    MYSQL_AUTHORIZE_RULES = ActionMeta(
+        id="mysql_authorize_rules",
+        name=_("MySQL授权"),
+        name_en="mysql authorize rules",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MYSQL_ACCOUNT, ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("权限管理"),
     )
@@ -327,7 +360,7 @@ class ActionEnum:
         name_en="mysql_partition_update",
         type="manage",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("分区管理"),
     )
@@ -338,7 +371,7 @@ class ActionEnum:
         name_en="mysql_partition_delete",
         type="delete",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("分区管理"),
     )
@@ -349,9 +382,20 @@ class ActionEnum:
         name_en="mysql_partition_enable_disable",
         type="manage",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("分区管理"),
+    )
+
+    MYSQL_OPEN_AREA = ActionMeta(
+        id="mysql_open_area",
+        name=_("MySQL 开区执行"),
+        name_en="mysql_open_area",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("克隆开区"),
     )
 
     MYSQL_OPENAREA_CONFIG_CREATE = ActionMeta(
@@ -475,6 +519,17 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    TENDBCLUSTER_ADMIN_PWD_MODIFY = ActionMeta(
+        id="tendbcluster_admin_pwd_modify",
+        name=_("TendbCluster 临时密码修改"),
+        name_en="tendbcluster_admin_pwd_modify",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("TendbCluster"),
+        subgroup=_("集群管理"),
+    )
+
     TENDBCLUSTER_CREATE_ACCOUNT = ActionMeta(
         id="tendbcluster_account_create",
         name=_("TendbCluster 账号创建"),
@@ -492,7 +547,7 @@ class ActionEnum:
         name_en="tendbcluster_account_delete",
         type="delete",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER_ACCOUNT],
         group=_("TendbCluster"),
         subgroup=_("权限管理"),
     )
@@ -503,7 +558,29 @@ class ActionEnum:
         name_en="tendbcluster_add_account_rule",
         type="create",
         related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER_ACCOUNT],
+        group=_("TendbCluster"),
+        subgroup=_("权限管理"),
+    )
+
+    TENDBCLUSTER_ACCOUNT_RULES_VIEW = ActionMeta(
+        id="tendbcluster_account_rules_view",
+        name=_("TendbCluster 账号规则查看"),
+        name_en="tendbcluster_account_rules_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("TendbCluster"),
+        subgroup=_("权限管理"),
+    )
+
+    TENDBCLUSTER_AUTHORIZE_RULES = ActionMeta(
+        id="tendbcluster_authorize_rules",
+        name=_("TendbCluster 授权"),
+        name_en="tendbcluster_authorize_rules",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER_ACCOUNT, ResourceEnum.TENDBCLUSTER],
         group=_("TendbCluster"),
         subgroup=_("权限管理"),
     )
@@ -535,6 +612,17 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TendbCluster"),
         subgroup=_("权限克隆"),
+    )
+
+    TENDBCLUSTER_OPEN_AREA = ActionMeta(
+        id="tendbcluster_open_area",
+        name=_("TendbCluster 开区执行"),
+        name_en="tendbcluster_open_area",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.TENDBCLUSTER],
+        group=_("TendbCluster"),
+        subgroup=_("克隆开区"),
     )
 
     TENDBCLUSTER_OPENAREA_CONFIG_CREATE = ActionMeta(
@@ -587,7 +675,7 @@ class ActionEnum:
         name_en="tendbcluster_partition_update",
         type="manage",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TendbCluster"),
         subgroup=_("分区管理"),
     )
@@ -598,7 +686,7 @@ class ActionEnum:
         name_en="tendbcluster_partition_delete",
         type="delete",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TendbCluster"),
         subgroup=_("分区管理"),
     )
@@ -609,7 +697,7 @@ class ActionEnum:
         name_en="tendb_partition_enable_disable",
         type="manage",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TendbCluster"),
         subgroup=_("分区管理"),
     )
@@ -689,6 +777,19 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.INFLUXDB],
+        group=_("InfluxDB"),
+        subgroup=_("实例管理"),
+    )
+
+    # TODO: 这里的分组管理设计不仅仅针对influxdb使用。
+    #  不过目前只有influxdb使用了分组的概念，所以暂归属到InfluxDB中
+    GROUP_MANAGE = ActionMeta(
+        id="group_manage",
+        name=_("InfluxDB 分组管理"),
+        name_en="group_manage",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
         group=_("InfluxDB"),
         subgroup=_("实例管理"),
     )
@@ -898,11 +999,11 @@ class ActionEnum:
     )
 
     MONGODB_DELETE_ACCOUNT = ActionMeta(
-        id="mongodb_delete_create",
-        name=_("MongoDB 账号删除"),
-        name_en="mongodb_delete_create",
+        id="mongodb_account_delete",
+        name=_("MongoDB 删除账号"),
+        name_en="mongodb_account_delete",
         type="delete",
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.MONGODB_ACCOUNT],
         group=_("MongoDB"),
         subgroup=_("权限管理"),
     )
@@ -912,6 +1013,39 @@ class ActionEnum:
         name=_("MongoDB 账号规则创建"),
         name_en="mongodb_add_account_rule",
         type="create",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB_ACCOUNT],
+        group=_("MongoDB"),
+        subgroup=_("权限管理"),
+    )
+
+    MONGODB_ACCOUNT_RULES_VIEW = ActionMeta(
+        id="mongodb_account_rules_view",
+        name=_("MongoDB 账号规则查看"),
+        name_en="mongodb_account_rules_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MongoDB"),
+        subgroup=_("权限管理"),
+    )
+
+    MONGODB_AUTHORIZE_RULES = ActionMeta(
+        id="mongodb_authorize_rules",
+        name=_("MongoDB 集群授权"),
+        name_en="mongodb_authorize_rules",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB_ACCOUNT, ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("权限管理"),
+    )
+
+    MONGODB_EXCEL_AUTHORIZE_RULES = ActionMeta(
+        id="mongo_excel_authorize_rules",
+        name=_("MongoDB Excel集群授权"),
+        name_en="mongo_excel_authorize_rules",
+        type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MongoDB"),
@@ -923,6 +1057,17 @@ class ActionEnum:
         name=_("SQLServer 集群详情查看"),
         name_en="sqlserver_view",
         type="view",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("集群管理"),
+    )
+
+    SQLSERVER_ADMIN_PWD_MODIFY = ActionMeta(
+        id="sqlserver_admin_pwd_modify",
+        name=_("SQLServer 临时密码修改"),
+        name_en="sqlserver_admin_pwd_modify",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
@@ -950,11 +1095,11 @@ class ActionEnum:
     )
 
     SQLSERVER_DELETE_ACCOUNT = ActionMeta(
-        id="sqlserver_delete_create",
-        name=_("SQLServer 账号删除"),
-        name_en="sqlserver_delete_create",
+        id="sqlserver_account_delete",
+        name=_("SQLServer 删除账号"),
+        name_en="sqlserver_account_delete",
         type="delete",
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
     )
@@ -964,6 +1109,39 @@ class ActionEnum:
         name=_("SQLServer 账号规则创建"),
         name_en="sqlserver_add_account_rule",
         type="create",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
+        group=_("SQLServer"),
+        subgroup=_("权限管理"),
+    )
+
+    SQLSERVER_ACCOUNT_RULES_VIEW = ActionMeta(
+        id="sqlserver_account_rules_view",
+        name=_("SQLServer 账号规则查看"),
+        name_en="sqlserver_account_rules_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("SQLServer"),
+        subgroup=_("权限管理"),
+    )
+
+    SQLSERVER_AUTHORIZE_RULES = ActionMeta(
+        id="sqlserver_authorize_rules",
+        name=_("SQLServer 集群授权"),
+        name_en="sqlserver_authorize_rules",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT, ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("权限管理"),
+    )
+
+    SQLSERVER_EXCEL_AUTHORIZE_RULES = ActionMeta(
+        id="sqlserver_excel_authorize_rules",
+        name=_("SQLServer Excel授权"),
+        name_en="sqlserver_excel_authorize_rules",
+        type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
@@ -986,6 +1164,17 @@ class ActionEnum:
         name=_("资源池管理"),
         name_en="resource_pool_manage",
         type="manage",
+        related_actions=[RESOURCE_MANAGE.id],
+        related_resource_types=[],
+        group=_("资源管理"),
+        subgroup=_("资源池"),
+    )
+
+    RESOURCE_OPERATION_VIEW = ActionMeta(
+        id="resource_operation_view",
+        name=_("资源池操作记录查看"),
+        name_en="resource_operation_view",
+        type="view",
         related_actions=[RESOURCE_MANAGE.id],
         related_resource_types=[],
         group=_("资源管理"),
@@ -1034,17 +1223,6 @@ class ActionEnum:
         subgroup=_("告警组"),
     )
 
-    GLOBAL_NOTIFY_GROUP_LIST = ActionMeta(
-        id="global_notify_group_list",
-        name=_("全局告警组查看"),
-        name_en="global_notify_group_view",
-        type="view",
-        related_actions=[GLOBAL_MANAGE.id],
-        related_resource_types=[],
-        group=_("平台管理"),
-        subgroup=_("告警组"),
-    )
-
     NOTIFY_GROUP_CREATE = ActionMeta(
         id="notify_group_create",
         name=_("告警组新建"),
@@ -1056,24 +1234,24 @@ class ActionEnum:
         subgroup=_("告警组"),
     )
 
-    GLOBAL_NOTIFY_GROUP_CREATE = ActionMeta(
-        id="global_notify_group_create",
-        name=_("全局告警组新建"),
-        name_en="global_notify_group_create",
-        type="create",
-        related_actions=[GLOBAL_MANAGE.id],
-        related_resource_types=[],
-        group=_("平台管理"),
-        subgroup=_("告警组"),
-    )
-
     NOTIFY_GROUP_UPDATE = ActionMeta(
         id="notify_group_update",
         name=_("告警组编辑"),
         name_en="notify_group_edit",
         type="manage",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.NOTIFY_GROUP],
+        group=_("配置管理"),
+        subgroup=_("告警组"),
+    )
+
+    NOTIFY_GROUP_DESTROY = ActionMeta(
+        id="notify_group_delete",
+        name=_("告警组删除"),
+        name_en="notify_group_delete",
+        type="delete",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.NOTIFY_GROUP],
         group=_("配置管理"),
         subgroup=_("告警组"),
     )
@@ -1084,29 +1262,7 @@ class ActionEnum:
         name_en="global_notify_group_edit",
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
-        related_resource_types=[],
-        group=_("平台管理"),
-        subgroup=_("告警组"),
-    )
-
-    NOTIFY_GROUP_DESTROY = ActionMeta(
-        id="notify_group_delete",
-        name=_("告警组删除"),
-        name_en="notify_group_delete",
-        type="delete",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("配置管理"),
-        subgroup=_("告警组"),
-    )
-
-    GLOBAL_NOTIFY_GROUP_DESTROY = ActionMeta(
-        id="global_notify_group_delete",
-        name=_("全局告警组删除"),
-        name_en="global_notify_group_delete",
-        type="delete",
-        related_actions=[GLOBAL_MANAGE.id],
-        related_resource_types=[],
+        related_resource_types=[ResourceEnum.GLOBAL_NOTIFY_GROUP],
         group=_("平台管理"),
         subgroup=_("告警组"),
     )
@@ -1348,7 +1504,7 @@ class ActionEnum:
         name_en="duty_rule_update",
         type="manage",
         related_actions=[GLOBAL_MANAGE.id, DUTY_RULE_LIST.id],
-        related_resource_types=[ResourceEnum.DUTY_RULE],
+        related_resource_types=[ResourceEnum.DBTYPE],
         group=_("平台管理"),
         subgroup=_("轮值策略"),
     )
@@ -1359,7 +1515,7 @@ class ActionEnum:
         name_en="duty_rule_destroy",
         type="delete",
         related_actions=[GLOBAL_MANAGE.id, DUTY_RULE_LIST.id],
-        related_resource_types=[ResourceEnum.DUTY_RULE],
+        related_resource_types=[ResourceEnum.DBTYPE],
         group=_("平台管理"),
         subgroup=_("轮值策略"),
     )
@@ -1450,7 +1606,7 @@ class ActionEnum:
         actions = [
             action
             for action in cls.__dict__.values()
-            if isinstance(action, ActionMeta) and name in action.id and action not in exclude
+            if isinstance(action, ActionMeta) and name.lower() in action.id and action not in exclude
         ]
         return actions
 

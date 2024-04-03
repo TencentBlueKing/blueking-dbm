@@ -55,8 +55,8 @@ class BaseListResourceViewSet(AuditedModelViewSet):
     filterset_class = ResourceFilter
     pagination_class = None
 
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
 
     def get_filterset_kwargs(self):
         return {"bk_biz_id": self.kwargs["bk_biz_id"]}

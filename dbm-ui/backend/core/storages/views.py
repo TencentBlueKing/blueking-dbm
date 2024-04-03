@@ -21,8 +21,7 @@ SWAGGER_TAG = "storage"
 
 
 class StorageViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        return []
+    default_permission_class = []
 
     @common_swagger_auto_schema(
         operation_summary=_("批量获取文件内容"), request_body=BatchDownloadFileSerializer(), tags=[SWAGGER_TAG]

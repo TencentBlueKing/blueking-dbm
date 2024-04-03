@@ -24,9 +24,7 @@ SWAGGER_TAG = _("个人配置")
 
 class ProfileViewSet(viewsets.SystemViewSet):
     serializer_class = ProfileSerializer
-
-    def _get_custom_permissions(self):
-        return []
+    default_permission_class = []
 
     @common_swagger_auto_schema(operation_summary=_("查询个人配置列表"), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False)

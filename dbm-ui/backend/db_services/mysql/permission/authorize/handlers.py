@@ -47,18 +47,34 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
     authorize_meta: AuthorizeMeta = MySQLAuthorizeMeta
     excel_authorize_meta: ExcelAuthorizeMeta = MySQLExcelAuthorizeMeta
 
+    def pre_check_excel_rules(self, excel_authorize: ExcelAuthorizeMeta, **kwargs) -> Dict:
+        """sqlserver的excel导入授权"""
+        account_type = ClusterType.cluster_type_to_db_type(excel_authorize.cluster_type)
+        user_info_map = self._get_user_info_map(account_type, self.bk_biz_id)
+        return super().pre_check_excel_rules(excel_authorize, user_info_map=user_info_map, **kwargs)
+
     def pre_check_rules(self, authorize: AuthorizeMeta, task_index: int = None, **kwargs) -> Dict:
+        # 如果没有user_info_map，则请求一次。
+        account_type = ClusterType.cluster_type_to_db_type(authorize.cluster_type)
+        if not kwargs.get("user_info_map"):
+            kwargs["user_info_map"] = super()._get_user_info_map(account_type, self.bk_biz_id)
+
         pre_check_data = super().pre_check_rules(authorize, task_index, **kwargs)
-        pre_check_data["authorize_data"] = authorize.to_dict()
+        account_id = pre_check_data["authorize_data"]["account_id"]
+        # mysql的授权数据和输入的authorize保持一致
+        pre_check_data["authorize_data"] = {"account_id": account_id, **authorize.to_dict()}
         return pre_check_data
 
-    def _pre_check_rules(self, authorize: AuthorizeMeta, **kwargs) -> Tuple[bool, str, Dict]:
+    def _pre_check_rules(
+        self, authorize: AuthorizeMeta, user_info_map: Dict = None, **kwargs
+    ) -> Tuple[bool, str, Dict]:
         """前置校验的具体实现逻辑"""
         account_rules = [{"bk_biz_id": self.bk_biz_id, "dbname": dbname} for dbname in authorize.access_dbs]
         source_ips = [item["ip"] if isinstance(item, dict) else item for item in authorize.source_ips]
         authorize_data = {
             "bk_biz_id": self.bk_biz_id,
             "operator": self.operator,
+            "account_id": user_info_map.get(authorize.user, {}).get("id"),
             "user": authorize.user,
             "access_dbs": authorize.access_dbs,
             "account_rules": account_rules,
@@ -66,7 +82,6 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
             "target_instances": authorize.target_instances,
             "cluster_type": authorize.cluster_type,
         }
-
         try:
             # 这里需要authorize_data副本去请求参数，否则会带上app_code/app_secret
             resp = DBPrivManagerApi.pre_check_authorize_rules(params=copy.deepcopy(authorize_data), raw=True)

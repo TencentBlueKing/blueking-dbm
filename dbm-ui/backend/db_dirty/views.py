@@ -39,10 +39,8 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
     pagination_class = None
     filter_class = None
 
-    def _get_custom_permissions(self):
-        if self.action == "query_operation_list":
-            return []
-        return [ResourceActionPermission([ActionEnum.DIRTY_POLL_MANAGE])]
+    action_permission_map = {("query_operation_list",): []}
+    default_permission_class = [ResourceActionPermission([ActionEnum.DIRTY_POLL_MANAGE])]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询污点池列表"),

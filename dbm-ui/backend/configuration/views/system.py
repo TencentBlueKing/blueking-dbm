@@ -38,16 +38,12 @@ tags = [_("系统设置")]
 class SystemSettingsViewSet(viewsets.SystemViewSet):
     """系统设置视图"""
 
-    def _get_custom_permissions(self):
-        # 非超级用户拒绝访问敏感信息
-        if self.action == "sensitive_environ":
-            return [RejectPermission()]
-        if self.action == "update_duty_notice_config":
-            return [ResourceActionPermission([ActionEnum.UPDATE_DUTY_NOTICE_CONFIG])]
-        if self.action in ["disk_classes", "device_classes", "duty_notice_config", "environ"]:
-            return []
-
-        return [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
+    action_permission_map = {
+        ("sensitive_environ",): [RejectPermission()],
+        ("update_duty_notice_config",): [ResourceActionPermission([ActionEnum.UPDATE_DUTY_NOTICE_CONFIG])],
+        ("disk_classes", "device_classes", "duty_notice_config", "environ"): [],
+    }
+    default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询磁盘类型"),
@@ -129,8 +125,8 @@ class BizSettingsViewSet(viewsets.AuditedModelViewSet):
     serializer_class = BizSettingsSerializer
     queryset = BizSettings.objects.all()
 
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("业务设置列表"),

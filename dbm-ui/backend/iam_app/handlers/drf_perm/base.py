@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import itertools
 import logging
-from typing import Callable, Dict, List
+from typing import Callable, List
 
 from bk_audit.constants.log import DEFAULT_EMPTY_VALUE, DEFAULT_SENSITIVITY
 from bk_audit.contrib.bk_audit.client import bk_audit_client
@@ -28,10 +28,12 @@ logger = logging.getLogger("root")
 
 
 def get_request_key_id(request, key, default=None):
+    # 优先以body为准，在以路由参数为准
+    context_key = request.parser_context["kwargs"].get(key, default)
     if request.method == "GET":
-        return request.query_params.get(key, default)
+        return request.query_params.get(key, context_key)
     else:
-        return request.data.get(key, default)
+        return request.data.get(key, context_key)
 
 
 class CommonInstance(object):
@@ -180,7 +182,8 @@ class ResourceActionPermission(IAMPermission):
         return super(ResourceActionPermission, self).has_permission(request, view)
 
     def has_object_permission(self, request, view, obj):
-        return self.has_permission(request, view)
+        """has_permission在实现上已经包含了对象鉴权"""
+        return True
 
 
 class MoreResourceActionPermission(IAMPermission):
@@ -191,24 +194,26 @@ class MoreResourceActionPermission(IAMPermission):
     def __init__(
         self,
         actions: List[ActionMeta],
-        resource_metas: List[ResourceMeta],
-        instance_ids_getters: Dict[str, Callable] = None,
+        resource_metes: List[ResourceMeta],
+        instance_ids_getters: Callable = None,
     ):
-        self.resource_metas = resource_metas
+        self.resource_metes = resource_metes
         self.instance_ids_getters = instance_ids_getters
         super().__init__(actions)
 
-    def get_instance_ids(self, request, view, resource):
-        return self.instance_ids_getters[resource.id](request, view)
-
     def has_permission(self, request, view):
-        more_resource_list = []
-        # 先按照资源类型获取资源实例
-        for resource_meta in self.resource_metas:
-            instance_ids = self.get_instance_ids(request, view, resource_meta)
-            more_resource_list.append([resource_meta.create_instance(instance_id) for instance_id in instance_ids])
-        # 然后将多个资源实例列表分别组合
-        self.resources = [list(resource_tuple) for resource_tuple in zip(*more_resource_list)]
+        # 先获取资源实例ID，结构为[(a1, b1, c1), (a2, b2, c2), ....]
+        # 这里资源元组中个体顺序和动作定义的关联资源顺序一致
+        resources_map_list = self.instance_ids_getters(request, view)
+        # 根据类型和resource id创建资源实例
+        more_resource_list = [
+            [
+                resource_meta.create_instance(resources[index])
+                for index, resource_meta in enumerate(self.resource_metes)
+            ]
+            for resources in resources_map_list
+        ]
+        self.resources = more_resource_list
 
         # 如果无关联资源/动作，则无需鉴权
         if not self.resources or not self.actions:
@@ -217,7 +222,8 @@ class MoreResourceActionPermission(IAMPermission):
         return super().has_permission(request, view)
 
     def has_object_permission(self, request, view, obj):
-        return super().has_permission(request, view)
+        """has_permission在实现上已经包含了对象鉴权"""
+        return True
 
 
 class DBManagePermission(ResourceActionPermission):
@@ -243,12 +249,11 @@ class BizDBTypeResourceActionPermission(MoreResourceActionPermission):
     """
 
     def __init__(self, actions: List[ActionMeta], instance_biz_getter: Callable, instance_dbtype_getter: Callable):
-        resource_metas = [ResourceEnum.BUSINESS, ResourceEnum.DBTYPE]
-        instance_ids_getters = {
-            ResourceEnum.BUSINESS.id: instance_biz_getter,
-            ResourceEnum.DBTYPE.id: instance_dbtype_getter,
-        }
-        super().__init__(actions, resource_metas, instance_ids_getters)
+        resource_metes = [ResourceEnum.BUSINESS, ResourceEnum.DBTYPE]
+        instance_ids_getters = lambda request, view: [  # noqa
+            (instance_biz_getter(request, view)[0], instance_dbtype_getter(request, view)[0])
+        ]
+        super().__init__(actions, resource_metes, instance_ids_getters)
 
 
 class IsAuthenticatedPermission(permissions.BasePermission):

@@ -44,8 +44,8 @@ SWAGGER_TAG = "db_services/mysql/fixpoint_rollback"
 
 
 class FixPointRollbackViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("通过日志平台获取集群备份记录"),

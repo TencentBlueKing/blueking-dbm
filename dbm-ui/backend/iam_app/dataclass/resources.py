@@ -16,6 +16,7 @@ from django.db import models
 from django.utils.translation import ugettext as _
 from iam import Resource
 
+from backend.components import DBPrivManagerApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import AppCache
@@ -319,6 +320,71 @@ class InfluxDBResourceMeta(InstanceResourceMeta):
 
 
 @dataclass
+class AccountResourceMeta(ResourceMeta):
+    """账号实例resource 属性定义，其他集群的账号资源应该继承此类"""
+
+    id: str = ""
+    name: str = ""
+    system_id: str = BK_IAM_SYSTEM_ID
+    selection_mode: str = "all"
+
+    lookup_field: str = "id"
+    display_fields: list = ResourceMeta.Field(["user"])
+    attribute: str = "creator"
+    attribute_display: str = _("创建者")
+    parent: ResourceMeta = BusinessResourceMeta()
+
+    @classmethod
+    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+        resource = cls._create_simple_instance(instance_id, attr)
+        # 根据账号ID查询单个账号
+        instance = DBPrivManagerApi.get_account(params={"ids": [int(instance_id)]})["results"][0]
+        # 更新resource的attribute，id和name
+        _bk_iam_path_ = "/{},{}/".format(cls.parent.id, instance[cls.parent.lookup_field])
+        resource.attribute.update(
+            {
+                cls.attribute: instance["creator"],
+                "id": instance["id"],
+                "name": instance["user"],
+                "_bk_iam_path_": _bk_iam_path_,
+            }
+        )
+        return resource
+
+
+@dataclass
+class MySQLAccountResourceMeta(AccountResourceMeta):
+    """MySQL账号实例resource 属性定义"""
+
+    id: str = "mysql_account"
+    name: str = _("MySQL 账号")
+
+
+@dataclass
+class SQLServerAccountResourceMeta(AccountResourceMeta):
+    """MySQL账号实例resource 属性定义"""
+
+    id: str = "sqlserver_account"
+    name: str = _("SQLServer 账号")
+
+
+@dataclass
+class MongoDBAccountResourceMeta(AccountResourceMeta):
+    """MySQL账号实例resource 属性定义"""
+
+    id: str = "mongodb_account"
+    name: str = _("MongoDB 账号")
+
+
+@dataclass
+class TendbClusterAccountResourceMeta(AccountResourceMeta):
+    """MySQL账号实例resource 属性定义"""
+
+    id: str = "tendbcluster_account"
+    name: str = _("TendbCluster 账号")
+
+
+@dataclass
 class MonitorPolicyResourceMeta(ResourceMeta):
     """监控策略实例resource 属性定义"""
 
@@ -384,26 +450,57 @@ class GlobalMonitorPolicyResourceMeta(MonitorPolicyResourceMeta):
 
 
 @dataclass
-class DutyRuleResourceMeta(ResourceMeta):
-    """监控策略实例resource 属性定义"""
+class NotifyGroupResourceMeta(ResourceMeta):
+    """告警组实例resource 属性定义"""
 
     system_id: str = BK_IAM_SYSTEM_ID
-    id: str = "duty_rule"
-    name: str = _("轮值策略")
+    id: str = "notify_group"
+    name: str = _("告警组")
     selection_mode: str = "all"
 
     attribute: str = "creator"
     attribute_display: str = _("创建者")
     lookup_field: str = "id"
     display_fields: list = ResourceMeta.Field(["name"])
-    parent: ResourceMeta = DBTypeResourceMeta()
+    parent: ResourceMeta = BusinessResourceMeta()
+
+    @classmethod
+    def get_bk_iam_path(cls, instance):
+        biz_topo = "/{},{}/".format(BusinessResourceMeta.id, instance.bk_biz_id)
+        dbtype_topo = "/{},{}/".format(DBTypeResourceMeta.id, instance.db_type)
+        if not instance.bk_biz_id:
+            return dbtype_topo
+        else:
+            return biz_topo
 
     @classmethod
     def create_instance(cls, instance_id: str, attr=None) -> Resource:
-        from backend.db_monitor.models.alarm import DutyRule
+        from backend.db_monitor.models.alarm import NoticeGroup
 
-        resource, __ = cls.create_model_instance(DutyRule, instance_id, attr)
+        resource, instance = cls.create_model_instance(NoticeGroup, instance_id, attr)
+        resource.attribute.update(_bk_iam_path_=cls.get_bk_iam_path(instance))
         return resource
+
+
+@dataclass
+class GlobalNotifyGroupResourceMeta(NotifyGroupResourceMeta):
+    """标记为全局告警组视图资源"""
+
+    for_select: bool = True
+    select_id: str = "global_notify_group"
+    name: str = _("全局告警组")
+
+    @classmethod
+    def instance_selection(cls):
+        return {
+            "id": f"{cls.select_id}_list",
+            "name": _("{} 列表".format(cls.name)),
+            "name_en": f"{cls.select_id} list",
+            "resource_type_chain": [
+                {"system_id": DBTypeResourceMeta.system_id, "id": DBTypeResourceMeta.id},
+                {"system_id": cls.system_id, "id": cls.id},
+            ],
+        }
 
 
 @dataclass
@@ -474,9 +571,14 @@ class ResourceEnum:
     DBTYPE = DBTypeResourceMeta()
     MONITOR_POLICY = MonitorPolicyResourceMeta()
     GLOBAL_MONITOR_POLICY = GlobalMonitorPolicyResourceMeta()
-    DUTY_RULE = DutyRuleResourceMeta()
+    NOTIFY_GROUP = NotifyGroupResourceMeta()
+    GLOBAL_NOTIFY_GROUP = GlobalNotifyGroupResourceMeta()
     OPENAREA_CONFIG = OpenareaConfigResourceMeta()
     DUMPER_SUBSCRIBE_CONFIG = DumperSubscribeConfigResourceMeta()
+    MYSQL_ACCOUNT = MySQLAccountResourceMeta()
+    SQLSERVER_ACCOUNT = SQLServerAccountResourceMeta()
+    MONGODB_ACCOUNT = MongoDBAccountResourceMeta()
+    TENDBCLUSTER_ACCOUNT = TendbClusterAccountResourceMeta()
 
     @classmethod
     def get_resource_by_id(cls, resource_id: Union[ResourceMeta, str]):

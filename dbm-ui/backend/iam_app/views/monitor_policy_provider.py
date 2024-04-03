@@ -10,25 +10,21 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-import operator
-from functools import reduce
 from typing import Dict
 
 from django.db import models
-from django.db.models import Q
-from iam import DjangoQuerySetConverter
-from iam.eval.constants import KEYWORD_BK_IAM_PATH_FIELD_SUFFIX, OP
 
 from backend.db_monitor.models import MonitorPolicy
 from backend.iam_app.dataclass.resources import MonitorPolicyResourceMeta, ResourceEnum
-from backend.iam_app.views.iam_provider import BaseResourceProvider, CommonProviderMixin
+from backend.iam_app.handlers.converter import MonitorDjangoQuerySetConverter
+from backend.iam_app.views.iam_provider import BaseModelResourceProvider
 
 logger = logging.getLogger("root")
 
 
-class MonitorPolicyResourceProvider(BaseResourceProvider, CommonProviderMixin):
+class MonitorPolicyResourceProvider(BaseModelResourceProvider):
     """
-    集群资源的反向拉取基类
+    监控策略资源的反向拉取基类
     """
 
     model: models.Model = MonitorPolicy
@@ -54,18 +50,11 @@ class MonitorPolicyResourceProvider(BaseResourceProvider, CommonProviderMixin):
         id__bk_iam_path = {instance.id: self.resource_meta.get_bk_iam_path(instance) for instance in instances}
         return id__bk_iam_path
 
-    def list_attr(self, **options):
-        return self._list_attr(id=self.resource_meta.attribute, display_name=self.resource_meta.attribute_display)
-
-    def list_attr_value(self, filter, page, **options):
-        user_resource = self.list_user_resource()
-        return self._list_attr_value(self.resource_meta.attribute, user_resource, filter, page, **options)
-
     def list_instance(self, filter, page, **options):
         logger.info("list_instance params: %s, %s, %s", filter, page, options)
-        filter.model = self.model
+        filter.data_source = self.model
         filter.value_list = [self.resource_meta.lookup_field, *self.resource_meta.display_fields]
-        filter.keyword_field = "name"
+        filter.keyword_field = "name__icontains"
         # 默认给上bk_biz_id=0的过滤，如果监控有业务层级，则被覆盖不影响
         filter.conditions = {"bk_biz_id": 0}
         return super().list_instance(filter, page, **options)
@@ -82,21 +71,13 @@ class MonitorPolicyResourceProvider(BaseResourceProvider, CommonProviderMixin):
             f"{self.resource_meta.id}._bk_iam_path_": "bk_biz_id,db_type",
         }
         value_hooks = {"bk_biz_id,db_type": self.parse_iam_path}
+        converter_class = options.get("converter_class", MonitorDjangoQuerySetConverter)
         return self._list_instance_by_policy(
-            obj_model=self.model,
+            data_source=self.model,
             value_list=["id", "name"],
             key_mapping=key_mapping,
             value_hooks=value_hooks,
             filter=filter,
             page=page,
-            converter_class=MonitorDjangoQuerySetConverter,
+            converter_class=converter_class,
         )
-
-
-class MonitorDjangoQuerySetConverter(DjangoQuerySetConverter):
-    def _iam_path_(self, left, right):
-        return reduce(operator.and_, [Q(**{field: right[field]}) for field in left.split(",")])
-
-    def operator_map(self, operator, field, value):
-        if field.endswith(KEYWORD_BK_IAM_PATH_FIELD_SUFFIX) and operator == OP.STARTS_WITH:
-            return self._iam_path_

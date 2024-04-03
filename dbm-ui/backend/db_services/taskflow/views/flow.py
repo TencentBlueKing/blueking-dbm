@@ -54,10 +54,8 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         "created_by": ["exact", "in"],
     }
 
-    def _get_custom_permissions(self):
-        if self.action == "list":
-            return [DBManagePermission()]
-        return [TaskFlowPermission([ActionEnum.FLOW_DETAIL], ResourceEnum.TASKFLOW)]
+    action_permission_map = {("list",): [DBManagePermission()]}
+    default_permission_class = [TaskFlowPermission([ActionEnum.FLOW_DETAIL], ResourceEnum.TASKFLOW)]
 
     def get_queryset(self):
         if self.action != self.list.__name__:

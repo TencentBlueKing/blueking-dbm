@@ -31,9 +31,7 @@ class DumperInstanceViewSet(viewsets.AuditedModelViewSet):
     queryset = ExtraProcessInstance.objects.filter(proc_type=ExtraProcessType.TBINLOGDUMPER)
     serializer_class = DumperInstanceConfigSerializer
     filter_class = DumperInstanceListFilter
-
-    def _get_custom_permissions(self):
-        return []
+    default_permission_class = []
 
     def get_queryset(self):
         return self.queryset.filter(bk_biz_id=self.kwargs["bk_biz_id"])

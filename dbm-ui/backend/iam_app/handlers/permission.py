@@ -365,9 +365,12 @@ class Permission(object):
 
         bk_iam_path = f"{resource.attribute.get('_bk_iam_path_', '/')}{resource.type},{resource.id}/"
         topo_resources = []
-        for topo in bk_iam_path.split("/")[1:-1]:
+        # 获取祖先的拓扑结构
+        for topo in bk_iam_path.split("/")[1:-1][:-1]:
             rtype, rid = topo.split(",")
             topo_resources.append(ResourceEnum.get_resource_by_id(rtype).create_instance(rid))
+        # 最后一级拓扑是自身
+        topo_resources.append(resource)
         return topo_resources
 
     def get_apply_data(

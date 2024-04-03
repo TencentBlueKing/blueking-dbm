@@ -10,51 +10,55 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-from typing import List
 
-from django.db import models
-
-from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import StorageInstance
+from backend.components import DBPrivManagerApi
+from backend.components.base import DataAPI
+from backend.db_services.dbpermission.constants import AccountType
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
-from backend.iam_app.views.iam_provider import BaseModelResourceProvider
+from backend.iam_app.views.iam_provider import BaseInterfaceResourceProvider
 
 logger = logging.getLogger("root")
 
 
-class InstanceResourceProvider(BaseModelResourceProvider):
+class AccountResourceProvider(BaseInterfaceResourceProvider):
     """
-    集群资源的反向拉取基类
+    账号资源的反向拉取类
     """
 
-    model: models.Model = StorageInstance
+    api: DataAPI = DBPrivManagerApi.get_account
     resource_meta: ResourceMeta = None
-    instance_roles: List[InstanceRole] = []
+    account_type: AccountType = None
+
+    @staticmethod
+    def convert_condition_field(condition):
+        # 账号的业务参数要是整型
+        condition["bk_biz_id"] = int(condition["bk_biz_id"])
+        return condition
 
     def list_instance(self, filter, page, **options):
-        filter.data_source = self.model
+        filter.data_source = self.api
         filter.value_list = [self.resource_meta.lookup_field, *self.resource_meta.display_fields]
-        filter.keyword_field = "machine__ip__icontains"
-        filter.conditions = {"instance_role__in": self.instance_roles}
+        filter.keyword_field = "user_like"
+        filter.conditions = {"cluster_type": self.account_type}
         return super().list_instance(filter, page, **options)
 
     def search_instance(self, filter, page, **options):
         return self.list_instance(filter, page, **options)
 
     def fetch_instance_info(self, filter, **options):
-        filter.data_source = self.model
+        filter.data_source = self.api
         return super().fetch_instance_info(filter, **options)
 
     def list_instance_by_policy(self, filter, page, **options):
         key_mapping = {
+            f"{self.resource_meta.id}.ids": "ids",
             f"{self.resource_meta.id}.id": "id",
-            f"{self.resource_meta.id}.creator": "creator",
             f"{self.resource_meta.id}._bk_iam_path_": "bk_biz_id",
         }
         values_hook = {"bk_biz_id": lambda value: value[1:-1].split(",")[1]}
         return self._list_instance_by_policy(
-            data_source=self.model,
-            value_list=["id", "ip", "port"],
+            data_source=self.api,
+            value_list=["id", "user"],
             key_mapping=key_mapping,
             value_hooks=values_hook,
             filter=filter,
@@ -62,6 +66,37 @@ class InstanceResourceProvider(BaseModelResourceProvider):
         )
 
 
-class InfluxDBInstanceResourceProvider(InstanceResourceProvider):
-    resource_meta: ResourceMeta = ResourceEnum.INFLUXDB
-    instance_roles: List[InstanceRole] = [InstanceRole.INFLUXDB]
+class MySQLAccountResourceProvider(AccountResourceProvider):
+    """
+    mysql账号资源的反向拉取类
+    """
+
+    account_type = AccountType.MYSQL
+    resource_meta = ResourceEnum.MYSQL_ACCOUNT
+
+
+class SQLServerAccountResourceProvider(AccountResourceProvider):
+    """
+    mysql账号资源的反向拉取类
+    """
+
+    account_type = AccountType.SQLServer
+    resource_meta = ResourceEnum.SQLSERVER_ACCOUNT
+
+
+class MongoDBAccountResourceProvider(AccountResourceProvider):
+    """
+    mysql账号资源的反向拉取类
+    """
+
+    account_type = AccountType.MONGODB
+    resource_meta = ResourceEnum.MONGODB_ACCOUNT
+
+
+class TendbClusterAccountResourceProvider(AccountResourceProvider):
+    """
+    mysql账号资源的反向拉取类
+    """
+
+    account_type = AccountType.TENDBCLUSTER
+    resource_meta = ResourceEnum.TENDBCLUSTER_ACCOUNT

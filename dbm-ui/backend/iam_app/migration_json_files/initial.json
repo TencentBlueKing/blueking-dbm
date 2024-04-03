@@ -299,18 +299,18 @@
     {
         "operation": "upsert_resource_type",
         "data": {
-            "id": "duty_rule",
-            "name": "轮值策略",
-            "name_en": "duty_rule",
-            "description": "轮值策略",
+            "id": "notify_group",
+            "name": "告警组",
+            "name_en": "notify_group",
+            "description": "告警组",
             "provider_config": {
                 "path": "/apis/iam/resource/"
             },
             "version": 1,
             "parents": [
                 {
-                    "system_id": "bk_dbm",
-                    "id": "dbtype"
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
                 }
             ]
         }
@@ -341,6 +341,82 @@
             "name": "数据订阅规则",
             "name_en": "dumper_subscribe_config",
             "description": "数据订阅规则",
+            "provider_config": {
+                "path": "/apis/iam/resource/"
+            },
+            "version": 1,
+            "parents": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_resource_type",
+        "data": {
+            "id": "mysql_account",
+            "name": "MySQL 账号",
+            "name_en": "mysql_account",
+            "description": "MySQL 账号",
+            "provider_config": {
+                "path": "/apis/iam/resource/"
+            },
+            "version": 1,
+            "parents": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_resource_type",
+        "data": {
+            "id": "sqlserver_account",
+            "name": "SQLServer 账号",
+            "name_en": "sqlserver_account",
+            "description": "SQLServer 账号",
+            "provider_config": {
+                "path": "/apis/iam/resource/"
+            },
+            "version": 1,
+            "parents": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_resource_type",
+        "data": {
+            "id": "mongodb_account",
+            "name": "MongoDB 账号",
+            "name_en": "mongodb_account",
+            "description": "MongoDB 账号",
+            "provider_config": {
+                "path": "/apis/iam/resource/"
+            },
+            "version": 1,
+            "parents": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_resource_type",
+        "data": {
+            "id": "tendbcluster_account",
+            "name": "TendbCluster 账号",
+            "name_en": "tendbcluster_account",
+            "description": "TendbCluster 账号",
             "provider_config": {
                 "path": "/apis/iam/resource/"
             },
@@ -626,17 +702,17 @@
     {
         "operation": "upsert_instance_selection",
         "data": {
-            "id": "duty_rule_list",
-            "name": "轮值策略 列表",
-            "name_en": "duty_rule list",
+            "id": "notify_group_list",
+            "name": "告警组 列表",
+            "name_en": "notify_group list",
             "resource_type_chain": [
                 {
-                    "system_id": "bk_dbm",
-                    "id": "dbtype"
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
                 },
                 {
                     "system_id": "bk_dbm",
-                    "id": "duty_rule"
+                    "id": "notify_group"
                 }
             ]
         }
@@ -680,6 +756,78 @@
     {
         "operation": "upsert_instance_selection",
         "data": {
+            "id": "mysql_account_list",
+            "name": "MySQL 账号 列表",
+            "name_en": "mysql_account list",
+            "resource_type_chain": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mysql_account"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_instance_selection",
+        "data": {
+            "id": "sqlserver_account_list",
+            "name": "SQLServer 账号 列表",
+            "name_en": "sqlserver_account list",
+            "resource_type_chain": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "sqlserver_account"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_instance_selection",
+        "data": {
+            "id": "mongodb_account_list",
+            "name": "MongoDB 账号 列表",
+            "name_en": "mongodb_account list",
+            "resource_type_chain": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb_account"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_instance_selection",
+        "data": {
+            "id": "tendbcluster_account_list",
+            "name": "TendbCluster 账号 列表",
+            "name_en": "tendbcluster_account list",
+            "resource_type_chain": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz"
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "tendbcluster_account"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_instance_selection",
+        "data": {
             "id": "global_monitor_policy_list",
             "name": "全局监控策略 列表",
             "name_en": "global_monitor_policy list",
@@ -691,6 +839,24 @@
                 {
                     "system_id": "bk_dbm",
                     "id": "monitor_policy"
+                }
+            ]
+        }
+    },
+    {
+        "operation": "upsert_instance_selection",
+        "data": {
+            "id": "global_notify_group_list",
+            "name": "全局告警组 列表",
+            "name_en": "global_notify_group list",
+            "resource_type_chain": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "dbtype"
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "notify_group"
                 }
             ]
         }
@@ -1077,6 +1243,36 @@
     {
         "operation": "upsert_action",
         "data": {
+            "id": "mysql_admin_pwd_modify",
+            "name": "MySQL 临时密码修改",
+            "name_en": "mysql_admin_pwd_modify",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mysql",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mysql_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "MySQL",
+            "subgroup": "集群管理",
+            "description": "MySQL 临时密码修改",
+            "description_en": "mysql_admin_pwd_modify"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
             "id": "mysql_enable_disable",
             "name": "MySQL 集群禁用和启用",
             "name_en": "MySQL Enable Disable",
@@ -1203,13 +1399,13 @@
             "type": "delete",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "mysql_account",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "mysql_account_list"
                         }
                     ]
                 }
@@ -1227,10 +1423,40 @@
     {
         "operation": "upsert_action",
         "data": {
-            "id": "mysql_account_rule_create",
-            "name": "MySQL 账号规则创建",
-            "name_en": "MySQL Account Rule Create",
+            "id": "mysql_add_account_rule",
+            "name": "MySQL账号规则创建",
+            "name_en": "mysql_add_account_rule",
             "type": "create",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mysql_account",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mysql_account_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "MySQL",
+            "subgroup": "权限管理",
+            "description": "MySQL账号规则创建",
+            "description_en": "mysql_add_account_rule"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mysql_account_rules_view",
+            "name": "MySQL 账号规则查看",
+            "name_en": "mysql_account_rules_view",
+            "type": "view",
             "related_resource_types": [
                 {
                     "system_id": "bk_cmdb",
@@ -1250,8 +1476,49 @@
             "version": 1,
             "group": "MySQL",
             "subgroup": "权限管理",
-            "description": "MySQL 账号规则创建",
-            "description_en": "MySQL Account Rule Create"
+            "description": "MySQL 账号规则查看",
+            "description_en": "mysql_account_rules_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mysql_authorize_rules",
+            "name": "MySQL授权",
+            "name_en": "mysql authorize rules",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mysql_account",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mysql_account_list"
+                        }
+                    ]
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mysql",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mysql_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "MySQL",
+            "subgroup": "权限管理",
+            "description": "MySQL授权",
+            "description_en": "mysql authorize rules"
         }
     },
     {
@@ -1321,13 +1588,13 @@
             "type": "manage",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "mysql",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "mysql_list"
                         }
                     ]
                 }
@@ -1351,13 +1618,13 @@
             "type": "delete",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "mysql",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "mysql_list"
                         }
                     ]
                 }
@@ -1381,13 +1648,13 @@
             "type": "manage",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "mysql",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "mysql_list"
                         }
                     ]
                 }
@@ -1400,6 +1667,47 @@
             "subgroup": "分区管理",
             "description": "MySQL 分区管理禁用启用",
             "description_en": "mysql_partition_enable_disable"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mysql_open_area",
+            "name": "MySQL 开区执行",
+            "name_en": "mysql_open_area",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "openarea_config",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "openarea_config_list"
+                        }
+                    ]
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mysql",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mysql_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "MySQL",
+            "subgroup": "克隆开区",
+            "description": "MySQL 开区执行",
+            "description_en": "mysql_open_area"
         }
     },
     {
@@ -1729,6 +2037,36 @@
     {
         "operation": "upsert_action",
         "data": {
+            "id": "tendbcluster_admin_pwd_modify",
+            "name": "TendbCluster 临时密码修改",
+            "name_en": "tendbcluster_admin_pwd_modify",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "tendbcluster",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "tendbcluster_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "TendbCluster",
+            "subgroup": "集群管理",
+            "description": "TendbCluster 临时密码修改",
+            "description_en": "tendbcluster_admin_pwd_modify"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
             "id": "tendbcluster_account_create",
             "name": "TendbCluster 账号创建",
             "name_en": "tendbcluster_account_create",
@@ -1765,13 +2103,13 @@
             "type": "delete",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "tendbcluster_account",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "tendbcluster_account_list"
                         }
                     ]
                 }
@@ -1795,6 +2133,36 @@
             "type": "create",
             "related_resource_types": [
                 {
+                    "system_id": "bk_dbm",
+                    "id": "tendbcluster_account",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "tendbcluster_account_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "TendbCluster",
+            "subgroup": "权限管理",
+            "description": "TendbCluster 账号规则创建",
+            "description_en": "tendbcluster_add_account_rule"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "tendbcluster_account_rules_view",
+            "name": "TendbCluster 账号规则查看",
+            "name_en": "tendbcluster_account_rules_view",
+            "type": "view",
+            "related_resource_types": [
+                {
                     "system_id": "bk_cmdb",
                     "id": "biz",
                     "selection_mode": "instance",
@@ -1812,8 +2180,49 @@
             "version": 1,
             "group": "TendbCluster",
             "subgroup": "权限管理",
-            "description": "TendbCluster 账号规则创建",
-            "description_en": "tendbcluster_add_account_rule"
+            "description": "TendbCluster 账号规则查看",
+            "description_en": "tendbcluster_account_rules_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "tendbcluster_authorize_rules",
+            "name": "TendbCluster 授权",
+            "name_en": "tendbcluster_authorize_rules",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "tendbcluster_account",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "tendbcluster_account_list"
+                        }
+                    ]
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "tendbcluster",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "tendbcluster_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "TendbCluster",
+            "subgroup": "权限管理",
+            "description": "TendbCluster 授权",
+            "description_en": "tendbcluster_authorize_rules"
         }
     },
     {
@@ -1900,6 +2309,47 @@
             "subgroup": "权限克隆",
             "description": "TendbCluster DB实例权限克隆",
             "description_en": "tendb_instance_clone_rules"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "tendbcluster_open_area",
+            "name": "TendbCluster 开区执行",
+            "name_en": "tendbcluster_open_area",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "openarea_config",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "openarea_config_list"
+                        }
+                    ]
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "tendbcluster",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "tendbcluster_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "TendbCluster",
+            "subgroup": "克隆开区",
+            "description": "TendbCluster 开区执行",
+            "description_en": "tendbcluster_open_area"
         }
     },
     {
@@ -2027,13 +2477,13 @@
             "type": "manage",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "tendbcluster",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "tendbcluster_list"
                         }
                     ]
                 }
@@ -2057,13 +2507,13 @@
             "type": "delete",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "tendbcluster",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "tendbcluster_list"
                         }
                     ]
                 }
@@ -2087,13 +2537,13 @@
             "type": "manage",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "tendbcluster",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "tendbcluster_list"
                         }
                     ]
                 }
@@ -2348,6 +2798,36 @@
             "subgroup": "实例管理",
             "description": "InfluxDB 实例查看",
             "description_en": "influxdb_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "group_manage",
+            "name": "InfluxDB 分组管理",
+            "name_en": "group_manage",
+            "type": "manage",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "InfluxDB",
+            "subgroup": "实例管理",
+            "description": "InfluxDB 分组管理",
+            "description_en": "group_manage"
         }
     },
     {
@@ -2946,19 +3426,19 @@
     {
         "operation": "upsert_action",
         "data": {
-            "id": "mongodb_delete_create",
-            "name": "MongoDB 账号删除",
-            "name_en": "mongodb_delete_create",
+            "id": "mongodb_account_delete",
+            "name": "MongoDB 删除账号",
+            "name_en": "mongodb_account_delete",
             "type": "delete",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "mongodb_account",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_account_list"
                         }
                     ]
                 }
@@ -2967,8 +3447,8 @@
             "version": 1,
             "group": "MongoDB",
             "subgroup": "权限管理",
-            "description": "MongoDB 账号删除",
-            "description_en": "mongodb_delete_create"
+            "description": "MongoDB 删除账号",
+            "description_en": "mongodb_account_delete"
         }
     },
     {
@@ -2978,6 +3458,36 @@
             "name": "MongoDB 账号规则创建",
             "name_en": "mongodb_add_account_rule",
             "type": "create",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb_account",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_account_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "权限管理",
+            "description": "MongoDB 账号规则创建",
+            "description_en": "mongodb_add_account_rule"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_account_rules_view",
+            "name": "MongoDB 账号规则查看",
+            "name_en": "mongodb_account_rules_view",
+            "type": "view",
             "related_resource_types": [
                 {
                     "system_id": "bk_cmdb",
@@ -2997,8 +3507,79 @@
             "version": 1,
             "group": "MongoDB",
             "subgroup": "权限管理",
-            "description": "MongoDB 账号规则创建",
-            "description_en": "mongodb_add_account_rule"
+            "description": "MongoDB 账号规则查看",
+            "description_en": "mongodb_account_rules_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongodb_authorize_rules",
+            "name": "MongoDB 集群授权",
+            "name_en": "mongodb_authorize_rules",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb_account",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_account_list"
+                        }
+                    ]
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "mongodb",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "mongodb_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "权限管理",
+            "description": "MongoDB 集群授权",
+            "description_en": "mongodb_authorize_rules"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "mongo_excel_authorize_rules",
+            "name": "MongoDB Excel集群授权",
+            "name_en": "mongo_excel_authorize_rules",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "MongoDB",
+            "subgroup": "权限管理",
+            "description": "MongoDB Excel集群授权",
+            "description_en": "mongo_excel_authorize_rules"
         }
     },
     {
@@ -3027,6 +3608,36 @@
             "subgroup": "集群管理",
             "description": "SQLServer 集群详情查看",
             "description_en": "sqlserver_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "sqlserver_admin_pwd_modify",
+            "name": "SQLServer 临时密码修改",
+            "name_en": "sqlserver_admin_pwd_modify",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "sqlserver",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "sqlserver_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "SQLServer",
+            "subgroup": "集群管理",
+            "description": "SQLServer 临时密码修改",
+            "description_en": "sqlserver_admin_pwd_modify"
         }
     },
     {
@@ -3091,19 +3702,19 @@
     {
         "operation": "upsert_action",
         "data": {
-            "id": "sqlserver_delete_create",
-            "name": "SQLServer 账号删除",
-            "name_en": "sqlserver_delete_create",
+            "id": "sqlserver_account_delete",
+            "name": "SQLServer 删除账号",
+            "name_en": "sqlserver_account_delete",
             "type": "delete",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "sqlserver_account",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "sqlserver_account_list"
                         }
                     ]
                 }
@@ -3112,8 +3723,8 @@
             "version": 1,
             "group": "SQLServer",
             "subgroup": "权限管理",
-            "description": "SQLServer 账号删除",
-            "description_en": "sqlserver_delete_create"
+            "description": "SQLServer 删除账号",
+            "description_en": "sqlserver_account_delete"
         }
     },
     {
@@ -3123,6 +3734,36 @@
             "name": "SQLServer 账号规则创建",
             "name_en": "sqlserver_add_account_rule",
             "type": "create",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "sqlserver_account",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "sqlserver_account_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "SQLServer",
+            "subgroup": "权限管理",
+            "description": "SQLServer 账号规则创建",
+            "description_en": "sqlserver_add_account_rule"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "sqlserver_account_rules_view",
+            "name": "SQLServer 账号规则查看",
+            "name_en": "sqlserver_account_rules_view",
+            "type": "view",
             "related_resource_types": [
                 {
                     "system_id": "bk_cmdb",
@@ -3142,8 +3783,79 @@
             "version": 1,
             "group": "SQLServer",
             "subgroup": "权限管理",
-            "description": "SQLServer 账号规则创建",
-            "description_en": "sqlserver_add_account_rule"
+            "description": "SQLServer 账号规则查看",
+            "description_en": "sqlserver_account_rules_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "sqlserver_authorize_rules",
+            "name": "SQLServer 集群授权",
+            "name_en": "sqlserver_authorize_rules",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "sqlserver_account",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "sqlserver_account_list"
+                        }
+                    ]
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "sqlserver",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "sqlserver_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "SQLServer",
+            "subgroup": "权限管理",
+            "description": "SQLServer 集群授权",
+            "description_en": "sqlserver_authorize_rules"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "sqlserver_excel_authorize_rules",
+            "name": "SQLServer Excel授权",
+            "name_en": "sqlserver_excel_authorize_rules",
+            "type": "execute",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "SQLServer",
+            "subgroup": "权限管理",
+            "description": "SQLServer Excel授权",
+            "description_en": "sqlserver_excel_authorize_rules"
         }
     },
     {
@@ -3192,6 +3904,24 @@
             "subgroup": "资源池",
             "description": "资源池管理",
             "description_en": "resource_pool_manage"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "resource_operation_view",
+            "name": "资源池操作记录查看",
+            "name_en": "resource_operation_view",
+            "type": "view",
+            "related_resource_types": [],
+            "related_actions": [
+                "resource_manage"
+            ],
+            "version": 1,
+            "group": "资源管理",
+            "subgroup": "资源池",
+            "description": "资源池操作记录查看",
+            "description_en": "resource_operation_view"
         }
     },
     {
@@ -3305,24 +4035,6 @@
     {
         "operation": "upsert_action",
         "data": {
-            "id": "global_notify_group_list",
-            "name": "全局告警组查看",
-            "name_en": "global_notify_group_view",
-            "type": "view",
-            "related_resource_types": [],
-            "related_actions": [
-                "global_manage"
-            ],
-            "version": 1,
-            "group": "平台管理",
-            "subgroup": "告警组",
-            "description": "全局告警组查看",
-            "description_en": "global_notify_group_view"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
             "id": "notify_group_create",
             "name": "告警组新建",
             "name_en": "notify_group_create",
@@ -3353,37 +4065,19 @@
     {
         "operation": "upsert_action",
         "data": {
-            "id": "global_notify_group_create",
-            "name": "全局告警组新建",
-            "name_en": "global_notify_group_create",
-            "type": "create",
-            "related_resource_types": [],
-            "related_actions": [
-                "global_manage"
-            ],
-            "version": 1,
-            "group": "平台管理",
-            "subgroup": "告警组",
-            "description": "全局告警组新建",
-            "description_en": "global_notify_group_create"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
             "id": "notify_group_update",
             "name": "告警组编辑",
             "name_en": "notify_group_edit",
             "type": "manage",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "notify_group",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "notify_group_list"
                         }
                     ]
                 }
@@ -3401,37 +4095,19 @@
     {
         "operation": "upsert_action",
         "data": {
-            "id": "global_notify_group_update",
-            "name": "全局告警组编辑",
-            "name_en": "global_notify_group_edit",
-            "type": "manage",
-            "related_resource_types": [],
-            "related_actions": [
-                "global_manage"
-            ],
-            "version": 1,
-            "group": "平台管理",
-            "subgroup": "告警组",
-            "description": "全局告警组编辑",
-            "description_en": "global_notify_group_edit"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
             "id": "notify_group_delete",
             "name": "告警组删除",
             "name_en": "notify_group_delete",
             "type": "delete",
             "related_resource_types": [
                 {
-                    "system_id": "bk_cmdb",
-                    "id": "biz",
-                    "selection_mode": "instance",
+                    "system_id": "bk_dbm",
+                    "id": "notify_group",
+                    "selection_mode": "all",
                     "related_instance_selections": [
                         {
-                            "system_id": "bk_cmdb",
-                            "id": "business"
+                            "system_id": "bk_dbm",
+                            "id": "notify_group_list"
                         }
                     ]
                 }
@@ -3449,19 +4125,31 @@
     {
         "operation": "upsert_action",
         "data": {
-            "id": "global_notify_group_delete",
-            "name": "全局告警组删除",
-            "name_en": "global_notify_group_delete",
-            "type": "delete",
-            "related_resource_types": [],
+            "id": "global_notify_group_update",
+            "name": "全局告警组编辑",
+            "name_en": "global_notify_group_edit",
+            "type": "manage",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "notify_group",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "global_notify_group_list"
+                        }
+                    ]
+                }
+            ],
             "related_actions": [
                 "global_manage"
             ],
             "version": 1,
             "group": "平台管理",
             "subgroup": "告警组",
-            "description": "全局告警组删除",
-            "description_en": "global_notify_group_delete"
+            "description": "全局告警组编辑",
+            "description_en": "global_notify_group_edit"
         }
     },
     {
@@ -4090,12 +4778,12 @@
             "related_resource_types": [
                 {
                     "system_id": "bk_dbm",
-                    "id": "duty_rule",
-                    "selection_mode": "all",
+                    "id": "dbtype",
+                    "selection_mode": "instance",
                     "related_instance_selections": [
                         {
                             "system_id": "bk_dbm",
-                            "id": "duty_rule_list"
+                            "id": "dbtype_list"
                         }
                     ]
                 }
@@ -4121,12 +4809,12 @@
             "related_resource_types": [
                 {
                     "system_id": "bk_dbm",
-                    "id": "duty_rule",
-                    "selection_mode": "all",
+                    "id": "dbtype",
+                    "selection_mode": "instance",
                     "related_instance_selections": [
                         {
                             "system_id": "bk_dbm",
-                            "id": "duty_rule_list"
+                            "id": "dbtype_list"
                         }
                     ]
                 }
@@ -4491,34 +5179,6 @@
     {
         "operation": "upsert_action",
         "data": {
-            "id": "mysql_authorize_rules",
-            "name": "MySQL 集群授权",
-            "name_en": "MYSQL_AUTHORIZE_RULES",
-            "type": "execute",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_dbm",
-                    "id": "mysql",
-                    "selection_mode": "all",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "mysql_list"
-                        }
-                    ]
-                }
-            ],
-            "related_actions": [],
-            "version": 1,
-            "group": "MySQL",
-            "subgroup": "权限管理",
-            "description": "MySQL 集群授权",
-            "description_en": "MYSQL_AUTHORIZE_RULES"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
             "id": "mysql_instance_clone_rules",
             "name": "MySQL DB实例权限克隆",
             "name_en": "MYSQL_INSTANCE_CLONE_RULES",
@@ -4766,34 +5426,6 @@
             "subgroup": "备份",
             "description": "MySQL 高可用全库备份",
             "description_en": "MYSQL_HA_FULL_BACKUP"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
-            "id": "mysql_open_area",
-            "name": "MySQL 开区",
-            "name_en": "MYSQL_OPEN_AREA",
-            "type": "execute",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_dbm",
-                    "id": "mysql",
-                    "selection_mode": "all",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "mysql_list"
-                        }
-                    ]
-                }
-            ],
-            "related_actions": [],
-            "version": 1,
-            "group": "MySQL",
-            "subgroup": "克隆开区",
-            "description": "MySQL 开区",
-            "description_en": "MYSQL_OPEN_AREA"
         }
     },
     {
@@ -5331,34 +5963,6 @@
     {
         "operation": "upsert_action",
         "data": {
-            "id": "tendbcluster_authorize_rules",
-            "name": "TenDB Cluster 授权",
-            "name_en": "TENDBCLUSTER_AUTHORIZE_RULES",
-            "type": "execute",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_dbm",
-                    "id": "tendbcluster",
-                    "selection_mode": "all",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "tendbcluster_list"
-                        }
-                    ]
-                }
-            ],
-            "related_actions": [],
-            "version": 1,
-            "group": "TendbCluster",
-            "subgroup": "权限管理",
-            "description": "TenDB Cluster 授权",
-            "description_en": "TENDBCLUSTER_AUTHORIZE_RULES"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
             "id": "sqlserver_import_sqlfile",
             "name": "SQLServer SQL导入执行",
             "name_en": "SQLSERVER_IMPORT_SQLFILE",
@@ -5718,62 +6322,6 @@
             "subgroup": "数据处理",
             "description": "SQLServer 定点构造",
             "description_en": "SQLSERVER_ROLLBACK"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
-            "id": "sqlserver_authorize_rules",
-            "name": "SQLServer 集群授权",
-            "name_en": "SQLSERVER_AUTHORIZE_RULES",
-            "type": "execute",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_dbm",
-                    "id": "sqlserver",
-                    "selection_mode": "all",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "sqlserver_list"
-                        }
-                    ]
-                }
-            ],
-            "related_actions": [],
-            "version": 1,
-            "group": "SQLServer",
-            "subgroup": "权限管理",
-            "description": "SQLServer 集群授权",
-            "description_en": "SQLSERVER_AUTHORIZE_RULES"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
-            "id": "sqlserver_excel_authorize_rules",
-            "name": "SQLServer EXCEL授权",
-            "name_en": "SQLSERVER_EXCEL_AUTHORIZE_RULES",
-            "type": "execute",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_dbm",
-                    "id": "sqlserver",
-                    "selection_mode": "all",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "sqlserver_list"
-                        }
-                    ]
-                }
-            ],
-            "related_actions": [],
-            "version": 1,
-            "group": "SQLServer",
-            "subgroup": "权限管理",
-            "description": "SQLServer EXCEL授权",
-            "description_en": "SQLSERVER_EXCEL_AUTHORIZE_RULES"
         }
     },
     {
@@ -7627,62 +8175,6 @@
     {
         "operation": "upsert_action",
         "data": {
-            "id": "mongodb_authorize",
-            "name": "MongoDB 授权",
-            "name_en": "MONGODB_AUTHORIZE",
-            "type": "execute",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_dbm",
-                    "id": "mongodb",
-                    "selection_mode": "all",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "mongodb_list"
-                        }
-                    ]
-                }
-            ],
-            "related_actions": [],
-            "version": 1,
-            "group": "MongoDB",
-            "subgroup": "权限管理",
-            "description": "MongoDB 授权",
-            "description_en": "MONGODB_AUTHORIZE"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
-            "id": "mongodb_excel_authorize",
-            "name": "MongoDB Excel授权",
-            "name_en": "MONGODB_EXCEL_AUTHORIZE",
-            "type": "execute",
-            "related_resource_types": [
-                {
-                    "system_id": "bk_dbm",
-                    "id": "mongodb",
-                    "selection_mode": "all",
-                    "related_instance_selections": [
-                        {
-                            "system_id": "bk_dbm",
-                            "id": "mongodb_list"
-                        }
-                    ]
-                }
-            ],
-            "related_actions": [],
-            "version": 1,
-            "group": "MongoDB",
-            "subgroup": "权限管理",
-            "description": "MongoDB Excel授权",
-            "description_en": "MONGODB_EXCEL_AUTHORIZE"
-        }
-    },
-    {
-        "operation": "upsert_action",
-        "data": {
             "id": "mongodb_restore",
             "name": "MongoDB 定点回档",
             "name_en": "MONGODB_RESTORE",
@@ -7840,16 +8332,7 @@
                         "name_en": "告警组",
                         "actions": [
                             {
-                                "id": "global_notify_group_list"
-                            },
-                            {
-                                "id": "global_notify_group_create"
-                            },
-                            {
                                 "id": "global_notify_group_update"
-                            },
-                            {
-                                "id": "global_notify_group_delete"
                             }
                         ]
                     },
@@ -7992,6 +8475,9 @@
                         "actions": [
                             {
                                 "id": "resource_pool_manage"
+                            },
+                            {
+                                "id": "resource_operation_view"
                             }
                         ]
                     },
@@ -8037,6 +8523,9 @@
                                 "id": "mysql_view"
                             },
                             {
+                                "id": "mysql_admin_pwd_modify"
+                            },
+                            {
                                 "id": "mysql_enable_disable"
                             },
                             {
@@ -8058,13 +8547,16 @@
                                 "id": "mysql_account_delete"
                             },
                             {
-                                "id": "mysql_account_rule_create"
+                                "id": "mysql_add_account_rule"
                             },
                             {
-                                "id": "mysql_excel_authorize_rules"
+                                "id": "mysql_account_rules_view"
                             },
                             {
                                 "id": "mysql_authorize_rules"
+                            },
+                            {
+                                "id": "mysql_excel_authorize_rules"
                             },
                             {
                                 "id": "mysql_instance_clone_rules"
@@ -8097,6 +8589,9 @@
                         "name_en": "克隆开区",
                         "actions": [
                             {
+                                "id": "mysql_open_area"
+                            },
+                            {
                                 "id": "mysql_openarea_config_create"
                             },
                             {
@@ -8104,9 +8599,6 @@
                             },
                             {
                                 "id": "mysql_openarea_config_destroy"
-                            },
-                            {
-                                "id": "mysql_open_area"
                             }
                         ]
                     },
@@ -8236,6 +8728,9 @@
                                 "id": "tendbcluster_view"
                             },
                             {
+                                "id": "tendbcluster_admin_pwd_modify"
+                            },
+                            {
                                 "id": "tendbcluster_apply"
                             },
                             {
@@ -8263,13 +8758,16 @@
                                 "id": "tendbcluster_add_account_rule"
                             },
                             {
+                                "id": "tendbcluster_account_rules_view"
+                            },
+                            {
+                                "id": "tendbcluster_authorize_rules"
+                            },
+                            {
                                 "id": "tendb_excel_authorize_rules"
                             },
                             {
                                 "id": "tendb_cluster_client_clone_rules"
-                            },
-                            {
-                                "id": "tendbcluster_authorize_rules"
                             }
                         ]
                     },
@@ -8286,6 +8784,9 @@
                         "name": "克隆开区",
                         "name_en": "克隆开区",
                         "actions": [
+                            {
+                                "id": "tendbcluster_open_area"
+                            },
                             {
                                 "id": "tendb_openarea_config_create"
                             },
@@ -8553,6 +9054,9 @@
                                 "id": "influxdb_view"
                             },
                             {
+                                "id": "group_manage"
+                            },
+                            {
                                 "id": "influxdb_enable_disable"
                             },
                             {
@@ -8772,16 +9276,19 @@
                                 "id": "mongodb_account_create"
                             },
                             {
-                                "id": "mongodb_delete_create"
+                                "id": "mongodb_account_delete"
                             },
                             {
                                 "id": "mongodb_add_account_rule"
                             },
                             {
-                                "id": "mongodb_authorize"
+                                "id": "mongodb_account_rules_view"
                             },
                             {
-                                "id": "mongodb_excel_authorize"
+                                "id": "mongodb_authorize_rules"
+                            },
+                            {
+                                "id": "mongo_excel_authorize_rules"
                             }
                         ]
                     },
@@ -8863,6 +9370,9 @@
                                 "id": "sqlserver_view"
                             },
                             {
+                                "id": "sqlserver_admin_pwd_modify"
+                            },
+                            {
                                 "id": "sqlserver_apply"
                             },
                             {
@@ -8881,10 +9391,13 @@
                                 "id": "sqlserver_account_create"
                             },
                             {
-                                "id": "sqlserver_delete_create"
+                                "id": "sqlserver_account_delete"
                             },
                             {
                                 "id": "sqlserver_add_account_rule"
+                            },
+                            {
+                                "id": "sqlserver_account_rules_view"
                             },
                             {
                                 "id": "sqlserver_authorize_rules"
@@ -9016,11 +9529,27 @@
                             "required": true
                         },
                         {
+                            "id": "mysql_admin_pwd_modify",
+                            "required": true
+                        },
+                        {
                             "id": "mysql_enable_disable",
                             "required": true
                         },
                         {
                             "id": "mysql_destroy",
+                            "required": true
+                        },
+                        {
+                            "id": "mysql_partition_update",
+                            "required": true
+                        },
+                        {
+                            "id": "mysql_partition_delete",
+                            "required": true
+                        },
+                        {
+                            "id": "mysql_partition_enable_disable",
                             "required": true
                         },
                         {
@@ -9076,10 +9605,6 @@
                             "required": true
                         },
                         {
-                            "id": "mysql_authorize_rules",
-                            "required": true
-                        },
-                        {
                             "id": "mysql_instance_clone_rules",
                             "required": true
                         },
@@ -9114,9 +9639,18 @@
                         {
                             "id": "mysql_ha_full_backup",
                             "required": true
+                        }
+                    ]
+                },
+                {
+                    "id": "mysql_account",
+                    "actions": [
+                        {
+                            "id": "mysql_account_delete",
+                            "required": true
                         },
                         {
-                            "id": "mysql_open_area",
+                            "id": "mysql_add_account_rule",
                             "required": true
                         }
                     ]
@@ -9167,7 +9701,23 @@
                             "required": true
                         },
                         {
+                            "id": "tendbcluster_admin_pwd_modify",
+                            "required": true
+                        },
+                        {
                             "id": "tendb_instance_clone_rules",
+                            "required": true
+                        },
+                        {
+                            "id": "tendbcluster_partition_update",
+                            "required": true
+                        },
+                        {
+                            "id": "tendbcluster_partition_delete",
+                            "required": true
+                        },
+                        {
+                            "id": "tendb_partition_enable_disable",
                             "required": true
                         },
                         {
@@ -9253,9 +9803,18 @@
                         {
                             "id": "tendbcluster_flashback",
                             "required": true
+                        }
+                    ]
+                },
+                {
+                    "id": "tendbcluster_account",
+                    "actions": [
+                        {
+                            "id": "tendbcluster_account_delete",
+                            "required": true
                         },
                         {
-                            "id": "tendbcluster_authorize_rules",
+                            "id": "tendbcluster_add_account_rule",
                             "required": true
                         }
                     ]
@@ -9627,14 +10186,6 @@
                             "required": true
                         },
                         {
-                            "id": "mongodb_authorize",
-                            "required": true
-                        },
-                        {
-                            "id": "mongodb_excel_authorize",
-                            "required": true
-                        },
-                        {
                             "id": "mongodb_restore",
                             "required": true
                         },
@@ -9649,10 +10200,27 @@
                     ]
                 },
                 {
+                    "id": "mongodb_account",
+                    "actions": [
+                        {
+                            "id": "mongodb_account_delete",
+                            "required": true
+                        },
+                        {
+                            "id": "mongodb_add_account_rule",
+                            "required": true
+                        }
+                    ]
+                },
+                {
                     "id": "sqlserver",
                     "actions": [
                         {
                             "id": "sqlserver_view",
+                            "required": true
+                        },
+                        {
+                            "id": "sqlserver_admin_pwd_modify",
                             "required": true
                         },
                         {
@@ -9710,13 +10278,35 @@
                         {
                             "id": "sqlserver_rollback",
                             "required": true
-                        },
+                        }
+                    ]
+                },
+                {
+                    "id": "sqlserver_account",
+                    "actions": [
                         {
-                            "id": "sqlserver_authorize_rules",
+                            "id": "sqlserver_account_delete",
                             "required": true
                         },
                         {
-                            "id": "sqlserver_excel_authorize_rules",
+                            "id": "sqlserver_add_account_rule",
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "id": "notify_group",
+                    "actions": [
+                        {
+                            "id": "notify_group_update",
+                            "required": true
+                        },
+                        {
+                            "id": "notify_group_delete",
+                            "required": true
+                        },
+                        {
+                            "id": "global_notify_group_update",
                             "required": true
                         }
                     ]
@@ -9754,19 +10344,6 @@
                         },
                         {
                             "id": "global_monitor_policy_clone",
-                            "required": true
-                        }
-                    ]
-                },
-                {
-                    "id": "duty_rule",
-                    "actions": [
-                        {
-                            "id": "duty_rule_update",
-                            "required": true
-                        },
-                        {
-                            "id": "duty_rule_destroy",
                             "required": true
                         }
                     ]

@@ -26,8 +26,7 @@ class FunctionControllerViewSet(viewsets.AuditedModelViewSet):
     serializer_class = FunctionControllerSerializer
     queryset = FunctionController.objects.all()
 
-    def _get_custom_permissions(self):
-        return []
+    default_permission_class = []
 
     @common_swagger_auto_schema(
         operation_summary=_("功能开关列表"),

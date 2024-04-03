@@ -28,15 +28,15 @@ SWAGGER_TAG = _("DBHA事件")
 
 
 class DBHAEventViewSet(viewsets.SystemViewSet):
-    @staticmethod
-    def biz_getter(request, view):
-        return [get_request_key_id(request, "app")]
+    def get_action_permission_map(self):
+        return {("cat",): []}
 
-    def _get_custom_permissions(self):
-        if self.action == "cat":
-            # TODO: 暂时豁免，后续cat接口带上业务属性后再放开
-            return []
-        return [ResourceActionPermission([ActionEnum.DBHA_SWITCH_EVENT_VIEW], ResourceEnum.BUSINESS, self.biz_getter)]
+    def get_default_permission_class(self):
+        return [ResourceActionPermission([ActionEnum.DBHA_SWITCH_EVENT_VIEW], ResourceEnum.BUSINESS, self.inst_getter)]
+
+    @staticmethod
+    def inst_getter(request, view):
+        return [get_request_key_id(request, "app")]
 
     @common_swagger_auto_schema(
         operation_summary=_("DBHA切换事件列表"),

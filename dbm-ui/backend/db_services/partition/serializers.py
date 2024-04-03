@@ -45,12 +45,6 @@ class PartitionListResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock.PARTITION_LIST_DATA}
 
 
-class PartitionDeleteSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
-    ids = serializers.ListField(help_text=_("分区策略ID"), child=serializers.IntegerField())
-
-
 class PartitionCreateSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=DBTableField(db_field=True))
@@ -93,6 +87,7 @@ class PartitionUpdateSerializer(PartitionCreateSerializer):
 
 class PartitionDisableSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     operator = serializers.SerializerMethodField(help_text=_("操作者"))
     ids = serializers.ListField(help_text=_("分区策略ID"), child=serializers.IntegerField())
 
@@ -101,6 +96,10 @@ class PartitionDisableSerializer(serializers.Serializer):
 
 
 class PartitionEnableSerializer(PartitionDisableSerializer):
+    pass
+
+
+class PartitionDeleteSerializer(PartitionDisableSerializer):
     pass
 
 
