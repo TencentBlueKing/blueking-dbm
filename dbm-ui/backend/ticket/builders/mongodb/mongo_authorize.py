@@ -45,7 +45,7 @@ class MongoDBAuthorizeRulesFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.create_user
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_AUTHORIZE)
+@builders.BuilderFactory.register(TicketType.MONGODB_AUTHORIZE_RULES)
 class MongoDBAuthorizeRulesFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBAuthorizeRulesSerializer
     inner_flow_builder = MongoDBAuthorizeRulesFlowParamBuilder
@@ -60,7 +60,7 @@ class MongoDBAuthorizeRulesFlowBuilder(BaseMongoDBTicketFlowBuilder):
         self.ticket.update_details(infos=data)
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_EXCEL_AUTHORIZE)
+@builders.BuilderFactory.register(TicketType.MONGODB_EXCEL_AUTHORIZE_RULES)
 class MySQLExcelAuthorizeRulesFlowBuilder(MongoDBAuthorizeRulesFlowBuilder):
     serializer = MongodbExcelAuthorizeRulesSerializer
     inner_flow_name = _("MongoDB Excel授权执行")

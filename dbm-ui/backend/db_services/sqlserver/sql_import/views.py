@@ -23,8 +23,7 @@ SWAGGER_TAG = "db_services/sqlserver/sql_import"
 
 
 class SQLImportViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("sql文件导入"),

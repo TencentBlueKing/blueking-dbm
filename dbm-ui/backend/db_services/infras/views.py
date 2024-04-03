@@ -27,8 +27,7 @@ SWAGGER_TAG = "infras"
 
 
 class DBTypeViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        return []
+    default_permission_class = []
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群类型"),
@@ -41,8 +40,7 @@ class DBTypeViewSet(viewsets.SystemViewSet):
 
 
 class LogicalCityViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        return []
+    default_permission_class = []
 
     @common_swagger_auto_schema(
         operation_summary=_("查询服务器资源的城市信息"),
@@ -57,9 +55,7 @@ class LogicalCityViewSet(viewsets.SystemViewSet):
 
 class HostSpecViewSet(viewsets.SystemViewSet):
     serializer_class = None
-
-    def _get_custom_permissions(self):
-        return []
+    default_permission_class = []
 
     @common_swagger_auto_schema(
         operation_summary=_("服务器规格列表"),
@@ -74,9 +70,7 @@ class HostSpecViewSet(viewsets.SystemViewSet):
 
 class CapSpecViewSet(viewsets.SystemViewSet):
     serializer_class = serializers.QueryCapSpecSLZ
-
-    def _get_custom_permissions(self):
-        return []
+    default_permission_class = []
 
     @common_swagger_auto_schema(
         operation_summary=_("容量规格列表"),

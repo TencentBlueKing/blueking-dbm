@@ -25,7 +25,7 @@ from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.serializers import (
     GetMySQLAdminPasswordResponseSerializer,
     GetMySQLAdminPasswordSerializer,
-    ModifyMySQLAdminPasswordSerializer,
+    ModifyAdminPasswordSerializer,
     ModifyMySQLPasswordRandomCycleSerializer,
     PasswordPolicySerializer,
     VerifyPasswordResponseSerializer,
@@ -34,6 +34,7 @@ from backend.configuration.serializers import (
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
+from backend.iam_app.handlers.drf_perm.cluster import ModifyActionPermission
 
 SWAGGER_TAG = _("密码安全策略")
 
@@ -41,15 +42,13 @@ SWAGGER_TAG = _("密码安全策略")
 class PasswordPolicyViewSet(viewsets.SystemViewSet):
     pagination_class = None
 
-    def _get_custom_permissions(self):
-        if self.action in [
-            self.get_password_policy.__name__,
-            self.verify_password_strength.__name__,
-            self.get_random_password.__name__,
-            self.query_random_cycle.__name__,
-        ]:
-            return []
-        return [ResourceActionPermission([ActionEnum.PASSWORD_POLICY_SET])]
+    action_permission_map = {
+        ("get_password_policy", "verify_password_strength", "get_random_password", "query_random_cycle"): [],
+        ("modify_admin_password", "query_mysql_admin_password"): [ModifyActionPermission()],
+        ("update_password_policy", "modify_random_cycle"): [
+            ResourceActionPermission([ActionEnum.PASSWORD_POLICY_SET])
+        ],
+    }
 
     @common_swagger_auto_schema(
         operation_summary=_("查询密码安全策略"),
@@ -141,10 +140,10 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("修改db实例密码(admin)"),
-        request_body=ModifyMySQLAdminPasswordSerializer(),
+        request_body=ModifyAdminPasswordSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=ModifyMySQLAdminPasswordSerializer)
+    @action(methods=["POST"], detail=False, serializer_class=ModifyAdminPasswordSerializer)
     def modify_admin_password(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
         validated_data["operator"] = request.user.username

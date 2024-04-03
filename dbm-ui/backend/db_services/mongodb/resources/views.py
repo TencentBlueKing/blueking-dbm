@@ -106,8 +106,8 @@ class MongoDBViewSet(ResourceViewSet):
 class ResourceTreeViewSet(SystemViewSet):
     serializer_class = SearchResourceTreeSLZ
 
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("获取资源拓扑树"),

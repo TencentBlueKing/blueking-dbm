@@ -72,7 +72,7 @@ class IPWhitelistViewSet(viewsets.AuditedModelViewSet):
     pagination_class = AuditedLimitOffsetPagination
 
     @staticmethod
-    def instance_getter(request, view):
+    def inst_getter(request, view):
         # 批量删除的白名单一定在一个业务下
         if view.action == "batch_delete":
             return [IPWhitelist.objects.filter(pk__in=request.data["ids"]).first().bk_biz_id]
@@ -84,11 +84,10 @@ class IPWhitelistViewSet(viewsets.AuditedModelViewSet):
     def _get_custom_permissions(self):
         if self.action in ["retrieve", "iplist"]:
             return []
-
-        bk_biz_id = self.instance_getter(self.request, self)[0]
+        bk_biz_id = self.inst_getter(self.request, self)[0]
         if int(bk_biz_id):
             return [
-                ResourceActionPermission([ActionEnum.IP_WHITELIST_MANAGE], ResourceEnum.BUSINESS, self.instance_getter)
+                ResourceActionPermission([ActionEnum.IP_WHITELIST_MANAGE], ResourceEnum.BUSINESS, self.inst_getter)
             ]
         else:
             return [ResourceActionPermission([ActionEnum.GLOBAL_IP_WHITELIST_MANAGE])]

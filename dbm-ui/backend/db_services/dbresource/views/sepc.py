@@ -54,6 +54,24 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     serializer_class = SpecSerializer
     filter_class = SpecListFilter
 
+    def get_action_permission_map(self):
+        return {
+            (
+                "delete",
+                "batch_delete",
+            ): [ResourceActionPermission([ActionEnum.SPEC_DESTROY], ResourceEnum.DBTYPE, self.instance_getter)],
+            ("create",): [
+                ResourceActionPermission([ActionEnum.SPEC_CREATE], ResourceEnum.DBTYPE, self.instance_getter)
+            ],
+            ("update",): [
+                ResourceActionPermission([ActionEnum.SPEC_UPDATE], ResourceEnum.DBTYPE, self.instance_getter)
+            ],
+            ("list", "recommend_spec", "query_qps_range", "filter_cluster_spec"): [],
+        }
+
+    def get_default_permission_class(self):
+        return [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
+
     @staticmethod
     def instance_getter(request, view):
         # 如果是单个操作
@@ -66,18 +84,6 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         elif request.data.get("spec_cluster_type"):
             return [convert(request.data["spec_cluster_type"])]
         return []
-
-    def _get_custom_permissions(self):
-        if self.action in ["delete", "batch_delete"]:
-            return [ResourceActionPermission([ActionEnum.SPEC_DESTROY], ResourceEnum.DBTYPE, self.instance_getter)]
-        elif self.action == "create":
-            return [ResourceActionPermission([ActionEnum.SPEC_CREATE], ResourceEnum.DBTYPE, self.instance_getter)]
-        elif self.action == "update":
-            return [ResourceActionPermission([ActionEnum.SPEC_UPDATE], ResourceEnum.DBTYPE, self.instance_getter)]
-        elif self.action in ["list", "recommend_spec", "query_qps_range", "filter_cluster_spec"]:
-            return []
-
-        return [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
 
     def _remove_spec_fields(self, machine_type, data):
         """移除无需的字段"""

@@ -39,7 +39,7 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.taskflow import TaskFlowPermission
-from backend.iam_app.handlers.drf_perm.ticket import CreateTicketPermission
+from backend.iam_app.handlers.drf_perm.ticket import CreateTicketOneResourcePermission
 from backend.ticket.constants import TicketType
 
 SWAGGER_TAG = "db_services/mysql/sql_import"
@@ -50,12 +50,11 @@ class SQLImportViewSet(viewsets.SystemViewSet):
         if self.action == "semantic_check":
             cluster_type = self.request.data["cluster_type"]
             ticket_type = getattr(TicketType, f"{cluster_type.upper()}_IMPORT_SQLFILE")
-            return [CreateTicketPermission(ticket_type)]
+            return [CreateTicketOneResourcePermission(ticket_type)]
         elif self.action == "revoke_semantic_check":
             return [TaskFlowPermission([ActionEnum.FLOW_DETAIL], ResourceEnum.TASKFLOW)]
         elif self.action == "get_user_semantic_tasks":
             return []
-
         return [DBManagePermission()]
 
     def _view_common_handler(

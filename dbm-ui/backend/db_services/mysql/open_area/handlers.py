@@ -166,4 +166,4 @@ class OpenAreaHandler:
         rules_set: List[Dict[str, Any]] = cls.__get_openarea_rules_set(
             config, config_data, operator, cluster_id__cluster
         )
-        return {"config_data": openarea_results, "rules_set": rules_set}
+        return {"config_data": openarea_results, "rules_set": rules_set, "config_id": config_id}

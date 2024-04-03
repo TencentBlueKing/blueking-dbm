@@ -9,10 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from backend.db_services.dbbase.cluster.views import ClusterViewSet as BaseClusterViewSet
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from django.dispatch import Signal
 
-
-class ClusterViewSet(BaseClusterViewSet):
-    action_permission_map = {}
-    default_permission_class = [DBManagePermission()]
+# 创建账号的信号
+create_account_signal = Signal(providing_args=["account"])

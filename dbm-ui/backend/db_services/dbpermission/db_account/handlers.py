@@ -14,12 +14,14 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 from django.utils.translation import ugettext as _
+from iam.resource.utils import FancyDict
 
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_services.dbpermission.constants import AccountType
 from backend.db_services.dbpermission.db_account.dataclass import AccountMeta, AccountRuleMeta
+from backend.db_services.dbpermission.db_account.signals import create_account_signal
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
 
@@ -79,6 +81,14 @@ class AccountHandler(object):
                 "psw": account.password,
             }
         )
+        # 获取新建账号信息 TODO: 这段逻辑在create_account返回账号信息后可以去掉
+        account_data = DBPrivManagerApi.get_account(
+            params={"bk_biz_id": self.bk_biz_id, "cluster_type": self.account_type, "user_like": account.user}
+        )["results"]
+        account = {info["user"]: info for info in account_data}.get(account.user)
+        account.update(account_type=self.account_type)
+        create_account_signal.send(sender=None, account=FancyDict(account))
+
         return resp
 
     def delete_account(self, account: AccountMeta) -> Optional[Any]:

@@ -40,8 +40,8 @@ class DBAuthorizeViewSet(viewsets.SystemViewSet):
     authorize_meta = AuthorizeMeta
     excel_authorize_meta = ExcelAuthorizeMeta
 
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
 
     def _view_common_handler(
         self,

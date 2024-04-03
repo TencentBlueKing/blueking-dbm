@@ -70,26 +70,25 @@ from backend.utils.redis import RedisConn
 
 
 class DBResourceViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        if self.action in [
+    action_permission_map = {
+        (
             "resource_import",
             "resource_apply",
             "resource_pre_apply",
             "resource_confirm",
             "resource_delete",
             "resource_update",
-        ]:
-            return [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])]
-        elif self.action in [
+        ): [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])],
+        (
             "spec_resource_count",
             "get_mountpoints",
             "get_disktypes",
             "get_subzones",
             "get_device_class",
-        ]:
-            return []
-
-        return [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
+        ): [],
+        ("query_operation_list",): [ResourceActionPermission([ActionEnum.RESOURCE_OPERATION_VIEW])],
+    }
+    default_permission_class = [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
 
     @common_swagger_auto_schema(
         operation_summary=_("资源池资源列表"),

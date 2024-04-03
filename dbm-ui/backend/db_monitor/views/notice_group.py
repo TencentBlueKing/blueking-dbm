@@ -100,13 +100,23 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     pagination_class = AuditedLimitOffsetPagination
     filter_class = MonitorGroupListFilter
 
-    def _get_custom_permissions(self):
-        if self.action in ["list", "destroy", "create", "update"]:
-            return [NotifyGroupPermission(view_action=self.action)]
-        elif self.action in ["get_msg_type", "list_group_name"]:
-            return []
+    default_permission_class = DBManagePermission()
 
-        return [DBManagePermission()]
+    def get_action_permission_map(self):
+        return {
+            (
+                "list",
+                "create",
+                "destroy",
+                "update",
+                "partial_update",
+            ): [NotifyGroupPermission(view_action=self.action)],
+            (
+                "get_msg_type",
+                "list_group_name",
+                "list_default_group",
+            ): [],
+        }
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -114,25 +124,19 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
         context["group_used"] = dict(Counter([item for group in notify_groups for item in group]))
         return context
 
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        actions=ActionEnum.get_actions_by_resource(ResourceEnum.NOTIFY_GROUP.id),
+        resource_meta=ResourceEnum.NOTIFY_GROUP,
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     @common_swagger_auto_schema(operation_summary=_("查询通知类型"), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False)
     def get_msg_type(self, request, *args, **kwargs):
         return Response(CmsiApi.get_msg_type())
-
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["bk_biz_id"],
-        actions=[
-            ActionEnum.GLOBAL_NOTIFY_GROUP_CREATE,
-            ActionEnum.GLOBAL_NOTIFY_GROUP_DESTROY,
-            ActionEnum.GLOBAL_NOTIFY_GROUP_UPDATE,
-            ActionEnum.NOTIFY_GROUP_CREATE,
-            ActionEnum.NOTIFY_GROUP_DESTROY,
-            ActionEnum.NOTIFY_GROUP_UPDATE,
-        ],
-        resource_meta=ResourceEnum.BUSINESS,
-    )
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
 
     @common_swagger_auto_schema(operation_summary=_("查询告警组名称"), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False, filter_class=MonitorGroupListFilter)

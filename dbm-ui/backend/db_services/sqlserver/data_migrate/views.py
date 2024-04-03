@@ -35,8 +35,7 @@ SWAGGER_TAG = "db_services/sqlserver/migrate"
 
 
 class SQLServerDataMigrateViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("手动断开同步"),

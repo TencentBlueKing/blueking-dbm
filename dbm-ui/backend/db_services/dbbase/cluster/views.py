@@ -29,8 +29,8 @@ SWAGGER_TAG = "db_services/cluster"
 
 
 class ClusterViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("通过集群查询同机关联集群"),

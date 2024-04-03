@@ -25,8 +25,7 @@ from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
 class AuthorizePluginViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("第三方权限申请(兼容GCS)"),

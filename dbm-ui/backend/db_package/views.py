@@ -47,20 +47,26 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     filter_class = PackageListFilter
     serializer_class = PackageSerializer
 
+    def get_action_permission_map(self):
+        return {
+            (
+                "list_install_pkg_types",
+                "list_install_packages",
+            ): [],
+            ("list",): [
+                ResourceActionPermission([ActionEnum.PACKAGE_VIEW], ResourceEnum.DBTYPE, self.instance_getter)
+            ],
+        }
+
+    def get_default_permission_class(self):
+        return [ResourceActionPermission([ActionEnum.PACKAGE_MANAGE], ResourceEnum.DBTYPE, self.instance_getter)]
+
     @staticmethod
     def instance_getter(request, view):
         if view.action == "destroy":
             return [Package.objects.get(id=view.kwargs["pk"]).db_type]
         else:
             return [get_request_key_id(request, "db_type")]
-
-    def _get_custom_permissions(self):
-        if self.action in ["list_install_pkg_types", "list_install_packages"]:
-            return []
-        elif self.action == "list":
-            return [ResourceActionPermission([ActionEnum.PACKAGE_VIEW], ResourceEnum.DBTYPE, self.instance_getter)]
-        else:
-            return [ResourceActionPermission([ActionEnum.PACKAGE_MANAGE], ResourceEnum.DBTYPE, self.instance_getter)]
 
     @common_swagger_auto_schema(
         operation_summary=_("新建版本文件"),

@@ -10,18 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-from typing import Dict
 
 from django.db import models
 
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
-from backend.iam_app.views.iam_provider import BaseResourceProvider, CommonProviderMixin
+from backend.iam_app.views.iam_provider import BaseModelResourceProvider
 
 logger = logging.getLogger("root")
 
 
-class DumperSubscribeConfigResourceProvider(BaseResourceProvider, CommonProviderMixin):
+class DumperSubscribeConfigResourceProvider(BaseModelResourceProvider):
     """
     flow资源的反向拉取类
     """
@@ -29,34 +28,28 @@ class DumperSubscribeConfigResourceProvider(BaseResourceProvider, CommonProvider
     model: models.Model = DumperSubscribeConfig
     resource_meta: ResourceMeta = ResourceEnum.DUMPER_SUBSCRIBE_CONFIG
 
-    def get_bk_iam_path(self, instance_ids, *args, **kwargs) -> Dict:
-        return super().get_model_bk_iam_path(self.model, instance_ids, *args, **kwargs)
-
-    def list_attr(self, **options):
-        return self._list_attr(id=self.resource_meta.attribute, display_name=self.resource_meta.attribute_display)
-
-    def list_attr_value(self, filter, page, **options):
-        user_resource = self.list_user_resource()
-        return self._list_attr_value(self.resource_meta.attribute, user_resource, filter, page, **options)
-
     def list_instance(self, filter, page, **options):
-        filter.model = self.model
+        filter.data_source = self.model
         filter.value_list = [self.resource_meta.lookup_field, *self.resource_meta.display_fields]
-        filter.keyword_field = "name"
+        filter.keyword_field = "name__contains"
         return super().list_instance(filter, page, **options)
 
     def search_instance(self, filter, page, **options):
         return self.list_instance(filter, page, **options)
 
+    def fetch_instance_info(self, filter, **options):
+        filter.data_source = self.model
+        return super().fetch_instance_info(filter, **options)
+
     def list_instance_by_policy(self, filter, page, **options):
         key_mapping = {
             f"{self.resource_meta.id}.id": "id",
-            f"{self.resource_meta.id}.created_by": "created_by",
+            f"{self.resource_meta.id}.creator": "creator",
             f"{self.resource_meta.id}._bk_iam_path_": "bk_biz_id",
         }
         values_hook = {"bk_biz_id": lambda value: value[1:-1].split(",")[1]}
         return self._list_instance_by_policy(
-            obj_model=self.model,
+            data_source=self.model,
             value_list=["id", "name"],
             key_mapping=key_mapping,
             value_hooks=values_hook,

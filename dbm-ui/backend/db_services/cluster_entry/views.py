@@ -30,12 +30,8 @@ SWAGGER_TAG = [_("集群访问入口")]
 
 class ClusterEntryViewSet(viewsets.SystemViewSet):
     permission_classes = []
-
-    def _get_custom_permissions(self):
-        if self.action == "get_cluster_entries":
-            return [DBManagePermission()]
-
-        return [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
+    action_permission_map = {("get_cluster_entries",): [DBManagePermission()]}
+    default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
 
     @common_swagger_auto_schema(operation_summary=_("修改集群访问入口"), tags=[SWAGGER_TAG])
     @action(methods=["POST"], detail=False, serializer_class=ModifyClusterEntrySerializer)

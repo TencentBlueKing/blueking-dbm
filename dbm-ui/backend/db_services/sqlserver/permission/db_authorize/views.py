@@ -35,8 +35,7 @@ class DBAuthorizeViewSet(BaseDBAuthorizeViewSet):
     authorize_meta = SQLServerDBAuthorizeMeta
     excel_authorize_meta = SQLServerExcelAuthorizeMeta
 
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("规则前置检查"),

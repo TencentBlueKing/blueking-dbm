@@ -80,7 +80,6 @@ class DBHAViewSet(viewsets.ResourceViewSet):
     query_serializer_class = serializers.ListMySQLResourceSLZ
 
     list_perm_actions = [
-        ActionEnum.MYSQL_AUTHORIZE_RULES,
         ActionEnum.MYSQL_ENABLE_DISABLE,
         ActionEnum.MYSQL_DESTROY,
         ActionEnum.MYSQL_VIEW,

@@ -67,6 +67,11 @@ class _DBPrivManagerApi(BaseApi):
             url="/priv/modify_account",
             description=_("修改账号的密码"),
         )
+        self.get_account = self.generate_data_api(
+            method="POST",
+            url="/priv/get_account",
+            description=_("查询账号列表"),
+        )
 
         # 授权规则相关
         self.pre_check_authorize_rules = self.generate_data_api(

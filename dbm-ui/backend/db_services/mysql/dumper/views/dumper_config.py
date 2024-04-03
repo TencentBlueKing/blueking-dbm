@@ -40,19 +40,30 @@ class DumperConfigViewSet(viewsets.AuditedModelViewSet):
     serializer_class = DumperSubscribeConfigSerializer
     filter_class = DumperConfigListFilter
 
+    def get_action_permission_map(self):
+        return {
+            ("retrieve",): [
+                ResourceActionPermission(
+                    [ActionEnum.DUMPER_CONFIG_VIEW], ResourceEnum.DUMPER_SUBSCRIBE_CONFIG, self.inst_getter
+                )
+            ],
+            ("update", "partial_update",): [
+                ResourceActionPermission(
+                    [ActionEnum.DUMPER_CONFIG_UPDATE], ResourceEnum.DUMPER_SUBSCRIBE_CONFIG, self.inst_getter
+                )
+            ],
+            ("destroy",): [
+                ResourceActionPermission(
+                    [ActionEnum.DUMPER_CONFIG_DESTROY], ResourceEnum.DUMPER_SUBSCRIBE_CONFIG, self.inst_getter
+                )
+            ],
+        }
+
+    def get_default_permission_class(self):
+        return [DBManagePermission()]
+
     def inst_getter(self, request, view):
         return [view.kwargs["pk"]]
-
-    def _get_custom_permissions(self):
-        resource_meta = ResourceEnum.DUMPER_SUBSCRIBE_CONFIG
-        if self.action == "retrieve":
-            return [ResourceActionPermission([ActionEnum.DUMPER_CONFIG_VIEW], resource_meta, self.inst_getter)]
-        elif self.action in ["update", "partial_update"]:
-            return [ResourceActionPermission([ActionEnum.DUMPER_CONFIG_UPDATE], resource_meta, self.inst_getter)]
-        elif self.action in ["destroy"]:
-            return [ResourceActionPermission([ActionEnum.DUMPER_CONFIG_DESTROY], resource_meta, self.inst_getter)]
-
-        return [DBManagePermission()]
 
     def get_queryset(self):
         return self.queryset.filter(bk_biz_id=self.kwargs["bk_biz_id"])

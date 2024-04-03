@@ -49,10 +49,8 @@ class KeyOpsViewSet(viewsets.ReadOnlyAuditedModelViewSet):
     serializer_class = FlowTaskSerializer
     queryset = FlowTree.objects.all()
 
-    def _get_custom_permissions(self):
-        if self.action in ["key_files"]:
-            return [TaskFlowPermission([ActionEnum.FLOW_DETAIL], ResourceEnum.TASKFLOW)]
-        return []
+    action_permission_map = {("key_files",): [TaskFlowPermission([ActionEnum.FLOW_DETAIL], ResourceEnum.TASKFLOW)]}
+    default_permission_class = []
 
     @common_swagger_auto_schema(
         operation_summary=_("结果文件列表"),

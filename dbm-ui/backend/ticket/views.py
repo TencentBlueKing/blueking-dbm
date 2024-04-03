@@ -31,7 +31,7 @@ from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import RejectPermission, ResourceActionPermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission, InstanceDetailPermission
-from backend.iam_app.handlers.drf_perm.ticket import CreateTicketPermission
+from backend.iam_app.handlers.drf_perm.ticket import create_ticket_permission
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin, fetch_cluster_ids
@@ -84,7 +84,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     def _get_custom_permissions(self):
         # 创建单据，关联单据类型的动作
         if self.action == "create":
-            return [CreateTicketPermission(self.request.data["ticket_type"])]
+            return create_ticket_permission(self.request.data["ticket_type"])
         # 查看集群/实例变更条件，关联集群详情
         elif self.action == "get_cluster_operate_records":
             return [ClusterDetailPermission()]

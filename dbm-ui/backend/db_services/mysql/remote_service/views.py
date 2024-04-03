@@ -32,8 +32,8 @@ SWAGGER_TAG = "db_services/remote_service"
 
 
 class RemoteServiceViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
 
     def _get_cluster_id_and_role(self, validated_data):
         cluster_id__role_map = {}

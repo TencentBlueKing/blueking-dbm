@@ -17,8 +17,9 @@ from django.http.response import HttpResponse
 from django.utils.translation import ugettext as _
 
 from backend import env
+from backend.components import DBPrivManagerApi
 from backend.db_meta.enums import ClusterType
-from backend.db_services.dbpermission.constants import AUTHORIZE_DATA_EXPIRE_TIME
+from backend.db_services.dbpermission.constants import AUTHORIZE_DATA_EXPIRE_TIME, AccountType
 from backend.db_services.dbpermission.db_authorize.dataclass import AuthorizeMeta, ExcelAuthorizeMeta
 from backend.db_services.dbpermission.db_authorize.models import AuthorizeRecord
 from backend.utils.cache import data_cache
@@ -33,6 +34,7 @@ class AuthorizeHandler(object):
     EXCEL_ERROR_TEMPLATE = ""
     authorize_meta: AuthorizeMeta = None
     excel_authorize_meta: ExcelAuthorizeMeta = None
+    account_type: AccountType = None
 
     def __init__(self, bk_biz_id: int, operator: str = None):
         """
@@ -43,6 +45,17 @@ class AuthorizeHandler(object):
         self.bk_biz_id = bk_biz_id
         self.operator = operator
 
+    @staticmethod
+    def _get_user_info_map(account_type: str, bk_biz_id: int):
+        """
+        获取业务下制定账号类型的账号信息，返回用户名与用户信息的映射
+        @param account_type: 账号类型
+        @param bk_biz_id: 业务ID
+        """
+        user_data = DBPrivManagerApi.get_account(params={"cluster_type": account_type, "bk_biz_id": bk_biz_id})
+        user_info_map = {user["user"]: user for user in user_data["results"]}
+        return user_info_map
+
     def _pre_check_rules(self, authorize: AuthorizeMeta, **kwargs) -> Tuple[bool, str, Dict]:
         """
         前置检查的具体逻辑，需要返回三个参数
@@ -50,7 +63,8 @@ class AuthorizeHandler(object):
         @param user_db__rules: 当前的授权规则
         :return pre_check: 前置校验是否通过
         :return message: 检查信息
-        :return authorize_data: 授权序列化数据
+        :return authorize_data: 授权序列化数据.
+        注：返回的数据需要带上account_id用于鉴权
         """
         raise NotImplementedError
 
@@ -82,9 +96,7 @@ class AuthorizeHandler(object):
         """
 
         authorize_excel_data_list = excel_authorize.authorize_excel_data
-
-        # 并发请求数据校验接口
-        # 这里使用并发的原因是考虑有些pre-check需要请求IO接口
+        # 并发请求数据校验接口，这里使用并发的原因是考虑有些pre-check需要请求IO接口
         tasks = []
         with ThreadPoolExecutor(max_workers=min(len(authorize_excel_data_list), settings.CONCURRENT_NUMBER)) as ex:
             for index, excel_data in enumerate(authorize_excel_data_list):

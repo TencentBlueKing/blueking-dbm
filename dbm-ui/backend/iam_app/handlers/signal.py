@@ -17,7 +17,8 @@ from django.dispatch import receiver
 from backend import env
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.db_monitor.models import DutyRule, MonitorPolicy
+from backend.db_monitor.models import MonitorPolicy, NoticeGroup
+from backend.db_services.dbpermission.db_account.signals import create_account_signal
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.flow.models import FlowTree
@@ -80,10 +81,10 @@ def post_save_monitor_policy(sender, instance, created, **kwargs):
     post_save_grant_iam(resource_meta, MonitorPolicy, instance, instance.creator, created)
 
 
-@receiver(post_save, sender=DutyRule)
+@receiver(post_save, sender=NoticeGroup)
 def post_save_duty_rule(sender, instance, created, **kwargs):
-    resource_meta = ResourceEnum.DUTY_RULE
-    post_save_grant_iam(resource_meta, DutyRule, instance, instance.creator, created)
+    resource_meta = ResourceEnum.NOTIFY_GROUP
+    post_save_grant_iam(resource_meta, NoticeGroup, instance, instance.creator, created)
 
 
 @receiver(post_save, sender=TendbOpenAreaConfig)
@@ -96,3 +97,10 @@ def post_save_openarea_config(sender, instance, created, **kwargs):
 def post_save_dumper_subscribe_config(sender, instance, created, **kwargs):
     resource_meta = ResourceEnum.DUMPER_SUBSCRIBE_CONFIG
     post_save_grant_iam(resource_meta, DumperSubscribeConfig, instance, instance.creator, created)
+
+
+# TODO: 新建账号需要自定义信号
+@receiver(create_account_signal, sender=None)
+def post_save_account(sender, account, **kwargs):
+    resource_meta = getattr(ResourceEnum, f"{account.account_type.upper()}_ACCOUNT")
+    post_save_grant_iam(resource_meta, DumperSubscribeConfig, account, account.creator, True)

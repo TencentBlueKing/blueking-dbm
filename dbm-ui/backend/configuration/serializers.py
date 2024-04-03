@@ -95,7 +95,7 @@ class GetMySQLAdminPasswordSerializer(serializers.Serializer):
 
     begin_time = DBTimezoneField(help_text=_("开始时间"), required=False)
     end_time = DBTimezoneField(help_text=_("结束时间"), required=False)
-    instances = serializers.CharField(help_text=_("过滤的实例列表(通过,分割，实例格式为--ip:port)"), required=False)
+    instances = serializers.CharField(help_text=_("过滤的实例列表(通过,分割，实例格式为--cloud:ip:port)"), required=False)
 
 
 class GetMySQLAdminPasswordResponseSerializer(serializers.Serializer):
@@ -103,7 +103,7 @@ class GetMySQLAdminPasswordResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.MYSQL_ADMIN_PASSWORD_DATA}
 
 
-class ModifyMySQLAdminPasswordSerializer(serializers.Serializer):
+class ModifyAdminPasswordSerializer(serializers.Serializer):
     class InstanceInfoSerializer(serializers.Serializer):
         ip = serializers.CharField(help_text=_("实例ip"))
         port = serializers.CharField(help_text=_("实例port"))
@@ -116,9 +116,15 @@ class ModifyMySQLAdminPasswordSerializer(serializers.Serializer):
     instance_list = serializers.ListSerializer(help_text=_("实例信息"), child=InstanceInfoSerializer())
 
     def validate(self, attrs):
+        # 校验密码中的特殊字符
         invalid_characters = re.compile(r"[`\'\"]")
         if invalid_characters.findall(attrs["password"]):
             raise serializers.ValidationError(_("修改密码中不允许包含单引号，双引号和反引号"))
+
+        # 目前只允许一次性修改一种类型
+        cluster_type = [inst["cluster_type"] for inst in attrs["instance_list"]]
+        if len(set(cluster_type)) > 1:
+            raise serializers.ValidationError(_("一次只允许修改同种集群类型的密码"))
 
         return attrs
 

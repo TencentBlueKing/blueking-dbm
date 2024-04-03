@@ -22,8 +22,8 @@ from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
 class InstanceViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("根据用户手动输入的 ip:port 查询真实的实例"),

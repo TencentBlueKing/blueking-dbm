@@ -50,9 +50,10 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
     pagination_class = AuditedLimitOffsetPagination
     filter_class = TendbOpenAreaConfigListFilter
 
-    def _get_custom_permissions(self):
-        if self.action in ["create", "update", "destroy"]:
-            return [OpenareaConfigPermission(self.action)]
+    def get_action_permission_map(self):
+        return {("create", "update", "destroy"): [OpenareaConfigPermission(self.action)]}
+
+    def get_default_permission_class(self):
         return [DBManagePermission()]
 
     def get_queryset(self):

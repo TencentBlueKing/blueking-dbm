@@ -30,11 +30,14 @@ SWAGGER_TAG = "db_services/cmdb"
 class CMDBViewSet(viewsets.SystemViewSet):
     lookup_field = "bk_biz_id"
 
-    def _get_custom_permissions(self):
-        if self.action in ["list_bizs", "list_modules", "list_cc_obj_user"]:
-            return []
-
-        return [DBManagePermission()]
+    action_permission_map = {
+        (
+            "list_bizs",
+            "list_modules",
+            "list_cc_obj_user",
+        ): []
+    }
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("业务列表"),

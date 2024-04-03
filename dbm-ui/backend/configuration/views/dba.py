@@ -27,14 +27,11 @@ class DBAdminViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
         if self.action == "list_admins":
             return []
-
         if not int(self.request.data.get("bk_biz_id", 0)):
             return [ResourceActionPermission([ActionEnum.GLOBAL_DBA_ADMINISTRATOR_EDIT])]
         else:
-            instance_getter = lambda request, view: [request.data["bk_biz_id"]]  # noqa: E731
-            return [
-                ResourceActionPermission([ActionEnum.DBA_ADMINISTRATOR_EDIT], ResourceEnum.BUSINESS, instance_getter)
-            ]
+            inst_getter = lambda request, view: [request.data["bk_biz_id"]]  # noqa: E731
+            return [ResourceActionPermission([ActionEnum.DBA_ADMINISTRATOR_EDIT], ResourceEnum.BUSINESS, inst_getter)]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询DBA人员列表"), query_serializer=ListDBAdminSerializer, tags=[SWAGGER_TAG]

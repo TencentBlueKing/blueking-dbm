@@ -32,9 +32,10 @@ class SQLServerAuthorizeHandler(AuthorizeHandler):
     EXCEL_ERROR_TEMPLATE: str = AUTHORIZE_EXCEL_ERROR_TEMPLATE
     authorize_meta: AuthorizeMeta = SQLServerDBAuthorizeMeta
     excel_authorize_meta: ExcelAuthorizeMeta = SQLServerExcelAuthorizeMeta
+    account_type: AccountType = AccountType.SQLServer
 
     def _pre_check_rules(
-        self, authorize: AuthorizeMeta, user_db__rules: Dict = None, **kwargs
+        self, authorize: AuthorizeMeta, user_info_map: Dict = None, user_db__rules: Dict = None, **kwargs
     ) -> Tuple[bool, str, Dict]:
         """sqlserver前置检查"""
 
@@ -43,6 +44,7 @@ class SQLServerAuthorizeHandler(AuthorizeHandler):
         authorize_data = {
             "bk_biz_id": self.bk_biz_id,
             "operator": self.operator,
+            "account_id": user_info_map.get(authorize.user, {}).get("id"),
             "user": authorize.user,
             "access_dbs": authorize.access_dbs,
             "account_rules": account_rules,
@@ -65,17 +67,19 @@ class SQLServerAuthorizeHandler(AuthorizeHandler):
         return True, _("前置校验成功"), authorize_data
 
     def pre_check_excel_rules(self, excel_authorize: ExcelAuthorizeMeta, **kwargs) -> Dict:
-        user_db__rules = AccountHandler.aggregate_user_db_privileges(self.bk_biz_id, AccountType.SQLServer)
-        return super().pre_check_excel_rules(excel_authorize, user_db__rules=user_db__rules, **kwargs)
+        """sqlserver的excel导入授权"""
+        user_db__rules = AccountHandler.aggregate_user_db_privileges(self.bk_biz_id, self.account_type)
+        user_info_map = self._get_user_info_map(self.account_type, self.bk_biz_id)
+        return super().pre_check_excel_rules(
+            excel_authorize, user_info_map=user_info_map, user_db__rules=user_db__rules, **kwargs
+        )
 
     def multi_user_pre_check_rules(self, authorize: SQLServerDBAuthorizeMeta, **kwargs):
         """多个账号的前置检查，适合sqlserver的授权"""
-        user_db__rules = AccountHandler.aggregate_user_db_privileges(self.bk_biz_id, AccountType.SQLServer)
-        # 获取授权检查数据
+        user_db__rules = AccountHandler.aggregate_user_db_privileges(self.bk_biz_id, self.account_type)
+        user_info_map = self._get_user_info_map(self.account_type, self.bk_biz_id)
         authorize_check_result = self._multi_user_pre_check_rules(
-            authorize,
-            users_key="sqlserver_users",
-            user_db__rules=user_db__rules,
+            authorize, users_key="sqlserver_users", user_db__rules=user_db__rules, user_info_map=user_info_map
         )
         return authorize_check_result
 

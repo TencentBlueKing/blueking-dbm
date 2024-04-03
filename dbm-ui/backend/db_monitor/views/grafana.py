@@ -32,8 +32,6 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
             else:
                 return [ClusterDetailPermission()]
 
-        return super()._get_custom_permissions()
-
     @common_swagger_auto_schema(
         operation_summary=_("查询内嵌仪表盘地址"),
         query_serializer=GetDashboardSerializer,

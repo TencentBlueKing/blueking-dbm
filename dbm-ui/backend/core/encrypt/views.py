@@ -23,10 +23,8 @@ SWAGGER_TAG = _("秘钥管理")
 
 
 class EncryptViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        if self.action == "fetch_public_keys":
-            return []
-        return [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
+    action_permission_map = {("fetch_public_keys",): []}
+    default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询公钥列表"), request_body=FetchPublicKeysSerializer(), tags=[SWAGGER_TAG]

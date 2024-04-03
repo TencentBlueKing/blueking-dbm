@@ -20,12 +20,12 @@ from iam.resource.utils import Page
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
-from backend.iam_app.views.iam_provider import BaseResourceProvider, CommonProviderMixin
+from backend.iam_app.views.iam_provider import BaseModelResourceProvider
 
 logger = logging.getLogger("root")
 
 
-class ClusterResourceProvider(BaseResourceProvider, CommonProviderMixin):
+class ClusterResourceProvider(BaseModelResourceProvider):
     """
     集群资源的反向拉取基类
     """
@@ -34,31 +34,23 @@ class ClusterResourceProvider(BaseResourceProvider, CommonProviderMixin):
     resource_meta: ResourceMeta = None
     cluster_types: List[ClusterType] = []
 
-    def get_bk_iam_path(self, instance_ids, *args, **kwargs) -> Dict:
-        return self.get_model_bk_iam_path(self.model, instance_ids, *args, **kwargs)
-
-    def list_attr(self, **options):
-        """查询某个资源类型可用于配置权限的属性列表"""
-        return self._list_attr(id=self.resource_meta.attribute, display_name=self.resource_meta.attribute_display)
-
-    def list_attr_value(self, filter, page, **options):
-        """获取一个资源类型某个属性的值列表"""
-        user_resource = self.list_user_resource()
-        return self._list_attr_value(self.resource_meta.attribute, user_resource, filter, page, **options)
-
     def list_instance(self, filter, page, **options):
         # 资源的模型
-        filter.model = self.model
+        filter.data_source = self.model
         # 资源模型提取的字段，通常第一个字段是主键，剩下的字段是展示字段
         filter.value_list = [self.resource_meta.lookup_field, *self.resource_meta.display_fields]
         # 资源过滤的字段
-        filter.keyword_field = "immute_domain"
+        filter.keyword_field = "immute_domain__icontains"
         # 资源其他过滤条件，会同keyword_field一起组成Q查询
         filter.conditions = {"cluster_type__in": self.cluster_types}
         return super().list_instance(filter, page, **options)
 
     def search_instance(self, filter, page, **options):
         return self.list_instance(filter, page, **options)
+
+    def fetch_instance_info(self, filter, **options):
+        filter.data_source = self.model
+        return super().fetch_instance_info(filter, **options)
 
     def list_instance_by_policy(self, filter, page, **options):
         # 策略字段与模型字段之间的映射
@@ -70,7 +62,7 @@ class ClusterResourceProvider(BaseResourceProvider, CommonProviderMixin):
         # 模型字段对应数据提取方法
         values_hook = {"bk_biz_id": lambda value: value[1:-1].split(",")[1]}
         return self._list_instance_by_policy(
-            obj_model=self.model,
+            data_source=self.model,
             value_list=[self.resource_meta.lookup_field, *self.resource_meta.display_fields],
             key_mapping=key_mapping,
             value_hooks=values_hook,
@@ -80,14 +72,14 @@ class ClusterResourceProvider(BaseResourceProvider, CommonProviderMixin):
 
     def _list_instance_with_cluster_type(
         self,
-        obj_model: models.Model,
+        data_source: models.Model,
         condition: Dict,
         value_list: List[str],
         page: Page,
         cluster_type__label: Dict[str, str],
     ):
         """集群资源展示的时候加上类型标识"""
-        queryset = obj_model.objects.filter(**condition)[page.slice_from : page.slice_to]
+        queryset = data_source.objects.filter(**condition)[page.slice_from : page.slice_to]
         results = []
         for cluster in queryset:
             cluster_type_label = cluster_type__label.get(cluster.cluster_type, cluster.cluster_type)
@@ -99,9 +91,9 @@ class MySQLResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.MYSQL
     cluster_types: ClusterType = [ClusterType.TenDBSingle, ClusterType.TenDBHA]
 
-    def _list_instance(self, obj_model: models.Model, condition: Dict, value_list: List[str], page):
+    def _list_instance(self, data_source: models.Model, condition: Dict, value_list: List[str], page):
         cluster_type__label = {ClusterType.TenDBSingle: _("单节点"), ClusterType.TenDBHA: _("高可用")}
-        return super()._list_instance_with_cluster_type(obj_model, condition, value_list, page, cluster_type__label)
+        return super()._list_instance_with_cluster_type(data_source, condition, value_list, page, cluster_type__label)
 
 
 class TendbClusterResourceProvider(ClusterResourceProvider):
@@ -143,15 +135,15 @@ class MongoDBClusterResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.MONGODB
     cluster_types: ClusterType = [ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]
 
-    def _list_instance(self, obj_model: models.Model, condition: Dict, value_list: List[str], page):
+    def _list_instance(self, data_source: models.Model, condition: Dict, value_list: List[str], page):
         cluster_type__label = {ClusterType.MongoReplicaSet: _("副本集"), ClusterType.MongoShardedCluster: _("分片集")}
-        return super()._list_instance_with_cluster_type(obj_model, condition, value_list, page, cluster_type__label)
+        return super()._list_instance_with_cluster_type(data_source, condition, value_list, page, cluster_type__label)
 
 
 class SQLServerClusterResourceProvider(MySQLResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.SQLSERVER
     cluster_types: ClusterType = [ClusterType.SqlserverHA, ClusterType.SqlserverSingle]
 
-    def _list_instance(self, obj_model: models.Model, condition: Dict, value_list: List[str], page):
+    def _list_instance(self, data_source: models.Model, condition: Dict, value_list: List[str], page):
         cluster_type__label = {ClusterType.SqlserverSingle: _("单节点"), ClusterType.SqlserverHA: _("高可用")}
-        return super()._list_instance_with_cluster_type(obj_model, condition, value_list, page, cluster_type__label)
+        return super()._list_instance_with_cluster_type(data_source, condition, value_list, page, cluster_type__label)
