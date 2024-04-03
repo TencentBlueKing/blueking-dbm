@@ -112,6 +112,8 @@ class ExecuteDBActuatorScriptService(BkJobService):
                 json.dumps({"mycnf_configs": db_act_template["payload"]["extend"].get("mycnf_configs", "")})
             )
             del db_act_template["payload"]["extend"]["mycnf_configs"]
+        else:
+            db_act_template["non_sensitive_payload"] = "none"
 
         # payload参数转换base64格式
         db_act_template["payload"] = base64_encode(json.dumps(db_act_template["payload"]))

@@ -9,7 +9,6 @@ require (
 	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/golang/glog v1.1.2
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826

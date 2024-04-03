@@ -167,6 +167,7 @@ Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp,
 		&subcmd.GBaseOptions.NotSensitivePayload, "non-sensitive-paylod", "c",
 		subcmd.GBaseOptions.NotSensitivePayload, "commandn not sensitive payload <base64>",
 	)
+	// cmds.PersistentFlags().Lookup("non-sensitive-paylod").NoOptDefVal = "default"
 	cmds.PersistentFlags().StringVarP(&subcmd.GBaseOptions.Uid, "uid", "U", subcmd.GBaseOptions.Uid, "bill id")
 	cmds.PersistentFlags().StringVarP(&subcmd.GBaseOptions.RootId, "root_id", "R", subcmd.GBaseOptions.NodeId,
 		"process id")

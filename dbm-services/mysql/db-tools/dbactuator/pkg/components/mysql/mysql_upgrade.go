@@ -21,8 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
-
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -581,7 +579,7 @@ func (m MysqlUpgradeComp) mysqlUpgrade(conn *native.DbWorker, port int) (err err
 			"|grep -v '^$' | wc -l", upgradelog)
 	out1, err := exec.Command("/bin/bash", "-c", notOkScript).CombinedOutput()
 	if err != nil {
-		glog.Infof("check upgrade log failed %s", err.Error())
+		logger.Error("check upgrade log failed %s", err.Error())
 		return err
 	}
 	if num, _ := strconv.Atoi(strings.TrimSpace(string(out1))); num != 0 && alreadyUpgradeNum == 0 {
