@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 from typing import Optional
 
 from django.utils import timezone
@@ -18,6 +19,8 @@ from backend.bk_web.constants import LEN_MIDDLE
 from backend.bk_web.serializers import AuditedSerializer, TranslationSerializerMixin
 from backend.components import CmsiApi
 from backend.configuration.constants import DBType
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.ticket import mock_data
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import CountType, TicketStatus, TicketType, TodoStatus
@@ -129,6 +132,7 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
     cost_time = serializers.SerializerMethodField(help_text=_("耗时"))
     flow_type_display = serializers.SerializerMethodField(help_text=_("流程类型显示名"))
     summary = serializers.SerializerMethodField(help_text=_("概览"))
+    flow_output = serializers.SerializerMethodField(help_text=_("流程输出数据"))
 
     def to_representation(self, instance):
         self.ticket_flow = TicketFlowManager(ticket=instance.ticket).get_ticket_flow_cls(flow_type=instance.flow_type)(
@@ -163,6 +167,18 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
 
     def get_summary(self, obj):
         return self.ticket_flow.summary
+
+    def get_flow_output(self, obj):
+        if not obj.details.get("__flow_output"):
+            return {}
+        flow_output = obj.details.get("__flow_output")
+        output_data = flow_output["data"]
+        if flow_output["is_sensitive"]:
+            output_data = AsymmetricHandler.decrypt(
+                name=AsymmetricCipherConfigType.PASSWORD.value, content=output_data
+            )
+            output_data = json.loads(output_data)
+        return output_data
 
     @property
     def translated_fields(self):

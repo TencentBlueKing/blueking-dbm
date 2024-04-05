@@ -13,6 +13,7 @@ import json
 import logging
 import re
 from abc import ABCMeta
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 
 from bamboo_engine import states
@@ -23,8 +24,13 @@ from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 from backend import env
 from backend.components import JobApi
 from backend.components.sops.client import BkSopsApi
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.core.translation.constants import Language
-from backend.flow.consts import SUCCESS_LIST, WriteContextOpType
+from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, WriteContextOpType
+from backend.ticket.constants import TicketFlowStatus
+from backend.ticket.models import Flow
+from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("flow")
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
@@ -69,10 +75,74 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
     DB Service 基类
     """
 
-    def active_language(self, data):
+    @classmethod
+    def active_language(cls, data):
         # 激活国际化
         blueking_language = data.get_one_of_inputs("global_data").get("blueking_language", Language.ZH_CN.value)
         translation.activate(blueking_language)
+
+    @classmethod
+    def get_flow_output(cls, flow: Union[Flow, str]):
+        """
+        获取流程的缓存数据。只允许在流程成功结束后执行
+        @param flow: 当前流程
+        """
+        if isinstance(flow, str):
+            flow = Flow.objects.get(flow_obj_id=flow)
+        if flow.status != TicketFlowStatus.SUCCEEDED:
+            raise ValueError(_("流程{}不为成功态").format(flow.flow_obj_id))
+        if flow.details.get("__flow_output"):
+            return flow.details.get("__flow_output")
+
+        # 获取缓存数据
+        flow_cache_key, flow_sensitive_key = f"{flow.flow_obj_id}_list", f"{flow.flow_obj_id}_is_sensitive"
+        flow_cache_data = [json.loads(item) for item in RedisConn.lrange(flow_cache_key, 0, -1)]
+        # 合并相同的key
+        merge_data = defaultdict(list)
+        for data in flow_cache_data:
+            for k, v in data.items():
+                merge_data[k].append(v)
+
+        # 如果是敏感数据，则整体加密
+        is_sensitive = int(RedisConn.get(flow_sensitive_key) or False)
+        if is_sensitive:
+            merge_data = json.dumps(merge_data)
+            merge_data = AsymmetricHandler.encrypt(name=AsymmetricCipherConfigType.PASSWORD.value, content=merge_data)
+
+        # 入库到flow的details中，并删除缓存key
+        flow.update_details(
+            __flow_output={"root_id": flow.flow_obj_id, "is_sensitive": is_sensitive, "data": merge_data}
+        )
+        RedisConn.delete(flow_cache_key, flow_sensitive_key)
+
+        return flow.details["__flow_output"]
+
+    def set_flow_output(self, root_id: str, key: Union[int, str], value: Any, is_sensitive: bool = False):
+        """
+        在整个流程中存入缓存数据，只允许追加不支持修改，对相同的key会合并为list
+        在流程执行成功后，缓存数据会入库到
+        @param root_id: 流程id
+        @param key: 缓存键值
+        @param value: 可json序列化的数据
+        @param is_sensitive: 本次缓存是否是敏感数据
+        """
+        # 序列化
+        try:
+            data = json.dumps({key: value})
+        except TypeError:
+            self.log_exception(_("该数据{}:{}无法被序列化，跳过此次缓存").format(key, value))
+            return
+        flow_cache_key, flow_sensitive_key = f"{root_id}_list", f"{root_id}_is_sensitive"
+
+        # 用list原语缓存数据，不会出现竞态
+        RedisConn.lpush(flow_cache_key, data)
+        # 只会设置为True，不会出现竞态
+        if is_sensitive:
+            RedisConn.set(flow_sensitive_key, 1)
+
+        # 每次缓存都刷新过期时间。我们设置一个足够长的过期时间，如果这个任务失败很久不处理，那么数据就会自动清理
+        RedisConn.expire(flow_cache_key, DEFAULT_FLOW_CACHE_EXPIRE_TIME)
+        RedisConn.expire(flow_sensitive_key, DEFAULT_FLOW_CACHE_EXPIRE_TIME)
 
     def execute(self, data, parent_data):
         self.active_language(data)

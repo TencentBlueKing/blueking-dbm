@@ -61,6 +61,9 @@ class FakeSemanticCheck(BaseService):
             },
         }
 
+        # 测试加入缓存数据
+        self.set_flow_output(root_id, key="ticket", value=kwargs, is_sensitive=True)
+
         data.outputs["trans_data"] = trans_data
         self.log_info(_("语义检查执行成功"))
 

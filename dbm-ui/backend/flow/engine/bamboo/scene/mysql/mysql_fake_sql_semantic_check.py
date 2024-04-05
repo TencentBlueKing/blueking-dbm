@@ -47,12 +47,12 @@ class MySQLFakeSemanticCheck(object):
             {
                 "act_name": _("并行1"),
                 "act_component_code": FakeSemanticCheckComponent.code,
-                "kwargs": {},
+                "kwargs": {"parallel_acts": "1"},
             },
             {
                 "act_name": _("并行2"),
                 "act_component_code": FakeSemanticCheckComponent.code,
-                "kwargs": {},
+                "kwargs": {"parallel_acts": "2"},
             },
             {
                 "act_name": _("错误并行3"),
