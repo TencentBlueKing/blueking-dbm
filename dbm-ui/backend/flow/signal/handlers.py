@@ -83,11 +83,17 @@ def callback_ticket(ticket_id, root_id):
     except (Ticket.DoesNotExist, ValueError):
         return
 
-    # 初始化结束后，流转为当前流程，执行inner后继动作，再进行回调
+    # 初始化结束后，流转为当前流程
     current_flow = ticket.current_flow()
+    inner_flow_obj = InnerFlow(flow_obj=current_flow)
+
+    # 在inner flow执行成功的情况下，获取flow的缓存数据
+    if inner_flow_obj.status == TicketFlowStatus.SUCCEEDED:
+        from backend.flow.plugins.components.collections.common.base_service import BaseService
+
+        BaseService.get_flow_output(flow=current_flow)
 
     # 在认为inner flow执行结束情况下，执行inner flow的后继动作
-    inner_flow_obj = InnerFlow(flow_obj=current_flow)
     if inner_flow_obj.status not in [TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING]:
         send_msg_for_flow.apply_async(args=[current_flow.id])
         inner_flow_obj.callback(callback_type=FlowCallbackType.POST_CALLBACK.value)
