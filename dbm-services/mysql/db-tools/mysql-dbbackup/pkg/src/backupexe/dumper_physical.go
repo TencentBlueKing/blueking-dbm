@@ -113,7 +113,8 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 
 	if strings.ToLower(p.cnf.Public.MysqlRole) == cst.RoleSlave {
 		args = append(args, []string{
-			"--slave-info", "--safe-slave-backup",
+			"--slave-info",
+			//"--safe-slave-backup",
 		}...)
 	}
 
