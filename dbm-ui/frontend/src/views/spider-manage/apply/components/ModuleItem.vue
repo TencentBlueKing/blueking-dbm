@@ -99,14 +99,6 @@
     manual: true,
   });
 
-  watch(
-    () => props.bizId,
-    (bizId) => {
-      bizId && fetchModuleList();
-    },
-    { immediate: true },
-  );
-
   // 获取模块列表
   const fetchModuleList = () => {
     fetchModules({
@@ -114,6 +106,16 @@
       cluster_type: 'tendbcluster',
     });
   };
+
+  watch(
+    () => props.bizId,
+    (bizId) => {
+      if (bizId) {
+        fetchModuleList();
+      }
+    },
+    { immediate: true },
+  );
 
   // 获取配置详情
   const fetchLevelConfig = (moduleId: number) => {
