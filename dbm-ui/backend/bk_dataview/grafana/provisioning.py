@@ -77,7 +77,7 @@ class SimpleProvisioning(BaseProvisioning):
             with open(path, "rb") as fh:
                 conf = fh.read()
                 expand_conf = os.path.expandvars(conf)
-                ds = yaml.load(expand_conf)
+                ds = yaml.load(expand_conf, Loader=yaml.FullLoader)
                 yield ds
 
     def datasources(self, request, org_name: str, org_id: int) -> List[Datasource]:
