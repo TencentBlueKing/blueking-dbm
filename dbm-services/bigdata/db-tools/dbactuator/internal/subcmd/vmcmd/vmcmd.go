@@ -1,3 +1,4 @@
+// Package vmcmd TODO
 package vmcmd
 
 // 引入了一些必要的包，包括内部的子命令处理包，模板工具包，以及第三方的cobra包。
@@ -34,6 +35,14 @@ func VMCommand() *cobra.Command {
 				InitCommand(),
 				// 解压VMPkg的命令
 				DecompressVMPkgCommand(),
+				// 停止进程命令
+				StopProcessCommand(),
+				// 启动进程命令
+				StartProcessCommand(),
+				// 重启进程命令
+				RestartProcessCommand(),
+				// 清理目录命令
+				CleanDataCommand(),
 			},
 		},
 	}
