@@ -21,6 +21,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.db_services.taskflow.serializers import (
+    BatchRetryNodesSerializer,
     CallbackNodeSerializer,
     FlowTaskSerializer,
     NodeSerializer,
@@ -124,9 +125,10 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("批量重试"),
+        request_body=BatchRetryNodesSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=True)
+    @action(methods=["POST"], detail=True, serializer_class=BatchRetryNodesSerializer)
     def batch_retry_nodes(self, requests, *args, **kwargs):
         root_id = kwargs["root_id"]
         return Response(TaskFlowHandler(root_id=root_id).batch_retry_nodes())

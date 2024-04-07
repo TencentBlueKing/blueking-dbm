@@ -91,7 +91,6 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
     execute_sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
     execute_db_infos = serializers.ListSerializer(help_text=_("sql执行的DB信息"), child=ExecuteDBInfoSerializer())
-    highrisk_warnings = serializers.DictField(help_text=_("高危信息提示"), required=False, default="")
     ticket_type = serializers.ChoiceField(help_text=_("单据类型"), choices=TicketType.get_choices())
     ticket_mode = SQLImportModeSerializer()
     import_mode = serializers.ChoiceField(help_text=_("sql导入模式"), choices=SQLImportMode.get_choices())
