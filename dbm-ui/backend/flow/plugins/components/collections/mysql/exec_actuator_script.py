@@ -107,14 +107,13 @@ class ExecuteDBActuatorScriptService(BkJobService):
             )
 
         # mycnf_configs 参数很多，放到非敏感参数去处理
+        db_act_template["non_sensitive_payload"] = "none"
         if "extend" in db_act_template["payload"]:
             if "mycnf_configs" in db_act_template["payload"]["extend"]:
                 db_act_template["non_sensitive_payload"] = base64_encode(
                     json.dumps({"mycnf_configs": db_act_template["payload"]["extend"].get("mycnf_configs", "")})
                 )
                 del db_act_template["payload"]["extend"]["mycnf_configs"]
-        else:
-            db_act_template["non_sensitive_payload"] = "none"
 
         # payload参数转换base64格式
         db_act_template["payload"] = base64_encode(json.dumps(db_act_template["payload"]))
