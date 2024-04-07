@@ -131,7 +131,12 @@
       trigger: 'change',
     },
     {
-      validator: (val: string) => !bizList.find((item) => item.english_name === val),
+      validator: (val: string) => {
+        if (hasEnglishName.value) {
+          return true;
+        }
+        return !bizList.find((item) => item.english_name === val);
+      },
       message: t('业务code不允许重复'),
       trigger: 'blur',
     },
