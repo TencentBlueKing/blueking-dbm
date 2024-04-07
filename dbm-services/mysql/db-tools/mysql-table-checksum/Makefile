@@ -14,21 +14,23 @@ DEV_BUILD_FLAG="-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.gitHash="" "
 release-bin:
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}" -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}
 	chmod +x pt-table-checksum pt-table-sync
+	cp -ar lib ${OUTPUT_DIR}/
 	cp -a pt-table-checksum ${OUTPUT_DIR}/
 	cp -a pt-table-sync ${OUTPUT_DIR}/
 	cp -a checksum_history.sql ${OUTPUT_DIR}/
 	# 为了保证 tar 压缩得到的包的 md5 一致，这里修改文件的时间戳，同时把 tar -zcf 拆为 tar -cf && gzip
 	find ${OUTPUT_DIR} -exec touch -t ${GITDATE} {} +
-	tar -C ${OUTPUT_DIR} --numeric-owner -cvf ${OUTPUT_DIR}/${TAR_PKG} ${PROJ} pt-table-checksum pt-table-sync checksum_history.sql
+	tar -C ${OUTPUT_DIR} --numeric-owner -cvf ${OUTPUT_DIR}/${TAR_PKG} ${PROJ} pt-table-checksum pt-table-sync checksum_history.sql lib
 	gzip -n -f ${OUTPUT_DIR}/${TAR_PKG}
 
 .PHONY: dev-bin
 dev-bin:
 	go build -ldflags ${DEV_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}
+	cp -ar lib ${OUTPUT_DIR}/
 	cp -a pt-table-checksum ${OUTPUT_DIR}/
 	cp -a pt-table-sync ${OUTPUT_DIR}/
 	cp -a checksum_history ${OUTPUT_DIR}/
-	tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PKG} ${PROJ} pt-table-checksum pt-table-sync
+	tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PKG} ${PROJ} pt-table-checksum pt-table-sync lib
 
 .PHONY: clean
 clean:

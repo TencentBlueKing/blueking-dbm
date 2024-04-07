@@ -199,7 +199,7 @@ func (c *PtTableChecksumComp) GenerateConfigFile() (err error) {
 			Args: []map[string]interface{}{
 				{
 					"name":  "run-time",
-					"value": c.Params.RuntimeHour,
+					"value": fmt.Sprintf("%dh", c.Params.RuntimeHour),
 				},
 			},
 		},
