@@ -15,4 +15,10 @@ const (
 	VMSelect = "vmselect"
 	// VMInsert TODO
 	VMInsert = "vminsert"
+
+	// StartCommand TODO
+	StartCommand = "supervisorctl start all"
+
+	// StopCommand TODO
+	StopCommand = "supervisorctl stop all"
 )
