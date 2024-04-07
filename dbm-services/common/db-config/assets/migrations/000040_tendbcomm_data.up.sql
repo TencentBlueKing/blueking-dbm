@@ -22,8 +22,9 @@
 --
 -- Dumping data for table `tb_config_file_def`
 --
--- WHERE:  namespace='tendbcommon'
+-- WHERE:  namespace='tendbcomm'
 
+INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_type_lc`, `conf_file_lc`, `level_names`, `level_versioned`, `conf_name_validate`, `conf_value_validate`, `value_type_strict`, `namespace_info`, `version_keep_limit`, `version_keep_days`, `conf_name_order`, `description`, `created_at`, `updated_at`, `updated_by`) VALUES (335,'tendbcomm','backup','backup_client','配置','备份客户端相关的配置','plat,app,bk_cloud_id,city',NULL,1,1,0,NULL,5,365,0,NULL,'2024-03-25 16:35:58','2024-03-25 16:59:32',NULL);
 /*!50112 SET @disable_bulk_load = IF (@is_rocksdb_supported, 'SET SESSION rocksdb_bulk_load = @old_rocksdb_bulk_load', 'SET @dummy_rocksdb_bulk_load = 0') */;
 /*!50112 PREPARE s FROM @disable_bulk_load */;
 /*!50112 EXECUTE s */;
@@ -59,8 +60,13 @@
 --
 -- Dumping data for table `tb_config_name_def`
 --
--- WHERE:  namespace='tendbcommon' AND (flag_encrypt!=1 or value_default like '{{%')
+-- WHERE:  namespace='tendbcomm' AND (flag_encrypt!=1 or value_default like '{{%')
 
+INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (22885,'tendbcomm','backup','backup_client','binlogbackup.keep_days','INT','15','[1, 60]','RANGE',1,0,0,0,1,NULL,NULL,NULL,-1,NULL,NULL,'2022-11-29 15:00:02','2024-03-25 16:41:50',0);
+INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (22888,'tendbcomm','backup','backup_client','binlogbackup.keep_storage_tag','STRING','INCREMENT_BACKUP','','',1,0,0,0,1,NULL,NULL,NULL,-1,NULL,NULL,'2022-11-29 15:00:02','2024-03-25 16:52:07',0);
+INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (22884,'tendbcomm','backup','backup_client','default_storage_type','STRING','','hdfs | cos |','ENUM',1,0,0,0,1,NULL,NULL,NULL,-1,NULL,NULL,'2022-11-29 15:00:02','2022-11-29 17:08:30',0);
+INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (22886,'tendbcomm','backup','backup_client','fullbackup.keep_days','INT','25','[1, 60]','RANGE',1,0,0,0,1,NULL,NULL,NULL,-1,NULL,NULL,'2022-11-29 15:00:02','2024-03-25 16:41:03',0);
+INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (22887,'tendbcomm','backup','backup_client','fullbackup.keep_storage_tag','STRING','MYSQL_FULL_BACKUP','','',1,0,0,0,1,NULL,NULL,NULL,-1,NULL,NULL,'2022-11-29 15:00:02','2024-03-26 10:26:25',0);
 /*!50112 SET @disable_bulk_load = IF (@is_rocksdb_supported, 'SET SESSION rocksdb_bulk_load = @old_rocksdb_bulk_load', 'SET @dummy_rocksdb_bulk_load = 0') */;
 /*!50112 PREPARE s FROM @disable_bulk_load */;
 /*!50112 EXECUTE s */;
