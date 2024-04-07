@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from django.conf import settings
 from django.db import connection, models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL

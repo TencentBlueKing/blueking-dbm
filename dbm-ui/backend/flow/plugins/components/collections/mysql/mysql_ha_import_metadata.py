@@ -13,7 +13,7 @@ import logging
 from typing import Dict, List, Optional, Union
 
 from django.db import transaction
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.db_meta.enums import (

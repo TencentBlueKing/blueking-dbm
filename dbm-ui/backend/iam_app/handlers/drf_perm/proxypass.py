@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import binascii
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
 

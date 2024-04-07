@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.db.models import Count, Q, QuerySet
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.models import ProxyInstance, StorageInstance
 from backend.db_report.enums import MetaCheckSubType

@@ -13,7 +13,7 @@ import logging
 
 from blueapps.account.decorators import login_exempt
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView

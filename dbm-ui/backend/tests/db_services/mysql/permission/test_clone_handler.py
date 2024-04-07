@@ -21,7 +21,7 @@ from backend.db_services.mysql.permission.clone.dataclass import CloneMeta
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
 from backend.db_services.mysql.permission.constants import CLONE_CLIENT_EXCEL_HEADER
 from backend.tests.mock_data import constant
-from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
+from backend.tests.mock_data.components.dbpriv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.db_services.mysql.permission.clone import (
     CLONE_CLIENT_LIST_DATA,
     EXCEL_CLONE_CLIENT_LIST_DATA,

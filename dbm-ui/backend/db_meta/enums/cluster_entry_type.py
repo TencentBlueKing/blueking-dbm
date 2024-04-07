@@ -15,6 +15,7 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 class ClusterEntryType(str, StructuredEnum):
     DNS = EnumField("dns", _("dns"))
+    K8SService = EnumField("k8s_service", _("k8s_service"))
     CLB = EnumField("clb", _("clb"))
     POLARIS = EnumField("polaris", _("polaris"))
     CLBDNS = EnumField("clbDns", _("clbDns"))

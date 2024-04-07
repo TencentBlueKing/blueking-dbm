@@ -12,7 +12,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Union
 
 from django.forms import model_to_dict
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.components.mysql_partition.client import DBPartitionApi

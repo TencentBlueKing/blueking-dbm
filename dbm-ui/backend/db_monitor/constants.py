@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import os
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 

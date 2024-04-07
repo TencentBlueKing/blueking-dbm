@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -30,7 +30,7 @@ class DisableSpiderSceneApiView(FlowTestView):
     # permission_classes = [AllowAny]
     @staticmethod
     def post(request):
-        # from django.utils.translation import ugettext as _ 主要用于国际化中的翻译
+        # from django.utils.translation import gettext as _ 主要用于国际化中的翻译
         logger.info(_("开始禁用spider集群场景"))
 
         root_id = generate_root_id()
@@ -49,7 +49,7 @@ class EnableSpiderSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        # from django.utils.translation import ugettext as _ 主要用于国际化中的翻译
+        # from django.utils.translation import gettext as _ 主要用于国际化中的翻译
         logger.info(_("开始启用spider集群场景"))
 
         root_id = generate_root_id()

@@ -13,7 +13,7 @@ from typing import Any, Dict, Iterable, List
 
 from django.core.cache import cache
 from django.http.response import HttpResponse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi

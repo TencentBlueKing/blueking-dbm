@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from enum import Enum
 from typing import Any, Dict, List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.utils.cache import class_member_cache
 from blue_krill.data_types.enum import EnumField, StructuredEnum
@@ -20,7 +20,7 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 class CosBucketEnum(StructuredEnum):
     """对象存储仓库枚举"""
 
-    # TODO 这里如果加 ugettext_lazy 会有 AppRegistryNotReady 异常，怀疑是 StructuredEnum 的问题，待解决
+    # TODO 这里如果加 gettext_lazy 会有 AppRegistryNotReady 异常，怀疑是 StructuredEnum 的问题，待解决
     PUBLIC = EnumField("public", _("公开仓库"))
     PRIVATE = EnumField("private", _("私有仓库"))
 

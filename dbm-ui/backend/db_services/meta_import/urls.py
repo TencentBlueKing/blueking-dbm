@@ -13,6 +13,6 @@ from rest_framework.routers import DefaultRouter
 from backend.db_services.meta_import.views import DBMetadataImportViewSet
 
 routers = DefaultRouter(trailing_slash=True)
-routers.register("", DBMetadataImportViewSet, basename="partition")
+routers.register("", DBMetadataImportViewSet, basename="meta_import")
 
 urlpatterns = routers.urls

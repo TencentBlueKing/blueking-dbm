@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from copy import deepcopy
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent

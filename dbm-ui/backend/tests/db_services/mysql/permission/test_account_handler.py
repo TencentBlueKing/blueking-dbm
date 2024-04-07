@@ -21,7 +21,7 @@ from backend.core.encrypt.models import AsymmetricCipherKey
 from backend.db_services.dbpermission.constants import AccountType
 from backend.db_services.dbpermission.db_account.dataclass import AccountMeta, AccountRuleMeta
 from backend.db_services.mysql.permission.db_account.handlers import MySQLAccountHandler
-from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
+from backend.tests.mock_data.components.dbpriv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.db_services.mysql.permission.account import (
     ACCOUNT,
     ACCOUNT_RULE,

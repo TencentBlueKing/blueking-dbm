@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import base64
 from typing import Dict, List, Tuple
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.db_services.dbpermission.constants import AccountType, AuthorizeExcelHeader

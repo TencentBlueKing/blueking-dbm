@@ -57,14 +57,24 @@ spec:
           - name: {{ $key }}
             value: {{ quote $val }}
             {{- end }}
-          # livenessProbe:
-          #   httpGet:
-          #     path: /ping
-          #     port: http
-          # readinessProbe:
-          #   httpGet:
-          #     path: /ping
-          #     port: http
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 5}}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 30}}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 5}}
+            successThreshold: {{ .Values.livenessProbe.successThreshold | default 1}}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 1}}
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 5}}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 30}}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 5}}
+            successThreshold: {{ .Values.livenessProbe.successThreshold | default 1}}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 1}}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           # volumeMounts:
@@ -76,10 +86,9 @@ spec:
           #     name: config-volume
           #     subPath: path/to/config.yaml
           #     mountPath: /conf/config.yaml
-      {{- with .Values.nodeSelector }}
+      # 注意，如果部署 drs 的 node 有变更，需要对所有已部署的 DB 刷新权限
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        bk-dbm: db-remote-service
       {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

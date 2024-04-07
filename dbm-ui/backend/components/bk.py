@@ -12,7 +12,7 @@ import json
 import logging
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from requests import PreparedRequest
 from requests.auth import AuthBase
 

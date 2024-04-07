@@ -12,7 +12,7 @@ import logging
 from typing import List, Optional
 
 from django.db import transaction
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta import request_validator
 from backend.db_meta.api import common

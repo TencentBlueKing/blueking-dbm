@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
+from .mysqlonk8s.views import MySQLOnK8SViewSet
 from .tendbcluster.views import SpiderViewSet
 from .tendbha.views import DBHAViewSet
 from .tendbsingle.views import DBSingleViewSet
@@ -21,6 +22,7 @@ router = DefaultRouter(trailing_slash=True)
 router.register(r"tendbha_resources", DBHAViewSet, basename="tendbha_resource")
 router.register(r"tendbsingle_resources", DBSingleViewSet, basename="tendbsingle_resource")
 router.register(r"spider_resources", SpiderViewSet, basename="spider_resource")
+router.register(r"mysqlonk8s_resources", MySQLOnK8SViewSet, basename="mysqlonk8s_resources")
 
 urlpatterns = [
     # 提供资源(集群)通用属性的查询, 如集群名, 集群创建者等

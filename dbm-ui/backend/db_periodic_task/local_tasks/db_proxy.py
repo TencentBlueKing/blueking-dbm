@@ -15,7 +15,7 @@ from collections import defaultdict
 from typing import Dict, List
 
 from celery.schedules import crontab
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from jinja2 import Environment
 
 from backend import env

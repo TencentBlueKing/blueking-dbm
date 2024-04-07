@@ -24,7 +24,4 @@ class TestRemoteServiceHandler:
             cluster_ids=[dbsingle_cluster.id, dbha_cluster.id]
         )
         for result in results:
-            if result["cluster_id"] == dbsingle_cluster.id:
-                assert len(result["databases"]) > 0
-            if result["cluster_id"] == dbha_cluster.id:
-                assert len(result["databases"]) == 0
+            assert len(result["databases"]) == 2

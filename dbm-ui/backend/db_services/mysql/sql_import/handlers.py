@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components.sql_import.client import SQLSimulationApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType

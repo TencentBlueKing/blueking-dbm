@@ -11,10 +11,9 @@ specific language governing permissions and limitations under the License.
 import copy
 import json
 import logging.config
-import time
 from typing import Any
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import DBConfigApi
@@ -392,7 +391,6 @@ class RedisActPayload(object):
             upsert_param["level_value"] = cluster_map["dst_cluster_domain"]
             logger.info(_("删除目标集群:{} redis配置,upsert_param:{}").format(cluster_map["dst_cluster_domain"], upsert_param))
             DBConfigApi.upsert_conf_item(upsert_param)
-            time.sleep(2)
         # 源集群 写入目标集群的配置,除了 dst_conf_items 以外,其他conf_items基本用默认值
         upsert_param["conf_file_info"]["namespace"] = cluster_map["dst_cluster_type"]
         upsert_param["conf_file_info"]["conf_file"] = cluster_map["dst_cluster_version"]
@@ -632,8 +630,6 @@ class RedisActPayload(object):
                 _("删除目标集群:{} proxy配置,dst_remove_param:{}").format(cluster_map["dst_cluster_domain"], dst_remove_param)
             )
             DBConfigApi.upsert_conf_item(dst_remove_param)
-
-            time.sleep(2)
 
         # 更新源集群的proxy版本、集群类型等信息
         src_upsert_param = copy.deepcopy(upsert_param)

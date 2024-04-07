@@ -12,7 +12,7 @@ import logging
 
 from celery.task import task
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components.cmsi.handler import CmsiHandler
 from backend.db_dirty.handlers import DBDirtyMachineHandler

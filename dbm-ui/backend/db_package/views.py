@@ -14,7 +14,7 @@ from typing import Dict, Tuple
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.transaction import atomic
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response

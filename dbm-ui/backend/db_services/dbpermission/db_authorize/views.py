@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from typing import Type, Union
 
 from django.http.response import HttpResponse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response

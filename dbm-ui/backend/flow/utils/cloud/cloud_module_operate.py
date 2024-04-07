@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import Dict, List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import CCApi
 from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name

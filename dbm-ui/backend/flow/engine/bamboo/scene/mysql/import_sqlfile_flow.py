@@ -13,7 +13,7 @@ import os
 from dataclasses import asdict
 from typing import Any, Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.db_remote_service.client import DRSApi

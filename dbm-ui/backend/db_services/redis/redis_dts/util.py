@@ -17,7 +17,7 @@ import traceback
 from typing import Dict, List, Tuple
 
 from django.db.models import Q
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER

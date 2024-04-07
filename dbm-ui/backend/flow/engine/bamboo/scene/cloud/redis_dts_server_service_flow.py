@@ -12,7 +12,7 @@ import logging.config
 from typing import List, Union
 
 from bamboo_engine.builder import SubProcess
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.flow.engine.bamboo.scene.cloud.base_service_flow import CloudBaseServiceFlow
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder

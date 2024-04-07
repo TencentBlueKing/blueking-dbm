@@ -12,7 +12,7 @@ import logging
 import time
 
 from django.core.cache import cache
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.db_services.mysql.sql_import.constants import (

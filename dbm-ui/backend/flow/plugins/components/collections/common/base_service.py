@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from bamboo_engine import states
 from django.utils import translation
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
 from backend import env

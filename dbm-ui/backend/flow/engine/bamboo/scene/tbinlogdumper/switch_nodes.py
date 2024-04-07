@@ -13,7 +13,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler

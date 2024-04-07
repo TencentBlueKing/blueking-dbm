@@ -13,6 +13,8 @@ import logging
 import os
 from typing import Dict
 
+from django.conf import settings
+
 from backend.db_services.dbbase.resources.query import ListRetrieveResource
 
 logger = logging.getLogger("root")
@@ -36,9 +38,10 @@ def register_resource_decorator(*args, **kwargs):
 
 def register_all_resource(path="backend/db_services", module_path="backend.db_services"):
     """递归注册当前目录下所有的resource类"""
-    for name in os.listdir(path):
-        if os.path.isdir(os.path.join(path, name)):
-            register_all_resource(os.path.join(path, name), ".".join([module_path, name]))
+    abs_path = os.path.join(settings.BASE_DIR, path)
+    for name in os.listdir(abs_path):
+        if os.path.isdir(os.path.join(abs_path, name)):
+            register_all_resource(os.path.join(abs_path, name), ".".join([module_path, name]))
         # 所有的resource类都放在query.py文件下
         elif name == "query.py":
             try:

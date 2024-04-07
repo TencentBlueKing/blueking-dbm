@@ -13,7 +13,7 @@ import math
 from typing import Any, Dict, List
 
 from django.forms import model_to_dict
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterType, MachineType

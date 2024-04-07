@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List
 
 from django.db.models import F, Q, Value
 from django.forms import model_to_dict
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole

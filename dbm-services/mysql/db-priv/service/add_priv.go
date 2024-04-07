@@ -100,7 +100,7 @@ func (m *PrivTaskPara) AddPriv(jsonPara string) error {
 					AddErrorOnly(&errMsg, errors.New(failInfo+sep+err.Error()))
 					return
 				}
-				if m.ClusterType == tendbha || m.ClusterType == tendbsingle {
+				if m.ClusterType == tendbha || m.ClusterType == tendbsingle || m.ClusterType == MySQLOnK8S {
 					// 当"cluster_type": "tendbha", "bind_to": "proxy" tendbha的主域名, "bind_to": "storage" tendbha的备域名
 					if instance.ClusterType == tendbha && instance.BindTo == machineTypeProxy {
 						tendbhaMasterDomain = true
@@ -115,6 +115,15 @@ func (m *PrivTaskPara) AddPriv(jsonPara string) error {
 							continue
 						}
 						address = fmt.Sprintf("%s:%d", storage.IP, storage.Port)
+						err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs,
+							instance.ClusterType, tendbhaMasterDomain, instance.BkCloudId, false)
+						if err != nil {
+							errMsgInner = append(errMsgInner, err.Error())
+						}
+					}
+					if instance.ClusterType == MySQLOnK8S {
+						// TODO 这里要记录集群的访问端口，因为容器化集群可能没有存储实例，
+						address = fmt.Sprintf("%s:%d", instance.ImmuteDomain, 3306)
 						err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs,
 							instance.ClusterType, tendbhaMasterDomain, instance.BkCloudId, false)
 						if err != nil {

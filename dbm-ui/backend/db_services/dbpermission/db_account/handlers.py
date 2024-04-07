@@ -13,7 +13,7 @@ import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.core.encrypt.constants import AsymmetricCipherConfigType

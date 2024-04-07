@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import itertools
 
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, MachineType

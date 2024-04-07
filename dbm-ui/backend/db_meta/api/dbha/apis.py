@@ -16,7 +16,7 @@ import validators
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.constants import DEFAULT_BK_CLOUD_ID, IP_PORT_DIVIDER

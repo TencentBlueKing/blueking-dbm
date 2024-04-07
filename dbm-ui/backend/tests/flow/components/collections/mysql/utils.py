@@ -27,9 +27,9 @@ from backend.tests.flow.components.collections.base import BaseComponentPatcher 
 from backend.tests.flow.components.collections.base import BaseComponentTest
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
+from backend.tests.mock_data.components.dbpriv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.components.dns import DnsApiMock
 from backend.tests.mock_data.components.job import JobApiMock
-from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.flow.components.collections.mysql import MYSQL_SINGLE_APPLY_GLOBAL_DATA
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -96,7 +96,7 @@ class MySQLComponentBaseTest(BaseComponentTest):
     def to_mock_class_list(self) -> List:
         """需要mock的组件列表"""
 
-        mock_class_list = [DBPrivManagerApiMock, DBConfigApiMock, JobApiMock, DnsApiMock, CCApiMock()]
+        mock_class_list = [DBPrivManagerApiMock, DBConfigApiMock, JobApiMock, DnsApiMock, CCApiMock]
         return mock_class_list
 
     def to_mock_path_list(self) -> List[str]:

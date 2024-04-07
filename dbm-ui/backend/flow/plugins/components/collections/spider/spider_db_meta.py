@@ -11,7 +11,7 @@ import copy
 import logging
 from dataclasses import asdict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.flow.plugins.components.collections.common.base_service import BaseService

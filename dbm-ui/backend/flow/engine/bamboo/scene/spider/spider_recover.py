@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from dataclasses import asdict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME
 from backend.db_meta.enums import ClusterType

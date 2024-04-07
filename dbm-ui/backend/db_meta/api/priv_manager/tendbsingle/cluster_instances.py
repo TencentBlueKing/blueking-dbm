@@ -9,8 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.core.exceptions import ObjectDoesNotExist
-
 from backend.db_meta.enums import AccessLayer, ClusterType
 from backend.db_meta.exceptions import ClusterEntryNotExistException
 from backend.db_meta.models import ClusterEntry
@@ -20,8 +18,6 @@ def cluster_instances(entry_name: str):
     try:
         input_entry = ClusterEntry.objects.get(entry=entry_name, cluster__cluster_type=ClusterType.TenDBSingle.value)
         cluster = input_entry.cluster
-
-        storage_instance = cluster.storageinstance_set.first()
         return {
             "bind_to": AccessLayer.STORAGE.value,
             "entry_role": input_entry.role,
@@ -40,8 +36,9 @@ def cluster_instances(entry_name: str):
                     "status": storage_instance.status,
                     "bk_instance_id": storage_instance.bk_instance_id,
                 }
+                for storage_instance in cluster.storageinstance_set.all()
             ],
         }
 
-    except ObjectDoesNotExist:
+    except ClusterEntry.DoesNotExist:
         raise ClusterEntryNotExistException(entry=entry_name)

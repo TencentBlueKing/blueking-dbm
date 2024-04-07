@@ -9,11 +9,19 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
+from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import AppCache, DBModule, Spec
+
+
+class GeneralMetadataImportSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=False, default=DEFAULT_BK_CLOUD_ID)
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    details = serializers.ListField(child=serializers.DictField(), help_text=_("导入元数据详情"))
 
 
 class CustomChoiceField(serializers.ChoiceField):
