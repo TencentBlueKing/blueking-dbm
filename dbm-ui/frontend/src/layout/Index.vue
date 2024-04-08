@@ -135,7 +135,7 @@
       'PlatformDbConfigure',
       'PlatformWhitelist',
       'PlatGlobalStrategy',
-      'PlatRotateSet',
+      'dutyRuleManange',
       // 'PlatMonitorAlarmGroup',
       'passwordManage',
       'PlatformTicketFlowSetting',

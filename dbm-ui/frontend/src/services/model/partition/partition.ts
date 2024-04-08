@@ -49,6 +49,7 @@ export default class Partition {
     mysql_partition_delete: boolean;
     mysql_partition_enable_disable: boolean;
     mysql_partition_update: boolean;
+    tendbcluster_partition: boolean;
     tendb_partition_enable_disable: boolean;
     tendbcluster_partition_create: boolean;
     tendbcluster_partition_delete: boolean;

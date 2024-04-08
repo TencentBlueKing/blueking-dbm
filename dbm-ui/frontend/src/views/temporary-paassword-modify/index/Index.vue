@@ -493,6 +493,10 @@
         }];
       }, [] as TableRow['data'][]);
     },
+    onError(error){
+      console.log('error = ', error)
+      formData.instanceList = []
+    }
   });
 
   watch(() => formData.password, (newVal) => {
@@ -535,8 +539,8 @@
   };
 
   const handleInstanceChange = (instanceValues: InstanceSelectorValues) => {
-    // eslint-disable-next-line max-len
-    const instanceList = Object.values(instanceValues).reduce((instanceListPrev, instanceValuesItem) => [...instanceListPrev, ...instanceValuesItem], []);
+    const instanceList = Object.values(instanceValues)
+      .reduce((instanceListPrev, instanceValuesItem) => [...instanceListPrev, ...instanceValuesItem], []);
 
     queryMysqlAdminPasswordRun({
       instances: instanceList.map(instanceItem => formatInstance({

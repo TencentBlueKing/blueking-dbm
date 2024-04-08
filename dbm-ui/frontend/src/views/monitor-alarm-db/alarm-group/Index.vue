@@ -92,12 +92,7 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-  // const route = useRoute();
   const router = useRouter();
-
-  // const isPlatform = route.name === 'PlatMonitorAlarmGroup';
-
-  // const bizId = isPlatform ? 0 : currentBizId;
 
   const columns = [
     {
@@ -204,11 +199,15 @@
           content: t('内置告警不支持删除'),
         };
 
+        const editBtnPermissionInfo = {
+          actionId: data.is_built_in ? 'global_notify_group_update' : 'notify_group_update',
+          permission: data.is_built_in ? 'global_notify_group_update' : data.permission.global_notify_group_update
+        }
+
         return (
           <>
             <auth-button
-              action-id="notify_group_delete"
-              permission={data.permission.notify_group_update}
+              {...editBtnPermissionInfo }
               class="mr-24"
               text
               theme="primary"

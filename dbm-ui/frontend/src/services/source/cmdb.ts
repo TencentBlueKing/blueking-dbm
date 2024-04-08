@@ -20,8 +20,8 @@ const path = '/apis/cmdb';
 /**
  * 业务列表
  */
-export function getBizs() {
-  return http.get<BizItem[]>(`${path}/list_bizs/`).then((res) =>
+export function getBizs(params = {} as { action: string }) {
+  return http.get<BizItem[]>(`${path}/list_bizs/`, params).then((res) =>
     res.map((item: BizItem) => {
       const biz = { ...item };
       biz.display_name = `[${item.bk_biz_id}] ${item.name}`;

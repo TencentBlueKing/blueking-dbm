@@ -26,13 +26,12 @@
             content: t('请选择集群'),
           }"
           class="inline-block">
-          <AuthButton
-            action-id="tendbcluster_authorize_rules"
+          <BkButton
             class="ml-8"
             :disabled="!hasSelected"
             @click="handleShowAuthorize">
             {{ t('批量授权') }}
-          </AuthButton>
+          </BkButton>
         </span>
         <span
           v-bk-tooltips="{
@@ -40,13 +39,12 @@
             content: t('请先创建实例'),
           }"
           class="inline-block">
-          <AuthButton
-            action-id="tendb_excel_authorize_rules"
+          <BkButton
             class="ml-8"
             :disabled="!hasData"
             @click="handleShowExcelAuthorize">
             {{ t('导入授权') }}
-          </AuthButton>
+          </BkButton>
         </span>
         <DropdownExportExcel
           :ids="selectedIds"
@@ -683,6 +681,7 @@
                 class="mr-8"
                 theme={theme}
                 action-id="tendbcluster_node_rebalance"
+                permission={data.permission.tendbcluster_node_rebalance}
                 disabled={data.operationDisabled}
                 onClick={() => handleShowCapacityChange(data)}>
                 { t('集群容量变更') }
@@ -693,12 +692,12 @@
             operations.push(...[
               <OperationBtnStatusTips data={data}>
                 <auth-button
-                  text
-                  theme={theme}
                   action-id="tendbcluster_enable_disable"
-                  disabled={data.isStarting}
                   permission={data.permission.tendbcluster_enable_disable}
                   resource={data.id}
+                  text
+                  theme={theme}
+                  disabled={data.isStarting}
                   class="mr-8"
                   onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_ENABLE, data)}>
                   { t('启用') }
@@ -706,12 +705,12 @@
               </OperationBtnStatusTips>,
               <OperationBtnStatusTips data={data}>
                 <auth-button
-                  text
-                  theme={theme}
                   action-id="tendbcluster_destroy"
-                  disabled={Boolean(data.operationTicketId)}
                   permission={data.permission.tendbcluster_destroy}
                   resource={data.id}
+                  text
+                  theme={theme}
+                  disabled={Boolean(data.operationTicketId)}
                   class="mr-8"
                   onClick={() => handleDeleteCluster(data)}>
                   { t('删除') }
@@ -727,10 +726,12 @@
               data={data}
               disabled={!data.isOffline}>
               <auth-button
+                action-id="tendbcluster_spider_add_nodes"
+                permission={data.permission.tendbcluster_spider_add_nodes}
+                resource={data.id}
                 text
                 disabled={data.isOffline}
                 class="mr-8"
-                action-id="tendbcluster_spider_add_nodes"
                 onClick={() => handleShowScaleUp(data)}>
                 { t('扩容接入层') }
               </auth-button>
@@ -739,10 +740,12 @@
               data={data}
               disabled={!data.isOffline}>
               <auth-button
+                action-id="tendbcluster_spider_reduce_nodes"
+                permission={data.permission.tendbcluster_spider_reduce_nodes}
+                resource={data.id}
                 text
                 disabled={data.isOffline}
                 class="mr-8"
-                action-id="tendbcluster_spider_reduce_nodes"
                 onClick={() => handleShowShrink(data)}>
                 { t('缩容接入层') }
               </auth-button>
@@ -751,9 +754,11 @@
           if (data.spider_mnt.length > 0) {
             operations.push((
               <auth-button
+                action-id="tendbcluster_spider_mnt_destroy"
+                permission={data.permission.tendbcluster_spider_mnt_destroy}
+                resource={data.id}
                 text
                 class="mr-8"
-                action-id="tendbcluster_spider_mnt_destroy"
                 onClick={() => handleRemoveMNT(data)}>
                 { t('下架运维节点') }
               </auth-button>
@@ -762,9 +767,11 @@
           if (data.spider_slave.length > 0) {
             operations.push((
               <auth-button
+                action-id="tendb_spider_slave_destroy"
+                permission={data.permission.tendb_spider_slave_destroy}
+                resource={data.id}
                 text
                 class="mr-8"
-                action-id="tendb_spider_slave_destroy"
                 onClick={() => handleDestroySlave(data)}>
                 { t('下架只读集群') }
               </auth-button>
@@ -773,12 +780,12 @@
           operations.push((
             <OperationBtnStatusTips data={data}>
               <auth-button
-                text
-                disabled={data.operationDisabled}
-                class="mr-8"
                 action-id="tendbcluster_enable_disable"
                 permission={data.permission.tendbcluster_enable_disable}
                 resource={data.id}
+                text
+                disabled={data.operationDisabled}
+                class="mr-8"
                 onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_DISABLE, data)}>
                 { t('禁用') }
               </auth-button>
@@ -1110,88 +1117,23 @@
 </script>
 
 <style lang="less" scoped>
-.spider-manage-list-page {
-  height: 100%;
-  padding: 24px 0;
-  margin: 0 24px;
-  overflow: hidden;
-
-  .operations {
-    display: flex;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-
-    .bk-search-select {
-      flex: 1;
-      max-width: 500px;
-      min-width: 320px;
-      margin-left: auto;
-    }
-
-  }
-
-  .is-shrink-table {
-    :deep(.bk-table-body) {
-      overflow: hidden auto;
-    }
-  }
-
-  :deep(.cell) {
-    line-height: normal !important;
-
-    .domain {
-      display: flex;
-      align-items: center;
-    }
-
-    .db-icon-copy, .db-icon-edit {
-      display: none;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-
-    .operations-more {
-      .db-icon-more {
-        display: block;
-        font-size: @font-size-normal;
-        color: @default-color;
-        cursor: pointer;
-
-        &:hover {
-          background-color: @bg-disable;
-          border-radius: 2px;
-        }
-      }
-    }
-  }
-
-  :deep(tr:hover) {
-    .db-icon-copy, .db-icon-edit {
-      display: inline-block !important;
-    }
-  }
-
-  :deep(.is-offline) {
-    a {
-      color: @gray-color;
-    }
-
-    .cell {
-      color: @disable-color;
-    }
-  }
-
-  :deep(.cluster-name-container) {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
+  .spider-manage-list-page {
+    height: 100%;
+    padding: 24px 0;
+    margin: 0 24px;
     overflow: hidden;
 
     .operations {
       display: flex;
       margin-bottom: 16px;
       flex-wrap: wrap;
+
+      .bk-search-select {
+        flex: 1;
+        max-width: 500px;
+        min-width: 320px;
+        margin-left: auto;
+      }
     }
 
     .is-shrink-table {
@@ -1254,28 +1196,94 @@
       padding: 8px 0;
       overflow: hidden;
 
-      .cluster-name {
-        line-height: 16px;
-
-        &__alias {
-          color: @light-gray;
-        }
-      }
-
-      .cluster-tags {
+      .operations {
         display: flex;
-        margin-left: 4px;
-        align-items: center;
+        margin-bottom: 16px;
         flex-wrap: wrap;
       }
 
-      .cluster-tag {
-        margin: 2px;
-        flex-shrink: 0;
+      .is-shrink-table {
+        :deep(.bk-table-body) {
+          overflow: hidden auto;
+        }
+      }
+
+      :deep(.cell) {
+        line-height: normal !important;
+
+        .domain {
+          display: flex;
+          align-items: center;
+        }
+
+        .db-icon-copy,
+        .db-icon-edit {
+          display: none;
+          margin-left: 4px;
+          color: @primary-color;
+          cursor: pointer;
+        }
+
+        .operations-more {
+          .db-icon-more {
+            display: block;
+            font-size: @font-size-normal;
+            color: @default-color;
+            cursor: pointer;
+
+            &:hover {
+              background-color: @bg-disable;
+              border-radius: 2px;
+            }
+          }
+        }
+      }
+
+      :deep(tr:hover) {
+        .db-icon-copy,
+        .db-icon-edit {
+          display: inline-block !important;
+        }
+      }
+
+      :deep(.is-offline) {
+        a {
+          color: @gray-color;
+        }
+
+        .cell {
+          color: @disable-color;
+        }
+      }
+
+      :deep(.cluster-name-container) {
+        display: flex;
+        align-items: center;
+        padding: 8px 0;
+        overflow: hidden;
+
+        .cluster-name {
+          line-height: 16px;
+
+          &__alias {
+            color: @light-gray;
+          }
+        }
+
+        .cluster-tags {
+          display: flex;
+          margin-left: 4px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .cluster-tag {
+          margin: 2px;
+          flex-shrink: 0;
+        }
       }
     }
   }
-}
 </style>
 
 <style lang="less">

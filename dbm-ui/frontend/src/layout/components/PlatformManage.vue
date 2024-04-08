@@ -69,7 +69,7 @@
             <FunController
               controller-id="duty_rule"
               module-id="monitor">
-              <BkMenuItem key="PlatRotateSet">
+              <BkMenuItem key="dutyRuleManange">
                 <template #icon>
                   <DbIcon type="db-config" />
                 </template>

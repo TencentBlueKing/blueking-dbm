@@ -66,10 +66,6 @@
     },
   ];
 
-  onMounted(() => {
-    inputRef.value?.focus?.();
-  });
-
   const handleSubmit = () => {
     formRef.value
       ?.validate()
@@ -87,6 +83,10 @@
   const handleClose = () => {
     emits('close');
   };
+
+  onMounted(() => {
+    inputRef.value?.focus?.();
+  });
 </script>
 
 <style lang="less" scoped>

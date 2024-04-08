@@ -11,31 +11,35 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
+import type { RouteRecordRaw } from 'vue-router';
 
-import { getPermissionRules } from '@services/permission';
-import type { PermissionRuleAccount } from '@services/types/permission';
+import { t } from '@locales/index';
 
-type IPermissioRule = ServiceReturnType<typeof getPermissionRules>['results'][number];
+const routes: RouteRecordRaw[] = [
+  {
+    name: 'dutyRuleManange',
+    path: 'duty-rule-manage',
+    meta: {
+      navName: t('轮值策略'),
+      fullscreen: true,
+    },
+    redirect: {
+      name: 'dutyRuleManangeIndex',
+    },
+    component: () => import('@views/duty-rule-manage/Index.vue'),
+    children: [
+      {
+        name: 'dutyRuleManangeIndex',
+        path: 'index',
+        meta: {
+          navName: t('轮值策略'),
+        },
+        component: () => import('@views/duty-rule-manage/index/Index.vue'),
+      },
+    ],
+  },
+];
 
-export interface PermissionTableRow extends IPermissioRule {
-  isExpand: boolean;
-}
-
-export interface PermissionState {
-  isAnomalies: boolean;
-  isLoading: boolean;
-  search: ISearchValue[];
-  data: PermissionTableRow[];
-}
-
-export interface StrengthItem {
-  keys: string[];
-  text: string;
-}
-
-export interface AccountColumn {
-  label: string;
-  key: keyof PermissionRuleAccount;
-  value?: string;
+export default function getRoutes() {
+  return routes;
 }

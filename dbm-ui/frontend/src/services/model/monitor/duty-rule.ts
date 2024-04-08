@@ -41,6 +41,11 @@ export default class DutyRule {
   is_enabled: boolean;
   is_show_edit: boolean;
   name: string;
+  permission: {
+    duty_rule_create: boolean;
+    duty_rule_destroy: boolean;
+    duty_rule_update: boolean;
+  };
   priority: number;
   status: string;
   updater: string;
@@ -58,6 +63,7 @@ export default class DutyRule {
     this.is_show_edit = false;
     this.end_time = payload.end_time;
     this.name = payload.name;
+    this.permission = payload.permission;
     this.priority = payload.priority;
     this.updater = payload.updater;
     this.update_at = payload.update_at;

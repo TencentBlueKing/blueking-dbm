@@ -32,8 +32,6 @@ export default class NoticGroup {
   updater: string;
   used_count: number;
   permission: {
-    global_notify_group_create: boolean;
-    global_notify_group_delete: boolean;
     global_notify_group_update: boolean;
     notify_group_create: boolean;
     notify_group_delete: boolean;

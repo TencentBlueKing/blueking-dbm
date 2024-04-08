@@ -12,99 +12,101 @@
 -->
 
 <template>
-  <div class="permission-rules-page">
-    <BkAlert
-      class="permission-info-alert"
-      theme="info">
-      <template #title>
-        <p>
-          <span class="label">{{ t('账号') }} ：</span>{{ t('访问 DB 的用户名，包括它的密码') }}
-        </p>
-        <p>
-          <span class="label">{{ t('授权规则') }} ：</span>{{ t('权限模板，预定义账号拥有哪些权限') }}
-        </p>
-        <p>
-          <span class="label">{{ t('授权') }} ：</span>{{ t('根据 grant 语法授予 DB 实例的访问权限') }}
-        </p>
-      </template>
-    </BkAlert>
-    <div class="operation-box">
-      <AuthButton
-        action-id="mysql_account_create"
-        theme="primary"
-        @click="handleShowAccountDialog">
-        {{ t('新建账号') }}
-      </AuthButton>
-      <DbSearchSelect
-        v-model="state.search"
-        :data="filters"
-        :placeholder="t('账号名称_DB名称_权限名称')"
-        style="width: 500px"
-        unique-select
-        @change="handleSearchChange" />
-    </div>
-    <BkLoading :loading="state.isLoading">
-      <DbOriginalTable
-        :columns="columns"
-        :data="state.data"
-        :is-anomalies="state.isAnomalies"
-        :is-searching="state.search.length > 0"
-        :max-height="tableMaxHeight"
-        :row-class="setRowClass"
-        @clear-search="handleClearSearch"
-        @refresh="fetchData" />
-    </BkLoading>
-  </div>
-  <!-- 创建账户 -->
-  <AccountDialog
-    v-model="accountDialog.isShow"
-    @success="fetchData" />
-  <!-- 添加授权规则 -->
-  <CreateRuleSlider
-    v-model="ruleState.isShow"
-    :account-id="ruleState.accountId"
-    @success="fetchData" />
-  <!-- 集群授权 -->
-  <ClusterAuthorize
-    v-model="authorizeState.isShow"
-    :access-dbs="authorizeState.dbs"
-    :account-type="AccountTypes.MYSQL"
-    :cluster-types="[ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA]"
-    :user="authorizeState.user" />
-  <!-- 账号信息 dialog -->
-  <BkDialog
-    v-model:is-show="accountDetailDialog.isShow"
-    dialog-type="show"
-    :draggable="false"
-    height="auto"
-    quick-close
-    :title="t('账号信息')"
-    :width="480">
-    <div class="permission-rule-account-details">
-      <div
-        v-for="column of accountColumns"
-        :key="column.key"
-        class="account-details-item">
-        <span class="account-details-label">{{ column.label }}：</span>
-        <span class="account-details-value">
-          {{ column.value ?? accountDetailDialog.rowData?.account[column.key as keyof IPermissioRule['account']] }}
-        </span>
+  <PermissionCatch>
+    <div class="permission-rules-page">
+      <BkAlert
+        class="permission-info-alert"
+        theme="info">
+        <template #title>
+          <p>
+            <span class="label">{{ t('账号') }} ：</span>{{ t('访问 DB 的用户名，包括它的密码') }}
+          </p>
+          <p>
+            <span class="label">{{ t('授权规则') }} ：</span>{{ t('权限模板，预定义账号拥有哪些权限') }}
+          </p>
+          <p>
+            <span class="label">{{ t('授权') }} ：</span>{{ t('根据 grant 语法授予 DB 实例的访问权限') }}
+          </p>
+        </template>
+      </BkAlert>
+      <div class="operation-box">
+        <AuthButton
+          action-id="mysql_account_create"
+          theme="primary"
+          @click="handleShowAccountDialog">
+          {{ t('新建账号') }}
+        </AuthButton>
+        <DbSearchSelect
+          v-model="state.search"
+          :data="filters"
+          :placeholder="t('账号名称_DB名称_权限名称')"
+          style="width: 500px"
+          unique-select
+          @change="handleSearchChange" />
       </div>
-      <div
-        v-if="accountDetailDialog.rowData?.rules?.length === 0"
-        class="account-details-item">
-        <span class="account-details-label" />
-        <span class="account-details-value">
-          <AuthButton
-            action-id="mysql_account_delete"
-            hover-theme="danger"
-            @click="handleDeleteAccount(accountDetailDialog.rowData)">
-            {{ t('删除账号') }}
-          </AuthButton>
-        </span>
-      </div>
+      <BkLoading :loading="state.isLoading">
+        <DbOriginalTable
+          :columns="columns"
+          :data="state.data"
+          :is-anomalies="state.isAnomalies"
+          :is-searching="state.search.length > 0"
+          :max-height="tableMaxHeight"
+          :row-class="setRowClass"
+          @clear-search="handleClearSearch"
+          @refresh="fetchData" />
+      </BkLoading>
     </div>
-  </BkDialog>
+    <!-- 创建账户 -->
+    <AccountDialog
+      v-model="accountDialog.isShow"
+      @success="fetchData" />
+    <!-- 添加授权规则 -->
+    <CreateRuleSlider
+      v-model="ruleState.isShow"
+      :account-id="ruleState.accountId"
+      @success="fetchData" />
+    <!-- 集群授权 -->
+    <ClusterAuthorize
+      v-model="authorizeState.isShow"
+      :access-dbs="authorizeState.dbs"
+      :account-type="AccountTypes.MYSQL"
+      :cluster-types="[ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA]"
+      :user="authorizeState.user" />
+    <!-- 账号信息 dialog -->
+    <BkDialog
+      v-model:is-show="accountDetailDialog.isShow"
+      dialog-type="show"
+      :draggable="false"
+      height="auto"
+      quick-close
+      :title="t('账号信息')"
+      :width="480">
+      <div class="permission-rule-account-details">
+        <div
+          v-for="column of accountColumns"
+          :key="column.key"
+          class="account-details-item">
+          <span class="account-details-label">{{ column.label }}：</span>
+          <span class="account-details-value">
+            {{ column.value ?? accountDetailDialog.rowData?.account[column.key as keyof IPermissioRule['account']] }}
+          </span>
+        </div>
+        <div
+          v-if="accountDetailDialog.rowData?.rules?.length === 0"
+          class="account-details-item">
+          <span class="account-details-label" />
+          <span class="account-details-value">
+            <AuthButton
+              action-id="mysql_account_delete"
+              hover-theme="danger"
+              @click="handleDeleteAccount(accountDetailDialog.rowData)">
+              {{ t('删除账号') }}
+            </AuthButton>
+          </span>
+        </div>
+      </div>
+    </BkDialog>
+  </PermissionCatch>
 </template>
 <script setup lang="tsx">
   import { Message } from 'bkui-vue';
@@ -129,6 +131,7 @@
     OccupiedInnerHeight,
   } from '@common/const';
 
+  import PermissionCatch from '@components/apply-permission/Catch.vue'
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -249,8 +252,9 @@
                 )
                 }
                 <auth-button
-                  action-id="mysql_account_rule_create"
-                  permission={data.permission.mysql_account_rule_create}
+                  action-id="mysql_add_account_rule"
+                  permission={data.permission.mysql_add_account_rule}
+                  resource={data.account.account_id}
                   class="add-rule-btn"
                   size="small"
                   onClick={(event: PointerEvent) => handleShowCreateRule(data, event)}>
@@ -271,8 +275,9 @@
             <>
               <span>{t('暂无规则')}，</span>
               <auth-button
-                action-id="mysql_account_rule_create"
-                permission={data.permission.mysql_account_rule_create}
+                action-id="mysql_add_account_rule"
+                permission={data.permission.mysql_add_account_rule}
+                resource={data.account.account_id}
                 theme="primary"
                 size="small"
                 text
@@ -322,6 +327,7 @@
                 text
                 action-id="mysql_account_delete"
                 permission={data.permission.mysql_account_delete}
+                resource={data.account.account_id}
                 onClick={() => handleDeleteAccount(data)}>
                 {t('删除账号')}
               </auth-button>
@@ -371,6 +377,8 @@
     getPermissionRules({
       ...getSearchSelectorParams(state.search),
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    }, {
+      permission: 'catch'
     })
       .then((res) => {
         state.data = res.results.map(item => Object.assign({ isExpand: true }, item));

@@ -58,11 +58,12 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <BkButton
+      <AuthButton
+        action-id="resource_operation_view"
         class="quick-search-btn"
         @click="handleGoOperationRecord">
         <DbIcon type="history-2" />
-      </BkButton>
+      </AuthButton>
     </div>
     <RenderTable
       ref="tableRef"

@@ -31,10 +31,35 @@ interface InfluxDBGroupItem {
  * 分组列表
  */
 export function getGroupList(params: { bk_biz_id: number }) {
-  return http.get<ListBase<InfluxDBGroupItem[]>>(`${path}/`, {
-    limit: -1,
-    ...params,
-  });
+  return http
+    .get<
+      ListBase<
+        {
+          bk_biz_id: number;
+          create_at: string;
+          creator: string;
+          id: number;
+          instance_count: number;
+          name: string;
+          permission: {
+            group_manage: boolean;
+          };
+          update_at: string;
+          updater: string;
+        }[]
+      >
+    >(`${path}/`, {
+      limit: -1,
+      ...params,
+    })
+    .then((data) => ({
+      ...data,
+      results: data.results.map((item) =>
+        Object.assign(item, {
+          permission: data.permission || {},
+        }),
+      ),
+    }));
 }
 
 /**

@@ -32,13 +32,6 @@
       </div>
       <span class="split-line" />
       <div class="group-list db-scroll-y">
-        <!-- <div class="search-main">
-          <BkInput
-            v-model="searchValue"
-            :placeholder="t('搜索分组')"
-            type="search"
-            @enter="fetchGroupList" />
-        </div> -->
         <div
           v-for="item in groupList"
           :key="item.id"
@@ -60,30 +53,44 @@
               class="group-item-name text-overflow">
               {{ item.name }}
             </span>
-            <span class="group-item-nums">{{ item.instance_count }}</span>
+            <span class="group-item-nums">
+              {{ item.instance_count }}
+            </span>
             <div class="group-item-operations">
-              <DbIcon
-                v-bk-tooltips="$t('修改名称')"
-                class="group-item-btn mr-8"
-                type="edit"
-                @click.stop="handleEdit(item.id)" />
-              <DbIcon
-                v-if="item.instance_count > 0"
-                v-bk-tooltips="$t('分组下存在实例_不可删除')"
-                class="group-item-btn is-disabled"
-                type="delete"
-                @click.stop />
-              <DbPopconfirm
-                v-else
-                :confirm-handler="() => handleDelete(item)"
-                :content="$t('删除后将不可恢复_请确认操作')"
-                :title="$t('确认删除该分组')">
+              <AuthTemplate
+                action-id="group_manage"
+                :permission="item.permission.group_manage">
                 <DbIcon
-                  v-bk-tooltips="$t('删除')"
-                  class="group-item-btn"
+                  v-bk-tooltips="$t('修改名称')"
+                  class="group-item-btn mr-8"
+                  type="edit"
+                  @click.stop="handleEdit(item.id)" />
+              </AuthTemplate>
+              <AuthTemplate
+                v-if="item.instance_count > 0"
+                action-id="group_manage"
+                :permission="item.permission.group_manage">
+                <DbIcon
+                  v-bk-tooltips="$t('分组下存在实例_不可删除')"
+                  class="group-item-btn is-disabled"
                   type="delete"
                   @click.stop />
-              </DbPopconfirm>
+              </AuthTemplate>
+              <AuthTemplate
+                v-else
+                action-id="group_manage"
+                :permission="item.permission.group_manage">
+                <DbPopconfirm
+                  :confirm-handler="() => handleDelete(item)"
+                  :content="$t('删除后将不可恢复_请确认操作')"
+                  :title="$t('确认删除该分组')">
+                  <DbIcon
+                    v-bk-tooltips="$t('删除')"
+                    class="group-item-btn"
+                    type="delete"
+                    @click.stop />
+                </DbPopconfirm>
+              </AuthTemplate>
             </div>
           </template>
         </div>
@@ -93,14 +100,17 @@
           v-if="isShowCreateGroup"
           @change="handleCreateGroup"
           @close="handleCreateClose" />
-        <a
+        <AuthButton
           v-else
-          class="group-add"
-          href="javascript:"
+          action-id="group_manage"
+          text
+          theme="primary"
           @click="handleShowCreateGroup">
-          <DbIcon type="plus-circle" />
+          <DbIcon
+            class="mr-4"
+            type="plus-circle" />
           {{ $t('添加分组') }}
-        </a>
+        </AuthButton>
       </div>
     </BkLoading>
   </div>
@@ -111,12 +121,13 @@
   import { useI18n } from 'vue-i18n';
 
   import { createGroup, deleteGroup, getGroupList, updateGroupInfo } from '@services/source/influxdbGroup';
-  import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
   import GroupCreate from './components/Create.vue';
 
   import { useGlobalBizs } from '@/stores';
   import { messageSuccess } from '@/utils';
+
+  type InfluxDBGroupItem = ServiceReturnType<typeof getGroupList>['results'][number];
 
   const route = useRoute();
   const router = useRouter();
@@ -126,7 +137,7 @@
 
   const activeGroupId = ref(0);
   const isLoading = ref(false);
-  const groupList = ref<Array<InfluxDBGroupItem>>([]);
+  const groupList = ref<InfluxDBGroupItem[]>([]);
   const curEditGroupId = ref(0);
   const isShowCreateGroup = ref(false);
   const totalInstances = computed(() =>
@@ -160,7 +171,9 @@
 
   const fetchGroupList = () => {
     isLoading.value = true;
-    getGroupList({ bk_biz_id: currentBizId })
+    getGroupList({
+      bk_biz_id: currentBizId,
+    })
       .then((data) => {
         groupList.value = data.results;
         setGroupId(Number(route.params.groupId));
@@ -206,7 +219,7 @@
           bk_biz_id: item.bk_biz_id,
           name,
         }).then(() => {
-          Object.assign(item, { name });
+          fetchGroupList();
           curEditGroupId.value = 0;
         });
       }
@@ -221,9 +234,9 @@
     createGroup({
       bk_biz_id: currentBizId,
       name,
-    }).then((res) => {
+    }).then(() => {
       messageSuccess(t('创建成功'));
-      groupList.value.push(res);
+      fetchGroupList();
     });
   };
 
