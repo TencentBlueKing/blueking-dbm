@@ -249,7 +249,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "a",
-  "version": 18,
+  "version": 22,
   "alert_source": "event",
   "custom_conditions": []
 }

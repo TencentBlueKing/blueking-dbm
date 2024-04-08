@@ -21,7 +21,17 @@ class Command(BaseCommand):
         parser.add_argument(
             "srv_type",
             type=str,
-            choices=["all", "itsm", "bklog", "bkcc", "bkmonitor_alarm", "bkmonitor_channel", "bkjob", "ssl"],
+            choices=[
+                "all",
+                "itsm",
+                "bklog",
+                "bkcc",
+                "bkmonitor_alarm",
+                "bkmonitor_channel",
+                "grafana",
+                "bkjob",
+                "ssl",
+            ],
             help="all: initialize all services, "
             "itsm: initialize itsm service, "
             "bklog: initialize bk-log services"
@@ -52,6 +62,9 @@ class Command(BaseCommand):
 
         if srv_type == "all" or srv_type == "bkmonitor_channel":
             Services.auto_create_bkmonitor_channel()
+
+        if srv_type == "all" or srv_type == "grafana":
+            Services.auto_init_grafana()
 
         if srv_type == "all" or srv_type == "ssl":
             Services.auto_create_ssl_service()

@@ -13,6 +13,7 @@ import json
 import logging
 import os.path
 from dataclasses import dataclass
+from json import JSONDecodeError
 from typing import Dict, List, Optional
 
 import yaml
@@ -112,8 +113,11 @@ class SimpleProvisioning(BaseProvisioning):
                                 file_content = file_content.replace(
                                     "{metric_data_id}", str(bkm_dbm_report["metric"]["data_id"])
                                 )
-
-                                dashboard = json.loads(file_content)
+                                try:
+                                    dashboard = json.loads(file_content)
+                                except JSONDecodeError as err:
+                                    logger.error(f"Failed to load {os.path.basename(path)}")
+                                    raise err
                                 title = dashboard.get("title")
                                 if not title:
                                     continue
