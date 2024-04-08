@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -63,7 +64,7 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
     queryset = DutyRule.objects.all().order_by("-update_at")
     serializer_class = DutyRuleSerializer
     pagination_class = AuditedLimitOffsetPagination
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     filter_fields = {"db_type": ["exact"], "name": ["exact"]}
     search_fields = ["name"]
 
