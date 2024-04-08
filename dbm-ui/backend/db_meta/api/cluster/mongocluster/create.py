@@ -108,7 +108,9 @@ def create_mongo_cluster(
 
     # 写入shard分片规则
     for primary in primaries:
-        primary_obj = StorageInstance.objects.get(machine__ip=primary["ip"], port=primary["port"])
+        primary_obj = StorageInstance.objects.get(
+            machine__ip=primary["ip"], port=primary["port"], machine__bk_cloud_id=bk_cloud_id, bk_biz_id=bk_biz_id
+        )
         cluster.nosqlstoragesetdtl_set.create(
             instance=primary_obj,
             bk_biz_id=bk_biz_id,
