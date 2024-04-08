@@ -54,16 +54,15 @@
         {{ t('导入授权') }}
       </AuthButton>
       <DropdownExportExcel
-        :has-selected="hasSelected"
         :ids="selectedIds"
         type="tendbha" />
       <DbSearchSelect
-        v-model="searchValue"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
+        :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        style="width: 320px;"
-        unique-select />
+        unique-select
+        @change="handleSearchValueChange" />
     </div>
     <div
       class="table-wrapper"
@@ -108,7 +107,6 @@
 
   import type { MySQLFunctions } from '@services/model/function-controller/functionController';
   import TendbhaModel from '@services/model/mysql/tendbha';
-  import { getModules } from '@services/source/cmdb';
   import {
     getTendbhaDetail,
     getTendbhaInstanceList,
@@ -116,9 +114,6 @@
   } from '@services/source/tendbha';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
-  import type {
-    SearchFilterItem,
-  } from '@services/types';
 
   import {
     useCopy,
@@ -171,7 +166,6 @@
 
   interface State {
     selected: Array<TendbhaModel>,
-    dbModuleList: Array<SearchFilterItem>,
   }
 
   const clusterId = defineModel<number>('clusterId');
@@ -204,9 +198,12 @@
     searchAttrs,
     searchValue,
     sortValue,
+    columnCheckedMap,
+    batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.TENDBHA, [
     'bk_cloud_id',
     'db_module_id',
@@ -225,7 +222,6 @@
 
   const state = reactive<State>({
     selected: [],
-    dbModuleList: [],
   });
 
   /** 集群授权 */
@@ -240,20 +236,16 @@
 
   const searchSelectData = computed(() => [
     {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-    },
-    {
-      name: t('实例'),
+      name: t('IP 或 IP:Port'),
       id: 'instance',
     },
     {
       name: t('访问入口'),
       id: 'domain',
+    },
+    {
+      name: 'ID',
+      id: 'id',
     },
     {
       name: t('集群名称'),
@@ -317,13 +309,6 @@
     return 60;
   });
 
-  const searchIp = computed<string[]>(() => {
-    const ipObj = searchValue.value.find(item => item.id === 'ip');
-    if (ipObj && ipObj.values) {
-      return [ipObj.values[0].id];
-    }
-    return [];
-  });
   const isShowDumperEntry = computed(() => {
     const currentKey = `dumper_biz_${globalBizsStore.currentBizId}` as MySQLFunctions;
     return funControllerStore.funControllerData.mysql.children[currentKey];
@@ -423,11 +408,13 @@
     },
     {
       label: t('管控区域'),
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
       filter: {
         list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
       },
       width: 90,
+      render: ({ data }: ColumnData) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       label: t('状态'),
@@ -444,6 +431,7 @@
             text: t('异常'),
           },
         ],
+        checked: columnCheckedMap.value.status,
       },
       render: ({ data }: ColumnData) => {
         const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
@@ -483,11 +471,12 @@
     {
       label: 'Proxy',
       field: 'proxies',
+      width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <RenderInstances
-          highlightIps={searchIp.value}
+          highlightIps={batchSearchIpInatanceList.value}
           data={data.proxies || []}
           title={t('【inst】实例预览', { inst: data.master_domain, title: 'Proxy' })}
           role="proxy"
@@ -499,11 +488,12 @@
     {
       label: 'Master',
       field: 'masters',
+      width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <RenderInstances
-          highlightIps={searchIp.value}
+          highlightIps={batchSearchIpInatanceList.value}
           data={data.masters}
           title={t('【inst】实例预览', { inst: data.master_domain, title: 'Master' })}
           role="proxy"
@@ -515,12 +505,12 @@
     {
       label: 'Slave',
       field: 'slaves',
+      width: 180,
       minWidth: 180,
-      width: 200,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <RenderInstances
-          highlightIps={searchIp.value}
+          highlightIps={batchSearchIpInatanceList.value}
           data={data.slaves || []}
           title={t('【inst】实例预览', { inst: data.master_domain, title: 'Slave' })}
           role="slave"
@@ -535,6 +525,7 @@
       width: 140,
       filter: {
         list: columnAttrs.value.db_module_id,
+        checked: columnCheckedMap.value.db_module_id,
       },
       render: ({ data }: ColumnData) => <span>{data.db_module_name || '--'}</span>,
     },
@@ -544,6 +535,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.major_version,
+        checked: columnCheckedMap.value.major_version,
       },
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
@@ -553,6 +545,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.region,
+        checked: columnCheckedMap.value.region,
       },
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
@@ -575,6 +568,7 @@
       width: 100,
       filter: {
         list: columnAttrs.value.time_zone,
+        checked: columnCheckedMap.value.time_zone,
       },
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
@@ -584,74 +578,74 @@
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: ColumnData) => (
-          <>
-            <auth-button
+        <>
+          <auth-button
+            text
+            theme="primary"
+            class="mr-8"
+            actionId="mysql_authorize"
+            permission={data.permission.mysql_authorize}
+            resource={data.id}
+            onClick={() => handleShowAuthorize([data])}>
+            { t('授权') }
+          </auth-button>
+          {isShowDumperEntry.value && (
+            <bk-button
               text
               theme="primary"
               class="mr-8"
-              actionId="mysql_authorize"
-              permission={data.permission.mysql_authorize}
-              resource={data.id}
-              onClick={() => handleShowAuthorize([data])}>
-              { t('授权') }
-            </auth-button>
-            {isShowDumperEntry.value && (
-              <bk-button
-                text
-                theme="primary"
-                class="mr-8"
-                onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
-                { t('数据订阅') }
-              </bk-button>
-            )}
-            {
-              data.isOnline ? (
+              onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
+              { t('数据订阅') }
+            </bk-button>
+          )}
+          {
+            data.isOnline ? (
+              <OperationBtnStatusTips data={data}>
+                <auth-button
+                  text
+                  theme="primary"
+                  disabled={Boolean(data.operationTicketId)}
+                  class="mr-8"
+                  action-id="mysql_enable_disable"
+                  permission={data.permission.mysql_enable_disable}
+                  resource={data.id}
+                  onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
+                  { t('禁用') }
+                </auth-button>
+              </OperationBtnStatusTips>
+            ) : (
+              <>
+                <OperationBtnStatusTips data={data}>
+                  <auth-button
+                    text
+                    theme="primary"
+                    disabled={data.isStarting}
+                    class="mr-8"
+                    action-id="mysql_enable_disable"
+                    permission={data.permission.mysql_enable_disable}
+                    resource={data.id}
+                    onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
+                    { t('启用') }
+                  </auth-button>
+                </OperationBtnStatusTips>
                 <OperationBtnStatusTips data={data}>
                   <auth-button
                     text
                     theme="primary"
                     disabled={Boolean(data.operationTicketId)}
                     class="mr-8"
-                    action-id="mysql_enable_disable"
-                    permission={data.permission.mysql_enable_disable}
+                    action-id="mysql_destroy"
+                    permission={data.permission.mysql_destroy}
                     resource={data.id}
-                    onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
-                    { t('禁用') }
+                    onClick={() => handleDeleteCluster(data)}>
+                    { t('删除') }
                   </auth-button>
                 </OperationBtnStatusTips>
-              ) : (
-                <>
-                  <OperationBtnStatusTips data={data}>
-                    <auth-button
-                      text
-                      theme="primary"
-                      disabled={data.isStarting}
-                      class="mr-8"
-                      action-id="mysql_enable_disable"
-                      permission={data.permission.mysql_enable_disable}
-                      resource={data.id}
-                      onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
-                      { t('启用') }
-                    </auth-button>
-                  </OperationBtnStatusTips>
-                  <OperationBtnStatusTips data={data}>
-                    <auth-button
-                      text
-                      theme="primary"
-                      disabled={Boolean(data.operationTicketId)}
-                      class="mr-8"
-                      action-id="mysql_destroy"
-                      permission={data.permission.mysql_destroy}
-                      resource={data.id}
-                      onClick={() => handleDeleteCluster(data)}>
-                      { t('删除') }
-                    </auth-button>
-                  </OperationBtnStatusTips>
-                </>
-              )
-            }
-          </>
-        ),
+              </>
+            )
+          }
+        </>
+      ),
     },
   ]);
 
@@ -670,7 +664,6 @@
     settings,
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.TENDBHA_TABLE_SETTINGS, defaultSettings);
-
 
   const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
@@ -739,21 +732,6 @@
   const handleShowExcelAuthorize = () => {
     isShowExcelAuthorize.value = true;
   };
-
-  /**
-   * 获取模块列表
-   */
-  const fetchModules = () => getModules({
-    bk_biz_id: globalBizsStore.currentBizId,
-    cluster_type: ClusterTypes.TENDBHA,
-  }).then((res) => {
-    state.dbModuleList = res.map(item => ({
-      id: item.db_module_id,
-      name: item.name,
-    }));
-    return state.dbModuleList;
-  });
-  fetchModules();
 
   /**
    * 查看详情

@@ -25,8 +25,7 @@
   </template>
   <!-- 人工确认 -->
   <template
-    v-else-if="(content.status === 'PENDING' && content.flow_type === 'PAUSE') ||
-      (content.status === 'RUNNING' && !isSamePeople)">
+    v-else-if="content.status === 'PENDING' && content.flow_type === 'PAUSE'">
     <span>等待 {{ ticketData.creator }} 确认是否执行 "{{ manualNexFlowDisaply }}"</span>
   </template>
   <template v-else>
@@ -129,8 +128,7 @@
   import { retryTicketFlow } from '@services/source/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
-  import { useUserProfile  } from '@stores';
-
+  // import { useUserProfile  } from '@stores';
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import FlowContentInnerFlow from './components/ContentInnerFlow.vue';
@@ -154,7 +152,7 @@
   const emits = defineEmits<Emits>();
 
   const router = useRouter();
-  const { username } = useUserProfile();
+  // const { username } = useUserProfile();
 
   const retryButtonRef = ref();
   const state = reactive({
@@ -177,7 +175,7 @@
     return content.status === 'RUNNING' && content.flow_type === 'PAUSE';
   });
 
-  const isSamePeople = computed(() => props.ticketData.creator === username);
+  // const isSamePeople = computed(() => props.ticketData.creator === username);
 
   function getHrefTarget(content: FlowItem) {
     return content.flow_type === 'BK_ITSM' ? '_blank' : '_self';

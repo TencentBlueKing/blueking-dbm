@@ -18,42 +18,49 @@
       :key="inst.bk_instance_id"
       class="pt-2 pb-2"
       :class="{ 'is-unavailable': inst.status === 'unavailable' }">
-      <span
-        class="pr-4"
-        :style="{ color: highlightIps.includes(inst.ip) ? 'rgb(255 130 4)' : '#63656e' }">
-        <slot :data="inst">
-          {{ inst.ip }}:{{ inst.port }}
-        </slot>
-      </span>
-      <BkTag v-if="inst.status === 'unavailable'">
-        {{ $t('不可用') }}
-      </BkTag>
-      <template v-if="index === 0">
-        <BkPopover
-          ext-cls="copy-popover"
-          placement="top"
-          theme="light">
-          <DbIcon
-            type="copy" />
-          <template #content>
-            <BkButton
-              class="copy-trigger"
-              text
-              theme="primary"
-              @click="handleCopyIps">
-              {{ $t('复制IP') }}
-            </BkButton>
-            <span class="copy-trigger-split" />
-            <BkButton
-              class="copy-trigger"
-              text
-              theme="primary"
-              @click="handleCopyInstances">
-              {{ $t('复制实例') }}
-            </BkButton>
+      <TextOverflowLayout>
+        <template #default>
+          <span
+            class="pr-4"
+            :style="{ color: highlightIps.includes(inst.ip)
+              || highlightIps.includes(`${inst.ip}:${inst.port}`) ? 'rgb(255 130 4)' : '#63656e' }">
+            <slot :data="inst">
+              {{ inst.ip }}:{{ inst.port }}
+            </slot>
+          </span>
+        </template>
+        <template #append>
+          <BkTag v-if="inst.status === 'unavailable'">
+            {{ $t('不可用') }}
+          </BkTag>
+          <template v-if="index === 0">
+            <BkPopover
+              ext-cls="copy-popover"
+              placement="top"
+              theme="light">
+              <DbIcon
+                type="copy" />
+              <template #content>
+                <BkButton
+                  class="copy-trigger"
+                  text
+                  theme="primary"
+                  @click="handleCopyIps">
+                  {{ $t('复制IP') }}
+                </BkButton>
+                <span class="copy-trigger-split" />
+                <BkButton
+                  class="copy-trigger"
+                  text
+                  theme="primary"
+                  @click="handleCopyInstances">
+                  {{ $t('复制实例') }}
+                </BkButton>
+              </template>
+            </BkPopover>
           </template>
-        </BkPopover>
-      </template>
+        </template>
+      </TextOverflowLayout>
     </p>
     <template v-if="hasMore">
       <BkButton
@@ -133,6 +140,7 @@
   } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { messageWarn } from '@utils';
 

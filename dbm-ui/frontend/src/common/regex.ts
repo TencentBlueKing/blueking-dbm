@@ -57,3 +57,8 @@ export const netIp = new RegExp(`^\\d+:${ipv4Regex}$`);
  * 数据库/表名称限制正则
  */
 export const dbRegex = /^[a-zA-Z0-9][-_a-zA-Z0-9]*([a-zA-Z0-9]|%)$/;
+
+/**
+ * 批量搜索分隔符，支持 中英竖线、中英逗号、中英分号、顿号、制表符、换行符、斜线
+ */
+export const batchSplitRegex = /\s*[｜|，,；;、\t\n/]\s*/g ;
