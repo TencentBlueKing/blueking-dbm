@@ -696,7 +696,7 @@ class ActKwargs:
         """创建/删除用户获取cluster信息"""
 
         # 获取集群信息
-        cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
+        cluster_info = MongoRepository().fetch_one_cluster(set_get_domain=False, id=cluster_id)
         bk_cloud_id = cluster_info.bk_cloud_id
         self.cluster_type = cluster_info.cluster_type
         exec_ip: str = None
@@ -813,7 +813,7 @@ class ActKwargs:
         hosts = set()
         bk_cloud_id: int = None
         for cluster_id in self.payload["cluster_ids"]:
-            cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
+            cluster_info = MongoRepository().fetch_one_cluster(set_get_domain=False, id=cluster_id)
             if cluster_info.cluster_type == ClusterType.MongoReplicaSet.value:
                 shard = cluster_info.get_shards()[0]
                 bk_cloud_id = shard.members[0].bk_cloud_id
@@ -839,7 +839,7 @@ class ActKwargs:
     def get_cluster_info_deinstall(self, cluster_id: int):
         """卸载流程获取cluster信息"""
 
-        cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
+        cluster_info = MongoRepository().fetch_one_cluster(set_get_domain=True, id=cluster_id)
         self.payload["cluster_type"] = cluster_info.cluster_type
         self.payload["set_id"] = cluster_info.name
         self.payload["cluster_name"] = cluster_info.name
@@ -926,7 +926,9 @@ class ActKwargs:
             self.payload["shards_nodes"] = shards_nodes
             self.payload["config_nodes"] = config_nodes
 
-    def get_mongo_deinstall_kwargs(self, node_info: dict, instance_type: str, nodes_info: list, force: bool) -> dict:
+    def get_mongo_deinstall_kwargs(
+        self, node_info: dict, instance_type: str, nodes_info: list, force: bool, rename_dir: bool
+    ) -> dict:
         """卸载mongo的kwargs"""
 
         nodes = []
@@ -948,6 +950,7 @@ class ActKwargs:
                     "nodeInfo": nodes,
                     "instanceType": instance_type,
                     "force": force,
+                    "renameDir": rename_dir,
                 },
             },
         }
@@ -1640,26 +1643,6 @@ class ActKwargs:
             hosts.append({"ip": host, "bk_cloud_id": bk_cloud_id})
         self.payload["hosts"] = hosts
 
-    # def get_host_reduce_node(self):
-    #     """cluster减少node获取主机"""
-    #
-    #     hosts_set = set()
-    #     hosts = []
-    #     if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
-    #         bk_cloud_id = self.payload["db_instances"][0]["bk_cloud_id"]
-    #         for host in self.payload["db_instances"]:
-    #             hosts_set.add(host["ip"])
-    #         for host in hosts_set:
-    #             hosts.append({"ip": host, "bk_cloud_id": bk_cloud_id})
-    #     elif self.payload["cluster_type"] == ClusterType.MongoShardedCluster.value:
-    #         for shard in self.payload["shards_instance_relationships"].values():
-    #             for node in shard:
-    #                 hosts_set.add(node["ip"])
-    #
-    #
-    #
-    #     self.payload["hosts"] = hosts
-
     def get_reduce_node_kwargs(self, info: dict) -> dict:
         """减少node的kwargs"""
 
@@ -1683,6 +1666,48 @@ class ActKwargs:
                     "targetPort": 0,
                     "targetPriority": "",
                     "targetHidden": "",
+                },
+            },
+        }
+
+    def get_hosts_enable_disable(self):
+        """获取所有需要启用或禁用的cluster的hosts"""
+
+        hosts = set()
+        bk_cloud_id: int = None
+        for cluster_id in self.payload["cluster_ids"]:
+            cluster_info = MongoRepository().fetch_one_cluster(set_get_domain=False, id=cluster_id)
+            if cluster_info.cluster_type == ClusterType.MongoReplicaSet.value:
+                shard = cluster_info.get_shards()[0]
+                bk_cloud_id = shard.members[0].bk_cloud_id
+                for member in shard.members:
+                    hosts.add(member.ip)
+            elif cluster_info.cluster_type == ClusterType.MongoShardedCluster.value:
+                mongos = cluster_info.get_mongos()
+                bk_cloud_id = mongos[0].bk_cloud_id
+                for mongo in mongos:
+                    hosts.add(mongo.ip)
+        list_hosts = []
+        for host in hosts:
+            list_hosts.append({"ip": host, "bk_cloud_id": bk_cloud_id})
+        self.payload["hosts"] = list_hosts
+
+    def get_mongo_start_kwargs(self, node_info: dict, instance_type: str) -> dict:
+        """卸载mongo的kwargs"""
+
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": self.payload["bk_cloud_id"],
+            "exec_ip": node_info["ip"],
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.MongoStart,
+                "file_path": self.file_path,
+                "payload": {
+                    "ip": node_info["ip"],
+                    "port": node_info["port"],
+                    "instanceType": instance_type,
+                    "auth": True,
                 },
             },
         }

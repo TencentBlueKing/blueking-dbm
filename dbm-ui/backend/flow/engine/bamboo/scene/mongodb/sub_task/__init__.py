@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 
+from .cluster_enable_disable import cluster_enable_disable
 from .cluster_increase_node import cluster_increase_node
 from .cluster_reduce_node import cluster_reduce_node
 from .cluster_replace import cluster_replace

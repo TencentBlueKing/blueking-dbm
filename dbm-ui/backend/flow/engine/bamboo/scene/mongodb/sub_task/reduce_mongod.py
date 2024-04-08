@@ -84,10 +84,7 @@ def reduce_mongod(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwar
 
     # mongod下架
     kwargs = sub_get_kwargs.get_mongo_deinstall_kwargs(
-        node_info=node,
-        instance_type=MongoDBInstanceType.MongoD.value,
-        nodes_info=[node],
-        force=True,
+        node_info=node, instance_type=MongoDBInstanceType.MongoD.value, nodes_info=[node], force=True, rename_dir=True
     )
     sub_pipeline.add_act(
         act_name=_("MongoDB-{}-mongod下架".format(node["ip"])),

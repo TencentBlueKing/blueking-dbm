@@ -32,7 +32,7 @@ def mongo_deinstall_parallel(sub_get_kwargs: ActKwargs, nodes: list, instance_ty
     acts_list = []
     for node in nodes:
         kwargs = sub_get_kwargs.get_mongo_deinstall_kwargs(
-            node_info=node, nodes_info=nodes, instance_type=instance_type, force=force
+            node_info=node, nodes_info=nodes, instance_type=instance_type, force=force, rename_dir=True
         )
         acts_list.append(
             {

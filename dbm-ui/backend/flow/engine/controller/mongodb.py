@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_backup import MongoBackupFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_scale_mongos import ScaleMongoSFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_deinstall import MongoDBDeInstallFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_enable_disable import MongoEnableDisableFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_exec_script import MongoExecScriptFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoFakeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
@@ -164,3 +165,19 @@ class MongoDBController(BaseController):
 
         flow = MongoScaleNodeFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_cluster_scale_node_flow(increase=False)
+
+    def enable_cluster(self):
+        """
+        启用cluster
+        """
+
+        flow = MongoEnableDisableFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_flow(enable=True)
+
+    def disable_cluster(self):
+        """
+        禁用cluster
+        """
+
+        flow = MongoEnableDisableFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_flow(enable=False)

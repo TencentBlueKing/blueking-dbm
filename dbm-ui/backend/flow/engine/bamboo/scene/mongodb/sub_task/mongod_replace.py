@@ -187,6 +187,7 @@ def mongod_replace(
         instance_type=MongoDBInstanceType.MongoD.value,
         nodes_info=sub_sub_get_kwargs.payload["nodes"],
         force=force,
+        rename_dir=True,
     )
     sub_sub_pipeline.add_act(
         act_name=_("MongoDB-老实例下架-{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"]))),

@@ -211,13 +211,17 @@ class MongoRepository:
         pass
 
     @classmethod
-    def fetch_many_cluster(cls, **kwargs):
+    def fetch_many_cluster(cls, set_get_domain: bool, **kwargs):
+        # set_get_domain 是否获取复制集的域名
         rows: List[MongoDBCluster] = []
         v = Cluster.objects.filter(**kwargs)
         for i in v:
             if i.cluster_type == ClusterType.MongoReplicaSet.value:
                 # MongoReplicaSet 只有一个Set
-                shard = ReplicaSet(i.name, [MongoNode.from_instance(m) for m in i.storageinstance_set.all()])
+                if set_get_domain:
+                    shard = ReplicaSet(i.name, [MongoNode.from_proxy_instance(m) for m in i.storageinstance_set.all()])
+                else:
+                    shard = ReplicaSet(i.name, [MongoNode.from_instance(m) for m in i.storageinstance_set.all()])
 
                 row = ReplicaSetCluster(
                     bk_cloud_id=i.bk_cloud_id,
@@ -266,8 +270,8 @@ class MongoRepository:
         return rows
 
     @classmethod
-    def fetch_one_cluster(cls, **kwargs):
-        rows = cls.fetch_many_cluster(**kwargs)
+    def fetch_one_cluster(cls, set_get_domain: bool, **kwargs):
+        rows = cls.fetch_many_cluster(set_get_domain, **kwargs)
         if len(rows) > 0:
             return rows[0]
         return None
