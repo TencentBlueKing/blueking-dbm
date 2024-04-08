@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,47 +7,50 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import copy
-import logging
+import logging.config
 from dataclasses import asdict
+from datetime import datetime
 from typing import Dict, Optional
 
-from django.utils.crypto import get_random_string
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
 )
-from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
-from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_node_uninstall_sub_flow
+from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import remote_migrate_switch_sub_flow
+from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
+from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import (
+    remote_instance_migrate_sub_flow,
+    remote_node_uninstall_sub_flow,
+)
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
-from backend.flow.plugins.components.collections.spider.switch_remote_slave_routing import (
-    SwitchRemoteSlaveRoutingComponent,
-)
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import ClearMachineKwargs, DBMetaOPKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
-from backend.flow.utils.spider.spider_act_dataclass import InstancePairs, SwitchRemoteSlaveRoutingKwargs
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
-from backend.flow.utils.spider.tendb_cluster_info import get_slave_recover_info
+from backend.flow.utils.spider.tendb_cluster_info import get_master_slave_recover_info
 
 logger = logging.getLogger("flow")
 
 
-class TenDBRemoteSlaveRecoverFlow(object):
+class TendbClusterMigrateRemoteFlow(object):
     """
-    TenDB Cluster 后端从节点恢复: 迁移机器恢复,指定实例的本地恢复
+    tendb cluster 后端remote节点主从成对迁移
     """
 
     def __init__(self, root_id: str, ticket_data: Optional[Dict]):
@@ -59,22 +61,33 @@ class TenDBRemoteSlaveRecoverFlow(object):
         self.root_id = root_id
         self.ticket_data = ticket_data
         self.data = {}
+
+        # 定义备份文件存放到目标机器目录位置
         self.backup_target_path = f"/data/dbbak/{self.root_id}"
 
-    def tendb_remote_slave_recover(self):
+    def migrate_master_slave_flow(self):
         """
-        tendb cluster remote slave recover
-        增加单据临时ADMIN账号的添加和删除逻辑
+        成对迁移集群主从节点。
+        元数据信息修改顺序：
+        1 mysql_migrate_cluster_add_instance
+        2 mysql_migrate_cluster_add_tuple
+        3 mysql_migrate_cluster_switch_storage
         """
-        cluster_ids = [i["cluster_id"] for i in self.ticket_data["infos"]]
+        # 构建流程
+        cluster_ids = []
+        for i in self.ticket_data["infos"]:
+            cluster_ids.extend(i["cluster_ids"])
+
         tendb_migrate_pipeline_all = Builder(
             root_id=self.root_id,
             data=copy.deepcopy(self.ticket_data),
             need_random_pass_cluster_ids=list(set(cluster_ids)),
         )
+
+        # 按照传入的infos信息，循环拼接子流程
         tendb_migrate_pipeline_all_list = []
-        # 阶段1 获取集群所有信息。计算端口,构建数据。
         for info in self.ticket_data["infos"]:
+            # 阶段1 获取集群所有信息。计算端口,构建数据。
             self.data = copy.deepcopy(info)
             cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
             self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
@@ -86,27 +99,50 @@ class TenDBRemoteSlaveRecoverFlow(object):
             self.data["db_module_id"] = cluster_class.db_module_id
             self.data["cluster_type"] = cluster_class.cluster_type
             self.data["force"] = True
-            self.data["target_ip"] = self.data["new_slave_ip"]
-            self.data["source_ip"] = self.data["old_slave_ip"]
             self.data["charset"], self.data["db_version"] = get_version_and_charset(
                 bk_biz_id=cluster_class.bk_biz_id,
                 db_module_id=cluster_class.db_module_id,
                 cluster_type=cluster_class.cluster_type,
             )
 
+            #  todo 验证2个ip为主从关系
+            # 先查询备份，如果备份不存在则退出，不安装实例
+            # restore_time = datetime.strptime("2023-07-31 17:40:00", "%Y-%m-%d %H:%M:%S")
+            backup_handler = FixPointRollbackHandler(cluster_class.id)
+            restore_time = datetime.now(timezone.utc)
+            backup_info = backup_handler.query_latest_backup_log(restore_time)
+            if backup_info is None:
+                logger.error("cluster {} backup info not exists".format(self.data["cluster_id"]))
+                raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_class.id)))
+            logger.debug(backup_info)
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            cluster_info = get_slave_recover_info(cluster_class.id, self.data["source_ip"])
+
+            cluster_info = get_master_slave_recover_info(
+                cluster_class.id, self.data["old_master_ip"], self.data["old_slave_ip"]
+            )
+            cluster_info["charset"] = self.data["charset"]
+            cluster_info["db_version"] = self.data["db_version"]
             cluster_info["ports"] = []
             for shard_id, shard in cluster_info["my_shards"].items():
-                slave = {
-                    "ip": self.data["target_ip"],
-                    "port": shard["slave"]["port"],
-                    "bk_cloud_id": cluster_class.bk_cloud_id,
-                    "instance": "{}{}{}".format(self.data["target_ip"], IP_PORT_DIVIDER, shard["slave"]["port"]),
+                master = {
+                    "ip": self.data["new_master_ip"],
+                    "port": shard["master"]["port"],
+                    "bk_cloud_id": self.data["bk_cloud_id"],
+                    "instance": "{}{}{}".format(self.data["new_master_ip"], IP_PORT_DIVIDER, shard["master"]["port"]),
                 }
-                cluster_info["my_shards"][shard_id]["new_slave"] = slave
-                cluster_info["ports"].append(shard["slave"]["port"])
 
+                slave = {
+                    "ip": self.data["new_slave_ip"],
+                    "port": shard["slave"]["port"],
+                    "bk_cloud_id": self.data["bk_cloud_id"],
+                    "instance": "{}{}{}".format(self.data["new_slave_ip"], IP_PORT_DIVIDER, shard["slave"]["port"]),
+                }
+
+                cluster_info["my_shards"][shard_id]["new_slave"] = slave
+                cluster_info["my_shards"][shard_id]["new_master"] = master
+                cluster_info["ports"].append(shard["master"]["port"])
+
+            # 阶段2 安装实例
             install_sub_pipeline_list = []
             install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             install_sub_pipeline.add_sub_pipeline(
@@ -114,13 +150,15 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     uid=self.data["uid"],
                     root_id=self.root_id,
                     cluster=cluster_class,
-                    new_mysql_list=[self.data["target_ip"]],
+                    new_mysql_list=[self.data["new_master_ip"], self.data["new_slave_ip"]],
                     install_ports=cluster_info["ports"],
-                    bk_host_ids=[self.data["bk_new_slave"]["bk_host_id"]],
+                    bk_host_ids=[self.data["bk_new_master"]["bk_host_id"], self.data["bk_new_slave"]["bk_host_id"]],
                 )
             )
+
             cluster = {
-                "new_slave_ip": self.data["target_ip"],
+                "new_master_ip": self.data["new_master_ip"],
+                "new_slave_ip": self.data["new_slave_ip"],
                 "cluster_id": cluster_class.id,
                 "bk_cloud_id": cluster_class.bk_cloud_id,
                 "bk_biz_id": cluster_class.bk_biz_id,
@@ -132,7 +170,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 act_component_code=SpiderDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
-                        db_meta_class_func=SpiderDBMeta.tendb_slave_recover_add_nodes.__name__,
+                        db_meta_class_func=SpiderDBMeta.remotedb_migrate_add_install_nodes.__name__,
                         cluster=copy.deepcopy(cluster),
                         is_update_trans_data=False,
                     )
@@ -145,45 +183,58 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 kwargs=asdict(
                     DownloadBackupClientKwargs(
                         bk_cloud_id=cluster_class.bk_cloud_id,
-                        download_host_list=[cluster["new_slave_ip"]],
-                        bk_biz_id=cluster_class.bk_biz_id,
+                        bk_biz_id=int(cluster_class.bk_biz_id),
+                        download_host_list=[cluster["new_master_ip"], cluster["new_slave_ip"]],
                     )
                 ),
             )
 
+            # 安装临时备份程序
             exec_act_kwargs = ExecActuatorKwargs(
                 cluster=cluster,
                 bk_cloud_id=cluster_class.bk_cloud_id,
                 cluster_type=cluster_class.cluster_type,
                 get_mysql_payload_func=MysqlActPayload.get_install_tmp_db_backup_payload.__name__,
             )
-            exec_act_kwargs.exec_ip = [cluster["new_slave_ip"]]
+            exec_act_kwargs.exec_ip = [cluster["new_master_ip"], cluster["new_slave_ip"]]
             install_sub_pipeline.add_act(
                 act_name=_("安装临时备份程序"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
-            install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装remote从节点")))
+            install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装remote主从节点")))
 
+            # 阶段3 逐个实例同步数据到新主从库
             sync_data_sub_pipeline_list = []
             for shard_id, node in cluster_info["my_shards"].items():
-                ins_cluster = {
-                    "cluster_id": cluster_class.id,
-                    "master_ip": node["master"]["ip"],
-                    "master_port": node["master"]["port"],
-                    "new_slave_ip": node["new_slave"]["ip"],
-                    "new_slave_port": node["new_slave"]["port"],
-                    "bk_cloud_id": cluster_class.bk_cloud_id,
-                    "file_target_path": f'{self.backup_target_path}/{node["master"]["port"]}',
-                    "change_master_force": True,
-                    "charset": self.data["charset"],
-                    "cluster_type": cluster_class.cluster_type,
-                    "shard_id": shard_id,
-                }
-
+                ins_cluster = copy.deepcopy(cluster_info["cluster"])
+                ins_cluster["charset"] = cluster_info["charset"]
+                ins_cluster["new_master_ip"] = node["new_master"]["ip"]
+                ins_cluster["new_slave_ip"] = node["new_slave"]["ip"]
+                ins_cluster["new_master_port"] = node["new_master"]["port"]
+                ins_cluster["new_slave_port"] = node["new_slave"]["port"]
+                ins_cluster["master_ip"] = node["master"]["ip"]
+                ins_cluster["slave_ip"] = node["slave"]["ip"]
+                ins_cluster["master_port"] = node["master"]["port"]
+                ins_cluster["slave_port"] = node["slave"]["port"]
+                ins_cluster["file_target_path"] = f"{self.backup_target_path}/{ins_cluster['master_port']}"
+                ins_cluster["shard_id"] = shard_id
+                ins_cluster["change_master_force"] = False
+                ins_cluster["backupinfo"] = backup_info["remote_node"].get(shard_id, {})
+                # 判断 remote_node 下每个分片的备份信息是否正常
+                if (
+                    len(ins_cluster["backupinfo"]) == 0
+                    or len(ins_cluster["backupinfo"].get("file_list_details", {})) == 0
+                ):
+                    logger.error(
+                        "cluster {} shard {} backup info not exists".format(self.data["cluster_id"], shard_id)
+                    )
+                    raise TendbGetBackupInfoFailedException(
+                        message=_("获取集群分片 {} shard {}  的备份信息失败".format(self.data["cluster_id"], shard_id))
+                    )
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 sync_data_sub_pipeline.add_sub_pipeline(
-                    sub_flow=slave_recover_sub_flow(
+                    sub_flow=remote_instance_migrate_sub_flow(
                         root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=ins_cluster
                     )
                 )
@@ -192,49 +243,48 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     act_component_code=SpiderDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(
-                            db_meta_class_func=SpiderDBMeta.tendb_slave_recover_add_tuple.__name__,
+                            db_meta_class_func=SpiderDBMeta.remotedb_migrate_add_storage_tuple.__name__,
                             cluster=ins_cluster,
                             is_update_trans_data=True,
                         )
                     ),
                 )
                 sync_data_sub_pipeline_list.append(sync_data_sub_pipeline.build_sub_process(sub_name=_("恢复实例数据")))
-            # 阶段4 切换
+
+            # 阶段4 切换remotedb
             switch_sub_pipeline_list = []
-            # 切换后写入元数据
-            switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            tdbctl_pass = get_random_string(length=10)
-            switch_slave_class = SwitchRemoteSlaveRoutingKwargs(
-                cluster_id=cluster_class.id, switch_remote_instance_pairs=[]
-            )
+            shard_list = []
             for shard_id, node in cluster_info["my_shards"].items():
-                inst_pairs = InstancePairs(
-                    old_ip=node["slave"]["ip"],
-                    old_port=node["slave"]["port"],
-                    new_ip=node["new_slave"]["ip"],
-                    new_port=node["new_slave"]["port"],
-                    tdbctl_pass=tdbctl_pass,
+                shard_cluster = {
+                    "old_master": node["master"]["instance"],
+                    "old_slave": node["slave"]["instance"],
+                    "new_master": node["new_master"]["instance"],
+                    "new_slave": node["new_slave"]["instance"],
+                }
+                shard_list.append(shard_cluster)
+
+            switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            switch_sub_pipeline.add_sub_pipeline(
+                sub_flow=remote_migrate_switch_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    cluster=cluster_class,
+                    migrate_tuples=shard_list,
+                    created_by=self.data["created_by"],
                 )
-                switch_slave_class.switch_remote_instance_pairs.append(inst_pairs)
-
-            switch_sub_pipeline.add_act(
-                act_name=_("切换到新SLAVE机器"),
-                act_component_code=SwitchRemoteSlaveRoutingComponent.code,
-                kwargs=asdict(switch_slave_class),
             )
-
             switch_sub_pipeline.add_act(
-                act_name=_("SLAVE切换完毕后修改元数据指向"),
+                act_name=_("remote机器切换完毕后修改元数据指向"),
                 act_component_code=SpiderDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
-                        db_meta_class_func=SpiderDBMeta.tendb_slave_recover_switch.__name__,
+                        db_meta_class_func=SpiderDBMeta.tendb_remotedb_rebalance_switch.__name__,
                         cluster=cluster_info,
                         is_update_trans_data=True,
                     )
                 ),
             )
-            switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换SLAVE节点")))
+            switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换remote node 节点")))
 
             # 阶段5: 新机器安装周边组件
             surrounding_sub_pipeline_list = []
@@ -243,7 +293,8 @@ class TenDBRemoteSlaveRecoverFlow(object):
             surrounding_sub_pipeline.add_sub_pipeline(
                 sub_flow=build_surrounding_apps_sub_flow(
                     bk_cloud_id=cluster_class.bk_cloud_id,
-                    slave_ip_list=[self.data["target_ip"]],
+                    master_ip_list=[self.data["new_master_ip"]],
+                    slave_ip_list=[self.data["new_slave_ip"]],
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(self.data),
                     is_init=True,
@@ -258,7 +309,8 @@ class TenDBRemoteSlaveRecoverFlow(object):
             re_surrounding_sub_pipeline.add_sub_pipeline(
                 sub_flow=build_surrounding_apps_sub_flow(
                     bk_cloud_id=cluster_class.bk_cloud_id,
-                    slave_ip_list=[self.data["target_ip"]],
+                    master_ip_list=[self.data["new_master_ip"]],
+                    slave_ip_list=[self.data["new_slave_ip"]],
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(self.data),
                     is_init=True,
@@ -269,39 +321,40 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 re_surrounding_sub_pipeline.build_sub_process(sub_name=_("切换后重新安装周边组件"))
             )
 
-            # 阶段6 卸载
+            # 阶段6: 主机级别卸载实例,卸载指定ip下的所有实例
             uninstall_svr_sub_pipeline_list = []
-            uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            ins_cluster = {"uninstall_ip": self.data["source_ip"], "cluster_id": cluster_info["cluster_id"]}
-            uninstall_svr_sub_pipeline.add_act(
-                act_name=_("卸载实例前先删除元数据"),
-                act_component_code=SpiderDBMetaComponent.code,
-                kwargs=asdict(
-                    DBMetaOPKwargs(
-                        db_meta_class_func=SpiderDBMeta.remotedb_migrate_remove_storage.__name__,
-                        cluster=ins_cluster,
-                        is_update_trans_data=True,
-                    )
-                ),
-            )
-            uninstall_svr_sub_pipeline.add_act(
-                act_name=_("清理机器配置"),
-                act_component_code=MySQLClearMachineComponent.code,
-                kwargs=asdict(
-                    ClearMachineKwargs(
-                        exec_ip=self.data["source_ip"],
-                        bk_cloud_id=self.data["bk_cloud_id"],
-                    )
-                ),
-            )
-            uninstall_svr_sub_pipeline.add_sub_pipeline(
-                sub_flow=remote_node_uninstall_sub_flow(
-                    root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=self.data["source_ip"]
+            for ip in [self.data["new_master_ip"], self.data["new_slave_ip"]]:
+                uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                ins_cluster = {"uninstall_ip": ip, "cluster_id": cluster_class.id}
+                uninstall_svr_sub_pipeline.add_act(
+                    act_name=_("整机卸载成功后删除元数据"),
+                    act_component_code=SpiderDBMetaComponent.code,
+                    kwargs=asdict(
+                        DBMetaOPKwargs(
+                            db_meta_class_func=SpiderDBMeta.remotedb_migrate_remove_storage.__name__,
+                            cluster=ins_cluster,
+                            is_update_trans_data=True,
+                        )
+                    ),
                 )
-            )
-            uninstall_svr_sub_pipeline_list.append(
-                uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}".format(self.data["source_ip"])))
-            )
+                uninstall_svr_sub_pipeline.add_act(
+                    act_name=_("清理机器配置"),
+                    act_component_code=MySQLClearMachineComponent.code,
+                    kwargs=asdict(
+                        ClearMachineKwargs(
+                            exec_ip=ip,
+                            bk_cloud_id=cluster_class.bk_biz_id,
+                        )
+                    ),
+                )
+                uninstall_svr_sub_pipeline.add_sub_pipeline(
+                    sub_flow=remote_node_uninstall_sub_flow(
+                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=ip
+                    )
+                )
+                uninstall_svr_sub_pipeline_list.append(
+                    uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}".format(ip)))
+                )
 
             # 安装实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
@@ -320,8 +373,12 @@ class TenDBRemoteSlaveRecoverFlow(object):
             # 卸载remote节点
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
             tendb_migrate_pipeline_all_list.append(
-                tendb_migrate_pipeline.build_sub_process(_("集群迁移{}").format(self.data["cluster_id"]))
+                tendb_migrate_pipeline.build_sub_process(_("集群迁移{}").format(cluster_class.id))
             )
+
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_all_list)
-        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
+        tendb_migrate_pipeline_all.run_pipeline(
+            init_trans_data_class=ClusterInfoContext(),
+            is_drop_random_user=True,
+        )

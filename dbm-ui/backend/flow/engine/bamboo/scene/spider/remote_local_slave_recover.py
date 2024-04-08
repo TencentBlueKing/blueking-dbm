@@ -36,7 +36,7 @@ logger = logging.getLogger("flow")
 
 class TenDBRemoteSlaveLocalRecoverFlow(object):
     """
-    TenDB 后端从节点恢复: 迁移机器恢复,指定实例的本地恢复
+    TenDB Cluster 后端从节点实例数据修复
     """
 
     def __init__(self, root_id: str, ticket_data: Optional[Dict]):
@@ -47,6 +47,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
         self.root_id = root_id
         self.ticket_data = ticket_data
         self.data = {}
+        self.backup_target_path = f"/data/dbbak/{self.root_id}"
 
     def tendb_remote_slave_local_recover(self):
         """
@@ -68,7 +69,6 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
             self.data["root_id"] = self.root_id
             self.data["uid"] = self.ticket_data["uid"]
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
-            self.data["bk_biz_id"] = self.ticket_data["bk_biz_id"]
             self.data["bk_biz_id"] = cluster_class.bk_biz_id
             self.data["db_module_id"] = cluster_class.db_module_id
             self.data["cluster_type"] = cluster_class.cluster_type
@@ -90,6 +90,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     )
                 ),
             )
+            # todo 怎么获取 shard_ids
             sync_data_sub_pipeline_list = []
             for shard_id in self.data["shard_ids"]:
                 shard = cluster_class.tendbclusterstorageset_set.get(shard_id=shard_id)
@@ -141,7 +142,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     "new_slave_ip": target_slave.machine.ip,
                     "new_slave_port": target_slave.port,
                     "bk_cloud_id": cluster_class.bk_cloud_id,
-                    "file_target_path": f"/data/dbbak/{self.root_id}/{master.port}",
+                    "file_target_path": f"{self.backup_target_path}/{master.port}",
                     "charset": self.data["charset"],
                     "change_master_force": True,
                     "cluster_type": cluster_class.cluster_type,
@@ -172,6 +173,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     )
                 )
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
+
             #  安装周边
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=build_surrounding_apps_sub_flow(

@@ -11,10 +11,11 @@ import logging
 from typing import Optional
 
 from django.db import transaction
+from django.db.transaction import atomic
 
 from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
 from backend.db_meta.api.cluster.tendbcluster.remotedb_node_migrate import TenDBClusterMigrateRemoteDb
-from backend.db_meta.enums import ClusterEntryRole, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterEntryRole, InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.utils.dict_to_dataclass import dict_to_dataclass
 from backend.flow.utils.spider.spider_act_dataclass import ShardInfo
@@ -252,14 +253,22 @@ class SpiderDBMeta(object):
         return True
 
     def tendb_slave_recover_add_tuple(self):
-        new_slave_to_old_master = {
-            "master": {"ip": self.cluster["master_ip"], "port": self.cluster["master_port"]},
-            "slave": {"ip": self.cluster["new_slave_ip"], "port": self.cluster["new_slave_port"]},
-        }
-        TenDBClusterMigrateRemoteDb.add_storage_tuple(
-            cluster_id=self.cluster["cluster_id"], storage=new_slave_to_old_master
-        )
-        # todo  是否修改new_master角色为中继状态
+        with atomic():
+            new_slave_to_old_master = {
+                "master": {"ip": self.cluster["master_ip"], "port": self.cluster["master_port"]},
+                "slave": {"ip": self.cluster["new_slave_ip"], "port": self.cluster["new_slave_port"]},
+            }
+            TenDBClusterMigrateRemoteDb.add_storage_tuple(
+                cluster_id=self.cluster["cluster_id"], storage=new_slave_to_old_master
+            )
+            StorageInstance.objects.filter(
+                machine__ip=self.cluster["new_slave_port"], machine__bk_cloud_id=self.cluster["bk_cloud_id"]
+            ).update(status=InstanceStatus.RUNNING.value)
+            # slave_storages = StorageInstance.objects.filter(machine__ip=self.cluster["new_slave_port"],
+            # machine__bk_cloud_id=self.cluster["bk_cloud_id"])
+            # for slave_storage in slave_storages:
+            #     slave_storage.status=InstanceStatus.RUNNING.value
+            #     slave_storage.save()
 
     def tendb_modify_storage_status(self):
         storage = StorageInstance.objects.get(self.cluster["storage_id"])

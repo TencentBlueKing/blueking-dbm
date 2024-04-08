@@ -131,6 +131,16 @@ def get_slave_recover_info(cluster_id: int, ip: str):
     return cluster_info
 
 
+def get_master_slave_recover_info(cluster_id: int, master_ip: str, slave_ip: str):
+    cluster_info = get_cluster_info(cluster_id)
+    cluster_info["my_shards"] = {}
+    if master_ip in cluster_info["masters"] and slave_ip in cluster_info["slaves"]:
+        for key, val in cluster_info["shards"].items():
+            if val["master"]["ip"] == master_ip and val["slave"]["ip"] == slave_ip:
+                cluster_info["my_shards"][key] = val
+    return cluster_info
+
+
 def get_slave_local_recover_info(cluster_id: int, storage_id: int):
     cluster_info = get_cluster_info(cluster_id)
     cluster_info["my_shards"] = {}
