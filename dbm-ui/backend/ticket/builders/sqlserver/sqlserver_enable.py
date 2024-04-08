@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.sqlserver import SqlserverController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import MySQLClustersTakeDownDetailsSerializer
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder
@@ -27,7 +28,9 @@ class SQLServerEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = SqlserverController.cluster_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_ENABLE, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(
+    TicketType.SQLSERVER_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.SQLSERVER_ENABLE_DISABLE
+)
 class SQLServerEnableFlowBuilder(BaseSQLServerTicketFlowBuilder):
     """Sqlserver启用流程的构建基类"""
 

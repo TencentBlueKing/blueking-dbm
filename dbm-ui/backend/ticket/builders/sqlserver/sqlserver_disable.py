@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.sqlserver import SqlserverController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerTakeDownDetailsSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
@@ -26,7 +27,9 @@ class SQLServerDisableFlowParamBuilder(builders.FlowParamBuilder):
     controller = SqlserverController.cluster_disable_scene
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_DISABLE, phase=ClusterPhase.OFFLINE)
+@builders.BuilderFactory.register(
+    TicketType.SQLSERVER_DISABLE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.SQLSERVER_ENABLE_DISABLE
+)
 class SQLServerDestroyFlowBuilder(BaseSQLServerTicketFlowBuilder):
     """Sqlserver禁用流程的构建基类"""
 
