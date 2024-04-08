@@ -16,12 +16,13 @@
     :label="t('所属业务')"
     property="bk_biz_id"
     required>
-    <BkLoading :loading="isBizLoading">
+    <BkLoading
+      :loading="isBizLoading"
+      style="width: 435px">
       <AppSelect
         :data="withFavorBizList"
         :generate-key="(item: IAppItem) => item.bk_biz_id"
         :generate-name="(item: IAppItem) => item.display_name"
-        style="width: 435px"
         :value="currentBiz"
         @change="handleAppChange">
         <template #default="{ data }">
@@ -139,7 +140,7 @@
         if (hasEnglishName.value) {
           return true;
         }
-        return !bizList.find((item) => item.english_name === val);
+        return !bizList.value.find((item) => item.english_name === val);
       },
       message: t('业务code不允许重复'),
       trigger: 'blur',

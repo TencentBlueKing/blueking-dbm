@@ -28,18 +28,17 @@ export default class HdfsNode {
   machine_type: string;
   mem: number;
   node_count: number;
+  permission: {
+    hdfs_destroy: boolean;
+    hdfs_enable_disable: boolean;
+    hdfs_reboot: boolean;
+    hdfs_replace: boolean;
+    hdfs_scale_up: boolean;
+    hdfs_shrink: boolean;
+    hdfs_view: boolean;
+  };
   role_set: Array<string>;
   status: number;
-  permission: Record<
-    | 'hdfs_view'
-    | 'hdfs_enable_disable'
-    | 'hdfs_destroy'
-    | 'hdfs_scale_up'
-    | 'hdfs_shrink'
-    | 'hdfs_replace'
-    | 'hdfs_reboot',
-    boolean
-  >;
 
   constructor(payload = {} as HdfsNode) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -53,9 +52,9 @@ export default class HdfsNode {
     this.machine_type = payload.machine_type;
     this.mem = payload.mem;
     this.node_count = payload.node_count || 0;
+    this.permission = payload.permission;
     this.role_set = payload.role_set;
     this.status = payload.status || 0;
-    this.permission = payload.permission || {};
   }
 
   get isDataNode() {

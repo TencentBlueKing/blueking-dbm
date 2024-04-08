@@ -26,16 +26,18 @@
           keypath="xx_跳转_我的服务单_查看进度"
           tag="span">
           <span>{{ data.operationStatusText }}</span>
-          <RouterLink
+          <AuthRouterLink
+            action-id="ticket_view"
+            :resource="data.operationTicketId"
             target="_blank"
             :to="{
-              name: 'SelfServiceMyTickets',
+              name: 'bizTicketManage',
               query: {
                 id: data.operationTicketId,
               },
             }">
             {{ $t('我的服务单') }}
-          </RouterLink>
+          </AuthRouterLink>
         </I18nT>
       </div>
     </div>

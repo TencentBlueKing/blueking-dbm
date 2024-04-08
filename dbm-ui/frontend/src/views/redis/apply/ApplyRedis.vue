@@ -794,7 +794,7 @@
 
   .apply-instance {
     :deep(.item-input) {
-      width: 462px;
+      width: 435px;
     }
 
     &__inline {

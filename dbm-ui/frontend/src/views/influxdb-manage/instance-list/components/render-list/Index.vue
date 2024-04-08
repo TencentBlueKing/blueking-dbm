@@ -32,8 +32,8 @@
         {{ t('实例申请') }}
       </AuthButton>
       <span
-        v-bk-tooltips="{content: t('请选择实例'), disabled: hasSelectedInstances }"
-        class="inline-block">
+        v-bk-tooltips="{ content: t('请选择实例'), disabled: hasSelectedInstances }"
+        class="ml-8">
         <BkButton
           :disabled="!hasSelectedInstances"
           @click="handleBatchRestart">
@@ -42,7 +42,7 @@
       </span>
       <span
         v-bk-tooltips="{ content: t('请选择实例'), disabled: hasSelectedInstances }"
-        class="inline-block">
+        class="ml-8">
         <BkButton
           :disabled="!hasSelectedInstances"
           @click="handleShowReplace()">
@@ -55,7 +55,7 @@
         @show="() => (isShowGroupMove = true)">
         <span
           v-bk-tooltips="{ content: t('请选择实例'), disabled: hasSelectedInstances }"
-          class="inline-block">
+          class="ml-8">
           <BkButton
             class="dropdown-button"
             :class="{ active: isShowGroupMove }"
@@ -83,8 +83,8 @@
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton
-          class="dropdown-button"
-          :class="{ 'active': isCopyDropdown }">
+          class="dropdown-button ml-8"
+          :class="{ active: isCopyDropdown }">
           {{ t('复制IP') }}
           <DbIcon type="up-big dropdown-button-icon" />
         </BkButton>
@@ -910,10 +910,6 @@
         flex: 1;
         display: flex;
         justify-content: flex-end;
-      }
-
-      .bk-button {
-        margin-right: 8px;
       }
 
       .dropdown-button {

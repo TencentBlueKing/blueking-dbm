@@ -16,13 +16,12 @@
     <div class="action-box">
       <OperationBtnStatusTips :data="operationData">
         <AuthButton
-          action-id="es_scale_up"
+          action-id="hdfs_scale_up"
           :disabled="operationData?.operationDisabled"
-          :permission="operationData?.permission.hdfs_scale_up"
-          :resource="operationData?.id"
+          :resource="clusterId"
           theme="primary"
           @click="handleShowExpansion">
-          {{ $t('扩容') }}
+          {{ t('扩容') }}
         </AuthButton>
       </OperationBtnStatusTips>
       <OperationBtnStatusTips :data="operationData">
@@ -31,10 +30,9 @@
             action-id="hdfs_shrink"
             class="ml8"
             :disabled="batchShrinkDisabledInfo.disabled || operationData?.operationDisabled"
-            :permission="operationData?.permission.hdfs_shrink"
-            :resource="operationData?.id"
+            :resource="clusterId"
             @click="handleShowShrink">
-            {{ $t('缩容') }}
+            {{ t('缩容') }}
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
@@ -44,10 +42,9 @@
             action-id="hdfs_replace"
             class="ml8"
             :disabled="batchReplaceDisableInfo.disabled || operationData?.operationDisabled"
-            :permission="operationData?.permission.hdfs_replace"
-            :resource="operationData?.id"
+            :resource="clusterId"
             @click="handleShowReplace">
-            {{ $t('替换') }}
+            {{ t('替换') }}
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
@@ -56,7 +53,7 @@
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton>
-          {{ $t('复制IP') }}
+          {{ t('复制IP') }}
           <DbIcon
             class="action-copy-icon"
             :class="{
@@ -67,13 +64,13 @@
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll">
-              {{ $t('复制全部IP') }}
+              {{ t('复制全部IP') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeFailed">
-              {{ $t('复制异常IP') }}
+              {{ t('复制异常IP') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeActive">
-              {{ $t('复制已选IP') }}
+              {{ t('复制已选IP') }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
@@ -81,7 +78,7 @@
       <BkInput
         v-model="searchKey"
         clearable
-        :placeholder="$t('请输入IP搜索')"
+        :placeholder="t('请输入IP搜索')"
         style="max-width: 360px; margin-left: 8px; flex: 1" />
     </div>
     <BkAlert
@@ -92,16 +89,18 @@
         keypath="当前集群有xx暂时不能进行其他操作跳转xx查看进度"
         tag="div">
         <span>{{ operationData?.operationStatusText }}</span>
-        <RouterLink
+        <AuthRouterLink
+          action-id="ticket_view"
+          :resource="operationData?.operationTicketId"
           target="_blank"
           :to="{
-            name: 'SelfServiceMyTickets',
+            name: 'bizTicketManage',
             query: {
               id: operationData?.operationTicketId,
             },
           }">
-          {{ $t('我的服务单') }}
-        </RouterLink>
+          {{ t('我的服务单') }}
+        </AuthRouterLink>
       </I18nT>
     </BkAlert>
     <BkLoading :loading="isLoading">
@@ -119,7 +118,7 @@
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       quick-close
-      :title="$t('xx扩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
+      :title="t('xx扩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
       :width="960">
       <ClusterExpansion
         v-if="operationData"
@@ -128,7 +127,7 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
-      :title="$t('xx缩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
+      :title="t('xx缩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
         v-if="operationData"
@@ -137,7 +136,7 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowReplace"
-      :title="$t('xx替换【name】', { title: 'HDFS', name: operationData?.cluster_name })"
+      :title="t('xx替换【name】', { title: 'HDFS', name: operationData?.cluster_name })"
       :width="960">
       <ClusterReplace
         v-if="operationData"
@@ -148,7 +147,7 @@
     <DbSideslider
       v-model:is-show="isShowDetail"
       :show-footer="false"
-      :title="$t('节点详情')"
+      :title="t('节点详情')"
       :width="960">
       <InstanceDetail
         :cluster-id="clusterId"
@@ -408,7 +407,7 @@
                   theme="primary"
                   action-id="hdfs_shrink"
                   permission={data.permission.hdfs_shrink}
-                  resource={data.bk_host_id}
+                  resource={props.clusterId}
                   disabled={shrinkDisableTooltips.disabled || operationData.value?.operationDisabled}
                   onClick={() => handleShrinkOne(data)}>
                   { t('缩容') }
@@ -425,7 +424,7 @@
                 theme="primary"
                 action-id="hdfs_replace"
                 permission={data.permission.hdfs_replace}
-                resource={data.bk_host_id}
+                resource={props.clusterId}
                 disabled={operationData.value?.operationDisabled}
                 onClick={() => handleReplaceOne(data)}>
                 { t('替换') }
@@ -438,7 +437,7 @@
                 theme="primary"
                 action-id="hdfs_reboot"
                 permission={data.permission.hdfs_reboot}
-                resource={data.bk_host_id}
+                resource={props.clusterId}
                 class="ml8"
                 disabled={operationData.value?.operationDisabled}
                 onClick={() => handleShowDetail(data)}>
@@ -487,7 +486,7 @@
   const {
     pause: pauseFetchClusterDetail,
     resume: resumeFetchClusterDetail,
-  } = useTimeoutPoll(fetchClusterDetail, 2000, {
+  } = useTimeoutPoll(fetchClusterDetail, 5000, {
     immediate: true,
   });
 
