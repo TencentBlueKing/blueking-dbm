@@ -24,7 +24,9 @@
         :name="tab.value" />
     </BkTab>
     <div class="global-strategy-content">
-      <RenderContent :active-db-type="activeTab" />
+      <RenderContent
+        :key="activeTab"
+        :active-db-type="activeTab" />
     </div>
   </div>
 </template>

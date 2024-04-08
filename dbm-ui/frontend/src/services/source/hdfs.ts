@@ -107,7 +107,14 @@ export function getHdfsNodeList(
 ) {
   return http.get<ListBase<Array<HdfsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then((data) => ({
     ...data,
-    results: data.results.map((item: HdfsNodeModel) => new HdfsNodeModel(item)),
+    results: data.results.map(
+      (item) =>
+        new HdfsNodeModel(
+          Object.assign(item, {
+            permission: data.permission,
+          }),
+        ),
+    ),
   }));
 }
 

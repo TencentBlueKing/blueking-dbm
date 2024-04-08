@@ -40,6 +40,7 @@
                 v-if="formData.bk_biz_id"
                 #extension>
                 <div
+                  :key="formData.bk_biz_id"
                   v-bk-tooltips.top="{ content: t('请先选择所属业务') }"
                   class="ml-8">
                   <BkButton

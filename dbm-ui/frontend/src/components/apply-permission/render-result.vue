@@ -41,7 +41,7 @@
                 <p
                   v-for="(resourceItem, rindex) in permissionItem.relatedResources"
                   :key="rindex">
-                  {{ resourceItem.type }}:{{ resourceItem.instances.join('，') }}
+                  {{ resourceItem.type }}: {{ resourceItem.instances.join('，') }}
                 </p>
                 <p v-if="permissionItem.relatedResources.length < 1">--</p>
               </td>

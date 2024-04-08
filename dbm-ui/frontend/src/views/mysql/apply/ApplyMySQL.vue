@@ -53,6 +53,7 @@
                 v-if="formdata.bk_biz_id"
                 #extension>
                 <div
+                  :key="formdata.bk_biz_id"
                   v-bk-tooltips.top="{
                     content: t('请先选择所属业务'),
                     disabled: !!formdata.bk_biz_id,

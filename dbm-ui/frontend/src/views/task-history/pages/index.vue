@@ -223,7 +223,7 @@
       minWidth: 210,
       render: ({ data }: { data: TaskFlowModel }) => (
         <div class="table-operations">
-          <router-link
+          <auth-router-link
             action-id="flow_detail"
             resource={data.root_id}
             permission={data.permission.flow_detail}
@@ -234,7 +234,7 @@
               },
             }}>
             { t('查看详情') }
-          </router-link>
+          </auth-router-link>
           {includesResultFiles.includes(data.ticket_type) && data.status === 'FINISHED'
             ? <bk-button
                 class="ml-6"
