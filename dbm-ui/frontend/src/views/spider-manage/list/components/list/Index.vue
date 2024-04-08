@@ -49,16 +49,16 @@
           </AuthButton>
         </span>
         <DropdownExportExcel
-          :has-selected="hasSelected"
           :ids="selectedIds"
           type="spider" />
       </div>
       <DbSearchSelect
-        v-model="searchValue"
-        :data="searchData"
+        :data="searchSelectData"
+        :get-menu-list="getMenuList"
+        :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        style="width: 320px; margin-left: auto"
-        unique-select />
+        unique-select
+        @change="handleSearchValueChange" />
     </div>
     <div
       class="table-wrapper"
@@ -140,6 +140,7 @@
     getTendbClusterList,
   } from '@services/source/spider';
   import { createTicket } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
   import type { ResourceItem } from '@services/types';
 
   import {
@@ -173,6 +174,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
+    getMenuListSearch,
     getSearchSelectorParams,
     isRecentDays,
     messageWarn,
@@ -181,6 +183,8 @@
   import CapacityChange from './components/CapacityChange.vue';
   import ScaleUp from './components/ScaleUp.vue';
   import Shrink from './components/Shrink.vue';
+
+  import type { SearchSelectItem } from '@/types/bkui-vue';
 
   interface IColumn {
     data: TendbClusterModel
@@ -201,9 +205,11 @@
     searchAttrs,
     searchValue,
     sortValue,
+    columnCheckedMap,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.TENDBCLUSTER, [
     'bk_cloud_id',
     'db_module_id',
@@ -233,30 +239,22 @@
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const hasData = computed(() => tableRef.value?.getData().length > 0);
   const isCN = computed(() => locale.value === 'zh-cn');
-  const searchData = computed(() => [
+  const searchSelectData = computed(() => [
+    {
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
+    },
+    {
+      name: t('访问入口'),
+      id: 'domain',
+    },
     {
       name: 'ID',
       id: 'id',
     },
     {
-      name: 'IP',
-      id: 'ip',
-      multiple: true,
-    },
-    {
-      name: t('实例'),
-      id: 'instance',
-      multiple: true,
-    },
-    {
-      name: t('访问入口'),
-      id: 'domain',
-      multiple: true,
-    },
-    {
       name: t('集群名称'),
       id: 'name',
-      multiple: true,
     },
     {
       name: t('管控区域'),
@@ -478,10 +476,12 @@
     {
       label: t('管控区域'),
       width: 120,
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
       filter: {
         list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
       },
+      render: ({ data }: IColumn) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       label: t('状态'),
@@ -498,6 +498,7 @@
             text: t('异常'),
           },
         ],
+        checked: columnCheckedMap.value.status,
       },
       render: ({ data }: IColumn) => {
         const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
@@ -507,6 +508,7 @@
     {
       label: 'Spider Master',
       field: 'spider_master',
+      width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => {
@@ -528,6 +530,7 @@
     {
       label: 'Spider Slave',
       field: 'spider_slave',
+      width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => {
@@ -549,6 +552,7 @@
     {
       label: t('运维节点'),
       field: 'spider_mnt',
+      width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => {
@@ -570,7 +574,8 @@
     {
       label: 'RemoteDB',
       field: 'remote_db',
-      minWidth: 220,
+      width: 180,
+      minWidth: 180,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => {
         if (data.remote_db.length === 0) return '--';
@@ -627,6 +632,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.major_version,
+        checked: columnCheckedMap.value.major_version,
       },
       render: ({ data }: IColumn) => <span>{data.major_version || '--'}</span>,
     },
@@ -636,6 +642,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.region,
+        checked: columnCheckedMap.value.region,
       },
       render: ({ data }: IColumn) => <span>{data.region || '--'}</span>,
     },
@@ -658,6 +665,7 @@
       width: 100,
       filter: {
         list: columnAttrs.value.time_zone,
+        checked: columnCheckedMap.value.time_zone,
       },
       render: ({ data }: IColumn) => <span>{data.cluster_time_zone || '--'}</span>,
     },
@@ -812,6 +820,35 @@
       },
     },
   ]);
+
+  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+    if (item?.id !== 'creator' && keyword) {
+      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map(value => value.id);
+      return searchSelectData.value.filter(item => !selected.includes(item.id));
+    }
+
+    // 远程加载执行人
+    if (item.id === 'creator') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then(res => res.results.map(item => ({
+        id: item.username,
+        name: item.username,
+      })));
+    }
+
+    // 不需要远层加载
+    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+  };
 
   const handleOpenEntryConfig = (row: TendbClusterModel) => {
     showEditEntryConfig.value  = true;

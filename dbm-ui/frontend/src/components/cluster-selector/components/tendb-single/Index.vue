@@ -17,7 +17,8 @@
     :cluster-type="activeTab"
     :placeholder="searchPlaceholder"
     :search-attrs="searchAttrs"
-    :search-select-list="searchSelectList" />
+    :search-select-list="searchSelectList"
+    @search-value-change="handleSearchValueChange" />
   <BkLoading
     :loading="isLoading"
     :z-index="2">
@@ -30,12 +31,12 @@
       :max-height="528"
       :pagination="pagination.count < 10 ? false : pagination"
       remote-pagination
+      :row-class="getRowClass"
       row-style="cursor: pointer;"
       @column-filter="columnFilterChange"
       @page-limit-change="handleTableLimitChange"
       @page-value-change="handleTablePageChange"
-      @refresh="fetchResources"
-      @row-click.stop.prevent="handleRowClick" />
+      @refresh="fetchResources" />
   </BkLoading>
 </template>
 <script setup lang="tsx">
@@ -47,6 +48,7 @@
   import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { makeMap } from '@utils';
 
@@ -61,7 +63,7 @@
     selected: Record<string, any[]>,
     // eslint-disable-next-line vue/no-unused-properties
     getResourceList: TabItem['getResourceList'],
-    disabledRowConfig?: TabItem['disabledRowConfig'],
+    disabledRowConfig: NonNullable<TabItem['disabledRowConfig']>,
     columnStatusFilter?: TabItem['columnStatusFilter'],
     customColums?: TabItem['customColums'],
     searchSelectList?: TabItem['searchSelectList'],
@@ -86,7 +88,9 @@
     columnAttrs,
     searchAttrs,
     searchValue,
+    columnCheckedMap,
     columnFilterChange,
+    handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.TENDBSINGLE, [
     'bk_cloud_id',
     'db_module_id',
@@ -115,12 +119,12 @@
           indeterminate={isIndeterminate.value}
           disabled={mainSelectDisable.value}
           label={true}
-          onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelecteAll}
         />
       ),
       render: ({ data }: { data: ResourceItem }) => {
-        if (data.phase === 'offline') {
+        const disabledRowConfig = props.disabledRowConfig.find(item => item.handler(data));
+        if (disabledRowConfig) {
           return (
             <bk-popover
               theme="dark"
@@ -128,20 +132,7 @@
               popoverDelay={0}>
               {{
                 default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
-                content: () => <span>{t('集群已禁用')}</span>,
-              }}
-            </bk-popover>
-          );
-        }
-        if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
-          return (
-            <bk-popover
-              theme="dark"
-              placement="top"
-              popoverDelay={0}>
-              {{
-                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
-                content: () => <span>{props.disabledRowConfig?.tip}</span>,
+                content: () => <span>{disabledRowConfig?.tip}</span>,
               }}
             </bk-popover>
           );
@@ -162,26 +153,35 @@
       field: 'cluster_name',
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (
-      <div class="cluster-name-box">
-          <div class="cluster-name">{data.master_domain}</div>
-          {data.phase === 'offline' && (
-            <db-icon
-              svg
-              type="yijinyong"
-              class="mr-8"
-              style="width: 38px; height: 16px;" />
-          )}
-          {data.operations && data.operations.length > 0 && (
-            <bk-popover
-              theme="light"
-              width="360">
-              {{
-                default: () => <bk-tag theme="info" class="tag-box">{data.operations.length}</bk-tag>,
-                content: () => <ClusterRelatedTasks data={data.operations} />,
-              }}
-            </bk-popover>
-          )}
-      </div>),
+        <TextOverflowLayout class="cluster-name-box">
+          {{
+            default: () => <span class="cluster-name">{data.master_domain}</span>,
+            append: () => <>
+              {
+                data.operations && data.operations.length > 0 && (
+                  <bk-popover
+                    theme="light"
+                    width="360">
+                    {{
+                      default: () => <bk-tag theme="info" class="tag-box">{data.operations.length}</bk-tag>,
+                      content: () => <ClusterRelatedTasks data={data.operations} />,
+                    }}
+                  </bk-popover>
+                )
+              }
+              {
+                data.isOffline && (
+                  <db-icon
+                    svg
+                    type="yijinyong"
+                    class="cluster-tag ml-4"
+                    style="width: 38px; height: 16px;" />
+                )
+              }
+            </>,
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('状态'),
@@ -198,6 +198,7 @@
             text: t('异常'),
           },
         ],
+        checked: columnCheckedMap.value.status,
       },
       render: ({ data }: { data: ResourceItem }) => {
         const isNormal = props.columnStatusFilter ? props.columnStatusFilter(data) : data.status === 'normal';
@@ -217,6 +218,7 @@
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.db_module_id,
+        checked: columnCheckedMap.value.db_module_id,
       },
       render: ({ data }: { data: ResourceItem }) => <span>{data.db_module_name || '--'}</span>,
     },
@@ -227,12 +229,11 @@
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
       },
       render: ({ data }: { data: ResourceItem }) => <span>{data.bk_cloud_name}</span>,
     },
   ]);
-
-  let isSelectedAllReal = false;
 
   const activeTab = ref(props.activeTab);
   const selectedMap = shallowRef<Record<string, Record<string, ResourceItem>>>({});
@@ -249,7 +250,7 @@
     && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value[activeTab.value]).length > 0);
 
   // eslint-disable-next-line max-len
-  const mainSelectDisable = computed(() => (props.disabledRowConfig ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
+  const mainSelectDisable = computed(() => tableData.value.filter(data => props.disabledRowConfig.find(item => item.handler(data))).length === tableData.value.length);
 
   const generatedColumns = computed(() => {
     if (props.customColums) {
@@ -284,28 +285,21 @@
     }
   });
 
+  const getRowClass = (data: ResourceItem) => data.isOffline && 'is-offline';
+
   /**
    * 全选当页数据
    */
   const handleSelecteAll = (value: boolean) => {
-    if (props.disabledRowConfig) {
-      isSelectedAllReal = !isSelectedAllReal;
-      for (const data of tableData.value) {
-        if (!props.disabledRowConfig.handler(data)) {
-          handleSelecteRow(data, isSelectedAllReal);
-        }
-      }
-      return;
-    }
     for (const data of tableData.value) {
-      if (data.phase !== 'offline') {
+      if (!props.disabledRowConfig.find(item => item.handler(data))) {
         handleSelecteRow(data, value);
       }
     }
   };
 
   const checkSelectedAll = () => {
-    if (props.disabledRowConfig && tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length > 0) {
+    if (tableData.value.filter(data => props.disabledRowConfig.find(item => item.handler(data))).length > 0) {
       nextTick(() => {
         isSelectedAll.value = false;
       });
@@ -343,17 +337,7 @@
     checkSelectedAll();
   };
 
-  const handleRowClick = (row:any, data: ResourceItem) => {
-    if ((props.disabledRowConfig && props.disabledRowConfig.handler(data))  || data.phase === 'offline') {
-      return;
-    }
-    const currentSelected = selectedMap.value[activeTab.value];
-    const isChecked = !!(currentSelected && currentSelected[data.id]);
-    handleSelecteRow(data, !isChecked);
-  };
-
-
-  const handleTablePageChange = (value: number) => {
+  function handleTablePageChange(value: number) {
     handleChangePage(value)
       .then(() => {
         checkSelectedAll();

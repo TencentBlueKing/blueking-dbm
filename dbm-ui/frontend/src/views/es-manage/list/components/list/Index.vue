@@ -26,12 +26,13 @@
         :ids="selectedIds"
         type="es" />
       <DbSearchSelect
-        v-model="searchValue"
         class="mb16"
         :data="serachData"
         :get-menu-list="getMenuList"
+        :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select />
+        unique-select
+        @change="handleSearchValueChange" />
     </div>
     <div
       class="table-wrapper"
@@ -91,10 +92,6 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -169,9 +166,12 @@
     searchAttrs,
     searchValue,
     sortValue,
+    columnCheckedMap,
+    batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.ES, [
     'bk_cloud_id',
     'db_module_id',
@@ -184,27 +184,20 @@
 
   const serachData = computed(() => [
     {
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
+    },
+    {
+      name: t('访问入口'),
+      id: 'domain',
+    },
+    {
       name: 'ID',
       id: 'id',
     },
     {
       name: t('集群名称'),
       id: 'name',
-      logical: ',',
-    },
-    {
-      name: t('访问入口'),
-      id: 'domain',
-      logical: ',',
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-      logical: ',',
-    },
-    {
-      name: t('实例'),
-      id: 'instance',
       logical: ',',
     },
     {
@@ -296,6 +289,7 @@
     }
     return 100;
   });
+
   const columns = computed(() => [
     {
       label: 'ID',
@@ -383,10 +377,12 @@
     },
     {
       label: t('管控区域'),
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
       filter: {
         list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
       },
+      render: ({ data }: {data: EsModel}) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       label: t('状态'),
@@ -403,6 +399,7 @@
             text: t('异常'),
           },
         ],
+        checked: columnCheckedMap.value.status,
       },
       render: ({ data }: {data: EsModel}) => <RenderClusterStatus data={data.status} />,
     },
@@ -412,6 +409,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.major_version,
+        checked: columnCheckedMap.value.major_version,
       },
     },
     {
@@ -420,6 +418,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.region,
+        checked: columnCheckedMap.value.region,
       },
       render: ({ data }: {data: EsModel}) => <span>{data?.region || '--'}</span>,
     },
@@ -430,6 +429,7 @@
       showOverflowTooltip: false,
       render: ({ data }: {data: EsModel}) => (
         <RenderNodeInstance
+          highlightIps={batchSearchIpInatanceList.value}
           role="es_master"
           title={`【${data.domain}】master`}
           clusterId={data.id}
@@ -498,6 +498,7 @@
       width: 100,
       filter: {
         list: columnAttrs.value.time_zone,
+        checked: columnCheckedMap.value.time_zone,
       },
     },
     {
@@ -617,7 +618,7 @@
     checked: [
       'domain',
       'cluster_name',
-      'bk_cloud_name',
+      'bk_cloud_id',
       'major_version',
       'region',
       'status',

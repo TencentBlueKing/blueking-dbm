@@ -11,8 +11,8 @@
       <AuthTemplate
         action-id="biz"
         :permission="data.permission.db_manage"
-        :resource="data.bk_biz_id"
-        style="width: 100%">
+        :resource-id="data.bk_biz_id"
+        resource-type="biz">
         <div class="db-app-select-item">
           <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
           <div style="margin-left: auto">

@@ -134,7 +134,9 @@
       <template v-else>
         <FlowContent
           :content="content"
-          is-todos />
+          :flows="flows"
+          is-todos
+          :ticket-data="ticketData" />
       </template>
     </template>
   </BkTimeline>
@@ -143,6 +145,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import TicketModel from '@services/model/ticket/ticket';
   import { processTicketTodo } from '@services/source/ticket';
   import type {
     FlowItem,
@@ -160,6 +163,7 @@
   import { getCostTimeDisplay } from '@utils';
 
   interface Props {
+    ticketData: TicketModel,
     flows?: FlowItem[]
   }
 

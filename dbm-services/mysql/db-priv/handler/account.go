@@ -92,10 +92,10 @@ func (m *PrivService) ModifyAccount(c *gin.Context) {
 	return
 }
 
-// GetAccount 获取账号
-func (m *PrivService) GetAccount(c *gin.Context) {
-	slog.Info("do GetAccount!")
-	var input service.AccountPara
+// GetAccountList 获取账号列表
+func (m *PrivService) GetAccountList(c *gin.Context) {
+	slog.Info("do GetAccountList!")
+	var input service.GetAccountListPara
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -103,22 +103,25 @@ func (m *PrivService) GetAccount(c *gin.Context) {
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
-
 	if err = json.Unmarshal(body, &input); err != nil {
 		slog.Error("msg", err)
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
 
-	accounts, count, err := input.GetAccount()
+	accounts, count, err := input.GetAccountList()
+	type ListResponse struct {
+		Count   int64       `json:"count"`
+		Results interface{} `json:"results"`
+	}
 	SendResponse(c, err, ListResponse{
-		Count: count,
-		Items: accounts,
+		Count:   count,
+		Results: accounts,
 	})
 	return
 }
 
-// GetAccount 获取账号
+// GetAccountIncludePsw 获取账号密码
 func (m *PrivService) GetAccountIncludePsw(c *gin.Context) {
 	slog.Info("do GetAccount!")
 	var input service.GetAccountIncludePswPara

@@ -126,7 +126,7 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import RedisModel from '@services/model/redis/redis';
-  import SpiderModel from '@services/model/spider/spider';
+  import SpiderModel from '@services/model/spider/tendbCluster';
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
   import { getMongoList } from '@services/source/mongodb';
@@ -162,7 +162,7 @@
     disabledRowConfig?: {
       handler: (data: any) => boolean,
       tip?: string,
-    },
+    }[],
     // 自定义列
     customColums?: any[],
     // 结果预览使用的key
@@ -213,6 +213,10 @@
     [ClusterTypes.TENDBCLUSTER]: {
       id: ClusterTypes.TENDBCLUSTER,
       name: t('集群选择'),
+      disabledRowConfig: [{
+        handler: (data: T) => data.isOffline,
+        tip: t('集群已禁用'),
+      }],
       getResourceList: getSpiderList,
       tableContent: SpiderTable,
       resultContent: ResultPreview,
@@ -220,6 +224,10 @@
     [ClusterTypes.REDIS]: {
       id: ClusterTypes.REDIS,
       name: t('集群选择'),
+      disabledRowConfig: [{
+        handler: (data: T) => data.isOffline,
+        tip: t('集群已禁用'),
+      }],
       getResourceList: getRedisList,
       tableContent: RedisTable,
       resultContent: ResultPreview,
@@ -227,6 +235,10 @@
     [ClusterTypes.TENDBHA]: {
       id: ClusterTypes.TENDBHA,
       name: t('主从集群'),
+      disabledRowConfig: [{
+        handler: (data: T) => data.isOffline,
+        tip: t('集群已禁用'),
+      }],
       getResourceList: getTendbhaList,
       tableContent: TendbhaTable,
       resultContent: ResultPreview,
@@ -266,6 +278,10 @@
     [ClusterTypes.TENDBSINGLE]: {
       id: ClusterTypes.TENDBSINGLE,
       name: t('单节点'),
+      disabledRowConfig: [{
+        handler: (data: T) => data.isOffline,
+        tip: t('集群已禁用'),
+      }],
       getResourceList: getTendbsingleList,
       tableContent: TendbSingleTable,
       resultContent: ResultPreview,
@@ -284,10 +300,18 @@
     if (props.tabListConfig) {
       Object.keys(props.tabListConfig).forEach((type) => {
         if (props.tabListConfig?.[type]) {
+          const disabledRowConfigList = tabListMap[type].disabledRowConfig!;
+          const disabledRowConfigProp = props.tabListConfig?.[type].disabledRowConfig;
+          if (disabledRowConfigProp) {
+            // 外部设置了 disabledRowConfig, 需要追加到 disabledRowConfig列表
+            disabledRowConfigList.push(...disabledRowConfigProp);
+          }
           tabListMap[type] = {
             ...tabListMap[type],
             ...props.tabListConfig[type],
+            disabledRowConfig: disabledRowConfigList,
           };
+          console.log('tabListMap[type]>>>', tabListMap[type]);
         }
       });
     }

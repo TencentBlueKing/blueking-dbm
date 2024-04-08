@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
@@ -169,22 +170,61 @@ func (m *AccountPara) DeleteAccount(jsonPara string) error {
 	return nil
 }
 
-// GetAccount 获取账号
-func (m *AccountPara) GetAccount() ([]*TbAccounts, int64, error) {
+// GetAccountList 获取账号列表
+func (m *GetAccountListPara) GetAccountList() ([]*TbAccounts, int64, error) {
+	// Cnt 用于返回匹配到的行数
+	type Cnt struct {
+		Count int64 `gorm:"column:cnt"`
+	}
 	var (
 		accounts []*TbAccounts
-		result   *gorm.DB
 	)
-	if m.BkBizId == 0 {
-		return nil, 0, errno.BkBizIdIsEmpty
+	where := " 1=1 "
+	if m.BkBizId > 0 {
+		where = fmt.Sprintf("%s and bk_biz_id=%d", where, m.BkBizId)
 	}
-	result = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{
-		BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User}).Select(
-		"id,bk_biz_id,user,cluster_type,creator,create_time,update_time").Scan(&accounts)
-	if result.Error != nil {
-		return nil, 0, result.Error
+	if m.ClusterType != nil {
+		where = fmt.Sprintf("%s and cluster_type='%s'", where, *m.ClusterType)
 	}
-	return accounts, int64(len(accounts)), nil
+	if m.UserLike != "" {
+		where = fmt.Sprintf("%s and user like '%%%s%%'", where, m.UserLike)
+	}
+	if m.User != "" {
+		where = fmt.Sprintf("%s and user = '%s'", where, m.User)
+	}
+	if m.Id != nil {
+		m.Ids = append(m.Ids, *m.Id)
+	}
+	if len(m.Ids) != 0 {
+		var temp = make([]string, len(m.Ids))
+		for k, id := range m.Ids {
+			temp[k] = strconv.FormatInt(id, 10)
+		}
+		ids := " and id in (" + strings.Join(temp, ",") + ") "
+		where = where + ids
+	}
+	cnt := Cnt{}
+	vsql := fmt.Sprintf("select count(*) as cnt from tb_accounts where %s", where)
+	err := DB.Self.Raw(vsql).Scan(&cnt).Error
+	if err != nil {
+		slog.Error(vsql, "execute error", err)
+		return nil, 0, err
+	}
+	if cnt.Count == 0 {
+		return nil, 0, nil
+	}
+	if m.Limit == nil {
+		vsql = fmt.Sprintf("select id, user, creator, bk_biz_id from tb_accounts where %s", where)
+	} else {
+		limitCondition := fmt.Sprintf("limit %d offset %d", *m.Limit, *m.Offset)
+		vsql = fmt.Sprintf("select id, user, creator, bk_biz_id from tb_accounts where %s %s", where, limitCondition)
+	}
+	err = DB.Self.Raw(vsql).Scan(&accounts).Error
+	if err != nil {
+		slog.Error(vsql, "execute error", err)
+		return nil, 0, err
+	}
+	return accounts, cnt.Count, nil
 }
 
 // GetAccountIncludePsw 获取帐号以及密码
@@ -198,6 +238,9 @@ func (m *GetAccountIncludePswPara) GetAccountIncludePsw() ([]*TbAccounts, int64,
 	}
 	if len(m.Users) == 0 {
 		return nil, 0, errno.ErrUserIsEmpty
+	}
+	if m.ClusterType == nil {
+		return nil, 0, errno.ClusterTypeIsEmpty
 	}
 	// mongodb 需要查询psw
 	users := "'" + strings.Join(m.Users, "','") + "'"

@@ -28,9 +28,10 @@ class Command(BaseCommand):
                 "bkcc",
                 "bkmonitor_alarm",
                 "bkmonitor_channel",
+                "register_application",
+                "grafana",
                 "bkjob",
                 "ssl",
-                "register_application",
             ],
             help="all: initialize all services, "
             "itsm: initialize itsm service, "
@@ -63,6 +64,9 @@ class Command(BaseCommand):
 
         if srv_type == "all" or srv_type == "bkmonitor_channel":
             Services.auto_create_bkmonitor_channel()
+
+        if srv_type == "all" or srv_type == "grafana":
+            Services.auto_init_grafana()
 
         if srv_type == "all" or srv_type == "ssl":
             Services.auto_create_ssl_service()

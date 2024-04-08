@@ -55,6 +55,19 @@ type GetAccountIncludePswPara struct {
 	ClusterType *string  `json:"cluster_type"`
 }
 
+type GetAccountListPara struct {
+	BkBizId     int64   `json:"bk_biz_id"`
+	Ids         []int64 `json:"ids"`
+	Id          *int64  `json:"id"`
+	ClusterType *string `json:"cluster_type"`
+	// user模糊查询
+	UserLike string `json:"user_like"`
+	// user精确查询
+	User   string `json:"user"`
+	Limit  *int64 `json:"limit"`
+	Offset *int64 `json:"offset"`
+}
+
 // PrivLog 记录权限相关接口的调用日志
 type PrivLog struct {
 	Id       int64     `gorm:"column:id;primary_key;auto_increment" json:"id"`

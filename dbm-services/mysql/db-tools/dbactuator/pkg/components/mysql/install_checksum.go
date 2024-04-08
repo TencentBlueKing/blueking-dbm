@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -147,7 +146,7 @@ func (c *InstallMySQLChecksumComp) GenerateBinaryConfig() (err error) {
 				Args: []map[string]interface{}{
 					{
 						"name":  "run-time",
-						"value": time.Hour * 2,
+						"value": "2h", //time.Hour * 2,
 					},
 				},
 			},

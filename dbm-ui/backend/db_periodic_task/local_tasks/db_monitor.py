@@ -31,7 +31,7 @@ from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 logger = logging.getLogger("celery")
 
 
-@register_periodic_task(run_every=crontab(minute="*/5"))
+@register_periodic_task(run_every=crontab(minute="*/15"))
 def update_local_notice_group():
     """同步告警组"""
     dba_ids = DBAdministrator.objects.values_list("id", flat=True)
@@ -88,16 +88,14 @@ def sync_plat_monitor_policy():
             with open(os.path.join(root, alarm_tpl), "r", encoding="utf-8") as f:
                 try:
                     template_dict = json.loads(f.read())
+                    # 监控API不支持传入额外的字段
+                    template_dict.pop("export_at", "")
                     policy_name = template_dict["name"]
-                    # db_type = template_dict["db_type"]
                 except json.decoder.JSONDecodeError:
                     logger.error("[sync_plat_monitor_policy] load template failed: %s", alarm_tpl)
                     continue
 
                 deleted = template_dict.pop("deleted", False)
-
-                # just for test
-                # policy_name = policy_name + "-" + get_random_string(5)
 
                 # patch template
                 template_dict["details"]["labels"] = list(set(template_dict["details"]["labels"]))

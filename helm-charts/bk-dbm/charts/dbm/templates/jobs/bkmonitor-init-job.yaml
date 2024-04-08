@@ -25,7 +25,7 @@ spec:
             - /bin/bash
             - -c
           args:
-            - "python manage.py services_init bkmonitor_alarm && python manage.py services_init bkmonitor_channel"
+            - "python manage.py services_init bkmonitor_alarm && python manage.py services_init bkmonitor_channel && python manage.py services_init grafana"
           {{- include "dbm.container_env" . | nindent 10 }}
           resources:
             {{- toYaml .Values.initJob.resources | nindent 12 }}

@@ -63,7 +63,11 @@ class TenDBClusterSqlImportFlowBuilder(BaseTendbTicketFlowBuilder):
     editable = False
 
     def patch_ticket_detail(self):
-        MysqlSqlImportFlowBuilder.patch_sqlimport_ticket_detail(ticket=self.ticket, cluster_type=DBType.MySQL)
+        MysqlSqlImportFlowBuilder.patch_sqlimport_ticket_detail(ticket=self.ticket, cluster_type=DBType.TenDBCluster)
+        MysqlSqlImportFlowBuilder.patch_sqlfile_grammar_check_info(
+            ticket=self.ticket, cluster_type=DBType.TenDBCluster
+        )
+        super().patch_ticket_detail()
 
     def init_ticket_flows(self):
         """

@@ -97,10 +97,10 @@
 
   const tabListConfig = {
     [ClusterTypes.TENDBCLUSTER]: {
-      disabledRowConfig: {
+      disabledRowConfig: [{
         handler: (data: SpiderModel) => data.spider_slave.length > 0,
         tip: t('该集群已有只读集群'),
-      },
+      }],
     },
   };
 

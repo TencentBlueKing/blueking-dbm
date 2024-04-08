@@ -15,10 +15,13 @@ import os
 import subprocess
 
 from bk_notice_sdk.views import api_call
+from blueapps.account.models import User
 from django.conf import settings
+from django.http import HttpRequest
 from django.utils import timezone
 
 from backend import env
+from backend.bk_dataview.grafana.views import SwitchOrgView
 from backend.components import BKLogApi, BKMonitorV3Api, CCApi, ItsmApi
 from backend.components.constants import SSL_KEY
 from backend.configuration.constants import DBM_REPORT_INITIAL_VALUE, SystemSettingsEnum
@@ -432,6 +435,17 @@ class Services:
 
         Services.init_custom_metric_and_event()
 
+        return True
+
+    @staticmethod
+    def auto_init_grafana() -> bool:
+        request = HttpRequest()
+        user = User.objects.filter(is_superuser=True).first()
+        if user is None:
+            return False
+        request.user = User.objects.filter(is_superuser=True).first()
+        request.org_name = "dbm"
+        SwitchOrgView().initial(request)
         return True
 
     @staticmethod

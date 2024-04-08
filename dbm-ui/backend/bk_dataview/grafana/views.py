@@ -108,7 +108,7 @@ class ProxyBaseView(View):
     def perform_provisioning(self, request):
         """默认的数据源, 面板注入"""
         if len(self.provisioning_classes) == 0:
-            logger.warning("perform_provisioning: %s", len(self.provisioning_classes))
+            logger.warning("perform_provisioning: provisioning_classes len is  %s", len(self.provisioning_classes))
             return
 
         logger.warning("perform_provisioning: %s", self.provisioning_classes)

@@ -95,7 +95,7 @@ func TestSendEvent(dataId int, token string, serviceHost string) error {
 					"content": "test partition monitor",
 				},
 				commonData: commonData{
-					Target:    "127.0.0.1",
+					Target:    "0.0.0.0",
 					Timestamp: time.Now().In(l).UnixMilli(),
 					Dimension: dimension,
 					Metrics:   nil,

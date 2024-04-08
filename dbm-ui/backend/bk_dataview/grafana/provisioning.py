@@ -13,6 +13,7 @@ import json
 import logging
 import os.path
 from dataclasses import dataclass
+from json import JSONDecodeError
 from typing import Dict, List, Optional
 
 import yaml
@@ -77,7 +78,7 @@ class SimpleProvisioning(BaseProvisioning):
             with open(path, "rb") as fh:
                 conf = fh.read()
                 expand_conf = os.path.expandvars(conf)
-                ds = yaml.load(expand_conf)
+                ds = yaml.load(expand_conf, Loader=yaml.FullLoader)
                 yield ds
 
     def datasources(self, request, org_name: str, org_id: int) -> List[Datasource]:
@@ -112,8 +113,11 @@ class SimpleProvisioning(BaseProvisioning):
                                 file_content = file_content.replace(
                                     "{metric_data_id}", str(bkm_dbm_report["metric"]["data_id"])
                                 )
-
-                                dashboard = json.loads(file_content)
+                                try:
+                                    dashboard = json.loads(file_content)
+                                except JSONDecodeError as err:
+                                    logger.error(f"Failed to load {os.path.basename(path)}")
+                                    raise err
                                 title = dashboard.get("title")
                                 if not title:
                                     continue

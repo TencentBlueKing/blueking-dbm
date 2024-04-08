@@ -100,9 +100,7 @@ class ResourceViewSet(SystemViewSet):
         """查询实例详情"""
         query_params = self.params_validate(self.retrieve_instances_slz)
         return Response(
-            self.query_class.retrieve_instance(
-                bk_biz_id, query_params.get("cluster_id"), query_params["ip"], query_params["port"]
-            )
+            self.query_class.retrieve_instance(bk_biz_id, query_params.get("cluster_id"), query_params["instance"])
         )
 
     @action(methods=["GET"], detail=False, url_path="list_machines")

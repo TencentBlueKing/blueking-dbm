@@ -11,12 +11,14 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
+import _ from 'lodash';
 
 import { queryBizClusterAttrs } from '@services/source/dbbase';
 
 import { useGlobalBizs } from '@stores';
 
 import type { ClusterTypes } from '@common/const';
+import { batchSplitRegex } from '@common/regex';
 
 type QueryBizClusterAttrsReturnType = ServiceReturnType<typeof queryBizClusterAttrs>;
 
@@ -24,6 +26,8 @@ export type SearchAttrs = Record<string, {
   id: string,
   name: string,
 }[]>;
+
+type ColumnCheckedMap = Record<string, string[]>;
 
 export const useLinkQueryColumnSerach = (
   clusterType: ClusterTypes,
@@ -38,6 +42,16 @@ export const useLinkQueryColumnSerach = (
   const searchValue = ref<ISearchValue[]>([]);
   const columnAttrs = ref<QueryBizClusterAttrsReturnType>({});
   const searchAttrs = ref<SearchAttrs>({});
+  // 表格列已勾选的映射
+  const columnCheckedMap = ref<ColumnCheckedMap>({});
+
+  const batchSearchIpInatanceList = computed(() => {
+    const batchObjList = searchValue.value.filter(item => ['ip', 'instance'].includes(item.id));
+    if (batchObjList.length > 0) {
+      return _.flatMap(batchObjList.map(item => item.values!.map(value => value.id)));
+    }
+    return [];
+  });
 
   const sortValue: {
     ordering?: string,
@@ -48,16 +62,6 @@ export const useLinkQueryColumnSerach = (
   } : {
     instances_attrs: attrs.join(','),
   };
-
-  watch(
-    searchValue,
-    () => {
-      searchValueChange();
-    },
-    {
-      deep: true,
-    },
-  );
 
   // 查询表头筛选列表
   queryBizClusterAttrs({
@@ -81,7 +85,7 @@ export const useLinkQueryColumnSerach = (
     queryTableDataFn();
   });
 
-  // 表头筛选事件
+  // 表头筛选
   const columnFilterChange = (data: {
     checked: string[];
     column: {
@@ -97,23 +101,33 @@ export const useLinkQueryColumnSerach = (
     };
     index: number;
   }) => {
+    // console.log('filtervalue>>>', data);
     if (data.checked.length === 0) {
       searchValue.value = searchValue.value.filter(item => item.id !== data.column.field);
+      queryTableDataFn();
       return;
     }
 
-    searchValue.value = [
-      {
-        id: data.column.field,
-        name: data.column.label,
-        values: data.checked.map(item => ({
-          id: item,
-          name: data.column.filter.list.find(row => row.value === item)?.text ?? '',
-        })),
-      },
-    ];
+    const columnSearchObj = {
+      id: data.column.field,
+      name: data.column.label,
+      values: data.checked.map(item => ({
+        id: item,
+        name: data.column.filter.list.find(row => row.value === item)?.text ?? '',
+      })),
+    };
+
+    const index = searchValue.value.findIndex(item => item.id === data.column.field);
+    if (index > -1) {
+      // 已存在，替换旧值
+      searchValue.value.splice(index, 1, columnSearchObj);
+    } else {
+      searchValue.value.push(columnSearchObj);
+    }
+    queryTableDataFn();
   };
 
+  // 表头排序
   const columnSortChange = (data: {
     column: {
       field: string;
@@ -132,10 +146,45 @@ export const useLinkQueryColumnSerach = (
     queryTableDataFn();
   };
 
-  /**
-   * 搜索
-   */
-  const searchValueChange = () => {
+  const handleSearchValueChange = (valueList: ISearchValue[]) => {
+    columnCheckedMap.value = valueList.reduce((results, item) => {
+      Object.assign(results, {
+        [item.id]: item.values?.map(value => value.id) ?? [],
+      });
+      return results;
+    }, {} as ColumnCheckedMap);
+    // 防止方法由于searchValue的值改变而被循环触发
+    if (JSON.stringify(valueList) === JSON.stringify(searchValue.value)) {
+      return;
+    }
+
+    // 批量参数统一用,分隔符，展示的分隔符统一成 |
+    const handledValueList: ISearchValue[] = [];
+    // console.log('valueList>>>', valueList);
+    valueList.forEach((item) => {
+      const idList = item.values ? _.flatMap(item.values.map(value => `${value.id}`.split(batchSplitRegex))) : [];
+      const nameList = item.values ? _.flatMap(item.values.map(value => `${value.name}`.split(batchSplitRegex))) : [];
+      const searchObj = {
+        ...item,
+        values: idList.map((value, index) => ({
+          id: value,
+          name: nameList[index],
+        })),
+      };
+
+      if (item.id === 'domain') {
+        // 搜索访问入口，前端去除端口
+        searchObj.values = searchObj.values?.map(value => ({
+          id: value.id.split(',').map(domain => domain.split(':')[0])
+            .join(','),
+          name: value.name,
+        }));
+      }
+      handledValueList.push(searchObj);
+    });
+
+    searchValue.value = handledValueList;
+    console.log('searchValue.value>>>', searchValue.value);
     queryTableDataFn();
   };
 
@@ -152,9 +201,11 @@ export const useLinkQueryColumnSerach = (
     searchAttrs,
     searchValue,
     sortValue,
+    columnCheckedMap,
+    batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
-    searchValueChange,
+    handleSearchValueChange,
   };
 };

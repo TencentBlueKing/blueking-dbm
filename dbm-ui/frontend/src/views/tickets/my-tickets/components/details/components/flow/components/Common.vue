@@ -16,18 +16,22 @@
     <template #content="{ content }">
       <FlowContent
         :content="content"
+        :flows="flows"
+        :ticket-data="ticketData"
         @fetch-data="handleFetchData" />
     </template>
   </BkTimeline>
 </template>
 
 <script setup lang="tsx">
+  import TicketModel from '@services/model/ticket/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
 
   interface Props {
+    ticketData: TicketModel,
     flows?: FlowItem[]
   }
 

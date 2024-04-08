@@ -85,10 +85,10 @@
 
   const tabListConfig = {
     [ClusterTypes.TENDBCLUSTER]: {
-      disabledRowConfig: {
+      disabledRowConfig: [{
         handler: (data: IClusterData) => data.status !== 'normal',
         tip: t('集群异常'),
-      },
+      }],
     },
   };
 

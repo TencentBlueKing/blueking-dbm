@@ -57,17 +57,17 @@
           </template>
         </BkDropdown>
         <DropdownExportExcel
-          :has-selected="hasSelected"
           :ids="selectedIds"
           type="redis" />
       </div>
       <DbSearchSelect
-        v-model="searchValue"
         class="operations-right mb-16"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
+        :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select />
+        unique-select
+        @change="handleSearchValueChange" />
     </div>
     <div class="table-wrapper-out">
       <div
@@ -205,14 +205,19 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
 
+  const tableRef = ref();
+
   const {
     columnAttrs,
     searchAttrs,
     searchValue,
     sortValue,
+    columnCheckedMap,
+    batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.REDIS, [
     'bk_cloud_id',
     'major_version',
@@ -222,7 +227,6 @@
 
   const disabledOperations: string[] = [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_CLOSE];
 
-  const tableRef = ref();
   const isShowDropdown = ref(false);
   const showEditEntryConfig = ref(false);
 
@@ -267,20 +271,16 @@
 
   const searchSelectData = computed(() => [
     {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-    },
-    {
-      name: t('实例'),
+      name: t('IP 或 IP:Port'),
       id: 'instance',
     },
     {
       name: t('访问入口'),
       id: 'domain',
+    },
+    {
+      name: 'ID',
+      id: 'id',
     },
     {
       name: t('集群名称'),
@@ -350,14 +350,6 @@
       return isCN.value ? 240 : 320;
     }
     return 60;
-  });
-
-  const searchIp = computed<string[]>(() => {
-    const ipObj = searchValue.value.find(item => item.id === 'ip');
-    if (ipObj && ipObj.values) {
-      return [ipObj.values[0].id];
-    }
-    return [];
   });
 
   const columns = computed(() => [
@@ -482,10 +474,12 @@
     },
     {
       label: t('管控区域'),
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
       filter: {
         list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
       },
+      render: ({ data }: ColumnRenderData) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       label: t('状态'),
@@ -502,6 +496,7 @@
             text: t('异常'),
           },
         ],
+        checked: columnCheckedMap.value.status,
       },
       render: ({ data }: ColumnRenderData) => {
         const info = data.status === 'normal'
@@ -516,11 +511,12 @@
     {
       label: 'Proxy',
       field: ClusterNodeKeys.PROXY,
-      minWidth: 230,
+      width: 180,
+      minWidth: 180,
       showOverflowTooltip: false,
       render: ({ data }: ColumnRenderData) => (
         <RenderInstances
-          highlightIps={searchIp.value}
+          highlightIps={batchSearchIpInatanceList.value}
           data={data[ClusterNodeKeys.PROXY]}
           title={t('【inst】实例预览', { title: 'Proxy', inst: data.master_domain })}
           role={ClusterNodeKeys.PROXY}
@@ -532,11 +528,12 @@
     {
       label: 'Master',
       field: ClusterNodeKeys.REDIS_MASTER,
-      minWidth: 230,
+      width: 180,
+      minWidth: 180,
       showOverflowTooltip: false,
       render: ({ data }: ColumnRenderData) => (
         <RenderInstances
-          highlightIps={searchIp.value}
+          highlightIps={batchSearchIpInatanceList.value}
           data={data[ClusterNodeKeys.REDIS_MASTER]}
           title={t('【inst】实例预览', { title: 'Master', inst: data.master_domain })}
           role={ClusterNodeKeys.REDIS_MASTER}
@@ -548,11 +545,12 @@
     {
       label: 'Slave',
       field: ClusterNodeKeys.REDIS_SLAVE,
-      minWidth: 230,
+      width: 180,
+      minWidth: 180,
       showOverflowTooltip: false,
       render: ({ data }: ColumnRenderData) => (
         <RenderInstances
-          highlightIps={searchIp.value}
+          highlightIps={batchSearchIpInatanceList.value}
           data={data[ClusterNodeKeys.REDIS_SLAVE]}
           title={t('【inst】实例预览', { title: 'Slave', inst: data.master_domain })}
           role={ClusterNodeKeys.REDIS_SLAVE}
@@ -573,6 +571,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.major_version,
+        checked: columnCheckedMap.value.major_version,
       },
       render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
     },
@@ -582,6 +581,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.region,
+        checked: columnCheckedMap.value.region,
       },
       render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
     },
@@ -616,6 +616,7 @@
       width: 100,
       filter: {
         list: columnAttrs.value.time_zone,
+        checked: columnCheckedMap.value.time_zone,
       },
       render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
     },
@@ -856,7 +857,7 @@
       disabled: ['master_domain'].includes(item.field as string),
     })),
     checked: [
-      'bk_cloud_name',
+      'bk_cloud_id',
       'name',
       'master_domain',
       'creator',
