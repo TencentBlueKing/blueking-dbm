@@ -266,7 +266,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "SUM(pulsar_msg_backlog)",
-  "version": 18,
+  "version": 22,
   "alert_source": "time_series",
   "custom_conditions": []
 }

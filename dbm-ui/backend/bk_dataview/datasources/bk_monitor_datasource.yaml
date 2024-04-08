@@ -29,6 +29,7 @@ datasources:
         - bk_uid
       baseUrl: ${BKMONITOR_URL}/rest/v2/grafana/
   - name: 日志平台
+    uid: bklog
     type: bk_log_datasource
     access: proxy
     isDefault: false
