@@ -67,10 +67,16 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
         # 修改表 db_meta_storageinstancetuple ,## 这个时候会出现一主多从 ！
         for ms_pair in tendisss:
             ejector_obj = StorageInstance.objects.get(
-                machine__ip=ms_pair["ejector"]["ip"], port=ms_pair["ejector"]["port"]
+                machine__ip=ms_pair["ejector"]["ip"],
+                port=ms_pair["ejector"]["port"],
+                machine__bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
             )
             receiver_obj = StorageInstance.objects.get(
-                machine__ip=ms_pair["receiver"]["ip"], port=ms_pair["receiver"]["port"]
+                machine__ip=ms_pair["receiver"]["ip"],
+                port=ms_pair["receiver"]["port"],
+                machine__bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
             )
             StorageInstanceTuple.objects.create(ejector=ejector_obj, receiver=receiver_obj, creator=created_by)
             logger.info("create link info {} -> {}".format(ejector_obj, receiver_obj))
@@ -172,7 +178,10 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
         # 执行切换，修改元数据
         for ms_pair in tendisss:
             old_ejector_obj = StorageInstance.objects.get(
-                machine__ip=ms_pair["ejector"]["ip"], port=ms_pair["ejector"]["port"]
+                machine__ip=ms_pair["ejector"]["ip"],
+                port=ms_pair["ejector"]["port"],
+                machine__bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
             )
             tmp_proxy_objs = list(old_ejector_obj.proxyinstance_set.all())
             logger.info(
@@ -181,7 +190,10 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
             old_ejector_obj.proxyinstance_set.clear()
 
             new_ejector_obj = StorageInstance.objects.get(
-                machine__ip=ms_pair["receiver"]["ip"], port=ms_pair["receiver"]["port"]
+                machine__ip=ms_pair["receiver"]["ip"],
+                port=ms_pair["receiver"]["port"],
+                machine__bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
             )
             logger.info(
                 "add cluster {} proxys {} link with storage {}".format(cluster, tmp_proxy_objs, new_ejector_obj)
@@ -201,7 +213,10 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
         ejector_objs, receiver_objs = [], []
         for ms_pair in tendisss:
             new_ejector_obj = StorageInstance.objects.get(
-                machine__ip=ms_pair["receiver"]["ip"], port=ms_pair["receiver"]["port"]
+                machine__ip=ms_pair["receiver"]["ip"],
+                port=ms_pair["receiver"]["port"],
+                machine__bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
             )
             if switch_type != SyncType.MS.value:
                 logger.info("switch for sync {} need move cc module & add cc instance".format(switch_type))
