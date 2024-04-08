@@ -219,3 +219,12 @@ export function forceFailflowNode(params: {
 }) {
   return http.post<{ node_id: string }>(`${path}/${params.root_id}/force_fail_node/`, params);
 }
+
+/**
+ * 批量重试
+ */
+export function batchRetryNodes(params: {
+  root_id: string,
+}) {
+  return http.post<{ root_id: string }>(`${path}/${params.root_id}/batch_retry_nodes/`, params);
+}
