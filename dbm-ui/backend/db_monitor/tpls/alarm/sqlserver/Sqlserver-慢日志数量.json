@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Sqlserver-日志使用空间>200GB",
+  "name": "Sqlserver-慢日志数量",
   "db_type": "sqlserver",
   "details": {
     "bk_biz_id": "",
-    "name": "Sqlserver-日志使用空间>200GB",
+    "name": "Sqlserver-慢日志数量",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "MAX(mssql_database_ldfsize)",
+        "name": "MAX(mssql_slow_queries)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -26,7 +26,7 @@
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.exporter_dbm_mssql_exporter.__default__.mssql_database_ldfsize",
+            "metric_id": "bk_monitor.exporter_dbm_mssql_exporter.__default__.mssql_slow_queries",
             "functions": [],
             "result_table_id": "exporter_dbm_mssql_exporter.__default__",
             "data_label": "exporter_dbm_mssql_exporter",
@@ -40,20 +40,20 @@
               "appid"
             ],
             "agg_condition": [],
-            "metric_field": "mssql_database_ldfsize",
+            "metric_field": "mssql_slow_queries",
             "unit": "",
-            "name": "mssql_database_ldfsize"
+            "name": "mssql_slow_queries"
           }
         ],
         "algorithms": [
           {
             "type": "Threshold",
-            "level": 2,
+            "level": 1,
             "config": [
               [
                 {
-                  "method": "gt",
-                  "threshold": 200
+                  "method": "gte",
+                  "threshold": 100
                 }
               ]
             ],
@@ -65,10 +65,10 @@
     ],
     "detects": [
       {
-        "level": 2,
+        "level": 1,
         "expression": "",
         "trigger_config": {
-          "count": 3,
+          "count": 1,
           "uptime": {
             "calendars": [],
             "time_ranges": [
@@ -89,12 +89,12 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 47933,
+      "config_id": 47932,
       "user_groups": [],
       "user_type": "main",
       "signal": [
-        "no_data",
-        "abnormal"
+        "abnormal",
+        "no_data"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -247,7 +247,7 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "MAX(mssql_database_ldfsize)",
+  "monitor_indicator": "MAX(mssql_slow_queries)",
   "version": 1,
   "alert_source": "time_series",
   "custom_conditions": [],
