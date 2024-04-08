@@ -21,16 +21,16 @@
       </BkButton>
       <DropdownExportExcel
         class="mr-8"
-        :has-selected="hasSelected"
         :ids="selectedIds"
         type="riak" />
       <DbSearchSelect
-        v-model="searchValue"
         class="header-action-search-select"
         :data="serachData"
         :get-menu-list="getMenuList"
+        :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select />
+        unique-select
+        @change="handleSearchValueChange" />
       <BkDatePicker
         v-model="deployTime"
         append-to-body
@@ -144,9 +144,12 @@
     searchAttrs,
     searchValue,
     sortValue,
+    columnCheckedMap,
+    batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.RIAK, [
     'bk_cloud_id',
     'db_module_id',
@@ -157,23 +160,16 @@
 
   const serachData = computed(() => [
     {
-      name: 'ID',
-      id: 'id',
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
     },
     {
       name: t('集群名称'),
       id: 'name',
-      logical: ',',
     },
     {
-      name: 'IP',
-      id: 'ip',
-      logical: ',',
-    },
-    {
-      name: t('实例'),
-      id: 'instance',
-      logical: ',',
+      name: 'ID',
+      id: 'id',
     },
     {
       name: t('创建人'),
@@ -233,16 +229,7 @@
   const detailData = ref<RiakModel>();
   const selected = shallowRef<RiakModel[]>([]);
 
-  const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
-
-  const searchIp = computed<string[]>(() => {
-    const ipObj = searchValue.value.find(item => item.id === 'ip');
-    if (ipObj && ipObj.values) {
-      return [ipObj.values[0].id];
-    }
-    return [];
-  });
 
   const columns = computed(() => [
     {
@@ -296,6 +283,7 @@
       width: 80,
       filter: {
         list: columnAttrs.value.major_version,
+        checked: columnCheckedMap.value.major_version,
       },
       render: ({ data }: { data: RiakModel }) => <span>{data.major_version || '--'}</span>,
     },
@@ -306,15 +294,17 @@
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.db_module_id,
+        checked: columnCheckedMap.value.db_module_id,
       },
       render: ({ data }: { data: RiakModel }) => <span>{data.db_module_name || '--'}</span>,
     },
     {
       label: t('管控区域'),
       width: 120,
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
       filter: {
         list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
       },
       render: ({ data }: { data: RiakModel }) => <span>{data.bk_cloud_name || '--'}</span>,
     },
@@ -333,6 +323,7 @@
             text: t('异常'),
           },
         ],
+        checked: columnCheckedMap.value.status,
       },
       render: ({ data }: { data: RiakModel }) => <RenderClusterStatus data={data.status} />,
     },
@@ -341,7 +332,7 @@
       field: 'riak_node',
       render: ({ data }: { data: RiakModel }) => (
         <RenderNodeInstance
-          highlightIps={searchIp.value}
+          highlightIps={batchSearchIpInatanceList.value}
           role="riak_node"
           title={`【${data.cluster_name}】${t('节点')}`}
           clusterId={data.id}

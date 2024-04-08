@@ -41,14 +41,15 @@
         {{ t('导入授权') }}
       </AuthButton>
       <DropdownExportExcel
-        :has-selected="hasSelected"
+        :ids="selectedIds"
         type="tendbsingle" />
       <DbSearchSelect
-        v-model="searchValue"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
+        :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select />
+        unique-select
+        @change="handleSearchValueChange" />
     </div>
     <div
       class="table-wrapper"
@@ -92,7 +93,6 @@
   } from 'vue-router';
 
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
-  import { getModules } from '@services/source/cmdb';
   import {
     getTendbsingleDetail,
     getTendbsingleInstanceList,
@@ -100,9 +100,6 @@
   } from '@services/source/tendbsingle';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
-  import type {
-    SearchFilterItem,
-  } from '@services/types';
 
   import {
     useCopy,
@@ -151,7 +148,6 @@
 
   interface State {
     selected: Array<TendbsingleModel>,
-    dbModuleList: Array<SearchFilterItem>,
   }
 
   const clusterId = defineModel<number>('clusterId');
@@ -172,16 +168,19 @@
     searchAttrs,
     searchValue,
     sortValue,
+    columnCheckedMap,
+    batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.TENDBSINGLE, [
     'bk_cloud_id',
     'db_module_id',
     'major_version',
     'region',
     'time_zone',
-  ], () => fetchData(isInit));
+  ], () => fetchData());
 
   const tableRef = ref();
   const isShowExcelAuthorize = ref(false);
@@ -194,27 +193,23 @@
 
   const state = reactive<State>({
     selected: [],
-    dbModuleList: [],
   });
 
   const isCN = computed(() => locale.value === 'zh-cn');
   const hasSelected = computed(() => state.selected.length > 0);
+  const selectedIds = computed(() => state.selected.map(item => item.id));
   const searchSelectData = computed(() => [
     {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-    },
-    {
-      name: '实例',
+      name: t('IP 或 IP:Port'),
       id: 'instance',
     },
     {
       name: t('访问入口'),
       id: 'domain',
+    },
+    {
+      name: 'ID',
+      id: 'id',
     },
     {
       name: t('集群名称'),
@@ -373,6 +368,7 @@
       field: 'bk_cloud_name',
       filter: {
         list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
       },
     },
     {
@@ -390,6 +386,7 @@
             text: t('异常'),
           },
         ],
+        checked: columnCheckedMap.value.status,
       },
       render: ({ data }: ColumnData) => {
         const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
@@ -399,10 +396,12 @@
     {
       label: t('实例'),
       field: 'masters',
+      width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
       <RenderInstances
+        highlightIps={batchSearchIpInatanceList.value}
         data={data.masters}
         title={t('【inst】实例预览', { inst: data.master_domain })}
         role="orphan"
@@ -418,6 +417,7 @@
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.db_module_id,
+        checked: columnCheckedMap.value.db_module_id,
       },
       render: ({ data }: ColumnData) => <span>{data.db_module_name || '--'}</span>,
     },
@@ -427,6 +427,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.major_version,
+        checked: columnCheckedMap.value.major_version,
       },
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
@@ -436,6 +437,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.region,
+        checked: columnCheckedMap.value.region,
       },
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
@@ -458,6 +460,7 @@
       width: 100,
       filter: {
         list: columnAttrs.value.time_zone,
+        checked: columnCheckedMap.value.time_zone,
       },
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
@@ -576,24 +579,9 @@
     return searchSelectData.value.find(set => set.id === item.id)?.children || [];
   };
 
-  /**
-   * 获取模块列表
-   */
-  getModules({
-    bk_biz_id: globalBizsStore.currentBizId,
-    cluster_type: ClusterTypes.TENDBSINGLE,
-  }).then((res) => {
-    state.dbModuleList = res.map(item => ({
-      id: item.db_module_id,
-      name: item.name,
-    }));
-  });
-
-  let isInit = true;
-  const fetchData = (loading?:boolean) => {
+  const fetchData = () => {
     const params = getSearchSelectorParams(searchValue.value);
-    tableRef.value.fetchData(params, { ...sortValue }, loading);
-    isInit = false;
+    tableRef.value.fetchData(params, { ...sortValue });
   };
 
   // 设置行样式
@@ -756,7 +744,6 @@
     margin-bottom: 16px;
 
     .bk-search-select {
-      order: 2;
       flex: 1;
       max-width: 500px;
       min-width: 320px;
@@ -828,48 +815,5 @@
       color: @disable-color;
     }
   }
-}
-</style>
-<style lang="less">
-
-.cluster-name-container {
-  display: flex;
-  align-items: center;
-  padding: 8px 0;
-  overflow: hidden;
-
-  .cluster-name {
-    .bk-button {
-      display: inline-block;
-      width: 100%;
-      overflow: hidden;
-
-      .bk-button-text {
-        display: inline-block;
-        width: 100%;
-        overflow: hidden;
-        line-height: 15px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    }
-
-    &__alias {
-      color: @light-gray;
-    }
-  }
-
-  .cluster-tags {
-    display: flex;
-    max-width: 150px;
-    margin-left: 4px;
-    align-items: center;
-
-    .cluster-tag {
-      margin: 2px 0;
-      flex-shrink: 0;
-    }
-  }
-
 }
 </style>

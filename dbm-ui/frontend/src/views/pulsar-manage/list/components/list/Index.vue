@@ -21,15 +21,15 @@
         {{ t('申请实例') }}
       </AuthButton>
       <DropdownExportExcel
-        :has-selected="hasSelected"
         :ids="selectedIds"
         type="pulsar" />
       <DbSearchSelect
-        v-model="searchValue"
         :data="serachData"
         :get-menu-list="getMenuList"
+        :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select />
+        unique-select
+        @change="handleSearchValueChange" />
     </div>
 
     <div
@@ -90,11 +90,6 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import {
-    onMounted,
-    ref,
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -163,9 +158,12 @@
     searchAttrs,
     searchValue,
     sortValue,
+    columnCheckedMap,
+    batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.PULSAE, [
     'bk_cloud_id',
     'major_version',
@@ -202,7 +200,6 @@
   const operationData = shallowRef<PulsarModel>();
   const selected = shallowRef<PulsarModel[]>([]);
 
-  const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
   const paginationExtra = computed(() => {
@@ -312,6 +309,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.major_version,
+        checked: columnCheckedMap.value.major_version,
       },
     },
     {
@@ -320,6 +318,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.region,
+        checked: columnCheckedMap.value.region,
       },
       render: ({ data }: {data: PulsarModel}) => <span>{data?.region || '--'}</span>,
     },
@@ -337,6 +336,7 @@
             text: t('异常'),
           },
         ],
+        checked: columnCheckedMap.value.status,
       },
       render: ({ data }: {data: PulsarModel}) => <RenderClusterStatus data={data.status} />,
     },
@@ -347,6 +347,7 @@
       showOverflowTooltip: false,
       render: ({ data }: {data: PulsarModel}) => (
         <RenderNodeInstance
+          highlightIps={batchSearchIpInatanceList.value}
           role="pulsar_bookkeeper"
           title={`【${data.domain}】Bookkeeper`}
           clusterId={data.id}
@@ -361,6 +362,7 @@
       showOverflowTooltip: false,
       render: ({ data }: {data: PulsarModel}) => (
         <RenderNodeInstance
+          highlightIps={batchSearchIpInatanceList.value}
           role="pulsar_zookeeper"
           title={`【${data.domain}】Zookeeper`}
           clusterId={data.id}
@@ -375,6 +377,7 @@
       showOverflowTooltip: false,
       render: ({ data }: {data: PulsarModel}) => (
         <RenderNodeInstance
+          highlightIps={batchSearchIpInatanceList.value}
           role="pulsar_broker"
           title={`【${data.domain} Broker`}
           clusterId={data.id}
@@ -400,6 +403,7 @@
       width: 100,
       filter: {
         list: columnAttrs.value.time_zone,
+        checked: columnCheckedMap.value.time_zone,
       },
     },
     {
@@ -529,28 +533,20 @@
 
   const serachData = computed(() => [
     {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: t('集群名称'),
-      id: 'name',
-      logical: ',',
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
     },
     {
       name: t('访问入口'),
       id: 'domain',
-      logical: ',',
     },
     {
-      name: 'IP',
-      id: 'ip',
-      logical: ',',
+      name: t('集群名称'),
+      id: 'name',
     },
     {
-      name: t('实例'),
-      id: 'instance',
-      logical: ',',
+      name: 'ID',
+      id: 'id',
     },
     {
       name: t('管控区域'),

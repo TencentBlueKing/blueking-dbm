@@ -1,10 +1,11 @@
 <template>
   <DbSearchSelect
-    v-model="searchSelectValue"
     class="mb-16"
     :data="searchSelectData"
-    :placeholder="placeholder ? placeholder : t('请输入或选择条件搜索')"
-    unique-select />
+    :model-value="searchSelectValue"
+    :placeholder="t('请输入或选择条件搜索')"
+    unique-select
+    @change="handleSearchChange" />
 </template>
 <script setup lang="ts">
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
@@ -27,13 +28,19 @@
     clusterType: ClusterTypes,
     searchAttrs: SearchAttrs,
     searchSelectList?: SearchSelectList,
-    placeholder?: string
+    // placeholder?: string
+  }
+
+  interface Emits {
+    (e: 'searchValueChange', value: ISearchValue[]): void,
   }
 
   const props = withDefaults(defineProps<Props>(), {
     searchSelectList: undefined,
     placeholder: '',
   });
+
+  const emits = defineEmits<Emits>();
 
   const searchSelectValue = defineModel<ISearchValue[]>({
     default: [],
@@ -51,7 +58,6 @@
       {
         name: t('访问入口'),
         id: 'domain',
-        multiple: true,
       },
       {
         name: t('状态'),
@@ -71,7 +77,6 @@
       {
         name: t('集群名称'),
         id: 'name',
-        multiple: true,
       },
       {
         name: t('管控区域'),
@@ -91,4 +96,8 @@
     }
     return (props.searchSelectList ? props.searchSelectList : baseSelectList);
   });
+
+  const handleSearchChange = (value: ISearchValue[]) => {
+    emits('searchValueChange', value);
+  };
 </script>

@@ -21,15 +21,15 @@
         {{ t('申请实例') }}
       </AuthButton>
       <DropdownExportExcel
-        :has-selected="hasSelected"
         :ids="selectedIds"
         type="kafka" />
       <DbSearchSelect
-        v-model="searchValue"
         :data="serachData"
         :get-menu-list="getMenuList"
+        :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select />
+        unique-select
+        @change="handleSearchValueChange" />
     </div>
     <div
       class="table-wrapper"
@@ -164,9 +164,12 @@
     searchAttrs,
     searchValue,
     sortValue,
+    columnCheckedMap,
+    batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.KAFKA, [
     'bk_cloud_id',
     'db_module_id',
@@ -196,7 +199,6 @@
   const operationData = shallowRef<KafkaModel>();
   const selected = shallowRef<KafkaModel[]>([]);
 
-  const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
   const paginationExtra = computed(() => {
@@ -217,28 +219,20 @@
 
   const serachData = computed(() => [
     {
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
+    },
+    {
+      name: t('访问入口'),
+      id: 'domain',
+    },
+    {
       name: 'ID',
       id: 'id',
     },
     {
       name: t('集群名称'),
       id: 'name',
-      logical: ',',
-    },
-    {
-      name: t('访问入口'),
-      id: 'domain',
-      logical: ',',
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-      logical: ',',
-    },
-    {
-      name: t('实例'),
-      id: 'instance',
-      logical: ',',
     },
     {
       name: t('管控区域'),
@@ -378,10 +372,12 @@
     },
     {
       label: t('管控区域'),
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
       filter: {
         list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
       },
+      render: ({ data }: {data: KafkaModel}) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       label: t('状态'),
@@ -397,6 +393,7 @@
             text: t('异常'),
           },
         ],
+        checked: columnCheckedMap.value.status,
       },
       render: ({ data }: {data: KafkaModel}) => <RenderClusterStatus data={data.status} />,
     },
@@ -406,6 +403,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.major_version,
+        checked: columnCheckedMap.value.major_version,
       },
     },
     {
@@ -414,6 +412,7 @@
       minWidth: 100,
       filter: {
         list: columnAttrs.value.region,
+        checked: columnCheckedMap.value.region,
       },
       render: ({ data }: {data: KafkaModel}) => <span>{data?.region || '--'}</span>,
     },
@@ -424,6 +423,7 @@
       showOverflowTooltip: false,
       render: ({ data }: {data: KafkaModel}) => (
         <RenderNodeInstance
+          highlightIps={batchSearchIpInatanceList.value}
           role="zookeeper"
           title={`【${data.domain}】Zookeeper`}
           clusterId={data.id}
@@ -438,6 +438,7 @@
       showOverflowTooltip: false,
       render: ({ data }: {data: KafkaModel}) => (
         <RenderNodeInstance
+          highlightIps={batchSearchIpInatanceList.value}
           role="broker"
           title={`【${data.domain} Broker`}
           clusterId={data.id}
@@ -462,6 +463,7 @@
       width: 100,
       filter: {
         list: columnAttrs.value.time_zone,
+        checked: columnCheckedMap.value.time_zone,
       },
     },
     {
@@ -589,7 +591,7 @@
     })),
     checked: [
       'cluster_name',
-      'bk_cloud_name',
+      'bk_cloud_id',
       'domain',
       'major_version',
       'region',
