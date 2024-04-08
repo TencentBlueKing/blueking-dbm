@@ -15,20 +15,21 @@
   <ApplyPermissionCatch>
     <div class="rotation-setting-type-content">
       <div class="create-box">
-        <BkButton
+        <AuthButton
+          action-id="duty_rule_create"
           class="w-88 mb-14"
+          :resource="activeDbType"
           theme="primary"
           @click="() => handleOperate('create')">
           {{ t('新建') }}
-        </BkButton>
+        </AuthButton>
       </div>
       <BkLoading :loading="isTableLoading">
         <DbTable
           ref="tableRef"
           class="table-box"
           :columns="columns"
-          :data-source="queryDutyRuleList"
-          releate-url-query
+          :data-source="dataSource"
           :row-class="updateRowClass"
           :settings="settings" />
       </BkLoading>
@@ -84,6 +85,10 @@
 
   const { t } = useI18n();
 
+  const dataSource = (params: ServiceParameters<typeof queryDutyRuleList>) => queryDutyRuleList(params, {
+    permission: 'catch'
+  })
+
   const tableRef = ref();
   const pageType = ref();
   const isShowEditRuleSideSilder = ref(false);
@@ -121,32 +126,29 @@
       label: t('规则名称'),
       field: 'name',
       minWidth: 220,
-      render: ({ data }: {data: DutyRuleModel}) => {
-        const isNotActive = [
-          RuleStatus.TERMINATED,
-          RuleStatus.EXPIRED,
-        ].includes(data.status as RuleStatus);
-
-        return (
-          <TextOverflowLayout>
-            {{
-              default: () => (
-                <bk-button
-                  text
-                  theme={!isNotActive && "primary"}
-                  onClick={() => handleOperate('edit', data)}>
-                  {data.name}
-                </bk-button>
-              ),
-              append: () => data.isNewCreated && (
-                <MiniTag
-                  theme='success'
-                  content="NEW" />
-              ),
-            }}
-          </TextOverflowLayout>
-        );
-      },
+      fixed: 'left',
+      render: ({ data }: {data: DutyRuleModel}) => (
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <auth-button
+                action-id="duty_rule_update"
+                permission={data.permission.duty_rule_update}
+                resource={props.activeDbType}
+                text
+                theme="primary"
+                onClick={() => handleOperate('edit', data)}>
+                {data.name}
+              </auth-button>
+            ),
+            append: () => data.isNewCreated && (
+              <MiniTag
+                theme='success'
+                content="NEW" />
+            ),
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('状态'),
@@ -158,46 +160,80 @@
       },
     },
     {
-      label: () => <div v-bk-tooltips={
-        {
-          content: t('范围 1～100，数字越高代表优先级越高，当有规则冲突时，优先执行数字较高的规则'),
-          theme: 'dark',
-        }} style="border-bottom: 1px dashed #979BA5;">{t('优先级')}</div>,
+      label: () => (
+        <div
+          v-bk-tooltips={{
+            content: t('范围 1～100，数字越高代表优先级越高，当有规则冲突时，优先执行数字较高的规则'),
+            theme: 'dark',
+          }}
+          style="border-bottom: 1px dashed #979BA5;">
+          {t('优先级')}
+        </div>
+      ),
       field: 'priority',
       sort: true,
       width: 120,
       render: ({ data }: {data: DutyRuleModel}) => {
-        const level = data.priority;
-        let theme = '';
-        if (sortedPriority.value.length === 3) {
-          const [largest, medium, least] = sortedPriority.value;
-          if (level === largest) {
-            theme = 'danger';
-          } else if (level === medium) {
-            theme = 'warning';
-          } else if (level === least) {
-            theme = 'success';
-          }
-        }
 
-        return (
-          <div class="priority-box">
-            {
-              !data.is_show_edit ? <>
-                {!theme ? <bk-tag>{level}</bk-tag> : <bk-tag theme={theme} type="filled">{level}</bk-tag>}
-                <db-icon
-                  class="edit-icon"
-                  type="edit"
-                  style="font-size: 18px"
-                  onClick={() => handleClickEditPriority(data)} />
-              </> : <NumberInput
+        const renderPriority = () => {
+          const level = data.priority;
+
+          if (data.is_show_edit){
+            return (
+              <auth-template
+                action-id="duty_rule_update"
+                permission={data.permission.duty_rule_update}
+                resource={props.activeDbType}>
+                <NumberInput
                   type='number'
                   model-value={level}
                   min={1}
                   max={100}
                   placeholder={t('请输入 1～100 的数值')}
                   onSubmit={(value: string) => handlePriorityChange(data, value)}/>
+              </auth-template>
+            )
+          }
+
+          let theme = '';
+          if (sortedPriority.value.length === 3) {
+            const [largest, medium, least] = sortedPriority.value;
+            if (level === largest) {
+              theme = 'danger';
+            } else if (level === medium) {
+              theme = 'warning';
+            } else if (level === least) {
+              theme = 'success';
             }
+          }
+          return (
+            <>
+              {
+                theme ?
+                <bk-tag
+                  theme={theme}
+                  type="filled">
+                  {level}
+                </bk-tag> : <bk-tag>{level}</bk-tag>
+              }
+              <auth-template
+                action-id="duty_rule_update"
+                permission={data.permission.duty_rule_update}
+                resource={props.activeDbType}>
+                <db-icon
+                  class="edit-icon"
+                  type="edit"
+                  style="font-size: 18px"
+                  onClick={() => handleClickEditPriority(data)} />
+              </auth-template>
+
+            </>
+          )
+        }
+
+        return (
+          <div class="priority-box">
+            { renderPriority() }
           </div>
         );
       },
@@ -243,7 +279,7 @@
       label: t('生效时间'),
       field: 'effective_time',
       showOverflowTooltip: true,
-      width: 180,
+      width: 240,
       render: ({ data }: { data: DutyRuleModel }) => <span>{data.effectiveTimeDisplay}</span>,
     },
     {
@@ -251,7 +287,7 @@
       field: 'update_at',
       showOverflowTooltip: true,
       sort: true,
-      width: 180,
+      width: 240,
       render: ({ data }: { data: DutyRuleModel }) => <span>{data.updateAtDisplay}</span>,
     },
     {
@@ -263,26 +299,29 @@
     {
       label: t('启停'),
       field: 'is_enabled',
-      width: 120,
+      width: 80,
       render: ({ data }: { data: DutyRuleModel }) => (
-      <bk-pop-confirm
-        title={t('确认停用该策略？')}
-        content={t('停用后，所有的业务将会停用该策略，请谨慎操作！')}
-        width="320"
-        is-show={showTipMap.value[data.id]}
-        trigger="manual"
-        placement="bottom"
-        onConfirm={() => handleClickConfirm(data)}
-        onCancel={() => handleCancelConfirm(data)}
-      >
-        <bk-switcher
-          size="small"
-          v-model={data.is_enabled}
-          theme="primary"
-          onChange={() => handleChangeSwitch(data)}
-        />
-      </bk-pop-confirm>
-    ),
+        <bk-pop-confirm
+          title={t('确认停用该策略？')}
+          content={t('停用后，所有的业务将会停用该策略，请谨慎操作！')}
+          width="320"
+          is-show={showTipMap.value[data.id]}
+          trigger="manual"
+          placement="bottom"
+          onConfirm={() => handleClickConfirm(data)}
+          onCancel={() => handleCancelConfirm(data)}
+        >
+          <auth-switcher
+            action-id="duty_rule_update"
+            permission={data.permission.duty_rule_update}
+            resource={props.activeDbType}
+            size="small"
+            v-model={data.is_enabled}
+            theme="primary"
+            onChange={() => handleChangeSwitch(data)}
+          />
+        </bk-pop-confirm>
+      ),
     },
     {
       label: t('操作'),
@@ -292,24 +331,35 @@
       width: 180,
       render: ({ data }: {data: DutyRuleModel}) => (
       <div class="operate-box">
-        <bk-button
+        <auth-button
+          action-id="duty_rule_update"
+          permission={data.permission.duty_rule_update}
+          resource={props.activeDbType}
           text
           theme="primary"
           onClick={() => handleOperate('edit', data)}>
           {t('编辑')}
-        </bk-button>
-        <bk-button
+        </auth-button>
+        <auth-button
+          action-id="duty_rule_create"
+          permission={data.permission.duty_rule_create}
+          resource={props.activeDbType}
           text
           theme="primary"
           onClick={() => handleOperate('clone', data)}>
           {t('克隆')}
-        </bk-button>
-        {!data.is_enabled && <bk-button
-          text
-          theme="primary"
-          onClick={() => handleDelete(data)}>
-          {t('删除')}
-        </bk-button>}
+        </auth-button>
+        {!data.is_enabled && (
+          <auth-button
+            action-id="duty_rule_destroy"
+            permission={data.permission.duty_rule_destroy}
+            resource={props.activeDbType}
+            text
+            theme="primary"
+            onClick={() => handleDelete(data)}>
+            {t('删除')}
+          </auth-button>
+        )}
       </div>),
     },
   ]);

@@ -34,6 +34,7 @@ import {
 import BizPermission from '@views/BizPermission.vue';
 import getDbConfRoutes from '@views/db-configure/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
+import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes'
 import getESRoutes from '@views/es-manage/routes';
 import getHDFSRoutes from '@views/hdfs-manage/routes';
 import getInfluxDBRoutes from '@views/influxdb-manage/routes';
@@ -131,6 +132,7 @@ export default () => {
         ...getServiceApplyRoutes(),
         ...getQuickSearchRoutes(),
         ...getTicketsRoutes(),
+        ...getDutyRuleManageRoutes()
       ],
     },
     {

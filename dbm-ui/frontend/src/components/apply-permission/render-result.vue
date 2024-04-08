@@ -25,8 +25,8 @@
       <table>
         <thead>
           <tr>
-            <th>{{ t('系统') }}</th>
-            <th>{{ t('需要申请的权限') }}</th>
+            <th style="min-width: 120px">{{ t('系统') }}</th>
+            <th style="min-width: 150px">{{ t('需要申请的权限') }}</th>
             <th>{{ t('关联的资源实例') }}</th>
           </tr>
         </thead>
@@ -41,7 +41,7 @@
                 <p
                   v-for="(resourceItem, rindex) in permissionItem.relatedResources"
                   :key="rindex">
-                  {{ resourceItem.type }}-{{ resourceItem.instances.join('，') }}
+                  {{ resourceItem.type }}:{{ resourceItem.instances.join('，') }}
                 </p>
                 <p v-if="permissionItem.relatedResources.length < 1">--</p>
               </td>

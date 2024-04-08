@@ -12,54 +12,56 @@
 -->
 
 <template>
-  <div class="permission">
-    <div class="permission-operations">
-      <AuthButton
-        action-id="tendbcluster_partition_create"
-        theme="primary"
-        @click="handleAddAcount">
-        {{ t('新建账号') }}
-      </AuthButton>
-      <DbSearchSelect
-        v-model="tableSearch"
-        :data="filters"
-        :placeholder="t('请输入账号名称/DB名称/权限名称')"
-        style="width: 500px"
-        unique-select
-        @change="getList" />
+  <PermissionCatch>
+    <div class="permission">
+      <div class="permission-operations">
+        <AuthButton
+          action-id="tendbcluster_partition_create"
+          theme="primary"
+          @click="handleAddAcount">
+          {{ t('新建账号') }}
+        </AuthButton>
+        <DbSearchSelect
+          v-model="tableSearch"
+          :data="filters"
+          :placeholder="t('请输入账号名称/DB名称/权限名称')"
+          style="width: 500px"
+          unique-select
+          @change="getList" />
+      </div>
+      <BkLoading :loading="tableIsLoading">
+        <DbOriginalTable
+          class="permission-table"
+          :columns="columns"
+          :data="tableData"
+          :is-anomalies="tableIsAnomalies"
+          :is-searching="tableSearch.length > 0"
+          :max-height="tableMaxHeight"
+          :row-class="setRowClass"
+          row-hover="auto"
+          show-overflow-tooltip
+          @clear-search="handleClearSearch" />
+      </BkLoading>
+      <AddAccountDialog
+        v-model="addAccountDialogShow"
+        @success="getList" />
+      <AccountInfoDialog
+        v-model="accountInfoDialogShow"
+        :info="accountInfoDialogInfo"
+        @delete-account="handleDeleteAccountSuccess" />
+      <CreateRule
+        v-model="createRuleShow"
+        :account-id="createRuleAccountId"
+        @success="getList" />
+      <ClusterAuthorize
+        v-model="authorizeShow"
+        :access-dbs="authorizeDbs"
+        :account-type="AccountTypes.TENDBCLUSTER"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+        :tab-list="[ClusterTypes.TENDBCLUSTER]"
+        :user="authorizeUser" />
     </div>
-    <BkLoading :loading="tableIsLoading">
-      <DbOriginalTable
-        class="permission-table"
-        :columns="columns"
-        :data="tableData"
-        :is-anomalies="tableIsAnomalies"
-        :is-searching="tableSearch.length > 0"
-        :max-height="tableMaxHeight"
-        :row-class="setRowClass"
-        row-hover="auto"
-        show-overflow-tooltip
-        @clear-search="handleClearSearch" />
-    </BkLoading>
-    <AddAccountDialog
-      v-model="addAccountDialogShow"
-      @success="getList" />
-    <AccountInfoDialog
-      v-model="accountInfoDialogShow"
-      :info="accountInfoDialogInfo"
-      @delete-account="handleDeleteAccountSuccess" />
-    <CreateRule
-      v-model="createRuleShow"
-      :account-id="createRuleAccountId"
-      @success="getList" />
-    <ClusterAuthorize
-      v-model="authorizeShow"
-      :access-dbs="authorizeDbs"
-      :account-type="AccountTypes.TENDBCLUSTER"
-      :cluster-types="[ClusterTypes.TENDBCLUSTER]"
-      :tab-list="[ClusterTypes.TENDBCLUSTER]"
-      :user="authorizeUser" />
-  </div>
+  </PermissionCatch>
 </template>
 
 <script setup lang="tsx">
@@ -77,6 +79,7 @@
     OccupiedInnerHeight,
   } from '@common/const';
 
+  import PermissionCatch from '@components/apply-permission/Catch.vue'
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
 
   import { getSearchSelectorParams } from '@utils';
@@ -127,6 +130,8 @@
       ...getSearchSelectorParams(tableSearch.value),
       account_type: AccountTypes.TENDBCLUSTER,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    }, {
+      permission: 'catch'
     });
   };
 
@@ -157,7 +162,7 @@
       field: 'user',
       showOverflowTooltip: false,
       render: ({ data }: { data: PermissionTableRow }) => (
-        <div class="permission-cell" onClick={ handleToggleExpand.bind(null, data) }>
+        <div class="permission-cell" onClick={ () => handleToggleExpand(data) }>
           {
             data.rules.length > 1
               ? <db-icon

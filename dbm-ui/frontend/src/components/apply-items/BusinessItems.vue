@@ -16,39 +16,41 @@
     :label="t('所属业务')"
     property="bk_biz_id"
     required>
-    <AppSelect
-      :data="withFavorBizList"
-      :generate-key="(item: IAppItem) => item.bk_biz_id"
-      :generate-name="(item: IAppItem) => item.display_name"
-      style="width: 435px"
-      :value="currentBiz"
-      @change="handleAppChange">
-      <template #default="{ data }">
-        <AuthTemplate
-          :action-id="perrmisionActionId"
-          :biz-id="data.bk_biz_id"
-          :permission="data.permission.db_manage"
-          :resource="data.bk_biz_id"
-          style="width: 100%">
-          <div class="db-app-select-item">
-            <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
-            <div style="margin-left: auto">
-              <DbIcon
-                v-if="favorBizIdMap[data.bk_biz_id]"
-                class="unfavor-btn"
-                style="color: #ffb848"
-                type="star-fill"
-                @click.stop="handleUnfavor(data.bk_biz_id)" />
-              <DbIcon
-                v-else
-                class="favor-btn"
-                type="star"
-                @click.stop="handleFavor(data.bk_biz_id)" />
+    <BkLoading :loading="isBizLoading">
+      <AppSelect
+        :data="withFavorBizList"
+        :generate-key="(item: IAppItem) => item.bk_biz_id"
+        :generate-name="(item: IAppItem) => item.display_name"
+        style="width: 435px"
+        :value="currentBiz"
+        @change="handleAppChange">
+        <template #default="{ data }">
+          <AuthTemplate
+            :action-id="perrmisionActionId"
+            :biz-id="data.bk_biz_id"
+            :permission="data.permission[perrmisionActionId]"
+            :resource="data.bk_biz_id"
+            style="width: 100%">
+            <div class="db-app-select-item">
+              <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
+              <div style="margin-left: auto">
+                <DbIcon
+                  v-if="favorBizIdMap[data.bk_biz_id]"
+                  class="unfavor-btn"
+                  style="color: #ffb848"
+                  type="star-fill"
+                  @click.stop="handleUnfavor(data.bk_biz_id)" />
+                <DbIcon
+                  v-else
+                  class="favor-btn"
+                  type="star"
+                  @click.stop="handleFavor(data.bk_biz_id)" />
+              </div>
             </div>
-          </div>
-        </AuthTemplate>
-      </template>
-    </AppSelect>
+          </AuthTemplate>
+        </template>
+      </AppSelect>
+    </BkLoading>
   </BkFormItem>
   <BkFormItem
     ref="appAbbrRef"
@@ -74,12 +76,13 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
 
   import { getBizs } from '@services/source/cmdb';
   import type { BizItem } from '@services/types';
 
-  import { useGlobalBizs, useUserProfile } from '@stores';
+  import { useUserProfile } from '@stores';
 
   import { UserPersonalSettings } from '@common/const';
   import { nameRegx } from '@common/regex';
@@ -94,7 +97,7 @@
     perrmisionActionId: string;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -113,14 +116,15 @@
   const { t } = useI18n();
 
   const route = useRoute();
-  const { bizs: bizList } = useGlobalBizs();
   const userProfile = useUserProfile();
 
+  const bizList = shallowRef<IAppItem[]>([]);
   const currentBiz = shallowRef<IAppItem>();
   const favorBizIdMap = shallowRef(makeMap(userProfile.profile[UserPersonalSettings.APP_FAVOR] || []));
   const hasEnglishName = ref(false);
+  const appAbbrRef = ref();
 
-  const withFavorBizList = computed(() => _.sortBy(bizList, (item) => favorBizIdMap.value[item.bk_biz_id]));
+  const withFavorBizList = computed(() => _.sortBy(bizList.value, (item) => favorBizIdMap.value[item.bk_biz_id]));
 
   const dbAppAbbrPlaceholder = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
 
@@ -142,7 +146,16 @@
     },
   ];
 
-  const appAbbrRef = ref();
+  const { loading: isBizLoading } = useRequest(getBizs, {
+    defaultParams: [
+      {
+        action: props.perrmisionActionId,
+      },
+    ],
+    onSuccess(result) {
+      bizList.value = result;
+    },
+  });
 
   watch(
     route,
@@ -160,7 +173,7 @@
   watch(
     bizId,
     () => {
-      currentBiz.value = _.find(bizList, (item) => item.bk_biz_id === bizId.value);
+      currentBiz.value = _.find(bizList.value, (item) => item.bk_biz_id === bizId.value);
       const englishName = currentBiz.value?.english_name;
       hasEnglishName.value = !!englishName;
       appAbbr.value = englishName ?? '';

@@ -107,14 +107,14 @@ export default class Es {
     title: string;
   }>;
   permission: {
-    es_view: boolean;
-    es_enable_disable: boolean;
+    access_entry_edit: boolean;
     es_destroy: boolean;
+    es_enable_disable: boolean;
+    es_reboot: boolean;
+    es_replace: boolean;
     es_scale_up: boolean;
     es_shrink: boolean;
-    es_replace: boolean;
-    es_reboot: boolean;
-    access_entry_edit: boolean;
+    es_view: boolean;
   };
   phase: 'online' | 'offline';
   region: string;

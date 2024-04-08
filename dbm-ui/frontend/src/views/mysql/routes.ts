@@ -234,7 +234,7 @@ const commonRouters: RouteRecordRaw[] = [
         meta: {
           navName: t('MySQL_授权规则'),
         },
-        component: () => import('@views/mysql/permission/index.vue'),
+        component: () => import('@views/mysql/permission-rule/index.vue'),
       },
       {
         path: 'whitelist',

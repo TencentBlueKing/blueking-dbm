@@ -77,11 +77,10 @@ export default class Tendbha {
     title: string;
   }>;
   permission: {
-    mysql_authorize_rules: boolean;
+    access_entry_edit: boolean;
     mysql_destroy: boolean;
     mysql_enable_disable: boolean;
     mysql_view: boolean;
-    access_entry_edit: boolean;
     tbinlogdumper_install: boolean;
   };
   phase: string;

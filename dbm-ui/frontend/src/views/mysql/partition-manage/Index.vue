@@ -203,7 +203,7 @@
     {
       label: t('最近一次执行状态'),
       field: 'status',
-      minWidth: 150,
+      width: 200,
       render: ({ data }: {data: PartitionModel}) => (
         <div>
           <db-icon
@@ -218,7 +218,7 @@
     {
       label: t('最近一次执行时间'),
       field: 'execute_time',
-      minWidth: 180,
+      width: 240,
       render: ({ data }: {data: PartitionModel}) => data.executeTimeDisplay || '--',
     },
     {
@@ -248,7 +248,7 @@
                 theme="primary"
                 text
                 actionId="mysql_partition_enable_disable"
-                resource={data.id}
+                resource={data.cluster_id}
                 permission={data.permission.mysql_partition_enable_disable}
                 onClick={() => handleEnable(data)}>
                 {t('启用')}
@@ -283,17 +283,21 @@
                 disabled={data.isRunning}
                 actionId="mysql_partition_update"
                 permission={data.permission.mysql_partition_update}
+                resource={data.cluster_id}
                 onClick={() => handleEdit(data)}>
                 {t('编辑')}
               </auth-button>
             </span>
-            <bk-button
+            <auth-button
+              action-id="mysql_partition"
+              permission={data.permission.mysql_partition}
+              resource={data.cluster_id}
               class="ml-8"
               theme="primary"
               text
               onClick={() => handleShowExecuteLog(data)}>
               {t('执行记录')}
-            </bk-button>
+            </auth-button>
             <more-action-extend class="ml-8">
               {{
                 default: () => (
@@ -301,35 +305,29 @@
                     {
                       data.isOnline && (
                         <auth-template
-                          text
-                          theme="primary"
                           action-id="mysql_partition_enable_disable"
                           permission={data.permission.mysql_partition_enable_disable}
-                          onClick={() => handleDisable(data)}>
-                          <span>{ t('禁用') }</span>
+                          resource={data.cluster_id}>
+                          <div onClick={() => handleDisable(data)}>{ t('禁用') }</div>
                         </auth-template>
                       )
                     }
                     <auth-template
-                      text
-                      theme="primary"
                       action-id="mysql_partition_create"
-                      permission={data.permission.mysql_partition_create}
-                      onClick={() => handleClone(data)}>
-                      <span>{ t('克隆') }</span>
+                      permission={data.permission.mysql_partition_create}>
+                      <div onClick={() => handleClone(data)}>{ t('克隆') }</div>
                     </auth-template>
-                    <db-popconfirm
-                      confirm-handler={() => handleRemove(data)}
-                      content={t('删除操作无法撤回，请谨慎操作！')}
-                      title={t('确认删除该分区策略？')}>
-                      <auth-template
-                        text
-                        theme="primary"
-                        action-id="mysql_partition_delete"
-                        permision={data.permission.mysql_partition_delete}>
-                        <span>{ t('删除') }</span>
-                      </auth-template>
-                    </db-popconfirm>
+                    <auth-template
+                      action-id="mysql_partition_delete"
+                      permission={data.permission.mysql_partition_delete}
+                      resource={data.cluster_id}>
+                      <db-popconfirm
+                        confirm-handler={() => handleRemove(data)}
+                        content={t('删除操作无法撤回，请谨慎操作！')}
+                        title={t('确认删除该分区策略？')}>
+                        <div>{ t('删除') }</div>
+                      </db-popconfirm>
+                    </auth-template>
                   </>
                 ),
               }}

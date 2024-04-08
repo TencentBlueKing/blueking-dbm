@@ -114,9 +114,14 @@ export default class TendbCluster {
     operationDisabled: boolean;
   }>;
   permission: {
-    tendbcluster_enable_disable: boolean;
     tendbcluster_destroy: boolean;
+    tendbcluster_enable_disable: boolean;
+    tendbcluster_node_rebalance: boolean;
+    tendbcluster_spider_add_nodes: boolean;
+    tendbcluster_spider_mnt_destroy: boolean;
+    tendbcluster_spider_reduce_nodes: boolean;
     tendbcluster_view: boolean;
+    tendb_spider_slave_destroy: boolean;
     access_entry_edit: boolean;
   };
   phase: 'online' | 'offline';

@@ -27,7 +27,6 @@ import type {
   PermissionCloneRes,
   PermissionRule,
   PermissionRulesParams,
-  PermissionRulesResult,
 } from './types/permission';
 
 // 密码随机化周期
@@ -159,16 +158,34 @@ export const verifyPasswordStrength = (params: { password: string }) =>
 /**
  * 查询账号规则列表
  */
-export const getPermissionRules = (params: PermissionRulesParams) =>
+export const getPermissionRules = (params: PermissionRulesParams, payload = {} as IRequestPayload) =>
   http
-    .get<PermissionRulesResult>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/list_account_rules/`, params)
-    .then((data) => ({
-      ...data,
-      results: data.results.map((item) => ({
-        ...item,
-        permission: data.permission || {},
-      })),
-    }));
+    .get<{
+      count: number;
+      results: {
+        account: {
+          account_id: number;
+          bk_biz_id: number;
+          create_time: string;
+          creator: string;
+          user: string;
+        };
+        permission: {
+          mysql_account_delete: boolean;
+          mysql_add_account_rule: boolean;
+        };
+        rules: {
+          access_db: string;
+          account_id: number;
+          bk_biz_id: number;
+          create_time: string;
+          creator: string;
+          privilege: string;
+          rule_id: number;
+        }[];
+      }[];
+    }>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/list_account_rules/`, params, payload)
+    .then((data) => data);
 
 /**
  * 创建账户

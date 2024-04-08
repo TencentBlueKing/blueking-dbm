@@ -4,19 +4,16 @@
     v-bind="attrs">
     <slot />
   </BkButton>
-  <span
+  <BkButton
     v-else
-    disabled>
-    <BkButton
-      v-cursor
-      class="auth-button-disable"
-      v-bind="inheritAttrs"
-      :disabled="false"
-      :loading="loading"
-      @click.stop="handleRequestPermission">
-      <slot />
-    </BkButton>
-  </span>
+    v-cursor
+    class="auth-button-disable"
+    v-bind="inheritAttrs"
+    :disabled="false"
+    :loading="loading"
+    @click.stop="handleRequestPermission">
+    <slot />
+  </BkButton>
 </template>
 <script setup lang="ts">
   import { useAttrs } from 'vue';
@@ -38,6 +35,7 @@
     resource: '',
     bizId: undefined,
   });
+
   defineOptions({
     inheritAttrs: false,
   });
@@ -63,7 +61,7 @@
       background-color: transparent !important;
       border-color: transparent !important;
 
-      .bk-button-text {
+      * {
         color: #c4c6cc !important;
       }
     }

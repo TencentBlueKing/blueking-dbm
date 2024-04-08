@@ -80,7 +80,7 @@ export default class FunctionController {
     const item = this[key] as ControllerItem<T>;
 
     if (!item) {
-      return {};
+      return {} as Record<T | K, boolean>;
     }
 
     const flatData = {

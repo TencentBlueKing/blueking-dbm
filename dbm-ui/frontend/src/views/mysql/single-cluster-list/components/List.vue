@@ -23,23 +23,21 @@
       <span
         v-bk-tooltips="{
           disabled: hasSelected,
-          content: t('请选择集群')
+          content: t('请选择集群'),
         }"
         class="inline-block">
-        <AuthButton
-          action-id="mysql_excel_authorize_rules"
+        <BkButton
           class="ml-8"
           :disabled="!hasSelected"
           @click="handleShowAuthorize(state.selected)">
           {{ t('批量授权') }}
-        </AuthButton>
+        </BkButton>
       </span>
-      <AuthButton
-        action-id="mysql_authorize"
+      <BkButton
         class="ml-8"
         @click="handleShowExcelAuthorize">
         {{ t('导入授权') }}
-      </AuthButton>
+      </BkButton>
       <DropdownExportExcel
         :ids="selectedIds"
         type="tendbsingle" />
@@ -108,7 +106,8 @@
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
-    useTicketMessage } from '@hooks';
+    useTicketMessage
+  } from '@hooks';
 
   import {
     useGlobalBizs,
@@ -473,16 +472,13 @@
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: ColumnData) => (
         <>
-          <auth-button
+          <bk-button
             text
             theme="primary"
             class="mr-8"
-            actionId="mysql_authorize_rules"
-            permission={data.permission.mysql_authorize_rules}
-            resource={data.id}
             onClick={() => handleShowAuthorize([data])}>
             { t('授权') }
-          </auth-button>
+          </bk-button>
           {
             data.isOnline ? (
               <OperationBtnStatusTips data={data}>
@@ -730,7 +726,6 @@
     }
   });
 </script>
-
 <style lang="less" scoped>
   @import '@styles/mixins.less';
 
@@ -740,33 +735,16 @@
     margin: 0 24px;
     overflow: hidden;
 
-  .operation-box{
-    display: flex;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
+    .operation-box {
+      display: flex;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
 
-    .bk-search-select {
-      flex: 1;
-      max-width: 500px;
-      min-width: 320px;
-      margin-left: auto;
-    }
-  }
-
-  .table-wrapper {
-    background-color: white;
-
-    .bk-table {
-      height: 100% !important;
-    }
-
-    .bk-table-body {
-      max-height: calc(100% - 100px);
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
+      .bk-search-select {
+        flex: 1;
+        max-width: 500px;
+        min-width: 320px;
+        margin-left: auto;
       }
     }
 
@@ -786,57 +764,74 @@
           overflow: hidden auto;
         }
       }
-    }
 
-    :deep(.cell) {
-      line-height: normal !important;
+      .table-wrapper {
+        background-color: white;
 
-      .domain {
-        display: flex;
-        align-items: center;
-      }
+        .bk-table {
+          height: 100% !important;
+        }
 
-      .db-icon-copy,
-      .db-icon-edit {
-        display: none;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
+        .bk-table-body {
+          max-height: calc(100% - 100px);
+        }
 
-      .operations-more {
-        .db-icon-more {
-          display: block;
-          font-size: @font-size-normal;
-          font-weight: bold;
-          color: @default-color;
-          cursor: pointer;
-
-          &:hover {
-            background-color: @bg-disable;
-            border-radius: 2px;
+        .is-shrink-table {
+          .bk-table-body {
+            overflow: hidden auto;
           }
         }
       }
-    }
 
-    :deep(tr:hover) {
-      .db-icon-copy,
-      .db-icon-edit {
-        display: inline-block !important;
+      :deep(.cell) {
+        line-height: normal !important;
+
+        .domain {
+          display: flex;
+          align-items: center;
+        }
+
+        .db-icon-copy,
+        .db-icon-edit {
+          display: none;
+          margin-left: 4px;
+          color: @primary-color;
+          cursor: pointer;
+        }
+
+        .operations-more {
+          .db-icon-more {
+            display: block;
+            font-size: @font-size-normal;
+            font-weight: bold;
+            color: @default-color;
+            cursor: pointer;
+
+            &:hover {
+              background-color: @bg-disable;
+              border-radius: 2px;
+            }
+          }
+        }
+      }
+
+      :deep(tr:hover) {
+        .db-icon-copy,
+        .db-icon-edit {
+          display: inline-block !important;
+        }
+      }
+
+      :deep(.is-offline) {
+        a {
+          color: @gray-color;
+        }
+
+        .cell {
+          color: @disable-color;
+        }
       }
     }
-
-    :deep(.is-offline) {
-      a {
-        color: @gray-color;
-      }
-
-      .cell {
-        color: @disable-color;
-      }
-    }
-  }
   }
 </style>
 <style lang="less">
