@@ -168,8 +168,13 @@ class CMRMongoDBMetaService(BaseService):
         for inst_pair in rep_insts:
             old_ip, old_port = inst_pair["old"]["ip"], inst_pair["old"]["port"]
             new_ip, new_port = inst_pair["new"]["ip"], inst_pair["new"]["port"]
-            old_obj = StorageInstance.objects.get(machine__ip=old_ip, port=old_port)
-            new_obj = StorageInstance.objects.get(machine__ip=new_ip, port=new_port)
+            old_obj = cluster.storageinstance_set.get(machine__ip=old_ip, port=old_port)
+            new_obj = StorageInstance.objects.get(
+                machine__ip=new_ip,
+                port=new_port,
+                bk_biz_id=cluster.bk_biz_id,
+                machine__bk_cloud_id=cluster.bk_cloud_id,
+            )
 
             # storageinstance  实例信息更新
             old_obj.status = InstanceStatus.UNAVAILABLE
