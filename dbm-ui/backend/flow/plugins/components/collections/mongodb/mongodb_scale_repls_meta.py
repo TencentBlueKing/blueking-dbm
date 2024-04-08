@@ -113,7 +113,9 @@ class MongoScaleReplsMetaService(BaseService):
             cc_manage = CcManage(cluster.bk_biz_id, DBType.MongoDB.value)
             cc_manage.delete_service_instance(bk_instance_ids=[del_obj.bk_instance_id])
             # 可能的话删掉主机信息 # 需要检查， 是否该机器上所有实例都已经清理干净，
-            if StorageInstance.objects.filter(machine__ip=del_obj.machine.ip).exists():
+            if StorageInstance.objects.filter(
+                machine__ip=del_obj.machine.ip, bk_biz_id=cluster.bk_biz_id, machine__bk_cloud_id=cluster.bk_cloud_id
+            ).exists():
                 logger.info("ignore recycle machine {} , another instance existed.".format(del_obj.machine))
             else:
                 logger.info("storage recycle machine {}".format(del_obj.machine))
@@ -236,7 +238,12 @@ class MongoScaleReplsMetaService(BaseService):
                     creator=created_by,
                 )
                 cluster_entry.storageinstance_set.add(
-                    StorageInstance.objects.get(machine__ip=scale_item["ip"], port=scale_item["port"])
+                    StorageInstance.objects.get(
+                        machine__ip=scale_item["ip"],
+                        port=scale_item["port"],
+                        bk_biz_id=cluster.bk_biz_id,
+                        machine__bk_cloud_id=cluster.bk_cloud_id,
+                    )
                 )
                 logger.info(
                     "add domain {}:{} 2 add_node:info::: {} done".format(mongo_obj, cluster.immute_domain, scale_item)
