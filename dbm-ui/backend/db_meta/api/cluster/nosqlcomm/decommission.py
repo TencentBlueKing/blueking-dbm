@@ -73,7 +73,9 @@ def decommission_proxies(cluster: Cluster, proxies: List[Dict], is_all: bool = F
             machine_obj[proxy_obj.machine.ip] = proxy_obj.machine
 
             # 需要检查， 是否该机器上所有实例都已经清理干净，
-            if ProxyInstance.objects.filter(machine__ip=proxy_obj.machine.ip).exists():
+            if ProxyInstance.objects.filter(
+                machine__ip=proxy_obj.machine.ip, machine__bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=cluster.bk_biz_id
+            ).exists():
                 logger.info("ignore storage machine {} , another instance existed.".format(proxy_obj.machine))
             else:
                 logger.info("proxy machine {}".format(proxy_obj.machine))

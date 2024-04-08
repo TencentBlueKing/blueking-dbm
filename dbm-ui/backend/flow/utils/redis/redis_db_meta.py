@@ -628,7 +628,12 @@ class RedisDBMeta(object):
         with atomic():
             cc_manage = CcManage(self.cluster["bk_biz_id"], db_type=DBType.Redis.value)
             for port in self.cluster["meta_update_ports"]:
-                old_master = StorageInstance.objects.get(machine__ip=self.cluster["meta_update_ip"], port=port)
+                old_master = StorageInstance.objects.get(
+                    machine__ip=self.cluster["meta_update_ip"],
+                    port=port,
+                    bk_biz_id=self.cluster["bk_biz_id"],
+                    machine__bk_cloud_id=self.cluster["bk_cloud_id"],
+                )
                 old_slave = old_master.as_ejector.get().receiver
                 StorageInstanceTuple.objects.get(ejector=old_master, receiver=old_slave).delete(keep_parents=True)
                 StorageInstanceTuple.objects.create(ejector=old_slave, receiver=old_master)
@@ -751,8 +756,18 @@ class RedisDBMeta(object):
         cc_manage = CcManage(self.cluster["bk_biz_id"], db_type=DBType.Redis.value)
         with atomic():
             for ins in self.cluster["role_swap_ins"]:
-                ins1 = StorageInstance.objects.get(machine__ip=ins["new_receiver_ip"], port=ins["new_receiver_port"])
-                ins2 = StorageInstance.objects.get(machine__ip=ins["new_ejector_ip"], port=ins["new_ejector_port"])
+                ins1 = StorageInstance.objects.get(
+                    machine__ip=ins["new_receiver_ip"],
+                    port=ins["new_receiver_port"],
+                    machine__bk_cloud_id=self.cluster["bk_cloud_id"],
+                    bk_biz_id=self.cluster["bk_biz_id"],
+                )
+                ins2 = StorageInstance.objects.get(
+                    machine__ip=ins["new_ejector_ip"],
+                    port=ins["new_ejector_port"],
+                    machine__bk_cloud_id=self.cluster["bk_cloud_id"],
+                    bk_biz_id=self.cluster["bk_biz_id"],
+                )
 
                 # 修改 proxy backend
                 temp_proxy_set = list(ins1.proxyinstance_set.all())

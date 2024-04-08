@@ -38,6 +38,8 @@ def add_proxies(cluster: Cluster, proxies: List[Dict]):
     proxy_objs = common.filter_out_instance_obj(
         proxies,
         ProxyInstance.objects.filter(
+            machine__bk_cloud_id=cluster.bk_cloud_id,
+            bk_biz_id=cluster.bk_biz_id,
             machine_type=ClusterMachineAccessTypeDefine[cluster.cluster_type][AccessLayer.PROXY],
         ),
     )
