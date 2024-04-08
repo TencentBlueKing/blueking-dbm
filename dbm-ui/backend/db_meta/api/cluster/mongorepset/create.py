@@ -157,7 +157,12 @@ def create_mongoset(
                 cluster=cluster, cluster_entry_type=ClusterEntryType.DNS, entry=storage["domain"], creator=creator
             )
             cluster_entry.storageinstance_set.add(
-                StorageInstance.objects.get(machine__ip=storage["ip"], port=storage["port"])
+                StorageInstance.objects.get(
+                    machine__ip=storage["ip"],
+                    port=storage["port"],
+                    machine__bk_cloud_id=bk_cloud_id,
+                    bk_biz_id=bk_biz_id,
+                )
             )
             cluster_entry.save()
     except Exception as e:  # NOCC:broad-except(检查工具误报)
