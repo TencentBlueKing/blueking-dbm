@@ -212,3 +212,27 @@ class MongoDBReduceNodeView(FlowTestView):
         root_id = uuid.uuid1().hex
         MongoDBController(root_id=root_id, ticket_data=request.data).reduce_node()
         return Response({"root_id": root_id})
+
+
+class MongoDBEnableClusterView(FlowTestView):
+    """
+    启用mongodb
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).enable_cluster()
+        return Response({"root_id": root_id})
+
+
+class MongoDBDisableClusterView(FlowTestView):
+    """
+    禁用mongodb
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).disable_cluster()
+        return Response({"root_id": root_id})

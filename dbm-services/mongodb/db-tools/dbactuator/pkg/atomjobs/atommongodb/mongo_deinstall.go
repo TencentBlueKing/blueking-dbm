@@ -25,6 +25,7 @@ type DeInstallConfParams struct {
 	NodeInfo     []string `json:"nodeInfo" validate:"required"`     // []string ip,ip  如果为复制集节点，则为复制集所有节点的ip；如果为mongos，则为mongos的ip
 	InstanceType string   `json:"instanceType" validate:"required"` // mongod mongos
 	Force        bool     `json:"force"`                            // 不检查连接，强制卸载
+	RenameDir    bool     `json:"renameDir"`                        // 关闭进程后是否重命名目录 true 重命名目录，false 不重命名目录
 }
 
 // DeInstall 添加分片到集群
@@ -199,6 +200,10 @@ func (d *DeInstall) shutdownProcess() error {
 // DirRename 打包数据目录
 func (d *DeInstall) DirRename() error {
 	// renameDb数据目录
+	// 关闭进程后不重命名目录
+	if d.ConfParams.RenameDir == false {
+		return nil
+	}
 	flag := util.FileExists(d.PortDir)
 	if flag == true {
 		d.runtime.Logger.Info("start to rename db directory")
