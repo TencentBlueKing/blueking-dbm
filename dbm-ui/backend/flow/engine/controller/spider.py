@@ -13,6 +13,7 @@ from backend.flow.engine.bamboo.scene.spider.append_deploy_ctl_flow import Appen
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.spider.remote_local_slave_recover import TenDBRemoteSlaveLocalRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
+from backend.flow.engine.bamboo.scene.spider.remote_master_slave_migrate import TendbClusterMigrateRemoteFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
 from backend.flow.engine.bamboo.scene.spider.remote_slave_recover import TenDBRemoteSlaveRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_mnt import TenDBClusterAddSpiderMNTFlow
@@ -176,6 +177,13 @@ class SpiderController(BaseController):
         """
         flow = TenDBRemoteRebalanceFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.tendb_migrate()
+
+    def tendb_cluster_remote_migrate(self):
+        """
+        remote 节点主从成对迁移
+        """
+        flow = TendbClusterMigrateRemoteFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow.migrate_master_slave_flow()
 
     def tendb_cluster_remote_slave_recover(self):
         """
