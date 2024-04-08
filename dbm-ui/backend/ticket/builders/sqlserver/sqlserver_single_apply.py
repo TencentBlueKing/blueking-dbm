@@ -17,7 +17,7 @@ from rest_framework import serializers
 
 from backend.bk_web.constants import LEN_MIDDLE, SMALLEST_POSITIVE_INTEGER
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import DBModule
 from backend.db_services.cmdb.biz import get_db_app_abbr
 from backend.db_services.dbbase.constants import IpSource
@@ -155,7 +155,7 @@ class SQLServerSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, infos: List[Dict]):
         # 适配手动输入和资源池导入的角色类型
-        backend_nodes = ticket_data["nodes"]["backend"] or ticket_data["nodes"]["single"]
+        backend_nodes = ticket_data["nodes"][MachineType.SQLSERVER_SINGLE.value] or ticket_data["nodes"]["single"]
         for index, apply_info in enumerate(infos):
             apply_info["mssql_host"] = backend_nodes[index]
 
