@@ -1,10 +1,10 @@
 {
   "bk_biz_id": 0,
-  "name": "Sqlserver-数据库同步落后>1GB【mirroring】",
+  "name": "Sqlserver-数据库同步落后量【mirroring】",
   "db_type": "sqlserver",
   "details": {
     "bk_biz_id": "",
-    "name": "Sqlserver-数据库同步落后>1GB【mirroring】",
+    "name": "Sqlserver-数据库同步落后量【mirroring】",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",

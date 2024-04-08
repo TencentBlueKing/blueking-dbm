@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Sqlserver-慢日志数量>100",
+  "name": "Sqlserver-系统盘剩余空间",
   "db_type": "sqlserver",
   "details": {
     "bk_biz_id": "",
-    "name": "Sqlserver-慢日志数量>100",
+    "name": "Sqlserver-系统盘剩余空间",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "MAX(mssql_slow_queries)",
+        "name": "MAX(mssql_systemdisk_free)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -26,7 +26,7 @@
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.exporter_dbm_mssql_exporter.__default__.mssql_slow_queries",
+            "metric_id": "bk_monitor.exporter_dbm_mssql_exporter.__default__.mssql_systemdisk_free",
             "functions": [],
             "result_table_id": "exporter_dbm_mssql_exporter.__default__",
             "data_label": "exporter_dbm_mssql_exporter",
@@ -40,9 +40,9 @@
               "appid"
             ],
             "agg_condition": [],
-            "metric_field": "mssql_slow_queries",
+            "metric_field": "mssql_systemdisk_free",
             "unit": "",
-            "name": "mssql_slow_queries"
+            "name": "mssql_systemdisk_free"
           }
         ],
         "algorithms": [
@@ -52,8 +52,8 @@
             "config": [
               [
                 {
-                  "method": "gte",
-                  "threshold": 100
+                  "method": "lt",
+                  "threshold": 4
                 }
               ]
             ],
@@ -68,7 +68,7 @@
         "level": 1,
         "expression": "",
         "trigger_config": {
-          "count": 1,
+          "count": 5,
           "uptime": {
             "calendars": [],
             "time_ranges": [
@@ -78,7 +78,7 @@
               }
             ]
           },
-          "check_window": 5
+          "check_window": 10
         },
         "recovery_config": {
           "check_window": 5,
@@ -89,7 +89,7 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 47932,
+      "config_id": 47934,
       "user_groups": [],
       "user_type": "main",
       "signal": [
@@ -247,7 +247,7 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "MAX(mssql_slow_queries)",
+  "monitor_indicator": "MAX(mssql_systemdisk_free)",
   "version": 1,
   "alert_source": "time_series",
   "custom_conditions": [],

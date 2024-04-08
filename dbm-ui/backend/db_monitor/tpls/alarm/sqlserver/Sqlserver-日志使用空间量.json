@@ -1,26 +1,21 @@
 {
   "bk_biz_id": 0,
-  "name": "Sqlserver-进程的连接数>20000",
+  "name": "Sqlserver-日志使用空间量",
   "db_type": "sqlserver",
   "details": {
     "bk_biz_id": "",
-    "name": "Sqlserver-进程的连接数>20000",
+    "name": "Sqlserver-日志使用空间量",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "MAX(mssql_connections)",
+        "name": "MAX(mssql_database_ldfsize)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
           "is_enabled": false,
-          "agg_dimension": [
-            "instance",
-            "cluster_domain",
-            "app",
-            "instance_role"
-          ]
+          "agg_dimension": []
         },
         "target": [],
         "expression": "a",
@@ -31,7 +26,7 @@
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.exporter_dbm_mssql_exporter.__default__.mssql_connections",
+            "metric_id": "bk_monitor.exporter_dbm_mssql_exporter.__default__.mssql_database_ldfsize",
             "functions": [],
             "result_table_id": "exporter_dbm_mssql_exporter.__default__",
             "data_label": "exporter_dbm_mssql_exporter",
@@ -45,9 +40,9 @@
               "appid"
             ],
             "agg_condition": [],
-            "metric_field": "mssql_connections",
+            "metric_field": "mssql_database_ldfsize",
             "unit": "",
-            "name": "mssql_connections"
+            "name": "mssql_database_ldfsize"
           }
         ],
         "algorithms": [
@@ -57,8 +52,8 @@
             "config": [
               [
                 {
-                  "method": "gte",
-                  "threshold": 20000
+                  "method": "gt",
+                  "threshold": 200
                 }
               ]
             ],
@@ -94,12 +89,12 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 47929,
+      "config_id": 47933,
       "user_groups": [],
       "user_type": "main",
       "signal": [
-        "abnormal",
-        "no_data"
+        "no_data",
+        "abnormal"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -252,7 +247,7 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "MAX(mssql_connections)",
+  "monitor_indicator": "MAX(mssql_database_ldfsize)",
   "version": 1,
   "alert_source": "time_series",
   "custom_conditions": [],
