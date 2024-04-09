@@ -4225,7 +4225,7 @@
               "id": "byNames",
               "options": {
                 "mode": "exclude",
-                "names": [,
+                "names": [],
                 "prefix": "All except:",
                 "readOnly": true
               }

@@ -25,6 +25,7 @@ from backend.tests.mock_data.components.bamboo_engine import BambooEngineMock
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
 from backend.tests.mock_data.components.itsm import ItsmApiMock
+from backend.tests.mock_data.components.sql_import import SQLSimulationApiMock
 from backend.tests.mock_data.iam_app.permission import PermissionMock
 from backend.tests.mock_data.ticket.ticket_flow import (
     APPLY_RESOURCE_RETURN_DATA,
@@ -146,6 +147,7 @@ class TestTicketFlow:
     @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
+    @patch("backend.ticket.builders.mysql.mysql_import_sqlfile.SQLSimulationApi", SQLSimulationApiMock)
     def test_sql_import_flow(self, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db):
         # 测试流程：start --> itsm --> inner --> end
         mocked_status.return_value = TicketStatus.SUCCEEDED

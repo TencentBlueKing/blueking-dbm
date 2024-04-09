@@ -218,53 +218,45 @@
         <div
           v-if="statusText"
           class="mission-detail-status-info">
-          <span class="mr-8">{{ $t('状态') }}: </span>
+          <span class="mr-8">{{ t('状态') }}: </span>
           <span>
             <BkTag :theme="getStatusTheme(true)">{{ statusText }}</BkTag>
           </span>
         </div>
         <div class="mission-detail-status-info">
-          <span class="mr-8">{{ $t('总耗时') }}: </span>
+          <span class="mr-8">{{ t('总耗时') }}: </span>
           <CostTimer
             :is-timing="flowState.details?.flow_info?.status === 'RUNNING'"
             :value="flowState.details?.flow_info?.cost_time || 0" />
         </div>
-        <BkPopover
+        <BkPopConfirm
           v-if="isShowRevokePipelineButton"
-          v-model:is-show="isShowRevokePipelineTips"
-          boundary="parent"
-          theme="light"
-          trigger="manual">
+          :content="t('确定重试所有失败节点')"
+          trigger="click"
+          width="288"
+          @confirm="handleRetryAllPipeline">
           <BkButton
             ref="revokeButtonRef"
-            class="mission-detail-status-stop-button"
-            :loading="isRevokePipeline"
-            @click="handleToggleRevokeTips">
-            <DbIcon type="revoke" />
-            {{ $t('终止任务') }}
+            class="mission-detail-status-operate-button mr-12"
+            :loading="isRetryAllPipeline">
+            <DbIcon type="refresh" />
+            {{ t('失败重试') }}
           </BkButton>
-          <template #content>
-            <div
-              v-clickoutside:[revokeButtonRef?.$el]="handleHiddenRevokeTips"
-              class="mission-tips-content">
-              <div class="title">
-                {{ $t('确定终止任务吗') }}
-              </div>
-              <div class="btn">
-                <BkButton
-                  class="mr-8"
-                  :loading="isRevokePipeline"
-                  theme="primary"
-                  @click.stop="handleRevokePipeline">
-                  {{ $t('确定') }}
-                </BkButton>
-                <BkButton @click="handleHiddenRevokeTips">
-                  {{ $t('取消') }}
-                </BkButton>
-              </div>
-            </div>
-          </template>
-        </BkPopover>
+        </BkPopConfirm>
+        <BkPopConfirm
+          v-if="isShowRevokePipelineButton"
+          :content="t('确定终止任务吗')"
+          trigger="click"
+          width="288"
+          @confirm="handleRevokePipeline">
+          <BkButton
+            ref="revokeButtonRef"
+            class="mission-detail-status-operate-button"
+            :loading="isRevokePipeline">
+            <DbIcon type="revoke" />
+            {{ t('终止任务') }}
+          </BkButton>
+        </BkPopConfirm>
       </div>
     </Teleport>
   </div>
@@ -275,6 +267,7 @@
   import { useRouter } from 'vue-router';
 
   import {
+    batchRetryNodes,
     forceFailflowNode,
     getTaskflowDetails,
     retryTaskflowNode,
@@ -327,8 +320,8 @@
   const isShowHotKey = ref(false);
   const hotKeyTriggerRef = ref();
   const revokeButtonRef = ref();
+  const isRetryAllPipeline = ref(false);
   const isRevokePipeline = ref(false);
-  const isShowRevokePipelineTips = ref(false);
   const showHostPreview = ref(false);
   const isShowResultFile = ref(false);
   const tippyInstances = ref<Instance[]>([]);
@@ -668,26 +661,31 @@
     });
   };
 
+  const handleRetryAllPipeline = () => {
+    isRetryAllPipeline.value = true;
+    batchRetryNodes({
+      root_id: rootId.value,
+    })
+      .then(() => {
+        fetchTaskflowDetails();
+        messageSuccess(t('失败重试成功'));
+      })
+      .finally(() => {
+        isRetryAllPipeline.value = false;
+      });
+  };
+
   const handleRevokePipeline = () => {
     isRevokePipeline.value = true;
     revokePipeline({ rootId: rootId.value })
       .then(() => {
         fetchTaskflowDetails();
         messageSuccess(t('终止任务成功'));
-        isShowRevokePipelineTips.value = false;
         location.reload();
       })
       .finally(() => {
         isRevokePipeline.value = false;
       });
-  };
-
-  const handleToggleRevokeTips = () => {
-    isShowRevokePipelineTips.value = !isShowRevokePipelineTips.value;
-  };
-
-  const handleHiddenRevokeTips = () => {
-    isShowRevokePipelineTips.value = false;
   };
 
   const handleShowLog = (node: GraphNode) => {
@@ -1325,12 +1323,13 @@
       margin-right: 24px;
     }
 
-    .mission-detail-status-stop-button {
+    .mission-detail-status-operate-button {
       padding: 5px 8px;
       border-radius: 50px;
 
-      .db-icon-revoke {
+      .db-icon-revoke, .db-icon-refresh {
         margin-right: 4px;
+        font-size: 20px;
       }
     }
   }

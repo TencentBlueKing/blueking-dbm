@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -8,6 +9,8 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
@@ -16,19 +19,6 @@ import (
 var roundStartStr = "_dba_fake_round_start"
 
 func (r *Checker) Run() error {
-	//isEmptyResultTbl, err := r.isEmptyResultTbl()
-	//if err != nil {
-	//	return err
-	//}
-	//if isEmptyResultTbl {
-	//	err := r.writeFakeResult(roundStartStr, roundStartStr)
-	//	if err != nil {
-	//		slog.Error("write round start", slog.String("error", err.Error()))
-	//		return err
-	//	}
-	//	slog.Info("round start")
-	//}
-
 	stackDepth := 0
 
 RunCheckLabel:
@@ -186,7 +176,13 @@ func (r *Checker) run() (output *Output, err error, pterr error) {
 	r.cancel = cancel
 
 	// stderr.Reset()
-	command := exec.CommandContext(ctx, r.Config.PtChecksum.Path, r.args...)
+	extLibDir := filepath.Join(filepath.Dir(r.Config.PtChecksum.Path), "lib")
+	//command := exec.CommandContext(ctx,"perl", r.Config.PtChecksum.Path, r.args...)
+	command := exec.CommandContext(ctx, "perl", append(
+		[]string{
+			extLibDir,
+			r.Config.PtChecksum.Path,
+		}, r.args...)...)
 	command.Stdout = &stdout
 	command.Stderr = &stderr
 	slog.Info("build command", slog.String("pt-table-checksum command", command.String()))
@@ -244,10 +240,17 @@ func (r *Checker) run() (output *Output, err error, pterr error) {
 
 		1, 2, 4 肯定要当错误, 其他的先扔回去?
 	*/
+	var eLines []string
 	if stderr.Len() > 0 {
-		err = errors.New(stderr.String())
-		slog.Error("run pt-table-checksum got un-docoument error", slog.String("error", err.Error()))
-		return nil, err, nil
+		scanner := bufio.NewScanner(strings.NewReader(stderr.String()))
+		scanner.Split(bufio.ScanLines)
+		for scanner.Scan() {
+			line := scanner.Text()
+			line = strings.TrimSpace(line)
+			if line != "" && !strings.Contains(line, "There is no good index and the table is oversized") {
+				eLines = append(eLines, line)
+			}
+		}
 	}
 
 	ptFlags := make([]PtExitFlag, 0)
@@ -274,9 +277,13 @@ func (r *Checker) run() (output *Output, err error, pterr error) {
 
 	if ptErr != nil && (ptErr.ExitCode()&1 != 0 || ptErr.ExitCode()&2 != 0 || ptErr.ExitCode()&4 != 0) {
 		pterr = errors.New(output.String())
-		slog.Error("run pt-table-checksum bad flag found", slog.String("error", err.Error()))
-		_, _ = fmt.Fprintf(os.Stderr, output.String())
-		return output, nil, pterr
+		if len(eLines) > 0 {
+			slog.Error(
+				"run pt-table-checksum bad flag found",
+				slog.String("error", strings.Join(eLines, "\n")))
+			_, _ = fmt.Fprintf(os.Stderr, output.String())
+			return output, nil, pterr
+		}
 	}
 
 	return output, nil, nil

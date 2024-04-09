@@ -140,7 +140,6 @@ class SQLHandler(object):
         cluster_ids: List[int],
         execute_sql_files: List[str],
         execute_db_infos: List[Dict[str, List]],
-        highrisk_warnings: Dict,
         ticket_type: str,
         ticket_mode: Dict,
         import_mode: SQLImportMode,
@@ -153,7 +152,6 @@ class SQLHandler(object):
         @param cluster_ids: 集群列表
         @param execute_sql_files: 待执行的sql文件名
         @param execute_db_infos: 待执行的db匹配模式
-        @param highrisk_warnings: 高危信息
         @param ticket_type: 单据类型
         @param ticket_mode: sql导入单据的触发类型
         @param import_mode: sql文件导入类型
@@ -176,7 +174,6 @@ class SQLHandler(object):
             "cluster_ids": cluster_ids,
             "execute_sql_files": execute_sql_files,
             "execute_objects": execute_objects,
-            "highrisk_warnings": highrisk_warnings,
             "ticket_mode": ticket_mode,
             "import_mode": import_mode,
             "backup": backup,

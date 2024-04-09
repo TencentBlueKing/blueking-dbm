@@ -187,7 +187,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             if db_modules:
                 db_module_names_map = {module.db_module_id: module.db_module_name for module in db_modules}
                 cluster_attrs["db_module_id"] = [
-                    {"value": module, "text": db_module_names_map.get(module)}
+                    {"value": module, "text": db_module_names_map.get(module, "--")}
                     for module in existing_values["db_module_id"]
                 ]
             else:

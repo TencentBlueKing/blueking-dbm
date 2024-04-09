@@ -23,15 +23,14 @@
       </AuthButton>
       <DropdownExportExcel
         export-type="instance"
-        :has-selected="hasSelected"
         :ids="selectedIds"
         type="spider" />
       <DbSearchSelect
-        v-model="searchValue"
-        class="mb-16"
         :data="searchSelectData"
+        :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select />
+        unique-select
+        @change="handleSearchValueChange" />
     </div>
     <div
       class="table-wrapper"
@@ -103,16 +102,17 @@
     searchAttrs,
     searchValue,
     sortValue,
+    columnCheckedMap,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.TENDBCLUSTER, ['role'], () => fetchTableData(), false);
 
   const tableRef = ref();
 
   const selected = shallowRef<TendbInstanceModel[]>([]);
 
-  const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.bk_host_id));
   const paginationExtra = computed(() => {
     if (!isStretchLayoutOpen.value) {
@@ -180,6 +180,7 @@
               text: t('异常'),
             },
           ],
+          checked: columnCheckedMap.value.status,
         },
         render: ({ cell }: { cell: ClusterInstStatus }) => {
           const info = clusterInstStatus[cell] || clusterInstStatus.unavailable;
@@ -229,6 +230,7 @@
         field: 'role',
         filter: {
           list: columnAttrs.value.role,
+          checked: columnCheckedMap.value.role,
         },
       },
       {
@@ -264,13 +266,12 @@
 
   const searchSelectData = computed(() => [
     {
-      name: 'IP',
-      id: 'ip',
-      multiple: true,
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
     },
     {
-      name: t('实例'),
-      id: 'instance',
+      name: t('访问入口'),
+      id: 'domain',
       multiple: true,
     },
     {
@@ -291,11 +292,6 @@
           name: t('异常'),
         },
       ],
-    },
-    {
-      name: t('访问入口'),
-      id: 'domain',
-      multiple: true,
     },
     {
       name: t('端口'),

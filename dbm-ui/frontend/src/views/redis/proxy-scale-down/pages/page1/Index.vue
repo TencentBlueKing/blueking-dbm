@@ -103,10 +103,10 @@
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
-      disabledRowConfig: {
+      disabledRowConfig: [{
         handler: (data: RedisModel) => data.proxy.length < 3,
         tip: t('Proxy数量不足，至少 3 台'),
-      },
+      }],
     },
   };
   // 集群域名是否已存在表格的映射表

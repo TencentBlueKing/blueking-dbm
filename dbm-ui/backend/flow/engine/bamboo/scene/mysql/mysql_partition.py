@@ -12,7 +12,7 @@ from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.exceptions import ClusterNotExistException, MasterInstanceNotExistException
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.flow.consts import DBA_ROOT_USER
+from backend.flow.consts import DBA_ROOT_USER, LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -137,6 +137,7 @@ class MysqlPartitionFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
+                        job_timeout=LONG_JOB_TIMEOUT,
                         exec_ip=ip,
                         bk_cloud_id=bk_cloud_id,
                         run_as_system_user=DBA_ROOT_USER,

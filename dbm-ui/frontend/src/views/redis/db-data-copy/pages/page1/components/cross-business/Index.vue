@@ -122,12 +122,11 @@
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
-      disabledRowConfig: {
-        handler: (data: RedisModel) => data.redis_slave.filter((item) => item.status !== 'running').length > 0,
+      disabledRowConfig: [{
+        handler: (data: RedisModel) => data.redis_slave.filter(item => item.status !== 'running').length > 0,
         tip: t('slave 状态异常，无法选择'),
-      },
-      columnStatusFilter: (data: RedisModel) =>
-        data.redis_slave.filter((item) => item.status !== 'running').length === 0,
+      }],
+      columnStatusFilter: (data: RedisModel) => data.redis_slave.filter(item => item.status !== 'running').length === 0,
     },
   };
 

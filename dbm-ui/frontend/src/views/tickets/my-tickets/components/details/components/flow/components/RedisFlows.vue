@@ -16,6 +16,8 @@
     <template #content="{ content }">
       <FlowContent
         :content="content"
+        :flows="flows"
+        :ticket-data="ticketData"
         @fetch-data="handleFetchData">
         <template #extra-text>
           <template v-if="content.isLast && content.status === 'SUCCEEDED'">
@@ -37,6 +39,7 @@
 </template>
 
 <script setup lang="tsx">
+  import TicketModel from '@services/model/ticket/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
   import RedisResultFiles from '@views/task-history/components/RedisResultFiles.vue';
@@ -44,6 +47,7 @@
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
 
   interface Props {
+    ticketData: TicketModel,
     flows?: FlowItem[]
   }
 

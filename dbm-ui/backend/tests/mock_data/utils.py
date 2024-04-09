@@ -42,7 +42,7 @@ def raw_response(wrapped, instance, args, kwargs):
     """根据raw参数来决定是否返回原始的response"""
 
     data = wrapped(*args, **kwargs)
-    raw_resp = {"code": 0, "message": "ok", "data": data}
+    raw_resp = {"code": 0, "message": "ok", "data": data, "result": True}
     if kwargs.get("raw", False):
         return raw_resp
 

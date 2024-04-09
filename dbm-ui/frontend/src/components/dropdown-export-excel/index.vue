@@ -86,18 +86,18 @@
     type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'riak' | 'mongodb' | 'sqlserver_ha' | 'sqlserver_single';
     ids?: number[];
     exportType?: 'cluster' | 'instance';
-    hasSelected?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     exportType: 'cluster',
-    hasSelected: false,
     ids: undefined,
   });
 
   const { t } = useI18n();
 
   const isCopyDropdown = ref(false);
+
+  const hasSelected = computed(() => props.ids && props.ids.length > 0);
 
   const isCluster = props.exportType === 'cluster';
 
@@ -159,7 +159,7 @@
     if (!apiMap[props.type]) {
       return;
     }
-    if (type === 'selected' && !props.hasSelected) {
+    if (type === 'selected' && !hasSelected.value) {
       return;
     }
     if (isCluster) {

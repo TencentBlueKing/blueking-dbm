@@ -40,12 +40,14 @@ class TestAuthorizeHandler:
 
     handler = MySQLAuthorizeHandler(bk_biz_id=constant.BK_BIZ_ID)
 
+    @patch("backend.db_services.dbpermission.db_authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     @patch("backend.db_services.mysql.permission.authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_pre_check_rules(self, query_fixture):
         authorize = MySQLAuthorizeMeta(**AUTHORIZE_DATA)
         authorize_result = self.handler.pre_check_rules(authorize)
         assert authorize_result["pre_check"] is True
 
+    @patch("backend.db_services.dbpermission.db_authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     @patch("backend.db_services.mysql.permission.authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_pre_check_excel_rules(self, query_fixture):
         data_dict__list = EXCEL_DATA_DICT__LIST

@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import TruncateDataTypeEnum
+from backend.flow.consts import LONG_JOB_TIMEOUT, TruncateDataTypeEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -111,6 +111,7 @@ class MysqlFlashbackFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
+                        job_timeout=LONG_JOB_TIMEOUT,
                         exec_ip=master.machine.ip,
                         bk_cloud_id=cluster_class.bk_cloud_id,
                         cluster=cluster,

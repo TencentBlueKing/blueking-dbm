@@ -147,6 +147,19 @@ func (r *RedisClient) InfoV2(section string) (infoRet map[string]string, err err
 	return
 }
 
+// Get Redis `GET key` command. It returns redis.Nil error when key does not exist.
+func (r *RedisClient) Get(key string) (ret string, err error) {
+	if r.mode != RedisInstance {
+		ret, err = r.crdb.Get(context.TODO(), key).Result()
+	} else {
+		ret, err = r.rdb.Get(context.TODO(), key).Result()
+	}
+	if err != nil && err != redis.Nil {
+		return
+	}
+	return ret, nil
+}
+
 // SlaveOf TODO
 func (r *RedisClient) SlaveOf(host, port string) (ret string, err error) {
 	if r.mode == RedisInstance {

@@ -15,8 +15,8 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend import env
+from backend.components.sql_import.client import SQLSimulationApi
 from backend.configuration.constants import DBType
-from backend.db_meta.models import Cluster
 from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.db_services.mysql.sql_import.handlers import SQLHandler
 from backend.flow.engine.bamboo.engine import BambooEngine
@@ -110,18 +110,22 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
             [details.pop(field, None) for field in pop_fields]
 
         # 补充集群信息和node_id
-        cluster_ids = details["cluster_ids"]
         semantic_node_id = handler.get_node_id_by_component(flow_tree.tree, SemanticCheckComponent.code)
-        details.update(
-            semantic_node_id=semantic_node_id,
-            clusters={cluster.id: cluster.to_dict() for cluster in Cluster.objects.filter(id__in=cluster_ids)},
-        )
-
+        details.update(semantic_node_id=semantic_node_id)
         ticket.details.update(details)
-        ticket.save(update_fields=["details"])
+
+    @classmethod
+    def patch_sqlfile_grammar_check_info(cls, ticket, cluster_type):
+        sqlfile_list = list(set([obj["sql_file"] for obj in ticket.details["execute_objects"]]))
+        check_info = SQLSimulationApi.grammar_check(
+            params={"path": ticket.details["path"], "files": sqlfile_list, "cluster_type": cluster_type}
+        )
+        ticket.details.update(grammar_check_info=check_info)
 
     def patch_ticket_detail(self):
         self.patch_sqlimport_ticket_detail(ticket=self.ticket, cluster_type=DBType.MySQL)
+        self.patch_sqlfile_grammar_check_info(ticket=self.ticket, cluster_type=DBType.MySQL)
+        super().patch_ticket_detail()
 
     def init_ticket_flows(self):
         """

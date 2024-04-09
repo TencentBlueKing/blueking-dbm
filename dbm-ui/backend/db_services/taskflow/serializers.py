@@ -48,6 +48,10 @@ class NodeSerializer(serializers.Serializer):
     node_id = serializers.CharField(help_text=_("节点ID"))
 
 
+class BatchRetryNodesSerializer(serializers.Serializer):
+    pass
+
+
 class CallbackNodeSerializer(NodeSerializer):
     desc = serializers.CharField(help_text=_("回调描述"), required=False)
 

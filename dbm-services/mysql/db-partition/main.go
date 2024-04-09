@@ -13,11 +13,10 @@ import (
 
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
-	"dbm-services/mysql/db-partition/monitor"
-
 	"dbm-services/mysql/db-partition/assests"
 	"dbm-services/mysql/db-partition/cron"
 	"dbm-services/mysql/db-partition/model"
+	"dbm-services/mysql/db-partition/monitor"
 	"dbm-services/mysql/db-partition/router"
 )
 

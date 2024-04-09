@@ -40,6 +40,7 @@ import (
 type InstallMySQLComp struct {
 	GeneralParam       *components.GeneralParam `json:"general"`
 	Params             *InstallMySQLParams      `json:"extend"`
+	MySQLConfigParams  *MySQLConfigParams
 	installMySQLConfig `json:"-"`
 	RollBackContext    rollback.RollBackObjects `json:"-"`
 	TimeZone           string
@@ -52,11 +53,16 @@ type InstallMySQLComp struct {
 	AvoidReset   bool   `json:"-"` // 迁移单据复用了这个 actor, 需要不做reset
 }
 
+// MySQLConfigParams TODO
+type MySQLConfigParams struct {
+	MyCnfConfigs json.RawMessage `json:"mycnf_configs"  validate:"required" `
+}
+
 // InstallMySQLParams TODO
 type InstallMySQLParams struct {
 	components.Medium
 	// map[port]my.cnf
-	MyCnfConfigs json.RawMessage `json:"mycnf_configs"  validate:"required" `
+	MyCnfConfigs json.RawMessage
 	// MySQLVerion 只需5.6 5.7 这样的大版本号
 	MysqlVersion string `json:"mysql_version"  validate:"required"`
 	// 字符集参数
@@ -72,14 +78,14 @@ type InstallMySQLParams struct {
 	AllowDiskFileSystemTypes []string
 }
 
-// InitDirs TODO
+// InitDirs init dirs
 type InitDirs = []string
 
-// Port TODO
+// Port port
 type Port = int
 type socket = string
 
-// SpiderAutoIncrModeValue TODO
+// SpiderAutoIncrModeValue spider au
 type SpiderAutoIncrModeValue int
 
 type installMySQLConfig struct {
@@ -131,15 +137,6 @@ func (i *InstallMySQLComp) Example() interface{} {
 			CharSet:      "utf8",
 			Ports:        []int{20000, 20001},
 			InstMem:      0,
-			MyCnfConfigs: []byte(`{
-							"20000":{
-								"client":{"port": "{{mysqld.port}}" },
-								"mysql":{"socket": "{{mysqld.datadir}}/mysql.sock" },
-								"mysqld":{"binlog_format": "ROW","innodb_io_capacity": "1000","innodb_read_io_threads": "8"}},
-							"20001":{
-								"client":{"port": "{{mysqld.port}}"},
-								"mysql":{"socket": "{{mysqld.datadir}}/mysql.sock"},
-								"mysqld":{"binlog_format": "ROW","innodb_io_capacity": "2000","innodb_read_io_threads": "10"}}}`),
 			SuperAccount: AdditionalAccount{
 				User:        "user",
 				Pwd:         "xxx",
@@ -161,6 +158,7 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	i.WorkPassword = ""
 	i.AvoidReset = false
 
+	i.Params.MyCnfConfigs = i.MySQLConfigParams.MyCnfConfigs
 	var mountpoint string
 	i.InstallDir = cst.UsrLocal
 	i.MysqlInstallDir = cst.MysqldInstallPath

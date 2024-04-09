@@ -236,29 +236,35 @@ class Cluster(AuditedModel):
         hdfs: namenode
         pulsar: broker
         riak: 固定为8087
-        mongo: ?
+        mongo_cluster: proxy的port
+        mongo_replicaset: 去存储节点的port
+        sqlserver: ?
         """
-        if self.cluster_type == ClusterType.TenDBSingle:
-            return self.storageinstance_set.first().port
-        elif self.cluster_type in [ClusterType.TenDBHA, *ClusterType.db_type_to_cluster_types(DBType.Redis)]:
-            return self.proxyinstance_set.first().port
-        elif self.cluster_type == ClusterType.TenDBCluster:
-            spider_master_filter = Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
-            return self.proxyinstance_set.filter(spider_master_filter).first().port
-        elif self.cluster_type == ClusterType.Es:
-            return self.storageinstance_set.filter(instance_role=InstanceRole.ES_DATANODE_HOT).first().port
-        elif self.cluster_type == ClusterType.Kafka:
-            return self.storageinstance_set.filter(instance_role=InstanceRole.BROKER).first().port
-        elif self.cluster_type == ClusterType.Hdfs:
-            return self.storageinstance_set.filter(instance_role=InstanceRole.HDFS_NAME_NODE).first().port
-        elif self.cluster_type == ClusterType.Pulsar:
-            return self.storageinstance_set.filter(instance_role=InstanceRole.PULSAR_BROKER).first().port
-        elif self.cluster_type == ClusterType.Riak:
-            return DEFAULT_RIAK_PORT
-        elif self.cluster_type == ClusterType.MongoShardedCluster:
-            return self.proxyinstance_set.filter(machine_type=MachineType.MONGOS).first().port
-        elif self.cluster_type == ClusterType.MongoReplicaSet:
-            return self.storageinstance_set.filter(machine_type=MachineType.MONGODB).first().port
+        try:
+            if self.cluster_type == ClusterType.TenDBSingle:
+                return self.storageinstance_set.first().port
+            elif self.cluster_type in [ClusterType.TenDBHA, *ClusterType.db_type_to_cluster_types(DBType.Redis)]:
+                return self.proxyinstance_set.first().port
+            elif self.cluster_type == ClusterType.TenDBCluster:
+                spider_master_filter = Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
+                return self.proxyinstance_set.filter(spider_master_filter).first().port
+            elif self.cluster_type == ClusterType.Es:
+                return self.storageinstance_set.filter(instance_role=InstanceRole.ES_MASTER).first().port
+            elif self.cluster_type == ClusterType.Kafka:
+                return self.storageinstance_set.filter(instance_role=InstanceRole.BROKER).first().port
+            elif self.cluster_type == ClusterType.Hdfs:
+                return self.storageinstance_set.filter(instance_role=InstanceRole.HDFS_NAME_NODE).first().port
+            elif self.cluster_type == ClusterType.Pulsar:
+                return self.storageinstance_set.filter(instance_role=InstanceRole.PULSAR_BROKER).first().port
+            elif self.cluster_type == ClusterType.Riak:
+                return DEFAULT_RIAK_PORT
+            elif self.cluster_type == ClusterType.MongoShardedCluster:
+                return self.proxyinstance_set.filter(machine_type=MachineType.MONGOS).first().port
+            elif self.cluster_type == ClusterType.MongoReplicaSet:
+                return self.storageinstance_set.filter(machine_type=MachineType.MONGODB).first().port
+        except AttributeError:
+            logger.warning(_("无法访问集群[]的访问端口，请检查实例信息").format(self.name))
+            return 0
 
     def get_partition_port(self):
         """

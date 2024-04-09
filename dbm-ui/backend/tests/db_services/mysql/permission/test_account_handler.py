@@ -49,6 +49,9 @@ class TestAccountHandler:
     """
 
     @patch("backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
+    @patch(
+        "backend.db_services.dbpermission.db_account.handlers.create_account_signal.send", lambda sender, account: ""
+    )
     def test_create_account(self, query_fixture):
         account = AccountMeta(**ACCOUNT)
         data = MySQLAccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).create_account(account)

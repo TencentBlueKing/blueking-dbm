@@ -20,10 +20,11 @@
         :class="{
           'is-unavailable': item.status === 'unavailable',
         }">
-        <span :style="{ color: highlightIps.includes(item.ip) ? 'rgb(255 130 4)' : '#63656e' }">
-          {{ item.ip }}
+        <span
+          :style="{ color: highlightIps.includes(item.ip)
+            || highlightIps.includes(`${item.ip}:${item.port}`) ? 'rgb(255 130 4)' : '#63656e' }">
+          {{ item.ip }}:{{ item.port }}
         </span>
-        <span>:{{ item.port }}</span>
         <span
           v-if="item.status === 'unavailable'"
           class="unavailable-flag">

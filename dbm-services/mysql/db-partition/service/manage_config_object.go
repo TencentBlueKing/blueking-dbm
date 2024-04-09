@@ -45,7 +45,7 @@ type QueryParititionsInput struct {
 	ImmuteDomains []string `json:"immute_domains"`
 	DbLikes       []string `json:"dblikes"`
 	TbLikes       []string `json:"tblikes"`
-	Limit         int      `json:"limit"`
+	Limit         int64    `json:"limit"`
 	Offset        int      `json:"offset"`
 	OrderBy       string   `json:"order_by"`
 	AscDesc       string   `json:"asc_desc"`

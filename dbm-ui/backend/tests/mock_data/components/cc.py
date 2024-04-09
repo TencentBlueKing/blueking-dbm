@@ -12,6 +12,7 @@ import copy
 
 from backend.components import CCApi
 from backend.tests.mock_data import constant
+from backend.tests.mock_data.utils import raw_response
 
 MOCK_SEARCH_BUSINESS_RETURN = {"info": [{"bk_biz_id": constant.BK_BIZ_ID, "bk_biz_name": "蓝鲸"}], "count": 1}
 MOCK_SEARCH_SET_RETURN = {"info": [{"bk_set_id": constant.BK_SET_ID, "bk_set_name": "mock集群"}], "count": 1}
@@ -148,10 +149,13 @@ MOCK_CLOUD_AREA = [
 ]
 
 
-class CCApiMock(CCApi):
+class CCApiMock:
     """
     cc的mock接口
     """
+
+    class ErrorCode(CCApi.ErrorCode):
+        pass
 
     search_business_return = copy.deepcopy(MOCK_SEARCH_BUSINESS_RETURN)
     list_hosts_without_biz_return = copy.deepcopy(MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN)
@@ -235,6 +239,7 @@ class CCApiMock(CCApi):
         return {}
 
     @staticmethod
+    @raw_response
     def create_biz_custom_field(*args, **kwargs):
         return {}
 

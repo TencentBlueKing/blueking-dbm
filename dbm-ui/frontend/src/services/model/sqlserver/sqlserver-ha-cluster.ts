@@ -192,4 +192,8 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   get isOnline() {
     return this.phase === 'online';
   }
+
+  get isOffline() {
+    return this.phase === 'offline';
+  }
 }

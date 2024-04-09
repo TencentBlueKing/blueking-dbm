@@ -131,7 +131,10 @@ class TaskFlowHandler:
                 if "pipeline" in activity:
                     pipeline_activities = activity["pipeline"].get("activities", {})
                     recurse_activities(pipeline_activities)
-                if activity.get("status") == StateType.FAILED and activity.get("type") == NodeType.ServiceActivity:
+                if (
+                    activity.get("status") == StateType.FAILED
+                    and activity.get("type") == NodeType.ServiceActivity.value
+                ):
                     node_ids.append(act_id)
 
         recurse_activities(activities)

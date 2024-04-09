@@ -75,6 +75,9 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 		slog.Error(vsql, "execute error", err)
 		return nil, 0, err
 	}
+	if m.Limit == -1 {
+		m.Limit = cnt.Count
+	}
 
 	limitCondition := fmt.Sprintf("limit %d offset %d", m.Limit, m.Offset)
 	if m.OrderBy == "" {

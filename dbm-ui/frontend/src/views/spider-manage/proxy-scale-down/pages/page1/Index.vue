@@ -123,10 +123,10 @@
 
   const tabListConfig = {
     [ClusterTypes.TENDBCLUSTER]: {
-      disabledRowConfig: {
+      disabledRowConfig: [{
         handler: (data: SpiderModel) => data.status !== 'normal',
         tip: t('集群异常'),
-      },
+      }],
     },
   };
 

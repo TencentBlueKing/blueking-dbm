@@ -107,15 +107,15 @@
       </BkDropdown>
       <DropdownExportExcel
         export-type="instance"
-        :has-selected="hasSelectedInstances"
         :ids="selectedIds"
         type="influxdb" />
       <div class="instances-view-operations-right">
         <DbSearchSelect
-          v-model="searchValue"
           :data="searchSelectData"
           :get-menu-list="getMenuList"
-          :placeholder="t('请输入或选择条件搜索')" />
+          :model-value="searchValue"
+          :placeholder="t('请输入或选择条件搜索')"
+          @change="handleSearchValueChange" />
       </div>
     </div>
     <DbTable
@@ -195,52 +195,62 @@
     searchAttrs,
     searchValue,
     sortValue,
+    columnCheckedMap,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.INFLUXDB, ['bk_cloud_id'], () => fetchTableData(), false);
 
   const eventBus = inject('eventBus') as Emitter<any>;
 
-  const searchSelectData = computed(() => [
-    {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: t('实例'),
-      id: 'instance_address',
-      multiple: true,
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-      multiple: true,
-    },
-    {
-      name: t('端口'),
-      id: 'port',
-    },
-    {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
-      children: [
-        { id: 'running', name: t('正常') },
-        { id: 'unavailable', name: t('异常') },
-      ],
-    },
-    {
-      name: t('创建人'),
-      id: 'creator',
-    },
-    {
-      name: t('管控区域'),
-      id: 'bk_cloud_id',
-      multiple: true,
-      children: searchAttrs.value.bk_cloud_id,
-    },
-  ]);
+  const searchSelectData = computed(() => {
+    const basicSelect = [
+      {
+        name: t('IP 或 IP:Port'),
+        id: 'instance',
+      },
+      {
+        name: 'ID',
+        id: 'id',
+      },
+      {
+        name: t('端口'),
+        id: 'port',
+      },
+      {
+        name: t('状态'),
+        id: 'status',
+        multiple: true,
+        children: [
+          { id: 'running', name: t('正常') },
+          { id: 'unavailable', name: t('异常') },
+        ],
+      },
+      {
+        name: t('创建人'),
+        id: 'creator',
+      },
+      {
+        name: t('管控区域'),
+        id: 'bk_cloud_id',
+        multiple: true,
+        children: searchAttrs.value.bk_cloud_id,
+      },
+    ];
+    if (groupId.value === 0) {
+      basicSelect.splice(2, 0, {
+        name: t('所属分组'),
+        id: 'group_id',
+        multiple: true,
+        children: groupList.value.map(item => ({
+          id: `${item.id}`,
+          name: item.name,
+        })),
+      });
+    }
+    return basicSelect;
+  });
 
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableRef = ref();
@@ -271,7 +281,7 @@
   });
 
   const columns = computed(() => {
-    const columns = [
+    const basicColumns = [
       {
         type: 'selection',
         width: 54,
@@ -334,10 +344,12 @@
       },
       {
         label: t('管控区域'),
-        field: 'bk_cloud_name',
+        field: 'bk_cloud_id',
         filter: {
           list: columnAttrs.value.bk_cloud_id,
+          checked: columnCheckedMap.value.bk_cloud_id,
         },
+        render: ({ data }: {data: InfluxDBInstanceModel}) => <span>{data.bk_cloud_name ?? '--'}</span>,
       },
       {
         label: t('状态'),
@@ -354,6 +366,7 @@
               text: t('异常'),
             },
           ],
+          checked: columnCheckedMap.value.status,
         },
         render: ({ data }: {data: InfluxDBInstanceModel}) => <RenderInstanceStatus data={data.status} />,
       },
@@ -458,8 +471,9 @@
         },
       },
     ];
+
     if (groupId.value === 0) {
-      columns.splice(2, 0, {
+      basicColumns.splice(2, 0, {
         label: t('所属分组'),
         field: 'group_id',
         minWidth: 100,
@@ -468,11 +482,12 @@
             value: `${item.id}`,
             text: item.name,
           })),
+          checked: columnCheckedMap.value.group_id,
         },
         render: ({ data }: {data: InfluxDBInstanceModel}) => <span>{data.group_name}</span>,
       });
     }
-    return columns;
+    return basicColumns;
   });
 
   // 设置用户个人表头信息
@@ -484,8 +499,8 @@
     })),
     checked: [
       'instance',
-      'group_name',
-      'bk_cloud_name',
+      'group_id',
+      'bk_cloud_id',
       'status',
       'creator',
       'create_at',
@@ -521,7 +536,8 @@
   const fetchTableData = (loading?:boolean) => {
     const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value?.fetchData(searchParams, {
-      group_id: groupId.value === 0 ? undefined : groupId.value,
+      // eslint-disable-next-line no-nested-ternary
+      group_id: groupId.value === 0 ? searchParams.group_id ? searchParams.group_id : undefined : groupId.value,
       ...sortValue,
     }, loading);
     isInit.value = false;
