@@ -47,7 +47,7 @@ class Flow(models.Model):
     flow_type = models.CharField(help_text=_("流程类型"), max_length=LEN_SHORT, choices=FlowType.get_choices())
     flow_alias = models.CharField(help_text=_("流程别名"), max_length=LEN_LONG, null=True, blank=True)
     # 若 flow_type 为 itsm，则 flow_obj_id 为 ITSM 单据号；若为 job，则对应 job_id；内置流程为 root_id；可扩展
-    flow_obj_id = models.CharField(_("单据流程对象ID"), max_length=LEN_NORMAL, blank=True)
+    flow_obj_id = models.CharField(_("单据流程对象ID"), max_length=LEN_NORMAL, blank=True, db_index=True)
     details = models.JSONField(_("单据流程详情"), default=dict)
     status = models.CharField(
         _("单据流程状态"),

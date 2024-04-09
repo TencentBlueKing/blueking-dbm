@@ -67,6 +67,8 @@ TDBCTL_USER = "spider"
 
 # 定义每个flow发起时的实例临时账号名称前缀
 DBM_MYSQL_JOB_TMP_USER_PREFIX = "J_"
+# 定义sqlserver专属的匹配临时账号的正则
+DBM_JOB_TMP_USER_REGULAR = "J[_]%"
 
 # 数据量大小单位
 BYTE = 1
