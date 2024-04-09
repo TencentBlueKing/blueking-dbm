@@ -59,7 +59,10 @@
                   :biz-id-name-map="bizIdNameMap"
                   class="tab-table"
                   :data="dataList"
-                  :keyword="keyword" />
+                  :is-anomalies="!!error"
+                  :keyword="keyword"
+                  @clear-search="handleClearSearch"
+                  @refresh="handleSearch" />
               </KeepAlive>
             </ScrollFaker>
           </BkLoading>
@@ -87,6 +90,8 @@
   import { useDebouncedRef } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
+
+  import { batchSplitRegex } from '@common/regex';
 
   import FilterOptions from '@components/system-search/components/search-result/FilterOptions.vue';
 
@@ -205,7 +210,11 @@
     return dataMap.value.cluster_domain;
   });
 
-  const { loading, run: quickSearchRun } = useRequest(quickSearch, {
+  const {
+    loading,
+    error,
+    run: quickSearchRun,
+  } = useRequest(quickSearch, {
     manual: true,
     onSuccess(data) {
       Object.assign(dataMap.value, {
@@ -222,6 +231,11 @@
       panelList[3].count = data.resource_pool.length;
       panelList[4].count = data.task.length;
       panelList[5].count = data.ticket.length;
+
+      const panelItem = panelList.find(panel => panel.count > 0);
+      if (panelItem) {
+        activeTab.value = panelItem.name;
+      }
     },
   });
 
@@ -255,8 +269,8 @@
   watch(
     keyword,
     (newKeyword, oldKeyword) => {
-      const newKeywordArr = newKeyword.split(/，|\n/g);
-      const oldKeywordArr = (oldKeyword || '').split(/，|\n/g);
+      const newKeywordArr = newKeyword.split(batchSplitRegex);
+      const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
 
       if (!_.isEqual(newKeywordArr, oldKeywordArr) && !newKeyword.endsWith('\n')) {
         handleSearch();
@@ -284,6 +298,10 @@
   // const handleExportAllHosts = () => {
 
   // };
+
+  const handleClearSearch = () => {
+    keyword.value = '';
+  };
 
   defineExpose({
     routerBack() {

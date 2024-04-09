@@ -190,7 +190,6 @@
 
     const { name } = formData;
     const params = {
-      bk_biz_id: props.bizId,
       name,
       receivers: receiversSelectorRef.value.getSelectedReceivers(),
       details: {
@@ -204,7 +203,10 @@
         id: props.detailData.id,
       });
     } else {
-      insertAlarmGroupRun(params);
+      insertAlarmGroupRun({
+        ...params,
+        bk_biz_id: props.bizId,
+      });
     }
   };
 

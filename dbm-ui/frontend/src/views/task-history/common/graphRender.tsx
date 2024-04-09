@@ -101,6 +101,7 @@ export default class GraphRender {
     const flowInfo = args[1];
     const {
       component,
+      pipeline,
       status,
       updated_at: updatedAt,
       type,
@@ -108,6 +109,28 @@ export default class GraphRender {
       retryable,
       skippable,
     } = node.data;
+
+    const activities = pipeline?.activities;
+    let isParentFlow = false;
+    const abstractNum = {
+      success: 0,
+      failed: 0,
+      total: 0,
+    };
+
+    if (activities) {
+      const activityList = Object.values(activities);
+      abstractNum.total = activityList.length;
+      isParentFlow = abstractNum.total > 0;
+      activityList.forEach((activity) => {
+        if (activity.status === 'FAILED') {
+          abstractNum.failed = abstractNum.failed + 1;
+        } else if (activity.status === 'FINISHED') {
+          abstractNum.success = abstractNum.success + 1;
+        }
+      });
+    }
+
     const icon = component && component.code in NODE_ICON ? NODE_ICON[component.code as keyof typeof NODE_ICON] : 'db-icon-default-node';
     const nodeCls = status ? `node-ractangle--${status.toLowerCase()}` : '';
     const createdStatus = status && status.toLowerCase() === 'created';
@@ -138,7 +161,25 @@ export default class GraphRender {
           <div class="node-ractangle__content">
             <div class="node-ractangle__content-left text-overflow">
               <strong class="node-ractangle__name" title={node.data.name as string}>{node.data.name}</strong>
-              <p class="node-ractangle__text">{nodeStatusText ? t(nodeStatusText) : t('待执行')}</p>
+              <p class="node-ractangle__text">
+                {
+                  // eslint-disable-next-line no-nested-ternary
+                  isParentFlow
+                    ? (
+                      <span style="color:#63656E">
+                        <span style="color:#2DCB56">{`${abstractNum.success}`}</span>
+                        <span style="margin: 0 5px">/</span>
+                        <span style="color:#EA3636">{`${abstractNum.failed}`}</span>
+                        <span style="margin: 0 5px">/</span>
+                        <span>{`${abstractNum.total}`}</span>
+                      </span>
+                    )
+                    : nodeStatusText
+                      ? t(nodeStatusText)
+                      : t('待执行')
+                }
+              </p>
+              {/* <p class="node-ractangle__text">{nodeStatusText ? t(nodeStatusText) : t('待执行')}</p> */}
             </div>
             <span class="node-ractangle__time">{isShowTime ? getCostTimeDisplay(updatedAt - startedAt) : ''}</span>
           </div>

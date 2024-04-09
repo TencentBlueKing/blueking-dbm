@@ -20,6 +20,11 @@
             <template
               v-for="resultType in Object.keys(serachResult)"
               :key="resultType">
+              <div
+                v-if="serachResult[resultType].length"
+                class="result-type-text">
+                {{ resultTypeTextMap[resultType] }}
+              </div>
               <RenderResult
                 :biz-id-name-map="bizIdNameMap"
                 :data="serachResult[resultType as keyof typeof serachResult]"
@@ -47,6 +52,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { batchSplitRegex } from '@common/regex';
+
   import FilterOptions from './FilterOptions.vue';
   import useKeyboard from './hooks/use-keyboard';
   import RenderResult from './render-result/Index.vue';
@@ -63,6 +70,15 @@
 
   const { t } = useI18n();
   useKeyboard();
+
+  const resultTypeTextMap: Record<string, string> = {
+    cluster_domain: t('域名'),
+    cluster_name: t('集群名'),
+    instance: t('实例'),
+    machine: t('主机'),
+    task: t('任务ID'),
+    ticket: t('单据'),
+  };
 
   const isSearchEmpty = ref(false);
   const formData = ref({
@@ -83,23 +99,19 @@
     },
   });
 
-  watch(
-    [modelValue, formData],
-    () => {
-      if (!modelValue.value) {
-        serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
-        return;
-      }
-      handleSerach({
-        ...formData.value,
-        keyword: modelValue.value,
-      });
-    },
-    {
-      immediate: true,
-      deep: true,
-    },
-  );
+  watch([modelValue, formData], () => {
+    if (!modelValue.value) {
+      serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
+      return;
+    }
+    handleSerach({
+      ...formData.value,
+      keyword: modelValue.value.replace(batchSplitRegex, ' '),
+    });
+  }, {
+    immediate: true,
+    deep: true,
+  });
 
   const handleClearSearch = () => {
     modelValue.value = '';
@@ -127,7 +139,24 @@
       color: #63656e;
       flex: 1;
 
-      .result-item {
+    .result-type-text {
+      color: #979BA5;
+      padding-left: 12px;
+      line-height: 32px;
+    }
+
+    .result-item{
+      display: flex;
+      height: 32px;
+      padding: 0 12px 0 24px;
+      cursor: pointer;
+      align-items: center;
+
+      &:hover{
+        background: #F5F7FA;
+      }
+
+      .value-text{
         display: flex;
         height: 32px;
         padding: 0 8px;
@@ -165,6 +194,7 @@
       padding: 10px 12px;
       border-left: 1px solid #dcdee5;
       flex: 0 0 170px;
+    }
     }
   }
 </style>

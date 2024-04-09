@@ -21,9 +21,9 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useLocation } from '@hooks';
-
   import { systemSearchCache } from '@common/cache';
+
+  import { useRedirect } from '@components/system-search/hooks/useRedirect';
 
   import HightLightText from './components/HightLightText.vue';
 
@@ -44,7 +44,7 @@
 
   const props = defineProps<Props>();
 
-  const location = useLocation();
+  const handleRedirect = useRedirect();
 
   const getMatchText = (data: Props['data'][number]) => {
     if (data.name.indexOf(props.keyWord) > -1) {
@@ -55,51 +55,14 @@
 
   const handleGo = (data: Props['data'][number]) => {
     systemSearchCache.appendItem(data.name);
-    const routerNameMap = {
-      TwemproxyRedisInstance: 'DatabaseRedisList',
-      tendbha: 'DatabaseTendbha',
-      tendbsingle: 'DatabaseTendbsingle',
-      tendbcluster: 'tendbClusterList',
-      es: 'EsList',
-      kafka: 'KafkaList',
-      hdfs: 'HdfsList',
-      pulsar: 'PulsarList',
-      redis: 'DatabaseRedisList',
-      influxdb: 'InfluxDBInstDetails',
-      riak: 'RiakList',
-    } as Record<string, string>;
 
-    if (data.cluster_type === 'tendbha') {
-      location(
-        {
-          name: 'DatabaseTendbhaInstance',
-          query: {
-            ip: data.ip,
-          },
-        },
-        data.bk_biz_id,
-      );
-    }
-    if (data.cluster_type === 'tendbcluster') {
-      location(
-        {
-          name: 'tendbClusterInstance',
-          query: {
-            ip: data.ip,
-          },
-        },
-        data.bk_biz_id,
-      );
-    } else {
-      location(
-        {
-          name: routerNameMap[data.cluster_type],
-          query: {
-            id: data.id,
-          },
-        },
-        data.bk_biz_id,
-      );
-    }
+    handleRedirect(
+      data.cluster_type,
+      {
+        id: data.cluster_id,
+        ip: data.ip,
+      },
+      data.bk_biz_id,
+    );
   };
 </script>

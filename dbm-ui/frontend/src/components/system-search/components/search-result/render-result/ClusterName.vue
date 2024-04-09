@@ -18,9 +18,9 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useLocation } from '@hooks';
-
   import { systemSearchCache } from '@common/cache';
+
+  import { useRedirect } from '@components/system-search/hooks/useRedirect';
 
   import HightLightText from './components/HightLightText.vue';
 
@@ -38,34 +38,16 @@
 
   defineProps<Props>();
 
-  const location = useLocation();
+  const handleRedirect = useRedirect();
 
   const handleGo = (data: Props['data'][number]) => {
     systemSearchCache.appendItem(data.name);
 
-    const routerNameMap = {
-      TwemproxyRedisInstance: 'DatabaseRedisList',
-      tendbha: 'DatabaseTendbha',
-      tendbsingle: 'DatabaseTendbsingle',
-      tendbcluster: 'tendbClusterList',
-      es: 'EsList',
-      kafka: 'KafkaList',
-      hdfs: 'HdfsList',
-      pulsar: 'PulsarList',
-      redis: 'DatabaseRedisList',
-      riak: 'RiakList',
-    } as Record<string, string>;
-
-    if (!routerNameMap[data.cluster_type]) {
-      return;
-    }
-
-    location(
+    handleRedirect(
+      data.cluster_type,
       {
-        name: routerNameMap[data.cluster_type],
-        query: {
-          id: data.id,
-        },
+        id: data.id,
+        name: data.name,
       },
       data.bk_biz_id,
     );

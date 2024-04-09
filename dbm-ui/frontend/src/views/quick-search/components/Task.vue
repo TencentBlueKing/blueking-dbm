@@ -1,27 +1,37 @@
 <template>
-  <DbCard
-    class="search-result-task search-result-card"
-    mode="collapse"
-    :title="t('历史任务')">
-    <template #desc>
-      <I18nT
-        class="ml-8"
-        keypath="共n条"
-        style="color: #63656e"
-        tag="span">
-        <template #n>
-          <strong>{{ data.length }}</strong>
-        </template>
-      </I18nT>
-    </template>
-    <DbOriginalTable
-      class="mt-14 mb-8"
-      :columns="columns"
-      :data="data"
-      :pagination="pagination"
-      :settings="tableSetting"
-      @setting-change="updateTableSettings" />
-  </DbCard>
+  <div>
+    <DbCard
+      v-if="data.length"
+      class="search-result-task search-result-card"
+      mode="collapse"
+      :title="t('历史任务')">
+      <template #desc>
+        <I18nT
+          class="ml-8"
+          keypath="共n条"
+          style="color: #63656E;"
+          tag="span">
+          <template #n>
+            <strong>{{ data.length }}</strong>
+          </template>
+        </I18nT>
+      </template>
+      <DbOriginalTable
+        class="mt-14 mb-8"
+        :columns="columns"
+        :data="data"
+        :pagination="pagination"
+        :settings="tableSetting"
+        @setting-change="updateTableSettings" />
+    </DbCard>
+    <EmptyStatus
+      v-else
+      class="empty-status"
+      :is-anomalies="isAnomalies"
+      :is-searching="!!keyword"
+      @clear-search="handleClearSearch"
+      @refresh="handleRefresh" />
+  </div>
 </template>
 
 <script setup lang="tsx">
@@ -37,15 +47,23 @@
   import { UserPersonalSettings } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
 
   interface Props {
     keyword: string,
     data: TaskFlowModel[]
     bizIdNameMap: Record<number, string>
+    isAnomalies: boolean
+  }
+
+  interface Emits {
+    (e: 'refresh'): void,
+    (e: 'clearSearch'): void
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const router = useRouter();
@@ -197,6 +215,14 @@
       },
     });
     window.open(url.href, '_blank');
+  };
+
+  const handleRefresh = () => {
+    emits('refresh');
+  };
+
+  const handleClearSearch = () => {
+    emits('clearSearch');
   };
 </script>
 

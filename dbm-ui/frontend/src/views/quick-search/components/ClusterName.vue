@@ -1,40 +1,49 @@
 <template>
   <div :key="settingChangeKey">
-    <DbCard
-      v-for="(item, index) in renderData.dataList"
-      :key="item.clusterType"
-      class="search-result-cluster search-result-card"
-      mode="collapse"
-      :title="item.clusterType">
-      <template #desc>
-        <I18nT
-          class="ml-8"
-          keypath="共n条"
-          style="color: #63656e"
-          tag="span">
-          <template #n>
-            <strong>{{ item.dataList.length }}</strong>
-          </template>
-        </I18nT>
-        <BkButton
-          class="ml-8"
-          text
-          theme="primary"
-          @click.stop="handleExport(item.clusterType, item.dataList)">
-          <DbIcon
-            class="export-button-icon"
-            type="daochu" />
-          <span class="export-button-text">{{ t('导出') }}</span>
-        </BkButton>
-      </template>
-      <DbOriginalTable
-        class="search-result-table mt-14 mb-8"
-        :columns="columnsMap[item.clusterType]"
-        :data="item.dataList"
-        :pagination="pagination[index]"
-        :settings="tableSetting"
-        @setting-change="updateTableSettings" />
-    </DbCard>
+    <template v-if="renderData.dataList.length">
+      <DbCard
+        v-for="(item, index) in renderData.dataList"
+        :key="item.clusterType"
+        class="search-result-cluster search-result-card"
+        mode="collapse"
+        :title="item.clusterType">
+        <template #desc>
+          <I18nT
+            class="ml-8"
+            keypath="共n条"
+            style="color: #63656E;"
+            tag="span">
+            <template #n>
+              <strong>{{ item.dataList.length }}</strong>
+            </template>
+          </I18nT>
+          <BkButton
+            class="ml-8"
+            text
+            theme="primary"
+            @click.stop="handleExport(item.clusterType, item.dataList)">
+            <DbIcon
+              class="export-button-icon"
+              type="daochu" />
+            <span class="export-button-text">{{ t('导出') }}</span>
+          </BkButton>
+        </template>
+        <DbOriginalTable
+          class="search-result-table mt-14 mb-8"
+          :columns="columnsMap[item.clusterType]"
+          :data="item.dataList"
+          :pagination="pagination[index]"
+          :settings="tableSetting"
+          @setting-change="updateTableSettings" />
+      </DbCard>
+    </template>
+    <EmptyStatus
+      v-else
+      class="empty-status"
+      :is-anomalies="isAnomalies"
+      :is-searching="!!keyword"
+      @clear-search="handleClearSearch"
+      @refresh="handleRefresh" />
   </div>
 </template>
 
@@ -46,14 +55,15 @@
 
   import {
     useCopy,
-    useLocation,
     useTableSettings,
   } from '@hooks';
 
   import { UserPersonalSettings } from '@common/const';
 
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
+  import { useRedirect } from '@components/system-search/hooks/useRedirect';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { exportExcelFile } from '@utils';
@@ -64,13 +74,20 @@
     keyword: string,
     data: QuickSearchClusterNameModel[],
     bizIdNameMap: Record<number, string>
+    isAnomalies: boolean
+  }
+
+  interface Emits {
+    (e: 'refresh'): void,
+    (e: 'clearSearch'): void
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const copy = useCopy();
-  const location = useLocation();
+  const handleRedirect = useRedirect();
 
   const settingChangeKey = ref(1);
   const pagination = ref<{
@@ -249,29 +266,22 @@
   };
 
   const handleToCluster = (data: QuickSearchClusterNameModel) => {
-    const routerNameMap = {
-      TwemproxyRedisInstance: 'DatabaseRedisList',
-      tendbha: 'DatabaseTendbha',
-      tendbsingle: 'DatabaseTendbsingle',
-      tendbcluster: 'tendbClusterList',
-      es: 'EsList',
-      kafka: 'KafkaList',
-      hdfs: 'HdfsList',
-      pulsar: 'PulsarList',
-      redis: 'DatabaseRedisList',
-      riak: 'RiakList',
-    } as Record<string, string>;
-
-    if (!routerNameMap[data.cluster_type]) {
-      return;
-    }
-
-    location({
-      name: routerNameMap[data.cluster_type],
-      query: {
+    handleRedirect(
+      data.cluster_type,
+      {
         id: data.id,
+        name: data.name,
       },
-    }, data.bk_biz_id);
+      data.bk_biz_id,
+    );
+  };
+
+  const handleRefresh = () => {
+    emits('refresh');
+  };
+
+  const handleClearSearch = () => {
+    emits('clearSearch');
   };
 </script>
 
