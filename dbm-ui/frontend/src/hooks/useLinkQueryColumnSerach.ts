@@ -102,6 +102,9 @@ export const useLinkQueryColumnSerach = (
     index: number;
   }) => {
     // console.log('filtervalue>>>', data);
+    if (!data.column.filter.checked) {
+      return;
+    }
     if (data.checked.length === 0) {
       searchValue.value = searchValue.value.filter(item => item.id !== data.column.field);
       queryTableDataFn();
@@ -162,21 +165,28 @@ export const useLinkQueryColumnSerach = (
     const handledValueList: ISearchValue[] = [];
     // console.log('valueList>>>', valueList);
     valueList.forEach((item) => {
-      const idList = item.values ? _.flatMap(item.values.map(value => `${value.id}`.split(batchSplitRegex))) : [];
-      const nameList = item.values ? _.flatMap(item.values.map(value => `${value.name}`.split(batchSplitRegex))) : [];
+      const values = item.values ? item.values.reduce((results, value) => {
+        const idList = _.uniq(`${value.id}`.split(batchSplitRegex));
+        const nameList = _.uniq(`${value.name}`.split(batchSplitRegex));
+        results.push(...idList.map((id, index) => ({
+          id,
+          name: nameList[index],
+        })));
+        return results;
+      }, [] as {
+        id: string;
+        name: string;
+      }[]) : [];
+
       const searchObj = {
         ...item,
-        values: idList.map((value, index) => ({
-          id: value,
-          name: nameList[index],
-        })),
+        values,
       };
 
       if (item.id === 'domain') {
         // 搜索访问入口，前端去除端口
         searchObj.values = searchObj.values?.map(value => ({
-          id: value.id.split(',').map(domain => domain.split(':')[0])
-            .join(','),
+          id: value.id.split(':')[0],
           name: value.name,
         }));
       }

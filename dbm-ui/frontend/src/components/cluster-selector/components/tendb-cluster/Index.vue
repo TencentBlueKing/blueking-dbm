@@ -132,7 +132,7 @@
             <bk-popover theme="dark" placement="top" popoverDelay={0}>
               {{
                 default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
-                content: () => <span>{disabledRowConfig?.tip}</span>,
+                content: () => <span>{disabledRowConfig.tip}</span>,
               }}
             </bk-popover>
           );
@@ -233,8 +233,8 @@
   const isIndeterminate = computed(() => !isSelectedAll.value
     && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value[activeTab.value]).length > 0);
 
-  // eslint-disable-next-line max-len
-  const mainSelectDisable = computed(() => tableData.value.filter(data => props.disabledRowConfig.find(item => item.handler(data))).length === tableData.value.length);
+  const mainSelectDisable = computed(() => tableData.value.filter(data => props.disabledRowConfig
+    .find(item => item.handler(data))).length === tableData.value.length);
 
   const generatedColumns = computed(() => {
     if (props.customColums) {
