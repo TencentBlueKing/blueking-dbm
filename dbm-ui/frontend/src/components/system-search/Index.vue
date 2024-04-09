@@ -12,7 +12,8 @@
       :placeholder="t('全站搜索 Ctrl + K')"
       type="search"
       @enter="handleEnter"
-      @focus="handleFocus" />
+      @focus="handleFocus"
+      @paste="handlePaste" />
   </div>
   <div
     ref="popRef"
@@ -42,6 +43,8 @@
 
   import { useDebouncedRef } from '@hooks';
 
+  import { batchSplitRegex } from '@common/regex';
+
   import SearchResult from './components/search-result/Index.vue';
   import SearchHistory from './components/SearchHistory.vue';
 
@@ -62,6 +65,13 @@
   }));
 
   let tippyIns:Instance | undefined;
+
+  const handlePaste = (value: string, event: ClipboardEvent) => {
+    const pasteValue = (event.clipboardData || window.clipboardData).getData('text');
+    setTimeout(() => {
+      serach.value = `${serach.value}${serach.value ? '|' : ''}${pasteValue}`.replace(batchSplitRegex, '|');
+    });
+  };
 
   const handleFocus = () => {
     if (isFocused.value) {

@@ -13,6 +13,8 @@
 <script setup lang="ts">
   import { computed } from 'vue';
 
+  import { batchSplitRegex } from '@common/regex';
+
   import { encodeRegexp } from '@utils';
 
   interface Props {
@@ -25,7 +27,17 @@
     highLightColor: '#3A84FF',
   });
 
-  const keywordMatch = computed(() => props.text.match(new RegExp(`^(.*?)(${encodeRegexp(props.keyWord)})(.*)$`)));
+  const keywordMatch = computed(() => {
+    const keyWordList = props.keyWord.split(batchSplitRegex);
+    for (let i = 0; i < keyWordList.length; i++) {
+      const keyWordItem = keyWordList[i];
+      const matchResult = props.text.match(new RegExp(`^(.*?)(${encodeRegexp(keyWordItem)})(.*)$`));
+      if (matchResult) {
+        return matchResult;
+      }
+    }
+    return [];
+  });
 </script>
 
 <style lang="less" scoped>
