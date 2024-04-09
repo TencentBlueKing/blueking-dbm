@@ -26,24 +26,25 @@ BIZModel = collections.namedtuple("BIZModel", ["bk_biz_id", "name", "english_nam
 ModuleModel = collections.namedtuple("ModuleModel", ["bk_biz_id", "db_module_id", "name"])
 
 
-def list_bizs(user: str = "") -> List[BIZModel]:
+def list_bizs(user: str = "", action: ActionEnum = None) -> List[BIZModel]:
     biz_infos = CCApi.search_business(
         {
             "fields": ["bk_biz_id", "bk_biz_name", CC_APP_ABBR_ATTR],
         },
         use_admin=True,
     ).get("info", [])
-
-    # 填充权限字段
     biz_list = [
         BIZModel(biz["bk_biz_id"], biz["bk_biz_name"], biz.get(CC_APP_ABBR_ATTR) or "", {}) for biz in biz_infos
     ]
     biz_ids = [biz.bk_biz_id for biz in biz_list]
-    biz_permission = Permission(username=user, request={}).policy_query(action=ActionEnum.DB_MANAGE, obj_list=biz_ids)
 
-    for biz in biz_list:
-        is_allowed = biz.bk_biz_id in biz_permission
-        biz.permission[ActionEnum.DB_MANAGE.id] = is_allowed
+    # 填充权限字段
+    actions = [action, ActionEnum.DB_MANAGE] if action else [ActionEnum.DB_MANAGE]
+    for action in actions:
+        permission = Permission(username=user, request={}).policy_query(action=action, obj_list=biz_ids)
+        for biz in biz_list:
+            is_allowed = biz.bk_biz_id in permission
+            biz.permission[action.id] = is_allowed
 
     return sorted(biz_list, key=lambda biz: biz.permission[ActionEnum.DB_MANAGE.id], reverse=True)
 

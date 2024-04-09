@@ -23,9 +23,7 @@ from backend.db_services.dbpermission.db_account import mock_data
 class DBAccountBaseSerializer(serializers.Serializer):
     user = serializers.CharField(help_text=_("账号名称"), required=False)
     password = serializers.CharField(help_text=_("账号密码"))
-    account_type = serializers.ChoiceField(
-        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
-    )
+    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
 
     @classmethod
     def check_username_valid(cls, account_type, user):
@@ -68,15 +66,13 @@ class CreateAccountSerializer(DBAccountBaseSerializer):
 
 class DeleteAccountSerializer(serializers.Serializer):
     account_id = serializers.IntegerField(help_text=_("账号ID"))
-    account_type = serializers.ChoiceField(
-        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
-    )
+    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.DELETE_ACCOUNT_REQUEST}
 
 
-class UpdateAccountSerializer(DBAccountBaseSerializer):
+class UpdateAccountPasswordSerializer(DBAccountBaseSerializer):
     account_id = serializers.IntegerField(help_text=_("账号ID"))
     user = serializers.CharField(help_text=_("账号名称"), required=False)
 
@@ -106,21 +102,17 @@ class AccountRulesDetailSerializer(serializers.Serializer):
 
 
 class FilterAccountRulesSerializer(serializers.Serializer):
+    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
     rule_ids = serializers.CharField(help_text=_("规则ID列表(通过,分割)"), required=False)
     user = serializers.CharField(help_text=_("账号名称"), required=False)
     access_db = serializers.CharField(help_text=_("访问DB"), required=False)
     privilege = serializers.CharField(help_text=_("规则列表"), required=False)
-    account_type = serializers.ChoiceField(
-        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
-    )
 
 
 class QueryAccountRulesSerializer(serializers.Serializer):
     user = serializers.CharField(help_text=_("账号名称"))
     access_dbs = serializers.ListField(help_text=_("访问DB列表"), child=serializers.CharField(), required=False)
-    account_type = serializers.ChoiceField(
-        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
-    )
+    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
 
 
 class ListAccountRulesSerializer(serializers.Serializer):
@@ -172,9 +164,7 @@ class AddAccountRuleSerializer(serializers.Serializer):
     account_id = serializers.IntegerField(help_text=_("账号ID"))
     access_db = serializers.CharField(help_text=_("访问DB"))
     privilege = RuleTypeSerializer(help_text=_("授权规则"))
-    account_type = serializers.ChoiceField(
-        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
-    )
+    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.ADD_MYSQL_ACCOUNT_RULE_REQUEST}
@@ -189,9 +179,7 @@ class ModifyMySQLAccountRuleSerializer(AddAccountRuleSerializer):
 
 class DeleteAccountRuleSerializer(serializers.Serializer):
     rule_id = serializers.IntegerField(help_text=_("规则ID"))
-    account_type = serializers.ChoiceField(
-        help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
-    )
+    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.DELETE_MYSQL_ACCOUNT_RULE_REQUEST}

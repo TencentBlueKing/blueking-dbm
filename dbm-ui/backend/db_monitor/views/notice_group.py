@@ -129,6 +129,11 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
         actions=ActionEnum.get_actions_by_resource(ResourceEnum.NOTIFY_GROUP.id),
         resource_meta=ResourceEnum.NOTIFY_GROUP,
     )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["bk_biz_id"],
+        actions=[ActionEnum.NOTIFY_GROUP_CREATE],
+        resource_meta=ResourceEnum.BUSINESS,
+    )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 

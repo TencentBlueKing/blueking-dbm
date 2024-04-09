@@ -37,6 +37,7 @@ from backend.db_services.partition.serializers import (
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 from ...db_meta.models import Cluster
+from ...iam_app.dataclass import ResourceEnum
 from ...iam_app.dataclass.actions import ActionEnum
 from ...iam_app.handlers.drf_perm.cluster import PartitionManagePermission
 from ...iam_app.handlers.permission import Permission
@@ -70,13 +71,24 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
         responses={status.HTTP_200_OK: PartitionListResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["bk_biz_id"],
+        action_filed=lambda d: [ActionEnum.TENDBCLUSTER_PARTITION_CREATE]
+        if d["cluster_type"] == ClusterType.TenDBCluster
+        else [ActionEnum.MYSQL_PARTITION_CREATE],
+        resource_meta=ResourceEnum.BUSINESS,
+    )
     @Permission.decorator_permission_field(
         id_field=lambda d: d["cluster_id"],
         data_field=lambda d: d["results"],
-        action_filed=lambda d: ActionEnum.get_match_actions(
-            name=f"{ClusterType.cluster_type_to_db_type(d['cluster_type'])}_partition",
-            exclude=[ActionEnum.MYSQL_PARTITION_CREATE, ActionEnum.TENDBCLUSTER_PARTITION_CREATE],
-        ),
+        action_filed=lambda d: [
+            *ActionEnum.get_match_actions(
+                "tendbcluster_partition", exclude=[ActionEnum.TENDBCLUSTER_PARTITION_CREATE]
+            ),
+            *[ActionEnum.TENDBCLUSTER_PARTITION_ENABLE_DISABLE],
+        ]
+        if d["cluster_type"] == ClusterType.TenDBCluster
+        else [*ActionEnum.get_match_actions("mysql_partition", exclude=[ActionEnum.MYSQL_PARTITION_CREATE])],
     )
     def list(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionListSerializer)

@@ -87,7 +87,7 @@ class InstanceAddressSerializer(serializers.Serializer):
         if not all_ports_valid:
             pass
         # 如果所有端口都有效，则将instance_address保存到data字典
-        data = {"instance": instance_address}
+        data["instance_address"] = instance_address
         return data
 
 

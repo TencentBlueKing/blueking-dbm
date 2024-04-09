@@ -13,6 +13,23 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
 from backend.db_services.cmdb.constants import MAX_DB_APP_ABBR_LIMIT, MAX_DB_MODULE_LIMIT
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+
+
+class ListBizWithActionSLZ(serializers.Serializer):
+    action = serializers.CharField(help_text=_("查询的权限动作"), required=False)
+
+    def validate(self, attrs):
+        if not attrs.get("action"):
+            return attrs
+
+        action_instance = ActionEnum.get_action_by_id(attrs["action"])
+        related_resource_types = action_instance.related_resource_types
+        if len(related_resource_types) != 1 or related_resource_types[0] != ResourceEnum.BUSINESS:
+            raise serializers.ValidationError(_("只允许查询关联资源为业务的动作权限"))
+        attrs["action"] = action_instance
+        return attrs
 
 
 class BIZSLZ(serializers.Serializer):

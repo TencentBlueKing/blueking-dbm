@@ -82,6 +82,8 @@ class SpiderViewSet(viewsets.ResourceViewSet):
     list_perm_actions = [
         ActionEnum.TENDBCLUSTER_SPIDER_ADD_NODES,
         ActionEnum.TENDBCLUSTER_SPIDER_REDUCE_NODES,
+        ActionEnum.TENDBCLUSTER_SPIDER_MNT_DESTROY,
+        ActionEnum.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
         ActionEnum.TENDBCLUSTER_NODE_REBALANCE,
         ActionEnum.TENDBCLUSTER_VIEW,
         ActionEnum.TENDBCLUSTER_ENABLE_DISABLE,
