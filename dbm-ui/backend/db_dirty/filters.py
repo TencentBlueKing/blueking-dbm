@@ -11,8 +11,13 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 from django_filters import rest_framework as filters
+from django_filters.filters import BaseInFilter, NumberFilter
 
 from backend.db_dirty.models import DirtyMachine
+
+
+class NumberInFilter(BaseInFilter, NumberFilter):
+    pass
 
 
 class DirtyMachineFilter(filters.FilterSet):
@@ -21,6 +26,8 @@ class DirtyMachineFilter(filters.FilterSet):
     task_ids = filters.CharFilter(field_name="flow__flow_obj_id", method="filter_task_ids", label=_("任务ID"))
     operator = filters.CharFilter(field_name="ticket__creator", lookup_expr="icontains", label=_("操作者"))
     ip_list = filters.CharFilter(field_name="ip_list", method="filter_ip_list", label=_("过滤IP"))
+    bk_cloud_ids = NumberInFilter(field_name="bk_cloud_id", lookup_expr="in")
+    bk_biz_ids = NumberInFilter(field_name="bk_biz_id", lookup_expr="in")
 
     def _split_int(self, value):
         try:
