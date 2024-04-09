@@ -20,6 +20,11 @@
             <template
               v-for="resultType in Object.keys(serachResult)"
               :key="resultType">
+              <div
+                v-if="serachResult[resultType].length"
+                class="result-type-text">
+                {{ resultTypeTextMap[resultType] }}
+              </div>
               <RenderResult
                 :biz-id-name-map="bizIdNameMap"
                 :data="serachResult[resultType]"
@@ -52,6 +57,8 @@
     useGlobalBizs,
   } from '@stores';
 
+  import { batchSplitRegex } from '@common/regex';
+
   import FilterOptions from './FilterOptions.vue';
   import RenderResult from './render-result/Index.vue';
 
@@ -61,7 +68,6 @@
 
   const modelValue = defineModel<string>({
     default: '',
-    local: true,
   });
 
   const {
@@ -70,6 +76,14 @@
 
   const { t } = useI18n();
 
+  const resultTypeTextMap: Record<string, string> = {
+    cluster_domain: t('域名'),
+    cluster_name: t('集群名'),
+    instance: t('实例'),
+    machine: t('主机'),
+    task: t('任务ID'),
+    ticket: t('单据'),
+  };
 
   const isSearchEmpty = ref(false);
   const formData = ref({
@@ -99,7 +113,7 @@
     }
     handleSerach({
       ...formData.value,
-      keyword: modelValue.value,
+      keyword: modelValue.value.replace(batchSplitRegex, ' '),
     });
   }, {
     immediate: true,
@@ -132,10 +146,16 @@
     color: #63656E;
     flex: 1;
 
+    .result-type-text {
+      color: #979BA5;
+      padding-left: 12px;
+      line-height: 32px;
+    }
+
     .result-item{
       display: flex;
       height: 32px;
-      padding: 0 8px;
+      padding: 0 12px 0 24px;
       cursor: pointer;
       align-items: center;
 

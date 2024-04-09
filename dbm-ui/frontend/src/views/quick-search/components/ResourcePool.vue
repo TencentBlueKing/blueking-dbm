@@ -1,27 +1,37 @@
 <template>
-  <DbCard
-    class="search-result-machine search-result-card"
-    mode="collapse"
-    :title="t('资源池主机')">
-    <template #desc>
-      <I18nT
-        class="ml-8"
-        keypath="共n条"
-        style="color: #63656E;"
-        tag="span">
-        <template #n>
-          <strong>{{ data.length }}</strong>
-        </template>
-      </I18nT>
-    </template>
-    <DbOriginalTable
-      class="search-result-table mt-14 mb-8"
-      :columns="columns"
-      :data="data"
-      :pagination="pagination"
-      :settings="tableSetting"
-      @setting-change="updateTableSettings" />
-  </DbCard>
+  <div>
+    <DbCard
+      v-if="data.length"
+      class="search-result-machine search-result-card"
+      mode="collapse"
+      :title="t('资源池主机')">
+      <template #desc>
+        <I18nT
+          class="ml-8"
+          keypath="共n条"
+          style="color: #63656E;"
+          tag="span">
+          <template #n>
+            <strong>{{ data.length }}</strong>
+          </template>
+        </I18nT>
+      </template>
+      <DbOriginalTable
+        class="search-result-table mt-14 mb-8"
+        :columns="columns"
+        :data="data"
+        :pagination="pagination"
+        :settings="tableSetting"
+        @setting-change="updateTableSettings" />
+    </DbCard>
+    <EmptyStatus
+      v-else
+      class="empty-status"
+      :is-anomalies="isAnomalies"
+      :is-searching="!!keyword"
+      @clear-search="handleClearSearch"
+      @refresh="handleRefresh" />
+  </div>
 </template>
 
 <script setup lang="tsx">
@@ -38,15 +48,23 @@
 
   import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
 
   interface Props {
     keyword: string,
     data: DbResourceModel[],
     bizIdNameMap: Record<number, string>
+    isAnomalies: boolean
+  }
+
+  interface Emits {
+    (e: 'refresh'): void,
+    (e: 'clearSearch'): void
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const copy = useCopy();
@@ -249,6 +267,14 @@
 
   const handleCopy = (content: string) => {
     copy(content);
+  };
+
+  const handleRefresh = () => {
+    emits('refresh');
+  };
+
+  const handleClearSearch = () => {
+    emits('clearSearch');
   };
 </script>
 
