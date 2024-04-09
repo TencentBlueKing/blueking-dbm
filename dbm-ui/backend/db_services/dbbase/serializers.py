@@ -70,6 +70,7 @@ class CommonQueryClusterResponseSerializer(serializers.Serializer):
 class ClusterFilterSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     exact_domain = serializers.CharField(help_text=_("域名精确查询"), required=False)
+
     # 后续有其他过滤条件可以再加
 
     def validate(self, attrs):

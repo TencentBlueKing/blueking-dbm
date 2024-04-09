@@ -20,6 +20,8 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
+from backend.components import CCApi
+from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
@@ -40,7 +42,9 @@ from backend.db_services.dbbase.serializers import (
     QueryBizClusterAttrsSerializer,
 )
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.ticket.constants import TicketType
 
 SWAGGER_TAG = _("集群通用接口")
 
@@ -218,3 +222,49 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             cluster_attrs["role"] = roles_dicts
 
         return Response(cluster_attrs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询资源管理表头筛选数据"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        responses={status.HTTP_200_OK: QueryBizClusterAttrsResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False)
+    def query_resource_administration_attrs(self, request, *args, **kwargs):
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        bk_cloud_ids = DirtyMachine.objects.values_list("bk_cloud_id", flat=True).distinct()
+        bk_cloud_id_list = [
+            {"value": bk_cloud_id, "text": cloud_info.get(str(bk_cloud_id), {}).get("bk_cloud_name", "")}
+            for bk_cloud_id in bk_cloud_ids
+        ]
+
+        # 业务
+        biz_infos = CCApi.search_business(
+            {
+                "fields": ["bk_biz_id", "bk_biz_name", CC_APP_ABBR_ATTR],
+            },
+            use_admin=True,
+        ).get("info", [])
+
+        # 构建一个以业务ID为键的字典，便于快速查找
+        biz_info_dict = {biz_info["bk_biz_id"]: biz_info for biz_info in biz_infos}
+
+        # 从DirtyMachine模型获取去重后的业务ID列表
+        bk_biz_ids = list(DirtyMachine.objects.values_list("bk_biz_id", flat=True).distinct())
+
+        # 构建结果列表，直接从字典中查找匹配的业务信息
+        bk_biz_id_list = [
+            {"value": bk_biz_id, "text": biz_info_dict[bk_biz_id]["bk_biz_name"]}
+            for bk_biz_id in bk_biz_ids
+            if bk_biz_id in biz_info_dict
+        ]
+
+        # 单据类型
+        ticket_types = list(DirtyMachine.objects.all().values_list("ticket__ticket_type", flat=True).distinct())
+        ticket_types_list = [{"value": ticket, "text": TicketType.get_choice_label(ticket)} for ticket in ticket_types]
+        resource_attrs = {
+            "bk_cloud_id": bk_cloud_id_list,
+            "bk_biz_ids": bk_biz_id_list,
+            "ticket_types": ticket_types_list,
+        }
+        return Response(resource_attrs)
