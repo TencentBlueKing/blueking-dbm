@@ -370,9 +370,6 @@ class ListRetrieveResource(BaseListRetrieveResource):
             _cluster_queryset = filter_inst_queryset(
                 _cluster_queryset, _proxy_queryset, _storage_queryset, cls.build_q_for_instance_filter(_query_params)
             )
-            #  部署时间表头排序
-            if query_params.get("ordering"):
-                _cluster_queryset = _cluster_queryset.order_by(query_params.get("ordering"))
 
             return _cluster_queryset
 
@@ -387,6 +384,10 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 cluster_queryset = filter_func_map[params](
                     query_params, cluster_queryset, proxy_queryset, storage_queryset
                 )
+
+        #  部署时间表头排序
+        if query_params.get("ordering"):
+            cluster_queryset = cluster_queryset.order_by(query_params.get("ordering"))
 
         cluster_infos = cls._filter_cluster_hook(
             bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset, **kwargs
