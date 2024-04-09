@@ -16,9 +16,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       OS: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ "3.6", "3.10"]
+      PYTHON: "3.10"
     services:
       # Label used to access the service container
       redis:
@@ -39,9 +37,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Save Python version
-      run: echo "PYTHON_VERSION=${{ matrix.python-version }}" >> $GITHUB_ENV
+        python-version: "3.10"
     - name: Setup Mysql
       run: |
         sudo systemctl start mysql.service
