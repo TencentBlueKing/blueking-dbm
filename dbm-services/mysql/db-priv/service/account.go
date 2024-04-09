@@ -16,22 +16,23 @@ import (
 )
 
 // AddAccount 新增账号
-func (m *AccountPara) AddAccount(jsonPara string) error {
+func (m *AccountPara) AddAccount(jsonPara string) (TbAccounts, error) {
 	var (
 		account *TbAccounts
 		psw     string
 		count   uint64
 		err     error
+		detail  TbAccounts
 	)
 
 	if m.BkBizId == 0 {
-		return errno.BkBizIdIsEmpty
+		return detail, errno.BkBizIdIsEmpty
 	}
 	if m.User == "" || m.Psw == "" {
-		return errno.PasswordOrAccountNameNull
+		return detail, errno.PasswordOrAccountNameNull
 	}
 	if (*m.ClusterType == "sqlserver_single" || *m.ClusterType == "sqlserver_ha") && m.Sid == "" {
-		return errno.SqlserverSidNull
+		return detail, errno.SqlserverSidNull
 	}
 	if m.ClusterType == nil {
 		ct := mysql
@@ -41,15 +42,15 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, User: m.User, ClusterType: *m.ClusterType}).
 		Count(&count).Error
 	if err != nil {
-		return err
+		return detail, err
 	}
 	if count != 0 {
-		return errno.AccountExisted.AddBefore(m.User)
+		return detail, errno.AccountExisted.AddBefore(m.User)
 	}
 	psw = m.Psw
 	// 从旧系统迁移的，不检查是否帐号和密码不同
 	if psw == m.User && !m.MigrateFlag {
-		return errno.PasswordConsistentWithAccountName
+		return detail, errno.PasswordConsistentWithAccountName
 	}
 	// 从旧系统迁移的，存储的密码为mysql password()允许迁移，old_password()已过滤不迁移
 	if m.PasswordFunc {
@@ -57,14 +58,14 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 	} else if *m.ClusterType == mysql || *m.ClusterType == tendbcluster {
 		psw, err = EncryptPswInDb(psw)
 		if err != nil {
-			return err
+			return detail, err
 		}
 	} else {
 		// 兼容其他数据库类型比如mongo，密码不存储mysql password函数，而是SM4，需要能够查询
 		psw, err = SM4Encrypt(psw)
 		if err != nil {
 			slog.Error("SM4Encrypt", "error", err)
-			return err
+			return detail, err
 		}
 		psw = fmt.Sprintf(`{"sm4":"%s"}`, psw)
 	}
@@ -73,12 +74,15 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 		CreateTime: vtime, UpdateTime: vtime, Sid: m.Sid}
 	err = DB.Self.Model(&TbAccounts{}).Create(&account).Error
 	if err != nil {
-		return err
+		return detail, err
 	}
-
+	err = DB.Self.Model(&TbAccounts{}).First(&detail, account.Id).Error
+	if err != nil {
+		return detail, err
+	}
 	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: vtime}
 	AddPrivLog(log)
-	return nil
+	return detail, nil
 }
 
 // ModifyAccountPassword 修改账号的密码
