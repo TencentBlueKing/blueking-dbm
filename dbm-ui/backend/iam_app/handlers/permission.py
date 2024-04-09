@@ -27,6 +27,7 @@ from iam.apply.models import (
     ResourceNode,
 )
 from iam.exceptions import AuthAPIError
+from iam.iam import logger as iam_logger
 from iam.meta import setup_action, setup_resource, setup_system
 from iam.utils import gen_perms_apply_data
 
@@ -37,6 +38,8 @@ from backend.iam_app.exceptions import ActionNotExistError, GetSystemInfoError, 
 from backend.utils.local import local
 
 logger = logging.getLogger("root")
+# 关闭iam的debug日志，加快请求速率 & 防止敏感信息泄露
+iam_logger.setLevel(logging.ERROR)
 
 
 class Permission(object):
@@ -254,6 +257,7 @@ class Permission(object):
 
     def policy_query(self, action: Union[ActionMeta, str], obj_list: List[Union[int, str]]) -> List:
         """
+        批量判断业务资源关联动作是否有权限
         :param action: 鉴权动作
         :param obj_list: 待鉴权对象
         :return 返回符合鉴权的对象

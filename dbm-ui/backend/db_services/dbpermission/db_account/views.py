@@ -17,7 +17,6 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_services.dbpermission.constants import AccountType
 from backend.db_services.dbpermission.db_account.dataclass import AccountMeta, AccountRuleMeta
 from backend.db_services.dbpermission.db_account.handlers import AccountHandler
 from backend.db_services.dbpermission.db_account.serializers import (
@@ -29,7 +28,7 @@ from backend.db_services.dbpermission.db_account.serializers import (
     ListAccountRulesSerializer,
     ModifyMySQLAccountRuleSerializer,
     QueryAccountRulesSerializer,
-    UpdateAccountSerializer,
+    UpdateAccountPasswordSerializer,
 )
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -41,7 +40,6 @@ SWAGGER_TAG = "db_services/permission/account"
 
 
 class BaseDBAccountViewSet(viewsets.SystemViewSet):
-    account_type: str = None
     account_meta: AccountMeta = AccountMeta
     account_rule_meta: AccountRuleMeta = AccountRuleMeta
     account_handler: AccountHandler = AccountHandler
@@ -54,11 +52,12 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         if self.action in ["query_account_rules"]:
             return [DBManagePermission()]
         elif self.action in ["list_account_rules"]:
-            account_type = self.request.query_params.get("account_type", AccountType.MYSQL)
-            view_action = getattr(ActionEnum, f"{account_type}_account_rules_view".upper())
-            return [ResourceActionPermission([view_action], ResourceEnum.BUSINESS, self.instance_getter)]
+            account_type = get_request_key_id(self.request, key="account_type")
+            account_view_action = getattr(ActionEnum, f"{account_type}_account_rules_view".upper())
+            return [ResourceActionPermission([account_view_action], ResourceEnum.BUSINESS, self.instance_getter)]
         else:
-            return [AccountPermission(account_type=self.account_type, view_action=self.action)]
+            account_type = get_request_key_id(self.request, key="account_type")
+            return [AccountPermission(account_type=account_type, view_action=self.action)]
 
     def _view_common_handler(
         self, request, bk_biz_id: int, meta: Union[AccountMeta, AccountRuleMeta], func: str
@@ -105,9 +104,9 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         )
 
     @common_swagger_auto_schema(
-        operation_summary=_("修改密码"), request_body=UpdateAccountSerializer(), tags=[SWAGGER_TAG]
+        operation_summary=_("修改密码"), request_body=UpdateAccountPasswordSerializer(), tags=[SWAGGER_TAG]
     )
-    @action(methods=["POST"], detail=False, serializer_class=UpdateAccountSerializer)
+    @action(methods=["POST"], detail=False, serializer_class=UpdateAccountPasswordSerializer)
     def update_password(self, request, bk_biz_id):
         return self._view_common_handler(
             request=request,
@@ -139,8 +138,8 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         id_field=lambda d: d["account"]["account_id"],
         data_field=lambda d: d["results"],
         action_filed=lambda k: [
-            getattr(ActionEnum, f'{k["view_class"].account_type.upper()}_DELETE_ACCOUNT'),
-            getattr(ActionEnum, f'{k["view_class"].account_type.upper()}_ADD_ACCOUNT_RULE'),
+            getattr(ActionEnum, f'{k["account_type"].upper()}_DELETE_ACCOUNT'),
+            getattr(ActionEnum, f'{k["account_type"].upper()}_ADD_ACCOUNT_RULE'),
         ],
     )
     def list_account_rules(self, request, bk_biz_id):

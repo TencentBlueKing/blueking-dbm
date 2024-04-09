@@ -19,7 +19,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
-from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission
 
 
 class ClusterDetailPermission(ResourceActionPermission):
@@ -111,6 +111,9 @@ class ModifyActionPermission(ResourceActionPermission):
 
     def inst_ids_getter(self, request, view):
         data = request.data or request.query_params
+        if view.action == "query_mysql_admin_password" and "bk_biz_id" in data:
+            self.actions, self.resource_meta = [DBManagePermission()], ResourceEnum.BUSINESS
+            return [data["bk_biz_id"]]
         if view.action == "query_mysql_admin_password":
             instances = data["instances"].split(",")
             instance_list = [{"bk_cloud_id": inst.split(":")[0], "ip": inst.split(":")[1]} for inst in instances]

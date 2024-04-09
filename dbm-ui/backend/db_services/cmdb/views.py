@@ -41,12 +41,14 @@ class CMDBViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("业务列表"),
+        query_serializer=serializers.ListBizWithActionSLZ(),
         responses={status.HTTP_200_OK: serializers.BIZSLZ(label=_("业务信息"), many=True)},
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False)
+    @action(methods=["GET"], detail=False, serializer_class=serializers.ListBizWithActionSLZ)
     def list_bizs(self, request):
-        serializer = serializers.BIZSLZ(biz.list_bizs(request.user.username), many=True)
+        biz_action = self.params_validate(self.get_serializer_class()).get("action")
+        serializer = serializers.BIZSLZ(biz.list_bizs(request.user.username, biz_action), many=True)
         return Response(serializer.data)
 
     @common_swagger_auto_schema(
