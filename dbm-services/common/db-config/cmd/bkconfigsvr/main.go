@@ -11,6 +11,7 @@ import (
 	"bk-dbconfig/pkg/core/config"
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/middleware"
+
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 
@@ -49,6 +50,7 @@ func main() {
 	// process db migrate
 	pflag.Parse()
 	if config.GetBool("migrate") || config.GetBool("migrate.enable") {
+		logger.Info("run db migrations...")
 		if err := dbMigrate(); err != nil && err != migrate.ErrNoChange {
 			log.Fatal(err)
 		}
@@ -57,6 +59,8 @@ func main() {
 		if config.GetBool("migrate") {
 			os.Exit(0)
 		}
+	} else {
+		logger.Info("do not run migrations")
 	}
 
 	model.LoadCache()
@@ -103,7 +107,6 @@ func init() {
 }
 
 func dbMigrate() error {
-	logger.Info("run db migrations...")
 	if err := repository.DoMigrateFromEmbed(); err == nil {
 		return nil
 	} else {
