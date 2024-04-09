@@ -30,12 +30,12 @@ func (m *PrivService) AddAccount(c *gin.Context) {
 		return
 	}
 
-	err = input.AddAccount(string(body))
+	account, err := input.AddAccount(string(body))
 	if err != nil {
 		SendResponse(c, err, nil)
 		return
 	}
-	SendResponse(c, nil, nil)
+	SendResponse(c, nil, account)
 	return
 }
 

@@ -44,27 +44,26 @@ export function getAlarmGroupList(
 }
 
 /**
- * 告警组新增、编辑参数
- */
-interface IOperaionNoticeGroupParams {
-  bk_biz_id: number;
-  name: string;
-  receivers: NoticGroupModel['receivers'][];
-  details: NoticGroupModel['details'];
-  id: number;
-}
-
-/**
  * 新建告警组
  */
-export function insertAlarmGroup(params: Omit<IOperaionNoticeGroupParams, 'id'>) {
+export function insertAlarmGroup(params: {
+  bk_biz_id: number
+  name: string,
+  receivers: NoticGroupModel['receivers'][],
+  details: NoticGroupModel['details']
+}) {
   return http.post(`${path}/`, params);
 }
 
 /**
  * 编辑告警组
  */
-export function updateAlarmGroup(params: IOperaionNoticeGroupParams) {
+export function updateAlarmGroup(params: {
+  name: string,
+  receivers: NoticGroupModel['receivers'][],
+  details: NoticGroupModel['details']
+  id: number
+}) {
   return http.put(`${path}/${params.id}/`, params);
 }
 

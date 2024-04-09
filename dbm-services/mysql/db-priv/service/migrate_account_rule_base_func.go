@@ -124,7 +124,7 @@ func DoAddAccounts(apps map[string]int64, users []PrivModule, clusterType string
 		}
 		log, _ := json.Marshal(account)
 		// 添加帐号
-		err := account.AddAccount(string(log))
+		_, err := account.AddAccount(string(log))
 		if err != nil {
 			slog.Error("add account error", account, err)
 			return err

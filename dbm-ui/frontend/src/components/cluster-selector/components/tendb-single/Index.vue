@@ -132,7 +132,7 @@
               popoverDelay={0}>
               {{
                 default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
-                content: () => <span>{disabledRowConfig?.tip}</span>,
+                content: () => <span>{disabledRowConfig.tip}</span>,
               }}
             </bk-popover>
           );
@@ -249,8 +249,8 @@
   const isIndeterminate = computed(() => !isSelectedAll.value
     && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value[activeTab.value]).length > 0);
 
-  // eslint-disable-next-line max-len
-  const mainSelectDisable = computed(() => tableData.value.filter(data => props.disabledRowConfig.find(item => item.handler(data))).length === tableData.value.length);
+  const mainSelectDisable = computed(() => tableData.value.filter(data => props.disabledRowConfig
+    .find(item => item.handler(data))).length === tableData.value.length);
 
   const generatedColumns = computed(() => {
     if (props.customColums) {
@@ -265,10 +265,11 @@
       if (!props.selected || !props.selected[props.activeTab]) {
         return;
       }
-      // eslint-disable-next-line max-len
-      const tabSelectMap = props.selected[props.activeTab].reduce((selectResult, selectItem) => Object.assign({}, selectResult, {
-        [selectItem.id]: selectItem,
-      }), {} as Record<string, ResourceItem>);
+
+      const tabSelectMap = props.selected[props.activeTab]
+        .reduce((selectResult, selectItem) => Object.assign(selectResult, {
+          [selectItem.id]: selectItem,
+        }), {} as Record<string, ResourceItem>);
       selectedMap.value = {
         [props.activeTab]: tabSelectMap,
       };

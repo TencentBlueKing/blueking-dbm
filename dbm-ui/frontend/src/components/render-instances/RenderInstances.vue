@@ -19,16 +19,14 @@
       class="pt-2 pb-2"
       :class="{ 'is-unavailable': inst.status === 'unavailable' }">
       <TextOverflowLayout>
-        <template #default>
-          <span
-            class="pr-4"
-            :style="{ color: highlightIps.includes(inst.ip)
-              || highlightIps.includes(`${inst.ip}:${inst.port}`) ? 'rgb(255 130 4)' : '#63656e' }">
-            <slot :data="inst">
-              {{ inst.ip }}:{{ inst.port }}
-            </slot>
-          </span>
-        </template>
+        <span
+          class="pr-4"
+          :style="{ color: highlightIps.includes(inst.ip)
+            || highlightIps.includes(`${inst.ip}:${inst.port}`) ? 'rgb(255 130 4)' : '#63656e' }">
+          <slot :data="inst">
+            {{ inst.ip }}:{{ inst.port }}
+          </slot>
+        </span>
         <template #append>
           <BkTag v-if="inst.status === 'unavailable'">
             {{ $t('不可用') }}

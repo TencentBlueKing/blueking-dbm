@@ -18,50 +18,35 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useLocation } from '@hooks';
-
   import { systemSearchCache } from '@common/cache';
+
+  import { useRedirect } from '@components/system-search/hooks/useRedirect';
 
   import HightLightText from './components/HightLightText.vue';
 
   interface Props {
     keyWord: string;
     data: {
-      bk_biz_id: number;
-      ip: string;
-      cluster_type: string;
-    }[];
-    bizIdNameMap: Record<number, string>;
+      bk_biz_id: number,
+      ip: string,
+      cluster_type: string,
+      cluster_id: number
+    }[],
+    bizIdNameMap: Record<number, string>
   }
 
   defineProps<Props>();
 
-  const location = useLocation();
+  const handleRedirect = useRedirect();
 
   const handleGo = (data: Props['data'][number]) => {
     systemSearchCache.appendItem(data.ip);
-    const routerNameMap = {
-      TwemproxyRedisInstance: 'DatabaseRedisList',
-      tendbha: 'DatabaseTendbha',
-      tendbsingle: 'DatabaseTendbsingle',
-      tendbcluster: 'tendbClusterList',
-      es: 'EsList',
-      kafka: 'KafkaList',
-      hdfs: 'HdfsList',
-      pulsar: 'PulsarList',
-      redis: 'DatabaseRedisList',
-    } as Record<string, string>;
 
-    if (!routerNameMap[data.cluster_type]) {
-      return;
-    }
-
-    location(
+    handleRedirect(
+      data.cluster_type,
       {
-        name: routerNameMap[data.cluster_type],
-        query: {
-          ip: data.ip,
-        },
+        id: data.cluster_id,
+        ip: data.ip,
       },
       data.bk_biz_id,
     );

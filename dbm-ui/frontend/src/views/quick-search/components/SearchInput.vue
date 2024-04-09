@@ -9,7 +9,8 @@
       type="textarea"
       @blur="handleBlur"
       @enter="handleEnter"
-      @focus="handleFocus" />
+      @focus="handleFocus"
+      @paste="handlePaste" />
     <div class="icon-area">
       <DbIcon
         v-if="modelValue"
@@ -25,6 +26,8 @@
 </template>
 
 <script setup lang="ts">
+  import { batchSplitRegex } from '@common/regex';
+
   interface Emits {
     (e: 'search', value: string): void;
   }
@@ -43,12 +46,19 @@
     }
   };
 
+  const handlePaste = (value: string, event: ClipboardEvent) => {
+    const pasteValue = (event.clipboardData || window.clipboardData).getData('text');
+    setTimeout(() => {
+      modelValue.value = `${modelValue.value}${modelValue.value ? '|' : ''}${pasteValue}`.replace(batchSplitRegex, '|');
+    });
+  };
+
   const handleFocus = () => {
-    modelValue.value = modelValue.value.replace(/，/g, '\n');
+    modelValue.value = modelValue.value.replace(/\|/g, '\n');
   };
 
   const handleBlur = () => {
-    modelValue.value = modelValue.value.replace(/\n/g, '，');
+    modelValue.value = modelValue.value.replace(/\n/g, '|');
   };
 
   const handleClose = () => {
