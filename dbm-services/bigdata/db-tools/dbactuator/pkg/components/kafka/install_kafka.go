@@ -804,8 +804,6 @@ func (i *InstallKafkaComp) InstallManager() error {
 
 	/* 配置账号密码
 	basicAuthentication.enabled=true
-	basicAuthentication.username=""
-	basicAuthentication.password=""
 	*/
 	extraCmd = fmt.Sprintf(`sed -i -e  '/basicAuthentication.enabled/s/false/true/' \
 	-e '/basicAuthentication.username=/d' \
@@ -984,8 +982,15 @@ func configCluster(cmak CmakConfig, noSecurity int) (err error) {
 	}
 	// http://localhost:9000/{prefix}/clusters
 	url := "http://" + cmak.NodeIP + ":9000" + cmak.HTTPPath + "/clusters"
+	req, err := http.NewRequest("POST", url, strings.NewReader(postData.Encode()))
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(cmak.Username, cmak.Password)
 	contentType := "application/x-www-form-urlencoded"
-	if _, err = http.Post(url, contentType, strings.NewReader(postData.Encode())); err != nil {
+	req.Header.Add("Content-Type", contentType)
+	client := &http.Client{}
+	if _, err = client.Do(req); err != nil {
 		logger.Error("post manager failed, %v", err)
 		return err
 	}
