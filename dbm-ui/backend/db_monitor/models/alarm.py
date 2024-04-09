@@ -828,7 +828,7 @@ class MonitorPolicy(AuditedModel):
 
         policy.details = copy.deepcopy(parent.details)
         policy.details.pop("id", None)
-        policy.details.update(name=policy.name)
+        policy.details.update(name=policy.name, is_enabled=True)
 
         policy.creator = policy.updater = username
         policy.id = None
