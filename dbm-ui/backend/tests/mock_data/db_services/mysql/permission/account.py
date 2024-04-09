@@ -22,6 +22,6 @@ POLICY_DATA = {
 VALID_PASSWORD_LIST = ["9uH;2sxkkkk", "8sk9USM,;", "[]8IK<>s0KMXks"]
 
 
-ACCOUNT = {"user": "admin", "password": "helloworld"}
+ACCOUNT = {"user": "mysql", "password": "helloworld"}
 
 ACCOUNT_RULE = {"access_db": "datamain"}

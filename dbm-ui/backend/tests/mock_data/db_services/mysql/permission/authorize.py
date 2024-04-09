@@ -23,6 +23,7 @@ AUTHORIZE_DATA = {
     "access_dbs": ACCESS_DBS,
     "source_ips": SOURCE_IPS,
     "target_instances": TARGET_INSTANCES,
+    "cluster_type": "tendbha",
 }
 
 EXCEL_DATA_DICT__LIST = [

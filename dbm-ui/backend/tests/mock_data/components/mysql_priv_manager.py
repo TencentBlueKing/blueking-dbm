@@ -99,3 +99,8 @@ class DBPrivManagerApiMock(object):
     @raw_response
     def get_password(cls, *args, **kwargs):
         return {"items": [{"username": "mysql", "password": "eHh4"}], "count": 0}
+
+    @classmethod
+    @raw_response
+    def get_account(cls, *args, **kwargs):
+        return {"results": [{"user": "mysql", "password": "eHh4"}], "count": 0}
