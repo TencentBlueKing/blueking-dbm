@@ -28,12 +28,9 @@ SWAGGER_TAG = [_("集群访问入口")]
 
 
 class ClusterEntryViewSet(viewsets.SystemViewSet):
-    permission_classes = [GlobalManageIAMPermission]
-
     def _get_custom_permissions(self):
         if self.action == "get_cluster_entries":
             return [DBManageIAMPermission()]
-
         return [GlobalManageIAMPermission()]
 
     @common_swagger_auto_schema(operation_summary=_("修改集群访问入口"), tags=[SWAGGER_TAG])
