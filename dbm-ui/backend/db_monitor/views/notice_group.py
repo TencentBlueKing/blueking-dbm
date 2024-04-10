@@ -99,8 +99,7 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     serializer_class = NoticeGroupSerializer
     pagination_class = AuditedLimitOffsetPagination
     filter_class = MonitorGroupListFilter
-
-    default_permission_class = DBManagePermission()
+    default_permission_class = [DBManagePermission()]
 
     def get_action_permission_map(self):
         return {
@@ -145,8 +144,9 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
         return Response(group_name_infos)
 
     @common_swagger_auto_schema(operation_summary=_("获取默认告警组名称"), tags=[SWAGGER_TAG])
-    @action(methods=["GET"], detail=False, filter_class=None, pagination_class=None)
+    @action(methods=["GET"], detail=False, filter_class=MonitorGroupListFilter, pagination_class=None)
     def list_default_group(self, request, *args, **kwargs):
-        default_groups = list(self.get_queryset().exclude(db_type="").values("id", "name", "db_type"))
+        queryset = self.filter_queryset(self.get_queryset())
+        default_groups = list(queryset.exclude(db_type="").values("id", "name", "db_type"))
         default_group_map = {group.pop("db_type"): group for group in default_groups}
         return Response(default_group_map)
