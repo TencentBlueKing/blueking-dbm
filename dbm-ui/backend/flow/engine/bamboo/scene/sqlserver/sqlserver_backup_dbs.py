@@ -66,7 +66,7 @@ class SqlserverBackupDBSFlow(BaseFlow):
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
             sub_flow_context.update(info)
-            sub_flow_context["backup_id"] = f"{info['backup_type']}_{self.root_id}"
+            sub_flow_context["backup_id"] = f"{self.data['backup_type']}_{self.root_id}"
 
             # 声明子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
