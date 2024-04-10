@@ -185,9 +185,9 @@ class BambooEngine:
         for key, values in raw_data.items():
             if key == node.node_id:
                 raw_data[key]["status"] = status
-                raw_data[key]["created_at"] = datetime2timestamp(node.created_at)
-                raw_data[key]["started_at"] = datetime2timestamp(node.started_at)
-                raw_data[key]["updated_at"] = datetime2timestamp(node.updated_at)
+                raw_data[key]["created_at"] = int(datetime2timestamp(node.created_at))
+                raw_data[key]["started_at"] = int(datetime2timestamp(node.started_at))
+                raw_data[key]["updated_at"] = int(datetime2timestamp(node.updated_at))
                 raw_data[key]["hosts"] = node.hosts
                 continue
 
