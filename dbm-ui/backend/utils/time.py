@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import datetime
-import time
 from bisect import bisect_right
 from typing import List, Optional, Union
 
@@ -91,8 +90,11 @@ def standardized_time_str(datetime_str: str):
 
 
 def datetime2timestamp(o_datetime: Optional[datetime.datetime]) -> float:
+    # time.mktime(o_datetime.timetuple())
+    # 这样转换有问题: time.mktime()函数默认假设时间元组是本地时间，而不是UTC时间。
+    # 直接用datetime的时间戳转换即可
     if o_datetime:
-        return time.mktime(o_datetime.timetuple())
+        return o_datetime.timestamp()
     return 0.0
 
 
