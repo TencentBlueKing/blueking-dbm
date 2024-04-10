@@ -90,7 +90,7 @@ opentelemetry-instrumentation-logging==0.30b0
 opentelemetry-instrumentation-redis==0.30b0; python_version >= "3.6"
 opentelemetry-instrumentation-requests==0.30b0; python_version >= "3.6"
 opentelemetry-instrumentation-wsgi==0.30b0; python_version >= "3.6"
-opentelemetry-instrumentation==0.30b0; python_version >= "3.6"
+opentelemetry-instrumentation==0.41b0; python_version >= "3.6"
 opentelemetry-proto==1.11.0; python_version >= "3.6"
 opentelemetry-sdk==1.11.0; python_version >= "3.6"
 opentelemetry-semantic-conventions==0.30b0; python_version >= "3.6"
