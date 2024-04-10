@@ -22,17 +22,25 @@
 
   interface Props {
     value: number,
-    isTiming: boolean
+    isTiming: boolean,
+    startTime: number,
   }
 
   const props = defineProps<Props>();
 
   const costTime = ref(0);
   // 计时
-  const { resume, pause } = useIntervalFn(() => costTime.value = costTime.value + 1, 1000, { immediate: false });
+  const {
+    resume,
+    pause,
+  } = useIntervalFn(() => {
+    costTime.value = Math.floor(Date.now() / 1000) - props.startTime;
+  }, 1000, { immediate: false });
 
   watch(() => props.value, (time) => {
-    costTime.value = time;
+    if (!props.isTiming) {
+      costTime.value = time;
+    }
   }, { immediate: true });
 
   watch(() => props.isTiming, () => {

@@ -89,15 +89,15 @@ export interface FlowItem {
   incoming: string | string[],
   outgoing: string | string[],
   type: FlowType,
+  started_at: number,
+  updated_at: number,
   error_ignorable?: boolean,
   optional?: boolean,
   retryable?: boolean,
   skippable?: boolean,
   status?: FlowStatus,
   timeout?: number,
-  started_at?: number,
   created_at?: number,
-  updated_at?: number,
   component?: {
     code: string
   },

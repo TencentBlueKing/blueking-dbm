@@ -217,6 +217,7 @@
           <span class="mr-8">{{ t('总耗时') }}: </span>
           <CostTimer
             :is-timing="flowState.details?.flow_info?.status === 'RUNNING'"
+            :start-time="utcTimeToSeconds(flowState.details?.flow_info?.created_at)"
             :value="(flowState.details?.flow_info?.cost_time || 0)" />
         </div>
         <BkPopConfirm
@@ -279,6 +280,7 @@
     generateId,
     getCostTimeDisplay,
     messageSuccess,
+    utcTimeToSeconds,
   } from '@utils';
 
   import { useFullscreen, useTimeoutPoll } from '@vueuse/core';
