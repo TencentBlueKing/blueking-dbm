@@ -114,6 +114,18 @@
 
   import type { TableProps } from '@/types/bkui-vue';
 
+  /**
+   * 获取表格数据
+   */
+  const getTableItem = (): TableItem => ({
+    cluster_domain: '',
+    cluster_id: 0,
+    cluster_related: [],
+    checked_related: [],
+    new_slave_ip: '',
+    uniqueId: generateId('SLAVE_ADD_'),
+  });
+
   const {
     t,
     locale,
@@ -185,21 +197,17 @@
     return hostInfoMap.get(`${clusterInfo?.bk_cloud_id}:${ip}`);
   };
 
-  /**
-   * 获取表格数据
-   */
-  function getTableItem(): TableItem {
-    return {
-      cluster_domain: '',
-      cluster_id: 0,
-      cluster_related: [],
-      checked_related: [],
-      new_slave_ip: '',
-      uniqueId: generateId('SLAVE_ADD_'),
-    };
-  }
+  // 检测列表是否为空
+  const checkListEmpty = (list: Array<TableItem>) => {
+    if (list.length > 1) {
+      return false;
+    }
 
-  function getRules(data: TableItem) {
+    const [firstRow] = list;
+    return !firstRow?.cluster_domain;
+  };
+
+  const getRules = (data: TableItem) => {
     const bizName = isCN.value ? globalBizsStore.currentBizInfo?.name || '--' : globalBizsStore.currentBizInfo?.english_name || '--';
     return {
       cluster: [
@@ -250,12 +258,12 @@
         },
       ],
     };
-  }
+  };
 
   /**
    * 设置集群 id
    */
-  function hanldeDomainBlur(index: number) {
+  const hanldeDomainBlur = (index: number) => {
     const item = tableData.value[index];
     const info = clusterInfoMap.get(item.cluster_domain);
     if (item.cluster_id !== info?.id) {
@@ -263,32 +271,32 @@
       item.cluster_related = [];
       item.checked_related = [];
     }
-  }
+  };
 
   /**
    * 切换关联集群选中
    */
-  function handleChangeRelated(index: number, values: number[]) {
+  const handleChangeRelated = (index: number, values: number[]) => {
     const item = tableData.value[index];
     item.checked_related = item.cluster_related.filter(item => values.includes(item.id));
-  }
+  };
 
 
   /**
    * 校验主机是否存在
    */
-  function verifyIP(data: TableItem, value: string) {
+  const verifyIP = (data: TableItem, value: string) => {
     if (getHostInfo(data.cluster_domain, value) !== undefined) {
       return true;
     }
 
     return fetchHosts().then(() => getHostInfo(data.cluster_domain, value) !== undefined);
-  }
+  };
 
   /**
    * 根据集群域名获取集群信息
    */
-  function fetchHosts() {
+  const fetchHosts = () => {
     const ips = tableData.value
       .filter(item => (
         item.new_slave_ip && getHostInfo(item.cluster_domain, item.new_slave_ip) === undefined
@@ -313,12 +321,12 @@
         }
         return res;
       });
-  }
+  };
 
   /**
    * 校验集群域名是否存在
    */
-  function verifyCluster(value: string) {
+  const verifyCluster = (value: string) => {
     const clusterInfo = clusterInfoMap.get(value);
     if (clusterInfo?.master_domain) {
       fetchRelatedClusters([clusterInfo.id]);
@@ -330,12 +338,12 @@
       clusterId && fetchRelatedClusters([clusterId]);
       return Boolean(clusterId);
     });
-  }
+  };
 
   /**
    * 根据集群域名获取集群信息
    */
-  function fetchClusterInfoByDomains() {
+  const fetchClusterInfoByDomains = () => {
     const domains: Array<{ immute_domain: string }> = [];
     for (const item of tableData.value) {
       if (item.cluster_domain && !clusterInfoMap.get(item.cluster_domain)) {
@@ -368,63 +376,70 @@
 
         return res;
       });
-  }
+  };
 
   /**
    * 获取同机关联集群
    */
-  function fetchRelatedClusters(clusterIds: number[]) {
-    return findRelatedClustersByClusterIds({
-      bk_biz_id: globalBizsStore.currentBizId,
-      cluster_ids: clusterIds,
-    }).then((res) => {
-      for (const item of res) {
-        const tableItems = tableData.value.filter(tableItem => tableItem.cluster_id === item.cluster_id);
-        for (const tableItem of tableItems) {
-          tableItem.cluster_related = item.related_clusters;
-          tableItem.checked_related = item.related_clusters;
-        }
+  const fetchRelatedClusters = (clusterIds: number[]) => findRelatedClustersByClusterIds({
+    bk_biz_id: globalBizsStore.currentBizId,
+    cluster_ids: clusterIds,
+  }).then((res) => {
+    for (const item of res) {
+      const tableItems = tableData.value.filter(tableItem => tableItem.cluster_id === item.cluster_id);
+      for (const tableItem of tableItems) {
+        tableItem.cluster_related = item.related_clusters;
+        tableItem.checked_related = item.related_clusters;
       }
-    });
-  }
+    }
+  });
 
   /**
    * 集群选择器批量选择
    */
-  function handleBatchSelectorChange(selected: Record<string, Array<TendbhaModel>>) {
+  const handleBatchSelectorChange = (selected: Record<string, Array<TendbhaModel>>) => {
     selectedClusters.value = selected;
-    const formatList = selected[ClusterTypes.TENDBHA].map((item) => {
-      clusterInfoMap.set(item.master_domain, item);
-      return {
-        ...getTableItem(),
-        cluster_domain: item.master_domain,
-        cluster_id: item.id,
-      };
+    const formatList: TableItem[] = [];
+    selected[ClusterTypes.TENDBHA].forEach((item) => {
+      const domain = item.master_domain;
+      clusterInfoMap.set(domain, item);
+      if (!domainMemo[domain]) {
+        const row = {
+          ...getTableItem(),
+          cluster_domain: domain,
+          cluster_id: item.id,
+        };
+        formatList.push(row);
+        domainMemo[domain] = true;
+      }
     });
 
     clearEmptyTableData();
-    tableData.value.push(...formatList);
+    if (checkListEmpty(tableData.value)) {
+      tableData.value = formatList;
+    } else {
+      tableData.value = [...tableData.value, ...formatList];
+    }
     window.changeConfirm = true;
-
     fetchRelatedClusters(formatList.map(item => item.cluster_id));
-  }
+  };
 
   /**
    * 批量添加若只有一行且为空则清空
    */
-  function clearEmptyTableData() {
+  const clearEmptyTableData = () => {
     if (tableData.value.length === 1) {
       const data = tableData.value[0];
       if (Object.values({ ...data, uniqueId: '' }).every(value => (Array.isArray(value) ? !value.length : !value))) {
         tableData.value = [];
       }
     }
-  }
+  };
 
   /**
    * 批量录入
    */
-  async function handleBatchInput(list: Array<{ cluster: string, ip: string }>) {
+  const handleBatchInput = async (list: Array<{ cluster: string, ip: string }>) => {
     const formatList = list.map(item => ({
       ...getTableItem(),
       cluster_domain: item.cluster,
@@ -442,13 +457,13 @@
 
     // 触发表格校验
     toolboxTableRef.value.validate();
-  }
+  };
 
-  function handleAddItem(index: number) {
+  const handleAddItem = (index: number) => {
     tableData.value.splice(index + 1, 0, getTableItem());
-  }
+  };
 
-  function handleRemoveItem(index: number) {
+  const handleRemoveItem = (index: number) => {
     const dataList = [...tableData.value];
     const domain = dataList[index].cluster_domain;
     if (domain) {
@@ -457,9 +472,9 @@
       selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
     }
     tableData.value.splice(index, 1);
-  }
+  };
 
-  function handleReset() {
+  const handleReset = () => {
     useInfo({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
@@ -471,9 +486,9 @@
         return true;
       },
     });
-  }
+  };
 
-  function handleSubmit() {
+  const handleSubmit = () => {
     toolboxTableRef.value.validate()
       .then(() => {
         isSubmitting.value = true;
@@ -509,11 +524,11 @@
             isSubmitting.value = false;
           });
       });
-  }
+  };
 
-  function handleCloseSuccess() {
+  const handleCloseSuccess = () => {
     ticketId.value = 0;
-  }
+  };
 </script>
 
 <style lang="less" scoped>

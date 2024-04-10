@@ -207,23 +207,33 @@
     data: TableItem
   }
 
-  const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
-  const tableMaxHeight = useTableMaxHeight(334);
-  const formatDateToUTC = useTimeZoneFormat();
-
-  let tippyInst:Instance | undefined;
   const disabledDate = (date: Date | number) => {
     const day = new Date();
     day.setDate(day.getDate() - 1);
     const dateTime = typeof date === 'number' ? date : date.getTime();
     return dateTime < day.getTime();
   };
+
   const getCurrentDate = () => {
     const today = new Date();
     today.setSeconds(0);
     return today;
   };
+
+  // 检测列表是否为空
+  const checkListEmpty = (list: Array<TableItem>) => {
+    if (list.length > 1) {
+      return false;
+    }
+
+    const [firstRow] = list;
+    return !firstRow?.cluster_domain;
+  };
+
+  const { t } = useI18n();
+  const globalBizsStore = useGlobalBizs();
+  const tableMaxHeight = useTableMaxHeight(334);
+  const formatDateToUTC = useTimeZoneFormat();
 
   const ticketId = ref(0);
   const toolboxTableRef = ref();
@@ -466,6 +476,8 @@
       ),
     },
   ];
+
+  let tippyInst:Instance | undefined;
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -874,23 +886,31 @@
    */
   function handleBatchSelectorChange(selected: Record<string, Array<TendbhaModel>>) {
     selectedClusters.value = selected;
-    const list: Array<TableItem> = [];
-    const formatList = selected[ClusterTypes.TENDBHA].map((item) => {
-      clusterInfoMap.set(item.master_domain, item);
+    const formatList: TableItem[] = [];
+    selected[ClusterTypes.TENDBHA].forEach((item) => {
+      const domain = item.master_domain;
+      clusterInfoMap.set(domain, item);
       const masterInfo = item.masters[0];
-      return {
-        ...getTableItem(),
-        cluster_domain: item.master_domain,
-        cluster_id: item.id,
-        master: masterInfo ? `${masterInfo.ip}:${masterInfo.port}` : '',
-        masterInstance: masterInfo || createInstanceData(),
-        slaveList: item.slaves || [],
-      };
+      if (!domainMemo[domain]) {
+        const row = {
+          ...getTableItem(),
+          cluster_domain: domain,
+          cluster_id: item.id,
+          master: masterInfo ? `${masterInfo.ip}:${masterInfo.port}` : '',
+          masterInstance: masterInfo || createInstanceData(),
+          slaveList: item.slaves || [],
+        };
+        formatList.push(row);
+        domainMemo[domain] = true;
+      }
     });
-    list.push(...formatList);
 
     clearEmptyTableData();
-    tableData.value.push(...list);
+    if (checkListEmpty(tableData.value)) {
+      tableData.value = formatList;
+    } else {
+      tableData.value = [...tableData.value, ...formatList];
+    }
     window.changeConfirm = true;
   }
 

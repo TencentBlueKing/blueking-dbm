@@ -61,6 +61,9 @@
 
   const tableData = shallowRef<IDataRow[]>([createRowData()]);
 
+  // 集群域名是否已存在表格的映射表
+  const domainMemo: Record<string, boolean> = {};
+
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
   };
@@ -70,18 +73,23 @@
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBHA];
     const newList = list.reduce((result, item) => {
-      const row = createRowData({
-        clusterData: {
-          id: item.id,
-          master_domain: item.master_domain,
-          bk_biz_id: item.bk_biz_id,
-          bk_cloud_id: item.bk_cloud_id,
-          bk_cloud_name: item.bk_cloud_name,
-        },
-      });
-      result.push(row);
+      const domain = item.master_domain;
+      if (!domainMemo[domain]) {
+        const row = createRowData({
+          clusterData: {
+            id: item.id,
+            master_domain: item.master_domain,
+            bk_biz_id: item.bk_biz_id,
+            bk_cloud_id: item.bk_cloud_id,
+            bk_cloud_name: item.bk_cloud_name,
+          },
+        });
+        result.push(row);
+        domainMemo[domain] = true;
+      }
       return result;
     }, [] as IDataRow[]);
+
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -100,6 +108,12 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const domain = dataList[index].clusterData?.master_domain;
+    if (domain) {
+      delete domainMemo[domain];
+      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+    }
     dataList.splice(index, 1);
     tableData.value = dataList;
   };

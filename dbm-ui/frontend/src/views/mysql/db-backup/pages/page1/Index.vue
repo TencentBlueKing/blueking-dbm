@@ -147,12 +147,20 @@
   // 批量选择
   const handelClusterChange = (selected: Record<string, Array<TendbhaModel>>) => {
     selectedClusters.value = selected;
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
-      clusterData: {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-      },
-    }));
+    const newList = selected[ClusterTypes.TENDBHA].reduce((results, clusterData) => {
+      const domain = clusterData.master_domain;
+      if (!domainMemo[domain]) {
+        const row = createRowData({
+          clusterData: {
+            id: clusterData.id,
+            domain: clusterData.master_domain,
+          },
+        });
+        results.push(row);
+        domainMemo[domain] = true;
+      }
+      return results;
+    }, [] as IDataRow[]);
 
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;

@@ -43,6 +43,7 @@
               {{ $t('总耗时') }}
               <CostTimer
                 :is-timing="STATUS_RUNNING"
+                :start-time="nodeData.started_at"
                 :value="costTime" />
             </span>
           </div>
