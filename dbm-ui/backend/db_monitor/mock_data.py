@@ -570,3 +570,5 @@ CALLBACK_REQUEST = {
         "labels": ["dbm_mysql", "mysql", "dbm", "need_autofix", "REDIS_CLUSTER_AUTOFIX"],
     },
 }
+
+CREATE_POLICY = {"name": "influxDB-n6hfH", "target_priority": 0}
