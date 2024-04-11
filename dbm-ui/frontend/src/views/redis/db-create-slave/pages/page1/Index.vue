@@ -147,9 +147,10 @@
             handler: (data: RedisHostModel) => data.running_slave !== 0,
             tip: t('已存在正常运行的从库'),
           },
-          roleFilterList: {
-            list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
-          },
+          // roleFilterList: {
+          // eslint-disable-next-line max-len
+          //   list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
+          // },
         },
       },
       {

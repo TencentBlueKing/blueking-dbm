@@ -87,7 +87,7 @@
   type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>
 
   interface Props {
-    data?: ServiceReturnType<typeof getLevelConfig>,
+    data?: ServiceReturnType<typeof getLevelConfig> & { charset?: string},
     loading?: boolean,
     fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>,
     stickyTop?: number,
@@ -125,34 +125,44 @@
   // 是否为平台级别配置
   const isPlat = computed(() => ConfLevels.PLAT === props.level);
   const configItems = computed(() => props.data?.conf_items || []);
-  const baseInfoColumns = computed(() => [
-    [
-      {
-        label: t('配置名称'),
-        key: 'name',
-        isEdit: isPlat.value,
-      },
-      {
-        label: t('描述'),
-        key: 'description',
-        isEdit: true,
-      },
-      {
-        label: t('数据库版本'),
-        key: 'version',
-      },
-    ],
-    [
-      {
-        label: t('更新时间'),
-        key: 'updated_at',
-      },
-      {
-        label: t('更新人'),
-        key: 'updated_by',
-      },
-    ],
-  ]);
+  const isShowCharset = computed(() => !!props.data.charset);
+  const baseInfoColumns = computed(() => {
+    const baseColumns = [
+      [
+        {
+          label: t('配置名称'),
+          key: 'name',
+          isEdit: isPlat.value,
+        },
+        {
+          label: t('描述'),
+          key: 'description',
+          isEdit: true,
+        },
+        {
+          label: t('数据库版本'),
+          key: 'version',
+        },
+      ],
+      [
+        {
+          label: t('更新时间'),
+          key: 'updated_at',
+        },
+        {
+          label: t('更新人'),
+          key: 'updated_by',
+        },
+      ],
+    ];
+    if (isShowCharset.value) {
+      baseColumns[1].push({
+        label: t('字符集'),
+        key: 'charset',
+      });
+    }
+    return baseColumns;
+  });
 
   /**
    * 基础信息编辑

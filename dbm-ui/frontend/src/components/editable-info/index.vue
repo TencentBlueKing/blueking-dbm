@@ -113,26 +113,33 @@
    * 默认显示信息配置
    */
   export const getDefaultColumns = () => [
-    [{
-      label: t('配置名称'),
-      key: 'name',
-      isEdit: true,
-      isRequired: true,
-    }, {
-      label: t('描述'),
-      key: 'description',
-      isEdit: true,
-    }, {
-      label: t('数据库版本'),
-      key: 'version',
-    }],
-    [{
-      label: t('更新时间'),
-      key: 'updated_at',
-    }, {
-      label: t('更新人'),
-      key: 'updated_by',
-    }],
+    [
+      {
+        label: t('配置名称'),
+        key: 'name',
+        isEdit: true,
+        isRequired: true,
+      },
+      {
+        label: t('描述'),
+        key: 'description',
+        isEdit: true,
+      },
+      {
+        label: t('数据库版本'),
+        key: 'version',
+      },
+    ],
+    [
+      {
+        label: t('更新时间'),
+        key: 'updated_at',
+      },
+      {
+        label: t('更新人'),
+        key: 'updated_by',
+      },
+    ],
   ];
 
   export default {
@@ -178,6 +185,7 @@
   });
   const editItemRef = ref();
   const editInputRef = ref();
+
   const handleEdit = (key: string, value: string) => {
     editState.key = key;
     editState.value = value;
