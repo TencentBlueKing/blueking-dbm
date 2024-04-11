@@ -394,8 +394,8 @@ class ResourceQueryHelper:
 
     @staticmethod
     def search_cc_hosts(
-        bk_biz_id: int,
         role_host_ids: List[int],
+        bk_biz_id: int = None,
         keyword: str = None,
         set_filter: Union[str, List] = None,
         module_filter: Union[str, List] = None,
@@ -456,22 +456,27 @@ class ResourceQueryHelper:
                     ],
                 }
             )
-        list_biz_hosts_filter = {
-            "bk_biz_id": bk_biz_id,
+        list_hosts_filter = {
             "fields": constants.CommonEnum.DEFAULT_HOST_FIELDS.value,
             "page": {"start": 0, "limit": limit, "sort": "bk_host_innerip"},
             "host_property_filter": {"condition": "AND", "rules": rules},
         }
+        if bk_biz_id:
+            list_hosts_filter.update(bk_biz_id=bk_biz_id)
+
         if set_filter_field:
-            list_biz_hosts_filter.update({set_filter_field: set_filter})
+            list_hosts_filter.update({set_filter_field: set_filter})
 
         if module_filter_field:
-            list_biz_hosts_filter.update({module_filter_field: module_filter})
+            list_hosts_filter.update({module_filter_field: module_filter})
 
         # 获取主机信息
-        resp = CCApi.list_biz_hosts(list_biz_hosts_filter, use_admin=True)
-        hosts = resp["info"]
+        if bk_biz_id:
+            resp = CCApi.list_biz_hosts(list_hosts_filter, use_admin=True)
+        else:
+            resp = CCApi.list_hosts_without_biz(list_hosts_filter, use_admin=True)
 
+        hosts = resp["info"]
         ResourceQueryHelper.fill_agent_status(hosts)
         ResourceQueryHelper.fill_cloud_name(hosts)
 

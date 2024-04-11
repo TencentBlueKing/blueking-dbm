@@ -189,11 +189,11 @@ class TopoHandler:
         return {"total": len(hosts_topo_info), "hosts_topo_info": hosts_topo_info}
 
     @classmethod
-    def query_host_set_module(cls, bk_biz_id: int, bk_host_ids: typing.List) -> typing.Dict:
+    def query_host_set_module(cls, bk_host_ids: typing.List) -> typing.Dict:
         """
         根据过滤条件查询主机的集群ID和模块ID(不支持自定义拓扑主机的查询)
         """
-        host_topos = CCApi.find_host_biz_relations({"bk_biz_id": bk_biz_id, "bk_host_id": bk_host_ids}, use_admin=True)
+        host_topos = CCApi.find_host_biz_relations({"bk_host_id": bk_host_ids}, use_admin=True)
         host_id__host_topos = defaultdict(lambda: defaultdict(list))
         for host_info in host_topos:
             host_id__host_topos[host_info["bk_host_id"]]["bk_set_ids"].append(host_info["bk_set_id"])
