@@ -278,7 +278,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         if not role_host_ids:
             return Response([])
 
-        hosts = ResourceQueryHelper.search_cc_hosts(env.DBA_APP_BK_BIZ_ID, role_host_ids, keyword)
+        hosts = ResourceQueryHelper.search_cc_hosts(role_host_ids, keyword)
 
         # 补充实例数，默认为1
         for host in hosts:

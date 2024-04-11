@@ -38,5 +38,9 @@ class QueryDirtyMachineResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": DIRTY_MACHINE_LIST}
 
 
-class DeleteDirtyMachineSerializer(serializers.Serializer):
+class TransferDirtyMachineSerializer(serializers.Serializer):
     bk_host_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("待转移的主机ID列表"))
+
+
+class DeleteDirtyMachineSerializer(serializers.Serializer):
+    bk_host_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("待删除的污点池记录主机ID"))

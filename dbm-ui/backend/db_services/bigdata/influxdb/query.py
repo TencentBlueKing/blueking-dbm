@@ -13,7 +13,6 @@ from typing import Dict
 from django.db.models import F, Q, Value
 from django.utils.translation import ugettext_lazy as _
 
-from backend import env
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Machine
 from backend.db_meta.models.group import Group, GroupInstance
@@ -101,7 +100,7 @@ class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource):
         bk_host_ids = [instance["machine__bk_host_id"] for instance in instances]
 
         # TODO: 页面上所有涉及到补充主机信息的地方需要调整bk_biz_id为dba业务（因为主机最终别转移到了dba业务）
-        host_infos = ResourceQueryHelper.search_cc_hosts(bk_biz_id=env.DBA_APP_BK_BIZ_ID, role_host_ids=bk_host_ids)
+        host_infos = ResourceQueryHelper.search_cc_hosts(role_host_ids=bk_host_ids)
         host_id__host_map = {host["bk_host_id"]: host for host in host_infos}
 
         # fill restart info

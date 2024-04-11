@@ -205,7 +205,9 @@ class AuthorizeHandler(object):
             elif not keyword_list or item["ip"] in keyword_list:
                 ip_whitelist.append({"ip": item["ip"]})
 
-        hosts = ResourceQueryHelper.search_cc_hosts(self.bk_biz_id, bk_host_ids, keyword=keyword)
+        hosts = ResourceQueryHelper.search_cc_hosts(
+            bk_biz_id=self.bk_biz_id, role_host_ids=bk_host_ids, keyword=keyword
+        )
         return {"hosts": hosts, "ip_whitelist": ip_whitelist}
 
     def authorize_apply(

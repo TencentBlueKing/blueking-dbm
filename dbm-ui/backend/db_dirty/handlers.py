@@ -69,9 +69,8 @@ class DBDirtyMachineHandler(object):
             "condition": "AND",
             "rules": [{"field": "bk_host_id", "operator": "in", "value": bk_host_ids}],
         }
-        dirty_host_infos = CCApi.list_biz_hosts(
+        dirty_host_infos = CCApi.list_hosts_without_biz(
             {
-                "bk_biz_id": bk_biz_id,
                 # 默认一次性录入的机器不会超过500
                 "page": {"start": 0, "limit": 500, "sort": "bk_host_id"},
                 "host_property_filter": host_property_filter,
@@ -80,15 +79,13 @@ class DBDirtyMachineHandler(object):
             use_admin=True,
         )["info"]
 
-        # 获取空闲机模块，资源池模块和污点池模块
-        system_manage_topo = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)
+        # 获取业务空闲机模块，资源池模块和污点池模块
         idle_module = CcManage(bk_biz_id, "").get_biz_internal_module(bk_biz_id)[IDLE_HOST_MODULE]["bk_module_id"]
+        system_manage_topo = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)
         resource_module, dirty_module = system_manage_topo["resource_module_id"], system_manage_topo["dirty_module_id"]
-        # 获取主机的拓扑信息
-        host_topo_infos = TopoHandler.query_host_set_module(bk_biz_id=bk_biz_id, bk_host_ids=bk_host_ids)[
-            "hosts_topo_info"
-        ]
-        # 将污点机器信息转移至污点池模(如果污点机器不在空闲机/资源池，则放弃转移，认为已到正确拓扑)
+        # 获取主机的拓扑信息(注：这里不能带上业务信息，因为主机可能转移业务)
+        host_topo_infos = TopoHandler.query_host_set_module(bk_host_ids=bk_host_ids)["hosts_topo_info"]
+        # 将污点机器信息转移至DBA污点池模(如果污点机器不在空闲机/资源池，则放弃转移，认为已到正确拓扑)
         transfer_host_ids = [
             info["bk_host_id"]
             for info in host_topo_infos
