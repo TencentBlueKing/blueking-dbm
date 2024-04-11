@@ -15,7 +15,6 @@
   <SerachBar
     v-model="searchValue"
     :cluster-type="activeTab"
-    :placeholder="searchPlaceholder"
     :search-attrs="searchAttrs"
     :search-select-list="searchSelectList"
     @search-value-change="handleSearchValueChange" />
@@ -67,7 +66,6 @@
     columnStatusFilter?: TabItem['columnStatusFilter'],
     customColums?: TabItem['customColums'],
     searchSelectList?: TabItem['searchSelectList'],
-    searchPlaceholder?: TabItem['searchPlaceholder'],
   }
 
   type ResourceItem = ValueOf<SelectedMap>[0];

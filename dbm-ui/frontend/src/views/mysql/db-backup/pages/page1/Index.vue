@@ -19,7 +19,8 @@
         :title="t('全库备份：所有库表备份, 除 MySQL 系统库和 DBA 专用库外')" />
       <RenderData
         class="mt16"
-        @batch-select-cluster="handleShowBatchSelector">
+        @batch-select-cluster="handleShowBatchSelector"
+        @batchEditBackupLocal="handleBatchEditBackupLocal">
         <RenderDataRow
           v-for="(item, index) in tableData"
           :key="item.rowKey"
@@ -142,6 +143,17 @@
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
+  };
+
+  const handleBatchEditBackupLocal = (value: string) => {
+    if (checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        backupLocal: value,
+      });
+    });
   };
 
   // 批量选择

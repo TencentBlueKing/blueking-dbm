@@ -93,6 +93,7 @@
   export interface IValue {
     bk_host_id: number,
     bk_cloud_id: number,
+    bk_cloud_name: string,
     ip: string,
     port: number,
     instance_address: string,

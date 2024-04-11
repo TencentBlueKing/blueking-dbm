@@ -30,6 +30,18 @@
         <RenderTableHeadColumn
           :min-width="120"
           :width="580">
+          <template #append>
+            <BatchEditBackupLocal
+              v-model="isShowBatchEdit"
+              @change="handleBatchEdit">
+              <span
+                v-bk-tooltips="t('批量编辑')"
+                class="batch-edit-btn"
+                @click="handleShowBatchEdit">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditBackupLocal>
+          </template>
           {{ t('备份位置') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
@@ -52,16 +64,29 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import BatchEditBackupLocal from './BatchEditBackupLocal.vue';
+
   interface Emits{
-    (e: 'batchSelectCluster'): void
+    (e: 'batchSelectCluster'): void,
+    (e: 'batchEditBackupLocal', value: string): void
   }
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
+  const isShowBatchEdit = ref(false);
+
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
+  };
+
+  const handleShowBatchEdit = () => {
+    isShowBatchEdit.value = !isShowBatchEdit.value;
+  };
+
+  const handleBatchEdit = (value: string) => {
+    emits('batchEditBackupLocal', value);
   };
 </script>
 <style lang="less">
