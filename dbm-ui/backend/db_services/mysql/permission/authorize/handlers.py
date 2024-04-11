@@ -271,7 +271,7 @@ class AuthorizeHandler(object):
                 remark=_("第三方请求授权"),
                 details=authorize_info_slz.validated_data,
             )
-            return {"task_id": ticket.id, "platform": "dbm"}
+            return {"task_id": str(ticket.id), "platform": "dbm"}
         else:
             params = {
                 "app": app,
@@ -296,7 +296,7 @@ class AuthorizeHandler(object):
                 params["module_name_list"] = module_name_list
 
             data = GcsApi.cloud_privileges_asyn_bydbname(params)
-            return {"task_id": data["job_id"], "platform": "gcs"}
+            return {"task_id": str(data["job_id"]), "platform": "gcs"}
 
     def query_authorize_apply_result(self, task_id, platform):
         """查询第三方授权的执行结果"""
