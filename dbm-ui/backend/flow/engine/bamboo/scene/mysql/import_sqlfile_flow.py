@@ -33,6 +33,7 @@ from backend.flow.plugins.components.collections.mysql.semantic_check import Sem
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -203,10 +204,23 @@ class ImportSQLFlow(object):
             )
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("执行模拟执行子流程")))
 
-        semantic_check_pipeline.add_act(
-            act_name=_("创建SQL执行单据"), act_component_code=CreateTicketComponent.code, kwargs={}
-        )
+        # 并行编排模拟执行子流程
         semantic_check_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+        # 模拟执行成功串提单操作
+        semantic_check_pipeline.add_act(
+            act_name=_("创建SQL执行单据"),
+            act_component_code=CreateTicketComponent.code,
+            kwargs={
+                "ticket_data": {
+                    "is_auto_commit": self.data["is_auto_commit"],
+                    "remark": _("语义检查出发的自动创建单据"),
+                    "ticket_type": TicketType.MYSQL_IMPORT_SQLFILE,
+                    "details": {"root_id": self.root_id},
+                }
+            },
+        )
+
         semantic_check_pipeline.run_pipeline(is_drop_random_user=True)
 
     def __get_master_instance_info(self, cluster: Cluster) -> dict:
