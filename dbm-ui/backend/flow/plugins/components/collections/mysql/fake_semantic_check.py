@@ -11,14 +11,9 @@ specific language governing permissions and limitations under the License.
 import logging
 import time
 
-from django.core.cache import cache
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
-from backend.db_services.mysql.sql_import.constants import (
-    CACHE_SEMANTIC_AUTO_COMMIT_FIELD,
-    CACHE_SEMANTIC_SKIP_PAUSE_FILED,
-)
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
 
@@ -28,10 +23,7 @@ class FakeSemanticCheck(BaseService):
 
     def _execute(self, data, parent_data, callback=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
-
         root_id = kwargs.get("root_id")
-        bk_biz_id = global_data.get("bk_biz_id")
 
         # 测试报错
         if kwargs.get("is_error"):
@@ -42,19 +34,13 @@ class FakeSemanticCheck(BaseService):
         time.sleep(5)
 
         # 查询是否能自动提交单据，默认为手动提交
-        auto_commit_key = CACHE_SEMANTIC_AUTO_COMMIT_FIELD.format(bk_biz_id=bk_biz_id, root_id=root_id)
-        skip_pause_key = CACHE_SEMANTIC_SKIP_PAUSE_FILED.format(bk_biz_id=bk_biz_id, root_id=root_id)
-        is_auto_commit = cache.get(auto_commit_key) or False
-        is_skip_pause = cache.get(skip_pause_key) or False
-        self.log_info(
-            f"-----------auto_commit_key: {auto_commit_key}-{is_auto_commit}, "
-            f"skip_pause_key: {skip_pause_key}-{is_skip_pause}-------------"
-        )
+        is_auto_commit = False
+        is_skip_pause = False
 
         # 构造单据信息
         trans_data = {
-            "is_auto_commit": is_auto_commit,
             "ticket_data": {
+                "is_auto_commit": is_auto_commit,
                 "remark": _("这是一个fake的模拟执行"),
                 "ticket_type": TicketType.MYSQL_IMPORT_SQLFILE,
                 "details": {"root_id": root_id, "skip_pause": is_skip_pause},

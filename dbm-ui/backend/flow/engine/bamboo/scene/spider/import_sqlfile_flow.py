@@ -33,6 +33,7 @@ from backend.flow.plugins.components.collections.mysql.trans_flies import TransF
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -192,7 +193,16 @@ class ImportSQLFlow(object):
         )
 
         semantic_check_pipeline.add_act(
-            act_name=_("创建SQL执行单据"), act_component_code=CreateTicketComponent.code, kwargs={}
+            act_name=_("创建SQL执行单据"),
+            act_component_code=CreateTicketComponent.code,
+            kwargs={
+                "ticket_data": {
+                    "is_auto_commit": self.data["is_auto_commit"],
+                    "remark": _("语义检查出发的自动创建单据"),
+                    "ticket_type": TicketType.TENDBCLUSTER_IMPORT_SQLFILE,
+                    "details": {"root_id": self.root_id},
+                }
+            },
         )
 
         semantic_check_pipeline.run_pipeline()

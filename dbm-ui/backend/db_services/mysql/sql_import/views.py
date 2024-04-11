@@ -25,15 +25,12 @@ from backend.db_services.mysql.sql_import.serializers import (
     GetUserSemanticListSerializer,
     QuerySemanticDataResponseSerializer,
     QuerySemanticDataSerializer,
-    QuerySQLUserConfigResponseSerializer,
-    QuerySQLUserConfigSerializer,
     RevokeSemanticCheckResponseSerializer,
     RevokeSemanticCheckSerializer,
     SQLGrammarCheckResponseSerializer,
     SQLGrammarCheckSerializer,
     SQLSemanticCheckResponseSerializer,
     SQLSemanticCheckSerializer,
-    SQLUserConfigSerializer,
 )
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ResourceEnum
@@ -96,29 +93,6 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=SQLSemanticCheckSerializer)
     def semantic_check(self, request, bk_biz_id):
         return self._view_common_handler(request, bk_biz_id, SQLExecuteMeta, SQLHandler.semantic_check.__name__)
-
-    @common_swagger_auto_schema(
-        operation_summary=_("改变用户流程配置"),
-        request_body=SQLUserConfigSerializer(),
-        tags=[SWAGGER_TAG],
-    )
-    @action(methods=["POST"], detail=False, serializer_class=SQLUserConfigSerializer)
-    def deploy_user_config(self, request, bk_biz_id):
-        return self._view_common_handler(
-            request, bk_biz_id, SemanticOperateMeta, SQLHandler.deploy_user_config.__name__
-        )
-
-    @common_swagger_auto_schema(
-        operation_summary=_("查询用户流程配置"),
-        query_serializer=QuerySQLUserConfigSerializer(),
-        responses={status.HTTP_200_OK: QuerySQLUserConfigResponseSerializer()},
-        tags=[SWAGGER_TAG],
-    )
-    @action(methods=["GET"], detail=False, serializer_class=QuerySQLUserConfigSerializer)
-    def query_user_config(self, request, bk_biz_id):
-        return self._view_common_handler(
-            request, bk_biz_id, SemanticOperateMeta, SQLHandler.query_user_config.__name__
-        )
 
     @common_swagger_auto_schema(
         operation_summary=_("获取用户语义检查任务列表"),

@@ -98,6 +98,7 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(
         help_text=_("集群类型，默认为mysql"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
     )
+    is_auto_commit = serializers.BooleanField(help_text=_("模拟执行成功后是否自动提单"), required=False, default=True)
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_SEMANTIC_CHECK_REQUEST_DATA}
@@ -112,27 +113,6 @@ class SQLSemanticCheckResponseSerializer(serializers.Serializer):
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_SEMANTIC_CHECK_RESPONSE_DATA}
-
-
-class SQLUserConfigSerializer(serializers.Serializer):
-    root_id = serializers.CharField(help_text=_("流程id"))
-    is_auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"))
-    is_skip_pause = serializers.BooleanField(help_text=_("是否自动跳过确认"))
-
-    class Meta:
-        swagger_schema_fields = {"example": mock_data.SQL_TICKET_AUTO_COMMIT_REQUEST_DATA}
-
-
-class QuerySQLUserConfigSerializer(serializers.Serializer):
-    root_id = serializers.CharField(help_text=_("流程id"))
-
-
-class QuerySQLUserConfigResponseSerializer(serializers.Serializer):
-    is_auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"))
-    is_skip_pause = serializers.BooleanField(help_text=_("是否自动跳过确认"))
-
-    class Meta:
-        swagger_schema_fields = {"example": {"is_auto_commit": True, "is_skip_pause": True}}
 
 
 class GetUserSemanticListSerializer(serializers.Serializer):

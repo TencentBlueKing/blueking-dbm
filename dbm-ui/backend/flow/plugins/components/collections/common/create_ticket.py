@@ -22,11 +22,19 @@ class CreateTicket(BaseService):
     def _execute(self, data, parent_data):
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
+        kwargs = data.get_one_of_inputs("kwargs")
+
+        # 表示没有加载上下文内容
+        if trans_data is None or trans_data == "${trans_data}":
+            trans_data = {}
 
         # 准备单据参数
+        ticket_data = kwargs.get("ticket_data") or trans_data.get("ticket_data")
+        if not ticket_data:
+            self.log_error(_("未在输入参数或者上下文参数中找到提单数据").format(ticket_data))
+
         creator = global_data.get("created_by")
         bk_biz_id = global_data.get("bk_biz_id")
-        ticket_data = trans_data.get("ticket_data")
         ticket_type = ticket_data.get("ticket_type")
         remark = ticket_data.get("remark", "")
         details = ticket_data.get("details")
@@ -37,7 +45,7 @@ class CreateTicket(BaseService):
             return False
 
         # [is_auto_commit-可配置项]如果不允许自动创建，则退出
-        if not trans_data.get("is_auto_commit", True):
+        if not ticket_data.get("is_auto_commit", True):
             self.log_info(_("不允许自动创建单据，单据创建流程结束"))
             return True
 

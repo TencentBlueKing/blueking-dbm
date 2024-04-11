@@ -10,20 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.core.cache import cache
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend.components.sql_import.client import SQLSimulationApi
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_services.mysql.sql_import.constants import (
-    CACHE_SEMANTIC_AUTO_COMMIT_FIELD,
-    CACHE_SEMANTIC_SKIP_PAUSE_FILED,
-)
 from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -73,7 +67,6 @@ class SemanticCheckService(BaseService):
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         payload = kwargs["payload"]
-        cluster_type = kwargs["cluster_type"]
         try:
             # code:0 成功 code:1 失败 code:2 running
             # -
@@ -83,7 +76,6 @@ class SemanticCheckService(BaseService):
 
             if code == 0:
                 self.log_info("run task success~ ")
-                self._prepare_for_ticket(data=data, cluster_type=cluster_type)
                 self.finish_schedule()
                 return True
             if code == 1:
@@ -99,35 +91,6 @@ class SemanticCheckService(BaseService):
             self.log_exception("[{}] failed: {}".format(kwargs.get("node_name", self.__class__.__name__), e))
             self.finish_schedule()
             return False
-
-    def _prepare_for_ticket(self, data, cluster_type):
-        """为创建单据做参数准备"""
-        root_id = data.get_one_of_inputs("kwargs").get("root_id")
-        bk_biz_id = data.get_one_of_inputs("global_data").get("bk_biz_id")
-        auto_commit_key = CACHE_SEMANTIC_AUTO_COMMIT_FIELD.format(bk_biz_id=bk_biz_id, root_id=root_id)
-        skip_pause_key = CACHE_SEMANTIC_SKIP_PAUSE_FILED.format(bk_biz_id=bk_biz_id, root_id=root_id)
-
-        # 默认自动创建单据
-        is_auto_commit = cache.get(auto_commit_key, True)
-        is_skip_pause = cache.get(skip_pause_key, False)
-        self.log_info(
-            f"-----------auto_commit_key: {auto_commit_key}-{is_auto_commit}, "
-            f"skip_pause_key: {skip_pause_key}-{is_skip_pause}-------------"
-        )
-        ticket_type = TicketType.MYSQL_IMPORT_SQLFILE
-        if cluster_type == ClusterType.TenDBCluster:
-            ticket_type = TicketType.TENDBCLUSTER_IMPORT_SQLFILE
-
-        # 构造单据信息
-        trans_data = {
-            "is_auto_commit": is_auto_commit,
-            "ticket_data": {
-                "remark": _("语义检查出发的自动创建单据"),
-                "ticket_type": ticket_type,
-                "details": {"root_id": root_id, "skip_pause": is_skip_pause},
-            },
-        }
-        data.outputs["trans_data"] = trans_data
 
 
 class SemanticCheckComponent(Component):

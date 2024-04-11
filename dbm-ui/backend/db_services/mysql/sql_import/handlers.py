@@ -13,7 +13,6 @@ import tempfile
 import time
 from typing import Any, Dict, List, Optional, Union
 
-from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
 
@@ -22,8 +21,6 @@ from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.core.storages.storage import get_storage
 from backend.db_services.mysql.sql_import.constants import (
     BKREPO_SQLFILE_PATH,
-    CACHE_SEMANTIC_AUTO_COMMIT_FIELD,
-    CACHE_SEMANTIC_SKIP_PAUSE_FILED,
     CACHE_SEMANTIC_TASK_FIELD,
     MAX_PREVIEW_SQL_FILE_SIZE,
     SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME,
@@ -144,6 +141,7 @@ class SQLHandler(object):
         ticket_mode: Dict,
         import_mode: SQLImportMode,
         backup: List[Dict],
+        is_auto_commit: bool = True,
     ) -> Dict:
         """
         sql 模拟执行(sql 语义检查)
@@ -156,6 +154,7 @@ class SQLHandler(object):
         @param ticket_mode: sql导入单据的触发类型
         @param import_mode: sql文件导入类型
         @param backup: 备份信息（和备份单据一样）
+        @param is_auto_commit: 是否自动提单
         """
 
         # 语义检查参数准备
@@ -177,6 +176,7 @@ class SQLHandler(object):
             "ticket_mode": ticket_mode,
             "import_mode": import_mode,
             "backup": backup,
+            "is_auto_commit": is_auto_commit,
         }
         try:
             if self.cluster_type == DBType.MySQL:
@@ -237,34 +237,6 @@ class SQLHandler(object):
         details["execute_sql_files"] = [detail.pop("sql_file") for detail in details["execute_objects"]]
         details["execute_db_infos"] = details.pop("execute_objects")
         return {"semantic_data": details, "import_mode": import_mode, "sql_data_ready": True}
-
-    def deploy_user_config(self, root_id: str, is_auto_commit: bool, is_skip_pause: bool) -> None:
-        """
-        更改用户配置(是否自动提交，是否跳过确认)
-        @param root_id: 语义任务执行ID
-        @param is_auto_commit: 是否自动提交
-        @param is_skip_pause: 是否跳过暂停
-        """
-
-        # auto_commit的配置
-        auto_commit_key = CACHE_SEMANTIC_AUTO_COMMIT_FIELD.format(bk_biz_id=self.bk_biz_id, root_id=root_id)
-        cache.set(auto_commit_key, is_auto_commit, SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME)
-
-        # skip_pause的配置
-        skip_pause_key = CACHE_SEMANTIC_SKIP_PAUSE_FILED.format(bk_biz_id=self.bk_biz_id, root_id=root_id)
-        cache.set(skip_pause_key, is_skip_pause, SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME)
-
-    def query_user_config(self, root_id: str) -> Dict:
-        """
-        查询用户配置
-        @param root_id: 语义任务执行ID
-        """
-
-        auto_commit_key = CACHE_SEMANTIC_AUTO_COMMIT_FIELD.format(bk_biz_id=self.bk_biz_id, root_id=root_id)
-        skip_pause_key = CACHE_SEMANTIC_SKIP_PAUSE_FILED.format(bk_biz_id=self.bk_biz_id, root_id=root_id)
-        is_auto_commit = cache.get(auto_commit_key)
-        is_skip_pause = cache.get(skip_pause_key)
-        return {"is_auto_commit": is_auto_commit, "is_skip_pause": is_skip_pause}
 
     def _get_user_semantic_tasks(self, cluster_type, code) -> List[Dict]:
         # 获取缓存的任务ID
