@@ -242,7 +242,7 @@ class AuthorizeHandler(object):
         # 域名存在，则走dbm的授权方式，否则走gcs的授权方式
         domain, __ = parse_domain(target_instance)
         cluster = Cluster.objects.filter(immute_domain=domain)
-        bk_biz_id = bk_biz_id or app_detail["ccId"]
+        bk_biz_id = int(bk_biz_id or app_detail["ccId"])
         if cluster.exists():
             if not bk_biz_id:
                 raise DBPermissionBaseException(_("授权集群: [{}]。业务信息bk_biz_id为空请检查。").format(target_instance))
@@ -256,7 +256,9 @@ class AuthorizeHandler(object):
                 "target_instances": [cluster.immute_domain],
                 "cluster_type": cluster.cluster_type,
             }
-            authorize_info_slz = MySQLAuthorizeRulesSerializer(data={"authorize_plugin_infos": [authorize_infos]})
+            authorize_info_slz = MySQLAuthorizeRulesSerializer(
+                data={"authorize_plugin_infos": [authorize_infos], "need_itsm": False}
+            )
             authorize_info_slz.context["request"] = request
             authorize_info_slz.is_valid(raise_exception=True)
 
