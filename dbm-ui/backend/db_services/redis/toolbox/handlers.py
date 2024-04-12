@@ -21,7 +21,11 @@ from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.redis.resources.constants import SQL_QUERY_INSTANCES, SQL_QUERY_MASTER_SLAVE_STATUS
+from backend.db_services.redis.resources.constants import (
+    SQL_QUERY_COUNT_INSTANCES,
+    SQL_QUERY_INSTANCES,
+    SQL_QUERY_MASTER_SLAVE_STATUS,
+)
 from backend.ticket.constants import InstanceType
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.basic import dictfetchall
@@ -204,28 +208,39 @@ class ToolboxHandler:
         where_values = [self.bk_biz_id]
 
         if cluster_id:
-            where_sql += "AND c.cluster_id = %s "
-            where_values.append(cluster_id)
+            placeholder = ",".join(["%s"] * len(cluster_id))
+            where_sql += f"AND c.cluster_id IN ({placeholder})"
+            where_values.extend(cluster_id)
 
         if ip:
-            where_sql += "AND m.ip LIKE %s "
-            where_values.append(f"%{ip}%")
+            ip_conditions = " OR ".join(["m.ip LIKE %s" for _ in ip])
+            where_sql += f" AND ({ip_conditions})"
+            where_ip_values = [f"%{single_ip}%" for single_ip in ip]
+            where_values.extend(where_ip_values)
 
         if status:
             where_sql += "AND i.status = %s "
             where_values.append(status)
+            # placeholders = ",".join(["%s"] * len(status))
+            # where_sql += "AND i.status IN (" + placeholders + ") "
+            # where_values.extend(status)
 
-        having_sql = ""
         if role:
-            having_sql += "HAVING role = %s "
-            where_values.append(role)
+            placeholder = ", ".join(["%s"] * len(role))
+            having_sql = f"HAVING role IN ({placeholder}) "
+            where_values.extend(role)
+
+        else:
+            having_sql = ""
 
         # union查询需要两份参数
         where_values = where_values * 2
-
+        sql_count = SQL_QUERY_COUNT_INSTANCES.format(where=where_sql, having=having_sql)
         sql = SQL_QUERY_INSTANCES.format(where=where_sql, having=having_sql, limit=limit_sql, offset=offset_sql)
 
         with connection.cursor() as cursor:
+            cursor.execute(sql_count, where_values)
+            total_count = cursor.fetchone()[0]
             cursor.execute(sql, where_values)
 
         ips = dictfetchall(cursor)
@@ -243,11 +258,13 @@ class ToolboxHandler:
         master_slave_map = self.query_master_slave_map(
             [i["ip"] for i in ips if i["role"] == InstanceRole.REDIS_MASTER]
         )
-
-        # 补充主机、规格和主从关系信息
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        # 补充主机、规格和主从关系信息、补充云区域信息
         for item in ips:
             item["host_info"] = host_id_info_map.get(item["bk_host_id"])
             item["spec_config"] = json.loads(item["spec_config"])
+            item["bk_cloud_name"] = cloud_info[str(item["bk_cloud_id"])]["bk_cloud_name"]
             item.update(master_slave_map.get(item["ip"], {}))
 
-        return ips
+        response = {"count": total_count, "results": ips}
+        return response

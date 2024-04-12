@@ -39,7 +39,7 @@ class HDFSListRetrieveResource(BigDataBaseListRetrieveResource):
 
     @classmethod
     def _to_nodes_list(
-        cls, bk_biz_id: int, node_list: List[Dict[str, Any]], limit: int, offset: int
+        cls, bk_biz_id: int, node_list: List[Dict[str, Any]], limit: int, offset: int, ordering: str
     ) -> query.ResourceList:
 
         # 将zookeeper/name node/journal node 聚合到一起
@@ -59,7 +59,7 @@ class HDFSListRetrieveResource(BigDataBaseListRetrieveResource):
         for node_list in ip__hdfs_node_list.values():
             node_list["role_set"] = sorted(list(node_list["role_set"]))
 
-        return super()._to_nodes_list(bk_biz_id, list(ip__hdfs_node_list.values()), limit, offset)
+        return super()._to_nodes_list(bk_biz_id, list(ip__hdfs_node_list.values()), limit, offset, ordering)
 
     @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:
