@@ -518,11 +518,12 @@ func (i *InstallSqlServerComp) InitUsers() (err error) {
 			logger.Error("init mssql_exporter failed %v", err)
 			return err
 		}
-		// mssql_exporter账号, 在系统库权限db_owner
-		if err := dbWork.AddPriv(
-			cst.SysDB,
+		// mssql_exporter账号, 授权
+		cmd := fmt.Sprintf(
+			cst.GRANT_MSSQL_EXPORTER_SQL,
 			i.GeneralParam.RuntimeAccountParam.MssqlExporterUser,
-		); err != nil {
+		)
+		if _, err := dbWork.Exec(cmd); err != nil {
 			logger.Error("init mssql_exporter failed %v", err)
 			return err
 		}
@@ -552,10 +553,7 @@ func (i *InstallSqlServerComp) CreateExporterConf() error {
 func WriteInitSQLFile() ([]string, error) {
 	var dealFiles []string
 	sqls := []string{
-		staticembed.SqlSettingFileName,
-		staticembed.MonitorFileName,
-		staticembed.BackupFileName,
-		staticembed.AutoSwitchFileName,
+		staticembed.InitDBMMonitorFileName,
 	}
 
 	for _, sqlFile := range sqls {

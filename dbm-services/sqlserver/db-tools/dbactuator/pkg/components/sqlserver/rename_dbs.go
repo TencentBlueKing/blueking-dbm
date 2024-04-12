@@ -165,7 +165,7 @@ func (r *RenameDBSComp) DoRenameDBWithMirroring() error {
 		var execDBSQLs []string
 		checkSQL := fmt.Sprintf(
 			`select count(0) as cnt from master.sys.database_mirroring where 
-			 database_id= DB_ID('%s') and mirroring_guid is not null`,
+			 database_id= DB_ID('%s') and mirroring_guid is not null;`,
 			i.DBName,
 		)
 		if err := r.DB.Queryxs(&cnt, checkSQL); err != nil {
@@ -174,9 +174,9 @@ func (r *RenameDBSComp) DoRenameDBWithMirroring() error {
 		}
 		// 表示有建立镜像关系，所以rename之前需要解除
 		if cnt != 0 {
-			execDBSQLs = append(execDBSQLs, fmt.Sprintf("ALTER DATABASE %s SET PARTNER OFF;", i.DBName))
+			execDBSQLs = append(execDBSQLs, fmt.Sprintf("ALTER DATABASE [%s] SET PARTNER OFF;", i.DBName))
 		}
-		execDBSQLs = append(execDBSQLs, fmt.Sprintf("ALTER DATABASE %s MODIFY NAME = %s", i.DBName, i.TargetDBName))
+		execDBSQLs = append(execDBSQLs, fmt.Sprintf("ALTER DATABASE [%s] MODIFY NAME = %s", i.DBName, i.TargetDBName))
 		// 执行rename 命令
 		if _, err := r.DB.ExecMore(execDBSQLs); err != nil {
 			logger.Error(
@@ -226,12 +226,12 @@ func (r *RenameDBSComp) DoRenameDBWithAlwayson() error {
 			}
 			execDBSQLs = append(
 				execDBSQLs,
-				fmt.Sprintf("ALTER AVAILABILITY GROUP %s REMOVE DATABASE %s;", groupName, i.DBName),
+				fmt.Sprintf("ALTER AVAILABILITY GROUP [%s] REMOVE DATABASE [%s];", groupName, i.DBName),
 			)
 		}
 		execDBSQLs = append(
 			execDBSQLs,
-			fmt.Sprintf("ALTER DATABASE %s MODIFY NAME = %s;", i.DBName, i.TargetDBName),
+			fmt.Sprintf("ALTER DATABASE [%s] MODIFY NAME = %s;", i.DBName, i.TargetDBName),
 		)
 		// 执行rename 命令
 		if _, err := r.DB.ExecMore(execDBSQLs); err != nil {
@@ -264,13 +264,6 @@ func DropOldDatabaseOnslave(dbname string, DRS []slaves) error {
 	for _, slave := range DRS {
 		var dbSnapshots []string
 		var execDBSQLs []string
-		// 判断DB是否有相关请求
-		if !slave.Connet.CheckDBProcessExist(dbname) {
-			logger.Error(
-				"[%s] db-process exist on slave [%s:%d],check", dbname, slave.Host, slave.Port,
-			)
-			isErr = true
-		}
 		var cnt int
 		// 判断源库名是否存在，如果不存在，打印日志，但不作为报错
 		checkOldDBSQL := fmt.Sprintf(
@@ -279,6 +272,7 @@ func DropOldDatabaseOnslave(dbname string, DRS []slaves) error {
 		if err := slave.Connet.Queryxs(&cnt, checkOldDBSQL); err != nil {
 			logger.Error("check-db failed:%v", err)
 			isErr = true
+			continue
 		}
 		if cnt == 0 {
 			// 代表DB不存在

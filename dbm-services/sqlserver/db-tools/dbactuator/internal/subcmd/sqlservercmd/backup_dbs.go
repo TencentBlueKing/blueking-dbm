@@ -73,6 +73,10 @@ func (c *BackupDBSAct) Run() (err error) {
 			FunName: "备份数据库",
 			Func:    c.BaseService.DoDackup,
 		},
+		{
+			FunName: "检查备份文件是否存在",
+			Func:    c.BaseService.CheckBackupSuccess,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

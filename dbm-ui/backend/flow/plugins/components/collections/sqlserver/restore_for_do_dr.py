@@ -43,7 +43,7 @@ class RestoreForDoDrService(SqlserverActuatorScriptService):
 
             backup_info = get_backup_info_in_master(
                 cluster_id=kwargs["cluster_id"],
-                backup_id=kwargs["backup_id"],
+                job_id=kwargs["job_id"],
                 db_name=db_name,
                 backup_type=kwargs["restore_mode"],
             )

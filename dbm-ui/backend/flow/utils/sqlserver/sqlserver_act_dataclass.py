@@ -112,7 +112,7 @@ class RestoreForDoDrKwargs:
     """
     定义执行exec_sqlserver_backup_job活动节点的私有变量结构体
     @attributes cluster_id 集群id
-    @attributes backup_id 备份id
+    @attributes job_id 备份的job_id
     @attributes restore_dbs 恢复DB列表
     @attributes restore_mode 恢复模式，分全量备份文件恢复以及日志备份恢复
     @attributes exec_ips 操作机器
@@ -121,7 +121,7 @@ class RestoreForDoDrKwargs:
     """
 
     cluster_id: int
-    backup_id: str
+    job_id: str
     restore_dbs: list
     restore_mode: SqlserverRestoreMode
     exec_ips: List[Host] = field(metadata={"validate": validate_hosts})
@@ -147,7 +147,7 @@ class RestoreForDtsKwargs:
     定义执行sqlserver_restore_for_dts活动节点的私有变量结构体
     @attributes cluster_id 集群id
     @attributes port 实例端口
-    @attributes backup_id 备份id
+    @attributes job_id 备份id
     @attributes restore_infos 恢复列表。元素结构{"db_name": xx, "target_db_name": xx}
     @attributes restore_mode 恢复模式，分全量备份文件恢复以及日志备份恢复
     @attributes restore_db_status 恢复后的DB模式
@@ -157,7 +157,7 @@ class RestoreForDtsKwargs:
 
     cluster_id: int
     port: int
-    backup_id: str
+    job_id: str
     restore_infos: list
     restore_mode: SqlserverRestoreMode
     restore_db_status: SqlserverRestoreDBStatus
@@ -205,6 +205,18 @@ class DropRandomJobUserKwargs:
 
     cluster_ids: list
     other_instances: list = field(default_factory=list)
+
+
+@dataclass()
+class InsertAppSettingKwargs:
+    """
+    定义执行sqlserver_insert_app_setting活动节点的私有变量结构体
+    @attributes cluster_domain 集群主域名
+    @attributes ips 待处理的ip列表
+    """
+
+    cluster_domain: str
+    ips: list = field(default_factory=list)
 
 
 @dataclass()

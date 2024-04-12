@@ -132,7 +132,11 @@ class SqlserverDataConstruct(BaseFlow):
             # 计算源集群和目标集群的master
             cluster = Cluster.objects.get(id=info["src_cluster"])
             target_cluster = Cluster.objects.get(id=info["dst_cluster"])
-            target_master_instance = target_cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+
+            # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
+            target_master_instance = target_cluster.storageinstance_set.get(
+                instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+            )
 
             # 计算构造需要的一些信息
             target_dir = f"d:\\dbbak\\data_construct_{self.root_id}\\"

@@ -66,7 +66,7 @@ class SqlserverBackupDBSFlow(BaseFlow):
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
             sub_flow_context.update(info)
-            sub_flow_context["backup_id"] = f"{self.data['backup_type']}_{self.root_id}"
+            sub_flow_context["job_id"] = f"{self.data['backup_type']}_{self.root_id}"
 
             # 声明子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
@@ -103,7 +103,11 @@ class SqlserverBackupDBSFlow(BaseFlow):
                         exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                         get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
                         job_timeout=3 * 3600,
-                        custom_params={"port": master_instance.port},
+                        custom_params={
+                            "port": master_instance.port,
+                            "file_tag": sub_flow_context["file_tag"],
+                            "backup_type": sub_flow_context["backup_type"],
+                        },
                     )
                 ),
             )

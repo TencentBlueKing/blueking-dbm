@@ -21,6 +21,7 @@ from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
     build_always_on_sub_flow,
     install_sqlserver_sub_flow,
+    install_surrounding_apps_sub_flow,
     sync_dbs_for_cluster_sub_flow,
 )
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
@@ -35,6 +36,7 @@ from backend.flow.utils.sqlserver.sqlserver_db_function import (
     create_sqlserver_login_sid,
     get_dbs_for_drs,
     get_group_name,
+    get_sync_filter_dbs,
 )
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
@@ -175,7 +177,10 @@ class SqlserverAddSlaveFlow(BaseFlow):
                         root_id=self.root_id,
                         cluster=cluster,
                         sync_slaves=[Host(**info["new_slave_host"])],
-                        sync_dbs=get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[]),
+                        sync_dbs=list(
+                            set(get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[]))
+                            - set(get_sync_filter_dbs(cluster.id))
+                        ),
                     )
                 )
 
@@ -206,6 +211,19 @@ class SqlserverAddSlaveFlow(BaseFlow):
                         db_meta_class_func=SqlserverDBMeta.add_slave.__name__,
                     )
                 ),
+            )
+
+            # 机器维度，给新机器部署周边程序
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=install_surrounding_apps_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    bk_biz_id=int(self.data["bk_biz_id"]),
+                    bk_cloud_id=int(cluster.bk_cloud_id),
+                    master_host=[],
+                    slave_host=[info["new_slave_host"]["ip"]],
+                    cluster_domain_list=[c["immutable_domain"] for c in sub_flow_context["clusters"]],
+                )
             )
 
             sub_pipelines.append(

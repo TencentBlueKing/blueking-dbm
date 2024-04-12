@@ -34,4 +34,3 @@ pkg/core/staticembed/01_monitor.sql
 pkg/core/staticembed/02_backup.sql
 pkg/core/staticembed/03_auto_switch.sql
 pkg/core/staticembed/04_sqlsetting.sql
-
