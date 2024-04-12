@@ -664,24 +664,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
-    # def get_clone_proxy_user_payload(self, **kwargs):
-    #     """
-    #     克隆proxy上的user白名单
-    #     """
-    #     return {
-    #         "db_type": DBActuatorTypeEnum.Proxy.value,
-    #         "action": DBActuatorActionEnum.CloneProxyUser.value,
-    #         "payload": {
-    #             "general": {"runtime_account": self.__get_proxy_account()},
-    #             "extend": {
-    #                 "source_proxy_host": kwargs["ip"],
-    #                 "source_proxy_port": self.cluster["proxy_port"],
-    #                 "target_proxy_host": self.cluster["target_proxy_ip"],
-    #                 "target_proxy_port": self.cluster["proxy_port"],
-    #             },
-    #         },
-    #     }
-
     def get_semantic_check_payload(self, **kwargs):
         """
         运行SQL语义检查
