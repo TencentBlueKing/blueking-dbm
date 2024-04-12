@@ -27,7 +27,7 @@
             id: ticketId,
           },
         }">
-        {{ t('我的服务单') }}
+        {{ t('单据') }}
       </RouterLink>
     </I18nT>
     <template #action>
@@ -47,10 +47,7 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import RenderSuccess from '@components/ticket-success/Index.vue';
 

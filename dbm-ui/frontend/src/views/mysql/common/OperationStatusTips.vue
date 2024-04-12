@@ -19,7 +19,7 @@
     <slot :disabled="disabled" />
     <I18nT
       ref="popRef"
-      keypath="xx_跳转_我的服务单_查看进度"
+      keypath="xx_跳转_单据_查看进度"
       style="font-size: 12px; line-height: 16px; color: #63656e"
       tag="div">
       <span>{{ text }}</span>
@@ -31,7 +31,7 @@
             id: data.ticket_id,
           },
         }">
-        {{ $t('我的服务单') }}
+        {{ $t('单据') }}
       </RouterLink>
     </I18nT>
   </span>

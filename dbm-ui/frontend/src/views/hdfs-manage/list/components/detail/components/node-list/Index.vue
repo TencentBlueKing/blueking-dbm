@@ -99,7 +99,7 @@
               id: operationData?.operationTicketId,
             },
           }">
-          {{ t('我的服务单') }}
+          {{ t('单据') }}
         </AuthRouterLink>
       </I18nT>
     </BkAlert>

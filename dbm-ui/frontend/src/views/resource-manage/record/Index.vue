@@ -33,7 +33,7 @@
     ref,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRoute } from 'vue-router';
+  import { useRoute , useRouter } from 'vue-router';
 
   import OperationModel from '@services/model/db-resource/Operation';
   import { fetchOperationList } from '@services/source/dbresourceResource';
@@ -44,6 +44,7 @@
 
   import HostDetail from './components/HostDetail.vue';
 
+  const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
 
@@ -152,21 +153,16 @@
       field: 'ticket_id',
       width: 170,
       render: ({ data }: {data: OperationModel}) => (data.ticket_id
-        ? <auth-router-link
+        ? <auth-button
             action-id="ticket_view"
             resource={data.ticket_id}
             permission={data.permission.ticket_view}
-            to={{
-              name: 'SelfServiceMyTickets',
-              query: {
-                id: data.ticket_id,
-              },
-            }}
-            target="_blank">
+            text
+            theme="primary"
+            onClick={() => handleGoTicketDetail(data)}>
             {data.ticket_id}
-          </auth-router-link>
-        : '--')
-      ,
+          </auth-button>
+        : '--'),
     },
     {
       label: t('关联任务'),
@@ -258,6 +254,16 @@
     operationDateTime.value = ['', ''];
     searchValues.value = [];
     fetchData();
+  };
+
+  const handleGoTicketDetail = (data: OperationModel) => {
+    const { href } = router.resolve({
+      name: 'bizTicketManage',
+      query: {
+        id: data.ticket_id,
+      },
+    });
+    window.open(href.replace(/(\d)+/, `${data.bk_biz_id}`));
   };
 </script>
 

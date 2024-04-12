@@ -192,7 +192,7 @@
             action-id="ticket_view"
             resource={data.uid}
             to={{
-              name: 'SelfServiceMyTickets',
+              name: 'bizTicketManage',
               query: {
                 id: data.uid,
               }

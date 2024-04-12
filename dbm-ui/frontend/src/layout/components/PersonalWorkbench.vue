@@ -22,7 +22,7 @@
         <span
           v-overflow-tips.right
           class="text-overflow">
-          {{ t('我的服务单') }}
+          {{ t('单据') }}
         </span>
       </BkMenuItem>
       <BkMenuItem key="MyTodos">

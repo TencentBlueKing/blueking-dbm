@@ -27,7 +27,7 @@
           <a
             href="javascript:"
             @click="handleGoTicket">
-            {{ $t('我的服务单') }}
+            {{ $t('单据') }}
           </a>
         </I18nT>
       </slot>

@@ -27,7 +27,7 @@
             id: ticketId,
           },
         }">
-        {{ $t('我的服务单') }}
+        {{ $t('单据') }}
       </RouterLink>
     </I18nT>
     ;

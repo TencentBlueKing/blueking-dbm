@@ -23,7 +23,7 @@
         ref="popRef"
         style="font-size: 12px; line-height: 16px; color: #63656e">
         <I18nT
-          keypath="xx_跳转_我的服务单_查看进度"
+          keypath="xx_跳转_单据_查看进度"
           tag="span">
           <span>{{ data.operationStatusText }}</span>
           <AuthRouterLink
@@ -36,7 +36,7 @@
                 id: data.operationTicketId,
               },
             }">
-            {{ $t('我的服务单') }}
+            {{ $t('单据') }}
           </AuthRouterLink>
         </I18nT>
       </div>

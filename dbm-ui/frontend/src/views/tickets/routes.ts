@@ -20,7 +20,7 @@ const routes: RouteRecordRaw[] = [
     name: 'SelfServiceMyTickets',
     path: 'my-tickets/:typeId?',
     meta: {
-      navName: t('我的服务单'),
+      navName: t('单据'),
       fullscreen: true,
     },
     component: () => import('@views/tickets/my-tickets/Index.vue'),
