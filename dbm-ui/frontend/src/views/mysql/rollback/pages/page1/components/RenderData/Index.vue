@@ -17,7 +17,7 @@
       <RenderTableHeadColumn
         :min-width="180"
         :width="180">
-        {{ $t('待回档集群') }}
+        {{ t('待回档集群') }}
         <template #append>
           <span
             class="batch-edit-btn"
@@ -27,30 +27,44 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ $t('回档到新主机') }}
+        {{ t('回档到新主机') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ $t('备份源') }}
+        <template #append>
+          <BatchEditColumn
+            v-model="isShowBatchEdit"
+            :data-list="selectList"
+            :title="t('备份源')"
+            @change="handleBatchEdit">
+            <span
+              v-bk-tooltips="t('批量编辑')"
+              class="batch-edit-btn"
+              @click="handleShowBatchEdit">
+              <DbIcon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </template>
+        {{ t('备份源') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :min-width="240">
-        {{ $t('回档类型') }}
+        {{ t('回档类型') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ $t('回档DB名') }}
+        {{ t('回档DB名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ $t('回档表名') }}
+        {{ t('回档表名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
-        {{ $t('忽略DB名') }}
+        {{ t('忽略DB名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
-        {{ $t('忽略表名') }}
+        {{ t('忽略表名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :required="false"
         :width="90">
-        {{ $t('操作') }}
+        {{ t('操作') }}
       </RenderTableHeadColumn>
       <template #data>
         <slot />
@@ -59,18 +73,47 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
+
   import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/mysql/common/render-table/Index.vue';
 
   interface Emits{
     (e: 'batchSelectCluster'): void
+    (e: 'batchEditBackupSource', value: string): void
   }
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
+  const isShowBatchEdit = ref(false);
+
+  const selectList = [
+    {
+      value: 'remote',
+      label: t('远程备份'),
+    },
+    {
+      value: 'local',
+      label: t('本地备份'),
+    },
+  ];
+
+  const handleShowBatchEdit = () => {
+    isShowBatchEdit.value = !isShowBatchEdit.value;
+  };
+
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
   };
+
+  const handleBatchEdit = (value: string) => {
+    emits('batchEditBackupSource', value);
+  };
+
 </script>
 <style lang="less">
   .render-data {

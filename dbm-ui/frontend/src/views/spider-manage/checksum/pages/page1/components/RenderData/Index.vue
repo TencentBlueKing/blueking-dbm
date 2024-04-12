@@ -30,6 +30,20 @@
         <RenderTableHeadColumn
           :min-width="100"
           :width="110">
+          <template #append>
+            <BatchEditColumn
+              v-model="isShowBatchEdit"
+              :data-list="selectList"
+              :title="t('校验范围')"
+              @change="handleBatchEdit">
+              <span
+                v-bk-tooltips="t('批量编辑')"
+                class="batch-edit-btn"
+                @click="handleShowBatchEdit">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
           {{ t('校验范围') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
@@ -83,16 +97,39 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
   interface Emits{
-    (e: 'batchSelectCluster'): void
+    (e: 'batchSelectCluster'): void,
+    (e: 'batchEditScope', value: string): void
   }
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const isShowBatchEdit = ref(false);
+
+  const selectList = [
+    {
+      value: 'all',
+      label: t('整个集群'),
+    },
+    {
+      value: 'partial',
+      label: t('部分实例'),
+    },
+  ];
+
+  const handleShowBatchEdit = () => {
+    isShowBatchEdit.value = !isShowBatchEdit.value;
+  };
+
+  const handleBatchEdit = (value: string) => {
+    emits('batchEditScope', value);
+  };
 
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
