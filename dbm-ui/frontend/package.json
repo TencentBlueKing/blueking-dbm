@@ -22,6 +22,7 @@
     "@blueking/date-picker": "0.0.72",
     "@blueking/ip-selector": "0.0.1-beta.138",
     "@blueking/notice-component": "2.0.0",
+    "@blueking/sub-saas": "^0.0.0-beta.6",
     "@icon-cool/bk-icon-bk-biz-components": "0.0.4",
     "@vueuse/core": "10.9.0",
     "axios": "1.6.0",
