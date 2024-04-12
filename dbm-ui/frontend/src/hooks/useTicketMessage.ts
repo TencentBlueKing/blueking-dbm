@@ -35,7 +35,7 @@ export const useTicketMessage = () => {
             href: route.href,
             target: '_blank',
           },
-          ` "${t('我的服务单')}" `,
+          ` "${t('单据')}" `,
         ),
         t('查看'),
       ]),

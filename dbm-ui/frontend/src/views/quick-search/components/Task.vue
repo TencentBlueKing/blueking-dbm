@@ -9,7 +9,7 @@
         <I18nT
           class="ml-8"
           keypath="共n条"
-          style="color: #63656E;"
+          style="color: #63656e"
           tag="span">
           <template #n>
             <strong>{{ data.length }}</strong>
@@ -209,7 +209,7 @@
 
   const handleToTicket = (id: string) => {
     const url = router.resolve({
-      name: 'SelfServiceMyTickets',
+      name: 'bizTicketManage',
       query: {
         id,
       },

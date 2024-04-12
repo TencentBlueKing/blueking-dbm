@@ -198,7 +198,7 @@
         ? <bk-popover theme="light" placement="top">
             {{
               default: () => renderCheckbox(data),
-              content: () => (<span>{t('销毁任务正在进行中，跳转')} <span style="color:#3A84FF;cursor:pointer;" onClick={() => handleGoTicket(data.related_rollback_bill_id)}>{t('我的服务单')}</span>{t('查看进度')}</span>),
+              content: () => (<span>{t('销毁任务正在进行中，跳转')} <span style="color:#3A84FF;cursor:pointer;" onClick={() => handleGoTicket(data.related_rollback_bill_id)}>{t('单据')}</span>{t('查看进度')}</span>),
             }}
           </bk-popover>
         : renderCheckbox(data)
@@ -275,7 +275,18 @@
       showOverflowTooltip: true,
       minWidth: 100,
       width: 110,
-      render: ({ data }: {data: RedisRollbackModel}) => <span style="color:#3A84FF;cursor:pointer;" onClick={() => handleClickRelatedTicket(data.related_rollback_bill_id)}>{data.related_rollback_bill_id}</span>,
+      render: ({ data }: {data: RedisRollbackModel}) => (data.related_rollback_bill_id ? (
+        <router-link
+          target="_blank"
+          to={{
+            name: 'bizTicketManage',
+            query: {
+              id: data.related_rollback_bill_id,
+            },
+          }}>
+          {data.related_rollback_bill_id}
+        </router-link>
+        ) : '--'),
     },
     {
       label: t('构造的主机数量'),
@@ -460,16 +471,6 @@
     router.push({
       name: 'RedisRecoverFromInstance',
     });
-  };
-
-  const handleClickRelatedTicket = (billId: number) => {
-    const route = router.resolve({
-      name: 'SelfServiceMyTickets',
-      query: {
-        id: billId,
-      },
-    });
-    window.open(route.href);
   };
 </script>
 

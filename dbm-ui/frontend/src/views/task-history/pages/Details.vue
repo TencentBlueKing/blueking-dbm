@@ -450,17 +450,24 @@
       }, {
         label: t('关联单据'),
         key: 'uid',
-        render: () => {
-          const { uid } = baseInfo.value;
-          return (
-            <bk-button text theme="primary" onClick={handleToTicket.bind(null, uid)}>{ uid }</bk-button>
-          );
-        },
+        render: () => (baseInfo.value.uid ? (
+        <router-link
+          target="_blank"
+          to={{
+            name: 'bizTicketManage',
+            query: {
+              id: baseInfo.value.uid,
+            },
+          }}>
+          {baseInfo.value.uid}
+        </router-link>
+          ) : '--'),
       }],
     ];
 
     // 结果文件
-    if (showResultFileTypes.includes(baseInfo.value.ticket_type) && baseInfo.value.status === 'FINISHED') {
+    if (showResultFileTypes.includes(baseInfo.value.ticket_type as TicketTypesStrings)
+      && baseInfo.value.status === 'FINISHED') {
       columns[0].push({
         label: t('结果文件'),
         key: '',
@@ -536,17 +543,6 @@
 
   const handleShowHostPreview = () => {
     showHostPreview.value = true;
-  };
-
-  /**
-   * 跳转到关联单据
-   */
-  const handleToTicket = (id: string) => {
-    const url = router.resolve({
-      name: 'SelfServiceMyTickets',
-      query: { id },
-    });
-    window.open(url.href, '_blank');
   };
 
   /**
@@ -1329,7 +1325,8 @@
       padding: 5px 8px;
       border-radius: 50px;
 
-      .db-icon-revoke, .db-icon-refresh {
+      .db-icon-revoke,
+      .db-icon-refresh {
         margin-right: 4px;
         font-size: 20px;
       }
