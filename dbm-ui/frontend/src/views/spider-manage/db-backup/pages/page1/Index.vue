@@ -19,6 +19,7 @@
         :title="t('全库备份：所有库表备份, 除 MySQL 系统库和 DBA 专用库外')" />
       <RenderData
         class="mt16"
+        @batch-edit-backup-local="handleBatchEditBackupLocal"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -78,7 +79,7 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
@@ -142,6 +143,17 @@
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
+  };
+
+  const handleBatchEditBackupLocal = (value: string) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        backupLocal: value,
+      });
+    });
   };
 
   // 批量选择

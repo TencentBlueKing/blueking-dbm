@@ -20,6 +20,7 @@
         :title="t('库表备份：指定库表备份，支持模糊匹配')" />
       <RenderData
         class="mt16"
+        @batch-edit-backup-local="handleBatchEditBackupLocal"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -46,7 +47,7 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
@@ -85,7 +86,7 @@
   const isShowBatchSelector = ref(false);
   const isSubmitting  = ref(false);
 
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const tableData = ref<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
@@ -108,6 +109,17 @@
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
+  };
+
+  const handleBatchEditBackupLocal = (value: string) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        backupLocal: value,
+      });
+    });
   };
 
   // 批量选择

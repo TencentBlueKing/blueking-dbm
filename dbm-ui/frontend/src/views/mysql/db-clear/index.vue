@@ -114,6 +114,7 @@
   } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
@@ -125,7 +126,6 @@
   import BatchInput from './components/BatchInput.vue';
 
   import { useGlobalBizs } from '@/stores';
-  import type { TableProps } from '@/types/bkui-vue';
 
   type FormItemInstance = InstanceType<typeof FormItem>;
 
@@ -157,11 +157,16 @@
   const isForce = ref(false);
   const popRef = ref<HTMLDivElement>();
   const isShowInputTips = ref(false);
-  const clusterInfoMap: Map<string, TendbhaModel> = reactive(new Map());
-  const clusterDBNameMap: Map<number, Array<string>> = reactive(new Map());
   const tableData = ref<Array<TableItem>>([getTableItem()]);
+  const isShowBatchEdit = ref(false);
 
   const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+
+  const clusterInfoMap: Map<string, TendbhaModel> = reactive(new Map());
+  const clusterDBNameMap: Map<number, Array<string>> = reactive(new Map());
+
+  // 设置 target|source form-item
+  const formItemRefs: Map<string, FormItemInstance> = reactive(new Map());
 
   const rules = {
     cluster: [
@@ -184,7 +189,8 @@
       },
     ],
   };
-  const columns: TableProps['columns'] = [
+
+  const columns = [
     {
       label: () => (
         <span class="column-required">
@@ -209,7 +215,24 @@
       ),
     },
     {
-      label: () => t('清档类型'),
+      label: () => (
+        <span>
+          {t('清档类型')}
+          <BatchEditColumn
+            model-value={isShowBatchEdit.value}
+            data-list={truncateDataTypes}
+            title={t('备份源')}
+            onChange={handleBatchEditTruncateType}>
+            <span
+              v-bk-tooltips={t('批量编辑')}
+              class="ml-4"
+              style="color: #3A84FF"
+              onClick={handleShowBatchEdit}>
+              <db-icon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </span>
+      ),
       field: 'truncate_data_type',
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
@@ -340,8 +363,21 @@
 
   const tagInputPasteFn = (value: string) => value.split('\n').map(item => ({ id: item }));
 
-  // 设置 target|source form-item
-  const formItemRefs: Map<string, FormItemInstance> = reactive(new Map());
+  const handleShowBatchEdit = () => {
+    isShowBatchEdit.value = !isShowBatchEdit.value;
+  };
+
+  const handleBatchEditTruncateType = (value: string) => {
+    if (!value) {
+      return;
+    }
+
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        truncate_data_type: value,
+      });
+    });
+  };
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<TableItem>) => {

@@ -7,31 +7,46 @@
     @confirm="handleConfirm">
     <slot />
     <template #content>
-      <div class="db-backup-batch-edit-local">
+      <div class="batch-edit-column-select">
         <div class="main-title">
-          {{ t('批量编辑') }}{{ t('备份位置') }}
+          {{ t('批量编辑') }}{{ title }}
         </div>
         <div
           class="title-spot edit-title"
           style="font-weight: normal;">
-          {{ t('备份位置') }} <span class="required" />
+          {{ title }} <span class="required" />
         </div>
         <BkSelect
+          v-if="type === 'select'"
           v-model="localValue"
           :clearable="false"
           filterable
-          :list="localList" />
+          :list="dataList" />
       </div>
     </template>
   </BkPopConfirm>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends string | number">
   import { useI18n } from 'vue-i18n';
+
+  interface Props {
+    title: string;
+    dataList?: {
+      value: T,
+      label: string,
+    }[];
+    type?: 'select'
+  }
 
   interface Emits {
     (e: 'change', value: string): void,
   }
+
+  withDefaults(defineProps<Props>(), {
+    dataList: () => ([]),
+    type: 'select',
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -43,17 +58,6 @@
 
   const localValue = ref('');
 
-  const localList = [
-    {
-      value: 'master',
-      label: 'master',
-    },
-    {
-      value: 'slave',
-      label: 'slave',
-    },
-  ];
-
   const handleConfirm = () => {
     emits('change', localValue.value);
     isShow.value = false;
@@ -61,7 +65,7 @@
 </script>
 
   <style lang="less">
-  .db-backup-batch-edit-local {
+  .batch-edit-column-select {
     margin-bottom: 30px;
 
     & + .bk-pop-confirm-footer {

@@ -20,6 +20,7 @@
         :title="t('清档：删除目标数据库数据, 数据会暂存在不可见的备份库中，只有在执行删除备份库后, 才会真正的删除数据。')" />
       <RenderData
         class="mt16"
+        @batch-edit-truncate-type="handleBatchEditTruncateType"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -57,7 +58,7 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
@@ -73,7 +74,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import SpiderModel from '@services/model/spider/spider';
+  import SpiderModel from '@services/model/spider/tendbCluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -97,7 +98,7 @@
   const isSafe = ref(false);
   const isSubmitting  = ref(false);
 
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const tableData = ref<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
@@ -120,6 +121,17 @@
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
+  };
+
+  const handleBatchEditTruncateType = (value: string) => {
+    if (!value) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        truncateDataType: value,
+      });
+    });
   };
 
   // 批量选择

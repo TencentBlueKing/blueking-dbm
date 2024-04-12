@@ -31,8 +31,10 @@
           :min-width="120"
           :width="580">
           <template #append>
-            <BatchEditBackupLocal
+            <BatchEditColumn
               v-model="isShowBatchEdit"
+              :data-list="selectList"
+              :title="t('备份位置')"
               @change="handleBatchEdit">
               <span
                 v-bk-tooltips="t('批量编辑')"
@@ -40,7 +42,7 @@
                 @click="handleShowBatchEdit">
                 <DbIcon type="bulk-edit" />
               </span>
-            </BatchEditBackupLocal>
+            </BatchEditColumn>
           </template>
           {{ t('备份位置') }}
         </RenderTableHeadColumn>
@@ -61,10 +63,9 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
-
-  import BatchEditBackupLocal from './BatchEditBackupLocal.vue';
 
   interface Emits{
     (e: 'batchSelectCluster'): void,
@@ -76,6 +77,17 @@
   const { t } = useI18n();
 
   const isShowBatchEdit = ref(false);
+
+  const selectList = [
+    {
+      value: 'master',
+      label: 'master',
+    },
+    {
+      value: 'slave',
+      label: 'slave',
+    },
+  ];
 
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
