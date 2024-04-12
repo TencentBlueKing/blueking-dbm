@@ -14,7 +14,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_package.models import Package
-from backend.flow.consts import DBActuatorTypeEnum, MediumEnum, SqlserverActuatorActionEnum, SqlserverBackupMode
+from backend.flow.consts import SQLSERVER_CUSTOM_SYS_USER, DBActuatorTypeEnum, MediumEnum, SqlserverActuatorActionEnum
 from backend.flow.utils.sqlserver.payload_handler import PayloadHandler
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos, get_sqlserver_config
 
@@ -122,29 +122,10 @@ class SqlserverActPayload(PayloadHandler):
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
                     "backup_dbs": self.global_data["backup_dbs"],
-                    "backup_type": self.global_data["backup_type"],
-                    "backup_id": self.global_data["backup_id"],
+                    "backup_type": kwargs["custom_params"]["backup_type"],
+                    "job_id": self.global_data["job_id"],
+                    "file_tag": kwargs["custom_params"]["file_tag"],
                     "is_set_full_model": self.global_data.get("is_set_full_model", False),
-                    "target_backup_dir": self.global_data.get("target_backup_dir", ""),
-                },
-            },
-        }
-
-    def get_backup_log_dbs_payload(self, **kwargs) -> dict:
-        """
-        执行数据库备份的payload, 日志备份专属，
-        """
-        return {
-            "db_type": DBActuatorTypeEnum.Sqlserver.value,
-            "action": SqlserverActuatorActionEnum.BackupDBS.value,
-            "payload": {
-                "general": {"runtime_account": self.get_sqlserver_account()},
-                "extend": {
-                    "host": kwargs["ips"][0]["ip"],
-                    "port": kwargs["custom_params"]["port"],
-                    "backup_dbs": self.global_data["backup_dbs"],
-                    "backup_type": SqlserverBackupMode.LOG_BACKUP.value,
-                    "backup_id": self.global_data["backup_id"],
                     "target_backup_dir": self.global_data.get("target_backup_dir", ""),
                 },
             },
@@ -247,6 +228,10 @@ class SqlserverActPayload(PayloadHandler):
         """
         实例之间克隆用户
         """
+        # 获取系统账号
+        sys_users = SQLSERVER_CUSTOM_SYS_USER
+        sys_users.append(self.get_sqlserver_drs_account(kwargs["ips"][0]["bk_cloud_id"])["drs_user"])
+
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.CloneLoginUsers.value,
@@ -257,6 +242,7 @@ class SqlserverActPayload(PayloadHandler):
                     "port": self.global_data["port"],
                     "source_host": self.global_data["source_host"],
                     "source_port": self.global_data["source_port"],
+                    "system_logins": sys_users,
                 },
             },
         }

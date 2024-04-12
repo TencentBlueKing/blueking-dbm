@@ -18,6 +18,7 @@ from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import (
+    SqlserverBackupFileTagEnum,
     SqlserverBackupJobExecMode,
     SqlserverBackupMode,
     SqlserverRestoreMode,
@@ -32,6 +33,7 @@ from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script 
 from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_backup_job import (
     ExecSqlserverBackupJobComponent,
 )
+from backend.flow.plugins.components.collections.sqlserver.insert_app_setting import InsertAppSettingComponent
 from backend.flow.plugins.components.collections.sqlserver.restore_for_do_dr import RestoreForDoDrComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_download_backup_file import (
     SqlserverDownloadBackupFileComponent,
@@ -44,6 +46,7 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     ExecBackupJobsKwargs,
+    InsertAppSettingKwargs,
     P2PFileForWindowKwargs,
     RestoreForDoDrKwargs,
 )
@@ -369,10 +372,9 @@ def sync_dbs_for_cluster_sub_flow(
         "uid": uid,
         "port": master_instance.port,
         "backup_dbs": sync_dbs,
-        "backup_type": SqlserverBackupMode.FULL_BACKUP.value,
         "target_backup_dir": backup_path,
         "is_set_full_model": True,
-        "backup_id": f"restore_dr_{root_id}",
+        "job_id": f"restore_dr_{root_id}",
     }
 
     # 声明子流程
@@ -406,7 +408,11 @@ def sync_dbs_for_cluster_sub_flow(
                 exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                 get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
                 job_timeout=3 * 3600,
-                custom_params={"port": master_instance.port},
+                custom_params={
+                    "port": master_instance.port,
+                    "file_tag": SqlserverBackupFileTagEnum.MSSQL_FULL_BACKUP.value,
+                    "backup_type": SqlserverBackupMode.FULL_BACKUP.value,
+                },
             )
         ),
     )
@@ -417,9 +423,13 @@ def sync_dbs_for_cluster_sub_flow(
         kwargs=asdict(
             ExecActuatorKwargs(
                 exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
-                get_payload_func=SqlserverActPayload.get_backup_log_dbs_payload.__name__,
+                get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
                 job_timeout=3 * 3600,
-                custom_params={"port": master_instance.port},
+                custom_params={
+                    "port": master_instance.port,
+                    "file_tag": SqlserverBackupFileTagEnum.INCREMENT_BACKUP.value,
+                    "backup_type": SqlserverBackupMode.LOG_BACKUP.value,
+                },
             )
         ),
     )
@@ -446,7 +456,7 @@ def sync_dbs_for_cluster_sub_flow(
                 "kwargs": asdict(
                     RestoreForDoDrKwargs(
                         cluster_id=cluster.id,
-                        backup_id=global_data["backup_id"],
+                        job_id=global_data["job_id"],
                         restore_dbs=sync_dbs,
                         restore_mode=SqlserverRestoreMode.FULL.value,
                         exec_ips=[slave],
@@ -467,7 +477,7 @@ def sync_dbs_for_cluster_sub_flow(
                 "kwargs": asdict(
                     RestoreForDoDrKwargs(
                         cluster_id=cluster.id,
-                        backup_id=global_data["backup_id"],
+                        job_id=global_data["job_id"],
                         restore_dbs=sync_dbs,
                         restore_mode=SqlserverRestoreMode.LOG.value,
                         exec_ips=[slave],
@@ -517,7 +527,9 @@ def install_surrounding_apps_sub_flow(
     bk_cloud_id: int,
     slave_host: List[Host],
     master_host: List[Host],
+    cluster_domain_list: list,
     is_install_backup_client: bool = True,
+    is_init_app_setting: bool = True,
 ):
     """
     安装sqlserver的周边程序的通用子流程, 暂时不能跨业务, 不能跨云区域
@@ -525,9 +537,11 @@ def install_surrounding_apps_sub_flow(
     @param root_id: 主流程的id
     @param bk_biz_id: 业务id
     @param bk_cloud_id: 云区域id
+    @param cluster_domain_list: 集群主域名列表
     @param slave_host: 从实例列表
     @param master_host: 主实例列表
     @param is_install_backup_client 是不是安装backup_client
+    @param is_init_app_setting 是否初始化app_setting表
     """
     # 构建子流程global_data
     global_data = {
@@ -557,6 +571,25 @@ def install_surrounding_apps_sub_flow(
                 ),
             }
         )
+    if is_init_app_setting:
+        for cluster_domain in cluster_domain_list:
+            acts_list.append(
+                {
+                    "act_name": _("集群[{}]初始化app_setting表".format(cluster_domain)),
+                    "act_component_code": InsertAppSettingComponent.code,
+                    "kwargs": asdict(
+                        InsertAppSettingKwargs(
+                            cluster_domain=cluster_domain,
+                            ips=list(
+                                filter(
+                                    None,
+                                    list(set([host.ip for host in master_host] + [host.ip for host in slave_host])),
+                                )
+                            ),
+                        )
+                    ),
+                }
+            )
     if len(acts_list) == 0:
         raise Exception(_("install_surrounding_apps_sub_flow的子流程列表为空"))
 

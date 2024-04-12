@@ -218,11 +218,11 @@ def exec_instance_backup_jobs(cluster_id, backup_jobs_type: SqlserverBackupJobEx
     return True
 
 
-def get_backup_info_in_master(cluster_id: int, backup_id: str, db_name: str, backup_type: str):
+def get_backup_info_in_master(cluster_id: int, job_id: str, db_name: str, backup_type: str):
     """
     查询对应数据库的本地备份记录
     @param cluster_id: 操作的集群id
-    @param backup_id: 这次流程的备份id
+    @param job_id: 这次流程的备份id
     @param db_name: db名称
     @param backup_type: 备份类型
     """
@@ -232,7 +232,7 @@ backup_finish_date ,
 a.physical_device_name as backup_file
 from msdb.dbo.backupmediafamily as a
 inner join msdb.dbo.backupset as b on a.media_set_id = b.media_set_id
-where a.physical_device_name like '%{backup_id}%' and database_name = '{db_name}' and b.type = '{backup_type}'
+where a.physical_device_name like '%{job_id}%' and database_name = '{db_name}' and b.type = '{backup_type}'
 order by backup_finish_date desc"""
 
     cluster = Cluster.objects.get(id=cluster_id)
@@ -353,7 +353,7 @@ def get_cluster_database_with_cloud(bk_cloud_id: int, clusters: List[Cluster]) -
             "addresses": [inst.ip_port for inst in master_instances],
             "cmds": [
                 "select name from [master].[sys].[databases] where "
-                f"database_id > 4 and name != '{SQLSERVER_CUSTOM_SYS_DB}'"
+                f"database_id > 4 and name != '{SQLSERVER_CUSTOM_SYS_DB}' and source_database_id is null"
             ],
             "force": False,
         }
@@ -432,7 +432,7 @@ def create_sqlserver_random_job_user(
     """
     user = generate_mysql_tmp_user(job_root_id)
     create_cmds = [
-        f"use master IF SUSER_SID('{user}') IS NOT NULL drop login [{user}];"
+        f"use master IF SUSER_SID('{user}') IS NULL "
         f"CREATE LOGIN {user} WITH PASSWORD=N'{pwd}', DEFAULT_DATABASE=[MASTER],SID={sid},CHECK_POLICY=OFF;"
         f"EXEC sp_addsrvrolemember @loginame = '{user}', @rolename = N'sysadmin';",
     ]
@@ -461,7 +461,141 @@ def drop_sqlserver_random_job_user(
         {
             "bk_cloud_id": bk_cloud_id,
             "addresses": [s.ip_port for s in storages] + other_instances,
-            "cmds": [f"use master IF SUSER_SID('{user}') IS NOT NULL drop login [{user}]"],
+            "cmds": [
+                f"IF SUSER_SID('{user}') IS NOT NULL " f"drop login [{user}] ;",
+            ],
             "force": False,
         }
     )
+
+
+def get_sync_filter_dbs(cluster_id: int):
+    """
+    获取不做同步的db列表
+    @param 集群id
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
+    master_instance = cluster.storageinstance_set.get(
+        instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+    )
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [master_instance.ip_port],
+            "cmds": [f"select name from [{SQLSERVER_CUSTOM_SYS_DB}].[DBO].[MIRRORING_FILTER];"],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{master_instance.ip_port}] get dbs failed: {ret[0]['error_msg']}")
+    # 获取所有db名称
+    return [i["name"] for i in ret[0]["cmd_results"][0]["table_data"]]
+
+
+def insert_sqlserver_config(
+    cluster: Cluster, storages: QuerySet, backup_config: dict, charset: str, alarm_config: dict
+):
+    """
+    给sqlserver实例插入配置信息
+    @param cluster: 集群
+    @param storages: 需要配置的实例列表
+    @param backup_config: 实例的备份配置
+    @param charset: 字符集
+    @param alarm_config 实例的告警配置
+    """
+    master = cluster.storageinstance_set.get(instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER])
+    sync_mode = SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
+    drop_sql = "use Monitor truncate table [Monitor].[dbo].[APP_SETTING]"
+    for storage in storages:
+        insert_app_setting_sql = f"""INSERT INTO [Monitor].[dbo].[APP_SETTING](
+[APP],
+[FULL_BACKUP_PATH],
+[LOG_BACKUP_PATH],
+[KEEP_FULL_BACKUP_DAYS],
+[KEEP_LOG_BACKUP_DAYS],
+[FULL_BACKUP_MIN_SIZE_MB],
+[LOG_BACKUP_MIN_SIZE_MB],
+[UPLOAD],
+[MD5],
+[CLUSTER_ID],
+[CLUSTER_DOMAIN],
+[IP],
+[PORT],
+[ROLE],
+[MASTER_IP],
+[MASTER_PORT],
+[SYNCHRONOUS_MODE],
+[BK_BIZ_ID],
+[BK_CLOUD_ID],
+[VERSION],
+[BACKUP_TYPE],
+[DATA_SCHEMA_GRANT],
+[TIME_ZONE],
+[CHARSET],
+[BACKUP_CLIENT_PATH],
+[BACKUP_STORAGE_TYPE],
+[FULL_BACKUP_REPORT_PATH],
+[LOG_BACKUP_REPORT_PATH],
+[FULL_BACKUP_FILETAG],
+[LOG_BACKUP_FILETAG],
+[SHRINK_SIZE],
+[RESTORE_PATH],
+[LOG_SEND_QUEUE],
+[TRACEON],
+[SLOW_DURATION],
+[SLOW_SAVEDAY],
+[UPDATESTATS])
+VALUES(
+'{str(cluster.bk_biz_id)}',
+'{backup_config['full_backup_path']}',
+'{backup_config['log_backup_path']}',
+{int(backup_config['keep_full_backup_days'])},
+{int(backup_config['keep_log_backup_days'])},
+{int(backup_config['full_backup_min_size_mb'])},
+{int(backup_config['log_backup_min_size_mb'])},
+1,
+0,
+{cluster.id},
+'{cluster.immute_domain}',
+'{storage.machine.ip}',
+{storage.port},
+'{storage.instance_inner_role}',
+'{master.machine.ip}',
+{master.port},
+'{sync_mode}',
+{cluster.bk_biz_id},
+{cluster.bk_cloud_id},
+'{cluster.major_version}',
+'{backup_config['backup_type']}',
+'{backup_config['data_schema_grant']}',
+'{cluster.time_zone}',
+'{charset}',
+'{backup_config['backup_client_path']}',
+'{backup_config['backup_storage_type']}',
+'{backup_config['full_backup_report_path']}',
+'{backup_config['log_backup_report_path']}',
+'{backup_config['full_backup_file_tag']}',
+'{backup_config['log_backup_file_tag']}',
+{int(alarm_config['shrink_size'])},
+'',
+{int(alarm_config['log_send_queue'])},
+{int(alarm_config['traceon'])},
+{int(alarm_config['slow_duration'])},
+{int(alarm_config['slow_saveday'])},
+{int(alarm_config['updatestats'])}
+)
+"""
+        ret = DRSApi.sqlserver_rpc(
+            {
+                "bk_cloud_id": cluster.bk_cloud_id,
+                "addresses": [storage.ip_port],
+                "cmds": [drop_sql, insert_app_setting_sql],
+                "force": False,
+            }
+        )
+
+        if ret[0]["error_msg"]:
+            raise Exception(f"[{storage.ip_port}] insert app_setting failed: {ret[0]['error_msg']}")
+
+    return True

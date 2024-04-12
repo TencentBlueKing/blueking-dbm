@@ -8,16 +8,10 @@ const (
 	SysInitScriptFileName = "sysinit.ps1"
 	// InitSqlServerFileName TODO
 	InitSqlServerFileName = "init_sqlserver.ps1"
-	// MonitorFileName TODO
-	MonitorFileName = "01_monitor.sql"
-	// BackupFileName TODO
-	BackupFileName = "02_backup.sql"
-	// AutoSwitchFileName TODO
-	AutoSwitchFileName = "03_auto_switch.sql"
-	// SqlSettingFileName TODO
-	SqlSettingFileName = "04_sqlsetting.sql"
 	// TestFileName TODO
 	TestFileName = "test.sql"
+	// InitDBMMonitorFileName TODO
+	InitDBMMonitorFileName = "monitor_dbm.sql"
 )
 
 // SysInitScript TODO

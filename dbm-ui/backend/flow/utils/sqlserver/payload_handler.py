@@ -82,7 +82,6 @@ class PayloadHandler(object):
     def get_create_sqlserver_account(cls, bk_cloud_id: int):
         """
         获取sqlserver实例内置帐户密码，安装实例场景使用
-        todo 后续需要增加drs访问账号初始化
         """
         user_map = {}
         value_to_name = {member.value: member.name.lower() for member in SqlserverUserName}

@@ -80,46 +80,45 @@ func (h *DbWorker) Stop() {
 }
 
 // Exec 执行任意sql，返回影响行数
-func (h *DbWorker) Exec(query string, args ...interface{}) (int64, error) {
-	ret, err := h.Db.Exec(query, args...)
-	if err != nil {
-		return 0, err
-	}
-	return ret.RowsAffected()
+func (h *DbWorker) Exec(sql string, args ...interface{}) (int64, error) {
+	sqls := []string{sql}
+	return h.ExecMore(sqls)
 }
 
 // ExecMore 执行一堆sql
 // 会在同一个连接里执行
-// 空元素会跳过
 func (h *DbWorker) ExecMore(sqls []string) (rowsAffectedCount int64, err error) {
 	var c int64
-	db, err := h.Db.Conn(context.Background())
+	var db *sqlx.DB
+	// 插入execute命令
+	baseSQL := "EXECUTE AS login='sa';"
+	db, err = sqlx.Connect("mssql", h.Dsn)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("connect db failed, err:%w", err)
 	}
 	defer db.Close()
-	for _, sqlStr := range sqls {
-		if strings.TrimSpace(sqlStr) == "" {
-			continue
-		}
-		ret, err := db.ExecContext(context.Background(), sqlStr)
-		if err != nil {
-			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
-		}
-		if c, err = ret.RowsAffected(); err != nil {
-			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
-		}
-		rowsAffectedCount += c
+	sqlStr := strings.Join(sqls, ";")
+	ret, err := db.Exec(fmt.Sprintf("%s %s", baseSQL, sqlStr))
+	if err != nil {
+		return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
 	}
+	if c, err = ret.RowsAffected(); err != nil {
+		return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
+	}
+	rowsAffectedCount += c
 	return
 }
 
 // Queryx execute query use sqlx
 func (h *DbWorker) Queryx(data interface{}, query string, args ...interface{}) error {
-	db := sqlx.NewDb(h.Db, "mssql")
+	db, err := sqlx.Connect("mssql", h.Dsn)
+	if err != nil {
+		return fmt.Errorf("connect db failed, err:%w", err)
+	}
+	defer db.Close()
 	udb := db.Unsafe()
 	if err := udb.Select(data, query, args...); err != nil {
-		logger.Info("Queryx:%s, args:%v", query, args)
+		logger.Error("Queryx:%s, args:%v", query, args)
 		return fmt.Errorf("sqlx select failed, err:%w", err)
 	}
 	return nil
@@ -127,8 +126,11 @@ func (h *DbWorker) Queryx(data interface{}, query string, args ...interface{}) e
 
 // Queryxs execute query use sqlx return Single row
 func (h *DbWorker) Queryxs(data interface{}, query string) error {
-	// logger.Info("Queryxs:%s", query)
-	db := sqlx.NewDb(h.Db, "mssql")
+	db, err := sqlx.Connect("mssql", h.Dsn)
+	if err != nil {
+		return fmt.Errorf("connect db failed, err:%w", err)
+	}
+	defer db.Close()
 	udb := db.Unsafe()
 	if err := udb.Get(data, query); err != nil {
 		return err
@@ -196,7 +198,7 @@ func (h *DbWorker) GetServerNameAndInstanceName() (info []InstanceInfo, err erro
 func (h *DbWorker) DisableBackupJob(isForce bool) (err error) {
 	cmds := []string{
 		"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_FULL',@enabled=0;",
-		"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_LOG',@enabled=0",
+		"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_LOG',@enabled=0;",
 	}
 	if _, err := h.ExecMore(cmds); err != nil {
 		log := fmt.Sprintf("disable backup jobs failed %v", err)
@@ -213,7 +215,7 @@ func (h *DbWorker) DisableBackupJob(isForce bool) (err error) {
 func (h *DbWorker) EnableBackupJob() (err error) {
 	cmds := []string{
 		"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_FULL',@enabled=1;",
-		"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_LOG',@enabled=1",
+		"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_LOG',@enabled=1;",
 	}
 	if _, err := h.ExecMore(cmds); err != nil {
 		return fmt.Errorf("enable backup jobs failed %v", err)

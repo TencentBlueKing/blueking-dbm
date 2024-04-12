@@ -130,6 +130,7 @@ class SqlserverSingleApplyFlow(BaseFlow):
                     bk_cloud_id=int(self.data["bk_cloud_id"]),
                     master_host=[Host(**info["mssql_host"])],
                     slave_host=[],
+                    cluster_domain_list=[c["immutable_domain"] for c in sub_flow_context["clusters"]],
                 )
             )
 

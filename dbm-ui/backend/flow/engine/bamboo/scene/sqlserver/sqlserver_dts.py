@@ -17,6 +17,7 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
 from backend.flow.consts import (
+    SqlserverBackupFileTagEnum,
     SqlserverBackupJobExecMode,
     SqlserverBackupMode,
     SqlserverDtsMode,
@@ -82,17 +83,22 @@ class SqlserverDTSFlow(BaseFlow):
             # 计算源集群和目标集群的master
             cluster = Cluster.objects.get(id=info["src_cluster"])
             target_cluster = Cluster.objects.get(id=info["dst_cluster"])
-            master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
-            target_master_instance = target_cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+
+            # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
+            master_instance = cluster.storageinstance_set.get(
+                instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+            )
+            target_master_instance = target_cluster.storageinstance_set.get(
+                instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+            )
 
             # 拼接子流程，子流程并发执行
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
             sub_flow_context.update(info)
             sub_flow_context["target_backup_dir"] = f"d:\\dbbak\\dts_full_{self.root_id}\\"
-            sub_flow_context["backup_id"] = f"dts_full_{self.root_id}"
+            sub_flow_context["job_id"] = f"dts_full_{self.root_id}"
             sub_flow_context["backup_dbs"] = [i["db_name"] for i in info["dts_infos"]]
-            sub_flow_context["backup_type"] = SqlserverBackupMode.FULL_BACKUP.value
             sub_flow_context["is_set_full_model"] = False
 
             # 声明子流程
@@ -143,7 +149,11 @@ class SqlserverDTSFlow(BaseFlow):
                         exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                         get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
                         job_timeout=3 * 3600,
-                        custom_params={"port": master_instance.port},
+                        custom_params={
+                            "port": master_instance.port,
+                            "file_tag": SqlserverBackupFileTagEnum.MSSQL_FULL_BACKUP.value,
+                            "backup_type": SqlserverBackupMode.FULL_BACKUP.value,
+                        },
                     )
                 ),
             )
@@ -155,9 +165,13 @@ class SqlserverDTSFlow(BaseFlow):
                 kwargs=asdict(
                     ExecActuatorKwargs(
                         exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
-                        get_payload_func=SqlserverActPayload.get_backup_log_dbs_payload.__name__,
+                        get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
                         job_timeout=3 * 3600,
-                        custom_params={"port": master_instance.port},
+                        custom_params={
+                            "port": master_instance.port,
+                            "file_tag": SqlserverBackupFileTagEnum.INCREMENT_BACKUP.value,
+                            "backup_type": SqlserverBackupMode.LOG_BACKUP.value,
+                        },
                     )
                 ),
             )
@@ -185,7 +199,7 @@ class SqlserverDTSFlow(BaseFlow):
                 kwargs=asdict(
                     RestoreForDtsKwargs(
                         cluster_id=cluster.id,
-                        backup_id=sub_flow_context["backup_id"],
+                        job_id=sub_flow_context["job_id"],
                         restore_infos=sub_flow_context["dts_infos"],
                         restore_mode=SqlserverRestoreMode.FULL.value,
                         restore_db_status=SqlserverRestoreDBStatus.NORECOVERY.value,
@@ -208,7 +222,7 @@ class SqlserverDTSFlow(BaseFlow):
                 kwargs=asdict(
                     RestoreForDtsKwargs(
                         cluster_id=cluster.id,
-                        backup_id=sub_flow_context["backup_id"],
+                        job_id=sub_flow_context["job_id"],
                         restore_infos=sub_flow_context["dts_infos"],
                         restore_mode=SqlserverRestoreMode.LOG.value,
                         restore_db_status=restore_db_status,
@@ -281,15 +295,21 @@ class SqlserverDTSFlow(BaseFlow):
             # 计算源集群和目标集群的master
             cluster = Cluster.objects.get(id=info["src_cluster"])
             target_cluster = Cluster.objects.get(id=info["dst_cluster"])
-            master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
-            target_master_instance = target_cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+
+            # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
+            master_instance = cluster.storageinstance_set.get(
+                instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+            )
+            target_master_instance = target_cluster.storageinstance_set.get(
+                instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+            )
 
             # 拼接子流程，子流程并发执行
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
             sub_flow_context.update(info)
             sub_flow_context["target_backup_dir"] = f"d:\\dbbak\\dts_full_{self.root_id}\\"
-            sub_flow_context["backup_id"] = f"dts_full_{self.root_id}"
+            sub_flow_context["job_id"] = f"dts_full_{self.root_id}"
             sub_flow_context["backup_dbs"] = [i["db_name"] for i in info["dts_infos"]]
 
             # 声明子流程
@@ -329,9 +349,13 @@ class SqlserverDTSFlow(BaseFlow):
                 kwargs=asdict(
                     ExecActuatorKwargs(
                         exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
-                        get_payload_func=SqlserverActPayload.get_backup_log_dbs_payload.__name__,
+                        get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
                         job_timeout=3 * 3600,
-                        custom_params={"port": master_instance.port},
+                        custom_params={
+                            "port": master_instance.port,
+                            "file_tag": SqlserverBackupFileTagEnum.INCREMENT_BACKUP.value,
+                            "backup_type": SqlserverBackupMode.LOG_BACKUP.value,
+                        },
                     )
                 ),
             )
@@ -364,7 +388,7 @@ class SqlserverDTSFlow(BaseFlow):
                 kwargs=asdict(
                     RestoreForDtsKwargs(
                         cluster_id=cluster.id,
-                        backup_id=sub_flow_context["backup_id"],
+                        job_id=sub_flow_context["job_id"],
                         restore_infos=sub_flow_context["dts_infos"],
                         restore_mode=SqlserverRestoreMode.LOG.value,
                         restore_db_status=restore_db_status,

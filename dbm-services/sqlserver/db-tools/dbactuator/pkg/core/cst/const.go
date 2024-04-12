@@ -157,7 +157,7 @@ const (
 		"password_hash,default_database_name,dbcreator,sysadmin, " +
 		"securityadmin,serveradmin,setupadmin,processadmin,diskadmin,bulkadmin " +
 		"from master.sys.sql_logins a left join sys.syslogins b " +
-		"on a.name=b.name where principal_id>4 and a.name not in('monitor') and a.is_disabled = 0"
+		"on a.name=b.name where principal_id>4 and a.name not in('%s') and a.is_disabled = 0"
 )
 
 // 判断实例是否有业务进程
@@ -230,4 +230,22 @@ var (
 	EXEC SP_ADDROLEMEMBER N''db_owner'',N'''+@username+''';'
 	EXEC(@sql)
 	`
+)
+
+var (
+	GRANT_MSSQL_EXPORTER_SQL = `
+	USE [master]
+	DECLARE @username NVARCHAR(50) = '%s'
+	DECLARE @sql NVARCHAR(MAX)
+	set @sql='
+	GRANT VIEW SERVER STATE TO ['+@username+'] AS [sa]
+	USE [msdb]
+	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
+	EXEC sp_addrolemember N''db_datareader'', N'''+@username+'''
+	USE [Monitor]
+	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
+	EXEC sp_addrolemember N''db_datareader'', N'''+@username+'''
+	GRANT EXECUTE ON [dbo].[mssql_exporter] TO ['+@username+']'
+	EXEC(@sql)
+`
 )

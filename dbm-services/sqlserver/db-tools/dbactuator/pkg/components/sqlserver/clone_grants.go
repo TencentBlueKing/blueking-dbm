@@ -13,6 +13,7 @@ package sqlserver
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
@@ -29,10 +30,11 @@ type CloneLoginUsersComp struct {
 
 // CloneLoginUsersParam 参数
 type CloneLoginUsersParam struct {
-	Host       string `json:"host" validate:"required,ip" `          // 本地hostip
-	Port       int    `json:"port"  validate:"required,gt=0"`        // 需要操作的实例端口
-	SourceHost string `json:"source_host" validate:"required,ip" `   // 权限源的ip
-	SourcePort int    `json:"source_port"  validate:"required,gt=0"` // 权限源的port
+	Host         string   `json:"host" validate:"required,ip" `          // 本地hostip
+	Port         int      `json:"port"  validate:"required,gt=0"`        // 需要操作的实例端口
+	SourceHost   string   `json:"source_host" validate:"required,ip" `   // 权限源的ip
+	SourcePort   int      `json:"source_port"  validate:"required,gt=0"` // 权限源的port
+	SystemLogins []string `json:"system_logins"  validate:"required"`    // 系统账号
 }
 
 // 运行是需要的必须参数,可以提前计算
@@ -92,7 +94,10 @@ func (c *CloneLoginUsersComp) Init() error {
 func (c *CloneLoginUsersComp) CloneGrant() error {
 	var logininfos []LoginInfo
 
-	if err := c.SourceDB.Queryx(&logininfos, cst.GET_LOGIN_INFO); err != nil {
+	if err := c.SourceDB.Queryx(
+		&logininfos,
+		fmt.Sprintf(cst.GET_LOGIN_INFO, strings.Join(c.Params.SystemLogins, "','")),
+	); err != nil {
 		return fmt.Errorf("get-login-info failed %v", err)
 	}
 
