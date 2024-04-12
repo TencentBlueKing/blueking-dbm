@@ -275,14 +275,10 @@ class SpecSerializer(serializers.ModelSerializer):
                     _("【{}】后端磁盘挂载点必须包含/data，可选/data1").format(attrs["spec_cluster_type"])
                 )
         # TendisPlus/TendisSSD 磁盘必须包含/data，/data1可选
-        if (
-            attrs["spec_cluster_type"]
-            in [
-                ClusterType.TwemproxyTendisSSDInstance,
-                ClusterType.TendisPredixyTendisplusCluster,
-            ]
-            and attrs["spec_machine_type"] in [MachineType.TENDISPLUS, MachineType.TENDISSSD]
-        ):
+        if attrs["spec_cluster_type"] in [
+            ClusterType.TwemproxyTendisSSDInstance,
+            ClusterType.TendisPredixyTendisplusCluster,
+        ] and attrs["spec_machine_type"] in [MachineType.TENDISPLUS, MachineType.TENDISSSD]:
             if "/data" not in set(mount_points):
                 raise serializers.ValidationError(_("【{}】后端磁盘挂载点必须包含/data").format(attrs["spec_cluster_type"]))
 

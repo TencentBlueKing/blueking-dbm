@@ -84,9 +84,9 @@ def render_promql_sql(prom_sql, wheres):
             value = f'"{value}"'
 
         # Check if label already exists in the query
-        if re.search(fr'{label}="[^"]*"|\b{label}=~"[^"]*"', prom_sql):
+        if re.search(rf'{label}="[^"]*"|\b{label}=~"[^"]*"', prom_sql):
             # If label exists, replace its value
-            prom_sql = re.sub(fr'{label}="[^"]*"|\b{label}=~"[^"]*"', fr"{label}={value}", prom_sql)
+            prom_sql = re.sub(rf'{label}="[^"]*"|\b{label}=~"[^"]*"', rf"{label}={value}", prom_sql)
         else:
             # If label does not exist, add before the closing '}'
             # Use double }} to escape a single } in the f-string

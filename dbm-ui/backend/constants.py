@@ -16,7 +16,7 @@ from dataclasses import dataclass
 DEFAULT_BK_CLOUD_ID = 0
 
 # 一些常量值
-INT_MAX = 2 ** 31 - 1
+INT_MAX = 2**31 - 1
 
 # IP 端口分隔符
 IP_PORT_DIVIDER = ":"

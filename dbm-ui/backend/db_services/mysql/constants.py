@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 # 端口最大最小值
-SERVER_PORT_LIMIT_MAX = 2 ** 16
+SERVER_PORT_LIMIT_MAX = 2**16
 SERVER_PORT_LIMIT_MIN = 0
 
 # 默认起始端口
