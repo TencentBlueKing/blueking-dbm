@@ -47,8 +47,7 @@
     handleRedirect(
       data.cluster_type,
       {
-        id: data.cluster_id,
-        ip: data.ip,
+        instance: data.ip,
       },
       data.bk_biz_id,
     );

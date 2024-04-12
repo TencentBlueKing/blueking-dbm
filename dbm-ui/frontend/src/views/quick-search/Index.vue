@@ -259,7 +259,7 @@
 
     quickSearchRun({
       ...formData.value,
-      keyword: keyword.value.replace(/，/g, '\n'),
+      keyword: keyword.value.replace(batchSplitRegex, ' '),
       limit: 1000,
     });
   };
