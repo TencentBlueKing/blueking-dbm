@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import json
 import logging
+from collections import defaultdict
 from typing import Any, Dict, List
 
 from django.db import transaction
@@ -257,13 +258,11 @@ class CcManage(object):
         hosts = CCApi.find_host_biz_relations({"bk_host_id": bk_host_ids})
 
         # 主机当前业务跟目标业务不一致，需转移业务的主机
-        need_across_biz_host_ids = []
-        src_bk_biz_id = None
+        need_across_biz_host_ids = defaultdict(list)
         for host in hosts:
             host_biz_id = host["bk_biz_id"]
             if host_biz_id != self.hosting_biz_id:
-                src_bk_biz_id = host_biz_id
-                need_across_biz_host_ids.append(host["bk_host_id"])
+                need_across_biz_host_ids[host_biz_id].append(host["bk_host_id"])
 
         # 业务id -> 业务空闲机模块映射
         dst_biz_internal_module = CCApi.get_biz_internal_module({"bk_biz_id": self.hosting_biz_id}, use_admin=True)
@@ -274,15 +273,13 @@ class CcManage(object):
                 free_bk_module_id = module["bk_module_id"]
 
         # 将待跨业务转移主机先转移到当前业务的空闲机
-        if need_across_biz_host_ids:
-            self.transfer_host_to_idlemodule(
-                bk_biz_id=src_bk_biz_id, bk_host_ids=need_across_biz_host_ids, host_topo=hosts
-            )
+        for src_bk_biz_id, transfer_host_ids in need_across_biz_host_ids.items():
+            self.transfer_host_to_idlemodule(bk_biz_id=src_bk_biz_id, bk_host_ids=transfer_host_ids, host_topo=hosts)
             resp = CCApi.transfer_host_across_biz(
                 {
                     "src_bk_biz_id": src_bk_biz_id,
                     "dst_bk_biz_id": self.hosting_biz_id,
-                    "bk_host_id": need_across_biz_host_ids,
+                    "bk_host_id": transfer_host_ids,
                     "bk_module_id": free_bk_module_id,
                 },
                 use_admin=True,
