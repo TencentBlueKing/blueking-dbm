@@ -23,6 +23,7 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.bigdata.resources import constants, yasg_slz
+from backend.db_services.bigdata.resources.serializers import NodeListSerializer
 from backend.db_services.dbbase.resources.constants import ResourceNodeType
 from backend.db_services.dbbase.resources.serializers import SearchResourceTreeSLZ
 from backend.db_services.dbbase.resources.views import BaseListResourceViewSet
@@ -119,14 +120,14 @@ class BigdataResourceViewSet(ResourceViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("获取集群节点列表信息"),
         responses={status.HTTP_200_OK: yasg_slz.NodesResourceSLZ},
+        query_serializer=NodeListSerializer(),
         tags=[constants.RESOURCE_TAG],
     )
-    @action(methods=["GET"], detail=True, url_path="list_nodes", serializer_class=None)
-    def list_nodes(self, request, bk_biz_id: int, cluster_id: int):
+    @action(methods=["GET"], detail=True, url_path="list_nodes", serializer_class=NodeListSerializer)
+    def list_nodes(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
         """获取集群节点列表信息"""
-        data = self.paginator.paginate_list(
-            request, bk_biz_id, self.query_class.list_nodes, {"cluster_id": cluster_id}
-        )
+        data = self.paginator.paginate_list(request, data["bk_biz_id"], self.query_class.list_nodes, data)
         return self.get_paginated_response(data)
 
 
