@@ -859,7 +859,7 @@ class RedisDBMeta(object):
         polaris_entry.save()
 
     def tendis_add_clb_domain_4_scene(self):
-        """ 增加CLB 域名 """
+        """增加CLB 域名"""
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
@@ -875,7 +875,7 @@ class RedisDBMeta(object):
         cluster_entry.save()
 
     def tendis_bind_clb_domain_4_scene(self):
-        """ 主域名直接指向CLB """
+        """主域名直接指向CLB"""
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
@@ -891,7 +891,7 @@ class RedisDBMeta(object):
 
     # 主域名解绑CLB
     def tendis_unBind_clb_domain_4_scene(self):
-        """ 主域名解绑CLB """
+        """主域名解绑CLB"""
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
