@@ -22,6 +22,11 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, ClusterType
 from backend.db_meta.models import AppCache, Cluster, ClusterEntry, DBModule, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
+from backend.db_services.dbbase.resources.query_base import (
+    build_q_for_domain_by_custer,
+    build_q_for_domain_by_instance,
+    build_q_for_instance_filter,
+)
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.utils.dns_manage import DnsManage
 from backend.ticket.constants import TicketFlowStatus
@@ -340,18 +345,17 @@ class ListRetrieveResource(BaseListRetrieveResource):
             # 域名精确查询，主要用于工具箱手动填入域名查询
             "exact_domain": Q(immute_domain=query_params.get("exact_domain")),
             # 域名
-            "domain": Q(
-                clusterentry__cluster_entry_type=ClusterEntryType.DNS.value,
-                clusterentry__entry__in=query_params.get("domain", "").split(","),
-            ),
+            "domain": build_q_for_domain_by_custer(query_params),
         }
+
         filter_params_map.update(inner_filter_params_map)
 
         # 通过基础过滤参数进行cluster过滤
         for param in filter_params_map:
             if query_params.get(param):
                 query_filters &= filter_params_map[param]
-        cluster_queryset = Cluster.objects.filter(query_filters).order_by("create_at")
+        # 一join多的一方会有重复的数据,去重
+        cluster_queryset = Cluster.objects.filter(query_filters).distinct()
 
         def filter_inst_queryset(_cluster_queryset, _proxy_queryset, _storage_queryset, _filters):
             # 注意这里用新的变量获取过滤后的queryset，不要用原queryset过滤，会影响后续集群关联实例的获取
@@ -368,7 +372,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             """实例过滤ip:port 以及 ip 两种情况"""
             # 应用过滤条件并返回查询集
             _cluster_queryset = filter_inst_queryset(
-                _cluster_queryset, _proxy_queryset, _storage_queryset, cls.build_q_for_instance_filter(_query_params)
+                _cluster_queryset, _proxy_queryset, _storage_queryset, build_q_for_instance_filter(_query_params)
             )
 
             return _cluster_queryset
@@ -502,23 +506,6 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "update_at": datetime2str(cluster.update_at),
         }
 
-    @staticmethod
-    def build_q_for_instance_filter(params_data: dict) -> Q:
-        instance_list = params_data.get("instance", "").split(",")
-        # 初始化两个空的Q对象，稍后用于构造过滤条件
-        q_ip = Q()
-        q_ip_port = Q()
-        # 对筛选条件进行区分ip,还是ip:port
-        for instance in instance_list:
-            if IP_PORT_DIVIDER in instance:
-                ip, port = instance.split(IP_PORT_DIVIDER)
-                q_ip_port |= Q(machine__ip=ip, port=port)
-            else:
-                q_ip |= Q(machine__ip=instance)
-
-        # 合并两种过滤条件
-        return q_ip | q_ip_port
-
     @classmethod
     def _list_instances(
         cls,
@@ -539,28 +526,6 @@ class ListRetrieveResource(BaseListRetrieveResource):
         """
         query_filters = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
 
-        def build_q_for_domain_filter(_query_params):
-            domain_list = _query_params.get("domain", "").split(",")
-            # 初始化列表和Q查询对象
-            q_ip_list = []
-            q_ip_port_query = Q()
-
-            # 基础查询条件
-            base_query = Q(cluster__clusterentry__cluster_entry_type=ClusterEntryType.DNS.value)
-
-            for domain in domain_list:
-                if IP_PORT_DIVIDER in domain:
-                    ip, port = domain.split(IP_PORT_DIVIDER)
-                    # 为带端口的IP构造查询条件
-                    q_ip_port_query |= Q(cluster__clusterentry__entry=ip, port=port)
-                else:
-                    q_ip_list.append(domain)
-
-            # 构造不带端口号的域名查询条件（如果q_ip不为空）
-            q_ip_query = Q(cluster__clusterentry__entry__in=q_ip_list) if q_ip_list else Q()
-
-            return base_query & (q_ip_query | q_ip_port_query)
-
         # 定义内置的过滤参数map
         inner_filter_params_map = {
             "ip": Q(machine__ip__in=query_params.get("ip", "").split(",")),
@@ -570,8 +535,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "region": Q(region=query_params.get("region")),
             "role": Q(role__in=query_params.get("role", "").split(",")),
             "name": Q(cluster__name__in=query_params.get("name", "").split(",")),
-            "domain": build_q_for_domain_filter(query_params),
-            "instance": cls.build_q_for_instance_filter(query_params),
+            "domain": build_q_for_domain_by_instance(query_params),
+            "instance": build_q_for_instance_filter(query_params),
         }
         filter_params_map = filter_params_map or {}
         filter_params_map.update(inner_filter_params_map)

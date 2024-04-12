@@ -9,9 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
+from operator import itemgetter
 from typing import Any, Dict, List
 
-from django.db.models import Count, F
+from django.db.models import Count, F, Q
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
@@ -126,12 +127,31 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
     @classmethod
     def list_nodes(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         cluster_id = query_params["cluster_id"]
-        fields = ["machine__ip", "machine__bk_host_id", "machine__bk_cloud_id", "node_count", "role", "create_at"]
+        fields = [
+            "id",
+            "machine__ip",
+            "machine__bk_host_id",
+            "machine__bk_cloud_id",
+            "node_count",
+            "role",
+            "create_at",
+        ]
+
+        query_filters = Q(cluster__id=cluster_id, bk_biz_id=bk_biz_id)
+        # 定义内置的过滤参数map
+        node_filter_params = {
+            "ip": Q(machine__ip__in=query_params.get("ip", "").split(",")),
+            "node_type": Q(instance_role__in=query_params.get("node_type", "").split(",")),
+        }
+        # 通过基础过滤参数进行instance过滤
+        for param in node_filter_params:
+            if query_params.get(param):
+                query_filters &= node_filter_params[param]
 
         # 聚合实例角色和ip，统计同一ip下同一角色的数量
         # 注意这里一定要用order by覆盖meta中的order by，否则会导致聚合错误
         storage_queryset = (
-            StorageInstance.objects.filter(cluster__id=cluster_id, bk_biz_id=bk_biz_id)
+            StorageInstance.objects.filter(query_filters)
             .values("instance_role", "machine__ip")
             .annotate(node_count=Count("id"), role=F("instance_role"))
             .values(*fields)
@@ -139,7 +159,9 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         )
 
         node_list = list(storage_queryset)
-        return cls._to_nodes_list(bk_biz_id=bk_biz_id, node_list=node_list, limit=limit, offset=offset)
+        return cls._to_nodes_list(
+            bk_biz_id=bk_biz_id, node_list=node_list, limit=limit, offset=offset, ordering=query_params["ordering"]
+        )
 
     @classmethod
     def get_nodes(cls, bk_biz_id: int, cluster_id: int, role: str, keyword: str = None) -> list:
@@ -148,7 +170,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
 
     @classmethod
     def _to_nodes_list(
-        cls, bk_biz_id: int, node_list: List[Dict[str, Any]], limit: int, offset: int
+        cls, bk_biz_id: int, node_list: List[Dict[str, Any]], limit: int, offset: int, ordering: str
     ) -> query.ResourceList:
         """节点列表序列化"""
 
@@ -182,7 +204,18 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         group_list = list(host_id__node_list_map.values())
         count = len(group_list)
         paginated_group_list = group_list if limit == -1 else group_list[offset : limit + offset]
-        # 按照角色进行排序
-        paginated_group_list.sort(key=lambda x: x.get("role") or x.get("role_set"))
+
+        # 检查是否要求降序
+        reverse = ordering.startswith("-")
+        if reverse:
+            # 如果是降序，去除 '-' 获取排序的实际字段名
+            sort_key = ordering[1:]
+        else:
+            sort_key = ordering
+
+        # sorted() 方法进行排序，根据 sort_key 和 reverse 参数进行
+        paginated_group_list = sorted(paginated_group_list, key=itemgetter(sort_key), reverse=reverse)
+
+        # 对创建时间或者实例数量进行排序
 
         return query.ResourceList(count=count, data=paginated_group_list)
