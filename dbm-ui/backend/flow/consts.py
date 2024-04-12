@@ -218,6 +218,7 @@ class MediumEnum(str, StructuredEnum):
     TendisPlus = EnumField("tendisplus", _("tendisplus"))
     TendisSsd = EnumField("tendisssd", _("tendisssd"))
     DbBackup = EnumField("dbbackup", _("dbbackup"))
+    DbBackupTXSQL = EnumField("dbbackup-txsql", _("dbbackup-txsql"))
     DBActuator = EnumField("actuator", _("actuator"))
     Latest = EnumField("latest", _("最新版本"))
     Twemproxy = EnumField("twemproxy", _("twemproxy"))
