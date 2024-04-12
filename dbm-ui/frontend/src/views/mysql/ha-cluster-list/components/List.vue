@@ -445,27 +445,29 @@
       width: 220,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
-        <div class="domain">
-          <span
-            class="text-overflow"
-            v-overflow-tips>
-            {data.slaveDomainDisplayName || '--'}
-          </span>
-          <db-icon
-            v-bk-tooltips={t('复制从访问入口')}
-            type="copy"
-            onClick={() => copy(data.slaveDomainDisplayName)} />
-          <auth-button
-            v-bk-tooltips={t('修改入口配置')}
-            action-id="access_entry_edit"
-            resource="mysql"
-            permission={data.permission.access_entry_edit}
-            text
-            theme="primary"
-            onClick={() => handleOpenEntryConfig(data)}>
-            <db-icon type="edit" />
-          </auth-button>
-        </div>
+        <TextOverflowLayout>
+          {{
+            default: () => data.slaveDomainDisplayName || '--',
+            append: () => (
+              <>
+                <db-icon
+                  v-bk-tooltips={t('复制从访问入口')}
+                  type="copy"
+                  onClick={() => copy(data.slaveDomainDisplayName)} />
+                <auth-button
+                  v-bk-tooltips={t('修改入口配置')}
+                  action-id="access_entry_edit"
+                  resource="mysql"
+                  permission={data.permission.access_entry_edit}
+                  text
+                  theme="primary"
+                  onClick={() => handleOpenEntryConfig(data)}>
+                  <db-icon type="edit" />
+                </auth-button>
+              </>
+            )
+          }}
+        </TextOverflowLayout>
       ),
     },
     {
@@ -898,6 +900,14 @@
         }
       }
 
+      .db-icon-copy,
+      .db-icon-edit {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+
       .table-wrapper {
         background-color: white;
 
@@ -913,55 +923,6 @@
       .is-shrink-table {
         :deep(.bk-table-body) {
           overflow: hidden auto;
-        }
-      }
-
-      :deep(.cell) {
-        line-height: normal !important;
-
-        .domain {
-          display: flex;
-          align-items: center;
-        }
-
-        .db-icon-copy,
-        .db-icon-edit {
-          display: none;
-          margin-left: 4px;
-          color: @primary-color;
-          cursor: pointer;
-        }
-
-        .operations-more {
-          .db-icon-more {
-            display: block;
-            font-size: @font-size-normal;
-            font-weight: bold;
-            color: @default-color;
-            cursor: pointer;
-
-            &:hover {
-              background-color: @bg-disable;
-              border-radius: 2px;
-            }
-          }
-        }
-      }
-
-      :deep(tr:hover) {
-        .db-icon-copy,
-        .db-icon-edit {
-          display: inline-block !important;
-        }
-      }
-
-      :deep(.is-offline) {
-        a {
-          color: @gray-color;
-        }
-
-        .cell {
-          color: @disable-color;
         }
       }
 
@@ -990,6 +951,22 @@
           margin: 2px 0;
           flex-shrink: 0;
         }
+      }
+    }
+    :deep(tr:hover) {
+      .db-icon-copy,
+      .db-icon-edit {
+        display: inline-block !important;
+      }
+    }
+
+    :deep(.is-offline) {
+      a {
+        color: @gray-color;
+      }
+
+      .cell {
+        color: @disable-color;
       }
     }
   }

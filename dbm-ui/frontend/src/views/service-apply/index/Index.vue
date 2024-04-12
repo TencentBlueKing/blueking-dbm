@@ -79,7 +79,7 @@
                   :disabled="!child.tipImgProps"
                   placement="bottom"
                   theme="light">
-                  <div>
+                  <div class="apply-item-wrapper">
                     <DbIcon
                       class="apply-item-icon"
                       :type="child.icon" />
@@ -451,6 +451,16 @@
       cursor: pointer;
       background-color: #f5f7fa;
       border-radius: 2px;
+
+      .apply-item-wrapper {
+        display: flex;
+        height: 40px;
+        flex: 0 0 auto;
+        align-items: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
       .apply-item-icon {
         width: 24px;
