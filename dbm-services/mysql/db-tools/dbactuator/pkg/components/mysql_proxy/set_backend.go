@@ -1,7 +1,14 @@
-// Package mysql_proxy TODO
 /*
- * @Description:  设置proxy后端,建立proxyh和master的关系
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
+
+// Package mysql_proxy 设置proxy后端,建立proxyh和master的关系
 package mysql_proxy
 
 import (
@@ -14,22 +21,22 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 )
 
-// ProxySetBackendCom TODO
+// ProxySetBackendCom  proxy set backend mysql comp
 type ProxySetBackendCom struct {
 	GeneralParam   *components.GeneralParam
 	Params         ProxySetBackendParam
 	proxyAdminConn *native.ProxyAdminDbWork `json:"-"`
 }
 
-// ProxySetBackendParam TODO
+// ProxySetBackendParam  proxy set backend mysql param
 type ProxySetBackendParam struct {
-	Host        string `json:"host" validate:"required,ip" `     // 当前实例的主机地址
-	Port        int    `json:"port" validate:"required,gt=3306"` // 当前实例的端口
+	Host        string `json:"host" validate:"required,ip" `      // 当前实例的主机地址
+	Port        int    `json:"port" validate:"required,gte=3306"` // 当前实例的端口
 	BackendHost string `json:"backend_host" validate:"required,ip"`
-	BackendPort int    `json:"backend_port" validate:"required,gt=3306"`
+	BackendPort int    `json:"backend_port" validate:"required,gte=3306"`
 }
 
-// Example TODO
+// Example  proxy set backend mysql example
 func (p *ProxySetBackendCom) Example() interface{} {
 	comp := ProxySetBackendCom{
 		Params: ProxySetBackendParam{
@@ -42,7 +49,7 @@ func (p *ProxySetBackendCom) Example() interface{} {
 	return comp
 }
 
-// Init TODO
+// Init init proxy set backend mysql
 /**
  * @description: 建立proxy amdin conn, 并且检查 backends 是否为 1.1.1.1:3306（新上架的proxy backends 一定是1.1.1.1:3306）
  * @return {*}
@@ -70,7 +77,7 @@ func (p *ProxySetBackendCom) Init() (err error) {
 	return
 }
 
-// SetBackend TODO
+// SetBackend set backend
 /**
  * @description: refresh backends
  * @return {*}
