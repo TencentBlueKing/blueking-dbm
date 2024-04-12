@@ -23,8 +23,11 @@ import { setGlobalComps } from '@common/importComps';
 
 import i18n from '@locales/index';
 
+import { subEnv } from '@blueking/sub-saas';
+
 import App from './App.vue';
 import getRouter from './router';
+import SubApp from './SubApp.vue';
 
 import '@blueking/ip-selector/dist/styles/vue2.6.x.css';
 import '@lib/bk-icon/iconcool';
@@ -40,7 +43,7 @@ dayjs.extend(tz);
 
 window.changeConfirm = false;
 
-const app = createApp(App);
+const app = createApp(subEnv ? SubApp : App);
 // 自定义全局组件
 setGlobalComps(app);
 const piniaInstance = createPinia();

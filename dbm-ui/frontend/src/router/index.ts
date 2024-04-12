@@ -64,6 +64,8 @@ import getTicketsRoutes from '@views/tickets/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
+import { connectToMain, rootPath } from '@blueking/sub-saas';
+
 let appRouter: Router;
 
 const renderPageWithComponent = (route: RouteRecordRaw, component: typeof BizPermission) => {
@@ -119,7 +121,7 @@ export default () => {
 
   const routes = [
     {
-      path: '/',
+      path: rootPath,
       name: 'index',
       redirect: {
         name: 'serviceApply',
@@ -136,7 +138,7 @@ export default () => {
       ],
     },
     {
-      path: `/${currentBiz}`,
+      path: `${rootPath}${currentBiz}`,
       children: [
         ...getDbConfRoutes(),
         ...getESRoutes(bigdataController),
@@ -178,6 +180,7 @@ export default () => {
     history: createWebHistory(),
     routes,
   });
+  connectToMain(appRouter)
 
   let lastRouterHrefCache = '/';
   const routerPush = appRouter.push;
