@@ -111,8 +111,8 @@ class HostHandler:
                 ip = ip_or_cloud_ip.split(constants.CommonEnum.SEP.value)[block_num - 1]
                 cloud_inner_ip_set.add(f"{host_filter_cloud_id}{constants.CommonEnum.SEP.value}{ip}")
 
+        # 尝试将关键字解析为主机 ID，否则就认为是主机名
         for key in key_list:
-            # 尝试将关键字解析为主机 ID，否则就认为是主机名
             try:
                 bk_host_id_set.add(int(key))
             except ValueError:
@@ -133,16 +133,17 @@ class HostHandler:
             )
 
         # 构建主机过滤器
-        host_property_filter = {
-            "condition": "OR",
-            "rules": [
-                {"field": "bk_host_id", "operator": "in", "value": list(bk_host_id_set)},
-                {"field": "bk_host_innerip", "operator": "in", "value": list(inner_ip_set)},
-                {"field": "bk_host_innerip_v6", "operator": "in", "value": ipv6_list},
-                {"field": "bk_host_name", "operator": "in", "value": list(bk_host_name_set)},
-            ]
-            + cloud_ip_rules,
-        }
+        host_filter_rules: typing.List[typing.Dict] = []
+        if bk_host_name_set:
+            host_filter_rules.append({"field": "bk_host_name", "operator": "in", "value": list(bk_host_name_set)})
+        if bk_host_id_set:
+            host_filter_rules.append({"field": "bk_host_id", "operator": "in", "value": list(bk_host_id_set)})
+        if inner_ip_set:
+            host_filter_rules.append({"field": "bk_host_innerip", "operator": "in", "value": list(inner_ip_set)})
+        if ipv6_list:
+            host_filter_rules.append({"field": "bk_host_innerip_v6", "operator": "in", "value": ipv6_list})
+
+        host_property_filter = {"condition": "OR", "rules": host_filter_rules + cloud_ip_rules}
         return cls.details_base(scope_list, host_property_filter, mode)
 
     @classmethod

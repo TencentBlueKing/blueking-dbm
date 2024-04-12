@@ -116,7 +116,7 @@ class Ticket(AuditedModel):
 
     @property
     def url(self):
-        return f"{env.BK_SAAS_HOST}/{self.bk_biz_id}/my-tickets?id={self.id}"
+        return f"{env.BK_SAAS_HOST}/{self.bk_biz_id}/ticket-manage/index?id={self.id}"
 
     def set_terminated(self):
         self.status = TicketStatus.TERMINATED
