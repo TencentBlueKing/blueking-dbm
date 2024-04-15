@@ -32,7 +32,7 @@ func (m *AccountPara) AddAccount(jsonPara string) (TbAccounts, error) {
 		return detail, errno.PasswordOrAccountNameNull
 	}
 	if *m.ClusterType == sqlserver && m.Sid == "" {
-		return errno.SqlserverSidNull
+		return detail, errno.SqlserverSidNull
 	}
 	if m.ClusterType == nil {
 		ct := mysql
