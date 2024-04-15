@@ -11,12 +11,14 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+// eslint-disable-next-line simple-import-sort/imports
+import { createApp } from 'vue';
 import bkuiVue from 'bkui-vue';
 import dayjs from 'dayjs';
 import tz from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import { createPinia } from 'pinia';
-import { createApp } from 'vue';
+
 
 import {
   useFunController,

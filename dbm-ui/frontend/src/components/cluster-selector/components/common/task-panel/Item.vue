@@ -55,7 +55,7 @@
 
   const handleClickRelatedTicket = (billId: number) => {
     const route = router.resolve({
-      name: 'SelfServiceMyTickets',
+      name: 'bizTicketManage',
       query: {
         id: billId,
       },

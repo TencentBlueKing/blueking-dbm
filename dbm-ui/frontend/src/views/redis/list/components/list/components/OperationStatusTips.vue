@@ -19,19 +19,19 @@
     <slot :disabled="disabled" />
     <I18nT
       ref="popRef"
-      keypath="xx_跳转_我的服务单_查看进度"
-      style="font-size: 12px; line-height: 16px; color: #63656e;"
+      keypath="xx_跳转_单据_查看进度"
+      style="font-size: 12px; line-height: 16px; color: #63656e"
       tag="div">
       <span>{{ text }}</span>
       <RouterLink
         target="_blank"
         :to="{
-          name: 'SelfServiceMyTickets',
+          name: 'bizTicketManage',
           query: {
             id: data.ticket_id,
           },
         }">
-        {{ $t('我的服务单') }}
+        {{ $t("单据") }}
       </RouterLink>
     </I18nT>
   </span>
@@ -41,28 +41,23 @@
 </template>
 
 <script setup lang="ts">
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
-  import {
-    ref,
-  } from 'vue';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { TicketTypes } from '@common/const';
 
   interface Props {
     data?: {
-      cluster_id: number,
-      flow_id: number,
-      status: string,
-      ticket_id: number,
-      ticket_type: string,
-      title: string,
-    },
-    clusterStatus: string,
-    disabledList: Array<string>
+      cluster_id: number;
+      flow_id: number;
+      status: string;
+      ticket_id: number;
+      ticket_type: string;
+      title: string;
+    };
+    clusterStatus: string;
+    disabledList: Array<string>;
   }
 
   const props = defineProps<Props>();
@@ -92,7 +87,7 @@
   const rootRef = ref();
   const popRef = ref();
 
-  let tippyIns:Instance;
+  let tippyIns: Instance;
 
   const destroyInst = () => {
     if (tippyIns) {
@@ -102,33 +97,37 @@
     }
   };
 
-  watch(disabled, () => {
-    if (disabled.value) {
-      destroyInst();
-      nextTick(() => {
-        tippyIns = tippy(rootRef.value as SingleTarget, {
-          content: popRef.value.$el,
-          placement: 'top',
-          appendTo: () => document.body,
-          theme: 'light',
-          maxWidth: 'none',
-          // trigger: 'manual',
-          interactive: true,
-          arrow: true,
-          offset: [0, 8],
-          zIndex: 999999,
-          hideOnClick: true,
+  watch(
+    disabled,
+    () => {
+      if (disabled.value) {
+        destroyInst();
+        nextTick(() => {
+          tippyIns = tippy(rootRef.value as SingleTarget, {
+            content: popRef.value.$el,
+            placement: 'top',
+            appendTo: () => document.body,
+            theme: 'light',
+            maxWidth: 'none',
+            // trigger: 'manual',
+            interactive: true,
+            arrow: true,
+            offset: [0, 8],
+            zIndex: 999999,
+            hideOnClick: true,
+          });
         });
-      });
-    }
-  }, { immediate: true });
+      }
+    },
+    { immediate: true },
+  );
 
   onBeforeUnmount(() => {
     destroyInst();
   });
 </script>
 <style lang="less" scoped>
-  .cluster-operation-status-tips {
-    display: inline-block;
-  }
+.cluster-operation-status-tips {
+  display: inline-block;
+}
 </style>

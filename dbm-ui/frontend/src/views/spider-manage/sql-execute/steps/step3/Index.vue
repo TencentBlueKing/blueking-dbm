@@ -14,7 +14,7 @@
 <template>
   <RenderSuccess :steps="steps">
     <template #title>
-      {{ t('变更SQL执行任务提交成功') }}
+      {{ t("变更SQL执行任务提交成功") }}
     </template>
     <I18nT
       keypath="接下来您可以通过xx查看任务最新动态"
@@ -22,12 +22,12 @@
       <RouterLink
         target="_blank"
         :to="{
-          name: 'SelfServiceMyTickets',
+          name: 'bizTicketManage',
           query: {
             id: ticketId,
           },
         }">
-        {{ t('我的服务单') }}
+        {{ t("单据") }}
       </RouterLink>
     </I18nT>
     <template #action>
@@ -35,22 +35,19 @@
         class="w-88"
         theme="primary"
         @click="handleGoTicket">
-        {{ t('去看看') }}
+        {{ t("去看看") }}
       </BkButton>
       <BkButton
         class="ml8"
         @click="handleGoLast">
-        {{ t('再提一单') }}
+        {{ t("再提一单") }}
       </BkButton>
     </template>
   </RenderSuccess>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import RenderSuccess from '@components/ticket-success/Index.vue';
 
@@ -59,10 +56,7 @@
 
   const { t } = useI18n();
 
-  const {
-    ticketId,
-    ticketMode,
-  } = route.query;
+  const { ticketId, ticketMode } = route.query;
 
   const steps = [
     {
@@ -85,7 +79,7 @@
 
   const handleGoTicket = () => {
     const route = router.resolve({
-      name: 'SelfServiceMyTickets',
+      name: 'bizTicketManage',
       query: {
         id: ticketId,
       },

@@ -22,20 +22,22 @@
           :resource="operationData?.id"
           theme="primary"
           @click="handleShowExpansion">
-          {{ $t('扩容') }}
+          {{ $t("扩容") }}
         </AuthButton>
       </OperationBtnStatusTips>
       <OperationBtnStatusTips :data="operationData">
-        <span
-          v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
+        <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
             action-id="kafka_shrink"
             class="ml8"
-            :disabled="(batchShrinkDisabledInfo.disabled || operationData?.operationDisabled)"
+            :disabled="
+              batchShrinkDisabledInfo.disabled ||
+                operationData?.operationDisabled
+            "
             :permission="operationData?.permission.kafka_shrink"
             :resource="operationData?.id"
             @click="handleShowShrink">
-            {{ $t('缩容') }}
+            {{ $t("缩容") }}
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
@@ -43,42 +45,44 @@
         <span
           v-bk-tooltips="{
             content: $t('请先选中节点'),
-            disabled: !isBatchReplaceDisabeld
+            disabled: !isBatchReplaceDisabeld,
           }">
           <AuthButton
             action-id="kafka_replace"
             class="ml8"
-            :disabled="(isBatchReplaceDisabeld || operationData?.operationDisabled)"
+            :disabled="
+              isBatchReplaceDisabeld || operationData?.operationDisabled
+            "
             :permission="operationData?.permission.kafka_replace"
             :resource="operationData?.id"
             @click="handleShowReplace">
-            {{ $t('替换') }}
+            {{ $t("替换") }}
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
       <BkDropdown
         class="ml8"
-        @hide="() => isCopyDropdown = false"
-        @show="() => isCopyDropdown = true">
+        @hide="() => (isCopyDropdown = false)"
+        @show="() => (isCopyDropdown = true)">
         <BkButton>
-          {{ $t('复制IP') }}
+          {{ $t("复制IP") }}
           <DbIcon
             class="action-copy-icon"
             :class="{
-              'action-copy-icon--avtive': isCopyDropdown
+              'action-copy-icon--avtive': isCopyDropdown,
             }"
             type="up-big" />
         </BkButton>
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll">
-              {{ $t('复制全部IP') }}
+              {{ $t("复制全部IP") }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeFailed">
-              {{ $t('复制异常IP') }}
+              {{ $t("复制异常IP") }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeActive">
-              {{ $t('复制已选IP') }}
+              {{ $t("复制已选IP") }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
@@ -86,7 +90,7 @@
       <BkInput
         v-model="searchKey"
         :placeholder="$t('请输入IP搜索')"
-        style="max-width: 360px; margin-left: 8px; flex: 1;" />
+        style="max-width: 360px; margin-left: 8px; flex: 1" />
     </div>
     <BkAlert
       v-if="operationData?.operationStatusText"
@@ -99,12 +103,12 @@
         <RouterLink
           target="_blank"
           :to="{
-            name: 'SelfServiceMyTickets',
+            name: 'bizTicketManage',
             query: {
               id: operationData?.operationTicketId,
             },
           }">
-          {{ $t('我的服务单') }}
+          {{ $t("单据") }}
         </RouterLink>
       </I18nT>
     </BkAlert>
@@ -123,7 +127,12 @@
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       quick-close
-      :title="$t('xx扩容【name】', { title: 'Kafka', name: operationData?.cluster_name })"
+      :title="
+        $t('xx扩容【name】', {
+          title: 'Kafka',
+          name: operationData?.cluster_name,
+        })
+      "
       :width="960">
       <ClusterExpansion
         v-if="operationData"
@@ -132,7 +141,12 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
-      :title="$t('xx缩容【name】', { title: 'Kafka', name: operationData?.cluster_name })"
+      :title="
+        $t('xx缩容【name】', {
+          title: 'Kafka',
+          name: operationData?.cluster_name,
+        })
+      "
       :width="960">
       <ClusterShrink
         v-if="operationData"
@@ -143,7 +157,12 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowReplace"
-      :title="$t('xx替换【name】', { title: 'Kafka', name: operationData?.cluster_name })"
+      :title="
+        $t('xx替换【name】', {
+          title: 'Kafka',
+          name: operationData?.cluster_name,
+        })
+      "
       :width="1050">
       <ClusterReplace
         v-if="operationData"
@@ -167,24 +186,14 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { computed, ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import {
-    getKafkaDetail,
-    getKafkaNodeList,
-  } from '@services/source/kafka';
+  import { getKafkaDetail, getKafkaNodeList } from '@services/source/kafka';
 
-  import {
-    useCopy,
-    useDebouncedRef,
-  } from '@hooks';
+  import { useCopy, useDebouncedRef } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -196,11 +205,7 @@
   import ClusterReplace from '@views/kafka-manage/common/replace/Index.vue';
   import ClusterShrink from '@views/kafka-manage/common/shrink/Index.vue';
 
-  import {
-    encodeRegexp,
-    isRecentDays,
-    messageWarn,
-  } from '@utils';
+  import { encodeRegexp, isRecentDays, messageWarn } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
@@ -246,10 +251,7 @@
       options.tooltips.content = t('请先选中节点');
       return options;
     }
-    if (_.find(
-      Object.values(checkedNodeMap.value),
-      item => !item.isBroker,
-    )) {
+    if (_.find(Object.values(checkedNodeMap.value), item => !item.isBroker)) {
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('仅Broker类型节点支持缩容');
@@ -274,7 +276,6 @@
   });
 
   const isBatchReplaceDisabeld = computed(() => Object.keys(checkedNodeMap.value).length < 1);
-
 
   const isSelectedAll = computed(() => tableData.value.length > 0
     && Object.keys(checkedNodeMap.value).length >= tableData.value.length);
@@ -324,19 +325,19 @@
       width: 60,
       fixed: 'left',
       label: () => (
-        <bk-checkbox
-          label={true}
-          model-value={isSelectedAll.value}
-          onChange={handleSelectAll}
-        />
-      ),
-      render: ({ data }: {data: KafkaNodeModel}) => (
-        <bk-checkbox
-          label={true}
-          model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
-          onChange={(value: boolean) => handleSelect(value, data)}
-        />
-      ),
+      <bk-checkbox
+        label={true}
+        model-value={isSelectedAll.value}
+        onChange={handleSelectAll}
+      />
+    ),
+      render: ({ data }: { data: KafkaNodeModel }) => (
+      <bk-checkbox
+        label={true}
+        model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
+        onChange={(value: boolean) => handleSelect(value, data)}
+      />
+    ),
     },
     {
       label: t('节点IP'),
@@ -344,15 +345,15 @@
       minWidth: 140,
       showOverflowTooltip: false,
       render: ({ data }: { data: KafkaNodeModel }) => (
-        <div style="display: flex; align-items: center;">
-          <div class="text-overflow" v-overflow-tips>{data.ip}</div>
-          {
-            isRecentDays(data.create_at, 24 * 3)
-              ? <span class="glob-new-tag ml-4" data-text="NEW" />
-              : null
-          }
+      <div style="display: flex; align-items: center;">
+        <div class="text-overflow" v-overflow-tips>
+          {data.ip}
         </div>
-      ),
+        {isRecentDays(data.create_at, 24 * 3) ? (
+          <span class="glob-new-tag ml-4" data-text="NEW" />
+        ) : null}
+      </div>
+    ),
     },
     {
       label: t('实例数量'),
@@ -361,15 +362,15 @@
     {
       label: t('类型'),
       width: 300,
-      render: ({ data }: {data: KafkaNodeModel}) => (
-        <RenderClusterRole data={[data.role]} />
-      ),
+      render: ({ data }: { data: KafkaNodeModel }) => (
+      <RenderClusterRole data={[data.role]} />
+    ),
     },
     {
       label: t('Agent状态'),
-      render: ({ data }: {data: KafkaNodeModel}) => (
-        <RenderHostStatus data={data.status} />
-      ),
+      render: ({ data }: { data: KafkaNodeModel }) => (
+      <RenderHostStatus data={data.status} />
+    ),
     },
     {
       label: t('部署时间'),
@@ -379,23 +380,25 @@
       label: t('操作'),
       width: isCN.value ? 180 : 260,
       fixed: 'right',
-      render: ({ data }: {data: KafkaNodeModel}) => {
+      render: ({ data }: { data: KafkaNodeModel }) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
         <>
           <OperationBtnStatusTips data={operationData.value}>
-            <span
-              v-bk-tooltips={shrinkDisableTooltips.tooltips}
-              class="ml8">
+            <span v-bk-tooltips={shrinkDisableTooltips.tooltips} class="ml8">
               <auth-button
                 theme="primary"
                 text
                 action-id="kafka_shrink"
                 permission={data.permission.kafka_shrink}
                 resource={data.bk_host_id}
-                disabled={shrinkDisableTooltips.disabled  || operationData.value?.operationDisabled}
-                onClick={() => handleShrinkOne(data)}>
-                { t('缩容') }
+                disabled={
+                  shrinkDisableTooltips.disabled
+                  || operationData.value?.operationDisabled
+                }
+                onClick={() => handleShrinkOne(data)}
+              >
+                {t('缩容')}
               </auth-button>
             </span>
           </OperationBtnStatusTips>
@@ -408,8 +411,9 @@
               permission={data.permission.kafka_replace}
               resource={data.bk_host_id}
               disabled={operationData.value?.operationDisabled}
-              onClick={() => handleReplaceOne(data)}>
-              { t('替换') }
+              onClick={() => handleReplaceOne(data)}
+            >
+              {t('替换')}
             </auth-button>
           </OperationBtnStatusTips>
           <OperationBtnStatusTips data={operationData.value}>
@@ -421,8 +425,9 @@
               permission={data.permission.kafka_reboot}
               resource={data.bk_host_id}
               disabled={operationData.value?.operationDisabled}
-              onClick={() => handleShowDetail(data)}>
-              { t('重启实例') }
+              onClick={() => handleShowDetail(data)}
+            >
+              {t('重启实例')}
             </auth-button>
           </OperationBtnStatusTips>
         </>
@@ -435,10 +440,9 @@
     // 获取集群详情
     getKafkaDetail({
       id: props.clusterId,
-    })
-      .then((data) => {
-        operationData.value = data;
-      });
+    }).then((data) => {
+      operationData.value = data;
+    });
   };
 
   const fetchNodeList = () => {
@@ -447,10 +451,11 @@
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       no_limit: 1,
-    }).then((data) => {
-      tableData.value = data.results;
-      isAnomalies.value = false;
     })
+      .then((data) => {
+        tableData.value = data.results;
+        isAnomalies.value = false;
+      })
       .catch(() => {
         tableData.value = [];
         isAnomalies.value = true;
@@ -467,17 +472,21 @@
   const {
     pause: pauseFetchClusterDetail,
     resume: resumeFetchClusterDetail,
-  } = useTimeoutPoll(fetchClusterDetail, 2000, {
+  } =  useTimeoutPoll(fetchClusterDetail, 2000, {
     immediate: true,
   });
 
-  watch(() => props.clusterId, () => {
-    pauseFetchClusterDetail();
-    resumeFetchClusterDetail();
-    fetchNodeList();
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      pauseFetchClusterDetail();
+      resumeFetchClusterDetail();
+      fetchNodeList();
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleOperationChange = () => {
     fetchNodeList();
@@ -537,10 +546,13 @@
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      checkedNodeMap.value = tableData.value.reduce((result, nodeData) => ({
-        ...result,
-        [nodeData.bk_host_id]: nodeData,
-      }), {} as Record<number, KafkaNodeModel>);
+      checkedNodeMap.value = tableData.value.reduce(
+        (result, nodeData) => ({
+          ...result,
+          [nodeData.bk_host_id]: nodeData,
+        }),
+        {} as Record<number, KafkaNodeModel>,
+      );
     } else {
       checkedNodeMap.value = {};
     }
@@ -582,26 +594,25 @@
   const handleClose = () => {
     isShowDetail.value = false;
   };
-
 </script>
 <style lang="less">
-  .kafka-detail-node-list {
-    padding: 24px 0;
+.kafka-detail-node-list {
+  padding: 24px 0;
 
-    .action-box {
-      display: flex;
-      margin-bottom: 16px;
-    }
+  .action-box {
+    display: flex;
+    margin-bottom: 16px;
+  }
 
-    .action-copy-icon {
-      margin-left: 6px;
-      color: #979ba5;
-      transform: rotateZ(180deg);
-      transition: all 0.2s;
+  .action-copy-icon {
+    margin-left: 6px;
+    color: #979ba5;
+    transform: rotateZ(180deg);
+    transition: all 0.2s;
 
-      &--avtive {
-        transform: rotateZ(0);
-      }
+    &--avtive {
+      transform: rotateZ(0);
     }
   }
+}
 </style>

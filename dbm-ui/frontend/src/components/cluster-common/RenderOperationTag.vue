@@ -24,35 +24,32 @@
     </span>
     <I18nT
       ref="popRef"
-      keypath="xx_跳转_我的服务单_查看进度"
-      style="font-size: 12px; line-height: 16px; color: #63656e;"
+      keypath="xx_跳转_单据_查看进度"
+      style="font-size: 12px; line-height: 16px; color: #63656e"
       tag="div">
       <span>{{ data.tip }}</span>
       <RouterLink
         target="_blank"
         :to="{
-          name: 'SelfServiceMyTickets',
+          name: 'bizTicketManage',
           query: {
             id: data.ticketId,
           },
         }">
-        {{ $t('我的服务单') }}
+        {{ $t("单据") }}
       </RouterLink>
     </I18nT>
   </div>
 </template>
 <script setup lang="ts">
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
 
   interface Props {
     data: {
-      icon: string,
-      tip: string,
-      ticketId: number,
-    }
+      icon: string;
+      tip: string;
+      ticketId: number;
+    };
   }
 
   const props = defineProps<Props>();
@@ -62,7 +59,7 @@
 
   const isRender = computed(() => props.data.icon && props.data.tip && props.data.ticketId);
 
-  let tippyIns:Instance;
+  let tippyIns: Instance;
 
   const destroyInst = () => {
     if (tippyIns) {
@@ -72,46 +69,50 @@
     }
   };
 
-  watch(isRender, () => {
-    if (isRender.value) {
-      destroyInst();
-      nextTick(() => {
-        tippyIns = tippy(rootRef.value as SingleTarget, {
-          content: popRef.value.$el,
-          placement: 'top',
-          appendTo: () => document.body,
-          theme: 'light',
-          maxWidth: 'none',
-          interactive: true,
-          arrow: true,
-          offset: [0, 8],
-          zIndex: 999999,
-          hideOnClick: true,
+  watch(
+    isRender,
+    () => {
+      if (isRender.value) {
+        destroyInst();
+        nextTick(() => {
+          tippyIns = tippy(rootRef.value as SingleTarget, {
+            content: popRef.value.$el,
+            placement: 'top',
+            appendTo: () => document.body,
+            theme: 'light',
+            maxWidth: 'none',
+            interactive: true,
+            arrow: true,
+            offset: [0, 8],
+            zIndex: 999999,
+            hideOnClick: true,
+          });
         });
-      });
-    }
-  }, {
-    immediate: true,
-  });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   onBeforeUnmount(() => {
     destroyInst();
   });
 </script>
 <style lang="less" scoped>
-  .render-cluster-opration-tag {
+.render-cluster-opration-tag {
+  display: inline-block;
+  margin-right: 4px;
+  height: 16px !important;
+
+  .tag-placeholder {
     display: inline-block;
-    margin-right: 4px;
     height: 16px !important;
-
-    .tag-placeholder {
-      display: inline-block;
-      height: 16px !important;
-    }
-
-    .db-svg-icon {
-      width: 38px;
-      height: 16px;
-    }
   }
+
+  .db-svg-icon {
+    width: 38px;
+    height: 16px;
+  }
+}
 </style>

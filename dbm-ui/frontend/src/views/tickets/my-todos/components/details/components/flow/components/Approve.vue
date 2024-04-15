@@ -29,9 +29,13 @@
               {{ content.err_msg }}
             </div>
             <template v-if="isShowResourceApply(item)">
-              ，<a
-                href="javascript:"
-                @click="handleToApply">{{ $t('请前往补货') }}</a>
+              ，
+              <BkButton
+                text
+                theme="primary"
+                @click="handleToApply">
+                {{ $t('请前往补货') }}
+              </BkButton>
             </template>
           </div>
           <div
