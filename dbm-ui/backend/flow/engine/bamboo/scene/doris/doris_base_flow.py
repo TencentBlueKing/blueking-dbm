@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
@@ -23,6 +24,7 @@ from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.doris.exec_doris_actuator_script import (
     ExecuteDorisActuatorScriptComponent,
 )
+from backend.flow.plugins.components.collections.doris.get_doris_payload import GetDorisActPayloadComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.doris.consts import DorisConfigEnum
 from backend.flow.utils.doris.doris_act_payload import DorisActPayload
@@ -30,6 +32,33 @@ from backend.flow.utils.doris.doris_context_dataclass import DorisActKwargs
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
+
+
+def make_fe_map_from_ticket(data: dict) -> dict:
+    host_map = {}
+    for role in data["nodes"]:
+        if role in [DorisRoleEnum.FOLLOWER.value, DorisRoleEnum.OBSERVER.value]:
+            ips = [node["ip"] for node in data["nodes"][role]]
+            host_map[role] = ips
+    return host_map
+
+
+def make_be_map_from_ticket(data: dict) -> dict:
+    host_map = {}
+    for role in data["nodes"]:
+        if role in [DorisRoleEnum.HOT.value, DorisRoleEnum.COLD.value]:
+            ips = [node["ip"] for node in data["nodes"][role]]
+            host_map[role] = ips
+    return host_map
+
+
+def make_meta_host_map(data: dict) -> dict:
+    host_map = {}
+    for role in data["nodes"]:
+        ips = [node["ip"] for node in data["nodes"][role]]
+        host_map[role] = ips
+
+    return host_map
 
 
 class DorisBaseFlow(object):
@@ -109,14 +138,13 @@ class DorisBaseFlow(object):
             self.doris_config = dbconfig["content"]
             self.be_conf = self.doris_config[DorisConfigEnum.Backend]
             self.fe_conf = self.doris_config[DorisConfigEnum.Frontend]
-            self.http_port = self.doris_config[DorisConfigEnum.Frontend]["http_port"]
-            self.query_port = self.doris_config[DorisConfigEnum.Frontend]["query_port"]
+            # dbconfig 默认返回字符串类型，需要转int
+            self.http_port = int(self.doris_config[DorisConfigEnum.Frontend]["http_port"])
+            self.query_port = int(self.doris_config[DorisConfigEnum.Frontend]["query_port"])
 
             auth_info = PayloadHandler.get_bigdata_auth_by_cluster(cluster, 0)
             self.username = auth_info["username"]
             self.password = auth_info["password"]
-            self.username = "username"
-            self.password = "password"
             self.master_ips = [master.machine.ip for master in masters]
 
     def get_flow_base_data(self) -> dict:
@@ -144,18 +172,15 @@ class DorisBaseFlow(object):
     def __get_flow_data(self) -> dict:
         pass
 
-    def make_meta_host_map(self, data: dict) -> dict:
-        host_map = {}
-        for role in self.nodes:
-            ips = [node["ip"] for node in self.nodes[role]]
-            host_map[role] = ips
-
-        return host_map
-
     def get_all_node_ips_in_dbmeta(self) -> list:
         cluster = Cluster.objects.get(id=self.cluster_id)
         storage_ips = list(set(StorageInstance.objects.filter(cluster=cluster).values_list("machine__ip", flat=True)))
         return storage_ips
+
+    def get_role_ips_in_dbmeta(self, role: InstanceRole) -> list:
+        cluster = Cluster.objects.get(id=self.cluster_id)
+        role_ips = list(cluster.storageinstance_set.filter(instance_role=role).values_list("machine__ip", flat=True))
+        return role_ips
 
     def new_common_sub_flows(self, act_kwargs: DorisActKwargs, data: dict) -> list:
         # """
@@ -168,7 +193,7 @@ class DorisBaseFlow(object):
         # 操作
         # """
         sub_pipelines = []
-        for role, role_nodes in self.nodes.items():
+        for role, role_nodes in data["nodes"].items():
             for node in role_nodes:
                 sub_pipeline = SubBuilder(root_id=self.root_id, data=data)
                 ip = node["ip"]
@@ -210,7 +235,7 @@ class DorisBaseFlow(object):
     # 新加入frontend(follower/observer)节点子流程(不包括元数据更新)
     def new_fe_sub_flows(self, act_kwargs: DorisActKwargs, data: dict) -> list:
         sub_pipelines = []
-        for role, role_nodes in self.nodes.items():
+        for role, role_nodes in data["nodes"].items():
             if role in [DorisRoleEnum.FOLLOWER.value, DorisRoleEnum.OBSERVER.value]:
                 for fe_node in role_nodes:
                     fe_ip = fe_node["ip"]
@@ -241,9 +266,10 @@ class DorisBaseFlow(object):
         return sub_pipelines
 
     # 新加入backend(hot/cold)节点子流程(不包括元数据更新)
-    def new_bew_sub_acts(self, act_kwargs: DorisActKwargs, data: dict) -> list:
+    @staticmethod
+    def new_be_sub_acts(act_kwargs: DorisActKwargs, data: dict) -> list:
         be_acts = []
-        for role, role_nodes in self.nodes.items():
+        for role, role_nodes in data["nodes"].items():
             if role in [DorisRoleEnum.COLD.value, DorisRoleEnum.HOT.value]:
                 for be_node in role_nodes:
                     act_kwargs.exec_ip = be_node["ip"]
@@ -256,6 +282,92 @@ class DorisBaseFlow(object):
                     }
                     be_acts.append(be_act)
         return be_acts
+
+    def build_del_fe_sub_flow(self, data: dict) -> SubBuilder:
+        # sub_flow 缩容FE 只涉及Doris集群操作，不包括清理数据目录/dbmeta等
+        del_fe_data = copy.deepcopy(data)
+        del_fe_data["host_meta_map"] = make_fe_map_from_ticket(del_fe_data)
+        del_fe_sub_pipeline = SubBuilder(root_id=self.root_id, data=del_fe_data)
+        act_kwargs = DorisActKwargs(bk_cloud_id=self.bk_cloud_id)
+
+        del_fe_sub_pipeline.add_act(
+            act_name=_("获取集群Payload"), act_component_code=GetDorisActPayloadComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        stop_fe_acts = []
+        for role, role_nodes in data["nodes"].items():
+            if role in [DorisRoleEnum.FOLLOWER.value, DorisRoleEnum.OBSERVER.value]:
+                for fe_node in role_nodes:
+                    act_kwargs.exec_ip = fe_node["ip"]
+                    act_kwargs.doris_role = role
+                    act_kwargs.get_doris_payload_func = DorisActPayload.get_stop_process_payload.__name__
+                    fe_act = {
+                        "act_name": _("停止DorisFE-{}-{}").format(role, fe_node["ip"]),
+                        "act_component_code": ExecuteDorisActuatorScriptComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    }
+                    stop_fe_acts.append(fe_act)
+
+        del_fe_sub_pipeline.add_parallel_acts(stop_fe_acts)
+        # 更新元数据 删除 FE
+        act_kwargs.exec_ip = del_fe_data["master_fe_ip"]
+        act_kwargs.get_doris_payload_func = DorisActPayload.get_drop_metadata_payload.__name__
+        del_fe_sub_pipeline.add_act(
+            act_name=_("集群元数据更新-drop-fe"),
+            act_component_code=ExecuteDorisActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+        return del_fe_sub_pipeline
+
+    def build_del_be_sub_flow(self, data: dict) -> SubBuilder:
+        del_be_data = copy.deepcopy(data)
+        del_be_data["host_meta_map"] = make_be_map_from_ticket(del_be_data)
+        # sub_flow 缩容BE 只涉及Doris集群操作，不包括清理数据目录/dbmeta等
+        del_be_sub_pipeline = SubBuilder(root_id=self.root_id, data=del_be_data)
+        act_kwargs = DorisActKwargs(bk_cloud_id=self.bk_cloud_id)
+
+        del_be_sub_pipeline.add_act(
+            act_name=_("获取集群Payload"), act_component_code=GetDorisActPayloadComponent.code, kwargs=asdict(act_kwargs)
+        )
+        # 更新元数据 退役 BE
+        act_kwargs.exec_ip = del_be_data["master_fe_ip"]
+        act_kwargs.get_doris_payload_func = DorisActPayload.get_decommission_metadata_payload.__name__
+        del_be_sub_pipeline.add_act(
+            act_name=_("集群元数据更新-退役-BE"),
+            act_component_code=ExecuteDorisActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+        # 等待数据搬迁
+        act_kwargs.get_doris_payload_func = DorisActPayload.get_check_decommission_payload.__name__
+        del_be_sub_pipeline.add_act(
+            act_name=_("检查数据节点是否退役"),
+            act_component_code=ExecuteDorisActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+        # 更新元数据 删除 BE
+        act_kwargs.get_doris_payload_func = DorisActPayload.get_force_drop_metadata_payload.__name__
+        del_be_sub_pipeline.add_act(
+            act_name=_("集群元数据更新-删除-BE"),
+            act_component_code=ExecuteDorisActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
+        stop_be_acts = []
+        for role, role_nodes in data["nodes"].items():
+            if role in [DorisRoleEnum.HOT.value, DorisRoleEnum.COLD.value]:
+                for be_node in role_nodes:
+                    act_kwargs.exec_ip = be_node["ip"]
+                    act_kwargs.doris_role = role
+                    act_kwargs.get_doris_payload_func = DorisActPayload.get_stop_process_payload.__name__
+                    be_act = {
+                        "act_name": _("停止DorisBE-{}-{}").format(role, be_node["ip"]),
+                        "act_component_code": ExecuteDorisActuatorScriptComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    }
+                    stop_be_acts.append(be_act)
+
+        del_be_sub_pipeline.add_parallel_acts(stop_be_acts)
+        return del_be_sub_pipeline
 
 
 def get_node_ips_in_ticket_by_role(data: dict, role: str) -> list:

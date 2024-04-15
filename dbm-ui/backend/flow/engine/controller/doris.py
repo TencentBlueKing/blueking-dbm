@@ -15,7 +15,9 @@ from backend.flow.engine.bamboo.scene.doris.doris_destroy_flow import DorisDestr
 from backend.flow.engine.bamboo.scene.doris.doris_disable_flow import DorisDisableFlow
 from backend.flow.engine.bamboo.scene.doris.doris_enable_flow import DorisEnableFlow
 from backend.flow.engine.bamboo.scene.doris.doris_reboot_flow import DorisRebootFlow
+from backend.flow.engine.bamboo.scene.doris.doris_replace_flow import DorisReplaceFlow
 from backend.flow.engine.bamboo.scene.doris.doris_scale_up_flow import DorisScaleUpFlow
+from backend.flow.engine.bamboo.scene.doris.doris_shrink_flow import DorisShrinkFlow
 from backend.flow.engine.controller.base import BaseController
 
 logger = logging.getLogger("Controller")
@@ -61,20 +63,20 @@ class DorisController(BaseController):
         flow = DorisDestroyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.destroy_doris_flow()
 
-    # def doris_shrink_scene(self):
-    #     """
-    #     doris缩容
-    #     """
-    #     flow = DorisShrinkFlow(root_id=self.root_id, data=self.ticket_data)
-    #     flow.shrink_doris_flow()
-    #
-    # def doris_replace_scene(self):
-    #     """
-    #     doris替换
-    #     """
-    #     flow = DorisReplaceFlow(root_id=self.root_id, data=self.ticket_data)
-    #     flow.replace_doris_flow()
-    #
+    def doris_shrink_scene(self):
+        """
+        doris缩容
+        """
+        flow = DorisShrinkFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.shrink_doris_flow()
+
+    def doris_replace_scene(self):
+        """
+        doris替换
+        """
+        flow = DorisReplaceFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.replace_doris_flow()
+
     def doris_reboot_scene(self):
         """
         doris重启节点

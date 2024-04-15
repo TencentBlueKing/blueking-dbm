@@ -423,6 +423,8 @@ class PayloadHandler(object):
             return MySQLPrivComponent.KAFKA_FAKE_USER
         elif cluster_type == ClusterType.Pulsar.value:
             return MySQLPrivComponent.PULSAR_FAKE_USER
+        elif cluster_type == ClusterType.Doris.value:
+            return MySQLPrivComponent.DORIS_FAKE_USER
 
     @staticmethod
     def get_bigdata_username_by_cluster(cluster: Cluster, port: int) -> str:

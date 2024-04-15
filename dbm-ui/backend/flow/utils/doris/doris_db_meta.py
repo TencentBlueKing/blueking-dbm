@@ -158,3 +158,11 @@ class DorisDBMeta(object):
     def doris_enable(self) -> bool:
         api.cluster.doris.enable(self.ticket_data["cluster_id"])
         return True
+
+    def doris_shrink(self) -> bool:
+        storage_instances = self.__generate_storage_instance()
+        api.cluster.doris.shrink(
+            cluster_id=self.ticket_data["cluster_id"],
+            storages=storage_instances,
+        )
+        return True

@@ -23,6 +23,20 @@ class DorisActPayload(object):
         self.bk_biz_id = str(ticket_data["bk_biz_id"])
         self.ticket_data = ticket_data
 
+    # 定义常规extend参数
+    def get_common_extend(self, **kwargs) -> dict:
+        return {
+            "host": kwargs["ip"],
+            "cluster_name": self.ticket_data["cluster_name"],
+            "version": self.ticket_data["db_version"],
+            "role": kwargs["role"],
+            "username": self.ticket_data["username"],
+            "password": self.ticket_data["password"],
+            "http_port": self.ticket_data["http_port"],
+            "query_port": self.ticket_data["query_port"],
+            # "master_fe_ip": self.ticket_data["master_fe_ip"],
+        }
+
     def get_sys_init_payload(self, **kwargs) -> dict:
         """
         拼接初始化机器的payload参数
@@ -60,46 +74,30 @@ class DorisActPayload(object):
         }
 
     def get_render_config_payload(self, **kwargs) -> dict:
+        extend_dict = {
+            "fe_conf": self.ticket_data["fe_conf"],
+            "be_conf": self.ticket_data["be_conf"],
+            "master_fe_ip": self.ticket_data["master_fe_ip"],
+        }
         return {
             "db_type": DBActuatorTypeEnum.Doris.value,
             "action": DorisActuatorActionEnum.RenderConfig.value,
             "payload": {
                 "general": {},
-                "extend": {
-                    "version": self.ticket_data["db_version"],
-                    # 目标机器IP，目标机器获取IP比较麻烦，不易知道哪块网卡
-                    "host": kwargs["ip"],
-                    "role": kwargs["role"],
-                    "username": self.ticket_data["username"],
-                    "password": self.ticket_data["password"],
-                    "cluster_name": self.ticket_data["cluster_name"],
-                    "http_port": self.ticket_data["http_port"],
-                    "query_port": self.ticket_data["query_port"],
-                    "master_fe_ip": self.ticket_data["master_fe_ip"],
-                    "fe_conf": self.ticket_data["fe_conf"],
-                    "be_conf": self.ticket_data["be_conf"],
-                },
+                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
             },
         }
 
     def get_start_fe_by_helper_payload(self, **kwargs) -> dict:
+        extend_dict = {
+            "master_fe_ip": self.ticket_data["master_fe_ip"],
+        }
         return {
             "db_type": DBActuatorTypeEnum.Doris.value,
             "action": DorisActuatorActionEnum.StartFeByHelper.value,
             "payload": {
                 "general": {},
-                "extend": {
-                    "version": self.ticket_data["db_version"],
-                    # 目标机器IP，目标机器获取IP比较麻烦，不易知道哪块网卡
-                    "host": kwargs["ip"],
-                    "role": kwargs["role"],
-                    "username": self.ticket_data["username"],
-                    "password": self.ticket_data["password"],
-                    "cluster_name": self.ticket_data["cluster_name"],
-                    "http_port": self.ticket_data["http_port"],
-                    "query_port": self.ticket_data["query_port"],
-                    "master_fe_ip": self.ticket_data["master_fe_ip"],
-                },
+                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
             },
         }
 
@@ -117,25 +115,67 @@ class DorisActPayload(object):
             },
         }
 
-    def get_add_nodes_metadata_payload(self, **kwargs) -> dict:
+    # 添加节点到元数据
+    def get_add_metadata_payload(self, **kwargs) -> dict:
+        extend_dict = {
+            "master_fe_ip": self.ticket_data["master_fe_ip"],
+            "operation": DorisMetaOperation.Add.value,
+            "host_map": self.ticket_data["host_meta_map"],
+        }
         return {
             "db_type": DBActuatorTypeEnum.Doris.value,
             "action": DorisActuatorActionEnum.UpdateMetadata.value,
             "payload": {
                 "general": {},
-                "extend": {
-                    "version": self.ticket_data["db_version"],
-                    "host": kwargs["ip"],
-                    "role": kwargs["role"],
-                    "username": self.ticket_data["username"],
-                    "password": self.ticket_data["password"],
-                    "cluster_name": self.ticket_data["cluster_name"],
-                    "http_port": self.ticket_data["http_port"],
-                    "query_port": self.ticket_data["query_port"],
-                    "master_fe_ip": self.ticket_data["master_fe_ip"],
-                    "operation": DorisMetaOperation.Add.value,
-                    "host_map": self.ticket_data["host_meta_map"],
-                },
+                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
+            },
+        }
+
+    # 元数据管理：删除节点
+    def get_drop_metadata_payload(self, **kwargs) -> dict:
+        extend_dict = {
+            "master_fe_ip": self.ticket_data["master_fe_ip"],
+            "operation": DorisMetaOperation.Drop.value,
+            "host_map": self.ticket_data["host_meta_map"],
+        }
+        return {
+            "db_type": DBActuatorTypeEnum.Doris.value,
+            "action": DorisActuatorActionEnum.UpdateMetadata.value,
+            "payload": {
+                "general": {},
+                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
+            },
+        }
+
+    # 元数据管理：强制删除节点 适用于BE节点
+    def get_force_drop_metadata_payload(self, **kwargs) -> dict:
+        extend_dict = {
+            "master_fe_ip": self.ticket_data["master_fe_ip"],
+            "operation": DorisMetaOperation.ForceDrop.value,
+            "host_map": self.ticket_data["host_meta_map"],
+        }
+        return {
+            "db_type": DBActuatorTypeEnum.Doris.value,
+            "action": DorisActuatorActionEnum.UpdateMetadata.value,
+            "payload": {
+                "general": {},
+                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
+            },
+        }
+
+    # 元数据管理：退役BE节点
+    def get_decommission_metadata_payload(self, **kwargs) -> dict:
+        extend_dict = {
+            "master_fe_ip": self.ticket_data["master_fe_ip"],
+            "operation": DorisMetaOperation.Decommission.value,
+            "host_map": self.ticket_data["host_meta_map"],
+        }
+        return {
+            "db_type": DBActuatorTypeEnum.Doris.value,
+            "action": DorisActuatorActionEnum.UpdateMetadata.value,
+            "payload": {
+                "general": {},
+                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
             },
         }
 
@@ -237,5 +277,22 @@ class DorisActPayload(object):
                     "role": kwargs["role"],
                     "cluster_name": self.ticket_data["cluster_name"],
                 },
+            },
+        }
+
+    def get_check_decommission_payload(self, **kwargs) -> dict:
+        """
+        拼接检查节点是否退役的payload参数
+        """
+        extend_dict = {
+            "master_fe_ip": self.ticket_data["master_fe_ip"],
+            "host_map": self.ticket_data["host_meta_map"],
+        }
+        return {
+            "db_type": DBActuatorTypeEnum.Doris.value,
+            "action": DorisActuatorActionEnum.CheckDecommission.value,
+            "payload": {
+                "general": {},
+                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
             },
         }
