@@ -16,6 +16,13 @@ import (
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/pkg/report"
 	"dbm-services/redis/db-tools/dbmon/util"
+
+	"github.com/shirou/gopsutil/v3/mem"
+)
+
+const (
+	Mem8GB         = 8 * 1024 * 1024
+	MemUsedPercent = 0.85
 )
 
 // Task 任务内容
@@ -185,8 +192,16 @@ func (t *Task) bigKeySmartStat(server Instance) (string, string, int64, int64, e
 	} else if strings.Contains(server.Version, "-rocksdb-") {
 		dbsize, step, err = t.bigAndMode4TendisPlus(server, bkfile, kmfile)
 	} else {
+		var useFastRdbStat bool
+		osMem, _ := mem.VirtualMemory()
+		if osMem.Total > Mem8GB && osMem.UsedPercent < MemUsedPercent {
+			useFastRdbStat = true
+		}
+		mylog.Logger.Info(fmt.Sprintf("do stats keys %s: use Rdb: (config_rdb:%+v,mem_current:%+v) Mem:%+v",
+			server.Addr, t.conf.BigKeyConf.UseRdb, useFastRdbStat, osMem))
+
 		if !util.FileExists(fmt.Sprintf("%s/redis/%d/data/appendonly.aof", t.basicDir, server.Port)) &&
-			t.conf.BigKeyConf.UseRdb {
+			t.conf.BigKeyConf.UseRdb && useFastRdbStat {
 			// 如果RDB save 正在跑（不是我自己触发的，那么需要等等)
 			dbsize, step, err = t.bigKeyWithRdb4Cache(server, bkfile, kmfile)
 		} else {
