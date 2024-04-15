@@ -47,6 +47,9 @@ class PrivilegeType:
             CREATE_ROUTING = EnumField("create routine", _("create routine"))
             ALTER_ROUTING = EnumField("alter routine", _("alter routine"))
             ALL_PRIVILEGES = EnumField("all privileges", _("all privileges"))
+            RELOAD = EnumField("reload", _("reload"))
+            PROCESS = EnumField("process", _("process"))
+            SHOW_DATABASES = EnumField("show databases", _("show databases"))
 
     class MongoDB:
         class USER(str, StructuredEnum):

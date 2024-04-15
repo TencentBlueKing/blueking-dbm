@@ -742,16 +742,12 @@ def is_in_full_transfer(row: TbTendisDtsTask) -> bool:
     判断是否全量传输中
     """
     if row.src_dbtype == ClusterType.TendisTendisSSDInstance:
-        if (
-            row.task_type
-            in [
-                DtsTaskType.TENDISSSD_BACKUP,
-                DtsTaskType.TENDISSSD_BACKUPFILE_FETCH,
-                DtsTaskType.TENDISSSD_TREDISDUMP,
-                DtsTaskType.TENDISSSD_CMDSIMPOTER,
-            ]
-            and row.status in [0, 1]
-        ):
+        if row.task_type in [
+            DtsTaskType.TENDISSSD_BACKUP,
+            DtsTaskType.TENDISSSD_BACKUPFILE_FETCH,
+            DtsTaskType.TENDISSSD_TREDISDUMP,
+            DtsTaskType.TENDISSSD_CMDSIMPOTER,
+        ] and row.status in [0, 1]:
             return True
     if row.src_dbtype == ClusterType.TendisRedisInstance:
         if row.task_type == DtsTaskType.MAKE_CACHE_SYNC and "rdb" in row.message and row.status in [0, 1]:

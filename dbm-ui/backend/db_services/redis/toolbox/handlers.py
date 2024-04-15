@@ -133,7 +133,7 @@ class ToolboxHandler:
         return result
 
     def query_cluster_list(self):
-        """"TODO: 切换为集群列表接口，deprecated"""
+        """ "TODO: 切换为集群列表接口，deprecated"""
 
         clusters = Cluster.objects.filter(
             bk_biz_id=self.bk_biz_id,

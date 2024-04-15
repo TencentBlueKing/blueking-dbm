@@ -66,6 +66,8 @@
 
   import Baseinfo, { type InfoColumn } from '@views/tickets/common/components/baseinfo/Index.vue';
 
+  import { utcTimeToSeconds } from '@utils';
+
   import { useTimeoutPoll } from '@vueuse/core';
 
   import DemandInfo from './components/Demand.vue';
@@ -154,7 +156,12 @@
       {
         label: t('已耗时'),
         key: 'cost_time',
-        render: () => <CostTimer value={state.ticketData?.cost_time || 0} isTiming={state.ticketData?.status === 'RUNNING'} />,
+        render: () => (
+          <CostTimer
+            value={state.ticketData?.cost_time || 0}
+            isTiming={state.ticketData?.status === 'RUNNING'}
+            startTime={utcTimeToSeconds(state.ticketData?.create_at)} />
+        ),
       },
       {
         label: t('申请时间'),

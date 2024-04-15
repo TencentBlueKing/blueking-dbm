@@ -162,29 +162,32 @@ class MySQLHAImportMetadataService(BaseService):
             spec_obj = self.storage_spec
 
         machine, _ = Machine.objects.get_or_create(
-            ip=ip,
-            bk_biz_id=self.bk_biz_id,
-            db_module_id=self.db_module_id,
-            access_layer=access_layer.value,
-            machine_type=machine_type.value,
-            cluster_type=ClusterType.TenDBHA.value,
-            bk_city=BKCity.objects.get(pk=bk_city_id),
             bk_host_id=cc_info["bk_host_id"],
-            bk_os_name=cc_info["bk_os_name"],
-            bk_idc_area=cc_info["bk_idc_area"],
-            bk_idc_area_id=cc_info["bk_idc_area_id"],
-            bk_sub_zone=cc_info["sub_zone"],
-            bk_sub_zone_id=cc_info["sub_zone_id"],
-            bk_rack=cc_info["rack"],
-            bk_rack_id=cc_info["rack_id"],
-            bk_svr_device_cls_name=cc_info["bk_svr_device_cls_name"],
-            bk_idc_name=cc_info["idc_name"],
-            bk_idc_id=cc_info["idc_id"],
-            bk_cloud_id=0,  # addition_info["bk_cloud_id"],
-            net_device_id=cc_info["net_device_id"],
-            spec_id=spec_obj.spec_id,
-            spec_config=spec_obj.get_spec_info(),
+            defaults=dict(
+                ip=ip,
+                bk_biz_id=self.bk_biz_id,
+                db_module_id=self.db_module_id,
+                access_layer=access_layer.value,
+                machine_type=machine_type.value,
+                cluster_type=ClusterType.TenDBHA.value,
+                bk_city=BKCity.objects.get(pk=bk_city_id),
+                bk_os_name=cc_info["bk_os_name"],
+                bk_idc_area=cc_info["bk_idc_area"],
+                bk_idc_area_id=cc_info["bk_idc_area_id"],
+                bk_sub_zone=cc_info["sub_zone"],
+                bk_sub_zone_id=cc_info["sub_zone_id"],
+                bk_rack=cc_info["rack"],
+                bk_rack_id=cc_info["rack_id"],
+                bk_svr_device_cls_name=cc_info["bk_svr_device_cls_name"],
+                bk_idc_name=cc_info["idc_name"],
+                bk_idc_id=cc_info["idc_id"],
+                bk_cloud_id=0,
+                net_device_id=cc_info["net_device_id"],
+                spec_id=spec_obj.spec_id,
+                spec_config=spec_obj.get_spec_info(),
+            ),
         )
+
         return machine
 
     def __create_instance(

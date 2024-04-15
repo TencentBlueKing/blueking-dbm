@@ -142,6 +142,7 @@
             ，耗时：
             <CostTimer
               :is-timing="content.status === 'RUNNING'"
+              :start-time="utcTimeToSeconds(content.start_time)"
               :value="content.cost_time" />
           </template>
           <template v-if="content.url">
@@ -190,7 +191,7 @@
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
   import useLogCounts from '@views/tickets/common/hooks/logCounts';
 
-  import { getCostTimeDisplay } from '@utils';
+  import { getCostTimeDisplay, utcTimeToSeconds } from '@utils';
 
   interface Props {
     flows?: FlowItem[]

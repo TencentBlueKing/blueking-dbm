@@ -115,18 +115,19 @@ export default class GraphRender {
     const abstractNum = {
       success: 0,
       failed: 0,
-      total: 0,
+      running: 0,
     };
 
     if (activities) {
       const activityList = Object.values(activities);
-      abstractNum.total = activityList.length;
-      isParentFlow = abstractNum.total > 0;
+      isParentFlow = activityList.length > 0;
       activityList.forEach((activity) => {
         if (activity.status === 'FAILED') {
           abstractNum.failed = abstractNum.failed + 1;
         } else if (activity.status === 'FINISHED') {
           abstractNum.success = abstractNum.success + 1;
+        } else if (activity.status === 'RUNNING') {
+          abstractNum.running = abstractNum.running + 1;
         }
       });
     }
@@ -137,6 +138,7 @@ export default class GraphRender {
     const nodeClickType = type === 'ServiceActivity' && !createdStatus ? 'log' : '';
     const isShowTime = status !== 'CREATED' && updatedAt && startedAt && (updatedAt - startedAt) >= 0;
     const nodeStatusText = status ? NODE_STATUS_TEXT[status] : '';
+    const diffSeconds = status === 'RUNNING' ? Math.floor(Date.now() / 1000) - startedAt : updatedAt - startedAt;
     return (
       <div class={['node-ractangle-layout', { 'node-hover': node.children || nodeClickType }]}>
         {
@@ -166,12 +168,24 @@ export default class GraphRender {
                   // eslint-disable-next-line no-nested-ternary
                   isParentFlow
                     ? (
-                      <span style="color:#63656E">
-                        <span style="color:#2DCB56">{`${abstractNum.success}`}</span>
+                      <span style="color: #63656E">
+                        <span
+                          title={t('成功')}
+                          style="color: #2DCB56">
+                          {`${abstractNum.success}`}
+                        </span>
                         <span style="margin: 0 5px">/</span>
-                        <span style="color:#EA3636">{`${abstractNum.failed}`}</span>
+                        <span
+                          title={t('失败')}
+                          style="color: #EA3636">
+                          {`${abstractNum.failed}`}
+                        </span>
                         <span style="margin: 0 5px">/</span>
-                        <span>{`${abstractNum.total}`}</span>
+                        <span
+                          title={t('执行中')}
+                          style="color: #3a84ff">
+                          {`${abstractNum.running}`}
+                        </span>
                       </span>
                     )
                     : nodeStatusText
@@ -181,7 +195,7 @@ export default class GraphRender {
               </p>
               {/* <p class="node-ractangle__text">{nodeStatusText ? t(nodeStatusText) : t('待执行')}</p> */}
             </div>
-            <span class="node-ractangle__time">{isShowTime ? getCostTimeDisplay(updatedAt - startedAt) : ''}</span>
+            <span class="node-ractangle__time">{isShowTime ? getCostTimeDisplay(diffSeconds) : ''}</span>
           </div>
 
           {flowInfo.status !== 'REVOKED' && node.children === undefined && <div class="node-ractangle__operations">

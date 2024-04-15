@@ -642,6 +642,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         克隆客户端的MySQL权限
         """
+        if self.cluster.get("is_drop", False):
+            # 代表是proxy替换，会清理proxy权限，则template_client_host为origin_proxy_ip
+            template_client_host = self.cluster["origin_proxy_ip"]
+        else:
+            # 代表是proxy添加，不清理旧proxy权限， 则template_client_host为template_proxy_ip
+            template_client_host = self.cluster["template_proxy_ip"]
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.CloneClientGrant.value,
@@ -650,31 +656,13 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": self.cluster["mysql_port"],
-                    "template_client_host": self.cluster["template_proxy_ip"],
+                    "template_client_host": template_client_host,
                     "target_client_host": self.cluster["target_proxy_ip"],
                     "is_drop": self.cluster.get("is_drop", False),
                     "origin_client_host": self.cluster.get("origin_proxy_ip", "1.1.1.1"),
                 },
             },
         }
-
-    # def get_clone_proxy_user_payload(self, **kwargs):
-    #     """
-    #     克隆proxy上的user白名单
-    #     """
-    #     return {
-    #         "db_type": DBActuatorTypeEnum.Proxy.value,
-    #         "action": DBActuatorActionEnum.CloneProxyUser.value,
-    #         "payload": {
-    #             "general": {"runtime_account": self.__get_proxy_account()},
-    #             "extend": {
-    #                 "source_proxy_host": kwargs["ip"],
-    #                 "source_proxy_port": self.cluster["proxy_port"],
-    #                 "target_proxy_host": self.cluster["target_proxy_ip"],
-    #                 "target_proxy_port": self.cluster["proxy_port"],
-    #             },
-    #         },
-    #     }
 
     def get_semantic_check_payload(self, **kwargs):
         """

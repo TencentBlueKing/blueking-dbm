@@ -24,7 +24,7 @@ from backend.flow.utils import dns_manage
 
 @transaction.atomic
 def tendis_add_clb_domain(immute_domain: str, bk_cloud_id: int, created_by: str):
-    """ 增加CLB 域名 """
+    """增加CLB 域名"""
     cluster = Cluster.objects.get(bk_cloud_id=bk_cloud_id, immute_domain=immute_domain)
     clb = cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB.value).first()
     ClusterEntry.objects.create(
@@ -38,7 +38,7 @@ def tendis_add_clb_domain(immute_domain: str, bk_cloud_id: int, created_by: str)
 
 @transaction.atomic
 def tendis_bind_clb_domain(immute_domain: str, bk_cloud_id: int, created_by: str):
-    """ 主域名直接指向CLB """
+    """主域名直接指向CLB"""
     cluster = Cluster.objects.get(bk_cloud_id=bk_cloud_id, immute_domain=immute_domain)
     immute_entry = cluster.clusterentry_set.filter(
         cluster_entry_type=ClusterEntryType.DNS.value, entry=cluster.immute_domain
@@ -51,7 +51,7 @@ def tendis_bind_clb_domain(immute_domain: str, bk_cloud_id: int, created_by: str
 
 @transaction.atomic
 def tendis_unbind_clb_domain(immute_domain: str, bk_cloud_id: int, created_by: str):
-    """ 主域名解绑CLB """
+    """主域名解绑CLB"""
     cluster = Cluster.objects.get(bk_cloud_id=bk_cloud_id, immute_domain=immute_domain)
     immute_entry = cluster.clusterentry_set.filter(
         cluster_entry_type=ClusterEntryType.DNS.value, entry=cluster.immute_domain

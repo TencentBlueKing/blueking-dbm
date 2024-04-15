@@ -69,6 +69,7 @@
         ，{{ t('耗时') }}：
         <CostTimer
           :is-timing="content.status === 'RUNNING'"
+          :start-time="utcTimeToSeconds(content.start_time)"
           :value="content.cost_time" />
       </template>
       <template v-if="content.url">
@@ -137,7 +138,7 @@
   // import { useUserProfile  } from '@stores';
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
-  import { utcDisplayTime } from '@utils';
+  import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   import FlowContentInnerFlow from './components/ContentInnerFlow.vue';
   import FlowContentTodo from './components/ContentTodo.vue';

@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
-from backend import env
 from backend.db_meta.api.cluster.es.detail import scan_cluster
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
@@ -47,7 +46,7 @@ class ESListRetrieveResource(BigDataBaseListRetrieveResource):
         machines = Machine.objects.filter(bk_host_id__in=storage_instances.values_list("machine", flat=True))
 
         role_host_ids = list(machines.values_list("bk_host_id", flat=True))
-        return ResourceQueryHelper.search_cc_hosts(env.DBA_APP_BK_BIZ_ID, role_host_ids, keyword)
+        return ResourceQueryHelper.search_cc_hosts(role_host_ids, keyword)
 
     @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:

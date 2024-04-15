@@ -68,6 +68,10 @@ func (d *DeployCtlSpiderAct) Init() (err error) {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
+	if err = d.DeserializeNonSensitivePayload(&d.BaseService.MySQLConfigParams); err != nil {
+		logger.Error("DeserializeAndValidate failed, %v", err)
+		return err
+	}
 	d.BaseService.GeneralParam = subcmd.GeneralRuntimeParam
 
 	return d.BaseService.InitDefaultParam()

@@ -46,7 +46,6 @@
     handleRedirect(
       data.cluster_type,
       {
-        id: data.id,
         domain: data.immute_domain,
       },
       data.bk_biz_id,

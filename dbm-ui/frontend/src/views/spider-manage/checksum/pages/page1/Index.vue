@@ -20,6 +20,7 @@
         :title="t('数据校验修复：对集群的主库和从库进行数据一致性校验和修复，其中 MyISAM 引擎库表不会被校验和修复')" />
       <RenderData
         class="mt16"
+        @batch-edit-scope="handleBatchEditScope"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -118,7 +119,7 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
@@ -134,7 +135,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import SpiderModel from '@services/model/spider/spider';
+  import SpiderModel from '@services/model/spider/tendbCluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useTimeZoneFormat } from '@hooks';
@@ -168,8 +169,8 @@
     runtime_hour: 48,
   });
 
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const tableData = ref<Array<IDataRow>>([createRowData({})]);
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -186,6 +187,17 @@
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
+  };
+
+  const handleBatchEditScope = (value: string) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        scope: value,
+      });
+    });
   };
 
   // 批量选择

@@ -88,6 +88,10 @@
           name: 'dbbackup',
         },
         {
+          label: t('备份工具-TXSQL'),
+          name: 'dbbackup-txsql',
+        },
+        {
           label: t('校验工具'),
           name: 'mysql-checksum',
         },

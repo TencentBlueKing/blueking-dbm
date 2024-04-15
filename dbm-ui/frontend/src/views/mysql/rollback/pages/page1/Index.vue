@@ -32,6 +32,7 @@
       <TimeZonePicker style="width: 450px;" />
       <RenderData
         class="mt16"
+        @batch-edit-backup-source="handleBatchEditBackupSource"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -61,7 +62,7 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
@@ -118,7 +119,7 @@
   const isShowBatchEntry = ref(false);
   const isSubmitting = ref(false);
 
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const tableData = ref<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
 
   // 集群域名是否已存在表格的映射表
@@ -128,6 +129,7 @@
   const handleShowBatchEntry = () => {
     isShowBatchEntry.value = true;
   };
+
   // 批量录入
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
     const newList = list.map((item) => createRowData(item));
@@ -138,20 +140,43 @@
     }
     window.changeConfirm = true;
   };
+
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
   };
+
+  const handleBatchEditBackupSource = (value: string) => {
+    if (!value) {
+      return;
+    }
+
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        backupSource: value,
+      });
+    });
+  };
+
   // 批量选择
   const handelClusterChange = (selected: Record<string, Array<TendbhaModel>>) => {
     selectedClusters.value = selected;
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
-      clusterData: {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-        cloudId: clusterData.bk_cloud_id,
-      },
-    }));
+    const newList = selected[ClusterTypes.TENDBHA].reduce((results, clusterData) => {
+      const domain = clusterData.master_domain;
+      if (!domainMemo[domain]) {
+        const row = createRowData({
+          clusterData: {
+            id: clusterData.id,
+            domain,
+            cloudId: clusterData.bk_cloud_id,
+          },
+        });
+        results.push(row);
+        domainMemo[domain] = true;
+      }
+      return results;
+    }, [] as IDataRow[]);
+
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {

@@ -24,7 +24,7 @@ from backend.bk_web.models import AuditedModel
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.db_meta.models import DBModule
+from backend.db_meta.models import AppMonitorTopo, DBModule
 from backend.db_monitor.constants import (
     APP_PRIORITY,
     BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE,
@@ -621,7 +621,7 @@ class MonitorPolicy(AuditedModel):
         return details
 
     @staticmethod
-    def patch_target_and_metric_id(details):
+    def patch_target_and_metric_id(details, alert_source, db_type):
         """监控目标/自定义事件和指标需要渲染
         metric_id: {bk_biz_id}_bkmoinitor_event_{event_data_id}
         """
@@ -631,26 +631,41 @@ class MonitorPolicy(AuditedModel):
         items = details["items"]
         # 事件类告警，无需设置告警目标，否则要求上报的数据必须携带服务实例id（告警目标匹配依据）
         for item in items:
-            # 去掉目标范围，支持跨业务告警
-            item["target"] = []
+            # 更新监控目标为db_type对应的cmdb拓扑
+            item["target"] = (
+                [
+                    [
+                        {
+                            "field": "host_topo_node",
+                            "method": "eq",
+                            "value": [
+                                {"bk_inst_id": obj["bk_set_id"], "bk_obj_id": "set"}
+                                for obj in AppMonitorTopo.get_set_by_dbtype(db_type=db_type)
+                            ],
+                        }
+                    ]
+                ]
+                if alert_source == AlertSourceEnum.TIME_SERIES.value
+                else []
+            )
+
             for query_config in item["query_configs"]:
                 # data_type_label: time_series | event(自定义上报，需要填充data_id)
-                if query_config["data_type_label"] != "event":
-                    continue
-
                 # 自定义事件/指标类告警，需要渲染模板变量
                 bkm_dbm_report_event = bkm_dbm_report["event"]
                 bkm_dbm_report_metric = bkm_dbm_report["metric"]
-                query_config["metric_id"] = query_config["metric_id"].format(
-                    bk_biz_id=env.DBA_APP_BK_BIZ_ID,
-                    event_data_id=bkm_dbm_report_event["data_id"],
-                    metric_data_id=bkm_dbm_report_metric["data_id"],
-                )
-                query_config["result_table_id"] = query_config["result_table_id"].format(
-                    bk_biz_id=env.DBA_APP_BK_BIZ_ID,
-                    event_data_id=bkm_dbm_report_event["data_id"],
-                    metric_data_id=bkm_dbm_report_metric["data_id"],
-                )
+                if "metric_id" in query_config:
+                    query_config["metric_id"] = query_config["metric_id"].format(
+                        bk_biz_id=env.DBA_APP_BK_BIZ_ID,
+                        event_data_id=bkm_dbm_report_event["data_id"],
+                        metric_data_id=bkm_dbm_report_metric["data_id"],
+                    )
+                if "result_table_id" in query_config:
+                    query_config["result_table_id"] = query_config["result_table_id"].format(
+                        bk_biz_id=env.DBA_APP_BK_BIZ_ID,
+                        event_data_id=bkm_dbm_report_event["data_id"],
+                        metric_data_id=bkm_dbm_report_metric["data_id"],
+                    )
 
         return details
 
@@ -749,7 +764,7 @@ class MonitorPolicy(AuditedModel):
 
         # other
         details = self.patch_bk_biz_id(details)
-        details = self.patch_target_and_metric_id(details)
+        details = self.patch_target_and_metric_id(details, self.alert_source, self.db_type)
 
         return details
 
@@ -828,7 +843,7 @@ class MonitorPolicy(AuditedModel):
 
         policy.details = copy.deepcopy(parent.details)
         policy.details.pop("id", None)
-        policy.details.update(name=policy.name)
+        policy.details.update(name=policy.name, is_enabled=True)
 
         policy.creator = policy.updater = username
         policy.id = None

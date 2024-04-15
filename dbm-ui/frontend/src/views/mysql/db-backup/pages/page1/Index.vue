@@ -19,6 +19,7 @@
         :title="t('全库备份：所有库表备份, 除 MySQL 系统库和 DBA 专用库外')" />
       <RenderData
         class="mt16"
+        @batch-edit-backup-local="handleBatchEditBackupLocal"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -78,7 +79,7 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
@@ -141,15 +142,34 @@
     isShowBatchSelector.value = true;
   };
 
+  const handleBatchEditBackupLocal = (value: string) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        backupLocal: value,
+      });
+    });
+  };
+
   // 批量选择
   const handelClusterChange = (selected: Record<string, Array<TendbhaModel>>) => {
     selectedClusters.value = selected;
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
-      clusterData: {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-      },
-    }));
+    const newList = selected[ClusterTypes.TENDBHA].reduce((results, clusterData) => {
+      const domain = clusterData.master_domain;
+      if (!domainMemo[domain]) {
+        const row = createRowData({
+          clusterData: {
+            id: clusterData.id,
+            domain: clusterData.master_domain,
+          },
+        });
+        results.push(row);
+        domainMemo[domain] = true;
+      }
+      return results;
+    }, [] as IDataRow[]);
 
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
@@ -217,6 +237,7 @@
   };
 
   const handleReset = () => {
+    tableData.value = [createRowData()];
     Object.assign(formData, createDefaultData());
     selectedClusters.value[ClusterTypes.TENDBHA] = [];
     domainMemo = {};

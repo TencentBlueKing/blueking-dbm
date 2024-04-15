@@ -29,8 +29,8 @@
           <BkFormItem
             ref="moduleRef"
             class="is-required"
-            :description="t('表示DB的用途')"
-            :label="t('DB模块名')"
+            :description="t('DB 参数模块是一个管理单元，用于标识一组使用了相同数据库配置（版本、字符集等）的集群')"
+            :label="t('DB参数模块')"
             property="details.db_module_id">
             <BkSelect
               v-model="formdata.details.db_module_id"

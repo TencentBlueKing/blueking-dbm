@@ -23,7 +23,7 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.ticket import mock_data
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import CountType, TicketStatus, TicketType, TodoStatus
+from backend.ticket.constants import CountType, FlowType, TicketStatus, TicketType, TodoStatus
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, Todo
 from backend.ticket.yasg_slz import todo_operate_example
@@ -163,6 +163,9 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
         return calculate_cost_time(end_time, start_time)
 
     def get_flow_type_display(self, obj):
+        # 暂停节点的flow描述返回单据类型，供前端渲染
+        if obj.flow_type == FlowType.PAUSE.value:
+            return obj.ticket.get_ticket_type_display()
         return obj.flow_alias or obj.get_flow_type_display()
 
     def get_summary(self, obj):

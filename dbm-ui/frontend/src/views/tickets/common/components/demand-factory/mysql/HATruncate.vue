@@ -77,7 +77,7 @@
       truncateDataTypes.filter(item => item.value === cell).map(item => <span>{item.label}</span>)
     ),
   }, {
-    label: t('备份DB名'),
+    label: t('目标DB名'),
     field: 'db_patterns',
     showOverflowTooltip: false,
     render: ({ cell }: { cell: string[] }) => (
@@ -99,7 +99,7 @@
       </div>
     ),
   }, {
-    label: t('备份表名'),
+    label: t('目标表名'),
     field: 'table_patterns',
     showOverflowTooltip: false,
     render: ({ cell }: { cell: string[] }) => (
