@@ -224,7 +224,9 @@ class DutyRule(AuditedModel):
         params = {
             "name": f"{self.db_type}_{self.name}",
             "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-            "effective_time": self.effective_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "effective_time": self.effective_time
+            if isinstance(self.effective_time, str)
+            else self.effective_time.strftime("%Y-%m-%d %H:%M:%S"),
             "end_time": self.end_time.strftime("%Y-%m-%d %H:%M:%S") if self.end_time else "",
             "labels": [self.db_type],
             "enabled": self.is_enabled,
@@ -612,7 +614,7 @@ class MonitorPolicy(AuditedModel):
             ]
         )
 
-        self.local_save()
+        # self.local_save()
 
     @staticmethod
     def patch_bk_biz_id(details):

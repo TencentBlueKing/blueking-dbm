@@ -18,10 +18,24 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APIClient
 
 from backend.db_monitor.mock_data import CREATE_POLICY
+from backend.db_monitor.models import MonitorPolicy
 from backend.db_monitor.views.policy import MonitorPolicyViewSet
 from backend.tests.mock_data.db_monitor.bkmonitorv3 import BKMonitorV3MockApi
+from backend.tests.mock_data.iam_app.permission import PermissionMock
 
 pytestmark = pytest.mark.django_db
+client = APIClient()
+client.login(username="admin")
+
+
+@pytest.fixture
+@patch.object(MonitorPolicyViewSet, "permission_classes", [AllowAny])
+@patch.object(MonitorPolicyViewSet, "get_permissions", lambda x: [])
+@patch("backend.db_monitor.models.alarm.bkm_save_alarm_strategy")
+def add_policy(mocked_bkm_save_alarm_strategy, db):
+    mocked_bkm_save_alarm_strategy.return_value = {"id": 3, "other_details": "mocked response"}
+    policy = MonitorPolicy.objects.create(**CREATE_POLICY[0])
+    return policy
 
 
 class TestMonitorPolicyViewSet:
@@ -30,42 +44,53 @@ class TestMonitorPolicyViewSet:
         with patch.object(settings, "MIDDLEWARE", []):
             yield
 
-    @pytest.fixture
-    def client(self):
-        client = APIClient()
-        client.login(username="admin")
-        return client
-
     @patch.object(MonitorPolicyViewSet, "permission_classes", [AllowAny])
     @patch.object(MonitorPolicyViewSet, "get_permissions", lambda x: [])
     @patch("backend.db_monitor.models.alarm.BKMonitorV3Api", BKMonitorV3MockApi)
-    def test_list_policies(self, client):
-        url = reverse("policy-list")
-        response = client.get(url)
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["message"] == "OK"
-
-    @patch.object(MonitorPolicyViewSet, "permission_classes", [AllowAny])
-    @patch.object(MonitorPolicyViewSet, "get_permissions", lambda x: [])
-    @patch("backend.db_monitor.models.alarm.BKMonitorV3Api", BKMonitorV3MockApi)
-    def test_retrive_policies_details(self, client):
-        url = reverse("policy-detail", kwargs={"pk": 1})
-        response = client.get(url)
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["message"] == "OK"
-
-    @patch.object(MonitorPolicyViewSet, "permission_classes", [AllowAny])
-    @patch.object(MonitorPolicyViewSet, "get_permissions", lambda x: [])
-    @patch("backend.db_monitor.models.alarm.BKMonitorV3Api", BKMonitorV3MockApi)
-    def test_create_policy(self, client):
+    @patch("backend.db_monitor.models.alarm.bkm_save_alarm_strategy")
+    def test_create_policy(self, mocked_bkm_save_alarm_strategy, add_policy):
+        mocked_bkm_save_alarm_strategy.return_value = {"id": 3, "other_details": "mocked response"}
         url = "/apis/monitor/policy/"
-        response = client.post(url, data=CREATE_POLICY)
-        assert response.status_code == 200
+        response = client.post(url, data=CREATE_POLICY[1])
+        assert response.status_code == 201
+        assert MonitorPolicy.objects.count() == 2
+
+    @patch.object(MonitorPolicyViewSet, "permission_classes", [AllowAny])
+    @patch.object(MonitorPolicyViewSet, "get_permissions", lambda x: [])
+    @patch("backend.iam_app.handlers.permission.Permission", PermissionMock)
+    def test_list_policies(self, add_policy):
+        url = "/apis/monitor/policy/?bk_biz_id=0"
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["message"] == "OK"
+        assert MonitorPolicy.objects.count() == 1
 
     @patch.object(MonitorPolicyViewSet, "permission_classes", [AllowAny])
     @patch.object(MonitorPolicyViewSet, "get_permissions", lambda x: [])
     @patch("backend.db_monitor.models.alarm.BKMonitorV3Api", BKMonitorV3MockApi)
-    def test_db_module_list(self, client):
+    def test_retrive_policies_details(self, add_policy):
+        add_policy_id = add_policy.pk
+        url = reverse("policy-detail", kwargs={"pk": add_policy_id})
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["message"] == "OK"
+
+    @patch.object(MonitorPolicyViewSet, "permission_classes", [AllowAny])
+    @patch.object(MonitorPolicyViewSet, "get_permissions", lambda x: [])
+    @patch("backend.db_monitor.models.alarm.BKMonitorV3Api", BKMonitorV3MockApi)
+    @patch("backend.db_monitor.models.alarm.bkm_delete_alarm_strategy")
+    def test_delete_policy(self, mocked_bkm_delete_alarm_strategy, add_policy):
+        mocked_bkm_delete_alarm_strategy.return_value = None
+        add_policy_id = add_policy.pk
+        url = "/apis/monitor/policy/"
+        response = client.delete(f"{url}{add_policy_id}/")
+        assert response.status_code == 200
+        assert MonitorPolicy.objects.exists() is False
+
+    @patch.object(MonitorPolicyViewSet, "permission_classes", [AllowAny])
+    @patch.object(MonitorPolicyViewSet, "get_permissions", lambda x: [])
+    @patch("backend.db_monitor.models.alarm.BKMonitorV3Api", BKMonitorV3MockApi)
+    def test_db_module_list(self):
         url = "/apis/monitor/policy/db_module_list/?dbtype=mysql"
         response = client.get(url)
         assert response.status_code == 200

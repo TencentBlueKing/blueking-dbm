@@ -81,6 +81,7 @@ class BKMonitorV3MockApi:
     save_user_group_return = copy.deepcopy(MOCK_SAVE_USER_GROUP_RETURN)
     delete_user_groups_return = None
     search_user_groups_return = None
+    delete_duty_rules_return = None
 
     def __init__(
         self,
@@ -93,6 +94,10 @@ class BKMonitorV3MockApi:
     @classmethod
     def save_duty_rule(cls, *args, **kwargs):
         return cls.save_duty_rule_return
+
+    @classmethod
+    def delete_duty_rules(cls, *args, **kwargs):
+        return cls.delete_duty_rules_return
 
     @classmethod
     def save_user_group(cls, *args, **kwargs):
