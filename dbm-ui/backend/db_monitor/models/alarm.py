@@ -654,16 +654,18 @@ class MonitorPolicy(AuditedModel):
                 # 自定义事件/指标类告警，需要渲染模板变量
                 bkm_dbm_report_event = bkm_dbm_report["event"]
                 bkm_dbm_report_metric = bkm_dbm_report["metric"]
-                query_config["metric_id"] = query_config["metric_id"].format(
-                    bk_biz_id=env.DBA_APP_BK_BIZ_ID,
-                    event_data_id=bkm_dbm_report_event["data_id"],
-                    metric_data_id=bkm_dbm_report_metric["data_id"],
-                )
-                query_config["result_table_id"] = query_config["result_table_id"].format(
-                    bk_biz_id=env.DBA_APP_BK_BIZ_ID,
-                    event_data_id=bkm_dbm_report_event["data_id"],
-                    metric_data_id=bkm_dbm_report_metric["data_id"],
-                )
+                if "metric_id" in query_config:
+                    query_config["metric_id"] = query_config["metric_id"].format(
+                        bk_biz_id=env.DBA_APP_BK_BIZ_ID,
+                        event_data_id=bkm_dbm_report_event["data_id"],
+                        metric_data_id=bkm_dbm_report_metric["data_id"],
+                    )
+                if "result_table_id" in query_config:
+                    query_config["result_table_id"] = query_config["result_table_id"].format(
+                        bk_biz_id=env.DBA_APP_BK_BIZ_ID,
+                        event_data_id=bkm_dbm_report_event["data_id"],
+                        metric_data_id=bkm_dbm_report_metric["data_id"],
+                    )
 
         return details
 
