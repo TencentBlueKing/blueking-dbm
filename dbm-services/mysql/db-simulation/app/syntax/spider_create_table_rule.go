@@ -23,7 +23,7 @@ import (
 func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult) {
 	r = &CheckerResult{}
 	if R.BuiltInRule.TableNameSpecification.KeyWord {
-		r.ParseBultinBan(func() (bool, string) {
+		r.ParseBultinRisk(func() (bool, string) {
 			return KeyWordValidator(spiderVersion, c.TableName)
 		})
 	}

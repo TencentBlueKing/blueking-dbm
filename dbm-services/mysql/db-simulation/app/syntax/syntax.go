@@ -688,7 +688,7 @@ func (ch *CheckInfo) runcheck(res ParseLineQueryBase, bs []byte, mysqlVersion st
 
 func prettyErrorsOutput(warnInfos []string) (msg string) {
 	for idx, v := range warnInfos {
-		msg += fmt.Sprintf("Error %d: %s\n", idx+1, v)
+		msg += fmt.Sprintf("%d: %s\n", idx+1, v)
 	}
 	return
 }
