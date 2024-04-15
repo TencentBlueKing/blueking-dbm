@@ -275,7 +275,7 @@
 
   const handleGoTicketDetail = (data: DirtyMachinesModel) => {
     const { href } = router.resolve({
-      name: 'SelfServiceMyTickets',
+      name: 'bizTicketManage',
       query: {
         id: data.ticket_id,
       },

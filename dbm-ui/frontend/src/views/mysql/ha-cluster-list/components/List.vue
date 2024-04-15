@@ -445,27 +445,29 @@
       width: 220,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
-        <div class="domain">
-          <span
-            class="text-overflow"
-            v-overflow-tips>
-            {data.slaveDomainDisplayName || '--'}
-          </span>
-          <db-icon
-            v-bk-tooltips={t('复制从访问入口')}
-            type="copy"
-            onClick={() => copy(data.slaveDomainDisplayName)} />
-          <auth-button
-            v-bk-tooltips={t('修改入口配置')}
-            action-id="access_entry_edit"
-            resource="mysql"
-            permission={data.permission.access_entry_edit}
-            text
-            theme="primary"
-            onClick={() => handleOpenEntryConfig(data)}>
-            <db-icon type="edit" />
-          </auth-button>
-        </div>
+        <TextOverflowLayout>
+          {{
+            default: () => data.slaveDomainDisplayName || '--',
+            append: () => (
+              <>
+                <db-icon
+                  v-bk-tooltips={t('复制从访问入口')}
+                  type="copy"
+                  onClick={() => copy(data.slaveDomainDisplayName)} />
+                <auth-button
+                  v-bk-tooltips={t('修改入口配置')}
+                  action-id="access_entry_edit"
+                  resource="mysql"
+                  permission={data.permission.access_entry_edit}
+                  text
+                  theme="primary"
+                  onClick={() => handleOpenEntryConfig(data)}>
+                  <db-icon type="edit" />
+                </auth-button>
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
       ),
     },
     {
