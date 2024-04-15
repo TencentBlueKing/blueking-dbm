@@ -7,6 +7,7 @@ import (
 	"dnsReload/logger"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -17,6 +18,7 @@ var (
 	errChan chan string
 )
 
+// zone文件生成规则
 func getZoneFileName(d dao.TbDnsBase) string {
 	domain := strings.Trim(strings.TrimSpace(strings.ToLower(d.DomainName)), ".")
 	t := strings.Split(domain, ".")
@@ -28,6 +30,7 @@ func getZoneFileName(d dao.TbDnsBase) string {
 	return strings.Join(t[beginIndex:], ".")
 }
 
+// 生成zone文件
 func makeZoneFile(d dao.TbDnsBase, head string) string {
 	if head == "" {
 		head = `$TTL    6
@@ -45,6 +48,7 @@ func makeZoneFile(d dao.TbDnsBase, head string) string {
 		head, domain, domain, ip)
 }
 
+// 替换forward ip
 func replaceForwardIps(forwardIp string) error {
 	namedFileTpl := config.GetConfig("options_named_file_tpl")
 	content, err := ioutil.ReadFile(namedFileTpl)
@@ -53,25 +57,22 @@ func replaceForwardIps(forwardIp string) error {
 	}
 	newContent := strings.ReplaceAll(string(content), "FORWARD_IPS", forwardIp)
 
-	namedFile := config.GetConfig("options_named_file")
+	// 先写进临时文件，最后再替换。不然如果遇到半路失败的情况，会覆盖原有文件
+	namedFile := config.GetConfig("options_named_file") + "_tmp"
 	return ioutil.WriteFile(namedFile, []byte(newContent), 0666)
 }
 
+// 替换zone_config配置
 func replaceZoneInfo(zoneNamedInfo string) error {
-	namedFileTpl := config.GetConfig("options_named_file")
+	namedFileTpl := config.GetConfig("options_named_file") + "_tmp"
 	content, err := ioutil.ReadFile(namedFileTpl)
 	if err != nil {
 		return err
 	}
 	newContent := strings.ReplaceAll(string(content), "ZONES_CONFIG", zoneNamedInfo)
 
-	namedFile := config.GetConfig("options_named_file")
+	namedFile := config.GetConfig("options_named_file") + "_tmp"
 	return ioutil.WriteFile(namedFile, []byte(newContent), 0666)
-}
-
-func writeNamedConfig(zoneNamedInfo string) error {
-	namedFile := config.GetConfig("local_named_file")
-	return ioutil.WriteFile(namedFile, []byte(zoneNamedInfo), 0666)
 }
 
 func writeZoneName(fileName, fileContent string) {
@@ -82,6 +83,7 @@ func writeZoneName(fileName, fileContent string) {
 	wg.Done()
 }
 
+// 执行flush命令
 func rndcReload() error {
 	rndc := config.GetConfig("rndc")
 	var cmd *exec.Cmd
@@ -109,18 +111,18 @@ func checkReload() bool {
 	return flushSwitch == "true"
 }
 
-// Reload TODO
+// Reload 整个流程
 func Reload(localIp string) error {
 	logger.Info.Printf("reload begin...")
 	defer logger.Info.Printf("reload end...")
 	if !checkReload() {
-		logger.Warning.Printf("flush_switch not is 1. need't do reload")
+		logger.Warning.Printf("flush_switch not is 1. needn't do reload")
 		return nil
 	}
 
 	forwardIp := api.QueryForwardIp(localIp)
 	if forwardIp == "" {
-		logger.Warning.Printf("%s forwardIp is empty.. you sould to set on table[tb_dns_server]", localIp)
+		logger.Warning.Printf("%s forwardIp is empty.. you should to set on table[tb_dns_server]", localIp)
 	} else {
 		err := replaceForwardIps(forwardIp)
 		if err != nil {
@@ -160,8 +162,6 @@ func Reload(localIp string) error {
 		return nil
 	}
 
-	// TODO 这个地方暂时不引入tb_dns_zone_info
-
 	// 更新named.conf文件
 	if err := replaceZoneInfo(zoneNamedInfo); err != nil {
 		logger.Error.Printf("replaceZoneInfo error[%+v]", err)
@@ -192,6 +192,15 @@ func Reload(localIp string) error {
 
 	if errMsg != "" {
 		return fmt.Errorf(errMsg)
+	}
+
+	// 能走到这里，说明配置文件生成过程中没遇到问题，可以替换了
+	tmpFile := config.GetConfig("options_named_file") + "_tmp"
+	namedFile := config.GetConfig("options_named_file")
+	err = os.Rename(tmpFile, namedFile)
+	if err != nil {
+		logger.Error.Printf("rename named file error [%+v]", err)
+		return err
 	}
 
 	// 触发rndc reload
