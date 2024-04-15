@@ -28,9 +28,7 @@ class SQLServerBackupDetailSerializer(SQLServerBaseOperateDetailSerializer):
     backup_type = serializers.ChoiceField(
         help_text=_("备份方式"), choices=SqlserverBackupMode.get_choices(), required=False
     )
-    file_tag = serializers.ChoiceField(
-        help_text=_("备份保存时间"), choices=SqlserverBackupFileTagEnum.get_choices(), required=False
-    )
+    file_tag = serializers.ChoiceField(help_text=_("备份保存时间"), choices=SqlserverBackupFileTagEnum.get_choices())
     infos = serializers.ListSerializer(help_text=_("备份信息列表"), child=BackupDataInfoSerializer())
 
     def validate(self, attrs):
