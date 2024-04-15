@@ -18,11 +18,15 @@
     <template v-if="item.status === 'TODO' && item.type==='INNER_APPROVE'">
       <p class="mb-8">
         {{ $t('请在') }} "
-        <a
-          href="javascript:"
-          @click="handleGoTodos">
+        <RouterLink
+          :to="{
+            name: 'MyTodos',
+            query: {
+              filterId: content.ticket,
+            },
+          }">
           {{ $t('我的待办') }}
-        </a>
+        </RouterLink>
         " {{ $t('中确认') }}。
       </p>
     </template>
@@ -110,10 +114,8 @@
     content: FlowItem,
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
   const emits = defineEmits<Emits>();
-
-  const router = useRouter();
 
   const retryButtonRef = ref();
   const state = reactive({
@@ -121,28 +123,17 @@
     isLoading: false,
   });
 
-  function getHrefTarget(content: FlowItem) {
-    return content.flow_type === 'BK_ITSM' ? '_blank' : '_self';
-  }
+  const getHrefTarget = (content: FlowItem) => (content.flow_type === 'BK_ITSM' ? '_blank' : '_self');
 
-  function handleGoTodos() {
-    router.push({
-      name: 'MyTodos',
-      query: {
-        filterId: props.content.ticket,
-      },
-    });
-  }
-
-  function handleConfirmToggle() {
+  const handleConfirmToggle = () => {
     state.confirmTips = !state.confirmTips;
-  }
+  };
 
-  function handleConfirmCancel() {
+  const handleConfirmCancel = () => {
     state.confirmTips = false;
-  }
+  };
 
-  function handleConfirm(item: FlowItem) {
+  const handleConfirm = (item: FlowItem) => {
     state.confirmTips = false;
     state.isLoading = true;
     retryTicketFlow({
@@ -155,5 +146,5 @@
       .finally(() => {
         state.isLoading = false;
       });
-  }
+  };
 </script>

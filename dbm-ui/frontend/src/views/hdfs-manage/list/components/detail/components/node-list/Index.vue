@@ -22,7 +22,7 @@
           :resource="operationData?.id"
           theme="primary"
           @click="handleShowExpansion">
-          {{ $t('扩容') }}
+          {{ $t("扩容") }}
         </AuthButton>
       </OperationBtnStatusTips>
       <OperationBtnStatusTips :data="operationData">
@@ -30,11 +30,14 @@
           <AuthButton
             action-id="hdfs_shrink"
             class="ml8"
-            :disabled="(batchShrinkDisabledInfo.disabled || operationData?.operationDisabled)"
+            :disabled="
+              batchShrinkDisabledInfo.disabled ||
+                operationData?.operationDisabled
+            "
             :permission="operationData?.permission.hdfs_shrink"
             :resource="operationData?.id"
             @click="handleShowShrink">
-            {{ $t('缩容') }}
+            {{ $t("缩容") }}
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
@@ -43,37 +46,40 @@
           <AuthButton
             action-id="hdfs_replace"
             class="ml8"
-            :disabled="(batchReplaceDisableInfo.disabled || operationData?.operationDisabled)"
+            :disabled="
+              batchReplaceDisableInfo.disabled ||
+                operationData?.operationDisabled
+            "
             :permission="operationData?.permission.hdfs_replace"
             :resource="operationData?.id"
             @click="handleShowReplace">
-            {{ $t('替换') }}
+            {{ $t("替换") }}
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
       <BkDropdown
         class="ml8"
-        @hide="() => isCopyDropdown = false"
-        @show="() => isCopyDropdown = true">
+        @hide="() => (isCopyDropdown = false)"
+        @show="() => (isCopyDropdown = true)">
         <BkButton>
-          {{ $t('复制IP') }}
+          {{ $t("复制IP") }}
           <DbIcon
             class="action-copy-icon"
             :class="{
-              'action-copy-icon--avtive': isCopyDropdown
+              'action-copy-icon--avtive': isCopyDropdown,
             }"
             type="up-big" />
         </BkButton>
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll">
-              {{ $t('复制全部IP') }}
+              {{ $t("复制全部IP") }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeFailed">
-              {{ $t('复制异常IP') }}
+              {{ $t("复制异常IP") }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeActive">
-              {{ $t('复制已选IP') }}
+              {{ $t("复制已选IP") }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
@@ -82,7 +88,7 @@
         v-model="searchKey"
         clearable
         :placeholder="$t('请输入IP搜索')"
-        style="max-width: 360px; margin-left: 8px; flex: 1;" />
+        style="max-width: 360px; margin-left: 8px; flex: 1" />
     </div>
     <BkAlert
       v-if="operationData?.operationStatusText"
@@ -95,12 +101,12 @@
         <RouterLink
           target="_blank"
           :to="{
-            name: 'SelfServiceMyTickets',
+            name: 'bizTicketManage',
             query: {
               id: operationData?.operationTicketId,
             },
           }">
-          {{ $t('我的服务单') }}
+          {{ $t("单据") }}
         </RouterLink>
       </I18nT>
     </BkAlert>
@@ -119,7 +125,12 @@
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       quick-close
-      :title="$t('xx扩容【name】', {title: 'HDFS', name:operationData?.cluster_name })"
+      :title="
+        $t('xx扩容【name】', {
+          title: 'HDFS',
+          name: operationData?.cluster_name,
+        })
+      "
       :width="960">
       <ClusterExpansion
         v-if="operationData"
@@ -128,7 +139,12 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
-      :title="$t('xx缩容【name】', {title: 'HDFS', name:operationData?.cluster_name })"
+      :title="
+        $t('xx缩容【name】', {
+          title: 'HDFS',
+          name: operationData?.cluster_name,
+        })
+      "
       :width="960">
       <ClusterShrink
         v-if="operationData"
@@ -137,7 +153,12 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowReplace"
-      :title="$t('xx替换【name】', {title: 'HDFS', name:operationData?.cluster_name })"
+      :title="
+        $t('xx替换【name】', {
+          title: 'HDFS',
+          name: operationData?.cluster_name,
+        })
+      "
       :width="960">
       <ClusterReplace
         v-if="operationData"
@@ -159,24 +180,14 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { computed, ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type HdfsModel from '@services/model/hdfs/hdfs';
   import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import {
-    getHdfsDetail,
-    getHdfsNodeList,
-  } from '@services/source/hdfs';
+  import { getHdfsDetail, getHdfsNodeList } from '@services/source/hdfs';
 
-  import {
-    useCopy,
-    useDebouncedRef,
-  } from '@hooks';
+  import { useCopy, useDebouncedRef } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -188,11 +199,7 @@
   import ClusterReplace from '@views/hdfs-manage/common/replace/Index.vue';
   import ClusterShrink from '@views/hdfs-manage/common/shrink/Index.vue';
 
-  import {
-    encodeRegexp,
-    isRecentDays,
-    messageWarn,
-  } from '@utils';
+  import { encodeRegexp, isRecentDays, messageWarn } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
@@ -244,10 +251,7 @@
       options.tooltips.content = t('请先选中节点');
       return options;
     }
-    if (_.find(
-      selectList,
-      item => !item.isDataNode,
-    )) {
+    if (_.find(selectList, item => !item.isDataNode)) {
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('仅DataNode类型的节点支持缩容');
@@ -288,10 +292,7 @@
       options.tooltips.content = t('请先选中节点');
       return options;
     }
-    if (_.find(
-      selectList,
-      item => !item.isDataNode,
-    )) {
+    if (_.find(selectList, item => !item.isDataNode)) {
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('仅DataNode类型的节点支持缩容');
@@ -342,19 +343,19 @@
       width: 60,
       fixed: 'left',
       label: () => (
-        <bk-checkbox
-          label={true}
-          model-value={isSelectedAll.value}
-          onChange={handleSelectAll}
-        />
-      ),
-      render: ({ data }: {data: HdfsNodeModel}) => (
-          <bk-checkbox
-            label={true}
-            model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
-            onChange={(value: boolean) => handleSelect(value, data)}
-          />
-        ),
+      <bk-checkbox
+        label={true}
+        model-value={isSelectedAll.value}
+        onChange={handleSelectAll}
+      />
+    ),
+      render: ({ data }: { data: HdfsNodeModel }) => (
+      <bk-checkbox
+        label={true}
+        model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
+        onChange={(value: boolean) => handleSelect(value, data)}
+      />
+    ),
     },
     {
       label: t('节点IP'),
@@ -362,15 +363,15 @@
       minWidth: 140,
       showOverflowTooltip: false,
       render: ({ data }: { data: HdfsNodeModel }) => (
-        <div style="display: flex; align-items: center;">
-          <div class="text-overflow" v-overflow-tips>{data.ip}</div>
-          {
-            isRecentDays(data.create_at, 24 * 3)
-              ? <span class="glob-new-tag ml-4" data-text="NEW" />
-              : null
-          }
+      <div style="display: flex; align-items: center;">
+        <div class="text-overflow" v-overflow-tips>
+          {data.ip}
         </div>
-      ),
+        {isRecentDays(data.create_at, 24 * 3) ? (
+          <span class="glob-new-tag ml-4" data-text="NEW" />
+        ) : null}
+      </div>
+    ),
     },
     {
       label: t('实例数量'),
@@ -379,15 +380,15 @@
     {
       label: t('类型'),
       width: 300,
-      render: ({ data }: {data: HdfsNodeModel}) => (
-        <RenderClusterRole data={data.role_set} />
-      ),
+      render: ({ data }: { data: HdfsNodeModel }) => (
+      <RenderClusterRole data={data.role_set} />
+    ),
     },
     {
       label: t('Agent状态'),
-      render: ({ data }: {data: HdfsNodeModel}) => (
-        <RenderHostStatus data={data.status} />
-      ),
+      render: ({ data }: { data: HdfsNodeModel }) => (
+      <RenderHostStatus data={data.status} />
+    ),
     },
     {
       label: t('部署时间'),
@@ -397,55 +398,63 @@
       label: t('操作'),
       width: isCN.value ? 200 : 260,
       fixed: 'right',
-      render: ({ data }: {data: HdfsNodeModel}) => {
+      render: ({ data }: { data: HdfsNodeModel }) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
-          <>
-            <OperationBtnStatusTips data={operationData.value}>
-              <span v-bk-tooltips={shrinkDisableTooltips.tooltips}>
-                <auth-button
-                  text
-                  theme="primary"
-                  action-id="hdfs_shrink"
-                  permission={data.permission.hdfs_shrink}
-                  resource={data.bk_host_id}
-                  disabled={shrinkDisableTooltips.disabled || operationData.value?.operationDisabled}
-                  onClick={() => handleShrinkOne(data)}>
-                  { t('缩容') }
-                </auth-button>
-              </span>
-            </OperationBtnStatusTips>
-            <OperationBtnStatusTips data={operationData.value}>
-              <span v-bk-tooltips={{
-                  content: t('节点类型不支持替换'),
-                  disabled: data.isDataNode,
-                }}>
-                <auth-button
+        <>
+          <OperationBtnStatusTips data={operationData.value}>
+            <span v-bk-tooltips={shrinkDisableTooltips.tooltips}>
+              <auth-button
+                text
+                theme="primary"
+                action-id="hdfs_shrink"
+                permission={data.permission.hdfs_shrink}
+                resource={data.bk_host_id}
+                disabled={
+                  shrinkDisableTooltips.disabled
+                  || operationData.value?.operationDisabled
+                }
+                onClick={() => handleShrinkOne(data)}
+              >
+                {t('缩容')}
+              </auth-button>
+            </span>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips data={operationData.value}>
+            <span
+              v-bk-tooltips={{
+                content: t('节点类型不支持替换'),
+                disabled: data.isDataNode,
+              }}
+            >
+              <auth-button
                 text
                 theme="primary"
                 action-id="hdfs_replace"
                 permission={data.permission.hdfs_replace}
                 resource={data.bk_host_id}
                 disabled={operationData.value?.operationDisabled}
-                onClick={() => handleReplaceOne(data)}>
-                { t('替换') }
+                onClick={() => handleReplaceOne(data)}
+              >
+                {t('替换')}
               </auth-button>
-              </span>
-            </OperationBtnStatusTips>
-            <OperationBtnStatusTips data={operationData.value}>
-              <auth-button
-                text
-                theme="primary"
-                action-id="hdfs_reboot"
-                permission={data.permission.hdfs_reboot}
-                resource={data.bk_host_id}
-                class="ml8"
-                disabled={operationData.value?.operationDisabled}
-                onClick={() => handleShowDetail(data)}>
-                { t('重启实例') }
-              </auth-button>
-            </OperationBtnStatusTips>
-          </>
+            </span>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips data={operationData.value}>
+            <auth-button
+              text
+              theme="primary"
+              action-id="hdfs_reboot"
+              permission={data.permission.hdfs_reboot}
+              resource={data.bk_host_id}
+              class="ml8"
+              disabled={operationData.value?.operationDisabled}
+              onClick={() => handleShowDetail(data)}
+            >
+              {t('重启实例')}
+            </auth-button>
+          </OperationBtnStatusTips>
+        </>
         );
       },
     },
@@ -455,10 +464,9 @@
     // 获取集群详情
     getHdfsDetail({
       id: props.clusterId,
-    })
-      .then((data) => {
-        operationData.value = data;
-      });
+    }).then((data) => {
+      operationData.value = data;
+    });
   };
 
   const fetchNodeList = () => {
@@ -467,10 +475,11 @@
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       no_limit: 1,
-    }).then((data) => {
-      tableData.value = data.results;
-      isAnomalies.value = false;
     })
+      .then((data) => {
+        tableData.value = data.results;
+        isAnomalies.value = false;
+      })
       .catch(() => {
         tableData.value = [];
         isAnomalies.value = true;
@@ -487,17 +496,21 @@
   const {
     pause: pauseFetchClusterDetail,
     resume: resumeFetchClusterDetail,
-  } = useTimeoutPoll(fetchClusterDetail, 2000, {
+  } =  useTimeoutPoll(fetchClusterDetail, 2000, {
     immediate: true,
   });
 
-  watch(() => props.clusterId, () => {
-    pauseFetchClusterDetail();
-    resumeFetchClusterDetail();
-    fetchNodeList();
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      pauseFetchClusterDetail();
+      resumeFetchClusterDetail();
+      fetchNodeList();
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleOperationChange = () => {
     fetchNodeList();
@@ -558,10 +571,13 @@
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      checkedNodeMap.value = tableData.value.reduce((result, nodeData) => ({
-        ...result,
-        [nodeData.bk_host_id]: nodeData,
-      }), {} as Record<number, HdfsNodeModel>);
+      checkedNodeMap.value = tableData.value.reduce(
+        (result, nodeData) => ({
+          ...result,
+          [nodeData.bk_host_id]: nodeData,
+        }),
+        {} as Record<number, HdfsNodeModel>,
+      );
     } else {
       checkedNodeMap.value = {};
     }
@@ -598,23 +614,23 @@
   };
 </script>
 <style lang="less">
-  .hdfs-detail-node-list {
-    padding: 24px 0;
+.hdfs-detail-node-list {
+  padding: 24px 0;
 
-    .action-box {
-      display: flex;
-      margin-bottom: 16px;
-    }
+  .action-box {
+    display: flex;
+    margin-bottom: 16px;
+  }
 
-    .action-copy-icon {
-      margin-left: 6px;
-      color: #979ba5;
-      transform: rotateZ(180deg);
-      transition: all 0.2s;
+  .action-copy-icon {
+    margin-left: 6px;
+    color: #979ba5;
+    transform: rotateZ(180deg);
+    transition: all 0.2s;
 
-      &--avtive {
-        transform: rotateZ(0);
-      }
+    &--avtive {
+      transform: rotateZ(0);
     }
   }
+}
 </style>

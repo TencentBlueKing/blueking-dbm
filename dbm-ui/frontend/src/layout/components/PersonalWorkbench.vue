@@ -12,7 +12,7 @@
         <span
           v-overflow-tips.right
           class="text-overflow">
-          {{ t('服务申请') }}
+          {{ t("服务申请") }}
         </span>
       </BkMenuItem>
       <BkMenuItem key="SelfServiceMyTickets">
@@ -22,7 +22,7 @@
         <span
           v-overflow-tips.right
           class="text-overflow">
-          {{ t('我的服务单') }}
+          {{ t("单据") }}
         </span>
       </BkMenuItem>
       <BkMenuItem key="MyTodos">
@@ -32,7 +32,7 @@
         <span
           v-overflow-tips.right
           class="text-overflow">
-          {{ t('我的待办') }}
+          {{ t("我的待办") }}
         </span>
       </BkMenuItem>
     </BkMenuGroup>
@@ -53,6 +53,4 @@
     key: currentActiveKey,
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'serviceApply');
-
 </script>
-

@@ -54,7 +54,7 @@
         <router-link
           target="_blank"
           to={{
-            name: 'SelfServiceMyTickets',
+            name: 'bizTicketManage',
             query: {
               id: data.ticket_id,
             },

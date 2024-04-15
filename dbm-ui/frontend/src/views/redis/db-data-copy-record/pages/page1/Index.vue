@@ -306,7 +306,18 @@
       field: 'bill_id',
       showOverflowTooltip: true,
       width: 120,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span style="color:#3A84FF;cursor:pointer;" onClick={() => handleClickRelatedTicket(data.bill_id)}>{data.bill_id}</span>,
+      render: ({ data }: {data: RedisDSTHistoryJobModel}) => (data.bill_id ? (
+        <router-link
+          target="_blank"
+          to={{
+            name: 'bizTicketManage',
+            query: {
+              id: data.bill_id,
+            },
+          }}>
+          {data.bill_id}
+        </router-link>
+        ) : '--'),
     },
     {
       label: t('最近一次修复单'),
@@ -460,16 +471,6 @@
     router.push({
       name: 'RedisDBDataCopy',
     });
-  };
-
-  const handleClickRelatedTicket = (billId: number) => {
-    const route = router.resolve({
-      name: 'SelfServiceMyTickets',
-      query: {
-        id: billId,
-      },
-    });
-    window.open(route.href);
   };
 
   // const handleClickConfirmRecopy = () => {

@@ -209,7 +209,7 @@
 
   const handleToTicket = (id: string) => {
     const url = router.resolve({
-      name: 'SelfServiceMyTickets',
+      name: 'bizTicketManage',
       query: {
         id,
       },
