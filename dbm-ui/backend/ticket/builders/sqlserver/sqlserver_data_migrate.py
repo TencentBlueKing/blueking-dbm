@@ -41,7 +41,7 @@ class SQLServerDataMigrateDetailSerializer(SQLServerBaseOperateDetailSerializer)
         dst_cluster = serializers.IntegerField(help_text=_("目标集群ID"))
         db_list = serializers.ListField(help_text=_("库正则"), child=serializers.CharField(), required=False)
         ignore_db_list = serializers.ListField(help_text=_("忽略库正则"), child=serializers.CharField(), required=False)
-        rename_infos = serializers.ListSerializer(help_text=_("迁移DB信息"), child=RenameInfoSerializer())
+        dts_infos = serializers.ListSerializer(help_text=_("迁移DB信息"), child=RenameInfoSerializer())
         dts_id = serializers.IntegerField(help_text=_("迁移记录ID"), required=False)
 
     dts_mode = serializers.ChoiceField(help_text=_("迁移方式"), choices=SqlserverDtsMode.get_choices())
@@ -103,7 +103,7 @@ class SQLServerRenameFlowParamBuilder(builders.FlowParamBuilder):
             dbrename_infos.extend(
                 [
                     {"cluster_id": info[cluster_key], "from_database": db[from_key], "to_database": db[to_key]}
-                    for db in info["rename_infos"]
+                    for db in info["dts_infos"]
                     if db.get(from_key) and db.get(to_key)
                 ]
             )
@@ -144,7 +144,7 @@ class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
         dts_infos: List[SqlserverDtsInfo] = []
         for index, info in enumerate(self.ticket.details["infos"]):
             dts_config = [
-                {"db_name": db["db_name"], "target_db_name": db["target_db_name"]} for db in info["rename_infos"]
+                {"db_name": db["db_name"], "target_db_name": db["target_db_name"]} for db in info["dts_infos"]
             ]
             dts_info = SqlserverDtsInfo(
                 bk_biz_id=self.ticket.bk_biz_id,
