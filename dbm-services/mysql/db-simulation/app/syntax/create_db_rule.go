@@ -17,7 +17,7 @@ func (c CreateDBResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r = &CheckerResult{}
 	// 检查库名规范
 	if R.BuiltInRule.TableNameSpecification.KeyWord {
-		r.ParseBultinBan(func() (bool, string) {
+		r.ParseBultinRisk(func() (bool, string) {
 			return KeyWordValidator(mysqlVersion, c.DbName)
 		})
 	}

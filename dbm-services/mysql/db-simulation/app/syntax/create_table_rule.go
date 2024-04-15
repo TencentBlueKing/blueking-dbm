@@ -24,7 +24,7 @@ func (c CreateTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r.Parse(R.CreateTableRule.SuggestEngine, c.GetEngine(), "")
 	r.Parse(R.CreateTableRule.SuggestBlobColumCount, c.BlobColumCount(), "")
 	if R.BuiltInRule.TableNameSpecification.KeyWord {
-		r.ParseBultinBan(func() (bool, string) {
+		r.ParseBultinRisk(func() (bool, string) {
 			return KeyWordValidator(mysqlVersion, c.TableName)
 		})
 	}
