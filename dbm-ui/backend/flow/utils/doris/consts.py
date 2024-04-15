@@ -26,6 +26,7 @@ class DorisMetaOperation(str, StructuredEnum):
     Add = EnumField("ADD", _("ADD"))
     Drop = EnumField("DROP", _("DROP"))
     Decommission = EnumField("DECOMMISSION", _("DECOMMISSION"))
+    ForceDrop = EnumField("DROPP", _("DROPP"))
 
 
 class DorisNodeOperation(str, StructuredEnum):
@@ -35,3 +36,6 @@ class DorisNodeOperation(str, StructuredEnum):
 
 
 DORIS_ROLE_ALL = "all"
+DORIS_FOLLOWER_MUST_COUNT = 3
+DORIS_OBSERVER_NOT_COUNT = 1
+DORIS_BACKEND_NOT_COUNT = 0

@@ -82,7 +82,7 @@ class WriteBackDorisConfigService(BaseService):
             "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
             "password": base64.b64encode(str(global_data["username"]).encode("utf-8")).decode("utf-8"),
             "username": MySQLPrivComponent.DORIS_FAKE_USER.value,
-            "component": NameSpaceEnum.Pulsar,
+            "component": NameSpaceEnum.Doris,
             "operator": "admin",
         }
         DBPrivManagerApi.modify_password(params=query_params)
@@ -91,7 +91,7 @@ class WriteBackDorisConfigService(BaseService):
             "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
             "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
             "username": global_data["username"],
-            "component": NameSpaceEnum.Pulsar,
+            "component": NameSpaceEnum.Doris,
             "operator": "admin",
         }
         DBPrivManagerApi.modify_password(params=query_params)

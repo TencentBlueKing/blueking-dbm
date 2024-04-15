@@ -18,7 +18,17 @@ from backend.configuration.constants import DBType
 from backend.flow.consts import DnsOpType, DorisRoleEnum, ManagerOpType, ManagerServiceType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.doris.doris_base_flow import DorisBaseFlow, get_all_node_ips_in_ticket
+from backend.flow.engine.bamboo.scene.doris.doris_base_flow import (
+    DorisBaseFlow,
+    get_all_node_ips_in_ticket,
+    get_node_ips_in_ticket_by_role,
+    make_meta_host_map,
+)
+from backend.flow.engine.bamboo.scene.doris.exceptions import (
+    BeMachineCountException,
+    RoleMachineCountException,
+    RoleMachineCountMustException,
+)
 from backend.flow.plugins.components.collections.common.bigdata_manager_service import BigdataManagerComponent
 from backend.flow.plugins.components.collections.doris.doris_db_meta import DorisMetaComponent
 from backend.flow.plugins.components.collections.doris.doris_dns_manage import DorisDnsManageComponent
@@ -29,6 +39,11 @@ from backend.flow.plugins.components.collections.doris.get_doris_payload import 
 from backend.flow.plugins.components.collections.doris.get_doris_resource import GetDorisResourceComponent
 from backend.flow.plugins.components.collections.doris.rewrite_doris_config import WriteBackDorisConfigComponent
 from backend.flow.plugins.components.collections.doris.trans_files import TransFileComponent
+from backend.flow.utils.doris.consts import (
+    DORIS_BACKEND_NOT_COUNT,
+    DORIS_FOLLOWER_MUST_COUNT,
+    DORIS_OBSERVER_NOT_COUNT,
+)
 from backend.flow.utils.doris.doris_act_payload import DorisActPayload
 from backend.flow.utils.doris.doris_context_dataclass import DnsKwargs, DorisActKwargs, DorisApplyContext
 from backend.flow.utils.extension_manage import BigdataManagerKwargs
@@ -56,7 +71,7 @@ class DorisApplyFlow(DorisBaseFlow):
 
         master_ip = self.nodes[DorisRoleEnum.FOLLOWER][0]["ip"]
         flow_data["master_fe_ip"] = master_ip
-        host_map = self.make_meta_host_map(flow_data)
+        host_map = make_meta_host_map(flow_data)
         flow_data["host_meta_map"] = host_map
 
         return flow_data
@@ -68,6 +83,9 @@ class DorisApplyFlow(DorisBaseFlow):
         """
 
         doris_deploy_data = self.__get_flow_data()
+        # 检查单据传参
+        self.check_apply_role_ip_count(doris_deploy_data)
+
         doris_pipeline = Builder(root_id=self.root_id, data=doris_deploy_data)
 
         trans_files = GetFileList(db_type=DBType.Doris)
@@ -115,7 +133,7 @@ class DorisApplyFlow(DorisBaseFlow):
             kwargs=asdict(act_kwargs),
         )
 
-        act_kwargs.get_doris_payload_func = DorisActPayload.get_add_nodes_metadata_payload.__name__
+        act_kwargs.get_doris_payload_func = DorisActPayload.get_add_metadata_payload.__name__
         doris_pipeline.add_act(
             act_name=_("集群元数据更新"),
             act_component_code=ExecuteDorisActuatorScriptComponent.code,
@@ -125,7 +143,7 @@ class DorisApplyFlow(DorisBaseFlow):
         sub_new_fe_pipelines = self.new_fe_sub_flows(act_kwargs=act_kwargs, data=doris_deploy_data)
         doris_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_new_fe_pipelines)
         # 扩容BE节点子流程
-        sub_new_be_acts = self.new_bew_sub_acts(act_kwargs=act_kwargs, data=doris_deploy_data)
+        sub_new_be_acts = self.new_be_sub_acts(act_kwargs=act_kwargs, data=doris_deploy_data)
         doris_pipeline.add_parallel_acts(acts_list=sub_new_be_acts)
 
         # 插入Doris WebUI实例信息
@@ -167,3 +185,26 @@ class DorisApplyFlow(DorisBaseFlow):
         )
 
         doris_pipeline.run_pipeline()
+
+    @staticmethod
+    def check_apply_role_ip_count(data: dict):
+        # 检查 follower 数量
+        follower_count = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.FOLLOWER))
+        if follower_count != DORIS_FOLLOWER_MUST_COUNT:
+            logger.error(_("DorisFollower主机数不为{},当前选择数量为{}".format(DORIS_FOLLOWER_MUST_COUNT, follower_count)))
+            raise RoleMachineCountMustException(
+                doris_role=DorisRoleEnum.FOLLOWER, must_count=DORIS_FOLLOWER_MUST_COUNT
+            )
+
+        # 检查 observer 数量
+        observer_count = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.OBSERVER))
+        if observer_count == DORIS_OBSERVER_NOT_COUNT:
+            logger.error(_("DorisObserver主机数不能为{}".format(DORIS_OBSERVER_NOT_COUNT)))
+            raise RoleMachineCountException(doris_role=DorisRoleEnum.OBSERVER, machine_count=DORIS_OBSERVER_NOT_COUNT)
+
+        # 检查数据节点的数量(hot + cold > 1)
+        hot_count = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.HOT))
+        cold_count = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.COLD))
+        if hot_count + cold_count == DORIS_BACKEND_NOT_COUNT:
+            logger.error(_("Doris数据节点(hot+cold)数量不能为{}".format(DORIS_BACKEND_NOT_COUNT)))
+            raise BeMachineCountException(must_count=DORIS_BACKEND_NOT_COUNT)

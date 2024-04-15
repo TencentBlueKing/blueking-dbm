@@ -13,5 +13,4 @@ from .destroy import destroy
 from .disable import disable
 from .enable import enable
 from .scale_up import scale_up
-
-# from .shrink import shrink
+from .shrink import shrink

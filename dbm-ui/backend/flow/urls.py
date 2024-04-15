@@ -25,7 +25,9 @@ from backend.flow.views.doris_destroy import DestroyDorisSceneApiView
 from backend.flow.views.doris_disable import DisableDorisSceneApiView
 from backend.flow.views.doris_enable import EnableDorisSceneApiView
 from backend.flow.views.doris_reboot import RebootDorisSceneApiView
+from backend.flow.views.doris_replace import ReplaceDorisSceneApiView
 from backend.flow.views.doris_scale_up import ScaleUpDorisSceneApiView
+from backend.flow.views.doris_shrink import ShrinkDorisSceneApiView
 from backend.flow.views.es_apply import InstallEsSceneApiView
 from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
@@ -492,4 +494,6 @@ urlpatterns = [
     url(r"^scene/disable_doris$", DisableDorisSceneApiView.as_view()),
     url(r"^scene/destroy_doris$", DestroyDorisSceneApiView.as_view()),
     url(r"^scene/reboot_doris$", RebootDorisSceneApiView.as_view()),
+    url(r"^scene/shrink_doris$", ShrinkDorisSceneApiView.as_view()),
+    url(r"^scene/replace_doris$", ReplaceDorisSceneApiView.as_view()),
 ]
