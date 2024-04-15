@@ -123,14 +123,22 @@ LIST_NOTICE_GROUP = {
     ],
 }
 
-CREATE_NOTICE_GROUP = {
-    "name": _("新建告警组"),
-    "bk_biz_id": 0,
-    "receivers": [{"type": "group", "id": "bk_biz_maintainer"}, {"type": "user", "id": "admin"}],
-    "details": copy.deepcopy(NOTICE_GROUP_DETAIL),
-}
+CREATE_NOTICE_GROUP = [
+    {
+        "name": _("新建告警组1"),
+        "bk_biz_id": 0,
+        "receivers": [{"type": "group", "id": "bk_biz_maintainer"}, {"type": "user", "id": "admin"}],
+        "details": copy.deepcopy(NOTICE_GROUP_DETAIL),
+    },
+    {
+        "name": _("新建告警组2"),
+        "bk_biz_id": 0,
+        "receivers": [{"type": "group", "id": "bk_biz_maintainer"}, {"type": "user", "id": "admin"}],
+        "details": copy.deepcopy(NOTICE_GROUP_DETAIL),
+    },
+]
 
-UPDATE_NOTICE_GROUP = {"id": 1, **CREATE_NOTICE_GROUP, **{"name": _("更新告警组")}}
+UPDATE_NOTICE_GROUP = {"id": 1, **CREATE_NOTICE_GROUP[0], **{"name": _("更新告警组")}}
 
 GET_RELATED_POLICY = [{"id": 1, "name": _("策略 A")}, {"id": 2, "name": _("策略 B")}]
 
@@ -570,3 +578,151 @@ CALLBACK_REQUEST = {
         "labels": ["dbm_mysql", "mysql", "dbm", "need_autofix", "REDIS_CLUSTER_AUTOFIX"],
     },
 }
+
+CREATE_POLICY_DETAILS = {
+    "items": [
+        {
+            "id": 2532,
+            "name": "xuzixuan",
+            "target": [
+                [
+                    {
+                        "field": "host_topo_node",
+                        "value": [{"bk_obj_id": "set", "bk_inst_id": 2000008245}],
+                        "method": "eq",
+                    }
+                ]
+            ],
+            "functions": [],
+            "algorithms": [
+                {
+                    "id": 2940,
+                    "type": "Threshold",
+                    "level": 2,
+                    "config": [[{"method": "gte", "threshold": 80}]],
+                    "unit_prefix": "%",
+                },
+                {
+                    "id": 2941,
+                    "type": "Threshold",
+                    "level": 1,
+                    "config": [[{"method": "gte", "threshold": 90}]],
+                    "unit_prefix": "%",
+                },
+            ],
+            "expression": "a",
+            "origin_sql": "",
+            "query_configs": [
+                {
+                    "id": 2887,
+                    "unit": "percent",
+                    "alias": "a",
+                    "functions": [],
+                    "metric_id": "bk_monitor.system.disk.in_use",
+                    "agg_method": "MAX",
+                    "agg_interval": 60,
+                    "metric_field": "in_use",
+                    "agg_condition": [],
+                    "agg_dimension": ["bk_target_ip", "bk_target_cloud_id", "mount_point"],
+                    "data_type_label": "time_series",
+                    "result_table_id": "system.disk",
+                    "data_source_label": "bk_monitor",
+                }
+            ],
+            "no_data_config": {
+                "level": 2,
+                "continuous": 10,
+                "is_enabled": False,
+                "agg_dimension": ["bk_target_ip", "bk_target_cloud_id"],
+            },
+        },
+    ],
+    "notice": {
+        "id": 2532,
+        "config": {
+            "template": [
+                {
+                    "signal": "abnormal",
+                    "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+                    "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}"
+                    "\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}"
+                    "\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}"
+                    "\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}"
+                    "\n{{content.related_info}}",
+                },
+                {
+                    "signal": "recovered",
+                    "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+                    "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}"
+                    "\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}"
+                    "\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}"
+                    "\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}"
+                    "\n{{content.related_info}}",
+                },
+                {
+                    "signal": "closed",
+                    "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
+                    "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}"
+                    "\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}"
+                    "\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}"
+                    "\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}"
+                    "\n{{content.related_info}}",
+                },
+            ],
+            "need_poll": True,
+            "notify_interval": 7200,
+            "interval_notify_mode": "standard",
+        },
+        "signal": ["no_data", "abnormal"],
+        "options": {
+            "end_time": "23:59:59",
+            "start_time": "00:00:00",
+            "assign_mode": ["by_rule", "only_notice"],
+            "upgrade_config": {"is_enabled": False, "user_groups": [], "upgrade_interval": 86400},
+            "converge_config": {
+                "count": 1,
+                "condition": [
+                    {"value": ["self"], "dimension": "strategy_id"},
+                    {"value": ["self"], "dimension": "dimensions"},
+                    {"value": ["self"], "dimension": "alert_level"},
+                    {"value": ["self"], "dimension": "signal"},
+                    {"value": ["self"], "dimension": "bk_biz_id"},
+                    {"value": ["self"], "dimension": "notice_receiver"},
+                    {"value": ["self"], "dimension": "notice_way"},
+                ],
+                "timedelta": 60,
+                "is_enabled": True,
+                "converge_func": "collect",
+                "need_biz_converge": True,
+                "sub_converge_config": {
+                    "count": 2,
+                    "condition": [
+                        {"value": ["self"], "dimension": "bk_biz_id"},
+                        {"value": ["self"], "dimension": "notice_receiver"},
+                        {"value": ["self"], "dimension": "notice_way"},
+                        {"value": ["self"], "dimension": "alert_level"},
+                        {"value": ["self"], "dimension": "signal"},
+                    ],
+                    "timedelta": 60,
+                    "converge_func": "collect_alarm",
+                },
+            },
+            "chart_image_enabled": True,
+            "exclude_notice_ways": {"ack": [], "closed": [], "recovered": []},
+            "noise_reduce_config": {
+                "unit": "percent",
+                "count": 10,
+                "timedelta": 5,
+                "dimensions": [],
+                "is_enabled": False,
+            },
+        },
+        "config_id": 3548,
+        "relate_type": "NOTICE",
+        "user_groups": [20],
+    },
+}
+CREATE_POLICY = [
+    {"name": "influxDB-n6hfH", "target_priority": 0, "details": CREATE_POLICY_DETAILS},
+    {"name": "MySql123", "target_priority": 1, "details": CREATE_POLICY_DETAILS},
+]
