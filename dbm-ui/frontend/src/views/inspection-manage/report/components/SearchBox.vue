@@ -116,6 +116,8 @@
     );
   };
 
+  handleSubmit();
+
   const handleReset = () => {
     Object.assign(formData, genDefaultData());
   };

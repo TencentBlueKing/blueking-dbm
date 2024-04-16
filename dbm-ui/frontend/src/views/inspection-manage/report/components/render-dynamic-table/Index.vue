@@ -109,8 +109,6 @@
 
   watch(() => props.searchParams, () => {
     fetchData();
-  }, {
-    immediate: true,
   });
 
   const pageLimitChange = (pageLimit: number) => {
