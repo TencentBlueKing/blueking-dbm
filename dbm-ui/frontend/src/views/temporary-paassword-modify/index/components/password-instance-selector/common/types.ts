@@ -27,7 +27,8 @@ export type InstanceSelectorValue = {
   cluster_id: number,
   cluster_type: ClusterTypes,
   role: string,
-  db_type: DBTypes
+  db_type: DBTypes,
+  master_domain: string
 }
 
 export type InstanceSelectorValues = {
