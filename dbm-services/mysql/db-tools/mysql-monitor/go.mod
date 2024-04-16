@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/dlclark/regexp2 v1.10.0
 	github.com/go-playground/validator/v10 v10.15.4
-	github.com/go-sql-driver/mysql v1.7.1
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/juju/ratelimit v1.0.2
 	github.com/olekukonko/tablewriter v0.0.5
