@@ -53,6 +53,7 @@ func replaceForwardIps(forwardIp string) error {
 	namedFileTpl := config.GetConfig("options_named_file_tpl")
 	content, err := ioutil.ReadFile(namedFileTpl)
 	if err != nil {
+		logger.Error.Printf("read named tpl file error [%+v]", err)
 		return err
 	}
 	newContent := strings.ReplaceAll(string(content), "FORWARD_IPS", forwardIp)
@@ -64,15 +65,27 @@ func replaceForwardIps(forwardIp string) error {
 
 // 替换zone_config配置
 func replaceZoneInfo(zoneNamedInfo string) error {
-	namedFileTpl := config.GetConfig("options_named_file") + "_tmp"
-	content, err := ioutil.ReadFile(namedFileTpl)
+	tmpFile := config.GetConfig("options_named_file") + "_tmp"
+	namedFile := config.GetConfig("options_named_file")
+	content, err := ioutil.ReadFile(tmpFile)
 	if err != nil {
+		logger.Error.Printf("read tmp file error [%+v]", err)
 		return err
 	}
 	newContent := strings.ReplaceAll(string(content), "ZONES_CONFIG", zoneNamedInfo)
+	err = ioutil.WriteFile(tmpFile, []byte(newContent), 0666)
+	if err != nil {
+		logger.Error.Printf("write zones_config to tmp file error [%+v]", err)
+		return err
+	}
 
-	namedFile := config.GetConfig("options_named_file") + "_tmp"
-	return ioutil.WriteFile(namedFile, []byte(newContent), 0666)
+	// 能走到这里，说明配置文件生成过程中没遇到问题，可以替换了
+	err = os.Rename(tmpFile, namedFile)
+	if err != nil {
+		logger.Error.Printf("rename named file error [%+v]", err)
+		return err
+	}
+	return nil
 }
 
 func writeZoneName(fileName, fileContent string) {
@@ -91,6 +104,7 @@ func rndcReload() error {
 	cmd = exec.Command(rndc, "reload")
 	_, err := cmd.Output()
 	if err != nil {
+		logger.Error.Printf("rndc reload error [%+v]", err)
 		return err
 	}
 	logger.Info.Printf("rndc reload success...")
@@ -98,6 +112,7 @@ func rndcReload() error {
 	cmd = exec.Command(rndc, "flush")
 	_, err = cmd.Output()
 	if err != nil {
+		logger.Error.Printf("rndc flush error [%+v]", err)
 		return err
 	}
 	logger.Info.Printf("rndc flush success...")
@@ -122,7 +137,7 @@ func Reload(localIp string) error {
 
 	forwardIp := api.QueryForwardIp(localIp)
 	if forwardIp == "" {
-		logger.Warning.Printf("%s forwardIp is empty.. you should to set on table[tb_dns_server]", localIp)
+		logger.Warning.Printf("%s forwardIp is empty.. you should to set on config file[forward_ip]", localIp)
 	} else {
 		err := replaceForwardIps(forwardIp)
 		if err != nil {
@@ -162,12 +177,6 @@ func Reload(localIp string) error {
 		return nil
 	}
 
-	// 更新named.conf文件
-	if err := replaceZoneInfo(zoneNamedInfo); err != nil {
-		logger.Error.Printf("replaceZoneInfo error[%+v]", err)
-		return err
-	}
-
 	wg = sync.WaitGroup{}
 	wg.Add(len(zoneFileMap))
 	logger.Info.Printf("zoneFileMap len is %d", len(zoneFileMap))
@@ -194,12 +203,9 @@ func Reload(localIp string) error {
 		return fmt.Errorf(errMsg)
 	}
 
-	// 能走到这里，说明配置文件生成过程中没遇到问题，可以替换了
-	tmpFile := config.GetConfig("options_named_file") + "_tmp"
-	namedFile := config.GetConfig("options_named_file")
-	err = os.Rename(tmpFile, namedFile)
-	if err != nil {
-		logger.Error.Printf("rename named file error [%+v]", err)
+	// 更新named.conf文件
+	if err := replaceZoneInfo(zoneNamedInfo); err != nil {
+		logger.Error.Printf("replaceZoneInfo error[%+v]", err)
 		return err
 	}
 
