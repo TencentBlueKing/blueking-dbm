@@ -50,6 +50,8 @@ class DBAdministrator(models.Model):
 
     @classmethod
     def upsert_biz_admins(cls, bk_biz_id: int, db_admins: List[Dict[str, Union[str, List[str]]]]):
+        from backend.db_periodic_task.local_tasks.db_monitor import update_dba_notice_group
+
         # 平台管理员
         db_type_platform_dba = {dba.db_type: dba.users for dba in cls.objects.filter(bk_biz_id=0)}
 
@@ -65,7 +67,13 @@ class DBAdministrator(models.Model):
             if set(new_dba) == set(platform_dba) and not biz_dba:
                 # 业务新设置的与平台人员一致，则无需新建
                 continue
-            cls.objects.update_or_create(bk_biz_id=bk_biz_id, db_type=db_type, defaults={"users": new_dba})
+            if set(new_dba) == set(biz_dba):
+                # 新 DBA 与 旧DBA 一致，也无需更新
+                continue
+            dba_obj, created = cls.objects.update_or_create(
+                bk_biz_id=bk_biz_id, db_type=db_type, defaults={"users": new_dba}
+            )
+            update_dba_notice_group.apply_async(kwargs={"dba_id": dba_obj.id})
 
     @classmethod
     def get_biz_db_type_admins(cls, bk_biz_id: int, db_type: str) -> List[str]:
