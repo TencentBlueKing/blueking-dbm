@@ -196,4 +196,8 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   get isOffline() {
     return this.phase === 'offline';
   }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === SqlServerHaCluster.SQLSERVER_ENABLE));
+  }
 }

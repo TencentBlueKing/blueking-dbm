@@ -213,4 +213,8 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   get isOffline() {
     return this.phase === 'offline';
   }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === SqlServerSingleCluster.SQLSERVER_ENABLE));
+  }
 }
