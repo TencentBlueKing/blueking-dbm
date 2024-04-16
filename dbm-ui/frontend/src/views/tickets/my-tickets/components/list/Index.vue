@@ -266,7 +266,6 @@
       sideListRef.value.scrollTop = 0;
     }
     const params = {
-      self_manage: selfManage.value,
       status: state.filters.status === 'ALL' ? '' : state.filters.status,
       limit: state.page.limit,
       offset: (state.page.current - 1) * state.page.limit,
@@ -275,6 +274,10 @@
     if (isBizTicketManagePage) {
       Object.assign(params, {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      });
+    } else {
+      Object.assign(params, {
+        self_manage: selfManage.value,
       });
     }
 
@@ -351,7 +354,6 @@
   const checkRunningTickets = async () => {
     if (needPollIds.length > 0) {
       const params = {
-        self_manage: selfManage.value,
         status: state.filters.status === 'ALL' ? '' : state.filters.status,
         limit: state.page.limit,
         offset: (state.page.current - 1) * state.page.limit,
@@ -360,6 +362,10 @@
       if (isBizTicketManagePage) {
         Object.assign(params, {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        });
+      } else {
+        Object.assign(params, {
+          self_manage: selfManage.value,
         });
       }
 
