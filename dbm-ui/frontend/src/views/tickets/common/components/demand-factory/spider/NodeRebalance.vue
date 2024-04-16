@@ -44,7 +44,9 @@
         v-if="isTimer"
         class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('定时执行时间') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails.details.trigger_checksum_time }}</span>
+        <span class="ticket-details__item-value">
+          {{ utcDisplayTime(ticketDetails.details.trigger_checksum_time) }}
+        </span>
       </div>
     </div>
   </div>
@@ -58,6 +60,8 @@
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getSpiderListByBizId } from '@services/source/spider';
   import type { SpiderNodeRebalanceDetails, TicketDetails } from '@services/types/ticket';
+
+  import { utcDisplayTime } from '@utils';
 
   interface Props {
     ticketDetails: TicketDetails<SpiderNodeRebalanceDetails>

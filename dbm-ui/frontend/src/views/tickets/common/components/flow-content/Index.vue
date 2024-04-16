@@ -87,7 +87,7 @@
     <div
       v-if="content.end_time"
       class="flow-time">
-      {{ content.end_time }}
+      {{ utcDisplayTime(content.end_time) }}
     </div>
     <div class="mt-8">
       <BkPopConfirm
@@ -145,7 +145,7 @@
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
-  import { utcTimeToSeconds } from '@utils';
+  import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   import FlowContentInnerFlow from './components/ContentInnerFlow.vue';
   import FlowContentTodo from './components/ContentTodo.vue';

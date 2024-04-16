@@ -13,30 +13,37 @@
 
 <template>
   <div class="instance-selector-render-topo-host">
-    <BkInput
+    <SerachBar
       v-model="searchValue"
-      clearable
-      :placeholder="t('请输入实例')" />
+      :placeholder="t('请输入或选择条件搜索')"
+      :search-attrs="searchAttrs"
+      :type="ClusterTypes.REDIS"
+      :validate-search-values="validateSearchValues"
+      @search-value-change="handleSearchValueChange" />
     <BkLoading
       :loading="isLoading"
       :z-index="2">
       <DbOriginalTable
         :columns="columns"
-        :data="isManul? renderManualData : tableData"
+        :data="tableData"
         :max-height="530"
         :pagination="pagination.count < 10 ? false : pagination"
         :remote-pagination="isRemotePagination"
         :settings="tableSetting"
-        style="margin-top: 12px;"
+        style="margin-top: 12px"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
         @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchResources"
-        @row-click.stop.prevent="handleRowClick" />
+        @page-value-change="handleChangePage" />
     </BkLoading>
   </div>
 </template>
 <script setup lang="tsx" generic="T extends IValue">
   import { useI18n } from 'vue-i18n';
+
+  import { useLinkQueryColumnSerach } from '@hooks';
+
+  import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -49,29 +56,27 @@
     type PanelListType,
     type TableSetting,
   } from '../../../Index.vue';
+  import SerachBar from '../../common/SearchBar.vue';
 
   import { useTableData } from './useTableData';
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
 
   interface DataRow {
-    data: T,
+    data: T;
   }
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>,
-    tableSetting: TableSetting,
-    activePanelId?: string,
-    clusterId?: number,
-    isManul?: boolean,
-    manualTableData?: T[];
-    isRemotePagination?: TableConfigType['isRemotePagination'],
-    firsrColumn?: TableConfigType['firsrColumn'],
-    roleFilterList?: TableConfigType['roleFilterList'],
-    disabledRowConfig?: TableConfigType['disabledRowConfig'],
+    lastValues: InstanceSelectorValues<T>;
+    tableSetting: TableSetting;
+    clusterId?: number;
+    isRemotePagination?: TableConfigType['isRemotePagination'];
+    firsrColumn?: TableConfigType['firsrColumn'];
+    roleFilterList?: TableConfigType['roleFilterList'];
+    disabledRowConfig?: TableConfigType['disabledRowConfig'];
     // eslint-disable-next-line vue/no-unused-properties
-    getTableList?: TableConfigType['getTableList'],
-    statusFilter?: TableConfigType['statusFilter'],
+    getTableList?: TableConfigType['getTableList'];
+    statusFilter?: TableConfigType['statusFilter'];
   }
 
   interface Emits {
@@ -80,8 +85,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     clusterId: undefined,
-    isManul: false,
-    manualTableData: () => ([]),
     firsrColumn: undefined,
     statusFilter: undefined,
     isRemotePagination: true,
@@ -105,6 +108,17 @@
 
   const { t } = useI18n();
 
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    columnCheckedMap,
+    columnFilterChange,
+    validateSearchValues,
+    clearSearchValue,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach(ClusterTypes.REDIS, ['bk_cloud_id'], () => fetchResources());
+
   const activePanel = inject(activePanelInjectionKey);
 
   const checkedMap = shallowRef({} as Record<string, T>);
@@ -112,75 +126,66 @@
   const initRole = computed(() => props.firsrColumn?.role);
   const selectClusterId = computed(() => props.clusterId);
   const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
-  const mainSelectDisable = computed(() => (props.disabledRowConfig
-    // eslint-disable-next-line max-len
-    ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
+  const mainSelectDisable = computed(() => (props.disabledRowConfig ? tableData.value
+    .filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
 
   const {
     isLoading,
     data: tableData,
     pagination,
-    searchValue,
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<T>(initRole, selectClusterId);
+  } = useTableData<T>(searchValue, initRole, selectClusterId);
 
-  const renderManualData = computed(() => {
-    if (searchValue.value === '') {
-      return props.manualTableData;
-    }
-    return props.manualTableData.filter(item => (
-      (item[firstColumnFieldId.value] as string).includes(searchValue.value)
-    ));
-  });
+  const isSelectedAll = computed(() => tableData.value.length > 0
+    && tableData.value.length
+      === tableData.value.filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length);
 
-  const isSelectedAll = computed(() => (
-    tableData.value.length > 0
-    // eslint-disable-next-line max-len
-    && tableData.value.length === tableData.value.filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
-  ));
-
-  let isSelectedAllReal = false;
-
-  const columns = [
+  const columns = computed(() => [
     {
       width: 60,
       fixed: 'left',
       label: () => (
-        <bk-checkbox
-          label={true}
-          model-value={isSelectedAll.value}
-          disabled={mainSelectDisable.value}
-          onChange={handleSelectPageAll}
-        />
-      ),
+      <bk-checkbox
+        label={true}
+        model-value={isSelectedAll.value}
+        disabled={mainSelectDisable.value}
+        onChange={handleSelectPageAll}
+      />
+    ),
       render: ({ data }: DataRow) => {
         if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
           return (
-            <bk-popover theme="dark" placement="top" popoverDelay={0}>
-              {{
-                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
-                content: () => <span>{props.disabledRowConfig?.tip}</span>,
-              }}
-            </bk-popover>
+          <bk-popover theme="dark" placement="top" popoverDelay={0}>
+            {{
+              default: () => (
+                <bk-checkbox style="vertical-align: middle;" disabled />
+              ),
+              content: () => <span>{props.disabledRowConfig?.tip}</span>,
+            }}
+          </bk-popover>
           );
         }
         return (
-          <bk-checkbox
-            style="vertical-align: middle;"
-            label={true}
-            model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
-            onChange={(value: boolean) => handleTableSelectOne(value, data)}
-          />
+        <bk-checkbox
+          style="vertical-align: middle;"
+          label={true}
+          model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
+          onChange={(value: boolean) => handleTableSelectOne(value, data)}
+        />
         );
       },
     },
     {
       fixed: 'left',
       minWidth: 160,
-      label: props.firsrColumn?.label ? firstLetterToUpper(props.firsrColumn.label) : t('实例'),
-      field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
+      label: props.firsrColumn?.label
+        ? firstLetterToUpper(props.firsrColumn.label)
+        : t('实例'),
+      field: props.firsrColumn?.field
+        ? props.firsrColumn.field
+        : 'instance_address',
     },
     {
       label: t('角色'),
@@ -190,26 +195,35 @@
     },
     {
       label: t('实例状态'),
-      field: 'status',
       render: ({ data }: DataRow) => {
-        const isNormal = props.statusFilter ? props.statusFilter(data) : data.status === 'running';
-        const info = isNormal ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const isNormal = props.statusFilter
+          ? props.statusFilter(data)
+          : data.status === 'running';
+        const info = isNormal
+          ? { theme: 'success', text: t('正常') }
+          : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
       minWidth: 100,
       label: t('管控区域'),
-      field: 'cloud_area',
+      field: 'bk_cloud_id',
       showOverflowTooltip: true,
-      render: ({ data }: DataRow) => data.host_info?.cloud_area?.name || '--',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: DataRow) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       minWidth: 100,
       label: t('Agent状态'),
       field: 'alive',
       render: ({ data }: DataRow) => {
-        const info = data.host_info?.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const info = data.host_info?.alive === 1
+          ? { theme: 'success', text: t('正常') }
+          : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
@@ -249,53 +263,38 @@
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
     },
-  ];
+  ]);
 
-  watch(() => props.lastValues, () => {
-    if (props.isManul) {
-      checkedMap.value = {};
-      for (const checkedList of Object.values(props.lastValues)) {
-        for (const item of checkedList) {
-          checkedMap.value[item[firstColumnFieldId.value]] = item;
+  watch(
+    () => props.lastValues,
+    () => {
+      // 切换 tab 回显选中状态 \ 预览结果操作选中状态
+      if (activePanel?.value && activePanel.value !== 'manualInput') {
+        checkedMap.value = {};
+        const checkedList = props.lastValues[activePanel.value];
+        if (checkedList) {
+          for (const item of checkedList) {
+            checkedMap.value[item[firstColumnFieldId.value]] = item;
+          }
         }
       }
-      return;
-    }
-    // 切换 tab 回显选中状态 \ 预览结果操作选中状态
-    if (activePanel?.value && activePanel.value !== 'manualInput') {
-      checkedMap.value = {};
-      const checkedList = props.lastValues[activePanel.value];
-      if (checkedList) {
-        for (const item of checkedList) {
-          checkedMap.value[item[firstColumnFieldId.value]] = item;
-        }
-      }
-    }
-  }, { immediate: true, deep: true });
+    },
+    { immediate: true, deep: true },
+  );
 
-  watch(() => props.clusterId, () => {
-    if (props.clusterId) {
-      fetchResources();
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (props.clusterId) {
+        fetchResources();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const triggerChange = () => {
-    if (props.isManul) {
-      const lastValues: Props['lastValues'] = {
-        [props.activePanelId]: [],
-      };
-      for (const item of Object.values(checkedMap.value)) {
-        lastValues[props.activePanelId].push(item);
-      }
-
-      emits('change', {
-        ...props.lastValues,
-        ...lastValues,
-      });
-      return;
-    }
     const result = Object.values(checkedMap.value).reduce((result, item) => {
       result.push({
         ...item,
@@ -312,12 +311,11 @@
   };
 
   const handleSelectPageAll = (checked: boolean) => {
-    const list = props.isManul ? renderManualData.value : tableData.value;
+    const list = tableData.value;
     if (props.disabledRowConfig) {
-      isSelectedAllReal = !isSelectedAllReal;
       for (const data of list) {
         if (!props.disabledRowConfig.handler(data)) {
-          handleTableSelectOne(isSelectedAllReal, data);
+          handleTableSelectOne(checked, data);
         }
       }
       return;
@@ -338,24 +336,16 @@
     triggerChange();
   };
 
-  const handleRowClick = (e: PointerEvent, data: T) => {
-    if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
-      return;
-    }
-    const checked = checkedMap.value[data[firstColumnFieldId.value]];
-    handleTableSelectOne(!checked, data);
-  };
-
 </script>
 
 <style lang="less">
-  .instance-selector-render-topo-host {
-    padding: 0 24px;
+.instance-selector-render-topo-host {
+  padding: 0 24px;
 
-    .bk-table-body {
-      tr {
-        cursor: pointer;
-      }
+  .bk-table-body {
+    tr {
+      cursor: pointer;
     }
   }
+}
 </style>

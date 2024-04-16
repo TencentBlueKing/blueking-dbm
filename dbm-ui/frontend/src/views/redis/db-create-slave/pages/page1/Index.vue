@@ -70,8 +70,6 @@
   import {
     listClusterHostsCreateSlaveProxy,
     listClustersCreateSlaveProxy,
-  } from '@services/redis/toolbox';
-  import {
     queryInfoByIp,
     queryMasterSlavePairs,
   } from '@services/source/redisToolbox';
@@ -147,10 +145,6 @@
             handler: (data: RedisHostModel) => data.running_slave !== 0,
             tip: t('已存在正常运行的从库'),
           },
-          // roleFilterList: {
-          // eslint-disable-next-line max-len
-          //   list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
-          // },
         },
       },
       {
@@ -293,6 +287,7 @@
         port: 0,
         instance_address: '',
         cluster_type: '',
+        bk_cloud_name: '',
       }));
     } else {
       tableData.value[index].ip = '';
@@ -395,10 +390,6 @@
             },
           });
         })
-          .catch((e) => {
-            // 目前后台还未调通
-            console.error('submit db create slave ticket error:', e);
-          })
           .finally(() => {
             isSubmitting.value = false;
           });

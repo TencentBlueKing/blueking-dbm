@@ -25,6 +25,8 @@
 
   import { TicketTypes } from '@common/const';
 
+  import { utcDisplayTime } from '@utils';
+
   interface Props{
     ticketDetails: TicketDetails<RedisKeysDetails>
   }
@@ -229,7 +231,7 @@
     const rules = props.ticketDetails?.details?.rules || [];
     const clusters = props.ticketDetails?.details?.clusters || {};
     const createAt = props.ticketDetails?.create_at;
-    return rules.map(item => Object.assign({ create_at: createAt }, item, clusters[item.cluster_id]));
+    return rules.map(item => Object.assign({ create_at: utcDisplayTime(createAt) }, item, clusters[item.cluster_id]));
   });
 </script>
 

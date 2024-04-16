@@ -53,7 +53,7 @@
   <p
     v-if="content.end_time"
     class="flow-time">
-    {{ content.end_time }}
+    {{ utcDisplayTime(content.end_time) }}
   </p>
   <BkPopover
     v-if="content.err_code === 2"
@@ -102,7 +102,7 @@
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
-  import { utcTimeToSeconds } from '@utils';
+  import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   import FlowContentTodo from './ContentTodo.vue';
 
