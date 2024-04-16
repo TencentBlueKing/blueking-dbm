@@ -56,6 +56,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			config.MonitorConfig.Ip,
 			config.MonitorConfig.Port,
 			config.MonitorConfig.Auth.Mysql,
+			true,
 		)
 		if err != nil {
 			slog.Error(
@@ -72,6 +73,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			config.MonitorConfig.Ip,
 			config.MonitorConfig.Port,
 			config.MonitorConfig.Auth.Proxy,
+			false,
 		)
 		if err != nil {
 			slog.Error(
@@ -88,6 +90,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			config.MonitorConfig.Ip,
 			adminPort,
 			config.MonitorConfig.Auth.ProxyAdmin,
+			false,
 		)
 		if err != nil {
 			var merr *mysql.MySQLError
@@ -112,6 +115,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			config.MonitorConfig.Ip,
 			config.MonitorConfig.Port,
 			config.MonitorConfig.Auth.Mysql,
+			true,
 		)
 		if err != nil {
 			slog.Error(
@@ -132,6 +136,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 				config.MonitorConfig.Ip,
 				ctlPort,
 				config.MonitorConfig.Auth.Mysql,
+				true,
 			)
 			if err != nil {
 				slog.Error(
@@ -155,25 +160,11 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 	}
 }
 
-func connectDB(ip string, port int, ca *config.ConnectAuth) (*sqlx.DB, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
-	db, err := sqlx.ConnectContext(
-		ctx,
-		"mysql", fmt.Sprintf(
-			"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s",
-			ca.User, ca.Password, ip, port,
-			"",
-			time.Local.String(),
-			config.MonitorConfig.InteractTimeout,
-		),
-	)
-	if err != nil {
-		slog.Warn("first time connect failed", slog.String("error", err.Error()))
-		slog.Info("retry connect after 3 seconds")
-		time.Sleep(3 * time.Second)
-		return sqlx.ConnectContext(
+func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool) (db *sqlx.DB, err error) {
+	if withPing {
+		ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
+		defer cancel()
+		db, err = sqlx.ConnectContext(
 			ctx,
 			"mysql", fmt.Sprintf(
 				"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s",
@@ -183,6 +174,45 @@ func connectDB(ip string, port int, ca *config.ConnectAuth) (*sqlx.DB, error) {
 				config.MonitorConfig.InteractTimeout,
 			),
 		)
+		if err != nil {
+			slog.Warn("first time connect failed", slog.String("error", err.Error()))
+			slog.Info("retry connect after 3 seconds")
+			time.Sleep(3 * time.Second)
+			return sqlx.ConnectContext(
+				ctx,
+				"mysql", fmt.Sprintf(
+					"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s",
+					ca.User, ca.Password, ip, port,
+					"",
+					time.Local.String(),
+					config.MonitorConfig.InteractTimeout,
+				),
+			)
+		}
+	} else {
+		db, err = sqlx.Open(
+			"mysql", fmt.Sprintf(
+				"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s",
+				ca.User, ca.Password, ip, port,
+				"",
+				time.Local.String(),
+				config.MonitorConfig.InteractTimeout,
+			),
+		)
+		if err != nil {
+			slog.Warn("first time connect failed", slog.String("error", err.Error()))
+			slog.Info("retry connect after 3 seconds")
+			time.Sleep(3 * time.Second)
+			return sqlx.Open(
+				"mysql", fmt.Sprintf(
+					"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s",
+					ca.User, ca.Password, ip, port,
+					"",
+					time.Local.String(),
+					config.MonitorConfig.InteractTimeout,
+				),
+			)
+		}
 	}
 
 	return db, nil
