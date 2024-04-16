@@ -76,6 +76,11 @@ class TicketHandler:
 
     @classmethod
     def fast_create_cloud_component_method(cls, bk_biz_id, bk_cloud_id, ips, user="admin"):
+        # 默认agent城市为1(sg环境的集群默认逻辑城市ID都是1)
+        default_agent_city_id: int = 1
+        # gm异地部署即可
+        default_gm_city_ids: tuple = (0, 1)
+
         def _get_base_info(host):
             return {
                 "bk_host_id": host["host_id"],
@@ -105,16 +110,20 @@ class TicketHandler:
         agent_host_infos = [
             {
                 **_get_base_info(host_infos[0]),
-                "bk_city_code": host_infos[0].get("bk_idc_id") or 0,
+                "bk_city_code": host_infos[0].get("bk_idc_id") or default_agent_city_id,
                 "bk_city_name": host_infos[0].get("bk_idc_name", ""),
             }
         ]
         # 构造gm的部署信息
         gm_host_infos = [
-            agent_host_infos[0],  # 允许将一个gm和agent部署在同一台机器
+            {
+                **_get_base_info(host_infos[0]),
+                "bk_city_code": host_infos[0].get("bk_idc_id") or default_gm_city_ids[0],
+                "bk_city_name": host_infos[0].get("bk_idc_name", ""),
+            },
             {
                 **_get_base_info(host_infos[1]),
-                "bk_city_code": host_infos[1].get("bk_idc_id") or 1,
+                "bk_city_code": host_infos[1].get("bk_idc_id") or default_gm_city_ids[1],
                 "bk_city_name": host_infos[1].get("bk_idc_name", ""),
             },
         ]

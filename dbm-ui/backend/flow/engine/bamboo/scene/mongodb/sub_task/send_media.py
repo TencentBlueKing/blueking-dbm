@@ -37,7 +37,7 @@ class SendMedia:
 
     @classmethod
     def act(cls, act_name, file_list, bk_host_list, file_target_path: str) -> dict:
-        """ return act args dict """
+        """return act args dict"""
         kwargs = cls.make_kwargs(file_list, bk_host_list, file_target_path)
         return {
             "act_name": act_name,

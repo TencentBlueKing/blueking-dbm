@@ -14,7 +14,6 @@ from django.db.models import QuerySet
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
-from backend import env
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
@@ -83,7 +82,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             machines = Machine.objects.filter(ip__in=storage_instances.values_list("machine"))
 
         role_host_ids = list(machines.values_list("bk_host_id", flat=True))
-        return ResourceQueryHelper.search_cc_hosts(env.DBA_APP_BK_BIZ_ID, role_host_ids, keyword)
+        return ResourceQueryHelper.search_cc_hosts(role_host_ids, keyword)
 
     @classmethod
     def _filter_cluster_hook(

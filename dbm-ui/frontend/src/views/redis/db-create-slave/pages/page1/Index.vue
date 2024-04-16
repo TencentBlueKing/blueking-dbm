@@ -52,7 +52,7 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
           class="ml-8 w-88"
@@ -149,9 +149,10 @@
             handler: (data: RedisHostModel) => data.running_slave !== 0,
             tip: t('已存在正常运行的从库'),
           },
-          roleFilterList: {
-            list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
-          },
+          // roleFilterList: {
+          // eslint-disable-next-line max-len
+          //   list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
+          // },
         },
       },
       {

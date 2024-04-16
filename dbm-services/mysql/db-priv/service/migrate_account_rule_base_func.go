@@ -91,7 +91,8 @@ func FormatPriv(source string) (map[string]string, error) {
 			ddl = append(ddl, p)
 			// global 权限
 		} else if p == "file" || p == "trigger" || p == "event" || p == "create routine" || p == "alter routine" ||
-			p == "replication client" || p == "replication slave" {
+			p == "replication client" || p == "replication slave" || p == "reload" ||
+			p == "process" || p == "show databases" {
 			global = append(global, p)
 			// global 权限
 		} else if p == "all privileges" {

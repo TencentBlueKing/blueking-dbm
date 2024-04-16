@@ -28,7 +28,7 @@ func main() {
 	for {
 		err := service.Reload(localIp)
 		if err != nil {
-			//	TODO 发送告警、通知。。
+			logger.Error.Printf("dns reload error [%+v]", err)
 		}
 		time.Sleep(time.Duration(intervalTime) * time.Second)
 		// 重新读取一下配置。避免修改配置文件不生效

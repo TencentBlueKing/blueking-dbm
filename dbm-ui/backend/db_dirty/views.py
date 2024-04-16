@@ -26,6 +26,7 @@ from backend.db_dirty.serializers import (
     DeleteDirtyMachineSerializer,
     QueryDirtyMachineResponseSerializer,
     QueryDirtyMachineSerializer,
+    TransferDirtyMachineSerializer,
 )
 from backend.db_meta.models import AppCache
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -104,16 +105,32 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("将污点池主机转移至待回收模块"),
-        request_body=DeleteDirtyMachineSerializer(),
+        request_body=TransferDirtyMachineSerializer(),
         tags=[SWAGGER_TAG],
     )
     @action(
         detail=False,
         methods=["POST"],
         url_path="transfer_dirty_machines",
-        serializer_class=DeleteDirtyMachineSerializer,
+        serializer_class=TransferDirtyMachineSerializer,
     )
     def transfer_dirty_machines(self, request):
         bk_host_ids = self.params_validate(self.get_serializer_class())["bk_host_ids"]
         DBDirtyMachineHandler.transfer_dirty_machines(bk_host_ids)
+        return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("删除污点池记录"),
+        request_body=DeleteDirtyMachineSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        detail=False,
+        methods=["DELETE"],
+        url_path="delete_dirty_records",
+        serializer_class=DeleteDirtyMachineSerializer,
+    )
+    def delete_dirty_records(self, request):
+        bk_host_ids = self.params_validate(self.get_serializer_class())["bk_host_ids"]
+        DBDirtyMachineHandler.remove_dirty_machines(bk_host_ids)
         return Response()

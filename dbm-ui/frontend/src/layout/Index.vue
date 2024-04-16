@@ -92,7 +92,7 @@
       value: menuEnum.observableManage,
     },
     {
-      label: t('配置管理'),
+      label: t('业务配置'),
       value: menuEnum.configManage,
     },
     userProfile.rerourceManage && {

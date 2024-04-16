@@ -73,7 +73,7 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
@@ -148,13 +148,22 @@
   // 批量选择
   const handelClusterChange = (selected: Record<string, Array<TendbhaModel>>) => {
     selectedClusters.value = selected;
-    const newList = selected[ClusterTypes.TENDBHA].map(clusterData => createRowData({
-      clusterData: {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-        cloudId: clusterData.bk_cloud_id,
-      },
-    }));
+    const newList = selected[ClusterTypes.TENDBHA].reduce((results, clusterData) => {
+      const domain = clusterData.master_domain;
+      if (!domainMemo[domain]) {
+        const row = createRowData({
+          clusterData: {
+            id: clusterData.id,
+            domain,
+            cloudId: clusterData.bk_cloud_id,
+          },
+        });
+        results.push(row);
+        domainMemo[domain] = true;
+      }
+      return results;
+    }, [] as IDataRow[]);
+
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {

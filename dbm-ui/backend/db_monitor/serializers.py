@@ -107,7 +107,8 @@ class MonitorPolicySerializer(AuditedSerializer, serializers.ModelSerializer):
                 "queryString": _("策略ID : {} AND 状态 : {}").format(obj.monitor_policy_id, _("未恢复")),
                 "from": "now-30d",
                 "to": "now",
-                "bizIds": bk_biz_id,
+                # -2 代表有告警的空间
+                "bizIds": -2,
             }
         )
 

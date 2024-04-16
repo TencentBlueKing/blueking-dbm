@@ -32,3 +32,11 @@ export function utcDisplayTime(time: string) {
   }
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss ZZ');
 }
+
+// 带时区时间字符串转秒级时间戳
+export function utcTimeToSeconds(time?: string) {
+  if (!time) {
+    return 0;
+  }
+  return Math.floor(dayjs(time).valueOf() / 1000);
+}

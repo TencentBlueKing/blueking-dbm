@@ -66,7 +66,6 @@
     columnStatusFilter?: TabItem['columnStatusFilter'],
     customColums?: TabItem['customColums'],
     searchSelectList?: TabItem['searchSelectList'],
-    // searchPlaceholder?: TabItem['searchPlaceholder'],
   }
 
   type ResourceItem = ValueOf<SelectedMap>[0];

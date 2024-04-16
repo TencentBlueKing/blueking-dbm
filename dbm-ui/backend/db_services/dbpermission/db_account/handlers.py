@@ -40,7 +40,7 @@ class AccountHandler(object):
         @param operator: 操作者
         @param context: 上下文数据
         """
-        self.bk_biz_id = bk_biz_id
+        self.bk_biz_id = int(bk_biz_id)
         self.account_type = account_type
         self.operator = operator
         self.context = context

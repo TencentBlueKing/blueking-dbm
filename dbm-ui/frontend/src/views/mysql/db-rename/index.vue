@@ -205,6 +205,16 @@
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
 
+  // 检测列表是否为空
+  const checkListEmpty = (list: Array<TableItem>) => {
+    if (list.length > 1) {
+      return false;
+    }
+
+    const [firstRow] = list;
+    return !firstRow?.cluster_domain;
+  };
+
   /**
    * 获取表格数据
    */
@@ -493,21 +503,27 @@
    */
   function handleBatchSelectorChange(selected: Record<string, Array<TendbhaModel>>) {
     selectedClusters.value = selected;
-    const list: Array<TableItem> = [];
-    for (const key of Object.keys(selected)) {
-      const formatList = selected[key].map((item) => {
-        clusterInfoMap.set(item.master_domain, item);
-        return {
+    const newList: TableItem[] = [];
+    selected[ClusterTypes.TENDBHA].forEach((item) => {
+      const domain = item.master_domain;
+      clusterInfoMap.set(domain, item);
+      if (!domainMemo[domain]) {
+        const row = {
           ...getTableItem(),
           cluster_domain: item.master_domain,
           cluster_id: item.id,
         };
-      });
-      list.push(...formatList);
-    }
+        newList.push(row);
+        domainMemo[domain] = true;
+      }
+    });
 
     clearEmptyTableData();
-    tableData.value.push(...list);
+    if (checkListEmpty(tableData.value)) {
+      tableData.value = newList;
+    } else {
+      tableData.value = [...tableData.value, ...newList];
+    }
     window.changeConfirm = true;
   }
 

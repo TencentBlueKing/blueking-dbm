@@ -16,7 +16,8 @@
     <SerachBar
       v-model="searchValue"
       :placeholder="t('请输入或选择条件搜索')"
-      :search-attrs="searchAttrs" />
+      :search-attrs="searchAttrs"
+      @search-value-change="handleSearchValueChange" />
     <BkLoading
       :loading="isLoading"
       :z-index="2">
@@ -30,9 +31,7 @@
         style="margin-top: 12px;"
         @column-filter="columnFilterChange"
         @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchResources"
-        @row-click.stop.prevent="handleRowClick" />
+        @page-value-change="handleChangePage" />
     </BkLoading>
   </div>
 </template>
@@ -112,10 +111,14 @@
     columnAttrs,
     searchAttrs,
     searchValue,
+    columnCheckedMap,
     columnFilterChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.TENDBHA, [
-    'bk_cloud_id',
-  ]);
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach(
+    ClusterTypes.TENDBHA,
+    ['bk_cloud_id'],
+    () => fetchResources(),
+  );
 
   const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
 
@@ -124,9 +127,8 @@
   const initRole = computed(() => props.firsrColumn?.role);
   const selectClusterId = computed(() => props.clusterId);
   const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
-  const mainSelectDisable = computed(() => (props.disabledRowConfig
-    // eslint-disable-next-line max-len
-    ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
+  const mainSelectDisable = computed(() => (props.disabledRowConfig ? tableData.value
+    .filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
 
   const {
     isLoading,
@@ -139,8 +141,8 @@
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
-    // eslint-disable-next-line max-len
-    && tableData.value.length === tableData.value.filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
+    && tableData.value.length === tableData.value
+      .filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
   ));
 
   let isSelectedAllReal = false;
@@ -203,7 +205,12 @@
             value: 'unavailable',
             text: t('异常'),
           },
+          {
+            value: 'loading',
+            text: t('重建中'),
+          },
         ],
+        checked: columnCheckedMap.value.status,
       },
       render: ({ data }: DataRow) => {
         const isNormal = props.statusFilter ? props.statusFilter(data) : data.status === 'running';
@@ -214,11 +221,13 @@
     {
       minWidth: 100,
       label: t('管控区域'),
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
       },
+      render: ({ data }: DataRow) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       minWidth: 100,
@@ -331,13 +340,6 @@
     triggerChange();
   };
 
-  const handleRowClick = (key: number, data: T) => {
-    if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
-      return;
-    }
-    const checked = checkedMap.value[data[firstColumnFieldId.value]];
-    handleTableSelectOne(!checked, data);
-  };
 </script>
 
 <style lang="less">

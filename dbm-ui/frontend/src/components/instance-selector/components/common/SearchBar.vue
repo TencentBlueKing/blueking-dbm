@@ -1,10 +1,11 @@
 <template>
   <DbSearchSelect
-    v-model="searchSelectValue"
     class="mb-16"
     :data="searchSelectData"
+    :model-value="searchSelectValue"
     :placeholder="t('请输入或选择条件搜索')"
-    unique-select />
+    unique-select
+    @change="handleSearchChange" />
 </template>
 <script setup lang="ts">
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
@@ -25,7 +26,13 @@
     searchAttrs: SearchAttrs
   }
 
+  interface Emits {
+    (e: 'searchValueChange', value: ISearchValue[]): void,
+  }
+
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const searchSelectValue = defineModel<ISearchValue[]>({
     default: [],
@@ -65,4 +72,8 @@
       children: props.searchAttrs.bk_cloud_id,
     },
   ]);
+
+  const handleSearchChange = (value: ISearchValue[]) => {
+    emits('searchValueChange', value);
+  };
 </script>

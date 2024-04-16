@@ -154,11 +154,11 @@ class ReplicaSetCluster(MongoDBCluster):
         return [self.shard]
 
     def get_mongos(self) -> List[MongoNode]:
-        """ Not Implemented"""
+        """Not Implemented"""
         return []
 
     def get_config(self) -> ReplicaSet:
-        """ Not Implemented"""
+        """Not Implemented"""
         return None
 
 

@@ -17,7 +17,7 @@
 export const dbOperations = {
   dml: ['select', 'insert', 'update', 'delete'],
   ddl: ['create', 'alter', 'drop', 'index', 'execute', 'create view'],
-  glob: ['file', 'trigger', 'event', 'create routine', 'alter routine', 'replication client', 'replication slave'],
+  glob: ['file', 'trigger', 'event', 'create routine', 'alter routine', 'replication client', 'replication slave', 'reload', 'process', 'show databases'],
 };
 
 /**

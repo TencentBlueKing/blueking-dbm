@@ -31,7 +31,7 @@ interface State {
   loadingDetails: boolean;
   isEmpty: boolean;
   version: string;
-  data: ServiceReturnType<typeof getLevelConfig>,
+  data: ServiceReturnType<typeof getLevelConfig> & { charset?: string},
 }
 /**
  * 获取参数管理基本信息
@@ -80,6 +80,7 @@ export const useBaseDetails = (immediateFetch = true) => {
       version: '',
       name: '',
       description: '',
+      charset: '',
     },
   });
 
@@ -92,7 +93,10 @@ export const useBaseDetails = (immediateFetch = true) => {
     state.loadingDetails = true;
     getLevelConfig(fetchParams.value)
       .then((res) => {
-        state.data = res;
+        state.data = {
+          ...state.data,
+          ...res,
+        };
       })
       .finally(() => {
         state.loadingDetails = false;
@@ -115,9 +119,14 @@ export const useBaseDetails = (immediateFetch = true) => {
     state.loading = true;
     getLevelConfig(params)
       .then((res) => {
-        const target = res.conf_items.find(item => item.conf_name === 'db_version');
-        if (target?.conf_value) {
-          state.version = target.conf_value;
+        res.conf_items.forEach((item) => {
+          if (item.conf_name === 'db_version') {
+            state.version = item.conf_value ?? '';
+          } else if (item.conf_name === 'charset') {
+            state.data.charset = item.conf_value ?? '';
+          }
+        });
+        if (state.version) {
           fetchLevelConfig();
         } else {
           state.isEmpty = true;

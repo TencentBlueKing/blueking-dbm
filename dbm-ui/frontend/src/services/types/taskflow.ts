@@ -84,20 +84,20 @@ export type FlowStatus = 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED'
  * 任务流程节点数据
  */
 export interface FlowItem {
-  id: string;
-  name: string | null;
-  incoming: string | string[];
-  outgoing: string | string[];
-  type: FlowType;
-  error_ignorable?: boolean;
-  optional?: boolean;
-  retryable?: boolean;
-  skippable?: boolean;
-  status?: FlowStatus;
-  timeout?: number;
-  started_at?: number;
-  created_at?: number;
-  updated_at?: number;
+  id: string,
+  name: string | null,
+  incoming: string | string[],
+  outgoing: string | string[],
+  type: FlowType,
+  started_at: number,
+  updated_at: number,
+  error_ignorable?: boolean,
+  optional?: boolean,
+  retryable?: boolean,
+  skippable?: boolean,
+  status?: FlowStatus,
+  timeout?: number,
+  created_at?: number,
   component?: {
     code: string;
   };

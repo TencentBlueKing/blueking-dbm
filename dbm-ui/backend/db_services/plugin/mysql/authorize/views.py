@@ -15,7 +15,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_services.mysql.permission.authorize.handlers import AuthorizeHandler
+from backend.db_services.mysql.permission.authorize.handlers import MySQLAuthorizeHandler
 from backend.db_services.plugin.constants import SWAGGER_TAG
 from backend.db_services.plugin.mysql.authorize.serializers import (
     AuthorizeApplySerializer,
@@ -35,7 +35,7 @@ class AuthorizePluginViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=AuthorizeApplySerializer)
     def authorize_apply(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        handler = AuthorizeHandler(bk_biz_id=0, operator=request.user.username)
+        handler = MySQLAuthorizeHandler(bk_biz_id=0, operator=request.user.username)
         return Response(handler.authorize_apply(request, **data))
 
     @common_swagger_auto_schema(
@@ -46,5 +46,5 @@ class AuthorizePluginViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=QueryAuthorizeApplySerializer)
     def query_authorize_apply_result(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        handler = AuthorizeHandler(bk_biz_id=0, operator=request.user.username)
+        handler = MySQLAuthorizeHandler(bk_biz_id=0, operator=request.user.username)
         return Response(handler.query_authorize_apply_result(**data))

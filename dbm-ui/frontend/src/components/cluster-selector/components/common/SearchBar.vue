@@ -58,6 +58,7 @@
       {
         name: t('访问入口'),
         id: 'domain',
+        multiple: true,
       },
       {
         name: t('状态'),
@@ -77,6 +78,7 @@
       {
         name: t('集群名称'),
         id: 'name',
+        multiple: true,
       },
       {
         name: t('管控区域'),

@@ -44,6 +44,7 @@ class MySQLAuthorizeRulesSerializer(serializers.Serializer):
     authorize_plugin_infos = serializers.ListSerializer(
         help_text=_("第三方接口/插件授权信息"), child=MySQLPluginInfoSerializer(), required=False
     )
+    need_itsm = serializers.BooleanField(help_text=_("是否需要审批"), required=False, default=True)
 
     def validate(self, attrs):
         if not (attrs.get("authorize_plugin_infos") or attrs.get("authorize_uid")):
@@ -92,6 +93,8 @@ class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
 
     @property
     def need_itsm(self):
+        if not self.ticket.details.get("need_itsm"):
+            return False
         handler = MySQLAccountHandler(bk_biz_id=self.ticket.bk_biz_id, account_type=AccountType.MYSQL)
         high_risk = handler.has_high_risk_privileges(self.ticket.details["rules_set"])
         return high_risk

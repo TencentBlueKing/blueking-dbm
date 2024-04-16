@@ -717,7 +717,7 @@
   "确认重置页面": "Confirm to reset page",
   "继续提单": "Continue",
   "节点类型": "Node type",
-  "重置将会情况当前填写的所有内容_请谨慎操作": "Reset all the content currently filled in the general situation, please operate with caution!",
+  "重置将会清空当前填写的所有内容_请谨慎操作": "Reset all the content currently filled in the general situation, please operate with caution!",
   "DB重命名_database重命名": "DB rename: database rename",
   "DB重命名_执行": "DB rename execute",
   "DB重命名_批量录入": "DB rename - Multi-entry",

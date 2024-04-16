@@ -14,7 +14,6 @@ from typing import Any, Dict, List
 from django.db.models import Count, F
 from django.utils.translation import ugettext_lazy as _
 
-from backend import env
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import StorageInstance
 from backend.db_proxy.models import ClusterExtension
@@ -154,9 +153,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
 
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         host_id__node_list_map = {node["machine__bk_host_id"]: node for node in node_list}
-        host_info_map = ResourceQueryHelper.search_cc_hosts(
-            env.DBA_APP_BK_BIZ_ID, list(host_id__node_list_map.keys()), keyword=None
-        )
+        host_info_map = ResourceQueryHelper.search_cc_hosts(list(host_id__node_list_map.keys()), keyword=None)
         host_id__host_info_map = {host_info["bk_host_id"]: host_info for host_info in host_info_map}
         for host_id, node in host_id__node_list_map.items():
             node["bk_host_id"] = node.pop("machine__bk_host_id")
