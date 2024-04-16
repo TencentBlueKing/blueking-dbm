@@ -29,7 +29,7 @@
       <span
         v-bk-tooltips="{
           disabled: hasData,
-          content: t('请先申请集群')
+          content: t('请先申请集群'),
         }"
         class="inline-block">
         <BkButton
@@ -320,7 +320,7 @@
               text
               theme="primary"
               class="ml-16"
-              disabled={data.operationDisabled}
+              disabled={data.isStarting}
               onclick={() => handleEnableCluster(data)}>
               { t('启用') }
             </bk-button>
@@ -332,7 +332,7 @@
               text
               theme="primary"
               class="ml-16"
-              disabled={data.operationDisabled}
+              disabled={Boolean(data.operationTicketId)}
               onclick={() => handleDeleteCluster(data)}>
               { t('删除') }
             </bk-button>
@@ -563,13 +563,13 @@
     :deep(.replica-set-list-table) {
       .is-new {
         td {
-          background-color: #F3FCF5 !important;
+          background-color: #f3fcf5 !important;
         }
       }
 
       .is-offline {
         .cell {
-          color: #C4C6CC !important;
+          color: #c4c6cc !important;
         }
       }
 
@@ -584,7 +584,7 @@
       }
 
       .cluster-alias {
-        color: #979BA5 !important
+        color: #979ba5 !important;
       }
 
       .db-icon-copy {

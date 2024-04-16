@@ -126,7 +126,7 @@
   <ExcelAuthorize
     v-model:is-show="isShowExcelAuthorize"
     :cluster-type="ClusterTypes.SQLSERVER_HA"
-    :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES"/>
+    :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES" />
   <ClusterReset
     v-if="currentData"
     v-model:is-show="isShowClusterReset"
@@ -401,6 +401,7 @@
                     text
                     theme="primary"
                     class="ml-16"
+                    disabled={data.operationDisabled}
                     onClick={() => handleSwitchCluster(TicketTypes.SQLSERVER_DISABLE, data)}>
                     { t('禁用') }
                   </bk-button>
@@ -412,6 +413,7 @@
                   <bk-button
                     text
                     theme="primary"
+                    disabled={data.isStarting}
                     onClick={ () => handleSwitchCluster(TicketTypes.SQLSERVER_ENABLE, data) }>
                     { t('启用') }
                   </bk-button>
@@ -421,6 +423,7 @@
                     text
                     theme="primary"
                     class="ml-16"
+                    disabled={Boolean(data.operationTicketId)}
                     onClick={() => handleResetCluster(data)}>
                     { t('重置') }
                   </bk-button>
@@ -430,6 +433,7 @@
                     text
                     theme="primary"
                     class="ml-16"
+                    disabled={Boolean(data.operationTicketId)}
                     onClick={() => handleDeleteCluster(data)}>
                     { t('删除') }
                   </bk-button>
