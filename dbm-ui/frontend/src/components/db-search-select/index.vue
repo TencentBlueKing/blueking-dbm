@@ -17,7 +17,6 @@
     :conditions="conditions"
     :data="data"
     unique-select
-    value-behavior="need-key"
     value-split-code=","
     v-bind="$attrs" />
 </template>

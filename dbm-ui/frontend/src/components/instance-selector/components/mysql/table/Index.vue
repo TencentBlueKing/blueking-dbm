@@ -17,6 +17,7 @@
       v-model="searchValue"
       :placeholder="t('请输入或选择条件搜索')"
       :search-attrs="searchAttrs"
+      :validate-search-values="validateSearchValues"
       @search-value-change="handleSearchValueChange" />
     <BkLoading
       :loading="isLoading"
@@ -28,7 +29,8 @@
         :pagination="pagination.count < 10 ? false : pagination"
         :remote-pagination="isRemotePagination"
         :settings="tableSetting"
-        style="margin-top: 12px;"
+        style="margin-top: 12px"
+        @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage" />
@@ -112,7 +114,9 @@
     searchAttrs,
     searchValue,
     columnCheckedMap,
+    clearSearchValue,
     columnFilterChange,
+    validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach(
     ClusterTypes.TENDBHA,
@@ -144,8 +148,6 @@
     && tableData.value.length === tableData.value
       .filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
   ));
-
-  let isSelectedAllReal = false;
 
   const columns = computed(() => [
     {
@@ -316,10 +318,9 @@
   const handleSelectPageAll = (checked: boolean) => {
     const list = tableData.value;
     if (props.disabledRowConfig) {
-      isSelectedAllReal = !isSelectedAllReal;
       for (const data of list) {
         if (!props.disabledRowConfig.handler(data)) {
-          handleTableSelectOne(isSelectedAllReal, data);
+          handleTableSelectOne(checked, data);
         }
       }
       return;

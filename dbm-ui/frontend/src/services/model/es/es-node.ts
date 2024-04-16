@@ -10,7 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
+import { utcDisplayTime } from '@utils';
 export default class EsNode {
   static ROLE_MASTER = 'es_master';
   static ROLE_CLIENT = 'es_client';
@@ -63,5 +63,9 @@ export default class EsNode {
 
   get isCold() {
     return this.role === EsNode.ROLE_COLD;
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 }

@@ -28,6 +28,8 @@
   import { getRedisListByBizId } from '@services/source/redis';
   import type { RedisDataStructrue, TicketDetails } from '@services/types/ticket';
 
+  import { utcDisplayTime } from '@utils';
+
   interface Props {
     ticketDetails: TicketDetails<RedisDataStructrue>
   }
@@ -49,7 +51,6 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
   const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
 
@@ -121,7 +122,7 @@
           clusterName: clusterMap[item.cluster_id].clusterName,
           clusterType: clusterMap[item.cluster_id].clusterType,
           instances: item.master_instances,
-          time: item.recovery_time_point,
+          time: utcDisplayTime(item.recovery_time_point),
           sepc: {
             id: item.resource_spec.redis.spec_id,
             name: specInfo ? specInfo.spec_name : '',

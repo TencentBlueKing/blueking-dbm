@@ -15,15 +15,15 @@
   <div class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('所属业务') }}：</span>
+        <span class="ticket-details__item-label">{{ t('所属业务') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('指定执行时间') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.timing || '--' }}</span>
+        <span class="ticket-details__item-label">{{ t('指定执行时间') }}：</span>
+        <span class="ticket-details__item-value">{{ utcDisplayTime(ticketDetails?.details?.timing) || '--' }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('自动修复') }}：</span>
+        <span class="ticket-details__item-label">{{ t('自动修复') }}：</span>
         <span class="ticket-details__item-value">{{ isRepair }}</span>
       </div>
     </div>
@@ -41,6 +41,8 @@
     MySQLChecksumDetails,
     TicketDetails,
   } from '@services/types/ticket';
+
+  import { utcDisplayTime } from '@utils';
 
   interface Props {
     ticketDetails: TicketDetails<MySQLChecksumDetails>
@@ -67,67 +69,73 @@
     port: number,
   }
 
-  // MySQL 校验
-  const columns: any = [{
-    label: t('目标集群'),
-    field: 'name',
-    showOverflowTooltip: true,
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('校验主库'),
-    field: 'master',
-    showOverflowTooltip: true,
-    render: ({ cell }: { cell: itemDetails }) => <span>{`${cell.ip}:${cell.port}` || '--'}</span>,
-  }, {
-    label: t('校验从库'),
-    field: 'slaves',
-    showOverflowTooltip: true,
-    render: ({ cell }: { cell: itemDetails[] }) => cell.map(item => <p class="pt-2 pb-2">{`${item.ip}:${item.port}` || '--'}</p>),
-  }, {
-    label: t('校验DB'),
-    field: 'db_patterns',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+  const columns = [
+    {
+      label: t('目标集群'),
+      field: 'name',
+      showOverflowTooltip: true,
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('校验主库'),
+      field: 'master',
+      showOverflowTooltip: true,
+      render: ({ cell }: { cell: itemDetails }) => <span>{`${cell.ip}:${cell.port}` || '--'}</span>,
+    },
+    {
+      label: t('校验从库'),
+      field: 'slaves',
+      showOverflowTooltip: true,
+      render: ({ cell }: { cell: itemDetails[] }) => cell.map(item => <p class="pt-2 pb-2">{`${item.ip}:${item.port}` || '--'}</p>),
+    },
+    {
+      label: t('校验DB'),
+      field: 'db_patterns',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.map(item => <bk-tag>{item}</bk-tag>)}
       </div>
     ),
-  }, {
-    label: t('忽略DB'),
-    field: 'ignore_dbs',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('忽略DB'),
+      field: 'ignore_dbs',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
       </div>
     ),
-  }, {
-    label: t('校验表名'),
-    field: 'table_patterns',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('校验表名'),
+      field: 'table_patterns',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.map(item => <bk-tag>{item}</bk-tag>)}
       </div>
     ),
-  }, {
-    label: t('忽略表名'),
-    field: 'ignore_tables',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('忽略表名'),
+      field: 'ignore_tables',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
       </div>
     ),
-  }];
+    }];
 
   // 修复数据
   const isRepair = computed(() => (props.ticketDetails?.details?.data_repair.is_repair ? t('是') : t('否')));

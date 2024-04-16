@@ -47,6 +47,8 @@
 
   import { writeTypeList } from '@views/redis/common/const';
 
+  import { utcDisplayTime } from '@utils';
+
   interface Props {
     ticketDetails: TicketDetails<RedisRollbackDataCopyDetails>
   }
@@ -63,7 +65,6 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
   const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
 
@@ -130,7 +131,7 @@
       tableData.value = infos.map(item => ({
         entry: item.src_cluster,
         taregtClusterName: clusterMap[item.dst_cluster],
-        time: item.recovery_time_point,
+        time: utcDisplayTime(item.recovery_time_point),
         includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
         excludeKeys: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
       }));

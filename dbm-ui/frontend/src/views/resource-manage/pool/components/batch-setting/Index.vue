@@ -24,6 +24,7 @@
               <BkSelect
                 v-model="formData.for_bizs"
                 :disabled="formData.set_empty_biz"
+                filterable
                 :loading="isBizListLoading"
                 multiple
                 multiple-mode="tag">
@@ -48,6 +49,7 @@
               <BkSelect
                 v-model="formData.resource_types"
                 :disabled="formData.set_empty_resource_type"
+                filterable
                 :loading="isDbTypeListLoading"
                 multiple
                 multiple-mode="tag">

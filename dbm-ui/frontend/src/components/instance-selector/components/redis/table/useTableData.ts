@@ -9,21 +9,28 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
+import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { type ComponentInternalInstance } from 'vue';
 
 import { useGlobalBizs } from '@stores';
 
+import { getSearchSelectorParams } from '@utils';
+
 /**
  * 处理集群列表数据
  */
-export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<number | undefined>) {
+export function useTableData<T>(
+  searchSelectValue: Ref<ISearchValue[]>,
+  role?: Ref<string | undefined>,
+  clusterId?: Ref<number | undefined>,
+) {
   const { currentBizId } = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
-      getTableList: (params: any) => Promise<any>
-    }
+      getTableList: (params: any) => Promise<any>;
+    };
   };
 
   const isLoading = ref(false);
@@ -37,9 +44,8 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
     align: 'right',
     layout: ['total', 'limit', 'list'],
   });
-  const searchValue = ref('');
 
-  watch(searchValue, () => {
+  watch(searchSelectValue, () => {
     setTimeout(() => {
       handleChangePage(1);
     });
@@ -49,10 +55,10 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
     isLoading.value = true;
     const params = {
       bk_biz_id: currentBizId,
-      instance_address: searchValue.value,
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
       extra: 1,
+      ...getSearchSelectorParams(searchSelectValue.value),
     };
     if (role?.value) {
       Object.assign(params, {
@@ -64,11 +70,11 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
         cluster_id: clusterId.value,
       });
     }
-    return currentInstance.proxy.getTableList(params)
+    return currentInstance.proxy
+      .getTableList(params)
       .then((data) => {
-        const ret = data;
-        tableData.value = ret.results;
-        pagination.count = ret.count;
+        tableData.value = data.results;
+        pagination.count = data.count;
         isAnomalies.value = false;
       })
       .catch(() => {
@@ -95,7 +101,6 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
     isLoading,
     data: tableData,
     pagination,
-    searchValue,
     fetchResources,
     handleChangePage,
     handeChangeLimit,

@@ -19,6 +19,7 @@ import type { HostDetails } from '../../types';
 
 export default class RedisHost {
   bk_cloud_id: number;
+  bk_cloud_name: string;
   bk_host_id: number;
   cluster_id: number;
   host_info: HostDetails;
@@ -36,6 +37,7 @@ export default class RedisHost {
   master_domain?: string;
   constructor(payload = {} as RedisHost) {
     this.bk_cloud_id = payload.bk_cloud_id;
+    this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
     this.role = switchToNormalRole(payload.role);
     this.cluster_id = payload.cluster_id;

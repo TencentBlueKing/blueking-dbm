@@ -10,8 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
-import { isRecentDays } from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 export default class PulsarNode {
   static ROLE_BROKER = 'pulsar_broker';
@@ -64,5 +63,9 @@ export default class PulsarNode {
 
   get isNew() {
     return isRecentDays(this.create_at, 24 * 3);
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 }
