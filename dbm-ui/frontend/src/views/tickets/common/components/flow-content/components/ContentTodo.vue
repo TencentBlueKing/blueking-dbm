@@ -28,7 +28,7 @@
     <div
       v-if="data.done_at"
       class="flow-time">
-      {{ data.done_at }}
+      {{ utcDisplayTime(data.done_at) }}
     </div>
   </div>
 </template>
@@ -38,7 +38,7 @@
 
   import type { FlowItemTodo } from '@services/types/ticket';
 
-  import { getCostTimeDisplay } from '@utils';
+  import { getCostTimeDisplay, utcDisplayTime } from '@utils';
 
   interface Props {
     data: FlowItemTodo,

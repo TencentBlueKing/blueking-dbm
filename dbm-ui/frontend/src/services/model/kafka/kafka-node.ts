@@ -10,6 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+import { utcDisplayTime } from '@utils';
 
 export default class KafkaNode {
   static ROLE_BROKER = 'broker';
@@ -53,5 +54,9 @@ export default class KafkaNode {
 
   get isZookeeper() {
     return this.role === KafkaNode.ROLE_ZOOKEEPER;
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 }

@@ -117,6 +117,7 @@
           :get-menu-list="getMenuList"
           :model-value="searchValue"
           :placeholder="t('请输入或选择条件搜索')"
+          :validate-values="validateSearchValues"
           @change="handleSearchValueChange" />
       </div>
     </div>
@@ -201,6 +202,7 @@
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.INFLUXDB, ['bk_cloud_id'], () => fetchTableData(), false);
 

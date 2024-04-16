@@ -25,12 +25,14 @@
         v-if="ticketDetails.details.execute_mode === 'scheduled_execution'"
         class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('指定执行时间') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails.details.specified_execution_time }}</span>
+        <span class="ticket-details__item-value">
+          {{ utcDisplayTime(ticketDetails.details.specified_execution_time) }}
+        </span>
       </div>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('指定停止时间') }}：</span>
         <span class="ticket-details__item-value">
-          {{ ticketDetails.details.check_stop_time }}
+          {{ utcDisplayTime(ticketDetails.details.check_stop_time) }}
         </span>
       </div>
       <div class="ticket-details__item">
@@ -59,6 +61,8 @@
   import { useI18n } from 'vue-i18n';
 
   import type { RedisDataCheckAndRepairDetails, TicketDetails } from '@services/types/ticket';
+
+  import { utcDisplayTime } from '@utils';
 
   interface Props {
     ticketDetails: TicketDetails<RedisDataCheckAndRepairDetails>

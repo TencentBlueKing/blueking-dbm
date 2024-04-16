@@ -108,7 +108,7 @@
             <p
               v-if="item.done_at"
               class="flow-time">
-              {{ item.done_at }}
+              {{ utcDisplayTime(item.done_at) }}
             </p>
           </div>
         </div>
@@ -154,7 +154,7 @@
         <p
           v-if="content.end_time"
           class="flow-time">
-          {{ content.end_time }}
+          {{ utcDisplayTime(content.end_time) }}
         </p>
       </template>
     </template>
@@ -188,7 +188,7 @@
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
   import useLogCounts from '@views/tickets/common/hooks/logCounts';
 
-  import { getCostTimeDisplay, utcTimeToSeconds } from '@utils';
+  import { getCostTimeDisplay, utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   interface Props {
     flows?: FlowItem[]
