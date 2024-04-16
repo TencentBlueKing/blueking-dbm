@@ -31,7 +31,7 @@ logger = logging.getLogger("flow")
 
 
 class BsTask:
-    """ 备份系统Task，前端传来的数据"""
+    """备份系统Task，前端传来的数据"""
 
     class Serializer(serializers.Serializer):
         task_id = serializers.CharField()

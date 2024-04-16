@@ -27,7 +27,7 @@ class BaseSubTask:
 
     @classmethod
     def parse_ns_filter(cls, sub_payload):
-        """ 目前没有用 """
+        """目前没有用"""
         if sub_payload["ns_filter"] is None:
             return None
         else:

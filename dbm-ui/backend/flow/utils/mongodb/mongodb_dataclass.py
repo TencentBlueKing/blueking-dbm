@@ -1134,7 +1134,7 @@ class ActKwargs:
             self.payload["hosts"].append({"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]})
 
     def calc_param_replace(self, info: dict, instance_num: int):
-        """"计算参数"""
+        """ "计算参数"""
 
         self.replicaset_info = {}
         # 同机器的实例数

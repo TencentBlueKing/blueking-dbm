@@ -235,7 +235,7 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
 
 
 def calculate_cluster(payload: dict) -> dict:
-    """ 计算cluster"""
+    """计算cluster"""
 
     payload_clusters = {}
     payload_clusters["uid"] = payload["uid"]

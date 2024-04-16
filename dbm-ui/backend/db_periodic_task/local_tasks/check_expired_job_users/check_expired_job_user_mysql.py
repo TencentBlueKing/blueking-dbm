@@ -117,13 +117,10 @@ class CheckExpiredJobUserForMysql(object):
                     # 如果不是空，则逐个判断随机账号情况,判断已过期，则删除
                     for user_info in cmd_result.get("table_data"):
                         flow_rood_id = user_info["user"].replace(DBM_MYSQL_JOB_TMP_USER_PREFIX, "")
-                        if (
-                            Flow.objects.filter(
-                                flow_obj_id=flow_rood_id,
-                                status__in=[TicketFlowStatus.TERMINATED, TicketFlowStatus.REVOKED],
-                            ).exists()
-                            and user_info["host"] in ["localhost", info["address"].split(":")[0]]
-                        ):
+                        if Flow.objects.filter(
+                            flow_obj_id=flow_rood_id,
+                            status__in=[TicketFlowStatus.TERMINATED, TicketFlowStatus.REVOKED],
+                        ).exists() and user_info["host"] in ["localhost", info["address"].split(":")[0]]:
                             """
                             如果对应的job_id存在，且状态已经是终止或者撤销状态，则认为单据已经停止，可删除临时账号
                             如果host不是localhost和local_ip, 则认为这不是dbm产生的临时账号

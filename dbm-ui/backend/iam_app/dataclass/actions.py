@@ -1613,7 +1613,7 @@ class ActionEnum:
 
 # fmt: on
 def register_ticket_iam_actions():
-    """ 将单据动作注册到IAM动作类中"""
+    """将单据动作注册到IAM动作类中"""
     for ticket_type in TicketType.get_values():
         ticket_enum = TicketType.__field_members__[ticket_type]
         # 如果单据类型要求不注册iam，则忽略
