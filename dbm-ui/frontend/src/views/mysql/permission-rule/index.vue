@@ -377,6 +377,7 @@
     getPermissionRules({
       ...getSearchSelectorParams(state.search),
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      account_type: 'mysql',
     }, {
       permission: 'catch'
     })

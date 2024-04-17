@@ -208,6 +208,7 @@
           <>
             <auth-button
               {...editBtnPermissionInfo }
+              resource={data.id}
               class="mr-24"
               text
               theme="primary"
@@ -226,6 +227,7 @@
             <span v-bk-tooltips={ tips }>
               <auth-button
                 action-id="notify_group_delete"
+                resource={data.id}
                 permission={data.permission.notify_group_delete}
                 text
                 disabled={ btnDisabled }

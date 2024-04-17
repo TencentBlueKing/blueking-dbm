@@ -40,6 +40,7 @@
       ref="tableRef"
       :columns="tableColumn"
       :data-source="dataSource"
+      releate-url-query
       @clear-search="handleClearSearch"
       @select="handleSelect"
       @select-all="handleSelectAll" />

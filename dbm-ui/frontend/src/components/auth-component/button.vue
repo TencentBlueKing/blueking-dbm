@@ -66,7 +66,7 @@
       background-color: transparent !important;
       border-color: transparent !important;
 
-      * {
+      .bk-button-text {
         color: #c4c6cc !important;
       }
     }
