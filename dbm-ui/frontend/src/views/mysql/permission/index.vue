@@ -215,7 +215,7 @@
       render: ({ data }: { data: IPermissioRule }) => (
         <TextOverflowLayout>
           {{
-            prepend: () => (
+            prepend: () => data.rules.length > 1 && (
               <div
                 class="row-expand-btn"
                 onClick={() => handleToggleExpand(data)}>
