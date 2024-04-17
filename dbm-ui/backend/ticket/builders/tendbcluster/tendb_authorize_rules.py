@@ -33,6 +33,8 @@ class TendbClusterAuthorizeRulesFlowBuilder(BaseTendbTicketFlowBuilder, MySQLAut
 
     @property
     def need_itsm(self):
+        if not self.ticket.details.get("need_itsm"):
+            return False
         handler = AccountHandler(bk_biz_id=self.ticket.bk_biz_id, account_type=AccountType.TENDB)
         high_risk = handler.has_high_risk_privileges(self.ticket.details["rules_set"])
         return high_risk

@@ -252,14 +252,18 @@ class AuthorizeHandler(object):
                 raise DBPermissionBaseException(_("授权集群: [{}]。业务信息bk_biz_id为空请检查。").format(target_instance))
             if cluster.count() > 1:
                 raise DBPermissionBaseException(_("授权域名: [{}]对应多个集群，请检查域名合法性。").format(target_instance))
+
             cluster = cluster.first()
             db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+            if cluster.bk_biz_id != bk_biz_id:
+                raise DBPermissionBaseException(_("集群{}对应的业务与业务ID: {}不匹配").format(domain, bk_biz_id))
+
             authorize_infos = {
                 "bk_biz_id": bk_biz_id,
                 "user": user,
                 "access_dbs": [access_db],
                 "source_ips": source_ips.split(","),
-                "target_instances": [cluster.immute_domain],
+                "target_instances": [domain],
                 "cluster_type": cluster.cluster_type,
             }
             authorize_info_slz = MySQLAuthorizeRulesSerializer(
