@@ -40,10 +40,10 @@ func (o EsInsObject) DoExclude(nodes []string) error {
 	ips := strings.Join(nodes[:], ",")
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf(`{
-        "transient": {
-            "cluster.routing.allocation.exclude._ip": "%s"
-        }
-    }`, ips))
+		"transient": {
+			"cluster.routing.allocation.exclude._ip": "%s"
+		}
+	}`, ips))
 
 	req, err := http.NewRequest("PUT", fmt.Sprintf("http://%s:%d/_cluster/settings", o.Host, o.HTTPPort),
 		strings.NewReader(b.String()))
