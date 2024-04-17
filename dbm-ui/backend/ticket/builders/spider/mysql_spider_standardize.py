@@ -33,22 +33,15 @@ class TenDBClusterStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
         return attrs
 
     def __validate_clusters(self, attrs):
-        app_obj = AppCache.objects.get(bk_biz_id=attrs["bk_biz_id"])
+        AppCache.objects.get(bk_biz_id=attrs["bk_biz_id"])
 
         for cluster_obj in Cluster.objects.filter(pk__in=attrs["infos"]["cluster_ids"]).all():
-            if cluster_obj.bk_biz_id != attrs["bk_biz_id"]:
-                raise serializers.ValidationError(
-                    _("{} 不是 [{}]{} 的集群".format(cluster_obj.immute_domain, app_obj.bk_biz_id, app_obj.db_app_abbr))
-                )
-
             if cluster_obj.cluster_type != ClusterType.TenDBCluster.value:
                 raise serializers.ValidationError(
                     _("{} 不是 {} 集群".format(cluster_obj.immute_domain, ClusterType.TenDBCluster.value))
                 )
 
             self.__validate_cluster_proxy(cluster_obj=cluster_obj, attrs=attrs)
-            # self.__validate_cluster_master_storage(cluster_obj=cluster_obj, attrs=attrs)
-            # self.__validate_cluster_slave_storage(cluster_obj=cluster_obj, attrs=attrs)
 
     @staticmethod
     def __validate_cluster_proxy(cluster_obj: Cluster, attrs):

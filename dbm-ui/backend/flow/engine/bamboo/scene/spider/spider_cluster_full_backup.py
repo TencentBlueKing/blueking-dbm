@@ -118,7 +118,9 @@ class TenDBClusterFullBackupFlow(object):
                     sub_flow_list=self.backup_on_remote_slave(backup_id=backup_id, cluster_obj=cluster_obj)
                 )
             elif cluster["backup_local"] == InstanceInnerRole.MASTER.value:
-                pass
+                cluster_pipe.add_parallel_sub_pipeline(
+                    sub_flow_list=self.backup_on_remote_master(backup_id=backup_id, cluster_obj=cluster_obj)
+                )
             elif cluster["backup_local"] == TenDBClusterSpiderRole.SPIDER_MNT.value:
                 cluster_pipe.add_sub_pipeline(
                     sub_flow=self.backup_on_spider_mnt(
