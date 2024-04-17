@@ -1,19 +1,16 @@
 package esutil
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
-
-	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
 // EsInsObject TODO
@@ -37,154 +34,106 @@ type Allocation struct {
 	Shards string `json:"shards"`
 }
 
-// Conn TODO
-func (o EsInsObject) Conn() (*elasticsearch.Client, error) {
-	username := os.Getenv("ES_USERNAME")
-	password := os.Getenv("ES_PASSWORD")
-	if username == "" || password == "" {
-		err := errors.New("环境变量ES_USERNAME、ES_PASSWORD为空，或不存在")
-		return nil, err
-
-	}
-	return elasticsearch.NewClient(
-		elasticsearch.Config{
-			Addresses: []string{fmt.Sprintf("http://%s:%d", o.Host, o.HTTPPort)},
-			Username:  username,
-			Password:  password,
-		})
-}
-
-// DoExclude TODO
+// DoExclude 排除节点
 func (o EsInsObject) DoExclude(nodes []string) error {
-	esclient, err := o.Conn()
-
-	if err != nil {
-		logger.Error("es连接失败", err)
-		return err
-	}
-
+	client := &http.Client{}
 	ips := strings.Join(nodes[:], ",")
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf(`{
         "transient": {
             "cluster.routing.allocation.exclude._ip": "%s"
         }
-}`, ips))
+    }`, ips))
 
-	req := esapi.ClusterPutSettingsRequest{
-		Body: strings.NewReader(b.String()),
-	}
-
-	res, err := req.Do(context.Background(), esclient)
+	req, err := http.NewRequest("PUT", fmt.Sprintf("http://%s:%d/_cluster/settings", o.Host, o.HTTPPort),
+		strings.NewReader(b.String()))
 	if err != nil {
 		logger.Error("Exclude请求失败", err)
 		return err
 	}
 
-	if res.StatusCode != 200 {
-		logger.Error("exclude请求响应不为200,", res)
+	req.SetBasicAuth(o.UserName, o.Password)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Error("Exclude请求失败", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		logger.Error("exclude请求响应不为200,", resp)
 		return errors.New("exclude请求响应不为200")
 	}
 
-	logger.Info("res", res)
-
-	return nil
-}
-
-// CheckEmpty TODO
-func (o EsInsObject) CheckEmpty(nodes []string) error {
-	const SleepInterval = 60 * time.Second
-
-	esclient, err := o.Conn()
-
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logger.Error("es连接失败", err)
+		logger.Error("读取响应体失败", err)
 		return err
 	}
 
-	for {
-		req := esapi.CatAllocationRequest{
-			NodeID: nodes,  // 过滤特定的的nodes
-			Format: "json", // 输出格式为json
-		}
-		res, err := req.Do(context.Background(), esclient)
-		if err != nil {
-			logger.Info("cat api失败", err)
-		}
-		defer res.Body.Close()
-
-		resBody := res.String()
-		logger.Info("allocations", resBody)
-
-		var allocations []Allocation
-		if err := json.NewDecoder(res.Body).Decode(&allocations); err != nil {
-			logger.Error("Error parsing the response body: %s", err)
-		}
-
-		sum := 0
-		for _, allocation := range allocations {
-			logger.Info("allocations: %v", allocation)
-			if allocation.Node == "UNASSIGNED" {
-				continue
-			}
-			shards, _ := strconv.Atoi(allocation.Shards)
-			sum += shards
-		}
-		// sum为0表示数据搬迁完成
-		if sum == 0 {
-			logger.Info("shard搬迁完毕")
-			break
-		}
-
-		time.Sleep(SleepInterval)
-	}
+	logger.Info("res", string(body))
 
 	return nil
 }
 
-// CheckEmptyOnetime TODO
+// CheckEmptyOnetime 检查指定的节点是否已经没有分片，如果没有分片返回true，否则返回false
 func (o EsInsObject) CheckEmptyOnetime(nodes []string) (sum int, ok bool, err error) {
-
+	// 初始化返回值
 	ok = false
 	sum = 0
 
-	esclient, err := o.Conn()
+	// 创建HTTP客户端
+	client := &http.Client{}
+
+	// 创建HTTP请求
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s:%d/_cat/allocation?format=json", o.Host, o.HTTPPort), nil)
 	if err != nil {
-		logger.Error("es连接失败", err)
+		logger.Error("创建请求失败", err)
 		return -1, ok, err
 	}
 
-	req := esapi.CatAllocationRequest{
-		NodeID: nodes,  // 过滤特定的的nodes
-		Format: "json", // 输出格式为json
-	}
-	res, err := req.Do(context.Background(), esclient)
+	// 设置用户名和密码
+	req.SetBasicAuth(o.UserName, o.Password)
+
+	// 发送请求
+	resp, err := client.Do(req)
 	if err != nil {
-		logger.Error("cat api失败", err)
+		logger.Error("发送请求失败", err)
+		return -1, ok, err
+	}
+	defer resp.Body.Close()
+
+	// 读取响应体
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error("读取响应体失败", err)
 		return -1, ok, err
 	}
 
-	defer res.Body.Close()
-
-	resBody := res.String()
-	logger.Info("allocations", resBody)
-
+	// 解析响应体
 	var allocations []Allocation
-	if err = json.NewDecoder(res.Body).Decode(&allocations); err != nil {
-		logger.Error("Error parsing the response body: %s", err)
+	if err = json.Unmarshal(body, &allocations); err != nil {
+		logger.Error("解析响应体失败: %s", err)
 		return -1, ok, err
 	}
 
-	for _, allocation := range allocations {
-		logger.Info("allocations: %v", allocation)
-		if allocation.Node == "UNASSIGNED" {
-			continue
+	// 计算分片总数
+	for _, ip := range nodes {
+		for _, allocation := range allocations {
+			if allocation.Node == "UNASSIGNED" {
+				continue
+			}
+			if allocation.IP == ip {
+				logger.Info("IP %s has %s shards\n", ip, allocation.Shards)
+				shards, _ := strconv.Atoi(allocation.Shards)
+				sum += shards
+			}
 		}
-		shards, _ := strconv.Atoi(allocation.Shards)
-		sum += shards
 	}
 
-	// sum为0表示数据搬迁完成
+	// 如果分片总数为0，表示数据迁移完成
 	if sum == 0 {
 		logger.Info("Shards migration finished.")
 		ok = true
@@ -194,10 +143,11 @@ func (o EsInsObject) CheckEmptyOnetime(nodes []string) (sum int, ok bool, err er
 	return sum, ok, err
 }
 
-// CheckNodes TODO
+// CheckNodes 检查指定的节点是否已经成功扩容
 func (o EsInsObject) CheckNodes(nodes []Node) (ok bool, err error) {
+	// 初始化返回值
 	ok = true
-	err = nil
+
 	// 预期的节点总数
 	totalIns := 0
 	// ip列表
@@ -209,26 +159,36 @@ func (o EsInsObject) CheckNodes(nodes []Node) (ok bool, err error) {
 	logger.Info("扩容的机器列表 %v", ips)
 	logger.Info("预期的实例数 %d", totalIns)
 
-	esclient, err := o.Conn()
+	// 创建HTTP客户端
+	client := &http.Client{}
 
+	// 创建HTTP请求
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s:%d/_cat/nodes", o.Host, o.HTTPPort), nil)
 	if err != nil {
-		logger.Error("es连接失败", err)
+		logger.Error("创建请求失败", err)
 		return false, err
 	}
 
-	req := esapi.CatNodesRequest{}
-	res, err := req.Do(context.Background(), esclient)
+	// 设置用户名和密码
+	req.SetBasicAuth(o.UserName, o.Password)
+
+	// 发送请求
+	resp, err := client.Do(req)
 	if err != nil {
-		logger.Info("cat api失败", err)
+		logger.Error("发送请求失败", err)
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	// 读取响应体
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error("读取响应体失败", err)
 		return false, err
 	}
 
-	resBody := res.String()
-	logger.Info("原始cat/nodes输出 %v", resBody)
-
-	// remove http code
-	catResults := strings.Replace(strings.TrimSuffix(resBody, "\n"), "[200 OK] ", "", -1)
-	catList := strings.Split(catResults, "\n")
+	// 解析响应体
+	catList := strings.Split(string(body), "\n")
 
 	// ip计数器
 	nodeCounters := make(map[string]int)
@@ -261,23 +221,53 @@ func containStr(s []string, e string) bool {
 	return false
 }
 
-// CheckEsHealth TODO
+// CheckEsHealth 检查Elasticsearch集群的健康状态
 func (o EsInsObject) CheckEsHealth() (err error) {
-	esclient, err := o.Conn()
+	// 创建HTTP客户端
+	client := &http.Client{}
 
+	// 创建HTTP请求
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s:%d", o.Host, o.HTTPPort), nil)
 	if err != nil {
-		return fmt.Errorf("rror creating the client: %s", err)
+		return fmt.Errorf("创建请求失败: %s", err)
 	}
 
-	// 1. Get cluster info
-	//
-	res, err := esclient.Info()
+	// 设置用户名和密码
+	req.SetBasicAuth(o.UserName, o.Password)
+
+	// 发送请求
+	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error getting response: %s", err)
+		return fmt.Errorf("发送请求失败: %s", err)
 	}
-	// Check response status
-	if res.IsError() {
-		return fmt.Errorf("error: %s", res.String())
+	defer resp.Body.Close()
+
+	// 检查响应状态码
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("响应错误: %s", string(body))
 	}
+
 	return nil
+}
+
+// GetCredentials 获取Elasticsearch的用户名和密码
+// 如果环境变量ES_USERNAME或ES_PASSWORD为空，则使用输入的参数作为返回
+// 否则返回环境变量的值
+func GetCredentials(defaultUsername, defaultPassword string) (username, password string) {
+	// 获取环境变量ES_USERNAME
+	username = os.Getenv("ES_USERNAME")
+	if username == "" {
+		// 如果ES_USERNAME为空，使用默认的用户名
+		username = defaultUsername
+	}
+
+	// 获取环境变量ES_PASSWORD
+	password = os.Getenv("ES_PASSWORD")
+	if password == "" {
+		// 如果ES_PASSWORD为空，使用默认的密码
+		password = defaultPassword
+	}
+
+	return username, password
 }
