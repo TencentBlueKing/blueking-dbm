@@ -174,7 +174,7 @@
   const selectedList = ref<ResourceSpecModel[]>([]);
   const hasSelected = computed(() => selectedList.value.length > 0);
   const isSpecOperationEdit = computed(() => specOperationState.type === 'edit');
-  const hasInstance = [`${ClusterTypes.ES}_es_datanode`].includes(`${props.clusterType}_${props.machineType}`);
+  const hasInstance = computed(() => [`${ClusterTypes.ES}_es_datanode`].includes(`${props.clusterType}_${props.machineType}`));
   const columns = computed(() => {
     const baseColumns: Column[] = [
       {
@@ -377,7 +377,7 @@
         ),
       },
     ];
-    if (hasInstance) {
+    if (hasInstance.value) {
       baseColumns.splice(3, 0, {
         label: t('每台主机实例数量'),
         field: 'instance_num',
