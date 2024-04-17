@@ -13,10 +13,10 @@
 
 <template>
   <BkDialog
-    class="cluster-selector"
     :close-icon="false"
     :draggable="false"
     :esc-close="false"
+    ext-cls="cluster-selector-dialog"
     height="auto"
     :is-show="isShow"
     :quick-close="false"
@@ -398,18 +398,26 @@
   };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   @import "@styles/mixins.less";
 
-  .cluster-selector {
+  .cluster-selector-dialog {
     font-size: @font-size-mini;
 
-    :deep(.bk-modal-header) {
-      display: none;
-    }
+    .bk-modal-body {
+      .bk-modal-header {
+        display: none;
+      }
 
-    :deep(.bk-modal-content) {
-      padding: 0;
+      .bk-modal-content {
+        padding: 0;
+        margin: 0;
+      }
+
+      .bk-modal-footer {
+        margin: 0;
+        padding: 8px 16px 8px;
+      }
     }
 
     .cluster-selector-tabs {

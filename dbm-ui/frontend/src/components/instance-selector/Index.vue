@@ -13,10 +13,10 @@
 
 <template>
   <BkDialog
-    class="instance-selector-main"
     :close-icon="false"
     :draggable="false"
     :esc-close="false"
+    ext-cls="instance-selector-main"
     :is-show="isShow"
     :quick-close="false"
     @closed="handleClose">
@@ -527,13 +527,23 @@
     max-width: 1600px;
     min-width: 1200px;
 
-    .bk-modal-header {
-      display: none;
+    .bk-modal-body {
+      .bk-modal-header {
+        display: none;
+      }
+
+      .bk-modal-content {
+        padding: 0 !important;
+        overflow-y: hidden !important;
+        margin: 0;
+      }
+
+      .bk-modal-footer {
+        margin: 0;
+        padding: 8px 16px 8px;
+      }
     }
 
-    .bk-modal-content {
-      padding: 0 !important;
-      overflow-y: hidden !important;
-    }
+
   }
 </style>
