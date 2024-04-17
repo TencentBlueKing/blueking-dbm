@@ -15,14 +15,14 @@
   <BkDialog
     class="cluster-preview-dialog"
     :is-show="isShow"
-    :title="title || $t('目标集群预览')"
+    :title="title || t('目标集群预览')"
     @closed="handleClose">
     <div class="cluster-preview-content">
       <DbSearchSelect
         v-model="listState.filters.search"
         class="mb-16"
         :data="searchSelectData"
-        :placeholder="$t('请输入域名_集群名称_所属DB模块')"
+        :placeholder="t('请输入域名_集群名称_所属DB模块')"
         unique-select
         @change="handleChangeValues" />
       <BkLoading :loading="listState.isLoading">
@@ -40,7 +40,7 @@
     </div>
     <template #footer>
       <BkButton @click="handleClose">
-        {{ $t('关闭') }}
+        {{ t('关闭') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -75,6 +75,7 @@
   });
 
   const { t } = useI18n();
+  const globalBizsStore = useGlobalBizs();
 
   const {
     listState,
@@ -85,31 +86,34 @@
     handleChangeValues,
   } = useTargetClusterData(props.ticketDetails);
 
-  const globalBizsStore = useGlobalBizs();
-
   /**
    * 预览表格配置
    */
-  const columns = [{
-    label: t('域名'),
-    field: 'master_domain',
-  }, {
-    label: t('集群'),
-    field: 'cluster_name',
-  }, {
-    label: t('所属DB模块'),
-    field: 'db_module_name',
-  }, {
-    label: t('状态'),
-    field: 'status',
-    render: ({ cell }: { cell: 'normal' | 'abnormal' }) => {
-      const text = {
-        normal: t('正常'),
-        abnormal: t('异常'),
-      };
-      return <DbStatus theme={cell === 'normal' ? 'success' : 'danger'}>{text[cell]}</DbStatus>;
+  const columns = [
+    {
+      label: t('域名'),
+      field: 'master_domain',
     },
-  }];
+    {
+      label: t('集群'),
+      field: 'cluster_name',
+    },
+    {
+      label: t('所属DB模块'),
+      field: 'db_module_name',
+    },
+    {
+      label: t('状态'),
+      field: 'status',
+      render: ({ cell }: { cell: 'normal' | 'abnormal' }) => {
+        const text = {
+          normal: t('正常'),
+          abnormal: t('异常'),
+        };
+        return <DbStatus theme={cell === 'normal' ? 'success' : 'danger'}>{text[cell]}</DbStatus>;
+      },
+    },
+  ];
 
   watch(isShow, (isShowNew) => {
     if (isShowNew) {
@@ -117,32 +121,32 @@
     }
   });
 
-  function handleClearSearch() {
+  const handleClearSearch = () => {
     listState.filters.search = [];
     handleChangePage(1);
-  }
+  };
 
-  function handleClose() {
+  const handleClose = () => {
     isShow.value = false;
     listState.filters.search = [];
     listState.pagination = useDefaultPagination();
-  }
+  };
 
   /**
    * 获取模块列表
    */
-  function fetchModules() {
-    return getModules({
+  const fetchModules = async () => {
+    const result = await getModules({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_type: ClusterTypes.TENDBHA,
-    }).then((res) => {
-      listState.dbModuleList = res.map(item => ({
-        id: item.db_module_id,
-        name: item.name,
-      }));
-      return listState.dbModuleList;
     });
-  }
+    listState.dbModuleList = result.map(item => ({
+      id: item.db_module_id,
+      name: item.name,
+    }));
+    return listState.dbModuleList;
+  };
+
   fetchModules();
 
 </script>

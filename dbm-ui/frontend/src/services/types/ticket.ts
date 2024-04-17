@@ -303,6 +303,9 @@ export interface MysqlAuthorizationDetails {
   authorize_uid: string,
   authorize_data: AuthorizePreCheckData,
   excel_url: string,
+  authorize_plugin_infos: Array<AuthorizePreCheckData & {
+    bk_biz_id: number;
+  }>
 }
 
 /**

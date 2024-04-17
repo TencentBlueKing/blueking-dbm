@@ -34,12 +34,13 @@ import { getSearchSelectorParams } from '@utils';
 
 export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthorizationDetails>) {
   const { t } = useI18n();
-  // const globalBizsStore = useGlobalBizs();
-  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleListByBizId>> = {
+
+  const apiMap = {
     [ClusterTypes.TENDBSINGLE]: getTendbsingleListByBizId,
     [ClusterTypes.TENDBHA]: getTendbhaListByBizId,
     spider: getSpiderResources,
   };
+
   const listState = reactive({
     isAnomalies: false,
     isLoading: false,
@@ -54,27 +55,33 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
   /**
    * search select 过滤参数
    */
-  const searchSelectData = computed(() => [{
-    name: t('域名'),
-    id: 'domain',
-  }, {
-    name: t('集群'),
-    id: 'cluster_name',
-  }, {
-    name: t('所属DB模块'),
-    id: 'db_module_id',
-    children: listState.dbModuleList,
-  }]);
+  const searchSelectData = computed(() => [
+    {
+      name: t('域名'),
+      id: 'domain',
+    },
+    {
+      name: t('集群'),
+      id: 'cluster_name',
+    },
+    {
+      name: t('所属DB模块'),
+      id: 'db_module_id',
+      children: listState.dbModuleList,
+    },
+  ]);
 
   /**
    * 获取目标集群列表
    */
-  function fetchCluster() {
-    listState.isLoading = true;
-
-    const type = ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBCLUSTER
+  const fetchCluster = () => {
+    const type = (ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBCLUSTER
       ? 'spider'
-      : ticketDetails?.details?.authorize_data?.cluster_type;
+      : ticketDetails?.details?.authorize_data?.cluster_type) as keyof typeof apiMap;
+
+    if (!apiMap[type]) {
+      return;
+    }
 
     const params = {
       dbType: DBTypes.MYSQL,
@@ -84,10 +91,12 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
       ...listState.pagination.getFetchParams(),
       ...getSearchSelectorParams(listState.filters.search),
     };
+    listState.isLoading = true;
+
     apiMap[type](params)
       .then((res) => {
         listState.pagination.count = res.count;
-        listState.data = res.results;
+        listState.data = res.results as ResourceItem[];
         listState.isAnomalies = false;
       })
       .catch(() => {
@@ -98,23 +107,23 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
       .finally(() => {
         listState.isLoading = false;
       });
-  }
+  };
 
   /**
    * change page
    */
-  function handleChangePage(value: number) {
+  const handleChangePage = (value: number) => {
     listState.pagination.current = value;
     fetchCluster();
-  }
+  };
 
   /**
    * change limit
    */
-  function handeChangeLimit(value: number) {
+  const handeChangeLimit = (value: number) => {
     listState.pagination.limit = value;
     handleChangePage(1);
-  }
+  };
 
   /**
    * change filter search values
