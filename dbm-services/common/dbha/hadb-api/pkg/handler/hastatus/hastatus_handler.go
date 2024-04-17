@@ -56,8 +56,8 @@ const (
 	UpdateGMInfo = "reporter_gm_heartbeat"
 	// GetAliveAgentInfo TODO
 	GetAliveAgentInfo = "get_alive_agent_info"
-	// GetAliveGMInfo TODO
-	GetAliveGMInfo = "get_alive_gm_info"
+	// GetAliveHAInfo TODO
+	GetAliveHAInfo = "get_alive_ha_info"
 	// RegisterHaInfo TODO
 	RegisterHaInfo = "register_dbha_info"
 )
@@ -81,10 +81,10 @@ func Handler(ctx *fasthttp.RequestCtx) {
 		UpdateHaInfo(ctx, param.QueryArgs, param.SetArgs)
 	case UpdateGMInfo:
 		UpdateHaInfo(ctx, param.QueryArgs, param.SetArgs)
-	case GetAliveGMInfo:
-		GetAliveGmInfo(ctx, param.QueryArgs)
+	case GetAliveHAInfo:
+		GetAliveHAByModule(ctx, param.QueryArgs)
 	case GetAliveAgentInfo:
-		GetAliveHaInfo(ctx, param.QueryArgs)
+		GetAliveHaByCity(ctx, param.QueryArgs)
 	case RegisterHaInfo:
 		ReplaceHaInfo(ctx, param.QueryArgs, param.SetArgs)
 	default:
@@ -207,8 +207,8 @@ func UpdateHaInfo(ctx *fasthttp.RequestCtx, queryParam interface{}, setParam int
 	return
 }
 
-// GetAliveGmInfo TODO
-func GetAliveGmInfo(ctx *fasthttp.RequestCtx, param interface{}) {
+// GetAliveHAByModule TODO
+func GetAliveHAByModule(ctx *fasthttp.RequestCtx, param interface{}) {
 	var (
 		result    = []model.HaStatus{}
 		whereCond = &model.HaStatus{}
@@ -254,8 +254,8 @@ func GetAliveGmInfo(ctx *fasthttp.RequestCtx, param interface{}) {
 	log.Logger.Debugf("%+v", result)
 }
 
-// GetAliveHaInfo TODO
-func GetAliveHaInfo(ctx *fasthttp.RequestCtx, param interface{}) {
+// GetAliveHaByCity TODO
+func GetAliveHaByCity(ctx *fasthttp.RequestCtx, param interface{}) {
 	var (
 		result    = []string{}
 		whereCond = &model.HaStatus{}

@@ -23,11 +23,12 @@ type SlaveInfo struct {
 
 // DBInstanceInfoDetail instance detail info from cmdb api
 type DBInstanceInfoDetail struct {
-	IP           string `json:"ip"`
-	Port         int    `json:"port"`
-	AdminPort    int    `json:"admin_port"`
-	BKIdcCityID  int    `json:"bk_idc_city_id"`
-	InstanceRole string `json:"instance_role"`
+	IP            string `json:"ip"`
+	Port          int    `json:"port"`
+	AdminPort     int    `json:"admin_port"`
+	BKIdcCityID   int    `json:"bk_idc_city_id"`
+	LogicalCityID int    `json:"logical_city_id"`
+	InstanceRole  string `json:"instance_role"`
 	//only TenDBCluster's spider node used
 	SpiderRole       string      `json:"spider_role"`
 	Status           string      `json:"status"`
