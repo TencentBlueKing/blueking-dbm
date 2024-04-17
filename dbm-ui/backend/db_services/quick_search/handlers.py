@@ -70,14 +70,15 @@ class QSearchHandler(object):
                 ip, port = keyword, None
 
             port_filter_key = "port"
+            ip_filter_key = filter_key
             if self.filter_type == FilterType.CONTAINS.value:
-                filter_key += "__contains"
+                ip_filter_key += "__contains"
                 port_filter_key += "__contains"
 
             if port:
-                qs |= Q(**{filter_key: ip, port_filter_key: port})
+                qs |= Q(**{ip_filter_key: ip, port_filter_key: port})
             else:
-                qs |= Q(**{filter_key: ip})
+                qs |= Q(**{ip_filter_key: ip})
         return qs
 
     def common_filter(self, objs, return_type="list", fields=None, limit=None):
