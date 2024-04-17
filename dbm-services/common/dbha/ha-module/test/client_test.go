@@ -67,19 +67,3 @@ func TestGetInstanceByIp(t *testing.T) {
 		fmt.Printf("%v\n", info)
 	}
 }
-
-func TestHaDBAgentGetGMInfo(t *testing.T) {
-	addr := "http://127.0.0.1:8080"
-	c, _ := client.NewClientByAddrs([]string{addr}, constvar.HaDBName)
-	hadb := client.HaDBClient{
-		Client: *c,
-	}
-	gmInfo, err := hadb.AgentGetGMInfo()
-	if err != nil {
-		fmt.Printf("get gm failed. err:%s", err.Error())
-		t.FailNow()
-	}
-	for _, info := range gmInfo {
-		fmt.Printf("%v\n", info)
-	}
-}

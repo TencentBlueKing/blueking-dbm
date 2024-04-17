@@ -13,6 +13,9 @@ const (
 	GQA = "gqa"
 	// GDM component name
 	GDM = "gdm"
+
+	// MONITOR global monitor
+	MONITOR = "monitor"
 )
 
 // cluster type in cmdb
@@ -127,8 +130,8 @@ const (
 )
 
 const (
-	// AgentGetGMInfo TODO
-	AgentGetGMInfo = "agent_get_GM_info"
+	//GetInstanceStatus get detect info from ha_agent_logs
+	GetInstanceStatus = "get_instance_status"
 	// UpdateInstanceStatus TODO
 	UpdateInstanceStatus = "update_instance_status"
 	// InsertInstanceStatus TODO
@@ -137,10 +140,10 @@ const (
 	ReporterHALog = "reporter_log"
 	// RegisterDBHAInfo TODO
 	RegisterDBHAInfo = "register_dbha_info"
+	// GetAliveHAInfo TODO
+	GetAliveHAInfo = "get_alive_ha_info"
 	// GetAliveAgentInfo TODO
 	GetAliveAgentInfo = "get_alive_agent_info"
-	// GetAliveGMInfo TODO
-	GetAliveGMInfo = "get_alive_gm_info"
 	// ReporterAgentHeartbeat TODO
 	ReporterAgentHeartbeat = "reporter_agent_heartbeat"
 	// ReporterGMHeartbeat TODO
@@ -336,15 +339,15 @@ const (
 	DBHAEventDoubleCheckSSH = "dbha_doublecheck_ssh_fail"
 	// DBHAEventDoubleCheckAuth TODO
 	DBHAEventDoubleCheckAuth = "dbha_doublecheck_auth_fail"
-	// DBHAEventSystem TODO
-	DBHAEventSystem = "dbha_system"
+	// DBHAEventGlobalMonitor TODO
+	DBHAEventGlobalMonitor = "dbha_global_monitor"
 
 	// MonitorInfoSwitch TODO
 	MonitorInfoSwitch = 0
 	// MonitorInfoDetect TODO
 	MonitorInfoDetect = 1
-	// MonitorInfoSystem TODO
-	MonitorInfoSystem = 2
+	// MonitorInfoGlobal global monitor for component work normal
+	MonitorInfoGlobal = 2
 
 	// MonitorReportType TODO
 	MonitorReportType = "agent"
