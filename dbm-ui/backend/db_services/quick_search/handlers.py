@@ -89,6 +89,7 @@ class QSearchHandler(object):
 
             ip_filter_key = filter_key
             port_filter_key = "port"
+            ip_filter_key = filter_key
             if self.filter_type == FilterType.CONTAINS.value:
                 ip_filter_key += "__contains"
                 port_filter_key += "__contains"
