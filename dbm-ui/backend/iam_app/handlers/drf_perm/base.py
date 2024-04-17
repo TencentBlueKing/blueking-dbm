@@ -177,7 +177,8 @@ class ResourceActionPermission(IAMPermission):
                 return True
             # 如果有资源定义，才进行资源创建
             if self.resource_meta:
-                self.resources = [[self.resource_meta.create_instance(instance_id)] for instance_id in instance_ids]
+                resources = [[resource] for resource in self.resource_meta.batch_create_instances(instance_ids)]
+                self.resources = resources
 
         return super(ResourceActionPermission, self).has_permission(request, view)
 

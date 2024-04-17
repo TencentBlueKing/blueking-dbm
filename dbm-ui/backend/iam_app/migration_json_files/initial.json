@@ -959,8 +959,8 @@
                 "global_manage"
             ],
             "version": 1,
-            "group": "配置管理",
-            "subgroup": "监控策略",
+            "group": "平台管理",
+            "subgroup": "",
             "description": "单据流程设置",
             "description_en": "ticket_config_set"
         }
@@ -1044,7 +1044,7 @@
             ],
             "related_actions": [],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "数据库配置",
             "description": "数据库配置查看",
             "description_en": "dbconfig_view"
@@ -1083,7 +1083,7 @@
             ],
             "related_actions": [],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "数据库配置",
             "description": "数据库配置编辑",
             "description_en": "dbconfig_edit"
@@ -1553,7 +1553,7 @@
         "operation": "upsert_action",
         "data": {
             "id": "mysql_partition_create",
-            "name": "MySQL 分区管理创建",
+            "name": "MySQL 分区策略创建",
             "name_en": "mysql_partition_create",
             "type": "create",
             "related_resource_types": [
@@ -1575,7 +1575,7 @@
             "version": 1,
             "group": "MySQL",
             "subgroup": "分区管理",
-            "description": "MySQL 分区管理创建",
+            "description": "MySQL 分区策略创建",
             "description_en": "mysql_partition_create"
         }
     },
@@ -1583,7 +1583,7 @@
         "operation": "upsert_action",
         "data": {
             "id": "mysql_partition_update",
-            "name": "MySQL 分区管理更新",
+            "name": "MySQL 分区策略更新",
             "name_en": "mysql_partition_update",
             "type": "manage",
             "related_resource_types": [
@@ -1605,7 +1605,7 @@
             "version": 1,
             "group": "MySQL",
             "subgroup": "分区管理",
-            "description": "MySQL 分区管理更新",
+            "description": "MySQL 分区策略更新",
             "description_en": "mysql_partition_update"
         }
     },
@@ -1613,7 +1613,7 @@
         "operation": "upsert_action",
         "data": {
             "id": "mysql_partition_delete",
-            "name": "MySQL 分区管理删除",
+            "name": "MySQL 分区策略删除",
             "name_en": "mysql_partition_delete",
             "type": "delete",
             "related_resource_types": [
@@ -1635,7 +1635,7 @@
             "version": 1,
             "group": "MySQL",
             "subgroup": "分区管理",
-            "description": "MySQL 分区管理删除",
+            "description": "MySQL 分区策略删除",
             "description_en": "mysql_partition_delete"
         }
     },
@@ -1643,7 +1643,7 @@
         "operation": "upsert_action",
         "data": {
             "id": "mysql_partition_enable_disable",
-            "name": "MySQL 分区管理禁用启用",
+            "name": "MySQL 分区策略禁用启用",
             "name_en": "mysql_partition_enable_disable",
             "type": "manage",
             "related_resource_types": [
@@ -1665,7 +1665,7 @@
             "version": 1,
             "group": "MySQL",
             "subgroup": "分区管理",
-            "description": "MySQL 分区管理禁用启用",
+            "description": "MySQL 分区策略禁用启用",
             "description_en": "mysql_partition_enable_disable"
         }
     },
@@ -4026,7 +4026,7 @@
                 "db_manage"
             ],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "告警组",
             "description": "告警组查看",
             "description_en": "notify_group_view"
@@ -4056,7 +4056,7 @@
                 "db_manage"
             ],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "告警组",
             "description": "告警组新建",
             "description_en": "notify_group_create"
@@ -4086,7 +4086,7 @@
                 "db_manage"
             ],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "告警组",
             "description": "告警组编辑",
             "description_en": "notify_group_edit"
@@ -4116,7 +4116,7 @@
                 "db_manage"
             ],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "告警组",
             "description": "告警组删除",
             "description_en": "notify_group_delete"
@@ -4187,7 +4187,7 @@
                 "db_manage"
             ],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "监控策略",
             "description": "监控策略查看",
             "description_en": "monitor_policy_view"
@@ -4247,7 +4247,7 @@
                 "db_manage"
             ],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "监控策略",
             "description": "监控策略编辑",
             "description_en": "monitor_policy_edit"
@@ -4307,7 +4307,7 @@
                 "db_manage"
             ],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "监控策略",
             "description": "监控策略删除",
             "description_en": "monitor_policy_delete"
@@ -4337,7 +4337,7 @@
                 "db_manage"
             ],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "监控策略",
             "description": "监控策略启停",
             "description_en": "monitor_policy_start_stop"
@@ -4397,7 +4397,7 @@
                 "db_manage"
             ],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "监控策略",
             "description": "监控告警查看",
             "description_en": "monitor_policy_alarm_view"
@@ -4427,7 +4427,7 @@
                 "db_manage"
             ],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "监控策略",
             "description": "监控策略克隆",
             "description_en": "monitor_policy_clone"
@@ -4515,7 +4515,7 @@
             ],
             "related_actions": [],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "",
             "description": "DBA人员设置",
             "description_en": "dba_administrator_edit"
@@ -4854,7 +4854,7 @@
                 "db_manage"
             ],
             "version": 1,
-            "group": "配置管理",
+            "group": "业务配置",
             "subgroup": "",
             "description": "授权白名单管理",
             "description_en": "ip_whitelist_manage"
@@ -4918,7 +4918,7 @@
             ],
             "related_actions": [],
             "version": 1,
-            "group": "平台管理",
+            "group": "业务",
             "subgroup": "",
             "description": "集群入口访问修改",
             "description_en": "access_entry_edit"
@@ -8265,6 +8265,9 @@
                 "actions": [
                     {
                         "id": "db_manage"
+                    },
+                    {
+                        "id": "access_entry_edit"
                     }
                 ],
                 "sub_groups": [
@@ -8290,6 +8293,9 @@
                         "id": "global_manage"
                     },
                     {
+                        "id": "ticket_config_set"
+                    },
+                    {
                         "id": "health_report_view"
                     },
                     {
@@ -8303,9 +8309,6 @@
                     },
                     {
                         "id": "global_ip_whitelist_manage"
-                    },
-                    {
-                        "id": "access_entry_edit"
                     }
                 ],
                 "sub_groups": [
@@ -8390,77 +8393,6 @@
                 ]
             },
             {
-                "name": "配置管理",
-                "name_en": "配置管理",
-                "actions": [
-                    {
-                        "id": "dba_administrator_edit"
-                    },
-                    {
-                        "id": "ip_whitelist_manage"
-                    }
-                ],
-                "sub_groups": [
-                    {
-                        "name": "监控策略",
-                        "name_en": "监控策略",
-                        "actions": [
-                            {
-                                "id": "ticket_config_set"
-                            },
-                            {
-                                "id": "monitor_policy_view"
-                            },
-                            {
-                                "id": "monitor_policy_edit"
-                            },
-                            {
-                                "id": "monitor_policy_delete"
-                            },
-                            {
-                                "id": "monitor_policy_start_stop"
-                            },
-                            {
-                                "id": "monitor_policy_alarm_view"
-                            },
-                            {
-                                "id": "monitor_policy_clone"
-                            }
-                        ]
-                    },
-                    {
-                        "name": "数据库配置",
-                        "name_en": "数据库配置",
-                        "actions": [
-                            {
-                                "id": "dbconfig_view"
-                            },
-                            {
-                                "id": "dbconfig_edit"
-                            }
-                        ]
-                    },
-                    {
-                        "name": "告警组",
-                        "name_en": "告警组",
-                        "actions": [
-                            {
-                                "id": "notify_group_list"
-                            },
-                            {
-                                "id": "notify_group_create"
-                            },
-                            {
-                                "id": "notify_group_update"
-                            },
-                            {
-                                "id": "notify_group_delete"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
                 "name": "资源管理",
                 "name_en": "资源管理",
                 "actions": [
@@ -8502,6 +8434,74 @@
                             },
                             {
                                 "id": "spec_delete"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "业务配置",
+                "name_en": "业务配置",
+                "actions": [
+                    {
+                        "id": "dba_administrator_edit"
+                    },
+                    {
+                        "id": "ip_whitelist_manage"
+                    }
+                ],
+                "sub_groups": [
+                    {
+                        "name": "数据库配置",
+                        "name_en": "数据库配置",
+                        "actions": [
+                            {
+                                "id": "dbconfig_view"
+                            },
+                            {
+                                "id": "dbconfig_edit"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "告警组",
+                        "name_en": "告警组",
+                        "actions": [
+                            {
+                                "id": "notify_group_list"
+                            },
+                            {
+                                "id": "notify_group_create"
+                            },
+                            {
+                                "id": "notify_group_update"
+                            },
+                            {
+                                "id": "notify_group_delete"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "监控策略",
+                        "name_en": "监控策略",
+                        "actions": [
+                            {
+                                "id": "monitor_policy_view"
+                            },
+                            {
+                                "id": "monitor_policy_edit"
+                            },
+                            {
+                                "id": "monitor_policy_delete"
+                            },
+                            {
+                                "id": "monitor_policy_start_stop"
+                            },
+                            {
+                                "id": "monitor_policy_alarm_view"
+                            },
+                            {
+                                "id": "monitor_policy_clone"
                             }
                         ]
                     }
