@@ -56,6 +56,7 @@
   - remote
   role:
   - slave
+  - orphan
 - name: master-slave-heartbeat
   enable: true
   schedule: '@every 1m'
@@ -76,7 +77,7 @@
   - spider
   role: []
 - name: mysql-connlog-size
-  enable: true
+  enable: false
   schedule: 0 0 12 * * *
   machine_type:
   - single
@@ -85,7 +86,7 @@
   - spider
   role: []
 - name: mysql-connlog-rotate
-  enable: true
+  enable: false
   schedule: 0 30 23 * * *
   machine_type:
   - single
@@ -135,7 +136,10 @@
   - backend
   - remote
   - spider
-  role: []
+  role:
+  - master
+  - spider_master
+  - orphan
 - name: mysql-inject
   enable: true
   schedule: '@every 1m'
