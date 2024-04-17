@@ -13,7 +13,7 @@
 
 import ApplyDataModel from '@services/model/iam/apply-data';
 
-import http from '../http';
+import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/iam';
 
@@ -39,10 +39,11 @@ export function checkAuthAllowed(params: IAMParams) {
 
 export function simpleCheckAllowed(params: {
   action_id: string;
-  resource_ids: Array<string | number>;
+  resource_ids?: Array<string | number>;
   bk_biz_id?: number;
-}) {
-  return http.post<boolean>(`${path}/simple_check_allowed/`, params);
+  is_raise_exception?: boolean;
+}, payload = {} as IRequestPayload) {
+  return http.post<boolean>(`${path}/simple_check_allowed/`, params, payload);
 }
 /**
  * 获取权限申请数据

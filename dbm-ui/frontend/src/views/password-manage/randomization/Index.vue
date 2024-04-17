@@ -134,6 +134,7 @@
   import { useRequest } from 'vue-request';
 
   import { getPasswordPolicy, modifyRandomCycle, queryRandomCycle } from '@services/permission';
+  import { simpleCheckAllowed } from '@services/source/iam'
 
   const initData = () => ({
     typeValue: 'day',
@@ -256,6 +257,19 @@
 
   const unVisiblePassword = computed(() => '*'.repeat(formData.password.length));
   const typeValue = computed(() => formData.timeData.typeValue);
+
+  useRequest(simpleCheckAllowed, {
+    defaultParams:[
+      {
+        action_id: 'password_policy_set',
+        resource_ids: [],
+        is_raise_exception: true
+      },
+      {
+        permission: 'page'
+      }
+    ]
+  })
 
   const { data: passwordPolicyData } = useRequest(getPasswordPolicy, {
     defaultParams: [{}, { permission: 'page' }],

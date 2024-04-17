@@ -100,14 +100,13 @@
         </BkFormItem>
       </DbCard>
       <BkFormItem class="password-policy-footer">
-        <AuthButton
-          action-id="password_policy_set"
+        <BkButton
           class="mr-8"
           :loading="isSubmitting"
           theme="primary"
           @click="handleSubmit()">
           {{ t('保存') }}
-        </AuthButton>
+        </BkButton>
         <BkButton
           :disabled="isSubmitting"
           @click="handleReset">
@@ -120,9 +119,12 @@
 
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
+  import BkButton from 'bkui-vue/lib/button';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request'
 
   import { getPasswordPolicy, updatePasswordPolicy } from '@services/permission';
+  import {simpleCheckAllowed} from '@services/source/iam'
 
   import { useInfo } from '@hooks';
 
@@ -155,6 +157,19 @@
   const isLoading = ref(false);
   const isSubmitting = ref(false);
   const formData = reactive(initData());
+
+  useRequest(simpleCheckAllowed, {
+    defaultParams:[
+      {
+        action_id: 'password_policy_set',
+        resource_ids: [],
+        is_raise_exception: true
+      },
+      {
+        permission: 'page'
+      }
+    ]
+  })
 
   const fetchPasswordPolicy = () => {
     isLoading.value = true;
