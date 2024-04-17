@@ -31,6 +31,49 @@
       <span>{{ manualNexFlowDisaply }}</span>
     </I18nT>
   </template>
+  <template v-else-if="isPause && isTodos === false">
+    <div
+      v-for="(todosItem, index) in content.todos"
+      :key="index">
+      <span>{{ t('处理人') }}: </span>
+      <span>{{ todosItem.operators.join(',') }}</span>
+      <template v-if="content.summary">
+        ，{{ t('耗时') }}：
+        <CostTimer
+          :is-timing="content.status === 'RUNNING'"
+          :start-time="utcTimeToSeconds(content.start_time)"
+          :value="content.cost_time" />
+      </template>
+      <div
+        v-if="todosItem.operators.includes(username)"
+        class="mt-8">
+        <BkPopConfirm
+          :content="t('继续执行单据后无法撤回，请谨慎操作！')"
+          :title="t('是否确认继续执行单据')"
+          trigger="click"
+          :width="320"
+          @confirm="handleProcessTicket('APPROVE', todosItem)">
+          <BkButton
+            class="w-88 mr-8"
+            theme="primary">
+            {{ t('确认执行') }}
+          </BkButton>
+        </BkPopConfirm>
+        <BkPopConfirm
+          :content="t('终止单据后无法撤回，请谨慎操作！')"
+          :title="t('是否确认终止单据')"
+          trigger="click"
+          :width="320"
+          @confirm="handleProcessTicket('TERMINATE', todosItem)">
+          <BkButton
+            class="w-88 mr-8"
+            theme="danger">
+            {{ t('终止单据') }}
+          </BkButton>
+        </BkPopConfirm>
+      </div>
+    </div>
+  </template>
   <template v-else>
     <div>
       <template
@@ -103,32 +146,6 @@
           {{ t('重试') }}
         </BkButton>
       </BkPopConfirm>
-      <template v-if="isOperator && isPause && isTodos === false">
-        <BkPopConfirm
-          :content="t('继续执行单据后无法撤回，请谨慎操作！')"
-          :title="t('是否确认继续执行单据')"
-          trigger="click"
-          :width="320"
-          @confirm="handleProcessTicket('APPROVE')">
-          <BkButton
-            class="w-88 mr-8"
-            theme="primary">
-            {{ t('确认执行') }}
-          </BkButton>
-        </BkPopConfirm>
-        <BkPopConfirm
-          :content="t('终止单据后无法撤回，请谨慎操作！')"
-          :title="t('是否确认终止单据')"
-          trigger="click"
-          :width="320"
-          @confirm="handleProcessTicket('TERMINATE')">
-          <BkButton
-            class="w-88 mr-8"
-            theme="danger">
-            {{ t('终止单据') }}
-          </BkButton>
-        </BkPopConfirm>
-      </template>
     </div>
   </template>
 </template>
@@ -171,14 +188,6 @@
   const { t } = useI18n();
   const { username } = useUserProfile();
 
-  const isOperator = computed(() => {
-    if (!props.content.todos) {
-      return false;
-    }
-
-    return props.content.todos.some(item => item.operators.includes(username));
-  });
-
   const manualNexFlowDisaply = computed(() => {
     if (props.flows.length > 0) {
       const manualIndex = props.flows.findIndex(item => item.flow_type === 'PAUSE');
@@ -204,9 +213,9 @@
       emits('fetch-data');
     });
 
-  const handleProcessTicket = (action: 'APPROVE' | 'TERMINATE') => processTicketTodo({
+  const handleProcessTicket = (action: 'APPROVE' | 'TERMINATE', todoItem: FlowItem['todos'][number]) => processTicketTodo({
     action,
-    todo_id: props.content.id,
+    todo_id: todoItem.id,
     ticket_id: props.content.ticket,
     params: {},
   })
