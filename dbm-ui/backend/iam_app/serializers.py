@@ -30,7 +30,8 @@ class IamActionResourceRequestSerializer(serializers.Serializer):
 class SimpleIamActionResourceRequestSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     action_id = serializers.CharField(help_text=_("动作ID"))
-    resource_ids = serializers.ListField(help_text=_("资源ID列表"), child=serializers.CharField(), min_length=0)
+    resource_id = serializers.CharField(help_text=_("资源ID"), required=False, allow_null=True, allow_blank=True)
+    is_raise_exception = serializers.BooleanField(help_text=_("是否抛出异常"), required=False, default=False)
 
     def validate(self, attrs):
         related_resources = copy.deepcopy(ActionEnum.get_action_by_id(attrs["action_id"]).related_resource_types)
@@ -42,12 +43,12 @@ class SimpleIamActionResourceRequestSerializer(serializers.Serializer):
         attrs["resources"] = []
         # 如果有业务资源
         if attrs.get("bk_biz_id") and ResourceEnum.BUSINESS in related_resources:
-            attrs["resources"] = [{"type": ResourceEnum.BUSINESS.id, "id": attrs["bk_biz_id"]}]
+            attrs["resources"].append({"type": ResourceEnum.BUSINESS.id, "id": attrs["bk_biz_id"]})
             related_resources.remove(ResourceEnum.BUSINESS)
         # 如果关联其他资源
         if related_resources:
             resource_type = related_resources[0].id
-            attrs["resources"].extend([{"type": resource_type, "id": id} for id in attrs["resource_ids"]])
+            attrs["resources"].append({"type": resource_type, "id": attrs["resource_id"]})
 
         return attrs
 

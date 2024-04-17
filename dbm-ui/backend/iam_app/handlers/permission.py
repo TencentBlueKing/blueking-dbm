@@ -191,7 +191,7 @@ class Permission(object):
             permission = False
 
         if not permission and is_raise_exception:
-            data, url = self.get_apply_data([action], resources)
+            data, url = self.get_apply_data([action], [resources])
             raise PermissionDeniedError(action.name, data, url)
 
         return permission
@@ -217,29 +217,32 @@ class Permission(object):
             is_all_permission_allowed &= permission
 
         if not is_all_permission_allowed and is_raise_exception:
-            data, url = self.get_apply_data(actions, resources)
+            data, url = self.get_apply_data(actions, [resources])
             actions_name = ", ".join([action.name for action in actions])
             raise PermissionDeniedError(actions_name, data, url)
 
         return permission_list
 
     def batch_is_allowed(
-        self, actions: List[Union[ActionMeta, str]], resources: List[List[Resource]], is_raise_exception: bool = False
+        self,
+        actions: List[Union[ActionMeta, str]],
+        resources_list: List[List[Resource]],
+        is_raise_exception: bool = False,
     ) -> Dict[str, Dict[str, bool]]:
         """
         对一批动作的一批资源进行批量鉴权
         :param actions: 待鉴权的动作列表, 格式为[action1, action2, ...]
-        :param resources: 待鉴权的资源列表, 格式为[[resource1], [resources2], ...]
+        :param resources_list: 待鉴权的资源列表, 格式为[[resource1], [resources2], ...]
         :param is_raise_exception: 鉴权失败时是否抛出异常
         """
 
         multi_request = self.make_multi_request(actions)
         batch_permission = {}
         try:
-            batch_permission = self._iam.batch_resource_multi_actions_allowed(multi_request, resources)
+            batch_permission = self._iam.batch_resource_multi_actions_allowed(multi_request, resources_list)
         except Exception as e:  # pylint: disable=broad-except
             logger.exception(f"IAM AuthAPIError: {e}")
-            for index in range(len(resources)):
+            for index in range(len(resources_list)):
                 batch_permission[str(index + 1)] = {action.id: False for action in actions}
 
         permission_list = itertools.chain(*[list(permission.values()) for permission in batch_permission.values()])
@@ -248,7 +251,6 @@ class Permission(object):
             is_all_permission_allowed &= permission
 
         if not is_all_permission_allowed and is_raise_exception:
-            resources_list = list(itertools.chain(*resources))
             data, url = self.get_apply_data(actions, resources_list)
             actions_name = ", ".join([action.name for action in actions])
             raise PermissionDeniedError(actions_name, data, url)
@@ -291,17 +293,17 @@ class Permission(object):
         return allow_biz_list
 
     def make_application(
-        self, action_ids: List[str], resources: List[Resource] = None, system_id: str = env.BK_IAM_SYSTEM_ID
+        self, action_ids: List[str], resources_list: List[List[Resource]] = None, system_id: str = env.BK_IAM_SYSTEM_ID
     ) -> Application:
         """
         构造Application，提供给get_apply_url参数
         :param action_ids: 动作列表id
-        :param resources: 资源instance列表
+        :param resources_list: 资源instance列表
         :param system_id: 系统ID
         """
 
         iam_actions: List[Union[ActionWithResources, ActionWithoutResources]] = []
-        resources = resources or []
+        resources_list = resources_list or []
 
         for action_id in action_ids:
             related_resource_types = []
@@ -319,10 +321,11 @@ class Permission(object):
 
             # 构造ActionWithResources
             iam_related_resources_types = []
-            for resource_type in related_resource_types:
+            for index, resource_type in enumerate(related_resource_types):
                 # 同一个资源类型可以包含多个资源
                 instances = []
-                for resource in resources:
+                for resources in resources_list:
+                    resource = resources[index]
                     if resource.system != resource_type.system_id or resource.type != resource_type.id:
                         continue
 
@@ -343,16 +346,16 @@ class Permission(object):
         return application
 
     def get_apply_url(
-        self, action_ids: List[str], resources: List[Resource] = None, system_id: str = env.BK_IAM_SYSTEM_ID
+        self, action_ids: List[str], resources_list: List[List[Resource]] = None, system_id: str = env.BK_IAM_SYSTEM_ID
     ) -> str:
         """
         申请无权限跳转url
         :param action_ids: 动作列表id
-        :param resources: 资源列表
+        :param resources_list: 资源列表
         :param system_id: 系统ID
         """
 
-        application = self.make_application(action_ids, resources, system_id)
+        application = self.make_application(action_ids, resources_list, system_id)
         ok, message, url = self._iam.get_apply_url(application, self.bk_token, self.username)
         if not ok:
             logger.error(f"iam generate apply url fail: {message}")
@@ -378,19 +381,19 @@ class Permission(object):
         return topo_resources
 
     def get_apply_data(
-        self, actions: List[Union[ActionMeta, str]], resources: List[Resource] = None
+        self, actions: List[Union[ActionMeta, str]], resources_list: List[List[Resource]] = None
     ) -> Tuple[Any, str]:
         """
         获取无权限交互数据和申请无权限跳转url
         :param actions: 动作列表
-        :param resources: 资源列表
+        :param resources_list: 资源列表
         """
 
         system_id = env.BK_IAM_SYSTEM_ID
         subject = Subject("user", self.username)
         self.setup_meta()
 
-        resources = resources or []
+        resources_list = resources_list or []
         action_to_resources_list = []
         for action in actions:
             action = ActionEnum.get_action_by_id(action)
@@ -400,10 +403,10 @@ class Permission(object):
 
             # gen_perms_apply_data 要求单个 action 中对应的 resources_list 必须是同类型的 Resource
             # 因此这里默认就不去区分resources的类别了
-            action_to_resources_list.append({"action": action, "resources_list": [resources]})
+            action_to_resources_list.append({"action": action, "resources_list": resources_list})
 
         data = gen_perms_apply_data(system_id, subject, action_to_resources_list)
-        url = self.get_apply_url(actions, resources)
+        url = self.get_apply_url(actions, resources_list)
 
         return data, url
 
@@ -480,9 +483,8 @@ class Permission(object):
         if not many:
             result_list = [result_list]
 
-        resources = [
-            [resource_meta.create_instance(instance_id=id_field(item))] for item in result_list if id_field(item)
-        ]
+        instance_ids = [id_field(item) for item in result_list if id_field(item)]
+        resources = resource_meta.batch_create_instances(instance_ids)
 
         if not resources:
             return response

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import abc
 from dataclasses import dataclass, field
-from typing import Dict, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from django.db import models
 from django.utils.translation import ugettext as _
@@ -64,17 +64,36 @@ class ResourceMeta(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @classmethod
-    def create_model_instance(cls, model: models.Model, instance_id: str, attr=None) -> Tuple[Resource, models.Model]:
-        resource = cls._create_simple_instance(instance_id, attr)
-        instance_queryset = model.objects.filter(pk=instance_id)
+    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+        """
+        批量创建resource，默认实现是for调用create_instance，子类可覆写
+        :param instance_ids: 实例ID列表
+        :param attr: 属性的kv对, 注如果存在拓扑结构则一定加上 _bk_iam_path_ 属性
+        """
+        resources = [cls.create_instance(instance_id, attr) for instance_id in instance_ids]
+        return resources
 
-        if not instance_queryset.count():
+    @classmethod
+    def create_model_instance(
+        cls, model: models.Model, instance_id: str, instance: models.Model = None, attr=None
+    ) -> Tuple[Resource, models.Model]:
+        """
+        创建模型实例，即该实例数据是存储在数据库中
+        :param model: django模型
+        :param instance_id: 实例ID
+        :param instance: 实例
+        :param attr: 实例属性
+        """
+        resource = cls._create_simple_instance(instance_id, attr)
+
+        try:
+            instance = instance or model.objects.get(pk=instance_id)
+        except model.DoesNotExist:
             return resource, None
 
         display_fields = ResourceEnum.get_resource_by_id(cls.id).display_fields
-        instance_name_values = instance_queryset.values(*display_fields)[0]
-        instance_name = ":".join([str(instance_name_values[_field]) for _field in display_fields])
-        instance = instance_queryset[0]
+        instance_name_values = [str(getattr(instance, _field)) for _field in display_fields]
+        instance_name = ":".join(instance_name_values)
         # 更新resource的attribute，id和name
         resource.attribute.update(
             {
@@ -83,13 +102,28 @@ class ResourceMeta(metaclass=abc.ABCMeta):
                 "name": instance_name,
             }
         )
-
+        # 默认是一层父类 TODO: 拓扑结构目前是/{resource_type},{resource_id}/
         if cls.parent:
-            # 默认是一层父类 TODO: 拓扑结构目前是/{resource_type},{resource_id}/
             _bk_iam_path_ = "/{},{}/".format(cls.parent.id, getattr(instance, cls.parent.lookup_field))
             resource.attribute["_bk_iam_path_"] = _bk_iam_path_
 
         return resource, instance
+
+    @classmethod
+    def batch_create_model_instances(
+        cls, model: models.Model, instance_ids: list, attr=None
+    ) -> List[Tuple[Resource, models.Model]]:
+        """
+        批量创建模型实例
+        :param model: django模型
+        :param instance_ids: 实例ID列表
+        :param attr: 实例属性
+        """
+        instance_tuple_list: List[Tuple[Resource, models.Model]] = []
+        instance_queryset = model.objects.filter(pk__in=instance_ids)
+        for instance in instance_queryset:
+            instance_tuple_list.append(cls.create_model_instance(model, instance.pk, instance, attr))
+        return instance_tuple_list
 
     @classmethod
     def to_json(cls) -> Dict:
@@ -167,6 +201,13 @@ class TaskFlowResourceMeta(ResourceMeta):
         resource, __ = cls.create_model_instance(FlowTree, instance_id, attr)
         return resource
 
+    @classmethod
+    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+        from backend.flow.models import FlowTree
+
+        resources = [item[0] for item in cls.batch_create_model_instances(FlowTree, instance_ids, attr)]
+        return resources
+
 
 @dataclass
 class TicketResourceMeta(ResourceMeta):
@@ -190,6 +231,13 @@ class TicketResourceMeta(ResourceMeta):
         resource, __ = cls.create_model_instance(Ticket, instance_id, attr)
         return resource
 
+    @classmethod
+    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+        from backend.ticket.models import Ticket
+
+        resources = [item[0] for item in cls.batch_create_model_instances(Ticket, instance_ids, attr)]
+        return resources
+
 
 @dataclass
 class ClusterResourceMeta(ResourceMeta):
@@ -212,6 +260,13 @@ class ClusterResourceMeta(ResourceMeta):
 
         resource, __ = cls.create_model_instance(Cluster, instance_id, attr)
         return resource
+
+    @classmethod
+    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+        from backend.db_meta.models.cluster import Cluster
+
+        resources = [item[0] for item in cls.batch_create_model_instances(Cluster, instance_ids, attr)]
+        return resources
 
 
 @dataclass
@@ -310,6 +365,13 @@ class InstanceResourceMeta(ClusterResourceMeta):
         resource, __ = cls.create_model_instance(StorageInstance, instance_id, attr)
         return resource
 
+    @classmethod
+    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+        from backend.db_meta.models.instance import StorageInstance
+
+        resources = [item[0] for item in cls.batch_create_model_instances(StorageInstance, instance_ids, attr)]
+        return resources
+
 
 @dataclass
 class InfluxDBResourceMeta(InstanceResourceMeta):
@@ -335,10 +397,10 @@ class AccountResourceMeta(ResourceMeta):
     parent: ResourceMeta = BusinessResourceMeta()
 
     @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+    def create_instance(cls, instance_id: str, account: dict = None, attr=None) -> Resource:
         resource = cls._create_simple_instance(instance_id, attr)
         # 根据账号ID查询单个账号
-        instance = DBPrivManagerApi.get_account(params={"ids": [int(instance_id)]})["results"][0]
+        instance = account or DBPrivManagerApi.get_account(params={"ids": [int(instance_id)]})["results"][0]
         # 更新resource的attribute，id和name
         _bk_iam_path_ = "/{},{}/".format(cls.parent.id, instance[cls.parent.lookup_field])
         resource.attribute.update(
@@ -350,6 +412,17 @@ class AccountResourceMeta(ResourceMeta):
             }
         )
         return resource
+
+    @classmethod
+    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+        # 批量查询多个账号信息
+        accounts = DBPrivManagerApi.get_account(params={"ids": list(map(int, instance_ids))})["results"]
+        id__account = {item["id"]: item for item in accounts}
+        # 批量创建实例
+        resources: List[Resource] = [
+            cls.create_instance(id, id__account[id]) for id in instance_ids if id in id__account
+        ]
+        return resources
 
 
 @dataclass

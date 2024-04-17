@@ -134,8 +134,7 @@ class ActionEnum:
         type="edit",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("配置管理"),
-        subgroup=_("监控策略"),
+        group=_("平台管理"),
     )
 
     RESOURCE_MANAGE = ActionMeta(
@@ -167,7 +166,7 @@ class ActionEnum:
         type="view",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("数据库配置"),
     )
 
@@ -178,7 +177,7 @@ class ActionEnum:
         type="manage",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("数据库配置"),
     )
 
@@ -345,7 +344,7 @@ class ActionEnum:
 
     MYSQL_PARTITION_CREATE = ActionMeta(
         id="mysql_partition_create",
-        name=_("MySQL 分区管理创建"),
+        name=_("MySQL 分区策略创建"),
         name_en="mysql_partition_create",
         type="create",
         related_actions=[DB_MANAGE.id],
@@ -356,7 +355,7 @@ class ActionEnum:
 
     MYSQL_PARTITION_UPDATE = ActionMeta(
         id="mysql_partition_update",
-        name=_("MySQL 分区管理更新"),
+        name=_("MySQL 分区策略更新"),
         name_en="mysql_partition_update",
         type="manage",
         related_actions=[DB_MANAGE.id],
@@ -367,7 +366,7 @@ class ActionEnum:
 
     MYSQL_PARTITION_DELETE = ActionMeta(
         id="mysql_partition_delete",
-        name=_("MySQL 分区管理删除"),
+        name=_("MySQL 分区策略删除"),
         name_en="mysql_partition_delete",
         type="delete",
         related_actions=[DB_MANAGE.id],
@@ -378,7 +377,7 @@ class ActionEnum:
 
     MYSQL_PARTITION_ENABLE_DISABLE = ActionMeta(
         id="mysql_partition_enable_disable",
-        name=_("MySQL 分区管理禁用启用"),
+        name=_("MySQL 分区策略禁用启用"),
         name_en="mysql_partition_enable_disable",
         type="manage",
         related_actions=[DB_MANAGE.id],
@@ -1219,7 +1218,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("告警组"),
     )
 
@@ -1230,7 +1229,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("告警组"),
     )
 
@@ -1241,7 +1240,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.NOTIFY_GROUP],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("告警组"),
     )
 
@@ -1252,7 +1251,7 @@ class ActionEnum:
         type="delete",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.NOTIFY_GROUP],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("告警组"),
     )
 
@@ -1274,7 +1273,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("监控策略"),
     )
 
@@ -1296,7 +1295,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("监控策略"),
     )
 
@@ -1318,7 +1317,7 @@ class ActionEnum:
         type="delete",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("监控策略"),
     )
 
@@ -1329,7 +1328,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("监控策略"),
     )
 
@@ -1351,7 +1350,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("监控策略"),
     )
 
@@ -1362,7 +1361,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_("监控策略"),
     )
 
@@ -1395,7 +1394,7 @@ class ActionEnum:
         type="manage",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_(""),
     )
 
@@ -1527,7 +1526,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("配置管理"),
+        group=_("业务配置"),
         subgroup=_(""),
     )
 
@@ -1560,7 +1559,7 @@ class ActionEnum:
         type="edit",
         related_actions=[],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("业务"),
     )
 
     @classmethod

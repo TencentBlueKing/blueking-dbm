@@ -65,9 +65,10 @@ class IAMViewSet(viewsets.SystemViewSet):
     )
     @action(detail=False, methods=["POST"], serializer_class=SimpleIamActionResourceRequestSerializer)
     def simple_check_allowed(self, request, *args, **kwargs):
+        data = self.validated_data
         client = Permission(username=request.user.username)
-        resources = client.batch_make_resource_instance(self.validated_data["resources"])
-        return Response(client.is_allowed(self.validated_data["action_id"], resources))
+        resources = client.batch_make_resource_instance(data["resources"])
+        return Response(client.is_allowed(data["action_id"], resources, data["is_raise_exception"]))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取权限申请数据"),
@@ -81,7 +82,7 @@ class IAMViewSet(viewsets.SystemViewSet):
         resources = self.validated_data.get("resources", [])
         client = Permission(username=request.user.username)
         resources = client.batch_make_resource_instance(resources)
-        apply_data, apply_url = client.get_apply_data(action_ids, resources)
+        apply_data, apply_url = client.get_apply_data(action_ids, [resources])
         return Response({"permission": apply_data, "apply_url": apply_url})
 
     @common_swagger_auto_schema(
@@ -94,5 +95,5 @@ class IAMViewSet(viewsets.SystemViewSet):
     def simple_get_apply_data(self, request, *args, **kwargs):
         client = Permission(username=request.user.username)
         resources = client.batch_make_resource_instance(self.validated_data["resources"])
-        apply_data, apply_url = client.get_apply_data([self.validated_data["action_id"]], resources)
+        apply_data, apply_url = client.get_apply_data([self.validated_data["action_id"]], [resources])
         return Response({"permission": apply_data, "apply_url": apply_url})
