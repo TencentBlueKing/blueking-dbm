@@ -10,7 +10,7 @@
           :key-word="keyWord"
           :text="item.immute_domain" />
         <div class="intro">
-          (域名)
+          ({{ t('域名') }})
         </div>
       </div>
       <div class="biz-text">
@@ -20,6 +20,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { systemSearchCache } from '@common/cache';
 
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
@@ -40,6 +42,7 @@
 
   defineProps<Props>();
 
+  const { t } = useI18n();
   const handleRedirect = useRedirect();
 
   const handleGo = (data: Props['data'][number]) => {
