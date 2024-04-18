@@ -49,8 +49,17 @@ class CCTopoOperator:
         bk_biz_ids = list(set([cluster.bk_biz_id for cluster in self.clusters]))
         if len(bk_biz_ids) != 1:
             raise ValidationError("different cluster biz is not supporting")
+
         self.bk_biz_id = bk_biz_ids[0]
-        self.hosting_biz_id = BizSettings.get_exact_hosting_biz(self.bk_biz_id, self.db_type)
+        # 仅允许同一类型的集群操作
+        if isinstance(cluster, Cluster):
+            self.hosting_biz_id = BizSettings.get_exact_hosting_biz(self.bk_biz_id, cluster.cluster_type)
+        else:
+            cluster_types = list(set([cls.cluster_type for cls in cluster]))
+            if len(cluster_types) != 1:
+                raise ValidationError("different cluster type is not supporting")
+            self.hosting_biz_id = BizSettings.get_exact_hosting_biz(self.bk_biz_id, cluster_types[0])
+
         self.is_bk_module_created = False
 
     def create_bk_module(self):
@@ -60,7 +69,7 @@ class CCTopoOperator:
         if self.db_type is None:
             raise NotImplementedError(f"{self.__module__}db_type is not define")
         for cluster in self.clusters:
-            CcManage(bk_biz_id=cluster.bk_biz_id, db_type=self.db_type).get_or_create_set_module(
+            CcManage(bk_biz_id=cluster.bk_biz_id, cluster_type=cluster.cluster_type).get_or_create_set_module(
                 db_type=self.db_type,
                 cluster_type=cluster.cluster_type,
                 bk_module_name=cluster.immute_domain,
@@ -82,6 +91,11 @@ class CCTopoOperator:
             self.create_bk_module()
 
         cluster_ids = [cluster.id for cluster in self.clusters]
+        # 获取cluster_types_list
+        cluster_types = (
+            Cluster.objects.filter(cluster_id__in=cluster_ids).values_list("cluster_type", flat=True).distinct()
+        )
+        cluster_types_list = list(cluster_types)
         # 根据机器类型对实例进行分组
         machine_type_instances_map: Dict[str, List[Union[StorageInstance, ProxyInstance]]] = defaultdict(list)
         for ins in instances:
@@ -95,7 +109,8 @@ class CCTopoOperator:
                 )
             )
             # 批量转移主机
-            CcManage(self.bk_biz_id, self.db_type).transfer_host_module(bk_host_ids, bk_module_ids, is_increment)
+            for cluster_type in cluster_types_list:
+                CcManage(self.bk_biz_id, cluster_type).transfer_host_module(bk_host_ids, bk_module_ids, is_increment)
             # 创建 CMDB 服务实例
             self.init_instances_service(machine_type, ins_list)
 
@@ -204,7 +219,7 @@ class CCTopoOperator:
         """
         inst_labels = self.generate_ins_labels(cluster, ins, instance_role)
 
-        bk_instance_id = CcManage(self.bk_biz_id, self.db_type).add_service_instance(
+        bk_instance_id = CcManage(self.bk_biz_id, cluster.cluster_type).add_service_instance(
             bk_module_id=bk_module_id,
             bk_host_id=ins.machine.bk_host_id,
             listen_ip=ins.machine.ip,

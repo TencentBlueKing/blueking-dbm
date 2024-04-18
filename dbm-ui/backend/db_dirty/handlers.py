@@ -93,7 +93,7 @@ class DBDirtyMachineHandler(object):
         ]
         if transfer_host_ids:
             update_host_properties = {"dbm_meta": [], "need_monitor": False, "update_operator": False}
-            CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID, db_type="").transfer_host_module(
+            CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID, cluster_type="").transfer_host_module(
                 transfer_host_ids, target_module_ids=[dirty_module], update_host_properties=update_host_properties
             )
 
