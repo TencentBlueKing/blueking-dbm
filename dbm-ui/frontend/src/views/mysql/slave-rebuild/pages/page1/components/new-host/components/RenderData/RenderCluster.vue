@@ -14,32 +14,32 @@
 <template>
   <BkLoading :loading="isLoading">
     <div
+      v-if="renderDomainList.length > 0"
       class="slave-rebuild-related-cluster"
       :style="{background: oldSlave ? '#FFF' : '#FAFBFD' }">
-      <template v-if="oldSlave">
-        <div
-          v-for="(domain, index) in renderDomainList"
-          :key="index"
-          class="domain-item">
-          <span>{{ domain }}</span>
-        </div>
-      </template>
-      <span
-        v-else
-        class="default-text">{{ t('自动生成') }}</span>
+      <div
+        v-for="(domain, index) in renderDomainList"
+        :key="index"
+        class="domain-item">
+        <span>{{ domain }}</span>
+      </div>
     </div>
+    <RenderText
+      v-else
+      ref="displayRef"
+      :placeholder="t('自动生成')"
+      :rules="rules" />
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import {
-    computed,
-    shallowRef  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { checkMysqlInstances } from '@services/source/instances';
 
   import { useGlobalBizs } from '@stores';
+
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -48,7 +48,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<{ cluster_ids: number[] }>
   }
 
   const props = defineProps<Props>();
@@ -56,7 +56,8 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const editInputRef = ref();
+  const displayRef = ref();
+
   const localRelateClusterList = shallowRef<ServiceReturnType<typeof checkMysqlInstances>[0]['related_clusters']>([]);
 
   const renderDomainList = computed(() => {
@@ -65,6 +66,13 @@
     }
     return localRelateClusterList.value.map(item => item.master_domain);
   });
+
+  const rules = [
+    {
+      validator: (value: string) => !!value,
+      message: t('不能为空'),
+    },
+  ];
 
   const {
     loading: isLoading,
@@ -92,15 +100,12 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editInputRef.value.getValue()
-        .then(() => {
-          if (localRelateClusterList.value.length < 1) {
-            return Promise.reject();
-          }
-          return {
-            cluster_ids: localRelateClusterList.value.map(item => item.id),
-          };
-        });
+      if (localRelateClusterList.value.length < 1) {
+        return displayRef.value.getValue();
+      }
+      return Promise.resolve({
+        cluster_ids: localRelateClusterList.value.map(item => item.id),
+      });
     },
   });
 </script>
