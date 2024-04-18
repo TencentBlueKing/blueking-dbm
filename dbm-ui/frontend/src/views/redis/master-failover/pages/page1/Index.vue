@@ -83,13 +83,13 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-  } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
@@ -105,9 +105,21 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
-  const title = t(
-    '主从切换：针对TendisSSD、TendisCache，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换',
-  );
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      const { tableList, force } = cloneData;
+      tableData.value = tableList;
+      isForceSwitch.value = force;
+      window.changeConfirm = true;
+    },
+  });
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
@@ -121,6 +133,9 @@
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.ip)).length);
   const inputedIps = computed(() => tableData.value.map((item) => item.ip));
 
+  const title = t(
+    '主从切换：针对TendisSSD、TendisCache，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换',
+  );
   // ip 是否已存在表格的映射表
   let ipMemo = {} as Record<string, boolean>;
 

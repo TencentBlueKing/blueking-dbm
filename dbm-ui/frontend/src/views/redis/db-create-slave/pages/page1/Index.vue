@@ -80,6 +80,8 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -120,11 +122,27 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      tableData.value = cloneData;
+      window.changeConfirm = true;
+    }
+  });
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
+
   const selected = shallowRef({ createSlaveIdleHosts: [] } as InstanceSelectorValues<IValue>);
+
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
   const inputedIps = computed(() => tableData.value.map(item => item.ip));
 

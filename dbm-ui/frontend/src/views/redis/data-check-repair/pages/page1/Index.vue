@@ -14,14 +14,14 @@
 <template>
   <div class="redis-page">
     <div class="title-spot mb-16">
-      {{ $t('基础信息') }}
+      {{ t('基础信息') }}
     </div>
     <div class="table-box">
       <BasicInfoTable
         ref="tableRef"
         :table-data="tableData" />
     </div>
-    <div class="main-title title-spot mb-18">{{ $t('执行模式') }}<span class="required" /></div>
+    <div class="main-title title-spot mb-18">{{ t('执行模式') }}<span class="required" /></div>
     <BkRadioGroup v-model="executeMode">
       <div class="radio-group">
         <BkRadio
@@ -33,10 +33,10 @@
             </div>
             <div class="title-box">
               <div class="title">
-                {{ $t('自动执行') }}
+                {{ t('自动执行') }}
               </div>
               <div class="sub-title">
-                {{ $t('单据审批通过之后即可执行') }}
+                {{ t('单据审批通过之后即可执行') }}
               </div>
             </div>
           </div>
@@ -50,10 +50,10 @@
             </div>
             <div class="title-box">
               <div class="title">
-                {{ $t('定时执行') }}
+                {{ t('定时执行') }}
               </div>
               <div class="sub-title">
-                {{ $t('指定时间执行') }}
+                {{ t('指定时间执行') }}
               </div>
             </div>
           </div>
@@ -61,14 +61,14 @@
       </div>
     </BkRadioGroup>
     <template v-if="executeMode === ExecuteModes.SCHEDULED_EXECUTION">
-      <div class="main-title title-spot mb-11">{{ $t('指定执行时间') }}<span class="required" /></div>
+      <div class="main-title title-spot mb-11">{{ t('指定执行时间') }}<span class="required" /></div>
       <BkDatePicker
         v-model="specifyExecuteTime"
         class="date-picker"
         type="datetime" />
     </template>
 
-    <div class="main-title title-spot mb-11">{{ $t('指定停止时间') }}<span class="required" /></div>
+    <div class="main-title title-spot mb-11">{{ t('指定停止时间') }}<span class="required" /></div>
     <div class="overtime-box">
       <BkDatePicker
         v-model="specifyStopTime"
@@ -76,16 +76,16 @@
         :disabled="isKeepCheckAndRepair"
         type="datetime" />
       <BkCheckbox v-model="isKeepCheckAndRepair">
-        {{ $t('一直保持校验修复') }}
+        {{ t('一直保持校验修复') }}
       </BkCheckbox>
     </div>
 
-    <div class="main-title title-spot mb-15">{{ $t('修复数据') }}<span class="required" /></div>
+    <div class="main-title title-spot mb-15">{{ t('修复数据') }}<span class="required" /></div>
     <BkSwitcher
       v-model="isRepairData"
       style="width: 28px"
       theme="primary" />
-    <div class="main-title title-spot mb-18">{{ $t('修复模式') }}<span class="required" /></div>
+    <div class="main-title title-spot mb-18">{{ t('修复模式') }}<span class="required" /></div>
 
     <BkRadioGroup v-model="repairMode">
       <div class="radio-group">
@@ -98,10 +98,10 @@
             </div>
             <div class="title-box">
               <div class="title">
-                {{ $t('人工确认') }}
+                {{ t('人工确认') }}
               </div>
               <div class="sub-title">
-                {{ $t('校验检查完成后，需人工确认后，方可执行修复动作') }}
+                {{ t('校验检查完成后，需人工确认后，方可执行修复动作') }}
               </div>
             </div>
           </div>
@@ -115,10 +115,10 @@
             </div>
             <div class="title-box">
               <div class="title">
-                {{ $t('自动修复') }}
+                {{ t('自动修复') }}
               </div>
               <div class="sub-title">
-                {{ $t('校验检查完成后，将自动修复数据') }}
+                {{ t('校验检查完成后，将自动修复数据') }}
               </div>
             </div>
           </div>
@@ -131,16 +131,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会清空当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </div>
@@ -154,7 +154,10 @@
 
   import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
   import { createTicket } from '@services/source/ticket';
+  import { ExecuteModes, RepairModes } from '@services/types/common';
   import type { SubmitTicket } from '@services/types/ticket';
+
+  import { useTicketCloneInfo } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -164,16 +167,6 @@
 
   import BasicInfoTable from './basic-info-table/Index.vue';
   import { type IDataRow, type InfoItem } from './basic-info-table/Row.vue';
-
-  enum ExecuteModes {
-    AUTO_EXECUTION = 'auto_execution',
-    SCHEDULED_EXECUTION = 'scheduled_execution',
-  }
-
-  enum RepairModes {
-    AUTO_REPAIR = 'auto_repair',
-    MANUAL_CONFIRM = 'manual_confirm',
-  }
 
   type SubmitType = SubmitTicket<TicketTypes, InfoItem[]> & {
     details: {
@@ -190,6 +183,27 @@
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
 
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      const { tableList, executeType, executeTime, stopTime, isKeepCheck, isRepairEnable, repairType } = cloneData;
+
+      tableData.value = tableList;
+      executeMode.value = executeType;
+      specifyExecuteTime.value = executeTime;
+      specifyStopTime.value = stopTime;
+      isKeepCheckAndRepair.value = isKeepCheck;
+      isRepairData.value = isRepairEnable;
+      repairMode.value = repairType;
+      window.changeConfirm = true;
+    },
+  });
+
   // TODO:
   // 自动执行 时， 停止时间 不能小于 当前时间，后台会检查；
   // 定时执行时， 停止时间 不能小于 定时执行的时间，，后台会检查；
@@ -200,9 +214,10 @@
   const isRepairData = ref(true);
   const repairMode = ref(RepairModes.AUTO_REPAIR);
   const isSubmitting = ref(false);
-  const tableData = shallowRef<IDataRow[]>([]);
   const tableRef = ref();
   const isKeepCheckAndRepair = ref(true);
+
+  const tableData = shallowRef<IDataRow[]>([]);
 
   const recoverDataListFromLocalStorage = () => {
     const r = localStorage.getItem(LocalStorageKeys.REDIS_DATA_CHECK_AND_REPAIR);

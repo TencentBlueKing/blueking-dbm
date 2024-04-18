@@ -67,6 +67,7 @@
     <td style="padding: 0">
       <RenderSwitchMode
         ref="switchModeRef"
+        :data="data.switchMode"
         :is-loading="data.isLoading" />
     </td>
     <OperateColumn
@@ -80,7 +81,6 @@
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
 
-  // import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
@@ -100,9 +100,6 @@
     targetCluster: string;
     clusterId: number;
     bkCloudId: number;
-    sepcId: number;
-    targetShardNum: number;
-    targetGroupNum: number;
     shardNum?: number;
     groupNum?: number;
     currentSepc?: string;
@@ -145,9 +142,6 @@
     targetCluster: '',
     clusterId: 0,
     bkCloudId: 0,
-    sepcId: 0,
-    targetShardNum: 0,
-    targetGroupNum: 0,
   });
 </script>
 <script setup lang="ts">
@@ -181,7 +175,7 @@
   const targetCapacityRef = ref();
 
   const versionList = computed(() => {
-    if (props.versionsMap && props.data.clusterType) {
+    if (Object.keys(props.versionsMap).length > 0 && props.data.clusterType) {
       return props.versionsMap[props.data.clusterType].map((item) => ({
         value: item,
         label: item,

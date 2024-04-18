@@ -16,15 +16,18 @@
     <List @change="handleChangeTicket" />
     <div
       v-if="activeTicket?.id"
-      class="ticket-detail-wrapper db-scroll-y">
+      class="ticket-detail-wrapper">
       <Details
-        :key="activeTicket?.id"
-        :data="activeTicket" />
+        :data="activeTicket"
+        @update-active-ticket="handleChangeTicket" />
+      <TicketClone :data="activeTicket" />
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
+
+  import TicketClone from '../common/components/TicketClone.vue';
 
   import Details from './components/details/Index.vue';
   import List from './components/list/Index.vue';
@@ -41,8 +44,10 @@
     height: 100%;
 
     .ticket-detail-wrapper {
-      flex: 1;
+      position: relative;
       height: 100%;
+      flex: 1;
+      overflow-y: auto;
     }
   }
 </style>

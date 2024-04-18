@@ -20,10 +20,11 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { RedisStructureDeleteDetails, TicketDetails } from '@services/types/ticket';
+  import type { RedisStructureDeleteDetails } from '@services/model/ticket/details/redis';
+  import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<RedisStructureDeleteDetails>;
+    ticketDetails: TicketModel<RedisStructureDeleteDetails>;
   }
 
   defineProps<Props>();

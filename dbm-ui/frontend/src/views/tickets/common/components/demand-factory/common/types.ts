@@ -10,11 +10,8 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-
-import type {clustersItems } from '@services/types/ticket';
-
-import type { SpecInfo } from '../../SpecInfos.vue';
-
+import type { SpecInfo } from '@services/model/ticket/details/common';
+import type { clustersItems } from '@services/types/ticket';
 
 // MongoDB 副本集群
 export interface DetailsMongoDBReplicaSet {
@@ -124,23 +121,23 @@ export interface DetailsSqlserver {
 
 // Sqlserver 数据库备份
 export interface SqlserverDbBackup {
-  backup_place: string,
-  backup_type: string,
-  clusters: Record<number, clustersItems>
-  file_tag: string,
+  backup_place: string;
+  backup_type: string;
+  clusters: Record<number, clustersItems>;
+  file_tag: string;
   infos: {
-    backup_dbs: string[],
-    cluster_id: number
-  }[]
+    backup_dbs: string[];
+    cluster_id: number;
+  }[];
 }
 
 // Sqlserver 账号授权
 export interface SqlserverAuthorizeRules {
   authorize_data?: {
-    user: string,
-    target_instances: string[],
-    access_dbs: string[],
-    cluster_type: string
+    user: string;
+    target_instances: string[];
+    access_dbs: string[];
+    cluster_type: string;
   }[];
   authorize_uid: string;
   excel_url?: string;

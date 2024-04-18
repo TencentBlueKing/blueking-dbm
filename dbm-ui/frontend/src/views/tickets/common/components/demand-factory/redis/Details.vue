@@ -161,9 +161,10 @@
   import { useRequest } from 'vue-request';
 
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
+  import type { RedisDetails } from '@services/model/ticket/details/redis';
+  import TicketModel from '@services/model/ticket/ticket';
   import { getTicketHostNodes } from '@services/source/ticket';
   import { getInfrasCities } from '@services/ticket';
-  import type { TicketDetails, TicketDetailsRedis } from '@services/types/ticket';
 
   import { useSystemEnviron } from '@stores';
 
@@ -178,23 +179,10 @@
 
   import { firstLetterToUpper } from '@utils';
 
-  import SpecInfos, { type SpecInfo } from '../../SpecInfos.vue';
-
-  interface Details extends TicketDetailsRedis {
-    ip_source: string;
-    disaster_tolerance_level: string;
-    resource_spec: {
-      proxy: SpecInfo;
-      backend_group: {
-        count: number;
-        spec_id: string;
-        spec_info: ClusterSpecModel;
-      };
-    };
-  }
+  import SpecInfos from '../../SpecInfos.vue';
 
   interface Props {
-    ticketDetails: TicketDetails<Details>;
+    ticketDetails: TicketModel<RedisDetails>;
   }
 
   const props = defineProps<Props>();
@@ -266,53 +254,53 @@
   /**
    * 获取申请容量内容
    */
-  function getCapSpecDisplay() {
+  const getCapSpecDisplay = () => {
     if (!props.ticketDetails?.details?.cap_spec) {
       return '--';
     }
 
     const capSpecArr: string[] = props.ticketDetails?.details?.cap_spec.split(':');
     return `${capSpecArr[0]}(${(Number(capSpecArr[1]) / 1024).toFixed(2)} GB x ${capSpecArr[2]}${t('分片')})`;
-  }
+  };
 
   /**
    * 获取部署架构类型
    */
-  function getClusterType() {
+  const getClusterType = () => {
     if (!props.ticketDetails?.details?.cluster_type) {
       return '--';
     }
 
     return redisClusterTypes[props.ticketDetails.details.cluster_type as RedisClusterTypes]?.text || '--';
-  }
+  };
 
   /**
    * 获取服务器类型
    */
-  function getIpSource() {
+  const getIpSource = () => {
     if (!props.ticketDetails?.details?.ip_source) {
       return '--';
     }
 
     return redisIpSources[props.ticketDetails.details.ip_source as RedisIpSources]?.text || '--';
-  }
+  };
 
   /**
    * 获取服务器数量
    */
-  function getServiceNums(key: 'proxy' | 'master' | 'slave') {
+  const getServiceNums = (key: 'proxy' | 'master' | 'slave') => {
     const nodes = props.ticketDetails?.details?.nodes;
     return nodes?.[key]?.length ?? 0;
-  }
+  };
 
   /**
    * 服务器详情预览功能
    */
-  function handleShowPreview(role: 'proxy' | 'master' | 'slave') {
+  const handleShowPreview = (role: 'proxy' | 'master' | 'slave') => {
     previewState.isShow = true;
     previewState.role = role;
     previewState.title = `【${firstLetterToUpper(role)}】${t('主机预览')}`;
-  }
+  };
 </script>
 
 <style lang="less" scoped>

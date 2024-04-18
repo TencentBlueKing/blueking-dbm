@@ -88,7 +88,9 @@
   import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
   import { getRedisList } from '@services/source/redis';
 
-  import { ClusterTypes, LocalStorageKeys } from '@common/const';
+  import { useTicketCloneInfo } from '@hooks';
+
+  import { ClusterTypes, LocalStorageKeys, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
@@ -111,6 +113,19 @@
 
   const { t } = useI18n();
 
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      tableData.value = cloneData.tableList as unknown as IDataRow[];
+      window.changeConfirm = true;
+    },
+  });
+
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
   const rowRefs = ref();
@@ -122,11 +137,14 @@
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
-      disabledRowConfig: [{
-        handler: (data: RedisModel) => data.redis_slave.filter(item => item.status !== 'running').length > 0,
-        tip: t('slave 状态异常，无法选择'),
-      }],
-      columnStatusFilter: (data: RedisModel) => data.redis_slave.filter(item => item.status !== 'running').length === 0,
+      disabledRowConfig: [
+        {
+          handler: (data: RedisModel) => data.redis_slave.filter((item) => item.status !== 'running').length > 0,
+          tip: t('slave 状态异常，无法选择'),
+        },
+      ],
+      columnStatusFilter: (data: RedisModel) =>
+        data.redis_slave.filter((item) => item.status !== 'running').length === 0,
     },
   };
 
@@ -230,8 +248,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    // TODO: 使用精确查询接口替换
-    const result = await getRedisList({ domain }).finally(() => {
+    const result = await getRedisList({ exact_domain: domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length < 1) {

@@ -33,6 +33,7 @@
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   interface Props {
+    data?: string;
     isLoading?: boolean;
     excludeType?: string;
   }
@@ -46,6 +47,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    data: '',
     isLoading: false,
     excludeType: '',
   });
@@ -55,7 +57,7 @@
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref('');
+  const localValue = ref(props.data);
 
   const selectList = [
     {

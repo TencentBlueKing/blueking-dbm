@@ -73,6 +73,8 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -86,11 +88,27 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_DATA_STRUCTURE,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      tableData.value = cloneData;
+      window.changeConfirm = true;
+    },
+  });
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
+
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
+
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length);
   const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
 
@@ -160,8 +178,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    // TODO: 使用精确查询接口替换
-    const result = await getRedisList({ domain }).finally(() => {
+    const result = await getRedisList({ exact_domain: domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length < 1) {

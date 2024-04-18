@@ -76,6 +76,8 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
@@ -107,6 +109,22 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_CLUSTER_CUTOFF,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      tableData.value = cloneData;
+      sortTableByCluster();
+      updateSlaveMasterMap();
+      window.changeConfirm = true;
+    }
+  });
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
@@ -353,9 +371,6 @@
             },
           });
         })
-          .catch((e) => {
-            console.error('db repace submit ticket error', e);
-          })
           .finally(() => {
             isSubmitting.value = false;
           });

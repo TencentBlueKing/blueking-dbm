@@ -53,17 +53,17 @@
 
   import RedisModel from '@services/model/redis/redis';
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
+  import type { RedisClusterTypeUpdateDetails } from '@services/model/ticket/details/redis';
+  import TicketModel from '@services/model/ticket/ticket';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisClusterTypeUpdateDetails, TicketDetails } from '@services/types/ticket';
 
   import { ClusterTypes } from '@common/const';
 
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
 
-
   interface Props {
-    ticketDetails: TicketDetails<RedisClusterTypeUpdateDetails>
+    ticketDetails: TicketModel<RedisClusterTypeUpdateDetails>
   }
 
   interface RowData {
@@ -82,9 +82,9 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
+
+  const { infos } = props.ticketDetails.details;
 
   const columns = [
     {
@@ -178,8 +178,7 @@
       tableData.value = infos.map((item) => {
         const currentCluster = clusterMap[item.src_cluster];
         const specConfig = currentCluster.cluster_spec;
-        // eslint-disable-next-line max-len
-        const targetSepcPlan =  sepcMap[item.target_cluster_type].filter(row => row.spec_id === item.resource_spec.backend_group.spec_id);
+        const targetSepcPlan = sepcMap[item.target_cluster_type].filter(row => row.spec_id === item.resource_spec.backend_group.spec_id);
         return ({
           clusterName: currentCluster.master_domain,
           srcClusterType: clusterTypeMap[currentCluster.cluster_spec.spec_cluster_type],

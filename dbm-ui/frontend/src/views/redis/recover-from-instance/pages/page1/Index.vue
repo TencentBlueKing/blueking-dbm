@@ -87,6 +87,8 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, LocalStorageKeys, TicketTypes } from '@common/const';
@@ -103,13 +105,31 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      const { tableList, writeMode } = cloneData;
+
+      tableData.value = tableList;
+      writeType.value = writeMode;
+      window.changeConfirm = true;
+    },
+  });
+
   const rowRefs = ref();
   const isSubmitting = ref(false);
   const writeType = ref(WriteModes.DELETE_AND_WRITE_TO_REDIS);
-
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
+
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisRollbackModel> }>({ [ClusterTypes.REDIS]: [] });
+
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.srcCluster)).length);
   const inputedClusters = computed(() => tableData.value.map((item) => item.srcCluster));
 

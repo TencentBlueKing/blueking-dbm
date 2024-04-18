@@ -20,25 +20,16 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { RedisCLBDetails, TicketDetails } from '@services/types/ticket';
+  import type { RedisCLBDetails } from '@services/model/ticket/details/redis';
+  import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<RedisCLBDetails>;
-  }
-
-  interface RowData {
-    clusterName: string;
+    ticketDetails: TicketModel<RedisCLBDetails>;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  const dataArr = Object.values(props.ticketDetails.details.clusters).map((item) => ({
-    clusterName: item.immute_domain,
-  }));
-
-  const tableData = ref<RowData[]>(dataArr);
 
   const columns = [
     {
@@ -47,4 +38,10 @@
       showOverflowTooltip: true,
     },
   ];
+
+  const tableData = computed(() =>
+    Object.values(props.ticketDetails.details.clusters).map((item) => ({
+      clusterName: item.immute_domain,
+    })),
+  );
 </script>

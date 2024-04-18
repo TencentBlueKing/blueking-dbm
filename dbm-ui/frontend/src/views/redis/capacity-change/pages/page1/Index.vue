@@ -72,6 +72,8 @@
   import { getClusterTypeToVersions } from '@services/source/version';
   import type { SubmitTicket } from '@services/types/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -86,6 +88,20 @@
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_SCALE_UPDOWN,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      tableData.value = cloneData;
+      window.changeConfirm = true;
+    },
+  });
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting = ref(false);
@@ -99,14 +115,12 @@
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
 
-  onMounted(() => {
-    queryDBVersions();
-  });
-
   const queryDBVersions = async () => {
     const ret = await getClusterTypeToVersions();
     versionsMap.value = ret;
   };
+
+  queryDBVersions();
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -133,9 +147,6 @@
       used: 1,
       total: data.cluster_capacity,
     },
-    sepcId: 0,
-    targetShardNum: 0,
-    targetGroupNum: 0,
   });
 
   // 批量选择
@@ -173,8 +184,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    // TODO: 使用精确查询接口替换
-    const result = await getRedisList({ domain }).finally(() => {
+    const result = await getRedisList({ exact_domain: domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length < 1) {

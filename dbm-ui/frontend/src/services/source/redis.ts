@@ -21,34 +21,34 @@ import type { HostNode, ListBase, ResourceInstance, ResourceTopo } from '../type
 import type { ResourceRedisItem } from '../types/clusters';
 
 interface InstanceDetails {
-  bk_cloud_id: number,
-  bk_cpu: number,
-  bk_disk: number,
-  bk_host_id: number,
-  bk_host_innerip: string,
-  bk_mem: number,
-  bk_os_name: string,
-  cluster_id: number,
-  cluster_type: string,
-  create_at: string,
-  idc_city_id: string,
-  idc_city_name: string,
-  idc_id: number,
-  instance_address: string,
-  master_domain: string,
-  net_device_id: string,
-  rack: string,
-  rack_id: number,
-  role: string,
-  slave_domain: string,
-  status: string,
-  sub_zone: string,
-  db_module_id: number,
-  cluster_type_display: string,
-  bk_idc_name: string,
-  bk_cloud_name: string,
-  db_version: string,
-  version?: string
+  bk_cloud_id: number;
+  bk_cpu: number;
+  bk_disk: number;
+  bk_host_id: number;
+  bk_host_innerip: string;
+  bk_mem: number;
+  bk_os_name: string;
+  bk_idc_name: string;
+  bk_cloud_name: string;
+  cluster_id: number;
+  cluster_type: string;
+  cluster_type_display: string;
+  create_at: string;
+  db_version: string;
+  db_module_id: number;
+  idc_city_id: string;
+  idc_city_name: string;
+  idc_id: number;
+  instance_address: string;
+  master_domain: string;
+  net_device_id: string;
+  rack: string;
+  rack_id: number;
+  role: string;
+  slave_domain: string;
+  status: string;
+  sub_zone: string;
+  version?: string;
 }
 
 const { currentBizId } = useGlobalBizs();
@@ -62,8 +62,9 @@ export function getRedisList(
   params: {
     limit?: number;
     offset?: number;
-    cluster_ids?: number[] | number;
+    cluster_ids?: string;
     domain?: string;
+    exact_domain?: string;
     bk_biz_id?: number;
   } = {},
 ) {
@@ -186,5 +187,7 @@ export function exportRedisInstanceToExcel(params: { bk_host_ids?: number[] }) {
 }
 
 // 获取集群列表
-export const getRedisClusterList = async (params: { bk_biz_id: number }) => http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
-  .then(data => data.results.map(item => new RedisModel(item)));
+export const getRedisClusterList = async (params: { bk_biz_id: number }) =>
+  http
+    .get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
+    .then((data) => data.results.map((item) => new RedisModel(item)));

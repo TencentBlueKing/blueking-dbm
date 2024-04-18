@@ -24,14 +24,14 @@
       <RenderText
         :data="data.nodeType"
         :is-loading="data.isLoading"
-        :placeholder="$t('输入集群后自动生成')" />
+        :placeholder="t('输入集群后自动生成')" />
     </td>
     <td style="padding: 0">
       <RenderSpec
         ref="sepcRef"
         :data="data.spec"
         :is-loading="data.isLoading"
-        :select-list="data.specList" />
+        :select-list="specList" />
     </td>
     <td style="padding: 0">
       <RenderTargetNumber
@@ -48,6 +48,11 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import RedisModel from '@services/model/redis/redis';
+  import { getResourceSpecList } from '@services/source/dbresourceSpec';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
@@ -67,10 +72,10 @@
     clusterId: number;
     bkCloudId: number;
     nodeType: string;
-    specList: IListItem[];
     spec?: SpecInfo;
     targetNum?: string;
     clusterType?: string;
+    rowModelData?: RedisModel;
   }
 
   export interface MoreDataItem {
@@ -98,7 +103,6 @@
     clusterId: 0,
     bkCloudId: 0,
     nodeType: '',
-    specList: [],
   });
 </script>
 <script setup lang="ts">
@@ -124,9 +128,58 @@
 
   const emits = defineEmits<Emits>();
 
+  // 查询集群对应的规格列表
+  const querySpecList = async (item: RedisModel) => {
+    const proxyMachineMap = {
+      TwemproxyRedisInstance: 'twemproxy',
+      TwemproxyTendisSSDInstance: 'twemproxy',
+      PredixyTendisplusCluster: 'predixy',
+    };
+    const type = item.cluster_spec.spec_cluster_type;
+    const machineType = proxyMachineMap[type];
+    const specId = item.cluster_spec.spec_id;
+    const specCount = item.proxy.length;
+    const ret = await getResourceSpecList({
+      spec_cluster_type: type,
+      spec_machine_type: machineType,
+      limit: -1,
+      offset: 0,
+    });
+    const retArr = ret.results;
+    const arr = retArr.map((item) => ({
+      value: item.spec_id,
+      label: item.spec_id === specId ? `${item.spec_name} ${t('((n))台', { n: specCount })}` : item.spec_name,
+      specData: {
+        name: item.spec_name,
+        cpu: item.cpu,
+        id: item.spec_id,
+        mem: item.mem,
+        count: 0,
+        storage_spec: item.storage_spec,
+      },
+    }));
+    return arr;
+  };
+
+  const { t } = useI18n();
+
+  const specList = ref<IListItem[]>([]);
   const clusterRef = ref();
   const sepcRef = ref();
   const numRef = ref();
+
+  watch(
+    () => props.data.rowModelData,
+    async (rowData) => {
+      if (!rowData) {
+        return;
+      }
+      specList.value = await querySpecList(rowData);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);

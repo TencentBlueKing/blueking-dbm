@@ -119,6 +119,8 @@
   import { getClusterTypeToVersions } from '@services/source/version';
   import type { SubmitTicket } from '@services/types/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -142,6 +144,23 @@
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      const { tableList, type, frequency } = cloneData;
+      tableData.value = tableList;
+      repairAndVerifyType.value = type;
+      repairAndVerifyFrequency.value = frequency;
+      window.changeConfirm = true;
+    },
+  });
+
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
   const isSubmitting = ref(false);
@@ -149,22 +168,22 @@
   const repairAndVerifyFrequency = ref(RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION);
   const tableData = ref([createRowData()]);
   const clusterTypesMap = ref<Record<string, string[]>>({});
+
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
+
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.srcCluster)).length);
   const inputedClusters = computed(() => tableData.value.map((item) => item.srcCluster));
 
   // 集群域名是否已存在表格的映射表
   let domainMemo = {} as Record<string, boolean>;
 
-  onMounted(() => {
-    queryDBVersions();
-  });
-
   // 查询全部的集群类型映射表
   const queryDBVersions = async () => {
     const ret = await getClusterTypeToVersions();
     clusterTypesMap.value = ret;
   };
+
+  queryDBVersions();
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -239,8 +258,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    // TODO: 使用精确查询接口替换
-    const result = await getRedisList({ domain }).finally(() => {
+    const result = await getRedisList({ exact_domain: domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length < 1) {
@@ -306,10 +324,6 @@
                 ticketId: data.id,
               },
             });
-          })
-          .catch((e) => {
-            console.error('submit cluster shard update ticket error: ', e);
-            window.changeConfirm = false;
           })
           .finally(() => {
             isSubmitting.value = false;

@@ -143,12 +143,11 @@
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
+    useTicketCloneInfo,
     useTicketMessage,
   } from '@hooks';
 
-  import {
-    useGlobalBizs,
-  } from '@stores';
+  import { useGlobalBizs } from '@stores';
 
   import {
     ClusterTypes,
@@ -224,6 +223,62 @@
     'region',
     'time_zone',
   ], () => fetchData(isInit));
+
+  // 提取Key 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_KEYS_EXTRACT,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      extractState.isShow = true;
+      extractState.data = cloneData;
+      window.changeConfirm = true;
+    }
+  });
+
+  // 删除Key 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_KEYS_DELETE,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      deleteKeyState.isShow = true;
+      deleteKeyState.data = cloneData;
+      window.changeConfirm = true;
+    }
+  });
+
+  // 集群备份单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_BACKUP,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      backupState.isShow = true;
+      backupState.data = cloneData;
+      window.changeConfirm = true;
+    }
+  });
+
+  // 清档单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_PURGE,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      purgeState.isShow = true;
+      purgeState.data = cloneData;
+      window.changeConfirm = true;
+    }
+  });
 
   const disabledOperations: string[] = [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_CLOSE];
 
