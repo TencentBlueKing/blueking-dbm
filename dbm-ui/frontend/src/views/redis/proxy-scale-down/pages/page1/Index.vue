@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('缩容接入层：减加集群的Proxy数量，但集群Proxy数量不能少于2')" />
+        :title="t('缩容接入层：减少集群的Proxy数量，但集群Proxy数量不能少于2')" />
       <RenderData
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
