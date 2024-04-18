@@ -38,7 +38,8 @@
               "instance_host",
               "instance_role",
               "instance_port",
-              "machine_type"
+              "machine_type",
+              "bk_target_service_instance_id"
             ],
             "agg_condition": [],
             "custom_event_name": "mysql-config-diff",

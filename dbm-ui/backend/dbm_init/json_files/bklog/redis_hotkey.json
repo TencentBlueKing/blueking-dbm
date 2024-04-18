@@ -44,8 +44,8 @@
     "fields": [
         {
             "option": {
-                "time_zone": 8,
-                "time_format": "strict_date_time_no_millis"
+                "time_zone": "",
+                "time_format": ""
             },
             "is_time": true,
             "verdict": true,

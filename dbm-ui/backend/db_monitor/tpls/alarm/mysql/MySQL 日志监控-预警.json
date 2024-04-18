@@ -38,7 +38,8 @@
               "machine_type",
               "cluster_domain",
               "appid",
-              "instance_port"
+              "instance_port",
+              "bk_target_service_instance_id"
             ],
             "agg_condition": [],
             "custom_event_name": "mysql-err-notice",

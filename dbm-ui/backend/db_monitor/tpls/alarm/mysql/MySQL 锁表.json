@@ -38,9 +38,21 @@
               "machine_type",
               "cluster_domain",
               "instance_port",
-              "appid"
+              "appid",
+              "bk_target_service_instance_id"
             ],
-            "agg_condition": [],
+            "agg_condition": [
+              {
+                "key": "instance_role",
+                "value": [
+                  "master",
+                  "orphan"
+                ],
+                "method": "include",
+                "condition": "and",
+                "dimension_name": "instance_role"
+              }
+            ],
             "custom_event_name": "mysql-lock",
             "name": "mysql-lock"
           }
