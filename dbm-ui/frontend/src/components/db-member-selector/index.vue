@@ -20,6 +20,7 @@
       v-model="modelValue"
       allow-auto-match
       allow-create
+      :create-tag-validator="createTagValidator"
       has-delete-icon
       :list="peopleList"
       @input="remoteFilter" />
@@ -53,6 +54,8 @@
   }[]>([]);
 
   const isFocous = ref(false);
+
+  const createTagValidator = (tag: string) => !!peopleList.value.find(item => item.name === tag);
 
   /**
    * 获取人员列表

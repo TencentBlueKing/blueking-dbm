@@ -44,19 +44,17 @@
     name: string,
   }
 
-  /**
-   *  替换主从清档
-   */
-
-  const columns: any = [{
-    label: t('集群ID'),
-    field: 'cluster_id',
-    render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('集群名称'),
-    field: 'immute_domain',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: any }) => (
+  const columns = [
+    {
+      label: t('集群ID'),
+      field: 'cluster_id',
+      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('集群名称'),
+      field: 'immute_domain',
+      showOverflowTooltip: false,
+      render: ({ data }: { data: any }) => (
       <div class="cluster-name text-overflow"
         v-overflow-tips={{
           content: `
@@ -69,58 +67,64 @@
         <span class="cluster-name__alias">{data.name}</span>
       </div>
     ),
-  }, {
-    label: t('清档类型'),
-    field: 'truncate_data_type',
-    showOverflowTooltip: true,
-    render: ({ cell }: { cell: string }) => (
-      truncateDataTypes.filter(item => item.value === cell).map(item => <span>{item.label}</span>)
-    ),
-  }, {
-    label: t('目标DB名'),
-    field: 'db_patterns',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('清档类型'),
+      field: 'truncate_data_type',
+      showOverflowTooltip: true,
+      render: ({ cell }: { cell: string }) => (
+        truncateDataTypes.filter(item => item.value === cell).map(item => <span>{item.label}</span>)
+      ),
+    },
+    {
+      label: t('目标DB名'),
+      field: 'db_patterns',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.map(item => <bk-tag>{item}</bk-tag>)}
       </div>
     ),
-  }, {
-    label: t('忽略DB名'),
-    field: 'ignore_dbs',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-      </div>
-    ),
-  }, {
-    label: t('目标表名'),
-    field: 'table_patterns',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('目标表名'),
+      field: 'table_patterns',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.map(item => <bk-tag>{item}</bk-tag>)}
       </div>
     ),
-  }, {
-    label: t('忽略表名'),
-    field: 'ignore_tables',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('忽略DB名'),
+      field: 'ignore_dbs',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
       </div>
     ),
-  }];
+    },
+    {
+      label: t('忽略表名'),
+      field: 'ignore_tables',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
+      <div class="text-overflow" v-overflow-tips={{
+          content: cell,
+        }}>
+        {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
+      </div>
+    ),
+    },
+  ];
 
   const dataList = computed(() => {
     const list: truncateItem[] = [];
