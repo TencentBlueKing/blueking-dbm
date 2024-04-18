@@ -18,8 +18,8 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
-from backend.db_meta.models import Cluster
-from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS
+from backend.db_meta.models import Cluster, StorageInstance
+from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS, MediumEnum, MysqlVersionToDBBackupForMap
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
@@ -52,7 +52,7 @@ from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 """
 
 
-def build_surrounding_apps_sub_flow(
+def build_surrounding_apps_sub_flow(  # noqa
     bk_cloud_id: int,
     root_id: str,
     parent_global_data: dict,
@@ -88,11 +88,24 @@ def build_surrounding_apps_sub_flow(
     if len(master_ip_list) == 0 and len(slave_ip_list) == 0 and len(proxy_ip_list) == 0:
         raise Exception(_("执行ip信息为空"))
 
+    db_backup_pkg_type = None
+
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     if not is_init:
         # 如果是重建模式，理论上需要重新下发周边的介质包，保证介质包最新版本
         # 适配切换类单据场景
+        # 通过ip所在cluster，获取db_dbbackup版本
+        if is_install_monitor:
+            if env.MYSQL_BACKUP_PKG_MAP_ENABLE:
+                tmep_inst = StorageInstance.objects.filter(
+                    machine__ip__in=list(filter(None, list(set(master_ip_list + slave_ip_list))))
+                ).first()
+                db_version = tmep_inst.cluster.get().major_version
+                db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
+            else:
+                db_backup_pkg_type = MediumEnum.DbBackup
+
         sub_pipeline.add_act(
             act_name=_("下发MySQL周边程序介质"),
             act_component_code=TransFileComponent.code,
@@ -100,7 +113,11 @@ def build_surrounding_apps_sub_flow(
                 DownloadMediaKwargs(
                     bk_cloud_id=bk_cloud_id,
                     exec_ip=list(filter(None, list(set(master_ip_list + slave_ip_list)))),
-                    file_list=GetFileList(db_type=DBType.MySQL).get_mysql_surrounding_apps_package(),
+                    file_list=GetFileList(db_type=DBType.MySQL).get_mysql_surrounding_apps_package(
+                        is_install_backup=is_install_backup,
+                        is_install_monitor=is_install_monitor,
+                        db_backup_pkg_type=db_backup_pkg_type,
+                    ),
                 )
             ),
         )

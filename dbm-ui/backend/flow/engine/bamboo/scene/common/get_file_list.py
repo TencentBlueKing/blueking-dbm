@@ -14,7 +14,7 @@ from backend.configuration.constants import DBType
 from backend.db_package.models import Package
 from backend.db_services.redis.util import is_predixy_proxy_type
 from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
-from backend.flow.consts import CLOUD_SSL_PATH, MediumEnum
+from backend.flow.consts import CLOUD_SSL_PATH, MediumEnum, MysqlVersionToDBBackupForMap
 from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version
 
 
@@ -46,31 +46,64 @@ class GetFileList(object):
         return [f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{dba_toolkit.path}"]
 
     @staticmethod
-    def get_mysql_surrounding_apps_package():
+    def get_mysql_surrounding_apps_package(
+        is_install_backup: bool = True, is_install_monitor: bool = True, db_backup_pkg_type: MediumEnum = None
+    ):
         """
         mysql的备份介质包和数据校验介质包，提供切换后重建用的
+        @param is_install_backup 是否要下发备份程序的介质包
+        @param is_install_monitor 是否要下发监控程序的介质包
+        @param db_backup_pkg_type 下发备份程序的介质包类型
         """
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
         checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
         rotate_binlog = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog)
-        mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
         mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
         dba_toolkit_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLToolKit)
-        return [
-            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}",
+        pkg_list = [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{checksum_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{rotate_binlog.path}",
-            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{dba_toolkit_pkg.path}",
         ]
+        if is_install_monitor:
+            # 下发监控程序的介质包
+            mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
+            pkg_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}")
+
+        if is_install_backup:
+            # 下发备份程序的介质包
+            if db_backup_pkg_type:
+                # 如果直接传db_backup_pkg_type，则以它为准
+                db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
+                pkg_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}")
+                return pkg_list
+
+            elif env.MYSQL_BACKUP_PKG_MAP_ENABLE:
+                # 内部环境，追加内部版本介质包
+                txsql_db_backup_pkg = Package.get_latest_package(
+                    version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackupTXSQL
+                )
+                pkg_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{txsql_db_backup_pkg.path}")
+            else:
+                pass
+
+            # 默认情况下
+            db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
+            pkg_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}")
+
+        return pkg_list
 
     def mysql_install_package(self, db_version: str) -> list:
         """
         mysql安装需要的安装包
         """
+        if env.MYSQL_BACKUP_PKG_MAP_ENABLE:
+            db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
+        else:
+            db_backup_pkg_type = MediumEnum.DbBackup
+
         mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
+        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
         checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
         dba_toolkit = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLToolKit)
         rotate_binlog = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog)
@@ -92,8 +125,13 @@ class GetFileList(object):
         """
         重建mysql slave 需要的pkg列表
         """
+        if env.MYSQL_BACKUP_PKG_MAP_ENABLE:
+            db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
+        else:
+            db_backup_pkg_type = MediumEnum.DbBackup
+
         mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
+        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
         mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_pkg.path}",
