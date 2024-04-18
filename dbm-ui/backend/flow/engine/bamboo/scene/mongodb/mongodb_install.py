@@ -119,7 +119,7 @@ class MongoDBInstallFlow(object):
             )
 
         # dbmon
-        self.install_dbmon(data=self.data, pipeline=pipeline)
+        # self.install_dbmon(data=self.data, pipeline=pipeline)
         # 运行流程
         pipeline.run_pipeline()
 

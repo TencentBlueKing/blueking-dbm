@@ -16,6 +16,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateResourceParamBuilder, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -89,7 +90,10 @@ class MongoReplicaSetResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder
 
 
 @builders.BuilderFactory.register(
-    TicketType.MONGODB_REPLICASET_APPLY, is_apply=True, cluster_type=ClusterType.MongoReplicaSet
+    TicketType.MONGODB_REPLICASET_APPLY,
+    is_apply=True,
+    cluster_type=ClusterType.MongoReplicaSet,
+    iam=ActionEnum.MONGODB_APPLY,
 )
 class MongoReplicaSetApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoReplicaSetApplyDetailSerializer
