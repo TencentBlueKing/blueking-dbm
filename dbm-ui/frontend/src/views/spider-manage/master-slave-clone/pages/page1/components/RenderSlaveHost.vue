@@ -14,9 +14,11 @@
 <template>
   <BkLoading :loading="isLoading">
     <RenderText
-      :data="slaveHost"
+      ref="textRef"
+      :data="slaveInfo?.ip"
       :placeholder="t('选择目标主库后自动生成')"
-      readonly />
+      readonly
+      :rules="rules" />
   </BkLoading>
 </template>
 
@@ -24,6 +26,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import RemotePairInstanceModel from '@services/model/mysql-cluster/remote-pair-instance';
   import { getRemoteMachineInstancePair } from '@services/source/mysqlCluster';
 
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
@@ -37,18 +40,35 @@
     (e: 'change', value: string): void;
   }
 
+  interface Expose {
+    getValue: () => Promise<{
+      ip: string;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      bk_biz_id: number;
+    }>;
+  }
+
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const slaveHost = ref('');
+  const rules = [
+    {
+      validator: (value: string) => !!value,
+      message: t('不能为空'),
+    },
+  ];
+
+  const textRef = ref();
+  const slaveInfo = ref<RemotePairInstanceModel>();
 
   const { loading: isLoading, run: fetchRemoteMachineInstancePair } = useRequest(getRemoteMachineInstancePair, {
     manual: true,
     onSuccess(data) {
       const [machineInstancePair] = Object.values(data.machines);
-      slaveHost.value = machineInstancePair.ip;
+      slaveInfo.value = machineInstancePair;
       emits('change', machineInstancePair.ip);
     },
   });
@@ -61,7 +81,7 @@
           machines: [`${props.cloudId}:${props.ip}`],
         });
       } else {
-        slaveHost.value = '';
+        slaveInfo.value = undefined;
         emits('change', '');
       }
     },
@@ -69,4 +89,19 @@
       immediate: true,
     },
   );
+
+  defineExpose<Expose>({
+    getValue() {
+      const slave = slaveInfo.value;
+      if (slave) {
+        return Promise.resolve({
+          ip: slave.ip,
+          bk_cloud_id: slave.bk_cloud_id,
+          bk_host_id: slave.bk_host_id,
+          bk_biz_id: slave.bk_biz_id,
+        });
+      }
+      return textRef.value!.getValue();
+    },
+  });
 </script>

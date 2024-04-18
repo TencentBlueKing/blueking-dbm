@@ -26,6 +26,7 @@
     </td>
     <td style="padding: 0">
       <RenderSlaveHost
+        ref="slavaRef"
         :cloud-id="data.clusterData.cloudId"
         :ip="data.clusterData.ip"
         :placeholder="t('输入主机后自动生成')"
@@ -77,6 +78,7 @@
       domain: string;
       cloudId: number;
       cloudName: string;
+      hostId: number;
     };
     masterInstanceList: NonNullable<IValue['related_instances']>;
   }
@@ -91,6 +93,7 @@
       domain: '',
       cloudId: 0,
       cloudName: '',
+      hostId: 0,
     },
     masterInstanceList: [] as IDataRow['masterInstanceList'],
   });
@@ -108,15 +111,18 @@
     (e: 'hostInputFinish', value: string): void;
   }
 
+  interface HostItem {
+    ip: string;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    bk_biz_id: number;
+  }
+
   interface Exposes {
-    getValue: () => Promise<
-      {
-        ip: string;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        bk_biz_id: number;
-      }[]
-    >;
+    getValue: () => Promise<{
+      newInstaceList: HostItem[];
+      old_master: HostItem;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -126,6 +132,7 @@
 
   const hostRef = ref<InstanceType<typeof RenderMasterHost>>();
   const instanceRef = ref<InstanceType<typeof RenderNewInstace>>();
+  const slavaRef = ref<InstanceType<typeof RenderSlaveHost>>();
   const slaveHost = ref('');
 
   const masterInstanceList = computed(() =>
@@ -153,9 +160,16 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      return await Promise.all([hostRef.value!.getValue(), instanceRef.value!.getValue()]).then((data) => {
-        const [ip, instance] = data;
-        return instance;
+      return await Promise.all([
+        hostRef.value!.getValue(),
+        instanceRef.value!.getValue(),
+        slavaRef.value!.getValue(),
+      ]).then((data) => {
+        const [ip, newInstaceList, oldMaster] = data;
+        return {
+          newInstaceList,
+          old_master: oldMaster,
+        };
       });
     },
   });

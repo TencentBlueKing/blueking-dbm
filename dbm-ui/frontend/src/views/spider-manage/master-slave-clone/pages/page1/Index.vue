@@ -137,6 +137,7 @@
       domain: item.master_domain || '',
       cloudId: item.bk_cloud_id,
       cloudName: item.bk_cloud_name || '',
+      hostId: item.bk_host_id,
     },
     masterInstanceList: item.related_instances || [],
   });
@@ -216,31 +217,28 @@
 
   // 提交
   const handleSubmit = async () => {
-    const rowDataList = await Promise.all(
-      rowRefs.value!.map(
-        (item: {
-          getValue: () => Promise<
-            {
-              ip: string;
-              bk_cloud_id: number;
-              bk_host_id: number;
-              bk_biz_id: number;
-            }[]
-          >;
-        }) => item.getValue(),
-      ),
-    );
+    const rowDataList = await Promise.all(rowRefs.value!.map((item) => item.getValue()));
     const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
       details: {
         backup_source: backupSource.value,
         ip_source: 'manual_input',
-        infos: rowDataList.map((rowItem, rowIndex) => ({
-          cluster_id: tableData.value[rowIndex].clusterData.clusterId,
-          new_master: rowItem[0],
-          new_slave: rowItem[1],
-        })),
+        infos: rowDataList.map((rowItem, rowIndex) => {
+          const { clusterData } = tableData.value[rowIndex];
+          return {
+            cluster_id: clusterData.clusterId,
+            new_master: rowItem.newInstaceList[0],
+            new_slave: rowItem.newInstaceList[1],
+            old_master: {
+              ip: clusterData.ip,
+              bk_cloud_id: clusterData.cloudId,
+              bk_host_id: clusterData.hostId,
+              bk_biz_id: currentBizId,
+            },
+            old_slave: rowItem.old_master,
+          };
+        }),
       },
     };
 
