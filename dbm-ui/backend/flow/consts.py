@@ -765,6 +765,19 @@ class MySQLBackupTypeEnum(str, StructuredEnum):
     PHYSICAL = EnumField("physical", _("物理备份"))
 
 
+# 定义根据mysql大版本获取对应的db-backup-pkg-type
+MysqlVersionToDBBackupForMap = {
+    "MySQL-5.5": MediumEnum.DbBackupTXSQL,
+    "MySQL-5.6": MediumEnum.DbBackupTXSQL,
+    "MySQL-5.7": MediumEnum.DbBackupTXSQL,
+    "MySQL-8.0": MediumEnum.DbBackup,
+    "TXSQL-8.0": MediumEnum.DbBackupTXSQL,
+    "MySQL-5.7-community": MediumEnum.DbBackup,
+    "Spider-1": MediumEnum.DbBackup,
+    "Spider-3": MediumEnum.DbBackup,
+}
+
+
 class MySQLBackupFileTagEnum(str, StructuredEnum):
     MYSQL_FULL_BACKUP = EnumField("MYSQL_FULL_BACKUP", _("全备-保留25天"))
     LONGDAY_DBFILE_3Y = EnumField("LONGDAY_DBFILE_3Y", _("长久存储-保留三年"))

@@ -41,6 +41,7 @@ from backend.flow.consts import (
     DBActuatorTypeEnum,
     MediumEnum,
     MysqlChangeMasterType,
+    MysqlVersionToDBBackupForMap,
 )
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
@@ -532,7 +533,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         安装备份程序，目前是必须是先录入元信息后，才执行备份程序的安装
         非spider-master角色实例不安装备份程序，已在外层屏蔽
         """
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
         cfg = self.__get_dbbackup_config()
         mysql_ports = []
         port_domain_map = {}
@@ -565,13 +565,15 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
             shard_port_map[instance.port] = shard_port_map.get(instance.port, 0)
 
-            # # 如果是spider-master类型机器，中控实例也需要安装备份程序
-            # if role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
-            #     mysql_ports.append(instance.admin_port)
-            #     port_domain_map[instance.admin_port] = cluster.immute_domain
-            #     cluster_id_map[instance.admin_port] = cluster.id
-
         cluster_type = ins_list[0].cluster.get().cluster_type
+
+        # 获取backup程序包的名称
+        if env.MYSQL_BACKUP_PKG_MAP_ENABLE:
+            db_version = ins_list[0].cluster.get().major_version
+            db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
+        else:
+            db_backup_pkg_type = MediumEnum.DbBackup
+        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,

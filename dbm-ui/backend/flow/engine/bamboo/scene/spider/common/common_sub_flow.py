@@ -56,7 +56,7 @@ from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
 
 def add_spider_slaves_sub_flow(
-    uid: int,
+    uid: str,
     cluster: Cluster,
     slave_domain: str,
     add_spider_slaves: list,
@@ -71,6 +71,7 @@ def add_spider_slaves_sub_flow(
     @param add_spider_slaves: 待添加的slave机器列表信息
     @param root_id: flow流程的root_id
     @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
+    @param uid: 单据id
     """
     tdbctl_pass = get_random_string(length=10)
 
