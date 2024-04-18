@@ -16,42 +16,54 @@
   <div
     class="db-member-selector-wrapper"
     :class="{'is-focus': isFocous}">
-    <BkTagInput
-      v-model="modelValue"
-      allow-auto-match
-      allow-create
-      has-delete-icon
-      :list="peopleList"
-      @input="remoteFilter" />
+    <BkSelect
+      class="db-member-selector"
+      :clearable="false"
+      :collapse-tags="collapseTags"
+      filterable
+      :model-value="modelValue"
+      multiple
+      multiple-mode="tag"
+      :remote-method="remoteFilter"
+      @blur="handleBlur"
+      @change="handleChange"
+      @focus="handleFocus">
+      <BkOption
+        v-for="item of state.list"
+        :key="item.username"
+        :label="item.username"
+        :value="item.username" />
+    </BkSelect>
     <DbIcon
-      v-bk-tooltips="t('复制')"
+      v-bk-tooltips="$t('复制')"
       type="copy db-member-selector-copy"
       @click.stop="handleCopy" />
   </div>
 </template>
 
 <script setup lang="tsx">
-  import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
-
   import { getUserList } from '@services/source/user';
 
   import { useCopy } from '@hooks';
 
   type GetUsesParams = ServiceParameters<typeof getUserList>
 
+  interface Props {
+    collapseTags?: boolean
+  }
+
+  withDefaults(defineProps<Props>(), {
+    collapseTags: false,
+  });
   const modelValue = defineModel<string[]>({
     default: () => [],
   });
 
   const copy = useCopy();
-  const { t } = useI18n();
 
-  const peopleList = ref<{
-    id: string,
-    name: string,
-  }[]>([]);
-
+  const state = reactive({
+    list: [] as {username: string}[],
+  });
   const isFocous = ref(false);
 
   /**
@@ -60,10 +72,7 @@
   const fetchUseList = async (params: GetUsesParams = {}) => {
     await getUserList(params).then((res) => {
       // 过滤已经选中的用户
-      peopleList.value = res.results.filter(item => !modelValue.value?.includes(item.username)).map(item => ({
-        id: item.username,
-        name: item.username,
-      }));
+      state.list = res.results.filter(item => !modelValue.value?.includes(item.username));
     });
   };
   // 初始化加载
@@ -72,7 +81,16 @@
   /**
    * 远程搜索人员
    */
-  const remoteFilter = _.debounce((value: string) => fetchUseList({ fuzzy_lookups: value }), 500);
+  const remoteFilter = async (value: string) => {
+    await fetchUseList({ fuzzy_lookups: value });
+  };
+
+  const handleChange = (values: string[]) => {
+    modelValue.value = values;
+  };
+
+  const handleFocus = () => isFocous.value = true;
+  const handleBlur = () => isFocous.value = false;
 
   const handleCopy = () => {
     copy(modelValue.value.join(';'));
