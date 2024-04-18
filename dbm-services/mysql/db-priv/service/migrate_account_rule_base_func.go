@@ -125,7 +125,7 @@ func DoAddAccounts(apps map[string]int64, users []PrivModule, clusterType string
 		}
 		log, _ := json.Marshal(account)
 		// 添加帐号
-		_, err := account.AddAccount(string(log))
+		_, err := account.AddAccount(string(log), "add_account")
 		if err != nil {
 			slog.Error("add account error", account, err)
 			return err
@@ -150,7 +150,7 @@ func DoAddAccountRule(rule *PrivModule, apps map[string]int64, clusterType strin
 		Dbname: rule.Dbname, Priv: priv, Operator: "migrate"}
 	log, _ := json.Marshal(rulePara)
 	// 添加帐号规则
-	err = rulePara.AddAccountRule(string(log))
+	err = rulePara.AddAccountRule(string(log), "add_account_rule")
 	if err != nil {
 		return fmt.Errorf("add rule failed: %s", err.Error())
 	}

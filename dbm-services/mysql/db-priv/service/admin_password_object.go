@@ -36,6 +36,7 @@ type GetPasswordPara struct {
 	Offset    *int              `json:"offset"`
 	BeginTime string            `json:"begin_time"`
 	EndTime   string            `json:"end_time"`
+	Operator  string            `json:"operator"`
 }
 
 type UserInComponent struct {

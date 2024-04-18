@@ -45,7 +45,7 @@ func (m *CloneClientPrivParaList) CloneClientPrivDryRun() error {
 }
 
 // CloneClientPriv 克隆客户端权限
-func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
+func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) error {
 	var errMsg Err
 	wg := sync.WaitGroup{}
 	tokenBucket := make(chan int, 10)
@@ -61,7 +61,7 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
 		m.ClusterType = &ct
 	}
 
-	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
+	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 
 	client := util.NewClientByHosts(viper.GetString("dbmeta"))
 	resp, errOuter := GetAllClustersInfo(client, BkBizIdPara{m.BkBizId})

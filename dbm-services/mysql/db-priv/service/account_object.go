@@ -72,6 +72,7 @@ type GetAccountListPara struct {
 type PrivLog struct {
 	Id       int64     `gorm:"column:id;primary_key;auto_increment" json:"id"`
 	BkBizId  int64     `gorm:"column:bk_biz_id;not_null" json:"bk_biz_id"`
+	Ticket   string    `gorm:"column:ticket" json:"ticket"`
 	Operator string    `gorm:"column:operator" json:"operator"`
 	Para     string    `gorm:"column:para" json:"para"`
 	Time     time.Time `gorm:"column:execute_time" json:"execute_time"`

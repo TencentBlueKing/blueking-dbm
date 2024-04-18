@@ -189,12 +189,16 @@ func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, m
 			}
 			// 备库域名只授予查询类权限
 			if clusterType == tendbha && tendbhaMasterDomain == false {
-				// 执行 show databases 可以查看授予 select 的 db。不授予全局 show databases 权限，因为看到所有 db。
 				sql = fmt.Sprintf("GRANT SELECT, SHOW VIEW ON `%s`.* TO '%s'@'%s' %s;",
 					rule.Dbname, account.User, ip, identifiedByPassword)
 				sqlTemp = append(sqlTemp, sql)
 				if containConnLogDBFlag {
 					sql = fmt.Sprintf("%s '%s'@'%s' %s;", insertConnLogPriv, account.User, ip, identifiedByPassword)
+					sqlTemp = append(sqlTemp, sql)
+				}
+				if strings.Contains(strings.ToLower(rule.GlobalPriv), "show databases") {
+					sql = fmt.Sprintf(`GRANT SHOW DATABASES ON *.* TO '%s'@'%s' %s;`,
+						account.User, ip, identifiedByPassword)
 					sqlTemp = append(sqlTemp, sql)
 				}
 				result.mu.Lock()

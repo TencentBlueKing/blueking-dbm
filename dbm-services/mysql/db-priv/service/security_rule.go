@@ -7,7 +7,7 @@ import (
 )
 
 // ModifySecurityRule 修改安全规则
-func (m *SecurityRulePara) ModifySecurityRule(jsonPara string) error {
+func (m *SecurityRulePara) ModifySecurityRule(jsonPara string, ticket string) error {
 	if m.Id == 0 {
 		return errno.RuleIdNull
 	}
@@ -22,13 +22,13 @@ func (m *SecurityRulePara) ModifySecurityRule(jsonPara string) error {
 	if result.RowsAffected == 0 {
 		return errno.RuleNotExisted
 	}
-	log := PrivLog{BkBizId: 0, Operator: m.Operator, Para: jsonPara, Time: updateTime}
+	log := PrivLog{BkBizId: 0, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: updateTime}
 	AddPrivLog(log)
 	return nil
 }
 
 // AddSecurityRule 添加安全规则
-func (m *SecurityRulePara) AddSecurityRule(jsonPara string) error {
+func (m *SecurityRulePara) AddSecurityRule(jsonPara string, ticket string) error {
 	var count uint64
 	// 检查是否已存在
 	err := DB.Self.Model(&TbSecurityRules{}).Where(&TbSecurityRules{Name: m.Name}).
@@ -47,8 +47,7 @@ func (m *SecurityRulePara) AddSecurityRule(jsonPara string) error {
 	if err != nil {
 		return err
 	}
-	log := PrivLog{BkBizId: 0, Operator: m.Operator, Para: jsonPara, Time: insertTime}
-	AddPrivLog(log)
+	AddPrivLog(PrivLog{BkBizId: 0, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: insertTime})
 	return nil
 }
 
@@ -69,7 +68,7 @@ func (m *SecurityRulePara) GetSecurityRule() (*TbSecurityRules, error) {
 }
 
 // DeleteSecurityRule 删除安全规则
-func (m *SecurityRulePara) DeleteSecurityRule(jsonPara string) error {
+func (m *SecurityRulePara) DeleteSecurityRule(jsonPara string, ticket string) error {
 	var rules []*TbSecurityRules
 	if m.Id == 0 {
 		return errno.RuleIdNull
@@ -88,7 +87,7 @@ func (m *SecurityRulePara) DeleteSecurityRule(jsonPara string) error {
 	if err != nil {
 		return err
 	}
-	log := PrivLog{BkBizId: 0, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
+	log := PrivLog{BkBizId: 0, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log/slog"
+	"strings"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/service"
@@ -16,6 +17,7 @@ func (m *PrivService) MigrateAccountRule(c *gin.Context) {
 	slog.Info("do MigrateAccountRule!")
 	// 迁移帐号的入参
 	var input service.MigratePara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		slog.Error("msg", err)
@@ -28,7 +30,7 @@ func (m *PrivService) MigrateAccountRule(c *gin.Context) {
 		return
 	}
 	//  获取帐号规则
-	success, fail, successSpider, failSpider, exUids, err := input.MigrateAccountRule()
+	success, fail, successSpider, failSpider, exUids, err := input.MigrateAccountRule(string(body), ticket)
 	info := "成功"
 	if err != nil {
 		slog.Error("msg", "失败", err.Error())
