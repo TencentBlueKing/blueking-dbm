@@ -12,6 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase
+from backend.db_meta.models import AppCache
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
@@ -27,10 +28,11 @@ class MongoDBDisableDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
 
 class MongoDBDisableFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.fake_scene
+    controller = MongoDBController.disable_cluster
 
     def format_ticket_data(self):
-        pass
+        bk_biz_id = self.ticket_data["bk_biz_id"]
+        self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
 
 
 @builders.BuilderFactory.register(
