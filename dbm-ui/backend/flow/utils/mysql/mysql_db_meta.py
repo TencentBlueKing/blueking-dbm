@@ -632,7 +632,6 @@ class MySQLDBMeta(object):
             for cluster_type in cluster_types_list:
                 cc_manage = CcManage(self.bk_biz_id, cluster_type=cluster_type)
                 cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
-                cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
             # 删除实例元数据信息
             api.storage_instance.delete(
                 [
@@ -765,13 +764,6 @@ class MySQLDBMeta(object):
         """
         实例卸载完毕修改元数据
         """
-        # 获取cluster_types_list
-        cluster_types = (
-            Cluster.objects.filter(cluster_id__in=self.cluster["cluster_ids"])
-            .values_list("cluster_type", flat=True)
-            .distinct()
-        )
-        cluster_types_list = list(cluster_types)
 
         with atomic():
             for cluster_id in self.cluster["cluster_ids"]:
@@ -785,10 +777,10 @@ class MySQLDBMeta(object):
                     port_list=[master.port],
                 )
                 api.cluster.tendbha.remove_slave(cluster_id=cluster.id, target_slave_ip=old_slave.machine.ip)
-                for cluster_type in cluster_types_list:
-                    CcManage(self.bk_biz_id, cluster_type=cluster_type).delete_service_instance(
-                        bk_instance_ids=[old_slave.bk_instance_id]
-                    )
+                CcManage(self.bk_biz_id, cluster_type=cluster.cluster_type).delete_service_instance(
+                    bk_instance_ids=[old_slave.bk_instance_id]
+                )
+
                 # 删除实例元数据信息
                 api.storage_instance.delete(
                     [

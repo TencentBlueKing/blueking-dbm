@@ -92,9 +92,7 @@ class CCTopoOperator:
 
         cluster_ids = [cluster.id for cluster in self.clusters]
         # 获取cluster_types_list
-        cluster_types = (
-            Cluster.objects.filter(cluster_id__in=cluster_ids).values_list("cluster_type", flat=True).distinct()
-        )
+        cluster_types = Cluster.objects.filter(id__in=cluster_ids).values_list("cluster_type", flat=True).distinct()
         cluster_types_list = list(cluster_types)
         # 根据机器类型对实例进行分组
         machine_type_instances_map: Dict[str, List[Union[StorageInstance, ProxyInstance]]] = defaultdict(list)
