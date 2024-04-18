@@ -1,0 +1,12 @@
+SET NAMES utf8;
+update tb_accounts set update_time=create_time where update_time=0;
+update tb_account_rules set update_time=create_time where update_time=0;
+update tb_security_rules set update_time=create_time where update_time=0;
+update tb_passwords set update_time=null where update_time=0;
+ALTER TABLE tb_accounts CONVERT TO CHARACTER SET utf8 COLLATE utf8_bin;
+ALTER TABLE tb_account_rules CONVERT TO CHARACTER SET utf8 COLLATE utf8_bin;
+ALTER TABLE tb_passwords CONVERT TO CHARACTER SET utf8 COLLATE utf8_bin;
+ALTER TABLE tb_security_rules CONVERT TO CHARACTER SET utf8 COLLATE utf8_bin;
+ALTER TABLE priv_logs add index idx_execute_time(execute_time);
+ALTER TABLE priv_logs add index idx_bk_biz_id_ticket_execute_time(bk_biz_id,ticket,execute_time);
+ALTER TABLE priv_logs drop primary key, add primary key (id, execute_time);

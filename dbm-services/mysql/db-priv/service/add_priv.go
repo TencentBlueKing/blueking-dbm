@@ -51,7 +51,7 @@ func (m *PrivTaskPara) AddPrivDryRun() (PrivTaskPara, error) {
 }
 
 // AddPriv 使用账号规则，新增权限
-func (m *PrivTaskPara) AddPriv(jsonPara string) error {
+func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 	slog.Info(fmt.Sprintf("PrivTaskPara:%v", m))
 	var errMsg, successMsg Err
 	var wg sync.WaitGroup
@@ -59,7 +59,7 @@ func (m *PrivTaskPara) AddPriv(jsonPara string) error {
 	if _, outerErr := m.AddPrivDryRun(); outerErr != nil {
 		return outerErr
 	}
-	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
+	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 	tokenBucket := make(chan int, 10)
 	client := util.NewClientByHosts(viper.GetString("dbmeta"))
 	for _, rule := range m.AccoutRules { // 添加权限,for acccountRuleList;for instanceList; do create a routine
@@ -175,7 +175,7 @@ func (m *PrivTaskPara) AddPriv(jsonPara string) error {
 }
 
 // AddPrivWithoutAccountRule 不使用账号规则模版，在mysql实例授权。此接口不被页面前端调用，为后台服务设计。不建议通过此接口授权。
-func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string) error {
+func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string, ticket string) error {
 	var clusterType string
 	if m.Psw == m.User {
 		return errno.PasswordConsistentWithAccountName
@@ -205,6 +205,6 @@ func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string) e
 	if err != nil {
 		return errno.GrantPrivilegesFail.Add(err.Error())
 	}
-	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
+	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 	return nil
 }

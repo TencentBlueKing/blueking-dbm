@@ -40,9 +40,9 @@ func (m *CloneInstancePrivParaList) CloneInstancePrivDryRun() error {
 }
 
 // CloneInstancePriv 克隆实例权限
-func (m *CloneInstancePrivPara) CloneInstancePriv(jsonPara string) error {
+func (m *CloneInstancePrivPara) CloneInstancePriv(jsonPara string, ticket string) error {
 
-	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
+	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 
 	if m.BkBizId == 0 {
 		return errno.BkBizIdIsEmpty

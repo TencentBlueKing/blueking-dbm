@@ -204,7 +204,7 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 	errorChan := make(chan error, 1)
 	finishChan := make(chan bool, 1)
 	// Delete system user
-	var userExcluded = []string{"ADMIN", "mysql.session", "mysql.sys", "mysql.infoschema", "tdbctl"}
+	var userExcluded = []string{"ADMIN", "mysql.session", "mysql.sys", "mysql.infoschema", "spider"}
 	for _, row := range userGrants {
 		wg.Add(1)
 		go func(row UserGrant, targetIp, sourceIp string) {
@@ -217,15 +217,15 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 				}
 			}()
 			for _, user := range userExcluded { // delete system user
-				if regexp.MustCompile(fmt.Sprintf(`'%s'`, user)).MatchString(row.UserHost) {
+				if regexp.MustCompile(fmt.Sprintf("['`]%s['`]", user)).MatchString(row.UserHost) {
 					return
 				}
 			}
-			reg := regexp.MustCompile(fmt.Sprintf(`'%s'`, targetIp)) // delete local ip user
+			reg := regexp.MustCompile(fmt.Sprintf("['`]%s['`]", targetIp)) // delete local ip user
 			if reg.MatchString(row.UserHost) {
 				return
 			}
-			reg = regexp.MustCompile(fmt.Sprintf(`'%s'`, sourceIp)) // change source ip user to local ip user
+			reg = regexp.MustCompile(fmt.Sprintf("['`]%s['`]", sourceIp)) // change source ip user to local ip user
 			if reg.MatchString(row.UserHost) {
 				row.UserHost = reg.ReplaceAllString(row.UserHost, fmt.Sprintf(`%s`, targetIp))
 				var tmp []string

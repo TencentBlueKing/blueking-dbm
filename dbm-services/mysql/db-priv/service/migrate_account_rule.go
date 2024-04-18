@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"dbm-services/mysql/priv-service/util"
 )
 
 // MigrateAccountRule 迁移帐号规则
-func (m *MigratePara) MigrateAccountRule() ([]PrivRule, []PrivRule, []PrivRule, []PrivRule, []int, error) {
+func (m *MigratePara) MigrateAccountRule(jsonPara string, ticket string) ([]PrivRule, []PrivRule, []PrivRule, []PrivRule, []int, error) {
 	apps, errOuter := m.CheckPara()
 	if errOuter != nil {
 		return nil, nil, nil, nil, nil, errOuter
@@ -55,6 +56,8 @@ func (m *MigratePara) MigrateAccountRule() ([]PrivRule, []PrivRule, []PrivRule, 
 			slog.Info(passTips)
 		}
 	}
+
+	AddPrivLog(PrivLog{BkBizId: 0, Ticket: ticket, Operator: "migrator", Para: jsonPara, Time: time.Now()})
 
 	// 获取需要迁移的scr、gcs中的账号规则
 	// db_module为spider_master/spider_slave属于spider的权限规则
