@@ -18,7 +18,7 @@
         <ScrollFaker v-else>
           <div v-if="serachResult">
             <template
-              v-for="resultType in Object.keys(serachResult)"
+              v-for="resultType in serachResultKeyList"
               :key="resultType">
               <div
                 v-if="serachResult[resultType].length"
@@ -83,6 +83,7 @@
     machine: t('主机'),
     task: t('任务ID'),
     ticket: t('单据'),
+    resource_pool: t('资源池主机'),
   };
 
   const isSearchEmpty = ref(false);
@@ -95,6 +96,13 @@
 
   const bizIdNameMap = computed(() => bizList
     .reduce((result, item) => Object.assign(result, { [item.bk_biz_id]: item.name }), {}));
+
+  const serachResultKeyList = computed(() => {
+    if (!serachResult.value) {
+      return [];
+    }
+    return Object.keys(serachResult.value) as (keyof typeof serachResult.value)[];
+  });
 
   const {
     data: serachResult,

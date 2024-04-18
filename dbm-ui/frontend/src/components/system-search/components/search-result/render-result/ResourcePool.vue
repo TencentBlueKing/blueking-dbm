@@ -2,19 +2,19 @@
   <div>
     <div
       v-for="item in data"
-      :key="item.name"
+      :key="item.ip"
       class="result-item"
       @click="handleGo(item)">
       <div class="value-text">
         <HightLightText
           :key-word="keyWord"
-          :text="item.name" />
+          :text="item.ip" />
         <div class="intro">
-          ({{ t('集群名') }}, {{ item.immute_domain }})
+          ({{ t('资源池主机') }})
         </div>
       </div>
       <div class="biz-text">
-        {{ bizIdNameMap[item.bk_biz_id] }}
+        {{ t('资源池') }}
       </div>
     </div>
   </div>
@@ -22,39 +22,32 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { systemSearchCache } from '@common/cache';
+  import { useLocation } from '@hooks';
 
-  import { useRedirect } from '@components/system-search/hooks/useRedirect';
+  import { systemSearchCache } from '@common/cache';
 
   import HightLightText from './components/HightLightText.vue';
 
   interface Props {
     keyWord: string,
     data: {
-      bk_biz_id: number,
-      cluster_type: string,
-      id: number,
-      immute_domain: string,
-      name: string
+      ip: string,
     }[],
-    bizIdNameMap: Record<number, string>
   }
 
   defineProps<Props>();
 
   const { t } = useI18n();
-  const handleRedirect = useRedirect();
+  const location = useLocation();
 
   const handleGo = (data: Props['data'][number]) => {
-    systemSearchCache.appendItem(data.name);
+    systemSearchCache.appendItem(data.ip);
 
-    handleRedirect(
-      data.cluster_type,
-      {
-        name: data.name,
+    location({
+      name: 'resourcePool',
+      query: {
+        hosts: data.ip,
       },
-      data.bk_biz_id,
-    );
+    });
   };
 </script>
-

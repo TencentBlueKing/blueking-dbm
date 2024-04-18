@@ -47,7 +47,6 @@
 
   const modelValue = defineModel<string>({
     default: '',
-    local: true,
   });
 
   const historyKeyWordList = shallowRef(systemSearchCache.getItem());
