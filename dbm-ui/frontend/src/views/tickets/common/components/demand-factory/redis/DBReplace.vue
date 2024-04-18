@@ -12,24 +12,19 @@
 -->
 
 <template>
-  <BkLoading :loading="loading">
-    <DbOriginalTable
-      :columns="columns"
-      :data="tableData" />
-  </BkLoading>
+  <DbOriginalTable
+    :columns="columns"
+    :data="tableData" />
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { getResourceSpecList } from '@services/source/dbresourceSpec';
-  import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisDBReplaceDetails, TicketDetails } from '@services/types/ticket';
+  import type { RedisDBReplaceDetails } from '@services/model/ticket/details/redis';
+  import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<RedisDBReplaceDetails>
+    ticketDetails: TicketModel<RedisDBReplaceDetails>
   }
 
   interface RowData {
@@ -43,14 +38,11 @@
     },
   }
 
-
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
-  const tableData = ref<RowData[]>([]);
+
 
   const columns = [
     {
@@ -75,92 +67,64 @@
     },
   ];
 
-  const { loading } = useRequest(getRedisListByBizId, {
-    defaultParams: [{
-      bk_biz_id: props.ticketDetails.bk_biz_id,
-      offset: 0,
-      limit: -1,
-    }],
-    onSuccess: async (result) => {
-      if (result.results.length < 1) {
-        return;
-      }
-      const clusterMap = result.results.reduce((obj, item) => {
-        Object.assign(obj, { [item.id]: {
-          clusterName: item.master_domain,
-          clusterType: item.cluster_spec.spec_cluster_type,
-        } });
-        return obj;
-      }, {} as Record<number, {clusterName: string, clusterType: string}>);
+  const tableData = computed(() => {
+    const {
+      clusters,
+      infos,
+      specs,
+    } = props.ticketDetails.details;
 
-
-      // 避免重复查询
-      const clusterTypes = [...new Set(Object.values(clusterMap).map(item => item.clusterType))];
-
-      const sepcMap: Record<string, ResourceSpecModel[]> = {};
-
-      await Promise.all(clusterTypes.map(async (type) => {
-        const ret = await getResourceSpecList({
-          spec_cluster_type: type,
-          limit: -1,
-          offset: 0,
+    return infos.reduce((results, item) => {
+      if (item.proxy.length > 0) {
+        item.proxy.forEach((proxyItem) => {
+          const specInfo = specs[proxyItem.spec_id];
+          const obj = {
+            ip: proxyItem.ip,
+            role: 'Proxy',
+            clusterName: clusters[item.cluster_id].immute_domain,
+            clusterType: clusters[item.cluster_id].cluster_type,
+            sepc: {
+              id: proxyItem.spec_id,
+              name: specInfo ? specInfo.name : '',
+            },
+          };
+          results.push(obj);
         });
-        sepcMap[type] = ret.results;
-      }));
-      loading.value = false;
-      tableData.value = infos.reduce((results, item) => {
-        const sepcList = sepcMap[clusterMap[item.cluster_id].clusterType];
-        if (item.proxy.length > 0) {
-          item.proxy.forEach((proxyItem) => {
-            const specInfo = sepcList.find(row => row.spec_id === proxyItem.spec_id);
-            const obj = {
-              ip: proxyItem.ip,
-              role: 'Proxy',
-              clusterName: clusterMap[item.cluster_id].clusterName,
-              clusterType: clusterMap[item.cluster_id].clusterType,
-              sepc: {
-                id: proxyItem.spec_id,
-                name: specInfo ? specInfo.spec_name : '',
-              },
-            };
-            results.push(obj);
-          });
-        }
-        if (item.redis_master.length > 0) {
-          item.redis_master.forEach((masterItem) => {
-            const specInfo = sepcList.find(row => row.spec_id === masterItem.spec_id);
-            const obj = {
-              ip: masterItem.ip,
-              role: 'Master',
-              clusterName: clusterMap[item.cluster_id].clusterName,
-              clusterType: clusterMap[item.cluster_id].clusterType,
-              sepc: {
-                id: masterItem.spec_id,
-                name: specInfo ? specInfo.spec_name : '',
-              },
-            };
-            results.push(obj);
-          });
-        }
-        if (item.redis_slave.length > 0) {
-          item.redis_slave.forEach((slaveItem) => {
-            const specInfo = sepcList.find(row => row.spec_id === slaveItem.spec_id);
-            const obj = {
-              ip: slaveItem.ip,
-              role: 'Slave',
-              clusterName: clusterMap[item.cluster_id].clusterName,
-              clusterType: clusterMap[item.cluster_id].clusterType,
-              sepc: {
-                id: slaveItem.spec_id,
-                name: specInfo ? specInfo.spec_name : '',
-              },
-            };
-            results.push(obj);
-          });
-        }
+      }
+      if (item.redis_master.length > 0) {
+        item.redis_master.forEach((masterItem) => {
+          const specInfo = specs[masterItem.spec_id];
+          const obj = {
+            ip: masterItem.ip,
+            role: 'Master',
+            clusterName: clusters[item.cluster_id].immute_domain,
+            clusterType: clusters[item.cluster_id].cluster_type,
+            sepc: {
+              id: masterItem.spec_id,
+              name: specInfo ? specInfo.name : '',
+            },
+          };
+          results.push(obj);
+        });
+      }
+      if (item.redis_slave.length > 0) {
+        item.redis_slave.forEach((slaveItem) => {
+          const specInfo = specs[slaveItem.spec_id];
+          const obj = {
+            ip: slaveItem.ip,
+            role: 'Slave',
+            clusterName: clusters[item.cluster_id].immute_domain,
+            clusterType: clusters[item.cluster_id].cluster_type,
+            sepc: {
+              id: slaveItem.spec_id,
+              name: specInfo ? specInfo.name : '',
+            },
+          };
+          results.push(obj);
+        });
+      }
 
-        return results;
-      }, [] as RowData[]);
-    },
+      return results;
+    }, [] as RowData[])
   });
 </script>

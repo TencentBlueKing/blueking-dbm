@@ -53,14 +53,15 @@
 
   import RedisModel from '@services/model/redis/redis';
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
+  import type { RedisClusterShardUpdateDetails } from '@services/model/ticket/details/redis';
+  import TicketModel from '@services/model/ticket/ticket';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisClusterShardUpdateDetails, TicketDetails } from '@services/types/ticket';
 
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
 
   interface Props {
-    ticketDetails: TicketDetails<RedisClusterShardUpdateDetails>
+    ticketDetails: TicketModel<RedisClusterShardUpdateDetails>
   }
 
   interface RowData {
@@ -75,9 +76,9 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
+
+  const { infos } = props.ticketDetails.details;
 
   const columns = [
     {

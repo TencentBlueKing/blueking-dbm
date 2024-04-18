@@ -29,6 +29,7 @@
     <td style="padding: 0">
       <RenderTargetClusterType
         ref="targetClusterTypeRef"
+        :data="data.targetClusterType"
         :exclude-type="data.clusterType"
         :is-loading="data.isLoading"
         @change="handleClusterTypeChange" />

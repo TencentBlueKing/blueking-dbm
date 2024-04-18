@@ -21,12 +21,14 @@
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { RedisKeysDetails, TicketDetails } from '@services/types/ticket';
+  import type { RedisKeysDetails } from '@services/model/ticket/details/redis';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
+
   interface Props{
-    ticketDetails: TicketDetails<RedisKeysDetails>
+    ticketDetails: TicketModel<RedisKeysDetails>
   }
 
   const props = defineProps<Props>();
@@ -66,18 +68,18 @@
       field: 'domain',
       showOverflowTooltip: false,
       render: ({ data } : { data: RedisAssign }) => (
-      <div class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
-            <p>${t('域名')}：${data.domain}</p>
-            ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-          `,
-          allowHTML: true,
-      }}>
-        <span>{data.domain}</span><br />
-        <span class="cluster-name__alias">{data.name}</span>
-      </div>
-    ),
+       <div class="cluster-name text-overflow"
+         v-overflow-tips={{
+           content: `
+             <p>${t('域名')}：${data.domain}</p>
+             ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
+           `,
+           allowHTML: true,
+       }}>
+         <span>{data.domain}</span><br />
+         <span class="cluster-name__alias">{data.name}</span>
+       </div>
+     ),
     },
     {
       label: t('包含Key'),
@@ -109,18 +111,18 @@
       field: 'domain',
       showOverflowTooltip: false,
       render: ({ data } : { data: RedisAssign }) => (
-      <div class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
-            <p>${t('域名')}：${data.domain}</p>
-            ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-          `,
-          allowHTML: true,
-      }}>
-        <span>{data.domain}</span><br />
-        <span class="cluster-name__alias">{data.name}</span>
-      </div>
-    ),
+       <div class="cluster-name text-overflow"
+         v-overflow-tips={{
+           content: `
+             <p>${t('域名')}：${data.domain}</p>
+             ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
+           `,
+           allowHTML: true,
+       }}>
+         <span>{data.domain}</span><br />
+         <span class="cluster-name__alias">{data.name}</span>
+       </div>
+     ),
     },
     {
       label: t('提取时间'),
@@ -138,18 +140,18 @@
       field: 'domain',
       showOverflowTooltip: false,
       render: ({ data } : { data: RedisAssign }) => (
-      <div class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
-            <p>${t('域名')}：${data.domain}</p>
-            ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-          `,
-          allowHTML: true,
-      }}>
-        <span>{data.domain}</span><br />
-        <span class="cluster-name__alias">{data.name}</span>
-      </div>
-    ),
+       <div class="cluster-name text-overflow"
+         v-overflow-tips={{
+           content: `
+             <p>${t('域名')}：${data.domain}</p>
+             ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
+           `,
+           allowHTML: true,
+       }}>
+         <span>{data.domain}</span><br />
+         <span class="cluster-name__alias">{data.name}</span>
+       </div>
+     ),
     },
     {
       label: t('架构版本'),
@@ -169,7 +171,7 @@
           forever_backup: t('长期备份'),
         };
         return (
-        <span>{backupType[cell]}</span>
+         <span>{backupType[cell]}</span>
         );
       },
     },
@@ -182,18 +184,18 @@
       field: 'domain',
       showOverflowTooltip: false,
       render: ({ data } : { data: RedisAssign }) => (
-      <div class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
-            <p>${t('域名')}：${data.domain}</p>
-            ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-          `,
-          allowHTML: true,
-      }}>
-        <span>{data.domain}</span><br />
-        <span class="cluster-name__alias">{data.name}</span>
-      </div>
-    ),
+       <div class="cluster-name text-overflow"
+         v-overflow-tips={{
+           content: `
+             <p>${t('域名')}：${data.domain}</p>
+             ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
+           `,
+           allowHTML: true,
+       }}>
+         <span>{data.domain}</span><br />
+         <span class="cluster-name__alias">{data.name}</span>
+       </div>
+     ),
     },
     {
       label: t('架构版本'),

@@ -72,6 +72,8 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -93,20 +95,37 @@
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_PROXY_SCALE_DOWN,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      tableData.value = cloneData;
+      window.changeConfirm = true;
+    },
+  });
+
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
   const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
-  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length);
-  const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
+
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length);
+  const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
-      disabledRowConfig: [{
-        handler: (data: RedisModel) => data.proxy.length < 3,
-        tip: t('Proxy数量不足，至少 3 台'),
-      }],
+      disabledRowConfig: [
+        {
+          handler: (data: RedisModel) => data.proxy.length < 3,
+          tip: t('Proxy数量不足，至少 3 台'),
+        },
+      ],
     },
   };
   // 集群域名是否已存在表格的映射表
@@ -164,8 +183,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    // TODO: 使用精确查询接口替换
-    const result = await getRedisList({ domain }).finally(() => {
+    const result = await getRedisList({ exact_domain: domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length < 1) {

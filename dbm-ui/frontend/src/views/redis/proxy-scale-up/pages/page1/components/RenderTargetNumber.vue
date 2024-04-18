@@ -17,7 +17,7 @@
       ref="editRef"
       v-model="localValue"
       :disabled="disabled"
-      :placeholder="$t('请输入')"
+      :placeholder="t('请输入')"
       :rules="rules"
       type="number" />
   </BkLoading>

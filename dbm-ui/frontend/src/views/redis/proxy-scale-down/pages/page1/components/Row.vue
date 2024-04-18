@@ -42,6 +42,7 @@
     <td style="padding: 0">
       <RenderSwitchMode
         ref="switchRef"
+        :data="data.switchMode"
         :is-loading="data.isLoading" />
     </td>
     <OperateColumn
@@ -70,6 +71,7 @@
     clusterId: number;
     bkCloudId: number;
     nodeType: string;
+    switchMode?: string;
     spec?: SpecInfo;
     targetNum?: string;
   }

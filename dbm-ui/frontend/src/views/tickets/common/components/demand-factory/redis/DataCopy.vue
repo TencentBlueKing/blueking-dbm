@@ -73,8 +73,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type { RedisDataCopyDetails } from '@services/model/ticket/details/redis';
+  import TicketModel from '@services/model/ticket/ticket';
   import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisDataCopyDetails, TicketDetails } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
@@ -88,7 +89,7 @@
   } from '@views/redis/common/const';
 
   interface Props {
-    ticketDetails: TicketDetails<RedisDataCopyDetails>
+    ticketDetails: TicketModel<RedisDataCopyDetails>
   }
 
   const props = defineProps<Props>();
@@ -129,7 +130,7 @@
       obj = {
         ...obj,
         srcClusterName: clusterMap[item.src_cluster],
-        dstClusterName: item.dst_cluster,
+        dstClusterName: `${item.dst_cluster}`,
       };
       break;
     case 'one_app_diff_cluster':
@@ -145,7 +146,7 @@
       // 自建集群至业务内
       obj = {
         ...obj,
-        srcClusterName: item.src_cluster,
+        srcClusterName: `${item.src_cluster}`,
         srcClusterType: item.src_cluster_type,
         dstClusterName: clusterMap[item.dst_cluster],
       };
@@ -167,7 +168,6 @@
   const { t } = useI18n();
   const { bizs } = useGlobalBizs();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
   const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
 

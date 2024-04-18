@@ -160,3 +160,18 @@ export interface IAMParams {
   action_ids: Array<string>;
   resources: Array<{ type: string; id: string | number }>;
 }
+
+export enum OnlineSwitchType {
+  USER_CONFIRM = 'user_confirm',
+  NO_CONFIRM = 'no_confirm',
+}
+
+export enum ExecuteModes {
+  AUTO_EXECUTION = 'auto_execution',
+  SCHEDULED_EXECUTION = 'scheduled_execution',
+}
+
+export enum RepairModes {
+  AUTO_REPAIR = 'auto_repair',
+  MANUAL_CONFIRM = 'manual_confirm',
+}

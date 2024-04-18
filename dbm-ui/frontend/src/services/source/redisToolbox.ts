@@ -86,8 +86,8 @@ export function queryMasterSlavePairs(params: { cluster_id: number }) {
 
 // 查询集群下的主机列表
 export const getRedisHostList = async (obj: {
-  bk_biz_id: number,
-  role?: string,
+  bk_biz_id: number;
+  role?: string;
   cluster_id?: number;
   instance_address?: string;
 }) => {
@@ -102,13 +102,14 @@ export const getRedisHostList = async (obj: {
   if (!obj.role) {
     delete params.role;
   }
-  return http.post<RedisHostModel[]>(`/apis/redis/bizs/${obj.bk_biz_id}/toolbox/query_cluster_ips/`, params)
+  return http
+    .post<RedisHostModel[]>(`/apis/redis/bizs/${obj.bk_biz_id}/toolbox/query_cluster_ips/`, params)
     .then((data) => {
-      const filterArr = data.map(item => new RedisHostModel(item)).filter(item => item.isMaster);
+      const filterArr = data.map((item) => new RedisHostModel(item)).filter((item) => item.isMaster);
       const count = filterArr.length;
-      return ({
+      return {
         count,
         results: filterArr,
-      });
+      };
     });
 };

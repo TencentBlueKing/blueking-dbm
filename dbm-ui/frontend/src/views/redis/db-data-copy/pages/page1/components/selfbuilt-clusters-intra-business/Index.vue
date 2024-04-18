@@ -73,7 +73,9 @@
 <script setup lang="ts">
   import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
 
-  import { LocalStorageKeys } from '@common/const';
+  import { useTicketCloneInfo } from '@hooks';
+
+  import { LocalStorageKeys, TicketTypes } from '@common/const';
 
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
@@ -101,12 +103,22 @@
     'change-table-available': [status: boolean];
   }>();
 
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      tableData.value = cloneData.tableList as unknown as IDataRow[];
+      window.changeConfirm = true;
+    },
+  });
+
   const tableData = ref([createRowData()]);
   const rowRefs = ref();
   const tableAvailable = computed(() => tableData.value.findIndex((item) => Boolean(item.srcCluster)) > -1);
-
-  // 集群域名是否已存在表格的映射表
-  const domainMemo = {} as Record<string, boolean>;
 
   watch(
     () => tableAvailable.value,
@@ -150,10 +162,7 @@
   };
   // 删除一个集群
   const handleRemove = (index: number) => {
-    const removeItem = tableData.value[index];
-    const { srcCluster } = removeItem;
     tableData.value.splice(index, 1);
-    delete domainMemo[srcCluster];
   };
 
   defineExpose<Exposes>({

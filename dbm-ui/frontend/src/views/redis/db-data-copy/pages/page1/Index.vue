@@ -182,6 +182,8 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { LocalStorageKeys, TicketTypes } from '@common/const';
@@ -223,6 +225,24 @@
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
+    onSuccess(cloneData) {
+      if (!cloneData) {
+        return;
+      }
+
+      const { copyMode, writeMode, disconnectSetting } = cloneData;
+      copyType.value = copyMode;
+      writeType.value = writeMode;
+      disconnectType.value = disconnectSetting.type;
+      remindFrequencyType.value = disconnectSetting.reminder_frequency;
+      window.changeConfirm = true;
+    },
+  });
+
   const isSubmitting = ref(false);
   const copyType = ref(CopyModes.INTRA_BISNESS);
   const writeType = ref(WriteModes.DELETE_AND_WRITE_TO_REDIS);

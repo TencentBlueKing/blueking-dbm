@@ -18,15 +18,12 @@
       style="align-items: flex-start">
       <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
       <span class="ticket-details__item-value">
-        <BkLoading :loading="loading">
-          <DbOriginalTable
-            :columns="columns"
-            :data="tableData" />
-        </BkLoading>
+        <DbOriginalTable
+          :columns="columns"
+          :data="tableData" />
       </span>
     </div>
   </div>
-  <BkLoading :loading="loading" />
   <div class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -39,15 +36,14 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisRollbackDataCopyDetails, TicketDetails } from '@services/types/ticket';
+  import type { RedisRollbackDataCopyDetails } from '@services/model/ticket/details/redis';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import { writeTypeList } from '@views/redis/common/const';
 
   interface Props {
-    ticketDetails: TicketDetails<RedisRollbackDataCopyDetails>
+    ticketDetails: TicketModel<RedisRollbackDataCopyDetails>
   }
 
   interface RowData {
@@ -61,10 +57,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
-  const tableData = ref<RowData[]>([]);
 
   const writeTypesMap = writeTypeList.reduce((obj, item) => {
     Object.assign(obj, { [item.value]: item.label });
@@ -111,29 +103,19 @@
     },
   ];
 
-  const { loading } = useRequest(getRedisListByBizId, {
-    defaultParams: [{
-      bk_biz_id: props.ticketDetails.bk_biz_id,
-      offset: 0,
-      limit: -1,
-    }],
-    onSuccess: async (result) => {
-      if (result.results.length < 1) {
-        return;
-      }
-      const clusterMap = result.results.reduce((obj, item) => {
-        Object.assign(obj, { [item.id]: item.master_domain });
-        return obj;
-      }, {} as Record<string, string>);
+  const tableData = computed(() => {
+    const {
+      clusters,
+      infos,
+    } = props.ticketDetails.details;
 
-      tableData.value = infos.map(item => ({
-        entry: item.src_cluster,
-        taregtClusterName: clusterMap[item.dst_cluster],
-        time: item.recovery_time_point,
-        includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
-        excludeKeys: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
-      }));
-    },
+    return infos.map(item => ({
+      entry: item.src_cluster,
+      taregtClusterName: clusters[item.dst_cluster].immute_domain,
+      time: item.recovery_time_point,
+      includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
+      excludeKeys: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
+    }))
   });
 </script>
 

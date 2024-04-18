@@ -24,12 +24,13 @@
   import { useRequest } from 'vue-request';
 
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
+  import type { RedisDataStructrueDetails } from '@services/model/ticket/details/redis';
+  import TicketModel from '@services/model/ticket/ticket';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisListByBizId } from '@services/source/redis';
-  import type { RedisDataStructrue, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<RedisDataStructrue>
+    ticketDetails: TicketModel<RedisDataStructrueDetails>
   }
 
   interface RowData {
@@ -49,9 +50,9 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
+
+  const { infos } = props.ticketDetails.details;
 
   const columns = [
     {
