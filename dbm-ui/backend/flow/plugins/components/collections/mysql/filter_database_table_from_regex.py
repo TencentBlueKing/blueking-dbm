@@ -86,6 +86,8 @@ class FilterDatabaseTableFromRegexService(BaseService):
             tbl = row["TABLE_NAME"]
             concat_name = "{}.{}".format(db, tbl)
             if db_table_filter_pattern.match(concat_name):
+                if db not in targets:
+                    targets[db] = {}
                 targets[db][tbl] = False
 
         self.log_info(_("[{}] 过滤所得库表: {}").format(kwargs["node_name"], targets))
