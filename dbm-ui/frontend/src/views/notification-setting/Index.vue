@@ -134,13 +134,12 @@
     </template>
   </div>
   <div class="notification-setting-footer">
-    <AuthButton
-      action-id="update_duty_notices_config"
+    <BkButton
       class="mr-8"
       theme="primary"
       @click="handleSubmit">
       {{ t('保存') }}
-    </AuthButton>
+    </BkButton>
     <DbPopconfirm
       :confirm-handler="handleReset"
       :content="t('重置将会恢复默认设置的内容！')"
@@ -157,6 +156,7 @@
   import { useRequest } from 'vue-request';
 
   import { getDutyNoticeConfig, updateDutyNoticeConfig } from '@services/monitor';
+  import { simpleCheckAllowed } from '@services/source/iam'
 
   import { messageError, messageSuccess } from '@utils';
 
@@ -164,7 +164,7 @@
 
   type DutyConfig = ServiceReturnType<typeof getDutyNoticeConfig>;
 
-  function initData(data?: DutyConfig) {
+  const initData = (data?: DutyConfig) => {
     if (!data) {
       return {
         person_duty: {
@@ -192,6 +192,18 @@
   const { t } = useI18n();
 
   const formData = ref(initData());
+
+  useRequest(simpleCheckAllowed, {
+    defaultParams:[
+      {
+        action_id: 'update_duty_notices_config',
+        is_raise_exception: true
+      },
+      {
+        permission: 'page'
+      }
+    ]
+  })
 
   useRequest(getDutyNoticeConfig, {
     onSuccess: (data) => {

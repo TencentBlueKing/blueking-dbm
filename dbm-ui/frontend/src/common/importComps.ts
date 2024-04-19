@@ -16,7 +16,7 @@ import { Translation } from 'vue-i18n';
 
 import AuthComponent from '@components/auth/AuthComponent';
 import AuthButton from '@components/auth-component/button.vue';
-import AuthTemplate from '@components/auth-component/component';
+import AuthTemplate from '@components/auth-component/component.vue';
 import AuthOption from '@components/auth-component/option.vue';
 import AuthRouterLink from '@components/auth-component/router-link.vue';
 import AuthSwitch from '@components/auth-component/switch.vue';

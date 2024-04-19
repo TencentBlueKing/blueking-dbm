@@ -104,13 +104,12 @@
         <div class="anticipated-effective-time">{{ t('预计失效时间') }}：{{ anticipatedEffectiveTime }}</div>
       </BkFormItem>
       <div class="btn-area">
-        <AuthButton
-          action-id="password_policy_set"
+        <BkButton
           class="w-88"
           theme="primary"
           @click="submitValidator">
           {{ t('提交') }}
-        </AuthButton>
+        </BkButton>
         <DbPopconfirm
           :confirm-handler="handleReset"
           :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"

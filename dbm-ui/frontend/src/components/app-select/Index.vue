@@ -12,23 +12,28 @@
         action-id="biz"
         :permission="data.permission.db_manage"
         :resource-id="data.bk_biz_id"
-        resource-type="biz">
-        <div class="db-app-select-item">
-          <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
-          <div style="margin-left: auto">
-            <DbIcon
-              v-if="favorBizIdMap[data.bk_biz_id]"
-              class="unfavor-btn"
-              style="color: #ffb848"
-              type="star-fill"
-              @click.stop="handleUnfavor(data.bk_biz_id)" />
-            <DbIcon
-              v-else
-              class="favor-btn"
-              type="star"
-              @click.stop="handleFavor(data.bk_biz_id)" />
+        resource-type="biz"
+        style="flex: 1">
+        <template #default="{ permission }">
+          <div
+            class="db-app-select-item"
+            :class="{ 'not-permission': !permission }">
+            <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
+            <div style="margin-left: auto">
+              <DbIcon
+                v-if="favorBizIdMap[data.bk_biz_id]"
+                class="unfavor-btn"
+                style="color: #ffb848"
+                type="star-fill"
+                @click.stop="handleUnfavor(data.bk_biz_id)" />
+              <DbIcon
+                v-else
+                class="favor-btn"
+                type="star"
+                @click.stop="handleFavor(data.bk_biz_id)" />
+            </div>
           </div>
-        </div>
+        </template>
       </AuthTemplate>
     </template>
   </AppSelect>
@@ -167,6 +172,12 @@
     &:hover {
       .favor-btn {
         opacity: 100%;
+      }
+    }
+
+    &.not-permission {
+      * {
+        color: #70737a !important;
       }
     }
 

@@ -37,14 +37,6 @@ export function checkAuthAllowed(params: IAMParams) {
   >(`${path}/check_allowed/`, params);
 }
 
-export function simpleCheckAllowed(params: {
-  action_id: string;
-  resource_ids?: Array<string | number>;
-  bk_biz_id?: number;
-  is_raise_exception?: boolean;
-}, payload = {} as IRequestPayload) {
-  return http.post<boolean>(`${path}/simple_check_allowed/`, params, payload);
-}
 /**
  * 获取权限申请数据
  */
@@ -52,9 +44,18 @@ export function getApplyDataLink(params: IAMParams) {
   return http.post<ApplyDataModel>(`${path}/get_apply_data/`, params).then((data) => new ApplyDataModel(data));
 }
 
+export function simpleCheckAllowed(params: {
+  action_id: string;
+  resource_id?: string | number;
+  bk_biz_id?: number;
+  is_raise_exception?: boolean;
+}, payload = {} as IRequestPayload) {
+  return http.post<boolean>(`${path}/simple_check_allowed/`, params, payload);
+}
+
 export function simpleGetApplyData(params: {
   action_id: string;
-  resource_ids: Array<string | number>;
+  resource_id?: string | number;
   bk_biz_id?: number;
 }) {
   return http
