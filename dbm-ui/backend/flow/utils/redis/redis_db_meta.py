@@ -512,15 +512,9 @@ class RedisDBMeta(object):
         """
         proxy_port = self.cluster["proxy_port"]
         proxies = [{"ip": proxy_ip, "port": proxy_port} for proxy_ip in self.cluster["new_proxy_ips"]]
-        inst_num = self.cluster["inst_num"]
-        master_start_port = self.cluster["start_port"]
 
         #  这里只传master
-        storages = []
-        for ip in self.cluster["new_master_ips"]:
-            for n in range(0, inst_num):
-                port = master_start_port + n
-                storages.append({"ip": ip, "port": port})
+        storages = self.cluster["storages"]
         if self.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
             handler = TendisPlusClusterHandler
         elif self.cluster["cluster_type"] == ClusterType.TendisPredixyRedisCluster.value:
@@ -921,7 +915,8 @@ class RedisDBMeta(object):
             alias_token = self.cluster["alias_token"]
         polaris_entry = PolarisEntryDetail.objects.create(
             polaris_name=self.cluster["name"],
-            polaris_l5=self.cluster["l5"],
+            # 历史原因，可能存在没有l5字段的集群
+            polaris_l5=self.cluster.get("l5", ""),
             polaris_token=self.cluster["token"],
             alias_token=alias_token,
             entry_id=cluster_entry.id,

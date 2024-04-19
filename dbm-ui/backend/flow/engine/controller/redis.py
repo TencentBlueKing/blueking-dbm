@@ -289,10 +289,10 @@ class RedisController(BaseController):
 
     def redis_origin_cluster_migrate_load(self):
         """
-        TODO redis cluster 迁移
+        redis cluster 迁移
         """
-        # flow = RedisClusterMigrateLoadFlow(root_id=self.root_id, data=self.ticket_data)
-        # flow.redis_cluster_migrate_load_flow()
+        flow = RedisClusterMigrateLoadFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_cluster_migrate_load_flow()
 
     def redis_cluster_migrate_compair(self):
         """
