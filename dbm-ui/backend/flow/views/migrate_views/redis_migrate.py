@@ -48,11 +48,9 @@ class RedisClusterMigrateLoad(MigrateFlowView):
         if request.data.get("tendis_instance"):
             RedisController(root_id=root_id, ticket_data=request.data).redis_ins_migrate_load()
         elif request.data.get("clusters"):
+            request.data["db_type"] = request.data.get("clusters")[0].get("clusterinfo").get("cluster_type")
             # 原生集群
-            if (
-                request.data.get("clusters")[0].get("clusterinfo").get("cluster_type")
-                == ClusterType.TendisPredixyRedisCluster.value
-            ):
+            if request.data["db_type"] == ClusterType.TendisPredixyRedisCluster.value:
                 RedisController(root_id=root_id, ticket_data=request.data).redis_origin_cluster_migrate_load()
             else:
                 RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_load()

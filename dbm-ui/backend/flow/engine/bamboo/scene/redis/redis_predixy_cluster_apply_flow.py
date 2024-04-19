@@ -219,6 +219,7 @@ class TendisPlusApplyFlow(object):
             sub_pipelines.append(sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
+        storages = [{"ip": ip, "port": DEFAULT_REDIS_START_PORT + n} for ip in master_ips for n in range(ins_num)]
         act_kwargs.cluster = {
             "proxy_port": self.data["proxy_port"],
             "bk_biz_id": self.data["bk_biz_id"],
@@ -230,10 +231,8 @@ class TendisPlusApplyFlow(object):
             "immute_domain": self.data["domain_name"],
             "created_by": self.data["created_by"],
             "region": self.data.get("city_code"),
+            "storages": storages,
             "new_proxy_ips": proxy_ips,
-            "inst_num": ins_num,
-            "start_port": DEFAULT_REDIS_START_PORT,
-            "new_master_ips": master_ips,
             "meta_func_name": RedisDBMeta.redis_origin_make_cluster.__name__,
             "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
         }
