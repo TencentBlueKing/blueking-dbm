@@ -48,6 +48,7 @@ interface RamdomCycle {
 // mysql生效实例密码(admin)
 interface MysqlAdminPassword {
   bk_cloud_id: number,
+  bk_cloud_name: string,
   component: string,
   id: number,
   ip: string,

@@ -151,7 +151,7 @@
           count: formatData.reduce((count, item) => count + item.count, 0),
           children: formatData.map(item => ({
             id: item.id,
-            name: item.cluster_name,
+            name: item.master_domain,
             obj: 'cluster',
             count: item.count,
             children: [],
