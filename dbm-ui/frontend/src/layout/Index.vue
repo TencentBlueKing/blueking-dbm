@@ -137,6 +137,7 @@
       'PlatGlobalStrategy',
       'dutyRuleManange',
       // 'PlatMonitorAlarmGroup',
+      "PlatformNotificationSetting",
       'passwordManage',
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',

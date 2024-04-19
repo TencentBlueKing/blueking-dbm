@@ -78,8 +78,13 @@ export default function (props: Props) {
   const realParams = computed(() => {
     const params = {
       action_id: props.actionId,
-      resource_ids: props.resource ? [props.resource] : [],
     };
+
+    if (props.resource){
+      Object.assign(params, {
+        resource_id: props.resource,
+      });
+    }
 
     if (props.bizId !== undefined) {
       Object.assign(params, {

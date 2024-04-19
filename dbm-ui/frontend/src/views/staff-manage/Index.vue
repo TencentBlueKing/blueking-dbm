@@ -37,20 +37,19 @@
       </DbForm>
       <template #action>
         <div class="setting-footer">
-          <AuthButton
-            action-id="dba_administrator_edit"
+          <BkButton
             class="mr-8 w-88"
             :loading="isSubmitting"
             theme="primary"
             @click="handleSubmit">
-            {{ $t('保存') }}
-          </AuthButton>
+            {{ t('保存') }}
+          </BkButton>
           <BkButton
             v-if="!isPlatform"
             class="w-88"
             :disabled="isSubmitting"
             @click="handleReset">
-            {{ $t('重置') }}
+            {{ t('重置') }}
           </BkButton>
         </div>
       </template>
@@ -64,6 +63,7 @@
   import { useRequest } from 'vue-request';
 
   import { getAdmins, updateAdmins } from '@services/source/dbadmin';
+  import { simpleCheckAllowed } from '@services/source/iam'
   import type { AdminItem } from '@services/types/staffSetting';
 
   import { useInfo } from '@hooks';
@@ -90,6 +90,19 @@
       message: t('必填项'),
     },
   ];
+
+  useRequest(simpleCheckAllowed, {
+    defaultParams:[
+      {
+        action_id: isPlatform ? 'global_dba_administrator_edit' : 'dba_administrator_edit',
+        bk_biz_id: bizId,
+        is_raise_exception: true
+      },
+      {
+        permission: 'page'
+      }
+    ]
+  })
 
   const { loading: isLoading, run: getAdminsMethod } = useRequest(getAdmins, {
     defaultParams: [

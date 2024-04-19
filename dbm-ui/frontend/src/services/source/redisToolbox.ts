@@ -14,11 +14,7 @@ import http from '@services/http';
 import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
 import RedisHostModel from '@services/model/redis/redis-host';
 
-import { useGlobalBizs } from '@stores';
-
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/redis/bizs/${currentBizId}/toolbox`;
+const path = `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/toolbox`;
 
 interface MasterSlaveByIp {
   cluster: {

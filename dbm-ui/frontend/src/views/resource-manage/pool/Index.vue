@@ -218,11 +218,13 @@
           confirm-handler={() => handleRemove(data)}
           content={t('主机将被落到空闲机，如需要可再次导入')}
           title={t('确认移除选中的主机')}>
-          <BkButton
+          <auth-button
+            actionId='resource_pool_manage'
+            permission={data.permission.resource_pool_manage}
             text
             theme="primary">
             {t('移除')}
-          </BkButton>
+          </auth-button>
         </db-popconfirm>
       ),
     },

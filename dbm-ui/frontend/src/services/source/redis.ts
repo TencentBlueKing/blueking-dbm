@@ -14,8 +14,6 @@
 import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 import RedisModel from '@services/model/redis/redis';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 import type { HostNode, ListBase, ResourceInstance, ResourceTopo } from '../types';
 import type { ResourceRedisItem } from '../types/clusters';
@@ -51,9 +49,7 @@ interface InstanceDetails {
   version?: string;
 }
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/redis/bizs/${currentBizId}/redis_resources`;
+const path = `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/redis_resources`;
 
 /**
  * 获取集群列表
@@ -94,7 +90,7 @@ export function getRedisListByBizId(
   } = {},
 ) {
   return http
-    .get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
+    .get<ListBase<RedisModel[]>>(`${path}/redis_resources/`, params)
     .then((data) => ({
       ...data,
       results: data.results.map((item) => new RedisModel(item)),
@@ -169,7 +165,7 @@ export function getRedisTopoGraph(params: { cluster_id: number }) {
  * 获取业务拓扑树
  */
 export function getRedisResourceTree(params: { cluster_type: string }) {
-  return http.get<BizConfTopoTreeModel[]>(`/apis/redis/bizs/${currentBizId}/resource_tree/`, params);
+  return http.get<BizConfTopoTreeModel[]>(`${path}/resource_tree/`, params);
 }
 
 /**
