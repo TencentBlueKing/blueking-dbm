@@ -151,10 +151,6 @@
     isRecentDays,
   } from '@utils';
 
-  import {
-    useTimeoutPoll,
-  } from '@vueuse/core';
-
   import ClusterSettings from './components/ClusterSettings.vue';
 
   import type {
@@ -708,12 +704,6 @@
     selected.value = list;
   };
 
-  const {
-    resume: resumeFetchTableData,
-  } = useTimeoutPoll(() => fetchTableData(isInit.value), 5000, {
-    immediate: false,
-  });
-
   // 集群提单
   const handleGoApply = () => {
     router.push({
@@ -864,7 +854,6 @@
   };
 
   onMounted(() => {
-    resumeFetchTableData();
     if (!clusterId.value && route.query.id) {
       handleToDetails(Number(route.query.id));
     }

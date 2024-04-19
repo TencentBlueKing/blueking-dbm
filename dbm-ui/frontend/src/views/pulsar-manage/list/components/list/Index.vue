@@ -664,12 +664,6 @@
     isInit.value = false;
   };
 
-  const {
-    resume: resumeFetchTableData,
-  } = useTimeoutPoll(() => fetchTableData(isInit.value), 5000, {
-    immediate: false,
-  });
-
   const handleGoApply = () => {
     router.push({
       name: 'PulsarApply',
@@ -824,7 +818,6 @@
   };
 
   onMounted(() => {
-    resumeFetchTableData();
     if (!clusterId.value && route.query.id) {
       handleToDetails(Number(route.query.id));
     }

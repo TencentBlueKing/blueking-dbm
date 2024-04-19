@@ -905,11 +905,6 @@
     return Promise.resolve([]);
   };
 
-  // 设置轮询
-  useRequest(fetchTableData, {
-    pollingInterval: 10000,
-  });
-
   // 查看集群详情
   const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
