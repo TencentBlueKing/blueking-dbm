@@ -14,8 +14,8 @@ import json
 import logging
 from collections import defaultdict
 
+from celery import current_app
 from celery.schedules import crontab
-from celery.task import task
 from django.core.cache import cache
 from django.utils import timezone
 
@@ -96,7 +96,7 @@ def query_cluster_capacity(cluster_type):
     return cluster_cap_bytes
 
 
-@task
+@current_app.task
 def sync_cluster_stat_by_cluster_type(cluster_type):
     """
     按集群类型同步各集群容量状态
