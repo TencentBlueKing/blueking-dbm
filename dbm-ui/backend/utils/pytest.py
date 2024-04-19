@@ -30,9 +30,7 @@ def assert_json_response(response, code=0):
 
 class AuthorizedAPIRequestFactory(APIRequestFactory):
     def generic(self, method, path, data="", content_type="application/octet-stream", secure=False, **extra):
-        request = super().generic(
-            method, path, data="", content_type="application/octet-stream", secure=False, **extra
-        )
+        request = super().generic(method, path, data=data, content_type=content_type, secure=secure, **extra)
         bk_user = mock_bk_user(get_random_string(6))
         force_authenticate(request, user=bk_user)
         return request

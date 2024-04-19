@@ -24,6 +24,8 @@ SWAGGER_TAG = [_("全局搜索")]
 
 
 class QuickSearchViewSet(viewsets.SystemViewSet):
+    serializer_class = QuickSearchSerializer
+
     @common_swagger_auto_schema(
         operation_summary=_("[quick_search] 快速查询"),
         request_body=QuickSearchSerializer(),

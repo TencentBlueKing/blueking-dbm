@@ -58,6 +58,24 @@ class QSearchHandler(object):
                 qs |= Q(**{f"{filter_key}__icontains": keyword})
         return qs
 
+    def generate_filter_for_domain(self, filter_key, keyword_list):
+        """
+        为域名类型生成过滤函数
+        """
+        qs = Q()
+        for keyword in keyword_list:
+            try:
+                domain, _ = keyword.split(":")
+            except ValueError:
+                domain, _ = keyword, None
+
+            domain_filter_key = filter_key
+            if self.filter_type == FilterType.EXACT.value:
+                qs |= Q(**{f"{domain_filter_key}": domain})
+            else:
+                qs |= Q(**{f"{domain_filter_key}__icontains": domain})
+        return qs
+
     def generate_filter_for_ip_port(self, filter_key, keyword_list):
         """
         为ip:port实例生成过滤函数
@@ -69,8 +87,8 @@ class QSearchHandler(object):
             except ValueError:
                 ip, port = keyword, None
 
-            port_filter_key = "port"
             ip_filter_key = filter_key
+            port_filter_key = "port"
             if self.filter_type == FilterType.CONTAINS.value:
                 ip_filter_key += "__contains"
                 port_filter_key += "__contains"
@@ -105,7 +123,7 @@ class QSearchHandler(object):
 
     def filter_cluster_domain(self, keyword_list: list):
         """过滤集群域名"""
-        qs = self.generate_filter_for_str("immute_domain", keyword_list)
+        qs = self.generate_filter_for_domain("immute_domain", keyword_list)
         objs = Cluster.objects.filter(qs)
         return self.common_filter(objs)
 
