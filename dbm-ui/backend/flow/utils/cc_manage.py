@@ -313,7 +313,9 @@ class CcManage(object):
         转移到待回收模块
         转移主机后会自动删除服务实例，无需额外操作
         """
-        CCApi.transfer_host_to_recyclemodule({"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids})
+        CCApi.transfer_host_to_recyclemodule(
+            params={"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids}, use_admin=True
+        )
         self.update_host_properties(bk_host_ids, need_monitor=False, dbm_meta=[])
 
     def add_service_instance(

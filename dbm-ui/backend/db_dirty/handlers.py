@@ -49,7 +49,7 @@ class DBDirtyMachineHandler(object):
             bk_biz_id__host_ids[machine.bk_biz_id].append(machine.bk_host_id)
 
         for bk_biz_id, bk_host_ids in bk_biz_id__host_ids.items():
-            CcManage(bk_biz_id, "").recycle_host(bk_host_ids)
+            CcManage(int(bk_biz_id), "").recycle_host(bk_host_ids)
 
         # 删除污点池记录，并从资源池移除(忽略删除错误，因为机器可能不来自资源池)
         dirty_machines.delete()
