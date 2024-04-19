@@ -22,7 +22,7 @@ import (
 
 const (
 	Mem8GB         = 8 * 1024 * 1024
-	MemUsedPercent = 0.85
+	MemUsedPercent = 0.70
 )
 
 // Task 任务内容
