@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from celery.task import task
+from celery import current_app
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
@@ -107,7 +107,7 @@ def callback_ticket(ticket_id, root_id):
         manager.run_next_flow()
 
 
-@task(ignore_result=True)
+@current_app.task(ignore_result=True)
 def send_msg_for_flow(flow_id: int):
     """
     发送消息
