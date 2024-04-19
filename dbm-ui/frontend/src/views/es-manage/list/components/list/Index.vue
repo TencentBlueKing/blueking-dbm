@@ -143,8 +143,6 @@
     isRecentDays,
   } from '@utils';
 
-  import { useTimeoutPoll } from '@vueuse/core';
-
   import type {
     SearchSelectData,
     SearchSelectItem,
@@ -682,12 +680,6 @@
     selected.value = list;
   };
 
-  const {
-    resume: resumeFetchTableData,
-  } = useTimeoutPoll(() => fetchTableData(isInit.value), 5000, {
-    immediate: false,
-  });
-
   // 申请实例
   const handleGoApply = () => {
     router.push({
@@ -832,7 +824,6 @@
   };
 
   onMounted(() => {
-    resumeFetchTableData();
     if (!clusterId.value && route.query.id) {
       handleToDetails(Number(route.query.id));
     }

@@ -377,10 +377,6 @@
       },
     });
   };
-
-  onMounted(() => {
-    fetchTableData();
-  });
 </script>
 
 <style lang="less">
