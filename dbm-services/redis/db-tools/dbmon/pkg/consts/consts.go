@@ -3,7 +3,7 @@ package consts
 
 // version
 const (
-	BkDbmonVersion = "v0.14"
+	BkDbmonVersion = "v0.15"
 )
 
 const (
