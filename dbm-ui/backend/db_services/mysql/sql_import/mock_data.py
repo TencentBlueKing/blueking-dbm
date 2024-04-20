@@ -81,3 +81,17 @@ SEMANTIC_SQL_FILES = {
     "import_mode": "file",
     "sql_data_ready": True,
 }
+
+SEMANTIC_CHECK_RESULT_LOGS = [
+    {
+        "filename": "tmpc3o49m9e.sql",
+        "match_logs": [
+            {"timestamp": "1713407627000", "levelname": "info", "message": "##[info][flow]: [start]-tmpc3o49m9e.sql"},
+            {"timestamp": "1713407627000", "levelname": "info", "message": "##[info][flow]: exec successfuly..."},
+            {"timestamp": "1713407627000", "levelname": "info", "message": "##[info][flow]: [end]-tmpc3o49m9e.sql"},
+        ],
+        "status": "SUCCEEDED",
+    },
+    {"filename": "1.sql", "match_logs": [], "status": "FAILED"},
+    {"filename": "2.sql", "match_logs": [], "status": "PENDING"},
+]

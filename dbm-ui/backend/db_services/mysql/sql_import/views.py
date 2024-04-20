@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Type, Union
 
 from django.utils.translation import ugettext as _
 from rest_framework import status
@@ -17,10 +16,11 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_services.mysql.sql_import.dataclass import SemanticOperateMeta, SQLExecuteMeta, SQLMeta
 from backend.db_services.mysql.sql_import.handlers import SQLHandler
 from backend.db_services.mysql.sql_import.serializers import (
     DeleteUserSemanticListSerializer,
+    GetSemanticCheckResultLogsResponseSerializer,
+    GetSemanticCheckResultLogsSerializer,
     GetUserSemanticListResponseSerializer,
     GetUserSemanticListSerializer,
     QuerySemanticDataResponseSerializer,
@@ -50,14 +50,12 @@ class SQLImportViewSet(viewsets.SystemViewSet):
         self,
         request,
         bk_biz_id: int,
-        meta: Union[Type[SQLMeta], Type[SQLExecuteMeta], Type[SemanticOperateMeta]],
         func: str,
     ) -> Response:
         """
         - 视图通用处理函数, 方便统一管理
         :param request: request请求
         :param bk_biz_id: 业务ID
-        :param meta: 元信息数据结构
         :param func: handler的回调函数名称
         """
 
@@ -74,7 +72,7 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=SQLGrammarCheckSerializer)
     def grammar_check(self, request, bk_biz_id):
-        return self._view_common_handler(request, bk_biz_id, SQLMeta, SQLHandler.grammar_check.__name__)
+        return self._view_common_handler(request, bk_biz_id, SQLHandler.grammar_check.__name__)
 
     @common_swagger_auto_schema(
         operation_summary=_("sql语义检查"),
@@ -84,7 +82,7 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=SQLSemanticCheckSerializer)
     def semantic_check(self, request, bk_biz_id):
-        return self._view_common_handler(request, bk_biz_id, SQLExecuteMeta, SQLHandler.semantic_check.__name__)
+        return self._view_common_handler(request, bk_biz_id, SQLHandler.semantic_check.__name__)
 
     @common_swagger_auto_schema(
         operation_summary=_("改变流程配置"),
@@ -117,9 +115,7 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False, serializer_class=GetUserSemanticListSerializer)
     def get_user_semantic_tasks(self, request, bk_biz_id):
-        return self._view_common_handler(
-            request, bk_biz_id, SemanticOperateMeta, SQLHandler.get_user_semantic_tasks.__name__
-        )
+        return self._view_common_handler(request, bk_biz_id, SQLHandler.get_user_semantic_tasks.__name__)
 
     @common_swagger_auto_schema(
         operation_summary=_("删除用户语义检查任务列表"),
@@ -128,9 +124,7 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["DELETE"], detail=False, serializer_class=DeleteUserSemanticListSerializer)
     def delete_user_semantic_tasks(self, request, bk_biz_id):
-        return self._view_common_handler(
-            request, bk_biz_id, SemanticOperateMeta, SQLHandler.delete_user_semantic_tasks.__name__
-        )
+        return self._view_common_handler(request, bk_biz_id, SQLHandler.delete_user_semantic_tasks.__name__)
 
     @common_swagger_auto_schema(
         operation_summary=_("终止语义检查流程"),
@@ -140,9 +134,7 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=RevokeSemanticCheckSerializer)
     def revoke_semantic_check(self, request, bk_biz_id):
-        return self._view_common_handler(
-            request, bk_biz_id, SemanticOperateMeta, SQLHandler.revoke_semantic_check.__name__
-        )
+        return self._view_common_handler(request, bk_biz_id, SQLHandler.revoke_semantic_check.__name__)
 
     @common_swagger_auto_schema(
         operation_summary=_("根据语义执行id查询语义执行的数据"),
@@ -152,6 +144,14 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=QuerySemanticDataSerializer)
     def query_semantic_data(self, request, bk_biz_id):
-        return self._view_common_handler(
-            request, bk_biz_id, SemanticOperateMeta, SQLHandler.query_semantic_data.__name__
-        )
+        return self._view_common_handler(request, bk_biz_id, SQLHandler.query_semantic_data.__name__)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取语义执行的结果日志"),
+        request_body=GetSemanticCheckResultLogsSerializer(),
+        responses={status.HTTP_200_OK: GetSemanticCheckResultLogsResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=GetSemanticCheckResultLogsSerializer)
+    def get_semantic_check_result_logs(self, request, bk_biz_id):
+        return self._view_common_handler(request, bk_biz_id, SQLHandler.get_semantic_check_result_logs.__name__)
