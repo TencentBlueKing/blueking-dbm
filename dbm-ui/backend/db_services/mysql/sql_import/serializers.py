@@ -197,3 +197,14 @@ class QuerySemanticDataResponseSerializer(serializers.Serializer):
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.SEMANTIC_SQL_FILES}
+
+
+class GetSemanticCheckResultLogsSerializer(serializers.Serializer):
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=DBType.get_choices())
+    root_id = serializers.CharField(help_text=_("流程id"))
+    node_id = serializers.CharField(help_text=_("节点id"))
+
+
+class GetSemanticCheckResultLogsResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.SEMANTIC_CHECK_RESULT_LOGS}

@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import os.path
+import re
 import tempfile
 import time
 from typing import Any, Dict, List, Optional, Union
@@ -37,6 +38,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.spider import SpiderController
 from backend.flow.models import FlowNode, FlowTree
 from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
+from backend.ticket.constants import TicketFlowStatus
 from backend.utils.basic import generate_root_id
 from backend.utils.redis import RedisConn
 
@@ -297,6 +299,7 @@ class SQLHandler(object):
         """
         获取用户的语义检查执行信息列表
         """
+
         semantic_info_list: List[Dict] = []
         if not self.cluster_type or self.cluster_type == DBType.MySQL:
             semantic_info_list.extend(self._get_user_semantic_tasks(DBType.MySQL, SemanticCheckComponent.code))
@@ -324,3 +327,79 @@ class SQLHandler(object):
                     return node_id
 
         return ""
+
+    @classmethod
+    def parse_semantic_check_logs(cls, logs: List[Dict], sql_files: List[str]) -> List[Dict]:
+        """
+        解析语义检查的执行日志，根据sql文件返回结构化的执行结果日志
+        :param logs: 语义执行日志(node_log)
+        :param sql_files: sql文件名列表
+        """
+
+        # 定义匹配日志的开始和结束正则
+        start_patterns = re.compile(r".*\[start]-(\w+\.sql)")
+        end_patterns = re.compile(r".*\[end]-(\w+\.sql)")
+
+        current_sql_filename: str = ""
+        current_sql_logs: List[Dict] = []
+        parsed_sql_logs_results: List[Dict] = []
+        # 解析sql语义执行日志
+        for log in logs:
+            message = log["message"]
+            # 忽略结果日志之前的日志
+            if not current_sql_filename and not start_patterns.match(message):
+                continue
+            # 获取当前的sql名
+            if not current_sql_filename:
+                current_sql_filename = start_patterns.match(message).groups()[0]
+            # 加入当前的匹配日志
+            current_sql_logs.append(log)
+            if not end_patterns.match(message):
+                continue
+            # 如果匹配到结束节点，则完成当前sql日志的结果匹配，生成一条匹配记录
+            end_filename = end_patterns.match(message).groups()[0]
+            status = TicketFlowStatus.SUCCEEDED if current_sql_filename == end_filename else TicketFlowStatus.FAILED
+            parsed_sql_logs_results.append(
+                {"filename": current_sql_filename, "match_logs": current_sql_logs, "status": status}
+            )
+            # 清空current_sql_filename, current_sql_logs
+            current_sql_filename, current_sql_logs = "", []
+
+        # 如果匹配完成后current_sql_filename仍然有值，说明当前sql文件执行错误
+        if current_sql_filename:
+            parsed_sql_logs_results.append(
+                {"filename": current_sql_filename, "match_logs": current_sql_logs, "status": TicketFlowStatus.FAILED}
+            )
+
+        # 对于不出现在匹配结果的sql文件，说明是待执行状态
+        parsed_filenames = [item["filename"] for item in parsed_sql_logs_results]
+        not_parser_files = [
+            {"filename": filename, "match_logs": [], "status": TicketFlowStatus.PENDING}
+            for filename in sql_files
+            if filename not in parsed_filenames
+        ]
+        parsed_sql_logs_results.extend(not_parser_files)
+
+        return parsed_sql_logs_results
+
+    def get_semantic_check_result_logs(self, root_id: str, node_id: str) -> List[Dict]:
+        """
+        获取语义执行的结果日志
+        :param root_id: 语义执行的root id
+        :param node_id: 语义执行的node id
+        """
+        taskflow_handler = TaskFlowHandler(root_id)
+        # 获取节点执行日志，如果流程还未启动则直接返回空
+        semantic_data = self.query_semantic_data(root_id)
+        if not semantic_data["sql_data_ready"]:
+            return []
+
+        # 获取语义执行的version id
+        versions = taskflow_handler.get_node_histories(node_id)
+        version_id = versions[0]["version"]
+        # 获取语法检查结果日志
+        logs = taskflow_handler.get_version_logs(node_id, version_id)
+        # 解析日志，获得结构化数据
+        semantic_data = semantic_data["semantic_data"]
+        parsed_sql_logs_results = self.parse_semantic_check_logs(logs, semantic_data["execute_sql_files"])
+        return parsed_sql_logs_results
