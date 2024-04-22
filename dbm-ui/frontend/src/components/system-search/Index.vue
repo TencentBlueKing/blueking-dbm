@@ -10,10 +10,26 @@
       class="search-input"
       clearable
       :placeholder="t('全站搜索 Ctrl + K')"
-      type="search"
-      @enter="handleEnter"
+      :type="isFocused ? 'text' : 'search'"
+      @enter="handleSearch"
       @focus="handleFocus"
-      @paste="handlePaste" />
+      @paste="handlePaste">
+      <template
+        v-if="isFocused"
+        #suffix>
+        <div class="serach-btn">
+          <BkButton
+            size="small"
+            theme="primary"
+            @click="handleSearch">
+            <DbIcon
+              class="mr-4"
+              type="search" />
+            {{ t('搜索') }}
+          </BkButton>
+        </div>
+      </template>
+    </BkInput>
   </div>
   <div
     ref="popRef"
@@ -113,7 +129,7 @@
     rootRef.value!.querySelector('input')!.focus();
   };
 
-  const handleEnter = () => {
+  const handleSearch = () => {
     // 页面跳转参数处理
     const options = searchResultRef.value.getFilterOptions();
     const query = Object.keys(options).reduce((prevQuery, optionKey) => {
@@ -203,14 +219,29 @@
       .bk-input--text,
       .bk-input--suffix-icon{
         background: #303D55;
-        border-radius: none;
+        border-radius: 0;
       }
 
       .bk-input--text{
         color: #fff;
+        border-radius: 0;
 
         &::placeholder{
           color: #929BB2;
+        }
+      }
+
+      .serach-btn{
+        display: flex;
+        align-items: center;
+        background: #303D55;
+        padding-right: 4px;
+        &::before {
+          content: '';
+          width: 1px;
+          height: 12px;
+          background:#63656E;
+          margin-right: 6px;
         }
       }
     }
