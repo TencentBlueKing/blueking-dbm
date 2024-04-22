@@ -18,19 +18,6 @@ LOGGING = get_logging_config(os.path.join(BK_LOG_DIR, APP_CODE), "INFO")
 # allow all hosts
 CORS_ORIGIN_ALLOW_ALL = True
 
-# cookies will be allowed to be included in cross-site HTTP requests
-CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOW_HEADERS = (
-    "referer",
-    "accept",
-    "authorization",
-    "content-type",
-    "user-agent",
-    "x-requested-with",
-    "x-csrftoken",
-    "HTTP_X_REQUESTED_WITH",
-)
 
 MIDDLEWARE = (
     "corsheaders.middleware.CorsMiddleware",
