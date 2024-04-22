@@ -142,7 +142,8 @@ func CreatePartitionsConfig(r *gin.Context) {
 		SendResponse(r, err, nil)
 		return
 	}
-	slog.Info(fmt.Sprintf("bk_biz_id: %d, immute_domain: %s, creator: %s", input.BkBizId, input.ImmuteDomain,
+	slog.Info(fmt.Sprintf("bk_biz_id: %d, db_app_abbr: %d, immute_domain: %s, creator: %s", input.BkBizId, input.DbAppAbbr,
+		input.ImmuteDomain,
 		input.Creator))
 	err, configIDs := input.CreatePartitionsConfig()
 	if err != nil {

@@ -9,6 +9,8 @@ import (
 type PartitionConfig struct {
 	ID                  int    `json:"id" gorm:"column:id;primary_key;auto_increment"`
 	BkBizId             int64  `json:"bk_biz_id" gorm:"column:bk_biz_id"`
+	DbAppAbbr           string `json:"db_app_abbr"`
+	BkBizName           string `json:"bk_biz_name"`
 	ImmuteDomain        string `json:"immute_domain" gorm:"column:immute_domain"`
 	Port                int    `json:"port" gorm:"column:port"`
 	BkCloudId           int    `json:"bk_cloud_id" gorm:"column:bk_cloud_id"`

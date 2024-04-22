@@ -64,6 +64,8 @@ type QueryLogInput struct {
 // CreatePartitionsInput TODO
 type CreatePartitionsInput struct {
 	BkBizId               int64    `json:"bk_biz_id"`    // 业务代号
+	DbAppAbbr             string   `json:"db_app_abbr"`  // 业务名称缩写 用于告警
+	BkBizName             string   `json:"bk_biz_name"`  // 业务名称 用于告警
 	ClusterType           string   `json:"cluster_type"` // 集群类型
 	ImmuteDomain          string   `json:"immute_domain"`
 	Port                  int      `gorm:"column:port"`
