@@ -50,6 +50,11 @@ func NewChecker(mode config.CheckMode) (*Checker, error) {
 		return nil, err
 	}
 
+	err := checker.prepareReplicateTable()
+	if err != nil {
+		return nil, err
+	}
+
 	checker.applyForceSwitchStrategy(commonForceSwitchStrategies)
 	checker.applyDefaultSwitchStrategy(commonDefaultSwitchStrategies)
 	checker.applyForceKVStrategy(commonForceKVStrategies)
@@ -126,6 +131,34 @@ func (r *Checker) validateSlaves() error {
 			slog.Error("validate slaves connect", slog.String("error", err.Error()))
 			return err
 		}
+	}
+	return nil
+}
+
+func (r *Checker) prepareReplicateTable() error {
+	ctSql := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.%s (
+     master_ip      CHAR(32)     default '0.0.0.0',
+     master_port    INT          default 3306,
+     db             CHAR(64)     NOT NULL,
+     tbl            CHAR(64)     NOT NULL,
+     chunk          INT          NOT NULL,
+     chunk_time     FLOAT            NULL,
+     chunk_index    VARCHAR(200)     NULL,
+     lower_boundary BLOB             NULL,
+     upper_boundary BLOB             NULL,
+     this_crc       CHAR(40)     NOT NULL,
+     this_cnt       INT          NOT NULL,
+     master_crc     CHAR(40)         NULL,
+     master_cnt     INT              NULL,
+     ts             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+     PRIMARY KEY (master_ip, master_port, db, tbl, chunk),
+     INDEX db_tbl_chunk (db, tbl, chunk),
+     INDEX ts_db_tbl (ts, db, tbl)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`, r.resultDB, r.resultTbl)
+	_, err := r.db.Exec(ctSql)
+	if err != nil {
+		slog.Error("prepare replicate table error", slog.String("error", err.Error()))
+		return err
 	}
 	return nil
 }

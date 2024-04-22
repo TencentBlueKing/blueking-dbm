@@ -161,10 +161,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 
 func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool) (db *sqlx.DB, err error) {
 	if withPing {
-		//ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-		//defer cancel()
 		db, err = sqlx.Connect(
-			//ctx,
 			"mysql", fmt.Sprintf(
 				"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s&multiStatements=true",
 				ca.User, ca.Password, ip, port,
@@ -174,19 +171,8 @@ func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool) (db *
 			),
 		)
 		if err != nil {
-			slog.Warn("first time connect failed", slog.String("error", err.Error()))
-			slog.Info("retry connect after 3 seconds")
-			time.Sleep(3 * time.Second)
-			return sqlx.Connect(
-				//ctx,
-				"mysql", fmt.Sprintf(
-					"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s&multiStatements=true",
-					ca.User, ca.Password, ip, port,
-					"",
-					time.Local.String(),
-					config.MonitorConfig.InteractTimeout,
-				),
-			)
+			slog.Error("connect db with ping", err)
+			return nil, err
 		}
 	} else {
 		db, err = sqlx.Open(
@@ -199,18 +185,8 @@ func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool) (db *
 			),
 		)
 		if err != nil {
-			slog.Warn("first time connect failed", slog.String("error", err.Error()))
-			slog.Info("retry connect after 3 seconds")
-			time.Sleep(3 * time.Second)
-			return sqlx.Open(
-				"mysql", fmt.Sprintf(
-					"%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=%s&timeout=%s",
-					ca.User, ca.Password, ip, port,
-					"",
-					time.Local.String(),
-					config.MonitorConfig.InteractTimeout,
-				),
-			)
+			slog.Error("connect db without ping", err)
+			return nil, err
 		}
 	}
 
