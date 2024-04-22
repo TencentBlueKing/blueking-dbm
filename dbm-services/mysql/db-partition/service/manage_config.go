@@ -321,6 +321,8 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() (error, []int) {
 		for _, tblike := range m.TbLikes {
 			partitionConfig := PartitionConfig{
 				BkBizId:               m.BkBizId,
+				DbAppAbbr:             m.DbAppAbbr,
+				BkBizName:             m.BkBizName,
 				ImmuteDomain:          m.ImmuteDomain,
 				Port:                  m.Port,
 				BkCloudId:             m.BkCloudId,
