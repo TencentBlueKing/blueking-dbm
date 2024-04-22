@@ -50,6 +50,21 @@ SENSITIVE_PARAMS = ["app_code", "app_secret", "bk_app_code", "bk_app_secret"]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
+# cookies will be allowed to be included in cross-site HTTP requests
+CORS_ALLOW_CREDENTIALS = True
+
+# 跨域允许的header
+CORS_ALLOW_HEADERS = (
+    "referer",
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-requested-with",
+    "x-csrftoken",
+    "HTTP_X_REQUESTED_WITH",
+)
+
 ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS += (
