@@ -26,9 +26,9 @@
             "data_source_label": "prometheus",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "sum by (app,cluster_domain,bk_target_ip,instance,instance_role,cluster_type,bk_target_cloud_id,appid) (\nirate(bkmonitor:exporter",
+            "metric_id": "sum by (app,cluster_domain,bk_target_ip,instance,instance_role,cluster_type,bk_target_cloud_id,appid,bk_target_service_instance_id) (\nirate(bkmonitor:exporter",
             "functions": [],
-            "promql": "sum by (app,cluster_domain,bk_target_ip,instance,instance_role,cluster_type,bk_target_cloud_id,appid) (\nirate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_sys_seconds_total{cluster_type=\"TwemproxyRedisInstance\",instance_role=\"redis_master\"}[2m]) +\n+\nirate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_user_seconds_total{cluster_type=\"TwemproxyRedisInstance\",instance_role=\"redis_master\"}[2m])\n)",
+            "promql": "sum by (app,cluster_domain,bk_target_ip,instance,instance_role,cluster_type,bk_target_cloud_id,appid,bk_target_service_instance_id) (\nirate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_sys_seconds_total{cluster_type=\"TwemproxyRedisInstance\",instance_role=\"redis_master\"}[2m]) +\n+\nirate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_user_seconds_total{cluster_type=\"TwemproxyRedisInstance\",instance_role=\"redis_master\"}[2m])\n)",
             "agg_interval": 60,
             "name": ""
           }
