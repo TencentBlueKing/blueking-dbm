@@ -59,7 +59,10 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         TicketType.MYSQL_RESTORE_SLAVE.value,
         TicketType.MYSQL_HA_TRUNCATE_DATA.value,
     ]
-    MASTER_UNAVAILABLE_WHITELIST = []
+    MASTER_UNAVAILABLE_WHITELIST = [
+        TicketType.MYSQL_MASTER_FAIL_OVER.value,
+        TicketType.MYSQL_MASTER_SLAVE_SWITCH.value,
+    ]
     PROXY_UNAVAILABLE_WHITELIST = [TicketType.get_values()]
     # 集群的flag状态与白名单的映射表
     unavailable_whitelist__status_flag = {
