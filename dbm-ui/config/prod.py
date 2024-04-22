@@ -13,3 +13,5 @@ from .default import *  # pylint: disable=wildcard-import
 DEBUG = False
 
 LOGGING = get_logging_config(os.path.join(BK_LOG_DIR, APP_CODE), "INFO")
+
+CORS_ALLOWED_ORIGINS = env.CORS_ALLOWED_ORIGINS

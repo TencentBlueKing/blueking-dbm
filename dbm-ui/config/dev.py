@@ -22,7 +22,7 @@ CORS_ALLOW_CREDENTIALS = True
 MIDDLEWARE = (
     "corsheaders.middleware.CorsMiddleware",
     "backend.bk_web.middleware.DisableCSRFCheckMiddleware",
-) + MIDDLEWARE
+) + MIDDLEWARE[1:]
 
 DATABASES = {
     "default": {
