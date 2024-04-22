@@ -14,7 +14,7 @@ DEV_BUILD_FLAG="-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.gitHash="" "
 release-bin:
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}" -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}
 	chmod +x pt-table-checksum pt-table-sync
-	cp -ar lib ${OUTPUT_DIR}/
+	cp -r lib ${OUTPUT_DIR}/
 	cp -a pt-table-checksum ${OUTPUT_DIR}/
 	cp -a pt-table-sync ${OUTPUT_DIR}/
 	cp -a checksum_history.sql ${OUTPUT_DIR}/
@@ -26,7 +26,7 @@ release-bin:
 .PHONY: dev-bin
 dev-bin:
 	go build -ldflags ${DEV_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}
-	cp -ar lib ${OUTPUT_DIR}/
+	cp -r lib ${OUTPUT_DIR}/
 	cp -a pt-table-checksum ${OUTPUT_DIR}/
 	cp -a pt-table-sync ${OUTPUT_DIR}/
 	cp -a checksum_history ${OUTPUT_DIR}/
