@@ -32,8 +32,8 @@ CORS_ALLOW_HEADERS = (
     "HTTP_X_REQUESTED_WITH",
 )
 
-MIDDLEWARE += (
+MIDDLEWARE = (
     "corsheaders.middleware.CorsMiddleware",
     "backend.bk_web.middleware.DisableCSRFCheckMiddleware",
     "pyinstrument.middleware.ProfilerMiddleware",
-)
+) + MIDDLEWARE[1:]
