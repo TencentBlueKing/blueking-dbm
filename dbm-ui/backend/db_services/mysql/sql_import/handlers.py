@@ -38,7 +38,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.spider import SpiderController
 from backend.flow.models import FlowNode, FlowTree
 from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
-from backend.ticket.constants import TicketFlowStatus
+from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketFlowStatus
 from backend.utils.basic import generate_root_id
 from backend.utils.redis import RedisConn
 
@@ -329,9 +329,10 @@ class SQLHandler(object):
         return ""
 
     @classmethod
-    def parse_semantic_check_logs(cls, logs: List[Dict], sql_files: List[str]) -> List[Dict]:
+    def parse_semantic_check_logs(cls, root_id: str, logs: List[Dict], sql_files: List[str]) -> List[Dict]:
         """
         解析语义检查的执行日志，根据sql文件返回结构化的执行结果日志
+        :param root_id: 流程id
         :param logs: 语义执行日志(node_log)
         :param sql_files: sql文件名列表
         """
@@ -365,10 +366,12 @@ class SQLHandler(object):
             # 清空current_sql_filename, current_sql_logs
             current_sql_filename, current_sql_logs = "", []
 
-        # 如果匹配完成后current_sql_filename仍然有值，说明当前sql文件执行错误
+        # 如果匹配完成后current_sql_filename仍然有值，说明解析未完成，要根据flow的状态进行判断
         if current_sql_filename:
+            flow_status = FlowTree.objects.get(root_id=root_id).status
+            sql_exec_status = BAMBOO_STATE__TICKET_STATE_MAP.get(flow_status, TicketFlowStatus.RUNNING)
             parsed_sql_logs_results.append(
-                {"filename": current_sql_filename, "match_logs": current_sql_logs, "status": TicketFlowStatus.FAILED}
+                {"filename": current_sql_filename, "match_logs": current_sql_logs, "status": sql_exec_status}
             )
 
         # 对于不出现在匹配结果的sql文件，说明是待执行状态
@@ -397,9 +400,12 @@ class SQLHandler(object):
         # 获取语义执行的version id
         versions = taskflow_handler.get_node_histories(node_id)
         version_id = versions[0]["version"]
+        if not version_id:
+            return []
+
         # 获取语法检查结果日志
         logs = taskflow_handler.get_version_logs(node_id, version_id)
         # 解析日志，获得结构化数据
         semantic_data = semantic_data["semantic_data"]
-        parsed_sql_logs_results = self.parse_semantic_check_logs(logs, semantic_data["execute_sql_files"])
+        parsed_sql_logs_results = self.parse_semantic_check_logs(root_id, logs, semantic_data["execute_sql_files"])
         return parsed_sql_logs_results
