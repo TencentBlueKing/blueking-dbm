@@ -215,7 +215,7 @@ class BaseModelResourceProvider(BaseResourceProvider):
         # 根据过滤条件查询关联的queryset
         queryset = data_source.objects.filter(**condition).values(*value_list)[page.slice_from : page.slice_to]
         results = [
-            {"id": str(item[value_list[0]]), "display_name": ":".join([str(item[value]) for value in value_list[1:]])}
+            {"id": str(item[value_list[0]]), "display_name": "-".join([str(item[value]) for value in value_list[1:]])}
             for item in list(queryset)
         ]
         return ListResult(results=results, count=len(results))

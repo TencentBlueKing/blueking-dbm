@@ -111,16 +111,17 @@ class ResourceMeta(metaclass=abc.ABCMeta):
 
     @classmethod
     def batch_create_model_instances(
-        cls, model: models.Model, instance_ids: list, attr=None
+        cls, model: models.Model, instance_ids: list, instance_queryset: models.QuerySet = None, attr: dict = None
     ) -> List[Tuple[Resource, models.Model]]:
         """
         批量创建模型实例
         :param model: django模型
         :param instance_ids: 实例ID列表
+        :param instance_queryset: 实例查询集
         :param attr: 实例属性
         """
         instance_tuple_list: List[Tuple[Resource, models.Model]] = []
-        instance_queryset = model.objects.filter(pk__in=instance_ids)
+        instance_queryset = instance_queryset or model.objects.filter(pk__in=instance_ids)
         for instance in instance_queryset:
             instance_tuple_list.append(cls.create_model_instance(model, instance.pk, instance, attr))
         return instance_tuple_list
@@ -205,7 +206,7 @@ class TaskFlowResourceMeta(ResourceMeta):
     def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
         from backend.flow.models import FlowTree
 
-        resources = [item[0] for item in cls.batch_create_model_instances(FlowTree, instance_ids, attr)]
+        resources = [item[0] for item in cls.batch_create_model_instances(FlowTree, instance_ids, attr=attr)]
         return resources
 
 
@@ -235,7 +236,7 @@ class TicketResourceMeta(ResourceMeta):
     def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
         from backend.ticket.models import Ticket
 
-        resources = [item[0] for item in cls.batch_create_model_instances(Ticket, instance_ids, attr)]
+        resources = [item[0] for item in cls.batch_create_model_instances(Ticket, instance_ids, attr=attr)]
         return resources
 
 
@@ -265,7 +266,7 @@ class ClusterResourceMeta(ResourceMeta):
     def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
         from backend.db_meta.models.cluster import Cluster
 
-        resources = [item[0] for item in cls.batch_create_model_instances(Cluster, instance_ids, attr)]
+        resources = [item[0] for item in cls.batch_create_model_instances(Cluster, instance_ids, attr=attr)]
         return resources
 
 
@@ -356,7 +357,7 @@ class InstanceResourceMeta(ClusterResourceMeta):
     id: str = ""
     name: str = ""
     # 实例默认展示字段为ip:port
-    display_fields: list = ResourceMeta.Field(["machine__ip", "port"])
+    display_fields: list = ResourceMeta.Field(["ip_port"])
 
     @classmethod
     def create_instance(cls, instance_id: str, attr=None) -> Resource:
@@ -369,7 +370,13 @@ class InstanceResourceMeta(ClusterResourceMeta):
     def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
         from backend.db_meta.models.instance import StorageInstance
 
-        resources = [item[0] for item in cls.batch_create_model_instances(StorageInstance, instance_ids, attr)]
+        instance_queryset = StorageInstance.objects.select_related("machine").filter(pk__in=instance_ids)
+        resources = [
+            item[0]
+            for item in cls.batch_create_model_instances(
+                StorageInstance, instance_ids, attr=attr, instance_queryset=instance_queryset
+            )
+        ]
         return resources
 
 

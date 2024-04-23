@@ -15,11 +15,12 @@ from typing import List
 from django.db.models import Q
 
 from backend.components.mysql_partition.client import DBPartitionApi
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission
+from backend.iam_app.handlers.drf_perm.base import MoreResourceActionPermission, ResourceActionPermission
 
 
 class ClusterDetailPermission(ResourceActionPermission):
@@ -104,22 +105,14 @@ class PartitionManagePermission(ResourceActionPermission):
             return [cluster.id]
 
 
-class ModifyActionPermission(ResourceActionPermission):
+class ModifyClusterPasswordPermission(ResourceActionPermission):
     """
     集群admin密码修改相关动作鉴权
     """
 
     def inst_ids_getter(self, request, view):
         data = request.data or request.query_params
-        if view.action == "query_mysql_admin_password" and "bk_biz_id" in data:
-            self.actions, self.resource_meta = [DBManagePermission()], ResourceEnum.BUSINESS
-            return [data["bk_biz_id"]]
-        if view.action == "query_mysql_admin_password":
-            instances = data["instances"].split(",")
-            instance_list = [{"bk_cloud_id": inst.split(":")[0], "ip": inst.split(":")[1]} for inst in instances]
-        else:
-            instance_list = data["instance_list"]
-
+        instance_list = data["instance_list"]
         # 获取实例关联的machine(这里不查询实例是因为存在spider角色)
         machine_ip_filters = functools.reduce(
             operator.or_, [Q(bk_cloud_id=inst["bk_cloud_id"], ip=inst["ip"]) for inst in instance_list]
@@ -136,3 +129,29 @@ class ModifyActionPermission(ResourceActionPermission):
 
     def __init__(self):
         super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
+
+
+class QueryClusterPasswordPermission(MoreResourceActionPermission):
+    @staticmethod
+    def instance_ids_getters(request, view):
+        data = request.data or request.query_params
+        # 目前仅支持mysql的admin密码查询鉴权
+        if view.action == "query_mysql_admin_password":
+            if "bk_biz_id" in data:
+                return [(data["bk_biz_id"], DBType.MySQL.value)]
+            elif "instances" in data:
+                instance = data["instances"].split(",")[0]
+                bk_cloud_id, ip, __ = instance.split(":")
+                machine = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
+                return [(machine.bk_biz_id, ClusterType.cluster_type_to_db_type(machine.cluster_type))]
+            else:
+                raise NotImplementedError
+        else:
+            return []
+
+    def __init__(self):
+        super().__init__(
+            actions=[ActionEnum.ADMIN_PWD_VIEW],
+            resource_metes=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+            instance_ids_getters=self.instance_ids_getters,
+        )

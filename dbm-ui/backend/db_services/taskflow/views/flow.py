@@ -79,6 +79,12 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         actions=[ActionEnum.FLOW_DETAIL],
         resource_meta=ResourceEnum.TASKFLOW,
     )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["uid"],
+        data_field=lambda d: d["results"],
+        actions=[ActionEnum.TICKET_VIEW],
+        resource_meta=ResourceEnum.TICKET,
+    )
     def list(self, requests, *args, **kwargs):
         return super().list(requests, *args, **kwargs)
 
