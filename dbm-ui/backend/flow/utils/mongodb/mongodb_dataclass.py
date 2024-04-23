@@ -1314,12 +1314,11 @@ class ActKwargs:
                         "bk_biz_id": self.payload["bk_biz_id"],
                         "ip": instances[index]["ip"],
                         "bk_cloud_id": instances[index]["bk_cloud_id"],
-                        "spec_id": info["machine_specs"]["old_mongodb"]["spec_id"],
-                        "spec_config": info["machine_specs"]["old_mongodb"]["spec_config"],
                         "target": {
                             "ip": host["ip"],
                             "bk_cloud_id": host["bk_cloud_id"],
                             "spec_id": info["machine_specs"]["mongodb"]["spec_id"],
+                            "spec_config": info["machine_specs"]["mongodb"]["spec_config"],
                             "bk_cpu": host["bk_cpu"],
                             "bk_mem": host["bk_mem"],
                             "storage_device": host["storage_device"],
@@ -1346,7 +1345,7 @@ class ActKwargs:
                 )
                 mongodb_host_set.append(mongodb_host_order_by_tolerance)
             # 每台机器部署的实例数
-            node_replica_count = int(info["shard_num"] / info["shard_machine_group"])
+            node_replica_count = int(info["shards_num"] / info["shard_machine_group"])
             # 所有shard的实例对应关系
             shards_instance_relationships = []
             # 分配机器
@@ -1364,12 +1363,11 @@ class ActKwargs:
                                 "node_replica_count": node_replica_count,
                                 "ip": node["ip"],
                                 "bk_cloud_id": node["bk_cloud_id"],
-                                "spec_id": info["machine_specs"]["old_mongodb"]["spec_id"],
-                                "spec_config": info["machine_specs"]["old_mongodb"]["spec_config"],
                                 "target": {
                                     "ip": shard_host_set[node_index]["ip"],
                                     "bk_cloud_id": shard_host_set[node_index]["bk_cloud_id"],
                                     "spec_id": info["machine_specs"]["mongodb"]["spec_id"],
+                                    "spec_config": info["machine_specs"]["mongodb"]["spec_config"],
                                     "bk_cpu": shard_host_set[node_index]["bk_cpu"],
                                     "bk_mem": shard_host_set[node_index]["bk_mem"],
                                     "storage_device": shard_host_set[node_index]["storage_device"],
@@ -1420,6 +1418,28 @@ class ActKwargs:
             self.payload["db_version"] = info["db_version"]
             self.db_main_version = self.payload["db_version"].split(".")[0]
         self.payload["hosts"] = hosts
+
+    def get_scale_change_meta(self, info: dict, instance: dict) -> dict:
+        """容量变更修改meta"""
+
+        return {
+            "created_by": self.payload["created_by"],
+            "immute_domain": "",
+            "cluster_id": instance["cluster_id"],
+            "bk_biz_id": self.payload["bk_biz_id"],
+            "mongodb": [
+                {
+                    "ip": info["ip"],
+                    "port": instance["port"],
+                    "target": {
+                        "ip": info["target"]["ip"],
+                        "port": instance["port"],
+                        "spec_id": info["target"]["spec_id"],
+                        "spec_config": info["target"]["spec_config"],
+                    },
+                }
+            ],
+        }
 
     def get_host_increase_node(self, info: dict):
         """cluster增加node获取主机"""

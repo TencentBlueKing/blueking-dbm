@@ -250,7 +250,7 @@ type unmarshalIndexSpecification struct {
 	TextVersion        *int32   `bson:"textIndexVersion,omitempty"`
 }
 
-// UnmarshalBSON implements the bson.Unmarshaler interface.
+// unmarshalBSON implements the bson.Unmarshaler interface.
 func unmarshalBSON(data []byte) error {
 	var temp unmarshalIndexSpecification
 	if err := bson.Unmarshal(data, &temp); err != nil {

@@ -22,6 +22,7 @@ type MongoSConfParams struct {
 	common.MediaPkg `json:"mediapkg"`
 	IP              string   `json:"ip" validate:"required"`
 	Port            int      `json:"port" validate:"required"`
+	DbVersion       string   `json:"dbVersion" validate:"required"`
 	InstanceType    string   `json:"instanceType" validate:"required"` // mongos mongod
 	App             string   `json:"app" validate:"required"`
 	SetId           string   `json:"setId" validate:"required"`
@@ -129,7 +130,7 @@ func (s *MongoSInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 	// 获取信息
 	s.InstallPackagePath = s.ConfParams.MediaPkg.GetAbsolutePath()
-	s.DbVersion = strings.Split(s.ConfParams.MediaPkg.GePkgBaseName(), "-")[3]
+	s.DbVersion = s.ConfParams.DbVersion
 
 	// 设置各种路径
 	strPort := strconv.Itoa(s.ConfParams.Port)
@@ -401,10 +402,10 @@ func (s *MongoSInstall) mkdir() error {
 	return nil
 }
 
-// createFile 创建配置文件以及key文件
+// creatFile 创建配置文件以及key文件
 func (s *MongoSInstall) creatFile() error {
 	// 创建配置文件，key文件，dbType文件并授权
-	if err := common.CreateConfFileAndKeyFileAndDbTypeFileAndChown(
+	if err := common.CreateConfKeyDbTypeAndChown(
 		s.runtime, s.AuthConfFilePath, s.AuthConfFileContent, s.OsUser, s.OsGroup, s.NoAuthConfFilePath,
 		s.NoAuthConfFileContent, s.KeyFilePath, s.ConfParams.KeyFile, s.DbTypeFilePath,
 		s.ConfParams.InstanceType, DefaultPerm); err != nil {

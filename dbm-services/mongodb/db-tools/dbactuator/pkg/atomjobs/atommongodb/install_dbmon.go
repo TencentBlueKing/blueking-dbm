@@ -208,7 +208,7 @@ func (job *installDbmonJob) updateConfigFile() error {
 	return nil
 }
 
-// todo 改为常量
+// updateDbTool 改为常量
 func (job *installDbmonJob) updateDbTool() error {
 	fileName := path.Base(job.params.DbToolsPkg.Pkg)
 	prevFile := path.Join(consts.PackageCachePath, fileName)
@@ -230,7 +230,7 @@ func (job *installDbmonJob) updateDbTool() error {
 	return nil
 }
 
-// todo 改为常量
+// updateToolKit 改为常量
 func (job *installDbmonJob) updateToolKit() error {
 	fileName := path.Base(job.params.ToolKitPkg.Pkg)
 	prevFile := path.Join(consts.PackageCachePath, fileName)
@@ -391,6 +391,7 @@ func getExeNameByPID(pid string) (string, error) {
 	return exeName, nil
 }
 
+// dbmonIsRunning TODO
 // check dbmon is running
 func dbmonIsRunning(comm string) (pid int, err error) {
 	comm = path.Base(comm)

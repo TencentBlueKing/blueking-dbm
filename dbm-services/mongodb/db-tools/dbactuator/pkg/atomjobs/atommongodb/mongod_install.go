@@ -3,7 +3,7 @@ package atommongodb
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -267,6 +267,48 @@ func (m *MongoDBInstall) makeConfContent() error {
 	return nil
 }
 
+// checkPortUsed 检查端口是否被使用
+func (m *MongoDBInstall) checkPortUsed() (bool, error) {
+	m.runtime.Logger.Info("start to validate port if it has been used")
+	flag, _ := util.CheckPortIsInUse(m.ConfParams.IP, strconv.Itoa(m.ConfParams.Port))
+	if flag {
+		// 校验端口是否是mongod进程
+		cmd := fmt.Sprintf("netstat -ntpl |grep %d | awk '{print $7}' |head -1", m.ConfParams.Port)
+		result, _ := util.RunBashCmd(cmd, "", nil, 10*time.Second)
+		if strings.Contains(result, "mongod") {
+			// 检查配置文件是否一致，读取已有配置文件与新生成的配置文件内容对比
+			content, _ := os.ReadFile(m.AuthConfFilePath)
+			if strings.Compare(string(content), string(m.AuthConfFileContent)) == 0 {
+				// 检查mongod版本
+				version, err := common.CheckMongoVersion(m.BinDir, "mongod")
+				if err != nil {
+					m.runtime.Logger.Error(
+						fmt.Sprintf("mongod has been installed, port:%d, check mongod version fail. error:%s",
+							m.ConfParams.Port, version))
+					return false, fmt.Errorf("mongod has been installed, port:%d, check mongod version fail. error:%s",
+						m.ConfParams.Port, version)
+				}
+				if version == m.ConfParams.DbVersion {
+					m.runtime.Logger.Info(fmt.Sprintf("mongod has been installed, port:%d, version:%s",
+						m.ConfParams.Port, version))
+					return true, nil
+				}
+				m.runtime.Logger.Error(fmt.Sprintf("other mongod has been installed, port:%d, version:%s",
+					m.ConfParams.Port, version))
+				return false, fmt.Errorf("other mongod has been installed, port:%d, version:%s",
+					m.ConfParams.Port, version)
+			}
+
+		}
+		m.runtime.Logger.Error(
+			fmt.Sprintf("validate port if it has been used, port:%d is used by other process",
+				m.ConfParams.Port))
+		return false, fmt.Errorf("validate port if it has been used, port:%d is used by other process",
+			m.ConfParams.Port)
+	}
+	return false, nil
+}
+
 // checkParams 校验参数 检查输入的参数   检查端口是否合规  检查安装包 检查端口是否被使用（如果使用，则检查是否是mongodb服务）
 func (m *MongoDBInstall) checkParams() (bool, error) {
 	// 校验MongoDB配置文件
@@ -302,42 +344,26 @@ func (m *MongoDBInstall) checkParams() (bool, error) {
 	}
 
 	// 校验端口是否使用
-	m.runtime.Logger.Info("start to validate port if it has been used")
-	flag, _ := util.CheckPortIsInUse(m.ConfParams.IP, strconv.Itoa(m.ConfParams.Port))
+	flag, err := m.checkPortUsed()
+	if err != nil {
+		return false, err
+	}
 	if flag {
-		// 校验端口是否是mongod进程
-		cmd := fmt.Sprintf("netstat -ntpl |grep %d | awk '{print $7}' |head -1", m.ConfParams.Port)
-		result, _ := util.RunBashCmd(cmd, "", nil, 10*time.Second)
-		if strings.Contains(result, "mongod") {
-			// 检查配置文件是否一致，读取已有配置文件与新生成的配置文件内容对比
-			content, _ := ioutil.ReadFile(m.AuthConfFilePath)
-			if strings.Compare(string(content), string(m.AuthConfFileContent)) == 0 {
-				// 检查mongod版本
-				version, err := common.CheckMongoVersion(m.BinDir, "mongod")
-				if err != nil {
-					m.runtime.Logger.Error(
-						fmt.Sprintf("mongod has been installed, port:%d, check mongod version fail. error:%s",
-							m.ConfParams.Port, version))
-					return false, fmt.Errorf("mongod has been installed, port:%d, check mongod version fail. error:%s",
-						m.ConfParams.Port, version)
-				}
-				if version == m.ConfParams.DbVersion {
-					m.runtime.Logger.Info(fmt.Sprintf("mongod has been installed, port:%d, version:%s",
-						m.ConfParams.Port, version))
-					return true, nil
-				}
-				m.runtime.Logger.Error(fmt.Sprintf("other mongod has been installed, port:%d, version:%s",
-					m.ConfParams.Port, version))
-				return false, fmt.Errorf("other mongod has been installed, port:%d, version:%s",
-					m.ConfParams.Port, version)
-			}
+		return true, nil
+	}
 
+	// 检查数据文件目录是否存在
+	if util.FileExists(m.DbpathDir) {
+		m.runtime.Logger.Info("start to validate data file directory if it is empty")
+		dirs, err := os.ReadDir(m.DbpathDir)
+		if err != nil {
+			m.runtime.Logger.Error("validate data file directory fail, error:%s", err)
+			return false, fmt.Errorf("validate data file directory fail, error:%s", err)
 		}
-		m.runtime.Logger.Error(
-			fmt.Sprintf("validate port if it has been used, port:%d is used by other process",
-				m.ConfParams.Port))
-		return false, fmt.Errorf("validate port if it has been used, port:%d is used by other process",
-			m.ConfParams.Port)
+		if len(dirs) > 0 {
+			m.runtime.Logger.Error("validate data file directory, %s is not empty", m.DbpathDir)
+			return false, fmt.Errorf("validate data file directory, %s is not empty", m.DbpathDir)
+		}
 	}
 	m.runtime.Logger.Info("validate parameters successfully")
 	return false, nil
@@ -455,7 +481,7 @@ func (m *MongoDBInstall) mkdir() error {
 
 // createFile 创建配置文件以及key文件
 func (m *MongoDBInstall) createFile() error {
-	if err := common.CreateConfFileAndKeyFileAndDbTypeFileAndChown(
+	if err := common.CreateConfKeyDbTypeAndChown(
 		m.runtime, m.AuthConfFilePath, m.AuthConfFileContent, m.OsUser, m.OsGroup, m.NoAuthConfFilePath,
 		m.NoAuthConfFileContent, m.KeyFilePath, m.ConfParams.KeyFile, m.DbTypeFilePath,
 		m.ConfParams.InstanceType, DefaultPerm); err != nil {

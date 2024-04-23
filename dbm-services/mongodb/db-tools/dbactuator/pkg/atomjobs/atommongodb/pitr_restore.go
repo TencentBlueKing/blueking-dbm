@@ -207,6 +207,7 @@ func (s *pitrRecoverJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 	return nil
 }
 
+// checkVersion TODO
 // checkParams 校验参数
 func (s *pitrRecoverJob) checkVersion() error {
 	s.MongoInst = mymongo.NewMongoHost(

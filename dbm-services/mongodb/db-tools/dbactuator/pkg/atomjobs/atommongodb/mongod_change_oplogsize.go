@@ -382,20 +382,8 @@ func (c *MongoDChangeOplogSize) normalStart() error {
 	return nil
 }
 
-// setOplog db版本小于3.6修改oplog
-func (c *MongoDChangeOplogSize) setOplog() error {
-	// 关闭dbmon
-	c.runtime.Logger.Info("stop dbmon")
-	cmd := fmt.Sprintf("/home/%s/dbmon/stop.sh", c.OsUser)
-	if _, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		10*time.Second); err != nil {
-		c.runtime.Logger.Error("stop dbmon fail, error:%s", err)
-		return fmt.Errorf("stop dbmon fail, error:%s", err)
-	}
-
-	// 如果是主库进行主备切换
+// stepDown 主备切换
+func (c *MongoDChangeOplogSize) stepDown() error {
 	if c.ConfParams.IP == c.PrimaryIP && c.ConfParams.Port == c.PrimaryPort {
 		c.runtime.Logger.Info("change primary to secondary")
 		flag, err := common.AuthRsStepDown(c.Mongo, c.ConfParams.IP, c.ConfParams.Port, c.ConfParams.AdminUsername,
@@ -409,19 +397,48 @@ func (c *MongoDChangeOplogSize) setOplog() error {
 			return fmt.Errorf("change primary to secondary fail")
 		}
 	}
+	return nil
+}
 
+// dbMon 关闭开启dbmon
+func (c *MongoDChangeOplogSize) dbMon(status string) error {
+	var cmd string
+	if status == "start" {
+		cmd = fmt.Sprintf("/home/%s/dbmon/start.sh", c.OsUser)
+	} else {
+		cmd = fmt.Sprintf("/home/%s/dbmon/stop.sh", c.OsUser)
+	}
+	c.runtime.Logger.Info("%s dbmon", status)
+	if _, err := util.RunBashCmd(
+		cmd,
+		"", nil,
+		10*time.Second); err != nil {
+		c.runtime.Logger.Error("%s dbmon fail, error:%s", status, err)
+		return fmt.Errorf("%s dbmon fail, error:%s", status, err)
+	}
+	return nil
+}
+
+// setOplog db版本小于3.6修改oplog
+func (c *MongoDChangeOplogSize) setOplog() error {
+	// 关闭dbmon
+	if err := c.dbMon("stop"); err != nil {
+		return err
+	}
+	// 如果是主库进行主备切换
+	if err := c.stepDown(); err != nil {
+		return err
+	}
 	// 创建修改oplog脚本
 	if err := c.createScript(); err != nil {
 		return err
 	}
-
 	// 关闭进程以单机形式启动
 	if err := c.standaloneStart(); err != nil {
 		return err
 	}
-
 	// 执行修改oplog脚本脚本
-	cmd = fmt.Sprintf(
+	cmd := fmt.Sprintf(
 		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet %s",
 		c.Mongo, c.ConfParams.AdminUsername, c.ConfParams.AdminPassword, c.ConfParams.IP, c.ConfParams.Port,
 		c.ScriptFilePath)
@@ -450,21 +467,13 @@ func (c *MongoDChangeOplogSize) setOplog() error {
 		c.runtime.Logger.Error("number of new oplog document is not equal 1, please check")
 		return fmt.Errorf("number of new oplog document is not equal 1, please check")
 	}
-
 	// 关闭进程正常重启进程
 	if err = c.normalStart(); err != nil {
 		return err
 	}
-
 	// 开启dbmon
-	c.runtime.Logger.Info("start dbmon")
-	cmd = fmt.Sprintf("/home/%s/dbmon/start.sh", c.OsUser)
-	if _, err = util.RunBashCmd(
-		cmd,
-		"", nil,
-		10*time.Second); err != nil {
-		c.runtime.Logger.Error("start dbmon fail, error:%s", err)
-		return fmt.Errorf("start dbmon fail, error:%s", err)
+	if err = c.dbMon("start"); err != nil {
+		return err
 	}
 	return nil
 }
