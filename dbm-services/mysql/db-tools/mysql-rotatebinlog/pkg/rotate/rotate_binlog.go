@@ -94,7 +94,7 @@ func (i *ServerObj) Rotate() (lastFileBefore *models.BinlogFileModel, err error)
 		logger.Error("%+v", err)
 	}
 
-	//var lastFileBefore *models.BinlogFileModel // 之前登记处理过的最后一个文件
+	// 之前登记处理过的最后一个文件
 	if lastFileBefore, err = i.rotate.binlogInst.QueryLastFileReport(models.DB.Conn); err != nil {
 		logger.Error(err.Error())
 	}

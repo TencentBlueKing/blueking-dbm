@@ -103,7 +103,7 @@ const (
 	PolicyLeastMaxSize int64 = 99999999
 )
 
-// FlushLogs TODO
+// FlushLogs 根据时间间隔需要，决定是否 flush logs
 func (i *ServerObj) FlushLogs() error {
 	var err error
 	_, binlogFilesObj, err := i.getBinlogFilesLocal() // todo 精简参数，是否需要改成 SHOW BINARY LOGS?
@@ -128,6 +128,7 @@ func (i *ServerObj) FlushLogs() error {
 				// 留 5s 的误差。比如rotateInterval=300s, 那么实际等到 295s 也可以进行rotate，不然等到下一轮还需要 300s
 				_ = i.flushLogs()
 			}
+			// 无需 执行 flush logs，可能因达到 max_binlog_size 自动切换 binlog 了
 		}
 	} else {
 		_ = i.flushLogs()
@@ -220,9 +221,11 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 	lastFileNameRegistered := filepath.Base(lastFileBefore.Filename)
 	var filesModel []*models.BinlogFileModel
 	for j, fileObj := range i.binlogFiles {
-		if fileObj.Filename <= lastFileNameRegistered || j == fLen-1 { // 忽略最后一个binlog
+		if (lastFileBefore.Filename != "" && fileObj.Filename <= lastFileNameRegistered) ||
+			j == fLen-1 { // 忽略最后一个binlog
 			continue
 		}
+
 		backupStatus := models.IBStatusNew
 		backupStatusInfo := ""
 		bp, _ := binlog_parser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1)
