@@ -14,7 +14,6 @@
 import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
 import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
 
-import type { ClusterTypes } from '@common/const';
 import { ClusterTypes } from '@common/const';
 
 import http from '../http';

@@ -14,7 +14,7 @@ import http from '@services/http';
 import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
 import RedisHostModel from '@services/model/redis/redis-host';
 
-const path = `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/toolbox`;
+const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/toolbox`;
 
 interface MasterSlaveByIp {
   cluster: {
@@ -48,7 +48,7 @@ interface MasterSlaveByIp {
  */
 export function queryInfoByIp(params: { ips: string[] }) {
   return http
-    .post<RedisClusterNodeByIpModel[]>(`${path}/query_by_ip/`, params)
+    .post<RedisClusterNodeByIpModel[]>(`${getRootPath()}/query_by_ip/`, params)
     .then((data) => data.map((item) => new RedisClusterNodeByIpModel(item)));
 }
 
@@ -57,7 +57,7 @@ export function queryInfoByIp(params: { ips: string[] }) {
  */
 export function queryClusterHostList(params: { cluster_id?: number; ip?: string }) {
   return http
-    .post<RedisHostModel[]>(`${path}/query_cluster_ips/`, params)
+    .post<RedisHostModel[]>(`${getRootPath()}/query_cluster_ips/`, params)
     .then((data) => data.map((item) => new RedisHostModel(item)));
 }
 
@@ -65,7 +65,7 @@ export function queryClusterHostList(params: { cluster_id?: number; ip?: string 
  * 根据masterIP查询集群、实例和slave
  */
 export function queryMasterSlaveByIp(params: { ips: string[] }) {
-  return http.post<MasterSlaveByIp[]>(`${path}/query_master_slave_by_ip/`, params);
+  return http.post<MasterSlaveByIp[]>(`${getRootPath()}/query_master_slave_by_ip/`, params);
 }
 
 /**
@@ -77,7 +77,7 @@ export function queryMasterSlavePairs(params: { cluster_id: number }) {
       master_ip: string;
       slave_ip: string;
     }[]
-  >(`${path}/query_master_slave_pairs/`, params);
+  >(`${getRootPath()}/query_master_slave_pairs/`, params);
 }
 
 // 查询集群下的主机列表

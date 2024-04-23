@@ -14,11 +14,12 @@
 import SpiderModel from '@services/model/spider/spider';
 import SpiderMachineModel from '@services/model/spider/spiderMachine';
 import TendbClusterModel from '@services/model/spider/tendbCluster';
+import TendbInstanceModel from '@services/model/spider/tendbInstance';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase, ResourceInstance, ResourceItem, ResourceTopo } from '../types';
+import type { ListBase, ResourceItem, ResourceTopo } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -134,7 +135,7 @@ export function getSpiderTableFields() {
  * 获取集群实例列表
  */
 export function getSpiderInstanceList(params: Record<string, any>) {
-  return http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
+  return http.get<ListBase<TendbInstanceModel[]>>(`${path}/list_instances/`, params);
 }
 
 /**
@@ -227,9 +228,8 @@ export function getSpiderMachineList(params: {
   instance_role?: string;
   creator?: string;
 }) {
-  return http.get<ListBase<SpiderMachineModel[]>>(`${path}/list_machines/`, params)
-    .then((data) => ({
+  return http.get<ListBase<SpiderMachineModel[]>>(`${path}/list_machines/`, params).then((data) => ({
     ...data,
-    results: data.results.map(item => new SpiderMachineModel(item)),
-  }));;
+    results: data.results.map((item) => new SpiderMachineModel(item)),
+  }));
 }

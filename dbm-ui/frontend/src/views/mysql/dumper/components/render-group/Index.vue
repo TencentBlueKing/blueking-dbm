@@ -91,14 +91,13 @@
         </div>
       </ScrollFaker>
       <div class="rule-footer">
-        <AuthButton
-          action-id="tbinlogdumper_install"
+        <BkButton
           class="rule-add"
           text
           theme="primary"
           @click="handleShowCreateRule">
           <DbIcon type="plus-circle" /> {{ t('新建订阅规则') }}
-        </AuthButton>
+        </BkButton>
       </div>
     </BkLoading>
   </div>
@@ -110,11 +109,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import {
-    deleteDumperConfig,
-    listDumperConfig,
-    updateDumperConfigPartial,
-  } from '@services/source/dumper';
+  import { deleteDumperConfig, listDumperConfig, updateDumperConfigPartial } from '@services/source/dumper';
 
   import CreateNewRule from '../create-rule/Index.vue';
 
@@ -123,10 +118,10 @@
   import { messageSuccess } from '@/utils';
 
   interface Emits {
-    (e: 'change', value: DumperConfig | null): void
+    (e: 'change', value: DumperConfig | null): void;
   }
 
-  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number]
+  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number];
 
   const emits = defineEmits<Emits>();
 
@@ -140,25 +135,27 @@
   const curEditGroupId = ref(0);
   const isShowCreateRule = ref(false);
 
-
-  const totalInstances = computed(() => (
-    groupList.value.reduce((total: number, item) => total + (item.instance_count ?? 0), 0)
-  ));
+  const totalInstances = computed(() =>
+    groupList.value.reduce((total: number, item) => total + (item.instance_count ?? 0), 0),
+  );
 
   const dumperId = Number(route.params.dumperId);
 
   const fetchGroupList = () => {
     isLoading.value = true;
-    listDumperConfig({
-      offset: 0,
-      limit: -1,
-    }, {
-      permission: 'page'
-    })
+    listDumperConfig(
+      {
+        offset: 0,
+        limit: -1,
+      },
+      {
+        permission: 'page',
+      },
+    )
       .then((data) => {
         groupList.value = data.results;
         if (dumperId) {
-          const item = data.results.find(item => item.id === dumperId);
+          const item = data.results.find((item) => item.id === dumperId);
           handleChangeGroup(item);
         }
       })
@@ -204,16 +201,14 @@
     curEditGroupId.value = id;
   };
 
-
   const handleDelete = (item: DumperConfig) => {
     if (item.instance_count === 0) {
-      deleteDumperConfig({ id: item.id })
-        .then((result) => {
-          if (!result) {
-            messageSuccess(t('删除成功'));
-            fetchGroupList();
-          }
-        });
+      deleteDumperConfig({ id: item.id }).then((result) => {
+        if (!result) {
+          messageSuccess(t('删除成功'));
+          fetchGroupList();
+        }
+      });
     }
   };
 

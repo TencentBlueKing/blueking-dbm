@@ -35,5 +35,8 @@ export const useSystemEnviron = defineStore('SystemEnviron', {
         this.urls = res;
       });
     },
+    setSystemEnviron(payload: Urls) {
+      this.urls = payload;
+    },
   },
 });

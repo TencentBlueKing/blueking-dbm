@@ -48,25 +48,25 @@
 </script>
 <style lang="less">
   .auth-button-disable {
-    border-color: #dcdee5 !important;
-    user-select: none !important;
     color: #c4c6cc !important;
     background: #fafbfd !important;
     border-color: #dcdee5 !important;
+    user-select: none !important;
 
     &.bk-button-primary {
       background-color: #dcdee5 !important;
+
       .bk-button-text {
         color: #fff !important;
       }
     }
 
-    &.is-text,
-    * {
+    &.is-text {
       background-color: transparent !important;
       border-color: transparent !important;
 
-      .bk-button-text {
+      .bk-button-text,
+      * {
         color: #c4c6cc !important;
       }
     }

@@ -57,6 +57,9 @@ const withBizActionList = [
   'health_report_view',
   'dbha_switch_event_view',
   'ip_whitelist_manage',
+  'group_manage',
+  'access_entry_edit',
+  'admin_pwd_view',
 ];
 
 export default function (props: Props) {
@@ -80,7 +83,7 @@ export default function (props: Props) {
       action_id: props.actionId,
     };
 
-    if (props.resource){
+    if (props.resource) {
       Object.assign(params, {
         resource_id: props.resource,
       });

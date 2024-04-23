@@ -35,5 +35,9 @@ export const useFunController = defineStore('useFunController', {
         return res;
       });
     },
+    setFunController(payload: FunctionControllModel) {
+      this.funControllerData = payload;
+      this.isFetched = true;
+    },
   },
 });
