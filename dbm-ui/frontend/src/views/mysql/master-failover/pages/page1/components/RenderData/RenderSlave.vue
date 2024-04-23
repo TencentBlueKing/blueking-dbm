@@ -107,8 +107,6 @@
         allSlaveHostList = data;
       });
     }
-  }, {
-    immediate: true,
   });
 
   defineExpose<Exposes>({

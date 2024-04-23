@@ -32,9 +32,17 @@
         <span class="ticket-details__item-label">{{ t('SQL执行内容') }}：</span>
         <BkButton
           text
-          theme="primary"
           @click="handleClickFile">
-          {{ t('点击查看') }}
+          {{ t('共') }}
+          <span
+            class="tip-number"
+            style="color:#3A84FF">{{ ticketDetails.details.execute_sql_files.length }}</span>
+          {{ t('个文件') }}，
+          {{ t('含有') }}
+          <span
+            class="tip-number"
+            style="color:#EA3636">{{ highRiskNum }}</span>
+          {{ t('个高危语句') }}
         </BkButton>
       </div>
       <div class="ticket-details__item">
@@ -164,14 +172,16 @@
     table_patterns: [],
   }
 
-  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleList>> = {
+  const apiMap = {
     [ClusterTypes.TENDBSINGLE]: getTendbsingleList,
     [ClusterTypes.TENDBHA]: getTendbhaList,
     [ClusterTypes.TENDBCLUSTER]: getSpiderResources,
   };
 
   const { t } = useI18n();
+
   const selectFileName = ref('');
+
   const fileContentMap = shallowRef<Record<string, string>>({});
   const uploadFileList = shallowRef<Array<string>>([]);
   const isShow = ref(false);
@@ -208,6 +218,15 @@
       ],
     } as unknown as TablePropTypes,
   });
+
+  const highRiskNum = computed(() => Object.values(props.ticketDetails.details.grammar_check_info)
+    .reduce((results, item) => {
+      if (item.highrisk_warnings) {
+        // eslint-disable-next-line no-param-reassign
+        results += item.highrisk_warnings.length;
+      }
+      return results;
+    }, 0));
 
   const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
 
@@ -326,7 +345,7 @@
   });
 
   // 查看日志详情
-  function handleClickFile() {
+  const handleClickFile = () => {
     isShow.value = true;
 
     const uploadSQLFileList = props.ticketDetails?.details?.execute_objects.map(item => item.sql_file);
@@ -349,11 +368,11 @@
 
       [selectFileName.value] = uploadSQLFileList;
     });
-  }
+  };
 
-  function handleClose() {
+  const handleClose = () => {
     isShow.value = false;
-  }
+  };
 
   const handleFileSortChange = (list: string[]) => {
     uploadFileList.value = list;
@@ -377,7 +396,7 @@
         cluster_ids: clusterId,
         ...paginationParams,
       };
-      apiMap[clusterType](params)
+      apiMap[clusterType as keyof typeof apiMap](params)
         .then((res) => {
           res.results.forEach((item) => {
             clusterState.tableProps.data.push(Object.assign({
@@ -444,6 +463,12 @@
         flex: 1;
       }
     }
+  }
+
+  .tip-number {
+    font-weight: 700;
+    display: inline-block;
+    padding: 0 5px;
   }
 
 </style>

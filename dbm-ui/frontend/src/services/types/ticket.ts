@@ -577,8 +577,8 @@ export interface MySQLImportSQLFileDetails {
   path: string,
   backup: {
     backup_on: string,
-    db_patterns: [],
-    table_patterns: [],
+    db_patterns: string[],
+    table_patterns: string[],
   }[],
   charset: string,
   root_id: string,
@@ -592,15 +592,23 @@ export interface MySQLImportSQLFileDetails {
   },
   ticket_type: string,
   execute_objects: {
-    dbnames: [],
+    dbnames: string[],
     sql_file: string,
-    ignore_dbnames: []
+    ignore_dbnames: string[]
   }[],
   execute_db_infos: {
-    dbnames: [],
-    ignore_dbnames: []
+    dbnames: string[],
+    ignore_dbnames: string[]
   }[],
-  execute_sql_files: [],
+  execute_sql_files: string[],
+  grammar_check_info: Record<string, {
+    highrisk_warnings: {
+      command_type: string,
+      line: number,
+      sqltext: string,
+      warn_info: string,
+    }[]
+  }>
   import_mode: string,
   semantic_node_id: string,
 }

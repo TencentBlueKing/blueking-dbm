@@ -172,6 +172,7 @@
     `${ClusterTypes.PULSAE}_pulsar_broker`,
     `${ClusterTypes.TENDBCLUSTER}_spider`,
   ];
+
   const isRequired = !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`);
 
   const hasQPSSpecs = [

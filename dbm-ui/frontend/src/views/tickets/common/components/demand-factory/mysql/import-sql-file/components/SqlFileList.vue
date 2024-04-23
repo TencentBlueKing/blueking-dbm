@@ -61,7 +61,7 @@
       id: fileName,
       name: fileName,
     }));
-    const fileName = localList.value[0].name;
+    const fileName = props.modelValue ? props.modelValue : localList.value[0].name;
     emits('update:modelValue', fileName);
   }, {
     immediate: true,

@@ -14,7 +14,7 @@
 <template>
   <div class="spec-mem spec-form-item">
     <div class="spec-form-item__label">
-      {{ $t('机型') }}
+      {{ t('机型') }}
     </div>
     <div class="spec-form-item__content">
       <BkFormItem
@@ -23,11 +23,11 @@
         :rules="rules"
         style="width: 100%;">
         <BkSelect
-          v-model="localValue"
           :allow-empty-values="['']"
           filterable
           :input-search="false"
           :loading="isLoading"
+          :model-value="localValue"
           multiple
           @change="handleChange">
           <BkOption
@@ -80,7 +80,8 @@
 
   watch(() => props.modelValue, () => {
     if (props.modelValue.length === 0) {
-      localValue.value = '';
+      localValue.value = [''];
+      emits('update:modelValue', localValue.value);
       return;
     }
     localValue.value = props.modelValue;
@@ -88,8 +89,9 @@
     immediate: true,
   });
 
-  const handleChange = () => {
-    emits('update:modelValue', localValue.value as string[]);
+  const handleChange = (value: string[]) => {
+    localValue.value = value;
+    emits('update:modelValue', value);
   };
 </script>
 

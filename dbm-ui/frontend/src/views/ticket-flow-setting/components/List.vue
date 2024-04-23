@@ -36,18 +36,15 @@
         value-split-code="+"
         @search="fetchHostNodes" />
     </div>
-    <BkLoading :loading="isTableLoading">
-      <DbTable
-        ref="tableRef"
-        class="table-box"
-        :columns="columns"
-        :data-source="queryTicketFlowDescribe"
-        primary-key="ticket_type"
-        :remote-pagination="false"
-        selectable
-        @clear-search="handleClearSearch"
-        @selection="handleSelection" />
-    </BkLoading>
+    <DbTable
+      ref="tableRef"
+      class="table-box"
+      :columns="columns"
+      :data-source="queryTicketFlowDescribe"
+      primary-key="ticket_type"
+      selectable
+      @clear-search="handleClearSearch"
+      @selection="handleSelection" />
   </div>
   <BatchConfigDialog
     v-model:is-show="isShowBatchConfigDialog"
@@ -91,7 +88,6 @@
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
   const currentChoosedRow = ref<RowData>();
   const currentFlow = ref('');
-  const isTableLoading = ref(false);
   const isShowBatchConfigDialog = ref(false);
 
   const ticketTypeList = shallowRef<{
@@ -119,7 +115,7 @@
   const searchSelectList = computed(() => ([
     {
       name: t('单据类型'),
-      id: 'ticket_type',
+      id: 'ticket_types',
       multiple: true,
       children: ticketTypeList.value,
     },
@@ -215,14 +211,9 @@
   ];
 
   async function fetchHostNodes() {
-    isTableLoading.value = true;
-    try {
-      await tableRef.value.fetchData({ ...reqParams.value }, {
-        db_type: props.activeDbType,
-      });
-    } finally {
-      isTableLoading.value = false;
-    }
+    await tableRef.value.fetchData({ ...reqParams.value }, {
+      db_type: props.activeDbType,
+    });
   }
 
   const {

@@ -18,10 +18,17 @@
       'not-required': !isRequired
     }">
     <div class="spec-form-item__label">
-      {{ $t('磁盘') }}
+      {{ t('磁盘') }}
     </div>
     <div class="spec-form-item__content">
+      <BkButton
+        v-if="tableData.length === 0"
+        @click="handleAddFirstRow">
+        <DbIcon type="add" />
+        <span style="font-size:12px">{{ t('添加') }}</span>
+      </BkButton>
       <DbOriginalTable
+        v-else
         :border="['row', 'col', 'outer']"
         class="custom-edit-table"
         :columns="columns"
@@ -70,9 +77,13 @@
 
   const { t } = useI18n();
 
-  const tableData = ref(props.modelValue.length > 0 ? props.modelValue : [createData()]);
+  const tableData = ref(props.modelValue.length > 0 ? props.modelValue : []);
   const deviceClass = ref<{label: string, value: string}[]>([]);
   const isLoadDeviceClass = ref(true);
+
+  const handleAddFirstRow = () => {
+    tableData.value = [createData()];
+  };
 
   const mountPointRules = (data: StorageSpecItem) => {
     // 非必填
@@ -217,7 +228,7 @@
           </bk-button>
           <bk-button
             text
-            disabled={tableData.value.length === 1 || props.isEdit}
+            disabled={props.isEdit}
             onClick={() => handleRemove(index)}>
             <db-icon type="minus-fill" />
           </bk-button>
