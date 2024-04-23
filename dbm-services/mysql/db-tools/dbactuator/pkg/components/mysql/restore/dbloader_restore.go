@@ -193,11 +193,11 @@ func (m *DBLoader) getChangeMasterPos(masterInst native.Instance) (*mysqlutil.Ch
 	logger.Info("metadata: %+v", m.indexObj.BinlogInfo)
 	masterInfo := m.indexObj.BinlogInfo.ShowMasterStatus
 	slaveInfo := m.indexObj.BinlogInfo.ShowSlaveStatus
-	if masterInfo == nil || masterInfo.BinlogFile == "" {
-		return nil, errors.New("no master info found in metadata")
-	}
 	if masterInst.Host == "" || masterInst.Port == 0 { // 说明不关注备份位点信息
 		return &mysqlutil.ChangeMaster{}, nil
+	}
+	if masterInfo == nil || masterInfo.BinlogFile == "" {
+		return nil, errors.New("no master info found in metadata")
 	}
 	// 如果备份文件的源实例，就是当前恢复要change master to 的实例，直接用 MasterStatus info
 	if masterInfo.MasterHost == masterInst.Host && masterInfo.MasterPort == masterInst.Port {
