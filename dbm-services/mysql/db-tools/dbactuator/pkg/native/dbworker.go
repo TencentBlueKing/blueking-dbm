@@ -80,6 +80,15 @@ func (h *DbWorker) Stop() {
 	}
 }
 
+// Close close connection
+func (h *DbWorker) Close() {
+	if h.Db != nil {
+		if err := h.Db.Close(); err != nil {
+			logger.Warn("close db handler failed, err:%s", err.Error())
+		}
+	}
+}
+
 // Exec 执行任意sql，返回影响行数
 func (h *DbWorker) Exec(query string, args ...interface{}) (int64, error) {
 	ret, err := h.Db.Exec(query, args...)
@@ -379,6 +388,7 @@ func (h *DbWorker) GetBinlogDir(port int) (string, string, error) {
 	}
 }
 
+// GetSocketPath get socket path
 func (h *DbWorker) GetSocketPath() (string, error) {
 	socketPath, err := h.GetSingleGlobalVar("socket")
 	if err != nil {
@@ -456,7 +466,7 @@ func (h *DbWorker) ShowOpenTables(sleepTime time.Duration) (openTables []ShowOpe
 	return openTables, nil
 }
 
-// GetSqlxDb TODO
+// GetSqlxDb get sqlx db
 func (h *DbWorker) GetSqlxDb() *sqlx.DB {
 	return sqlx.NewDb(h.Db, "mysql")
 }
@@ -475,7 +485,7 @@ func (h *DbWorker) ShowSocket() (socket string, err error) {
 	return h.GetSingleGlobalVar("socket")
 }
 
-// GetSingleGlobalVar TODO
+// GetSingleGlobalVar get single global variable
 func (h *DbWorker) GetSingleGlobalVar(varName string) (val string, err error) {
 	var item MySQLGlobalVariableItem
 	sqlstr := fmt.Sprintf("show global variables like '%s'", varName)
