@@ -72,7 +72,7 @@ func (job *BaseJob) runSteps(steps []stepFunc) error {
 	return nil
 }
 
-// removeAll 删除目录，且目录不能为根目录
+// removeDir 删除目录，且目录不能为根目录
 func (job *BaseJob) removeDir(dstDir string) error {
 	if dstDir == "" {
 		return errors.New("invalid dstDir")

@@ -108,7 +108,7 @@ class MongoDBCapcityMetaService(BaseService):
             )
 
         # 新增 mongos 到集群
-        for machine in machines:
+        for machine in machines.values():
             if Machine.objects.filter(
                 ip=machine["ip"],
                 bk_biz_id=cluster.bk_biz_id,

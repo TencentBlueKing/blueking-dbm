@@ -28,7 +28,7 @@ from backend.flow.plugins.components.collections.mongodb.delete_password_from_db
     ExecDeletePasswordFromDBOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
-from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
+from backend.flow.plugins.components.collections.mongodb.mongodb_capcity_chgs_meta import MongoDBCapcityMetaComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
@@ -176,9 +176,9 @@ def mongod_replace(
 
     # 修改meta信息
     if mongod_scale:
-        kwargs = sub_sub_get_kwargs.get_change_meta_replace_kwargs(info=info, instance=sub_sub_get_kwargs.db_instance)
+        kwargs = sub_sub_get_kwargs.get_scale_change_meta(info=info, instance=sub_sub_get_kwargs.db_instance)
         sub_sub_pipeline.add_act(
-            act_name=_("MongoDB-mongod修改meta"), act_component_code=CMRMongoDBMetaComponent.code, kwargs=kwargs
+            act_name=_("MongoDB-mongod修改meta"), act_component_code=MongoDBCapcityMetaComponent.code, kwargs=kwargs
         )
 
     # 下架老实例

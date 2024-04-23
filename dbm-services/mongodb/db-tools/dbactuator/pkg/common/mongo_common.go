@@ -1,6 +1,8 @@
+// Package common TODO
 package common
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -10,6 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
@@ -104,114 +110,61 @@ func CheckMongoService(port int) (bool, string, error) {
 	return false, "", nil
 }
 
-// CreateConfFileAndKeyFileAndDbTypeFileAndChown 创建配置文件，key文件，dbType文件并授权
-func CreateConfFileAndKeyFileAndDbTypeFileAndChown(runtime *jobruntime.JobGenericRuntime, authConfFilePath string,
+// CreateFileAndChown 创建Auth配置文件并修改属主
+func CreateFileAndChown(runtime *jobruntime.JobGenericRuntime, filePath string,
+	fileContent []byte, user string, group string, defaultPerm os.FileMode) error {
+	runtime.Logger.Info("start to create %s file", filePath)
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, defaultPerm)
+	defer file.Close()
+	if err != nil {
+		runtime.Logger.Error("create %s file fail, error:%s", filePath, err)
+		return fmt.Errorf("create %s file fail, error:%s", filePath, err)
+	}
+	if _, err = file.WriteString(string(fileContent)); err != nil {
+		runtime.Logger.Error("%s file write content fail, error:%s", filePath, err)
+		return fmt.Errorf("%s file write content  fail, error:%s", filePath, err)
+	}
+	runtime.Logger.Info("create %s file successfully", filePath)
+
+	// 修改配置文件属主
+	runtime.Logger.Info("start to execute chown command for %s file", filePath)
+	if _, err = util.RunBashCmd(
+		fmt.Sprintf("chown -R %s.%s %s", user, group, filePath),
+		"", nil,
+		10*time.Second); err != nil {
+		runtime.Logger.Error("chown %s file fail, error:%s", filePath, err)
+		return fmt.Errorf("chown %s file fail, error:%s", filePath, err)
+	}
+	runtime.Logger.Info("execute chown command for %s file successfully", filePath)
+	return nil
+}
+
+// CreateConfKeyDbTypeAndChown 创建配置文件，key文件，dbType文件并授权
+func CreateConfKeyDbTypeAndChown(runtime *jobruntime.JobGenericRuntime, authConfFilePath string,
 	authConfFileContent []byte, user string, group string, noAuthConfFilePath string, noAuthConfFileContent []byte,
 	keyFilePath string, keyFileContent string, dbTypeFilePath string, instanceType string,
 	defaultPerm os.FileMode) error {
 	// 创建Auth配置文件
-	runtime.Logger.Info("start to create auth config file")
-	authConfFile, err := os.OpenFile(authConfFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, defaultPerm)
-	defer authConfFile.Close()
-	if err != nil {
-		runtime.Logger.Error(fmt.Sprintf("create auth config file fail, error:%s", err))
-		return fmt.Errorf("create auth config file fail, error:%s", err)
+	if err := CreateFileAndChown(runtime, authConfFilePath, authConfFileContent, user, group,
+		defaultPerm); err != nil {
+		return err
 	}
-	if _, err = authConfFile.WriteString(string(authConfFileContent)); err != nil {
-		runtime.Logger.Error(fmt.Sprintf("auth config file write content fail, error:%s", err))
-		return fmt.Errorf("auth config file write content  fail, error:%s", err)
-	}
-	runtime.Logger.Info("create auth config file successfully")
-
-	// 修改配置文件属主
-	runtime.Logger.Info("start to execute chown command for auth config file")
-	if _, err = util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", user, group, authConfFilePath),
-		"", nil,
-		10*time.Second); err != nil {
-		runtime.Logger.Error(fmt.Sprintf("chown auth config file fail, error:%s", err))
-		return fmt.Errorf("chown auth config file fail, error:%s", err)
-	}
-	runtime.Logger.Info("start to execute chown command for auth config file successfully")
-
 	// 创建NoAuth配置文件
-	runtime.Logger.Info("start to create no auth config file")
-	noAuthConfFile, err := os.OpenFile(noAuthConfFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, defaultPerm)
-	defer noAuthConfFile.Close()
-	if err != nil {
-		runtime.Logger.Error(fmt.Sprintf("create no auth config file fail, error:%s", err))
-		return fmt.Errorf("create no auth config file fail, error:%s", err)
+	if err := CreateFileAndChown(runtime, noAuthConfFilePath, noAuthConfFileContent, user,
+		group, defaultPerm); err != nil {
+		return err
 	}
-	if _, err = noAuthConfFile.WriteString(string(noAuthConfFileContent)); err != nil {
-		runtime.Logger.Error(fmt.Sprintf("auth no config file write content fail, error:%s", err))
-		return fmt.Errorf("auth no config file write content  fail, error:%s", err)
-	}
-	runtime.Logger.Info("create no auth config file successfully")
-
-	// 修改配置文件属主
-	runtime.Logger.Info("start to execute chown command for no auth config file")
-	if _, err = util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", user, group, noAuthConfFilePath),
-		"", nil,
-		10*time.Second); err != nil {
-		runtime.Logger.Error(fmt.Sprintf("chown no auth config file fail, error:%s", err))
-		return fmt.Errorf("chown no auth config file fail, error:%s", err)
-	}
-	runtime.Logger.Info("execute chown command for no auth config file successfully")
-
 	// 创建key文件
-	runtime.Logger.Info("start to create key file")
-	keyFile, err := os.OpenFile(keyFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
-	defer keyFile.Close()
-	if err != nil {
-		runtime.Logger.Error(fmt.Sprintf("create key file fail, error:%s", err))
-		return fmt.Errorf("create key file fail, error:%s", err)
-	}
 	key := GetMd5(keyFileContent)
-	if _, err = keyFile.WriteString(key); err != nil {
-		runtime.Logger.Error(fmt.Sprintf("key file write content fail, error:%s", err))
-		return fmt.Errorf("key file write content fail, error:%s", err)
+	if err := CreateFileAndChown(runtime, keyFilePath, []byte(key), user, group, 0600); err != nil {
+		return err
 	}
-	runtime.Logger.Info("create key file successfully")
-
-	// 修改key文件属主
-	runtime.Logger.Info("start to execute chown command for key file")
-	if _, err = util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", user, group, keyFilePath),
-		"", nil,
-		10*time.Second); err != nil {
-		runtime.Logger.Error(fmt.Sprintf("chown key file fail, error:%s", err))
-		return fmt.Errorf("chown key file fail, error:%s", err)
-	}
-	runtime.Logger.Info("execute chown command for key file successfully")
-
 	// 创建dbType文件
-	runtime.Logger.Info("start to create dbType file")
-	dbTypeFile, err := os.OpenFile(dbTypeFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, defaultPerm)
-	defer dbTypeFile.Close()
-	if err != nil {
-		runtime.Logger.Error(fmt.Sprintf("create dbType file fail, error:%s", err))
-		return fmt.Errorf("create dbType file fail, error:%s", err)
+	if err := CreateFileAndChown(runtime, dbTypeFilePath, []byte(instanceType), user, group, defaultPerm); err != nil {
+		return err
 	}
-	if _, err = dbTypeFile.WriteString(instanceType); err != nil {
-		runtime.Logger.Error(fmt.Sprintf("dbType file write content fail, error:%s", err))
-		return fmt.Errorf("dbType file write content fail, error:%s", err)
-	}
-	runtime.Logger.Info("create dbType file successfully")
-
-	// 修改dbType文件属主
-	runtime.Logger.Info("start to execute chown command for dbType file")
-	if _, err = util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", user, group, dbTypeFilePath),
-		"", nil,
-		10*time.Second); err != nil {
-		runtime.Logger.Error(fmt.Sprintf("chown dbType file fail, error:%s", err))
-		return fmt.Errorf("chown dbType file fail, error:%s", err)
-	}
-	runtime.Logger.Info("execute chown command for dbType file successfully")
 
 	return nil
-
 }
 
 // StartMongoProcess 启动进程
@@ -388,16 +341,19 @@ func AuthCheckUser(mongoBin string, username string, password string, ip string,
 	return false, nil
 }
 
-// GetNodeInfo 获取mongod节点信息   _id int state int hidden bool  priority int
-func GetNodeInfo(mongoBin string, ip string, port int, username string, password string,
-	sourceIP string, sourcePort int) (bool, int, int, bool, int, []map[string]string, error) {
-	source := strings.Join([]string{sourceIP, strconv.Itoa(sourcePort)}, ":")
+// GetNodeInfo24 2.4获取mongod节点信息
+func GetNodeInfo24(mongoBin string, ip string, port int, username string, password string) (
+	bson.A, bson.A, error) {
+	var statusSlice bson.A
+	var confSlice bson.A
+	evalScript := "printjson(rs.status().members)"
 	cmdStatus := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"rs.status().members\"",
-		mongoBin, username, password, ip, port)
+		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"%s\"",
+		mongoBin, username, password, ip, port, evalScript)
+	evalScript = "printjson(rs.conf().members)"
 	cmdConf := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"rs.conf().members\"",
-		mongoBin, username, password, ip, port)
+		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"%s\"",
+		mongoBin, username, password, ip, port, evalScript)
 
 	// 获取状态
 	result1, err := util.RunBashCmd(
@@ -405,82 +361,176 @@ func GetNodeInfo(mongoBin string, ip string, port int, username string, password
 		"", nil,
 		10*time.Second)
 	if err != nil {
-		return false, 0, 0, false, 0, nil, fmt.Errorf("get members status info fail, error:%s", err)
+		return statusSlice, confSlice, fmt.Errorf("get members status info fail, error:%s", err)
 	}
-	result1 = strings.Replace(result1, " ", "", -1)
-	result1 = strings.Replace(result1, "\n", "", -1)
-	result1 = strings.Replace(result1, "NumberLong(", "", -1)
-	result1 = strings.Replace(result1, "Timestamp(", "", -1)
-	result1 = strings.Replace(result1, "ISODate(", "", -1)
-	result1 = strings.Replace(result1, ",1)", "", -1)
-	result1 = strings.Replace(result1, ",3)", "", -1)
-	result1 = strings.Replace(result1, ",2)", "", -1)
-	result1 = strings.Replace(result1, ",6)", "", -1)
-	result1 = strings.Replace(result1, ",0)", "", -1)
-	result1 = strings.Replace(result1, ")", "", -1)
-
+	for _, replaceStr := range []string{" ", "\n", "NumberLong(", "Timestamp(", "ISODate(", ",1)", ",3)", ",2)", ",6)",
+		",0)", ")"} {
+		result1 = strings.Replace(result1, replaceStr, "", -1)
+	}
 	// 获取配置
 	result2, err := util.RunBashCmd(
 		cmdConf,
 		"", nil,
 		10*time.Second)
 	if err != nil {
-		return false, 0, 0, false, 0, nil, fmt.Errorf("get members conf info fail, error:%s", err)
+		return statusSlice, confSlice, fmt.Errorf("get members conf info fail, error:%s", err)
 	}
-	result2 = strings.Replace(result2, " ", "", -1)
-	result2 = strings.Replace(result2, "\n", "", -1)
-	result2 = strings.Replace(result2, "NumberLong(", "", -1)
-	result2 = strings.Replace(result2, "Timestamp(", "", -1)
-	result2 = strings.Replace(result2, "ISODate(", "", -1)
-	result2 = strings.Replace(result2, ",1)", "", -1)
-	result2 = strings.Replace(result2, ")", "", -1)
+	for _, replaceStr := range []string{" ", "\n", "NumberLong(", "Timestamp(", "ISODate(", ",1)", ")"} {
+		result2 = strings.Replace(result2, replaceStr, "", -1)
+	}
 
-	var statusSlice []map[string]interface{}
-	var confSlice []map[string]interface{}
 	if err = json.Unmarshal([]byte(result1), &statusSlice); err != nil {
-		return false, 0, 0, false, 0, nil, fmt.Errorf("get members status info json.Unmarshal fail, error:%s", err)
+		return statusSlice, confSlice, fmt.Errorf("get members status info json.Unmarshal fail, error:%s", err)
 	}
 	if err = json.Unmarshal([]byte(result2), &confSlice); err != nil {
-		return false, 0, 0, false, 0, nil, fmt.Errorf("get members conf info json.Unmarshal fail, error:%s", err)
+		return statusSlice, confSlice, fmt.Errorf("get members conf info json.Unmarshal fail, error:%s", err)
 	}
+	return statusSlice, confSlice, nil
+}
 
-	// 格式化配置信息
-	var memberInfo []map[string]string
-	for _, v := range statusSlice {
-		member := make(map[string]string)
-		member["name"] = v["name"].(string)
-		member["state"] = fmt.Sprintf("%1.0f", v["state"])
-		for _, k := range confSlice {
-			if k["host"].(string) == member["name"] {
-				member["hidden"] = strconv.FormatBool(k["hidden"].(bool))
-				break
-			}
+// GetNodeInfo26 2.6及以上获取mongod节点信息   _id int state int hidden bool  priority int
+func GetNodeInfo26(ip string, port int, username string, password string) (
+	bson.A, bson.A, error) {
+	var statusSlice bson.A
+	var confSlice bson.A
+	// 设置mongodb连接参数
+	clientOptions := options.Client().ApplyURI(fmt.Sprintf("mongodb://%s:%s@%s:%d", username, password, ip, port))
+	// 连接mongodb
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create mongodb connnect fail, error:%s", err)
+	}
+	// 关闭连接
+	defer client.Disconnect(context.TODO())
+	// 切换到admin数据库
+	db := client.Database("admin")
+	// 获取数据
+	for _, command := range []string{"replSetGetStatus", "replSetGetConfig"} {
+		var result bson.M
+		err = db.RunCommand(context.TODO(), bson.D{{command, 1}}).Decode(&result)
+		if err != nil {
+			return statusSlice, confSlice, fmt.Errorf("get %s info fail, error:%s", command, err)
 		}
-		memberInfo = append(memberInfo, member)
+		if command == "replSetGetStatus" {
+			statusSlice = result["members"].(bson.A)
+		} else {
+			confSlice = result["config"].(bson.M)["members"].(bson.A)
+		}
 	}
+	return statusSlice, confSlice, nil
+}
 
+// GetCurrentNodeInfo 获取MongoDB当前节点信息
+func GetCurrentNodeInfo(mainDbVersion float64, statusSlice bson.A, confSlice bson.A, source string) (bool, int, int,
+	bool, int) {
 	var id int
 	var state int
 	var hidden bool
 	var priority int
 	flag := false
 	for _, key := range statusSlice {
-		if key["name"].(string) == source {
-			id, _ = strconv.Atoi(fmt.Sprintf("%1.0f", key["_id"]))
-			state, _ = strconv.Atoi(fmt.Sprintf("%1.0f", key["state"]))
+		var statusInfo map[string]interface{}
+		if mainDbVersion < 2.6 {
+			statusInfo = key.(map[string]interface{})
+		} else {
+			infoMap := map[string]interface{}(key.(bson.M))
+			statusInfo = infoMap
+		}
+		if statusInfo["name"].(string) == source {
+			id, _ = strconv.Atoi(fmt.Sprintf("%1.0f", statusInfo["_id"]))
+			state, _ = strconv.Atoi(fmt.Sprintf("%1.0f", statusInfo["state"]))
 			flag = true
 			break
 		}
 	}
 	for _, key := range confSlice {
-		if key["host"].(string) == source {
-			hidden = key["hidden"].(bool)
-			priority, _ = strconv.Atoi(fmt.Sprintf("%1.0f", key["priority"]))
+		var confInfo map[string]interface{}
+		if mainDbVersion < 2.6 {
+			confInfo = key.(map[string]interface{})
+		} else {
+			infoMap := map[string]interface{}(key.(bson.M))
+			confInfo = infoMap
+		}
+		if confInfo["host"].(string) == source {
+			value, ok := confInfo["hidden"]
+			if ok {
+				hidden = value.(bool)
+			} else {
+				hidden = false
+			}
+			value, ok = confInfo["priority"]
+			if ok {
+				priority, _ = strconv.Atoi(fmt.Sprintf("%1.0f", value))
+			} else {
+				priority = 1
+			}
 			break
 		}
 	}
-	return flag, id, state, hidden, priority, memberInfo, nil
+	return flag, id, state, hidden, priority
+}
 
+// GetNodeInfo 获取mongod节点信息   _id int state int hidden bool  priority int
+func GetNodeInfo(mongoBin string, ip string, port int, username string, password string,
+	sourceIP string, sourcePort int) (bool, int, int, bool, int, []map[string]string, error) {
+	var statusSlice bson.A
+	var confSlice bson.A
+	var memberInfo []map[string]string
+	source := strings.Join([]string{sourceIP, strconv.Itoa(sourcePort)}, ":")
+	// 检查db版本
+	binDir, _ := filepath.Abs(filepath.Join(mongoBin, "../../.."))
+	dbVersion, err := CheckMongoVersion(binDir, "mongod")
+	if err != nil {
+		return false, 0, 0, false, 0, memberInfo, fmt.Errorf("get db version fail, error:%s", err)
+	}
+	mainDbVersion, _ := strconv.ParseFloat(strings.Join(strings.Split(dbVersion, ".")[0:2], "."), 64)
+	if mainDbVersion < 2.6 {
+		statusSlice, confSlice, err = GetNodeInfo24(mongoBin, ip, port, username, password)
+		if err != nil {
+			return false, 0, 0, false, 0, memberInfo, fmt.Errorf("get db info fail, error:%s", err)
+		}
+	} else {
+		statusSlice, confSlice, err = GetNodeInfo26(ip, port, username, password)
+		if err != nil {
+			return false, 0, 0, false, 0, memberInfo, fmt.Errorf("get db info fail, error:%s", err)
+		}
+	}
+	// 获取副本集成员信息
+	for _, v := range statusSlice {
+		member := make(map[string]string)
+		var statusInfo map[string]interface{}
+		if mainDbVersion < 2.6 {
+			statusInfo = v.(map[string]interface{})
+		} else {
+			infoMap := map[string]interface{}(v.(bson.M))
+			statusInfo = infoMap
+		}
+		member["name"] = statusInfo["name"].(string)
+		member["state"] = fmt.Sprintf("%1.0f", statusInfo["state"])
+		for _, k := range confSlice {
+			var confInfo map[string]interface{}
+			if mainDbVersion < 2.6 {
+				confInfo = k.(map[string]interface{})
+			} else {
+				infoMap := map[string]interface{}(k.(bson.M))
+				confInfo = infoMap
+			}
+			if confInfo["host"].(string) == member["name"] {
+				value, ok := confInfo["hidden"]
+				if ok {
+					member["hidden"] = strconv.FormatBool(value.(bool))
+				} else {
+					member["hidden"] = strconv.FormatBool(false)
+				}
+				break
+			}
+		}
+		memberInfo = append(memberInfo, member)
+	}
+	// 获取当前节点信息
+	flag, id, state, hidden, priority := GetCurrentNodeInfo(mainDbVersion, statusSlice, confSlice, source)
+
+	return flag, id, state, hidden, priority, memberInfo, nil
 }
 
 // AuthRsStepDown 主备切换
