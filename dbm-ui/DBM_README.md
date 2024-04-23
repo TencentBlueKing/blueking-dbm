@@ -209,7 +209,7 @@ python manage.py collectstatic --settings=config.dev --noinput
 #### 3.1 启动celery
 
 ```shell
-celery worker -A config.prod -Q er_execute,er_schedule -l info
+celery -A config.prod worker -Q er_execute,er_schedule -l info
 ```
 
 >如果用pycharm进行配置的话，可以在运行/调试配置中新建python，在配置选项中选择模块名称(注意不是脚本路径)，然后选择.venv的celery文件夹(模块)，并在形参中配置celery启动参数

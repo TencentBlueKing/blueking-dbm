@@ -41,7 +41,7 @@ spec:
             - /bin/bash
             - -c
           args:
-            - celery beat -A {{ .Values.envs.djangoSettingsModule }} -l info
+            - celery -A {{ .Values.envs.djangoSettingsModule }} beat -l info
           {{- include "dbm.container_env" . | nindent 10 }}
           resources:
             {{- toYaml .Values.saas.celeryBeat.resources | nindent 12 }}
