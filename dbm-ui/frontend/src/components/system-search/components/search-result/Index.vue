@@ -155,9 +155,9 @@
     flex: 1;
 
     .result-type-text {
-      color: #979BA5;
       padding-left: 12px;
       line-height: 32px;
+      color: #979BA5;
     }
 
     .result-item{
@@ -167,7 +167,8 @@
       cursor: pointer;
       align-items: center;
 
-      &:hover{
+      &:hover,
+      &.active{
         background: #F5F7FA;
       }
 

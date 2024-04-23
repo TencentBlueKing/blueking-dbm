@@ -63,6 +63,7 @@
 
   import SearchResult from './components/search-result/Index.vue';
   import SearchHistory from './components/SearchHistory.vue';
+  import useKeyboard from './hooks/useKeyboard';
 
   const { t } = useI18n();
   const route = useRoute();
@@ -79,6 +80,8 @@
   const styles = computed(() => ({
     flex: isFocused.value ? '1' : '0 0 auto',
   }));
+
+  const { activeIndex } = useKeyboard(rootRef, popRef);
 
   let tippyIns:Instance | undefined;
 
@@ -130,6 +133,9 @@
   };
 
   const handleSearch = () => {
+    if (activeIndex.value > -1) {
+      return;
+    }
     // 页面跳转参数处理
     const options = searchResultRef.value.getFilterOptions();
     const query = Object.keys(options).reduce((prevQuery, optionKey) => {
@@ -233,15 +239,16 @@
 
       .serach-btn{
         display: flex;
-        align-items: center;
-        background: #303D55;
         padding-right: 4px;
+        background: #303D55;
+        align-items: center;
+
         &::before {
-          content: '';
           width: 1px;
           height: 12px;
-          background:#63656E;
           margin-right: 6px;
+          background:#63656E;
+          content: '';
         }
       }
     }
