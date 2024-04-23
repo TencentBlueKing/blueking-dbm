@@ -117,7 +117,7 @@ func (g *GrantReplComp) GrantRepl() (err error) {
 	return nil
 }
 
-// GetBinPosition TODO
+// GetBinPosition get binlog position
 func (g *GrantReplComp) GetBinPosition() (binPosition string, err error) {
 	resp, err := g.Db.ShowMasterStatus()
 	if err != nil {

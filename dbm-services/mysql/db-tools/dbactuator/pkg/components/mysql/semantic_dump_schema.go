@@ -92,6 +92,7 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 		User: c.GeneralParam.RuntimeAccountParam.AdminUser,
 		Pwd:  c.GeneralParam.RuntimeAccountParam.AdminPwd,
 	}.Conn()
+	defer conn.Close()
 	if err != nil {
 		logger.Error("Connect %d failed:%s", c.Params.Port, err.Error())
 		return err
