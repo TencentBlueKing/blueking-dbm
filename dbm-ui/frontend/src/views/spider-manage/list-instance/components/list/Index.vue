@@ -248,6 +248,7 @@
         render: ({ data }: { data: TendbInstanceModel }) => (
           <auth-button
             action-id="tendbcluster_view"
+            permission={data.permission.tendbcluster_view}
             theme="primary"
             text
             onClick={(event: Event) => handleToDetails(event, data)}>

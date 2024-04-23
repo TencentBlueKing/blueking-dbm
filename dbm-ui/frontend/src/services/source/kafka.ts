@@ -105,7 +105,14 @@ export function getKafkaNodeList(
 ) {
   return http.get<ListBase<Array<KafkaNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then((data) => ({
     ...data,
-    results: data.results.map((item: KafkaNodeModel) => new KafkaNodeModel(item)),
+    results: data.results.map(
+      (item) =>
+        new KafkaNodeModel(
+          Object.assign(item, {
+            permission: data.permission,
+          }),
+        ),
+    ),
   }));
 }
 

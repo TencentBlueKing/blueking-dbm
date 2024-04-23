@@ -12,12 +12,11 @@
         :confirm-handler="handleBatchRemove"
         :content="t('移除后将不可恢复')"
         :title="t('确认移除选中的策略')">
-        <AuthButton
-          action-id="tendbcluster_partition_delete"
+        <BkButton
           class="ml-8"
           :disabled="selectionList.length < 1">
           {{ t('删除') }}
-        </AuthButton>
+        </BkButton>
       </DbPopconfirm>
       <DbSearchSelect
         v-model="searchValues"

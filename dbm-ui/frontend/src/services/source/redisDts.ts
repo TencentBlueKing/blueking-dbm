@@ -14,11 +14,7 @@ import http from '@services/http';
 import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
 import RedisDSTJobTaskModel from '@services/model/redis/redis-dst-job-task';
 
-import { useGlobalBizs } from '@stores';
-
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/redis/bizs/${currentBizId}/dts`;
+const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/dts`;
 
 /**
  * 获取DTS历史任务以及其对应task cnt
@@ -30,21 +26,21 @@ export function getRedisDTSHistoryJobs(params: {
   page?: number;
   page_size?: number;
 }) {
-  return http.post<{ total_cnt: number; jobs: RedisDSTHistoryJobModel[] }>(`${path}/history_jobs/`, params);
+  return http.post<{ total_cnt: number; jobs: RedisDSTHistoryJobModel[] }>(`${getRootPath()}/history_jobs/`, params);
 }
 
 /**
  * dts job批量断开同步
  */
 export function setJobDisconnectSync(params: { bill_id: number; src_cluster: string; dst_cluster: string }) {
-  return http.post<unknown>(`${path}/job_disconnect_sync/`, params);
+  return http.post<unknown>(`${getRootPath()}/job_disconnect_sync/`, params);
 }
 
 /**
  * dts job 批量失败重试
  */
 export function setJobTaskFailedRetry(params: { task_ids: number[] }) {
-  return http.post<number[]>(`${path}/job_task_failed_retry/`, params);
+  return http.post<number[]>(`${getRootPath()}/job_task_failed_retry/`, params);
 }
 
 /**
@@ -52,7 +48,7 @@ export function setJobTaskFailedRetry(params: { task_ids: number[] }) {
  */
 export function getRedisDTSJobTasks(params: { bill_id: number; src_cluster: string; dst_cluster: string }) {
   return http
-    .post<RedisDSTJobTaskModel[]>(`${path}/job_tasks/`, params)
+    .post<RedisDSTJobTaskModel[]>(`${getRootPath()}/job_tasks/`, params)
     .then((arr) => arr.map((item) => new RedisDSTJobTaskModel(item)));
 }
 
@@ -68,5 +64,5 @@ export function testRedisConnection(params: {
     dst_cluster_password: string;
   }[];
 }) {
-  return http.post<boolean>(`${path}/test_redis_connection/`, params);
+  return http.post<boolean>(`${getRootPath()}/test_redis_connection/`, params);
 }

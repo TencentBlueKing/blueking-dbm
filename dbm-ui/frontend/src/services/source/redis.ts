@@ -49,7 +49,7 @@ interface InstanceDetails {
   version?: string;
 }
 
-const path = `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/redis_resources`;
+const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/redis_resources`;
 
 /**
  * 获取集群列表
@@ -64,7 +64,7 @@ export function getRedisList(
     bk_biz_id?: number;
   } = {},
 ) {
-  return http.get<ListBase<RedisModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<RedisModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
       (item) =>
@@ -89,12 +89,10 @@ export function getRedisListByBizId(
     bk_biz_id?: number;
   } = {},
 ) {
-  return http
-    .get<ListBase<RedisModel[]>>(`${path}/redis_resources/`, params)
-    .then((data) => ({
-      ...data,
-      results: data.results.map((item) => new RedisModel(item)),
-    }));
+  return http.get<ListBase<RedisModel[]>>(`${getRootPath()}/redis_resources/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new RedisModel(item)),
+  }));
 }
 
 /**
@@ -106,14 +104,14 @@ export function getRedisTableFields() {
       key: string;
       name: string;
     }[]
-  >(`${path}/get_table_fields/`);
+  >(`${getRootPath()}/get_table_fields/`);
 }
 
 /**
  * 获取集群实例列表
  */
 export function getRedisInstances(params: Record<string, any>) {
-  return http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
+  return http.get<ListBase<ResourceInstance[]>>(`${getRootPath()}/list_instances/`, params);
 }
 
 /**
@@ -126,21 +124,21 @@ export function retrieveRedisInstance(params: {
   cluster_id?: number;
   dbType: string;
 }) {
-  return http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
+  return http.get<InstanceDetails>(`${getRootPath()}/retrieve_instance/`, params);
 }
 
 /**
  * 获取集群详情
  */
 export function getRedisDetail(params: { id: number }) {
-  return http.get<ResourceRedisItem>(`${path}/${params.id}/`);
+  return http.get<ResourceRedisItem>(`${getRootPath()}/${params.id}/`);
 }
 
 /**
  * 查询集群主机列表
  */
 export function getRedisNodes(params: { db_type: string; bk_biz_id: string; cluster_id: string }) {
-  return http.get<HostNode[]>(`${path}/${params.cluster_id}/get_nodes/`, params);
+  return http.get<HostNode[]>(`${getRootPath()}/${params.cluster_id}/get_nodes/`, params);
 }
 
 /**
@@ -151,35 +149,35 @@ export function getRedisPassword(params: { cluster_id: number }) {
     cluster_name: string;
     domain: string;
     password: string;
-  }>(`${path}/${params.cluster_id}/get_password/`);
+  }>(`${getRootPath()}/${params.cluster_id}/get_password/`);
 }
 
 /**
  * 获取集群拓扑
  */
 export function getRedisTopoGraph(params: { cluster_id: number }) {
-  return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
+  return http.get<ResourceTopo>(`${getRootPath()}/${params.cluster_id}/get_topo_graph/`);
 }
 
 /**
  * 获取业务拓扑树
  */
 export function getRedisResourceTree(params: { cluster_type: string }) {
-  return http.get<BizConfTopoTreeModel[]>(`${path}/resource_tree/`, params);
+  return http.get<BizConfTopoTreeModel[]>(`${getRootPath()}/resource_tree/`, params);
 }
 
 /**
  * 导出集群数据为 excel 文件
  */
 export function exportRedisClusterToExcel(params: { cluster_ids?: number[] }) {
-  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出实例数据为 excel 文件
  */
 export function exportRedisInstanceToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
 }
 
 // 获取集群列表

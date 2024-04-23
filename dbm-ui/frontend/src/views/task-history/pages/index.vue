@@ -140,24 +140,22 @@
       width: 240,
       showOverflowTooltip: false,
       render: ({ cell, data }: TableColumnRender) => (
-          <div class="text-overflow" v-overflow-tips>
-            <auth-router-link
-              action-id="flow_detail"
-              resource={data.root_id}
-              permission={data.permission.flow_detail}
-              to={{
-                name: 'taskHistoryDetail',
-                params: {
-                  root_id: data.root_id,
-                },
-                query: {
-                  from: route.name,
-                },
-              }}>
-              { cell }
-            </auth-router-link>
-          </div>
-        ),
+        <auth-router-link
+          action-id="flow_detail"
+          resource={data.root_id}
+          permission={data.permission.flow_detail}
+          to={{
+            name: 'taskHistoryDetail',
+            params: {
+              root_id: data.root_id,
+            },
+            query: {
+              from: route.name,
+            },
+          }}>
+          { cell }
+        </auth-router-link>
+      ),
     },
     {
       label: t('任务类型'),
@@ -188,19 +186,20 @@
       label: t('关联单据'),
       field: 'uid',
       render: ({ data }: { data: TaskFlowModel }) => (
-          <auth-router-link
-            action-id="ticket_view"
-            resource={data.uid}
-            to={{
-              name: 'bizTicketManage',
-              query: {
-                id: data.uid,
-              }
-            }}
-            target="_blank">
-            { data.uid }
-          </auth-router-link>
-        ),
+        data.uid ? <auth-router-link
+          action-id="ticket_view"
+          permission={data.permission.ticket_view}
+          resource={data.uid}
+          to={{
+            name: 'bizTicketManage',
+            query: {
+              id: data.uid,
+            }
+          }}
+          target="_blank">
+          { data.uid }
+        </auth-router-link> : '--'
+      ),
     },
     {
       label: t('执行人'),

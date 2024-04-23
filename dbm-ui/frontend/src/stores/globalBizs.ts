@@ -98,6 +98,9 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
           this.loading = false;
         });
     },
+    setBizs(payload: BizItem[]){
+      this.bizs = payload
+    },
     changeBizId(id: number) {
       this.currentBizId = id;
     },

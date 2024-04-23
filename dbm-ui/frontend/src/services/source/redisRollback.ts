@@ -12,14 +12,10 @@
  */
 import RedisRollbackModel from '@services/model/redis/redis-rollback';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 import type { ListBase } from '../types';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/redis/bizs/${currentBizId}/rollback`;
+const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/rollback`;
 
 export function getRollbackList(
   params?: {
@@ -29,7 +25,7 @@ export function getRollbackList(
     temp_cluster_proxy?: string; // ip:port
   } & Record<string, any>,
 ) {
-  return http.get<ListBase<RedisRollbackModel[]>>(`${path}/`, params).then((res) => ({
+  return http.get<ListBase<RedisRollbackModel[]>>(`${getRootPath()}/`, params).then((res) => ({
     ...res,
     results: res.results.map((item) => new RedisRollbackModel(item)),
   }));

@@ -35,12 +35,13 @@ export default class TaskFlow {
     FINISHED: 'success',
   };
 
-  bk_biz_id:number;
+  bk_biz_id: number;
   cost_time: number;
   created_at: string;
   created_by: string;
   permission: {
     flow_detail: boolean;
+    ticket_view: boolean;
   };
   root_id: string;
   status: string;
