@@ -81,7 +81,8 @@ func (l *LogicalLoader) PreLoad() error {
 		return err
 	}
 	if len(l.Databases) == 1 && l.Databases[0] == "*" { // 如果全库导入，删掉 infodba_schema 库（确保备份会导出 infodba_schema）
-		if _, err = dbWorker.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", native.INFODBA_SCHEMA)); err != nil {
+		if _, err = dbWorker.ExecMore([]string{"set session sql_log_bin=off",
+			fmt.Sprintf("DROP DATABASE IF EXISTS %s", native.INFODBA_SCHEMA)}); err != nil {
 			return errors.WithMessage(err, "fail to run drop database if exists infodba_schema")
 		}
 	}
