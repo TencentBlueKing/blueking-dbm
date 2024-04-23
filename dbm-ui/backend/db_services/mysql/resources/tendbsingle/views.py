@@ -15,6 +15,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
 from backend.db_services.dbbase.resources import serializers, viewsets
 from backend.db_services.mysql.resources import constants
+from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 
 from . import yasg_slz
@@ -90,4 +91,4 @@ class DBSingleViewSet(viewsets.ResourceViewSet):
 
     @staticmethod
     def _external_perm_param_field(kwargs):
-        return kwargs["view_class"].db_type
+        return {ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"], ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type}

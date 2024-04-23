@@ -17,6 +17,7 @@ from backend.db_services.dbbase.resources import serializers, viewsets
 from backend.db_services.mysql.resources import constants
 from backend.db_services.mysql.resources.tendbha import yasg_slz
 from backend.db_services.mysql.resources.tendbha.query import ListRetrieveResource
+from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 
 
@@ -90,4 +91,4 @@ class DBHAViewSet(viewsets.ResourceViewSet):
 
     @staticmethod
     def _external_perm_param_field(kwargs):
-        return kwargs["view_class"].db_type
+        return {ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"], ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type}

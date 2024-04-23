@@ -34,7 +34,7 @@ from backend.configuration.serializers import (
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
-from backend.iam_app.handlers.drf_perm.cluster import ModifyActionPermission
+from backend.iam_app.handlers.drf_perm.cluster import ModifyClusterPasswordPermission, QueryClusterPasswordPermission
 
 SWAGGER_TAG = _("密码安全策略")
 
@@ -44,7 +44,8 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
 
     action_permission_map = {
         ("get_password_policy", "verify_password_strength", "get_random_password", "query_random_cycle"): [],
-        ("modify_admin_password", "query_mysql_admin_password"): [ModifyActionPermission()],
+        ("modify_admin_password",): [ModifyClusterPasswordPermission()],
+        ("query_mysql_admin_password",): [QueryClusterPasswordPermission()],
         ("update_password_policy", "modify_random_cycle"): [
             ResourceActionPermission([ActionEnum.PASSWORD_POLICY_SET])
         ],

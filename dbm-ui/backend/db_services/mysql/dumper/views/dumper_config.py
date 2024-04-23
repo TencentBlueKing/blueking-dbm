@@ -76,7 +76,7 @@ class DumperConfigViewSet(viewsets.AuditedModelViewSet):
         id_field=lambda d: d["id"],
         data_field=lambda d: d["results"],
         actions=ActionEnum.get_actions_by_resource(ResourceEnum.DUMPER_SUBSCRIBE_CONFIG.id),
-        resource_meta=ResourceEnum.MYSQL,
+        resource_meta=ResourceEnum.DUMPER_SUBSCRIBE_CONFIG,
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)

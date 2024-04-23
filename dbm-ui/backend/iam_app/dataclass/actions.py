@@ -1558,8 +1558,18 @@ class ActionEnum:
         name_en="access_entry_edit",
         type="edit",
         related_actions=[],
-        related_resource_types=[ResourceEnum.DBTYPE],
+        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务"),
+    )
+
+    ADMIN_PWD_VIEW = ActionMeta(
+        id="admin_pwd_view",
+        name=_("临时密码生效实例查看"),
+        name_en="admin_pwd_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        group=_("业务")
     )
 
     @classmethod

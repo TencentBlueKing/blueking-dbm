@@ -4905,6 +4905,17 @@
             "type": "edit",
             "related_resource_types": [
                 {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                },
+                {
                     "system_id": "bk_dbm",
                     "id": "dbtype",
                     "selection_mode": "instance",
@@ -4922,6 +4933,47 @@
             "subgroup": "",
             "description": "集群入口访问修改",
             "description_en": "access_entry_edit"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "admin_pwd_view",
+            "name": "临时密码生效实例查看",
+            "name_en": "admin_pwd_view",
+            "type": "view",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_cmdb",
+                    "id": "biz",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_cmdb",
+                            "id": "business"
+                        }
+                    ]
+                },
+                {
+                    "system_id": "bk_dbm",
+                    "id": "dbtype",
+                    "selection_mode": "instance",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "dbtype_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "业务",
+            "subgroup": "",
+            "description": "临时密码生效实例查看",
+            "description_en": "admin_pwd_view"
         }
     },
     {
@@ -8268,6 +8320,9 @@
                     },
                     {
                         "id": "access_entry_edit"
+                    },
+                    {
+                        "id": "admin_pwd_view"
                     }
                 ],
                 "sub_groups": [

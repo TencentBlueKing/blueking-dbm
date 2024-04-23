@@ -484,12 +484,12 @@ class Permission(object):
             result_list = [result_list]
 
         instance_ids = [id_field(item) for item in result_list if id_field(item)]
-        resources = resource_meta.batch_create_instances(instance_ids)
+        resources_list = [[instance] for instance in resource_meta.batch_create_instances(instance_ids)]
 
-        if not resources:
+        if not resources_list:
             return response
 
-        permission_result = Permission().batch_is_allowed(actions, resources)
+        permission_result = Permission().batch_is_allowed(actions, resources_list)
         false_actions_map = {action.id: False for action in actions}
 
         for item in result_list:
@@ -534,9 +534,10 @@ class Permission(object):
 
         # 对关联资源的动作鉴权
         if actions_with_resource:
-            if isinstance(resource_meta, list):
+            if isinstance(resource_meta, list) and len(resource_meta) > 1:
                 resources = [meta.create_instance(instance_id=resource_id[meta.id]) for meta in resource_meta]
             else:
+                resource_meta = resource_meta[0] if isinstance(resource_meta, list) else resource_meta
                 resources = [resource_meta.create_instance(instance_id=resource_id)]
             permission_result.update(Permission().multi_actions_is_allowed(actions_with_resource, resources))
 
@@ -567,6 +568,10 @@ class Permission(object):
         always_allowed: Callable = lambda item: False,
         many: bool = True,
     ):
+        """
+        内嵌数据权限字段的装饰器，适用于列表每一项数据的权限字段
+        """
+
         def wrapper(view_func):
             @wraps(view_func)
             def wrapped_view(*args, **kwargs):
@@ -577,11 +582,12 @@ class Permission(object):
                 if not perm_actions:
                     return response
 
-                perm_resource_meta = resource_meta or perm_actions[0].related_resource_types[0]
+                # 内嵌权限字段，默认值关联一种资源类型
+                action_resource_meta = resource_meta or perm_actions[0].related_resource_types[0]
                 return cls.insert_permission_field(
                     response,
                     perm_actions,
-                    perm_resource_meta,
+                    action_resource_meta,
                     id_field,
                     data_field,
                     always_allowed,
@@ -600,6 +606,10 @@ class Permission(object):
         param_field: Callable = lambda item: None,
         resource_meta: Union[ResourceMeta, List[ResourceMeta], None] = None,
     ):
+        """
+        外嵌数据权限字段的装饰器，适用于列表的全局权限字段
+        """
+
         def wrapper(view_func):
             @wraps(view_func)
             def wrapped_view(*args, **kwargs):
@@ -615,8 +625,7 @@ class Permission(object):
                 if not resource_meta and not perm_actions[0].related_resource_types:
                     action_resource_meta = None
                 else:
-                    # 非特殊指明，默认只取动作关联的第一个资源(绝大多数情况一个动作关联一个资源)
-                    action_resource_meta = resource_meta or perm_actions[0].related_resource_types[0]
+                    action_resource_meta = resource_meta or perm_actions[0].related_resource_types
                 resource = None if not action_resource_meta else param_field(kwargs)
                 # 填充权限字段
                 return cls.insert_external_permission_field(response, perm_actions, action_resource_meta, resource)

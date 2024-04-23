@@ -204,7 +204,7 @@ class MoreResourceActionPermission(IAMPermission):
 
     def has_permission(self, request, view):
         # 先获取资源实例ID，结构为[(a1, b1, c1), (a2, b2, c2), ....]
-        # 这里资源元组中个体顺序和动作定义的关联资源顺序一致
+        # 注：这里资源元组中个体顺序和动作定义的关联资源顺序一致
         resources_map_list = self.instance_ids_getters(request, view)
         # 根据类型和resource id创建资源实例
         more_resource_list = [

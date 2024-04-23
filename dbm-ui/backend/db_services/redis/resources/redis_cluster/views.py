@@ -24,6 +24,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.resources import serializers, viewsets
 from backend.db_services.redis.resources import constants
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum, MySQLPrivComponent, UserName
+from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 
 from . import yasg_slz
@@ -112,7 +113,7 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
 
     @staticmethod
     def _external_perm_param_field(kwargs):
-        return kwargs["view_class"].db_type
+        return {ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"], ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type}
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)
     def get_nodes(self, request, bk_biz_id: int, cluster_id: int):
