@@ -13,17 +13,16 @@ from typing import Optional
 
 from django.utils.translation import gettext as _
 
-from backend.db_meta.enums import ClusterType
 from backend.flow.models import FlowTree, StateType
 from backend.ticket import constants
-from backend.ticket.constants import TicketFlowStatus, TicketType
+from backend.ticket.constants import TicketFlowStatus
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow
 from backend.utils.time import datetime2str
 
 
 class DeliveryFlow(BaseTicketFlow):
-    """交付节点，仅用于标识任务结束并提供跳转url，没有实际的执行动作"""
+    """交付节点，没有实际的执行动作"""
 
     def __init__(self, flow_obj: Flow):
         self.flow_obj_id = flow_obj.flow_obj_id
@@ -49,18 +48,19 @@ class DeliveryFlow(BaseTicketFlow):
 
     @property
     def _url(self) -> str:
-        url_map = {
-            TicketType.MYSQL_SINGLE_APPLY.value: f"/database/{self.ticket.bk_biz_id}/{ClusterType.TenDBSingle}",
-            TicketType.MYSQL_HA_APPLY.value: f"/database/{self.ticket.bk_biz_id}/{ClusterType.TenDBHA}",
-            TicketType.REDIS_CLUSTER_APPLY.value: f"/database/{self.ticket.bk_biz_id}/{ClusterType.TendisRedisCluster}",
-            TicketType.ES_APPLY.value: f"/database/{self.ticket.bk_biz_id}/{ClusterType.Es}-manage",
-            TicketType.HDFS_APPLY.value: f"/database/{self.ticket.bk_biz_id}/{ClusterType.Hdfs}-manage",
-            TicketType.KAFKA_APPLY.value: f"/database/{self.ticket.bk_biz_id}/{ClusterType.Kafka}-manage",
-        }
-        return url_map.get(self.ticket.ticket_type, "")
+        return ""
 
     def _run(self) -> str:
-        return "ok"
+        describe_root_id = f"describe_{uuid.uuid1()}"
+        return describe_root_id
+
+    def run(self) -> None:
+        # 跳过任务，直接进入下一流程
+        super().run()
+
+        from backend.ticket.flow_manager.manager import TicketFlowManager
+
+        TicketFlowManager(ticket=self.ticket).run_next_flow()
 
 
 class DescribeTaskFlow(DeliveryFlow):

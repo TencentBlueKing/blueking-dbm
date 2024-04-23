@@ -91,9 +91,7 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=SQLUserConfigSerializer)
     def deploy_user_config(self, request, bk_biz_id):
-        return self._view_common_handler(
-            request, bk_biz_id, SemanticOperateMeta, SQLHandler.deploy_user_config.__name__
-        )
+        return self._view_common_handler(request, bk_biz_id, SQLHandler.deploy_user_config.__name__)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询流程配置"),
@@ -103,9 +101,7 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False, serializer_class=QuerySQLUserConfigSerializer)
     def query_user_config(self, request, bk_biz_id):
-        return self._view_common_handler(
-            request, bk_biz_id, SemanticOperateMeta, SQLHandler.query_user_config.__name__
-        )
+        return self._view_common_handler(request, bk_biz_id, SQLHandler.query_user_config.__name__)
 
     @common_swagger_auto_schema(
         operation_summary=_("获取用户语义检查任务列表"),
