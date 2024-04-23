@@ -14,7 +14,7 @@
 <template>
   <div class="spec-mem spec-form-item">
     <div class="spec-form-item__label">
-      {{ $t('机型') }}
+      {{ t('机型') }}
     </div>
     <div class="spec-form-item__content">
       <BkFormItem
@@ -23,17 +23,17 @@
         :rules="rules"
         style="width: 100%;">
         <BkSelect
-          v-model="localValue"
+          v-model="modelValue"
           :allow-empty-values="['']"
+          :clearable="false"
           filterable
           :input-search="false"
           :loading="isLoading"
-          multiple
-          @change="handleChange">
+          multiple>
           <BkOption
             key="all"
             :label="t('无限制')"
-            value="" />
+            value="-1" />
           <BkOption
             v-for="item in deviceClassList"
             :key="item"
@@ -51,20 +51,12 @@
 
   import { getDeviceClassList } from '@services/system-setting';
 
-  interface Emits {
-    (e: 'update:modelValue', value: string[]): void
-  }
-
-  interface Props {
-    modelValue: string[]
-  }
-
-  const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
-
   const { t } = useI18n();
 
-  const localValue = ref<string[] | string>(props.modelValue);
+  const modelValue = defineModel<string[] | string>({
+    default: () => ([]),
+  });
+
   const rules = [
     {
       required: true,
@@ -78,19 +70,6 @@
     data: deviceClassList,
   } = useRequest(getDeviceClassList);
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue.length === 0) {
-      localValue.value = '';
-      return;
-    }
-    localValue.value = props.modelValue;
-  }, {
-    immediate: true,
-  });
-
-  const handleChange = () => {
-    emits('update:modelValue', localValue.value as string[]);
-  };
 </script>
 
 <style lang="less" scoped>

@@ -33,7 +33,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { checkMysqlInstances } from '@services/source/instances';
-  import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
 
@@ -69,7 +68,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const genHostKey = (hostData: InstanceInfos) => `#${hostData.bk_cloud_id}#${hostData.ip}`;
+  const genHostKey = (hostData: IHostData) => `#${hostData.bk_cloud_id}#${hostData.ip}`;
 
   const instanceKey = `render_master_${random()}`;
   singleHostSelectMemo[instanceKey] = {};
@@ -80,7 +79,8 @@
   const editRef = ref();
   const localValue = ref('');
 
-  let localProxyData = {} as InstanceInfos;
+  let localProxyData = {} as IHostData;
+  let oldLocalProxyData = {} as IHostData;
 
   const rules = [
     {
@@ -113,7 +113,10 @@
           return false;
         }
 
-        emits('change', localProxyData);
+        if (localProxyData.ip !== oldLocalProxyData.ip) {
+          emits('change', localProxyData);
+          oldLocalProxyData = localProxyData;
+        }
 
         return true;
       },
@@ -124,6 +127,8 @@
   watch(() => props.modelValue, () => {
     if (props.modelValue) {
       localValue.value = props.modelValue.ip;
+      localProxyData = props.modelValue;
+      oldLocalProxyData = props.modelValue;
     }
   }, {
     immediate: true,
@@ -132,7 +137,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      const formatHost = (item: InstanceInfos) => ({
+      const formatHost = (item: IHostData) => ({
         bk_biz_id: currentBizId,
         bk_host_id: item.bk_host_id,
         ip: item.ip,
