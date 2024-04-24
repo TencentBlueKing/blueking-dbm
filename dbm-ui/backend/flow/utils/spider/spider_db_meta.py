@@ -16,7 +16,7 @@ from django.db.transaction import atomic
 from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
 from backend.db_meta.api.cluster.tendbcluster.remotedb_node_migrate import TenDBClusterMigrateRemoteDb
 from backend.db_meta.enums import ClusterEntryRole, InstanceStatus, MachineType, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.utils.dict_to_dataclass import dict_to_dataclass
 from backend.flow.utils.spider.spider_act_dataclass import ShardInfo
 
@@ -262,7 +262,9 @@ class SpiderDBMeta(object):
                 cluster_id=self.cluster["cluster_id"], storage=new_slave_to_old_master
             )
             StorageInstance.objects.filter(
-                machine__ip=self.cluster["new_slave_port"], machine__bk_cloud_id=self.cluster["bk_cloud_id"]
+                machine__ip=self.cluster["new_slave_ip"],
+                machine__bk_cloud_id=self.cluster["bk_cloud_id"],
+                port=self.cluster["new_slave_port"],
             ).update(status=InstanceStatus.RUNNING.value)
             # slave_storages = StorageInstance.objects.filter(machine__ip=self.cluster["new_slave_port"],
             # machine__bk_cloud_id=self.cluster["bk_cloud_id"])
@@ -271,9 +273,12 @@ class SpiderDBMeta(object):
             #     slave_storage.save()
 
     def tendb_modify_storage_status(self):
-        storage = StorageInstance.objects.get(self.cluster["storage_id"])
-        storage.status = self.cluster["storage_status"]
-        storage.save()
+        StorageInstance.objects.filter(id__in=self.cluster["storage_ids"]).update(
+            status=self.cluster["storage_status"]
+        )
+
+    def tendb_modify_proxy_status(self):
+        ProxyInstance.objects.filter(id__in=self.cluster["proxy_ids"]).update(status=self.cluster["proxy_status"])
 
     def tendb_slave_recover_switch(self):
         for node in self.cluster["my_shards"].values():

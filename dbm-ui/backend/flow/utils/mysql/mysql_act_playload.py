@@ -1803,7 +1803,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "start_pos": int(kwargs["trans_data"]["change_master_info"]["master_log_pos"]),
                     },
                     "parse_only": False,
-                    "binlog_start_file": kwargs["trans_data"]["change_master_info"]["master_log_file"],
+                    "binlog_start_file": binlog_start_file,
                 },
             },
         }

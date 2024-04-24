@@ -323,11 +323,11 @@ class TendbClusterMigrateRemoteFlow(object):
 
             # 阶段6: 主机级别卸载实例,卸载指定ip下的所有实例
             uninstall_svr_sub_pipeline_list = []
-            for ip in [self.data["new_master_ip"], self.data["new_slave_ip"]]:
+            for ip in [self.data["old_master_ip"], self.data["old_slave_ip"]]:
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 ins_cluster = {"uninstall_ip": ip, "cluster_id": cluster_class.id}
                 uninstall_svr_sub_pipeline.add_act(
-                    act_name=_("整机卸载成功后删除元数据"),
+                    act_name=_("整机卸载成功前删除元数据"),
                     act_component_code=SpiderDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(
@@ -343,7 +343,7 @@ class TendbClusterMigrateRemoteFlow(object):
                     kwargs=asdict(
                         ClearMachineKwargs(
                             exec_ip=ip,
-                            bk_cloud_id=cluster_class.bk_biz_id,
+                            bk_cloud_id=cluster_class.bk_cloud_id,
                         )
                     ),
                 )
