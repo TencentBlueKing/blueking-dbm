@@ -218,12 +218,12 @@ class MySQLMasterFailOverFlow(object):
                 ),
             )
 
-            # 阶段6 切换后重建备份程序和数据校验程序
+            # 阶段6 切换后重新部署周边
             sub_pipeline.add_sub_pipeline(
                 sub_flow=build_surrounding_apps_sub_flow(
                     bk_cloud_id=info["slave_ip"]["bk_cloud_id"],
-                    master_ip_list=[info["master_ip"]["ip"]],
-                    slave_ip_list=[info["slave_ip"]["ip"]],
+                    master_ip_list=[info["slave_ip"]["ip"]],
+                    # slave_ip_list=[info["master_ip"]["ip"]], # 故障机器不需要再部署
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(sub_flow_context),
                     is_init=False,

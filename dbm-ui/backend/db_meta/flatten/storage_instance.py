@@ -139,7 +139,10 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
             pinfo = {"ip": p.machine.ip, "port": p.port, "admin_port": p.admin_port, "status": p.status}
             proxyinstance_set.append(pinfo)
         info["proxyinstance_set"] = proxyinstance_set
-
+        # 理论上集群 id 不可能是 0
+        # 但是当元数据异常的时候, 某些实例可能不属于任何集群
+        # 这里默认为 0 可以增加代码兼容性
+        info["cluster_id"] = 0
         for cluster in ins.cluster.all():
             info["cluster"] = cluster.immute_domain
             info["cluster_id"] = cluster.id
