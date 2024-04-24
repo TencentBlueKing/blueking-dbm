@@ -46,12 +46,11 @@ from backend.flow.consts import (
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.mysql.mysql_bk_config import get_backup_ini_config, get_backup_options_config
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
 from backend.flow.utils.tbinlogdumper.tbinlogdumper_act_payload import TBinlogDumperActPayload
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
-
-apply_list = [TicketType.MYSQL_SINGLE_APPLY.value, TicketType.MYSQL_HA_APPLY.value]
 
 logger = logging.getLogger("flow")
 
@@ -97,34 +96,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             }
         )["content"]
         return data["charset"], data["db_version"]
-
-    def __get_dbbackup_config(self) -> Any:
-        rsp = {}
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": str(self.ticket_data["bk_biz_id"]),
-                "level_name": LevelName.MODULE,
-                "level_value": str(self.db_module_id),
-                "conf_file": "dbbackup.ini",
-                "conf_type": "backup",
-                "namespace": self.cluster_type,
-                "format": FormatType.MAP_LEVEL,
-            }
-        )
-        rsp["ini"] = data["content"]
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": str(self.ticket_data["bk_biz_id"]),
-                "level_name": LevelName.MODULE,
-                "level_value": str(self.db_module_id),
-                "conf_file": "dbbackup.options",
-                "conf_type": "backup",
-                "namespace": self.cluster_type,
-                "format": FormatType.MAP_LEVEL,
-            }
-        )
-        rsp["options"] = data["content"]
-        return rsp
 
     def __get_mysql_rotatebinlog_config(self) -> dict:
         """
@@ -533,11 +504,14 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         安装备份程序，目前是必须是先录入元信息后，才执行备份程序的安装
         非spider-master角色实例不安装备份程序，已在外层屏蔽
         """
-        cfg = self.__get_dbbackup_config()
+        ini = get_backup_ini_config(
+            bk_biz_id=self.ticket_data["bk_biz_id"], db_module_id=self.db_module_id, cluster_type=self.cluster_type
+        )
         mysql_ports = []
         port_domain_map = {}
         cluster_id_map = {}
         shard_port_map = {}  # port as key
+        options_map = {}
 
         machine = Machine.objects.get(ip=kwargs["ip"])
         if machine.machine_type == MachineType.SPIDER.value:
@@ -565,6 +539,13 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
             shard_port_map[instance.port] = shard_port_map.get(instance.port, 0)
 
+            options_map[instance.port] = get_backup_options_config(
+                bk_biz_id=cluster.bk_biz_id,
+                db_module_id=cluster.db_module_id,
+                cluster_type=cluster.cluster_type,
+                cluster_domain=cluster.immute_domain,
+            )
+
         cluster_type = ins_list[0].cluster.get().cluster_type
 
         # 获取backup程序包的名称
@@ -588,8 +569,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "bk_cloud_id": int(self.bk_cloud_id),
                     "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
                     "role": role,
-                    "configs": cfg["ini"],
-                    "options": cfg["options"],
+                    "configs": ini,
+                    "options": options_map,
                     "cluster_address": port_domain_map,
                     "cluster_id": cluster_id_map,
                     "cluster_type": cluster_type,
@@ -1210,9 +1191,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         安装备份程序，针对从库重建、主从迁移的，实例还不属于集群
         """
         db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
-        cfg = self.__get_dbbackup_config()
+        ini = get_backup_ini_config(
+            bk_biz_id=self.ticket_data["bk_biz_id"], db_module_id=self.db_module_id, cluster_type=self.cluster_type
+        )
         mysql_ports = []
         port_domain_map = {}
+        options_map = {}
         ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
         # 获取待添加机器的实例角色，理论上统一主机的所有实例的角色都是一致的，故获取第一个即可
         role = ins_list[0].instance_inner_role
@@ -1223,6 +1207,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             port = cluster["mysql_port"]
             master_domain = cluster["master"]
             port_domain_map[port] = master_domain
+            options_map[port] = get_backup_options_config(
+                bk_biz_id=self.ticket_data["bk_biz_id"],
+                db_module_id=self.db_module_id,
+                cluster_type=self.cluster_type,
+                cluster_domain=master_domain,
+            )
             mysql_ports.append(port)
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
@@ -1237,8 +1227,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "bk_cloud_id": str(self.bk_cloud_id),
                     "bk_biz_id": str(self.ticket_data["bk_biz_id"]),
                     "role": role,
-                    "configs": cfg["ini"],
-                    "options": cfg["options"],
+                    "configs": ini,
+                    "options": options_map,
                     "cluster_address": port_domain_map,
                 },
             },
@@ -1816,7 +1806,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         数据恢复时安装临时备份程序。大部分信息可忽略不计
         """
         db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
-        cfg = self.__get_dbbackup_config()
 
         machine = Machine.objects.get(ip=kwargs["ip"])
         if machine.machine_type == MachineType.SPIDER.value:
@@ -1840,8 +1829,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "bk_cloud_id": int(self.bk_cloud_id),
                     "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
                     "role": role,  # InstanceInnerRole.MASTER.value,
-                    "configs": cfg["ini"],
-                    "options": cfg["options"],
+                    "configs": {},
+                    "options": {},
                     "cluster_address": {},
                     "cluster_id": {},
                     "cluster_type": machine.cluster_type,  # ClusterType.TenDBHA,
