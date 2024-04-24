@@ -16,6 +16,8 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -23,8 +25,10 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.spider.spider_recover import remote_node_rollback, spider_recover_sub_flow
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DownloadMediaKwargs
+from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 from backend.flow.utils.spider.tendb_cluster_info import get_rollback_clusters_info
 from backend.utils.time import str2datetime
 
@@ -43,6 +47,7 @@ class TenDBRollBackDataFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        self.backup_target_path = f"/data/dbbak/{self.root_id}"
 
     def tendb_rollback_data(self):
         """
@@ -53,13 +58,15 @@ class TenDBRollBackDataFlow(object):
         tendb_rollback_pipeline = Builder(
             root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
         )
+        source_cluster = Cluster.objects.get(id=self.data["source_cluster_id"])
+        target_cluster = Cluster.objects.get(id=self.data["target_cluster_id"])
         clusters_info = get_rollback_clusters_info(
             source_cluster_id=self.data["source_cluster_id"], target_cluster_id=self.data["target_cluster_id"]
         )
         charset, db_version = get_version_and_charset(
-            bk_biz_id=clusters_info["source"]["bk_biz_id"],
-            db_module_id=clusters_info["source"]["db_module_id"],
-            cluster_type=clusters_info["source"]["cluster_type"],
+            bk_biz_id=source_cluster.bk_biz_id,
+            db_module_id=source_cluster.db_module_id,
+            cluster_type=source_cluster.cluster_type,
         )
         # 先查询恢复介质
         if self.data["rollback_type"] == RollbackType.REMOTE_AND_BACKUPID.value:
@@ -80,7 +87,7 @@ class TenDBRollBackDataFlow(object):
             act_component_code=TransFileComponent.code,
             kwargs=asdict(
                 DownloadMediaKwargs(
-                    bk_cloud_id=clusters_info["bk_cloud_id"],
+                    bk_cloud_id=target_cluster.bk_cloud_id,
                     exec_ip=clusters_info["ip_list"],
                     file_list=GetFileList(DBType.MySQL).get_db_actuator_package(),
                 )
@@ -89,15 +96,18 @@ class TenDBRollBackDataFlow(object):
 
         ins_sub_pipeline_list = []
         for spider_node in clusters_info["target_spiders"]:
+            target_spider = target_cluster.proxyinstance_set.get(
+                machine__ip=spider_node["ip"], port=spider_node["port"]
+            )
             spd_cluster = {
                 "charset": charset,
                 "backupinfo": backup_info["spider_node"],
-                "file_target_path": f"/data/dbbak/{self.root_id}/{spider_node['port']}",
+                "file_target_path": f'{self.backup_target_path}/{spider_node["port"]}',
                 "rollback_ip": spider_node["ip"],
                 "rollback_port": spider_node["port"],
                 "instance": spider_node["instance"],
-                "bk_cloud_id": clusters_info["bk_cloud_id"],
-                "cluster_id": self.data["source_cluster_id"],
+                "bk_cloud_id": source_cluster.bk_cloud_id,
+                "cluster_id": source_cluster.id,
                 "rollback_time": self.data["rollback_time"],
                 "rollback_type": self.data["rollback_type"],
                 "databases": self.data["databases"],
@@ -107,13 +117,44 @@ class TenDBRollBackDataFlow(object):
                 "change_master": False,
             }
             spd_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            cluster = {"proxy_status": InstanceStatus.RESTORING.value, "proxy_ids": [target_spider.id]}
+            spd_sub_pipeline.add_act(
+                act_name=_("写入初始化实例的db_meta元信息"),
+                act_component_code=SpiderDBMetaComponent.code,
+                kwargs=asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=SpiderDBMeta.tendb_modify_proxy_status.__name__,
+                        cluster=cluster,
+                        is_update_trans_data=False,
+                    )
+                ),
+            )
             spd_sub_pipeline.add_sub_pipeline(
                 sub_flow=spider_recover_sub_flow(
                     root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster=spd_cluster
                 )
             )
+
+            spd_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            cluster = {"proxy_status": InstanceStatus.RUNNING.value, "proxy_ids": [target_spider.id]}
+            spd_sub_pipeline.add_act(
+                act_name=_("写入初始化实例的db_meta元信息"),
+                act_component_code=SpiderDBMetaComponent.code,
+                kwargs=asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=SpiderDBMeta.tendb_modify_proxy_status.__name__,
+                        cluster=cluster,
+                        is_update_trans_data=False,
+                    )
+                ),
+            )
+
             ins_sub_pipeline_list.append(spd_sub_pipeline.build_sub_process(sub_name=_("恢复spider节点数据")))
         for shard_id, remote_node in clusters_info["shards"].items():
+            shard = target_cluster.tendbclusterstorageset_set.get(shard_id=shard_id)
+            target_slave = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.receiver.id)
+            target_master = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.ejector.id)
+
             shd_cluster = {
                 "charset": charset,
                 "shard_id": shard_id,
@@ -129,9 +170,9 @@ class TenDBRollBackDataFlow(object):
                 "slave_port": remote_node["slave"]["port"],
                 "master": remote_node["master"],
                 "slave": remote_node["slave"],
-                "file_target_path": f"/data/dbbak/{self.root_id}/{remote_node['new_master']['port']}",
-                "cluster_id": self.data["source_cluster_id"],
-                "bk_cloud_id": clusters_info["bk_cloud_id"],
+                "file_target_path": f'{self.backup_target_path}/{remote_node["new_master"]["port"]}',
+                "cluster_id": source_cluster.id,
+                "bk_cloud_id": source_cluster.bk_cloud_id,
                 "backupinfo": backup_info["remote_node"][int(shard_id)],
                 "rollback_time": self.data["rollback_time"],
                 "rollback_type": self.data["rollback_type"],
@@ -143,10 +184,42 @@ class TenDBRollBackDataFlow(object):
             }
 
             ins_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            cluster = {
+                "storage_status": InstanceStatus.RESTORING.value,
+                "storage_ids": [target_slave.id, target_master.id],
+            }
+            ins_sub_pipeline.add_act(
+                act_name=_("写入初始化实例的db_meta元信息"),
+                act_component_code=SpiderDBMetaComponent.code,
+                kwargs=asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=SpiderDBMeta.tendb_modify_storage_status.__name__,
+                        cluster=cluster,
+                        is_update_trans_data=False,
+                    )
+                ),
+            )
+
             ins_sub_pipeline.add_sub_pipeline(
                 sub_flow=remote_node_rollback(
                     root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster=shd_cluster
                 )
+            )
+            ins_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            cluster = {
+                "storage_status": InstanceStatus.RUNNING.value,
+                "storage_ids": [target_slave.id, target_master.id],
+            }
+            ins_sub_pipeline.add_act(
+                act_name=_("写入初始化实例的db_meta元信息"),
+                act_component_code=SpiderDBMetaComponent.code,
+                kwargs=asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=SpiderDBMeta.tendb_modify_storage_status.__name__,
+                        cluster=cluster,
+                        is_update_trans_data=False,
+                    )
+                ),
             )
             ins_sub_pipeline_list.append(ins_sub_pipeline.build_sub_process(sub_name=_("恢复remote节点数据")))
         tendb_rollback_pipeline.add_parallel_sub_pipeline(sub_flow_list=ins_sub_pipeline_list)

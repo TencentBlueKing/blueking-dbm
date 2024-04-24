@@ -76,7 +76,7 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
     )
-    #  todo 因为目前 spider 没有binlog的说法，and False 先屏蔽掉日志前滚流程
+    # 因为目前 spider 没有binlog，and False 先屏蔽掉日志前滚流程
     if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value and False:
         spider_has_binlog = cluster.get("spider_has_binlog", False)
         if spider_has_binlog:
@@ -174,6 +174,7 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
             act_name=_("定点恢复之恢复数据{}:{}".format(exec_act_kwargs.exec_ip, cluster["rollback_port"])),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
+            write_payload_var="change_master_info",
         )
         #  指定时间点的定点回档则需要执行binlog前滚。滚动到指定的时间点。
         if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
