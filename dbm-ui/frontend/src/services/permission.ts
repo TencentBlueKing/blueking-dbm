@@ -53,7 +53,7 @@ interface MysqlAdminPassword {
   username: string;
 }
 
-interface MysqlAdminPasswordResultItem {
+interface AdminPasswordResultItem {
   bk_cloud_id: number;
   cluster_type: ClusterTypes;
   instances: {
@@ -98,7 +98,7 @@ export const getRandomPassword = () =>
   }>('/apis/conf/password_policy/get_random_password/');
 
 /**
- * 修改mysql实例密码(admin)
+ * 修改实例密码(admin)
  */
 export const modifyMysqlAdminPassword = (params: {
   lock_hour: number;
@@ -112,9 +112,9 @@ export const modifyMysqlAdminPassword = (params: {
   }[];
 }) =>
   http.post<{
-    success: MysqlAdminPasswordResultItem[] | null;
-    fail: MysqlAdminPasswordResultItem[] | null;
-  }>('/apis/conf/password_policy/modify_mysql_admin_password/', params);
+    success: AdminPasswordResultItem[] | null;
+    fail: AdminPasswordResultItem[] | null;
+  }>('/apis/conf/password_policy/modify_admin_password/', params);
 
 /**
  * 查询mysql生效实例密码(admin)
