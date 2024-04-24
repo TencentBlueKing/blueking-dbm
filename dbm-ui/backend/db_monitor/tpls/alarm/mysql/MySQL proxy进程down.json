@@ -1,21 +1,23 @@
 {
   "bk_biz_id": 0,
-  "name": "Kafka 主机 CPU 使用率",
-  "db_type": "kafka",
+  "name": "MySQL proxy进程down",
+  "db_type": "mysql",
   "details": {
     "bk_biz_id": "",
-    "name": "Kafka 主机 CPU 使用率",
+    "name": "MySQL proxy进程down",
     "source": "dbm",
-    "scenario": "os",
+    "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(CPU使用率)",
+        "name": "AVG(mysqlproxy_up)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
           "is_enabled": false,
-          "agg_dimension": []
+          "agg_dimension": [
+            "bk_target_service_instance_id"
+          ]
         },
         "target": [],
         "expression": "a",
@@ -26,45 +28,38 @@
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.dbm_system.cpu_summary.usage",
+            "metric_id": "bk_monitor.exporter_dbm_mysqlproxy_exporter.__default__.mysqlproxy_up",
             "functions": [],
-            "result_table_id": "dbm_system.cpu_summary",
+            "result_table_id": "exporter_dbm_mysqlproxy_exporter.__default__",
+            "data_label": "exporter_dbm_mysqlproxy_exporter",
             "agg_method": "AVG",
             "agg_interval": 60,
             "agg_dimension": [
-              "bk_target_ip",
-              "bk_target_cloud_id",
+              "bk_target_service_instance_id",
+              "app",
+              "cluster_domain",
+              "instance",
               "appid"
             ],
-            "agg_condition": [
-              {
-                "key": "db_type",
-                "value": [
-                  "kafka"
-                ],
-                "method": "eq",
-                "condition": "and",
-                "dimension_name": "db_type"
-              }
-            ],
-            "metric_field": "usage",
-            "unit": "percent",
-            "name": "CPU使用率"
+            "agg_condition": [],
+            "metric_field": "mysqlproxy_up",
+            "unit": "",
+            "name": "mysqlproxy_up"
           }
         ],
         "algorithms": [
           {
             "type": "Threshold",
-            "level": 2,
+            "level": 1,
             "config": [
               [
                 {
-                  "method": "gte",
-                  "threshold": 90
+                  "method": "eq",
+                  "threshold": 0
                 }
               ]
             ],
-            "unit_prefix": "%"
+            "unit_prefix": ""
           }
         ],
         "metric_type": "time_series"
@@ -72,7 +67,7 @@
     ],
     "detects": [
       {
-        "level": 2,
+        "level": 1,
         "expression": "",
         "trigger_config": {
           "count": 1,
@@ -96,11 +91,12 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40748,
+      "config_id": 47311,
       "user_groups": [],
+      "user_type": "main",
       "signal": [
-        "no_data",
-        "abnormal"
+        "abnormal",
+        "no_data"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -162,7 +158,7 @@
           "timedelta": 60,
           "is_enabled": true,
           "converge_func": "collect",
-          "need_biz_converge": false,
+          "need_biz_converge": true,
           "sub_converge_config": {
             "timedelta": 60,
             "count": 2,
@@ -223,17 +219,17 @@
         "template": [
           {
             "signal": "abnormal",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "recovered",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "closed",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           }
         ]
@@ -241,20 +237,22 @@
     },
     "labels": [
       "DBM",
-      "DBM_KAFKA",
-      "Kafka"
+      "DBM_MYSQL",
+      "MySQL"
     ],
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "5ffd1f3e6c2b60a4",
+    "priority_group_key": "6754c7327eea4967",
+    "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(CPU使用率)",
-  "version": 22,
+  "monitor_indicator": "AVG(mysqlproxy_up)",
+  "version": 1,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [],
+  "export_at": "2024-04-24T18:10:45+08:00"
 }
