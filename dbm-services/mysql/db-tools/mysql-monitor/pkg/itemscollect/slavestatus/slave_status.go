@@ -12,7 +12,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
+	"strconv"
 	"strings"
+	"time"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
@@ -22,6 +25,7 @@ import (
 )
 
 var slaveStatusName = "slave-status"
+var skipErrNos = []int{1062, 1235}
 
 type slaveStatusChecker struct {
 	db          *sqlx.DB
@@ -40,6 +44,30 @@ func (s *slaveStatusChecker) Run() (msg string, err error) {
 	}
 
 	if !s.isOk() {
+		ioErrNo, sqlErrNo, err := s.getErrNo()
+		if err != nil {
+			slog.Warn("invalid errno", err)
+		} else {
+			slog.Debug("err no found", slog.Int("io err", ioErrNo), slog.Int("sql err", sqlErrNo))
+			slog.Debug("io err if is skip", slog.Int("id", slices.Index(skipErrNos, ioErrNo)))
+			slog.Debug("sql err if is skip", slog.Int("id", slices.Index(skipErrNos, sqlErrNo)))
+			if slices.Index(skipErrNos, ioErrNo) >= 0 || slices.Index(skipErrNos, sqlErrNo) >= 0 {
+				slog.Debug("need skip errno found")
+				err := s.skipErr()
+				if err != nil {
+					slog.Warn(
+						"skip error failed",
+						err,
+						slog.Int("io errno", ioErrNo),
+						slog.Int("sql errno", sqlErrNo),
+					)
+				} else {
+					slog.Info("skip err success")
+					return "", nil
+				}
+			}
+		}
+
 		slaveErr, err := s.collectError()
 		if err != nil {
 			return "", err
@@ -50,9 +78,51 @@ func (s *slaveStatusChecker) Run() (msg string, err error) {
 	return "", nil
 }
 
+func (s *slaveStatusChecker) skipErr() error {
+	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
+	defer cancel()
+
+	_, err := s.db.ExecContext(
+		ctx,
+		`STOP SLAVE SQL_THREAD;SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1;START SLAVE SQL_THREAD`,
+	)
+	if err != nil {
+		slog.Error("skip err failed", err)
+		return err
+	}
+
+	time.Sleep(1 * time.Second)
+	err = s.fetchSlaveStatus()
+	if err != nil {
+		slog.Error("fetch slave status after skip failed", err)
+		return err
+	}
+
+	if s.isOk() {
+		return nil
+	} else {
+		return errors.Errorf("err still stay after skip")
+	}
+}
+
 func (s *slaveStatusChecker) isOk() bool {
 	return strings.ToUpper(s.slaveStatus["Slave_IO_Running"].(string)) == "YES" &&
 		strings.ToUpper(s.slaveStatus["Slave_SQL_Running"].(string)) == "YES"
+}
+
+func (s *slaveStatusChecker) getErrNo() (ioErrNo int, sqlErrNo int, err error) {
+	ioErrNo, err = strconv.Atoi(s.slaveStatus["Last_IO_Errno"].(string))
+	if err != nil {
+		slog.Error("invalid io error no", err, slog.String("errno", s.slaveStatus["Last_IO_Errno"].(string)))
+		return 0, 0, err
+	}
+	ioErrNo, err = strconv.Atoi(s.slaveStatus["Last_SQL_Errno"].(string))
+	if err != nil {
+		slog.Error("invalid sql error no", err, slog.String("errno", s.slaveStatus["Last_SQL_Errno"].(string)))
+		return 0, 0, err
+	}
+
+	return ioErrNo, sqlErrNo, nil
 }
 
 func (s *slaveStatusChecker) collectError() (string, error) {
