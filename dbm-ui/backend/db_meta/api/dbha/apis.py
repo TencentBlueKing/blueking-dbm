@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 from collections import defaultdict
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import validators
@@ -36,7 +37,14 @@ from backend.db_meta.exceptions import (
     InstanceNotExistException,
     TendisClusterNotExistException,
 )
-from backend.db_meta.models import BKCity, Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import (
+    BKCity,
+    Cluster,
+    ClusterDBHAExt,
+    ProxyInstance,
+    StorageInstance,
+    StorageInstanceTuple,
+)
 from backend.db_meta.request_validator import DBHASwapRequestSerializer, DBHAUpdateStatusRequestSerializer
 from backend.flow.utils.cc_manage import CcManage
 
@@ -109,13 +117,22 @@ def instances(
     addresses: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
+    cluster_types: Optional[List[str]] = None,
 ):
 
     logical_city_ids = request_validator.validated_integer_list(logical_city_ids)
     addresses = request_validator.validated_str_list(addresses)
     statuses = request_validator.validated_str_list(statuses)
 
+    # dbha 会频繁周期性调用这个函数, 拉取需要探测的实例
+    # 在这个接口的最开始, 检查所有集群的 end_time
+    # 如果 end_time < now, 就把 begin_time 和 end_time 置 NULL
+    # 这样下面 query 实例的代码就可以把屏蔽到期的集群捞出来了
+    # 因为这个只是给 dbha 用, 如果 dbha 挂了, 这个字段没有及时更新, 也没啥影响
+    ClusterDBHAExt.objects.filter(end_time__lt=datetime.now(timezone.utc)).delete()
+
     queries = Q()
+
     if addresses:
         for ad in [ad for ad in addresses if len(ad.strip()) > 0]:
             if validators.ipv4(ad):
@@ -134,12 +151,18 @@ def instances(
         queries &= Q(**{"status__in": statuses})
 
     queries &= Q(**{"machine__bk_cloud_id": bk_cloud_id})
-
     queries &= ~Q(**{"phase": InstancePhase.TRANS_STAGE})  # 排除 scr/gcs 迁移状态实例
+    if cluster_types:
+        queries &= Q(**{"cluster__cluster_type__in": cluster_types})
 
-    return flatten.storage_instance(StorageInstance.objects.filter(queries)) + flatten.proxy_instance(
+    flat_instances = flatten.storage_instance(StorageInstance.objects.filter(queries)) + flatten.proxy_instance(
         ProxyInstance.objects.filter(queries)
     )
+    disabled_dbha_cluster_ids = list(
+        ClusterDBHAExt.objects.filter(end_time__gte=datetime.now()).values_list("cluster_id", flat=True)
+    )
+
+    return [ele for ele in flat_instances if ele["cluster_id"] not in disabled_dbha_cluster_ids]
 
 
 @transaction.atomic

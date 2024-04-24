@@ -23,7 +23,6 @@ from backend.db_proxy.views.db_meta.serializers import (
     BizClusterSerializer,
     BKCityNameSerializer,
     ClusterDetailSerializer,
-    ClusterInstanceSerializer,
     EntryDetailSerializer,
     FakeResetTendbHACluster,
     FakeTendbHACreateCluster,
@@ -201,57 +200,6 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
             return Response({"msg": "", "code": 0, "data": api.fake.fake_reset_tendbha_cluster(**request.data)})
         except Exception as e:  # pylint: disable=broad-except
             return Response({"msg": "{}".format(e), "code": 1, "data": ""})
-
-    @common_swagger_auto_schema(
-        operation_summary=_("[dbmeta]priv_manager根据域名查询集群信息"),
-        query_serializer=BizClusterSerializer(),
-        tags=[SWAGGER_TAG],
-    )
-    @action(
-        methods=["POST"],
-        detail=False,
-        serializer_class=BizClusterSerializer,
-        url_path="dbmeta/priv_manager/biz_clusters",
-    )
-    def biz_clusters(self, request):
-        validated_data = self.params_validate(self.get_serializer_class())
-        data = api.priv_manager.biz_clusters(
-            bk_biz_id=validated_data["bk_biz_id"],
-            immute_domains=validated_data["immute_domains"],
-        )
-        return Response(data)
-
-    @common_swagger_auto_schema(
-        operation_summary=_("[dbmeta]priv_manager查询集群实例信息"),
-        request_body=ClusterInstanceSerializer(),
-        tags=[SWAGGER_TAG],
-    )
-    @action(
-        methods=["POST"],
-        detail=False,
-        serializer_class=ClusterInstanceSerializer,
-        url_path="dbmeta/priv_manager/cluster_instances",
-    )
-    def cluster_instances(self, request):
-        validated_data = self.params_validate(self.get_serializer_class())
-        data = api.priv_manager.cluster_instances(immute_domain=validated_data.get("immute_domain"))
-        return Response(data)
-
-    @common_swagger_auto_schema(
-        operation_summary=_("[dbmeta]priv_manager查询实例详情信息"),
-        request_body=InstanceDetailSLZ(),
-        tags=[SWAGGER_TAG],
-    )
-    @action(
-        methods=["POST"],
-        detail=False,
-        serializer_class=InstanceDetailSLZ,
-        url_path="dbmeta/priv_manager/instance_detail",
-    )
-    def instance_detail(self, request):
-        validated_data = self.params_validate(self.get_serializer_class())
-        data = api.priv_manager.instance_detail(**validated_data)
-        return Response(data)
 
     @common_swagger_auto_schema(
         operation_summary=_("[dbmeta]priv_manager查询TendbCluster集群信息"),

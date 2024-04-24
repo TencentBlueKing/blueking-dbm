@@ -10,11 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List, Optional
 
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models.system import SystemSettings
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 
 
-def biz_clusters(bk_biz_id: int, immute_domains: Optional[List[str]]):
+def biz_clusters(bk_biz_id: int, immute_domains: Optional[List[str]] = None):
     """
     对比老版本, 添加了更多的信息
     1. 所有实例有了更多的信息, 特别的, 返回了 bk_instance_id
@@ -34,6 +36,8 @@ def biz_clusters(bk_biz_id: int, immute_domains: Optional[List[str]]):
     if immute_domains:
         qs = qs.filter(immute_domain__in=immute_domains)
 
+    padding_clusters = SystemSettings.get_setting_value(SystemSettingsEnum.PADDING_PROXY_CLUSTER_LIST.value) or []
+
     for cluster in qs:
         res.append(
             {
@@ -42,6 +46,7 @@ def biz_clusters(bk_biz_id: int, immute_domains: Optional[List[str]]):
                 "bk_biz_id": bk_biz_id,
                 "db_module_id": cluster.db_module_id,
                 "bk_cloud_id": cluster.bk_cloud_id,
+                "padding_proxy": cluster.immute_domain in padding_clusters,
                 "proxies": [
                     {
                         "ip": ele.machine.ip,

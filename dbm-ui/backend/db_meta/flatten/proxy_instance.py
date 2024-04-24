@@ -107,6 +107,10 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
                 bind_entry[be.cluster_entry_type].append(be.entry)
 
         info["bind_entry"] = dict(bind_entry)
+        # 理论上集群 id 不可能是 0
+        # 但是当元数据异常的时候, 某些实例可能不属于任何集群
+        # 这里默认为 0 可以增加代码兼容性
+        info["cluster_id"] = 0
         for cluster in ins.cluster.all():
             info["cluster"] = cluster.immute_domain
             info["cluster_id"] = cluster.id
