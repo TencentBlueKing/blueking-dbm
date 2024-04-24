@@ -1,15 +1,10 @@
 package main
 
 import (
-	"dbm-services/common/go-pubpkg/apm/metric"
 	"fmt"
 	"net/http"
 	"os"
 	"slow-query-parser-service/pkg/service"
-
-	"dbm-services/common/go-pubpkg/apm/trace"
-
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/gin-gonic/gin"
@@ -33,15 +28,6 @@ func main() {
 	case runCmd.FullCommand():
 		r := gin.New()
 		r.Use(gin.Logger())
-
-		trace.Setup()
-
-		r.Use(
-			gin.Recovery(),
-			otelgin.Middleware("slow_query_parser_service"),
-		)
-
-		metric.NewPrometheus("").Use(r)
 
 		r.Handle("GET", "/ping", func(context *gin.Context) {
 			context.String(http.StatusOK, "pong")
