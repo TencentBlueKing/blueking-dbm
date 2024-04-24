@@ -13,7 +13,6 @@ from typing import List, Optional
 
 from django.db import transaction
 
-from backend.configuration.constants import DBType
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
@@ -33,7 +32,7 @@ def scale_in(
 
     cluster = Cluster.objects.get(id=cluster_id)
     cluster_entry = ClusterEntry.objects.get(cluster=cluster)
-    cc_manage = CcManage(cluster.bk_biz_id, DBType.Riak.value)
+    cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
 
     storages = request_validator.validated_storage_list(storages, allow_empty=False, allow_null=False)
     storage_objs = common.filter_out_instance_obj(storages, StorageInstance.objects.all())

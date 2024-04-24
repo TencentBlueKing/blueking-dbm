@@ -38,11 +38,11 @@ class CcManage(object):
     在这里通过 hosting_biz_id 来决定真实操作 cmdb 的业务
     """
 
-    def __init__(self, bk_biz_id: int, db_type: str):
+    def __init__(self, bk_biz_id: int, cluster_type: str):
         # 业务
         self.bk_biz_id = bk_biz_id
         # 主机在 cmdb 上实际托管的业务（通常可能为 DBM 统一业务）
-        self.hosting_biz_id = BizSettings.get_exact_hosting_biz(bk_biz_id, db_type)
+        self.hosting_biz_id = BizSettings.get_exact_hosting_biz(bk_biz_id, cluster_type)
 
     def get_or_create_set_module(
         self,

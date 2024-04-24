@@ -180,7 +180,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
                 slave_entry.storageinstance_set.remove(new_master_storage_objs)
                 slave_entry.storageinstance_set.add(old_master_storage_objs)
 
-            cc_manage = CcManage(cluster.bk_biz_id)
+            cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
             # 切换新master服务实例角色标签
             cc_manage.add_label_for_service_instance(
                 bk_instance_ids=[new_master_storage_objs.bk_instance_id],
@@ -240,7 +240,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
             )
             cluster_slave_entry.storageinstance_set.add(standby_slave)
 
-        cc_manage = CcManage(cluster.bk_biz_id)
+        cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
         # 更新master服务实例标签
         cc_manage.add_label_for_service_instance(
             bk_instance_ids=[master.bk_instance_id],
@@ -293,7 +293,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
         for cluster_id in cluster_ids:
             # 每个集群维度遍历变更信息
             cluster = Cluster.objects.get(id=cluster_id)
-            cc_manage = CcManage(cluster.bk_biz_id)
+            cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
             old_slave_obj = cluster.storageinstance_set.get(machine__ip=old_slave_host.ip)
 
             storages = [
