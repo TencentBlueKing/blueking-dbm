@@ -155,6 +155,9 @@ class BizSettings(AbstractSettings):
         1. 支持 MySQL 托管在 DBA 平台业务下，Redis 独立托管在业务下
         2. 全部托管到业务下
         """
+        if not cluster_type:
+            return env.DBA_APP_BK_BIZ_ID
+
         if cluster_type in cls.get_setting_value(
             bk_biz_id, constants.BizSettingsEnum.INDEPENDENT_HOSTING_DB_TYPES.value, default=[]
         ):
