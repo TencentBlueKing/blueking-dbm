@@ -20,6 +20,7 @@ from backend.bk_web.swagger import (
     ResponseSwaggerAutoSchema,
     common_swagger_auto_schema,
 )
+from backend.configuration.exceptions import ConfigurationBaseException
 from backend.configuration.models.ip_whitelist import IPWhitelist
 from backend.configuration.serializers import (
     DeleteIPWhitelistSerializer,
@@ -41,7 +42,16 @@ class IPWhitelistViewSet(viewsets.AuditedModelViewSet):
     pagination_class = AuditedLimitOffsetPagination
 
     def _get_custom_permissions(self):
-        bk_biz_id = self.request.query_params.get("bk_biz_id") or self.request.data.get("bk_biz_id")
+        if self.action == "batch_delete":
+            bk_biz_ids = list(
+                self.queryset.filter(id__in=self.request.data["ids"]).values_list("bk_biz_id", flat=True)
+            )
+            if len(set(bk_biz_ids)) > 1:
+                raise ConfigurationBaseException(_("无法同时删除不同业务下的IP白名单"))
+            bk_biz_id = bk_biz_ids[0]
+        else:
+            bk_biz_id = self.request.query_params.get("bk_biz_id") or self.request.data.get("bk_biz_id") or 0
+
         if int(bk_biz_id):
             return [DBManageIAMPermission()]
 
