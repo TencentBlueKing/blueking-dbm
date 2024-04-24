@@ -34,6 +34,8 @@ from backend.db_services.redis.util import (
 from backend.flow.consts import (
     DEFAULT_CONFIG_CONFIRM,
     DEFAULT_DB_MODULE_ID,
+    DEFAULT_REDIS_DBNUM,
+    DEFAULT_TWEMPROXY_ADMIN_PORT_EXTRA,
     ConfigFileEnum,
     ConfigTypeEnum,
     MediumEnum,
@@ -166,11 +168,11 @@ def check_cluster_proxy_backends_consistent(cluster_id: int):
     if is_twemproxy_proxy_type(cluster.cluster_type):
         # twemproxy 集群
         for proxy in cluster.proxyinstance_set.all():
-            proxy_addrs.append(proxy.machine.ip + ":" + str(proxy.port + 1000))
+            proxy_addrs.append(proxy.machine.ip + ":" + str(proxy.port + DEFAULT_TWEMPROXY_ADMIN_PORT_EXTRA))
         resp = DRSApi.twemproxy_rpc(
             {
                 "addresses": proxy_addrs,
-                "db_num": 0,
+                "db_num": DEFAULT_REDIS_DBNUM,
                 "password": "",
                 "command": "get nosqlproxy servers",
                 "bk_cloud_id": cluster.bk_cloud_id,
@@ -197,7 +199,7 @@ def check_cluster_proxy_backends_consistent(cluster_id: int):
         resp = DRSApi.redis_rpc(
             {
                 "addresses": proxy_addrs,
-                "db_num": 0,
+                "db_num": DEFAULT_REDIS_DBNUM,
                 "password": passwd_ret.get("redis_proxy_password"),
                 "command": "info servers",
                 "bk_cloud_id": cluster.bk_cloud_id,
@@ -486,11 +488,11 @@ def get_online_twemproxy_version(ip: str, port: int, bk_cloud_id: int) -> str:
     连接twemproxy执行 stats 获取版本信息
     返回结果示例: 0.4.1-rc-v0.28
     """
-    admin_port = port + 1000
+    admin_port = port + DEFAULT_TWEMPROXY_ADMIN_PORT_EXTRA
     resp = DRSApi.twemproxy_rpc(
         {
             "addresses": [f"{ip}:{admin_port}"],
-            "db_num": 0,
+            "db_num": DEFAULT_REDIS_DBNUM,
             "password": "",
             "command": "stats",
             "bk_cloud_id": bk_cloud_id,
@@ -510,7 +512,7 @@ def get_online_predixy_version(ip: str, port: int, bk_cloud_id: int, proxy_passw
     resp = DRSApi.redis_rpc(
         {
             "addresses": [f"{ip}:{port}"],
-            "db_num": 0,
+            "db_num": DEFAULT_REDIS_DBNUM,
             "password": proxy_password,
             "command": "info Proxy",
             "bk_cloud_id": bk_cloud_id,
@@ -532,7 +534,7 @@ def get_online_redis_version(ip: str, port: int, bk_cloud_id: int, redis_passwor
     resp = DRSApi.redis_rpc(
         {
             "addresses": [f"{ip}:{port}"],
-            "db_num": 0,
+            "db_num": DEFAULT_REDIS_DBNUM,
             "password": redis_password,
             "command": "INFO SERVER",
             "bk_cloud_id": bk_cloud_id,

@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums import InstanceRole, InstanceStatus
+from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.constants import REDIS_CONF_DEL_SLAVEOF
 from backend.db_services.redis.redis_dts.util import common_cluster_precheck, get_cluster_info_by_id
@@ -82,9 +83,9 @@ class RedisClusterVersionUpdateOnline(object):
 
             # 检查版本是否合法
             valid_versions = []
-            if input_item["node_type"] == "Proxy":
+            if input_item["node_type"] == RedisVerUpdateNodeType.Proxy:
                 valid_versions = get_proxy_version_names_by_cluster_type(cluster.cluster_type, True)
-            elif input_item["node_type"] == "Backend":
+            elif input_item["node_type"] == RedisVerUpdateNodeType.Backend:
                 valid_versions = get_storage_version_names_by_cluster_type(cluster.cluster_type, True)
             if input_item["target_version"] not in valid_versions:
                 raise Exception(
@@ -97,13 +98,13 @@ class RedisClusterVersionUpdateOnline(object):
                 )
             # 检查版本是否已经满足
             err = ""
-            if input_item["node_type"] == "Proxy":
+            if input_item["node_type"] == RedisVerUpdateNodeType.Proxy:
                 proxy_vers = get_cluster_proxy_version(input_item["cluster_id"])
                 if len(proxy_vers) == 1 and proxy_vers[0] == input_item["target_version"]:
                     err = _("集群{} proxy当前版本{} == 目标版本:{},无需升级").format(
                         cluster.immute_domain, proxy_vers[0], input_item["target_version"]
                     )
-            elif input_item["node_type"] == "Backend":
+            elif input_item["node_type"] == RedisVerUpdateNodeType.Backend:
                 redis_ver = get_cluster_redis_version(input_item["cluster_id"])
                 if redis_ver == input_item["target_version"]:
                     err = _("集群{} storage当前版本{} == 目标版本:{},无需升级").format(
@@ -154,7 +155,7 @@ class RedisClusterVersionUpdateOnline(object):
         # 先升级 proxy
         sub_pipelines = []
         for input_item in self.data["infos"]:
-            if input_item["node_type"] != "Proxy":
+            if input_item["node_type"] != RedisVerUpdateNodeType.Proxy:
                 continue
             cluster_meta_data = self.get_cluster_meta_data(bk_biz_id, int(input_item["cluster_id"]))
             act_kwargs = ActKwargs()
@@ -174,7 +175,7 @@ class RedisClusterVersionUpdateOnline(object):
         # 再升级 storage
         sub_pipelines = []
         for input_item in self.data["infos"]:
-            if input_item["node_type"] != "Backend":
+            if input_item["node_type"] != RedisVerUpdateNodeType.Backend:
                 continue
             act_kwargs = ActKwargs()
             act_kwargs.set_trans_data_dataclass = CommonContext.__name__
@@ -187,7 +188,9 @@ class RedisClusterVersionUpdateOnline(object):
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             sub_pipeline.add_act(
-                act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
+                act_name=_("初始化配置"),
+                act_component_code=GetRedisActPayloadComponent.code,
+                kwargs=asdict(act_kwargs),
             )
             all_ips = []
             all_ips.extend(list(cluster_meta_data["master_ports"].keys()))
@@ -197,7 +200,9 @@ class RedisClusterVersionUpdateOnline(object):
             act_kwargs.exec_ip = all_ips
             act_kwargs.file_list = trans_files.redis_cluster_version_update(major_version)
             sub_pipeline.add_act(
-                act_name=_("主从所有IP 下发介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+                act_name=_("主从所有IP 下发介质包"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(act_kwargs),
             )
             # 卸载 dbmon
             acts_list = []
@@ -481,7 +486,9 @@ class RedisClusterVersionUpdateOnline(object):
             act_kwargs.cluster["db_version"] = major_version
             act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_cluster_version_update.__name__
             sub_pipeline.add_act(
-                act_name=_("Redis-元数据更新集群版本"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+                act_name=_("Redis-元数据更新集群版本"),
+                act_component_code=RedisDBMetaComponent.code,
+                kwargs=asdict(act_kwargs),
             )
 
             # 更新 dbconfig 中版本信息
