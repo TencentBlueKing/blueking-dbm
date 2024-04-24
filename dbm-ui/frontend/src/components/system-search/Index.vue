@@ -11,7 +11,7 @@
       clearable
       :placeholder="t('全站搜索 Ctrl + K')"
       :type="isFocused ? 'text' : 'search'"
-      @enter="handleSearch"
+      @enter="handleEnter"
       @focus="handleFocus"
       @paste="handlePaste">
       <template
@@ -25,7 +25,7 @@
             <DbIcon
               class="mr-4"
               type="search" />
-            {{ t('搜索') }}
+            {{ t("搜索") }}
           </BkButton>
         </div>
       </template>
@@ -46,15 +46,8 @@
   </div>
 </template>
 <script setup lang="ts">
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
-  import {
-    computed,
-    onBeforeUnmount,
-    ref,
-  } from 'vue';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
+  import { computed, onBeforeUnmount, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { useDebouncedRef } from '@hooks';
@@ -83,12 +76,14 @@
 
   const { activeIndex } = useKeyboard(rootRef, popRef);
 
-  let tippyIns:Instance | undefined;
+  let tippyIns: Instance | undefined;
 
   const handlePaste = (value: string, event: ClipboardEvent) => {
     const pasteValue = (event.clipboardData || window.clipboardData).getData('text');
     setTimeout(() => {
-      serach.value = `${serach.value}${serach.value ? '|' : ''}${pasteValue}`.replace(batchSplitRegex, '|');
+      serach.value = `${serach.value}${
+        serach.value ? '|' : ''
+      }${pasteValue}`.replace(batchSplitRegex, '|');
     });
   };
 
@@ -133,15 +128,15 @@
   };
 
   const handleSearch = () => {
-    if (activeIndex.value > -1) {
-      return;
-    }
     // 页面跳转参数处理
     const options = searchResultRef.value.getFilterOptions();
     const query = Object.keys(options).reduce((prevQuery, optionKey) => {
       const optionItem = options[optionKey];
 
-      if (optionItem !== '' && !(Array.isArray(optionItem) && optionItem.length === 0)) {
+      if (
+        optionItem !== ''
+        && !(Array.isArray(optionItem) && optionItem.length === 0)
+      ) {
         if (Array.isArray(optionItem)) {
           return {
             ...prevQuery,
@@ -158,7 +153,6 @@
       return prevQuery;
     }, {});
 
-
     const url = router.resolve({
       name: 'QuickSearch',
       query: {
@@ -167,6 +161,13 @@
       },
     });
     window.open(url.href, '_blank');
+  };
+
+  const handleEnter = () => {
+    if (activeIndex.value > -1) {
+      return;
+    }
+    handleSearch();
   };
 
   onMounted(() => {
@@ -206,57 +207,57 @@
   });
 </script>
 <style lang="less">
-  .dbm-system-search {
-    display: block;
-    width: 380px;
-    max-width: 700px;
-    transition: all .1s;
+.dbm-system-search {
+  display: block;
+  width: 380px;
+  max-width: 700px;
+  transition: all 0.1s;
 
-    @media screen and (max-width: 1450px) {
-      flex: 1 !important;
-      width: auto !important;
+  @media screen and (max-width: 1450px) {
+    flex: 1 !important;
+    width: auto !important;
+  }
+
+  .search-input {
+    overflow: hidden;
+    border: 1px solid transparent;
+    border-radius: 2px;
+
+    .bk-input--text,
+    .bk-input--suffix-icon {
+      background: #303d55;
+      border-radius: 0;
     }
 
-    .search-input{
-      overflow: hidden;
-      border: 1px solid transparent;
-      border-radius: 2px;
+    .bk-input--text {
+      color: #fff;
+      border-radius: 0;
 
-      .bk-input--text,
-      .bk-input--suffix-icon{
-        background: #303D55;
-        border-radius: 0;
+      &::placeholder {
+        color: #929bb2;
       }
+    }
 
-      .bk-input--text{
-        color: #fff;
-        border-radius: 0;
+    .serach-btn {
+      display: flex;
+      padding-right: 4px;
+      background: #303d55;
+      align-items: center;
 
-        &::placeholder{
-          color: #929BB2;
-        }
-      }
-
-      .serach-btn{
-        display: flex;
-        padding-right: 4px;
-        background: #303D55;
-        align-items: center;
-
-        &::before {
-          width: 1px;
-          height: 12px;
-          margin-right: 6px;
-          background:#63656E;
-          content: '';
-        }
+      &::before {
+        width: 1px;
+        height: 12px;
+        margin-right: 6px;
+        background: #63656e;
+        content: "";
       }
     }
   }
+}
 
-  [data-tippy-root] .tippy-box[data-theme~="system-search-popover-theme"]{
-    .tippy-content{
-      padding: 0 !important;
-    }
+[data-tippy-root] .tippy-box[data-theme~="system-search-popover-theme"] {
+  .tippy-content {
+    padding: 0 !important;
   }
+}
 </style>
