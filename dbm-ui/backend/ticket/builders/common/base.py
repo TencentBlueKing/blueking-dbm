@@ -281,13 +281,7 @@ class RedisTicketFlowBuilderPatchMixin(object):
         """补充单据详情，考虑到集群下架和实例下架后，无法根据id获取到详情，提前补充到单据"""
 
         details = self.ticket.details
-
-        if "cluster_id" in details:
-            cluster_ids = [details["cluster_id"]]
-        elif "rules" in details:
-            cluster_ids = [r["cluster_id"] for r in details["rules"]]
-        else:
-            cluster_ids = []
+        cluster_ids = fetch_cluster_ids(details)
 
         self.ticket.update_details(
             clusters={cluster.id: cluster.to_dict() for cluster in Cluster.objects.filter(id__in=cluster_ids)}

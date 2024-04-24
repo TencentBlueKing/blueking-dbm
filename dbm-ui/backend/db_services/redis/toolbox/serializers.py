@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 
 
 class QueryByClusterSerializer(serializers.Serializer):
@@ -209,3 +210,9 @@ class QueryClusterIpsSerializer(serializers.Serializer):
                 "status": "running",
             }
         }
+
+
+class GetClusterVersionSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=False)
+    cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
+    node_type = serializers.ChoiceField(help_text=_("集群节点类型"), choices=RedisVerUpdateNodeType.get_choices())

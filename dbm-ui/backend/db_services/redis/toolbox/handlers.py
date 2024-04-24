@@ -18,6 +18,7 @@ from django.forms import model_to_dict
 
 from backend import env
 from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -25,6 +26,12 @@ from backend.db_services.redis.resources.constants import (
     SQL_QUERY_COUNT_INSTANCES,
     SQL_QUERY_INSTANCES,
     SQL_QUERY_MASTER_SLAVE_STATUS,
+)
+from backend.flow.utils.redis.redis_proxy_util import (
+    get_cluster_proxy_version,
+    get_cluster_redis_version,
+    get_proxy_version_names_by_cluster_type,
+    get_storage_version_names_by_cluster_type,
 )
 from backend.ticket.constants import InstanceType
 from backend.ticket.models import ClusterOperateRecord
@@ -268,3 +275,19 @@ class ToolboxHandler:
 
         response = {"count": total_count, "results": ips}
         return response
+
+    @classmethod
+    def get_cluster_versions_with_cluster_id(cls, cluster_id: int, node_type: str):
+        """根据cluster id获取集群现存版本"""
+        if node_type == RedisVerUpdateNodeType.Backend.value:
+            return [get_cluster_redis_version(cluster_id)]
+        else:
+            return get_cluster_proxy_version(cluster_id)
+
+    @classmethod
+    def get_cluster_versions_with_cluster_type(cls, cluster_type: str, node_type: str):
+        """根据cluster类型获取版本信息"""
+        if node_type == RedisVerUpdateNodeType.Backend.value:
+            return get_storage_version_names_by_cluster_type(cluster_type, trimSuffix=True)
+        else:
+            return get_proxy_version_names_by_cluster_type(cluster_type, trimSuffix=True)

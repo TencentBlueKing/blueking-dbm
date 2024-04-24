@@ -17,6 +17,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.db_services.redis.toolbox.serializers import (
+    GetClusterVersionSerializer,
     QueryByClusterResultSerializer,
     QueryByClusterSerializer,
     QueryByIpResultSerializer,
@@ -96,3 +97,18 @@ class ToolboxViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=None, pagination_class=None)
     def query_cluster_list(self, request, bk_biz_id, **kwargs):
         return Response(ToolboxHandler(bk_biz_id).query_cluster_list())
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群版本信息"),
+        query_serializer=GetClusterVersionSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=GetClusterVersionSerializer, pagination_class=None)
+    def get_cluster_versions(self, request, bk_biz_id, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        if "cluster_id" in data:
+            cluster_id, node_type = data["cluster_id"], data["node_type"]
+            return Response(ToolboxHandler.get_cluster_versions_with_cluster_id(cluster_id, node_type))
+        else:
+            cluster_type, node_type = data["cluster_type"], data["node_type"]
+            return Response(ToolboxHandler.get_cluster_versions_with_cluster_type(cluster_type, node_type))
