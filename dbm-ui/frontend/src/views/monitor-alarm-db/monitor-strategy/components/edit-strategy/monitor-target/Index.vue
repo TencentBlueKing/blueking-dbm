@@ -98,6 +98,7 @@
             v-model="item.value"
             :clearable="false"
             collapse-tags
+            filterable
             multiple
             multiple-mode="tag">
             <BkOption
@@ -578,6 +579,7 @@
             height: auto;
             max-height: 100px;
             overflow-y: auto;
+            gap: 4px;
           }
         }
 

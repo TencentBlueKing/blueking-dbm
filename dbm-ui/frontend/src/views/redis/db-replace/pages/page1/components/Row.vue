@@ -18,7 +18,7 @@
         ref="hostRef"
         :data="data.ip"
         :inputed="inputedIps"
-        @on-input-finish="handleInputFinish" />
+        @input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
       <RenderText

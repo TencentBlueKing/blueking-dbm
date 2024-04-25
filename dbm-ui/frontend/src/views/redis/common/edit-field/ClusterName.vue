@@ -19,40 +19,16 @@
       :placeholder="t('请输入或选择集群')"
       :rules="rules"
       @submit="handleInputFinish" />
-    <!-- <BkPopover
-      :content="t('从集群列表选择')"
-      placement="top"
-      :popover-delay="0">
-      <div
-        class="edit-btn"
-        @click="handleOpenClusterSeletor">
-        <div class="edit-btn-inner">
-          <DbIcon
-            class="select-icon"
-            type="host-select" />
-        </div>
-      </div>
-    </BkPopover> -->
   </div>
-  <!-- <ClusterSelector
-    v-model:is-show="isShowSelector"
-    is-radio-mode
-    :selected="selectedClusters"
-    :tab-list="clusterSelectorTabList"
-    @change="handelClusterChange" /> -->
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  // import RedisModel from '@services/model/redis/redis';
   import { getRedisList } from '@services/source/redis';
 
-  // import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import TableEditInput from '@components/render-table/columns/input/index.vue';
-
-  // import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   interface Props {
     data?: string;
@@ -60,7 +36,7 @@
   }
 
   interface Emits {
-    (e: 'onInputFinish', value: string): void
+    (e: 'inputFinish', value: string): void
   }
 
   interface Exposes {
@@ -75,13 +51,9 @@
 
   const { t } = useI18n();
 
-  // const isShowSelector = ref(false);
   const localValue = ref(props.data);
   const editRef = ref();
 
-  // const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
-
-  // const clusterSelectorTabList = [ClusterTypes.REDIS];
   const rules = [
     {
       validator: (value: string) => Boolean(value),
@@ -93,8 +65,7 @@
     },
     {
       validator: async (value: string) => {
-        // TODO: 使用精确查询接口替换
-        const result = await getRedisList({ domain: value });
+        const result = await getRedisList({ exact_domain: value });
         return result.results.filter(item => item.master_domain === value).length > 0;
       },
       message: t('目标集群不存在'),
@@ -105,33 +76,22 @@
     },
   ];
 
+  let oldInputValue = '';
+
   watch(() => props.data, (data) => {
     localValue.value = data;
-    // selectedClusters.value[ClusterTypes.REDIS] = [{
-    //   master_domain: data,
-    // } as RedisModel];
+    oldInputValue = data;
   }, {
     immediate: true,
   });
 
   const handleInputFinish = (value: string) => {
-    // editRef.value.getValue().then(() => {
-    emits('onInputFinish', value);
-    // });
+    if (oldInputValue === value) {
+      return;
+    }
+    oldInputValue = value;
+    emits('inputFinish', value);
   };
-
-  // const handleOpenClusterSeletor = () => {
-  //   isShowSelector.value = true;
-  // };
-
-  // const handelClusterChange = (selected: {[key: string]: Array<RedisModel>}) => {
-  //   selectedClusters.value = selected;
-  //   const list = selected[ClusterTypes.REDIS];
-  //   const domain = list[0].master_domain;
-  //   localValue.value = domain;
-  //   emits('onInputFinish', domain);
-  //   window.changeConfirm = true;
-  // };
 
   defineExpose<Exposes>({
     getValue() {
@@ -145,19 +105,6 @@
 <style lang="less" scoped>
 .cluster-name-box {
   position: relative;
-
-  // &:hover {
-  //   .edit-btn {
-  //     z-index: 999;
-  //   }
-  // }
-
-  // .is-error {
-  //   :deep(.input-error) {
-  //     justify-content: center;
-  //   }
-  // }
-
 
   .edit-btn{
     position: absolute;

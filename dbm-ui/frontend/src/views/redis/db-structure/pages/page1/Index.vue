@@ -167,8 +167,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    // TODO: 使用精确查询接口替换
-    const result = await getRedisList({ domain }).finally(() => {
+    const result = await getRedisList({ exact_domain: domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length < 1) {
