@@ -18,7 +18,7 @@
         ref="hostRef"
         :data="data.ip"
         :inputed="inputedIps"
-        @on-input-finish="handleInputFinish" />
+        @input-finish="handleInputFinish" />
     </td>
     <!-- 跨行合并 -->
     <td

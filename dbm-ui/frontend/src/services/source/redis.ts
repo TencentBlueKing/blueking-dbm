@@ -70,6 +70,7 @@ export function getRedisList(params: {
   offset?: number,
   cluster_ids?: number[] | number,
   domain?: string,
+  exact_domain?: string,
   bk_biz_id?: number,
 } = {}) {
   return http.get<ListBase<RedisModel[]>>(`${path}/`, params)

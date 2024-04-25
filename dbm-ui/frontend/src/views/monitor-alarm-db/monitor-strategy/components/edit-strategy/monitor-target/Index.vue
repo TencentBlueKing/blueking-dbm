@@ -645,6 +645,7 @@
             height: auto;
             max-height: 100px;
             overflow-y: auto;
+            gap: 4px;
           }
         }
 

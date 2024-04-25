@@ -18,7 +18,7 @@
         ref="clusterRef"
         :data="data.cluster"
         :inputed="inputedClusters"
-        @on-input-finish="handleInputFinish" />
+        @input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
       <RenderText

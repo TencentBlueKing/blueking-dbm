@@ -13,19 +13,12 @@
 
 <template>
   <tr>
-    <!-- <FixedColumn fixed="left">
-      <RenderTargetCluster
-        ref="clusterRef"
-        :data="data.targetCluster"
-        :inputed="inputedClusters"
-        @on-input-finish="handleInputFinish" />
-    </FixedColumn> -->
     <td style="padding: 0;">
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.targetCluster"
         :inputed="inputedClusters"
-        @on-input-finish="handleInputFinish" />
+        @input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
       <RenderText
@@ -84,7 +77,6 @@
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
 
-  // import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 

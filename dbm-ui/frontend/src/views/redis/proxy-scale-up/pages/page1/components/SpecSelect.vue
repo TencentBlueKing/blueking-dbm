@@ -174,6 +174,10 @@
         height: 100%;
         background: transparent;
         border: none;
+
+        input {
+          padding: 0 8px 0 16px;
+        }
       }
     }
   }

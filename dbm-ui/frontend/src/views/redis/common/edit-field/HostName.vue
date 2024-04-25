@@ -67,7 +67,7 @@
   }
 
   interface Emits {
-    (e: 'onInputFinish', value: string): void
+    (e: 'inputFinish', value: string): void
   }
 
   interface Exposes {
@@ -143,7 +143,7 @@
   // };
 
   const handleInputFinish = (value: string) => {
-    emits('onInputFinish', value);
+    emits('inputFinish', value);
   };
 
   defineExpose<Exposes>({
