@@ -64,6 +64,11 @@ export default [
         id: 'RedisDBReplace',
         parentId: 'manage',
       },
+      {
+        name: t('版本升级'),
+        id: 'RedisVersionUpgrade',
+        parentId: 'manage',
+      },
     ],
   },
   {

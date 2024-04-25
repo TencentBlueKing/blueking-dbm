@@ -13,11 +13,11 @@
 
 <template>
   <SmartAction>
-    <div class="proxy-scale-up-page">
+    <div class="version-upgrade-page">
       <BkAlert
         closable
         theme="info"
-        :title="t('扩容接入层：增加集群的Proxy数量，新Proxy可以指定规格')" />
+        :title="t('版本升级：将集群的接入层或存储层，更新到指定版本')" />
       <RenderData
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
@@ -33,7 +33,7 @@
           @remove="handleRemove(index)" />
       </RenderData>
       <ClusterSelector
-        v-model:is-show="isShowMasterInstanceSelector"
+        v-model:is-show="isShowClusterSelector"
         :cluster-types="[ClusterTypes.REDIS]"
         :selected="selectedClusters"
         @change="handelClusterChange" />
@@ -67,10 +67,8 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel from '@services/model/redis/redis';
-  import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
@@ -84,24 +82,23 @@
     type IDataRow,
     type InfoItem,
   } from './components/Row.vue';
-  import type { IListItem } from './components/SpecSelect.vue';
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
 
   const rowRefs = ref();
-  const isShowMasterInstanceSelector = ref(false);
+  const isShowClusterSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
 
+  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
+
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
   const inputedClusters = computed(() => tableData.value.map(item => item.cluster));
-  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo:Record<string, boolean> = {};
-  let clusterSpecListMap: Record<string, IListItem[]> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -112,32 +109,20 @@
     return !firstRow.cluster;
   };
 
-  // Master 批量选择
+  // 批量选择
   const handleShowBatchSelector = () => {
-    isShowMasterInstanceSelector.value = true;
+    isShowClusterSelector.value = true;
   };
 
   // 根据集群选择返回的数据加工成table所需的数据
-  const generateRowDateFromRequest = async (item: RedisModel) => {
-    const specList = await querySpecList(item);
-    return {
-      rowKey: item.master_domain,
-      isLoading: false,
-      cluster: item.master_domain,
-      clusterId: item.id,
-      bkCloudId: item.bk_cloud_id,
-      clusterType: item.cluster_spec.spec_cluster_type,
-      nodeType: 'Proxy',
-      spec: {
-        ...item.proxy[0].spec_config,
-        name: item.cluster_spec.spec_name,
-        id: item.proxy[0].spec_config.id,
-        count: item.proxy.length,
-      },
-      targetNum: `${item.proxy.length}`,
-      specList,
-    };
-  };
+  const generateRowDateFromRequest = (item: RedisModel) => ({
+    rowKey: item.master_domain,
+    isLoading: false,
+    cluster: item.master_domain,
+    clusterId: item.id,
+    clusterType: item.cluster_spec.spec_cluster_type,
+    nodeType: 'Proxy',
+  });
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
@@ -147,8 +132,7 @@
     for (const item of list) {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
-        const row = await generateRowDateFromRequest(item);
-        row.spec.count = item.proxy.length;
+        const row = generateRowDateFromRequest(item);
         newList.push(row);
         domainMemo[domain] = true;
       }
@@ -159,43 +143,6 @@
       tableData.value = [...tableData.value, ...newList];
     }
     window.changeConfirm = true;
-  };
-
-  // 查询集群对应的规格列表
-  const querySpecList = async (item: RedisModel) => {
-    const proxyMachineMap = {
-      TwemproxyRedisInstance: 'twemproxy',
-      TwemproxyTendisSSDInstance: 'twemproxy',
-      PredixyTendisplusCluster: 'predixy',
-    };
-    const type = item.cluster_spec.spec_cluster_type;
-    const machineType = proxyMachineMap[type];
-    const specId = item.cluster_spec.spec_id;
-    const specCount = item.proxy.length;
-    if (type in clusterSpecListMap) {
-      return clusterSpecListMap[type];
-    }
-    const ret = await getResourceSpecList({
-      spec_cluster_type: type,
-      spec_machine_type: machineType,
-      limit: -1,
-      offset: 0,
-    });
-    const retArr = ret.results;
-    const arr = retArr.map(item => ({
-      value: item.spec_id,
-      label: item.spec_id === specId ? `${item.spec_name} ${t('((n))台', { n: specCount })}` : item.spec_name,
-      specData: {
-        name: item.spec_name,
-        cpu: item.cpu,
-        id: item.spec_id,
-        mem: item.mem,
-        count: 0,
-        storage_spec: item.storage_spec,
-      },
-    }));
-    clusterSpecListMap[type] = arr;
-    return arr;
   };
 
   // 输入集群后查询集群信息并填充到table
@@ -218,7 +165,7 @@
       return;
     }
     const item = list[0];
-    const row = await generateRowDateFromRequest(item);
+    const row = generateRowDateFromRequest(item);
     tableData.value[index] = row;
     domainMemo[domain] = true;
     selectedClusters.value[ClusterTypes.REDIS].push(item);
@@ -228,6 +175,7 @@
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     tableData.value.splice(index + 1, 0, ...appendList);
   };
+
   // 删除一个集群
   const handleRemove = (index: number) => {
     const { cluster } = tableData.value[index];
@@ -239,28 +187,27 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
+    const infos = await Promise.all(rowRefs.value.map((item: {
       getValue: () => Promise<InfoItem>
     }) => item.getValue()));
 
-    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+    const params = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_PROXY_SCALE_UP,
+      ticket_type: TicketTypes.REDIS_CLUSTER_VERSION_UPDATE_ONLINE,
       details: {
-        ip_source: 'resource_pool',
         infos,
       },
     };
 
     InfoBox({
-      title: t('确认对n个集群扩容接入层？', { n: totalNum.value }),
+      title: t('确认对n个集群版本升级？', { n: totalNum.value }),
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params).then((data) => {
           window.changeConfirm = false;
           router.push({
-            name: 'RedisProxyScaleUp',
+            name: 'RedisVersionUpgrade',
             params: {
               page: 'success',
             },
@@ -269,9 +216,6 @@
             },
           });
         })
-          .catch((e) => {
-            console.error('proxy scale up submit ticket error：', e);
-          })
           .finally(() => {
             isSubmitting.value = false;
           });
@@ -282,13 +226,12 @@
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
-    clusterSpecListMap = {};
     window.changeConfirm = false;
   };
 </script>
 
 <style lang="less" scoped>
-  .proxy-scale-up-page {
+  .version-upgrade-page {
     padding-bottom: 20px;
 
     .page-action-box {
@@ -305,9 +248,5 @@
         }
       }
     }
-  }
-
-  .bottom-btn {
-    width: 88px;
   }
 </style>

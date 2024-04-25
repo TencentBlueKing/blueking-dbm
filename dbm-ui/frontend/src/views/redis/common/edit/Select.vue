@@ -42,6 +42,7 @@
       <BkOption
         v-for="(item, index) in list"
         :key="index"
+        :disabled="item.disabled"
         :label="item.label"
         :value="item.value" />
     </BkSelect>
@@ -53,6 +54,7 @@
   export interface IListItem {
     value: IKey,
     label: string,
+    disabled?: boolean,
   }
 </script>
 <script setup lang="ts">
@@ -94,7 +96,9 @@
   const localValue = ref<IKey>('');
 
   watch(modelValue, (value) => {
-    if (!value) return;
+    if (value === undefined) {
+      return;
+    }
     localValue.value = value;
     if (typeof value !== 'object' && value) {
       validator(value);
@@ -199,6 +203,7 @@
 
         input {
           background: transparent;
+          padding: 0 8px 0 16px;
         }
       }
     }
