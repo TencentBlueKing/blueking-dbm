@@ -22,25 +22,25 @@
     </td>
     <td style="padding: 0;">
       <RenderText
-        :data="data.nodeType"
+        :data="data.clusterType"
         :is-loading="data.isLoading"
-        :placeholder="$t('输入集群后自动生成')" />
+        :placeholder="t('输入集群后自动生成')" />
     </td>
     <td style="padding: 0;">
-      <RenderSpec
-        ref="sepcRef"
-        :data="data.spec"
-        :is-loading="data.isLoading"
-        :select-list="data.specList" />
+      <RenderNodeType
+        :data="data.nodeType"
+        @change="handleNodeTypeChange" />
     </td>
-    <td
-      style="padding: 0;">
-      <RenderTargetNumber
-        ref="numRef"
-        :data="data.targetNum"
-        :disabled="!data.cluster"
+    <td style="padding: 0;">
+      <RenderCurrentVersion
         :is-loading="data.isLoading"
-        :min="data.spec?.count" />
+        :list="currentVersionList" />
+    </td>
+    <td style="padding: 0;">
+      <RenderTargetVersion
+        ref="targetVersionRef"
+        :is-loading="data.isLoading"
+        :list="targetVersionList" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -49,57 +49,46 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import { getClusterVersions } from '@services/source/redisToolbox';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
+  import type { IListItem } from '@views/redis/common/edit/Select.vue';
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
 
   import { random } from '@utils';
 
-  import RenderSpec from './RenderSpec.vue';
-  import RenderTargetNumber from './RenderTargetNumber.vue';
-  import type { SpecInfo } from './SpecPanel.vue';
-  import type { IListItem } from './SpecSelect.vue';
+  import RenderCurrentVersion from './RenderCurrentVersion.vue';
+  import RenderNodeType from './RenderNodeType.vue';
+  import RenderTargetVersion from './RenderTargetVersion.vue';
 
   export interface IDataRow {
     rowKey: string;
     isLoading: boolean;
     cluster: string;
     clusterId: number;
-    bkCloudId: number;
     nodeType: string;
-    specList: IListItem[];
-    spec?: SpecInfo;
-    targetNum?: string;
     clusterType?: string;
-  }
-
-  export interface MoreDataItem {
-    specId: number;
-    targetNum: number;
+    targetVersion?: string;
   }
 
   export  interface InfoItem {
     cluster_id: number,
-    bk_cloud_id: number,
-    target_proxy_count: number,
-    resource_spec: {
-      proxy: {
-        spec_id: number,
-        count: number
-      }
-    }
+    node_type: string,
+    current_versions: string[],
+    target_version: string,
   }
 
   // 创建表格数据
-  export const createRowData = (): IDataRow => ({
+  export const createRowData = () => ({
     rowKey: random(),
     isLoading: false,
     cluster: '',
     clusterId: 0,
-    bkCloudId: 0,
     nodeType: '',
-    specList: [],
   });
 
 </script>
@@ -126,9 +115,53 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const sepcRef = ref();
-  const numRef = ref();
+  const { t } = useI18n();
+
+  const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const targetVersionRef = ref<InstanceType<typeof RenderTargetVersion>>();
+  const currentVersionList = ref<string[]>([]);
+  const nodeType = ref<string>('Proxy');
+  const targetVersionList = ref<IListItem[]>([]);
+
+  watch(() => [props.data.clusterId, nodeType.value] as [number, string], async ([clusterId, nodeType]) => {
+    if (clusterId) {
+      const versions = await getClusterVersions({
+        node_type: nodeType,
+        cluster_id: clusterId,
+      });
+      currentVersionList.value = versions;
+    }
+  }, {
+    immediate: true,
+  });
+
+  watch(() => [
+    props.data.clusterType,
+    nodeType.value,
+    currentVersionList.value,
+  ] as [string, string, string[]], async ([
+    clusterType,
+    nodeType,
+    versionList,
+  ]) => {
+    if (clusterType) {
+      const versions = await getClusterVersions({
+        node_type: nodeType,
+        cluster_type: clusterType,
+      });
+      targetVersionList.value = versions.map(item => ({
+        label: item,
+        value: item,
+        disabled: versionList.includes(item),
+      }));
+    }
+  }, {
+    immediate: true,
+  });
+
+  const handleNodeTypeChange = (value: string) => {
+    nodeType.value = value;
+  };
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);
@@ -147,21 +180,13 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await clusterRef.value.getValue();
-      return await Promise.all([sepcRef.value.getValue(), numRef.value.getValue()]).then((data) => {
-        const [specId, targetNum] = data;
-        return {
-          cluster_id: props.data.clusterId,
-          bk_cloud_id: props.data.bkCloudId,
-          target_proxy_count: targetNum,
-          resource_spec: {
-            proxy: {
-              spec_id: specId,
-              count: props.data.spec?.count ? targetNum - props.data.spec.count : targetNum,
-            },
-          },
-        };
-      });
+      await clusterRef.value!.getValue();
+      return await targetVersionRef.value!.getValue().then(targetVersion => ({
+        cluster_id: props.data.clusterId,
+        node_type: nodeType.value,
+        current_versions: currentVersionList.value,
+        target_version: targetVersion,
+      }));
     },
   });
 
