@@ -19,6 +19,7 @@ type ModifyAdminUserPasswordPara struct {
 
 // ModifyPasswordPara 函数的入参
 type ModifyPasswordPara struct {
+	BkBizId          *int64    `json:"bk_biz_id"`
 	UserName         string    `json:"username"`
 	Component        string    `json:"component"`
 	Psw              string    `json:"password"`
@@ -31,6 +32,7 @@ type ModifyPasswordPara struct {
 // GetPasswordPara 函数的入参
 type GetPasswordPara struct {
 	Instances []Address         `json:"instances"`
+	BkBizId   *int64            `json:"bk_biz_id"`
 	Users     []UserInComponent `json:"users"`
 	Limit     *int              `json:"limit"`
 	Offset    *int              `json:"offset"`
@@ -46,13 +48,14 @@ type UserInComponent struct {
 
 // GetAdminUserPasswordPara 函数的入参
 type GetAdminUserPasswordPara struct {
-	Instances []IpPort `json:"instances"`
-	UserName  string   `json:"username"`
-	Component string   `json:"component"`
-	Limit     *int     `json:"limit"`
-	Offset    *int     `json:"offset"`
-	BeginTime string   `json:"begin_time"`
-	EndTime   string   `json:"end_time"`
+	Instances []IpPortFilter `json:"instances"`
+	BkBizId   *int64         `json:"bk_biz_id"`
+	UserName  string         `json:"username"`
+	Component string         `json:"component"`
+	Limit     *int           `json:"limit"`
+	Offset    *int           `json:"offset"`
+	BeginTime string         `json:"begin_time"`
+	EndTime   string         `json:"end_time"`
 }
 
 type TbPasswords struct {
@@ -65,6 +68,7 @@ type TbPasswords struct {
 	Password string `gorm:"column:password;not_null" json:"password"`
 	// Component 组件，比如mysql、proxy
 	Component  string    `gorm:"column:component;not_null" json:"component"`
+	BkBizId    int64     `gorm:"column:bk_biz_id" json:"bk_biz_id"`
 	LockUntil  time.Time `gorm:"column:lock_until" json:"lock_until"`
 	Operator   string    `gorm:"column:operator" json:"operator"`
 	UpdateTime time.Time `gorm:"column:update_time" json:"update_time"`
@@ -73,6 +77,7 @@ type TbPasswords struct {
 type OneCluster struct {
 	BkCloudId              *int64         `json:"bk_cloud_id"`
 	ClusterType            *string        `json:"cluster_type"`
+	BkBizId                *int64         `json:"bk_biz_id"`
 	MultiRoleInstanceLists []InstanceList `json:"instances"`
 }
 
@@ -87,9 +92,14 @@ type IpPort struct {
 	Port int64  `gorm:"column:port;not_null" json:"port"`
 }
 
+type IpPortFilter struct {
+	Ip   string `gorm:"column:ip;not_null" json:"ip"`
+	Port *int64 `gorm:"column:port" json:"port"`
+}
+
 type Address struct {
 	Ip        string `gorm:"column:ip" json:"ip"`
-	Port      int64  `gorm:"column:port" json:"port"`
+	Port      *int64 `gorm:"column:port" json:"port"`
 	BkCloudId *int64 `gorm:"column:bk_cloud_id" json:"bk_cloud_id"`
 }
 

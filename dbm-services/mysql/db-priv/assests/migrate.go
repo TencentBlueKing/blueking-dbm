@@ -69,10 +69,23 @@ func DoMigrateFromEmbed() error {
 }
 func DoMigratePlatformPassword() error {
 	// 初始化安全规则
+	// 通用的安全规则
 	passwordSecurityRule := &service.SecurityRulePara{Name: "password",
 		Rule: "{\"max_length\":12,\"min_length\":8,\"include_rule\":{\"numbers\":true,\"symbols\":true,\"lowercase\":true,\"uppercase\":true},\"exclude_continuous_rule\":{\"limit\":4,\"letters\":false,\"numbers\":false,\"symbols\":false,\"keyboards\":false,\"repeats\":false}}", Operator: "admin"}
 	b, _ := json.Marshal(passwordSecurityRule)
 	errOuter := passwordSecurityRule.AddSecurityRule(string(b), "add_security_rule")
+	if errOuter != nil {
+		no, _ := errno.DecodeErr(errOuter)
+		if no != errno.RuleExisted.Code {
+			return errOuter
+		}
+	}
+
+	// mongodb专用的安全规则
+	passwordSecurityRule = &service.SecurityRulePara{Name: "mongo_password",
+		Rule: "{\"max_length\":16,\"min_length\":16,\"include_rule\":{\"numbers\":true,\"symbols\":false,\"lowercase\":true,\"uppercase\":true},\"exclude_continuous_rule\":{\"limit\":4,\"letters\":false,\"numbers\":false,\"symbols\":false,\"keyboards\":false,\"repeats\":false}}", Operator: "admin"}
+	b, _ = json.Marshal(passwordSecurityRule)
+	errOuter = passwordSecurityRule.AddSecurityRule(string(b), "add_security_rule")
 	if errOuter != nil {
 		no, _ := errno.DecodeErr(errOuter)
 		if no != errno.RuleExisted.Code {
@@ -95,17 +108,17 @@ func DoMigratePlatformPassword() error {
 
 	for _, component := range users {
 		for _, user := range component.Usernames {
-			defaultCloudId := int64(0)
+			defaultInt := int64(0)
 			getPara := &service.GetPasswordPara{Users: []service.UserInComponent{{user,
 				component.Component}},
-				Instances: []service.Address{{"0.0.0.0", 0, &defaultCloudId}}}
+				Instances: []service.Address{{"0.0.0.0", &defaultInt, &defaultInt}}}
 			_, count, err := getPara.GetPassword()
 			if err != nil {
 				return fmt.Errorf("%s error: %s", "init platform password, get password", err.Error())
 			}
 			if count == 0 {
 				insertPara := &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
-					Instances:    []service.Address{{"0.0.0.0", 0, &defaultCloudId}},
+					Instances:    []service.Address{{"0.0.0.0", &defaultInt, &defaultInt}},
 					InitPlatform: true, SecurityRuleName: "password"}
 				b, _ = json.Marshal(*insertPara)
 				err = insertPara.ModifyPassword(string(b), "modify_password")
