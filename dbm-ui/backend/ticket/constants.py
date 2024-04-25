@@ -160,6 +160,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_CHECKSUM = EnumField("MYSQL_CHECKSUM", _("MySQL 数据校验修复"))
     MYSQL_PARTITION = EnumField("MYSQL_PARTITION", _("MySQL 分区"))
     MYSQL_DATA_REPAIR = EnumField("MYSQL_DATA_REPAIR", _("MySQL 数据修复"))
+    MYSQL_DATA_MIGRATE = EnumField("MYSQL_DATA_MIGRATE", _("MySQL 数据迁移"))
     MYSQL_FLASHBACK = EnumField("MYSQL_FLASHBACK", _("MySQL 闪回"))
     MYSQL_ROLLBACK_CLUSTER = EnumField("MYSQL_ROLLBACK_CLUSTER", _("MySQL 定点构造"))
     MYSQL_HA_FULL_BACKUP = EnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 高可用全库备份"))
@@ -204,6 +205,7 @@ class TicketType(str, StructuredEnum):
     TENDBCLUSTER_APPEND_DEPLOY_CTL = EnumField("TENDBCLUSTER_APPEND_DEPLOY_CTL", _("TenDB Cluster 追加部署中控"))
     TENDBSINGLE_METADATA_IMPORT = EnumField("TENDBSINGLE_METADATA_IMPORT", _("TenDB Single 元数据导入"))
     TENDBSINGLE_STANDARDIZE = EnumField("TENDBSINGLE_STANDARDIZE", _("TenDB Single 集群标准化"))
+    TENDBCLUSTER_DATA_MIGRATE = EnumField("TENDBCLUSTER_DATA_MIGRATE", _("TenDB Cluster 数据迁移"))
 
     # Tbinlogdumper
     TBINLOGDUMPER_INSTALL = EnumField("TBINLOGDUMPER_INSTALL", _("TBINLOGDUMPER 上架"))

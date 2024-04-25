@@ -23,6 +23,8 @@ from backend.db_services.mysql.remote_service.serializers import (
     CheckFlashbackInfoSerializer,
     ShowDatabasesRequestSerializer,
     ShowDatabasesResponseSerializer,
+    ShowDBWithPatternsResponseSerializer,
+    ShowDBWithPatternsSerializer,
     ShowTablesRequestSerializer,
     ShowTablesResponseSerializer,
 )
@@ -97,3 +99,14 @@ class RemoteServiceViewSet(viewsets.SystemViewSet):
     def check_flashback_database(self, request, bk_biz_id):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(RemoteServiceHandler(bk_biz_id=bk_biz_id).check_flashback_database(validated_data["infos"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据库表正则查询集群库信息"),
+        request_body=ShowDBWithPatternsSerializer(),
+        responses={status.HTTP_200_OK: ShowDBWithPatternsResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=ShowDBWithPatternsSerializer)
+    def show_databases_with_patterns(self, request, bk_biz_id):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(RemoteServiceHandler(bk_biz_id=bk_biz_id).show_databases_with_db_patterns(data["infos"]))
