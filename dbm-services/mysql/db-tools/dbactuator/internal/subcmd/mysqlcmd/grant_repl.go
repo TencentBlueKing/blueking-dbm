@@ -61,7 +61,8 @@ func (g *GrantReplAct) Init() (err error) {
 // Run TODO
 func (g *GrantReplAct) Run() (err error) {
 	defer util.LoggerErrorStack(logger.Error, err)
-	defer g.Payload.Db.Close()
+	// 使用匿名函数，传递的是函数的指针
+	defer func() { g.Payload.Db.Close() }()
 	steps := subcmd.Steps{
 		{
 			FunName: "初始化本地db连接",
