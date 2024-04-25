@@ -42,6 +42,8 @@
 
   import { writeTypeList } from '@views/redis/common/const';
 
+  import { utcDisplayTime } from '@utils';
+
   interface Props {
     ticketDetails: TicketModel<RedisRollbackDataCopyDetails>
   }

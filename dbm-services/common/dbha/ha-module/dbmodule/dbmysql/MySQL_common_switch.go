@@ -530,9 +530,8 @@ func GetSlaveStatus(db *gorm.DB) (BinlogStatus, error) {
 		return BinlogStatus{}, err
 	}
 
-	if slaveStatus.SlaveIoRunning != "Yes" || slaveStatus.SlaveSqlRunning != "Yes" {
-		return BinlogStatus{}, fmt.Errorf("slave's SQL_thread[%s], IO_Thread[%s] is abnormal",
-			slaveStatus.SlaveSqlRunning, slaveStatus.SlaveIoRunning)
+	if slaveStatus.SlaveSqlRunning != "Yes" {
+		return BinlogStatus{}, fmt.Errorf("slave's SQL_thread[%s] is abnormal", slaveStatus.SlaveSqlRunning)
 	}
 
 	if !strings.Contains(slaveStatus.MasterLogFile, ".") {

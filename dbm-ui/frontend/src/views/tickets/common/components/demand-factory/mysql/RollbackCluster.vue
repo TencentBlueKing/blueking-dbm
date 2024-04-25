@@ -23,6 +23,8 @@
 
   import type { MySQLRollbackDetails, TicketDetails } from '@services/types/ticket';
 
+  import { utcDisplayTime } from '@utils';
+
   interface Props {
     ticketDetails: TicketDetails<MySQLRollbackDetails>
   }
@@ -49,7 +51,7 @@
     field: '',
     render: ({ data }: { data: MySQLRollbackDetails['infos'][0] }) =>  {
       if (data.rollback_time) {
-        return <span>{t('回档到指定时间')} - {data.rollback_time}</span>;
+        return <span>{t('回档到指定时间')} - {utcDisplayTime(data.rollback_time)}</span>;
       }
       if (data?.backupinfo?.backup_time && data?.backupinfo?.mysql_role) {
         return <span>{t('备份记录')} - {data?.backupinfo?.mysql_role} {data?.backupinfo?.backup_time}</span>;

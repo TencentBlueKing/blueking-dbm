@@ -25,6 +25,8 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { batchSplitRegex } from '@common/regex';
+
   interface Props {
     defaultValue?: string[];
   }
@@ -48,7 +50,7 @@
     if (!_.trim(text)) {
       return [];
     }
-    return text.split(/[,;，；\n]/).map((item) => ({
+    return text.split(batchSplitRegex).map(item => ({
       id: item,
       name: item,
     }));

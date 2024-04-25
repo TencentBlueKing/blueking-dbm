@@ -5,10 +5,11 @@
     :model-value="searchSelectValue"
     :placeholder="t('请输入或选择条件搜索')"
     unique-select
+    :validate-values="validateSearchValues"
     @change="handleSearchChange" />
 </template>
 <script setup lang="ts">
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
+  import type { ISearchValue, ValidateValuesFunc } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
   import type { SearchAttrs } from '@hooks';
@@ -23,14 +24,18 @@
   }[]
 
   interface Props {
-    searchAttrs: SearchAttrs
+    searchAttrs: SearchAttrs,
+    validateSearchValues: ValidateValuesFunc,
+    type?: string,
   }
 
   interface Emits {
     (e: 'searchValueChange', value: ISearchValue[]): void,
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    type: '',
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -40,38 +45,46 @@
 
   const { t } = useI18n();
 
-  const searchSelectData = computed(() => [
-    {
-      name: t('实例'),
-      id: 'instance',
-      multiple: true,
-    },
-    {
-      name: t('实例状态'),
-      id: 'status',
-      multiple: true,
-      children: [
-        {
-          id: 'running',
-          name: t('正常'),
-        },
-        {
-          id: 'unavailable',
-          name: t('异常'),
-        },
-        {
-          id: 'loading',
-          name: t('重建中'),
-        },
-      ],
-    },
-    {
-      name: t('管控区域'),
-      id: 'bk_cloud_id',
-      multiple: true,
-      children: props.searchAttrs.bk_cloud_id,
-    },
-  ]);
+  const isHideStatus = computed(() => props.type && props.type === 'redis');
+
+  const searchSelectData = computed(() => {
+    const basicSelct = [
+      {
+        name: t('IP 或 IP:Port'),
+        id: 'instance',
+        multiple: true,
+      },
+      {
+        name: t('实例状态'),
+        id: 'status',
+        multiple: true,
+        children: [
+          {
+            id: 'running',
+            name: t('正常'),
+          },
+          {
+            id: 'unavailable',
+            name: t('异常'),
+          },
+          {
+            id: 'loading',
+            name: t('重建中'),
+          },
+        ],
+      },
+      {
+        name: t('管控区域'),
+        id: 'bk_cloud_id',
+        multiple: true,
+        children: props.searchAttrs.bk_cloud_id,
+      },
+    ];
+    if (isHideStatus.value) {
+      basicSelct.splice(1, 1);
+    }
+    return basicSelct;
+  });
 
   const handleSearchChange = (value: ISearchValue[]) => {
     emits('searchValueChange', value);

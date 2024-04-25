@@ -1,12 +1,12 @@
 package handler
 
 import (
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/service"
 	"encoding/json"
 	"io/ioutil"
 	"log/slog"
-
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/service"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +14,6 @@ import (
 // GetAccountRuleList 获取账号规则
 func (m *PrivService) GetAccountRuleList(c *gin.Context) {
 	slog.Info("do GetAccountRuleList!")
-
 	var input service.BkBizId
 
 	body, err := ioutil.ReadAll(c.Request.Body)
@@ -40,9 +39,9 @@ func (m *PrivService) GetAccountRuleList(c *gin.Context) {
 
 // AddAccountRule 添加账号规则
 func (m *PrivService) AddAccountRule(c *gin.Context) {
-
 	slog.Info("do AddAccountRule!")
 	var input service.AccountRulePara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -71,29 +70,7 @@ func (m *PrivService) DeleteAccountRule(c *gin.Context) {
 	slog.Info("do DeleteAccountRule!")
 
 	var input service.DeleteAccountRuleById
-
-	body, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		slog.Error("msg", err)
-		SendResponse(c, errno.ErrBind, err)
-		return
-	}
-
-	if err := json.Unmarshal(body, &input); err != nil {
-		slog.Error("msg", err)
-		SendResponse(c, errno.ErrBind, err)
-		return
-	}
-
-	err = input.DeleteAccountRule(string(body))
-	SendResponse(c, err, nil)
-	return
-}
-
-// ModifyAccountRule 修改账号规则，修改账号规则的db名、权限
-func (m *PrivService) ModifyAccountRule(c *gin.Context) {
-	slog.Info("do ModifyAccountRule!")
-	var input service.AccountRulePara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -108,7 +85,31 @@ func (m *PrivService) ModifyAccountRule(c *gin.Context) {
 		return
 	}
 
-	err = input.ModifyAccountRule(string(body))
+	err = input.DeleteAccountRule(string(body), ticket)
+	SendResponse(c, err, nil)
+	return
+}
+
+// ModifyAccountRule 修改账号规则，修改账号规则的db名、权限
+func (m *PrivService) ModifyAccountRule(c *gin.Context) {
+	slog.Info("do ModifyAccountRule!")
+	var input service.AccountRulePara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
+
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+
+	if err = json.Unmarshal(body, &input); err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+
+	err = input.ModifyAccountRule(string(body), ticket)
 	SendResponse(c, err, nil)
 	return
 }

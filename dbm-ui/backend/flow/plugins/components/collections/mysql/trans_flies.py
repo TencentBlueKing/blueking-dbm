@@ -106,6 +106,8 @@ class TransFileService(BkJobService):
         self.log_info(_("[{}] 下发介质包参数：{}").format(node_name, payload))
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
 
+        if kwargs.get("job_timeout"):
+            payload["timeout"] = kwargs["job_timeout"]
         # 请求传输
         resp = JobApi.fast_transfer_file(payload, raw=True)
 

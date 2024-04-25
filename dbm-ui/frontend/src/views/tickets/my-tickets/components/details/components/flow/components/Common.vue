@@ -24,6 +24,8 @@
 </template>
 
 <script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
+
   import TicketModel from '@services/model/ticket/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
@@ -43,12 +45,14 @@
   });
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
+
   const flowTimeline = computed(() => props.flows.map((flow: FlowItem) => ({
-    tag: flow.flow_type_display,
+    tag: flow.flow_type === 'PAUSE' ? `${t('确认是否执行')}“${flow.flow_type_display}”` : flow.flow_type_display,
     type: 'default',
     filled: true,
     content: flow,
-    // color,
     icon: () => <FlowIcon data={flow} />,
   })));
 

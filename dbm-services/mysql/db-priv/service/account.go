@@ -16,7 +16,7 @@ import (
 )
 
 // AddAccount 新增账号
-func (m *AccountPara) AddAccount(jsonPara string) (TbAccounts, error) {
+func (m *AccountPara) AddAccount(jsonPara string, ticket string) (TbAccounts, error) {
 	var (
 		account *TbAccounts
 		psw     string
@@ -80,13 +80,13 @@ func (m *AccountPara) AddAccount(jsonPara string) (TbAccounts, error) {
 	if err != nil {
 		return detail, err
 	}
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: vtime}
+	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: vtime}
 	AddPrivLog(log)
 	return detail, nil
 }
 
 // ModifyAccountPassword 修改账号的密码
-func (m *AccountPara) ModifyAccountPassword(jsonPara string) error {
+func (m *AccountPara) ModifyAccountPassword(jsonPara string, ticket string) error {
 	var (
 		account TbAccounts
 		id      TbAccounts
@@ -139,14 +139,14 @@ func (m *AccountPara) ModifyAccountPassword(jsonPara string) error {
 		return errno.AccountNotExisted
 	}
 
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
+	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 
 	return nil
 }
 
 // DeleteAccount 删除账号
-func (m *AccountPara) DeleteAccount(jsonPara string) error {
+func (m *AccountPara) DeleteAccount(jsonPara string, ticket string) error {
 	if m.BkBizId == 0 {
 		return errno.BkBizIdIsEmpty
 	}
@@ -169,7 +169,7 @@ func (m *AccountPara) DeleteAccount(jsonPara string) error {
 		return errno.AccountNotExisted
 	}
 
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
+	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 	return nil
 }

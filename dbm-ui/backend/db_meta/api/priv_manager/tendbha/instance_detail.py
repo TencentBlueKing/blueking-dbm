@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from django.core.exceptions import ObjectDoesNotExist
 
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models.system import SystemSettings
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import ProxyInstance, StorageInstance
@@ -39,11 +41,14 @@ def instance_detail(ip: str, port: int, bk_cloud_id: int):
         except ObjectDoesNotExist:
             raise InstanceNotExistException(ip=ip, port=port, bk_cloud_id=bk_cloud_id)
 
+    padding_clusters = SystemSettings.get_setting_value(SystemSettingsEnum.PADDING_PROXY_CLUSTER_LIST.value) or []
+
     res["ip"] = ins.machine.ip
     res["port"] = ins.port
     res["bk_instance_id"] = ins.bk_instance_id
     res["bk_biz_id"] = ins.bk_biz_id
     res["machine_type"] = ins.machine_type
+    res["padding_proxy"] = ins.cluster.first().immute_domain in padding_clusters
 
     if isinstance(ins, StorageInstance):
         res["instance_role"] = ins.instance_role

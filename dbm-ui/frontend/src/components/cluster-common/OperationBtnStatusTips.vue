@@ -119,11 +119,11 @@
   });
 </script>
 <style lang="less">
-  .cluster-operation-status-tips {
-    display: inline-block;
+.cluster-operation-status-tips {
+  display: inline-block;
 
-    & > * {
-      pointer-events: none;
-    }
+  & > * {
+    pointer-events: none;
   }
+}
 </style>

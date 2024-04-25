@@ -19,6 +19,7 @@ from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
 from backend.configuration import constants
+from backend.db_meta.enums import ClusterType
 
 logger = logging.getLogger("root")
 
@@ -147,15 +148,25 @@ class BizSettings(AbstractSettings):
         )
 
     @classmethod
-    def get_exact_hosting_biz(cls, bk_biz_id: int, db_type: str) -> int:
+    def get_exact_hosting_biz(cls, bk_biz_id: int, cluster_type: str) -> int:
         """
         根据数据库类型 查询业务在 CMDB 准确托管的业务
         DBM 管理的机器托管有两类
         1. 支持 MySQL 托管在 DBA 平台业务下，Redis 独立托管在业务下
         2. 全部托管到业务下
         """
-        if db_type in cls.get_setting_value(
+        if not cluster_type:
+            return env.DBA_APP_BK_BIZ_ID
+
+        if cluster_type in cls.get_setting_value(
             bk_biz_id, constants.BizSettingsEnum.INDEPENDENT_HOSTING_DB_TYPES.value, default=[]
         ):
             return bk_biz_id
+        else:
+            db_type = ClusterType.cluster_type_to_db_type(cluster_type)
+            if db_type in cls.get_setting_value(
+                bk_biz_id, constants.BizSettingsEnum.INDEPENDENT_HOSTING_DB_TYPES.value, default=[]
+            ):
+                return bk_biz_id
+
         return env.DBA_APP_BK_BIZ_ID

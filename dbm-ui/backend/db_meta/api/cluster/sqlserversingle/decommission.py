@@ -11,7 +11,6 @@ import logging
 
 from django.db import transaction
 
-from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.utils.cc_manage import CcManage
 
@@ -20,7 +19,7 @@ logger = logging.getLogger("root")
 
 @transaction.atomic
 def decommission(cluster: Cluster):
-    cc_manage = CcManage(cluster.bk_biz_id, DBType.Sqlserver.value)
+    cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
     for storage in cluster.storageinstance_set.all():
 
         storage.delete(keep_parents=True)

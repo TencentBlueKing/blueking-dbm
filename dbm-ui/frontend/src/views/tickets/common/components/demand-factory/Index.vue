@@ -53,6 +53,7 @@
   import MongoShardScaleDown from './mongodb/ShardScaleDown.vue';
   import MongoShardScaleUp from './mongodb/ShardScaleUp.vue';
   import MongoTemporaryDestrot from './mongodb/TemporaryDestrot.vue';
+  import MySQLAuthorizeRule from './mysql/authorize-rule/Index.vue';
   import MySQLChecksum from './mysql/Checksum.vue';
   import MySQLClone from './mysql/Clone.vue';
   import MySQLClusterOperation from './mysql/ClusterOperation.vue';
@@ -68,7 +69,6 @@
   import MySQLMasterSlaveSwitch from './mysql/MasterSlaveSwitch.vue';
   import MySQLMigrateCluster from './mysql/MigrateCluster.vue';
   import MysqlOpenArea from './mysql/OpenArea.vue';
-  import MySQLOperation from './mysql/Operation.vue';
   import MySQLProxyAdd from './mysql/ProxyAdd.vue';
   import MySQLProxySwitch from './mysql/ProxySwitch.vue';
   import MySQLRename from './mysql/Rename.vue';
@@ -354,7 +354,7 @@
       return RedisOperation;
     }
     if (mysqlTicketType.includes(ticketType)) {
-      return MySQLOperation;
+      return MySQLAuthorizeRule;
     }
     // influxdb 禁用/重启/启用/删除
     if (influxdbTypes.includes(ticketType)) {

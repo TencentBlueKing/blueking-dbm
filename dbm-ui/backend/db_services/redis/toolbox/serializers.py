@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceRole, InstanceStatus
+from backend.db_meta.enums import InstanceStatus
 
 
 class QueryByClusterSerializer(serializers.Serializer):
@@ -180,12 +180,23 @@ class QueryByOneClusterSerializer(serializers.Serializer):
 
 
 class QueryClusterIpsSerializer(serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群id"), required=False)
-    ip = serializers.CharField(max_length=32, required=False)
+    cluster_id = serializers.CharField(help_text=_("集群id"), required=False)
+    ip = serializers.CharField(max_length=32, help_text=_("ip"), required=False)
     limit = serializers.IntegerField(help_text=_("limit"), required=False, min_value=1)
-    offset = serializers.IntegerField(help_text=_("offset"), required=False, min_value=1)
-    role = serializers.ChoiceField(help_text=_("role"), required=False, choices=InstanceRole.get_choices())
-    status = serializers.ChoiceField(help_text=_("status"), required=False, choices=InstanceStatus.get_choices())
+    offset = serializers.IntegerField(help_text=_("offset"), required=False)
+    role = serializers.CharField(help_text=_("角色"), required=False)
+    status = serializers.ChoiceField(help_text=_("状态"), required=False, choices=InstanceStatus.get_choices())
+
+    def to_internal_value(self, data):
+        # 将接收到的数据处理为内部Python格式
+        internal_value = super(QueryClusterIpsSerializer, self).to_internal_value(data)
+
+        # 对于 'cluster_id' 和 'ip' 字段，我们希望将逗号分隔的字符串转换为列表
+        for field in ["cluster_id", "ip", "role"]:
+            if field in internal_value and internal_value[field]:
+                internal_value[field] = internal_value[field].split(",")
+
+        return internal_value
 
     class Meta:
         swagger_schema_fields = {

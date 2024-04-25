@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"dbm-services/common/dbha/ha-module/agent"
 	"dbm-services/common/dbha/ha-module/config"
@@ -19,7 +20,7 @@ var configFile string
 
 // Init TODO
 func Init() {
-	flag.StringVar(&dbhaType, "type", "", `Input dbha type, "agent" or "gm"`)
+	flag.StringVar(&dbhaType, "type", "", `Input dbha type, ["agent","gm","monitor"]`)
 	flag.StringVar(&configFile, "config_file", "", "Input config file path")
 }
 
@@ -79,6 +80,16 @@ func main() {
 		if err = GM.Run(); err != nil {
 			log.Logger.Fatalf("GM run failed. err:%s", err.Error())
 			os.Exit(1)
+		}
+	case constvar.MONITOR:
+		for {
+			if monInfo, err := monitor.CheckHAComponent(conf); err != nil {
+				if err = monitor.MonitorSend(err.Error(), monInfo); err != nil {
+					log.Logger.Fatalf("global monitor run failed. err:%s", err.Error())
+					os.Exit(1)
+				}
+			}
+			time.Sleep(time.Duration(conf.Monitor.MonitorInterval) * time.Second)
 		}
 
 	default:

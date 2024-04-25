@@ -38,7 +38,8 @@
               "machine_type",
               "instance_port",
               "instance_role",
-              "instance_host"
+              "instance_host",
+              "bk_target_service_instance_id"
             ],
             "agg_condition": [],
             "custom_event_name": "slave-status",
@@ -73,8 +74,12 @@
             "calendars": [],
             "time_ranges": [
               {
-                "end": "23:59",
-                "start": "00:00"
+                  "end": "23:59",
+                  "start": "06:00"
+              },
+              {
+                  "end": "02:59",
+                  "start": "00:00"
               }
             ]
           },

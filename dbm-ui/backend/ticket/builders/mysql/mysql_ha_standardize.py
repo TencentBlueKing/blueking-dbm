@@ -33,14 +33,9 @@ class TenDBHAStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
         return attrs
 
     def __validate_clusters(self, attrs):
-        app_obj = AppCache.objects.get(bk_biz_id=attrs["bk_biz_id"])
+        AppCache.objects.get(bk_biz_id=attrs["bk_biz_id"])
 
         for cluster_obj in Cluster.objects.filter(pk__in=attrs["infos"]["cluster_ids"]).all():
-            if cluster_obj.bk_biz_id != attrs["bk_biz_id"]:
-                raise serializers.ValidationError(
-                    _("{} 不是 [{}]{} 的集群".format(cluster_obj.immute_domain, app_obj.bk_biz_id, app_obj.db_app_abbr))
-                )
-
             if cluster_obj.cluster_type != ClusterType.TenDBHA.value:
                 raise serializers.ValidationError(
                     _("{} 不是 {} 集群".format(cluster_obj.immute_domain, ClusterType.TenDBHA.value))

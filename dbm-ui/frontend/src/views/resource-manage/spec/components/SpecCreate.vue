@@ -152,6 +152,10 @@
     (e: 'successed'): void;
   }
 
+  interface Data extends Omit<ResourceSpecModel, 'device_class'> {
+    device_class: string[] | string;
+  }
+
   interface Props {
     clusterType: string;
     machineType: string;
@@ -174,6 +178,7 @@
     `${ClusterTypes.PULSAE}_pulsar_broker`,
     `${ClusterTypes.TENDBCLUSTER}_spider`,
   ];
+
   const isRequired = !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`);
 
   const isSqlserver = [
@@ -183,7 +188,11 @@
 
   const initFormdata = () => {
     if (props.data) {
-      return _.cloneDeep(props.data);
+      const data = _.cloneDeep(props.data);
+      if (data.device_class.length === 0) {
+        data.device_class = '-1';
+      }
+      return data;
     }
 
     const genStorageSpec = () => [
@@ -218,8 +227,8 @@
         max: '' as string | number,
         min: '' as string | number,
       },
-      storage_spec: isSqlserver ? genSystemDriveStorageSpec() : genStorageSpec(),
-      device_class: [] as string[],
+      storage_spec: genStorageSpec(),
+      device_class: '-1' as string[] | string,
       desc: '',
       enable: true,
       spec_cluster_type: props.clusterType,
@@ -334,8 +343,8 @@
       .then(() => {
         const params = Object.assign(_.cloneDeep(formdata.value), {
           spec_id: (formdata.value as ResourceSpecModel).spec_id,
-          device_class: formdata.value.device_class.filter((item) => item),
-          storage_spec: formdata.value.storage_spec.filter((item) => item.mount_point && item.size && item.type),
+          device_class: formdata.value.device_class === '-1' ? [] : formdata.value.device_class,
+          storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
         });
 
         if (props.mode === 'edit') {

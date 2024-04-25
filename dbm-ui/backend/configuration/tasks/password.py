@@ -10,7 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+from datetime import timedelta
 
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.components import DBPrivManagerApi
@@ -71,12 +73,18 @@ def get_mysql_instance(cluster: Cluster):
         }
         return instance_info
 
-    instances = [_get_instances(AdminPasswordRole.STORAGE.value, cluster.storageinstance_set.all())]
+    # 7天内不修改
+    seven_days_before = timezone.now() - timedelta(days=7)
+    instances = [
+        _get_instances(
+            AdminPasswordRole.STORAGE.value, cluster.storageinstance_set.filter(create_at__lte=seven_days_before)
+        )
+    ]
     # spider节点和tdbctl节点修改密码指令不同，需区别
     if cluster.cluster_type == ClusterType.TenDBCluster:
-        spiders = cluster.proxyinstance_set.all()
+        spiders = cluster.proxyinstance_set.filter(create_at__lte=seven_days_before)
         dbctls = cluster.proxyinstance_set.filter(
-            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER, create_at__lte=seven_days_before
         )
         instances.append(_get_instances(AdminPasswordRole.SPIDER.value, spiders))
         instances.append(_get_instances(AdminPasswordRole.TDBCTL.value, dbctls))

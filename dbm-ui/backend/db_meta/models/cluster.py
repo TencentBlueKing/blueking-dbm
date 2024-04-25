@@ -8,11 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Dict, List
 
 from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Count, Q, QuerySet
 from django.forms import model_to_dict
@@ -328,3 +331,35 @@ class Cluster(AuditedModel):
             cluster_stats.update(json.loads(cache.get(f"{CACHE_CLUSTER_STATS}_{cluster_type}", "{}")))
 
         return cluster_stats
+
+    def is_dbha_disabled(self) -> bool:
+        try:
+            return self.clusterdbhaext.end_time < datetime.now(timezone.utc)
+        except ObjectDoesNotExist:
+            return False
+
+    def disable_dbha(self, username: str, end_time: datetime):
+        ClusterDBHAExt.objects.update_or_create(
+            cluster_id=self.id,
+            defaults={
+                "creator": username,
+                "updater": username,
+                "cluster": self,
+                "end_time": end_time,
+            },
+        )
+        self.refresh_from_db()
+
+    def enable_dbha(self):
+        ClusterDBHAExt.objects.filter(cluster=self).delete()
+        self.refresh_from_db()
+
+
+class ClusterDBHAExt(AuditedModel):
+    """
+    这个model如果放在独立文件会循环引用, 解决起来比较麻烦
+    """
+
+    cluster = models.OneToOneField(Cluster, on_delete=models.PROTECT, unique=True)
+    begin_time = models.DateTimeField(null=False, auto_now=True, help_text=_("屏蔽开始时间"), db_index=True)
+    end_time = models.DateTimeField(default=None, null=False, auto_now=False, help_text=_("屏蔽结束时间"), db_index=True)

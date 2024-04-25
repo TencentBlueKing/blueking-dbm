@@ -16,18 +16,22 @@
     <BkAlert
       closable
       theme="info"
-      :title="t('构造实例：通过定点构造产生的实例，可以将实例数据写回原集群或者直接销毁')" />
+      :title="
+        t(
+          '构造实例：通过定点构造产生的实例，可以将实例数据写回原集群或者直接销毁',
+        )
+      " />
     <div class="buttons">
       <BkButton
         :disabled="!isIndeterminate"
         @click="handleBatchDestruct">
-        {{ t('批量销毁') }}
+        {{ t("批量销毁") }}
       </BkButton>
       <BkButton
         class="ml-8"
         :disabled="!isIndeterminate"
         @click="handleBatchDataCopy">
-        {{ t('批量回写') }}
+        {{ t("批量回写") }}
       </BkButton>
     </div>
     <BkLoading
@@ -60,25 +64,18 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
-  import {
-    useDefaultPagination,
-    useTicketMessage,
-  } from '@hooks';
+  import { useDefaultPagination, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    LocalStorageKeys,
-    TicketTypes,
-  } from '@common/const';
+  import { LocalStorageKeys, TicketTypes } from '@common/const';
 
   import useResetTableHeight from '@views/redis/common/hooks/useResetTableHeight';
 
-
   interface InfoItem {
-    related_rollback_bill_id: number,
-    prod_cluster: string,
-    bk_cloud_id: number,
+    related_rollback_bill_id: number;
+    prod_cluster: string;
+    bk_cloud_id: number;
   }
 
   const { currentBizId } = useGlobalBizs();
@@ -92,12 +89,11 @@
   const checkedMap = shallowRef<Record<number, RedisRollbackModel>>({});
   const timer = ref();
 
-  const isSelectedAll = computed(() => (
-    tableData.value.length > 0
-    && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.id]).length
-  ));
+  const isSelectedAll = computed(() => tableData.value.length > 0
+    && tableData.value.length
+      === tableData.value.filter(item => checkedMap.value[item.id]).length);
 
-  const isIndeterminate = computed(() => (Object.keys(checkedMap.value).length > 0));
+  const isIndeterminate = computed(() => Object.keys(checkedMap.value).length > 0);
 
   const settings = {
     fields: [
@@ -130,7 +126,15 @@
         field: 'recovery_time_point',
       },
     ],
-    checked: ['prod_cluster', 'prod_instance_range', 'temp_cluster_proxy', 'specification', 'related_rollback_bill_id', 'host_count', 'recovery_time_point'],
+    checked: [
+      'prod_cluster',
+      'prod_instance_range',
+      'temp_cluster_proxy',
+      'specification',
+      'related_rollback_bill_id',
+      'host_count',
+      'recovery_time_point',
+    ],
   };
 
   const { resetTableHeight } = useResetTableHeight(tableHeight, 275);
@@ -163,13 +167,13 @@
 
   // 渲染多选框
   const renderCheckbox = (data: RedisRollbackModel) => (
-    <bk-checkbox
-      disabled={!data.isNotDestroyed}
-      model-value={Boolean(checkedMap.value[data.id])}
-      style="margin-right:8px;vertical-align: middle;"
-      onClick={(e: Event) => e.stopPropagation()}
-      onChange={(value: boolean) => handleTableSelectOne(value, data)}
-    />
+  <bk-checkbox
+    disabled={!data.isNotDestroyed}
+    model-value={Boolean(checkedMap.value[data.id])}
+    style="margin-right:8px;vertical-align: middle;"
+    onClick={(e: Event) => e.stopPropagation()}
+    onChange={(value: boolean) => handleTableSelectOne(value, data)}
+  />
   );
 
   const handleControlTip = (data: RedisRollbackModel, isShow: boolean) => {
@@ -194,61 +198,98 @@
     }
     return (
     <div class="first-column">
-      {data.isDestroying
-        ? <bk-popover theme="light" placement="top">
-            {{
-              default: () => renderCheckbox(data),
-              content: () => (<span>{t('销毁任务正在进行中，跳转')} <span style="color:#3A84FF;cursor:pointer;" onClick={() => handleGoTicket(data.related_rollback_bill_id)}>{t('单据')}</span>{t('查看进度')}</span>),
-            }}
-          </bk-popover>
-        : renderCheckbox(data)
-      }
+      {data.isDestroying ? (
+        <bk-popover theme="light" placement="top">
+          {{
+            default: () => renderCheckbox(data),
+            content: () => (
+              <span>
+                {t('销毁任务正在进行中，跳转')}{' '}
+                <router-link
+                  to={{
+                    name: 'bizTicketManage',
+                    query: {
+                      id: data.related_rollback_bill_id,
+                    },
+                  }}
+                  target="_blank">
+                  {t('单据')}
+                </router-link>
+                {t('查看进度')}
+              </span>
+            ),
+          }}
+        </bk-popover>
+      ) : (
+        renderCheckbox(data)
+      )}
       <div class="name">{data.prod_cluster}</div>
-      {(data.isDestroyed || data.isDestroying) && <bk-tag theme={data.isDestroyed ? undefined : 'danger'} class="tag-tip" style={{ color: data.isDestroyed ? '#63656E' : '#EA3536' }}>
-        {tipText}
-      </bk-tag>}
-    </div>);
+      {(data.isDestroyed || data.isDestroying) && (
+        <bk-tag
+          theme={data.isDestroyed ? undefined : 'danger'}
+          class="tag-tip"
+          style={{ color: data.isDestroyed ? '#63656E' : '#EA3536' }}
+        >
+          {tipText}
+        </bk-tag>
+      )}
+    </div>
+    );
   };
 
   const renderInstanceRange = (index: number, data: RedisRollbackModel) => {
     const len = data.prod_instance_range.length;
     const showTag = len > 1;
     return showTag ? (
-      <bk-popover placement="top" theme="dark" trigger="manual" is-show={data.isShowInstancesTip}>
-            {{
-              default: () => (
-                <div class="instance-box">
-                  <div
-                    class="content"
-                    onMouseenter={() => handleControlTip(data, true)}
-                    onMouseleave={() => handleControlTip(data, false)}>
-                      {data.prod_instance_range.toString()} {showTag && <div class="tag-box"><bk-tag>{`+${len - 1}`}</bk-tag></div>}
-                  </div>
+    <bk-popover
+      placement="top"
+      theme="dark"
+      trigger="manual"
+      is-show={data.isShowInstancesTip}
+    >
+      {{
+        default: () => (
+          <div class="instance-box">
+            <div
+              class="content"
+              onMouseenter={() => handleControlTip(data, true)}
+              onMouseleave={() => handleControlTip(data, false)}
+            >
+              {data.prod_instance_range.toString()}{' '}
+              {showTag && (
+                <div class="tag-box">
+                  <bk-tag>{`+${len - 1}`}</bk-tag>
                 </div>
-              ),
-              content: () => data.prod_instance_range.map(item => (<div>{item}</div>)),
-            }}
-      </bk-popover>) : (<span>{data.prod_instance_range.toString()}</span>);
+              )}
+            </div>
+          </div>
+        ),
+        content: () => data.prod_instance_range.map(item => <div>{item}</div>),
+      }}
+    </bk-popover>
+      ) : (
+    <span>{data.prod_instance_range.toString()}</span>
+    );
   };
 
   const columns = [
     {
       label: () => (
-        <div class="first-column">
-          <bk-checkbox
-            label={true}
-            indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
-            model-value={isSelectedAll.value}
-            onClick={(e: Event) => e.stopPropagation()}
-            onChange={handleSelectPageAll}
+      <div class="first-column">
+        <bk-checkbox
+          label={true}
+          indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
+          model-value={isSelectedAll.value}
+          onClick={(e: Event) => e.stopPropagation()}
+          onChange={handleSelectPageAll}
         />
-          {t('构造的集群')}
-        </div>
-       ),
+        {t('构造的集群')}
+      </div>
+    ),
       field: 'prod_cluster',
       showOverflowTooltip: false,
       minWidth: 150,
-      render: ({ data }: {data: RedisRollbackModel}) => renderColumnCluster(data),
+      render: ({ data }: { data: RedisRollbackModel }) => renderColumnCluster(data),
     },
     {
       label: t('构造实例范围'),
@@ -256,7 +297,7 @@
       showOverflowTooltip: false,
       minWidth: 150,
       width: 250,
-      render: ({ index, data }: {index: number, data: RedisRollbackModel}) => renderInstanceRange(index, data),
+      render: ({ index, data }: { index: number; data: RedisRollbackModel }) => renderInstanceRange(index, data),
     },
     {
       label: t('构造产物访问入口'),
@@ -267,7 +308,9 @@
       label: t('规格需求'),
       field: 'specification',
       minWidth: 100,
-      render: ({ data }: {data: RedisRollbackModel}) => (<span>{data.specification.name}</span>),
+      render: ({ data }: { data: RedisRollbackModel }) => (
+      <span>{data.specification.name}</span>
+    ),
     },
     {
       label: t('关联单据'),
@@ -300,7 +343,9 @@
       field: 'recovery_time_point',
       showOverflowTooltip: true,
       minWidth: 150,
-      render: ({ data }: {data: RedisRollbackModel}) => <span>{data.recoveryTimePointDisplay}</span>,
+      render: ({ data }: { data: RedisRollbackModel }) => (
+      <span>{data.recoveryTimePointDisplay}</span>
+    ),
     },
     {
       label: t('操作'),
@@ -309,11 +354,28 @@
       showOverflowTooltip: true,
       minWidth: 140,
       width: 180,
-      render: ({ data }: {data: RedisRollbackModel}) => (
-      <div class="operate-box" style={{ color: data.isNotDestroyed ? '#3A84FF' : '#C4C6CC' }}>
-        <bk-button text theme="primary" onClick={() => handleClickDestructItem(data)}>{t('销毁')}</bk-button>
-        <bk-button text theme="primary" onClick={() => handleClickDataCopy(data)} style="margin-left:10px;">{t('回写数据')}</bk-button>
-      </div>),
+      render: ({ data }: { data: RedisRollbackModel }) => (
+      <div
+        class="operate-box"
+        style={{ color: data.isNotDestroyed ? '#3A84FF' : '#C4C6CC' }}
+      >
+        <bk-button
+          text
+          theme="primary"
+          onClick={() => handleClickDestructItem(data)}
+        >
+          {t('销毁')}
+        </bk-button>
+        <bk-button
+          text
+          theme="primary"
+          onClick={() => handleClickDataCopy(data)}
+          style="margin-left:10px;"
+        >
+          {t('回写数据')}
+        </bk-button>
+      </div>
+    ),
     },
   ];
 
@@ -360,11 +422,7 @@
     const dataArr = getCheckedValidList();
     if (!rowData) {
       const infos = dataArr.map((item) => {
-        const {
-          related_rollback_bill_id,
-          prod_cluster,
-          bk_cloud_id,
-        } = item;
+        const { related_rollback_bill_id, prod_cluster, bk_cloud_id } = item;
         const obj = {
           related_rollback_bill_id,
           prod_cluster,
@@ -385,16 +443,6 @@
 
   // 设置行样式
   const setRowClass = (row: RedisRollbackModel) => (row.isDestroyed ? 'disable-color' : 'normal-color');
-
-  const handleGoTicket = (ticketId: number) => {
-    const route = router.resolve({
-      name: 'SelfServiceMyTickets',
-      query: {
-        id: ticketId,
-      },
-    });
-    window.open(route.href);
-  };
 
   // 批量销毁
   const handleBatchDestruct = () => {
@@ -420,13 +468,17 @@
           .catch((e) => {
             console.error('destroy instance submit ticket error: ', e);
           });
-      } });
+      },
+    });
   };
 
   // 批量回写
   const handleBatchDataCopy = () => {
     const list = Object.values(checkedMap.value);
-    localStorage.setItem(LocalStorageKeys.REDIS_ROLLBACK_LIST, JSON.stringify(list));
+    localStorage.setItem(
+      LocalStorageKeys.REDIS_ROLLBACK_LIST,
+      JSON.stringify(list),
+    );
     router.push({
       name: 'RedisRecoverFromInstance',
     });
@@ -459,7 +511,8 @@
           .catch((e) => {
             console.error('destroy instance submit ticket error: ', e);
           });
-      } });
+      },
+    });
   };
 
   // 回写数据
@@ -467,7 +520,10 @@
     if (!data.isNotDestroyed) {
       return;
     }
-    localStorage.setItem(LocalStorageKeys.REDIS_ROLLBACK_LIST, JSON.stringify([data]));
+    localStorage.setItem(
+      LocalStorageKeys.REDIS_ROLLBACK_LIST,
+      JSON.stringify([data]),
+    );
     router.push({
       name: 'RedisRecoverFromInstance',
     });

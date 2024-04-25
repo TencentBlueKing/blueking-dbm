@@ -26,10 +26,56 @@
   <!-- 人工确认 -->
   <template
     v-else-if="content.status === 'PENDING' && content.flow_type === 'PAUSE'">
-    <span>等待 {{ ticketData.creator }} 确认是否执行 "{{ manualNexFlowDisaply }}"</span>
+    <I18nT keypath="等待C确认是否执行T">
+      <span>{{ ticketData.creator }}</span>
+      <span>{{ manualNexFlowDisaply }}</span>
+    </I18nT>
+  </template>
+  <template v-else-if="isPause && isTodos === false">
+    <div
+      v-for="(todosItem, index) in content.todos"
+      :key="index">
+      <span>{{ t('处理人') }}: </span>
+      <span>{{ todosItem.operators.join(',') }}</span>
+      <template v-if="content.summary">
+        ，{{ t('耗时') }}：
+        <CostTimer
+          :is-timing="content.status === 'RUNNING'"
+          :start-time="utcTimeToSeconds(content.start_time)"
+          :value="content.cost_time" />
+      </template>
+      <div
+        v-if="todosItem.operators.includes(username)"
+        class="mt-8">
+        <BkPopConfirm
+          :content="t('继续执行单据后无法撤回，请谨慎操作！')"
+          :title="t('是否确认继续执行单据')"
+          trigger="click"
+          :width="320"
+          @confirm="handleProcessTicket('APPROVE', todosItem)">
+          <BkButton
+            class="w-88 mr-8"
+            theme="primary">
+            {{ t('确认执行') }}
+          </BkButton>
+        </BkPopConfirm>
+        <BkPopConfirm
+          :content="t('终止单据后无法撤回，请谨慎操作！')"
+          :title="t('是否确认终止单据')"
+          trigger="click"
+          :width="320"
+          @confirm="handleProcessTicket('TERMINATE', todosItem)">
+          <BkButton
+            class="w-88 mr-8"
+            theme="danger">
+            {{ t('终止单据') }}
+          </BkButton>
+        </BkPopConfirm>
+      </div>
+    </div>
   </template>
   <template v-else>
-    <p>
+    <div>
       <template
         v-if="
           content.status === 'RUNNING' &&
@@ -45,25 +91,29 @@
             {{ (content.todos[0]?.context?.administrators ?? []).join(';') }}
           </template>
           <template #place>
-            <a
-              href="javascript:"
-              @click="handleGoTodos">
+            <RouterLink
+              :to="{
+                name: 'MyTodos',
+                query: {
+                  id: content.ticket,
+                },
+              }">
               {{ t('我的待办') }}
-            </a>
+            </RouterLink>
           </template>
         </I18nT>
       </template>
       <template v-else-if="isPause && isTodos === false">
-        {{ t('请在') }} "
-        <a
-          href="javascript:"
-          @click="handleGoTodos">
-          {{ t('我的待办') }}
-        </a>
-        " {{ t('中确认') }}
+        <span>{{ t('处理人') }}: </span>
+        <span>{{ _.uniq(_.flatten(content.todos.map(item => item.operators))).join(',') }}</span>
       </template>
       <template v-else>
-        <span :style="{ color: content.status === 'TERMINATED' ? '#ea3636' : '#63656e' }">{{ content.summary }}</span>
+        <span
+          :style="{
+            color: content.status === 'TERMINATED' ? '#ea3636' : '#63656e'
+          }">
+          {{ content.summary }}
+        </span>
       </template>
       <template v-if="content.summary">
         ，{{ t('耗时') }}：
@@ -75,17 +125,15 @@
       <template v-if="content.url">
         ，<a
           :href="content.url"
-          :target="getHrefTarget(content)">
-          {{ t('查看详情') }} &gt;
-        </a>
+          :target="getHrefTarget(content)">{{ t('查看详情') }} &gt;</a>
       </template>
       <slot name="extra-text" />
-    </p>
-    <p
+    </div>
+    <div
       v-if="content.end_time"
       class="flow-time">
       {{ utcDisplayTime(content.end_time) }}
-    </p>
+    </div>
     <BkPopover
       v-if="content.err_code === 2"
       v-model:is-show="state.confirmTips"
@@ -125,23 +173,41 @@
         </div>
       </template>
     </BkPopover>
+    <div class="mt-8">
+      <BkPopConfirm
+        v-if="content.err_code === 2"
+        :content="t('重新执行后无法撤回，请谨慎操作！')"
+        :title="t('是否确认重新执行单据')"
+        trigger="click"
+        :width="320"
+        @confirm="handleConfirm(content)">
+        <BkButton
+          class="w-88 mt-8"
+          theme="primary">
+          {{ t('重试') }}
+        </BkButton>
+      </BkPopConfirm>
+    </div>
   </template>
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { retryTicketFlow } from '@services/source/ticket';
+  import { processTicketTodo, retryTicketFlow  } from '@services/source/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
-  // import { useUserProfile  } from '@stores';
+  import { useUserProfile } from '@stores';
+
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   import FlowContentInnerFlow from './components/ContentInnerFlow.vue';
   import FlowContentTodo from './components/ContentTodo.vue';
+
 
   interface Emits {
     (e: 'fetch-data'): void;
@@ -169,6 +235,7 @@
     confirmTips: false,
     isLoading: false,
   });
+  const { username } = useUserProfile();
 
   const manualNexFlowDisaply = computed(() => {
     if (props.flows.length > 0) {
@@ -185,20 +252,29 @@
     return content.status === 'RUNNING' && content.flow_type === 'PAUSE';
   });
 
-  // const isSamePeople = computed(() => props.ticketData.creator === username);
+  const getHrefTarget = (content: FlowItem) => (content.flow_type === 'BK_ITSM' ? '_blank' : '_self');
 
-  function getHrefTarget(content: FlowItem) {
-    return content.flow_type === 'BK_ITSM' ? '_blank' : '_self';
-  }
-
-  function handleGoTodos() {
-    router.push({
-      name: 'MyTodos',
-      query: {
-        filterId: props.content.ticket,
-      },
+  const handleConfirm = (item: FlowItem) => retryTicketFlow({
+    ticketId: item.ticket,
+    flow_id: item.id,
+  })
+    .then(() => {
+      emits('fetch-data');
     });
-  }
+
+  const handleProcessTicket = (action: 'APPROVE' | 'TERMINATE', todoItem: FlowItem['todos'][number]) => processTicketTodo({
+    action,
+    todo_id: todoItem.id,
+    ticket_id: props.content.ticket,
+    params: {},
+  })
+    .then(() => {
+      emits('fetch-data');
+    });
+
+  const handleEmitFetchData = () => {
+    emits('fetch-data');
+  };
 
   function handleConfirmToggle() {
     state.confirmTips = !state.confirmTips;
@@ -206,25 +282,6 @@
 
   function handleConfirmCancel() {
     state.confirmTips = false;
-  }
-
-  function handleConfirm(item: FlowItem) {
-    state.confirmTips = false;
-    state.isLoading = true;
-    retryTicketFlow({
-      ticketId: item.ticket,
-      flow_id: item.id,
-    })
-      .then(() => {
-        emits('fetch-data');
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
-  }
-
-  function handleEmitFetchData() {
-    emits('fetch-data');
   }
 </script>
 

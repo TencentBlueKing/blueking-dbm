@@ -169,7 +169,7 @@
 
   const handleToTicket = (id: number) => {
     const localtion = router.resolve({
-      name: 'SelfServiceMyTickets',
+      name: 'bizTicketManage',
       query: { id },
     });
     window.open(localtion.href, '_blank');

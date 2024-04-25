@@ -14,7 +14,7 @@
 <template>
   <RenderSuccess :steps="steps">
     <template #title>
-      {{ t('清档任务提交成功') }}
+      {{ t("清档任务提交成功") }}
     </template>
     <I18nT
       keypath="清档任务提交成功"
@@ -22,7 +22,7 @@
       <RouterLink
         target="_blank"
         :to="{
-          name: 'SelfServiceMyTickets',
+          name: 'bizTicketManage',
           query: {
             id: ticketId,
           },
@@ -35,12 +35,12 @@
         class="w-88"
         theme="primary"
         @click="handleGoTicket">
-        {{ t('去看看') }}
+        {{ t("去看看") }}
       </BkButton>
       <BkButton
         class="ml8"
         @click="handleStepChange">
-        {{ t('继续提单') }}
+        {{ t("继续提单") }}
       </BkButton>
     </template>
   </RenderSuccess>
@@ -71,7 +71,7 @@
 
   const handleGoTicket = () => {
     const route = router.resolve({
-      name: 'SelfServiceMyTickets',
+      name: 'bizTicketManage',
       query: {
         id: ticketId,
       },

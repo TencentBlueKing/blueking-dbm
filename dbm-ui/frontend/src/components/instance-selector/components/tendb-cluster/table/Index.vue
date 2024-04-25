@@ -17,6 +17,7 @@
       v-model="searchValue"
       :placeholder="t('请输入或选择条件搜索')"
       :search-attrs="searchAttrs"
+      :validate-search-values="validateSearchValues"
       @search-value-change="handleSearchValueChange" />
     <BkLoading
       :loading="isLoading"
@@ -29,6 +30,7 @@
         :remote-pagination="isRemotePagination"
         :settings="tableSetting"
         style="margin-top: 12px;"
+        @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage" />
@@ -66,9 +68,7 @@
   interface Props {
     lastValues: InstanceSelectorValues<T>,
     tableSetting: TableSetting,
-    activePanelId?: string,
     clusterId?: number,
-    isManul?: boolean,
     isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
     roleFilterList?: TableConfigType['roleFilterList'],
@@ -84,7 +84,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     clusterId: undefined,
-    isManul: false,
     manualTableData: () => ([]),
     firsrColumn: undefined,
     statusFilter: undefined,
@@ -117,7 +116,9 @@
     searchAttrs,
     searchValue,
     columnCheckedMap,
+    clearSearchValue,
     columnFilterChange,
+    validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach(
     ClusterTypes.TENDBCLUSTER,
@@ -149,8 +150,6 @@
     && tableData.value.length === tableData.value
       .filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
   ));
-
-  let isSelectedAllReal = false;
 
   const columns = computed(() => [
     {
@@ -282,15 +281,6 @@
   ]);
 
   watch(() => props.lastValues, () => {
-    if (props.isManul) {
-      checkedMap.value = {};
-      for (const checkedList of Object.values(props.lastValues)) {
-        for (const item of checkedList) {
-          checkedMap.value[item[firstColumnFieldId.value]] = item;
-        }
-      }
-      return;
-    }
     // 切换 tab 回显选中状态 \ 预览结果操作选中状态
     if (activePanel?.value && activePanel.value !== 'manualInput') {
       checkedMap.value = {};
@@ -312,20 +302,6 @@
   });
 
   const triggerChange = () => {
-    if (props.isManul) {
-      const lastValues: Props['lastValues'] = {
-        [props.activePanelId]: [],
-      };
-      for (const item of Object.values(checkedMap.value)) {
-        lastValues[props.activePanelId].push(item);
-      }
-
-      emits('change', {
-        ...props.lastValues,
-        ...lastValues,
-      });
-      return;
-    }
     const result = Object.values(checkedMap.value).reduce((result, item) => {
       result.push({
         ...item,
@@ -344,10 +320,9 @@
   const handleSelectPageAll = (checked: boolean) => {
     const list = tableData.value;
     if (props.disabledRowConfig) {
-      isSelectedAllReal = !isSelectedAllReal;
       for (const data of list) {
         if (!props.disabledRowConfig.handler(data)) {
-          handleTableSelectOne(isSelectedAllReal, data);
+          handleTableSelectOne(checked, data);
         }
       }
       return;

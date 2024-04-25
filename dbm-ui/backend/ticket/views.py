@@ -122,37 +122,29 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         return {"post": [cls.callback.__name__], "put": [], "get": [], "delete": []}
 
     def get_queryset(self):
-        # self_manage 单据queryset规则：
-        # 1. 如果用户是超级管理员，则返回所有单据
-        # 2. 如果用户是平台的MySQL/Redis/大数据管理员，则返回对应单据类型的单据
-        # 3. 如果用户是某业务下的MySQL/Redis/大数据管理员，则返回当前业务对应单据类型的单据
-        # 4. 返回用户自己创建的单据
-        username = self.request.user.username
+        """
+        单据queryset规则--针对list：
+        1. self_manage=0 只返回自己管理的单据
+        2. self_manage=1，则返回自己管理组件的单据，如果是管理员则返回所有单据
+        """
+        if self.action != "list" or "self_manage" not in self.request.query_params:
+            return super().get_queryset()
 
-        # 如果是管理员，则返回所有单据
+        username = self.request.user.username
+        self_manage = int(self.request.query_params["self_manage"])
+        # 只返回自己创建的单据
+        if self_manage == 0:
+            return Ticket.objects.filter(creator=username)
+        # 超级管理员返回所有单据
         if username in env.ADMIN_USERS or self.request.user.is_superuser:
             return Ticket.objects.all()
-
-        # 如果是list，且有self_manage参数，说明返回自己创建/管理相关单据
-        if self.action == "list" and "self_manage" in self.request.query_params:
-            if not self.request.query_params["self_manage"]:
-                return Ticket.objects.filter(creator=username)
-            else:
-                manage_filters = [
-                    Q(group=manage.db_type) & Q(bk_biz_id=manage.bk_biz_id)
-                    if manage.bk_biz_id
-                    else Q(group=manage.db_type)
-                    for manage in DBAdministrator.objects.filter(users__contains=username)
-                ]
-                ticket_filter = Q(creator=username) | reduce(operator.or_, manage_filters or [Q()])
-                return Ticket.objects.filter(ticket_filter)
-
-        # 如果是业务侧单据列表，则按照业务过滤
-        if self.action == "list" and "bk_biz_id" in self.request.query_params:
-            return Ticket.objects.filter(bk_biz_id=self.request.query_params["bk_biz_id"])
-
-        # 其他情况返回全量的单据
-        return Ticket.objects.all()
+        # 返回自己管理的组件单据
+        manage_filters = [
+            Q(group=manage.db_type) & Q(bk_biz_id=manage.bk_biz_id) if manage.bk_biz_id else Q(group=manage.db_type)
+            for manage in DBAdministrator.objects.filter(users__contains=username)
+        ]
+        ticket_filter = Q(creator=username) | reduce(operator.or_, manage_filters or [Q()])
+        return Ticket.objects.filter(ticket_filter)
 
     def get_serializer_context(self):
         context = super(TicketViewSet, self).get_serializer_context()

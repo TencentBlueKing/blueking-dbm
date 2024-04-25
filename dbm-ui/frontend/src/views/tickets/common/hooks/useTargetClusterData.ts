@@ -28,12 +28,12 @@ import { getSearchSelectorParams } from '@utils';
 
 export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthorizationDetails>) {
   const { t } = useI18n();
-  // const globalBizsStore = useGlobalBizs();
   const apiMap = {
     [ClusterTypes.TENDBSINGLE]: getTendbsingleListByBizId,
     [ClusterTypes.TENDBHA]: getTendbhaListByBizId,
     spider: getSpiderResources,
   };
+
   const listState = reactive({
     isAnomalies: false,
     isLoading: false,
@@ -67,13 +67,14 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
   /**
    * 获取目标集群列表
    */
-  function fetchCluster() {
-    listState.isLoading = true;
+  const fetchCluster = () => {
+    const type = (ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBCLUSTER
+      ? 'spider'
+      : ticketDetails?.details?.authorize_data?.cluster_type) as keyof typeof apiMap;
 
-    const type =
-      ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBCLUSTER
-        ? 'spider'
-        : ticketDetails?.details?.authorize_data?.cluster_type;
+    if (!apiMap[type]) {
+      return;
+    }
 
     const params = {
       dbType: DBTypes.MYSQL,
@@ -83,10 +84,12 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
       ...listState.pagination.getFetchParams(),
       ...getSearchSelectorParams(listState.filters.search),
     };
-    apiMap[type as keyof typeof apiMap](params)
+    listState.isLoading = true;
+
+    apiMap[type](params)
       .then((res) => {
         listState.pagination.count = res.count;
-        listState.data = res.results;
+        listState.data = res.results as ResourceItem[];
         listState.isAnomalies = false;
       })
       .catch(() => {
@@ -97,23 +100,23 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
       .finally(() => {
         listState.isLoading = false;
       });
-  }
+  };
 
   /**
    * change page
    */
-  function handleChangePage(value: number) {
+  const handleChangePage = (value: number) => {
     listState.pagination.current = value;
     fetchCluster();
-  }
+  };
 
   /**
    * change limit
    */
-  function handeChangeLimit(value: number) {
+  const handeChangeLimit = (value: number) => {
     listState.pagination.limit = value;
     handleChangePage(1);
-  }
+  };
 
   /**
    * change filter search values

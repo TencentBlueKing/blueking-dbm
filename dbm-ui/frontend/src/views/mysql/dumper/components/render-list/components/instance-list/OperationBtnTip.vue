@@ -27,7 +27,7 @@
         <RouterLink
           target="_blank"
           :to="{
-            name: 'SelfServiceMyTickets',
+            name: 'bizTicketManage',
             query: {
               id: data.operationTicketId,
             },

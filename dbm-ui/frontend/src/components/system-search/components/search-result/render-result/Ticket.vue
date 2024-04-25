@@ -10,7 +10,9 @@
         <HightLightText
           :key-word="keyWord"
           :text="`${item.id}`" />
-        <div class="intro">(单据)</div>
+        <div class="intro">
+          ({{ t('单据') }})
+        </div>
       </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
@@ -19,6 +21,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { useLocation } from '@hooks';
 
   import { systemSearchCache } from '@common/cache';
@@ -37,6 +41,7 @@
 
   defineProps<Props>();
 
+  const { t } = useI18n();
   const location = useLocation();
 
   const handleGo = (data: Props['data'][number]) => {

@@ -14,7 +14,13 @@ from typing import Any, Optional
 
 from backend import env
 from backend.env import BACKUP_DOWNLOAD_USER, BACKUP_DOWNLOAD_USER_PWD
-from backend.flow.consts import DBA_ROOT_USER, DEFAULT_JOB_TIMEOUT, DnsOpType, MediumFileTypeEnum
+from backend.flow.consts import (
+    BIGFILE_JOB_SCP_TIMEOUT,
+    DBA_ROOT_USER,
+    DEFAULT_JOB_TIMEOUT,
+    DnsOpType,
+    MediumFileTypeEnum,
+)
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 """
@@ -70,6 +76,7 @@ class P2PFileBaseKwargs:
     run_as_system_user: str = None  # 表示执行job的api的操作用户, None 默认是用root用户
     file_type: Optional[MediumFileTypeEnum] = MediumFileTypeEnum.Server.value
     file_target_path: str = None  # 表示下载到目标机器的路径，如果传None,默认则传/data/install
+    job_timeout: int = BIGFILE_JOB_SCP_TIMEOUT
 
 
 @dataclass()

@@ -18,19 +18,19 @@
         class="mr-8"
         theme="primary"
         @click="handleAddNode">
-        {{ t('添加节点') }}
+        {{ t("添加节点") }}
       </BkButton>
       <BkButton
         class="mr-8"
         @click="handleDeleteNode">
-        {{ t('删除节点') }}
+        {{ t("删除节点") }}
       </BkButton>
       <BkDropdown
         class="mr-8"
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton>
-          {{ t('复制IP') }}
+          {{ t("复制IP") }}
           <DbIcon
             class="action-copy-icon"
             :class="{
@@ -41,7 +41,7 @@
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll">
-              {{ t('复制全部IP') }}
+              {{ t("复制全部IP") }}
             </BkDropdownItem>
             <BkDropdownItem>
               <BkButton
@@ -52,7 +52,7 @@
                 :disabled="!isAbnormalNodeExits"
                 text
                 @click="handleCopyAbmormal">
-                {{ t('复制异常IP') }}
+                {{ t("复制异常IP") }}
               </BkButton>
             </BkDropdownItem>
             <BkDropdownItem>
@@ -64,7 +64,7 @@
                 :disabled="!isTableSelected"
                 text
                 @click="handleCopySelected">
-                {{ t('复制已选IP') }}
+                {{ t("复制已选IP") }}
               </BkButton>
             </BkDropdownItem>
           </BkDropdownMenu>
@@ -88,7 +88,7 @@
         <RouterLink
           target="_blank"
           :to="{
-            name: 'SelfServiceMyTickets',
+            name: 'bizTicketManage',
             query: {
               id: operationData?.operationTicketId,
             },
@@ -134,17 +134,10 @@
 
   import RiakModel from '@services/model/riak/riak';
   import RiakNodeModel from '@services/model/riak/riak-node';
-  import {
-    getRiakDetail,
-    getRiakNodeList,
-  } from '@services/source/riak';
+  import { getRiakDetail, getRiakNodeList } from '@services/source/riak';
   import { createTicket } from '@services/source/ticket';
 
-  import {
-    useCopy,
-    useDebouncedRef,
-    useTicketMessage,
-  } from '@hooks';
+  import { useCopy, useDebouncedRef, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -164,7 +157,7 @@
   import DeleteNodes from '../../components/DeleteNodes.vue';
 
   interface Props {
-    data: RiakModel
+    data: RiakModel;
   }
 
   const props = defineProps<Props>();
@@ -185,7 +178,7 @@
   const {
     pause: pauseFetchClusterDetail,
     resume: resumeFetchClusterDetail,
-  } = useTimeoutPoll(() => getRiakDetailRun({ id: props.data.id }), 2000, {
+  } =  useTimeoutPoll(() => getRiakDetailRun({ id: props.data.id }), 2000, {
     immediate: true,
   });
 
@@ -205,33 +198,29 @@
       minWidth: 200,
       showOverflowTooltip: false,
       render: ({ row }: { row: RiakNodeModel }) => {
-        const content = <>
-          {
-            row.isNewRow && (
-              <MiniTag
-                content='NEW'
-                theme='success'>
-              </MiniTag>
-            )
-          }
+        const content = (
+        <>
+          {row.isNewRow && <MiniTag content="NEW" theme="success"></MiniTag>}
           <bk-button
             text
             theme="primary"
             onClick={(event: Event) => handleCopyRowIp(event, row.ip)}
           >
-           <db-icon type="copy" />
+            <db-icon type="copy" />
           </bk-button>
-        </>;
+        </>
+      );
 
         return (
-          <RenderTextEllipsisOneLine
-            text={ row.ip }
-            textStyle={{
-              color: '#63656E',
-              cursor: 'unset',
-            }}>
-            { content }
-          </RenderTextEllipsisOneLine>
+        <RenderTextEllipsisOneLine
+          text={row.ip}
+          textStyle={{
+            color: '#63656E',
+            cursor: 'unset',
+          }}
+        >
+          {content}
+        </RenderTextEllipsisOneLine>
         );
       },
     },
@@ -239,8 +228,8 @@
       label: t('Agent状态'),
       width: 100,
       render: ({ row }: { row: RiakNodeModel }) => (
-        <RenderHostStatus data={row.status} />
-      ),
+      <RenderHostStatus data={row.status} />
+    ),
     },
     // {
     //   label: t('CPU使用率'),
@@ -271,64 +260,78 @@
     {
       label: t('管控区域'),
       field: 'bk_cloud_name',
-      render: ({ row }: { row: RiakNodeModel }) => <span>{row.bk_cloud_name || '--'}</span>,
+      render: ({ row }: { row: RiakNodeModel }) => (
+      <span>{row.bk_cloud_name || '--'}</span>
+    ),
     },
     {
       label: t('机型'),
       field: 'bk_host_name',
-      render: ({ row }: { row: RiakNodeModel }) => <span>{row.bk_host_name || '--'}</span>,
+      render: ({ row }: { row: RiakNodeModel }) => (
+      <span>{row.bk_host_name || '--'}</span>
+    ),
     },
     {
       label: t('部署时间'),
       width: 160,
       field: 'create_at',
-      render: ({ row }: { row: RiakNodeModel }) => <span>{row.createAtDisplay || '--'}</span>,
+      render: ({ row }: { row: RiakNodeModel }) => (
+      <span>{row.createAtDisplay || '--'}</span>
+    ),
     },
     {
       label: t('操作'),
       width: 120,
       fixed: 'right',
       render: ({ row }: { row: RiakNodeModel }) => (
-        <>
-          <OperationBtnStatusTips data={operationData.value}>
-            <bk-button
-              class="ml8"
-              theme="primary"
-              text
-              disabled={operationData.value?.operationDisabled || dataList.value.length <= 3}
-              onClick={() => handleDelete(row)}>
-              { t('删除') }
-            </bk-button>
-          </OperationBtnStatusTips>
-          <OperationBtnStatusTips data={operationData.value}>
-            <bk-button
-              theme="primary"
-              text
-              class="ml8"
-              disabled={operationData.value?.operationDisabled}
-              onClick={() => handleReboot(row)}>
-              { t('重启') }
-            </bk-button>
-          </OperationBtnStatusTips>
-        </>
-      ),
+      <>
+        <OperationBtnStatusTips data={operationData.value}>
+          <bk-button
+            class="ml8"
+            theme="primary"
+            text
+            disabled={
+              operationData.value?.operationDisabled
+              || dataList.value.length <= 3
+            }
+            onClick={() => handleDelete(row)}
+          >
+            {t('删除')}
+          </bk-button>
+        </OperationBtnStatusTips>
+        <OperationBtnStatusTips data={operationData.value}>
+          <bk-button
+            theme="primary"
+            text
+            class="ml8"
+            disabled={operationData.value?.operationDisabled}
+            onClick={() => handleReboot(row)}
+          >
+            {t('重启')}
+          </bk-button>
+        </OperationBtnStatusTips>
+      </>
+    ),
     },
   ];
 
   const dataList = computed(() => tableRef.value!.getData<RiakNodeModel>());
-  const isAbnormalNodeExits = computed(() => dataList.value
-    .some((riakNode: RiakNodeModel) => !riakNode.isNodeNormal));
+  const isAbnormalNodeExits = computed(() => dataList.value.some((riakNode: RiakNodeModel) => !riakNode.isNodeNormal));
   const isTableSelected = computed(() => selected.value.length > 0);
 
-  watch(() => props.data.id, () => {
-    nextTick(() => {
-      pauseFetchClusterDetail();
-      resumeFetchClusterDetail();
-      fetchData();
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data.id,
+    () => {
+      nextTick(() => {
+        pauseFetchClusterDetail();
+        resumeFetchClusterDetail();
+        fetchData();
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleSelection = (key: number[], list: Record<any, any>[]) => {
     selected.value = list as RiakNodeModel[];
@@ -346,11 +349,13 @@
     InfoBox({
       title: t('确认删除n个节点?', [1]),
       subTitle: (
-        <>
-          <p>{ t('节点IP') }：<span class='info-box-cluster-name'>{ row.ip }</span></p>
-          <p class='mt-16'>{ t('删除后不可恢复，请谨慎操作!') }</p>
-        </>
-      ),
+      <>
+        <p>
+          {t('节点IP')}：<span class="info-box-cluster-name">{row.ip}</span>
+        </p>
+        <p class="mt-16">{t('删除后不可恢复，请谨慎操作!')}</p>
+      </>
+    ),
       confirmText: t('确定'),
       cancelText: t('取消'),
       headerAlign: 'center',
@@ -363,19 +368,19 @@
           details: {
             cluster_id: props.data.id,
             bk_cloud_id: row.bk_cloud_id,
-            nodes: [{
-              ip: row.ip,
-              bk_host_id: row.bk_host_id,
-              bk_cloud_id: row.bk_cloud_id,
-              bk_biz_id: currentBizId,
-            }],
+            nodes: [
+              {
+                ip: row.ip,
+                bk_host_id: row.bk_host_id,
+                bk_cloud_id: row.bk_cloud_id,
+                bk_biz_id: currentBizId,
+              },
+            ],
           },
-        })
-          .then((createTicketResult) => {
-            fetchData();
-            ticketMessage(createTicketResult.id);
-          })
-        ;
+        }).then((createTicketResult) => {
+          fetchData();
+          ticketMessage(createTicketResult.id);
+        });
       },
     });
   };
@@ -384,8 +389,10 @@
     InfoBox({
       title: t('确认重启该节点?'),
       subTitle: (
-        <p>{ t('节点IP') }：<span class='info-box-cluster-name'>{ row.ip }</span></p>
-      ),
+      <p>
+        {t('节点IP')}：<span class="info-box-cluster-name">{row.ip}</span>
+      </p>
+    ),
       confirmText: t('确定'),
       cancelText: t('取消'),
       headerAlign: 'center',
@@ -399,12 +406,10 @@
             bk_host_id: row.bk_host_id,
             cluster_id: props.data.id,
           },
-        })
-          .then((createTicketResult) => {
-            fetchData();
-            ticketMessage(createTicketResult.id);
-          })
-        ;
+        }).then((createTicketResult) => {
+          fetchData();
+          ticketMessage(createTicketResult.id);
+        });
       },
     });
   };
@@ -424,13 +429,16 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    const ipList = tableRef.value!.getData<RiakNodeModel>().map((riakNodeItem: RiakNodeModel) => riakNodeItem.ip);
+    const ipList = tableRef
+      .value!.getData<RiakNodeModel>()
+      .map((riakNodeItem: RiakNodeModel) => riakNodeItem.ip);
     handleCopy(ipList);
   };
 
   // 复制异常 IP
   const handleCopyAbmormal = () => {
-    const ipList = tableRef.value!.getData<RiakNodeModel>()
+    const ipList = tableRef
+      .value!.getData<RiakNodeModel>()
       .reduce((ipArr: Array<string>, riakNodeItem: RiakNodeModel) => {
         if (!riakNodeItem.isNodeNormal) {
           return [...ipArr, riakNodeItem.ip];
@@ -475,7 +483,50 @@
   .riak-detail-node-list {
     padding: 24px 0;
 
-    .action-box {
+  .action-box {
+    display: flex;
+    margin-bottom: 16px;
+
+    .action-box-search {
+      width: 360px;
+      margin-left: auto;
+    }
+  }
+
+  .action-copy-icon {
+    margin-left: 6px;
+    color: #979ba5;
+    transform: rotateZ(180deg);
+    transition: all 0.2s;
+
+    &--avtive {
+      transform: rotateZ(0);
+    }
+  }
+
+  :deep(.node-list-table) {
+    .is-new-row {
+      td {
+        background-color: #f3fcf5 !important;
+      }
+    }
+
+    .status-label {
+      width: 38px;
+      height: 16px;
+      margin-right: 4px;
+      flex-shrink: 0;
+    }
+
+    tr .db-icon-copy {
+      display: none;
+    }
+
+    tr:hover .db-icon-copy {
+      display: inline-block;
+    }
+
+    .cpu-use-rate {
       display: flex;
       margin-bottom: 16px;
 
@@ -503,33 +554,10 @@
         }
       }
 
-      .status-label {
-        width: 38px;
-        height: 16px;
-        margin-right: 4px;
-        flex-shrink: 0;
-      }
-
-      tr .db-icon-copy {
-        display: none;
-      }
-
-      tr:hover .db-icon-copy {
-        display: inline-block;
-      }
-
-      .cpu-use-rate {
-        display: flex;
-        align-items: center;
-
-        .cpu-rate {
-          font-weight: 700;
-        }
-
-        .cpu-num {
-          color: #979ba5;
-        }
+      .cpu-num {
+        color: #979ba5;
       }
     }
   }
+}
 </style>

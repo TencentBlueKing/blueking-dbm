@@ -45,10 +45,12 @@
           <AuthButton
             action-id="kafka_replace"
             class="ml8"
-            :disabled="isBatchReplaceDisabeld || operationData?.operationDisabled"
             :resource="clusterId"
+            :disabled="
+              isBatchReplaceDisabeld || operationData?.operationDisabled
+            "
             @click="handleShowReplace">
-            {{ t('替换') }}
+            {{ $t("替换") }}
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
@@ -68,21 +70,25 @@
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll">
-              {{ t('复制全部IP') }}
+              {{ $t("复制全部IP") }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeFailed">
-              {{ t('复制异常IP') }}
+              {{ $t("复制异常IP") }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeActive">
-              {{ t('复制已选IP') }}
+              {{ $t("复制已选IP") }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <BkInput
-        v-model="searchKey"
-        :placeholder="t('请输入IP搜索')"
-        style="max-width: 360px; margin-left: 8px; flex: 1" />
+      <DbSearchSelect
+        :data="searchSelectData"
+        :model-value="searchValue"
+        :placeholder="t('请输入或选择条件搜索')"
+        style="max-width: 360px; margin-left: 8px; flex: 1;"
+        unique-select
+        :validate-values="validateSearchValues"
+        @change="handleSearchValueChange" />
     </div>
     <BkAlert
       v-if="operationData?.operationStatusText"
@@ -109,12 +115,13 @@
     <BkLoading :loading="isLoading">
       <DbOriginalTable
         :columns="columns"
-        :data="renderTableData"
+        :data="tableData"
         :is-anomalies="isAnomalies"
-        :is-searching="!!searchKey"
+        :is-searching="!!searchValue.length"
         :row-class="setRowClass"
-        @clear-search="handleClearSearch"
-        @refresh="fetchNodeList"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
+        @column-sort="columnSortChange"
         @select="handleSelect"
         @select-all="handleSelectAll" />
     </BkLoading>
@@ -165,26 +172,20 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import {
-    getKafkaDetail,
-    getKafkaNodeList,
-  } from '@services/source/kafka';
+  import { getKafkaDetail, getKafkaNodeList } from '@services/source/kafka';
 
   import {
     useCopy,
-    useDebouncedRef,
+    useLinkQueryColumnSerach,
   } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
+
+  import { ClusterTypes } from '@common/const';
 
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
@@ -195,7 +196,7 @@
   import ClusterShrink from '@views/kafka-manage/common/shrink/Index.vue';
 
   import {
-    encodeRegexp,
+    getSearchSelectorParams,
     isRecentDays,
     messageWarn,
   } from '@utils';
@@ -209,80 +210,6 @@
   }
 
   const props = defineProps<Props>();
-
-  const globalBizsStore = useGlobalBizs();
-  const copy = useCopy();
-  const { t, locale } = useI18n();
-
-  const isCN = computed(() => locale.value === 'zh-cn');
-  const searchKey = useDebouncedRef('');
-  const isAnomalies = ref(false);
-  const operationData = shallowRef<KafkaModel>();
-  const operationNodeData = shallowRef<KafkaNodeModel>();
-  const operationNodeList = shallowRef<Array<KafkaNodeModel>>([]);
-  const isShowReplace = ref(false);
-  const isShowExpandsion = ref(false);
-  const isShowShrink = ref(false);
-  const isShowDetail = ref(false);
-  const isLoading = ref(true);
-  const tableData = shallowRef<KafkaNodeModel[]>([]);
-  const isCopyDropdown = ref(false);
-  const checkedNodeMap = shallowRef<Record<number, KafkaNodeModel>>({});
-
-  const batchShrinkDisabledInfo = computed(() => {
-    const options = {
-      disabled: false,
-      tooltips: {
-        disabled: true,
-        content: '',
-      },
-    };
-    const selectList = Object.values(checkedNodeMap.value);
-    if (selectList.length < 1) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('请先选中节点');
-      return options;
-    }
-    if (_.find(
-      Object.values(checkedNodeMap.value),
-      item => !item.isBroker,
-    )) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('仅Broker类型节点支持缩容');
-      return options;
-    }
-    let brokerNum = 0;
-    tableData.value.forEach((nodeItem) => {
-      if (checkedNodeMap.value[nodeItem.bk_host_id]) {
-        return;
-      }
-      if (nodeItem.isBroker) {
-        brokerNum = brokerNum + 1;
-      }
-    });
-
-    if (brokerNum < 1) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('Broker类型节点至少保留一个');
-    }
-    return options;
-  });
-
-  const isBatchReplaceDisabeld = computed(() => Object.keys(checkedNodeMap.value).length < 1);
-
-
-  const isSelectedAll = computed(() => tableData.value.length > 0
-    && Object.keys(checkedNodeMap.value).length >= tableData.value.length);
-
-  const setRowClass = (data: KafkaNodeModel) => (isRecentDays(data.create_at, 24 * 3) ? 'is-new-row' : '');
-
-  const renderTableData = computed(() => {
-    const searchReg = new RegExp(`${encodeRegexp(searchKey.value)}`);
-    return tableData.value.filter(item => searchReg.test(item.ip));
-  });
 
   const checkNodeShrinkDisable = (node: KafkaNodeModel) => {
     const options = {
@@ -317,74 +244,167 @@
     return options;
   };
 
-  const columns = [
+  const globalBizsStore = useGlobalBizs();
+  const copy = useCopy();
+  const { t, locale } = useI18n();
+
+  const {
+    searchValue,
+    sortValue,
+    columnCheckedMap,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+    validateSearchValues,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach(ClusterTypes.KAFKA, [
+    'bk_cloud_id',
+  ], () => fetchNodeList());
+
+  const isAnomalies = ref(false);
+  const isShowReplace = ref(false);
+  const isShowExpandsion = ref(false);
+  const isShowShrink = ref(false);
+  const isShowDetail = ref(false);
+  const isLoading = ref(true);
+  const isCopyDropdown = ref(false);
+
+  const operationData = shallowRef<KafkaModel>();
+  const operationNodeData = shallowRef<KafkaNodeModel>();
+  const operationNodeList = shallowRef<Array<KafkaNodeModel>>([]);
+  const tableData = shallowRef<KafkaNodeModel[]>([]);
+  const checkedNodeMap = shallowRef<Record<number, KafkaNodeModel>>({});
+
+  const isCN = computed(() => locale.value === 'zh-cn');
+  const isBatchReplaceDisabeld = computed(() => Object.keys(checkedNodeMap.value).length < 1);
+
+  const batchShrinkDisabledInfo = computed(() => {
+    const options = {
+      disabled: false,
+      tooltips: {
+        disabled: true,
+        content: '',
+      },
+    };
+    const selectList = Object.values(checkedNodeMap.value);
+    if (selectList.length < 1) {
+      options.disabled = true;
+      options.tooltips.disabled = false;
+      options.tooltips.content = t('请先选中节点');
+      return options;
+    }
+    if (_.find(Object.values(checkedNodeMap.value), item => !item.isBroker)) {
+      options.disabled = true;
+      options.tooltips.disabled = false;
+      options.tooltips.content = t('仅Broker类型节点支持缩容');
+      return options;
+    }
+    let brokerNum = 0;
+    tableData.value.forEach((nodeItem) => {
+      if (checkedNodeMap.value[nodeItem.bk_host_id]) {
+        return;
+      }
+      if (nodeItem.isBroker) {
+        brokerNum = brokerNum + 1;
+      }
+    });
+
+    if (brokerNum < 1) {
+      options.disabled = true;
+      options.tooltips.disabled = false;
+      options.tooltips.content = t('Broker类型节点至少保留一个');
+    }
+    return options;
+  });
+
+  const isSelectedAll = computed(() => tableData.value.length > 0
+    && Object.keys(checkedNodeMap.value).length >= tableData.value.length);
+
+  const columns = computed(() => [
     {
       width: 60,
       fixed: 'left',
       label: () => (
-        <bk-checkbox
-          label={true}
-          model-value={isSelectedAll.value}
-          onChange={handleSelectAll}
-        />
-      ),
-      render: ({ data }: {data: KafkaNodeModel}) => (
-        <bk-checkbox
-          label={true}
-          model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
-          onChange={(value: boolean) => handleSelect(value, data)}
-        />
-      ),
+      <bk-checkbox
+        label={true}
+        model-value={isSelectedAll.value}
+        onChange={handleSelectAll}
+      />
+    ),
+      render: ({ data }: { data: KafkaNodeModel }) => (
+      <bk-checkbox
+        label={true}
+        model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
+        onChange={(value: boolean) => handleSelect(value, data)}
+      />
+    ),
     },
     {
       label: t('节点IP'),
       field: 'ip',
-      minWidth: 140,
+      width: 140,
       showOverflowTooltip: false,
       render: ({ data }: { data: KafkaNodeModel }) => (
-        <div style="display: flex; align-items: center;">
-          <div class="text-overflow" v-overflow-tips>{data.ip}</div>
-          {
-            isRecentDays(data.create_at, 24 * 3)
-              ? <span class="glob-new-tag ml-4" data-text="NEW" />
-              : null
-          }
+      <div style="display: flex; align-items: center;">
+        <div class="text-overflow" v-overflow-tips>
+          {data.ip}
         </div>
-      ),
+        {isRecentDays(data.create_at, 24 * 3) ? (
+          <span class="glob-new-tag ml-4" data-text="NEW" />
+        ) : null}
+      </div>
+    ),
     },
     {
       label: t('实例数量'),
       field: 'node_count',
+      sort: true,
+      width: 120,
     },
     {
       label: t('类型'),
-      width: 300,
+      field: 'node_type',
+      filter: {
+        list: [
+          {
+            value: 'broker',
+            text: 'Broker',
+          },
+          {
+            value: 'zookeeper',
+            text: 'Zookeeper',
+          },
+        ],
+        checked: columnCheckedMap.value.node_type,
+      },
+      width: 200,
       render: ({ data }: {data: KafkaNodeModel}) => (
         <RenderClusterRole data={[data.role]} />
       ),
     },
     {
       label: t('Agent状态'),
-      render: ({ data }: {data: KafkaNodeModel}) => (
-        <RenderHostStatus data={data.status} />
-      ),
+      field: 'status',
+      width: 120,
+      render: ({ data }: {data: KafkaNodeModel}) => <RenderHostStatus data={data.status} />,
     },
     {
       label: t('部署时间'),
       field: 'create_at',
+      sort: true,
+      width: 180,
+      render: ({ data }: {data: KafkaNodeModel}) => <span>{data.createAtDisplay}</span>,
     },
     {
       label: t('操作'),
       width: isCN.value ? 180 : 260,
       fixed: 'right',
-      render: ({ data }: {data: KafkaNodeModel}) => {
+      render: ({ data }: { data: KafkaNodeModel }) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
         <>
           <OperationBtnStatusTips data={operationData.value}>
-            <span
-              v-bk-tooltips={shrinkDisableTooltips.tooltips}
-              class="ml8">
+            <span v-bk-tooltips={shrinkDisableTooltips.tooltips} class="ml8">
               <auth-button
                 theme="primary"
                 text
@@ -406,8 +426,9 @@
               permission={data.permission.kafka_replace}
               resource={props.clusterId}
               disabled={operationData.value?.operationDisabled}
-              onClick={() => handleReplaceOne(data)}>
-              { t('替换') }
+              onClick={() => handleReplaceOne(data)}
+            >
+              {t('替换')}
             </auth-button>
           </OperationBtnStatusTips>
           <OperationBtnStatusTips data={operationData.value}>
@@ -419,32 +440,62 @@
               permission={data.permission.kafka_reboot}
               resource={props.clusterId}
               disabled={operationData.value?.operationDisabled}
-              onClick={() => handleShowDetail(data)}>
-              { t('重启实例') }
+              onClick={() => handleShowDetail(data)}
+            >
+              {t('重启实例')}
             </auth-button>
           </OperationBtnStatusTips>
         </>
         );
       },
     },
+  ]);
+
+  const searchSelectData = [
+    {
+      name: 'IP',
+      id: 'ip',
+      multiple: true,
+    },
+    {
+      name: t('类型'),
+      id: 'node_type',
+      multiple: true,
+      children: [
+        {
+          id: 'broker',
+          name: 'Broker',
+        },
+        {
+          id: 'zookeeper',
+          name: 'Zookeeper',
+        },
+      ],
+    },
   ];
+
+  const setRowClass = (data: KafkaNodeModel) => (isRecentDays(data.create_at, 24 * 3) ? 'is-new-row' : '');
 
   const fetchClusterDetail = () => {
     // 获取集群详情
     getKafkaDetail({
       id: props.clusterId,
-    })
-      .then((data) => {
-        operationData.value = data;
-      });
+    }).then((data) => {
+      operationData.value = data;
+    });
   };
 
   const fetchNodeList = () => {
     isLoading.value = true;
+    const extraParams = {
+      ...getSearchSelectorParams(searchValue.value),
+      ...sortValue,
+    };
     getKafkaNodeList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       no_limit: 1,
+      ...extraParams,
     }).then((data) => {
       tableData.value = data.results;
       isAnomalies.value = false;
@@ -458,24 +509,24 @@
       });
   };
 
-  const handleClearSearch = () => {
-    searchKey.value = '';
-  };
-
   const {
     pause: pauseFetchClusterDetail,
     resume: resumeFetchClusterDetail,
-  } = useTimeoutPoll(fetchClusterDetail, 2000, {
+  } =  useTimeoutPoll(fetchClusterDetail, 2000, {
     immediate: true,
   });
 
-  watch(() => props.clusterId, () => {
-    pauseFetchClusterDetail();
-    resumeFetchClusterDetail();
-    fetchNodeList();
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      pauseFetchClusterDetail();
+      resumeFetchClusterDetail();
+      fetchNodeList();
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleOperationChange = () => {
     fetchNodeList();
@@ -535,10 +586,13 @@
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      checkedNodeMap.value = tableData.value.reduce((result, nodeData) => ({
-        ...result,
-        [nodeData.bk_host_id]: nodeData,
-      }), {} as Record<number, KafkaNodeModel>);
+      checkedNodeMap.value = tableData.value.reduce(
+        (result, nodeData) => ({
+          ...result,
+          [nodeData.bk_host_id]: nodeData,
+        }),
+        {} as Record<number, KafkaNodeModel>,
+      );
     } else {
       checkedNodeMap.value = {};
     }
@@ -582,23 +636,23 @@
   };
 </script>
 <style lang="less">
-  .kafka-detail-node-list {
-    padding: 24px 0;
+.kafka-detail-node-list {
+  padding: 24px 0;
 
-    .action-box {
-      display: flex;
-      margin-bottom: 16px;
-    }
+  .action-box {
+    display: flex;
+    margin-bottom: 16px;
+  }
 
-    .action-copy-icon {
-      margin-left: 6px;
-      color: #979ba5;
-      transform: rotateZ(180deg);
-      transition: all 0.2s;
+  .action-copy-icon {
+    margin-left: 6px;
+    color: #979ba5;
+    transform: rotateZ(180deg);
+    transition: all 0.2s;
 
-      &--avtive {
-        transform: rotateZ(0);
-      }
+    &--avtive {
+      transform: rotateZ(0);
     }
   }
+}
 </style>

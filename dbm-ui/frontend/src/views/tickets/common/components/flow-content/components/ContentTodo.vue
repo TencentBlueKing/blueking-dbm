@@ -13,24 +13,24 @@
 
 <template>
   <div class="flow-todo__infos">
-    {{ data.done_by }} {{ t('处理完成') }}， {{ t('操作') }}：
-    <span :class="String(data.status).toLowerCase()">
-      {{ getOperation(data) }}
-    </span>
-    ， {{ t('耗时') }}：{{ getCostTimeDisplay(data.cost_time) }}
+    <I18nT keypath="U_已处理_A_耗时_T">
+      <span>{{ data.done_by }}</span>
+      <span>{{ getOperation(data) }}</span>
+      <span>{{ getCostTimeDisplay(data.cost_time) }}</span>
+    </I18nT>
     <template v-if="data.url">
       ，
       <a
         :href="data.url"
         :target="hrefTarget">
-        {{ t('查看详情') }} &gt;
+        {{ $t('查看详情') }} &gt;
       </a>
     </template>
-    <p
+    <div
       v-if="data.done_at"
       class="flow-time">
       {{ utcDisplayTime(data.done_at) }}
-    </p>
+    </div>
   </div>
 </template>
 

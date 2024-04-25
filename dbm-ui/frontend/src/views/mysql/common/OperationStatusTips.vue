@@ -26,7 +26,7 @@
       <RouterLink
         target="_blank"
         :to="{
-          name: 'SelfServiceMyTickets',
+          name: 'bizTicketManage',
           query: {
             id: data.ticket_id,
           },
@@ -133,7 +133,7 @@
   });
 </script>
 <style lang="less" scoped>
-  .cluster-operation-status-tips {
-    display: inline-block;
-  }
+.cluster-operation-status-tips {
+  display: inline-block;
+}
 </style>

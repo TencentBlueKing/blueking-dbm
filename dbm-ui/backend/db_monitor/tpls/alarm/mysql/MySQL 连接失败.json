@@ -53,7 +53,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 1
+                  "threshold": 3
                 }
               ]
             ],

@@ -95,7 +95,7 @@ func (m *BkBizId) QueryAccountRule() ([]*AccountRuleSplitUser, int64, error) {
 }
 
 // AddAccountRule 新增账号规则
-func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
+func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
 	var (
 		accountRule TbAccountRules
 		dbs         []string
@@ -136,7 +136,7 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 
 	for _, _type := range ConstPrivType {
 		value, exists := m.Priv[_type]
-		if exists {
+		if exists && value != "" {
 			if _type == "dml" || _type == "ddl" {
 				dmlDdlPriv = fmt.Sprintf("%s,%s", dmlDdlPriv, value)
 			} else {
@@ -166,14 +166,14 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 	if err != nil {
 		return err
 	}
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: vtime}
+	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: vtime}
 	AddPrivLog(log)
 
 	return nil
 }
 
 // ModifyAccountRule 修改账号规则
-func (m *AccountRulePara) ModifyAccountRule(jsonPara string) error {
+func (m *AccountRulePara) ModifyAccountRule(jsonPara string, ticket string) error {
 	var (
 		accountRule TbAccountRules
 		dbname      string
@@ -255,14 +255,14 @@ func (m *AccountRulePara) ModifyAccountRule(jsonPara string) error {
 		return errno.AccountRuleNotExisted
 	}
 
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
+	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 
 	return nil
 }
 
 // DeleteAccountRule 删除账号规则
-func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string) error {
+func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string, ticket string) error {
 	if m.BkBizId == 0 {
 		return errno.BkBizIdIsEmpty
 	}
@@ -297,7 +297,7 @@ func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string) error {
 	if result.RowsAffected == 0 {
 		return errno.AccountRuleNotExisted
 	}
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
+	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 	return nil
 }

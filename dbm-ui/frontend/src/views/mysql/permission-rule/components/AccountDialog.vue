@@ -153,7 +153,7 @@
     user: [{
       trigger: 'change',
       message: userPlaceholder,
-      validator: (value: string) => /^[a-z0-9][a-z0-9-_.]*$/g.test(value),
+      validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9-_.]*$/g.test(value),
     }],
     password: [{
       trigger: 'blur',

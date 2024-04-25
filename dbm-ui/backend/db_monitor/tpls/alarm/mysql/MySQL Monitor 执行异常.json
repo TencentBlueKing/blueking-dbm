@@ -38,7 +38,8 @@
               "machine_type",
               "instance_port",
               "instance_role",
-              "instance_host"
+              "instance_host",
+              "bk_target_service_instance_id"
             ],
             "agg_condition": [],
             "custom_event_name": "monitor-internal-error",

@@ -181,6 +181,12 @@ type MonitorConfig struct {
 	BeatPath     string `yaml:"beat_path"`
 	AgentAddress string `yaml:"agent_address"`
 	LocalIP      string `yaml:"local_ip"`
+	//value 0 allowed, so required tag could not assign
+	CloudID int `yaml:"cloud_id"`
+	//interval(second) for global monitor
+	MonitorInterval int `yaml:"monitor_interval"`
+	// active cluster type list for agent detect
+	ActiveDBType []string `yaml:"active_db_type"`
 }
 
 // TimezoneConfig support config timezone

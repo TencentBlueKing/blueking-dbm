@@ -16,16 +16,17 @@ import type { ClusterTypes, DBTypes } from '@common/const';
 export type ClusterTypeOpts = ClusterTypes.TENDBSINGLE | ClusterTypes.TENDBHA | ClusterTypes.TENDBCLUSTER;
 
 export type InstanceSelectorValue = {
-  bk_host_id: number;
-  bk_cloud_id: number;
-  ip: string;
-  port: number;
-  instance_address: string;
-  cluster_id: number;
-  cluster_type: ClusterTypes;
-  role: string;
-  db_type: DBTypes;
-};
+  bk_host_id: number,
+  bk_cloud_id: number,
+  ip: string,
+  port: number
+  instance_address: string,
+  cluster_id: number,
+  cluster_type: ClusterTypes,
+  role: string,
+  db_type: DBTypes,
+  master_domain: string
+}
 
 export type InstanceSelectorValues = {
   tendbha: InstanceSelectorValue[];

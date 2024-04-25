@@ -24,8 +24,7 @@
       :max-height="530"
       :pagination="pagination.count < 10 ? false : pagination"
       :remote-pagination="false"
-      :settings="tableSetting"
-      @row-click.stop.prevent="handleRowClick" />
+      :settings="tableSetting" />
   </div>
 </template>
 <script setup lang="tsx" generic="T extends IValue">
@@ -288,13 +287,6 @@
     triggerChange();
   };
 
-  const handleRowClick = (key: number, data: T) => {
-    if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
-      return;
-    }
-    const checked = checkedMap.value[data[firstColumnFieldId.value]];
-    handleTableSelectOne(!checked, data);
-  };
 </script>
 
 <style lang="less">

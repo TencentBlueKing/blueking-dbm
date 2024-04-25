@@ -31,7 +31,7 @@
     <div class="ticket-details__list">
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('指定执行时间') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails.details.timing }}</span>
+        <span class="ticket-details__item-value">{{ utcDisplayTime(ticketDetails.details.timing) }}</span>
       </div>
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('全局超时时间（h）') }}：</span>
@@ -64,6 +64,8 @@
   import { getSpiderListByBizId } from '@services/source/spider';
   import type { SpiderCheckSumDetails, TicketDetails } from '@services/types/ticket';
 
+  import { utcDisplayTime } from '@utils';
+
   interface Props {
     ticketDetails: TicketDetails<SpiderCheckSumDetails>;
   }
@@ -85,7 +87,6 @@
 
   const tableData = ref<RowData[]>([]);
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
   const { infos } = props.ticketDetails.details;
   const repairModesMap = {
     timer: t('定时执行'),

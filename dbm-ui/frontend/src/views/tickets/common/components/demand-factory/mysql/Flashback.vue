@@ -26,6 +26,8 @@
     TicketDetails,
   } from '@services/types/ticket';
 
+  import { utcDisplayTime } from '@utils';
+
   interface Props {
     ticketDetails: TicketDetails<MySQLFlashback>
   }
@@ -34,69 +36,73 @@
 
   const { t } = useI18n();
 
-  /**
-   *  MySQL 闪回
-   */
-
-  const columns: any = [{
-    label: t('集群ID'),
-    field: 'cluster_id',
-    render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('开始时间'),
-    field: 'start_time',
-    showOverflowTooltip: true,
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('结束时间'),
-    field: 'end_time',
-    showOverflowTooltip: true,
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('目标库'),
-    field: 'databases',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+  const columns = [
+    {
+      label: t('集群ID'),
+      field: 'cluster_id',
+      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('开始时间'),
+      field: 'start_time',
+      showOverflowTooltip: true,
+      render: ({ cell }: { cell: string }) => <span>{utcDisplayTime(cell) || '--'}</span>,
+    },
+    {
+      label: t('结束时间'),
+      field: 'end_time',
+      showOverflowTooltip: true,
+      render: ({ cell }: { cell: string }) => <span>{utcDisplayTime(cell) || '--'}</span>,
+    },
+    {
+      label: t('目标库'),
+      field: 'databases',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.map(item => <bk-tag>{item}</bk-tag>)}
       </div>
     ),
-  }, {
-    label: t('目标表'),
-    field: 'tables',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('目标表'),
+      field: 'tables',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.map(item => <bk-tag>{item}</bk-tag>)}
       </div>
     ),
-  }, {
-    label: t('忽略库'),
-    field: 'databases_ignore',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('忽略库'),
+      field: 'databases_ignore',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
       </div>
     ),
-  }, {
-    label: t('忽略表'),
-    field: 'tables_ignore',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('忽略表'),
+      field: 'tables_ignore',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
       </div>
     ),
-  }];
+    },
+  ];
 
   const dataList = computed(() => props.ticketDetails?.details?.infos || []);
 </script>

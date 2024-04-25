@@ -29,6 +29,7 @@
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
+        :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
 
@@ -163,6 +164,7 @@
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.PULSAE, [
     'bk_cloud_id',
@@ -662,12 +664,6 @@
     isInit.value = false;
   };
 
-  const {
-    resume: resumeFetchTableData,
-  } = useTimeoutPoll(() => fetchTableData(isInit.value), 5000, {
-    immediate: false,
-  });
-
   const handleGoApply = () => {
     router.push({
       name: 'PulsarApply',
@@ -822,7 +818,6 @@
   };
 
   onMounted(() => {
-    resumeFetchTableData();
     if (!clusterId.value && route.query.id) {
       handleToDetails(Number(route.query.id));
     }

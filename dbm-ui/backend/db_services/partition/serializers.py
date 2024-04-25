@@ -13,7 +13,7 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import AppCache, Cluster
 from backend.ticket.builders.mysql.mysql_partition import PartitionObjectSerializer
 
 from ...ticket.builders.common.field import DBTimezoneField
@@ -67,8 +67,11 @@ class PartitionCreateSerializer(serializers.Serializer):
 
         # 补充集群信息
         cluster = Cluster.objects.get(id=attrs["cluster_id"])
+        app = AppCache.objects.get(bk_biz_id=cluster.bk_biz_id)
         attrs.update(
             bk_biz_id=cluster.bk_biz_id,
+            bk_biz_name=app.bk_biz_name,
+            db_app_abbr=app.db_app_abbr,
             bk_cloud_id=cluster.bk_cloud_id,
             cluster_type=cluster.cluster_type,
             immute_domain=cluster.immute_domain,

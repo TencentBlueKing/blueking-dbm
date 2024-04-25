@@ -153,15 +153,19 @@
       field: 'ticket_id',
       width: 170,
       render: ({ data }: {data: OperationModel}) => (data.ticket_id
-        ? <auth-button
+        ? <auth-router-link
+            to={{
+              name: 'bizTicketManage',
+              query: {
+                id: data.ticket_id,
+              },
+            }}
             action-id="ticket_view"
             resource={data.ticket_id}
             permission={data.permission.ticket_view}
-            text
-            theme="primary"
-            onClick={() => handleGoTicketDetail(data)}>
+            target="_blank">
             {data.ticket_id}
-          </auth-button>
+          </auth-router-link>
         : '--'),
     },
     {

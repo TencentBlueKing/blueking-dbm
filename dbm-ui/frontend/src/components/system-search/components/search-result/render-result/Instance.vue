@@ -10,8 +10,7 @@
           :key-word="keyWord"
           :text="getMatchText(item)" />
         <div class="intro">
-          (实例<span v-if="item.cluster_domain">, {{ item.cluster_domain }} </span>
-          )
+          ({{ t('实例') }}<span v-if="item.cluster_domain">, {{ item.cluster_domain }}</span>)
         </div>
       </div>
       <div class="biz-text">
@@ -21,6 +20,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { systemSearchCache } from '@common/cache';
 
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
@@ -44,6 +45,7 @@
 
   const props = defineProps<Props>();
 
+  const { t } = useI18n();
   const handleRedirect = useRedirect();
 
   const getMatchText = (data: Props['data'][number]) => {

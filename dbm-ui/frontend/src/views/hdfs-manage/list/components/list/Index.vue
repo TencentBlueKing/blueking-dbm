@@ -31,6 +31,7 @@
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
+        :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
     <div
@@ -150,10 +151,6 @@
     isRecentDays,
   } from '@utils';
 
-  import {
-    useTimeoutPoll,
-  } from '@vueuse/core';
-
   import ClusterSettings from './components/ClusterSettings.vue';
 
   import type {
@@ -186,6 +183,7 @@
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.HDFS, [
     'bk_cloud_id',
@@ -706,12 +704,6 @@
     selected.value = list;
   };
 
-  const {
-    resume: resumeFetchTableData,
-  } = useTimeoutPoll(() => fetchTableData(isInit.value), 5000, {
-    immediate: false,
-  });
-
   // 集群提单
   const handleGoApply = () => {
     router.push({
@@ -862,7 +854,6 @@
   };
 
   onMounted(() => {
-    resumeFetchTableData();
     if (!clusterId.value && route.query.id) {
       handleToDetails(Number(route.query.id));
     }
