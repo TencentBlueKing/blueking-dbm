@@ -8,19 +8,32 @@ import (
 
 // ExecuteLoad execute load backup command
 func ExecuteLoad(cnf *config.BackupConfig) error {
-	if cnf.LogicalLoad.IndexFilePath != "" && cnf.PhysicalLoad.IndexFilePath != "" {
-		if cnf.LogicalLoad.IndexFilePath != cnf.PhysicalLoad.IndexFilePath {
-			err := errors.New("the IndexFilePath of LogicalLoad should be same as " +
-				"the IndexFilePath of PhysicalLoad, if you set both values")
-			return err
-		}
+	pathNum := 0
+	if cnf.LogicalLoad.IndexFilePath != "" {
+		pathNum++
+	}
+	if cnf.PhysicalLoad.IndexFilePath != "" {
+		pathNum++
+	}
+	if cnf.LogicalLoadMysqldump.IndexFilePath != "" {
+		pathNum++
+	}
+
+	if pathNum >= 2 {
+		err := errors.New("Setting multiple IndexFilePath values is not allowed")
+		return err
 	}
 
 	var indexPath string
+	useMysqldump := false
 	if cnf.LogicalLoad.IndexFilePath != "" {
 		indexPath = cnf.LogicalLoad.IndexFilePath
+		useMysqldump = false
 	} else if cnf.PhysicalLoad.IndexFilePath != "" {
 		indexPath = cnf.PhysicalLoad.IndexFilePath
+	} else if cnf.LogicalLoadMysqldump.IndexFilePath != "" {
+		indexPath = cnf.LogicalLoadMysqldump.IndexFilePath
+		useMysqldump = true
 	}
 	if indexPath == "" { // required
 		return errors.New("loadbackup need IndexFilePath")
@@ -35,7 +48,7 @@ func ExecuteLoad(cnf *config.BackupConfig) error {
 		return envErr
 	}
 
-	loader, err := BuildLoader(cnf, indexFileContent.BackupType)
+	loader, err := BuildLoader(cnf, indexFileContent.BackupType, useMysqldump)
 	if err != nil {
 		return err
 	}

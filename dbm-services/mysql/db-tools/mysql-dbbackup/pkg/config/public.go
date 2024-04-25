@@ -54,6 +54,8 @@ type Public struct {
 	BackupTimeOut string `ini:"BackupTimeout"`
 	// BackupType backup type,  oneof=logical physical
 	BackupType string `ini:"BackupType" validate:"required"`
+	// UseMysqldump true means used, false means disabled. The default value is false
+	UseMysqldump bool `ini:"UseMysqldump"`
 	// OldFileLeftDay will remove old backup files before the days
 	OldFileLeftDay int `ini:"OldFileLeftDay"`
 	// TarSizeThreshold tar file size. MB

@@ -24,6 +24,43 @@ type mydumperMetadata struct {
 	Tables       map[string]interface{}
 }
 
+func parseMysqldumpMetadata(metadataFile string) (*mydumperMetadata, error) {
+	metafile, err := os.Open(metadataFile)
+	if err != nil {
+		return nil, err
+	}
+	defer metafile.Close()
+
+	var metadata = &mydumperMetadata{
+		MasterStatus: map[string]string{},
+		SlaveStatus:  map[string]string{},
+		Tables:       map[string]interface{}{},
+	}
+
+	var l string // one line
+	buf := bufio.NewScanner(metafile)
+	reMaster := `CHANGE MASTER TO MASTER_LOG_FILE='([^']+)', MASTER_LOG_POS=(\d+)`
+	reSlave := `CHANGE SLAVE TO MASTER_LOG_FILE='([^']+)', MASTER_LOG_POS=(\d+)`
+	reShowMaster := regexp.MustCompile(reMaster)
+	reShowSlave := regexp.MustCompile(reSlave)
+	for buf.Scan() {
+		l = buf.Text()
+		matches := reShowMaster.FindStringSubmatch(l)
+		if len(matches) == 3 {
+			metadata.MasterStatus["File"] = matches[1]
+			metadata.MasterStatus["Position"] = matches[2]
+			break
+		}
+		matches2 := reShowSlave.FindStringSubmatch(l)
+		if len(matches2) == 3 {
+			metadata.SlaveStatus["File"] = matches2[1]
+			metadata.SlaveStatus["Position"] = matches2[2]
+			break
+		}
+	}
+	return metadata, nil
+}
+
 func parseMydumperMetadata(metadataFile string) (*mydumperMetadata, error) {
 	metafile, err := os.Open(metadataFile)
 	if err != nil {

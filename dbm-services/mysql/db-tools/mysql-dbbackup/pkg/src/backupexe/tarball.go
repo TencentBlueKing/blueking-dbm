@@ -323,8 +323,14 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 
 	// package files, and produce the index file at the same time
 	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
-		if indexFilePath, err = packageFile.MappingPackage(); err != nil {
-			return "", err
+		if cnf.Public.UseMysqldump {
+			if indexFilePath, err = packageFile.SplittingPackage(); err != nil {
+				return "", err
+			}
+		} else {
+			if indexFilePath, err = packageFile.MappingPackage(); err != nil {
+				return "", err
+			}
 		}
 	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
 		if indexFilePath, err = packageFile.SplittingPackage(); err != nil {
