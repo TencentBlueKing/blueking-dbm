@@ -1,9 +1,6 @@
-package service
+package mysql
 
-type Request struct {
-	Content string `json:"content" binding:"required"`
-}
-
+// Response TODO
 type Response struct {
 	Command         string `json:"command"`
 	QueryString     string `json:"query_string"`
