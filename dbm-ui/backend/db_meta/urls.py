@@ -38,6 +38,22 @@ if env.SERVICE_ONLY:
             views.nosql.create_nosql_cluster,
             name="create-nosql-cluster",
         ),
+        # 提供给 DBPRIV 使用, 老版本 api, 等待废弃
+        path(
+            "priv_manager/cluster_instances",
+            views.priv_manager.cluster_instances,
+            name="priv_manager-cluster_instances",
+        ),
+        path(
+            "priv_manager/instance_detail",
+            views.priv_manager.instance_detail,
+            name="priv_manager-instance_detail",
+        ),
+        path(
+            "priv_manager/biz_clusters",
+            views.priv_manager.biz_clusters,
+            name="priv_manager-biz_clusters",
+        ),
         # priv manager tendbcluster
         path(
             "priv_manager/tendbcluster/cluster_instances",
