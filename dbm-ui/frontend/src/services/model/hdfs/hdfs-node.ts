@@ -9,7 +9,8 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
- */
+*/
+import { utcDisplayTime } from '@utils';
 
 export default class HdfsNode {
   static ROLE_DATA_NODE = 'hdfs_datanode';
@@ -64,10 +65,16 @@ export default class HdfsNode {
   get isJournalNode() {
     return this.role_set.includes(HdfsNode.ROLE_JOURNAL_NODE);
   }
+
   get isZookeeper() {
     return this.role_set.includes(HdfsNode.ROLE_ZOOKEEPER);
   }
+
   get isNameNode() {
     return this.role_set.includes(HdfsNode.ROLE_NAME_NODE);
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 }

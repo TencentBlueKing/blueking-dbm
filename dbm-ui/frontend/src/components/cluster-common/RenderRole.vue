@@ -17,7 +17,8 @@
     <template v-else>
       <BkTag
         v-for="item in renderList"
-        :key="item">
+        :key="item"
+        class="mr-4">
         {{ item }}
       </BkTag>
     </template>

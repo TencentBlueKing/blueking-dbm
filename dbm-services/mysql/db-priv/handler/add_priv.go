@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log/slog"
+	"strings"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/service"
@@ -27,7 +28,7 @@ func (m *PrivService) AddPrivDryRun(c *gin.Context) {
 		return
 	}
 
-	if err := json.Unmarshal(body, &input); err != nil {
+	if err = json.Unmarshal(body, &input); err != nil {
 		slog.Error("msg", err)
 		SendResponse(c, errno.ErrBind, err)
 		return
@@ -47,6 +48,7 @@ func (m *PrivService) AddPriv(c *gin.Context) {
 	slog.Info("do AddPriv!")
 
 	var input service.PrivTaskPara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -61,7 +63,7 @@ func (m *PrivService) AddPriv(c *gin.Context) {
 		return
 	}
 
-	err = input.AddPriv(string(body))
+	err = input.AddPriv(string(body), ticket)
 	SendResponse(c, err, nil)
 	return
 }
@@ -71,6 +73,7 @@ func (m *PrivService) AddPrivWithoutAccountRule(c *gin.Context) {
 	slog.Info("do AddPrivWithoutAccountRule!")
 
 	var input service.AddPrivWithoutAccountRule
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -85,7 +88,7 @@ func (m *PrivService) AddPrivWithoutAccountRule(c *gin.Context) {
 		return
 	}
 
-	err = input.AddPrivWithoutAccountRule(string(body))
+	err = input.AddPrivWithoutAccountRule(string(body), ticket)
 	SendResponse(c, err, nil)
 	return
 }

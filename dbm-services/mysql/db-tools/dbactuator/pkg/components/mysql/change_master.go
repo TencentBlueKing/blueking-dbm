@@ -192,6 +192,11 @@ func (b *BuildMSRelationComp) CheckBuildOk() (err error) {
 	)
 }
 
+func (b *BuildMSRelationComp) CloseAllDbConn() {
+	b.db.Close()
+	b.mdb.Close()
+}
+
 /**
  * @description: 根据show slave status 检查主从是否建立正常
  * @return {*}

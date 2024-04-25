@@ -523,5 +523,6 @@ class RedisClusterVersionUpdateOnline(object):
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("集群{}版本在线升级".format(cluster_meta_data["cluster_name"])))
             )
-        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+        if sub_pipelines:
+            redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         redis_pipeline.run_pipeline()

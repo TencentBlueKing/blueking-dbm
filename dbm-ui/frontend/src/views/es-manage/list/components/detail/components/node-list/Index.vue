@@ -31,6 +31,7 @@
             class="ml8"
             :disabled="batchShrinkDisabledInfo.disabled || operationData?.operationDisabled"
             :resource="clusterId"
+            :permission="operationData?.permission.es_shrink"
             @click="handleShowShrink">
             {{ t('缩容') }}
           </AuthButton>
@@ -79,11 +80,14 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <BkInput
-        v-model="searchKey"
-        clearable
-        :placeholder="t('请输入IP搜索')"
-        style="max-width: 360px; margin-left: 8px; flex: 1" />
+      <DbSearchSelect
+        :data="searchSelectData"
+        :model-value="searchValue"
+        :placeholder="t('请输入或选择条件搜索')"
+        style="max-width: 360px; margin-left: 8px; flex: 1;"
+        unique-select
+        :validate-values="validateSearchValues"
+        @change="handleSearchValueChange" />
     </div>
     <BkAlert
       v-if="operationData?.operationStatusText"
@@ -110,12 +114,13 @@
     <BkLoading :loading="isLoading">
       <DbOriginalTable
         :columns="columns"
-        :data="renderTableData"
+        :data="tableData"
         :is-anomalies="isAnomalies"
-        :is-searching="!!searchKey"
+        :is-searching="!!searchValue.length"
         :row-class="setRowClass"
-        @clear-search="handleClearSearch"
-        @refresh="fetchNodeList"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
+        @column-sort="columnSortChange"
         @select="handleSelect"
         @select-all="handleSelectAll" />
     </BkLoading>
@@ -164,26 +169,20 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type EsModel from '@services/model/es/es';
   import EsNodeModel from '@services/model/es/es-node';
-  import {
-    getEsDetail,
-    getEsNodeList,
-  } from '@services/source/es';
+  import { getEsDetail, getEsNodeList } from '@services/source/es';
 
   import {
     useCopy,
-    useDebouncedRef,
+    useLinkQueryColumnSerach,
   } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
+
+  import { ClusterTypes } from '@common/const';
 
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
@@ -194,7 +193,7 @@
   import ClusterShrink from '@views/es-manage/common/shrink/Index.vue';
 
   import {
-    encodeRegexp,
+    getSearchSelectorParams,
     isRecentDays,
     messageWarn,
   } from '@utils';
@@ -208,95 +207,6 @@
   }
 
   const props = defineProps<Props>();
-
-  const globalBizsStore = useGlobalBizs();
-  const copy = useCopy();
-  const { t, locale } = useI18n();
-
-  const isCN = computed(() => locale.value === 'zh-cn');
-  const searchKey = useDebouncedRef('');
-  const isAnomalies = ref(false);
-  const operationData = shallowRef<EsModel>();
-  const operationNodeData = shallowRef<EsNodeModel>();
-  const operationNodeList = shallowRef<Array<EsNodeModel>>([]);
-  const isShowReplace = ref(false);
-  const isShowExpandsion = ref(false);
-  const isShowShrink = ref(false);
-  const isShowDetail = ref(false);
-  const isLoading = ref(true);
-  const isCopyDropdown = ref(false);
-  const tableData = shallowRef<EsNodeModel[]>([]);
-  const checkedNodeMap = shallowRef<Record<number, EsNodeModel>>({});
-
-  const isSelectedAll = computed(() => tableData.value.length > 0
-    && Object.keys(checkedNodeMap.value).length >= tableData.value.length);
-
-  const setRowClass = (data: EsNodeModel) => (isRecentDays(data.create_at, 24 * 3) ? 'is-new-row' : '');
-
-  const batchShrinkDisabledInfo = computed(() => {
-    const options = {
-      disabled: false,
-      tooltips: {
-        disabled: true,
-        content: '',
-      },
-    };
-    const selectList = Object.values(checkedNodeMap.value);
-    if (selectList.length < 1) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('请先选中节点');
-      return options;
-    }
-    if (_.find(
-      Object.values(checkedNodeMap.value),
-      item => !(item.isClient || item.isHot || item.isCold),
-    )) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('Master节点不支持缩容');
-      return options;
-    }
-
-    // 其它类型的节点数不能全部被缩容，至少保留一个
-    let clientNodeNum = 0;
-    let hotNodeNum = 0;
-    let coldNodeNum = 0;
-    tableData.value.forEach((nodeItem) => {
-      if (checkedNodeMap.value[nodeItem.bk_host_id]) {
-        return;
-      }
-      if (nodeItem.isClient) {
-        clientNodeNum = clientNodeNum + 1;
-      } else if (nodeItem.isHot) {
-        hotNodeNum = hotNodeNum + 1;
-      } else if (nodeItem.isCold) {
-        coldNodeNum = coldNodeNum + 1;
-      }
-    });
-
-    if (clientNodeNum < 1) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('Client类型节点至少保留一个');
-    } else if (hotNodeNum < 1) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('热节点至少保留一个');
-    } else if (coldNodeNum < 1) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('冷节点至少保留一个');
-    }
-
-    return options;
-  });
-  const isBatchReplaceDisabeld = computed(() => Object.keys(checkedNodeMap.value).length < 1);
-
-  const renderTableData = computed(() => {
-    const searchReg = new RegExp(`${encodeRegexp(searchKey.value)}`);
-    return tableData.value.filter(item => searchReg.test(item.ip));
-  });
 
   const checkNodeShrinkDisable = (node: EsNodeModel) => {
     const options = {
@@ -345,7 +255,105 @@
     return options;
   };
 
-  const columns = [
+  const globalBizsStore = useGlobalBizs();
+  const copy = useCopy();
+  const { t, locale } = useI18n();
+
+  const {
+    searchValue,
+    sortValue,
+    columnCheckedMap,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+    validateSearchValues,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach(ClusterTypes.ES, [
+    'bk_cloud_id',
+  ], () => fetchNodeList());
+
+  const isAnomalies = ref(false);
+  const isShowReplace = ref(false);
+  const isShowExpandsion = ref(false);
+  const isShowShrink = ref(false);
+  const isShowDetail = ref(false);
+  const isLoading = ref(true);
+  const isCopyDropdown = ref(false);
+
+  const operationData = shallowRef<EsModel>();
+  const operationNodeData = shallowRef<EsNodeModel>();
+  const operationNodeList = shallowRef<Array<EsNodeModel>>([]);
+  const tableData = shallowRef<EsNodeModel[]>([]);
+  const checkedNodeMap = shallowRef<Record<number, EsNodeModel>>({});
+
+  const isCN = computed(() => locale.value === 'zh-cn');
+  const isBatchReplaceDisabeld = computed(() => Object.keys(checkedNodeMap.value).length < 1);
+
+  const isSelectedAll = computed(() => tableData.value.length > 0
+    && Object.keys(checkedNodeMap.value).length >= tableData.value.length);
+
+  const batchShrinkDisabledInfo = computed(() => {
+    const options = {
+      disabled: false,
+      tooltips: {
+        disabled: true,
+        content: '',
+      },
+    };
+    const selectList = Object.values(checkedNodeMap.value);
+    if (selectList.length < 1) {
+      options.disabled = true;
+      options.tooltips.disabled = false;
+      options.tooltips.content = t('请先选中节点');
+      return options;
+    }
+    if (
+      _.find(
+        Object.values(checkedNodeMap.value),
+        item => !(item.isClient || item.isHot || item.isCold),
+      )
+    ) {
+      options.disabled = true;
+      options.tooltips.disabled = false;
+      options.tooltips.content = t('Master节点不支持缩容');
+      return options;
+    }
+
+    // 其它类型的节点数不能全部被缩容，至少保留一个
+    let clientNodeNum = 0;
+    let hotNodeNum = 0;
+    let coldNodeNum = 0;
+    tableData.value.forEach((nodeItem) => {
+      if (checkedNodeMap.value[nodeItem.bk_host_id]) {
+        return;
+      }
+      if (nodeItem.isClient) {
+        clientNodeNum = clientNodeNum + 1;
+      } else if (nodeItem.isHot) {
+        hotNodeNum = hotNodeNum + 1;
+      } else if (nodeItem.isCold) {
+        coldNodeNum = coldNodeNum + 1;
+      }
+    });
+
+    if (clientNodeNum < 1) {
+      options.disabled = true;
+      options.tooltips.disabled = false;
+      options.tooltips.content = t('Client类型节点至少保留一个');
+    } else if (hotNodeNum < 1) {
+      options.disabled = true;
+      options.tooltips.disabled = false;
+      options.tooltips.content = t('热节点至少保留一个');
+    } else if (coldNodeNum < 1) {
+      options.disabled = true;
+      options.tooltips.disabled = false;
+      options.tooltips.content = t('冷节点至少保留一个');
+    }
+
+    return options;
+  });
+
+  const columns = computed(() => [
     {
       width: 60,
       fixed: 'left',
@@ -357,55 +365,82 @@
         />
       ),
       render: ({ data }: {data: EsNodeModel}) => (
-            <bk-checkbox
-              label={true}
-              model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
-              onChange={(value: boolean) => handleSelect(value, data)}
-            />
+        <bk-checkbox
+          label={true}
+          model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
+          onChange={(value: boolean) => handleSelect(value, data)}
+        />
         ),
     },
     {
       label: t('节点IP'),
       field: 'ip',
-      minWidth: 140,
+      width: 140,
       showOverflowTooltip: false,
       render: ({ data }: { data: EsNodeModel }) => (
-        <div style="display: flex; align-items: center;">
-          <div class="text-overflow" v-overflow-tips>{data.ip}</div>
-          {
-            isRecentDays(data.create_at, 24 * 3)
-              ? <span class="glob-new-tag ml-4" data-text="NEW" />
-              : null
-          }
+      <div style="display: flex; align-items: center;">
+        <div class="text-overflow" v-overflow-tips>
+          {data.ip}
         </div>
-      ),
+        {isRecentDays(data.create_at, 24 * 3) ? (
+          <span class="glob-new-tag ml-4" data-text="NEW" />
+        ) : null}
+      </div>
+    ),
     },
     {
       label: t('实例数量'),
       field: 'node_count',
+      sort: true,
+      width: 120,
     },
     {
       label: t('类型'),
-      width: 300,
+      field: 'node_type',
+      filter: {
+        list: [
+          {
+            value: 'es_datanode_hot',
+            text: t('热节点'),
+          },
+          {
+            value: 'es_datanode_cold',
+            text: t('冷节点'),
+          },
+          {
+            value: 'es_master',
+            text: 'Master',
+          },
+          {
+            value: 'es_client',
+            text: 'Client',
+          },
+        ],
+        checked: columnCheckedMap.value.node_type,
+      },
+      width: 200,
       render: ({ data }: {data: EsNodeModel}) => (
         <RenderClusterRole data={[data.role]} />
       ),
     },
     {
       label: t('Agent状态'),
-      render: ({ data }: {data: EsNodeModel}) => (
-        <RenderHostStatus data={data.status} />
-      ),
+      field: 'status',
+      width: 120,
+      render: ({ data }: {data: EsNodeModel}) => <RenderHostStatus data={data.status} />,
     },
     {
       label: t('部署时间'),
       field: 'create_at',
+      sort: true,
+      width: 180,
+      render: ({ data }: {data: EsNodeModel}) => <span>{data.createAtDisplay}</span>,
     },
     {
       label: t('操作'),
       width: isCN.value ? 200 : 260,
       fixed: 'right',
-      render: ({ data }: {data: EsNodeModel}) => {
+      render: ({ data }: { data: EsNodeModel }) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
           <>
@@ -452,24 +487,62 @@
         );
       },
     },
+  ]);
+
+  const searchSelectData = [
+    {
+      name: 'IP',
+      id: 'ip',
+      multiple: true,
+    },
+    {
+      name: t('类型'),
+      id: 'node_type',
+      multiple: true,
+      children: [
+        {
+          id: 'es_datanode_hot',
+          name: t('热节点'),
+        },
+        {
+          id: 'es_datanode_cold',
+          name: t('冷节点'),
+        },
+        {
+          id: 'es_master',
+          name: 'Master',
+        },
+        {
+          id: 'es_client',
+          name: 'Client',
+        },
+      ],
+    },
   ];
+
+
+  const setRowClass = (data: EsNodeModel) => (isRecentDays(data.create_at, 24 * 3) ? 'is-new-row' : '');
 
   const fetchClusterDetail = () => {
     // 获取集群详情
     getEsDetail({
       id: props.clusterId,
-    })
-      .then((data) => {
-        operationData.value = data;
-      });
+    }).then((data) => {
+      operationData.value = data;
+    });
   };
 
   const fetchNodeList = () => {
     isLoading.value = true;
+    const extraParams = {
+      ...getSearchSelectorParams(searchValue.value),
+      ...sortValue,
+    };
     getEsNodeList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       no_limit: 1,
+      ...extraParams,
     }).then((data) => {
       tableData.value = data.results;
       isAnomalies.value = false;
@@ -483,24 +556,24 @@
       });
   };
 
-  const handleClearSearch = () => {
-    searchKey.value = '';
-  };
-
   const {
     pause: pauseFetchClusterDetail,
     resume: resumeFetchClusterDetail,
-  } = useTimeoutPoll(fetchClusterDetail, 2000, {
+  } =  useTimeoutPoll(fetchClusterDetail, 2000, {
     immediate: true,
   });
 
-  watch(() => props.clusterId, () => {
-    pauseFetchClusterDetail();
-    resumeFetchClusterDetail();
-    fetchNodeList();
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      pauseFetchClusterDetail();
+      resumeFetchClusterDetail();
+      fetchNodeList();
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleOperationChange = () => {
     fetchNodeList();
@@ -560,10 +633,13 @@
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      checkedNodeMap.value = tableData.value.reduce((result, nodeData) => ({
-        ...result,
-        [nodeData.bk_host_id]: nodeData,
-      }), {} as Record<number, EsNodeModel>);
+      checkedNodeMap.value = tableData.value.reduce(
+        (result, nodeData) => ({
+          ...result,
+          [nodeData.bk_host_id]: nodeData,
+        }),
+        {} as Record<number, EsNodeModel>,
+      );
     } else {
       checkedNodeMap.value = {};
     }
@@ -600,23 +676,23 @@
   };
 </script>
 <style lang="less">
-  .es-detail-node-list {
-    padding: 24px 0;
+.es-detail-node-list {
+  padding: 24px 0;
 
-    .action-box {
-      display: flex;
-      margin-bottom: 16px;
-    }
+  .action-box {
+    display: flex;
+    margin-bottom: 16px;
+  }
 
-    .action-copy-icon {
-      margin-left: 6px;
-      color: #979ba5;
-      transform: rotateZ(180deg);
-      transition: all 0.2s;
+  .action-copy-icon {
+    margin-left: 6px;
+    color: #979ba5;
+    transform: rotateZ(180deg);
+    transition: all 0.2s;
 
-      &--avtive {
-        transform: rotateZ(0);
-      }
+    &--avtive {
+      transform: rotateZ(0);
     }
   }
+}
 </style>

@@ -61,7 +61,7 @@ export const getCapSpecs = (params: CapSpecsParams & { cityCode: string }) => ht
 /**
  * 创建单据
  */
-export const createTicket = (formData: Record<string, any>) => http.post<TicketItem>('/apis/tickets/', formData, { globalError: false })
+export const createTicket = (formData: Record<string, any>) => http.post<TicketItem>('/apis/tickets/', formData)
   .then(res => res)
   .catch((e) => {
     const { code, data } = e;
@@ -70,7 +70,7 @@ export const createTicket = (formData: Record<string, any>) => http.post<TicketI
       const id = data.duplicate_ticket_id;
 
       const route = router.resolve({
-        name: 'SelfServiceMyTickets',
+        name: 'bizTicketManage',
         query: {
           id,
         },

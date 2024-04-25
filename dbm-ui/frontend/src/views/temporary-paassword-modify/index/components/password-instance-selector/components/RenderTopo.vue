@@ -126,6 +126,43 @@
           cluster_type: props.panelTabActive,
         },
       ],
+    }).then((data) => {
+      const formatData = data.map((item) => {
+        const formatDataItem = { ...item, count: item.instance_count };
+        if (props.role === 'slave') {
+          formatDataItem.count = item.slaves?.length || 0;
+        } else if (props.role === 'proxy') {
+          formatDataItem.count = item.proxies?.length || 0;
+        } else if (props.role === 'master') {
+          formatDataItem.count = item.masters?.length || 0;
+        } else if (props.panelTabActive === 'tendbha') {
+          formatDataItem.count = formatDataItem.count - (item.proxies?.length || 0);
+        }
+        return formatDataItem;
+      });
+      treeData.value = [
+        {
+          name: currentBizInfo?.display_name || '--',
+          id: currentBizId,
+          obj: 'biz',
+          count: formatData.reduce((count, item) => count + item.count, 0),
+          children: formatData.map(item => ({
+            id: item.id,
+            name: item.master_domain,
+            obj: 'cluster',
+            count: item.count,
+            children: [],
+          })),
+        },
+      ];
+      setTimeout(() => {
+        if (data.length > 0) {
+          const [firstNode] = treeData.value;
+          treeRef.value.setOpen(firstNode);
+          treeRef.value.setSelect(firstNode);
+          selectNode.value = firstNode;
+        }
+      });
     })
       .then((data) => {
         const formatData = data.map((item) => {

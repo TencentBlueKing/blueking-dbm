@@ -126,7 +126,7 @@
       render: ({ data }: {data: FixpointLogModel}) => (
         <router-link
           to={{
-            name: 'SelfServiceMyTickets',
+            name: 'bizTicketManage',
             query: {
               id: data.ticket_id,
             },

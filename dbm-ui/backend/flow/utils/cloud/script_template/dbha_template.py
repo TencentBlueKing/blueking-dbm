@@ -75,7 +75,7 @@ db_conf:
     host: "{{nginx_domain}}"
     port: 80
     url_pre: "/apis/proxypass"
-    timeout: 10
+    timeout: 30
     bk_conf:
       bk_token: "{{db_cloud_token}}"
   mysql:
@@ -204,7 +204,7 @@ db_conf:
     host: "{{nginx_domain}}"
     port: 80
     url_pre: "/apis/proxypass"
-    timeout: 10
+    timeout: 30
     bk_conf:
       bk_token: "{{db_cloud_token}}"
   mysql:

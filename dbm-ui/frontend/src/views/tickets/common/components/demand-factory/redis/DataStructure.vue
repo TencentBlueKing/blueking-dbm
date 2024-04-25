@@ -29,6 +29,8 @@
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisListByBizId } from '@services/source/redis';
 
+  import { utcDisplayTime } from '@utils';
+
   interface Props {
     ticketDetails: TicketModel<RedisDataStructrueDetails>
   }
@@ -122,7 +124,7 @@
           clusterName: clusterMap[item.cluster_id].clusterName,
           clusterType: clusterMap[item.cluster_id].clusterType,
           instances: item.master_instances,
-          time: item.recovery_time_point,
+          time: utcDisplayTime(item.recovery_time_point),
           sepc: {
             id: item.resource_spec.redis.spec_id,
             name: specInfo ? specInfo.spec_name : '',

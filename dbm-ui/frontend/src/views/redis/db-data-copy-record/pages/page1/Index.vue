@@ -472,6 +472,16 @@
       name: 'RedisDBDataCopy',
     });
   };
+
+  // const handleClickConfirmRecopy = () => {
+  //   console.log(currentActiveRow.value);
+  // };
+
+  // const handleClickCancelRecopy = () => {
+  //   showRecopyDialog.value = false;
+  // };
+
+
 </script>
 
 <style lang="less" scoped>

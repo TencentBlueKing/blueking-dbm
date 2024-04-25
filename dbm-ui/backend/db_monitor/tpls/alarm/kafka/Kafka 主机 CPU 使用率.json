@@ -250,9 +250,9 @@
     "priority_group_key": "5ffd1f3e6c2b60a4",
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
-    "is_enabled": false
+    "is_enabled": true
   },
-  "is_enabled": false,
+  "is_enabled": true,
   "monitor_indicator": "AVG(CPU使用率)",
   "version": 22,
   "alert_source": "time_series",

@@ -66,6 +66,7 @@
 
   const handleSearchChange = (payload: Record<string, any>) => {
     serachParams.value = payload;
+    console.log('handleSearchChange');
     replaceSearchParams({
       [URL_MEMO_KEY]: tabType.value,
       ...payload,

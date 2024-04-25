@@ -239,11 +239,12 @@
             instance_address: item.instance_address,
             cluster_id: item.cluster_id,
             cluster_type: item.cluster_type as ClusterTypeOpts,
-            bk_cloud_id: item.host_info.cloud_id,
+            bk_cloud_id: item.bk_cloud_id,
             port: item.port,
             ip: item.ip,
             role: item.role,
             db_type: clusterTypeInfos[item.cluster_type as ClusterTypeInfos].dbType,
+            master_domain: item.master_domain,
           });
         }
       }

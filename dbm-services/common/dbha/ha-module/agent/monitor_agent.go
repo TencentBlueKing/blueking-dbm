@@ -214,7 +214,7 @@ func (a *MonitorAgent) FetchDBInstance() error {
 
 // FetchGMInstance fetch appropriate gm for current agent(different city)
 func (a *MonitorAgent) FetchGMInstance() error {
-	gmInfo, err := a.HaDBClient.GetAliveGMInfo(a.Conf.AgentConf.FetchInterval)
+	gmInfo, err := a.HaDBClient.GetAliveHAComponent(constvar.GM, a.Conf.AgentConf.FetchInterval)
 	if err != nil {
 		log.Logger.Errorf("get gm info failed. err:%s", err.Error())
 		return err
@@ -244,7 +244,7 @@ func (a *MonitorAgent) FetchGMInstance() error {
 		}
 	}
 
-	log.Logger.Infof("agent get aliveGmInfo:%d, GmInstance:%d",
+	log.Logger.Infof("agent get alive gm info :%d, GmInstance:%d",
 		len(gmInfo), len(a.GMInstance))
 	return nil
 }

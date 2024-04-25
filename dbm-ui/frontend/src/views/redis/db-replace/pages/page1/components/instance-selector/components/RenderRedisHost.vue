@@ -13,12 +13,13 @@
 
 <template>
   <div class="instance-selector-render-topo-host">
-    <BkInput
-      v-model="search"
-      clearable
-      :placeholder="$t('请输入 IP 进行搜索')"
-      @clear="handlePageValueChange(1)"
-      @enter="handleClickSearch" />
+    <SerachBar
+      v-model="searchValue"
+      :placeholder="t('请输入或选择条件搜索')"
+      :search-attrs="searchAttrs"
+      :type="ClusterTypes.REDIS"
+      :validate-search-values="validateSearchValues"
+      @search-value-change="handleSearchValueChange" />
     <BkLoading
       :loading="isTableDataLoading"
       :z-index="2">
@@ -27,22 +28,20 @@
         :columns="columns"
         :data="tableData"
         :is-anomalies="isAnomalies"
-        :is-searching="!!search"
+        :is-searching="!!searchValue.length"
         :max-height="530"
         :pagination="pagination.count < 10 ? false : pagination"
         remote-pagination
         :settings="tableSettings"
-        style="margin-top: 12px"
-        @clear-search="handleClearSearch"
+        style="margin-top: 12px;"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
         @page-limit-change="handlePageLimitChange"
-        @page-value-change="handlePageValueChange"
-        @refresh="fetchData"
-        @row-click.stop.prevent="handleRowClick" />
+        @page-value-change="handlePageValueChange" />
     </BkLoading>
   </div>
 </template>
 <script setup lang="tsx">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import RedisHostModel from '@services/model/redis/redis-host';
@@ -51,15 +50,19 @@
     queryMasterSlavePairs,
   } from '@services/source/redisToolbox';
 
+  import { useLinkQueryColumnSerach } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { LocalStorageKeys } from '@common/const';
-  import { ipv4 } from '@common/regex';
+  import { ClusterTypes, LocalStorageKeys } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import SerachBar from '@components/instance-selector/components/common/SearchBar.vue';
 
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
   import { firstLetterToUpper } from '@views/redis/common/utils/index';
+
+  import { getSearchSelectorParams } from '@utils';
 
   import type { InstanceSelectorValues } from '../Index.vue';
 
@@ -111,14 +114,29 @@
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
-  const activePanel = inject(activePanelInjectionKey);
 
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    columnCheckedMap,
+    columnFilterChange,
+    clearSearchValue,
+    validateSearchValues,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach(ClusterTypes.REDIS, ['bk_cloud_id'], () => fetchData());
+
+  const activePanel = inject(activePanelInjectionKey);
 
   const showTipLocalValue = localStorage.getItem(LocalStorageKeys.REDIS_DB_REPLACE_MASTER_TIP);
 
-  const search = ref('');
   const isAnomalies = ref(false);
   const showMasterTip = ref(!showTipLocalValue);
+  const isTableDataLoading = ref(false);
+  const tableData = ref<RedisHostModel []>([]);
+
+  const checkedMap = shallowRef<Record<string, ChoosedItem>>({});
+
   const pagination = reactive({
     count: 0,
     current: 1,
@@ -127,9 +145,6 @@
     align: 'right',
     layout: ['total', 'limit', 'list'],
   });
-  const isTableDataLoading = ref(false);
-  const tableData = ref<RedisHostModel []>([]);
-  const checkedMap = shallowRef<Record<string, ChoosedItem>>({});
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
@@ -145,7 +160,7 @@
 
   const masterSlaveMap: Record<string, string> = {};
 
-  const columns = [
+  const columns = computed(() => [
     {
       width: 60,
       fixed: 'left',
@@ -218,9 +233,14 @@
       label: t('角色类型'),
       field: 'role',
       showOverflowTooltip: true,
-      filter: {
-        list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
-      },
+      // filter: {
+      //   list: [
+      //     { text: 'master', value: 'master' },
+      //     { text: 'slave', value: 'slave' },
+      //     { text: 'proxy', value: 'proxy' },
+      //   ],
+      //   checked: columnCheckedMap.value.role,
+      // },
       render: ({ data } : TableItem) => <span>{firstLetterToUpper(data.role)}</span>,
     },
     {
@@ -234,14 +254,17 @@
     {
       minWidth: 100,
       label: t('管控区域'),
-      field: 'cloud_area',
-      render: ({ data } : TableItem) => data.host_info?.cloud_area.name || '--',
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: TableItem) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       minWidth: 100,
       label: t('Agent状态'),
       field: 'alive',
-      sort: true,
       render: ({ data } : TableItem) => {
         const info = data.host_info?.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
@@ -283,7 +306,7 @@
       showOverflowTooltip: true,
       render: ({ data } : TableItem) => data.host_info?.agent_id || '--',
     },
-  ];
+  ]);
 
   watch(() => props.lastValues, (lastValues) => {
     // 切换 tab 回显选中状态 \ 预览结果操作选中状态
@@ -323,12 +346,16 @@
       if (props.node?.id !== currentBizId) {
         params = {
           cluster_id: props.node?.id,
+          limit: pagination.limit,
+          offset: (pagination.current - 1) * pagination.limit,
+          extra: 1,
+          ...getSearchSelectorParams(searchValue.value),
         };
       }
       queryClusterHostList(params)
         .then((data) => {
-          tableData.value = data;
-          pagination.count = data.length;
+          tableData.value = data.results;
+          pagination.count = data.count;
           isAnomalies.value = false;
         })
         .catch(() => {
@@ -341,10 +368,7 @@
         cluster_id: props.node.id,
       }).then((data) => {
         data.forEach(item => masterSlaveMap[item.master_ip] = item.slave_ip);
-      })
-        .catch((e) => {
-          console.error('queryMasterSlavePairs error: ', e);
-        });
+      });
     }
   };
 
@@ -414,51 +438,17 @@
     triggerChange();
   };
 
-  const handleRowClick = (key: number, data: RedisHostModel) => {
-    const checked = checkedMap.value[data.ip];
-    handleTableSelectOne(!checked, data);
-  };
-
-  const handleClickSearch = () => {
-    if (!search.value) {
-      handleClearSearch();
-      return;
-    }
-    if (!ipv4.test(_.trim(search.value))) {
-      return;
-    }
-    handlePageValueChange(1);
-    queryClusterHostList({
-      ip: search.value,
-    })
-      .then((data) => {
-        tableData.value = data;
-        pagination.count = data.length;
-        isAnomalies.value = false;
-      })
-      .catch(() => {
-        tableData.value = [];
-        pagination.count = 0;
-        isAnomalies.value = true;
-      })
-      .finally(() => {
-        isTableDataLoading.value = false;
-      });
-  };
-
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;
+    handlePageValueChange(1);
   };
   // 切换页码
   const handlePageValueChange = (pageValue:number) => {
     pagination.current = pageValue;
+    fetchData();
   };
-  // 清空搜索
-  const handleClearSearch = () => {
-    search.value = '';
-    handlePageValueChange(1);
-  };
+
 </script>
 
 <style lang="less">

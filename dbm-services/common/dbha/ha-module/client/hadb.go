@@ -28,6 +28,13 @@ type GMInfo struct {
 	CloudID int    `json:"cloud_id"`
 }
 
+// AgentInfo gm base info, use to report
+type AgentInfo struct {
+	Ip      string `json:"ip"`
+	CityID  int    `json:"city_id"`
+	CloudID int    `json:"cloud_id"`
+}
+
 // HaStatusRequest request ha status table
 type HaStatusRequest struct {
 	DBCloudToken string          `json:"db_cloud_token"`
@@ -120,29 +127,26 @@ func NewHaDBClient(conf *config.APIConfig, cloudId int) *HaDBClient {
 	return &HaDBClient{c}
 }
 
-// AgentGetGMInfo get gm info from hadb
-func (c *HaDBClient) AgentGetGMInfo() ([]GMInfo, error) {
-	req := HaStatusRequest{
+// GetDBDetectInfo get gm info from hadb
+func (c *HaDBClient) GetDBDetectInfo() ([]model.HAAgentLogs, error) {
+	req := DbStatusRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
-		Name:         constvar.AgentGetGMInfo,
-		QueryArgs: &model.HaStatus{
-			Module:  constvar.GM,
-			CloudID: c.CloudId,
-		},
+		Name:         constvar.GetInstanceStatus,
+		QueryArgs:    &model.HAAgentLogs{},
 	}
 
 	log.Logger.Debugf("AgentGetGMInfo param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
-		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
+		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.DbStatusUrl, ""), req, nil)
 	if err != nil {
 		return nil, err
 	}
 	if response.Code != 0 {
 		return nil, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
 	}
-	var result []GMInfo
+	var result []model.HAAgentLogs
 	err = json.Unmarshal(response.Data, &result)
 	if err != nil {
 		return nil, err
@@ -203,6 +207,7 @@ func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, s
 		Name:         constvar.InsertInstanceStatus,
 		SetArgs: &model.HAAgentLogs{
 			AgentIP:  agentIp,
+			App:      app,
 			IP:       ip,
 			Port:     port,
 			DbType:   dbType,
@@ -352,26 +357,26 @@ func (c *HaDBClient) GetAliveAgentInfo(cityID int, dbType string, interval int) 
 	return result, nil
 }
 
-// GetAliveGMInfo get alive gm instance from ha_status table
-func (c *HaDBClient) GetAliveGMInfo(interval int) ([]GMInfo, error) {
+// GetAliveHAComponent get alive gm instance from ha_status table
+func (c *HaDBClient) GetAliveHAComponent(module string, interval int) ([]GMInfo, error) {
 	currentTime := time.Now().Add(-time.Second * time.Duration(interval))
 	req := HaStatusRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
-		Name:         constvar.GetAliveGMInfo,
+		Name:         constvar.GetAliveHAInfo,
 		QueryArgs: &model.HaStatus{
-			Module:   constvar.GM,
+			Module:   module,
 			CloudID:  c.CloudId,
 			LastTime: &currentTime,
 		},
 	}
 
-	log.Logger.Debugf("GetAliveGMInfo param:%#v", req)
+	log.Logger.Debugf("GetAliveHAInfo param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
 	if err != nil {
-		log.Logger.Errorf("GetAliveGMInfo failed, do http fail,err:%s", err.Error())
+		log.Logger.Errorf("GetAliveHAInfo failed, do http fail,err:%s", err.Error())
 		return nil, err
 	}
 	if response.Code != 0 {
@@ -381,11 +386,11 @@ func (c *HaDBClient) GetAliveGMInfo(interval int) ([]GMInfo, error) {
 	result := make([]GMInfo, 0)
 	err = json.Unmarshal(response.Data, &result)
 	if err != nil {
-		log.Logger.Errorf("GetAliveGMInfo failed, unmarshal failed, err:%s, data:%s", err.Error(), response.Data)
+		log.Logger.Errorf("GetAliveHAInfo failed, unmarshal failed, err:%s, data:%s", err.Error(), response.Data)
 		return nil, err
 	}
 	if len(result) == 0 {
-		return nil, fmt.Errorf("no gm available")
+		return nil, fmt.Errorf("no HA component found")
 	}
 	return result, nil
 }
@@ -731,8 +736,8 @@ func (c *HaDBClient) AgentGetHashValue(agentIP string, cityID int, dbType string
 	var modValue uint32
 	var find bool
 	mod = uint32(len(agents))
-	for index, agentIp := range agents {
-		if agentIp == agentIP {
+	for index, agent := range agents {
+		if agent == agentIP {
 			if find {
 				log.Logger.Errorf("multi agent with same agentIP:%s", agentIP)
 				return 0, 0, err

@@ -34,7 +34,7 @@
         :resource="data.ticketId"
         target="_blank"
         :to="{
-          name: 'SelfServiceMyTickets',
+          name: 'bizTicketManage',
           query: {
             id: data.ticketId,
           },
@@ -110,19 +110,19 @@
   });
 </script>
 <style lang="less" scoped>
-  .render-cluster-opration-tag {
+.render-cluster-opration-tag {
+  display: inline-block;
+  margin-right: 4px;
+  height: 16px !important;
+
+  .tag-placeholder {
     display: inline-block;
     height: 16px !important;
-    margin-right: 4px;
-
-    .tag-placeholder {
-      display: inline-block;
-      height: 16px !important;
-    }
-
-    .db-svg-icon {
-      width: 38px;
-      height: 16px;
-    }
   }
+
+  .db-svg-icon {
+    width: 38px;
+    height: 16px;
+  }
+}
 </style>

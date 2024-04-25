@@ -41,7 +41,8 @@ func AtWhere() string {
 	}
 }
 
-// HasElem TODO
+// HasElem check whether element exist info slice
+// if exists, return true
 func HasElem(elem interface{}, slice interface{}) bool {
 	defer func() {
 		if err := recover(); err != nil {
@@ -136,4 +137,19 @@ func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
 		return stderr.String(), err
 	}
 	return stdout.String(), nil
+}
+
+// IntSlice2String 效果：[]int{1,2,3,4} -> "1,2,3,4"
+func IntSlice2String(elements []int, sep string) string {
+	elemStr := ""
+	if len(elements) > 0 {
+		for i, elem := range elements {
+			if i == (len(elements) - 1) {
+				elemStr += fmt.Sprintf("%d", elem)
+				break
+			}
+			elemStr += fmt.Sprintf("%d%s", elem, sep)
+		}
+	}
+	return elemStr
 }

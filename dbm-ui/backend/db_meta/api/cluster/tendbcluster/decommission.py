@@ -13,7 +13,6 @@ from django.db import transaction
 from django.utils.translation import ugettext as _
 
 from backend.components.mysql_partition.client import DBPartitionApi
-from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
@@ -25,7 +24,7 @@ logger = logging.getLogger("root")
 @transaction.atomic
 def decommission(cluster: Cluster):
     # 处理spider节点信息
-    cc_manage = CcManage(cluster.bk_biz_id, DBType.TenDBCluster.value)
+    cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
     for spider in cluster.proxyinstance_set.all():
         # 先删除额外的spider关联信息，否则直接删除实例，会报ProtectedError 异常
         spider.tendbclusterspiderext.delete()

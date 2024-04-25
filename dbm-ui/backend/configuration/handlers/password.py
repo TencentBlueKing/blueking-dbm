@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from collections import defaultdict
 from typing import Any, Dict, List
 
@@ -30,6 +31,8 @@ from backend.db_periodic_task.models import DBPeriodicTask
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.utils.string import base64_decode, base64_encode
 
+logger = logging.getLogger("root")
+
 
 class DBPasswordHandler(object):
     """密码策略相关处理"""
@@ -41,9 +44,13 @@ class DBPasswordHandler(object):
         @param password: 密码(这里是不加盐的)
         @param echo: 是否回显解密密码
         """
-        plain_password = AsymmetricHandler.decrypt(
-            name=AsymmetricCipherConfigType.PASSWORD.value, content=password, salted=False
-        )
+        try:
+            plain_password = AsymmetricHandler.decrypt(
+                name=AsymmetricCipherConfigType.PASSWORD.value, content=password, salted=False
+            )
+        except Exception as err:
+            logger.warning("decrypt password error: {}, maybe it is plain".format(err))
+            plain_password = password
         # 密码需要用base64加密后传输
         b64_plain_password = base64_encode(plain_password)
         check_result = DBPrivManagerApi.check_password(

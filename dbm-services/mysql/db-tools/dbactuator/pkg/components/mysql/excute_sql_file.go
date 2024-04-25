@@ -91,7 +91,7 @@ func (e *ExcuteSQLFileComp) Example() interface{} {
 	}
 }
 
-// Init TODO
+// Init init
 func (e *ExcuteSQLFileComp) Init() (err error) {
 	e.ports = make([]int, len(e.Params.Ports))
 	e.dbConns = make(map[int]*native.DbWorker)
@@ -146,6 +146,7 @@ func (e *ExcuteSQLFileComp) Init() (err error) {
 
 // Excute TODO
 func (e *ExcuteSQLFileComp) Excute() (err error) {
+	defer e.closeDb()
 	for _, port := range e.ports {
 		if err = e.excuteOne(port); err != nil {
 			logger.Error("execute at %d failed: %s", port, err.Error())
@@ -153,6 +154,14 @@ func (e *ExcuteSQLFileComp) Excute() (err error) {
 		}
 	}
 	return nil
+}
+
+func (e *ExcuteSQLFileComp) closeDb() {
+	for _, port := range e.ports {
+		if dbConn, ok := e.dbConns[port]; ok {
+			dbConn.Close()
+		}
+	}
 }
 
 // OpenDdlExecuteByCtl TODO

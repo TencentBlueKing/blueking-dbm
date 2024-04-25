@@ -289,9 +289,9 @@
     "priority_group_key": "77b83033b12a66c1",
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
-    "is_enabled": false
+    "is_enabled": true
   },
-  "is_enabled": false,
+  "is_enabled": true,
   "monitor_indicator": "AVG(磁盘空间使用率)",
   "version": 22,
   "alert_source": "time_series",

@@ -20,7 +20,7 @@
     <div class="password-sideslider">
       <div class="operate-area">
         <BkButton
-          :disabled="!selectionLength"
+          :disabled="!hasSelected"
           @click="handleInstancesCopy">
           {{ t('复制实例') }}
         </BkButton>
@@ -49,9 +49,10 @@
           small: true,
         }"
         row-class="password-sideslider-table-row"
+        selectable
         show-overflow-tooltip
         @clear-search="getDataSource"
-        @selection-change="handleSelectionChange" />
+        @selection="handleSelection" />
     </div>
   </BkSideslider>
 </template>
@@ -69,13 +70,11 @@
 
   import { OccupiedInnerHeight } from '@common/const';
 
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
   import { getSearchSelectorParams } from '@utils';
 
-  interface TableRow {
-    row: ServiceReturnType<typeof queryMysqlAdminPassword>['results'][number] & {
-      passwordShow: boolean
-    }
-  }
+  type MysqlAdminPassword = ServiceReturnType<typeof queryMysqlAdminPassword>['results'][number]
 
   const isShow = defineModel<boolean>({
     required: true,
@@ -96,10 +95,6 @@
 
   const columns = [
     {
-      type: 'selection',
-      width: 48,
-    },
-    {
       label: t('云区域'),
       field: 'bk_cloud_name',
       width: 100,
@@ -108,18 +103,24 @@
       label: t('实例'),
       field: 'instance',
       width: 150,
-      render: ({ row }: TableRow) => {
-        const instance = `${row.ip}:${String(row.port)}`;
+      render: ({ row }: { row: MysqlAdminPassword }) => {
+        const instance = `${row.ip}:${row.port}`;
         return (
-          <>
-            <span>{ instance }</span>
-            <bk-button
-              text
-              theme="primary"
-              onClick={ () => handleCopy(instance) }>
-              <db-icon type="copy row-copy-icon ml-4"/>
-            </bk-button>
-          </>
+          <TextOverflowLayout>
+            {{
+              default: () => instance,
+              append: () => (
+                <bk-button
+                  text
+                  theme="primary"
+                  onClick={() => handleCopy(instance)}>
+                  <db-icon
+                    type="copy"
+                    class="row-copy-icon ml-4"/>
+                </bk-button>
+              ),
+            }}
+          </TextOverflowLayout>
         );
       },
     },
@@ -137,29 +138,37 @@
       field: 'password',
       width: 200,
       showOverflowTooltip: true,
-      render: ({ row }: TableRow) => (
-        <>
-          <span>
-            {
-              row.passwordShow
-                ? row.password
-                : '*'.repeat(row.password.length)
-            }
-            </span>
-          <bk-button
-            text
-            theme="primary"
-            onClick={ () => handleCopy(row.password) }>
-            <db-icon type="copy row-copy-icon ml-4"/>
-          </bk-button>
-        </>
+      render: ({ row }: { row: MysqlAdminPassword }) => (
+        <TextOverflowLayout key={Number(passwordShow.value)}>
+          {{
+            default: () => (
+              <span>
+                {
+                  passwordShow.value
+                    ? row.password
+                    : '******'
+                }
+              </span>
+            ),
+            append: () => (
+              <bk-button
+                text
+                theme="primary"
+                onClick={ () => handleCopy(row.password) }>
+                <db-icon
+                  type="copy"
+                  class="row-copy-icon ml-4"/>
+              </bk-button>
+            ),
+          }}
+        </TextOverflowLayout>
       ),
     },
     {
       label: t('DB类型'),
       field: 'component',
       width: 100,
-      render: ({ row }: TableRow) => (
+      render: ({ row }: { row: MysqlAdminPassword }) => (
         <>
           <db-icon type="mysql row-type"/>
           <span class='ml-4'>{ row.component }</span>
@@ -172,7 +181,7 @@
       minWidth: 240,
       sort: true,
       showOverflowTooltip: true,
-      render: ({ row }: TableRow) => {
+      render: ({ row }: { row: MysqlAdminPassword }) => {
         const { lock_until: lockUntil } = row;
         const lockUntilDate = dayjs(lockUntil).format('YYYY-MM-DD');
         const currentDate = dayjs().format('YYYY-MM-DD');
@@ -200,11 +209,15 @@
   ];
 
   const tableRef = ref();
-  const selectionLength = ref(0);
+  const passwordShow = ref(false);
+  const selected = shallowRef<MysqlAdminPassword[]>([]);
+
   const searchParams = reactive({
     time: ['', ''] as [string, string],
     keys: [],
   });
+
+  const hasSelected = computed(() => selected.value.length > 0);
 
   watch(tableRef, (newVal) => {
     if (newVal) {
@@ -213,7 +226,7 @@
   });
 
   const handlePasswordShow = () => {
-    tableRef.value.getData().forEach((row: TableRow['row']) => Object.assign(row, { passwordShow: !row.passwordShow }));
+    passwordShow.value = !passwordShow.value;
   };
 
   const getDataSource = () => {
@@ -236,12 +249,12 @@
     tableRef.value?.fetchData({}, params);
   };
 
-  const handleSelectionChange = () => {
-    selectionLength.value = tableRef.value?.bkTableRef.getSelection().length;
+  const handleSelection = (data: MysqlAdminPassword, list: MysqlAdminPassword[]) => {
+    selected.value = list;
   };
 
   const handleInstancesCopy = () => {
-    const instances = tableRef.value?.bkTableRef.getSelection().map((row: TableRow['row']) => `${row.ip}:${String(row.port)}`);
+    const instances = selected.value.map(row => `${row.ip}:${row.port}`);
     copy(instances.join('\n'));
   };
 

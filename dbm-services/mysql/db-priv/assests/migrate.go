@@ -1,13 +1,15 @@
 package assests
 
 import (
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/service"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/service"
+	"github.com/golang-migrate/migrate/v4/database"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql" // mysql TODO
@@ -34,10 +36,23 @@ func DoMigrateFromEmbed() error {
 			viper.GetString("db.name"),
 			"utf8",
 		)
-		mig, err = migrate.NewWithSourceInstance("iofs", d, dbURL)
-		if err != nil {
-			return errors.WithMessage(err, "migrate from embed")
+		i := 1
+		for ; i <= 10; i++ {
+			mig, err = migrate.NewWithSourceInstance("iofs", d, dbURL)
+			if err == nil {
+				break
+			} else if err == database.ErrLocked {
+				slog.Error(fmt.Sprintf("try %d time", i), "migrate from embed error", err)
+				if i == 10 {
+					slog.Error("try too many times")
+					return errors.WithMessage(err, "migrate from embed")
+				}
+				time.Sleep(3 * time.Minute)
+			} else {
+				return errors.WithMessage(err, "migrate from embed")
+			}
 		}
+
 		defer mig.Close()
 		err = mig.Up()
 		if err == nil {
@@ -57,7 +72,7 @@ func DoMigratePlatformPassword() error {
 	passwordSecurityRule := &service.SecurityRulePara{Name: "password",
 		Rule: "{\"max_length\":12,\"min_length\":8,\"include_rule\":{\"numbers\":true,\"symbols\":true,\"lowercase\":true,\"uppercase\":true},\"exclude_continuous_rule\":{\"limit\":4,\"letters\":false,\"numbers\":false,\"symbols\":false,\"keyboards\":false,\"repeats\":false}}", Operator: "admin"}
 	b, _ := json.Marshal(passwordSecurityRule)
-	errOuter := passwordSecurityRule.AddSecurityRule(string(b))
+	errOuter := passwordSecurityRule.AddSecurityRule(string(b), "add_security_rule")
 	if errOuter != nil {
 		no, _ := errno.DecodeErr(errOuter)
 		if no != errno.RuleExisted.Code {
@@ -92,7 +107,8 @@ func DoMigratePlatformPassword() error {
 				insertPara := &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
 					Instances:    []service.Address{{"0.0.0.0", 0, &defaultCloudId}},
 					InitPlatform: true, SecurityRuleName: "password"}
-				err = insertPara.ModifyPassword()
+				b, _ = json.Marshal(*insertPara)
+				err = insertPara.ModifyPassword(string(b), "modify_password")
 				if err != nil {
 					return fmt.Errorf("%s error: %s", "init platform password, modify password", err.Error())
 				}

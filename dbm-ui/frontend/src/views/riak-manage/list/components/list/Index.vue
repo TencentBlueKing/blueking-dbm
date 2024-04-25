@@ -615,7 +615,6 @@
   };
 
   onMounted(() => {
-    fetchData();
     if (!clusterId.value && route.query.id) {
       toDetail(Number(route.query.id));
     }

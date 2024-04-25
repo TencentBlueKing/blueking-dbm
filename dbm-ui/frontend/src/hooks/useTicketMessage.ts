@@ -20,7 +20,7 @@ export const useTicketMessage = () => {
   const router = useRouter();
   return (id: number) => {
     const route = router.resolve({
-      name: 'SelfServiceMyTickets',
+      name: 'bizTicketManage',
       query: {
         id,
       },

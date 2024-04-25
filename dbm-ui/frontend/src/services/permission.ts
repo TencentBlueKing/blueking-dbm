@@ -43,14 +43,15 @@ interface RamdomCycle {
 interface MysqlAdminPassword {
   bk_cloud_id: number;
   component: string;
-  id: number;
-  ip: string;
-  lock_until: string; // 带有时区
-  operator: string;
-  password: string;
-  port: number;
-  update_time: string; // 带有时区
-  username: string;
+  bk_cloud_name: string,
+  id: number,
+  ip: string,
+  lock_until: string,  // 带有时区
+  operator: string,
+  password: string,
+  port: number,
+  update_time: string, // 带有时区
+  username: string
 }
 
 interface AdminPasswordResultItem {

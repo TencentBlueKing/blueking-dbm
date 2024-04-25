@@ -31,7 +31,8 @@
       :pagination="pagination.count < 10 ? false: pagination"
       remote-pagination
       :row-class="getRowClass"
-      row-style="cursor: pointer;"
+      row-style="cursor: pointer"
+      @clear-search="clearSearchValue"
       @column-filter="columnFilterChange"
       @page-limit-change="handleTableLimitChange"
       @page-value-change="handleTablePageChange"
@@ -87,6 +88,7 @@
     searchAttrs,
     searchValue,
     columnCheckedMap,
+    clearSearchValue,
     columnFilterChange,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.TENDBHA, [

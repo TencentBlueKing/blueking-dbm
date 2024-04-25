@@ -38,7 +38,8 @@
               "machine_type",
               "cluster_domain",
               "bk_cloud_id",
-              "instance_host"
+              "instance_host",
+              "bk_target_service_instance_id"
             ],
             "agg_condition": [],
             "custom_event_name": "proxy-backend",

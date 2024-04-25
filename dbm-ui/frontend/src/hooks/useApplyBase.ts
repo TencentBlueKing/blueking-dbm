@@ -102,7 +102,7 @@ export const useApplyBase = () => {
           theme: 'success',
         });
         window.changeConfirm = false;
-        router.push({ name: 'SelfServiceMyTickets' });
+        router.push({ name: 'bizTicketManage' });
       })
       .finally(() => {
         baseState.isSubmitting = false;

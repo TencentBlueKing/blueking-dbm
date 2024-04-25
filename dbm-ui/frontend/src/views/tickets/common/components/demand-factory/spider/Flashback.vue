@@ -26,6 +26,8 @@
   import { getSpiderListByBizId } from '@services/source/spider';
   import type { SpiderFlashbackDetails, TicketDetails } from '@services/types/ticket';
 
+  import { utcDisplayTime } from '@utils';
+
   interface Props {
     ticketDetails: TicketDetails<SpiderFlashbackDetails>;
   }
@@ -44,7 +46,6 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
   const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
   const columns = [
@@ -108,8 +109,8 @@
       tableData.value = infos.reduce((results, item) => {
         const obj = {
           clusterName: clusterMap[item.cluster_id],
-          startTime: item.start_time,
-          endTime: item.end_time,
+          startTime: utcDisplayTime(item.start_time),
+          endTime: utcDisplayTime(item.end_time),
           dbName: item.databases.join(','),
           tableName: item.tables.join(','),
           ignoreDbName: item.databases_ignore.join(','),

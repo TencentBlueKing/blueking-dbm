@@ -54,7 +54,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
   import type { LocationQueryValue } from 'vue-router';
 
@@ -66,7 +65,7 @@
 
   import Baseinfo, { type InfoColumn } from '@views/tickets/common/components/baseinfo/Index.vue';
 
-  import { utcTimeToSeconds } from '@utils';
+  import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
@@ -173,7 +172,7 @@
       {
         label: t('申请时间'),
         key: 'create_at',
-        render: () => (state.ticketData?.create_at ? format(new Date(state.ticketData.create_at), 'yyyy-MM-dd HH:mm:ss') : ''),
+        render: () => (state.ticketData?.create_at ? utcDisplayTime(state.ticketData.create_at) : '--'),
       },
     ],
   ];

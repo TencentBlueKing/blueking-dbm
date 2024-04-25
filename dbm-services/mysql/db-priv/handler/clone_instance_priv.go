@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log/slog"
+	"strings"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/service"
@@ -40,6 +41,7 @@ func (m *PrivService) CloneInstancePriv(c *gin.Context) {
 	slog.Info("do  CloneInstancePriv!")
 
 	var input service.CloneInstancePrivPara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -54,7 +56,7 @@ func (m *PrivService) CloneInstancePriv(c *gin.Context) {
 		return
 	}
 
-	err = input.CloneInstancePriv(string(body))
+	err = input.CloneInstancePriv(string(body), ticket)
 	SendResponse(c, err, nil)
 	return
 }

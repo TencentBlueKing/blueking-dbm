@@ -22,6 +22,7 @@ from backend.bk_web.swagger import (
     ResponseSwaggerAutoSchema,
     common_swagger_auto_schema,
 )
+from backend.configuration.exceptions import ConfigurationBaseException
 from backend.configuration.models.ip_whitelist import IPWhitelist
 from backend.configuration.serializers import (
     DeleteIPWhitelistSerializer,
@@ -75,7 +76,12 @@ class IPWhitelistViewSet(viewsets.AuditedModelViewSet):
     def inst_getter(request, view):
         # 批量删除的白名单一定在一个业务下
         if view.action == "batch_delete":
-            return [IPWhitelist.objects.filter(pk__in=request.data["ids"]).first().bk_biz_id]
+            bk_biz_ids = list(
+                IPWhitelist.objects.filter(id__in=request.data["ids"]).values_list("bk_biz_id", flat=True)
+            )
+            if len(set(bk_biz_ids)) > 1:
+                raise ConfigurationBaseException(_("无法同时删除不同业务下的IP白名单"))
+            return bk_biz_ids
         elif view.action in ["destroy", "update"]:
             return [IPWhitelist.objects.get(pk=request.data["id"]).bk_biz_id]
         else:

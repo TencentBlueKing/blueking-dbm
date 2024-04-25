@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log/slog"
+	"strings"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/service"
@@ -14,7 +15,6 @@ import (
 // GetSecurityRule 获取安全规则
 func (m *PrivService) GetSecurityRule(c *gin.Context) {
 	slog.Info("do GetSecurityRule!")
-
 	var input service.SecurityRulePara
 
 	body, err := ioutil.ReadAll(c.Request.Body)
@@ -37,9 +37,9 @@ func (m *PrivService) GetSecurityRule(c *gin.Context) {
 
 // AddSecurityRule 添加安全规则
 func (m *PrivService) AddSecurityRule(c *gin.Context) {
-
 	slog.Info("do AddSecurityRule!")
 	var input service.SecurityRulePara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -54,7 +54,7 @@ func (m *PrivService) AddSecurityRule(c *gin.Context) {
 		return
 	}
 	// 添加安全规则，安全规则主要用于生成密码和检验密码复杂度
-	err = input.AddSecurityRule(string(body))
+	err = input.AddSecurityRule(string(body), ticket)
 	SendResponse(c, err, nil)
 	return
 }
@@ -62,8 +62,8 @@ func (m *PrivService) AddSecurityRule(c *gin.Context) {
 // DeleteSecurityRule 删除安全规则
 func (m *PrivService) DeleteSecurityRule(c *gin.Context) {
 	slog.Info("do DeleteSecurityRule!")
-
 	var input service.SecurityRulePara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -78,7 +78,7 @@ func (m *PrivService) DeleteSecurityRule(c *gin.Context) {
 		return
 	}
 	// 根据id删除安全规则
-	err = input.DeleteSecurityRule(string(body))
+	err = input.DeleteSecurityRule(string(body), ticket)
 	SendResponse(c, err, nil)
 	return
 }
@@ -87,6 +87,7 @@ func (m *PrivService) DeleteSecurityRule(c *gin.Context) {
 func (m *PrivService) ModifySecurityRule(c *gin.Context) {
 	slog.Info("do ModifySecurityRule!")
 	var input service.SecurityRulePara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -101,7 +102,7 @@ func (m *PrivService) ModifySecurityRule(c *gin.Context) {
 		return
 	}
 	// 根据id，修改安全规则，修改安全规则的名称和内容
-	err = input.ModifySecurityRule(string(body))
+	err = input.ModifySecurityRule(string(body), ticket)
 	SendResponse(c, err, nil)
 	return
 }

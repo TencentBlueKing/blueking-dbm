@@ -49,7 +49,7 @@ class DBDirtyMachineHandler(object):
             bk_biz_id__host_ids[machine.bk_biz_id].append(machine.bk_host_id)
 
         for bk_biz_id, bk_host_ids in bk_biz_id__host_ids.items():
-            CcManage(bk_biz_id, "").recycle_host(bk_host_ids)
+            CcManage(int(bk_biz_id), "").recycle_host(bk_host_ids)
 
         # 删除污点池记录，并从资源池移除(忽略删除错误，因为机器可能不来自资源池)
         dirty_machines.delete()
@@ -93,7 +93,7 @@ class DBDirtyMachineHandler(object):
         ]
         if transfer_host_ids:
             update_host_properties = {"dbm_meta": [], "need_monitor": False, "update_operator": False}
-            CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID, db_type="").transfer_host_module(
+            CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID, cluster_type="").transfer_host_module(
                 transfer_host_ids, target_module_ids=[dirty_module], update_host_properties=update_host_properties
             )
 

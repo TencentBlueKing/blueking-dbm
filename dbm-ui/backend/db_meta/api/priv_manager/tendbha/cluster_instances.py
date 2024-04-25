@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 
 from django.core.exceptions import ObjectDoesNotExist
 
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models.system import SystemSettings
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterEntryNotBindException, ClusterEntryNotExistException
 from backend.db_meta.models import ClusterEntry
@@ -40,6 +42,8 @@ def cluster_instances(entry_name: str):
         else:
             raise ClusterEntryNotBindException(entry=entry_name)
 
+        padding_clusters = SystemSettings.get_setting_value(SystemSettingsEnum.PADDING_PROXY_CLUSTER_LIST.value) or []
+
         cluster = input_entry.cluster
 
         master_storage_instance = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
@@ -51,6 +55,7 @@ def cluster_instances(entry_name: str):
             "db_module_id": cluster.db_module_id,
             "bk_cloud_id": cluster.bk_cloud_id,
             "immute_domain": cluster.immute_domain,
+            "padding_proxy": cluster.immute_domain in padding_clusters,
             "proxies": [
                 {
                     "ip": ele.machine.ip,

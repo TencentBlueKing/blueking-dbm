@@ -2,10 +2,12 @@ package service
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
 	"sync"
+	"time"
 
 	"dbm-services/common/go-pubpkg/errno"
 )
@@ -76,13 +78,14 @@ func (m *GetPasswordPara) GetPassword() ([]*TbPasswords, int, error) {
 }
 
 // ModifyPassword 修改tb_passwords表中密码
-func (m *ModifyPasswordPara) ModifyPassword() error {
+func (m *ModifyPasswordPara) ModifyPassword(jsonPara string, ticket string) error {
 	if m.UserName == "" {
 		return errno.NameNull
 	}
 	if m.Component == "" {
 		return errno.ComponentNull
 	}
+	AddPrivLog(PrivLog{BkBizId: 0, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 	var psw, encrypt string
 	var security SecurityRule
 	// base64解码
@@ -144,13 +147,14 @@ func (m *ModifyPasswordPara) ModifyPassword() error {
 }
 
 // DeletePassword 删除tb_passwords表中密码
-func (m *GetPasswordPara) DeletePassword() error {
+func (m *GetPasswordPara) DeletePassword(jsonPara string, ticket string) error {
 	if len(m.Users) == 0 {
 		return errno.NameNull
 	}
 	if len(m.Instances) == 0 {
 		return fmt.Errorf("instances should not be null")
 	}
+	AddPrivLog(PrivLog{BkBizId: 0, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 	var where string
 	var filterUser, filterInstance []string
 	for _, user := range m.Users {
@@ -212,7 +216,6 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 		where = fmt.Sprintf(" %s and update_time>='%s' and update_time<='%s' ",
 			where, m.BeginTime, m.EndTime)
 	}
-	// todo
 	var err error
 	// 分页
 	if m.Limit != nil && m.Offset != nil {
@@ -239,7 +242,7 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 }
 
 // ModifyAdminPassword 修改mysql实例中用户的密码，可用于随机化密码
-func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword() (BatchResult, error) {
+func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword(jsonPara string, ticket string) (BatchResult, error) {
 	var errMsg Err
 	var success Resource
 	var fail Resource
@@ -255,6 +258,7 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword() (BatchResult, error)
 	if m.Component == "" {
 		return batch, errno.ComponentNull
 	}
+	AddPrivLog(PrivLog{BkBizId: 0, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 	// 后台定时任务，1、randmize_daily比如每天执行一次，随机化没有被锁住的实例 2、randmize_expired比如每分钟执行一次随机化锁定过期的实例
 	// 前台页面，单据已提示实例密码被锁定是否修改，用户确认修改，因此不检查是否锁定
 	if m.Async && m.Range == "randmize_expired" {
@@ -555,7 +559,8 @@ func (m *PlatformPara) MigratePlatformPassword() error {
 			para := &ModifyPasswordPara{UserName: user.Name, Component: component.Component, Operator: "migrate",
 				Instances:    []Address{{"0.0.0.0", 0, &defaultCloudId}},
 				InitPlatform: true, Psw: base64.StdEncoding.EncodeToString([]byte(user.Password))}
-			err = para.ModifyPassword()
+			jsonPara, _ := json.Marshal(*para)
+			err = para.ModifyPassword(string(jsonPara), "modify_password")
 			if err != nil {
 				slog.Error("modify platform user password", "error", err)
 				return fmt.Errorf("modify platform user password error: %s", err.Error())

@@ -14,7 +14,7 @@
 <template>
   <RenderSuccess :steps="steps">
     <template #title>
-      {{ $t('数据复制任务提交成功') }}
+      {{ $t("数据复制任务提交成功") }}
     </template>
     <I18nT
       keypath="接下来您可以通过xx查看任务最新动态"
@@ -22,7 +22,7 @@
       <RouterLink
         target="_blank"
         :to="{
-          name: 'SelfServiceMyTickets',
+          name: 'bizTicketManage',
           query: {
             id: ticketId,
           },
@@ -43,7 +43,7 @@
             filterId: ticketId,
           },
         }">
-        {{ $t('数据传输记录') }}
+        {{ $t("数据传输记录") }}
       </RouterLink>
     </I18nT>
     <template #action>
@@ -51,12 +51,12 @@
         class="w88"
         theme="primary"
         @click="handleGoTicket">
-        {{ $t('去看看') }}
+        {{ $t("去看看") }}
       </BkButton>
       <BkButton
         class="ml-8"
         @click="handleStepChange">
-        {{ $t('继续提单') }}
+        {{ $t("继续提单") }}
       </BkButton>
     </template>
   </RenderSuccess>
@@ -87,7 +87,7 @@
 
   const handleGoTicket = () => {
     const route = router.resolve({
-      name: 'SelfServiceMyTickets',
+      name: 'bizTicketManage',
       query: {
         id: ticketId,
       },

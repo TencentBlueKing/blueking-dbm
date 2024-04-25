@@ -18,8 +18,10 @@ from .dev import *  # pylint: disable=wildcard-import
 from .nameservice import *  # pylint: disable=wildcard-import
 
 APP_CODE = get_type_env(key="APP_ID", default="bk-dbm", _type=str)
-SECRET_KEY = get_type_env(key="APP_TOKEN", default="yb2gur=g)hxbmpk3#b%ez5_#6o!tf9vkqsnwo4dxyr0n&w3=9k", _type=str)
+SECRET_KEY = get_type_env(key="APP_TOKEN", default="xxxx", _type=str)
 DEFAULT_USERNAME = get_type_env(key="DEFAULT_USERNAME", default="admin", _type=str)
+# 环境允许跨域的域名
+CORS_ALLOWED_ORIGINS = get_type_env(key="CORS_ALLOWED_ORIGINS", default=[], _type=list)
 
 RUN_VER = get_type_env(key="RUN_VER", default="open", _type=str)
 
@@ -151,3 +153,6 @@ SYMMETRIC_CIPHER_TYPE = get_type_env(key="SYMMETRIC_CIPHER_TYPE", _type=str, def
 
 # gcs/scr平台
 GCS_SCR_OPERATOR = get_type_env(key="GCS_SCR_OPERATOR", _type=str, default="scr-system")
+
+# 是否启动mysql-dbbackup程序的版本逻辑选择，不启动默认统一安装社区版本
+MYSQL_BACKUP_PKG_MAP_ENABLE = get_type_env(key="MYSQL_BACKUP_PKG_MAP_ENABLE", _type=bool, default=False)

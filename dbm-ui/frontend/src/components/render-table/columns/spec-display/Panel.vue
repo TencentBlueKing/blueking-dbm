@@ -20,8 +20,10 @@
     width="514">
     <slot />
     <template #content>
-      <div class="sepc-display-panel">
-        <div class="title">{{ data.name }} {{ $t('规格') }}</div>
+      <div class="spec-diaplay-panel">
+        <div class="title">
+          {{ data.name }} {{ $t('规格') }}
+        </div>
         <div class="items">
           <div class="item">
             <div class="item__title">CPU：</div>
@@ -143,7 +145,29 @@
   });
 </script>
 <style lang="less" scoped>
-  .sepc-display-panel {
+
+.spec-diaplay-panel {
+  display: flex;
+  width: 514px;
+  padding: 16px 24px 20px 16px;
+  margin-top: -12px;
+  margin-left: -12px;
+  background: #FFF;
+  border: 1px solid #DCDEE5;
+  box-shadow: 0 3px 6px 0 #00000029;
+  box-sizing: border-box;
+  flex-direction: column;
+
+  .title {
+    height: 20px;
+    margin-bottom: 18px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 20px;
+    color: #63656E;
+  }
+
+  .items {
     display: flex;
     width: 514px;
     padding: 16px 24px 20px 16px;
@@ -252,6 +276,6 @@
         }
       }
     }
-    
+   } 
   }
 </style>

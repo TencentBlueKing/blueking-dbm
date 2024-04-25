@@ -1,12 +1,12 @@
 package handler
 
 import (
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/service"
 	"encoding/json"
 	"io/ioutil"
 	"log/slog"
-
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/service"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -43,6 +43,7 @@ func (m *PrivService) GetPassword(c *gin.Context) {
 func (m *PrivService) ModifyPassword(c *gin.Context) {
 	slog.Info("do ModifyPassword!")
 	var input service.ModifyPasswordPara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		slog.Error("msg", err)
@@ -54,7 +55,7 @@ func (m *PrivService) ModifyPassword(c *gin.Context) {
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
-	err = input.ModifyPassword()
+	err = input.ModifyPassword(string(body), ticket)
 	SendResponse(c, err, nil)
 	return
 }
@@ -63,6 +64,7 @@ func (m *PrivService) ModifyPassword(c *gin.Context) {
 func (m *PrivService) DeletePassword(c *gin.Context) {
 	slog.Info("do DeletePassword!")
 	var input service.GetPasswordPara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		slog.Error("msg", err)
@@ -74,7 +76,7 @@ func (m *PrivService) DeletePassword(c *gin.Context) {
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
-	err = input.DeletePassword()
+	err = input.DeletePassword(string(body), ticket)
 	SendResponse(c, err, nil)
 	return
 }
@@ -111,6 +113,7 @@ func (m *PrivService) GetMysqlAdminPassword(c *gin.Context) {
 func (m *PrivService) ModifyAdminPassword(c *gin.Context) {
 	slog.Info("do ModifyAdminPassword!")
 	var input service.ModifyAdminUserPasswordPara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -129,7 +132,7 @@ func (m *PrivService) ModifyAdminPassword(c *gin.Context) {
 		SendResponse(c, nil, nil)
 	}
 	// 前端页面调用等同步返回，返回修改成功的实例以及没有修改成功的实例
-	batch, err := input.ModifyAdminPassword()
+	batch, err := input.ModifyAdminPassword(string(body), ticket)
 	if input.Async == false {
 		SendResponse(c, err, batch)
 	}

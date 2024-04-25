@@ -9,7 +9,9 @@
         <HightLightText
           :key-word="keyWord"
           :text="item.name" />
-        <div class="intro">(集群名, {{ item.immute_domain }})</div>
+        <div class="intro">
+          ({{ t('集群名') }}, {{ item.immute_domain }})
+        </div>
       </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
@@ -18,6 +20,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { systemSearchCache } from '@common/cache';
 
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
@@ -38,6 +42,7 @@
 
   defineProps<Props>();
 
+  const { t } = useI18n();
   const handleRedirect = useRedirect();
 
   const handleGo = (data: Props['data'][number]) => {

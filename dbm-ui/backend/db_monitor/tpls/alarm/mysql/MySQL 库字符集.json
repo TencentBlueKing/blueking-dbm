@@ -38,7 +38,8 @@
               "bk_cloud_id",
               "cluster_domain",
               "instance_host",
-              "instance_role"
+              "instance_role",
+              "bk_target_service_instance_id"
             ],
             "agg_condition": [],
             "custom_event_name": "character-consistency",

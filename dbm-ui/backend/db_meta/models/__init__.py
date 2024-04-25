@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from .app import AppCache
 from .city_map import BKCity, LogicalCity
-from .cluster import Cluster
+from .cluster import Cluster, ClusterDBHAExt
 from .cluster_entry import CLBEntryDetail, ClusterEntry, PolarisEntryDetail
 from .cluster_monitor import AppMonitorTopo, ClusterMonitorTopo
 from .db_module import DBModule

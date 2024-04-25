@@ -64,7 +64,6 @@
     isFetchInstance: false,
   });
 
-  const router = useRouter();
   const { t } = useI18n();
 
   const tableRef = ref();
@@ -106,8 +105,17 @@
     }, {
       label: t('单据链接'),
       field: 'ticket_id',
-      render: ({ cell }: { cell: number }) => (
-        <bk-button theme="primary" text onClick={handleToTicket.bind(null, cell)}>{cell}</bk-button>
+      render: ({ data }: {data: ClusterOperateRecord}) => (
+        <router-link
+          to={{
+            name: 'bizTicketManage',
+            query: {
+              id: data.ticket_id,
+            },
+          }}
+          target="_blank">
+          { data.ticket_id }
+        </router-link>
       ),
     },
   ];
@@ -144,15 +152,6 @@
     fetchData();
   }
 
-  function handleToTicket(id: number) {
-    const localtion = router.resolve({
-      name: 'SelfServiceMyTickets',
-      query: {
-        id,
-      },
-    });
-    window.open(localtion.href, '_blank');
-  }
 </script>
 
 <style lang="less" scoped>

@@ -140,6 +140,32 @@ func (c *CmDBClient) GetDBInstanceInfoByIp(ip string) ([]interface{}, error) {
 	return res, nil
 }
 
+// GetAllDBInstanceInfo detect running, available status instance
+func (c *CmDBClient) GetAllDBInstanceInfo() ([]interface{}, error) {
+	req := DBInstanceInfoByCityRequest{
+		DBCloudToken: c.Conf.BKConf.BkToken,
+		BKCloudID:    c.CloudId,
+		Statuses:     []string{constvar.RUNNING, constvar.AVAILABLE},
+	}
+
+	response, err := c.DoNew(
+		http.MethodPost, c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBInstanceUrl, ""), req, nil)
+	if err != nil {
+		return nil, err
+	}
+	if response.Code != 0 {
+		return nil, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+
+	var res []interface{}
+	err = json.Unmarshal(response.Data, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 // GetDBInstanceInfoByCity detect running, available status instance
 func (c *CmDBClient) GetDBInstanceInfoByCity(cityID int) ([]interface{}, error) {
 	req := DBInstanceInfoByCityRequest{

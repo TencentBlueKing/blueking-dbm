@@ -26,6 +26,8 @@
   import { getSpiderListByBizId } from '@services/source/spider';
   import type { SpiderRollbackDetails, TicketDetails } from '@services/types/ticket';
 
+  import { utcDisplayTime } from '@utils';
+
   interface Props {
     ticketDetails: TicketDetails<SpiderRollbackDetails>;
   }
@@ -44,7 +46,6 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
   const { details } = props.ticketDetails;
   const tableData = ref<RowData[]>([]);
   const columns = [
@@ -109,7 +110,7 @@
         {
           clusterName: clusterMap[details.cluster_id],
           rollbackType: details.rollbackup_type === 'REMOTE_AND_BACKUPID' ? t('备份记录') : t('回档到指定时间'),
-          rollbackTime: details.rollback_time,
+          rollbackTime: utcDisplayTime(details.rollback_time),
           dbName: details.databases.join(','),
           ignoreDbName: details.databases_ignore.join(','),
           tableName: details.tables.join(','),

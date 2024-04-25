@@ -56,6 +56,7 @@
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
+        :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
     <div
@@ -207,6 +208,7 @@
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach(ClusterTypes.TENDBCLUSTER, [
     'bk_cloud_id',
@@ -864,7 +866,7 @@
 
   const handleClickRelatedTicket = (billId: number) => {
     const route = router.resolve({
-      name: 'SelfServiceMyTickets',
+      name: 'bizTicketManage',
       query: {
         id: billId,
       },
@@ -909,11 +911,6 @@
 
     return Promise.resolve([]);
   };
-
-  // 设置轮询
-  useRequest(fetchTableData, {
-    pollingInterval: 10000,
-  });
 
   // 查看集群详情
   const handleToDetails = (id: number) => {

@@ -96,6 +96,10 @@ class QueryBizClusterAttrsSerializer(serializers.Serializer):
         return attrs
 
 
+class ResourceAdministrationSerializer(serializers.Serializer):
+    resource_type = serializers.ChoiceField(help_text=_("服务类型"), choices=ClusterType.get_choices())
+
+
 class QueryBizClusterAttrsResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": {"id": [1, 2, 3], "region": ["sz", "sh"]}}

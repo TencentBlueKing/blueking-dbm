@@ -33,7 +33,6 @@ require (
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/elastic/go-elasticsearch/v7 v7.17.1
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1

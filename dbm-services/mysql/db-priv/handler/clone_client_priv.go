@@ -1,12 +1,12 @@
 package handler
 
 import (
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/service"
 	"encoding/json"
 	"io/ioutil"
 	"log/slog"
-
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/service"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +14,6 @@ import (
 // CloneClientPrivDryRun 克隆客户端权限预检查
 func (m *PrivService) CloneClientPrivDryRun(c *gin.Context) {
 	slog.Info("do  CloneClientPrivDryRun!")
-
 	var input service.CloneClientPrivParaList
 
 	body, err := ioutil.ReadAll(c.Request.Body)
@@ -38,8 +37,8 @@ func (m *PrivService) CloneClientPrivDryRun(c *gin.Context) {
 // CloneClientPriv 克隆客户端权限
 func (m *PrivService) CloneClientPriv(c *gin.Context) {
 	slog.Info("do  CloneClientPriv!")
-
 	var input service.CloneClientPrivPara
+	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -54,7 +53,7 @@ func (m *PrivService) CloneClientPriv(c *gin.Context) {
 		return
 	}
 
-	err = input.CloneClientPriv(string(body))
+	err = input.CloneClientPriv(string(body), ticket)
 	SendResponse(c, err, nil)
 	return
 }

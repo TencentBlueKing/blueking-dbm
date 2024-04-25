@@ -41,6 +41,7 @@
 
   import {
     useCopy,
+    useLocation,
     useTableSettings,
   } from '@hooks';
 
@@ -50,6 +51,7 @@
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   interface Props {
     keyword: string,
@@ -68,6 +70,7 @@
 
   const { t } = useI18n();
   const copy = useCopy();
+  const location = useLocation();
 
   const pagination = ref({
     count: props.data.length,
@@ -109,19 +112,29 @@
       field: 'ip',
       width: 160,
       render: ({ data }: { data: DbResourceModel }) => (
-        <>
-          <HightLightText
-            keyWord={props.keyword}
-            text={data.ip}
-            highLightColor='#FF9C01' />
-          <bk-button
-            class="ml-4"
-            text
-            theme="primary"
-            onclick={() => handleCopy(data.ip)}>
-            <db-icon type="copy" />
-          </bk-button>
-        </>
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <bk-button
+                text
+                onclick={() => handleGo(data)}>
+                <HightLightText
+                  keyWord={props.keyword}
+                  text={data.ip}
+                  highLightColor='#FF9C01' />
+              </bk-button>
+            ),
+            append: () => (
+              <bk-button
+                class="ml-4"
+                text
+                theme="primary"
+                onclick={() => handleCopy(data.ip)}>
+                <db-icon type="copy" />
+              </bk-button>
+            ),
+          }}
+        </TextOverflowLayout>
       ),
     },
     {
@@ -267,6 +280,15 @@
 
   const handleCopy = (content: string) => {
     copy(content);
+  };
+
+  const handleGo = (data: DbResourceModel) => {
+    location({
+      name: 'resourcePool',
+      query: {
+        hosts: data.ip,
+      },
+    });
   };
 
   const handleRefresh = () => {

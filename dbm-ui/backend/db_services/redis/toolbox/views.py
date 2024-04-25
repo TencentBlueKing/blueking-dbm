@@ -69,12 +69,14 @@ class ToolboxViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群下的主机列表"),
-        request_body=QueryClusterIpsSerializer(),
+        query_serializer=QueryClusterIpsSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=QueryClusterIpsSerializer, pagination_class=None)
+    @action(methods=["GET"], detail=False, serializer_class=QueryClusterIpsSerializer, pagination_class=None)
     def query_cluster_ips(self, request, bk_biz_id):
-        validated_data = self.params_validate(self.get_serializer_class())
+        serializer = self.get_serializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
         return Response(ToolboxHandler(bk_biz_id).query_cluster_ips(**validated_data))
 
     @common_swagger_auto_schema(

@@ -12,13 +12,20 @@
  */
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import _ from 'lodash';
+import { useI18n } from 'vue-i18n';
 
 import { queryBizClusterAttrs } from '@services/source/dbbase';
 
 import { useGlobalBizs } from '@stores';
 
 import type { ClusterTypes } from '@common/const';
-import { batchSplitRegex } from '@common/regex';
+import {
+  batchSplitRegex,
+  domainPort,
+  domainRegex,
+  ipPort,
+  ipv4,
+} from '@common/regex';
 
 type QueryBizClusterAttrsReturnType = ServiceReturnType<typeof queryBizClusterAttrs>;
 
@@ -38,6 +45,7 @@ export const useLinkQueryColumnSerach = (
   const queryTableDataFn = fetchDataFn ? fetchDataFn : () => {};
 
   const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
 
   const searchValue = ref<ISearchValue[]>([]);
   const columnAttrs = ref<QueryBizClusterAttrsReturnType>({});
@@ -149,7 +157,29 @@ export const useLinkQueryColumnSerach = (
     queryTableDataFn();
   };
 
+  // 搜索框输入校验
+  const validateSearchValues = (item: {id: string}, values: ISearchValue['values']): Promise<true | string> => {
+    // console.log('valid values>>', values);
+    if (values) {
+      if (['instance', 'ip'].includes(item.id)) {
+        const list = values[0].id.split(batchSplitRegex);
+        if (list.some(ip => !ipPort.test(ip) && !ipv4.test(ip))) {
+          return Promise.resolve(t('格式错误'));
+        }
+      }
+      if (item.id === 'domain') {
+        const list = values[0].id.split(batchSplitRegex);
+        if (list.some(ip => !domainRegex.test(ip) && !domainPort.test(ip))) {
+          return Promise.resolve(t('格式错误'));
+        }
+      }
+      return Promise.resolve(true);
+    }
+    return Promise.resolve(t('格式错误'));
+  };
+
   const handleSearchValueChange = (valueList: ISearchValue[]) => {
+    // console.log('search>>>', valueList);
     columnCheckedMap.value = valueList.reduce((results, item) => {
       Object.assign(results, {
         [item.id]: item.values?.map(value => value.id) ?? [],
@@ -216,6 +246,7 @@ export const useLinkQueryColumnSerach = (
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
+    validateSearchValues,
     handleSearchValueChange,
   };
 };

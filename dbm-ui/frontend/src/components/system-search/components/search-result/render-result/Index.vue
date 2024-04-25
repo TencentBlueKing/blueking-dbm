@@ -10,11 +10,12 @@
   import RenderClusterName from './ClusterName.vue';
   import RenderInstance from './Instance.vue';
   import RenderMachine from './Machine.vue';
+  import ResourcePool from './ResourcePool.vue';
   import RenderTask from './Task.vue';
   import RenderTicket from './Ticket.vue';
 
-  interface Props {
-    name: string;
+  interface Props{
+    name: string
   }
 
   const props = defineProps<Props>();
@@ -28,6 +29,7 @@
     machine: RenderMachine,
     task: RenderTask,
     ticket: RenderTicket,
+    resource_pool: ResourcePool,
   };
 
   const renderCom = computed(() => {
