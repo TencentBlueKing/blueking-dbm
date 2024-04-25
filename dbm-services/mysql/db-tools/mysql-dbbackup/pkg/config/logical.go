@@ -44,3 +44,22 @@ type LogicalLoad struct {
 	// CreateTableIfNotExists true will add --append-if-not-exist for myloader
 	CreateTableIfNotExists bool `ini:"CreateTableIfNotExists"`
 }
+
+// LogicalBackupMysqldump the config of logical backup with mysqldump
+type LogicalBackupMysqldump struct {
+	BinPath  string `ini:"BinPath"`  // the binary path of mysqldump
+	ExtraOpt string `ini:"ExtraOpt"` // other mysqldump options string to be appended
+}
+
+// LogicalLoadMysqldump the config of logical loading with mysql
+type LogicalLoadMysqldump struct {
+	MysqlHost         string `ini:"MysqlHost"`
+	MysqlPort         int    `ini:"MysqlPort"`
+	MysqlUser         string `ini:"MysqlUser"`
+	MysqlPasswd       string `ini:"MysqlPasswd"`
+	MysqlCharset      string `ini:"MysqlCharset"`
+	MysqlLoadFilePath string `ini:"MysqlLoadFilePath"`
+	IndexFilePath     string `ini:"IndexFilePath" validate:"required"`
+	BinPath           string `ini:"BinPath"`  // the binary path of mysql
+	ExtraOpt          string `ini:"ExtraOpt"` // other mysql options string to be appended(we use mysql to load backup)
+}

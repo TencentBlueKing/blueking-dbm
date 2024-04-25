@@ -22,11 +22,20 @@ type Dumper interface {
 // BuildDumper return logical or physical dumper
 func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
 	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
-		if err := validate.GoValidateStruct(cnf.LogicalBackup, false, false); err != nil {
-			return nil, err
-		}
-		dumper = &LogicalDumper{
-			cnf: cnf,
+		if !cnf.Public.UseMysqldump {
+			if err := validate.GoValidateStruct(cnf.LogicalBackup, false, false); err != nil {
+				return nil, err
+			}
+			dumper = &LogicalDumper{
+				cnf: cnf,
+			}
+		} else {
+			if err := validate.GoValidateStruct(cnf.LogicalBackupMysqldump, false, false); err != nil {
+				return nil, err
+			}
+			dumper = &LogicalDumperMysqldump{
+				cnf: cnf,
+			}
 		}
 	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
 		if err := validate.GoValidateStruct(cnf.PhysicalBackup, false, false); err != nil {

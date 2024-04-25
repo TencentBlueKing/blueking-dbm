@@ -18,13 +18,22 @@ type Loader interface {
 }
 
 // BuildLoader TODO
-func BuildLoader(cnf *config.BackupConfig, backupType string) (loader Loader, err error) {
+func BuildLoader(cnf *config.BackupConfig, backupType string, useMysqldump bool) (loader Loader, err error) {
 	if strings.ToLower(backupType) == cst.BackupLogical {
-		if err := validate.GoValidateStruct(cnf.LogicalLoad, false, false); err != nil {
-			return nil, err
-		}
-		loader = &LogicalLoader{
-			cnf: cnf,
+		if !useMysqldump {
+			if err := validate.GoValidateStruct(cnf.LogicalLoad, false, false); err != nil {
+				return nil, err
+			}
+			loader = &LogicalLoader{
+				cnf: cnf,
+			}
+		} else {
+			if err := validate.GoValidateStruct(cnf.LogicalLoadMysqldump, false, false); err != nil {
+				return nil, err
+			}
+			loader = &LogicalLoaderMysqldump{
+				cnf: cnf,
+			}
 		}
 	} else if strings.ToLower(backupType) == cst.BackupPhysical {
 		if err := validate.GoValidateStruct(cnf.PhysicalLoad, false, false); err != nil {
