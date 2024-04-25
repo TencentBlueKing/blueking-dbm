@@ -164,9 +164,11 @@ class RedisDBMeta(object):
                 {
                     "ip": self.cluster["ip"],
                     "port": self.cluster["port"],
-                    "status": InstanceStatus.RUNNING.value
-                    if self.ticket_data["ticket_type"] == TicketType.REDIS_OPEN
-                    else InstanceStatus.UNAVAILABLE.value,
+                    "status": (
+                        InstanceStatus.RUNNING.value
+                        if self.ticket_data["ticket_type"] == TicketType.REDIS_OPEN
+                        else InstanceStatus.UNAVAILABLE.value
+                    ),
                 }
             ]
         )
@@ -623,7 +625,7 @@ class RedisDBMeta(object):
         self.instances_status_update()
         # 获取cluster
         cluster_id = self.cluster["cluster_id"]
-        cluster = Cluster.objects.get(cluster_id=cluster_id)
+        cluster = Cluster.objects.get(id=cluster_id)
         with atomic():
             cc_manage = CcManage(self.cluster["bk_biz_id"], cluster.cluster_type)
             for port in self.cluster["meta_update_ports"]:
@@ -1056,7 +1058,7 @@ class RedisDBMeta(object):
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
-        cluster.major_version = self.cluster["target_version"]
+        cluster.major_version = self.cluster["db_version"]
         cluster.save(update_fields=["major_version"])
         return True
 
