@@ -85,7 +85,12 @@ def get_mysql_instance(cluster_id: int):
         instances.append(_get_instances(MySQLPasswordRole.SPIDER.value, spiders))
         instances.append(_get_instances(MySQLPasswordRole.TDBCTL.value, dbctls))
 
-    return {"bk_cloud_id": cluster.bk_cloud_id, "cluster_type": cluster.cluster_type, "instances": instances}
+    return {
+        "bk_cloud_id": cluster.bk_cloud_id,
+        "bk_biz_id": cluster.bk_biz_id,
+        "cluster_type": cluster.cluster_type,
+        "instances": instances,
+    }
 
 
 def get_periodic_task_run_every(func_name):

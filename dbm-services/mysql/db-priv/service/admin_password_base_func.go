@@ -77,7 +77,7 @@ func (m *ModifyAdminUserPasswordPara) RemoveLockedInstances() error {
 			var addresses []IpPort
 			for _, address := range role.Addresses {
 				for k, lock := range locked {
-					if address.Ip == lock.Ip && address.Port == lock.Port && *cluster.BkCloudId == *lock.BkCloudId {
+					if address.Ip == lock.Ip && address.Port == *lock.Port && *cluster.BkCloudId == *lock.BkCloudId {
 						break
 					}
 					if k == len(locked)-1 {
@@ -90,7 +90,7 @@ func (m *ModifyAdminUserPasswordPara) RemoveLockedInstances() error {
 			}
 		}
 		if len(roles) > 0 {
-			clusters = append(clusters, OneCluster{cluster.BkCloudId, cluster.ClusterType, roles})
+			clusters = append(clusters, OneCluster{cluster.BkCloudId, cluster.ClusterType, cluster.BkBizId, roles})
 		}
 	}
 	m.Clusters = clusters
@@ -116,7 +116,7 @@ func (m *ModifyAdminUserPasswordPara) NeedToBeRandomized() error {
 			var addresses []IpPort
 			for _, address := range role.Addresses {
 				for _, need := range needs {
-					if address.Ip == need.Ip && address.Port == need.Port && *cluster.BkCloudId == *need.BkCloudId {
+					if address.Ip == need.Ip && address.Port == *need.Port && *cluster.BkCloudId == *need.BkCloudId {
 						addresses = append(addresses, address)
 						break
 					}
@@ -127,7 +127,8 @@ func (m *ModifyAdminUserPasswordPara) NeedToBeRandomized() error {
 			}
 		}
 		if len(roles) > 0 {
-			clusters = append(clusters, OneCluster{cluster.BkCloudId, cluster.ClusterType, roles})
+			clusters = append(clusters, OneCluster{cluster.BkCloudId,
+				cluster.ClusterType, cluster.BkBizId, roles})
 		}
 	}
 	m.Clusters = clusters
