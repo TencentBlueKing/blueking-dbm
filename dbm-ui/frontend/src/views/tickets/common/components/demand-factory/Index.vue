@@ -76,6 +76,7 @@
   import RedisProxyScaleUp from './redis/ProxyScaleUp.vue';
   import RedisRollbackDataCopy from './redis/RollbackDataCopy.vue';
   import RedisStructureDelete from './redis/StructureDelete.vue';
+  import RedisVersionUpgrade from './redis/VersionUpgrade.vue';
   import SpiderAddNodes from './spider/AddNodes.vue';
   import SpiderAuthorizeRules from './spider/AuthorizeRules.vue';
   import SpiderCheckSum from './spider/CheckSum.vue';
@@ -260,6 +261,7 @@
     [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: RedisClusterTypeUpdate,
     [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: RedisDataCheckAndRepair,
     [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: RedisRollbackDataCopy,
+    [TicketTypes.REDIS_CLUSTER_VERSION_UPDATE_ONLINE]: RedisVersionUpgrade,
     [TicketTypes.TENDBCLUSTER_APPLY]: DetailsSpider,
     [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: SpiderAddNodes,
     [TicketTypes.TENDBCLUSTER_CHECKSUM]: SpiderCheckSum,
