@@ -37,7 +37,7 @@ class ClusterEntryViewSet(viewsets.SystemViewSet):
     @staticmethod
     def instance_biz_getter(request, view):
         cluster_id = get_request_key_id(request, key="cluster_id")
-        bk_biz_id = Cluster.objects.get(cluster_id=cluster_id)
+        bk_biz_id = Cluster.objects.get(cluster_id=cluster_id).bk_biz_id
         return [bk_biz_id]
 
     @staticmethod

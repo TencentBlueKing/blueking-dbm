@@ -56,14 +56,13 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
 
     def get_action_permission_map(self):
         return {
-            (
-                "delete",
-                "batch_delete",
-            ): [ResourceActionPermission([ActionEnum.SPEC_DESTROY], ResourceEnum.DBTYPE, self.instance_getter)],
+            ("delete", "batch_delete"): [
+                ResourceActionPermission([ActionEnum.SPEC_DESTROY], ResourceEnum.DBTYPE, self.instance_getter)
+            ],
             ("create",): [
                 ResourceActionPermission([ActionEnum.SPEC_CREATE], ResourceEnum.DBTYPE, self.instance_getter)
             ],
-            ("update",): [
+            ("update", "modify_spec_enable_status"): [
                 ResourceActionPermission([ActionEnum.SPEC_UPDATE], ResourceEnum.DBTYPE, self.instance_getter)
             ],
             ("list", "recommend_spec", "query_qps_range", "filter_cluster_spec"): [],

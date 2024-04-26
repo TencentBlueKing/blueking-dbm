@@ -107,6 +107,7 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
         ActionEnum.REDIS_PURGE,
         ActionEnum.REDIS_VIEW,
         ActionEnum.REDIS_BACKUP,
+        ActionEnum.REDIS_ACCESS_ENTRY_VIEW,
     ]
     list_instance_perm_actions = [ActionEnum.REDIS_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]

@@ -35,7 +35,10 @@ class ClusterDetailPermission(ResourceActionPermission):
         # 从获取到集群ID后，决定动作和资源类型
         cluster_id = self.get_key_id(request, view, key="cluster_id")
         cluster = Cluster.objects.get(id=cluster_id)
-        self.actions = [ActionEnum.cluster_type_to_view(cluster.cluster_type)]
+        if view.action == "get_password":
+            self.actions = [ActionEnum.cluster_type_to_action(cluster.cluster_type, action_key="ACCESS_ENTRY_VIEW")]
+        else:
+            self.actions = [ActionEnum.cluster_type_to_action(cluster.cluster_type, action_key="VIEW")]
         self.resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster.cluster_type)
         return [cluster_id]
 
