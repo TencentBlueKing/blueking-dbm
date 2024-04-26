@@ -742,6 +742,17 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    REDIS_ACCESS_ENTRY_VIEW = ActionMeta(
+        id="redis_access_entry_view",
+        name=_("Redis 获取访问方式"),
+        name_en="redis_access_entry_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("Redis"),
+        subgroup=_("集群管理"),
+    )
+
     REDIS_CLUSTER_APPLY = ActionMeta(
         id=TicketType.REDIS_CLUSTER_APPLY.lower(),
         related_actions=[DB_MANAGE.id],
@@ -826,6 +837,17 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    ES_ACCESS_ENTRY_VIEW = ActionMeta(
+        id="es_access_entry_view",
+        name=_("ES 获取访问方式"),
+        name_en="es_access_entry_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.ES],
+        group=_("ES"),
+        subgroup=_("集群管理"),
+    )
+
     ES_ENABLE_DISABLE = ActionMeta(
         id="es_enable_disable",
         name=_("ES 集群禁用启用"),
@@ -841,6 +863,17 @@ class ActionEnum:
         id="kafka_view",
         name=_("Kafka 集群详情查看"),
         name_en="kafka_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.KAFKA],
+        group=_("Kafka"),
+        subgroup=_("集群管理"),
+    )
+
+    KAFKA_ACCESS_ENTRY_VIEW = ActionMeta(
+        id="kafka_access_entry_view",
+        name=_("Kafka 获取访问方式"),
+        name_en="kafka_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.KAFKA],
@@ -884,6 +917,17 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    HDFS_ACCESS_ENTRY_VIEW = ActionMeta(
+        id="hdfs_access_entry_view",
+        name=_("HDFS 获取访问方式"),
+        name_en="hdfs_access_entry_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.HDFS],
+        group=_("HDFS"),
+        subgroup=_("集群管理"),
+    )
+
     HDFS_ENABLE_DISABLE = ActionMeta(
         id="hdfs_enable_disable",
         name=_("HDFS 集群禁用启用"),
@@ -910,6 +954,17 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.PULSAR],
         group=_("Pulsar"),
+        subgroup=_("集群管理"),
+    )
+
+    PULSAR_ACCESS_ENTRY_VIEW = ActionMeta(
+        id="pulsar_access_entry_view",
+        name=_("Pulsar 获取访问方式"),
+        name_en="pulsar_access_entry_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.PULSAR],
+        group=_("PULSAR"),
         subgroup=_("集群管理"),
     )
 
@@ -940,6 +995,17 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.RIAK],
         group=_("Riak"),
+        subgroup=_("集群管理"),
+    )
+
+    RIAK_ACCESS_ENTRY_VIEW = ActionMeta(
+        id="riak_access_entry_view",
+        name=_("Riak 获取访问方式"),
+        name_en="riak_access_entry_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.RIAK],
+        group=_("RIAK"),
         subgroup=_("集群管理"),
     )
 
@@ -1554,7 +1620,7 @@ class ActionEnum:
 
     ACCESS_ENTRY_EDIT = ActionMeta(
         id="access_entry_edit",
-        name=_("集群入口访问修改"),
+        name=_("集群入口配置修改"),
         name_en="access_entry_edit",
         type="edit",
         related_actions=[],
@@ -1581,10 +1647,10 @@ class ActionEnum:
         return _all_actions[action_id.lower()]
 
     @classmethod
-    def cluster_type_to_view(cls, cluster_type):
+    def cluster_type_to_action(cls, cluster_type, action_key):
         """集群类型与集群详情操作的映射"""
         db_type = ClusterType.cluster_type_to_db_type(cluster_type)
-        return getattr(cls, f"{db_type.upper()}_VIEW")
+        return getattr(cls, f"{db_type}_{action_key}".upper())
 
     @classmethod
     def instance_type_to_instance_action(cls, instance_role):

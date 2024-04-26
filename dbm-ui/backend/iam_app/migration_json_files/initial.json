@@ -2682,6 +2682,36 @@
     {
         "operation": "upsert_action",
         "data": {
+            "id": "redis_access_entry_view",
+            "name": "Redis 获取访问方式",
+            "name_en": "redis_access_entry_view",
+            "type": "view",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "redis",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "redis_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "Redis",
+            "subgroup": "集群管理",
+            "description": "Redis 获取访问方式",
+            "description_en": "redis_access_entry_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
             "id": "redis_cluster_apply",
             "name": "Redis 集群部署",
             "name_en": "REDIS_CLUSTER_APPLY",
@@ -2923,6 +2953,36 @@
     {
         "operation": "upsert_action",
         "data": {
+            "id": "es_access_entry_view",
+            "name": "ES 获取访问方式",
+            "name_en": "es_access_entry_view",
+            "type": "view",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "es",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "es_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "ES",
+            "subgroup": "集群管理",
+            "description": "ES 获取访问方式",
+            "description_en": "es_access_entry_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
             "id": "es_enable_disable",
             "name": "ES 集群禁用启用",
             "name_en": "es_enable_disable",
@@ -2978,6 +3038,36 @@
             "subgroup": "集群管理",
             "description": "Kafka 集群详情查看",
             "description_en": "kafka_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "kafka_access_entry_view",
+            "name": "Kafka 获取访问方式",
+            "name_en": "kafka_access_entry_view",
+            "type": "view",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "kafka",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "kafka_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "Kafka",
+            "subgroup": "集群管理",
+            "description": "Kafka 获取访问方式",
+            "description_en": "kafka_access_entry_view"
         }
     },
     {
@@ -3099,6 +3189,36 @@
     {
         "operation": "upsert_action",
         "data": {
+            "id": "hdfs_access_entry_view",
+            "name": "HDFS 获取访问方式",
+            "name_en": "hdfs_access_entry_view",
+            "type": "view",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "hdfs",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "hdfs_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "HDFS",
+            "subgroup": "集群管理",
+            "description": "HDFS 获取访问方式",
+            "description_en": "hdfs_access_entry_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
             "id": "hdfs_enable_disable",
             "name": "HDFS 集群禁用启用",
             "name_en": "hdfs_enable_disable",
@@ -3182,6 +3302,36 @@
             "subgroup": "集群管理",
             "description": "Pulsar 集群详情查看",
             "description_en": "pulsar_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "pulsar_access_entry_view",
+            "name": "Pulsar 获取访问方式",
+            "name_en": "pulsar_access_entry_view",
+            "type": "view",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "pulsar",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "pulsar_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "PULSAR",
+            "subgroup": "集群管理",
+            "description": "Pulsar 获取访问方式",
+            "description_en": "pulsar_access_entry_view"
         }
     },
     {
@@ -3273,6 +3423,36 @@
             "subgroup": "集群管理",
             "description": "Riak 集群详情查看",
             "description_en": "riak_view"
+        }
+    },
+    {
+        "operation": "upsert_action",
+        "data": {
+            "id": "riak_access_entry_view",
+            "name": "Riak 获取访问方式",
+            "name_en": "riak_access_entry_view",
+            "type": "view",
+            "related_resource_types": [
+                {
+                    "system_id": "bk_dbm",
+                    "id": "riak",
+                    "selection_mode": "all",
+                    "related_instance_selections": [
+                        {
+                            "system_id": "bk_dbm",
+                            "id": "riak_list"
+                        }
+                    ]
+                }
+            ],
+            "related_actions": [
+                "db_manage"
+            ],
+            "version": 1,
+            "group": "RIAK",
+            "subgroup": "集群管理",
+            "description": "Riak 获取访问方式",
+            "description_en": "riak_access_entry_view"
         }
     },
     {
@@ -4900,7 +5080,7 @@
         "operation": "upsert_action",
         "data": {
             "id": "access_entry_edit",
-            "name": "集群入口访问修改",
+            "name": "集群入口配置修改",
             "name_en": "access_entry_edit",
             "type": "edit",
             "related_resource_types": [
@@ -4931,7 +5111,7 @@
             "version": 1,
             "group": "业务",
             "subgroup": "",
-            "description": "集群入口访问修改",
+            "description": "集群入口配置修改",
             "description_en": "access_entry_edit"
         }
     },
@@ -8982,6 +9162,9 @@
                                 "id": "redis_view"
                             },
                             {
+                                "id": "redis_access_entry_view"
+                            },
+                            {
                                 "id": "redis_cluster_apply"
                             },
                             {
@@ -9143,6 +9326,9 @@
                                 "id": "es_view"
                             },
                             {
+                                "id": "es_access_entry_view"
+                            },
+                            {
                                 "id": "es_enable_disable"
                             }
                         ]
@@ -9160,6 +9346,9 @@
                         "actions": [
                             {
                                 "id": "kafka_view"
+                            },
+                            {
+                                "id": "kafka_access_entry_view"
                             },
                             {
                                 "id": "kafka_apply"
@@ -9200,6 +9389,9 @@
                             },
                             {
                                 "id": "hdfs_view"
+                            },
+                            {
+                                "id": "hdfs_access_entry_view"
                             },
                             {
                                 "id": "hdfs_enable_disable"
@@ -9261,6 +9453,22 @@
                 ]
             },
             {
+                "name": "PULSAR",
+                "name_en": "PULSAR",
+                "actions": [],
+                "sub_groups": [
+                    {
+                        "name": "集群管理",
+                        "name_en": "集群管理",
+                        "actions": [
+                            {
+                                "id": "pulsar_access_entry_view"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
                 "name": "Riak",
                 "name_en": "Riak",
                 "actions": [],
@@ -9292,6 +9500,22 @@
                             },
                             {
                                 "id": "riak_cluster_migrate"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "RIAK",
+                "name_en": "RIAK",
+                "actions": [],
+                "sub_groups": [
+                    {
+                        "name": "集群管理",
+                        "name_en": "集群管理",
+                        "actions": [
+                            {
+                                "id": "riak_access_entry_view"
                             }
                         ]
                     }
@@ -9882,6 +10106,10 @@
                             "required": true
                         },
                         {
+                            "id": "redis_access_entry_view",
+                            "required": true
+                        },
+                        {
                             "id": "redis_open_close",
                             "required": true
                         },
@@ -10024,6 +10252,10 @@
                             "required": true
                         },
                         {
+                            "id": "es_access_entry_view",
+                            "required": true
+                        },
+                        {
                             "id": "es_enable_disable",
                             "required": true
                         },
@@ -10054,6 +10286,10 @@
                     "actions": [
                         {
                             "id": "kafka_view",
+                            "required": true
+                        },
+                        {
+                            "id": "kafka_access_entry_view",
                             "required": true
                         },
                         {
@@ -10090,6 +10326,10 @@
                             "required": true
                         },
                         {
+                            "id": "hdfs_access_entry_view",
+                            "required": true
+                        },
+                        {
                             "id": "hdfs_enable_disable",
                             "required": true
                         },
@@ -10123,6 +10363,10 @@
                             "required": true
                         },
                         {
+                            "id": "pulsar_access_entry_view",
+                            "required": true
+                        },
+                        {
                             "id": "pulsar_enable_disable",
                             "required": true
                         },
@@ -10153,6 +10397,10 @@
                     "actions": [
                         {
                             "id": "riak_view",
+                            "required": true
+                        },
+                        {
+                            "id": "riak_access_entry_view",
                             "required": true
                         },
                         {
