@@ -69,10 +69,12 @@ func NewDeveloperEventDimension(serverIp string) map[string]interface{} {
 }
 
 // NewPartitionEventDimension 构建自定监控事件的维度，发送给业务的dba
-func NewPartitionEventDimension(bkBizId int, bkCloudId int, domain string) map[string]interface{} {
+func NewPartitionEventDimension(bkBizId int, dbAppAbbr string, bkBizName string, bkCloudId int, domain string) map[string]interface{} {
 	dimension := make(map[string]interface{})
 	dimension["appid"] = bkBizId
 	dimension["bk_biz_id"] = bkBizId
+	dimension["db_app_abbr"] = dbAppAbbr
+	dimension["bk_biz_name"] = bkBizName
 	dimension["bk_cloud_id"] = bkCloudId
 	dimension["cluster_domain"] = domain
 	return dimension

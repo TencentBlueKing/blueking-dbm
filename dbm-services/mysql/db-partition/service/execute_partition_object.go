@@ -9,8 +9,8 @@ import (
 type PartitionConfig struct {
 	ID                  int    `json:"id" gorm:"column:id;primary_key;auto_increment"`
 	BkBizId             int64  `json:"bk_biz_id" gorm:"column:bk_biz_id"`
-	DbAppAbbr           string `json:"db_app_abbr"`
-	BkBizName           string `json:"bk_biz_name"`
+	DbAppAbbr           string `json:"db_app_abbr" gorm:"column:db_app_abbr"`
+	BkBizName           string `json:"bk_biz_name" gorm:"column:bk_biz_name"`
 	ImmuteDomain        string `json:"immute_domain" gorm:"column:immute_domain"`
 	Port                int    `json:"port" gorm:"column:port"`
 	BkCloudId           int    `json:"bk_cloud_id" gorm:"column:bk_cloud_id"`
@@ -57,12 +57,15 @@ type ConfigDetail struct {
 	DbName string `json:"dbname"`
 	TbName string `json:"tbname"`
 	// 是否已经分区
-	Partitioned bool `json:"partitioned"`
+	Partitioned  bool `json:"partitioned"`
+	HasUniqueKey bool `json:"has_unique_key"`
 }
 
 // Ticket 分区单据
 type Ticket struct {
 	BkBizId           int    `json:"bk_biz_id"`
+	DbAppAbbr         string `json:"db_app_abbr"`
+	BkBizName         string `json:"bk_biz_name"`
 	TicketType        string `json:"ticket_type"`
 	Remark            string `json:"remark"`
 	IgnoreDuplication bool   `json:"ignore_duplication"`

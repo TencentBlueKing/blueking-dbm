@@ -972,6 +972,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "general": {"runtime_account": self.account},
                 "extend": {
                     "bk_biz_id": self.ticket_data["bk_biz_id"],
+                    "db_app_abbr": self.ticket_data["db_app_abbr"],
+                    "bk_biz_name": self.ticket_data["bk_biz_name"],
                     "cluster_id": self.ticket_data["cluster_id"],
                     "immute_domain": self.ticket_data["immute_domain"],
                     "master_ip": self.cluster["ip"],

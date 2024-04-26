@@ -102,7 +102,7 @@ class DBPasswordHandler(object):
         修改mysql的admin密码
         @param operator: 操作人
         @param password: 修改密码
-        @param lock_until: 到期时间
+        @param lock_hour: 锁定时长
         @param instance_list: 修改的实例列表
         """
 
