@@ -80,7 +80,8 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 							item.ClusterType)
 					}
 				} else {
-					dimension := monitor.NewPartitionEventDimension(item.BkBizId, *item.BkCloudId, item.ImmuteDomain)
+					dimension := monitor.NewPartitionEventDimension(item.BkBizId, item.DbAppAbbr, item.BkBizName,
+						*item.BkCloudId, item.ImmuteDomain)
 					content := fmt.Sprintf("partition error. get partition sql fail: %s", err.Error())
 					monitor.SendEvent(monitor.PartitionEvent, dimension, content, "127.0.0.1")
 					_ = service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
