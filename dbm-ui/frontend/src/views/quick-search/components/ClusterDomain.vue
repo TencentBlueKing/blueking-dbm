@@ -41,7 +41,7 @@
       v-else
       class="empty-status"
       :is-anomalies="isAnomalies"
-      :is-searching="!!keyword"
+      :is-searching="isSearching"
       @clear-search="handleClearSearch"
       @refresh="handleRefresh" />
   </div>
@@ -59,6 +59,7 @@
   } from '@hooks';
 
   import { UserPersonalSettings } from '@common/const';
+  import { batchSplitRegex } from '@common/regex';
 
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
@@ -74,7 +75,8 @@
     keyword: string
     data: QuickSearchClusterDomainModel[],
     bizIdNameMap: Record<number, string>,
-    isAnomalies: boolean
+    isAnomalies: boolean,
+    isSearching: boolean
   }
 
   interface Emits {
@@ -94,6 +96,16 @@
     count: number,
     limit: number
   }[]>([]);
+
+  const formattedKeyword = computed(() => props.keyword
+    .split(batchSplitRegex)
+    .map((item) => {
+      if (item.includes(':')) {
+        return item.split(':')[0];
+      }
+      return item;
+    })
+    .join(' '));
 
   const renderData = computed(() => formatCluster<QuickSearchClusterDomainModel>(props.data));
   const columnsMap = computed(() => {
@@ -124,7 +136,7 @@
                       theme="primary"
                       onclick={() => handleToCluster(data)}>
                       <HightLightText
-                        keyWord={props.keyword}
+                        keyWord={formattedKeyword.value}
                         text={data.immute_domain}
                         highLightColor='#FF9C01' />
                     </bk-button>

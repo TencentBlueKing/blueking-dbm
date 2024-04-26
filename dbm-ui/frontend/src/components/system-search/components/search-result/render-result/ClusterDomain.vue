@@ -7,7 +7,7 @@
       @click="handleGo(item)">
       <div class="value-text">
         <HightLightText
-          :key-word="keyWord"
+          :key-word="formattedKeyword"
           :text="item.immute_domain" />
         <div class="intro">
           ({{ t('域名') }})
@@ -23,6 +23,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { systemSearchCache } from '@common/cache';
+  import { batchSplitRegex } from '@common/regex';
 
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
 
@@ -40,10 +41,20 @@
     bizIdNameMap: Record<number, string>
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const handleRedirect = useRedirect();
+
+  const formattedKeyword = computed(() => props.keyWord
+    .split(batchSplitRegex)
+    .map((item) => {
+      if (item.includes(':')) {
+        return item.split(':')[0];
+      }
+      return item;
+    })
+    .join(' '));
 
   const handleGo = (data: Props['data'][number]) => {
     systemSearchCache.appendItem(data.immute_domain);

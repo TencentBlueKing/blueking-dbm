@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import { onBeforeUnmount, onMounted, type Ref, ref } from 'vue';
 
-export default (rootEle: Ref<HTMLElement|undefined>, panelEle: Ref<HTMLElement|undefined>) => {
+export default (rootEle: Ref<HTMLElement|undefined>, panelEle: Ref<HTMLElement|undefined>, inputType: 'input'|'textarea' = 'input') => {
   const activeIndex = ref(-1);
 
   const handleKeydown = _.throttle((event: KeyboardEvent) => {
@@ -15,8 +15,7 @@ export default (rootEle: Ref<HTMLElement|undefined>, panelEle: Ref<HTMLElement|u
     }
 
     const index = _.findIndex(resultItemElList, el => el.classList.contains('active'));
-
-    if (event.code === 'Enter') {
+    if (event.code === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       event.stopPropagation();
       if (index > -1) {
@@ -35,7 +34,11 @@ export default (rootEle: Ref<HTMLElement|undefined>, panelEle: Ref<HTMLElement|u
     } else if (event.code === 'ArrowUp') {
       nextIndex = index - 1;
       nextIndex = Math.max(nextIndex, -1);
+    } else {
+      // 除上下键外，其他按键不应该选中
+      return;
     }
+
     activeIndex.value = nextIndex;
     resultItemElList.forEach(ele => ele.classList.remove('active'));
     if (nextIndex > -1) {
@@ -69,12 +72,12 @@ export default (rootEle: Ref<HTMLElement|undefined>, panelEle: Ref<HTMLElement|u
   }, 100);
 
   onMounted(() => {
-    rootEle.value!.querySelector('input')!.addEventListener('keydown', handleKeydown);
+    rootEle.value!.querySelector(inputType)!.addEventListener('keydown', handleKeydown);
     panelEle.value!.addEventListener('mousemove', handleMousemove);
   });
 
   onBeforeUnmount(() => {
-    rootEle.value!.querySelector('input')!.removeEventListener('keydown', handleKeydown);
+    rootEle.value!.querySelector(inputType)!.removeEventListener('keydown', handleKeydown);
     panelEle.value!.removeEventListener('mousemove', handleMousemove);
   });
 

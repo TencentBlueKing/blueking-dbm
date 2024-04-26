@@ -111,8 +111,8 @@
     for (let i = 0; i < eventPath.length; i++) {
       const target = eventPath[i] as HTMLElement;
       if (target.parentElement) {
-        const dateRole = target.getAttribute('data-role');
-        if (dateRole && dateRole === 'db-system-search') {
+        const dataRole = target.getAttribute('data-role');
+        if (dataRole && dataRole === 'db-system-search') {
           return;
         }
       }

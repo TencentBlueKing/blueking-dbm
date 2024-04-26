@@ -60,6 +60,7 @@
                   class="tab-table"
                   :data="dataList"
                   :is-anomalies="!!error"
+                  :is-searching="isSearching"
                   :keyword="keyword"
                   @clear-search="handleClearSearch"
                   @refresh="handleSearch" />
@@ -142,6 +143,7 @@
   const bizIdNameMap = bizList
     .reduce((result, item) => Object.assign(result, { [item.bk_biz_id]: item.name }), {} as Record<number, string>);
 
+  const isTableSearching = ref(false);
   const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'machine'>>({
     cluster_name: [],
     cluster_domain: [],
@@ -185,6 +187,8 @@
       count: 0,
     },
   ]);
+
+  const isSearching = computed(() => isTableSearching.value && !!keyword.value);
 
   const renderComponent = computed(() => {
     if (loading.value) {
@@ -237,49 +241,53 @@
     },
   });
 
-  const handleSearch = () => {
-    if (!keyword.value) {
-      Object.assign(dataMap.value, {
-        cluster_domain: [],
-        cluster_name: [],
-        instance: [],
-        task: [],
-        resource_pool: [],
-        ticket: [],
-      });
-      panelList[0].count = 0;
-      panelList[1].count = 0;
-      panelList[2].count = 0;
-      panelList[3].count = 0;
-      panelList[4].count = 0;
-      panelList[5].count = 0;
+  watch(formData, () => {
+    handleSearch();
+  }, {
+    deep: true,
+  });
 
+  watch(keyword, (newKeyword, oldKeyword) => {
+    const newKeywordArr = newKeyword.split(batchSplitRegex);
+    const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
+    if (_.isEqual(newKeywordArr, oldKeywordArr)) {
       return;
     }
 
+    isTableSearching.value = false;
+    clearData();
+  });
+
+  const clearData = () => {
+    Object.assign(dataMap.value, {
+      cluster_domain: [],
+      cluster_name: [],
+      instance: [],
+      task: [],
+      resource_pool: [],
+      ticket: [],
+    });
+    panelList[0].count = 0;
+    panelList[1].count = 0;
+    panelList[2].count = 0;
+    panelList[3].count = 0;
+    panelList[4].count = 0;
+    panelList[5].count = 0;
+  };
+
+  const handleSearch = () => {
+    if (!keyword.value) {
+      clearData();
+      return;
+    }
+
+    isTableSearching.value = true;
     quickSearchRun({
       ...formData.value,
       keyword: keyword.value.replace(batchSplitRegex, ' '),
       limit: 1000,
     });
   };
-
-  watch(keyword, (newKeyword, oldKeyword) => {
-    const newKeywordArr = newKeyword.split(batchSplitRegex);
-    const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
-
-    if (!_.isEqual(newKeywordArr, oldKeywordArr) && !newKeyword.endsWith('\n')) {
-      handleSearch();
-    }
-  }, {
-    immediate: true,
-  });
-
-  watch(formData, () => {
-    handleSearch();
-  }, {
-    deep: true,
-  });
 
   // const handleExportAllClusters = () => {
 
@@ -292,6 +300,9 @@
   const handleClearSearch = () => {
     keyword.value = '';
   };
+
+  // 初始化查询
+  handleSearch();
 
   defineExpose({
     routerBack() {

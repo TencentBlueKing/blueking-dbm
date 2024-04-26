@@ -35,7 +35,9 @@
         </ScrollFaker>
       </slot>
     </div>
-    <div class="filter-wrapper">
+    <div
+      v-if="showOptions"
+      class="filter-wrapper">
       <FilterOptions
         v-model="formData"
         :biz-list="bizList" />
@@ -62,10 +64,17 @@
   import FilterOptions from './FilterOptions.vue';
   import RenderResult from './render-result/Index.vue';
 
+  interface Props {
+    showOptions?: boolean
+  }
+
   interface Expose {
     getFilterOptions: () => typeof formData.value
   }
 
+  withDefaults(defineProps<Props>(), {
+    showOptions: true,
+  });
   const modelValue = defineModel<string>({
     default: '',
   });
@@ -114,11 +123,18 @@
     },
   });
 
-  watch([modelValue, formData], () => {
+  watch([modelValue, formData], ([newKeyword], [oldKeyword]) => {
+    const newKeywordArr = newKeyword.split(batchSplitRegex);
+    const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
+    if (_.isEqual(newKeywordArr, oldKeywordArr)) {
+      return;
+    }
+
     if (!modelValue.value) {
       serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
       return;
     }
+
     handleSerach({
       ...formData.value,
       keyword: modelValue.value.replace(batchSplitRegex, ' '),

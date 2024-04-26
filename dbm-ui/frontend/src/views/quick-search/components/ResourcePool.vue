@@ -28,7 +28,7 @@
       v-else
       class="empty-status"
       :is-anomalies="isAnomalies"
-      :is-searching="!!keyword"
+      :is-searching="isSearching"
       @clear-search="handleClearSearch"
       @refresh="handleRefresh" />
   </div>
@@ -57,7 +57,8 @@
     keyword: string,
     data: DbResourceModel[],
     bizIdNameMap: Record<number, string>
-    isAnomalies: boolean
+    isAnomalies: boolean,
+    isSearching: boolean
   }
 
   interface Emits {
