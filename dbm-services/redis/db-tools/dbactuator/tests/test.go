@@ -138,6 +138,22 @@ func main() {
 	if err != nil {
 		return
 	}
+
+	// 修改predixy密码验证
+	err = systest.ChangePassword(localIP,
+		consts.MetaRolePredixy, consts.ProxyTestPasswd,
+		consts.ProxyTestPasswd+"new", []int{consts.TestTendisplusPredixyPort})
+	if err != nil {
+		return
+	}
+	// 把密码修改回去
+	err = systest.ChangePassword(localIP,
+		consts.MetaRolePredixy, consts.ProxyTestPasswd+"new",
+		consts.ProxyTestPasswd, []int{consts.TestTendisplusPredixyPort})
+	if err != nil {
+		return
+	}
+
 	// slot 扩容测试 新增节点
 	err = clustertest.TendisplusScaleNodesInstall(localIP,
 		tendisplusPkgName, tendisplusPkgMd5,
@@ -259,6 +275,20 @@ func main() {
 		return
 	}
 
+	// 修改twemproxy密码验证
+	err = systest.ChangePassword(localIP,
+		consts.MetaRolePredixy, consts.ProxyTestPasswd,
+		consts.ProxyTestPasswd+"new", []int{consts.TestRedisTwemproxyPort})
+	if err != nil {
+		return
+	}
+	// 把密码修改回去
+	err = systest.ChangePassword(localIP,
+		consts.MetaRoleTwemproxy, consts.ProxyTestPasswd+"new",
+		consts.ProxyTestPasswd, []int{consts.TestRedisTwemproxyPort})
+	if err != nil {
+		return
+	}
 	if err := clustertest.RedisSceneTest(localIP, localIP, consts.TendisTypeTwemproxyRedisInstance,
 		consts.TestRedisMasterStartPort,
 		consts.TestRedisSlaveStartPort, consts.TestRedisInstanceNum); err != nil {
