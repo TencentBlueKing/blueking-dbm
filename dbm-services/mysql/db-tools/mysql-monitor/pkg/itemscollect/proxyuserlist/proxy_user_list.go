@@ -98,19 +98,52 @@ func (c *Checker) Run() (msg string, err error) {
 	}
 
 	var msgs []string
-	var onlyFileMsg string
-	var onlyQueryMsg string
 
 	if len(onlyFile) > 0 {
-		onlyFileMsg = fmt.Sprintf("user only in file: %s", strings.Join(onlyFile, ","))
-		msgs = append(msgs, onlyFileMsg)
+		msgs = append(msgs, fmt.Sprintf("user only in file: %s", strings.Join(onlyFile, ",")))
 	}
 	if len(onlyQuery) > 0 {
-		onlyQueryMsg = fmt.Sprintf("user only in mem: %s", strings.Join(onlyQuery, ","))
-		msgs = append(msgs, onlyQueryMsg)
+		slog.Info("user only in memory", slog.String("users", strings.Join(onlyQuery, ",")))
+		err := refreshUsersToFile(onlyQuery, userListFilePath)
+		if err != nil {
+			msgs = append(msgs,
+				fmt.Sprintf("refresh users [%v] failed: %s", onlyQuery, err.Error()))
+		}
 	}
 
 	return strings.Join(msgs, "\n"), nil
+}
+
+func refreshUsersToFile(userList []string, userFilePath string) error {
+	f, err := os.OpenFile(userFilePath, os.O_RDWR|os.O_APPEND, 0777)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	var realMissingUserList []string
+	for _, u := range userList {
+		if !isInUserFile(u, f) {
+			realMissingUserList = append(realMissingUserList, u)
+		}
+	}
+
+	_, err = f.WriteString(strings.Join(realMissingUserList, "\n"))
+	return err
+}
+
+func isInUserFile(user string, f *os.File) bool {
+	s := bufio.NewScanner(f)
+	s.Split(bufio.ScanLines)
+
+	for s.Scan() {
+		if strings.TrimSpace(s.Text()) == strings.TrimSpace(user) {
+			return true
+		}
+	}
+	return false
 }
 
 // Name TODO
