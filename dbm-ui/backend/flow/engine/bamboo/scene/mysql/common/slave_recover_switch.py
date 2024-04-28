@@ -14,9 +14,10 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceStatus
-from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
@@ -42,7 +43,6 @@ def slave_migrate_switch_sub_flow(
 ):
     """"""
     # 默认预检测连接情况、同步延时、checksum校验结果
-    domain = ClusterEntry.get_cluster_entry_map([cluster.id])
     master = cluster.main_storage_instances()[0]
     old_slave = "{}{}{}".format(old_slave_ip, IP_PORT_DIVIDER, master.port)
     new_slave = "{}{}{}".format(new_slave_ip, IP_PORT_DIVIDER, master.port)
@@ -102,18 +102,25 @@ def slave_migrate_switch_sub_flow(
         kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
     )
 
-    sub_pipeline.add_act(
-        act_name=_("先添加新从库域名{}").format(new_slave_ip),
-        act_component_code=MySQLDnsManageComponent.code,
-        kwargs=asdict(
-            CreateDnsKwargs(
-                bk_cloud_id=cluster.bk_cloud_id,
-                dns_op_exec_port=master.port,
-                exec_ip=new_slave_ip,
-                add_domain_name=domain[cluster.id]["slave_domain"],
-            )
-        ),
-    )
+    domain_map = get_tendb_ha_entry(cluster.id)
+    domain_add_list = []
+    for domain in domain_map[old_slave_ip]:
+        domain_add_list.append(
+            {
+                "act_name": _("先添加新从库域名{}:{}").format(new_slave_ip, domain),
+                "act_component_code": MySQLDnsManageComponent.code,
+                "kwargs": asdict(
+                    CreateDnsKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        dns_op_exec_port=master.port,
+                        exec_ip=new_slave_ip,
+                        add_domain_name=domain,
+                    )
+                ),
+            }
+        )
+    if len(domain_add_list) > 0:
+        sub_pipeline.add_parallel_acts(acts_list=domain_add_list)
 
     sub_pipeline.add_act(
         act_name=_("再删除旧从库域名{}").format(old_slave_ip),

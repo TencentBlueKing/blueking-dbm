@@ -19,7 +19,7 @@ logger = logging.getLogger("root")
 
 
 @transaction.atomic
-def switch_slave(cluster_id: int, target_slave_ip: str, source_slave_ip: str, slave_domain: str):
+def switch_slave(cluster_id: int, target_slave_ip: str, source_slave_ip: str, slave_domain: list):
     """
     集群替换slave场景元数据注册方式
     这里集群调用暂时只支持tendb-ha架构
@@ -39,11 +39,13 @@ def switch_slave(cluster_id: int, target_slave_ip: str, source_slave_ip: str, sl
     target_storage_obj.status = InstanceStatus.RUNNING.value
     target_storage_obj.save()
 
-    cluster_entry = cluster.clusterentry_set.get(entry=slave_domain)
-    cluster_entry.storageinstance_set.remove(source_storage_obj)
-    cluster_entry.storageinstance_set.add(target_storage_obj)
-    # cluster.storageinstance_set.remove(*source_storage_objs)
-    # cluster.storageinstance_set.add(*target_storage_objs)
+    # cluster_entry = cluster.clusterentry_set.get(entry=slave_domain)
+    # cluster_entry.storageinstance_set.remove(source_storage_obj)
+    # cluster_entry.storageinstance_set.add(target_storage_obj)
+    cluster_entry_list = cluster.clusterentry_set.filter(entry__in=slave_domain)
+    for cluster_entry in cluster_entry_list:
+        cluster_entry.storageinstance_set.remove(source_storage_obj)
+        cluster_entry.storageinstance_set.add(target_storage_obj)
 
 
 @transaction.atomic
