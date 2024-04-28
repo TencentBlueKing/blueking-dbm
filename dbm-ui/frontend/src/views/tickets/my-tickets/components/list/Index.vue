@@ -435,6 +435,7 @@
     state.activeTicket = data;
     router.replace({
       query: {
+        ...route.query,
         limit: state.page.limit,
         current: state.page.current,
         id: data.id,
