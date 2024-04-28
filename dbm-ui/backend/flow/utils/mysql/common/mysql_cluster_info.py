@@ -8,61 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
 from typing import Any, Dict
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole, InstanceStatus
-from backend.db_meta.models import Cluster, ClusterEntry
-
-
-def get_cluster_info(cluster_id: int) -> Dict:
-    cluster = {}
-    mysql_cluster = Cluster.objects.get(id=cluster_id)
-    mysql_proxy = mysql_cluster.proxyinstance_set.all()
-    mysql_storage_master = mysql_cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
-    mysql_storage_slave = mysql_cluster.storageinstance_set.filter(
-        instance_inner_role=InstanceInnerRole.SLAVE.value, status=InstanceStatus.RUNNING.value
-    )
-    cluster["name"] = mysql_cluster.name
-    cluster["cluster_id"] = mysql_cluster.id
-    cluster["cluster_type"] = mysql_cluster.cluster_type
-    cluster["bk_biz_id"] = mysql_cluster.bk_biz_id
-    cluster["bk_cloud_id"] = mysql_cluster.bk_cloud_id
-    cluster["db_module_id"] = mysql_cluster.db_module_id
-    cluster["old_master_ip"] = cluster["master_ip"] = mysql_storage_master.machine.ip
-    cluster["master_port"] = cluster["backend_port"] = cluster["mysql_port"] = mysql_storage_master.port
-    slave_ips = [y.machine.ip for y in mysql_storage_slave]
-    cluster["slave_ip"] = copy.deepcopy(slave_ips)
-
-    # 理论上应该只有一个is_standby的slave, 这里是否要先兼容老版本情况呢？
-    # if mysql_storage_slave is None:
-    #     cluster["running_slave_exist"] = False
-    #     cluster["old_slave_ip"]=""
-    #     cluster["other_slave_info"]=[]
-    # else:
-    #     cluster["running_slave_exist"] = True
-    #     # cluster["old_slave_ip"] = mysql_storage_slave.filter(is_stand_by=True).first().machine.ip
-    #     cluster["old_slave_ip"] = mysql_storage_slave.first().machine.ip
-    #     cluster["other_slave_info"] = [
-    #         y.machine.ip for y in mysql_storage_slave
-    #     ]
-
-    cluster["proxy_ip_list"] = [x.machine.ip for x in mysql_proxy]
-    cluster["proxy_port"] = mysql_proxy[0].port
-
-    # 查询待替换的slave节点对应的域名映射关系
-    domain = ClusterEntry.get_cluster_entry_map([cluster_id])
-    cluster["master_domain"] = domain[cluster_id]["master_domain"]
-    cluster["slave_domain"] = domain[cluster_id]["slave_domain"]
-    old_slave = mysql_cluster.storageinstance_set.filter(is_stand_by=True).first()
-    cluster["old_slave_ip"] = old_slave.machine.ip
-    slave_dns_list = old_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
-    cluster["slave_dns_list"] = [i.entry for i in slave_dns_list]
-    # cluster["new_master_ip"] = new_master_ip
-    # cluster["new_slave_ip"] = new_slave_ip
-    return cluster
+from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.models import Cluster
 
 
 def get_version_and_charset(bk_biz_id, db_module_id, cluster_type) -> Any:

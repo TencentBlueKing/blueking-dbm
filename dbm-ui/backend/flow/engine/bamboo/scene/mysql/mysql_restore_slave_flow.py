@@ -18,11 +18,12 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
-from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
@@ -34,6 +35,7 @@ from backend.flow.plugins.components.collections.common.download_backup_client i
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
+from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -41,6 +43,7 @@ from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     ClearMachineKwargs,
+    CreateDnsKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
@@ -235,7 +238,6 @@ class MySQLRestoreSlaveFlow(object):
             if not self.add_slave_only:
                 for cluster_id in self.data["cluster_ids"]:
                     cluster_model = Cluster.objects.get(id=cluster_id)
-                    domain = ClusterEntry.get_cluster_entry_map([cluster_model.id])
                     switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                     switch_sub_pipeline.add_sub_pipeline(
                         sub_flow=slave_migrate_switch_sub_flow(
@@ -246,9 +248,9 @@ class MySQLRestoreSlaveFlow(object):
                             new_slave_ip=self.data["new_slave_ip"],
                         )
                     )
+                    domain_map = get_tendb_ha_entry(cluster_model.id)
                     cluster = {
-                        "slave_domain": domain[cluster_model.id]["slave_domain"],
-                        "master_domain": domain[cluster_model.id]["master_domain"],
+                        "slave_domain": domain_map[self.data["old_slave_ip"]],
                         "new_slave_ip": self.data["new_slave_ip"],
                         "old_slave_ip": self.data["old_slave_ip"],
                         "cluster_id": cluster_model.id,
@@ -456,7 +458,7 @@ class MySQLRestoreSlaveFlow(object):
             # 创建repl账号
             cluster["target_ip"] = master.machine.ip
             cluster["target_port"] = master.port
-            cluster["repl_ip"] = self.data["new_slave_ip"]
+            cluster["repl_ip"] = target_slave.machine.ip
             exec_act_kwargs.cluster = copy.deepcopy(cluster)
             exec_act_kwargs.exec_ip = master.machine.ip
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
@@ -478,7 +480,7 @@ class MySQLRestoreSlaveFlow(object):
             )
 
             #  克隆权限
-            new_slave = "{}{}{}".format(self.data["new_slave_ip"], IP_PORT_DIVIDER, master.port)
+            new_slave = "{}{}{}".format(target_slave.machine.ip, IP_PORT_DIVIDER, master.port)
             old_master = "{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)
             clone_data = [
                 {
@@ -492,7 +494,28 @@ class MySQLRestoreSlaveFlow(object):
                 act_component_code=CloneUserComponent.code,
                 kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
             )
-            # ====
+            # 添加域名
+            domain_map = get_tendb_ha_entry(cluster_model.id)
+            domain_add_list = []
+            for domain in domain_map[target_slave.machine.ip]:
+                domain_add_list.append(
+                    {
+                        "act_name": _("添加从库域名{}:{}").format(target_slave.machine.ip, domain),
+                        "act_component_code": MySQLDnsManageComponent.code,
+                        "kwargs": asdict(
+                            CreateDnsKwargs(
+                                bk_cloud_id=cluster_model.bk_cloud_id,
+                                dns_op_exec_port=master.port,
+                                exec_ip=target_slave.machine.ip,
+                                add_domain_name=domain,
+                            )
+                        ),
+                    }
+                )
+
+            if len(domain_add_list) > 0:
+                tendb_migrate_pipeline.add_parallel_acts(acts_list=domain_add_list)
+
             tendb_migrate_pipeline.add_act(
                 act_name=_("写入初始化实例的db_meta元信息"),
                 act_component_code=MySQLDBMetaComponent.code,
@@ -506,7 +529,7 @@ class MySQLRestoreSlaveFlow(object):
             )
 
             tendb_migrate_pipeline_list.append(
-                tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}").format(self.data["slave_ip"]))
+                tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}").format(target_slave.machine.ip))
             )
 
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=tendb_migrate_pipeline_list)

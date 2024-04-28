@@ -16,10 +16,11 @@ from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
-from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.models import Cluster
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
 from backend.flow.plugins.components.collections.mysql.add_user_for_cluster_switch import AddSwitchUserComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
@@ -144,15 +145,15 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
 
     # 代理层、账号等等。
     mysql_proxy = cluster.proxyinstance_set.all()
-    domain = ClusterEntry.get_cluster_entry_map([cluster.id])
     mysql_storage_slave = cluster.storageinstance_set.filter(
         instance_inner_role=InstanceInnerRole.SLAVE.value, status=InstanceStatus.RUNNING.value
     )
     cluster_info["other_slave_info"] = [
         y.machine.ip for y in mysql_storage_slave.exclude(machine__ip=cluster_info["old_slave_ip"])
     ]
-    cluster_info["master_domain"] = domain[cluster.id]["master_domain"]
-    cluster_info["slave_domain"] = domain[cluster.id]["slave_domain"]
+    domain_map = get_tendb_ha_entry(cluster.id)
+    cluster_info["master_domain"] = domain_map["master_domain"]
+    cluster_info["slave_domain"] = domain_map["slave_domain"]
     cluster_info["proxy_ip_list"] = [x.machine.ip for x in mysql_proxy]
     cluster_info["proxy_port"] = mysql_proxy[0].port
 
