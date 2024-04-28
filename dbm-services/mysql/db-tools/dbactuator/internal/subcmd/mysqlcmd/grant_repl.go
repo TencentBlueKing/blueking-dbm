@@ -74,11 +74,11 @@ func (g *GrantReplAct) Run() (err error) {
 		{
 			FunName: "获取同步位点信息",
 			Func: func() error {
-				postion, err := g.Payload.GetBinPosition()
+				position, err := g.Payload.GetBinPosition()
 				if err != nil {
 					return err
 				}
-				g.OutputCtx(postion)
+				g.OutputCtx(position)
 				return nil
 			},
 		},

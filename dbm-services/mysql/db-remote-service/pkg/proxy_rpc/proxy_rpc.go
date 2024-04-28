@@ -2,16 +2,13 @@
 package proxy_rpc
 
 import (
-	"context"
+	"dbm-services/mysql/db-remote-service/pkg/config"
+	"dbm-services/mysql/db-remote-service/pkg/parser"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
-	"dbm-services/mysql/db-remote-service/pkg/config"
-	"dbm-services/mysql/db-remote-service/pkg/parser"
-
-	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql" // mysql
 	"github.com/jmoiron/sqlx"
 )
@@ -40,34 +37,35 @@ func (c *ProxyRPCEmbed) ParseCommand(command string) (*parser.ParseQueryBase, er
 
 // MakeConnection proxy 建立连接
 func (c *ProxyRPCEmbed) MakeConnection(address string, user string, password string, timeout int) (*sqlx.DB, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
-	defer cancel()
-
 	// TODO 如果连接的是业务端口（非 admin 端口），也应该设置时区？
 	// tz := "loc=Local&time_zone=%27%2B08%3A00%27"
-	db, err := sqlx.ConnectContext(
-		ctx,
+	connectParam := fmt.Sprintf("timeout=%d", timeout)
+	db, err := sqlx.Open(
 		"mysql",
-		fmt.Sprintf(`%s:%s@tcp(%s)/`, user, password, address),
+		fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, connectParam),
 	)
 
 	if err != nil {
-		if merr, ok := err.(*mysql.MySQLError); ok {
-			if merr.Number != 1105 {
-				slog.Error(
-					"connect to proxy",
-					slog.String("error", err.Error()),
-					slog.String("address", address),
-				)
-				return nil, merr
-			}
-		} else {
-			slog.Error("connect to proxy",
+		slog.Warn("first time connect to proxy",
+			slog.String("err", err.Error()),
+			slog.String("address", address),
+		)
+
+		time.Sleep(2 * time.Second)
+
+		db, err := sqlx.Open(
+			"mysql",
+			fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, connectParam),
+		)
+		if err != nil {
+			slog.Error(
+				"retry connect to proxy",
 				slog.String("error", err.Error()),
 				slog.String("address", address),
 			)
 			return nil, err
 		}
+		return db, nil
 	}
 
 	return db, nil
