@@ -24,6 +24,7 @@ from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_monitor.models import Dashboard as MonitorDash
 
+from ...db_meta.enums import ClusterType
 from . import client
 from .constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
 from .provisioning import Dashboard, Datasource
@@ -200,23 +201,29 @@ class ProxyBaseView(View):
                 return
 
             # 支持多个仪表盘
-            cluster_type = tags[0]
-            view = tags[1] if len(tags) > 1 else _("集群监控视图")
+            cluster_types = []
+            view = _("集群监控视图")
+            for tag in tags:
+                if tag in ClusterType.get_values():
+                    cluster_types.append(tag)
+                else:
+                    view = tag
 
-            MonitorDash.objects.update_or_create(
-                defaults={
-                    "name": db.title,
-                    "uid": dash["uid"],
-                    "url": dash["url"],
-                    "details": db.dashboard,
-                },
-                org_id=DEFAULT_ORG_ID,
-                org_name=DEFAULT_ORG_NAME,
-                cluster_type=cluster_type,
-                view=view,
-            )
+            for cluster_type in cluster_types:
+                MonitorDash.objects.update_or_create(
+                    defaults={
+                        "name": db.title,
+                        "uid": dash["uid"],
+                        "url": dash["url"],
+                        "details": db.dashboard,
+                    },
+                    org_id=DEFAULT_ORG_ID,
+                    org_name=DEFAULT_ORG_NAME,
+                    cluster_type=cluster_type,
+                    view=view,
+                )
             _ORG_DASHBOARDS_CACHE[org_name][db.title] = resp.json()
-            logger.info("provision dashboard success, %s", resp)
+            # logger.info("provision dashboard success, %s", resp)
         else:
             logger.info("provision dashboard error, %s", resp.content)
 

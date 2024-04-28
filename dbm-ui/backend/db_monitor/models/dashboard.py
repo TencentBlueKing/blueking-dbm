@@ -28,7 +28,7 @@ class Dashboard(AuditedModel):
     name = models.CharField(verbose_name=_("名称"), max_length=LEN_MIDDLE, default="")
     view = models.CharField(verbose_name=_("视图类型"), max_length=LEN_MIDDLE, default=_("集群监控视图"))
 
-    cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
+    cluster_type = models.CharField(max_length=LEN_NORMAL, choices=ClusterType.get_choices(), default="")
 
     details = models.JSONField(verbose_name=_("详情"), default=dict)
     variables = models.JSONField(verbose_name=_("变量"), default=dict)
@@ -41,7 +41,7 @@ class Dashboard(AuditedModel):
 
     class Meta:
         verbose_name = _("仪表盘")
-        unique_together = (("name", "view"),)
+        unique_together = (("org_id", "org_name", "view", "cluster_type"),)
 
     def get_url(self, bk_biz_id, cluster_id, view=None):
         from backend.bk_dataview.grafana.constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
