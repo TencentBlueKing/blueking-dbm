@@ -232,7 +232,7 @@
     event.preventDefault();
     if (!props.multiInput) {
       window.changeConfirm = true;
-      modelValue.value = paste;
+      modelValue.value = paste.replace(/^\s+|\s+$/g, '');
     }
   };
 

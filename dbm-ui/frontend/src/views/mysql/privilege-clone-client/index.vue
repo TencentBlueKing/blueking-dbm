@@ -100,19 +100,18 @@
   import type { TableProps } from '@/types/bkui-vue';
 
   type FormItemInstance = InstanceType<typeof FormItem>;
+
   interface TableItem {
     source: string,
     target: string,
     uniqueId: string
   }
+
   interface TableColumnData {
     index: number,
     data: TableItem
   }
 
-  const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
-  const tableMaxHeight = useTableMaxHeight(334);
   const getSourceInfos = (cloudIp = '') => {
     const [cloudId, ip] = cloudIp.split(':');
     return {
@@ -121,14 +120,35 @@
     };
   };
 
+  /**
+   * 获取表格数据
+   */
+  const getTableItem = () => ({
+    // topo: [],
+    source: '',
+    target: '',
+    uniqueId: generateId('CLONE_CLIENT_'),
+  });
+
+  const { t } = useI18n();
+  const globalBizsStore = useGlobalBizs();
+  const tableMaxHeight = useTableMaxHeight(334);
+
   const ticketId = ref(0);
   const toolboxTableRef = ref();
   const isShowBatchInput = ref(false);
   const isSubmitting = ref(false);
   const isShowIpSelector = ref(false);
-  const hostTopoMap: Map<string, ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number]> = reactive(new Map());
-  const targetHostNotExistMap: Map<string, string[]> = reactive(new Map());
   const tableData = ref<Array<TableItem>>([getTableItem()]);
+
+  const formItemRefs = reactive({
+    target: [] as FormItemInstance[],
+    source: [] as FormItemInstance[],
+  });
+
+  const hostTopoMap: Map<string, ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number]> = reactive(new Map());
+  const targetHostNotExistMap: Map<string, string[]> = new Map();
+
   const columns: TableProps['columns'] = [
     {
       label: () => (
@@ -193,12 +213,9 @@
       ),
     },
   ];
+
   // 设置 target|source form-item
-  const formItemRefs = reactive({
-    target: [] as FormItemInstance[],
-    source: [] as FormItemInstance[],
-  });
-  function setFormItemRefs(key: 'target' | 'source', vueInstance: FormItemInstance) {
+  const setFormItemRefs = (key: 'target' | 'source', vueInstance: FormItemInstance) => {
     if (vueInstance) {
       const refs = formItemRefs[key];
       const refProperties = refs.map(item => item.$props.property);
@@ -207,113 +224,101 @@
         formItemRefs[key].push(vueInstance);
       }
     }
-  }
-
-  /**
-   * 获取表格数据
-   */
-  function getTableItem(): TableItem {
-    return {
-      // topo: [],
-      source: '',
-      target: '',
-      uniqueId: generateId('CLONE_CLIENT_'),
-    };
-  }
+  };
 
   /**
    * 获取源客户端 ip 正则校验
    */
-  function getSourceRules(data: TableItem) {
-    return [
-      {
-        validator: (ip: string) => !!ip,
-        message: t('请输入'),
-        trigger: 'blur',
+  const getSourceRules = (data: TableItem) => [
+    {
+      validator: (ip: string) => !!ip,
+      message: t('请输入'),
+      trigger: 'blur',
+    },
+    {
+      validator: (ip: string) => {
+        const items = ip.split(':');
+        return items.length === 2 && /^\d+$/.test(items[0]);
       },
-      {
-        validator: (ip: string) => {
-          const items = ip.split(':');
-          return items.length === 2 && /^\d+$/.test(items[0]);
-        },
-        message: t('请输入xx', [t('管控区域')]),
-        trigger: 'blur',
+      message: t('请输入xx', [t('管控区域')]),
+      trigger: 'blur',
+    },
+    {
+      validator: (ip: string) => {
+        const items = ip.split(':');
+        return ipv4.test(items[1]);
       },
-      {
-        validator: (ip: string) => {
-          const items = ip.split(':');
-          return ipv4.test(items[1]);
-        },
-        message: t('请输入合法ipv4'),
-        trigger: 'blur',
-      },
-      {
-        validator: (value: string) => verifySourceHost(data, value),
-        message: t('IP不存在'),
-        trigger: 'blur',
-      },
-    ];
-  }
+      message: t('请输入合法ipv4'),
+      trigger: 'blur',
+    },
+    {
+      validator: (value: string) => verifySourceHost(data, value),
+      message: t('IP不存在'),
+      trigger: 'blur',
+    },
+  ];
 
   /**
    * 获取新客户端 ip 正则校验
    */
-  function getTargetRules(data: TableItem) {
-    return [
-      {
-        validator: (val: string) => {
-          const targets = val.split('\n').map(ip => ip.trim());
-          return targets.every(ip => ipv4.test(ip));
-        },
-        message: t('请输入合法ipv4'),
-        trigger: 'blur',
+  const getTargetRules = (data: TableItem) => [
+    {
+      validator: (val: string) => val.split('\n').length <= 500,
+      message: t('ip数不能超过n个', { n: 500 }),
+      trigger: 'blur',
+    },
+    {
+      validator: (val: string) => {
+        const targets = val.split('\n').map(ip => ip.trim());
+        return targets.every(ip => ipv4.test(ip));
       },
-      {
-        validator: (val: string) => {
-          const targets = val.split('\n').map(ip => ip.trim());
-          return targets.every(ip => ip !== getSourceInfos(data.source).ip);
-        },
-        message: t('xx为源客户端IP', [getSourceInfos(data.source).ip]),
-        trigger: 'blur',
+      message: t('请输入合法ipv4'),
+      trigger: 'blur',
+    },
+    {
+      validator: (val: string) => {
+        const targets = val.split('\n').map(ip => ip.trim());
+        return targets.every(ip => ip !== getSourceInfos(data.source).ip);
       },
-      {
-        validator: (val: string) => {
-          const targets = val.split('\n').map(ip => ip.trim());
-          const uniqueTargets = _.uniq(targets);
-          return targets.length === uniqueTargets.length;
-        },
-        message: t('新客户端IP重复'),
-        trigger: 'blur',
+      message: t('xx为源客户端IP', [getSourceInfos(data.source).ip]),
+      trigger: 'blur',
+    },
+    {
+      validator: (val: string) => {
+        const targets = val.split('\n').map(ip => ip.trim());
+        const uniqueTargets = _.uniq(targets);
+        return targets.length === uniqueTargets.length;
       },
-      {
-        validator: (value: string) => verifyTargetHost(data, value),
-        message: () => `${targetHostNotExistMap.get(data.uniqueId)?.join('，')} ${t('IP不存在')}`,
-        trigger: 'blur',
-      },
-    ];
-  }
+      message: t('新客户端IP重复'),
+      trigger: 'blur',
+    },
+    {
+      validator: (value: string) => verifyTargetHost(data, value),
+      message: () => t('部分IP不存在'),
+      // message: () => `${targetHostNotExistMap.get(data.uniqueId)?.join('，')} ${t('IP不存在')}`,
+      trigger: 'blur',
+    },
+  ];
 
   /**
    * 查询主机拓扑
    */
-  function fetchHostTopoInfos(ips: string[]) {
-    return getHostTopoInfos({
-      bk_biz_id: globalBizsStore.currentBizId,
-      filter_conditions: {
-        bk_host_innerip: ips,
-      },
-    }).then((res) => {
-      for (const item of res.hosts_topo_info) {
-        hostTopoMap.set(item.ip, item);
-      }
-      return res;
-    });
-  }
+  const fetchHostTopoInfos = (ips: string[]) => getHostTopoInfos({
+    bk_biz_id: globalBizsStore.currentBizId,
+    filter_conditions: {
+      bk_host_innerip: ips,
+    },
+  }).then((res) => {
+    for (const item of res.hosts_topo_info) {
+      hostTopoMap.set(item.ip, item);
+    }
+    return res;
+  });
 
   /**
    * 校验源客户端主机是否存在
    */
-  function verifySourceHost(data: TableItem, value: string) {
+  const verifySourceHost = (data: TableItem, value: string) => {
     // 已经查询过且存在的主机
     const curHostTopo = hostTopoMap.get(getSourceInfos(data.source).ip)?.topo || [];
     if (curHostTopo.length > 0) {
@@ -322,12 +327,12 @@
 
     const ips = tableData.value.map(item => item.source).filter(source => ipv4.test(getSourceInfos(source).ip.trim()));
     return fetchHostTopoInfos(ips).then(() => Boolean(hostTopoMap.get(getSourceInfos(value).ip)?.topo?.length));
-  }
+  };
 
   /**
    * 校验新客户端主机是否存在
    */
-  function verifyTargetHost(data: TableItem, value: string) {
+  const verifyTargetHost = (data: TableItem, value: string) => {
     const targets = value.split('\n')
       .map(ip => ip.trim())
       .filter(ip => ip);
@@ -348,24 +353,24 @@
       }
       return !hasNotExistHost;
     });
-  }
+  };
 
   /**
    * 批量添加若只有一行且为空则清空
    */
-  function clearEmptyTableData() {
+  const clearEmptyTableData = () => {
     if (tableData.value.length === 1) {
       const data = tableData.value[0];
       if (Object.values({ ...data, uniqueId: '' }).every(value => !value)) {
         tableData.value = [];
       }
     }
-  }
+  };
 
   /**
    * 批量录入
    */
-  async function handleBatchInput(list: Array<{ source: string, target: string }>) {
+  const handleBatchInput = async (list: Array<{ source: string, target: string }>)  => {
     const formatList = list.map(item => ({
       ...getTableItem(),
       source: item.source,
@@ -385,17 +390,17 @@
 
     // 触发表格校验
     toolboxTableRef.value.validate();
-  }
+  };
 
-  function handleAddItem(index: number) {
+  const handleAddItem = (index: number) => {
     tableData.value.splice(index + 1, 0, getTableItem());
-  }
+  };
 
-  function handleRemoveItem(index: number) {
+  const handleRemoveItem = (index: number) => {
     tableData.value.splice(index, 1);
-  }
+  };
 
-  function handleReset() {
+  const handleReset = () => {
     useInfo({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
@@ -407,9 +412,9 @@
         return true;
       },
     });
-  }
+  };
 
-  async function handleHostChange(data: ServiceReturnType<typeof checkHost>) {
+  const handleHostChange = async (data: ServiceReturnType<typeof checkHost>) => {
     const newList = data.map(item => ({
       ...getTableItem(),
       source: `${item.cloud_id}:${item.ip}`,
@@ -424,9 +429,9 @@
     } catch (e) {
       console.log(e);
     }
-  }
+  };
 
-  function handleSubmit() {
+  const handleSubmit = () => {
     toolboxTableRef.value.validate()
       .then(() => {
         isSubmitting.value = true;
@@ -473,11 +478,11 @@
             isSubmitting.value = false;
           });
       });
-  }
+  };
 
-  function handleCloseSuccess() {
+  const handleCloseSuccess = () => {
     ticketId.value = 0;
-  }
+  };
 </script>
 
 <style lang="less" scoped>
