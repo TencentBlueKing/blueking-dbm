@@ -161,7 +161,7 @@ func CheckDiskSpace(backupDir string, mysqlPort int) error {
 		err = errors.New("free space is not enough")
 		return err
 	}
-	if float64(diskSpaceInfo.Free-backupSize*2) < 0.06*float64(diskSpaceInfo.Total) {
+	if float64(diskSpaceInfo.Free-backupSize*1) < 0.06*float64(diskSpaceInfo.Total) {
 		err = errors.New("disk space usage may be over 94%")
 		return err
 	}

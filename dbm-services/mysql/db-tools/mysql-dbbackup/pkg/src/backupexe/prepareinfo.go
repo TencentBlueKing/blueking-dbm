@@ -242,12 +242,13 @@ func parseXtraSlaveInfo(qpress string, fileName string, tmpFileName string) (*db
 	buf := bufio.NewScanner(tmpFile)
 	for buf.Scan() {
 		line := buf.Text()
-		re := regexp.MustCompile(`MASTER_LOG_FILE='(\S+)',\s+MASTER_LOG_POS=(\d+);`)
+		re := regexp.MustCompile(`MASTER_LOG_FILE='(\S+)',\s+MASTER_LOG_POS=(\d+)`)
 		matches := re.FindStringSubmatch(line)
 		if len(matches) == 3 {
 			showSlaveStatus.BinlogFile = matches[1]
 			showSlaveStatus.BinlogPos = matches[2]
 		}
 	}
+	logger.Log.Warnf("parseXtraSlaveInfo=%+v", showSlaveStatus)
 	return showSlaveStatus, nil
 }
