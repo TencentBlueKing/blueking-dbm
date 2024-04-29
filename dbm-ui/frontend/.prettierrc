@@ -20,7 +20,7 @@
     {
       "files": "*.vue",
       "options": {
-        "parser": "vue",
+        "parser": "vue"
       }
     }
   ]

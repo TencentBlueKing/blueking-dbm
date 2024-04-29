@@ -10,7 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import { utcDisplayTime } from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -104,6 +104,7 @@ export default class Kafka {
     title: string;
   }>;
   permission: {
+    kafka_access_entry_view: boolean;
     kafka_view: boolean;
     kafka_enable_disable: boolean;
     kafka_destroy: boolean;
@@ -231,6 +232,10 @@ export default class Kafka {
       tip: Kafka.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24 * 3);
   }
 
   initOperations(payload = [] as Kafka['operations']) {

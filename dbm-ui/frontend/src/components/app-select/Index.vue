@@ -9,10 +9,9 @@
     @change="handleAppChange">
     <template #default="{ data }">
       <AuthTemplate
-        action-id="biz"
+        action-id="db_manage"
         :permission="data.permission.db_manage"
-        :resource-id="data.bk_biz_id"
-        resource-type="biz"
+        :resource="data.bk_biz_id"
         style="flex: 1">
         <template #default="{ permission }">
           <div

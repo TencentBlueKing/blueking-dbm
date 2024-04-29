@@ -12,7 +12,7 @@
  */
 import type { InstanceSpecInfo } from '@services/model/spider/tendbCluster';
 
-import { utcDisplayTime } from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 export default class TendbInstance {
   bk_cloud_id: number;
@@ -79,5 +79,9 @@ export default class TendbInstance {
 
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24 * 3);
   }
 }

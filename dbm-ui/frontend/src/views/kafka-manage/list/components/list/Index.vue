@@ -342,32 +342,36 @@
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: {data: KafkaModel}) => (
-        <div style="line-height: 14px; display: flex;">
-          <div>
-            <span>
-              {data.cluster_name}
-            </span>
-            <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
-          </div>
-          {
-            data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-          }
-          <db-icon
-            v-show={!data.isOnline && !data.isStarting}
-            svg
-            type="yijinyong"
-            style="width: 38px; height: 16px; margin-left: 4px;" />
-          {
-            isRecentDays(data.create_at, 24 * 3)
-              ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
-              : null
-          }
-          <db-icon
-            class="mt-2"
-            v-bk-tooltips={t('复制集群名称')}
-            type="copy"
-            onClick={() => copy(data.cluster_name)} />
-        </div>
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <div>
+                <div>
+                  <div>
+                    {data.cluster_name}
+                  </div>
+                  <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
+                </div>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                <db-icon
+                  v-show={!data.isOnline && !data.isStarting}
+                  svg
+                  type="yijinyong"
+                  style="width: 38px; height: 16px; margin-left: 4px;" />
+                {data.isNew && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />}
+              </div>
+            ),
+            append: () => (
+              <db-icon
+                class="mt-2"
+                v-bk-tooltips={t('复制集群名称')}
+                type="copy"
+                onClick={() => copy(data.cluster_name)} />
+            )
+          }}
+        </TextOverflowLayout>
       ),
     },
     {
@@ -476,8 +480,8 @@
             <auth-button
               text
               theme="primary"
-              action-id="kafka_view"
-              permission={data.permission.kafka_view}
+              action-id="kafka_access_entry_view"
+              permission={data.permission.kafka_access_entry_view}
               resource={data.id}
               class="mr8"
               onClick={() => handleShowPassword(data)}>

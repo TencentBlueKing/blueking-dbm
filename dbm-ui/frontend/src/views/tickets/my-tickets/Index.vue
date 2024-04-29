@@ -20,15 +20,14 @@
       <Details
         :data="activeTicket"
         @update-active-ticket="handleChangeTicket" />
-      <TicketClone :data="activeTicket" />
+      <!-- <TicketClone :data="activeTicket" /> -->
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
 
-  import TicketClone from '../common/components/TicketClone.vue';
-
+  // import TicketClone from '../common/components/TicketClone.vue';
   import Details from './components/details/Index.vue';
   import List from './components/list/Index.vue';
 

@@ -76,6 +76,7 @@
 
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
     getSearchSelectorParams,
@@ -135,36 +136,53 @@
         minWidth: 200,
         showOverflowTooltip: false,
         render: ({ data }: IColumn) => (
-          <div style="display: flex; align-items: center;">
-            <div class="text-overflow" v-overflow-tips>
-              <a href="javascript:" onClick={e => handleToDetails(e, data)}>{data.instance_address}</a>
-            </div>
-            {
-              isRecentDays(data.create_at, 24 * 3)
-                ? <span class="glob-new-tag ml-4" data-text="NEW" />
-                : null
-            }
-          </div>
-        ),
+          <TextOverflowLayout>
+            {{
+              default: () => (
+                <auth-button
+                  action-id="tendbcluster_view"
+                  permission={data.permission.tendbcluster_view}
+                  resource={data.cluster_id}
+                  theme="primary"
+                  text
+                  onClick={() => handleToDetails(data)}>
+                  {data.instance_address}
+                </auth-button>
+              ),
+              append: () => data.isNew && <span class="glob-new-tag ml-4" data-text="NEW" />
+            }}
+          </TextOverflowLayout>
+        )
       },
       {
         label: t('集群名称'),
         field: 'cluster_name',
         minWidth: 200,
         showOverflowTooltip: false,
-        render: ({ cell, data }: IColumn) => (
-          <div class="domain">
-            <a
-              class="text-overflow"
-              href="javascript:"
-              v-overflow-tips
-              onClick={() => handleToClusterDetails(data)}>
-              {cell}
-            </a>
-            <db-cion type="copy"
-              v-bk-tooltips={t('复制集群名称')}
-              onClick={() => copy(cell)} />
-          </div>
+        render: ({ data }: {data: TendbInstanceModel}) => (
+          <TextOverflowLayout>
+            {{
+              default: () => (
+                <router-link
+                  to={{
+                    name: 'tendbClusterList',
+                    query: {
+                      cluster_id: data.cluster_id,
+                    }
+                  }}
+                  target="_blank">
+                  {data.cluster_name}
+                </router-link>
+              ),
+              append: () => (
+                <db-icon
+                  type="copy"
+                  v-bk-tooltips={t('复制集群名称')}
+                  onClick={() => copy(data.cluster_name)} />
+              )
+
+            }}
+          </TextOverflowLayout>
         ),
       },
       {
@@ -194,38 +212,38 @@
         field: 'master_domain',
         minWidth: 200,
         showOverflowTooltip: false,
-        render: ({ cell }: IColumn) => (
-          <div class="domain">
-            <span class="text-overflow" v-overflow-tips>{cell || '--'}</span>
-            <db-icon
-              v-bk-tooltips={t('复制主访问入口')}
-              type="copy"
-              onClick={() => copy(cell)} />
-          </div>
-        ),
+        render: ({ data }: {data: TendbInstanceModel}) => (
+          <TextOverflowLayout>
+            {{
+              default: () => data.master_domain || '--',
+              append: () => data.master_domain && (
+                <db-icon
+                  v-bk-tooltips={t('复制主访问入口')}
+                  type="copy"
+                  onClick={() => copy(data.master_domain)} />
+              )
+            }}
+          </TextOverflowLayout>
+        )
       },
       {
         label: t('从访问入口'),
         field: 'slave_domain',
         minWidth: 200,
         showOverflowTooltip: false,
-        render: ({ cell }: IColumn) => (
-          <div class="domain">
-            <span
-              class="text-overflow"
-              v-overflow-tips>
-              {cell || '--'}
-            </span>
-            {
-              cell && (
+        render: ({ data }: {data: TendbInstanceModel}) => (
+          <TextOverflowLayout>
+            {{
+              default: () => data.slave_domain || '--',
+              append: () => data.slave_domain && (
                 <db-icon
                   v-bk-tooltips={t('复制从访问入口')}
                   type="copy"
-                  onClick={() => copy(cell)} />
+                  onClick={() => copy(data.slave_domain)} />
               )
-            }
-          </div>
-        ),
+            }}
+          </TextOverflowLayout>
+        )
       },
       {
         label: t('部署角色'),
@@ -239,7 +257,7 @@
         label: t('部署时间'),
         field: 'create_at',
         sort: true,
-        width: 160,
+        width: 240,
         render: ({ cell }: IColumn) => <span>{utcDisplayTime(cell)}</span>,
       },
       {
@@ -251,9 +269,10 @@
           <auth-button
             action-id="tendbcluster_view"
             permission={data.permission.tendbcluster_view}
+            resource={data.cluster_id}
             theme="primary"
             text
-            onClick={(event: Event) => handleToDetails(event, data)}>
+            onClick={() => handleToDetails(data)}>
             { t('查看详情') }
           </auth-button>
         ),
@@ -350,23 +369,12 @@
 
 
   // 查看实例详情
-  const handleToDetails = (e: Event, data: TendbInstanceModel) => {
-    e.stopPropagation();
+  const handleToDetails = (data: TendbInstanceModel) => {
     stretchLayoutSplitScreen();
     instanceData.value = {
       instanceAddress: data.instance_address,
       clusterId: data.cluster_id,
     };
-  };
-
-  // 查看集群详情
-  const handleToClusterDetails = (data: TendbInstanceModel) => {
-    router.push({
-      name: 'tendbClusterList',
-      query: {
-        cluster_id: data.cluster_id,
-      },
-    });
   };
 
   // 申请实例
@@ -401,27 +409,7 @@
       }
     }
 
-    :deep(.cell) {
-      .domain {
-        display: flex;
-        align-items: center;
-
-        .db-icon-copy {
-          display: none;
-          margin-left: 4px;
-          color: @primary-color;
-          cursor: pointer;
-        }
-      }
-    }
-
-    :deep(tr:hover) {
-      .db-icon-copy {
-        display: inline-block !important;
-      }
-    }
-
-    :deep(.table-wrapper) {
+    .table-wrapper {
       background-color: white;
 
       .db-table,
@@ -436,10 +424,25 @@
       .bk-table-body {
         max-height: calc(100% - 100px);
       }
+
+      tr:hover {
+        .db-icon-copy {
+          display: inline-block !important;
+        }
+      }
+
+      .cell {
+        .db-icon-copy {
+          display: none;
+          margin-left: 4px;
+          color: @primary-color;
+          cursor: pointer;
+        }
+      }
     }
 
     .is-shrink-table {
-      :deep(.bk-table-body) {
+      .bk-table-body {
         overflow: hidden auto;
       }
     }

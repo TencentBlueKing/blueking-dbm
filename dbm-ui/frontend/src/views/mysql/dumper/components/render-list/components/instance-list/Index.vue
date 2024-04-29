@@ -410,7 +410,7 @@
               <span>
                 <auth-button
                   action-id="tbinlogdumper_switch_nodes"
-                  resource={data.id}
+                  resource={data.cluster_id}
                   permission={data.permission.tbinlogdumper_switch_nodes}
                   text
                   disabled={data.isOperating}
