@@ -419,8 +419,8 @@
           <auth-button
               text
               theme="primary"
-              action-id="pulsar_view"
-              permission={data.permission.pulsar_view}
+              action-id="pulsar_access_entry_view"
+              permission={data.permission.pulsar_access_entry_view}
               resource={data.id}
               class="mr8"
               onClick={() => handleShowPassword(data)}>

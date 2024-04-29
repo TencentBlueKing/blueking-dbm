@@ -511,8 +511,8 @@
             <auth-button
               text
               theme="primary"
-              action-id="es_view"
-              permission={data.permission.es_view}
+              action-id="es_access_entry_view"
+              permission={data.permission.es_access_entry_view}
               resource={data.id}
               class="mr8"
               onClick={() => handleShowPassword(data)}>

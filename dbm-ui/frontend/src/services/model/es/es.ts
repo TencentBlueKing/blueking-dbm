@@ -108,6 +108,7 @@ export default class Es {
   }>;
   permission: {
     access_entry_edit: boolean;
+    es_access_entry_view: boolean;
     es_destroy: boolean;
     es_enable_disable: boolean;
     es_reboot: boolean;

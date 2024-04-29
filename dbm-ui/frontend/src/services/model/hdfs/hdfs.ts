@@ -106,6 +106,8 @@ export default class Hdfs {
     title: string;
   }>;
   permission: {
+    access_entry_edit: boolean;
+    hdfs_access_entry_view: boolean;
     hdfs_view: boolean;
     hdfs_enable_disable: boolean;
     hdfs_destroy: boolean;
@@ -113,7 +115,6 @@ export default class Hdfs {
     hdfs_shrink: boolean;
     hdfs_replace: boolean;
     hdfs_reboot: boolean;
-    access_entry_edit: boolean;
   };
   phase: string;
   region: string;

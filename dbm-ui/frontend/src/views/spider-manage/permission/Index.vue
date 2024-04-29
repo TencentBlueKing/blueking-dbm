@@ -16,7 +16,7 @@
     <div class="permission">
       <div class="permission-operations">
         <AuthButton
-          action-id="tendbcluster_partition_create"
+          action-id="tendbcluster_account_create"
           theme="primary"
           @click="handleAddAcount">
           {{ t('新建账号') }}
@@ -190,6 +190,7 @@
               size="small"
               action-id="tendbcluster_add_account_rule"
               permission={data.permission.tendbcluster_add_account_rule}
+              resource={data.account.account_id}
               onClick={ (event: Event) => handleShowCreateRule(data, event) }>
               { t('添加授权规则') }
             </auth-button>
@@ -200,7 +201,6 @@
     {
       label: t('访问DB'),
       field: 'access_db',
-
       showOverflowTooltip: true,
       sort: true,
       render: ({ data }: { data: PermissionTableRow }) => {
@@ -214,6 +214,7 @@
                 text
                 action-id="tendbcluster_add_account_rule"
                 permission={data.permission.tendbcluster_add_account_rule}
+                resource={data.account.account_id}
                 onClick={ (event: Event) => handleShowCreateRule(data, event) }>
                 { t('立即新建') }
               </auth-button>
@@ -259,6 +260,7 @@
               <auth-button
                 action-id="tendbcluster_account_delete"
                 permission={data.permission.tendbcluster_account_delete}
+                resource={data.account.account_id}
                 theme="primary"
                 text
                 onClick={ () => handleDeleteAccount(data) }>

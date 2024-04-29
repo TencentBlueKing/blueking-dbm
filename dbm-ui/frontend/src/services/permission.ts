@@ -43,15 +43,15 @@ interface RamdomCycle {
 interface MysqlAdminPassword {
   bk_cloud_id: number;
   component: string;
-  bk_cloud_name: string,
-  id: number,
-  ip: string,
-  lock_until: string,  // 带有时区
-  operator: string,
-  password: string,
-  port: number,
-  update_time: string, // 带有时区
-  username: string
+  bk_cloud_name: string;
+  id: number;
+  ip: string;
+  lock_until: string; // 带有时区
+  operator: string;
+  password: string;
+  port: number;
+  update_time: string; // 带有时区
+  username: string;
 }
 
 interface AdminPasswordResultItem {
@@ -174,6 +174,8 @@ export const getPermissionRules = (params: PermissionRulesParams, payload = {} a
         permission: {
           mysql_account_delete: boolean;
           mysql_add_account_rule: boolean;
+          tendbcluster_account_delete: boolean;
+          tendbcluster_add_account_rule: boolean;
         };
         rules: {
           access_db: string;

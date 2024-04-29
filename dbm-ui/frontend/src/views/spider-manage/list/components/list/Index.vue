@@ -126,7 +126,6 @@
 <script setup lang="tsx">
   import { Checkbox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
   import {
     useRoute,
     useRouter,

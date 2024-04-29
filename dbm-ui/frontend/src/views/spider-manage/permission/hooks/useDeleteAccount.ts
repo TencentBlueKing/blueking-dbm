@@ -24,12 +24,12 @@ import { useGlobalBizs } from '@/stores';
 
 const { currentBizId } = useGlobalBizs();
 
-const { run } = useRequest(deleteAccount, {
-  manual: true,
-});
-
 export const useDeleteAccount = () => {
   const { t } = useI18n();
+
+  const { run } = useRequest(deleteAccount, {
+    manual: true,
+  });
 
   const deleteAccountReq = (user: string, accountId: number, callback: () => void) => {
     useInfoWithIcon({

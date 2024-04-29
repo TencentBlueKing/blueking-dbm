@@ -137,7 +137,7 @@
       'PlatGlobalStrategy',
       'dutyRuleManange',
       // 'PlatMonitorAlarmGroup',
-      "PlatformNotificationSetting",
+      'PlatformNotificationSetting',
       'passwordManage',
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
@@ -282,7 +282,7 @@
 
   .db-navigation-content-header {
     position: relative;
-    z-index: 1;
+    z-index: 999;
     display: flex;
     height: 52px;
     padding: 0 14px;

@@ -458,12 +458,15 @@
   @import '@/styles/mixins.less';
 
   .ticket-manage-list {
+    position: relative;
+    z-index: 100;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
     width: 320px;
     height: 100%;
     background-color: @white-color;
+    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
     .filter-box {
       flex-shrink: 0;

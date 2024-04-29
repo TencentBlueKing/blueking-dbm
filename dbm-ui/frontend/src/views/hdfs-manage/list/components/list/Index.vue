@@ -523,25 +523,25 @@
         const renderAction = (theme = 'primary') => {
           const baseAction = [
           <auth-button
-              text
-              theme="primary"
-              action-id="hdfs_view"
-              permission={data.permission.hdfs_view}
-              resource={data.id}
-              class="mr8"
-              onClick={() => handleShowPassword(data)}>
-              { t('获取访问方式') }
-            </auth-button>,
+            text
+            theme="primary"
+            action-id="hdfs_access_entry_view"
+            permission={data.permission.hdfs_access_entry_view}
+            resource={data.id}
+            class="mr8"
+            onClick={() => handleShowPassword(data)}>
+            { t('获取访问方式') }
+          </auth-button>,
           <auth-button
-              text
-              theme="primary"
-              action-id="hdfs_view"
-              permission={data.permission.hdfs_view}
-              resource={data.id}
-              class="mr8"
-              onClick={() => handleShowSettings(data)}>
-              { t('查看访问配置') }
-            </auth-button>,
+            text
+            theme="primary"
+            action-id="hdfs_view"
+            permission={data.permission.hdfs_view}
+            resource={data.id}
+            class="mr8"
+            onClick={() => handleShowSettings(data)}>
+            { t('查看访问配置') }
+          </auth-button>,
           ];
           if (data.isOffline) {
             return [

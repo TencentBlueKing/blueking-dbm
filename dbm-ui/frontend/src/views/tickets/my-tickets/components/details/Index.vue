@@ -16,39 +16,44 @@
     :loading="state.isLoading"
     style="min-height: calc(100vh - 120px)">
     <PermissionCatch>
-      <div class="ticket-details">
-        <template v-if="state.ticketData">
-          <DbCard
-            mode="collapse"
-            :title="t('基本信息')">
-            <Baseinfo
-              :columns="baseColumns"
-              :data="state.ticketData"
-              width="30%" />
-          </DbCard>
-          <Teleport
-            :disabled="!isFullscreen"
-            to="body">
+      <SmartAction :offset-target="getOffsetTarget">
+        <div class="ticket-details-page">
+          <template v-if="state.ticketData">
             <DbCard
-              v-model:collapse="demandCollapse"
-              :class="{ 'tickets-main-is-fullscreen': isFullscreen }"
               mode="collapse"
-              :title="t('需求信息')">
-              <DemandInfo
+              :title="t('基本信息')">
+              <Baseinfo
+                :columns="baseColumns"
                 :data="state.ticketData"
-                :is-loading="state.isLoading" />
+                width="30%" />
             </DbCard>
-          </Teleport>
-          <DbCard
-            class="ticket-flows"
-            mode="collapse"
-            :title="t('实施进度')">
-            <FlowInfo
-              :data="state.ticketData"
-              @fetch-data="handleFetchData" />
-          </DbCard>
+            <Teleport
+              :disabled="!isFullscreen"
+              to="body">
+              <DbCard
+                v-model:collapse="demandCollapse"
+                :class="{ 'tickets-main-is-fullscreen': isFullscreen }"
+                mode="collapse"
+                :title="t('需求信息')">
+                <DemandInfo
+                  :data="state.ticketData"
+                  :is-loading="state.isLoading" />
+              </DbCard>
+            </Teleport>
+            <DbCard
+              class="ticket-flows"
+              mode="collapse"
+              :title="t('实施进度')">
+              <FlowInfo
+                :data="state.ticketData"
+                @fetch-data="handleFetchData" />
+            </DbCard>
+          </template>
+        </div>
+        <template #action>
+          <TicketClone :data="data" />
         </template>
-      </div>
+      </SmartAction>
     </PermissionCatch>
   </BkLoading>
 </template>
@@ -64,6 +69,7 @@
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import Baseinfo, { type InfoColumn } from '@views/tickets/common/components/baseinfo/Index.vue';
+  import TicketClone from '@views/tickets/common/components/TicketClone.vue';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
@@ -73,7 +79,7 @@
   import FlowInfo from './components/flow/Index.vue';
 
   interface Props {
-    data: TicketModel | null,
+    data: TicketModel,
   }
 
   interface Emits {
@@ -197,6 +203,8 @@
     immediate: true,
   });
 
+  const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card')
+
   const exitFullscreen = (e: KeyboardEvent) => {
     if (e.keyCode === 27) {
       isFullscreen.value = undefined;
@@ -218,75 +226,75 @@
   });
 </script>
 
-<style lang="less" scoped>
-  .ticket-details {
+<style lang="less">
+  .ticket-details-page {
     padding: 24px;
 
     .db-card {
-      margin-bottom: 16px;
-    }
-  }
+      .db-card__content {
+        padding-left: 82px;
+      }
 
-  .ticket-flows {
-    :deep(.db-card__content) {
-      padding-left: 82px;
+      & ~ .db-card {
+        margin-top: 16px;
+      }
     }
 
-    :deep(.bk-timeline) {
+    .bk-timeline {
       padding-bottom: 16px;
-    }
 
-    :deep(.bk-timeline-title) {
-      font-size: @font-size-mini;
-      font-weight: bold;
-      color: @title-color;
-    }
-
-    :deep(.bk-timeline-dot) {
-      &::before {
-        display: none;
-      }
-
-      .bk-timeline-icon {
-        color: unset !important;
-        background: white !important;
-        border: none !important;
-      }
-    }
-
-    :deep(.bk-timeline-content) {
-      max-width: unset;
-      font-size: @font-size-mini;
-      color: @default-color;
-
-      .flow-time {
-        padding-top: 8px;
-        color: @gray-color;
-      }
-    }
-
-    :deep(.flow-todo__title) {
-      padding-bottom: 12px;
-      font-weight: bold;
-    }
-  }
-</style>
-
-<style lang="less">
-  .ticket-flow-content {
-    .ticket-flow-content-desc {
-      padding: 8px 0 24px;
-      font-size: @font-size-mini;
-      color: @title-color;
-    }
-
-    .ticket-flow-content-buttons {
-      text-align: right;
-
-      .bk-button {
-        min-width: 62px;
-        margin-left: 8px;
+      .bk-timeline-title {
         font-size: @font-size-mini;
+        font-weight: bold;
+        color: @title-color;
+      }
+
+      .bk-timeline-dot {
+        &::before {
+          display: none;
+        }
+
+        .bk-timeline-icon {
+          color: unset !important;
+          background: white !important;
+          border: none !important;
+        }
+      }
+
+      .bk-timeline-content {
+        max-width: unset;
+        font-size: @font-size-mini;
+        color: @default-color;
+
+        .flow-time {
+          padding-top: 8px;
+          color: @gray-color;
+        }
+      }
+    }
+
+    .ticket-flows {
+      .flow-todo__title {
+        padding-bottom: 12px;
+        font-weight: bold;
+      }
+    }
+
+    .ticket-flow-content {
+      .ticket-flow-content-desc {
+        padding: 8px 0 24px;
+        font-size: @font-size-mini;
+        color: @title-color;
+      }
+
+      .ticket-flow-content-buttons {
+        text-align: right;
+
+        .bk-button {
+          min-width: 62px;
+          margin-left: 8px;
+          font-size: @font-size-mini;
+        }
       }
     }
   }

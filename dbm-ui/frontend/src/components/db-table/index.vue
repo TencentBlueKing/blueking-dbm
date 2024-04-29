@@ -211,7 +211,7 @@
         <span v-bk-tooltips={tips}>
           <bk-checkbox
             label={true}
-            disabled={selectDisabled}
+            disabled={Boolean(selectDisabled)}
             onChange={() => handleSelecteRow(data)}
             modelValue={Boolean(rowSelectMemo.value[_.get(data, props.primaryKey)])} />
         </span>
