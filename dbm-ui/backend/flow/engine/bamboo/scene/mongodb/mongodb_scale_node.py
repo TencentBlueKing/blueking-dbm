@@ -50,7 +50,7 @@ class MongoScaleNodeFlow(object):
 
         sub_pipelines = []
         # 复制集增减节点——子流程并行
-        if self.data["infos"][ClusterType.MongoReplicaSet.value]:
+        if ClusterType.MongoReplicaSet.value in self.data["infos"]:
             for replicaset_set in self.data["infos"][ClusterType.MongoReplicaSet.value]:
                 if increase:
                     sub_pipline = replicaset_set_increase_node(
@@ -70,7 +70,7 @@ class MongoScaleNodeFlow(object):
                     )
                     sub_pipelines.append(sub_pipline)
         # cluster的shard增减节点——子流程并行
-        if self.data["infos"][ClusterType.MongoShardedCluster.value]:
+        if ClusterType.MongoShardedCluster.value in self.data["infos"]:
             for cluster in self.data["infos"][ClusterType.MongoShardedCluster.value]:
                 if increase:
                     sub_pipline = cluster_increase_node(

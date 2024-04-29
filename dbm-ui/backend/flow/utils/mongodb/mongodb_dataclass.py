@@ -1470,7 +1470,7 @@ class ActKwargs:
                     "port": port,
                     "domain": domain,
                     "spec_id": info["resource_spec"]["shard_nodes"]["spec_id"],
-                    "sepc_config": info["resource_spec"]["shard_nodes"],
+                    "spec_config": info["resource_spec"]["shard_nodes"]["spec_config"],
                     "reuse_machine": reuse_machine,
                 }
                 self.payload["replicaset_set"].append(db_instance)
@@ -1526,7 +1526,7 @@ class ActKwargs:
                                 "port": port,
                                 "domain": "",
                                 "spec_id": info["resource_spec"]["shard_nodes"]["spec_id"],
-                                "sepc_config": info["resource_spec"]["shard_nodes"],
+                                "spec_config": info["resource_spec"]["shard_nodes"]["spec_config"],
                                 "reuse_machine": reuse_machine,
                             }
                         )
