@@ -59,6 +59,10 @@ def create(
 
     storage_objs = common.filter_out_instance_obj([storage], StorageInstance.objects.all())
 
+    # 如果传入region为空，则以机器所在的bk_city为准，兼容集群录入场景
+    if region == "":
+        region = storage_objs[0].machine.bk_city.logical_city.name
+
     cluster = Cluster.objects.create(
         bk_biz_id=bk_biz_id,
         name=name,

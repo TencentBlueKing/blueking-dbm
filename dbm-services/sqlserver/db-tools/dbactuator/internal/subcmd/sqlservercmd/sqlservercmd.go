@@ -58,6 +58,8 @@ func NewSQLserverCommand() *cobra.Command {
 				CleanDBSCommand(),
 				// move backup file
 				MoveBackupFileCommand(),
+				// init sqlserver initstance
+				InitSqlserverInstanceCommand(),
 			},
 		},
 	}

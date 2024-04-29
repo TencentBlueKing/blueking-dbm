@@ -583,6 +583,7 @@ class SqlserverActuatorActionEnum(str, StructuredEnum):
     AddDBSInAlwaysOn = EnumField("AddDBSInAlwaysOn", _("数据库加入到Always-on可用组"))
     Uninstall = EnumField("Uninstall", _("卸载sqlserver实例"))
     MoveBackupFile = EnumField("MoveBackupFile", _("判断备份文件是否存在，存在则移动"))
+    InitSqlserverInstance = EnumField("InitSqlserverInstance", _("实例接入dbm系统初始化"))
 
 
 class DorisActuatorActionEnum(str, StructuredEnum):

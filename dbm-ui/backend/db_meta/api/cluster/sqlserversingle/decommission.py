@@ -12,6 +12,7 @@ import logging
 from django.db import transaction
 
 from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
@@ -35,4 +36,5 @@ def decommission(cluster: Cluster):
     for ce in ClusterEntry.objects.filter(cluster=cluster).all():
         ce.delete(keep_parents=True)
 
+    SqlserverClusterSyncMode.objects.filter(cluster=cluster).delete()
     cluster.delete(keep_parents=True)

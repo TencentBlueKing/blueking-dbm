@@ -530,6 +530,7 @@ def install_surrounding_apps_sub_flow(
     cluster_domain_list: list,
     is_install_backup_client: bool = True,
     is_init_app_setting: bool = True,
+    is_get_old_backup_config: bool = False,
 ):
     """
     安装sqlserver的周边程序的通用子流程, 暂时不能跨业务, 不能跨云区域
@@ -542,6 +543,7 @@ def install_surrounding_apps_sub_flow(
     @param master_host: 主实例列表
     @param is_install_backup_client 是不是安装backup_client
     @param is_init_app_setting 是否初始化app_setting表
+    @param is_get_old_backup_config 是否获取旧备份配置，内部导入标准化专属
     """
     # 构建子流程global_data
     global_data = {
@@ -584,8 +586,9 @@ def install_surrounding_apps_sub_flow(
                                 filter(
                                     None,
                                     list(set([host.ip for host in master_host] + [host.ip for host in slave_host])),
-                                )
+                                ),
                             ),
+                            is_get_old_backup_config=is_get_old_backup_config,
                         )
                     ),
                 }

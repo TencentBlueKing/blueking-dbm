@@ -426,3 +426,19 @@ class SqlserverActPayload(PayloadHandler):
                 },
             },
         }
+
+    def init_instance_for_dbm(self, **kwargs) -> dict:
+        """
+        接入DBM初始化实例
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.InitSqlserverInstance.value,
+            "payload": {
+                "general": {"runtime_account": self.get_create_sqlserver_account(self.global_data["bk_cloud_id"])},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": kwargs["custom_params"]["port"],
+                },
+            },
+        }

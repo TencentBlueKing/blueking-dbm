@@ -213,10 +213,12 @@ class InsertAppSettingKwargs:
     定义执行sqlserver_insert_app_setting活动节点的私有变量结构体
     @attributes cluster_domain 集群主域名
     @attributes ips 待处理的ip列表
+    @attributes is_get_old_backup_config 是否要获取旧的备份配置信息，内部导入标准化使用
     """
 
     cluster_domain: str
     ips: list = field(default_factory=list)
+    is_get_old_backup_config: bool = False
 
 
 @dataclass()

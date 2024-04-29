@@ -240,12 +240,32 @@ var (
 	set @sql='
 	GRANT VIEW SERVER STATE TO ['+@username+'] AS [sa]
 	USE [msdb]
+	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
+	BEGIN
+		DROP USER ['+@username+']
+	END
 	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
 	EXEC sp_addrolemember N''db_datareader'', N'''+@username+'''
 	USE [Monitor]
+	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
+	BEGIN
+		DROP USER ['+@username+']
+	END
 	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
 	EXEC sp_addrolemember N''db_datareader'', N'''+@username+'''
 	GRANT EXECUTE ON [dbo].[mssql_exporter] TO ['+@username+']'
 	EXEC(@sql)
 `
+)
+
+// 导出系统库一些配置专用的SQL
+var (
+	BACKUP_FILTER_SQL   = `SELECT [NAME] FROM [%s].[dbo].[BACKUP_FILTER];`
+	MIORRING_FILTER_SQL = `SELECT [NAME] FROM [%s].[dbo].[MIRRORING_FILTER];`
+	BACKUP_SETTING_SQL  = `SELECT [APP]
+	,[FULL_BACKUP_PATH]
+	,[LOG_BACKUP_PATH]
+	,[KEEP_FULL_BACKUP_DAYS]
+	,[KEEP_LOG_BACKUP_DAYS]
+	FROM [%s].[dbo].[BACKUP_SETTING]`
 )

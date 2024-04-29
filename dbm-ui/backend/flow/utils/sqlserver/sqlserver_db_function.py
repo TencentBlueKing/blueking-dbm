@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import re
 import secrets
 from collections import defaultdict
@@ -494,7 +495,12 @@ def get_sync_filter_dbs(cluster_id: int):
 
 
 def insert_sqlserver_config(
-    cluster: Cluster, storages: QuerySet, backup_config: dict, charset: str, alarm_config: dict
+    cluster: Cluster,
+    storages: QuerySet,
+    backup_config: dict,
+    charset: str,
+    alarm_config: dict,
+    is_get_old_backup_config: bool = False,
 ):
     """
     给sqlserver实例插入配置信息
@@ -503,12 +509,30 @@ def insert_sqlserver_config(
     @param backup_config: 实例的备份配置
     @param charset: 字符集
     @param alarm_config 实例的告警配置
+    @param is_get_old_backup_config: 是否要获取旧的备份配置信息，内部导入标准化使用
     """
+    old_backup_config = {}
     master = cluster.storageinstance_set.get(instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER])
     sync_mode = SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
-    drop_sql = "use Monitor truncate table [Monitor].[dbo].[APP_SETTING]"
+    drop_sql = f"use Monitor truncate table [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[APP_SETTING]"
     for storage in storages:
-        insert_app_setting_sql = f"""INSERT INTO [Monitor].[dbo].[APP_SETTING](
+        if is_get_old_backup_config:
+            # 按照需求获取旧的备份配置
+            ret = DRSApi.sqlserver_rpc(
+                {
+                    "bk_cloud_id": cluster.bk_cloud_id,
+                    "addresses": [storage.ip_port],
+                    "cmds": [f"select * from [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[BACKUP_SETTING_OLD]"],
+                    "force": False,
+                }
+            )
+            if ret[0]["error_msg"]:
+                raise Exception(f"[{storage.ip_port}] get old backup config failed: {ret[0]['error_msg']}")
+
+            if len(ret[0]["cmd_results"][0]["table_data"]) != 0:
+                old_backup_config = copy.deepcopy(ret[0]["cmd_results"][0]["table_data"][0])
+
+        insert_app_setting_sql = f"""INSERT INTO [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[APP_SETTING](
 [APP],
 [FULL_BACKUP_PATH],
 [LOG_BACKUP_PATH],
@@ -548,10 +572,10 @@ def insert_sqlserver_config(
 [UPDATESTATS])
 VALUES(
 '{str(cluster.bk_biz_id)}',
-'{backup_config['full_backup_path']}',
-'{backup_config['log_backup_path']}',
-{int(backup_config['keep_full_backup_days'])},
-{int(backup_config['keep_log_backup_days'])},
+'{old_backup_config.get('FULL_BACKUP_PATH',backup_config['full_backup_path'])}',
+'{old_backup_config.get('LOG_BACKUP_PATH',backup_config['log_backup_path'])}',
+{int(old_backup_config.get('KEEP_FULL_BACKUP_DAYS',backup_config['keep_full_backup_days']))},
+{int(old_backup_config.get('KEEP_LOG_BACKUP_DAYS',backup_config['keep_log_backup_days']))},
 {int(backup_config['full_backup_min_size_mb'])},
 {int(backup_config['log_backup_min_size_mb'])},
 1,

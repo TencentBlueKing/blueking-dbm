@@ -402,7 +402,7 @@ func (i *InstallSqlServerComp) InitConfigs() error {
 // InitDB TODO
 // 按照实例维度初始化实例DB
 func (i *InstallSqlServerComp) InitDB() error {
-	// 把初始化sql脚本加载到本地d:
+	// 把初始化sql脚本加载到本地
 	var files []string
 	var err error
 	if files, err = WriteInitSQLFile(); err != nil {
