@@ -8,10 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
+from collections import defaultdict
+from typing import Dict, List
+
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
@@ -25,8 +30,11 @@ from backend.ticket.constants import TicketType
 
 class MongoDBAddShardNodesDetailSerializer(BaseMongoDBOperateDetailSerializer):
     class AddShardNodesDetailSerializer(serializers.Serializer):
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        add_shard_nodes = serializers.CharField(help_text=_("扩容shard节点数"))
+        cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(help_text=_("集群ID")))
+        current_shard_nodes_num = serializers.IntegerField(help_text=_("当前shard节点数"))
+        add_shard_nodes_num = serializers.IntegerField(help_text=_("扩容shard节点数"))
+        node_replica_count = serializers.IntegerField(help_text=_("单机部署实例数"))
+        shards_num = serializers.IntegerField(help_text=_("扩容shard分片数"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
 
     ip_source = serializers.ChoiceField(
@@ -36,30 +44,50 @@ class MongoDBAddShardNodesDetailSerializer(BaseMongoDBOperateDetailSerializer):
     infos = serializers.ListSerializer(help_text=_("扩容shard节点数申请信息"), child=AddShardNodesDetailSerializer())
 
     def validate(self, attrs):
+        cluster_ids = list(itertools.chain(*[info["cluster_ids"] for info in attrs["infos"]]))
+        clusters = Cluster.objects.filter(id__in=cluster_ids)
+
+        # 校验集群类型一致
+        self.validate_cluster_same_attr(clusters, attrs=["cluster_type"])
+
         return attrs
 
 
 class MongoDBAddShardNodesFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.fake_scene
+    controller = MongoDBController.increase_node
 
     def format_ticket_data(self):
-        pass
+        bk_biz_id = self.ticket_data["bk_biz_id"]
+        self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
 
 
 class MongoDBAddShardNodesResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         super().format()
         # 扩容shard节点数对亲和性没有要求，但是需要新机器和集群在同一个城市
-        cluster_ids = [info["cluster_id"] for info in self.ticket_data["infos"]]
+        cluster_ids = [cluster_id for info in self.ticket_data["infos"] for cluster_id in info["cluster_ids"]]
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket_data["infos"]:
-            cluster = id__cluster[info["cluster_id"]]
+            cluster = id__cluster[info["cluster_ids"][0]]
             info["resource_spec"]["shard_nodes"].update(location_spec={"city": cluster.region, "sub_zone_ids": []})
 
     def post_callback(self):
         with self.next_flow_manager() as next_flow:
-            machine_specs = self.format_machine_specs(next_flow.details["ticket_data"]["resource_spec"])
-            next_flow.details["ticket_data"].update(machine_specs=machine_specs)
+            # 将infos内容对info进行ClusterTpye分类
+            cluster_ids = [cluster_id for info in self.ticket_data["infos"] for cluster_id in info["cluster_ids"]]
+            id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+            mongo_type__apply_infos: Dict[str, List] = defaultdict(list)
+            for info in next_flow.details["ticket_data"]["infos"]:
+                info["resource_spec"] = self.format_machine_specs_info(info["resource_spec"])
+                info["add_shard_nodes"] = info.pop("shard_nodes")
+                cluster = id__cluster[info["cluster_ids"][0]]
+                info["db_version"] = cluster.major_version
+                cluster_type = cluster.cluster_type
+                if cluster_type == ClusterType.MongoShardedCluster.value:
+                    info["cluster_id"] = info.pop("cluster_ids")[0]
+                mongo_type__apply_infos[cluster_type].append(info)
+
+            next_flow.details["ticket_data"]["infos"] = mongo_type__apply_infos
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_ADD_SHARD_NODES, is_apply=True)

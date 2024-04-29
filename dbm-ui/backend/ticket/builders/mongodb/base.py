@@ -161,6 +161,15 @@ class BaseMongoDBOperateResourceParamBuilder(BaseOperateResourceParamBuilder):
             machine_specs[role] = spec_info
         return machine_specs
 
+    @classmethod
+    def format_machine_specs_info(cls, resource_spec):
+        # 格式化资源池申请信息 返回spec_id,count
+        machine_specs = {}
+        for role, info in resource_spec.items():
+            spec_info = {"spec_id": info["id"], "spec_config": info, "count": info["count"]}
+            machine_specs[role] = spec_info
+        return machine_specs
+
     @contextmanager
     def next_flow_manager(self):
         # 回调更新next flow的上下文管理器
