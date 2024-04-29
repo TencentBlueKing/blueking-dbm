@@ -16,7 +16,9 @@
           "continuous": "5",
           "is_enabled": true,
           "agg_dimension": [
-            "bk_target_service_instance_id"
+            "bk_target_service_instance_id",
+            "appid",
+            "cluster_domain"
           ]
         },
         "target": [],
