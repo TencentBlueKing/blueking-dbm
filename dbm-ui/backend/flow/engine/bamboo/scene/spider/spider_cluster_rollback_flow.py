@@ -96,6 +96,11 @@ class TenDBRollBackDataFlow(object):
 
         ins_sub_pipeline_list = []
         for spider_node in clusters_info["target_spiders"]:
+            if "spider_node" not in backup_info:
+                raise TendbGetBackupInfoFailedException(message=_("获取spider节点备份信息不存在"))
+            if backup_info["spider_node"] == "":
+                raise TendbGetBackupInfoFailedException(message=_("获取spider节点备份信息为空"))
+
             target_spider = target_cluster.proxyinstance_set.get(
                 machine__ip=spider_node["ip"], port=spider_node["port"]
             )
@@ -151,6 +156,11 @@ class TenDBRollBackDataFlow(object):
 
             ins_sub_pipeline_list.append(spd_sub_pipeline.build_sub_process(sub_name=_("恢复spider节点数据")))
         for shard_id, remote_node in clusters_info["shards"].items():
+            if int(shard_id) not in backup_info["remote_node"]:
+                raise TendbGetBackupInfoFailedException(message=_("获取remotedb分片 {} 的备份信息不存在".format(shard_id)))
+            if backup_info["remote_node"][int(shard_id)] == "":
+                raise TendbGetBackupInfoFailedException(message=_("获取remotedb分片 {} 的备份信息为空".format(shard_id)))
+
             shard = target_cluster.tendbclusterstorageset_set.get(shard_id=shard_id)
             target_slave = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.receiver.id)
             target_master = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.ejector.id)
