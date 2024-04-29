@@ -62,10 +62,14 @@ def slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
         logger.error("cluster {} backup info not exists".format(cluster["cluster_id"]))
         raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster["cluster_id"])))
 
-    #  todo 兼容spider。后续需改接口
     if cluster["cluster_type"] == ClusterType.TenDBCluster:
         cluster["shard_id"] = cluster_info["shard_id"]
-        backup_info = backup_info["remote_node"][cluster["shard_id"]]
+        # 判断分片备份是否存在
+        if int(cluster["shard_id"]) not in backup_info["remote_node"]:
+            raise TendbGetBackupInfoFailedException(message=_("获取remotedb分片 {} 的备份信息不存在".format(cluster["shard_id"])))
+        if backup_info["remote_node"][int(cluster["shard_id"])] == "":
+            raise TendbGetBackupInfoFailedException(message=_("获取remotedb分片 {} 的备份信息为空".format(cluster["shard_id"])))
+        backup_info = backup_info["remote_node"][int(cluster["shard_id"])]
     cluster["backupinfo"] = backup_info
 
     exec_act_kwargs = ExecActuatorKwargs(
