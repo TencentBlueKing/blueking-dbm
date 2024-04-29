@@ -16,8 +16,8 @@ func BeforeDump(cnfPublic *config.Public) error {
 
 	// check disk space
 	if err := DeleteOldBackup(cnfPublic, cnfPublic.OldFileLeftDay); err != nil {
-		logger.Log.Error("failed to delete old backup, err:", err)
-		return err
+		logger.Log.Warn("failed to delete old backup, err:", err)
+		//return err
 	}
 
 	if err := EnableBackup(cnfPublic); err != nil {

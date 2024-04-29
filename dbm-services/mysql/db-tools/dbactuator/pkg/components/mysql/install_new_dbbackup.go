@@ -44,7 +44,7 @@ type InstallNewDbBackupParam struct {
 	components.Medium
 	// Configs BackupConfig
 	Configs        map[string]map[string]string `json:"configs" validate:"required"`         // 模板配置
-	Options        map[Port]BackupOptions       `json:"options" validate:"required"`         // 选项参数配置
+	Options        BackupOptions                `json:"options" validate:"required"`         // 选项参数配置
 	Host           string                       `json:"host"  validate:"required,ip"`        // 当前实例的主机地址
 	Ports          []int                        `json:"ports" validate:"required,gt=0,dive"` // 被监控机器的上所有需要监控的端口
 	Role           string                       `json:"role" validate:"required"`            // 当前主机安装的mysqld的角色
@@ -63,10 +63,8 @@ type runtimeContext struct {
 	dbConn      map[Port]*native.DbWorker    // db连接池
 	versionMap  map[Port]string              // 当前机器数据库实例版本
 	renderCnf   map[Port]config.BackupConfig // 绝对不能改成指针数组
-
-	backupOpt  map[Port]BackupOptions
-	ignoreDbs  map[Port][]string
-	ignoreTbls map[Port][]string
+	ignoredbs   []string
+	ignoretbls  []string
 }
 
 // BackupOptions TODO
@@ -92,33 +90,13 @@ func (i *InstallNewDbBackupComp) Example() interface{} {
 			},
 			Host:  "127.0.0.1",
 			Ports: []int{20000, 20001},
-			Options: map[Port]BackupOptions{
-				20000: BackupOptions{
-					CrontabTime: "09:00:00",
-					BackupType:  "logical",
-					Master:      logicBackupDataOption{DataSchemaGrant: "grant"},
-					Slave:       logicBackupDataOption{DataSchemaGrant: "grant"},
-				},
-				20001: BackupOptions{
-					BackupType: "physical",
-				},
+			Options: BackupOptions{
+				CrontabTime: "09:00:00",
+				BackupType:  "logical",
+				Master:      logicBackupDataOption{DataSchemaGrant: "grant"},
+				Slave:       logicBackupDataOption{DataSchemaGrant: "grant"},
 			},
-			Configs: map[string]map[string]string{
-				"Public": map[string]string{
-					"BackupType":      "logical",
-					"DataSchemaGrant": "all",
-					"ClusterId":       "123",
-					"BkBizId":         "456",
-				},
-				"LogicalBackup": {
-					"Threads":       "4",
-					"ChunkFilesize": "2048",
-				},
-				"PhysicalBackup": {
-					"DefaultsFile": "/xx/yy/my.cnf.12006",
-					"Throttle":     "100",
-				},
-			},
+			Configs:        nil, // &config.BackupConfig{},
 			Role:           "slave",
 			ClusterAddress: map[Port]string{20000: "testdb1.xx.a1.db", 20001: "testdb2.xx.a1.db"},
 			ClusterId:      map[Port]int{20000: 111, 20001: 112},
@@ -181,32 +159,21 @@ func (i *InstallNewDbBackupComp) Init() (err error) {
 }
 
 func (i *InstallNewDbBackupComp) initBackupOptions() {
-	i.backupOpt = i.Params.Options
+	logger.Info("options %v", i.Params.Options)
+	var ignoretbls, ignoredbs []string
+	ignoredbs = strings.Split(i.Params.Options.IgnoreObjs.IgnoreDatabases, ",")
+	ignoredbs = append(ignoredbs, native.DBSys...)
+	// 默认备份需要 infodba_schema 库
+	ignoredbs = cmutil.StringsRemove(ignoredbs, native.INFODBA_SCHEMA)
+	ignoretbls = strings.Split(i.Params.Options.IgnoreObjs.IgnoreTables, ",")
 
-	i.ignoreDbs = make(map[Port][]string)
-	i.ignoreTbls = make(map[Port][]string)
-	for _, port := range i.Params.Ports {
-		opt, ok := i.Params.Options[port]
-		if !ok {
-			i.Params.Options[port] = BackupOptions{} // unknown
-			continue
-		}
-		logger.Info("options %v", opt)
-		var ignoreTbls, ignoreDbs []string
-		ignoreDbs = strings.Split(opt.IgnoreObjs.IgnoreDatabases, ",")
-		ignoreDbs = append(ignoreDbs, native.DBSys...)
-		// 默认备份需要 infodba_schema 库
-		ignoreDbs = cmutil.StringsRemove(ignoreDbs, native.INFODBA_SCHEMA)
-		ignoreTbls = strings.Split(opt.IgnoreObjs.IgnoreTables, ",")
-
-		i.ignoreDbs[port] = util.UniqueStrings(cmutil.RemoveEmpty(ignoreDbs))
-		i.ignoreTbls[port] = util.UniqueStrings(cmutil.RemoveEmpty(ignoreTbls))
-		if len(i.ignoreTbls[port]) <= 0 {
-			i.ignoreTbls[port] = []string{"*"}
-		}
-		logger.Info("port %d ignore dbs %v", port, i.ignoreDbs[port])
-		logger.Info("port %d ignore tables %v", port, i.ignoreTbls[port])
+	i.ignoredbs = util.UniqueStrings(cmutil.RemoveEmpty(ignoredbs))
+	i.ignoretbls = util.UniqueStrings(cmutil.RemoveEmpty(ignoretbls))
+	if len(i.ignoretbls) <= 0 {
+		i.ignoretbls = []string{"*"}
 	}
+	logger.Info("ignore dbs %v", i.ignoredbs)
+	logger.Info("ignore ignoretbls %v", i.ignoretbls)
 }
 
 func (i *InstallNewDbBackupComp) getInsDomainAddr(port int) string {
@@ -246,17 +213,6 @@ func (i *InstallNewDbBackupComp) getInsShardValue(port int) int {
 	return 0
 }
 
-// getInsHostCrontabTime 获取最大的时间，作为机器备份的开始时间
-func (i *InstallNewDbBackupComp) getInsHostCrontabTime() string {
-	cronTime := ""
-	for _, opt := range i.Params.Options {
-		if opt.CrontabTime > cronTime {
-			cronTime = opt.CrontabTime
-		}
-	}
-	return cronTime
-}
-
 // InitRenderData 初始化待渲染的配置变量 renderCnf[port]: backup_configs
 func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 	if i.Params.UntarOnly {
@@ -266,31 +222,30 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 
 	bkuser := i.GeneralParam.RuntimeAccountParam.DbBackupUser
 	bkpwd := i.GeneralParam.RuntimeAccountParam.DbBackupPwd
+	regexfunc, err := db_table_filter.BuildMydumperRegex([]string{"*"}, []string{"*"}, i.ignoredbs, i.ignoretbls)
+	if err != nil {
+		return err
+	}
+	regexStr := regexfunc.TableFilterRegex()
+	logger.Info("regexStr %v", regexStr)
+	// 根据role 选择备份参数选项
+	var dsg string
 
+	switch i.Params.Role {
+	case cst.BackupRoleMaster, cst.BackupRoleRepeater:
+		dsg = i.Params.Options.Master.DataSchemaGrant
+	case cst.BackupRoleSlave:
+		dsg = i.Params.Options.Slave.DataSchemaGrant
+	case cst.BackupRoleOrphan:
+		// orphan 使用的是 tendbsingle Master.DataSchemaGrant
+		dsg = i.Params.Options.Master.DataSchemaGrant
+	case cst.BackupRoleSpiderMaster, cst.BackupRoleSpiderSlave, cst.BackupRoleSpiderMnt:
+		// spider 只在 spider_master and tdbctl_master 上，备份schema,grant
+		dsg = "schema,grant"
+	default:
+		return fmt.Errorf("未知的备份角色%s", i.Params.Role)
+	}
 	for _, port := range i.Params.Ports {
-		regexfunc, err := db_table_filter.BuildMydumperRegex([]string{"*"}, []string{"*"},
-			i.ignoreDbs[port], i.ignoreTbls[port])
-		if err != nil {
-			return err
-		}
-		regexStr := regexfunc.TableFilterRegex()
-		logger.Info("regexStr %v", regexStr)
-		// 根据role 选择备份参数选项
-		var dsg string
-		switch i.Params.Role {
-		case cst.BackupRoleMaster, cst.BackupRoleRepeater:
-			dsg = i.backupOpt[port].Master.DataSchemaGrant
-		case cst.BackupRoleSlave:
-			dsg = i.backupOpt[port].Slave.DataSchemaGrant
-		case cst.BackupRoleOrphan:
-			// orphan 使用的是 tendbsingle Master.DataSchemaGrant
-			dsg = i.backupOpt[port].Master.DataSchemaGrant
-		case cst.BackupRoleSpiderMaster, cst.BackupRoleSpiderSlave, cst.BackupRoleSpiderMnt:
-			// spider 只在 spider_master and tdbctl_master 上，备份schema,grant
-			dsg = "schema,grant"
-		default:
-			return fmt.Errorf("未知的备份角色%s", i.Params.Role)
-		}
 		cfg := config.BackupConfig{
 			Public: config.Public{
 				MysqlHost:       i.Params.Host,
@@ -303,7 +258,6 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 				ClusterAddress:  i.getInsDomainAddr(port),
 				ClusterId:       i.getInsClusterId(port),
 				ShardValue:      i.getInsShardValue(port),
-				BackupType:      i.backupOpt[port].BackupType,
 				DataSchemaGrant: dsg,
 			},
 			BackupClient: config.BackupClient{},
@@ -571,7 +525,7 @@ func (i *InstallNewDbBackupComp) addCrontabLegacy() (err error) {
 		Command:  filepath.Join(i.installPath, "dbbackup_main.sh"),
 		WorkDir:  i.installPath,
 		Args:     []string{">", logFile, "2>&1"},
-		Schedule: i.getInsHostCrontabTime(),
+		Schedule: i.Params.Options.CrontabTime,
 		Creator:  i.Params.ExecUser,
 		Enable:   true,
 	}
@@ -592,7 +546,7 @@ func (i *InstallNewDbBackupComp) addCrontabSpider() (err error) {
 			Command:  filepath.Join(i.installPath, "dbbackup"),
 			WorkDir:  i.installPath,
 			Args:     []string{"spiderbackup", "schedule", "--config", dbbckupConfFile},
-			Schedule: i.getInsHostCrontabTime(),
+			Schedule: i.Params.Options.CrontabTime,
 			Creator:  i.Params.ExecUser,
 			Enable:   true,
 		}
@@ -638,7 +592,7 @@ func (i *InstallNewDbBackupComp) addCrontabOld() (err error) {
 		newCrontab,
 		fmt.Sprintf(
 			"%s %s 1>>%s 2>&1\n",
-			i.getInsHostCrontabTime(), entryshell, logfile,
+			i.Params.Options.CrontabTime, entryshell, logfile,
 		),
 	)
 	crontabStr := strings.Join(newCrontab, "\n")

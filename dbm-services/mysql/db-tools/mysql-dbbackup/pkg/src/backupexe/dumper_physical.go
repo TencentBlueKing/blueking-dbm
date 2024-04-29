@@ -218,7 +218,7 @@ func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbare
 	// parse xtrabackup_timestamp_info
 	if err := parseXtraTimestamp(qpressPath, xtrabackupTimestampFileName, tmpFileName, &metaInfo); err != nil {
 		// 此时刚备份完成，还没有开始打包，这里把当前时间认为是 consistent_time，不完善！
-		logger.Log.Warnf("xtrabackup_timestamp_info file found, use current time as Consistent Time")
+		logger.Log.Warnf("xtrabackup_timestamp_info file not found, use current time as Consistent Time")
 		metaInfo.BackupConsistentTime, _ = time.Parse(time.DateTime, p.backupEndTime.Format(time.DateTime))
 	}
 	// parse xtrabackup_binlog_info 本机的 binlog file,pos
