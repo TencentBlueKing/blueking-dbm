@@ -227,6 +227,7 @@ from backend.flow.views.sqlserver import (
     SqlserverResetSceneApiView,
     SqlserverSingleApplySceneApiView,
     SqlserverSQLFileExecuteSceneApiView,
+    SqlserverStandardizationSceneApiView,
 )
 from backend.flow.views.tbinlogdumper_add import (
     DisableTBinlogDumperSceneApiView,
@@ -487,6 +488,7 @@ urlpatterns = [
     url("^scene/sqlserver_full_dts$", SqlserverFullDtsSceneApiView.as_view()),
     url("^scene/sqlserver_incr_dts$", SqlserverIncrDtsSceneApiView.as_view()),
     url("^scene/sqlserver_data_construct$", SqlserverDataConstructSceneApiView.as_view()),
+    url("^scene/sqlserver_standardization$", SqlserverStandardizationSceneApiView.as_view()),
     # doris
     url(r"^scene/install_doris$", InstallDorisSceneApiView.as_view()),
     url(r"^scene/scale_up_doris$", ScaleUpDorisSceneApiView.as_view()),

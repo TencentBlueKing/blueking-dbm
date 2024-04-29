@@ -46,7 +46,6 @@ class InsertAppSettingService(BaseService):
         backup_config = get_sqlserver_backup_config(
             bk_biz_id=cluster.bk_biz_id,
             db_module_id=cluster.db_module_id,
-            cluster_type=cluster.cluster_type,
             cluster_domain=cluster.immute_domain,
         )
 
@@ -54,7 +53,6 @@ class InsertAppSettingService(BaseService):
         alarm_config = get_sqlserver_alarm_config(
             bk_biz_id=cluster.bk_biz_id,
             db_module_id=cluster.db_module_id,
-            cluster_type=cluster.cluster_type,
             cluster_domain=cluster.immute_domain,
         )
 
@@ -63,7 +61,12 @@ class InsertAppSettingService(BaseService):
 
         # 配置数据
         if insert_sqlserver_config(
-            cluster=cluster, storages=storages, charset=charset, backup_config=backup_config, alarm_config=alarm_config
+            cluster=cluster,
+            storages=storages,
+            charset=charset,
+            backup_config=backup_config,
+            alarm_config=alarm_config,
+            is_get_old_backup_config=kwargs["is_get_old_backup_config"],
         ):
             self.log_info("exec insert-app-setting successfully")
             return True

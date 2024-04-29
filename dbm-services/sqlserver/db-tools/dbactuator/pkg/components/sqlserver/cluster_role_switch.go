@@ -191,6 +191,11 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 	// 根据不同场景做切换sp
 	if c.Params.Force {
 		// 强制切换（主故障切换）
+		if c.isEmpty && c.Params.SyncMode == cst.MIRRORING {
+			// 如果是空实例，且是mirroring同步，则不需要操作，直接返回成功
+			return nil
+		}
+		// 其他情况需要操作
 		if err := execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_DrToDb"); err != nil {
 			return err
 		}
@@ -199,6 +204,10 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 		// 主从互切
 		switch c.Params.SyncMode {
 		case cst.MIRRORING:
+			if c.isEmpty {
+				// 如果是空实例，且是mirroring同步，则不需要操作，直接返回成功
+				return nil
+			}
 			if err := execSwitchSP(c.MasterDB, "Sys_AutoSwitch_FailOver"); err != nil {
 				// 执行回滚操作
 				execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_FailOver")

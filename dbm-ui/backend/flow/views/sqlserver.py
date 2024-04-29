@@ -283,3 +283,17 @@ class SqlserverDataConstructSceneApiView(FlowTestView):
         test = SqlserverController(root_id=root_id, ticket_data=request.data)
         test.db_construct_scene()
         return Response({"root_id": root_id})
+
+
+class SqlserverStandardizationSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_standardization
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.sqlserver_standardization_scene()
+        return Response({"root_id": root_id})

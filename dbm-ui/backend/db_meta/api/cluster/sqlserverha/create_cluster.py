@@ -92,6 +92,10 @@ def create(
     master_storage_obj = storage_objs.get(instance_inner_role=InstanceInnerRole.MASTER)
     slave_storage_objs = storage_objs.filter(instance_inner_role=InstanceInnerRole.SLAVE)
 
+    # 如果传入region为空，则以master机器所在的bk_city为准，兼容集群录入场景
+    if region == "":
+        region = master_storage_obj.machine.bk_city.logical_city.name
+
     # 创建集群, 添加存储和接入实例
 
     cluster = Cluster.objects.create(

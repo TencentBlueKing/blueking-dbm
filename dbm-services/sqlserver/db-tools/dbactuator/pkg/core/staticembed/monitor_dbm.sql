@@ -1697,6 +1697,8 @@ BEGIN TRY
 
 			IF exists(select 1 from #repl_state where is_local=1 and role=1)
 			BEGIN
+				update APP_SETTING set ROLE='master',MASTER_IP='',MASTER_PORT='',DATA_SCHEMA_GRANT='all'
+				
 				set @msg='GameDR switch Success'
 				select 1 as status,@msg as msg
 				return 1
@@ -1774,6 +1776,8 @@ BEGIN TRY
 			return -1
 		end
 
+		update APP_SETTING set ROLE='master',MASTER_IP='',MASTER_PORT='',DATA_SCHEMA_GRANT='all'
+		
 		set @msg='GameDR switch Success'
 		select 1 as status,@msg as msg
 
@@ -2443,7 +2447,7 @@ BEGIN
 	
 
 	IF @TARGETDBNAME='%'
-		SELECT @DBLIST=STUFF((SELECT ',' + name FROM master.sys.databases where database_id>4 and name not in('Monitor') and name not in(select name from Monitor.dbo.BACKUP_FILTER) FOR XML PATH('')), 1, 2, '');
+		SELECT @DBLIST=STUFF((SELECT ',' + name FROM master.sys.databases where database_id>4 and name not in('Monitor') and name not in(select name from Monitor.dbo.BACKUP_FILTER) FOR XML PATH('')), 1, 1, '');
 	ELSE
 		SET @DBLIST=@TARGETDBNAME
 
@@ -2464,7 +2468,7 @@ BEGIN
 		EXEC @CHECKER_'+NAME+' = DBO.TOOL_CHECK_DISK_FREE_SIZE '''+@BACKUP_PATH+''','+LTRIM(@DISK_MIN_SIZE_MB)+'
 		IF @CHECKER_'+NAME+' = 1
 		BEGIN
-			IF '+LTRIM(@TYPE)+' <> 1 AND EXISTS(SELECT 1 FROM SYS.MASTER_FILES A,Monitor.DBO.BACKUP_DBLIST B WHERE A.DATABASE_ID = B.DATABASE_ID AND B.NAME = '''+NAME+''' AND A.TYPE = 0 AND A.DIFFERENTIAL_BASE_LSN IS NULL)
+			IF '+LTRIM(@TYPE)+' <> 1 AND EXISTS(select 1 from msdb.dbo.backupset a, msdb.dbo.backupmediafamily b where a.media_set_id = b.media_set_id and a.database_name = '''+NAME+''' and backup_finish_date between getdate()-2 and getdate())
 			BEGIN
 				DECLARE @NEWFULLFILENAME_'+NAME+' VARCHAR(4000) = REPLACE(REPLACE(@FULLFILENAME_'+NAME+','''+@SUFFIX+''',''.bak''),'''+@BACKUP_PATH+''','''+@FULL_BACKUP_PATH+''')
 				EXEC @SUCCESS_'+NAME+' = DBO.TOOL_BACKUP_DATABASE_OPERATOR 1,'''+NAME+''',@NEWFULLFILENAME_'+NAME+'
@@ -2723,10 +2727,28 @@ CREATE PROCEDURE [dbo].[TOOL_BACKUP_DATABASE_OPERATOR]
 AS
 BEGIN
 	SET NOCOUNT ON
+	DECLARE @STR VARCHAR(100)
+	SET @STR=''
+	
+	declare @version bigint
+	set @version=convert(bigint,DATABASEPROPERTYEX('master','version'))
+
+	IF OBJECT_ID('TEMPDB.DBO.#tmp_dm_hadr_database_replica_states','U') IS NOT NULL
+		DROP TABLE #tmp_dm_hadr_database_replica_states
+	CREATE TABLE #tmp_dm_hadr_database_replica_states(role tinyint)
+	
+	IF @version>=869
+		exec('insert into #tmp_dm_hadr_database_replica_states select role from sys.dm_hadr_availability_replica_states group by role')
+
+	IF @TYPE=1 AND NOT EXISTS(SELECT * FROM #tmp_dm_hadr_database_replica_states WHERE role=1) AND EXISTS(SELECT * FROM #tmp_dm_hadr_database_replica_states)
+	BEGIN
+		SET @STR=',COPY_ONLY'
+	END
+
 	DECLARE @SQL VARCHAR(8000) = '
 	BACKUP '+CASE WHEN @TYPE = 2 THEN 'LOG' ELSE 'DATABASE' END+' ['+@DBNAME+']
 	TO DISK = '''+@FILENAME+'''
-	WITH INIT,STATS = 10 '+CASE WHEN @TYPE = 3 THEN ',DIFFERENTIAL' ELSE '' END+'
+	WITH INIT '+@STR+',STATS = 10 '+CASE WHEN @TYPE = 3 THEN ',DIFFERENTIAL' ELSE '' END+'
 	'
 	--PRINT(@SQL)
 	EXEC(@SQL)

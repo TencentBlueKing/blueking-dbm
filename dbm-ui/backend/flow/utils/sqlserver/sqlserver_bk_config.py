@@ -64,14 +64,13 @@ def get_sqlserver_config(
     return data["content"]
 
 
-def get_sqlserver_backup_config(bk_biz_id: int, cluster_domain: str, db_module_id: int, cluster_type: ClusterType):
+def get_sqlserver_backup_config(bk_biz_id: int, cluster_domain: str, db_module_id: int):
     """
     获取sqlserver实例的备份配置,集群级别配置
     sqlserver_single和sqlserver_ha集群统一用这里拿去配置
     @param bk_biz_id: 业务id
     @param cluster_domain: 集群主域名
     @param db_module_id: db模块id
-    @param cluster_type: 集群类型
     """
     data = DBConfigApi.query_conf_item(
         {
@@ -81,21 +80,20 @@ def get_sqlserver_backup_config(bk_biz_id: int, cluster_domain: str, db_module_i
             "level_info": {"module": str(db_module_id)},
             "conf_file": "dbbackup.conf",
             "conf_type": "backup",
-            "namespace": cluster_type,
+            "namespace": "sqlservercomm",
             "format": FormatType.MAP,
         }
     )["content"]
     return data
 
 
-def get_sqlserver_alarm_config(bk_biz_id: int, cluster_domain: str, db_module_id: int, cluster_type: ClusterType):
+def get_sqlserver_alarm_config(bk_biz_id: int, cluster_domain: str, db_module_id: int):
     """
     获取sqlserver实例的告警配置,集群级别配置
     sqlserver_single和sqlserver_ha集群统一用这里拿去配置
     @param bk_biz_id: 业务id
     @param cluster_domain: 集群主域名
     @param db_module_id: db模块id
-    @param cluster_type: 集群类型
     """
     data = DBConfigApi.query_conf_item(
         {
@@ -105,7 +103,7 @@ def get_sqlserver_alarm_config(bk_biz_id: int, cluster_domain: str, db_module_id
             "level_info": {"module": str(db_module_id)},
             "conf_file": "alarm.conf",
             "conf_type": "alarm",
-            "namespace": cluster_type,
+            "namespace": "sqlservercomm",
             "format": FormatType.MAP,
         }
     )["content"]

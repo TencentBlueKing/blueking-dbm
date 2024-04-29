@@ -16,6 +16,7 @@ from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_cluster_destroy import
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_cluster_disable import SqlserverDisableFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_cluster_enable import SqlserverEnableFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_cluster_reset import SqlserverResetFlow
+from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_cluster_standardization import SqlserverStandardizationFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_db_construct import SqlserverDataConstruct
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_dts import SqlserverDTSFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_ha_deploy import SqlserverHAApplyFlow
@@ -111,4 +112,8 @@ class SqlserverController(BaseController):
 
     def authorize(self):
         flow = SQLServerAuthorizeRules(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
+
+    def sqlserver_standardization_scene(self):
+        flow = SqlserverStandardizationFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()

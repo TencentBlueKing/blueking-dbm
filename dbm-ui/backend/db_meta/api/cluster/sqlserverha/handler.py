@@ -23,7 +23,6 @@ from backend.db_meta.enums import (
 )
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance, StorageInstanceTuple
 from backend.flow.utils.cc_manage import CcManage
-from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.sqlserver_module_operate import SqlserverCCTopoOperator
 
@@ -310,11 +309,12 @@ class SqlserverHAClusterHandler(ClusterHandler):
             )[0]
             new_slave_obj.db_module_id = cluster.db_module_id
             new_slave_obj.machine.db_module_id = cluster.db_module_id
+            new_slave_obj.cluster = cluster
             new_slave_obj.save(update_fields=["db_module_id"])
             new_slave_obj.machine.save(update_fields=["db_module_id"])
 
             # 添加对应cmdb服务实例信息
-            MysqlCCTopoOperator(cluster).transfer_instances_to_cluster_module([new_slave_obj])
+            SqlserverCCTopoOperator(cluster).transfer_instances_to_cluster_module([new_slave_obj])
 
             # 替换关联的主从关系信息
             StorageInstanceTuple.objects.filter(receiver=old_slave_obj).update(receiver=new_slave_obj)
@@ -390,8 +390,9 @@ class SqlserverHAClusterHandler(ClusterHandler):
             )[0]
             new_slave_obj.db_module_id = cluster.db_module_id
             new_slave_obj.machine.db_module_id = cluster.db_module_id
+            new_slave_obj.cluster = cluster
             new_slave_obj.save(update_fields=["db_module_id"])
             new_slave_obj.machine.save(update_fields=["db_module_id"])
 
             # 添加对应cmdb服务实例信息
-            MysqlCCTopoOperator(cluster).transfer_instances_to_cluster_module([new_slave_obj])
+            SqlserverCCTopoOperator(cluster).transfer_instances_to_cluster_module([new_slave_obj])

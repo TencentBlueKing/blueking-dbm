@@ -12,6 +12,8 @@ const (
 	TestFileName = "test.sql"
 	// InitDBMMonitorFileName TODO
 	InitDBMMonitorFileName = "monitor_dbm.sql"
+	// CreateBackupOldTable
+	CreateBackupOldTable = "create_backup_old_table.sql"
 )
 
 // SysInitScript TODO
