@@ -3,6 +3,10 @@ package restore
 import (
 	"fmt"
 
+	"github.com/jinzhu/copier"
+	"github.com/pkg/errors"
+	"github.com/spf13/cast"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore/dbloader"
@@ -12,10 +16,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-
-	"github.com/jinzhu/copier"
-	"github.com/pkg/errors"
-	"github.com/spf13/cast"
 )
 
 // DBLoader 使用 dbbackup-go loadbackup 进行恢复
@@ -46,9 +46,11 @@ func (m *DBLoader) Init() error {
 			logger.Warn("fail to get mysqld socket: %s", cnfFileName)
 		}
 	}
-	if err = m.BackupInfo.indexObj.ValidateFiles(); err != nil {
-		return err
-	}
+	/*
+		if err = m.BackupInfo.indexObj.ValidateFiles(); err != nil {
+			return err
+		}
+	*/
 	if err = m.initDirs(); err != nil {
 		return err
 	}
@@ -179,7 +181,6 @@ func (m *DBLoader) initDirs() error {
 		}
 	*/
 	m.targetDir = m.BackupInfo.indexObj.GetTargetDir(m.taskDir)
-	//m.targetDir = filepath.Join(m.taskDir, m.backupBaseName)
 	return nil
 }
 
