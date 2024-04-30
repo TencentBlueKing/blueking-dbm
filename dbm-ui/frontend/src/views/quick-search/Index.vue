@@ -88,8 +88,6 @@
 
   import { quickSearch } from '@services/source/quickSearch';
 
-  import { useDebouncedRef } from '@hooks';
-
   import { useGlobalBizs } from '@stores';
 
   import { batchSplitRegex } from '@common/regex';
@@ -129,7 +127,6 @@
   const router = useRouter();
   const { t } = useI18n();
   const { bizs: bizList } = useGlobalBizs();
-  const keyword = useDebouncedRef(route.query.keyword as string || '');
 
   const comMap = {
     cluster_domain: ClusterDomain,
@@ -143,6 +140,7 @@
   const bizIdNameMap = bizList
     .reduce((result, item) => Object.assign(result, { [item.bk_biz_id]: item.name }), {} as Record<number, string>);
 
+  const keyword = ref(route.query.keyword as string || '');
   const isTableSearching = ref(false);
   const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'machine'>>({
     cluster_name: [],
