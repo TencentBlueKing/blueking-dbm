@@ -19,8 +19,6 @@ from .heartbeat_report import check_dbmon_heart_beat
 logger = logging.getLogger("celery")
 
 
-# 测试每分钟一次
-# @register_periodic_task(run_every=crontab(minute="*/1"))
 # 每小时一次
 @register_periodic_task(run_every=crontab(minute="0", hour="*/1"))
 def dbmon_heartbear_report_task():

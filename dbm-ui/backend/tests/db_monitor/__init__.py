@@ -8,22 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
-
-from celery.schedules import crontab
-
-from backend.db_periodic_task.local_tasks.register import register_periodic_task
-
-from .check_binlog_backup import check_binlog_backup
-from .check_full_backup import check_full_backup
-
-logger = logging.getLogger("celery")
-
-
-@register_periodic_task(run_every=crontab(minute=33, hour=2))
-def mysql_backup_check_task():
-    """
-    mysql 备份巡检
-    """
-    check_full_backup()
-    check_binlog_backup()

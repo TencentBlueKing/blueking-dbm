@@ -123,7 +123,7 @@ def sync_cluster_stat_by_cluster_type(cluster_type):
     cache.set(f"{CACHE_CLUSTER_STATS}_{cluster_type}", json.dumps(cluster_stats))
 
 
-@register_periodic_task(run_every=crontab(minute="*/3"))
+@register_periodic_task(run_every=crontab(minute="*/10"))
 def sync_cluster_stat_from_monitor():
     """
     同步各集群容量状态
