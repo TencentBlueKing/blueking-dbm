@@ -134,6 +134,11 @@ class _BKMonitorV3Api(BaseApi):
             url="save_duty_rule/",
             description=_("保存轮值规则"),
         )
+        self.search_duty_rule = self.generate_data_api(
+            method="POST",
+            url="search_duty_rule/",
+            description=_("查询轮值规则列表"),
+        )
         self.delete_duty_rules = self.generate_data_api(
             method="POST",
             url="delete_duty_rules/",

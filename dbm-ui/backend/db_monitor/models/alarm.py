@@ -102,8 +102,9 @@ class NoticeGroup(AuditedModel):
         if self.is_built_in:
             # 内置告警组
             # 创建/更新一条轮值规则
+            rule_name = f"{self.name}_{self.bk_biz_id}"
             save_duty_rule_params = {
-                "name": f"{self.name}_{self.bk_biz_id}",
+                "name": rule_name,
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                 "effective_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "end_time": "",
@@ -119,6 +120,12 @@ class NoticeGroup(AuditedModel):
             }
             if self.monitor_duty_rule_id:
                 save_duty_rule_params["id"] = self.monitor_duty_rule_id
+            else:
+                rules = BKMonitorV3Api.search_duty_rule({"bk_biz_ids": [env.DBA_APP_BK_BIZ_ID], "name": rule_name})
+                for rule in rules:
+                    if rule["name"] == rule_name:
+                        save_duty_rule_params["id"] = rule["id"]
+                        self.monitor_duty_rule_id = rule["id"]
 
             resp = BKMonitorV3Api.save_duty_rule(save_duty_rule_params, use_admin=True, raw=True)
             if resp.get("result"):

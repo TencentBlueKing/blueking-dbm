@@ -31,7 +31,7 @@ from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 logger = logging.getLogger("celery")
 
 
-@register_periodic_task(run_every=crontab(hour="*/6"))
+@register_periodic_task(run_every=crontab(hour="*/6", minute="0"))
 def update_local_notice_group():
     """同步告警组"""
     dba_ids = DBAdministrator.objects.values_list("id", flat=True)
