@@ -123,6 +123,8 @@
     },
   });
 
+  const handleSerachDebounce = _.debounce(handleSerach, 200);
+
   watch([modelValue, formData], ([newKeyword], [oldKeyword]) => {
     const newKeywordArr = newKeyword.split(batchSplitRegex);
     const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
@@ -130,12 +132,13 @@
       return;
     }
 
+    serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
+
     if (!modelValue.value) {
-      serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
       return;
     }
 
-    handleSerach({
+    handleSerachDebounce({
       ...formData.value,
       keyword: modelValue.value.replace(batchSplitRegex, ' '),
     });

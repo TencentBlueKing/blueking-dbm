@@ -92,7 +92,7 @@
   });
 
   const getTippyInsOffset = (): [number, number] => {
-    const textareaList = document.getElementsByTagName('textarea');
+    const textareaList = rootRef.value!.getElementsByTagName('textarea');
     const { bottom: textareaBottom } = textareaList[0].getBoundingClientRect();
     const { bottom: rootBottom } = rootRef.value!.getBoundingClientRect();
 
@@ -110,8 +110,12 @@
 
   const handlePaste = (value: string, event: ClipboardEvent) => {
     const pasteValue = (event.clipboardData || window.clipboardData).getData('text');
+    const textareaList = rootRef.value!.getElementsByTagName('textarea');
+    const { selectionStart, selectionEnd } = textareaList[0];
     setTimeout(() => {
-      modelValue.value = `${modelValue.value}${modelValue.value ? '|' : ''}${pasteValue}`.replace(batchSplitRegex, '|');
+      const originalValue = modelValue.value;
+      const newValue = `${originalValue.slice(0, selectionStart)}${pasteValue}${originalValue.slice(selectionEnd)}`;
+      modelValue.value = newValue.replace(batchSplitRegex, '|');
     });
   };
 
@@ -137,7 +141,7 @@
 
   const handleSearch = () => {
     if (tippyIns) {
-      const textareaList = document.getElementsByTagName('textarea');
+      const textareaList = rootRef.value!.getElementsByTagName('textarea');
       textareaList[0].blur();
       tippyIns.hide();
     }
