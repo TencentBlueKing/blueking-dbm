@@ -17,7 +17,6 @@ from django.db import transaction
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.enums import (
     ClusterEntryType,
@@ -110,7 +109,7 @@ class MongoScaleReplsMetaService(BaseService):
             StorageInstanceTuple.objects.get(receiver=del_obj).delete()
             # 删掉实例信息
             del_obj.delete()
-            cc_manage = CcManage(cluster.bk_biz_id, DBType.MongoDB.value)
+            cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
             cc_manage.delete_service_instance(bk_instance_ids=[del_obj.bk_instance_id])
             # 可能的话删掉主机信息 # 需要检查， 是否该机器上所有实例都已经清理干净，
             if StorageInstance.objects.filter(

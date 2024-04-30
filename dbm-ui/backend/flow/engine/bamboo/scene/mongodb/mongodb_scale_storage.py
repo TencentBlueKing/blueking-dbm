@@ -45,7 +45,7 @@ class MongoScaleFlow(object):
 
         # 复制集容量变更——子流程并行
         sub_pipelines = []
-        if self.data["infos"][ClusterType.MongoReplicaSet.value]:
+        if ClusterType.MongoReplicaSet.value in self.data["infos"]:
             for replicaset in self.data["infos"][ClusterType.MongoReplicaSet.value]:
                 sub_pipline = replicaset_scale(
                     root_id=self.root_id,
@@ -57,7 +57,7 @@ class MongoScaleFlow(object):
                 sub_pipelines.append(sub_pipline)
 
         # cluster容量变更——子流程并行
-        if self.data["infos"][ClusterType.MongoShardedCluster.value]:
+        if ClusterType.MongoShardedCluster.value in self.data["infos"]:
             for cluster in self.data["infos"][ClusterType.MongoShardedCluster.value]:
                 sub_pipline = cluster_scale(
                     root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, info=cluster
