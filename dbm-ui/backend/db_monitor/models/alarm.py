@@ -122,7 +122,7 @@ class NoticeGroup(AuditedModel):
 
             resp = BKMonitorV3Api.save_duty_rule(save_duty_rule_params, use_admin=True, raw=True)
             if resp.get("result"):
-                self.monitor_duty_rule_id = resp["id"]
+                self.monitor_duty_rule_id = resp["data"]["id"]
                 monitor_duty_rule_ids = (
                     DutyRule.objects.filter(db_type=self.db_type)
                     .exclude(monitor_duty_rule_id=0)
@@ -156,10 +156,13 @@ class NoticeGroup(AuditedModel):
             return resp["data"]["id"]
 
         if resp.get("code") == BKMonitorV3Api.ErrorCode.MONITOR_GROUP_NAME_ALREADY_EXISTS:
-            bk_monitor_group = BKMonitorV3Api.search_user_groups(
+            bk_monitor_groups = BKMonitorV3Api.search_user_groups(
                 {"bk_biz_ids": [env.DBA_APP_BK_BIZ_ID], "name": bk_monitor_group_name}
             )
-            save_monitor_group_params["id"] = bk_monitor_group[0]["id"]
+            for group in bk_monitor_groups:
+                if group["name"] == bk_monitor_group_name:
+                    save_monitor_group_params["id"] = group[0]["id"]
+                    break
             resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
             self.sync_at = datetime.datetime.now(timezone.utc)
             return resp["id"]

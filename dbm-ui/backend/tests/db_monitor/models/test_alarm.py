@@ -56,7 +56,11 @@ class TestNoticeGroup:
         # 设置Result=="False" 并且code为有重复告警组名的状态码
         with patch(
             "backend.components.bkmonitorv3.client.BKMonitorV3Api.save_user_group",
-            return_value={"result": False, "code": BKMonitorV3Api.ErrorCode.DUTY_RULE_NAME_ALREADY_EXISTS, "id": 2},
+            return_value={
+                "result": False,
+                "code": BKMonitorV3Api.ErrorCode.DUTY_RULE_NAME_ALREADY_EXISTS,
+                "data": {"id": 2},
+            },
         ), patch("backend.components.bkmonitorv3.client.BKMonitorV3Api.search_user_groups", return_value=[{"id": 10}]):
             NoticeGroup.objects.filter(bk_biz_id=0).update(name="TestNoticeGroup2")
             assert NoticeGroup.objects.first().name == "TestNoticeGroup2"

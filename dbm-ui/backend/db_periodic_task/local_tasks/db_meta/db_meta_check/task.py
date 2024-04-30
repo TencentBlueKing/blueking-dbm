@@ -21,7 +21,6 @@ from .check_replicate_role import check_replicate_role
 logger = logging.getLogger("celery")
 
 
-# @register_periodic_task(run_every=crontab(minute="*/1"))
 @register_periodic_task(run_every=crontab(minute=3, hour=2))
 def db_meta_check_task():
     """

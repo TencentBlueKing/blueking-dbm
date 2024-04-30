@@ -37,7 +37,7 @@ def update_local_notice_group():
     dba_ids = DBAdministrator.objects.values_list("id", flat=True)
     count = len(dba_ids)
     for index, dba_id in enumerate(dba_ids):
-        countdown = calculate_countdown(count=count, index=index, duration=5 * TimeUnit.MINUTE)
+        countdown = calculate_countdown(count=count, index=index, duration=6 * TimeUnit.HOUR)
         logger.info("dba_id({}) update notice group will be run after {} seconds.".format(dba_id, countdown))
         update_dba_notice_group.apply_async(kwargs={"dba_id": dba_id}, countdown=countdown)
 
@@ -68,7 +68,7 @@ def update_dba_notice_group(dba_id: int):
                 group.details = {"alert_notice": DEFAULT_ALERT_NOTICE}
             group.save(update_fields=["name", "receivers", "details"])
     except Exception as e:
-        logger.error("[local_notice_group] update_or_create notice group error: %s", e)
+        logger.exception("[local_notice_group] update_or_create notice group error: %s", e)
 
 
 @register_periodic_task(run_every=crontab(minute="*/5"))
