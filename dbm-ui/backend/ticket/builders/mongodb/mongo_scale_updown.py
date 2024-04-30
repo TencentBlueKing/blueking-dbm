@@ -14,7 +14,8 @@ from typing import Dict, List
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import MachineType
+from backend.db_meta.models import AppCache, Cluster, Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
@@ -29,7 +30,7 @@ from backend.ticket.constants import TicketType
 
 class MongoDBScaleUpDownDetailSerializer(BaseMongoDBOperateDetailSerializer):
     class ScaleUpDownDetailSerializer(serializers.Serializer):
-        shard_num = serializers.IntegerField(help_text=_("集群分片数"), required=False)
+        shards_num = serializers.IntegerField(help_text=_("集群分片数"), required=False)
         shard_machine_group = serializers.IntegerField(help_text=_("机器组数"))
         shard_node_count = serializers.IntegerField(help_text=_("集群每分片节点数"))
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
@@ -55,9 +56,11 @@ class MongoDBScaleUpDownDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
 
 class MongoDBScaleUpDownFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.fake_scene
+    controller = MongoDBController.scale_cluster
 
     def format_ticket_data(self):
+        bk_biz_id = self.ticket_data["bk_biz_id"]
+        self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
         MongoDBBackupFlowParamBuilder.add_cluster_type_info(self.ticket_data["infos"])
 
 
@@ -76,13 +79,22 @@ class MongoDBScaleUpDownResourceParamBuilder(BaseMongoDBOperateResourceParamBuil
     def post_callback(self):
         with self.next_flow_manager() as next_flow:
             cluster_ids = [info["cluster_id"] for info in next_flow.details["ticket_data"]["infos"]]
-            id__cluster = Cluster.objects.filter(id__in=cluster_ids)
-
+            id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+            # 获取旧机器规格
+            old_machine_info = {
+                cluster_id: Machine.objects.filter(
+                    storageinstance__cluster=cluster_id, machine_type=MachineType.MONGODB
+                )
+                .values("spec_id", "spec_config")
+                .first()
+                for cluster_id in cluster_ids
+            }
             mongo_type__apply_infos: Dict[str, List] = defaultdict(list)
             for info in next_flow.details["ticket_data"]["infos"]:
                 # 格式化mongodb节点信息和machine_specs规格信息
                 self.format_mongo_node_infos(info)
                 info["machine_specs"] = self.format_machine_specs(info["resource_spec"])
+                info["machine_specs"]["old_mongodb"] = old_machine_info[info["cluster_id"]]
                 # 补充集群信息
                 cluster = id__cluster[info["cluster_id"]]
                 info["db_version"] = cluster.major_version
