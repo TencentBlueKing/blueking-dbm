@@ -33,7 +33,7 @@ class RedisInstanceApplyDetailSerializer(SkipToRepresentationMixin, serializers.
 
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
-    city_code = serializers.CharField(help_text=_("城市代码"))
+    city_code = serializers.CharField(help_text=_("城市代码"), required=False)
     disaster_tolerance_level = serializers.ChoiceField(
         help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
     )
@@ -84,11 +84,11 @@ class RedisInstanceApplyFlowParamBuilder(builders.FlowParamBuilder):
             CommonValidate._validate_domain_valid(domain_name)
             # 在info里，补充每个主从集群的部署信息
             info.update(
-                city=self.ticket_data["city_code"],
-                city_code=self.ticket_data["city_code"],
+                city=self.ticket_data.get("city_code"),
+                city_code=self.ticket_data.get("city_code"),
+                db_version=self.ticket_data.get("db_version"),
                 domain_name=domain_name,
                 cluster_alias=info["cluster_name"],
-                db_version=self.ticket_data["db_version"],
                 redis_pwd=redis_pwd,
             )
 
@@ -117,6 +117,8 @@ class RedisInstanceApplyFlowParamBuilder(builders.FlowParamBuilder):
             cluster = master_host__cluster[master_host]
             # 更新追加集群的部署信息
             info.update(
+                city=cluster.region,
+                city_code=cluster.region,
                 disaster_tolerance_level=cluster.disaster_tolerance_level,
                 port=master_host__max_port[master_host],
                 db_version=cluster.major_version,

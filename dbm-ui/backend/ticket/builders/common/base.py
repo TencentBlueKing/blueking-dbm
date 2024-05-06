@@ -340,7 +340,7 @@ class CommonValidate(object):
     def validate_slave_is_stand_by(cls, slave_insts: List[str]):
         """校验slave实例的is_stand_by为true，并且处于正常状态，用于校验主从互切是否合法"""
         # 注意：这里的slave_insts是一个ip列表
-        slaves = StorageInstance.find_storage_instance_by_addresses(slave_insts)
+        slaves = StorageInstance.find_storage_instance_by_ip(slave_insts)
         normal_slaves = slaves.filter(
             instance_inner_role=InstanceInnerRole.SLAVE, is_stand_by=True, status=InstanceStatus.RUNNING
         ).values("machine__ip")

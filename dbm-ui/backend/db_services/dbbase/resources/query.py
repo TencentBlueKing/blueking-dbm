@@ -369,7 +369,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 | Q(alias__in=query_params.get("name", "").split(","))
             ),
             # 集群类型
-            "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
+            "cluster_type": Q(cluster_type__in=query_params.get("cluster_type", "").split(",")),
             # 版本
             "major_version": Q(major_version__in=query_params.get("major_version", "").split(",")),
             # 地域
@@ -570,7 +570,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "port": Q(port__in=query_params.get("port", "").split(",")),
             "status": Q(status__in=query_params.get("status", "").split(",")),
             "cluster_id": Q(cluster__id=query_params.get("cluster_id")),
-            "cluster_type": Q(cluster__cluster_type=query_params.get("cluster_type")),
+            "cluster_type": Q(cluster_type__in=query_params.get("cluster_type", "").split(",")),
             "region": Q(region=query_params.get("region")),
             "role": Q(role__in=query_params.get("role", "").split(",")),
             "name": Q(cluster__name__in=query_params.get("name", "").split(",")),

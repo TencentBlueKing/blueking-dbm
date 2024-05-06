@@ -31,7 +31,7 @@ class ListResourceSLZ(serializers.Serializer):
     status = serializers.CharField(required=False, help_text=_("状态"))
     db_module_id = serializers.CharField(required=False, help_text=_("所属DB模块"))
     bk_cloud_id = serializers.CharField(required=False, help_text=_("管控区域"))
-    cluster_type = serializers.ChoiceField(required=False, choices=ClusterType.get_choices())
+    cluster_type = serializers.CharField(required=False, help_text=_("集群类型"))
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
@@ -96,7 +96,7 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     status = serializers.CharField(help_text=_("状态"), required=False)
     role = serializers.CharField(help_text=_("角色"), required=False)
     cluster_id = serializers.CharField(help_text=_("集群ID"), required=False)
-    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), required=False, choices=ClusterType.get_choices())
+    cluster_type = serializers.CharField(required=False, help_text=_("集群类型"))
     ip = serializers.CharField(required=False)
 
 
