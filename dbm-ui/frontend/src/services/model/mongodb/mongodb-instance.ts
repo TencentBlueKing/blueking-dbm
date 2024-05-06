@@ -1,5 +1,7 @@
 import dayjs from 'dayjs';
 
+import { utcDisplayTime } from '@utils';
+
 import { t } from '@locales/index';
 
 export default class MongodbInstance {
@@ -218,5 +220,9 @@ export default class MongodbInstance {
       return true;
     }
     return false;
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 }

@@ -2,20 +2,20 @@
   <div class="instance-list-page">
     <div class="header-action">
       <BkDropdown
-        @hide="() => isInstanceDropdown = false"
-        @show="() => isInstanceDropdown = true">
+        @hide="() => (isInstanceDropdown = false)"
+        @show="() => (isInstanceDropdown = true)">
         <BkButton
           class="dropdown-button"
-          :class="{ 'active': isInstanceDropdown }">
+          :class="{ active: isInstanceDropdown }">
           {{ t('实例申请') }}
           <DbIcon type="up-big dropdown-button-icon" />
         </BkButton>
         <template #content>
           <BkDropdownMenu>
-            <BkDropdownItem @click="handleGoApply('mongoDBReplicaSetApply')">
+            <BkDropdownItem @click="handleGoApply('MongoDBReplicaSetApply')">
               {{ t('副本集集群') }}
             </BkDropdownItem>
-            <BkDropdownItem @click="handleGoApply('mongoDBSharedClusterApply')">
+            <BkDropdownItem @click="handleGoApply('MongoDBSharedClusterApply')">
               {{ t('分片集群实例') }}
             </BkDropdownItem>
           </BkDropdownMenu>
@@ -27,11 +27,13 @@
         :ids="selectedIds"
         type="mongodb" />
       <DbSearchSelect
-        v-model="searchValues"
         class="header-select"
-        :data="searchData"
-        :placeholder="t('请输入关键字或选择条件搜索')"
-        @change="handleFetchTableData" />
+        :data="searchSelectData"
+        :model-value="searchValue"
+        :placeholder="t('请输入或选择条件搜索')"
+        unique-select
+        :validate-values="validateSearchValues"
+        @change="handleSearchValueChange" />
     </div>
     <div
       class="table-wrapper"
@@ -40,9 +42,13 @@
         ref="tableRef"
         :columns="columns"
         :data-source="getMongoInstancesList"
+        releate-url-query
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
+        @column-sort="columnSortChange"
         @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
@@ -62,6 +68,7 @@
   import { createTicket } from '@services/source/ticket';
 
   import {
+    useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
     useTicketMessage,
@@ -70,6 +77,7 @@
   import { useGlobalBizs } from '@stores';
 
   import {
+    ClusterTypes,
     TicketTypes,
     UserPersonalSettings,
   } from '@common/const';
@@ -90,27 +98,21 @@
   const router = useRouter();
   const { t } = useI18n();
 
-  const statusList = [
-    {
-      text: t('正常'),
-      value: 'running',
-    },
-    {
-      text: t('异常'),
-      value: 'unavailable',
-    },
-  ];
-
-  const clusterList = [
-    {
-      text: t('副本集'),
-      value: 'MongoReplicaSet',
-    },
-    {
-      text: t('分片集群'),
-      value: 'MongoShardedCluster',
-    },
-  ];
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnCheckedMap,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+    validateSearchValues,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach([
+    ClusterTypes.MONGO_SHARED_CLUSTER,
+    ClusterTypes.MONGO_REPLICA_SET
+  ].join(',') as ClusterTypes, ['role'], () => fetchData(isInit), false);
 
   const {
     isOpen: isStretchLayoutOpen,
@@ -125,11 +127,61 @@
     name: string
   }[]>([]);
 
-  const searchValues = ref([]);
   const selected = ref<MongodbInstanceModel[]>([]);
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.bk_host_id));
+
+  const searchSelectData = computed(() => [
+    {
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
+    },
+    {
+      name: t('集群名称'),
+      id: 'name',
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'running',
+          name: t('正常'),
+        },
+        {
+          id: 'unavailable',
+          name: t('异常'),
+        },
+      ],
+    },
+    {
+      name: t('部署角色'),
+      id: 'role',
+      multiple: true,
+      children: searchAttrs.value.role,
+    },
+    {
+      name: t('端口'),
+      id: 'port',
+    },
+    {
+      name: t('集群架构'),
+      id: 'cluster_type',
+      multiple: true,
+      children: [
+        {
+          id: ClusterTypes.MONGO_REPLICA_SET,
+          name: t('副本集'),
+        },
+        {
+          id: ClusterTypes.MONGO_SHARED_CLUSTER,
+          name: t('分片集群'),
+        },
+      ],
+    },
+  ]);
 
   const columns = computed(() => {
     const list = [
@@ -165,25 +217,30 @@
       {
         label: t('角色'),
         field: 'role',
-        fixed: 'left',
-        showOverflowTooltip: false,
         filter: {
-          list: roleListType.value.map(item => ({
-            text: item.name,
-            value: item.name,
-          })),
+          list: columnAttrs.value.role,
+          checked: columnCheckedMap.value.role,
         },
       },
       {
         label: t('状态'),
         field: 'status',
-        showOverflowTooltip: false,
+        filter: {
+          list: [
+            {
+              value: 'running',
+              text: t('正常'),
+            },
+            {
+              value: 'unavailable',
+              text: t('异常'),
+            },
+          ],
+          checked: columnCheckedMap.value.status,
+        },
         render: ({ data }: { data: MongodbInstanceModel }) => {
           const { text, theme } = data.dbStatusConfigureObj;
           return <DbStatus type="linear" theme={ theme }>{ text }</DbStatus>;
-        },
-        filter: {
-          list: statusList,
         },
       },
       {
@@ -206,22 +263,31 @@
       {
         label: t('集群架构'),
         field: 'cluster_type',
-        render: ({ data }: { data: MongodbInstanceModel }) => data.clusterTypeText,
         filter: {
-          list: clusterList,
+          list: [
+            {
+              value: ClusterTypes.MONGO_REPLICA_SET,
+              text: t('副本集'),
+            },
+            {
+              value: ClusterTypes.MONGO_SHARED_CLUSTER,
+              text: t('分片集群'),
+            },
+          ],
+          checked: columnCheckedMap.value.cluster_type,
         },
+        render: ({ data }: { data: MongodbInstanceModel }) => data.clusterTypeText,
       },
       {
         label: t('分片名'),
         field: 'shard',
-      },
-      {
-        label: t('地域'),
-        field: 'slave_domain',
+        render: ({ data }: { data: MongodbInstanceModel }) => data.shard || '--',
+
       },
       {
         label: t('部署时间'),
-        field: 'create_at',
+        field: 'createAtDisplay',
+        sort: true,
       },
       {
         label: t('操作'),
@@ -251,49 +317,14 @@
               </bk-button>
             </OperationBtnStatusTips>
           </>
-          ),
+        ),
       },
-
     ];
     if (isStretchLayoutOpen.value) {
       list.pop();
     }
     return list;
   });
-
-  const searchData = computed(() => [
-    {
-      name: '实例',
-      id: 'instance_address',
-    },
-    {
-      name: t('所属集群'),
-      id: 'cluster_id',
-    },
-    {
-      name: t('主域名'),
-      id: 'master_domain',
-    },
-    {
-      name: t('从域名'),
-      id: 'slave_domain',
-    },
-    {
-      name: t('角色'),
-      id: 'role',
-      multiple: true,
-      children: roleListType.value,
-    },
-    {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
-      children: statusList.map(item => ({
-        id: item.value,
-        name: item.text,
-      })),
-    },
-  ]);
 
   // 设置用户个人表头信息
   const defaultSettings = {
@@ -303,6 +334,7 @@
     })),
     checked: (columns.value || []).map(item => item.field).filter(key => !!key && key !== 'id') as string[],
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
 
   const {
@@ -319,12 +351,19 @@
     },
   });
 
-  const handleFetchTableData = () => {
-    tableRef.value.fetchData({
-      ...getSearchSelectorParams(searchValues.value),
-    }, {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-    });
+  let isInit = true;
+  const fetchData = (loading?: boolean) => {
+    tableRef.value.fetchData(
+      {
+        ...getSearchSelectorParams(searchValue.value),
+      },
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        ...sortValue
+      },
+      loading
+    )
+    isInit = false;
   };
 
   const handleChangeInstanceOnline = (
@@ -410,9 +449,9 @@
   };
 </script>
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
-  .instance-list-page{
+  .instance-list-page {
     height: 100%;
     padding: 24px 0;
     margin: 0 24px;
@@ -423,7 +462,7 @@
       padding-bottom: 16px;
       flex-wrap: wrap;
 
-      .header-select{
+      .header-select {
         flex: 1;
         max-width: 320px;
         min-width: 320px;

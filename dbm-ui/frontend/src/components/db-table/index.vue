@@ -133,7 +133,7 @@
   }
 
   interface Exposes {
-    fetchData: (params: Record<string, any>, baseParams: Record<string, any>) => void,
+    fetchData: (params: Record<string, any>, baseParams: Record<string, any>, loading?: boolean) => void,
     getData: <T>() => Array<T>,
     clearSelected: () => void,
     loading: Ref<boolean>,

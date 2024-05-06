@@ -26,23 +26,28 @@
         :ids="selectedIds"
         type="sqlserver_ha" />
       <DbSearchSelect
-        v-model="searchValues"
         class="mb-16"
         :data="searchSelectData"
-        :placeholder="t('实例_域名_IP_端口_状态')"
+        :model-value="searchValue"
+        :placeholder="t('请输入或选择条件搜索')"
         unique-select
-        @change="fetchData" />
+        :validate-values="validateSearchValues"
+        @change="handleSearchValueChange" />
     </div>
     <div
       class="table-wrapper"
-      :class="{'is-shrink-table': isStretchLayoutOpen}">
+      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
       <DbTable
         ref="tableRef"
         :columns="columns"
         :data-source="getSqlServerInstanceList"
+        releate-url-query
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
+        @column-sort="columnSortChange"
         @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
@@ -57,6 +62,7 @@
 
   import {
     useCopy,
+    useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
   } from '@hooks';
@@ -64,7 +70,6 @@
   import { useGlobalBizs } from '@stores';
 
   import {
-    clusterInstStatus,
     ClusterTypes,
     DBTypes,
     UserPersonalSettings,
@@ -91,37 +96,61 @@
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnCheckedMap,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+    validateSearchValues,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach(ClusterTypes.SQLSERVER_HA, ['role'], () => fetchData(isInit), false);
 
-  const searchSelectData = [
+  const searchSelectData = computed(() => [
     {
-      name: 'ID',
-      id: 'id',
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
     },
     {
-      name: t('实例'),
-      id: 'instance_address',
-    },
-    {
-      name: t('域名'),
+      name: t('访问入口'),
       id: 'domain',
+      multiple: true,
     },
     {
-      name: 'IP',
-      id: 'ip',
+      name: t('集群名称'),
+      id: 'name',
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'running',
+          name: t('正常'),
+        },
+        {
+          id: 'unavailable',
+          name: t('异常'),
+        },
+      ],
+    },
+    {
+      name: t('部署角色'),
+      id: 'role',
+      multiple: true,
+      children: searchAttrs.value.role,
     },
     {
       name: t('端口'),
       id: 'port',
     },
-    {
-      name: t('状态'),
-      id: 'status',
-      children: Object.values(clusterInstStatus).map(item => ({ id: item.key, name: item.text })),
-    },
-  ];
+  ]);
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const searchValues = ref([]);
   const selected = shallowRef<SqlServerHaInstanceModel[]>([]);
 
   const hasSelected = computed(() => selected.value.length > 0);
@@ -193,6 +222,19 @@
         label: t('状态'),
         field: 'status',
         width: 140,
+        filter: {
+          list: [
+            {
+              value: 'running',
+              text: t('正常'),
+            },
+            {
+              value: 'unavailable',
+              text: t('异常'),
+            },
+          ],
+          checked: columnCheckedMap.value.status,
+        },
         render: ({ data }: { data: SqlServerHaInstanceModel }) => {
           const {
             theme,
@@ -242,11 +284,16 @@
       {
         label: t('部署角色'),
         field: 'role',
+        filter: {
+          list: columnAttrs.value.role,
+          checked: columnCheckedMap.value.role,
+        },
       },
       {
         label: t('部署时间'),
         field: 'create_at',
         width: 160,
+        sort: true,
         render: ({ data }: { data: SqlServerHaInstanceModel }) => <span>{data.createAtDisplay}</span>,
       },
       {
@@ -293,6 +340,7 @@
     })),
     checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
 
   const {
@@ -300,13 +348,19 @@
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.SQLSERVER_HA_INSTANCE_SETTINGS, defaultSettings);
 
-  const fetchData = () => {
-    tableRef.value!.fetchData({
-      db_type: DBTypes.SQLSERVER,
-      bk_biz_id: globalBizsStore.currentBizId,
-      type: ClusterTypes.SQLSERVER_HA,
-      ...getSearchSelectorParams(searchValues.value),
-    }, {});
+  let isInit = true;
+  const fetchData = (loading?: boolean) => {
+    tableRef.value!.fetchData(
+      {
+        db_type: DBTypes.SQLSERVER,
+        bk_biz_id: globalBizsStore.currentBizId,
+        type: ClusterTypes.SQLSERVER_HA,
+        ...getSearchSelectorParams(searchValue.value),
+      },
+      sortValue,
+      loading
+    );
+    isInit = false;
   };
 
   const handleSelection = (key: number[], list: Record<number, SqlServerHaInstanceModel>[]) => {

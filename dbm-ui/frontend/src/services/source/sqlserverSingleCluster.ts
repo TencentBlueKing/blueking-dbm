@@ -12,6 +12,7 @@
  */
 
 import SqlServerClusterDetailModel from '@services/model/sqlserver/sqlserver-cluster-detail';
+import SqlServerInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
 import SqlServerClusterListModel from '@services/model/sqlserver/sqlserver-single-cluster';
 
 import { useGlobalBizs } from '@stores';
@@ -59,6 +60,15 @@ export function exportSqlServerSingleClusterToExcel(params: { bk_host_ids?: numb
 /**
  * 获取集群实例列表
  */
-export const getSqlServerInstanceList = function () {
-  return http.get<ListBase<any[]>>(`${path}/list_instances/`);
-};
+export function getSqlServerInstanceList(params: {
+  offset?: number;
+  limit?: number;
+  bk_biz_id?: number;
+  cluster_id?: number;
+  role?: string;
+}) {
+  return http.get<ListBase<SqlServerInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new SqlServerInstanceModel(item)),
+  }));
+}
