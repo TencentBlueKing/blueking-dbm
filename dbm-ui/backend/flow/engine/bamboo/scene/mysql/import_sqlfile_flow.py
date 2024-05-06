@@ -69,8 +69,11 @@ class ImportSQLFlow(object):
         base_path = self.data["path"]
         sql_files = self.__get_sql_file_name_list()
 
+        cluster_id__cluster = {
+            cluster.id: cluster for cluster in Cluster.objects.filter(id__in=self.data["cluster_ids"])
+        }
         for cluster_id in self.data["cluster_ids"]:
-            cluster = self.__get_master_instance_info(cluster_id=cluster_id)
+            cluster = self.__get_master_instance_info(cluster=cluster_id__cluster[cluster_id])
             backend_port = cluster["port"]
             sqlpath = os.path.join(consts.BK_PKG_INSTALL_PATH, f"sqlfile_{self.uid}_{cluster_id}_{backend_port}") + "/"
             sub_pipeline = SubBuilder(self.root_id, self.data)

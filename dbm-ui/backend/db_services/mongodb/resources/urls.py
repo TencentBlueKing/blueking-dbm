@@ -11,8 +11,6 @@ specific language governing permissions and limitations under the License.
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.redis.resources.views import ListResourceViewSet
-
 from .views import MongoDBViewSet, ResourceTreeViewSet
 
 router = DefaultRouter(trailing_slash=True)
@@ -21,7 +19,6 @@ router.register(r"mongodb_resources", MongoDBViewSet, basename="mongodb_replicas
 
 urlpatterns = [
     # 提供资源(集群)通用属性的查询, 如集群名, 集群创建者等(通用方法，用redis的即可)
-    path("resources/", ListResourceViewSet.as_view({"get": "list"})),
     path("resource_tree/", ResourceTreeViewSet.as_view({"get": "get_resource_tree"})),
 ]
 

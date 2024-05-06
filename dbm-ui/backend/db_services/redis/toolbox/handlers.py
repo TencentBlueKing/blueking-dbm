@@ -75,6 +75,7 @@ class ToolboxHandler:
                     "cluster": masters.last().cluster.first().simple_desc,
                     "master_ip": master_ip,
                     "slave_ip": ms_pairs.last().receiver.machine.ip,
+                    "slave_host_info": ms_pairs.last().receiver.machine.simple_desc,
                     "instances": map(lambda x: x.simple_desc, masters),
                 }
             )
