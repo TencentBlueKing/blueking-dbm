@@ -26,7 +26,7 @@ export function getDiffDays(start: string, end: string) {
 }
 
 // 统一的带时区时间显示
-export function utcDisplayTime(time: string) {
+export function utcDisplayTime(time?: string) {
   if (!time) {
     return '';
   }
