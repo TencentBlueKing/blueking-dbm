@@ -187,6 +187,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     )
     def cluster_list(self, request, *args, **kwargs):
         dbtype = self.validated_data["dbtype"]
+        bk_biz_id = self.validated_data["bk_biz_id"]
 
         if dbtype == DBType.InfluxDB:
             return Response(
@@ -195,7 +196,9 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
                 )
             )
 
-        clusters = Cluster.objects.filter(cluster_type__in=ClusterType.db_type_to_cluster_types(dbtype))
+        clusters = Cluster.objects.filter(
+            cluster_type__in=ClusterType.db_type_to_cluster_types(dbtype), bk_biz_id=bk_biz_id
+        )
 
         return Response(clusters.values_list("immute_domain", flat=True))
 
@@ -213,8 +216,9 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     )
     def db_module_list(self, request, *args, **kwargs):
         dbtype = self.validated_data["dbtype"]
+        bk_biz_id = self.validated_data["bk_biz_id"]
         return Response(
-            DBModule.objects.filter(cluster_type__in=ClusterType.db_type_to_cluster_types(dbtype)).values(
-                "db_module_id", "db_module_name"
-            )
+            DBModule.objects.filter(
+                cluster_type__in=ClusterType.db_type_to_cluster_types(dbtype), bk_biz_id=bk_biz_id
+            ).values("db_module_id", "db_module_name")
         )

@@ -467,6 +467,7 @@
         });
         fetchDbModuleList({
           dbtype: type,
+          bk_biz_id: currentBizId,
         });
       });
     }

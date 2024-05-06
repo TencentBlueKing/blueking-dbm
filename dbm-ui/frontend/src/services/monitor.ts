@@ -173,7 +173,7 @@ export const getClusterList = (params: {
 }) => http.get<string[]>('/apis/monitor/policy/cluster_list/', params);
 
 // 根据db类型查询模块列表
-export const getDbModuleList = (params: { dbtype: string }) => http.get<{
+export const getDbModuleList = (params: { dbtype: string, bk_biz_id: number }) => http.get<{
   db_module_id: number,
   db_module_name: string,
 }[]>('/apis/monitor/policy/db_module_list/', params);
