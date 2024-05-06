@@ -78,8 +78,11 @@ func (m *PrivService) AddAccountRuleDryRun(c *gin.Context) {
 		return
 	}
 
-	err = input.AddAccountRuleDryRun()
-	SendResponse(c, err, nil)
+	forceRun, err := input.AddAccountRuleDryRun()
+	type Force struct {
+		ForceRun bool `json:"force_run"`
+	}
+	SendResponse(c, err, Force{forceRun})
 	return
 }
 

@@ -121,7 +121,7 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
 		return err
 	}
 
-	err = AccountRuleExistedPreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, false)
+	_, err = AccountRulePreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, false)
 	if err != nil {
 		return err
 	}
@@ -139,6 +139,7 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
 	}
 
 	dmlDdlPriv = strings.Trim(dmlDdlPriv, ",")
+	globalPriv = strings.Trim(globalPriv, ",")
 	allTypePriv = strings.Trim(allTypePriv, ",")
 	vtime := time.Now()
 
@@ -165,20 +166,20 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
 }
 
 // AddAccountRuleDryRun 新增账号规则检查
-func (m *AccountRulePara) AddAccountRuleDryRun() error {
+func (m *AccountRulePara) AddAccountRuleDryRun() (bool, error) {
 	err := m.ParaPreCheck()
 	if err != nil {
-		return err
+		return true, err
 	}
 	dbs, err := util.String2Slice(m.Dbname)
 	if err != nil {
-		return err
+		return true, err
 	}
-	err = AccountRuleExistedPreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, true)
+	allowForce, err := AccountRulePreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, true)
 	if err != nil {
-		return err
+		return allowForce, err
 	}
-	return nil
+	return true, nil
 }
 
 // ModifyAccountRule 修改账号规则
@@ -228,7 +229,7 @@ func (m *AccountRulePara) ModifyAccountRule(jsonPara string, ticket string) erro
 
 	for _, _type := range ConstPrivType {
 		value, exists := m.Priv[_type]
-		if exists {
+		if exists && value != "" {
 			if _type == "dml" || _type == "ddl" {
 				dmlDdlPriv = fmt.Sprintf("%s,%s", dmlDdlPriv, value)
 			} else {
@@ -239,6 +240,7 @@ func (m *AccountRulePara) ModifyAccountRule(jsonPara string, ticket string) erro
 	}
 
 	dmlDdlPriv = strings.Trim(dmlDdlPriv, ",")
+	globalPriv = strings.Trim(globalPriv, ",")
 	allTypePriv = strings.Trim(allTypePriv, ",")
 
 	/*
@@ -261,7 +263,6 @@ func (m *AccountRulePara) ModifyAccountRule(jsonPara string, ticket string) erro
 
 	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
-
 	return nil
 }
 
@@ -306,8 +307,8 @@ func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string, ticket string
 	return nil
 }
 
-// AccountRuleExistedPreCheck 检查账号规则是否已存在
-func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, dbs []string, dryRun bool) error {
+// AccountRulePreCheck 检查账号规则是否存在，db
+func AccountRulePreCheck(bkBizId, accountId int64, clusterType string, dbs []string, dryRun bool) (bool, error) {
 	var (
 		err         error
 		count       uint64
@@ -315,16 +316,16 @@ func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, db
 		duplicateDb []string
 		rules       []*TbAccountRules
 		message     string
+		allowForce  bool // 检查失败，但是仍然允许强制提交
 	)
-
 	// 账号是否存在，存在才可以申请账号规则
 	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: bkBizId, ClusterType: clusterType, Id: accountId}).
 		Count(&count).Error
 	if err != nil {
-		return err
+		return allowForce, err
 	}
 	if count == 0 {
-		return errno.AccountNotExisted
+		return allowForce, errno.AccountNotExisted
 	}
 
 	// 检查填写的db是否重复
@@ -340,7 +341,7 @@ func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, db
 	err = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: bkBizId, ClusterType: clusterType,
 		AccountId: accountId}).Scan(&rules).Error
 	if err != nil {
-		return err
+		return allowForce, err
 	}
 
 	for _, db := range dbs {
@@ -351,12 +352,14 @@ func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, db
 			}
 		}
 	}
-
+	allowForce = true
 	if len(existedRule) > 0 {
+		allowForce = false
 		message = fmt.Sprintf("用户对数据库(%s)授权的账号规则已存在\n",
 			strings.Join(existedRule, ","))
 	}
 	if len(duplicateDb) > 0 {
+		allowForce = false
 		message = fmt.Sprintf("%s重复填写数据库(%s) \n", message,
 			strings.Join(duplicateDb, ","))
 	}
@@ -366,17 +369,19 @@ func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, db
 		for _, rule := range rules {
 			dblist = append(dblist, rule.Dbname)
 		}
+		// db范围是否存在交接
 		result := CrossCheckBetweenDbList(dbs, dblist)
 		if result != "" {
 			message = fmt.Sprintf("%s帐号规则中的数据库交集检查:\n%s", message, result)
 		}
 	}
 	if len(message) > 0 {
-		return fmt.Errorf("帐号规则预检查失败:\n%s", message)
+		return allowForce, fmt.Errorf("帐号规则预检查失败:\n%s", message)
 	}
-	return nil
+	return allowForce, nil
 }
 
+// CrossCheckBetweenDbList db范围是否存在交接
 func CrossCheckBetweenDbList(newDbs []string, exist []string) string {
 	var errMsg []string
 	var UniqMap = make(map[string]struct{})
