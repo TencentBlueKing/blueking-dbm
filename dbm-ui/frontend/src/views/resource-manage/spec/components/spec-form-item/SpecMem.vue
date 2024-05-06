@@ -29,7 +29,7 @@
           <BkInput
             v-model="modelValue.min"
             :disabled="isEdit"
-            :max="256"
+            :max="2048"
             :min="1"
             :precision="2"
             :show-control="false"
@@ -51,7 +51,7 @@
           <BkInput
             v-model="modelValue.max"
             :disabled="isEdit"
-            :max="256"
+            :max="2048"
             :min="1"
             :precision="2"
             :show-control="false"
