@@ -45,23 +45,28 @@
         :ids="selectedIds"
         type="mongodb" />
       <DbSearchSelect
-        v-model="searchValues"
         class="header-action-search-select"
         :data="searchSelectData"
-        :placeholder="t('输入集群名_IP_访问入口关键字')"
+        :get-menu-list="getMenuList"
+        :model-value="searchValue"
+        :placeholder="t('请输入或选择条件搜索')"
         unique-select
-        @change="fetchData" />
+        :validate-values="validateSearchValues"
+        @change="handleSearchValueChange" />
     </div>
     <DbTable
       ref="tableRef"
       class="shared-cluster-list-table"
       :columns="columns"
       :data-source="getMongoList"
+      releate-url-query
       :row-class="setRowClass"
       selectable
       :settings="tableSetting"
       show-overflow-tips
-      @clear-search="handleClearSearch"
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
       @selection="handleSelection"
       @setting-change="updateTableSettings" />
   </div>
@@ -104,9 +109,11 @@
     getMongoList,
   } from '@services/source/mongodb';
   import { createTicket } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
 
   import {
     useCopy,
+    useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
     useTicketMessage,
@@ -125,18 +132,27 @@
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
+  import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
-  import { getSearchSelectorParams } from '@utils';
+  import {
+    getMenuListSearch,
+    getSearchSelectorParams ,
+  } from '@utils';
 
   import { useDisableCluster } from '../../hooks/useDisableCluster';
   import CapacityChange from '../components/CapacityChange.vue';
+
+  import type {
+    SearchSelectData,
+    SearchSelectItem,
+    TableColumnRender,
+  } from '@/types/bkui-vue';
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -151,28 +167,88 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
   const disableCluster = useDisableCluster();
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnCheckedMap,
+    batchSearchIpInatanceList,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+    validateSearchValues,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach(ClusterTypes.MONGO_SHARED_CLUSTER, [
+    'bk_cloud_id',
+    'major_version',
+    'region',
+    'time_zone',
+  ], () => fetchData(isInit));
 
-  const searchSelectData = [
+  const searchSelectData = computed(() => [
+    {
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
+    },
+    {
+      name: t('访问入口'),
+      id: 'domain',
+    },
     {
       name: 'ID',
       id: 'id',
     },
     {
-      name: t('集群名'),
+      name: t('集群名称'),
       id: 'name',
     },
     {
-      name: t('域名'),
-      id: 'domain',
+      name: t('管控区域'),
+      id: 'bk_cloud_id',
+      multiple: true,
+      children: searchAttrs.value.bk_cloud_id,
     },
     {
-      name: 'IP',
-      id: 'ip',
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'normal',
+          name: t('正常'),
+        },
+        {
+          id: 'abnormal',
+          name: t('异常'),
+        },
+      ],
     },
-  ];
+    {
+      name: t('版本'),
+      id: 'major_version',
+      multiple: true,
+      children: searchAttrs.value.major_version,
+    },
+    {
+      name: t('地域'),
+      id: 'region',
+      multiple: true,
+      children: searchAttrs.value.region,
+    },
+    {
+      name: t('创建人'),
+      id: 'creator',
+    },
+    {
+      name: t('时区'),
+      id: 'time_zone',
+      multiple: true,
+      children: searchAttrs.value.time_zone,
+    },
+  ] as SearchSelectData);
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const searchValues = ref([]);
   const capacityChangeShow = ref(false);
   const isCapacityChange = ref(false);
   const detailData = ref<{
@@ -193,6 +269,12 @@
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const columns = computed(() => [
+    {
+      label: 'ID',
+      field: 'id',
+      fixed: 'left',
+      width: 60,
+    },
     {
       label: t('集群名称'),
       field: 'cluster_name',
@@ -245,12 +327,35 @@
     {
       label: t('主域名'),
       field: 'master_domain',
+      minWidth: 300,
       render: ({ data }: { data: MongodbModel }) => <span>{data.master_domain || '--'}</span>,
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: { data: MongodbModel }) => <span>{data.bk_cloud_name || '--'}</span>,
     },
     {
       label: t('状态'),
       field: 'status',
       width: 100,
+      filter: {
+        list: [
+          {
+            value: 'normal',
+            text: t('正常'),
+          },
+          {
+            value: 'abnormal',
+            text: t('异常'),
+          },
+        ],
+        checked: columnCheckedMap.value.status,
+      },
       render: ({ data }: { data: MongodbModel }) => <RenderClusterStatus data={data.status} />,
     },
     {
@@ -264,12 +369,20 @@
       label: t('MongoDB版本'),
       field: 'major_version',
       minWidth: 100,
+      filter: {
+        list: columnAttrs.value.major_version,
+        checked: columnCheckedMap.value.major_version,
+      },
       render: ({ data }: { data: MongodbModel }) => <span>{data.major_version || '--'}</span>,
     },
     {
       label: t('地域'),
-      field: 'bk_cloud_name',
+      field: 'region',
       minWidth: 100,
+      filter: {
+        list: columnAttrs.value.region,
+        checked: columnCheckedMap.value.region,
+      },
       render: ({ data }: { data: MongodbModel }) => <span>{data.bk_cloud_name || '--'}</span>,
     },
     {
@@ -278,8 +391,9 @@
       width: 180,
       showOverflowTooltip: false,
       render: ({ data }: { data: MongodbModel }) => (
-        <RenderNodeInstance
-          originalList={data.mongo_config}
+        <RenderInstances
+          highlightIps={batchSearchIpInatanceList.value}
+          data={data.mongo_config}
           title={`【${data.master_domain}】ConfigSvr`}
           role="mongo_config"
           clusterId={data.id}
@@ -292,8 +406,9 @@
       width: 180,
       showOverflowTooltip: false,
       render: ({ data }: { data: MongodbModel }) => (
-        <RenderNodeInstance
-          originalList={data.mongos}
+        <RenderInstances
+          highlightIps={batchSearchIpInatanceList.value}
+          data={data.mongos}
           title={`【${data.master_domain}】Mongos`}
           role="mongos"
           clusterId={data.id}
@@ -306,13 +421,49 @@
       width: 180,
       showOverflowTooltip: false,
       render: ({ data }: { data: MongodbModel }) => (
-        <RenderNodeInstance
-          originalList={data.mongodb}
+        <RenderInstances
+          highlightIps={batchSearchIpInatanceList.value}
+          data={data.mongodb}
           title={`【${data.master_domain}】ShardSvr`}
           role="mongodb"
           clusterId={data.id}
           dataSource={getMongoInstancesList}/>
       ),
+    },
+    {
+      label: t('更新人'),
+      field: 'updater',
+      width: 140,
+      render: ({ data }: { data: MongodbModel }) => <span>{data.updater || '--'}</span>,
+    },
+    {
+      label: t('更新时间'),
+      field: 'update_at',
+      width: 160,
+      render: ({ data }: { data: MongodbModel }) => <span>{data.updateAtDisplay || '--'}</span>,
+    },
+    {
+      label: t('创建人'),
+      field: 'creator',
+      width: 140,
+      render: ({ data }: { data: MongodbModel }) => <span>{data.creator || '--'}</span>,
+    },
+    {
+      label: t('部署时间'),
+      field: 'create_at',
+      sort: true,
+      width: 160,
+      render: ({ data }: { data: MongodbModel }) => <span>{data.createAtDisplay || '--'}</span>,
+    },
+    {
+      label: t('时区'),
+      field: 'cluster_time_zone',
+      width: 100,
+      filter: {
+        list: columnAttrs.value.time_zone,
+        checked: columnCheckedMap.value.time_zone,
+      },
+      render: ({ data }: { data: MongodbModel }) => <span>{data.cluster_time_zone || '--'}</span>,
     },
     {
       label: t('操作'),
@@ -383,8 +534,8 @@
   // 设置用户个人表头信息
   const defaultSettings = {
     fields: columns.value.filter(item => item.field).map(item => ({
-      label: item.label as string,
-      field: item.field as string,
+      label: item.label,
+      field: item.field,
       disabled: ['cluster_name'].includes(item.field as string),
     })),
     checked: [
@@ -405,6 +556,35 @@
     settings: tableSetting,
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.MONGODB_SHARED_CLUSTER_SETTINGS, defaultSettings);
+
+  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+    if (item?.id !== 'creator' && keyword) {
+      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map(value => value.id);
+      return searchSelectData.value.filter(item => !selected.includes(item.id));
+    }
+
+    // 远程加载执行人
+    if (item.id === 'creator') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then(res => res.results.map(item => ({
+        id: item.username,
+        name: item.username,
+      })));
+    }
+
+    // 不需要远层加载
+    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+  };
 
   const setRowClass = (row: MongodbModel) => {
     const classList = [];
@@ -444,10 +624,6 @@
 
   const handleClearSelected = () => {
     selected.value = [];
-  };
-
-  const handleClearSearch = () => {
-    searchValues.value = [];
   };
 
   const handleCopyMasterDomainDisplayName = (row: MongodbModel) => {
@@ -560,11 +736,13 @@
     });
   };
 
-  const fetchData = () => {
+  let isInit = true;
+  const fetchData = (loading?: boolean) => {
     tableRef.value!.fetchData({
-      ...getSearchSelectorParams(searchValues.value),
+      ...getSearchSelectorParams(searchValue.value),
       cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
-    }, {});
+    }, {...sortValue}, loading);
+    isInit = false;
   };
 </script>
 

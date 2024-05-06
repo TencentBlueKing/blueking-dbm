@@ -32,6 +32,10 @@ export const useRedirect = () => {
     redis: 'DatabaseRedisList',
     riak: 'RiakList',
     influxdb: 'InfluxDBInstDetails',
+    sqlserver_ha: 'SqlServerHaClusterList',
+    sqlserver_single: 'SqlServerSingle',
+    MongoShardedCluster: 'MongoDBSharedClusterList',
+    MongoReplicaSet: 'MongoDBReplicaSetList',
   } as Record<string, string>;
 
   return (clusterType: string, queryParams: Record<string, any>, bizId: number) => {

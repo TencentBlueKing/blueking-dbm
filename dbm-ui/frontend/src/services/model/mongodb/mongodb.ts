@@ -15,6 +15,8 @@ import dayjs from 'dayjs';
 
 import { PipelineStatus, TicketTypes } from '@common/const';
 
+import { utcDisplayTime } from '@utils';
+
 import { t } from '@locales/index';
 
 interface MongoInstance {
@@ -80,7 +82,9 @@ export default class Mongodb {
   cluster_alias: string;
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
+  cluster_time_zone: string;
   cluster_type: string;
+  cluster_type_name: string;
   create_at: string;
   creator: string;
   db_module_id: number;
@@ -118,6 +122,8 @@ export default class Mongodb {
     source_cluster?: string;
     ticket_id: number;
   };
+  update_at: string;
+  updater: string;
 
   constructor(payload = {} as Mongodb) {
     this.bk_biz_id = payload.bk_biz_id;
@@ -131,7 +137,9 @@ export default class Mongodb {
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.cluster_name = payload.cluster_name;
     this.cluster_stats = payload.cluster_stats || {};
+    this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_type = payload.cluster_type;
+    this.cluster_type_name = payload.cluster_type_name;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.id = payload.id;
@@ -155,6 +163,8 @@ export default class Mongodb {
     this.temporary_info = payload.temporary_info;
     this.shard_spec = payload.shard_spec;
     this.status = payload.status;
+    this.update_at = payload.update_at;
+    this.updater = payload.updater;
   }
 
   get isOnline() {
@@ -275,5 +285,13 @@ export default class Mongodb {
 
   get isMongoReplicaSet() {
     return this.cluster_type === 'MongoReplicaSet';
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_at);
   }
 }

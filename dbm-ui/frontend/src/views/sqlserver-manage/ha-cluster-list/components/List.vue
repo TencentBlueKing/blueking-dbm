@@ -95,11 +95,14 @@
           type="sqlserver_ha" />
       </div>
       <DbSearchSelect
-        v-model="searchValues"
         class="header-select mb-16"
         :data="searchSelectData"
-        :placeholder="t('域名_IP_模块')"
-        @change="handleFetchTableData" />
+        :get-menu-list="getMenuList"
+        :model-value="searchValue"
+        :placeholder="t('请输入或选择条件搜索')"
+        unique-select
+        :validate-values="validateSearchValues"
+        @change="handleSearchValueChange" />
     </div>
     <div
       class="table-wrapper"
@@ -108,9 +111,14 @@
         ref="tableRef"
         :columns="columns"
         :data-source="getHaClusterList"
+        releate-url-query
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        show-overflow-tips
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
+        @column-sort="columnSortChange"
         @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
@@ -142,15 +150,16 @@
   } from 'vue-router';
 
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
-  import { getModules } from '@services/source/cmdb';
   import {
     getHaClusterList,
     getSqlServerInstanceList,
   } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
 
   import {
     useCopy,
+    useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
     useTicketMessage,
@@ -179,7 +188,15 @@
 
   import ClusterReset from '@views/sqlserver-manage/components/cluster-reset/Index.vue'
 
-  import { getSearchSelectorParams } from '@utils';
+  import {
+    getMenuListSearch,
+    getSearchSelectorParams,
+  } from '@utils';
+
+  import type {
+    SearchSelectData,
+    SearchSelectItem,
+  } from '@/types/bkui-vue';
 
   const haClusterData = defineModel<{
     clusterId: number,
@@ -203,10 +220,29 @@
 
   const copy = useCopy();
 
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    columnCheckedMap,
+    batchSearchIpInatanceList,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+    validateSearchValues,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach(ClusterTypes.SQLSERVER_HA, [
+    'bk_cloud_id',
+    'db_module_id',
+    'major_version',
+    'region',
+    'time_zone',
+  ], () => fetchData(isInit));
+
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isCopyDropdown = ref(false);
   const selected = ref<SqlServerHaClusterModel[]>([]);
-  const searchValues = ref([]);
   const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false)
   const currentData = ref<SqlServerHaClusterModel>()
@@ -227,33 +263,74 @@
 
   const isCN = computed(() => locale.value === 'zh-cn');
 
-
   const searchSelectData = computed(() => [
     {
-      name: 'ID',
-      id: 'id',
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
     },
     {
       name: t('访问入口'),
       id: 'domain',
     },
     {
-      name: 'IP',
-      id: 'ip',
+      name: 'ID',
+      id: 'id',
+    },
+    {
+      name: t('集群名称'),
+      id: 'name',
+    },
+    {
+      name: t('管控区域'),
+      id: 'bk_cloud_id',
+      multiple: true,
+      children: searchAttrs.value.bk_cloud_id,
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'normal',
+          name: t('正常'),
+        },
+        {
+          id: 'abnormal',
+          name: t('异常'),
+        },
+      ],
+    },
+    {
+      name: t('所属DB模块'),
+      id: 'db_module_id',
+      multiple: true,
+      children: searchAttrs.value.db_module_id,
+    },
+    {
+      name: t('版本'),
+      id: 'major_version',
+      multiple: true,
+      children: searchAttrs.value.major_version,
+    },
+    {
+      name: t('地域'),
+      id: 'region',
+      multiple: true,
+      children: searchAttrs.value.region,
     },
     {
       name: t('创建人'),
       id: 'creator',
     },
     {
-      name: t('模块'),
-      id: 'db_module_id',
-      children: (moduleList.value || []).map(moduleItem => ({
-        id: moduleItem.db_module_id,
-        name: moduleItem.name,
-      })),
+      name: t('时区'),
+      id: 'time_zone',
+      multiple: true,
+      children: searchAttrs.value.time_zone,
     },
-  ]);
+  ] as SearchSelectData);
+
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
@@ -269,7 +346,13 @@
     },
   });
 
-  const columns = [
+  const columns = computed(() => [
+    {
+      label: 'ID',
+      field: 'id',
+      fixed: 'left',
+      width: 100,
+    },
     {
       label: t('主访问入口'),
       field: 'master_domain',
@@ -326,20 +409,41 @@
     },
     {
       label: t('从访问入口'),
-      fixed: 'left',
       field: 'slave_domain',
+      minWidth: 300,
     },
     {
       label: t('集群名称'),
       field: 'cluster_name',
+      minWidth: 300,
     },
     {
       label: t('管控区域'),
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      width: 90,
+      render: ({ data }: { data: SqlServerHaClusterModel }) => <span>{data.bk_cloud_name || '--'}</span>,
     },
     {
       label: t('状态'),
       field: 'status',
+      width: 90,
+      filter: {
+        list: [
+          {
+            value: 'normal',
+            text: t('正常'),
+          },
+          {
+            value: 'abnormal',
+            text: t('异常'),
+          },
+        ],
+        checked: columnCheckedMap.value.status,
+      },
       render: ({ data }: { data: SqlServerHaClusterModel }) => <RenderClusterStatus data={data.status} />,
     },
     {
@@ -355,11 +459,12 @@
       width: 180,
       render: ({ data }: { data: SqlServerHaClusterModel }) => (
         <RenderInstances
-          data={ data.masters }
-          title={ t('【inst】实例预览', { inst: data.bk_cloud_name, title: 'Master' }) }
-          role="proxy"
-          clusterId={ data.id }
-          dataSource={ getSqlServerInstanceList } />
+          highlightIps={batchSearchIpInatanceList.value}
+          data={data.masters}
+          title={t('【inst】实例预览', { inst: data.bk_cloud_name, title: 'Master' })}
+          role="backend_master"
+          clusterId={data.id}
+          dataSource={getSqlServerInstanceList} />
       ),
     },
     {
@@ -368,24 +473,66 @@
       width: 180,
       render: ({ data }: { data: SqlServerHaClusterModel }) => (
         <RenderInstances
-          data={ data.slaves }
-          title={ t('【inst】实例预览', { inst: data.bk_cloud_name, title: 'Slaves' }) }
-          role="proxy"
-          clusterId={ data.id }
-          dataSource={ getSqlServerInstanceList } />
+          highlightIps={batchSearchIpInatanceList.value}
+          data={data.slaves}
+          title={t('【inst】实例预览', { inst: data.bk_cloud_name, title: 'Slaves' })}
+          role="backend_slave"
+          clusterId={data.id}
+          dataSource={getSqlServerInstanceList} />
     ),
     },
     {
       label: t('所属DB模块'),
-      field: 'db_module_name',
+      field: 'db_module_id',
+      width: 140,
+      filter: {
+        list: columnAttrs.value.db_module_id,
+        checked: columnCheckedMap.value.db_module_id,
+      },
+      render: ({ data }: { data: SqlServerHaClusterModel }) => <span>{data.db_module_name || '--'}</span>,
+    },
+    {
+      label: t('版本'),
+      field: 'major_version',
+      minWidth: 100,
+      filter: {
+        list: columnAttrs.value.major_version,
+        checked: columnCheckedMap.value.major_version,
+      },
+      render: ({ data }: { data: SqlServerHaClusterModel }) => <span>{data.major_version || '--'}</span>,
+    },
+    {
+      label: t('地域'),
+      field: 'region',
+      minWidth: 100,
+      filter: {
+        list: columnAttrs.value.region,
+        checked: columnCheckedMap.value.region,
+      },
+      render: ({ data }: { data: SqlServerHaClusterModel }) => <span>{data.region || '--'}</span>,
     },
     {
       label: t('创建人'),
       field: 'creator',
+      width: 140,
+      render: ({ data }: { data: SqlServerHaClusterModel }) => <span>{data.creator || '--'}</span>,
     },
     {
-      label: t('创建时间'),
+      label: t('部署时间'),
       field: 'create_at',
+      width: 200,
+      sort: true,
+      render: ({ data }: { data: SqlServerHaClusterModel }) => <span>{data.createAtDisplay || '--'}</span>,
+    },
+    {
+      label: t('时区'),
+      field: 'cluster_time_zone',
+      width: 100,
+      filter: {
+        list: columnAttrs.value.time_zone,
+        checked: columnCheckedMap.value.time_zone,
+      },
+      render: ({ data }: { data: SqlServerHaClusterModel }) => <span>{data.cluster_time_zone || '--'}</span>,
     },
     {
       label: t('操作'),
@@ -453,17 +600,16 @@
        </>
       ),
     },
-  ];
-
+  ]);
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: columns.filter(item => item.field).map(item => ({
+    fields: columns.value.filter(item => item.field).map(item => ({
       label: item.label,
       field: item.field ,
       disabled: ['master_domain'].includes(item.field as string),
     })),
-    checked: columns.map(item => item.field).filter(key => !!key && key !== 'id'),
+    checked: columns.value.map(item => item.field).filter(key => !!key && key !== 'id'),
     showLineHeight: false,
     trigger: 'manual' as const,
   };
@@ -471,21 +617,48 @@
   const {
     settings,
     updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.SQLSERVER_SINGLE_TABLE_SETTINGS, defaultSettings);
+  } = useTableSettings(UserPersonalSettings.SQLSERVER_HA_TABLE_SETTINGS, defaultSettings);
 
-  const { data: moduleList } = useRequest(getModules, {
-    defaultParams: [{
-      cluster_type: ClusterTypes.SQLSERVER_HA,
-      bk_biz_id: currentBizId,
-    }]
-  });
+  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+    if (item?.id !== 'creator' && keyword) {
+      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
+    }
 
-  const handleFetchTableData = () => {
-    tableRef.value!.fetchData({
-      ...getSearchSelectorParams(searchValues.value),
-    }, {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-    });
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map(value => value.id);
+      return searchSelectData.value.filter(item => !selected.includes(item.id));
+    }
+
+    // 远程加载执行人
+    if (item.id === 'creator') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then(res => res.results.map(item => ({
+        id: item.username,
+        name: item.username,
+      })));
+    }
+
+    // 不需要远层加载
+    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+  };
+
+  let isInit = true;
+  const fetchData = (loading?: boolean) => {
+    tableRef.value!.fetchData(
+      { ...getSearchSelectorParams(searchValue.value) },
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        ...sortValue
+      },
+      loading
+    );
+    isInit = false;
   };
 
   const handleCopy = (dataList: SqlServerHaClusterModel[], isInstance = false) => {
