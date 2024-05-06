@@ -187,7 +187,7 @@
   const formData = reactive(getFormData());
   const listState = reactive({
     versions: [] as string[],
-    characterSets: ['utf8', 'utf8mb4', 'gbk', 'latin1'],
+    characterSets: ['utf8', 'utf8mb4', 'gbk', 'latin1', 'gb2312'],
   });
   const loadingState = reactive({
     versions: false,

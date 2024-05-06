@@ -191,6 +191,10 @@
       label: 'latin1',
       value: 'latin1',
     },
+    {
+      label: 'gb2312',
+      value: 'gb2312',
+    }
   ];
   const rules = {
     module_name: [

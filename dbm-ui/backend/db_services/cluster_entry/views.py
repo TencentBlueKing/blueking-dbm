@@ -16,11 +16,8 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.enums import ClusterEntryType
-from backend.db_meta.models import Cluster
+from backend.db_services.cluster_entry.handlers import ClusterEntryHandler
 from backend.db_services.cluster_entry.serializers import ModifyClusterEntrySerializer, RetrieveClusterEntrySLZ
-from backend.db_services.dbbase.resources.query import ListRetrieveResource
-from backend.flow.utils.dns_manage import DnsManage
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, GlobalManageIAMPermission
 
 logger = logging.getLogger("root")
@@ -37,13 +34,10 @@ class ClusterEntryViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=ModifyClusterEntrySerializer)
     def refresh_cluster_domain(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        cluster = Cluster.objects.get(id=data["cluster_id"])
-        for detail in data["cluster_entry_details"]:
-            if detail["cluster_entry_type"] == ClusterEntryType.DNS:
-                DnsManage(cluster.bk_biz_id, cluster.bk_cloud_id).refresh_cluster_domain(
-                    detail["domain_name"], detail["target_instances"]
-                )
-        return Response({})
+        ClusterEntryHandler(cluster_id=data["cluster_id"]).refresh_cluster_domain(
+            cluster_entry_details=data["cluster_entry_details"]
+        )
+        return Response()
 
     @common_swagger_auto_schema(
         operation_summary=_("获取集群入口列表"),
@@ -59,18 +53,8 @@ class ClusterEntryViewSet(viewsets.SystemViewSet):
     )
     def get_cluster_entries(self, request, *args, **kwargs):
         """获取集群入口列表"""
-
-        cluster = Cluster.objects.get(id=self.validated_data["cluster_id"])
-
-        cluster_entry_type = self.validated_data.get("entry_type")
-        extra = {"cluster_entry_type": cluster_entry_type} if cluster_entry_type else {}
-        cluster_entries = ListRetrieveResource.query_cluster_entry_details(
-            {
-                "id": cluster.id,
-                "bk_cloud_id": cluster.bk_cloud_id,
-                "bk_biz_id": cluster.bk_biz_id,
-            },
-            **extra
+        data = self.params_validate(self.get_serializer_class())
+        cluster_entries = ClusterEntryHandler(cluster_id=data["cluster_id"]).get_cluster_entries(
+            data["bk_biz_id"], data.get("entry_type")
         )
-
         return Response(cluster_entries)
