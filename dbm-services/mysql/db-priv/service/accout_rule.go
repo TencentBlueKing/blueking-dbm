@@ -129,7 +129,7 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
 		return err
 	}
 
-	err = AccountRuleExistedPreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs)
+	err = AccountRuleExistedPreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, false)
 	if err != nil {
 		return err
 	}
@@ -169,6 +169,23 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
 	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: vtime}
 	AddPrivLog(log)
 
+	return nil
+}
+
+// AddAccountRuleDryRun 新增账号规则检查
+func (m *AccountRulePara) AddAccountRuleDryRun() error {
+	err := m.ParaPreCheck()
+	if err != nil {
+		return err
+	}
+	dbs, err := util.String2Slice(m.Dbname)
+	if err != nil {
+		return err
+	}
+	err = AccountRuleExistedPreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, true)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -303,11 +320,14 @@ func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string, ticket string
 }
 
 // AccountRuleExistedPreCheck 检查账号规则是否已存在
-func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, dbs []string) error {
+func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, dbs []string, dryRun bool) error {
 	var (
 		err         error
 		count       uint64
 		existedRule []string
+		duplicateDb []string
+		rules       []*TbAccountRules
+		message     string
 	)
 
 	// 账号是否存在，存在才可以申请账号规则
@@ -320,24 +340,102 @@ func AccountRuleExistedPreCheck(bkBizId, accountId int64, clusterType string, db
 		return errno.AccountNotExisted
 	}
 
-	// 检查账号规则是否已存在，"业务+账号+db"是否已存在,存在不再创建
+	// 检查填写的db是否重复
+	var UniqMap = make(map[string]struct{})
 	for _, db := range dbs {
-		err = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: bkBizId, ClusterType: clusterType,
-			AccountId: accountId, Dbname: db}).
-			Count(&count).Error
-		if err != nil {
-			return err
+		if _, isExists := UniqMap[db]; isExists == true {
+			duplicateDb = append(duplicateDb, db)
+			continue
 		}
-		if count != 0 {
-			existedRule = append(existedRule, db)
+		UniqMap[db] = struct{}{}
+	}
+	// 检查账号规则是否已存在，"业务+账号+db"已存在需要提示
+	err = DB.Self.Model(&TbAccountRules{}).Where(&TbAccountRules{BkBizId: bkBizId, ClusterType: clusterType,
+		AccountId: accountId}).Scan(&rules).Error
+	if err != nil {
+		return err
+	}
+
+	for _, db := range dbs {
+		for _, rule := range rules {
+			if db == rule.Dbname {
+				existedRule = append(existedRule, db)
+				break
+			}
 		}
 	}
 
 	if len(existedRule) > 0 {
-		return errno.Errno{Code: 51001, Message: fmt.Sprintf("Account rule of user on database(%s) is existed",
-			strings.Join(existedRule, ",")), CNMessage: fmt.Sprintf("用户对数据库(%s)授权的账号规则已存在", strings.Join(existedRule, ","))}
+		message = fmt.Sprintf("用户对数据库(%s)授权的账号规则已存在\n",
+			strings.Join(existedRule, ","))
+	}
+	if len(duplicateDb) > 0 {
+		message = fmt.Sprintf("%s重复填写数据库(%s) \n", message,
+			strings.Join(duplicateDb, ","))
+	}
+
+	if (clusterType == mysql || clusterType == tendbcluster) && dryRun {
+		var dblist []string
+		for _, rule := range rules {
+			dblist = append(dblist, rule.Dbname)
+		}
+		result := CrossCheckBetweenDbList(dbs, dblist)
+		if result != "" {
+			message = fmt.Sprintf("%s帐号规则中的数据库交集检查:\n%s", message, result)
+		}
+	}
+	if len(message) > 0 {
+		return fmt.Errorf("帐号规则预检查失败:\n%s", message)
 	}
 	return nil
+}
+
+func CrossCheckBetweenDbList(newDbs []string, exist []string) string {
+	var errMsg []string
+	var UniqMap = make(map[string]struct{})
+	// 新增规则的db之间、以及与已经存在的规则是否包含关系
+	for _, newDb := range newDbs {
+		for _, existDb := range exist {
+			if newDb == existDb {
+				continue
+			}
+			if CrossCheck(newDb, existDb) {
+				// （已授权的数据库+准备授权的数据库）和准备授权的数据库有包含关系
+				msg := fmt.Sprintf("新增规则中的数据库[`%s`]与已存在的规则中的数据库[`%s`]存在交集，授权时可能冲突",
+					strings.Replace(newDb, "%", "%%", -1),
+					strings.Replace(existDb, "%", "%%", -1))
+				errMsg = append(errMsg, msg)
+				continue
+			}
+		}
+	}
+	slog.Error("msg", "check1", errMsg)
+	for _, newDb := range newDbs {
+		for _, newDb2 := range newDbs {
+			if newDb == newDb2 {
+				continue
+			}
+			if CrossCheck(newDb, newDb2) {
+				_, isExists := UniqMap[fmt.Sprintf("%s|%s", newDb, newDb2)]
+				_, isExists2 := UniqMap[fmt.Sprintf("%s|%s", newDb2, newDb)]
+				if !isExists && !isExists2 {
+					UniqMap[fmt.Sprintf("%s|%s", newDb, newDb2)] = struct{}{}
+				}
+			}
+		}
+	}
+	slog.Error("msg", "check1", errMsg)
+	for db := range UniqMap {
+		d := strings.Split(db, "|")
+		msg := fmt.Sprintf("新增规则中的数据库[`%s`]与新增规则中的数据库[`%s`]存在交集，授权时可能冲突",
+			strings.Replace(d[0], "%", "%%", -1),
+			strings.Replace(d[1], "%", "%%", -1))
+		errMsg = append(errMsg, msg)
+	}
+	if len(errMsg) > 0 {
+		return strings.Join(errMsg, "\n")
+	}
+	return ""
 }
 
 // ParaPreCheck 入参AccountRulePara检查

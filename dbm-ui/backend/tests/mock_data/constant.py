@@ -19,4 +19,14 @@ DB_MODULE_ID = 111
 CLUSTER_NAME = "fake_cluster"
 CLUSTER_IMMUTE_DOMAIN = "fake.db.com"
 
+TICKET_TYPE = "MYSQL_SINGLE_APPLY"
+DB_TYPE = "mysql"
+TICKET_STATUS = "PENDING"
+TASK_UID = 1
+TASK_ROOT_ID = "202304250963aa"
+TASK_STATUS = "FINISHED"
+INSTANCE_VERSION = "latest"
+INSTANCE_PORT = 8000
+INSTANCE_NAME = "zookeeper"
+
 Response = namedtuple("Response", ["data", "message", "code"])

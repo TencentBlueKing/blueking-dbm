@@ -20,7 +20,6 @@ from .check_full_backup import check_full_backup
 logger = logging.getLogger("celery")
 
 
-# @register_periodic_task(run_every=crontab(minute="*/1"))
 @register_periodic_task(run_every=crontab(minute=0, hour=0))
 def redis_backup_check_task():
     """

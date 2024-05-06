@@ -34,6 +34,8 @@ class MysqlPartitionFlow(object):
         "root_id": 123,
         "created_by": "xxx",
         "bk_biz_id": "xxx",
+        "db_app_abbr": "xxx",
+        "bk_biz_name": "xxx",
         "ticket_type": "MYSQL_PARTITION",
         "infos": [
             {

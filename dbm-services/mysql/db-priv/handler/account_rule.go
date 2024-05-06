@@ -65,6 +65,28 @@ func (m *PrivService) AddAccountRule(c *gin.Context) {
 	return
 }
 
+// AddAccountRuleDryRun 添加账号规则
+func (m *PrivService) AddAccountRuleDryRun(c *gin.Context) {
+	slog.Info("do AddAccountRule!")
+	var input service.AccountRulePara
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+
+	if err = json.Unmarshal(body, &input); err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+
+	err = input.AddAccountRuleDryRun()
+	SendResponse(c, err, nil)
+	return
+}
+
 // DeleteAccountRule 删除账号规则
 func (m *PrivService) DeleteAccountRule(c *gin.Context) {
 	slog.Info("do DeleteAccountRule!")

@@ -371,23 +371,12 @@ func CheckDbCross(user string, dbname string, ip string, address string, masterD
 		return nil
 	}
 
-	newDBRegexp := mysqlGrantDBToReg(dbname)
-	percentrBegin := regexp.MustCompile("^%.*$")
-	percentrEnd := regexp.MustCompile("^.*%$")
-
 	for _, grantDb := range result.CmdResults[0].TableData {
 		existDb := grantDb["db"].(string)
 		if dbname == existDb {
 			continue
 		}
-		existDbRegexp := mysqlGrantDBToReg(existDb)
-		/*
-			bug: （%d%、%h%）或者（d%、%h）存在交集，newDBRegexp.MatchString(existDb)、existDbRegexp.MatchString(dbname)无法判断出交集
-			fix: 已存在的db与新db规则如果都包含%，并且，一个在开头有%，一个在结尾有%，存在交集情况
-		*/
-		if newDBRegexp.MatchString(existDb) || existDbRegexp.MatchString(dbname) ||
-			(percentrBegin.MatchString(existDb) && percentrEnd.MatchString(dbname)) ||
-			(percentrBegin.MatchString(dbname) && percentrEnd.MatchString(existDb)) {
+		if CrossCheck(dbname, existDb) {
 			if masterDomain {
 				tipsForProxyIP = fmt.Sprintf("%s是proxy的IP。", ip)
 			}
@@ -411,6 +400,23 @@ func CheckDbCross(user string, dbname string, ip string, address string, masterD
 func mysqlGrantDBToReg(dbName string) *regexp.Regexp {
 	dbNameRegStr := strings.Replace(dbName, "%", ".*", -1)
 	return regexp.MustCompile(fmt.Sprintf("^%s$", dbNameRegStr))
+}
+
+func CrossCheck(dbname string, existDb string) bool {
+	newDBRegexp := mysqlGrantDBToReg(dbname)
+	percentrBegin := regexp.MustCompile("^%.*$")
+	percentrEnd := regexp.MustCompile("^.*%$")
+	existDbRegexp := mysqlGrantDBToReg(existDb)
+	/*
+		bug: （%d%、%h%）或者（d%、%h）存在交集，newDBRegexp.MatchString(existDb)、existDbRegexp.MatchString(dbname)无法判断出交集
+		fix: 已存在的db与新db规则如果都包含%，并且，一个在开头有%，一个在结尾有%，存在交集情况
+	*/
+	if newDBRegexp.MatchString(existDb) || existDbRegexp.MatchString(dbname) ||
+		(percentrBegin.MatchString(existDb) && percentrEnd.MatchString(dbname)) ||
+		(percentrBegin.MatchString(dbname) && percentrEnd.MatchString(existDb)) {
+		return true
+	}
+	return false
 }
 
 // GetMySQLVersion 获取实例的 mysql 版本

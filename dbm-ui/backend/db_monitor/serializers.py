@@ -209,6 +209,7 @@ class MonitorPolicyEmptySerializer(serializers.Serializer):
 
 class ListClusterSerializer(serializers.Serializer):
     dbtype = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
 
 
 class ListModuleSerializer(ListClusterSerializer):

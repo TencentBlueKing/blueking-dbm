@@ -50,8 +50,6 @@
   import { computed, onBeforeUnmount, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useDebouncedRef } from '@hooks';
-
   import { batchSplitRegex } from '@common/regex';
 
   import SearchResult from './components/search-result/Index.vue';
@@ -61,8 +59,8 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const serach = useDebouncedRef('');
 
+  const serach = ref('');
   const rootRef = ref<HTMLElement>();
   const popRef = ref();
   const searchResultRef = ref();
@@ -80,10 +78,12 @@
 
   const handlePaste = (value: string, event: ClipboardEvent) => {
     const pasteValue = (event.clipboardData || window.clipboardData).getData('text');
+    const inputList = rootRef.value!.getElementsByTagName('input');
+    const { selectionStart, selectionEnd } = inputList[0];
     setTimeout(() => {
-      serach.value = `${serach.value}${
-        serach.value ? '|' : ''
-      }${pasteValue}`.replace(batchSplitRegex, '|');
+      const originalValue = serach.value;
+      const newValue = `${originalValue.slice(0, selectionStart || 0)}${pasteValue}${originalValue.slice(selectionEnd || 0)}`;
+      serach.value = newValue.replace(batchSplitRegex, '|');
     });
   };
 
@@ -111,8 +111,8 @@
     for (let i = 0; i < eventPath.length; i++) {
       const target = eventPath[i] as HTMLElement;
       if (target.parentElement) {
-        const dateRole = target.getAttribute('data-role');
-        if (dateRole && dateRole === 'db-system-search') {
+        const dataRole = target.getAttribute('data-role');
+        if (dataRole && dataRole === 'db-system-search') {
           return;
         }
       }

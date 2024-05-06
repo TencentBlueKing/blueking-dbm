@@ -180,7 +180,7 @@ func (r *Checker) run() (output *Output, err error, pterr error) {
 	//command := exec.CommandContext(ctx,"perl", r.Config.PtChecksum.Path, r.args...)
 	command := exec.CommandContext(ctx, "perl", append(
 		[]string{
-			extLibDir,
+			fmt.Sprintf("-I%s", extLibDir),
 			r.Config.PtChecksum.Path,
 		}, r.args...)...)
 	command.Stdout = &stdout

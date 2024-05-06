@@ -92,4 +92,5 @@ var (
 		CNMessage: "检查没有通过"}
 	MigrateFail = Errno{Code: 51038, Message: "migrate fail",
 		CNMessage: "迁移失败"}
+	PortRequired = Errno{Code: 51039, Message: "port is required", CNMessage: "port不能为空"}
 )

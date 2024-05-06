@@ -12,18 +12,14 @@
 -->
 
 <template>
-  <BkLoading :loading="loading">
-    <DbOriginalTable
-      :columns="columns"
-      :data="tableData" />
-  </BkLoading>
+  <DbOriginalTable
+    :columns="columns"
+    :data="tableData" />
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { getSpiderListByBizId } from '@services/source/spider';
   import type { SpiderRollbackDetails, TicketDetails } from '@services/types/ticket';
 
   import { utcDisplayTime } from '@utils';
@@ -32,92 +28,75 @@
     ticketDetails: TicketDetails<SpiderRollbackDetails>;
   }
 
-  interface RowData {
-    clusterName: string;
-    rollbackType: string;
-    rollbackTime: string;
-    dbName: string;
-    ignoreDbName: string;
-    tableName: string;
-    ignoreTableName: string;
-  }
-
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const { details } = props.ticketDetails;
-  const tableData = ref<RowData[]>([]);
-  const columns = [
-    {
-      label: t('待构造集群'),
-      field: 'clusterName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('回档类型'),
-      field: 'rollbackType',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('回档时间'),
-      field: 'rollbackTime',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('构造 DB 名'),
-      showOverflowTooltip: true,
-      field: 'dbName',
-    },
-    {
-      label: t('忽略DB名'),
-      field: 'ignoreDbName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('构造表名'),
-      field: 'tableName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('忽略表名'),
-      field: 'ignoreTableName',
-      showOverflowTooltip: true,
-    },
-  ];
-
-  const { loading } = useRequest(getSpiderListByBizId, {
-    defaultParams: [
+  const columns = computed(() => {
+    const { details } = props.ticketDetails;
+    const basicColumn = [
       {
-        bk_biz_id: props.ticketDetails.bk_biz_id,
-        offset: 0,
-        limit: -1,
+        label: t('待构造集群'),
+        field: 'clusterName',
+        showOverflowTooltip: true,
       },
-    ],
-    onSuccess: (r) => {
-      if (r.results.length < 1) {
-        return;
-      }
+      {
+        label: t('回档类型'),
+        field: 'rollbackType',
+        showOverflowTooltip: true,
+      },
+      {
+        label: t('回档时间'),
+        field: 'rollbackTime',
+        showOverflowTooltip: true,
+      },
+      {
+        label: t('构造 DB 名'),
+        showOverflowTooltip: true,
+        field: 'dbName',
+      },
+      {
+        label: t('忽略DB名'),
+        field: 'ignoreDbName',
+        showOverflowTooltip: true,
+      },
+      {
+        label: t('构造表名'),
+        field: 'tableName',
+        showOverflowTooltip: true,
+      },
+      {
+        label: t('忽略表名'),
+        field: 'ignoreTableName',
+        showOverflowTooltip: true,
+      },
+    ];
 
-      const clusterMap = r.results.reduce(
-        (obj, item) => {
-          Object.assign(obj, { [item.id]: item.master_domain });
-          return obj;
-        },
-        {} as Record<number, string>,
-      );
-      tableData.value = [
-        {
-          clusterName: clusterMap[details.cluster_id],
-          rollbackType: details.rollbackup_type === 'REMOTE_AND_BACKUPID' ? t('备份记录') : t('回档到指定时间'),
-          rollbackTime: utcDisplayTime(details.rollback_time),
-          dbName: details.databases.join(','),
-          ignoreDbName: details.databases_ignore.join(','),
-          tableName: details.tables.join(','),
-          ignoreTableName: details.tables_ignore.join(','),
-        },
-      ];
-    },
+    if (details.backupinfo.backup_id) {
+      // 备份记录
+      basicColumn.splice(2, 1, {
+        label: t('备份时间'),
+        field: 'backupTime',
+        showOverflowTooltip: true,
+      });
+    }
+    return basicColumn;
+  });
+
+  const tableData = computed(() => {
+    const { details } = props.ticketDetails;
+    return [
+      {
+        backupTime: utcDisplayTime(details.backupinfo.backup_time),
+        clusterName: details.clusters[details.cluster_id].immute_domain,
+        rollbackType: details.rollback_type === 'REMOTE_AND_BACKUPID' ? t('备份记录') : t('回档到指定时间'),
+        rollbackTime: utcDisplayTime(details.rollback_time),
+        dbName: details.databases.join(','),
+        ignoreDbName: details.databases_ignore.join(','),
+        tableName: details.tables.join(','),
+        ignoreTableName: details.tables_ignore.join(','),
+      },
+    ];
   });
 </script>
 <style lang="less" scoped>

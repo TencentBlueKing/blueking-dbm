@@ -32,6 +32,7 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 		// 账号规则
 		{Method: http.MethodPost, Path: "get_account_rule_list", HandlerFunc: m.GetAccountRuleList},
 		{Method: http.MethodPost, Path: "add_account_rule", HandlerFunc: m.AddAccountRule},
+		{Method: http.MethodPost, Path: "add_account_rule_dry_run", HandlerFunc: m.AddAccountRuleDryRun},
 		{Method: http.MethodPost, Path: "delete_account_rule", HandlerFunc: m.DeleteAccountRule},
 		{Method: http.MethodPost, Path: "modify_account_rule", HandlerFunc: m.ModifyAccountRule},
 

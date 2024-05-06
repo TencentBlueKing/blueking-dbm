@@ -24,10 +24,10 @@ func (m *MigratePara) MigrateConfig() ([]int, []int, []int, []int, error) {
 	}
 	var appWhere string
 	var clusters []Cluster
-	for app, bkBizId := range apps {
+	for app, biz := range apps {
 		appWhere = fmt.Sprintf("%s,'%s'", appWhere, app)
 		// 获取业务的集群信息，为了获取cluster_id
-		c, errInner := GetAllClustersInfo(BkBizId{bkBizId})
+		c, errInner := GetAllClustersInfo(BkBizId{biz.BkBizId})
 		if errInner != nil {
 			return nil, nil, nil, nil, fmt.Errorf("从dbm biz_clusters获取集群信息失败: %s", errInner.Error())
 		}
@@ -79,7 +79,7 @@ func (m *MigratePara) MigrateConfig() ([]int, []int, []int, []int, error) {
 }
 
 // Migrate 迁移指定数据库类型和业务的分区规则
-func Migrate(appWhere string, apps map[string]int64,
+func Migrate(appWhere string, apps map[string]Biz,
 	domainBkbizIdMap map[string]int64, dbType string) ([]int, []int, []string) {
 	var scrTable, dbmTable, logTable string
 	if dbType == "mysql" {
@@ -122,12 +122,14 @@ func Migrate(appWhere string, apps map[string]int64,
 		// 清洗数据
 		// app换成bk_biz_id
 		// app没有对应的bk_biz_id
-		if apps[item.App] == 0 {
+		if apps[item.App].BkBizId == 0 {
 			migrateFail = append(migrateFail, id)
 			errs = append(errs, fmt.Sprintf("not find bk_biz_id for app: %s", item.App))
 			continue
 		} else {
-			config[k].BkBizId = apps[item.App]
+			config[k].BkBizId = apps[item.App].BkBizId
+			config[k].DbAppAbbr = apps[item.App].EnglishName
+			config[k].BkBizName = apps[item.App].Name
 		}
 		// 补充cluster_id
 		// 域名没有对应的cluster_id
@@ -160,7 +162,7 @@ func Migrate(appWhere string, apps map[string]int64,
 }
 
 // CheckPara 检查迁移分区配置的参数
-func (m *MigratePara) CheckPara() (map[string]int64, error) {
+func (m *MigratePara) CheckPara() (map[string]Biz, error) {
 	if m.Foreign == nil {
 		return nil, fmt.Errorf("not input [foreign] parameter, not support foreign platform")
 	}
@@ -189,7 +191,21 @@ func (m *MigratePara) CheckPara() (map[string]int64, error) {
 	if !(m.Range == "all" || m.Range == "mysql" || m.Range == "spider") {
 		return nil, fmt.Errorf("，不支持[%s]", m.Range)
 	}
-	return apps, nil
+	// 获取业务英文简写、中文名称，使得告警信息更完整
+	var bizs = make(map[string]Biz)
+	bizList, err := ListBizs()
+	if err != nil {
+		return nil, fmt.Errorf("从dbm list_bizs获取业务列表失败: %s", err.Error())
+	}
+	for app, bkBizId := range apps {
+		for _, biz := range bizList {
+			if bkBizId == biz.BkBizId {
+				bizs[app] = biz
+				break
+			}
+		}
+	}
+	return bizs, nil
 }
 
 // Check 分区迁移检查检查

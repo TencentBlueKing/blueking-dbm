@@ -35,14 +35,15 @@
         v-show="teleportToBody === false || state.isTeleport"
         ref="textareaRef"
         v-bind="$attrs"
-        v-model="state.value"
+        v-model="modelValue"
         :style="style"
         type="textarea"
         @blur="handleBlur"
         @change="handleChange"
         @clear="() => emits('clear')"
         @focus="handleFocus"
-        @input="handleInput" />
+        @input="handleInput"
+        @paste="handlePaste" />
     </Teleport>
   </div>
 </template>
@@ -56,6 +57,8 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { encodeMult } from '@utils';
 
   interface Props {
     displayHeight?: number | string
@@ -87,7 +90,6 @@
   const { t } = useI18n();
 
   const state = reactive({
-    value: modelValue.value,
     isTeleport: false,
   });
   const inputPosition = reactive({
@@ -103,17 +105,13 @@
   // const height = computed(() => rows.value * rowHeight);
   // bk textarea style
   const style = computed(() => Object.assign({ maxHeight: `${props.maxHeight}px`, '--row-height': `${props.rowHeight}px` }, attrs.style || {}));
-  const renderValues = computed(() => state.value.split('\n').join(', '));
+  const renderValues = computed(() => modelValue.value.split('\n').join(', '));
   const placeholder = computed(() => {
     if (renderValues.value) return '';
 
     return (attrs.placeholder || t('请输入')) as string;
   });
   const displayHeightValue = computed(() => (typeof props.displayHeight === 'string' ? props.displayHeight : `${props.displayHeight}px`));
-
-  watch(modelValue, (value) => {
-    state.value = value;
-  });
 
   // 初始化 rows
   if (typeof props.displayHeight === 'number') {
@@ -143,8 +141,8 @@
     });
   };
 
-  function setTextareaHeight() {
-    const nums = state.value.split('\n').length;
+  const setTextareaHeight = () => {
+    const nums = modelValue.value.split('\n').length;
     rows.value = Math.max(nums, 1);
 
     if (textareaRef.value?.$el) {
@@ -153,9 +151,9 @@
       const height = Math.max(rows.value * props.rowHeight + textareaPadding, minHeight);
       el.style.height = `${height}px`;
     }
-  }
+  };
 
-  function handleFocus(e: FocusEvent) {
+  const handleFocus = (e: FocusEvent) => {
     const { sourceCapabilities } = e; // 通过该属性判断是否由用户触发
     sourceCapabilities && emits('focus', e);
 
@@ -177,9 +175,9 @@
         }
       });
     }
-  }
+  };
 
-  function handleBlur(e: FocusEvent) {
+  const handleBlur = (e: FocusEvent) => {
     const { sourceCapabilities } = e; // 通过该属性判断是否由用户触发
     sourceCapabilities && emits('blur', e);
 
@@ -196,25 +194,32 @@
     inputPosition.x = 0;
     inputPosition.y = 0;
     inputPosition.width = 0;
-  }
+  };
 
-  function handleInput(value: string) {
+  const handleInput = (value: string) => {
     setTextareaHeight();
     emits('input', value);
     modelValue.value = value;
-  }
+  };
 
-  function handleChange(value: string) {
+  const handleChange = (value: string) => {
     emits('change', value);
     modelValue.value = value;
-  }
+  };
 
   /**
    * textarea get focus
    */
-  function focus() {
+  const focus = () => {
     textareaRef.value?.focus?.();
-  }
+  };
+
+  const handlePaste = (value: string, event: ClipboardEvent) => {
+    event.preventDefault();
+    let paste = (event.clipboardData || window.clipboardData).getData('text');
+    paste = encodeMult(paste);
+    modelValue.value = paste.replace(/^\s+|\s+$/g, '');
+  };
 
   defineExpose({
     setTextareaHeight,
