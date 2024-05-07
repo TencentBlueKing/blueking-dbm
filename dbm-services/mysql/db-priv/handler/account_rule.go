@@ -57,9 +57,9 @@ func (m *PrivService) AddAccountRule(c *gin.Context) {
 	}
 
 	if *input.ClusterType == "mongodb" {
-		err = input.MongoDBAddAccountRule(string(body))
+		err = input.MongoDBAddAccountRule(string(body), ticket)
 	} else {
-		err = input.AddAccountRule(string(body))
+		err = input.AddAccountRule(string(body), ticket)
 	}
 	SendResponse(c, err, nil)
 	return
