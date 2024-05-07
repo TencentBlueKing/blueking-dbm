@@ -93,6 +93,7 @@ class GetMySQLAdminPasswordSerializer(serializers.Serializer):
     limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
 
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     begin_time = DBTimezoneField(help_text=_("开始时间"), required=False)
     end_time = DBTimezoneField(help_text=_("结束时间"), required=False)
     instances = serializers.CharField(help_text=_("过滤的实例列表(通过,分割，实例格式为--ip:port)"), required=False)
@@ -119,7 +120,6 @@ class ModifyMySQLAdminPasswordSerializer(serializers.Serializer):
         invalid_characters = re.compile(r"[`\'\"]")
         if invalid_characters.findall(attrs["password"]):
             raise serializers.ValidationError(_("修改密码中不允许包含单引号，双引号和反引号"))
-
         return attrs
 
 

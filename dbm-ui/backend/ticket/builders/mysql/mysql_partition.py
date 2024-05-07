@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import AppCache
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
@@ -55,7 +56,8 @@ class MySQLPartitionParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_partition
 
     def format_ticket_data(self):
-        pass
+        app = AppCache.objects.get(bk_biz_id=self.ticket_data["bk_biz_id"])
+        self.ticket_data.update(bk_biz_name=app.bk_biz_name, db_app_abbr=app.db_app_abbr)
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_PARTITION)

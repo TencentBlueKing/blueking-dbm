@@ -21,6 +21,7 @@ from backend.configuration.exceptions import PasswordPolicyBaseException
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, TenDBClusterSpiderRole
+from backend.db_meta.models import Machine
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.consts import MySQLPasswordRole
@@ -58,12 +59,19 @@ class DBPasswordHandler(object):
 
     @classmethod
     def query_mysql_admin_password(
-        cls, limit: int, offset: int, instances: List[str] = None, begin_time: str = None, end_time: str = None
+        cls,
+        limit: int,
+        offset: int,
+        bk_biz_id: int = None,
+        instances: List[str] = None,
+        begin_time: str = None,
+        end_time: str = None,
     ):
         """
         获取mysql的admin密码
         @param limit: 分页限制
         @param offset: 分页起始
+        @param bk_biz_id: 业务ID
         @param instances: 实例列表
         @param begin_time: 过滤开始时间
         @param end_time: 过滤结束时间
@@ -71,12 +79,18 @@ class DBPasswordHandler(object):
         instances = instances or []
         # 获取过滤条件
         instance_list = []
-        try:
-            for address in instances:
+        for address in instances:
+            split_len = len(address.split(":"))
+            if split_len == 2:
+                # 输入ip:port
+                ip, port = address.split(":")
+                instance_list.append({"ip": ip, "port": int(port)})
+            elif split_len == 3:
+                # 输入bk_cloud_id:ip:port
                 bk_cloud_id, ip, port = address.split(":")
-                instance_list.append({"ip": ip, "port": int(port), "bk_cloud_id": int(bk_cloud_id)})
-        except (IndexError, ValueError):
-            raise PasswordPolicyBaseException(_("请保证查询的实例输入格式合法，格式为[云区域:IP:PORT]"))
+                instance_list.append({"ip": ip, "port": int(port), "bk_cloud_id": bk_cloud_id})
+            else:
+                raise PasswordPolicyBaseException(_("请保证查询的实例输入格式合法，格式为[CLOUD_ID:]IP:PORT"))
 
         filters = {"limit": limit, "offset": offset, "component": DBType.MySQL.value, "username": DBM_MYSQL_ADMIN_USER}
         if instance_list:
@@ -85,6 +99,8 @@ class DBPasswordHandler(object):
             filters.update(begin_time=begin_time)
         if end_time:
             filters.update(end_time=end_time)
+        if bk_biz_id:
+            filters.update(bk_biz_id=bk_biz_id)
 
         # 获取密码生效实例结果
         mysql_admin_password_data = MySQLPrivManagerApi.get_mysql_admin_password(params=filters)
@@ -105,7 +121,9 @@ class DBPasswordHandler(object):
         @param lock_hour: 锁定时长
         @param instance_list: 修改的实例列表
         """
-
+        # 获取业务信息，任取一台machine查询
+        machine = Machine.objects.get(bk_cloud_id=instance_list[0]["bk_cloud_id"], ip=instance_list[0]["ip"])
+        bk_biz_id = machine.bk_biz_id
         # 根据cluster_type, bk_cloud_id, role将实例分类后聚合
         aggregate_instance: Dict[str, Dict[str, Dict[str, List]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(list))
@@ -120,7 +138,12 @@ class DBPasswordHandler(object):
             for cluster_type, role_instances in clusters.items():
                 instances_info = [{"role": role, "addresses": insts} for role, insts in role_instances.items()]
                 cluster_infos.append(
-                    {"bk_cloud_id": bk_cloud_id, "cluster_type": cluster_type, "instances": instances_info}
+                    {
+                        "bk_cloud_id": bk_cloud_id,
+                        "cluster_type": cluster_type,
+                        "instances": instances_info,
+                        "bk_biz_id": bk_biz_id,
+                    }
                 )
 
         # 填充参数，修改mysql admin的密码

@@ -249,3 +249,7 @@ class PartitionHandler(object):
                     raise DBPartitionInvalidFieldException(
                         _("【{}】【{}】分区字段{}与该表对应的字段类型不匹配").format(db, table, partition_column)
                     )
+
+        # 如果表没有主键 or 唯一键，需要提示用户分区执行会锁表
+        if not index_data:
+            return _("表没有主键或者唯一键，将表改造为分区表的过程中会锁表，会阻塞查询、删除、修改、添加、表结构变更等语句")
