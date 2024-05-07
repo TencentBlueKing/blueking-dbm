@@ -351,7 +351,7 @@
       ...formData,
       password: getEncyptPassword(),
       account_type: TENDBCLUSTER,
-      bizId: currentBizId,
+      bk_biz_id: currentBizId,
     };
 
     createAccountRun(params);

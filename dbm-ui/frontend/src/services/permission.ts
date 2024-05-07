@@ -173,7 +173,7 @@ export const getPermissionRules = (params: PermissionRulesParams) => http
 /**
  * 创建账户
  */
-export const createAccount = (params: CreateAccountParams & { bizId: number }) => http.post(`/apis/mysql/bizs/${params.bizId}/permission/account/create_account/`, params);
+export const createAccount = (params: CreateAccountParams & { bk_biz_id: number }) => http.post(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/create_account/`, params);
 
 /**
  * 删除账号
@@ -187,7 +187,7 @@ export const deleteAccount = (params: {
 /**
  * 添加账号规则
  */
-export const createAccountRule = (params: AccountRule & { bizId: number }) => http.post(`/apis/mysql/bizs/${params.bizId}/permission/account/add_account_rule/`, params);
+export const createAccountRule = (params: AccountRule & { bk_biz_id: number }) => http.post(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/add_account_rule/`, params);
 
 /**
  * 授权规则前置检查

@@ -110,6 +110,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import {
@@ -354,7 +355,8 @@
     const params = {
       ...state.formdata,
       password: getEncyptPassword(),
-      bizId: globalbizsStore.currentBizId,
+      bk_biz_id: globalbizsStore.currentBizId,
+      account_type: AccountTypes.MYSQL,
     };
     createAccount(params)
       .then((res) => {
