@@ -193,8 +193,8 @@ export const getPermissionRules = (params: PermissionRulesParams, payload = {} a
 /**
  * 创建账户
  */
-export const createAccount = (params: CreateAccountParams & { bizId: number }) =>
-  http.post(`/apis/mysql/bizs/${params.bizId}/permission/account/create_account/`, params);
+export const createAccount = (params: CreateAccountParams & { bk_biz_id: number }) =>
+  http.post(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/create_account/`, params);
 
 /**
  * 删除账号
