@@ -105,6 +105,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import { PASSWORD_POLICY, type PasswordPolicyKeys } from '../common/const';
@@ -346,10 +347,11 @@
     const params = {
       ...state.formdata,
       password: getEncyptPassword(),
-      bizId: globalbizsStore.currentBizId,
+      bk_biz_id: globalbizsStore.currentBizId,
+      account_type: AccountTypes.MYSQL
     };
     createAccount(params)
-      .then((res) => {
+      .then(() => {
         Message({
           message: t('账号创建成功'),
           theme: 'success',
