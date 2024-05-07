@@ -133,21 +133,39 @@ class AccountHandler(object):
         )
         return resp
 
+    def pre_check_add_account_rule(self, account_rule: AccountRuleMeta) -> Optional[Any]:
+        """
+        - 添加账号规则前置检查
+        @param account_rule: 账号规则元信息
+        """
+        account_rule_params = {
+            "bk_biz_id": self.bk_biz_id,
+            "operator": self.operator,
+            "cluster_type": self.account_type,
+            "account_id": account_rule.account_id,
+            "priv": account_rule.privilege,
+            "dbname": account_rule.access_db,
+        }
+        resp = MySQLPrivManagerApi.pre_check_add_account_rule(params=account_rule_params, raw=True)
+        # 如果不允许执行，说明前置检查失败，抛出message
+        if not resp["data"]["force_run"]:
+            raise DBPermissionBaseException(_("创建授权规则前置检查失败，错误信息: {}").format(resp["message"]))
+        return {"force_run": resp["data"]["force_run"], "warning": resp["message"]}
+
     def add_account_rule(self, account_rule: AccountRuleMeta) -> Optional[Any]:
         """
         - 添加账号规则
         @param account_rule: 账号规则元信息
         """
-        resp = MySQLPrivManagerApi.add_account_rule(
-            {
-                "bk_biz_id": self.bk_biz_id,
-                "operator": self.operator,
-                "cluster_type": self.account_type,
-                "account_id": account_rule.account_id,
-                "priv": account_rule.privilege,
-                "dbname": account_rule.access_db,
-            }
-        )
+        account_rule_params = {
+            "bk_biz_id": self.bk_biz_id,
+            "operator": self.operator,
+            "cluster_type": self.account_type,
+            "account_id": account_rule.account_id,
+            "priv": account_rule.privilege,
+            "dbname": account_rule.access_db,
+        }
+        resp = MySQLPrivManagerApi.add_account_rule(params=account_rule_params)
         return resp
 
     def query_account_rules(self, account_rule: AccountRuleMeta):

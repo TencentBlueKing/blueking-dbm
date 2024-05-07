@@ -81,6 +81,15 @@ class DBAccountViewSet(viewsets.SystemViewSet):
         return self._view_common_handler(request, bk_biz_id, AccountMeta, AccountHandler.update_password.__name__)
 
     @common_swagger_auto_schema(
+        operation_summary=_("添加账号规则前置检查"), request_body=AddMySQLAccountRuleSerializer(), tags=[SWAGGER_TAG]
+    )
+    @action(methods=["POST"], detail=False, serializer_class=AddMySQLAccountRuleSerializer)
+    def pre_check_add_account_rule(self, request, bk_biz_id):
+        return self._view_common_handler(
+            request, bk_biz_id, AccountRuleMeta, AccountHandler.pre_check_add_account_rule.__name__
+        )
+
+    @common_swagger_auto_schema(
         operation_summary=_("添加账号规则"), request_body=AddMySQLAccountRuleSerializer(), tags=[SWAGGER_TAG]
     )
     @action(methods=["POST"], detail=False, serializer_class=AddMySQLAccountRuleSerializer)
