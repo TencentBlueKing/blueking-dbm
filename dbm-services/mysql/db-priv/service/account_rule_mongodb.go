@@ -8,7 +8,7 @@ import (
 )
 
 // MongoDBAddAccountRule 新增账号规则
-func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string) error {
+func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string, ticket string) error {
 	var (
 		accountRule TbAccountRules
 		dbs         []string
@@ -32,7 +32,7 @@ func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string) error {
 		return err
 	}
 
-	err = AccountRuleExistedPreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs)
+	err = AccountRuleExistedPreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, false)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string) error {
 	if err != nil {
 		return err
 	}
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
+	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 
 	return nil
