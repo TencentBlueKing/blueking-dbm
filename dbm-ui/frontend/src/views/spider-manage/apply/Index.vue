@@ -19,7 +19,7 @@
         auto-label-width
         :model="formdata"
         :rules="rules">
-        <DbCard :title="$t('业务信息')">
+        <DbCard :title="t('业务信息')">
           <BusinessItems
             v-model:app-abbr="formdata.details.db_app_abbr"
             v-model:biz-id="formdata.bk_biz_id"
@@ -34,21 +34,19 @@
         <RegionItem
           ref="regionItemRef"
           v-model="formdata.details.city_code" />
-        <DbCard
-          v-if="!isDefaultCity"
-          :title="$t('数据库部署信息')">
+        <DbCard :title="t('数据库部署信息')">
           <AffinityItem v-model="formdata.details.resource_spec.backend_group.affinity" />
         </DbCard>
-        <DbCard :title="$t('部署需求')">
+        <DbCard :title="t('部署需求')">
           <ModuleItem
             v-model="formdata.details.db_module_id"
             :biz-id="formdata.bk_biz_id" />
           <BkFormItem
-            :label="$t('接入层Master')"
+            :label="t('接入层Master')"
             required>
             <div class="resource-pool-item">
               <BkFormItem
-                :label="$t('规格')"
+                :label="t('规格')"
                 property="details.resource_spec.spider.spec_id"
                 required>
                 <SpecSelector
@@ -60,19 +58,19 @@
                   machine-type="spider" />
               </BkFormItem>
               <BkFormItem
-                :label="$t('数量')"
+                :label="t('数量')"
                 property="details.resource_spec.spider.count"
                 required>
                 <BkInput
                   v-model="formdata.details.resource_spec.spider.count"
                   :min="2"
                   type="number" />
-                <span class="input-desc">{{ $t('至少n台', {n: 2}) }}</span>
+                <span class="input-desc">{{ t('至少n台', {n: 2}) }}</span>
               </BkFormItem>
             </div>
           </BkFormItem>
           <BkFormItem
-            :label="$t('后端存储规格')"
+            :label="t('后端存储规格')"
             required>
             <BackendQPSSpec
               ref="specBackendRef"
@@ -83,7 +81,7 @@
               machine-type="remote" />
           </BkFormItem>
           <BkFormItem
-            :label="$t('访问端口')"
+            :label="t('访问端口')"
             property="details.spider_port"
             required>
             <BkInput
@@ -94,14 +92,14 @@
               style="width: 185px;"
               type="number" />
             <span class="input-desc">
-              {{ $t('范围min_max', {min: 25000, max: 65535}) }}
+              {{ t('范围min_max', {min: 25000, max: 65535}) }}
             </span>
           </BkFormItem>
-          <BkFormItem :label="$t('备注')">
+          <BkFormItem :label="t('备注')">
             <BkInput
               v-model="formdata.remark"
               :maxlength="100"
-              :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
+              :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px;"
               type="textarea" />
           </BkFormItem>
@@ -114,19 +112,19 @@
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <BkButton
         class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
         @click="handleResetFormdata">
-        {{ $t('重置') }}
+        {{ t('重置') }}
       </BkButton>
       <BkButton
         class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
         @click="handleCancel">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </SmartAction>
@@ -173,7 +171,7 @@
       cluster_name: '',
       cluster_alias: '',
       city_code: '',
-      db_module_id: '',
+      db_module_id: 0,
       cluster_shard_num: 0,
       remote_shard_num: 0,
       disaster_tolerance_level: 'NONE',
@@ -213,7 +211,7 @@
   const formdata = ref(initData());
   const regionItemRef = ref();
 
-  const isDefaultCity = computed(() => formdata.value.details.city_code === 'default');
+  // const isDefaultCity = computed(() => formdata.value.details.city_code === 'default');
 
   const rules = {
     'details.cluster_name': [{
