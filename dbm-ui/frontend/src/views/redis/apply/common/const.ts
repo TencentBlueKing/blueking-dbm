@@ -15,9 +15,10 @@ import { ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
-import TendisCacheImg from '@/images/tendis-cache.png';
-import TendisSSDImg from '@/images/tendis-ssd.png';
-import TendisplusImg from '@/images/tendisplus.png';
+import TendisCacheImg from '@images/tendis-cache.png';
+import TendisClusterImg from '@images/tendis-cluster.png';
+import TendisSSDImg from '@images/tendis-ssd.png';
+import TendisplusImg from '@images/tendisplus.png';
 
 // redis 服务器来源类型
 export const redisIpSources = {
@@ -36,7 +37,7 @@ export type RedisIpSources = keyof typeof redisIpSources;
 export const redisClusterTypes = {
   [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
     id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-    text: t('TendisCache'),
+    text: 'TendisCache',
     tipContent: {
       img: TendisCacheImg,
       title: 'TendisCache',
@@ -45,7 +46,7 @@ export const redisClusterTypes = {
   },
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
     id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-    text: t('TendisSSD'),
+    text: 'TendisSSD',
     tipContent: {
       img: TendisSSDImg,
       title: 'TendisSSD',
@@ -54,12 +55,22 @@ export const redisClusterTypes = {
   },
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
     id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-    text: t('Tendisplus'),
+    text: 'Tendisplus',
     image: TendisplusImg,
     tipContent: {
       img: TendisplusImg,
       title: 'Tendisplus',
       desc: t('Tendisplus_TendisSSD的升级版本_完全兼容RedisCluster'),
+    },
+  },
+  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
+    id: ClusterTypes.PREDIXY_REDIS_CLUSTER,
+    text: 'RedisCluster',
+    image: TendisClusterImg,
+    tipContent: {
+      img: TendisClusterImg,
+      title: 'Tendisplus',
+      desc: t('原生 Redis Cluster'),
     },
   },
 };

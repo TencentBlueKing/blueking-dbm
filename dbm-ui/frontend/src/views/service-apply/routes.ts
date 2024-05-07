@@ -54,6 +54,14 @@ export default (): RouteRecordRaw[] => [
         component: () => import('@views/redis/apply/ApplyRedis.vue'),
       },
       {
+        name: 'SelfServiceApplyRedisHa',
+        path: 'redis-ha',
+        meta: {
+          navName: t('申请 Redis 主从部署'),
+        },
+        component: () => import('@views/redis/apply-ha/Index.vue'),
+      },
+      {
         name: 'EsApply',
         path: 'es',
         meta: {

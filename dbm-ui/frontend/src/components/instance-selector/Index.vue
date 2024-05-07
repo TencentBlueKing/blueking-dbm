@@ -183,7 +183,7 @@
   } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
   import { queryClusters as getMysqlClusterList , queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
-  import { getRedisClusterList } from '@services/source/redis';
+  import { getRedisClusterList , getRedisMachineList } from '@services/source/redis';
   import { getRedisHostList } from '@services/source/redisToolbox';
   import { getSpiderInstanceList, getSpiderMachineList } from '@services/source/spider';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
@@ -198,6 +198,7 @@
   import MongoClusterContent from './components/mongo/Index.vue';
   import MysqlContent from './components/mysql/Index.vue';
   import RedisContent from './components/redis/Index.vue';
+  import RenderRedisHost from './components/redis-host/Index.vue';
   import TendbClusterContent from './components/tendb-cluster/Index.vue';
   import TendbClusterHostContent from './components/tendb-cluster-host/Index.vue';
 
@@ -233,7 +234,7 @@
     manualConfig?: {
       checkType: 'ip' | 'instance',
       checkKey: keyof IValue,
-      activePanelId?: string
+      activePanelId?: string,
       checkInstances?: (params: any) => Promise<any[] | ListBase<any[]>>,
     },
     previewConfig?: {
@@ -250,7 +251,7 @@
   type RedisHostModel = ServiceReturnType<typeof getRedisHostList>['results'][number]
 
   interface Props {
-    clusterTypes: (ClusterTypes | 'TendbClusterHost')[],
+    clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost')[],
     tabListConfig?: Record<string, PanelListType>,
     selected?: InstanceSelectorValues<T>,
   }
@@ -526,6 +527,55 @@
         content: ManualInputHostContent,
       },
     ],
+    RedisHost: [
+      {
+        id: 'RedisHost',
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: getRedisClusterList,
+          countFunc: (clusterItem: { redis_master: { ip: string }[]}) => {
+            const ipList = clusterItem.redis_master.map(hostItem => hostItem.ip)
+            return new Set(ipList).size
+          }
+        },
+        tableConfig: {
+          getTableList: getRedisMachineList,
+          firsrColumn: {
+            label: t('主库主机'),
+            field: 'ip',
+            role: 'redis_master',
+          },
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name']
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: RenderRedisHost,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getRedisMachineList,
+          firsrColumn: {
+            label: t('主库主机'),
+            field: 'ip',
+            role: 'redis_master',
+          },
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name']
+        },
+        manualConfig: {
+          checkInstances: getRedisMachineList,
+          checkType: 'ip',
+          checkKey: 'ip',
+          activePanelId: 'RedisHost',
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: ManualInputHostContent,
+      },
+    ],
   };
 
   const panelTabActive = ref<string>('');
@@ -654,7 +704,5 @@
         padding: 8px 16px 8px;
       }
     }
-
-
   }
 </style>

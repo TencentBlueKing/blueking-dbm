@@ -38,18 +38,18 @@ export enum ClusterTypes {
   TENDBSINGLE = 'tendbsingle',
   TENDBHA = 'tendbha',
   TENDBCLUSTER = 'tendbcluster',
-  TWEMPROXY_REDIS_INSTANCE = 'TwemproxyRedisInstance',
-  PREDIXY_TENDISPLUS_CLUSTER = 'PredixyTendisplusCluster',
-  TWEMPROXY_TENDIS_SSD_INSTANCE = 'TwemproxyTendisSSDInstance',
+  TWEMPROXY_REDIS_INSTANCE = 'TwemproxyRedisInstance', // Redis 分片集群 cache
+  PREDIXY_TENDISPLUS_CLUSTER = 'PredixyTendisplusCluster', // Redis 分片集群 plus
+  TWEMPROXY_TENDIS_SSD_INSTANCE = 'TwemproxyTendisSSDInstance', // Redis 分片集群 SSD
   ES = 'es',
   KAFKA = 'kafka',
   HDFS = 'hdfs',
   PULSAE = 'pulsar',
   INFLUXDB = 'influxdb',
   REDIS = 'redis',
-  PREDIXY_REDIS_CLUSTER = 'PredixyRedisCluster',
+  PREDIXY_REDIS_CLUSTER = 'PredixyRedisCluster', // Redis 分片集群 原生
   TWEMPROXY_TENDISPLUS_INSTANCE = 'TwemproxyTendisplusInstance',
-  REDIS_INSTANCE = 'RedisInstance',
+  REDIS_INSTANCE = 'RedisInstance', // Redis 主从集群
   TENDIS_SSD_INSTANCE = 'TendisSSDInstance',
   TENDIS_PLUS_INSTANCE = 'TendisplusInstance',
   REDIS_CLUSTER = 'RedisCluster',
@@ -321,8 +321,12 @@ export enum TicketTypes {
   SQLSERVER_RESET = 'SQLSERVER_RESET', // sqlserver 集群重置
   SQLSERVER_BACKUP_DBS = 'SQLSERVER_BACKUP_DBS', // sqlserver 数据库备份
   TENDBCLUSTER_MIGRATE_CLUSTER = 'TENDBCLUSTER_MIGRATE_CLUSTER', // spider 迁移主从
-  TENDBCLUSTER_RESTORE_LOCAL_SLAVE = "TENDBCLUSTER_RESTORE_LOCAL_SLAVE", // spider 重建从库-原地重建
-  TENDBCLUSTER_RESTORE_SLAVE = "TENDBCLUSTER_RESTORE_SLAVE" // spider 重建从库-新机重建
+  TENDBCLUSTER_RESTORE_LOCAL_SLAVE = 'TENDBCLUSTER_RESTORE_LOCAL_SLAVE', // spider 重建从库-原地重建
+  TENDBCLUSTER_RESTORE_SLAVE = 'TENDBCLUSTER_RESTORE_SLAVE', // spider 重建从库-新机重建
+  REDIS_INS_APPLY = 'REDIS_INS_APPLY', // redis 主从集群部署
+  REDIS_INSTANCE_PROXY_OPEN = 'REDIS_INSTANCE_PROXY_OPEN', // redis 主从集群启用
+  REDIS_INSTANCE_PROXY_CLOSE = 'REDIS_INSTANCE_PROXY_CLOSE', // redis 主从集群禁用
+  REDIS_INSTANCE_DESTROY = 'REDIS_INSTANCE_DESTROY', // redis 主从集群删除
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
@@ -359,6 +363,12 @@ export const redisType = {
     id: TicketTypes.REDIS_CLUSTER_APPLY,
     name: t('Redis集群部署'),
     type: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+    dbType: DBTypes.REDIS,
+  },
+  [TicketTypes.REDIS_INS_APPLY]: {
+    id: TicketTypes.REDIS_INS_APPLY,
+    name: t('主从部署'),
+    type: ClusterTypes.REDIS_INSTANCE,
     dbType: DBTypes.REDIS,
   },
 };
@@ -508,7 +518,10 @@ export enum UserPersonalSettings {
   MONGODB_SHARED_CLUSTER_SETTINGS = 'MONGODB_SHARED_CLUSTER_SETTINGS',
   SQLSERVER_SINGLE_TABLE_SETTINGS = 'SQLSERVER_SINGLE_TABLE_SETTINGS',
   SQLSERVER_HA_TABLE_SETTINGS = 'SQLSERVER_HA_TABLE_SETTINGS',
-  RESOURCE_POOL_SELECTOR_SETTINGS = 'RESOURCE_POOL_SELECTOR_SETTINGS'
+  RESOURCE_POOL_SELECTOR_SETTINGS = 'RESOURCE_POOL_SELECTOR_SETTINGS',
+  REDIS_HA_TABLE_SETTINGS = 'REDIS_HA_TABLE_SETTINGS',
+  REDIS_INSTANCE_SETTINGS = 'REDIS_INSTANCE_SETTINGS',
+  REDIS_HA_INSTANCE_SETTINGS = 'REDIS_HA_INSTANCE_SETTINGS',
 }
 
 /**

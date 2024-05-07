@@ -1,16 +1,48 @@
 <template>
   <FunController module-id="redis">
     <BkMenuGroup name="Redis">
-      <BkMenuItem key="RedisManage">
+      <BkSubmenu
+        key="RedisManage"
+        :title="t('集群')">
         <template #icon>
-          <DbIcon type="redis" />
+          <DbIcon type="fenbushijiqun" />
         </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('集群管理') }}
-        </span>
-      </BkMenuItem>
+        <BkMenuItem key="DatabaseRedisList">
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('集群管理') }}
+          </span>
+        </BkMenuItem>
+        <BkMenuItem key="DatabaseRedisInstanceList">
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('实例视图') }}
+          </span>
+        </BkMenuItem>
+      </BkSubmenu>
+      <BkSubmenu
+        key="RedisHaManage"
+        :title="t('主从')">
+        <template #icon>
+          <DbIcon type="cluster" />
+        </template>
+        <BkMenuItem key="DatabaseRedisHaList">
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('主从管理') }}
+          </span>
+        </BkMenuItem>
+        <BkMenuItem key="DatabaseRedisHaInstanceList">
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('实例视图') }}
+          </span>
+        </BkMenuItem>
+      </BkSubmenu>
       <div
         v-if="Object.keys(favorMeunMap).length > 0"
         class="split-line" />

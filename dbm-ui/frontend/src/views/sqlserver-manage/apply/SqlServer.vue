@@ -609,7 +609,7 @@
     baseState.isSubmitting = true;
     const getDetails = () => {
       const { details } = formData;
-      const { cityName } = regionItemRef.value!.getValue();
+      const { cityCode } = regionItemRef.value!.getValue();
       if (details.ip_source === 'resource_pool') {
         return {
           ...details,
@@ -619,7 +619,7 @@
               ...specBackendRef.value!.getData(),
               affinity: details.disaster_tolerance_level,
               location_spec: {
-                city: cityName,
+                city: cityCode,
                 sub_zone_ids: [],
               },
               count: hostNums.value,

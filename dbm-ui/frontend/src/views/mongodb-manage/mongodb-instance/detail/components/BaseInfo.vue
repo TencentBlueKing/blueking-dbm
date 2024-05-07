@@ -44,7 +44,9 @@
         key: 'status',
         render: () => {
           const status = props.data.status as ClusterInstStatus;
-          if (!status) return '--';
+          if (!status) {
+            return '--';
+          }
           const info = clusterInstStatus[status] || clusterInstStatus.unavailable;
           return <DbStatus theme={ info.theme }>{ info.text }</DbStatus>;
         },
@@ -54,7 +56,9 @@
         key: 'master_domain',
         render: () => {
           const domain = props.data.master_domain;
-          if (!domain) return '--';
+          if (!domain) {
+            return '--';
+          }
           return (
             <div class="inline-item">
               <div class="text-overflow" v-overflow-tips>
@@ -150,19 +154,18 @@
 </script>
 
 <style lang="less" scoped>
-.base-info {
-  box-shadow: unset;
+  .base-info {
+    box-shadow: unset;
 
-  :deep(.inline-item) {
-    display: flex;
-    align-items: center;
+    :deep(.inline-item) {
+      display: flex;
+      align-items: center;
 
-    .db-icon-link {
-      color: @primary-color;
-      cursor: pointer;
-      flex-shrink: 0;
+      .db-icon-link {
+        color: @primary-color;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
     }
   }
-}
 </style>
-

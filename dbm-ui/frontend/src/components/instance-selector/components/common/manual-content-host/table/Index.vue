@@ -35,6 +35,7 @@
   </div>
 </template>
 <script setup lang="tsx" generic="T extends IValue">
+  import type { Column } from 'bkui-vue/lib/table/props';
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -149,11 +150,13 @@
   let isSelectedAllReal = false;
 
   const firstColumnField = props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address'
-  const columns = [
-    {
-      width: 60,
-      fixed: 'left',
-      label: () => (
+
+  const columns = computed(() => {
+    const baseColumns: Column[] = [
+      {
+        width: 60,
+        fixed: 'left',
+        label: () => (
         <bk-checkbox
           label={true}
           model-value={isSelectedAll.value}
@@ -162,18 +165,18 @@
           onChange={handleSelectPageAll}
         />
       ),
-      render: ({ data }: DataRow) => {
-        if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
-          return (
+        render: ({ data }: DataRow) => {
+          if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
+            return (
             <bk-popover theme="dark" placement="top" popoverDelay={0}>
               {{
                 default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
                 content: () => <span>{props.disabledRowConfig?.tip}</span>,
               }}
             </bk-popover>
-          );
-        }
-        return (
+            );
+          }
+          return (
           <bk-checkbox
             style="vertical-align: middle;"
             label={true}
@@ -181,84 +184,90 @@
             onClick={(e: Event) => e.stopPropagation()}
             onChange={(value: boolean) => handleTableSelectOne(value, data)}
           />
-        );
+          );
+        },
       },
-    },
-    {
-      fixed: 'left',
-      minWidth: 160,
-      label: props.firsrColumn?.label ? firstLetterToUpper(props.firsrColumn.label) : t('实例'),
-      field: firstColumnField,
-    },
-    {
-      label: t('关联的从库实例'),
-      field: 'related_instances',
-      showOverflowTooltip: true,
-      width: 200,
-      render: ({ data }: DataRow) => <RenderInstance data={data.related_instances}></RenderInstance>,
-    },
-    {
-      minWidth: 100,
-      label: t('管控区域'),
-      field: 'cloud_area',
-      showOverflowTooltip: true,
-      render: ({ data }: DataRow) => data.host_info?.cloud_area?.name || '--',
-    },
-    {
-      minWidth: 100,
-      label: t('Agent状态'),
-      field: 'alive',
-      render: ({ data }: DataRow) => {
-        const info = data.host_info?.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      {
+        fixed: 'left',
+        minWidth: 160,
+        label: props.firsrColumn?.label ? firstLetterToUpper(props.firsrColumn.label) : t('实例'),
+        field: firstColumnField,
       },
-    },
-    {
-      label: t('主机名称'),
-      field: 'host_name',
-      showOverflowTooltip: true,
-      render: ({ data }: DataRow) => data.host_info?.host_name || '--',
-    },
-    {
-      label: t('OS名称'),
-      field: 'os_name',
-      showOverflowTooltip: true,
-      render: ({ data }: DataRow) => data.host_info?.os_name || '--',
-    },
-    {
-      label: t('所属云厂商'),
-      field: 'cloud_vendor',
-      showOverflowTooltip: true,
-      render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
-    },
-    {
-      label: t('OS类型'),
-      field: 'os_type',
-      showOverflowTooltip: true,
-      render: ({ data }: DataRow) => data.host_info.os_type || '--',
-    },
-    {
-      label: t('主机ID'),
-      field: 'host_id',
-      showOverflowTooltip: true,
-      render: ({ data }: DataRow) => data.host_info?.host_id || '--',
-    },
-    {
-      label: 'Agent ID',
-      field: 'agent_id',
-      showOverflowTooltip: true,
-      render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
-    },
-  ];
+      {
+        minWidth: 100,
+        label: t('管控区域'),
+        field: 'cloud_area',
+        showOverflowTooltip: true,
+        render: ({ data }: DataRow) => data.host_info?.cloud_area?.name || '--',
+      },
+      {
+        minWidth: 100,
+        label: t('Agent状态'),
+        field: 'alive',
+        render: ({ data }: DataRow) => {
+          const info = data.host_info?.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+          return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+        },
+      },
+      {
+        label: t('主机名称'),
+        field: 'host_name',
+        showOverflowTooltip: true,
+        render: ({ data }: DataRow) => data.host_info?.host_name || '--',
+      },
+      {
+        label: t('OS名称'),
+        field: 'os_name',
+        showOverflowTooltip: true,
+        render: ({ data }: DataRow) => data.host_info?.os_name || '--',
+      },
+      {
+        label: t('所属云厂商'),
+        field: 'cloud_vendor',
+        showOverflowTooltip: true,
+        render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
+      },
+      {
+        label: t('OS类型'),
+        field: 'os_type',
+        showOverflowTooltip: true,
+        render: ({ data }: DataRow) => data.host_info.os_type || '--',
+      },
+      {
+        label: t('主机ID'),
+        field: 'host_id',
+        showOverflowTooltip: true,
+        render: ({ data }: DataRow) => data.host_info?.host_id || '--',
+      },
+      {
+        label: 'Agent ID',
+        field: 'agent_id',
+        showOverflowTooltip: true,
+        render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
+      },
+    ];
 
-  const tableSettings = {
-    fields: columns.filter(item => item.field).map(item => ({
+    if (props.activePanelId === 'TendbClusterHost') {
+      baseColumns.splice(2, 0, {
+        label: t('关联的从库实例'),
+        field: 'related_instances',
+        showOverflowTooltip: true,
+        width: 200,
+        render: ({ data }: DataRow) => <RenderInstance data={data.related_instances}></RenderInstance>,
+      })
+    }
+
+    return baseColumns
+  })
+
+  const tableSettings = computed(() => ({
+    fields: columns.value.filter(item => item.field).map(item => ({
       label: item.label,
       field: item.field,
       disabled: [firstColumnField, 'related_instances'].includes(item.field as string),
     })),
     checked: [firstColumnField, 'related_instances', 'role', 'status', 'cloud_area', 'alive', 'host_name', 'os_name'],
-  }
+  }))
 
   watch(() => props.lastValues, () => {
     if (props.isManul) {

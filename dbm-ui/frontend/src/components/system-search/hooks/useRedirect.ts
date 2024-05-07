@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { useLocation } from '@hooks';
 
@@ -18,6 +18,10 @@ export const useRedirect = () => {
 
   const routerNameMap = {
     TwemproxyRedisInstance: 'DatabaseRedisList',
+    PredixyTendisplusCluster: 'DatabaseRedisList',
+    TwemproxyTendisSSDInstance: 'DatabaseRedisList',
+    PredixyRedisCluster: 'DatabaseRedisList',
+    RedisInstance: 'DatabaseRedisHaList',
     tendbha: 'DatabaseTendbha',
     tendbsingle: 'DatabaseTendbsingle',
     tendbcluster: 'tendbClusterList',
@@ -30,18 +34,17 @@ export const useRedirect = () => {
     influxdb: 'InfluxDBInstDetails',
   } as Record<string, string>;
 
-  return (
-    clusterType: string,
-    queryParams: Record<string, any>,
-    bizId: number,
-  ) => {
+  return (clusterType: string, queryParams: Record<string, any>, bizId: number) => {
     if (!routerNameMap[clusterType]) {
       return;
     }
 
-    location({
-      name: routerNameMap[clusterType],
-      query: queryParams,
-    }, bizId);
+    location(
+      {
+        name: routerNameMap[clusterType],
+        query: queryParams,
+      },
+      bizId,
+    );
   };
 };

@@ -7,17 +7,19 @@
       :class="{ 'ticket-details-info-no-title': !dataItem.title }">
       <strong
         v-if="dataItem.title"
-        class="ticket-details-info-title">{{ dataItem.title }}</strong>
+        class="ticket-details-info-title">
+        {{ dataItem.title }}
+      </strong>
       <div class="ticket-details-list">
         <template
           v-for="(listItem, listKey) in dataItem.list"
           :key="listKey">
           <div
-            v-if="listItem.key || listItem.render"
+            v-if="!listItem.isHidden && (listItem.key || listItem.render)"
             class="ticket-details-item"
             :class="{
-              'whole': listItem.iswhole,
-              'table': listItem.isTable
+              whole: listItem.iswhole,
+              table: listItem.isTable,
             }">
             <span class="ticket-details-item-label">{{ listItem.label }}：</span>
             <span class="ticket-details-item-value">
@@ -41,19 +43,20 @@
   import type { TicketDetailTypes } from '../common/types';
 
   export interface DemandInfoConfig {
-    title?: string,
+    title?: string;
     list: {
-      label: string,
-      key?: string,
-      iswhole?: boolean
-      isTable?: boolean
-      render?: () => VNode | string | null
-    }[]
+      label: string;
+      key?: string;
+      iswhole?: boolean;
+      isTable?: boolean;
+      isHidden?: boolean;
+      render?: () => VNode | string | null;
+    }[];
   }
 
   interface Props {
-    data: TicketDetails<T>
-    config: DemandInfoConfig[]
+    data: TicketDetails<T>;
+    config: DemandInfoConfig[];
   }
 
   const props = defineProps<Props>();
@@ -64,7 +67,7 @@
     // 扁平化 aaa.bbb 的形式
     if (key.includes('.')) {
       const keys = key.split('.');
-      const value = keys.reduce((prevValue, key) => (prevValue as {[key: string]})[key], data);
+      const value = keys.reduce((prevValue, key) => (prevValue as { [key: string] })[key], data);
       return _.isNil(value) ? '--' : value;
     }
     return _.isNil(data[key]) ? '--' : data[key];
@@ -72,7 +75,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .ticket-details {
     .ticket-details-info {

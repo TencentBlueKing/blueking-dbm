@@ -177,6 +177,33 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/redis/list/Index.vue'),
       },
+      {
+        name: 'DatabaseRedisInstanceList',
+        path: 'instance-list',
+        meta: {
+          navName: t('Redis 集群实例视图'),
+          fullscreen: true,
+        },
+        component: () => import('@views/redis/instance-list/Index.vue'),
+      },
+      {
+        name: 'DatabaseRedisHaList',
+        path: 'ha-list',
+        meta: {
+          navName: t('Redis 主从管理'),
+          fullscreen: true,
+        },
+        component: () => import('@views/redis/list-ha/Index.vue'),
+      },
+      {
+        name: 'DatabaseRedisHaInstanceList',
+        path: 'ha-instance-list',
+        meta: {
+          navName: t('Redis 主从实例视图'),
+          fullscreen: true,
+        },
+        component: () => import('@views/redis/instance-list-ha/Index.vue'),
+      },
     ],
   },
 ];

@@ -13,9 +13,11 @@
 
 import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 import RedisModel from '@services/model/redis/redis';
+import RedisInstanceModel from '@services/model/redis/redis-instance';
+import RedisMachineModel from '@services/model/redis/redis-machine';
 
 import http from '../http';
-import type { HostNode, ListBase, ResourceInstance, ResourceTopo } from '../types';
+import type { HostNode, ListBase, ResourceTopo } from '../types';
 import type { ResourceRedisItem } from '../types/clusters';
 
 interface InstanceDetails {
@@ -62,6 +64,7 @@ export function getRedisList(
     domain?: string;
     exact_domain?: string;
     bk_biz_id?: number;
+    cluster_type?: string;
   } = {},
 ) {
   return http.get<ListBase<RedisModel[]>>(`${getRootPath()}/`, params).then((data) => ({
@@ -110,8 +113,22 @@ export function getRedisTableFields() {
 /**
  * 获取集群实例列表
  */
-export function getRedisInstances(params: Record<string, any>) {
-  return http.get<ListBase<ResourceInstance[]>>(`${getRootPath()}/list_instances/`, params);
+export function getRedisInstances(params: {
+  limit?: number,
+  offset?: number,
+  instance_address?: string,
+  ip?: string,
+  port?: number,
+  domain?: string,
+  status?: string,
+  role?: string,
+  cluster_id?: number,
+  cluster_type?: string
+}) {
+  return http.get<ListBase<RedisInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new RedisInstanceModel(item)),
+  }));
 }
 
 /**
@@ -185,3 +202,26 @@ export const getRedisClusterList = async (params: { bk_biz_id: number }) =>
   http
     .get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
     .then((data) => data.results.map((item) => new RedisModel(item)));
+
+/**
+ * 查询主机列表
+ */
+export function getRedisMachineList(params: {
+  limit?: number;
+  offset?: number;
+  bk_host_id?: number;
+  ip?: string;
+  cluster_ids?: string;
+  bk_city_name?: string;
+  machine_type?: string;
+  bk_os_name?: string;
+  bk_cloud_id?: number;
+  bk_agent_id?: string;
+  instance_role?: string;
+  creator?: string;
+}) {
+  return http.get<ListBase<RedisMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new RedisMachineModel(item)),
+  }));
+}

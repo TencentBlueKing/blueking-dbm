@@ -33,7 +33,7 @@
         v-bkloading="{ loading: isLoading }"
         class="custom-edit-table"
         :columns="columns"
-        :data="renderSpecs"
+        :data="specs"
         @row-click="handleRowClick">
         <template #empty>
           <p
@@ -66,6 +66,8 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
   interface ModelValue {
     spec_id: number,
     capacity: number | string,
@@ -84,10 +86,11 @@
 
   const { t } = useI18n();
 
+
   const specRef = ref();
   const specs = shallowRef<ClusterSpecModel[]>([]);
-  const renderSpecs = shallowRef<ClusterSpecModel[]>([]);
   const isLoading = ref(false);
+  const countMap = shallowRef({} as Record<number, number>)
 
   const isTendisCache = computed(() => props.clusterType === ClusterTypes.TWEMPROXY_REDIS_INSTANCE);
   const targetCapacityTitle = computed(() => (isTendisCache.value ? t('集群容量需求(内存容量)') : t('集群容量需求(磁盘容量)')));
@@ -97,20 +100,33 @@
     {
       field: 'spec_name',
       label: t('资源规格'),
+      width: 300,
       showOverflowTooltip: false,
       render: ({ data, index }: { data: ClusterSpecModel, index: number }) => (
-        <bk-radio
-          v-model={modelValue.value.spec_id}
-          label={data.spec_id}
-          kye={index}
-          class="spec-radio">
-          <div
-            class="text-overflow"
-            v-overflow-tips>
-            {data.spec_name}
-          </div>
-        </bk-radio>
-        ),
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <bk-radio
+                v-model={modelValue.value.spec_id}
+                label={data.spec_id}
+                key={index}
+                class="spec-radio">
+                  {data.spec_name}
+              </bk-radio>
+            ),
+            append: () => (
+              (countMap.value[data.spec_id] || 0) < data.machine_pair && (
+                <bk-tag
+                  class='ml-6'
+                  size="small"
+                  theme="danger">
+                    {t('资源不足')}
+                  </bk-tag>
+              )
+            )
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       field: 'machine_pair',
@@ -130,6 +146,7 @@
     {
       field: 'count',
       label: t('可用主机数'),
+      render: ({ data }: { data: ClusterSpecModel }) => countMap.value[data.spec_id] || 0
     },
   ];
 
@@ -173,7 +190,6 @@
 
   const resetSlider = () => {
     specs.value = [];
-    renderSpecs.value = [];
   };
 
   const fetchFilterClusterSpec = () => {
@@ -192,14 +208,13 @@
     })
       .then((res) => {
         specs.value = res;
-        renderSpecs.value = res;
       })
       .catch(() => {
         specs.value = [];
-        renderSpecs.value = [];
       })
       .finally(() => {
         isLoading.value = false;
+        countMap.value = {}
       });
   };
 
@@ -241,10 +256,7 @@
       bk_cloud_id: Number(props.cloudId),
       spec_ids: specs.value.map(item => item.spec_id),
     }).then((data) => {
-      renderSpecs.value = specs.value.map(item => ({
-        ...item,
-        count: data[item.spec_id] ?? 0,
-      }));
+      countMap.value = data
     });
   }, 100);
 
@@ -276,15 +288,16 @@
 
     :deep(.spec-radio) {
       max-width: 100%;
-      overflow: hidden;
+      display: flex;
 
       .bk-radio-input {
         flex-shrink: 0;
+        width: 16px;
       }
 
       .bk-radio-label {
         flex: 1;
-        overflow: hidden;
+        font-size: 12px;
       }
     }
 

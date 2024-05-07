@@ -40,7 +40,7 @@
           v-model="state.formdata.details.city_code" />
         <DbCard
           v-if="!isDefaultCity"
-          :title="$t('数据库部署信息')">
+          :title="t('数据库部署信息')">
           <AffinityItem v-model="state.formdata.details.resource_spec.backend_group.affinity" />
         </DbCard>
         <DbCard :title="t('部署需求')">
@@ -63,9 +63,9 @@
                   {{ item.text }}
                 </BkRadioButton>
                 <template #content>
-                  <div class="apply-instance__content">
+                  <div class="apply-instance-content">
                     <h4>{{ item.tipContent.title }}</h4>
-                    <p>{{ item.tipContent.desc }}</p>
+                    <p>{{ item.tipContent.title }}：{{ item.tipContent.desc }}</p>
                     <img
                       :src="item.tipContent.img"
                       width="550" />
@@ -73,6 +73,13 @@
                 </template>
               </BkPopover>
             </BkRadioGroup>
+            <BkButton
+              class="recommend-architectrue-btn ml-10"
+              text
+              theme="primary"
+              @click="handleRecommendArchitectrueOpen">
+              {{ t('如何选择架构？') }}
+            </BkButton>
           </BkFormItem>
           <BkFormItem
             :label="t('版本')"
@@ -83,6 +90,9 @@
               db-type="redis"
               :query-key="typeInfos.pkg_type" />
           </BkFormItem>
+          <PasswordInput
+            v-model="state.formdata.details.proxy_pwd"
+            property="details.proxy_pwd" />
           <BkFormItem
             :label="t('服务器选择')"
             property="details.ip_source"
@@ -139,7 +149,7 @@
               <BkFormItem
                 v-if="state.formdata.details.nodes.proxy.length > 0"
                 label="">
-                <div class="apply-instance__inline">
+                <div class="apply-instance-inline">
                   <BkFormItem
                     :label="t('Proxy端口')"
                     label-width="110"
@@ -319,6 +329,13 @@
       </BkButton>
     </template>
   </SmartAction>
+  <DbSideslider
+    v-model:is-show="isShowRecommendArchitectrue"
+    :show-footer="false"
+    :title="t('如何选择架构？')"
+    width="1110">
+    <RecommendArchitectrue />
+  </DbSideslider>
 </template>
 
 <script setup lang="ts">
@@ -348,9 +365,12 @@
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
+  import PasswordInput from '@views/redis/common/password-input/Index.vue';
+
   import { generateId } from '@utils';
 
   import { redisClusterTypes, redisIpSources } from './common/const';
+  import RecommendArchitectrue from './components/recommend-architectrue/Index.vue';
 
   type CapSepcs = ServiceReturnType<typeof getCapSpecs>[number];
 
@@ -359,22 +379,12 @@
     label: string;
   };
 
-  const route = useRoute();
-  const router = useRouter();
-
   // 基础设置
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
-
   const { t } = useI18n();
   const funControllerStore = useFunController();
-  const masterRef = ref();
-  const slaveRef = ref();
-  const specProxyRef = ref();
-  const specBackendRef = ref();
-  const capSpecsKey = ref(generateId('CLUSTER_APPLAY_CAP_'));
-  const regionItemRef = ref();
-
-  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+  const route = useRoute();
+  const router = useRouter();
 
   const renderRedisClusterTypes = computed(() => {
     const values = Object.values(redisClusterTypes);
@@ -383,10 +393,62 @@
     return values.filter((item) => redisController.children[item.id as RedisFunctions].is_enabled);
   });
 
-  const cloudInfo = reactive({
+  /** 初始化数据 */
+  const initData = () => ({
+    bk_biz_id: '' as number | '',
+    ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,
+    remark: '',
+    details: {
+      bk_cloud_id: 0,
+      db_app_abbr: '',
+      proxy_port: 50000,
+      cluster_name: '',
+      cluster_alias: '',
+      cluster_type: renderRedisClusterTypes.value[0].id,
+      city_code: '',
+      db_version: '',
+      cap_key: '',
+      ip_source: redisIpSources.resource_pool.id,
+      disaster_tolerance_level: 'NONE',
+      proxy_pwd: '',
+      nodes: {
+        proxy: [] as HostDetails[],
+        master: [] as HostDetails[],
+        slave: [] as HostDetails[],
+      },
+      resource_spec: {
+        proxy: {
+          spec_id: '',
+          count: 2,
+        },
+        backend_group: {
+          count: 0,
+          spec_id: 0,
+          capacity: '' as number | string,
+          future_capacity: '' as number | string,
+          affinity: 'NONE',
+          location_spec: {
+            city: '',
+            sub_zone_ids: [],
+          },
+        },
+      },
+    },
+  });
+
+  const formRef = ref();
+  const masterRef = ref();
+  const slaveRef = ref();
+  const specProxyRef = ref();
+  const specBackendRef = ref();
+  const regionItemRef = ref();
+  const capSpecsKey = ref(generateId('CLUSTER_APPLAY_CAP_'));
+  const isShowRecommendArchitectrue = ref(false);
+  const cloudInfo = ref({
     id: '' as number | string,
     name: '',
   });
+
   const state = reactive({
     formdata: initData(),
     isLoadVersion: false,
@@ -427,7 +489,10 @@
       },
     ],
   };
+
   const isManualInput = computed(() => state.formdata.details.ip_source === redisIpSources.manual_input.id);
+  const isDefaultCity = computed(() => state.formdata.details.city_code === 'default');
+
   const disableCapSpecs = computed(() => {
     const { master, slave } = state.formdata.details.nodes;
     // 资源池模式不需要判断
@@ -436,6 +501,7 @@
     }
     return master.length === 0 || master.length !== slave.length;
   });
+
   const typeInfos = computed(() => {
     const types = {
       [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
@@ -456,73 +522,34 @@
         backend_machine_type: 'tendisplus',
         pkg_type: 'tendisplus',
       },
+      [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
+        cluster_type: ClusterTypes.PREDIXY_REDIS_CLUSTER,
+        machine_type: 'predixy',
+        backend_machine_type: 'tendiscache',
+        pkg_type: 'redis',
+      },
     };
     return types[state.formdata.details.cluster_type as keyof typeof types];
   });
-  const isDefaultCity = computed(() => state.formdata.details.city_code === 'default');
 
-  /** 初始化数据 */
-  function initData() {
-    return {
-      bk_biz_id: '' as number | '',
-      ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,
-      remark: '',
-      details: {
-        bk_cloud_id: 0,
-        db_app_abbr: '',
-        proxy_port: 50000,
-        cluster_name: '',
-        cluster_alias: '',
-        cluster_type: renderRedisClusterTypes.value[0].id,
-        city_code: '',
-        db_version: '',
-        cap_key: '',
-        ip_source: redisIpSources.resource_pool.id,
-        disaster_tolerance_level: 'NONE',
-        nodes: {
-          proxy: [] as HostDetails[],
-          master: [] as HostDetails[],
-          slave: [] as HostDetails[],
-        },
-        resource_spec: {
-          proxy: {
-            spec_id: '',
-            count: 2,
-          },
-          backend_group: {
-            count: 0,
-            spec_id: 0,
-            capacity: '' as number | string,
-            future_capacity: '' as number | string,
-            affinity: 'NONE',
-            location_spec: {
-              city: '',
-              sub_zone_ids: [],
-            },
-          },
-        },
-      },
-    };
-  }
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  function getDispalyCapSpecs(item: CapSepcs) {
+  const getDispalyCapSpecs = (item: CapSepcs) => {
     if (state.formdata.details.cluster_type === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE) {
       return `${item.total_disk}(${item.max_disk} GB x ${item.shard_num}${t('分片')})`;
     }
     return `${item.total_memory}(${getMaxMemoryToGb(item.maxmemory)} x ${item.shard_num}${t('分片')})`;
-  }
+  };
 
   /**
    * 单实例容量转为 GB
    */
-  function getMaxMemoryToGb(mem: number) {
-    return `${(mem / 1024).toFixed(1)} GB`;
-  }
+  const getMaxMemoryToGb = (mem: number) => `${(mem / 1024).toFixed(1)} GB`;
 
   /**
    * 获取 redis 容量信息
    */
-  function fetchCapSpecs(cityCode: string) {
+  const fetchCapSpecs = (cityCode: string) => {
     state.formdata.details.cap_key = '';
     const { master, slave } = state.formdata.details.nodes;
     if (isManualInput.value && (master.length === 0 || master.length !== slave.length)) {
@@ -550,9 +577,9 @@
       .finally(() => {
         state.isLoadCapSpecs = false;
       });
-  }
+  };
 
-  function handleChangeClusterType() {
+  const handleChangeClusterType = () => {
     state.formdata.details.db_version = '';
     state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
@@ -563,12 +590,12 @@
       future_capacity: '',
     };
     isManualInput.value && fetchCapSpecs('');
-  }
+  };
 
   /**
    * 变更业务
    */
-  function handleChangeBiz(info: BizItem) {
+  const handleChangeBiz = (info: BizItem) => {
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
 
@@ -576,23 +603,22 @@
     state.formdata.details.nodes.proxy = [];
     state.formdata.details.nodes.master = [];
     state.formdata.details.nodes.slave = [];
-  }
+  };
 
   /**
    * 变更所属管控区域
    */
-  function handleChangeCloud(info: { id: number | string; name: string }) {
-    cloudInfo.id = info.id;
-    cloudInfo.name = info.name;
+  const handleChangeCloud = (info: { id: number | string; name: string }) => {
+    cloudInfo.value = info;
 
     // 清空 ip 选择器
     state.formdata.details.nodes.proxy = [];
     state.formdata.details.nodes.master = [];
     state.formdata.details.nodes.slave = [];
-  }
+  };
 
   /** 重置表单 */
-  function handleResetFormdata() {
+  const handleResetFormdata = () => {
     useInfo({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
@@ -604,7 +630,7 @@
         return true;
       },
     });
-  }
+  };
 
   const ipSelectorDisableSubmitMethods = {
     proxy: (hostList: Array<any>) => (hostList.length >= 2 ? false : t('至少n台', { n: 2 })),
@@ -622,7 +648,7 @@
     );
 
   // proxy、master、slave 互斥
-  function proxyDisableHostMethod(data: any) {
+  const proxyDisableHostMethod = (data: any) => {
     const masterHostMap = makeMapByHostId(state.formdata.details.nodes.master);
     if (masterHostMap[data.host_id]) {
       return t('主机已被Master使用');
@@ -633,10 +659,10 @@
     }
 
     return false;
-  }
+  };
 
   // proxy、master、slave 互斥
-  function masterDisableHostMethod(data: any) {
+  const masterDisableHostMethod = (data: any) => {
     const proxyHostMap = makeMapByHostId(state.formdata.details.nodes.proxy);
     if (proxyHostMap[data.host_id]) {
       return t('主机已被Proxy使用');
@@ -647,9 +673,10 @@
     }
 
     return false;
-  }
+  };
+
   // proxy、master、slave 互斥
-  function slaveDisableHostMethod(data: any) {
+  const slaveDisableHostMethod = (data: any) => {
     const proxyHostMap = makeMapByHostId(state.formdata.details.nodes.proxy);
     if (proxyHostMap[data.host_id]) {
       return t('主机已被Proxy使用');
@@ -660,42 +687,42 @@
     }
 
     return false;
-  }
+  };
 
   /**
    * 更新 Proxy IP
    */
-  function handleProxyIpChange(data: HostDetails[]) {
+  const handleProxyIpChange = (data: HostDetails[]) => {
     state.formdata.details.nodes.proxy = [...data];
-  }
+  };
 
   /**
    * 更新 Master IP
    */
-  function handleMasterIpChange(data: HostDetails[]) {
+  const handleMasterIpChange = (data: HostDetails[]) => {
     state.formdata.details.nodes.master = [...data];
     fetchCapSpecs(state.formdata.details.city_code);
     masterRef.value?.validate?.();
     slaveRef.value?.validate?.();
     capSpecsKey.value = generateId('CLUSTER_APPLAY_CAP_');
-  }
+  };
 
   /**
    * 更新 Slave IP
    */
-  function handleSlaveIpChange(data: HostDetails[]) {
+  const handleSlaveIpChange = (data: HostDetails[]) => {
     state.formdata.details.nodes.slave = [...data];
     fetchCapSpecs(state.formdata.details.city_code);
     masterRef.value?.validate?.();
     slaveRef.value?.validate?.();
     capSpecsKey.value = generateId('CLUSTER_APPLAY_CAP_');
-  }
+  };
 
   /**
    * 格式化 IP 提交格式
    */
-  function formatNodes(hosts: HostDetails[]) {
-    return hosts.map((host) => ({
+  const formatNodes = (hosts: HostDetails[]) =>
+    hosts.map((host) => ({
       ip: host.ip,
       bk_host_id: host.host_id,
       bk_cloud_id: host.cloud_id,
@@ -704,22 +731,24 @@
       bk_mem: host.bk_mem,
       bk_biz_id: host.biz.id,
     }));
-  }
 
-  const formRef = ref();
-  async function handleSubmit() {
+  const handleRecommendArchitectrueOpen = () => {
+    isShowRecommendArchitectrue.value = true;
+  };
+
+  const handleSubmit = async () => {
     await formRef.value?.validate();
 
     baseState.isSubmitting = true;
 
     const getDetails = () => {
       const details: Record<string, any> = _.cloneDeep(state.formdata.details);
-      const { cityName } = regionItemRef.value.getValue();
+      const { cityCode } = regionItemRef.value.getValue();
 
       const regionAndDisasterParams = {
         affinity: details.resource_spec.backend_group.affinity,
         location_spec: {
-          city: cityName,
+          city: cityCode,
           sub_zone_ids: [],
         },
       };
@@ -774,7 +803,7 @@
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
     bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
-  }
+  };
 
   defineExpose({
     routerBack() {
@@ -797,7 +826,7 @@
       width: 435px;
     }
 
-    &__inline {
+    .apply-instance-inline {
       width: 396px;
       padding: 8px 0;
       font-size: @font-size-mini;
@@ -832,9 +861,13 @@
         }
       }
     }
+
+    .recommend-architectrue-btn {
+      font-size: 12px;
+    }
   }
 
-  .apply-instance__content {
+  .apply-instance-content {
     max-width: 550px;
 
     h4 {

@@ -111,6 +111,7 @@
   const checkedMap = shallowRef({} as DataRow);
 
   const initRole = computed(() => props.firsrColumn?.role);
+  const selectClusterId = computed(() => props.clusterId);
   const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'ip'));
   const mainSelectDisable = computed(() => (props.disabledRowConfig
     ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
@@ -123,7 +124,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<T>(initRole);
+  } = useTableData<T>(initRole, selectClusterId);
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0

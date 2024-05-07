@@ -681,12 +681,12 @@
 
       const getDetails = () => {
         const details: Record<string, any> = _.cloneDeep(formdata.details);
-        const { cityName } = regionItemRef.value.getValue();
+        const { cityCode } = regionItemRef.value.getValue();
 
         const regionAndDisasterParams = {
           affinity: details.resource_spec.backend.affinity,
           location_spec: {
-            city: cityName,
+            city: cityCode,
             sub_zone_ids: [],
           },
         };
@@ -702,7 +702,7 @@
                   ...specSingleRef.value.getData(),
                   count: hostNums.value,
                   location_spec: {
-                    city: cityName,
+                    city: cityCode,
                     sub_zone_ids: [],
                   },
                 },
@@ -724,7 +724,7 @@
                 ...specBackendRef.value.getData(),
                 count: hostNums.value,
                 location_spec: {
-                  city: cityName,
+                  city: cityCode,
                   sub_zone_ids: [],
                 },
               },

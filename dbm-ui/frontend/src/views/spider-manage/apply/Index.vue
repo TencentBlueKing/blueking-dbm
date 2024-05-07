@@ -247,7 +247,7 @@
 
     const getDetails = () => {
       const details: Record<string, any> = _.cloneDeep(formdata.value.details);
-      const { cityName } = regionItemRef.value.getValue();
+      const { cityCode } = regionItemRef.value.getValue();
       // 集群容量需求不需要提交
       delete details.resource_spec.backend_group.capacity;
       delete details.resource_spec.backend_group.future_capacity;
@@ -255,7 +255,7 @@
       const regionAndDisasterParams = {
         affinity: details.resource_spec.backend_group.affinity,
         location_spec: {
-          city: cityName,
+          city: cityCode,
           sub_zone_ids: [],
         },
       };
