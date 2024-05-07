@@ -82,6 +82,26 @@ class MyBKGenericRepoClient(BKGenericRepoClient):
         logger.info("Calling BkRepo: %s", curlify.to_curl(resp.request))
         return resp
 
+    def create_bkrepo_access_token(self, paths: List[str], expire_time: int, permits: int) -> dict:
+        """
+        返回制品库临时凭证
+        """
+        client = self.get_client()
+        url = urljoin(self.endpoint_url, "/generic/temporary/token/create")
+        data = {
+            "projectId": self.project,
+            "repoName": self.bucket,
+            "fullPathSet": paths,
+            "expireSeconds": expire_time,
+            "permits": permits,
+            "type": "ALL",
+        }
+        resp = client.post(url, json=data, timeout=TIMEOUT_THRESHOLD)
+        if not resp.ok:
+            logger.error("Request success, but the server rejects receive token. ")
+
+        return self._validate_resp(resp)
+
 
 @deconstructible
 class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
