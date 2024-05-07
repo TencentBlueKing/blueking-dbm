@@ -263,7 +263,7 @@
           ...markRaw(formdata.details),
           group_name: groupName.value,
         };
-        const { cityName } = regionItemRef.value.getValue();
+        const { cityCode } = regionItemRef.value.getValue();
 
         if (formdata.details.ip_source === 'resource_pool') {
           delete details.nodes;
@@ -276,7 +276,7 @@
                 count: Number(details.resource_spec.influxdb.count),
                 affinity: details.disaster_tolerance_level,
                 location_spec: {
-                  city: cityName,
+                  city: cityCode,
                   sub_zone_ids: [],
                 },
               },

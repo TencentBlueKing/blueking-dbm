@@ -122,7 +122,7 @@
     getValue() {
       return {
         cityCode: state.cityCode,
-        cityName: state.cityCode,
+        cityName: state.cityName || '',
       };
     },
   });

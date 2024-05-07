@@ -194,6 +194,8 @@
 
   const clusterId = defineModel<number>('clusterId');
 
+  let isInit = true;
+
   const { t, locale } = useI18n();
   const copy = useCopy();
   const route = useRoute();
@@ -506,18 +508,16 @@
             }
             {
               !data.isOnline && !data.isStarting && (
-                <db-icon
-                  svg
-                  type="yijinyong"
-                  class="cluster-tag"
-                  style="width: 38px; height: 16px;" />
+                <bk-tag size="small">{t('已禁用')}</bk-tag>
               )
             }
             {
               data.isNew && (
-                <span
-                  class="glob-new-tag cluster-tag ml-4"
-                  data-text="NEW" />
+                <bk-tag
+                  size="small"
+                  theme="success">
+                  NEW
+                </bk-tag>
               )
             }
           </div>
@@ -987,9 +987,16 @@
     return false;
   };
 
-  let isInit = true;
   const fetchData = (loading?:boolean) => {
-    const params = getSearchSelectorParams(searchValue.value);
+    const params = {
+      ...getSearchSelectorParams(searchValue.value),
+      cluster_type: [
+        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+        ClusterTypes.PREDIXY_REDIS_CLUSTER,
+      ].join(',')
+    }
     tableRef.value.fetchData(params, {
       ...sortValue,
     }, loading);

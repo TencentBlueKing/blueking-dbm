@@ -86,6 +86,8 @@
   import RedisDataStructure from './redis/DataStructure.vue';
   import RedisDBReplace from './redis/DBReplace.vue';
   import DetailsRedis from './redis/Details.vue';
+  import DetailsRedisHa from './redis/DetailsHa.vue';
+  import RedisHaClusterOperation from './redis/HaClusterOperation.vue';
   import RedisMasterFailover from './redis/MasterFailover.vue';
   import RedisOperation from './redis/Operation.vue';
   import RedisProxyScaleDown from './redis/ProxyScaleDown.vue';
@@ -112,13 +114,13 @@
   import SpiderRollback from './spider/Rollback.vue';
   import SpiderSlaveApply from './spider/SlaveApply.vue';
   import SpiderSlaveDestroy from './spider/SlaveDestroy.vue';
-  import SpiderSlaveRebuild from './spider/SlaveRebuild.vue'
+  import SpiderSlaveRebuild from './spider/SlaveRebuild.vue';
   import SpiderTableBackup from './spider/TableBackup.vue';
   import SpiderTruncateDatabase from './spider/TruncateDatabase.vue';
   import SqlserverAuthrizeRules from './sqlserver/AuthorizeRules.vue';
   import SqlserverClusterOperation from './sqlserver/ClusterOperation.vue';
   import SqlserverClusterReset from './sqlserver/ClusterReset.vue';
-  import SqlserverDbBackup from './sqlserver/DbBackup.vue'
+  import SqlserverDbBackup from './sqlserver/DbBackup.vue';
   import SqlserverDetails from './sqlserver/Details.vue';
 
   interface Props {
@@ -251,7 +253,16 @@
 
   const mongoAuthorizeRulesTypes = [TicketTypes.MONGODB_AUTHORIZE, TicketTypes.MONGODB_EXCEL_AUTHORIZE];
 
-  const sqlserverAuthorizeRulesTypes = [TicketTypes.SQLSERVER_AUTHORIZE_RULES, TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES];
+  const sqlserverAuthorizeRulesTypes = [
+    TicketTypes.SQLSERVER_AUTHORIZE_RULES,
+    TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES,
+  ];
+
+  const redisHaOperationTypes = [
+    TicketTypes.REDIS_INSTANCE_PROXY_CLOSE,
+    TicketTypes.REDIS_INSTANCE_PROXY_OPEN,
+    TicketTypes.REDIS_INSTANCE_DESTROY,
+  ];
 
   // 单一情况映射表
   const SingleDemandMap = {
@@ -329,6 +340,7 @@
     [TicketTypes.SQLSERVER_RESET]: SqlserverClusterReset,
     [TicketTypes.SQLSERVER_BACKUP_DBS]: SqlserverDbBackup,
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: SpiderMigrateCluster,
+    [TicketTypes.REDIS_INS_APPLY]: DetailsRedisHa,
   };
 
   // 不同集群详情组件
@@ -419,6 +431,10 @@
     // Spider 重建从库
     if (spiderSlaveType.includes(ticketType)) {
       return SpiderSlaveRebuild;
+    }
+    // Redis 主从集群启停删
+    if (redisHaOperationTypes.includes(ticketType)) {
+      return RedisHaClusterOperation;
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];

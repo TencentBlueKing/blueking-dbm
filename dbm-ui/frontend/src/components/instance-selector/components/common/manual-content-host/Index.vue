@@ -81,6 +81,7 @@
           <RenderManualHost
             :active-panel-id="manualConfig.activePanelId"
             :firsr-column="firsrColumn"
+            :get-table-list="getTableList"
             is-manul
             :last-values="lastValues"
             :manual-table-data="inputState.tableData"
@@ -115,6 +116,7 @@
     tableSetting: TableSetting,
     firsrColumn?: TableConfigType['firsrColumn'],
     statusFilter?: TableConfigType['statusFilter'],
+    getTableList: NonNullable<TableConfigType['getTableList']>;
   }
 
   interface Emits {

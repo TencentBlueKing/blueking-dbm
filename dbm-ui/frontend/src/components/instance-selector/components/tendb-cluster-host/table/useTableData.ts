@@ -18,7 +18,7 @@ import { useGlobalBizs } from '@stores';
 /**
  * 处理集群列表数据
  */
-export function useTableData<T>(role?: Ref<string | undefined>) {
+export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<number | undefined>) {
   const { currentBizId } = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
@@ -56,6 +56,11 @@ export function useTableData<T>(role?: Ref<string | undefined>) {
     if (role?.value) {
       Object.assign(params, {
         instance_role: role.value,
+      });
+    }
+    if (clusterId?.value && clusterId.value !== currentBizId) {
+      Object.assign(params, {
+        cluster_id: clusterId.value,
       });
     }
     return currentInstance.proxy

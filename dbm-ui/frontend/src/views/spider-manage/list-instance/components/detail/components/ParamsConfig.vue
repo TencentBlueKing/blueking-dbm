@@ -82,7 +82,7 @@
   /**
    * 获取集群配置
    */
-  function fetchClusterConfig() {
+  const fetchClusterConfig = () => {
     isLoading.value = true;
     getLevelConfig({
       bk_biz_id: currentBizId,

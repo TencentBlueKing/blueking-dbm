@@ -341,7 +341,7 @@
     const { details } = formData;
     const { disaster_tolerance_level: disasterTolerenceLevel, resource_spec: resourceSpec } = details;
     const { mongo_config: mongoConfig, mongodb, mongos } = resourceSpec;
-    const { cityName } = regionItemRef.value!.getValue();
+    const { cityCode } = regionItemRef.value!.getValue();
     const mongoConfigSpecData = mongoConfigSpec.value as NonNullable<typeof mongoConfigSpec.value>;
 
     const params = {
@@ -356,7 +356,7 @@
             count: mongoConfig.count,
             affinity: disasterTolerenceLevel,
             location_spec: {
-              city: cityName,
+              city: cityCode,
               sub_zone_ids: [],
             },
             ...mongoCofigSpecRef.value!.getData(),
@@ -365,7 +365,7 @@
             ...mongodb,
             affinity: disasterTolerenceLevel,
             location_spec: {
-              city: cityName,
+              city: cityCode,
               sub_zone_ids: [],
             },
             count: mongoConfigSpecData.machine_pair * 3, // shard_machine_group * 3(固定值)
@@ -375,7 +375,7 @@
             ...mongos,
             affinity: disasterTolerenceLevel,
             location_spec: {
-              city: cityName,
+              city: cityCode,
               sub_zone_ids: [],
             },
             spec_name: mongoConfigSpecData.spec_name,

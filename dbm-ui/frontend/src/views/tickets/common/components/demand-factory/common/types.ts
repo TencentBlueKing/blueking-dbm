@@ -146,56 +146,59 @@ export interface SqlserverAuthorizeRules {
 // spider 迁移主从
 export interface SpiderMigrateCluster {
   infos: {
-    cluster_id: number,
+    cluster_id: number;
     new_master: {
-      bk_biz_id: number,
-      bk_cloud_id: number
-      bk_host_id: number,
-      ip: string,
-    },
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    };
     new_slave: {
-      bk_biz_id: number,
-      bk_cloud_id: number
-      bk_host_id: number,
-      ip: string,
-    },
-  }[],
-  clusters: Record<number, {
-    id: number,
-    tag: string[],
-    name: string,
-    alias: string,
-    phase: string,
-    region: string,
-    status: string,
-    creator: string,
-    updater: string,
-    bk_biz_id: number,
-    time_zone: string,
-    bk_cloud_id: number,
-    cluster_type: string,
-    db_module_id: number,
-    immute_domain: string,
-    major_version: string,
-    cluster_type_name: string,
-    disaster_tolerance_level: string
-  }>,
-  ip_source: string,
-  backup_source: string
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    };
+  }[];
+  clusters: Record<
+    number,
+    {
+      id: number;
+      tag: string[];
+      name: string;
+      alias: string;
+      phase: string;
+      region: string;
+      status: string;
+      creator: string;
+      updater: string;
+      bk_biz_id: number;
+      time_zone: string;
+      bk_cloud_id: number;
+      cluster_type: string;
+      db_module_id: number;
+      immute_domain: string;
+      major_version: string;
+      cluster_type_name: string;
+      disaster_tolerance_level: string;
+    }
+  >;
+  ip_source: string;
+  backup_source: string;
 }
 
 // spider 迁移主从
 export interface SpiderSlaveRebuid {
   infos: {
-    cluster_id: number
+    cluster_id: number;
     slave: {
-      ip: string,
-      bk_biz_id: number,
-      bk_host_id: number,
-      bk_cloud_id: number
-    }
-    old_slave: SpiderSlaveRebuid['infos'][number]['slave'],
-    new_slave: SpiderSlaveRebuid['infos'][number]['slave'],
+      ip: string;
+      bk_biz_id: number;
+      bk_host_id: number;
+      bk_cloud_id: number;
+    };
+    old_slave: SpiderSlaveRebuid['infos'][number]['slave'];
+    new_slave: SpiderSlaveRebuid['infos'][number]['slave'];
     resource_spec: {
       new_slave: {
         name: string;
@@ -209,40 +212,74 @@ export interface SpiderSlaveRebuid {
           min: number;
         };
         qps: {
-          max: number,
-          min: number
-        },
+          max: number;
+          min: number;
+        };
         count: number;
         storage_spec: {
           mount_point: string;
           size: number;
           type: string;
         }[];
-      }
+      };
+    };
+  }[];
+  clusters: Record<
+    number,
+    {
+      id: number;
+      tag: string[];
+      name: string;
+      alias: string;
+      phase: string;
+      region: string;
+      status: string;
+      creator: string;
+      updater: string;
+      bk_biz_id: number;
+      time_zone: string;
+      bk_cloud_id: number;
+      cluster_type: string;
+      db_module_id: number;
+      immute_domain: string;
+      major_version: string;
+      cluster_type_name: string;
+      disaster_tolerance_level: string;
     }
-  }[],
-  clusters: Record<number, {
-    id: number,
-    tag: string[],
-    name: string,
-    alias: string,
-    phase: string,
-    region: string,
-    status: string,
-    creator: string,
-    updater: string,
-    bk_biz_id: number,
-    time_zone: string,
-    bk_cloud_id: number,
-    cluster_type: string,
-    db_module_id: number,
-    immute_domain: string,
-    major_version: string,
-    cluster_type_name: string,
-    disaster_tolerance_level: string
-  }>,
-  ip_source: string,
-  backup_source: string
+  >;
+  ip_source: string;
+  backup_source: string;
+}
+
+export interface RedisHaApply {
+  bk_cloud_id: number;
+  cluster_type: string;
+  disaster_tolerance_level: string;
+  append_apply: boolean; // 是否是追加部署
+  port?: number; // 追加就非必填
+  city_code?: string; // 追加就非必填
+  db_version?: string; // 追加就非必填
+  infos: {
+    databases: number;
+    cluster_name: string;
+    // 如果是追加部署，则一定有backend_group，表示追加的主机信息
+    backend_group?: {
+      master: {
+        ip: string;
+        bk_cloud_id: number;
+        bk_host_id: number;
+      };
+      slave: {
+        ip: string;
+        bk_cloud_id: number;
+        bk_host_id: number;
+      };
+    };
+  }[];
+  // 如果是新部署，则一定从资源池部署
+  resource_spec: {
+    backend_group: SpecInfo;
+  };
 }
 
 export type TicketDetailTypes =
@@ -253,3 +290,4 @@ export type TicketDetailTypes =
   | SqlserverDbBackup
   | SqlserverAuthorizeRules
   | SpiderMigrateCluster
+  | RedisHaApply;

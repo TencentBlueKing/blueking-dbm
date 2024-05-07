@@ -15,26 +15,28 @@
   import type { SearchAttrs } from '@hooks';
 
   export type SearchSelectList = {
-    id: string,
-    name: string,
+    id: string;
+    name: string;
     children?: {
-      id: string | number,
-      name: string,
-    }[]
-  }[]
+      id: string | number;
+      name: string;
+    }[];
+  }[];
 
   interface Props {
-    searchAttrs: SearchAttrs,
-    validateSearchValues: ValidateValuesFunc,
-    type?: string,
+    searchAttrs: SearchAttrs;
+    validateSearchValues: ValidateValuesFunc;
+    type?: string;
+    isHost?: boolean;
   }
 
   interface Emits {
-    (e: 'searchValueChange', value: ISearchValue[]): void,
+    (e: 'searchValueChange', value: ISearchValue[]): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     type: '',
+    isHost: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -45,13 +47,13 @@
 
   const { t } = useI18n();
 
-  const isHideStatus = computed(() => props.type && props.type === 'redis');
+  const isHideStatus = computed(() => (props.type && props.type === 'redis') || props.isHost);
 
   const searchSelectData = computed(() => {
     const basicSelct = [
       {
-        name: t('IP 或 IP:Port'),
-        id: 'instance',
+        name: props.isHost ? 'IP' : t('IP 或 IP:Port'),
+        id: props.isHost ? 'ip' : 'instance',
         multiple: true,
       },
       {

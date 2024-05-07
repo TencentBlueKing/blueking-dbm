@@ -217,6 +217,7 @@
     },
     {
       id: 'redis',
+      groupName: 'Redis',
       name: 'NoSQL数据库',
       children: [
         {
@@ -225,6 +226,19 @@
           name: redisType[TicketTypes.REDIS_CLUSTER_APPLY].name,
           icon: 'redis',
         },
+        {
+          routeName: 'SelfServiceApplyRedisHa',
+          id: redisType[TicketTypes.REDIS_INS_APPLY].id,
+          name: redisType[TicketTypes.REDIS_INS_APPLY].name,
+          icon: 'redis',
+        },
+      ],
+    },
+    {
+      id: 'mongodb',
+      groupName: 'Mongodb',
+      name: 'NoSQL数据库',
+      children: [
         {
           routeName: 'MongoDBSharedClusterApply',
           id: mongoType[TicketTypes.MONGODB_SHARD_APPLY].id,

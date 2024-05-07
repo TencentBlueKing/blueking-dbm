@@ -640,7 +640,7 @@
 
         const getDetails = () => {
           const details: Record<string, any> = _.cloneDeep(formData.details);
-          const { cityName } = regionItemRef.value.getValue();
+          const { cityCode } = regionItemRef.value.getValue();
 
           if (formData.details.ip_source === 'resource_pool') {
             delete details.nodes;
@@ -648,7 +648,7 @@
             const regionAndDisasterParams = {
               affinity: details.disaster_tolerance_level,
               location_spec: {
-                city: cityName,
+                city: cityCode,
                 sub_zone_ids: [],
               },
             };

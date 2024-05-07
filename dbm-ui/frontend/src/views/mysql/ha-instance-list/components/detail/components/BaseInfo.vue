@@ -57,7 +57,9 @@
         key: 'status',
         render: () => {
           const status = props.data.status as ClusterInstStatus;
-          if (!status) return '--';
+          if (!status) {
+            return '--';
+          }
 
           const info = clusterInstStatus[status] || clusterInstStatus.unavailable;
           return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
@@ -68,7 +70,9 @@
         key: 'master_domain',
         render: () => {
           const domain = props.data.master_domain;
-          if (!domain) return '--';
+          if (!domain) {
+            return '--';
+          }
 
           return (
             <div class="inline-item">
