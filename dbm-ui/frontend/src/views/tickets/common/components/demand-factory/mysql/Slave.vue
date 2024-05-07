@@ -47,7 +47,7 @@
   }
 
   // MySQL 添加 Slave
-  const addSlaveColumns: any = [{
+  const addSlaveColumns = [{
     label: t('集群ID'),
     field: 'cluster_ids',
     render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
@@ -55,7 +55,7 @@
     label: t('集群名称'),
     field: 'immute_domain',
     showOverflowTooltip: false,
-    render: ({ data }: { data: any }) => (
+    render: ({ data }: { data: dataItem }) => (
       <div class="cluster-name text-overflow"
         v-overflow-tips={{
           content: `
@@ -75,11 +75,11 @@
   }, {
     label: t('备份源'),
     field: 'backup_source',
-    render: ({ cell }: { cell: string }) => <span>{cell === 'local' ? t('本地备份') : '--'}</span>,
+    render: ({ cell }: { cell: string }) => <span>{cell === 'local' ? t('本地备份') : t('远程备份')}</span>,
   }];
 
   // MySQL Slave 原地重建
-  const localSlaveColumns: any = [{
+  const localSlaveColumns = [{
     label: t('集群ID'),
     field: 'cluster_id',
     render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
@@ -119,27 +119,30 @@
 
   const dataList = computed(() => {
     const list: dataItem[] = [];
-    const infosData = props.ticketDetails?.details?.infos || [];
-    const clusterIds = props.ticketDetails?.details?.clusters || {};
-    infosData.forEach((item) => {
+    const {
+      clusters,
+      infos,
+      backup_source,
+    } = props.ticketDetails.details;
+    infos.forEach((item) => {
       if (item.cluster_ids) {
         item.cluster_ids.forEach((id) => {
-          const clusterData = clusterIds[id];
+          const clusterData = clusters[id];
           list.push(Object.assign({
             cluster_ids: id,
             new_slave: item.new_slave.ip,
-            backup_source: item.backup_source,
+            backup_source,
             immute_domain: clusterData.immute_domain,
             name: clusterData.name,
           }));
         });
       }
       if (item.cluster_id) {
-        const clusterData = clusterIds[item.cluster_id];
+        const clusterData = clusters[item.cluster_id];
         list.push(Object.assign({
           cluster_id: item.cluster_id,
           slave: item.slave.ip,
-          backup_source: item.backup_source,
+          backup_source,
           immute_domain: clusterData.immute_domain,
           name: clusterData.name,
         }));

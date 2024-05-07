@@ -406,9 +406,9 @@ export interface MySQLCloneDetails {
  * MySQL Slave详情
  */
 export interface MySQLSlaveDetails {
+  backup_source: string,
   clusters: clustersItems,
   infos: {
-    backup_source: string,
     cluster_ids: number[],
     cluster_id: number,
     new_slave: MysqlIpItem,
