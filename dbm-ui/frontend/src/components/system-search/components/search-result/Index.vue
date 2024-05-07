@@ -35,7 +35,9 @@
         </ScrollFaker>
       </slot>
     </div>
-    <div class="filter-wrapper">
+    <div
+      v-if="showOptions"
+      class="filter-wrapper">
       <FilterOptions
         v-model="formData"
         :biz-list="bizList" />
@@ -58,10 +60,17 @@
   import useKeyboard from './hooks/use-keyboard';
   import RenderResult from './render-result/Index.vue';
 
+  interface Props {
+    showOptions?: boolean
+  }
+
   interface Expose {
     getFilterOptions: () => typeof formData.value;
   }
 
+  withDefaults(defineProps<Props>(), {
+    showOptions: true,
+  });
   const modelValue = defineModel<string>({
     default: '',
   });
@@ -110,12 +119,22 @@
     },
   });
 
-  watch([modelValue, formData], () => {
-    if (!modelValue.value) {
-      serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
+  const handleSerachDebounce = _.debounce(handleSerach, 200);
+
+  watch([modelValue, formData], ([newKeyword], [oldKeyword]) => {
+    const newKeywordArr = newKeyword.split(batchSplitRegex);
+    const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
+    if (_.isEqual(newKeywordArr, oldKeywordArr)) {
       return;
     }
-    handleSerach({
+
+    serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
+
+    if (!modelValue.value) {
+      return;
+    }
+
+    handleSerachDebounce({
       ...formData.value,
       keyword: modelValue.value.replace(batchSplitRegex, ' '),
     });

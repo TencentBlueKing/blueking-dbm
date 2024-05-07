@@ -501,7 +501,9 @@ def get_online_twemproxy_version(ip: str, port: int, bk_cloud_id: int) -> str:
     if not resp or len(resp) == 0:
         return ""
     version_str = json.loads(resp[0]["result"])["version"]
-    return "twemproxy-" + version_str.replace("rc-", "")
+    version_str = "twemproxy-" + version_str.replace("rc-", "")
+    version_str = version_str.replace("v0.", "v")
+    return version_str
 
 
 def get_online_predixy_version(ip: str, port: int, bk_cloud_id: int, proxy_password: str) -> str:

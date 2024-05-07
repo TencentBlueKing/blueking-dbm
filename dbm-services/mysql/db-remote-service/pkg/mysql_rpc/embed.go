@@ -1,16 +1,24 @@
+// Package mysql_rpc
+/*
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+*/
 package mysql_rpc
 
 import (
-	"context"
+	"dbm-services/mysql/db-remote-service/pkg/config"
+	"dbm-services/mysql/db-remote-service/pkg/parser"
 	"fmt"
 	"log/slog"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
-
-	"dbm-services/mysql/db-remote-service/pkg/config"
-	"dbm-services/mysql/db-remote-service/pkg/parser"
 
 	_ "github.com/go-sql-driver/mysql" // mysql
 	"github.com/jmoiron/sqlx"
@@ -22,44 +30,46 @@ type MySQLRPCEmbed struct {
 
 // MakeConnection mysql 建立连接
 func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password string, timeout int) (*sqlx.DB, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
-	defer cancel()
+	connectParam := fmt.Sprintf(
+		"timeout=%ds&loc=%s&time_zone=%s",
+		timeout, "UTC", "%27%2B00%3A00%27",
+	) // +00:00 %27%2B00%3A00%27
 
-	tz := "loc=UTC&time_zone=%27%2B00%3A00%27" // +00:00
-	//tz := "loc=Local&time_zone=%27%2B08%3A00%27" // +08:00
-	db, err := sqlx.ConnectContext(
-		ctx,
+	db, err := sqlx.Connect(
 		"mysql",
-		fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, tz),
+		fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, connectParam),
 	)
 
 	if err != nil {
-		slog.Error(
-			"connect to mysql",
-			slog.String("error", err.Error()),
+		slog.Warn("first time connect to mysql",
+			slog.String("err", err.Error()),
 			slog.String("address", address),
 		)
-		return nil, err
-	}
 
+		time.Sleep(2 * time.Second)
+
+		db, err = sqlx.Connect(
+			"mysql",
+			fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, connectParam),
+		)
+		if err != nil {
+			slog.Error(
+				"retry connect to mysql",
+				slog.String("error", err.Error()),
+				slog.String("address", address),
+			)
+			return nil, err
+		}
+		return db, nil
+	}
 	return db, nil
 }
 
 // ParseCommand mysql 解析命令
 func (c *MySQLRPCEmbed) ParseCommand(command string) (*parser.ParseQueryBase, error) {
-	///*
-	//	由于 tmysqlparser 和中控兼容性不好, 不再使用 tmysqlparser 解析
-	//	改回不那么精确的用 sql 首单词来区分下
-	//*/
-	//pattern := regexp.MustCompile(`\s+`)
-	//firstWord := pattern.Split(command, -1)[0]
-	//slog.Info("parse command",
-	//	slog.String("command", command),
-	//	slog.String("first command word", firstWord))
-
 	return &parser.ParseQueryBase{
 		QueryId:   0,
-		Command:   command, //strings.ToLower(firstWord),
+		Command:   command,
 		ErrorCode: 0,
 		ErrorMsg:  "",
 	}, nil

@@ -7039,9 +7039,9 @@ sub _next_boundaries {
 	  my $o = $self->{OptionParser};
 	  my $q=$self->{Quoter};
 	  my $repl_table = $q->quote($q->split_unquote($o->get('replicate')));
-	  my $delete_sth = $self->{Cxn}->dbh()->prepare("DELETE FROM $repl_table WHERE db = ? AND tbl = ?");
+	  my $delete_sth = $self->{Cxn}->dbh()->prepare("DELETE FROM $repl_table WHERE master_ip = ? AND master_port = ? AND db = ? AND tbl = ?");
 	  PTDEBUG && _d($delete_sth->{Statement});
-	  $delete_sth->execute($tbl->{db}, $tbl->{tbl});
+	  $delete_sth->execute($o->get("host"), $o->get("port"), $tbl->{db}, $tbl->{tbl});
 
       die "Possible infinite loop detected!  "
          . "The lower boundary for chunk $chunkno is "
@@ -10701,7 +10701,7 @@ sub main {
                   Quoter       => $q,
                );
                PTDEBUG && _d($delete_sth->{Statement});
-               $delete_sth->execute($tbl->{db}, $tbl->{tbl});
+               $delete_sth->execute($o->get("host"), $o->get("port"), $tbl->{db}, $tbl->{tbl});
             }
 
             # USE the correct db while checksumming this table.  The "correct"
@@ -10867,7 +10867,7 @@ sub main {
             $cnt,                                 # master_cnt
             # WHERE
             $o->get('host'),
-	    $o->get('port'),
+	         $o->get('port'),
             $tbl->{db},
             $tbl->{tbl},
             $chunk,
@@ -10947,9 +10947,9 @@ sub main {
 		 # So we thought that deleting the checksuming result of the table in the $replicate_table  and printing error info would be good.
 		 # #######################################################################
 			$delete_sth = $master_dbh->prepare(
-					"DELETE FROM $repl_table WHERE db = ? AND tbl = ?");
+					"DELETE FROM $repl_table WHERE master_ip = ? AND master_port = ? AND db = ? AND tbl = ?");
 			PTDEBUG && _d($delete_sth->{Statement});
-			$delete_sth->execute($tbl->{db}, $tbl->{tbl});
+			$delete_sth->execute($o->get("host"), $o->get("port"), $tbl->{db}, $tbl->{tbl});
 			die "chunk-size=1 more than $check_few_rows_times_limit times.Maybe the efficiency of chunk index is so slow.Now deleting it's checksum results and skiping it.";
 		 }
 

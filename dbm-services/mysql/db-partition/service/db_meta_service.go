@@ -135,6 +135,15 @@ type BkBizId struct {
 	BkBizId int64 `json:"bk_biz_id" url:"bk_biz_id"`
 }
 
+type Biz struct {
+	BkBizId     int64  `json:"bk_biz_id"`
+	Name        string `json:"name"`
+	EnglishName string `json:"english_name"`
+	Permission  struct {
+		DbManage bool `json:"db_manage"`
+	} `json:"permission"`
+}
+
 // GetCluster 根据域名获取集群信息
 func GetCluster(dns Domain, ClusterType string) (Instance, error) {
 	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
@@ -159,6 +168,22 @@ func GetAllClustersInfo(id BkBizId) ([]Cluster, error) {
 	var resp []Cluster
 	url := "/apis/proxypass/dbmeta/priv_manager/biz_clusters/"
 	result, err := c.Do(http.MethodPost, url, id)
+	if err != nil {
+		slog.Error("msg", url, err)
+		return resp, err
+	}
+	if err = json.Unmarshal(result.Data, &resp); err != nil {
+		slog.Error("msg", url, err)
+		return resp, err
+	}
+	return resp, nil
+}
+
+func ListBizs() ([]Biz, error) {
+	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
+	var resp []Biz
+	url := "/apis/cmdb/list_bizs/"
+	result, err := c.Do(http.MethodGet, url, nil)
 	if err != nil {
 		slog.Error("msg", url, err)
 		return resp, err

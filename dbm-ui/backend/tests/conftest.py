@@ -19,9 +19,11 @@ from django.utils.crypto import get_random_string
 from backend.db_meta import models
 from backend.db_meta.enums import AccessLayer, ClusterType, MachineType
 from backend.db_meta.models import BKCity, Cluster, DBModule, LogicalCity, Machine
+from backend.flow.models import FlowTree
 from backend.tests.constants import TEST_ADMIN_USERNAME
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components import cc
+from backend.ticket.models import Ticket
 
 
 def mock_bk_user(username):
@@ -59,7 +61,7 @@ def create_city():
 @pytest.fixture
 def machine_fixture(create_city):
     bk_city = BKCity.objects.first()
-    Machine.objects.create(
+    machine = Machine.objects.create(
         ip=cc.NORMAL_IP2,
         bk_biz_id=constant.BK_BIZ_ID,
         machine_type=MachineType.BACKEND.value,
@@ -67,6 +69,7 @@ def machine_fixture(create_city):
         bk_cloud_id=1,
         bk_host_id=2,
     )
+    yield machine
 
 
 @pytest.fixture
@@ -108,13 +111,86 @@ def init_db_module():
 
 @pytest.fixture
 def init_cluster():
-    Cluster.objects.create(
+    cluster = Cluster.objects.create(
         bk_biz_id=constant.BK_BIZ_ID,
         name=constant.CLUSTER_NAME,
         db_module_id=constant.DB_MODULE_ID,
         immute_domain=constant.CLUSTER_IMMUTE_DOMAIN,
         cluster_type=ClusterType.TenDBHA.value,
     )
+    yield cluster
+
+
+@pytest.fixture
+def init_storage_instance():
+    bk_city = models.BKCity.objects.first()
+    machine = models.Machine.objects.create(
+        ip=cc.NORMAL_IP,
+        bk_biz_id=constant.BK_BIZ_ID,
+        machine_type=MachineType.BACKEND.value,
+        bk_city=bk_city,
+        access_layer=AccessLayer.PROXY,
+    )
+    cluster = Cluster.objects.first()
+    storage_instance = models.StorageInstance.objects.create(
+        version=constant.INSTANCE_VERSION,
+        port=constant.INSTANCE_PORT,
+        machine=machine,
+        bk_biz_id=constant.BK_BIZ_ID,
+        name=constant.INSTANCE_NAME,
+    )
+    storage_instance.cluster.add(cluster)
+    yield storage_instance
+
+
+@pytest.fixture
+def init_proxy_instance():
+    bk_city = models.BKCity.objects.first()
+    machine = models.Machine.objects.create(
+        ip=cc.NORMAL_IP,
+        bk_biz_id=constant.BK_BIZ_ID,
+        machine_type=MachineType.BACKEND.value,
+        bk_city=bk_city,
+        access_layer=AccessLayer.PROXY,
+    )
+    cluster = Cluster.objects.first()
+    proxy_instance = models.ProxyInstance.objects.create(
+        version=constant.INSTANCE_VERSION,
+        port=constant.INSTANCE_PORT,
+        machine=machine,
+        bk_biz_id=constant.BK_BIZ_ID,
+        name=constant.INSTANCE_NAME,
+    )
+    proxy_instance.cluster.add(cluster)
+    yield proxy_instance
+
+
+@pytest.fixture
+def init_flow_tree():
+    task = FlowTree.objects.create(
+        bk_biz_id=constant.BK_BIZ_ID,
+        uid=constant.TASK_UID,
+        ticket_type=constant.TICKET_TYPE,
+        root_id=constant.TASK_ROOT_ID,
+        tree={},
+        status=constant.TASK_STATUS,
+    )
+    yield task
+
+
+@pytest.fixture
+def init_ticket():
+    ticket = Ticket.objects.create(
+        bk_biz_id=constant.BK_BIZ_ID,
+        ticket_type=constant.TICKET_TYPE,
+        group=constant.DB_TYPE,
+        status=constant.TICKET_STATUS,
+        remark="",
+        details={},
+        send_msg_config={},
+        is_reviewed=False,
+    )
+    yield ticket
 
 
 mark_global_skip = pytest.mark.skipif(os.environ.get("GLOBAL_SKIP") == "true", reason="disable in landun WIP")

@@ -40,8 +40,9 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 	for _, tb := range tbs {
 		wg.Add(1)
 		tokenBucket <- 0
-		slog.Info(fmt.Sprintf("get init/add/drop partition for (domain:%s, dbname:%s, table_name:%s)", tb.ImmuteDomain,
-			tb.DbName, tb.TbName))
+		slog.Info(fmt.Sprintf("get init/add/drop partition for (domain:%s, dbname:%s, "+
+			"table_name:%s, partitioned:%t, has_unique_key:%t)", tb.ImmuteDomain,
+			tb.DbName, tb.TbName, tb.Partitioned, tb.HasUniqueKey))
 		go func(tb ConfigDetail) {
 			defer func() {
 				<-tokenBucket
@@ -73,7 +74,7 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 					AddString(&errs, err.Error())
 					return
 				}
-				AddInit(&initSqls, InitSql{sql, needSize})
+				AddInit(&initSqls, InitSql{sql, needSize, tb.HasUniqueKey})
 			}
 			return
 		}(tb)
@@ -110,6 +111,20 @@ func (config *PartitionConfig) GetDbTableInfo() (ptlist []ConfigDetail, err erro
 			fmt.Sprintf("db like: [%s] and table like: [%s]",
 				strings.Replace(config.DbLike, "%", "%%", -1), config.TbLike))
 	}
+	uniqueKeySql := fmt.Sprintf(
+		`select distinct TABLE_SCHEMA as TABLE_SCHEMA,TABLE_NAME as TABLE_NAME `+
+			` from information_schema.TABLE_CONSTRAINTS `+
+			` where TABLE_SCHEMA like '%s' and TABLE_NAME like '%s' and `+
+			` CONSTRAINT_TYPE in ('UNIQUE','PRIMARY KEY');`,
+		config.DbLike, config.TbLike)
+	queryRequest = QueryRequest{[]string{address}, []string{uniqueKeySql}, true,
+		30, config.BkCloudId}
+	hasUniqueKey, err := OneAddressExecuteSql(queryRequest)
+	if err != nil {
+		slog.Error("get", sql, err.Error())
+		return nil, err
+	}
+
 	for _, row := range output.CmdResults[0].TableData {
 		var partitioned bool
 		db := row["TABLE_SCHEMA"].(string)
@@ -154,8 +169,14 @@ func (config *PartitionConfig) GetDbTableInfo() (ptlist []ConfigDetail, err erro
 				}
 			}
 		}
+		uniqueKeyFlag := false
+		for _, unique := range hasUniqueKey.CmdResults[0].TableData {
+			if db == unique["TABLE_SCHEMA"].(string) && tb == unique["TABLE_NAME"].(string) {
+				uniqueKeyFlag = true
+			}
+		}
 		partitionTable := ConfigDetail{PartitionConfig: *config, DbName: db,
-			TbName: tb, Partitioned: partitioned}
+			TbName: tb, Partitioned: partitioned, HasUniqueKey: uniqueKeyFlag}
 		ptlist = append(ptlist, partitionTable)
 	}
 	slog.Info("finish getting all partition info")
@@ -355,13 +376,18 @@ func (m *ConfigDetail) GetInitPartitionSql(dbtype string, splitCnt int) (string,
 		if err != nil {
 			return initSql, needSize, err
 		}
-		options := fmt.Sprintf(
-			"--charset=utf8 --recursion-method=NONE --alter-foreign-keys-method=auto --max-load Threads_running=%d "+
-				"--critical-load=Threads_running=%d --set-vars lock_wait_timeout=%d --print --pause-file=/tmp/partition_osc_pause_%s_%s --execute ",
-			viper.GetInt("pt.max_load.threads_running"),
-			viper.GetInt("pt.critical_load.threads_running"), viper.GetInt("pt.lock_wait_timeout"), m.DbName, m.TbName)
-		initSql = fmt.Sprintf(` D=%s,t=%s --alter "partition by %s (%s)" %s`, m.DbName, m.TbName, pkey,
-			strings.Join(sqlPartitionDesc, ","), options)
+		if m.HasUniqueKey {
+			options := fmt.Sprintf(
+				"--charset=utf8 --recursion-method=NONE --alter-foreign-keys-method=auto --max-load Threads_running=%d "+
+					"--critical-load=Threads_running=%d --set-vars lock_wait_timeout=%d --print --pause-file=/tmp/partition_osc_pause_%s_%s --execute ",
+				viper.GetInt("pt.max_load.threads_running"),
+				viper.GetInt("pt.critical_load.threads_running"), viper.GetInt("pt.lock_wait_timeout"), m.DbName, m.TbName)
+			initSql = fmt.Sprintf(` D=%s,t=%s --alter "partition by %s (%s)" %s`, m.DbName, m.TbName, pkey,
+				strings.Join(sqlPartitionDesc, ","), options)
+		} else {
+			initSql = fmt.Sprintf("alter table `%s`.`%s` partition by %s (%s)", m.DbName, m.TbName, pkey,
+				strings.Join(sqlPartitionDesc, ","))
+		}
 	}
 	return initSql, needSize, nil
 }
@@ -626,12 +652,15 @@ func CreatePartitionTicket(check Checker, objects []PartitionObject, zoneOffset 
 	if check.ClusterType == Tendbcluster {
 		ticketType = "TENDBCLUSTER_PARTITION"
 	}
-	ticket := Ticket{BkBizId: check.BkBizId, TicketType: ticketType, Remark: "auto partition", IgnoreDuplication: true,
-		Details: Detail{Infos: []Info{{check.ConfigId, check.ClusterId, check.ImmuteDomain, *check.BkCloudId, objects}}}}
+	ticket := Ticket{BkBizId: check.BkBizId, DbAppAbbr: check.DbAppAbbr, BkBizName: check.BkBizName,
+		TicketType: ticketType, Remark: "auto partition", IgnoreDuplication: true,
+		Details: Detail{Infos: []Info{{check.ConfigId, check.ClusterId, check.ImmuteDomain,
+			*check.BkCloudId, objects}}}}
 	slog.Info("msg", "ticket info", fmt.Sprintf("%v", ticket))
 	id, err := CreateDbmTicket(ticket)
 	if err != nil {
-		dimension := monitor.NewPartitionEventDimension(check.BkBizId, *check.BkCloudId, check.ImmuteDomain)
+		dimension := monitor.NewPartitionEventDimension(check.BkBizId, check.DbAppAbbr, check.BkBizName,
+			*check.BkCloudId, check.ImmuteDomain)
 		content := fmt.Sprintf("partition error. create ticket fail: %s", err.Error())
 		monitor.SendEvent(monitor.PartitionEvent, dimension, content, "127.0.0.1")
 		slog.Error("msg", fmt.Sprintf("create ticket fail: %v", ticket), err)
@@ -661,7 +690,8 @@ func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate
 	vzone := fmt.Sprintf("%+03d:00", zoneOffset)
 	// 集群被offline时，其分区规则也被禁用，规则不会被定时任务执行
 	vsql := fmt.Sprintf(
-		"select id as config_id, bk_biz_id, cluster_id, immute_domain, port, bk_cloud_id,"+
+		"select id as config_id, bk_biz_id, db_app_abbr, bk_biz_name, "+
+			"cluster_id, immute_domain, port, bk_cloud_id,"+
 			" '%s' as cluster_type from `%s`.`%s` where time_zone='%s' and phase in ('%s','%s') order by 2,3;",
 		clusterType, viper.GetString("db.name"), configTb, vzone, online, offline)
 	slog.Info(vsql)

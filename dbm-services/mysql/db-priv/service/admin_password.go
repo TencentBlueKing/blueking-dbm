@@ -37,11 +37,15 @@ func (m *GetPasswordPara) GetPassword() ([]*TbPasswords, int, error) {
 	where = userWhere
 
 	for _, item := range m.Instances {
-		if item.BkCloudId == nil {
-			return passwords, 0, errno.CloudIdRequired
+		// 查询可以只填写ip，port与bk_biz_id选填
+		if item.Port != nil && item.BkCloudId != nil {
+			filterInstance = append(filterInstance, fmt.Sprintf("(ip='%s' and port=%d and bk_cloud_id=%d)",
+				item.Ip, *item.Port, *item.BkCloudId))
+		} else if item.Port != nil && item.BkCloudId == nil {
+			filterInstance = append(filterInstance, fmt.Sprintf("(ip='%s' and port=%d)", item.Ip, *item.Port))
+		} else {
+			filterInstance = append(filterInstance, fmt.Sprintf("(ip='%s')", item.Ip))
 		}
-		filterInstance = append(filterInstance, fmt.Sprintf("(ip='%s' and port=%d and bk_cloud_id=%d)",
-			item.Ip, item.Port, *item.BkCloudId))
 	}
 	instanceWhere := strings.Join(filterInstance, " or ")
 	if instanceWhere != "" {
@@ -49,6 +53,9 @@ func (m *GetPasswordPara) GetPassword() ([]*TbPasswords, int, error) {
 	}
 	if m.BeginTime != "" && m.EndTime != "" {
 		where = fmt.Sprintf(" %s and update_time>='%s' and update_time<='%s'", where, m.BeginTime, m.EndTime)
+	}
+	if m.BkBizId != nil {
+		where = fmt.Sprintf(" %s and bk_biz_id = %d ", where, *m.BkBizId)
 	}
 	var err error
 	// 分页
@@ -102,6 +109,7 @@ func (m *ModifyPasswordPara) ModifyPassword(jsonPara string, ticket string) erro
 			slog.Error("msg", "GetSecurityRule", err)
 			return err
 		}
+		// 检查传入的密码复杂度，或者生成密码
 		psw, err = CheckOrGetPassword(m.Psw, security)
 		if err != nil {
 			slog.Error("msg", "CheckOrGetPassword", err)
@@ -121,8 +129,11 @@ func (m *ModifyPasswordPara) ModifyPassword(jsonPara string, ticket string) erro
 	}
 	tx := DB.Self.Begin()
 	for _, item := range m.Instances {
+		if item.Port == nil {
+			return errno.PortRequired
+		}
 		// 平台通用账号的密码，不允许修改
-		if item.Ip == "0.0.0.0" && item.Port == 0 && !m.InitPlatform {
+		if item.Ip == "0.0.0.0" && *item.Port == 0 && !m.InitPlatform {
 			return errno.PlatformPasswordNotAllowedModified
 		}
 		if item.BkCloudId == nil {
@@ -131,7 +142,12 @@ func (m *ModifyPasswordPara) ModifyPassword(jsonPara string, ticket string) erro
 		// 更新tb_passwords中实例的密码
 		sql := fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,password,component,operator) "+
 			"values('%s',%d,%d,'%s','%s','%s','%s')",
-			item.Ip, item.Port, *item.BkCloudId, m.UserName, encrypt, m.Component, m.Operator)
+			item.Ip, *item.Port, *item.BkCloudId, m.UserName, encrypt, m.Component, m.Operator)
+		if m.BkBizId != nil {
+			sql = fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,password,component,bk_biz_id,operator) "+
+				"values('%s',%d,%d,'%s','%s','%s',%d,'%s')",
+				item.Ip, *item.Port, *item.BkCloudId, m.UserName, encrypt, m.Component, *m.BkBizId, m.Operator)
+		}
 		err = tx.Debug().Exec(sql).Error
 		if err != nil {
 			slog.Error("msg", sql, err)
@@ -170,14 +186,17 @@ func (m *GetPasswordPara) DeletePassword(jsonPara string, ticket string) error {
 	where = userWhere
 	for _, item := range m.Instances {
 		// 平台通用账号的密码，不允许删除
-		if item.Ip == "0.0.0.0" && item.Port == 0 {
+		if item.Ip == "0.0.0.0" && *item.Port == 0 {
 			return errno.PlatformPasswordNotAllowedModified
 		}
 		if item.BkCloudId == nil {
 			return errno.CloudIdRequired
 		}
+		if item.Port == nil {
+			return errno.PortRequired
+		}
 		filterInstance = append(filterInstance, fmt.Sprintf("(ip='%s' and port=%d and bk_cloud_id=%d)",
-			item.Ip, item.Port, *item.BkCloudId))
+			item.Ip, *item.Port, *item.BkCloudId))
 	}
 	instanceWhere := strings.Join(filterInstance, " or ")
 	if instanceWhere != "" {
@@ -206,11 +225,18 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 		"lock_until > now()", m.UserName, m.Component)
 	var filter []string
 	for _, item := range m.Instances {
-		filter = append(filter, fmt.Sprintf("(ip='%s' and port=%d)", item.Ip, item.Port))
+		if item.Port != nil {
+			filter = append(filter, fmt.Sprintf("(ip='%s' and port=%d)", item.Ip, *item.Port))
+		} else {
+			filter = append(filter, fmt.Sprintf("(ip='%s')", item.Ip))
+		}
 	}
 	filters := strings.Join(filter, " or ")
 	if filters != "" {
 		where = fmt.Sprintf(" %s and (%s) ", where, filters)
+	}
+	if m.BkBizId != nil {
+		where = fmt.Sprintf(" %s and bk_biz_id = %d ", where, *m.BkBizId)
 	}
 	if m.BeginTime != "" && m.EndTime != "" {
 		where = fmt.Sprintf(" %s and update_time>='%s' and update_time<='%s' ",
@@ -258,16 +284,22 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword(jsonPara string, ticke
 	if m.Component == "" {
 		return batch, errno.ComponentNull
 	}
-	AddPrivLog(PrivLog{BkBizId: 0, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 	// 后台定时任务，1、randmize_daily比如每天执行一次，随机化没有被锁住的实例 2、randmize_expired比如每分钟执行一次随机化锁定过期的实例
 	// 前台页面，单据已提示实例密码被锁定是否修改，用户确认修改，因此不检查是否锁定
+
+	// 调用频繁，不重要，不记录日志
+	if m.Range != "randmize_expired" {
+		AddPrivLog(PrivLog{BkBizId: 0, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
+	}
 	if m.Async && m.Range == "randmize_expired" {
+		// 过滤出需要随机化的实例
 		errCheck = m.NeedToBeRandomized()
 		if errCheck != nil {
 			slog.Error("msg", "NeedToBeRandomized", errCheck)
 			return batch, errCheck
 		}
 	} else if m.Async && m.Range == "randmize_daily" {
+		// 去除密码被锁定的实例，不参与日常随机化
 		errCheck = m.RemoveLockedInstances()
 		if errCheck != nil {
 			return batch, errCheck
@@ -315,6 +347,10 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword(jsonPara string, ticke
 			slog.Error("msg", errno.ClusterTypeIsEmpty)
 			return batch, errno.ClusterTypeIsEmpty
 		}
+		if cluster.BkBizId == nil {
+			return batch, errno.BkBizIdIsEmpty
+		}
+		// 一个集群中的各个实例使用同一个密码
 		var psw, encrypt string
 		var errOuter error
 		if passwordInput == "" {
@@ -431,12 +467,13 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPasswordForSqlserver(
 		}
 	}
 	if len(successList) > 0 {
-		AddResource(success, OneCluster{cluster.BkCloudId, cluster.ClusterType, successList})
+		AddResource(success, OneCluster{cluster.BkCloudId, cluster.ClusterType, cluster.BkBizId,
+			successList})
 	}
 	if len(failList) > 0 {
-		AddResource(fail, OneCluster{cluster.BkCloudId, cluster.ClusterType, failList})
+		AddResource(fail, OneCluster{cluster.BkCloudId, cluster.ClusterType, cluster.BkBizId,
+			failList})
 	}
-
 }
 
 // ModifyAdminPasswordForMysql 专属mysql 修改admin密码函数
@@ -496,14 +533,15 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPasswordForMysql(
 			}
 			// 更新tb_passwords中实例的密码
 			sql := fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
-				"password,component,operator) values('%s',%d,%d,'%s','%s','%s','%s')",
-				address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component, m.Operator)
+				"password,component,bk_biz_id,operator) values('%s',%d,%d,'%s','%s','%s',%d,'%s')",
+				address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component,
+				*cluster.BkBizId, m.Operator)
 			if m.LockHour != 0 {
 				sql = fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
-					"password,component,operator,lock_until) values('%s',%d,%d,'%s','%s','%s','%s',date_add("+
-					"now(),INTERVAL %d hour))",
+					"password,component,bk_biz_id,operator,lock_until) values("+
+					"'%s',%d,%d,'%s','%s','%s',%d,'%s',date_add(now(),INTERVAL %d hour))",
 					address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component,
-					m.Operator, m.LockHour)
+					*cluster.BkBizId, m.Operator, m.LockHour)
 			}
 			result := DB.Self.Exec(sql)
 			if result.Error != nil {
@@ -514,18 +552,24 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPasswordForMysql(
 			}
 			ok.Addresses = append(ok.Addresses, address)
 		}
+		// 修改密码成功的实例列表
 		if len(ok.Addresses) > 0 {
 			successList = append(successList, ok)
 		}
+		// 修改密码失败的实例列表
 		if len(notOK.Addresses) > 0 {
 			failList = append(failList, notOK)
 		}
 	}
+	// 修改密码成功的实例列表，包含集群信息
 	if len(successList) > 0 {
-		AddResource(success, OneCluster{cluster.BkCloudId, cluster.ClusterType, successList})
+		AddResource(success, OneCluster{cluster.BkCloudId, cluster.ClusterType,
+			cluster.BkBizId, successList})
 	}
+	// 修改密码失败的实例列表，包含集群信息
 	if len(failList) > 0 {
-		AddResource(fail, OneCluster{cluster.BkCloudId, cluster.ClusterType, failList})
+		AddResource(fail, OneCluster{cluster.BkCloudId, cluster.ClusterType,
+			cluster.BkBizId, failList})
 	}
 }
 
@@ -555,9 +599,9 @@ func (m *PlatformPara) MigratePlatformPassword() error {
 	slog.Info("msg", "migrate users", users)
 	for _, component := range users {
 		for _, user := range component.NamePassword {
-			defaultCloudId := int64(0)
+			defaultInt := int64(0)
 			para := &ModifyPasswordPara{UserName: user.Name, Component: component.Component, Operator: "migrate",
-				Instances:    []Address{{"0.0.0.0", 0, &defaultCloudId}},
+				Instances:    []Address{{"0.0.0.0", &defaultInt, &defaultInt}},
 				InitPlatform: true, Psw: base64.StdEncoding.EncodeToString([]byte(user.Password))}
 			jsonPara, _ := json.Marshal(*para)
 			err = para.ModifyPassword(string(jsonPara), "modify_password")

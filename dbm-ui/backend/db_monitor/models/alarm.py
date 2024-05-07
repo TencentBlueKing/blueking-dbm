@@ -40,7 +40,7 @@ from backend.db_monitor.constants import (
 from backend.db_monitor.exceptions import BkMonitorDeleteAlarmException, BuiltInNotAllowDeleteException
 from backend.db_monitor.tasks import update_app_policy
 from backend.db_monitor.utils import bkm_delete_alarm_strategy, bkm_save_alarm_strategy, render_promql_sql
-from backend.exceptions import ApiError, ApiResultError
+from backend.exceptions import ApiError
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
 
@@ -102,8 +102,9 @@ class NoticeGroup(AuditedModel):
         if self.is_built_in:
             # 内置告警组
             # 创建/更新一条轮值规则
+            rule_name = f"{self.name}_{self.bk_biz_id}"
             save_duty_rule_params = {
-                "name": f"{self.name}_{self.bk_biz_id}",
+                "name": rule_name,
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                 "effective_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "end_time": "",
@@ -119,14 +120,16 @@ class NoticeGroup(AuditedModel):
             }
             if self.monitor_duty_rule_id:
                 save_duty_rule_params["id"] = self.monitor_duty_rule_id
-            try:
-                resp = BKMonitorV3Api.save_duty_rule(save_duty_rule_params)
-                self.monitor_duty_rule_id = resp["id"]
-            except ApiError as err:
-                logger.error(f"request monitor api error: {err}")
-                save_monitor_group_params["duty_arranges"][0]["users"] = self.receivers
             else:
-                # 轮值生效，把相同 db_type 的轮值应用到此告警组中
+                rules = BKMonitorV3Api.search_duty_rule({"bk_biz_ids": [env.DBA_APP_BK_BIZ_ID], "name": rule_name})
+                for rule in rules:
+                    if rule["name"] == rule_name:
+                        save_duty_rule_params["id"] = rule["id"]
+                        self.monitor_duty_rule_id = rule["id"]
+
+            resp = BKMonitorV3Api.save_duty_rule(save_duty_rule_params, use_admin=True, raw=True)
+            if resp.get("result"):
+                self.monitor_duty_rule_id = resp["data"]["id"]
                 monitor_duty_rule_ids = (
                     DutyRule.objects.filter(db_type=self.db_type)
                     .exclude(monitor_duty_rule_id=0)
@@ -135,24 +138,44 @@ class NoticeGroup(AuditedModel):
                 )
                 save_monitor_group_params["need_duty"] = True
                 save_monitor_group_params["duty_rules"] = list(monitor_duty_rule_ids) + [self.monitor_duty_rule_id]
+            else:
+                if resp.get("code") == BKMonitorV3Api.ErrorCode.DUTY_RULE_NAME_ALREADY_EXISTS:
+                    logger.warning(f"duty_rule_name_already_exists,resp:{resp}")
+                else:
+                    logger.error(f"request monitor api error: {ApiError}")
+                save_monitor_group_params["duty_arranges"][0]["users"] = self.receivers
+
         else:
             save_monitor_group_params["duty_arranges"][0]["users"] = self.receivers
 
         if self.monitor_group_id:
             save_monitor_group_params["id"] = self.monitor_group_id
+
         # 调用监控接口写入
-        try:
-            resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
-        except ApiResultError:
-            # 告警组重名的情况下，匹配告警组名称，获取 id 进行更新
-            bk_monitor_groups = BKMonitorV3Api.search_user_groups({"bk_biz_ids": [env.DBA_APP_BK_BIZ_ID]})
+
+        resp = BKMonitorV3Api.save_user_group(
+            save_monitor_group_params,
+            use_admin=True,
+            raw=True,
+        )
+        if resp.get("result"):
+            self.sync_at = datetime.datetime.now(timezone.utc)
+            return resp["data"]["id"]
+
+        if resp.get("code") == BKMonitorV3Api.ErrorCode.MONITOR_GROUP_NAME_ALREADY_EXISTS:
+            bk_monitor_groups = BKMonitorV3Api.search_user_groups(
+                {"bk_biz_ids": [env.DBA_APP_BK_BIZ_ID], "name": bk_monitor_group_name}
+            )
             for group in bk_monitor_groups:
                 if group["name"] == bk_monitor_group_name:
-                    save_monitor_group_params["id"] = group["id"]
+                    save_monitor_group_params["id"] = group[0]["id"]
                     break
             resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
-        self.sync_at = datetime.datetime.now(timezone.utc)
-        return resp["id"]
+            self.sync_at = datetime.datetime.now(timezone.utc)
+            return resp["id"]
+
+        else:
+            raise ApiError(f"save_user_group({bk_monitor_group_name}) error, resp:{resp}")
 
     def save(self, *args, **kwargs):
         """

@@ -432,6 +432,7 @@ class RedisClusterVersionUpdateOnline(object):
             act_kwargs.cluster["immute_domain"] = cluster_meta_data["immute_domain"]
             act_kwargs.cluster["cluster_type"] = cluster_meta_data["cluster_type"]
             act_kwargs.cluster["cluster_name"] = cluster_meta_data["cluster_name"]
+            act_kwargs.cluster["cluster_id"] = int(input_item["cluster_id"])
             act_kwargs.cluster["switch_condition"] = {
                 "is_check_sync": True,  # 不强制切换
                 "slave_master_diff_time": DEFAULT_MASTER_DIFF_TIME,

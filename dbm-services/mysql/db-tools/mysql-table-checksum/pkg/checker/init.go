@@ -49,6 +49,7 @@ func init() {
 		{Name: "quiet", Value: false, HasOpposite: false},
 		{Name: "binary-index", Value: true, HasOpposite: false},
 		{Name: "version-check", Value: false, HasOpposite: true},
+		{Name: "create-replicate-table", Value: false, HasOpposite: true},
 	}
 	commonDefaultSwitchStrategies = []switchStrategy{}
 	commonForceKVStrategies = []kvStrategy{

@@ -18,6 +18,67 @@ from backend.db_meta import api
 from backend.db_meta.enums import ClusterType
 
 
+@swagger_auto_schema(methods=["get"])
+@csrf_exempt
+# @login_exempt
+@api_view(["GET"])
+# @permission_classes([AllowAny])
+def cluster_instances(request: Request):
+    try:
+        return JsonResponse(
+            {
+                "msg": "",
+                "code": 0,
+                "data": api.priv_manager.cluster_instances(immute_domain=request.query_params.get("immute_domain")),
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+
+
+@swagger_auto_schema(methods=["get"])
+@csrf_exempt
+# @login_exempt
+@api_view(["GET"])
+# @permission_classes([AllowAny])
+def instance_detail(request: Request):
+    try:
+        return JsonResponse(
+            {
+                "msg": "",
+                "code": 0,
+                "data": api.priv_manager.instance_detail(
+                    ip=request.query_params.get("ip"),
+                    port=request.query_params.get("port"),
+                    bk_cloud_id=request.query_params.get("bk_cloud_id"),
+                ),
+            }
+        )
+    except Exception as e:  # pylint: disable=broad-except
+        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+
+
+@swagger_auto_schema(methods=["get"])
+@csrf_exempt
+# @login_exempt
+@api_view(["GET"])
+# @permission_classes([AllowAny])
+def biz_clusters(request: Request):
+    try:
+        return JsonResponse(
+            {
+                "msg": "",
+                "code": 0,
+                "data": api.priv_manager.biz_clusters(
+                    bk_biz_id=request.query_params.get("bk_biz_id"),
+                    immute_domains=request.query_params.getlist("immute_domains"),
+                ),
+            }
+        )
+    except Exception as e:  # pylint: disable=broad-except
+        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+
+
 # tendbcluster
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt

@@ -44,7 +44,6 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
 
         bk_biz_id = validated_data.get("bk_biz_id")
         cluster_id = validated_data.get("cluster_id")
-        # instance_id = validated_data.get("instance_id")
         cluster_type = validated_data.get("cluster_type")
 
         # instance = StorageInstance.objects.filter(id=instance_id).last()

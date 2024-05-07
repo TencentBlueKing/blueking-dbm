@@ -89,7 +89,12 @@ def get_mysql_instance(cluster: Cluster):
         instances.append(_get_instances(AdminPasswordRole.SPIDER.value, spiders))
         instances.append(_get_instances(AdminPasswordRole.TDBCTL.value, dbctls))
 
-    return {"bk_cloud_id": cluster.bk_cloud_id, "cluster_type": cluster.cluster_type, "instances": instances}
+    return {
+        "bk_cloud_id": cluster.bk_cloud_id,
+        "bk_biz_id": cluster.bk_biz_id,
+        "cluster_type": cluster.cluster_type,
+        "instances": instances,
+    }
 
 
 def get_all_mysql_clusters():

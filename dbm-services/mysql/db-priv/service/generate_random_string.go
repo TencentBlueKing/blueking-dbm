@@ -34,7 +34,12 @@ type CheckPasswordPara struct {
 }
 
 func GenerateRandomString(security SecurityRule) (string, error) {
-	length := rand.Intn(security.MaxLength-security.MinLength) + security.MinLength
+	var length int
+	if security.MaxLength == security.MinLength {
+		length = security.MaxLength
+	} else {
+		length = rand.Intn(security.MaxLength-security.MinLength) + security.MinLength
+	}
 	var str []byte
 	// 字母与数字占比90%，符号占比10%
 	alphabetNumberStr := fmt.Sprintf("%s%s%s", lowercase, uppercase, number)

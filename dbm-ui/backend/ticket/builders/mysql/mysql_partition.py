@@ -21,6 +21,7 @@ from backend.ticket.constants import TicketType
 class InitPartitionSerializer(serializers.Serializer):
     sql = serializers.CharField(help_text=_("初始化分区语句"))
     need_size = serializers.IntegerField(help_text=_("所需空间Byte"))
+    has_unique_key = serializers.BooleanField(help_text=_("表是否包含唯一键或者主键"))
 
 
 class ExecuteObjectSerializer(serializers.Serializer):

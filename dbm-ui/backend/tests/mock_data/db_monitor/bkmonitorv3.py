@@ -70,7 +70,7 @@ MOCK_SAVE_DUTY_RULE_RETURN = {
     "edit_allowed": True,
 }
 
-MOCK_SAVE_USER_GROUP_RETURN = {"id": 0}
+MOCK_SAVE_USER_GROUP_RETURN = {"data": {"id": 0}, "code": 0, "result": True}
 
 
 # BKMonitorV3Api的mock
@@ -80,6 +80,10 @@ class BKMonitorV3MockApi:
     delete_user_groups_return = None
     search_user_groups_return = None
     delete_duty_rules_return = None
+
+    class ErrorCode:
+        MONITOR_GROUP_NAME_ALREADY_EXISTS = 3312003
+        DUTY_RULE_NAME_ALREADY_EXISTS = 3312006
 
     def __init__(
         self,
