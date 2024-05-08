@@ -49,7 +49,8 @@
       v-model="isForce"
       v-bk-tooltips="t('安全模式下_存在业务连接时需要人工确认')"
       class="mb-20"
-      :false-label="false">
+      :false-label="1"
+      :true-label="0">
       <span
         class="inline-block"
         style=" margin-top: -2px;border-bottom: 1px dashed #979ba5;">
@@ -154,7 +155,7 @@
   const isShowBatchInput = ref(false);
   const isShowBatchSelector = ref(false);
   const isSubmitting = ref(false);
-  const isForce = ref(false);
+  const isForce = ref(1);
   const popRef = ref<HTMLDivElement>();
   const isShowInputTips = ref(false);
   const tableData = ref<Array<TableItem>>([getTableItem()]);
@@ -271,7 +272,6 @@
             paste-fn={tagInputPasteFn}
             has-delete-icon
             collapse-tags
-            paste-fn={tagInputPasteFn}
             placeholder={t('请输入')}
             onClick={handleShowTips}
             v-clickoutside={handleHideTips}
@@ -826,10 +826,11 @@
               // drop_database 类型默认传 *
               table_patterns: item.truncate_data_type === 'drop_database' ? ['*'] : formatList(item.table_patterns),
               ignore_tables: formatList(item.ignore_tables),
-              force: isForce.value,
+              force: Boolean(isForce.value),
             })),
           },
         };
+
         createTicket(params)
           .then((res) => {
             ticketId.value = res.id;
