@@ -48,8 +48,7 @@
     <BkCheckbox
       v-model="isForce"
       v-bk-tooltips="t('如忽略_有连接的情况下也会执行')"
-      class="mb-20"
-      :false-label="false">
+      class="mb-20">
       <span
         class="inline-block"
         style=" margin-top: -2px;border-bottom: 1px dashed #979ba5;">
@@ -559,6 +558,7 @@
             })),
           },
         };
+
         createTicket(params)
           .then((res) => {
             ticketId.value = res.id;
