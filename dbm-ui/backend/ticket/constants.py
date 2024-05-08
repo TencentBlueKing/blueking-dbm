@@ -301,7 +301,9 @@ class TicketType(str, StructuredEnum):
     REDIS_CLUSTER_VERSION_UPDATE_ONLINE = TicketEnumField("REDIS_CLUSTER_VERSION_UPDATE_ONLINE", _("Redis 集群版本升级"), register_iam=False)  # noqa
     REDIS_CLUSTER_REINSTALL_DBMON = TicketEnumField("REDIS_CLUSTER_REINSTALL_DBMON", _("Redis 集群重装DBMON"), register_iam=False)
     REDIS_PREDIXY_CONFIG_SERVERS_REWRITE = TicketEnumField("REDIS_PREDIXY_CONFIG_SERVERS_REWRITE", _("predixy配置重写"), register_iam=False)  # noqa
-    REDIS_CLUSTER_PROXYS_UPGRADE = TicketEnumField("REDIS_CLUSTER_PROXYS_UPGRADE", _("Redis 集群proxys版本升级"), register_iam=False)
+    REDIS_CLUSTER_PROXYS_UPGRADE = TicketEnumField("REDIS_CLUSTER_PROXYS_UPGRADE", _("Redis 集群proxys版本升级"), register_iam=False) # noqa
+    REDIS_MAXMEMORY_SET = TicketEnumField("REDIS_MAXMEMORY_SET", _("Redis maxmemory设置"), register_iam=False)
+    REDIS_DIRTY_MACHINE_CLEAR = TicketEnumField("REDIS_DIRTY_MACHINE_CLEAR", _("Redis脏机清理"), register_iam=False)
 
     # 大数据
     KAFKA_APPLY = TicketEnumField("KAFKA_APPLY", _("Kafka 集群部署"), register_iam=False)

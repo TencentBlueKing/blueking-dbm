@@ -158,6 +158,33 @@ class RedisDBMeta(object):
         api.cluster.nosqlcomm.decommission_proxies(cluster, proxies=proxies, is_all=False)
         return True
 
+    def clear_dirty_proxy_dbmetas(self) -> bool:
+        """
+        清理没在集群中的proxy的dbmeta
+        """
+        proxy_ip = self.cluster["proxy_ips"][0]
+        bk_cloud_id = self.cluster["bk_cloud_id"]
+        proxy_inst = ProxyInstance.objects.filter(machine__ip=proxy_ip, machine__bk_cloud_id=bk_cloud_id).first()
+        cc_manage = CcManage(proxy_inst.bk_biz_id, proxy_inst.cluster_type)
+        proxy_objs = ProxyInstance.objects.filter(machine__ip=proxy_ip)
+        cc_manage.delete_service_instance(bk_instance_ids=[obj.bk_instance_id for obj in proxy_objs])
+        for proxy_obj in proxy_objs:
+            logger.info("proxy_instance:{}:{} storage delete".format(proxy_obj.machine.ip, proxy_obj.port))
+            proxy_obj.storageinstance.clear()
+            logger.info("proxy_instance:{}:{} cluster_bind_entry delete".format(proxy_obj.machine.ip, proxy_obj.port))
+            proxy_obj.bind_entry.clear()
+            logger.info("proxy_instance:{}:{} cluster_bind_entry delete".format(proxy_obj.machine.ip, proxy_obj.port))
+            proxy_obj.delete()
+            # 需要检查， 是否该机器上所有实例都已经清理干净，
+            if ProxyInstance.objects.filter(machine__ip=proxy_obj.machine.ip, bk_biz_id=proxy_obj.bk_biz_id).exists():
+                logger.info("ignore proxy machine {} , another instance existed.".format(proxy_obj.machine))
+            else:
+                logger.info("proxy machine {}".format(proxy_obj.machine))
+                cc_manage.recycle_host([proxy_obj.machine.bk_host_id])
+                proxy_obj.machine.delete()
+        logger.info("{} proxy_instance delete".format(proxy_ip))
+        return True
+
     def proxy_status_update(self) -> bool:
         """
         proxy状态更新
@@ -577,7 +604,26 @@ class RedisDBMeta(object):
             cluster = Cluster.objects.get(
                 bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
             )
-            api.cluster.nosqlcomm.redo_slaves(cluster, self.cluster["tendiss"], self.cluster["created_by"])
+            if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
+                # 集群
+                api.cluster.nosqlcomm.redo_slaves(cluster, self.cluster["tendiss"], self.cluster["created_by"])
+            else:
+                # 主从
+                for item in self.cluster["tendiss"]:
+                    master_obj = StorageInstance.objects.get(
+                        machine__ip=item["ejector"]["ip"], port=item["ejector"]["port"]
+                    )
+                    mycluster = master_obj.cluster.first()
+                    if not mycluster:
+                        raise Exception(
+                            "not found master by master {}:{}".format(master_obj.machine.ip, master_obj.port)
+                        )
+                    logger.info(
+                        "found cluster:{} by master {}:{}".format(
+                            mycluster.immute_domain, master_obj.machine.ip, master_obj.port
+                        )
+                    )
+                    api.cluster.nosqlcomm.redo_slaves(mycluster, [item], self.cluster["created_by"])
         return True
 
     def redis_replace_pair(self) -> bool:
