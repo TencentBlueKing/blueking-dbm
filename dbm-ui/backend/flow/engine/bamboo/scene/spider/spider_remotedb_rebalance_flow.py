@@ -28,6 +28,9 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
+    mysql_restore_master_slave_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import remote_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import (
@@ -52,6 +55,7 @@ from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 from backend.flow.utils.spider.tendb_cluster_info import get_cluster_info
+from backend.ticket.builders.common.constants import MySQLBackupSource
 
 logger = logging.getLogger("flow")
 
@@ -69,6 +73,7 @@ class TenDBRemoteRebalanceFlow(object):
         self.root_id = root_id
         self.ticket_data = ticket_data
         self.data = {}
+        self.backup_target_path = f"/data/dbbak/{self.root_id}"
 
     def tendb_migrate(self):
         """
@@ -86,7 +91,7 @@ class TenDBRemoteRebalanceFlow(object):
         tendb_migrate_pipeline_all_list = []
         for info in self.ticket_data["infos"]:
             cluster_info = get_cluster_info(info["cluster_id"])
-
+            cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
             self.data = {}
             self.data = copy.deepcopy(info)
             self.data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
@@ -100,15 +105,18 @@ class TenDBRemoteRebalanceFlow(object):
             # 卸载流程时强制卸载
             self.data["force"] = True
 
-            # 先查询备份，如果备份不存在则退出，不安装实例
-            # restore_time = datetime.strptime("2023-07-31 17:40:00", "%Y-%m-%d %H:%M:%S")
-            backup_handler = FixPointRollbackHandler(self.data["cluster_id"])
-            restore_time = datetime.now(timezone.utc)
-            backup_info = backup_handler.query_latest_backup_log(restore_time)
-            if backup_info is None:
-                logger.error("cluster {} backup info not exists".format(self.data["cluster_id"]))
-                raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(self.data["cluster_id"])))
-            logger.debug(backup_info)
+            backup_info = {}
+            if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
+                # 先查询备份，如果备份不存在则退出
+                # restore_time = datetime.strptime("2023-07-31 17:40:00", "%Y-%m-%d %H:%M:%S")
+                backup_handler = FixPointRollbackHandler(cluster_class.id)
+                restore_time = datetime.now(timezone.utc)
+                backup_info = backup_handler.query_latest_backup_log(restore_time)
+                logger.debug(backup_info)
+                if backup_info is None:
+                    logger.error("cluster {} backup info not exists".format(cluster_class.id))
+                    raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_class.id)))
+
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             charset, db_version = get_version_and_charset(
                 bk_biz_id=cluster_info["bk_biz_id"],
@@ -117,7 +125,6 @@ class TenDBRemoteRebalanceFlow(object):
             )
             cluster_info["charset"] = charset
             cluster_info["db_version"] = db_version
-            cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
 
             shards = len(cluster_info["shards"])
             if self.data["remote_shard_num"] * len(self.data["remote_group"]) != shards:
@@ -226,27 +233,43 @@ class TenDBRemoteRebalanceFlow(object):
                 ins_cluster["slave_ip"] = node["slave"]["ip"]
                 ins_cluster["master_port"] = node["master"]["port"]
                 ins_cluster["slave_port"] = node["slave"]["port"]
-                ins_cluster["file_target_path"] = f"/data/dbbak/{self.root_id}/{ins_cluster['master_port']}"
+                ins_cluster["file_target_path"] = f"{self.backup_target_path}/{node['new_master']['port']}"
                 ins_cluster["shard_id"] = shard_id
                 ins_cluster["change_master_force"] = False
-                ins_cluster["backupinfo"] = backup_info["remote_node"].get(shard_id, {})
-                # 判断 remote_node 下每个分片的备份信息是否正常
-                if (
-                    len(ins_cluster["backupinfo"]) == 0
-                    or len(ins_cluster["backupinfo"].get("file_list_details", {})) == 0
-                ):
-                    logger.error(
-                        "cluster {} shard {} backup info not exists".format(self.data["cluster_id"], shard_id)
-                    )
-                    raise TendbGetBackupInfoFailedException(
-                        message=_("获取集群分片 {} shard {}  的备份信息失败".format(self.data["cluster_id"], shard_id))
-                    )
+
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                sync_data_sub_pipeline.add_sub_pipeline(
-                    sub_flow=remote_instance_migrate_sub_flow(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=ins_cluster
+                if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
+                    shard_backupinfo = backup_info["remote_node"].get(shard_id, {})
+                    ins_cluster["backupinfo"] = shard_backupinfo
+                    logger.debug(shard_backupinfo)
+                    if len(shard_backupinfo) == 0 or len(shard_backupinfo.get("file_list_details", {})) == 0:
+                        logger.error(
+                            "cluster {} shard {} backup info not exists".format(self.data["cluster_id"], shard_id)
+                        )
+                        raise TendbGetBackupInfoFailedException(
+                            message=_("获取集群分片 {} shard {}  的备份信息失败".format(self.data["cluster_id"], shard_id))
+                        )
+                    sync_data_sub_pipeline.add_sub_pipeline(
+                        sub_flow=remote_instance_migrate_sub_flow(
+                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=ins_cluster
+                        )
                     )
-                )
+                else:
+                    ins_cluster["change_master"] = False
+                    inst_list = [
+                        "{}{}{}".format(node["master"]["ip"], IP_PORT_DIVIDER, node["master"]["port"]),
+                        "{}{}{}".format(node["slave"]["ip"], IP_PORT_DIVIDER, node["slave"]["port"]),
+                    ]
+                    sync_data_sub_pipeline.add_sub_pipeline(
+                        sub_flow=mysql_restore_master_slave_sub_flow(
+                            root_id=self.root_id,
+                            ticket_data=copy.deepcopy(self.data),
+                            cluster=ins_cluster,
+                            cluster_model=cluster_class,
+                            ins_list=inst_list,
+                        )
+                    )
+
                 sync_data_sub_pipeline.add_act(
                     act_name=_("同步数据完毕,写入数据节点的主从关系相关元数据"),
                     act_component_code=SpiderDBMetaComponent.code,

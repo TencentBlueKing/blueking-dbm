@@ -33,7 +33,6 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database im
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_mnt import TenDBClusterReduceMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
-from backend.flow.engine.bamboo.scene.spider.spider_remotedb_migrate_flow import TenDBMigrateFlow
 from backend.flow.engine.bamboo.scene.spider.spider_remotedb_rebalance_flow import TenDBRemoteRebalanceFlow
 from backend.flow.engine.bamboo.scene.spider.spider_rename_database_flow import SpiderRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_deploy import TenDBSlaveClusterApplyFlow
@@ -163,13 +162,6 @@ class SpiderController(BaseController):
         """
         flow = RemoteMasterFailOverFlow(root_id=self.root_id, data=self.ticket_data)
         flow.remote_fail_over()
-
-    def migrate_remotedb(self):
-        """
-        remote 节点1:1迁移
-        """
-        flow = TenDBMigrateFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.tendb_migrate()
 
     def tendb_cluster_remote_rebalance(self):
         """

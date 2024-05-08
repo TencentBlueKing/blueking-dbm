@@ -468,17 +468,17 @@ class MySQLRestoreSlaveFlow(object):
             )
 
             # 创建repl账号
-            cluster["target_ip"] = master.machine.ip
-            cluster["target_port"] = master.port
-            cluster["repl_ip"] = target_slave.machine.ip
-            exec_act_kwargs.cluster = copy.deepcopy(cluster)
-            exec_act_kwargs.exec_ip = master.machine.ip
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
-            tendb_migrate_pipeline.add_act(
-                act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
+            # cluster["target_ip"] = master.machine.ip
+            # cluster["target_port"] = master.port
+            # cluster["repl_ip"] = target_slave.machine.ip
+            # exec_act_kwargs.cluster = copy.deepcopy(cluster)
+            # exec_act_kwargs.exec_ip = master.machine.ip
+            # exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
+            # tendb_migrate_pipeline.add_act(
+            #     act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
+            #     act_component_code=ExecuteDBActuatorScriptComponent.code,
+            #     kwargs=asdict(exec_act_kwargs),
+            # )
 
             inst_list = ["{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)]
             tendb_migrate_pipeline.add_sub_pipeline(
