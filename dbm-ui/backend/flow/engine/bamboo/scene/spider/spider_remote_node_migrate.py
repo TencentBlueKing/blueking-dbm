@@ -22,145 +22,14 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile import (
     MySQLDownloadBackupfileComponent,
 )
-from backend.flow.plugins.components.collections.mysql.slave_trans_flies import SlaveTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     DownloadBackupFileKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
-    P2PFileKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.spider.tendb_cluster_info import get_remotedb_info
-
-
-def remote_node_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
-    """
-    主从成对迁移子流程。(只做流程,元数据请在主流程控制)
-    @param root_id:   flow 流程的root_id
-    @param ticket_data:  单据传输过来的data数据
-    @param cluster_info:  关联集群的信息
-    """
-
-    sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    #  已经安装好的2个ip，需要导入同步数据
-    # 下发dbactor》通过master/slave 获取备份的文件》判断备份文件》恢复数据》change master
-    cluster = {
-        "master_ip": cluster_info["master_ip"],
-        "slave_ip": cluster_info["slave_ip"],
-        "master_port": cluster_info["master_port"],
-        "new_master_ip": cluster_info["new_master_ip"],
-        "new_slave_ip": cluster_info["new_slave_ip"],
-        "new_master_port": cluster_info["new_master_port"],
-        "bk_cloud_id": cluster_info["bk_cloud_id"],
-        "backup_target_path": cluster_info["backup_target_path"],
-    }
-    exec_act_kwargs = ExecActuatorKwargs(
-        bk_cloud_id=int(cluster["bk_cloud_id"]),
-        cluster_type=ClusterType.TenDBCluster,
-    )
-    #  阶段1 传输工具
-    exec_ip = [cluster["master_ip"], cluster["slave_ip"], cluster["new_master_ip"], cluster["new_slave_ip"]]
-    sub_pipeline.add_act(
-        act_name=_("下发db-actor: {}".format(exec_ip)),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(
-            DownloadMediaKwargs(
-                bk_cloud_id=cluster["bk_cloud_id"],
-                exec_ip=exec_ip,
-                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-            )
-        ),
-    )
-    # 阶段2
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_find_local_backup_payload.__name__
-    exec_act_kwargs.exec_ip = cluster["master_ip"]
-    sub_pipeline.add_act(
-        act_name=_("获取master节点备份介质{}").format(exec_act_kwargs.exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-        write_payload_var="master_backup_file",
-    )
-    exec_act_kwargs.exec_ip = cluster["slave_ip"]
-    sub_pipeline.add_act(
-        act_name=_("获取slave节点备份介质{}").format(exec_act_kwargs.exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-        write_payload_var="slave_backup_file",
-    )
-    # 阶段3 判断备份介质，并传输备份介质
-    sub_pipeline.add_act(
-        act_name=_("判断备份文件来源,并传输备份文件新机器"),
-        act_component_code=SlaveTransFileComponent.code,
-        kwargs=asdict(
-            P2PFileKwargs(
-                bk_cloud_id=cluster["bk_cloud_id"],
-                file_list=[],
-                file_target_path=cluster["backup_target_path"],
-                source_ip_list=[],
-                exec_ip=[cluster["new_slave_ip"], cluster["new_master_ip"]],
-            )
-        ),
-    )
-    # 阶段4 恢复数据  payload 需要注意新实例端口可能与旧实例不一样
-    restore_list = []
-    exec_act_kwargs.exec_ip = cluster["new_master_ip"]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_mysql_restore_slave_payload.__name__
-    restore_list.append(
-        {
-            "act_name": _("恢复新主节点数据{}:{}").format(exec_act_kwargs.exec_ip, cluster["new_master_port"]),
-            "act_component_code": ExecuteDBActuatorScriptComponent.code,
-            "kwargs": asdict(exec_act_kwargs),
-            "write_payload_var": "change_master_info",
-        }
-    )
-
-    exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_mysql_restore_slave_payload.__name__
-    restore_list.append(
-        {
-            "act_name": _("恢复新从节点数据{}:{}").format(exec_act_kwargs.exec_ip, cluster["new_master_port"]),
-            "act_component_code": ExecuteDBActuatorScriptComponent.code,
-            "kwargs": asdict(exec_act_kwargs),
-        }
-    )
-    sub_pipeline.add_parallel_acts(acts_list=restore_list)
-
-    # 阶段5 change master: 新从库指向新主库  注意端口
-    exec_act_kwargs.exec_ip = cluster["new_master_ip"]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_grant_mysql_repl_user_payload.__name__
-    sub_pipeline.add_act(
-        act_name=_("新增repl帐户{}").format(exec_act_kwargs.exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-        write_payload_var="master_ip_sync_info",
-    )
-
-    exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_change_master_payload.__name__
-    sub_pipeline.add_act(
-        act_name=_("建立主从关系:新从库指向新主库 {}").format(exec_act_kwargs.exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-    )
-
-    # 阶段6 change master: 新主库指向旧主库 todo 注意端口
-    exec_act_kwargs.exec_ip = cluster["master_ip"]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_grant_repl_for_migrate_cluster.__name__
-    sub_pipeline.add_act(
-        act_name=_("新增repl帐户{}").format(exec_act_kwargs.exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-    )
-    exec_act_kwargs.exec_ip = cluster["new_master_ip"]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_change_master_payload_for_migrate_cluster.__name__
-    sub_pipeline.add_act(
-        act_name=_("建立主从关系:新主库指向旧主库 {}").format(exec_act_kwargs.exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-    )
-
-    return sub_pipeline.build_sub_process(sub_name=_("RemoteDB主从节点成对迁移子流程{}".format(exec_ip)))
 
 
 def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
@@ -198,6 +67,18 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
         act_name=_("创建目录 {}".format(cluster["file_target_path"])),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
+    )
+
+    sub_pipeline.add_act(
+        act_name=_("下发db-actor到节点"),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=int(cluster["bk_cloud_id"]),
+                exec_ip=[cluster["master_ip"], cluster["new_slave_ip"], cluster["new_master_ip"]],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
     )
 
     backup_info = cluster["backupinfo"]

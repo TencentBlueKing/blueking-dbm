@@ -208,7 +208,7 @@ def add_spider_masters_sub_flow(
     cluster: Cluster,
     add_spider_masters: list,
     root_id: str,
-    uid: int,
+    uid: str,
     parent_global_data: dict,
     is_add_spider_mnt: bool,
 ):
@@ -221,6 +221,7 @@ def add_spider_masters_sub_flow(
     @param root_id: flow流程的root_id
     @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
     @param is_add_spider_mnt: 表示这次添加spider 运维节点，如果是则True，不是则False
+    @param uid: 单据uid
     """
     tag = "mnt"
     tdbctl_pass = get_random_string(length=10)
@@ -388,7 +389,7 @@ def build_apps_for_spider_sub_flow(
     root_id: str,
     parent_global_data: dict,
     spider_role: TenDBClusterSpiderRole,
-    collect_sysinfo: False,
+    is_collect_sysinfo: bool,
 ):
     """
     定义为spider机器部署周边组件的子流程
@@ -397,6 +398,7 @@ def build_apps_for_spider_sub_flow(
     @param root_id: 整体flow流程的root_id
     @param parent_global_data: 子流程的需要全局只读上下文
     @param spider_role: 这批spider的角色
+    @param is_collect_sysinfo: 是否收集系统参数
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
     spider_ips = list(filter(None, list(set(spiders))))
@@ -415,7 +417,7 @@ def build_apps_for_spider_sub_flow(
 
     acts_list = []
     # 是否采集系统信息
-    if collect_sysinfo:
+    if is_collect_sysinfo:
         acts_list.append(
             update_machine_system_info_flow(
                 root_id=root_id,
@@ -424,6 +426,7 @@ def build_apps_for_spider_sub_flow(
                 ip_list=spider_ips,
             )
         )
+
     if isinstance(spiders, list) and len(spiders) != 0:
         for spider_ip in list(set(spiders)):
             acts_list.append(
@@ -740,6 +743,7 @@ def remote_migrate_switch_sub_flow(
         “new_master”: "ip:port",
         “new_slave”: "ip:port
     } ...
+    @param created_by: 提单者
     """
     # 获取cluster对应的中控primary
     ctl_primary = cluster.tendbcluster_ctl_primary_address()

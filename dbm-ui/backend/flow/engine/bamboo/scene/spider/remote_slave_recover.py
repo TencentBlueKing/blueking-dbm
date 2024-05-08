@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -26,6 +26,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
 from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_node_uninstall_sub_flow
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
@@ -50,6 +51,7 @@ from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.spider.spider_act_dataclass import InstancePairs, SwitchRemoteSlaveRoutingKwargs
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 from backend.flow.utils.spider.tendb_cluster_info import get_slave_recover_info
+from backend.ticket.builders.common.constants import MySQLBackupSource
 
 logger = logging.getLogger("flow")
 
@@ -190,11 +192,33 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 }
 
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                sync_data_sub_pipeline.add_sub_pipeline(
-                    sub_flow=slave_recover_sub_flow(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=ins_cluster
+                if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
+                    sync_data_sub_pipeline.add_sub_pipeline(
+                        sub_flow=slave_recover_sub_flow(
+                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=ins_cluster
+                        )
                     )
-                )
+                else:
+                    ins_cluster["change_master"] = True
+                    inst_list = ["{}{}{}".format(node["master"]["ip"], IP_PORT_DIVIDER, node["master"]["port"])]
+                    #  查询出正常的slave节点
+                    slaves = cluster_class.storageinstance_set.filter(
+                        machine__ip=node["slave"]["ip"],
+                        port=node["slave"]["port"],
+                        instance_inner_role=InstanceInnerRole.SLAVE.value,
+                        status=InstanceStatus.RUNNING.value,
+                    ).exclude(machine__ip__in=[node["new_slave"]["ip"]])
+                    if len(slaves) > 0:
+                        inst_list.append("{}{}{}".format(slaves[0].machine.ip, IP_PORT_DIVIDER, slaves[0].port))
+                    sync_data_sub_pipeline.add_sub_pipeline(
+                        sub_flow=mysql_restore_data_sub_flow(
+                            root_id=self.root_id,
+                            ticket_data=copy.deepcopy(self.data),
+                            cluster=ins_cluster,
+                            cluster_model=cluster_class,
+                            ins_list=inst_list,
+                        )
+                    )
                 sync_data_sub_pipeline.add_act(
                     act_name=_("同步数据完毕,写入数据节点的主从关系相关元数据"),
                     act_component_code=SpiderDBMetaComponent.code,

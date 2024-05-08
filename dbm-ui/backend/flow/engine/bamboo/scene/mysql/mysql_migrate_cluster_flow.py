@@ -212,7 +212,6 @@ class MySQLMigrateClusterFlow(object):
                 }
                 exec_act_kwargs.cluster = copy.deepcopy(cluster)
 
-                #  todo 该流程
                 stand_by_slaves = cluster_model.storageinstance_set.filter(
                     instance_inner_role=InstanceInnerRole.SLAVE.value,
                     is_stand_by=True,

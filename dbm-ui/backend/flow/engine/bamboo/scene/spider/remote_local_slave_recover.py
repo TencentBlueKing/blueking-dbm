@@ -21,6 +21,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -30,6 +31,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, Downloa
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
+from backend.ticket.builders.common.constants import MySQLBackupSource
 
 logger = logging.getLogger("flow")
 
@@ -91,7 +93,6 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     )
                 ),
             )
-            # todo 怎么获取 shard_ids
             sync_data_sub_pipeline_list = []
             for shard_id in self.data["shard_ids"]:
                 shard = cluster_class.tendbclusterstorageset_set.get(shard_id=shard_id)
@@ -149,13 +150,24 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     "cluster_type": cluster_class.cluster_type,
                     "shard_id": shard_id,
                 }
-
-                sync_data_sub_pipeline.add_sub_pipeline(
-                    sub_flow=slave_recover_sub_flow(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
+                if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
+                    sync_data_sub_pipeline.add_sub_pipeline(
+                        sub_flow=slave_recover_sub_flow(
+                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
+                        )
                     )
-                )
-
+                else:
+                    cluster["change_master"] = True
+                    inst_list = [master.ip_port]
+                    sync_data_sub_pipeline.add_sub_pipeline(
+                        sub_flow=mysql_restore_data_sub_flow(
+                            root_id=self.root_id,
+                            ticket_data=copy.deepcopy(self.data),
+                            cluster=cluster,
+                            cluster_model=cluster_class,
+                            ins_list=inst_list,
+                        )
+                    )
                 cluster = {"storage_status": InstanceStatus.RUNNING.value, "storage_id": target_slave.id}
                 sync_data_sub_pipeline.add_act(
                     act_name=_("写入初始化实例的db_meta元信息"),

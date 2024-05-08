@@ -14,11 +14,12 @@ from dataclasses import asdict
 
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME
+from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME, DBType
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import MysqlChangeMasterType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import TenDBGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_backup
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
@@ -26,9 +27,11 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile import (
     MySQLDownloadBackupfileComponent,
 )
+from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent as MySQLTransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadBackupFileKwargs, ExecActuatorKwargs, P2PFileKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.riak.riak_act_dataclass import DownloadMediaKwargs
 from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
@@ -64,6 +67,18 @@ def mysql_restore_data_sub_flow(
         act_name=_("创建目录 {}".format(cluster["file_target_path"])),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
+    )
+
+    sub_pipeline.add_act(
+        act_name=_("下发db-actor到节点"),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster_model.bk_cloud_id,
+                exec_ip=[cluster["master_ip"], cluster["new_slave_ip"]],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
     )
 
     task_ids = ["{}/{}".format(backup_info["backup_dir"], i["file_name"]) for i in backup_info["file_list"]]
@@ -151,9 +166,10 @@ def mysql_rollback_data_sub_flow(
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     cluster["change_master"] = False
     backup_info = get_local_backup(ins_list, cluster_model, cluster["rollback_time"])
+    logger.debug(backup_info)
     if backup_info is None:
-        logger.error("cluster {} backup info not exists".format(cluster["cluster_id"]))
-        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster["cluster_id"])))
+        logger.error("cluster {} backup info not exists".format(cluster_model.id))
+        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_model.id)))
     cluster["backupinfo"] = backup_info
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=cluster_model.bk_cloud_id,
@@ -168,7 +184,7 @@ def mysql_rollback_data_sub_flow(
         kwargs=asdict(exec_act_kwargs),
     )
 
-    # 下载备份文件 todo  backup_info["file_list"] 需要确认
+    # 下载备份文件  backup_info["file_list"] 需要确认
     task_ids = ["{}/{}".format(backup_info["backup_dir"], i["file_name"]) for i in backup_info["file_list"]]
     if backup_info["backup_meta_file"] not in task_ids:
         task_ids.append(backup_info["backup_meta_file"])
@@ -273,6 +289,18 @@ def mysql_restore_master_slave_sub_flow(
         kwargs=asdict(exec_act_kwargs),
     )
 
+    sub_pipeline.add_act(
+        act_name=_("下发db-actor到节点"),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster_model.bk_cloud_id,
+                exec_ip=[cluster["master_ip"], cluster["new_slave_ip"], cluster["new_master_ip"]],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
+    )
+
     task_ids = ["{}/{}".format(backup_info["backup_dir"], i["file_name"]) for i in backup_info["file_list"]]
     if backup_info["backup_meta_file"] not in task_ids:
         task_ids.append(backup_info["backup_meta_file"])
@@ -333,7 +361,7 @@ def mysql_restore_master_slave_sub_flow(
     cluster["repl_ip"] = cluster["new_slave_ip"]
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["new_master_ip"]
-    exec_act_kwargs.job_timeout = 7200
+    exec_act_kwargs.job_timeout = MYSQL_USUAL_JOB_TIME
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
     sub_pipeline.add_act(
         act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
