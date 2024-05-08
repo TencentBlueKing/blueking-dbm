@@ -124,6 +124,15 @@ dbm:
         pathType: ImplementationSpecific
     tls: []
 
+  ingressBackendApi:
+    enabled: true
+    className: ""
+    hostname: "bkdbm-backend-api.example.com"
+    paths:
+      - path: /
+        pathType: ImplementationSpecific
+    tls: []
+
   ingressPublic:
     # 在跨云管控场景下，需要配置公网 clb 进行访问
     enabled: false
@@ -251,7 +260,7 @@ grafana:
   image:
     registry: "mirrors.tencent.com"
     repository: "build/blueking/bk-monitor-grafana"
-    tag: 3.6.64
+    tag: 3.7.115
   admin:
     user: admin
     password: admin

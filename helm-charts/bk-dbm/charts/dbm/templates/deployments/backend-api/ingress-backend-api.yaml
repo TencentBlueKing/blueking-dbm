@@ -1,9 +1,9 @@
-{{- if .Values.ingressPublic.enabled -}}
-{{- $fullName := include "bk-dbm.fullname" . -}}
+{{- if .Values.ingressBackendApi.enabled -}}
+{{- $fullName := ( include "dbm.backend-api.fullname" .) -}}
 {{- $svcPort := .Values.service.port -}}
-{{- if and .Values.ingressPublic.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
-  {{- if not (hasKey .Values.ingressPublic.annotations "kubernetes.io/ingress.class") }}
-  {{- $_ := set .Values.ingressPublic.annotations "kubernetes.io/ingress.class" .Values.ingressPublic.className}}
+{{- if and .Values.ingressBackendApi.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.ingressBackendApi.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set .Values.ingressBackendApi.annotations "kubernetes.io/ingress.class" .Values.ingressBackendApi.className}}
   {{- end }}
 {{- end }}
 {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
@@ -18,17 +18,17 @@ metadata:
   name: {{ printf "%s-%s"  (include "bk-dbm.fullname" .) "public" }}
   labels:
     {{- include "bk-dbm.labels" . | nindent 4 }}
-  {{- with .Values.ingressPublic.annotations }}
+  {{- with .Values.ingressBackendApi.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if and .Values.ingressPublic.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
-  ingressClassName: {{ .Values.ingressPublic.className }}
+  {{- if and .Values.ingressBackendApi.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.ingressBackendApi.className }}
   {{- end }}
-  {{- if .Values.ingressPublic.tls }}
+  {{- if .Values.ingressBackendApi.tls }}
   tls:
-    {{- range .Values.ingressPublic.tls }}
+    {{- range .Values.ingressBackendApi.tls }}
     - hosts:
         {{- range .hosts }}
         - {{ . | quote }}
@@ -37,11 +37,11 @@ spec:
     {{- end }}
   {{- end }}
   rules:
-    {{- if .Values.ingressPublic.hostname }}
-    - host: {{ .Values.ingressPublic.hostname }}
+    {{- if .Values.ingressBackendApi.hostname }}
+    - host: {{ .Values.ingressBackendApi.hostname }}
       http:
         paths:
-          {{- range .Values.ingressPublic.paths }}
+          {{- range .Values.ingressBackendApi.paths }}
           - path: {{ .path }}
             {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
             pathType: {{ .pathType }}
