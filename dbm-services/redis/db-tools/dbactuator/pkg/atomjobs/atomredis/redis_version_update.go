@@ -391,7 +391,7 @@ func (job *RedisVersionUpdate) stopRedis(port int) (err error) {
 	_, err = util.RunLocalCmd("su",
 		[]string{consts.MysqlAaccount, "-c", stopScript + " " + strconv.Itoa(port) + " " + job.params.Password},
 		"", nil, 10*time.Minute)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "Warning: Using a password") {
 		return err
 	}
 	maxRetryTimes := 5

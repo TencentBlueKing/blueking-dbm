@@ -126,6 +126,7 @@ def RedisBatchInstallAtomJob(
     act_kwargs.cluster["start_port"] = param["start_port"]
     act_kwargs.cluster["inst_num"] = param["instance_numb"]
     act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
+    act_kwargs.cluster["ports"] = param.get("ports", [])
     if ticket_data["ticket_type"] in cluster_apply_ticket:
         #  集群申请单据时，下面参数需要从param中获取，不能从已有配置中获取
         act_kwargs.cluster["requirepass"] = param["requirepass"]

@@ -1316,7 +1316,7 @@ class RedisActPayload(object):
             "db_type": params["cluster_type"],
             "password": redis_config["requirepass"],
             "data_dirs": ConfigDefaultEnum.DATA_DIRS,
-            "ports": [],
+            "ports": params.get("ports", []),
             "databases": 1,  # 给个默认值吧
             "maxmemory": 666,  # 给个默认值吧
             "ip": params["exec_ip"],

@@ -18,8 +18,9 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import InstanceRole, InstanceStatus
+from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.instance import StorageInstance
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -51,14 +52,31 @@ class RedisClusterAddSlaveFlow(object):
         self.data = data
         self.precheck()
 
-    def get_cluster_info(self, bk_biz_id, cluster_id):
+    @staticmethod
+    def get_cluster_info(bk_biz_id, cluster_id):
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        cluster_masters = None
+        if cluster.cluster_type == ClusterType.TendisRedisInstance.value:
+            """
+            如果是主从版,根据cluster_id找到cluster,进而找到相同 master ip,所有master/slave实例
+            """
+            master_inst = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value).first()
+            if not master_inst:
+                raise Exception(
+                    "cluster_id:{} immute_domain:{} master instance not found".format(
+                        cluster.id, cluster.immute_domain
+                    )
+                )
+            master_ip = master_inst.machine.ip
+            cluster_masters = StorageInstance.objects.filter(machine__ip=master_ip)
+        else:
+            cluster_masters = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
 
         master_ports, slave_ports = defaultdict(list), defaultdict(list)
         ins_pair_map, slave_ins_map = defaultdict(), defaultdict()
         master_slave_map, slave_master_map = defaultdict(), defaultdict()
 
-        for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
+        for master_obj in cluster_masters:
             master_ports[master_obj.machine.ip].append(master_obj.port)
             if master_obj.as_ejector and master_obj.as_ejector.first():
                 my_slave_obj = master_obj.as_ejector.get().receiver
@@ -89,6 +107,14 @@ class RedisClusterAddSlaveFlow(object):
                     )
                 else:
                     slave_master_map[my_slave_obj.machine.ip] = master_obj.machine.ip
+        proxy_port = 0
+        proxy_ips = []
+        if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
+            """
+            非主从版才有proxy
+            """
+            proxy_port = cluster.proxyinstance_set.first().port
+            proxy_ips = [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()]
         return {
             "immute_domain": cluster.immute_domain,
             "bk_biz_id": str(cluster.bk_biz_id),
@@ -102,8 +128,8 @@ class RedisClusterAddSlaveFlow(object):
             "slave_ins_map": dict(slave_ins_map),
             "slave_master_map": dict(slave_master_map),
             "master_slave_map": dict(master_slave_map),
-            "proxy_port": cluster.proxyinstance_set.first().port,
-            "proxy_ips": [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()],
+            "proxy_port": proxy_port,
+            "proxy_ips": proxy_ips,
             "db_version": cluster.major_version,
         }
 
@@ -163,7 +189,7 @@ class RedisClusterAddSlaveFlow(object):
                             "meta_role": InstanceRole.REDIS_SLAVE.value,
                             "start_port": DEFAULT_REDIS_START_PORT,
                             "ports": cluster_info["master_ports"][master_ip],
-                            "instance_numb": len(cluster_info["master_ports"][master_ip]),
+                            "instance_numb": 0,
                             "spec_id": input_item["resource_spec"][master_ip].get("id", 0),
                             "spec_config": input_item["resource_spec"][master_ip],
                             "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
