@@ -21,7 +21,7 @@ import { getSearchSelectorParams } from '@utils';
 /**
  * 处理集群列表数据
  */
-export function useClusterData<T>() {
+export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
   const globalBizsStore = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
@@ -38,7 +38,6 @@ export function useClusterData<T>() {
     limit: 10,
     small: true,
   });
-  const searchSelectValue = ref<ISearchValue[]>([]);
 
   watch(
     searchSelectValue,
