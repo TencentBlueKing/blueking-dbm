@@ -72,8 +72,7 @@
               @click.stop="handleChangeTab(tabItem)">
               {{ tabItem.name }}
             </div>
-            <template
-              #content>
+            <template #content>
               <div class="tab-tips">
                 <h4>{{ t('切换类型说明') }}</h4>
                 <p>{{ t('切换后如果重新选择_选择结果将会覆盖原来选择的内容') }}</p>
@@ -118,7 +117,19 @@
     </template>
   </BkDialog>
 </template>
-<script setup lang="tsx" generic="T extends RedisModel | TendbhaModel | SpiderModel | TendbsingleModel | MongodbModel | SqlServerHaClusterModel | SqlServerSingleClusterModel">
+<script
+  setup
+  lang="tsx"
+  generic="
+    T extends
+      | RedisModel
+      | TendbhaModel
+      | SpiderModel
+      | TendbsingleModel
+      | MongodbModel
+      | SqlServerHaClusterModel
+      | SqlServerSingleClusterModel
+  ">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -148,7 +159,8 @@
   import type { SearchSelectList } from './components/common/SearchBar.vue';
   import MongoTable from './components/mongo/Index.vue';
   import RedisTable from './components/redis/Index.vue';
-  import SqlserverTable from './components/sqlserver/Index.vue'
+  import SqlserverHaTable from './components/sqlserver-ha/Index.vue'
+  import SqlserverSingleTable from './components/sqlserver-single/Index.vue'
   import SpiderTable from './components/tendb-cluster/Index.vue';
   import TendbSingleTable from './components/tendb-single/Index.vue';
   import TendbhaTable from './components/tendbha/Index.vue';
@@ -262,17 +274,25 @@
     [ClusterTypes.SQLSERVER_SINGLE]: {
       id: ClusterTypes.SQLSERVER_SINGLE,
       name: t('集群选择'),
+      disabledRowConfig: [{
+        handler: (data: T) => data.isOffline,
+        tip: t('集群已禁用'),
+      }],
       multiple: true,
       getResourceList: getSingleClusterList,
-      tableContent: SqlserverTable,
+      tableContent: SqlserverSingleTable,
       resultContent: ResultPreview,
     },
     [ClusterTypes.SQLSERVER_HA]: {
       id: ClusterTypes.SQLSERVER_HA,
       name: t('集群选择'),
+      disabledRowConfig: [{
+        handler: (data: T) => data.isOffline,
+        tip: t('集群已禁用'),
+      }],
       multiple: true,
       getResourceList: getHaClusterList,
-      tableContent: SqlserverTable,
+      tableContent: SqlserverHaTable,
       resultContent: ResultPreview,
     },
     [ClusterTypes.TENDBSINGLE]: {
@@ -499,9 +519,9 @@
         border-bottom-color: transparent;
       }
       .tabs-item-active {
-          background-color: @bg-white;
-          border-bottom-color: @border-white;
-        }
+        background-color: @bg-white;
+        border-bottom-color: @border-white;
+      }
     }
 
     .cluster-selector-content {

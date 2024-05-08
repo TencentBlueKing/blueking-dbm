@@ -16,23 +16,23 @@
   import { ClusterTypes } from '@common/const';
 
   export type SearchSelectList = {
-    id: string,
-    name: string,
+    id: string;
+    name: string;
     children?: {
-      id: string | number,
-      name: string,
-    }[]
-  }[]
+      id: string | number;
+      name: string;
+    }[];
+  }[];
 
   interface Props {
-    clusterType: ClusterTypes,
-    searchAttrs: SearchAttrs,
-    searchSelectList?: SearchSelectList,
+    clusterType: ClusterTypes;
+    searchAttrs: SearchAttrs;
+    searchSelectList?: SearchSelectList;
     // placeholder?: string
   }
 
   interface Emits {
-    (e: 'searchValueChange', value: ISearchValue[]): void,
+    (e: 'searchValueChange', value: ISearchValue[]): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -48,10 +48,11 @@
 
   const { t } = useI18n();
 
-  const showDbModuleSelect = computed(() => [
-    ClusterTypes.TENDBHA,
-    ClusterTypes.TENDBSINGLE,
-  ].includes(props.clusterType));
+  const showDbModuleSelect = computed(() =>
+    [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE, ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(
+      props.clusterType,
+    ),
+  );
 
   const searchSelectData = computed(() => {
     const baseSelectList = [
@@ -84,7 +85,7 @@
         name: t('管控区域'),
         id: 'bk_cloud_id',
         multiple: true,
-        children: props.searchAttrs.bk_cloud_id,
+        children: props.searchAttrs?.bk_cloud_id,
       },
     ];
     if (showDbModuleSelect.value) {
@@ -92,11 +93,11 @@
         name: t('所属模块'),
         id: 'db_module_id',
         multiple: true,
-        children: props.searchAttrs.db_module_id,
+        children: props.searchAttrs?.db_module_id,
       };
       baseSelectList.splice(3, 0, dbModuleSelect);
     }
-    return (props.searchSelectList ? props.searchSelectList : baseSelectList);
+    return props.searchSelectList ? props.searchSelectList : baseSelectList;
   });
 
   const handleSearchChange = (value: ISearchValue[]) => {
