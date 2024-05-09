@@ -220,25 +220,30 @@
       label: t('监控目标'),
       field: 'targets',
       minWidth: 180,
-      render: ({ data }: {data: MonitorPolicyModel}) => (
-        <div class="targets-box">
-          {
-            data.targets.map((item) => {
-              const title = item.rule.key;
-              let list = item.rule.value;
-              if (title === 'appid') {
-                // 业务级
-                list = [bizsMap.value[list[0]]];
-              }
-              if (title === 'db_module') {
-                // 模块
-                list = item.rule.value.map(item => dbModuleMap[item]);
-              }
-              return <RenderTargetItem title={title} list={list}/>;
-            })
-          }
-        </div>
-      ),
+      render: ({ data }: {data: MonitorPolicyModel}) => {
+        if (data.targets.length < 1){
+          return '--'
+        }
+        return (
+          <div style="padding: 5px 0">
+            {
+              data.targets.map((item, index) => {
+                const {level} = item;
+                let list = item.rule.value;
+                if (level === 'appid') {
+                  // 业务级
+                  list = [bizsMap.value[list[0]]];
+                }
+                if (level === 'db_module') {
+                  // 模块
+                  list = item.rule.value.map(item => dbModuleMap[item]);
+                }
+                return <RenderTargetItem key={index} title={level} list={list} data-test={level}/>;
+              })
+            }
+          </div>
+        )
+      },
     },
     {
       label: t('告警组'),
@@ -564,13 +569,6 @@
     }
 
     :deep(.table-box) {
-      .targets-box {
-        display: flex;
-        width: 100%;
-        flex-flow: column wrap;
-        padding: 5px 15px;
-      }
-
       .operate-box {
         display: flex;
         gap: 15px;

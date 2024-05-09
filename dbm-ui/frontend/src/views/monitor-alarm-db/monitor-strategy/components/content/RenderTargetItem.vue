@@ -12,21 +12,11 @@
 -->
 
 <template>
-  <div
-    ref="itemRef"
-    v-bk-tooltips="{
-      disabled: !isShowToolTip,
-      content: list.join(','),
-    }"
-    class="monitor-strategy-content-target">
-    {{ titleText }}{{ props.title !== 'platform' ? ':' : '' }} {{ list.join(',') }}
-  </div>
+  <BkOverflowTitle> {{ titleText }}{{ props.title !== 'platform' ? ':' : '' }} {{ list.join(',') }} </BkOverflowTitle>
 </template>
 
 <script setup lang="ts">
   import { t } from '@locales/index';
-
-  import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
     title?: string;
@@ -38,13 +28,6 @@
     list: () => [],
   });
 
-  function checkOveflow() {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      isShowToolTip.value = itemRef.value.clientWidth < itemRef.value.scrollWidth;
-    }, 300);
-  }
-
   const titleMap = {
     appid: t('业务'),
     cluster_domain: t('集群'),
@@ -52,14 +35,7 @@
     platform: t('业务下全部对象'),
   } as Record<string, string>;
 
-  let timer = 0;
-
-  const itemRef = ref();
-  const isShowToolTip = ref(false);
-
-  const titleText = computed(() => (titleMap[props.title] === undefined ? props.title : titleMap[props.title]));
-
-  useResizeObserver(itemRef, checkOveflow);
+  const titleText = computed(() => titleMap[props.title] || props.title);
 </script>
 <style lang="less" scoped>
   .monitor-strategy-content-target {
