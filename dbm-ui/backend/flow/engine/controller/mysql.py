@@ -14,6 +14,7 @@ from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQL
 from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRules
 from backend.flow.engine.bamboo.scene.mysql.mysql_checksum import MysqlChecksumFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_clone_rules import MySQLCloneRules
+from backend.flow.engine.bamboo.scene.mysql.mysql_data_migrate_flow import MysqlDataMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_edit_config_flow import MysqlEditConfigFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_fake_sql_semantic_check import MySQLFakeSemanticCheck
 from backend.flow.engine.bamboo.scene.mysql.mysql_flashback_flow import MysqlFlashbackFlow
@@ -547,3 +548,12 @@ class MySQLController(BaseController):
     def mysql_ha_metadata_import_scene(self):
         flow = TenDBHAMetadataImportFlow(root_id=self.root_id, data=self.ticket_data)
         flow.import_meta()
+
+    def mysql_data_migrate_scene(self):
+        """
+        mysql数据迁移
+        从源集群导出数据 导入目标集群
+        @return:
+        """
+        flow = MysqlDataMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.mysql_data_migrate_flow()

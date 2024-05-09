@@ -102,6 +102,10 @@ definitions:
       repl_user:
         description: repl user, 环境变量 GENERAL_ACCOUNT_repl_user
         type: string
+      tbinlogdumper_admin_pwd:
+        type: string
+      tbinlogdumper_admin_user:
+        type: string
       tdbctl_pwd:
         type: string
       tdbctl_user:
@@ -533,6 +537,8 @@ definitions:
         - json
         - dump
         type: string
+      time_layout:
+        type: string
     required:
     - binlog_dir
     - binlog_files
@@ -785,6 +791,8 @@ definitions:
         $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.InstallMySQLParams'
       general:
         $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+      mySQLConfigParams:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MySQLConfigParams'
       timeZone:
         type: string
     type: object
@@ -804,7 +812,7 @@ definitions:
       inst_mem:
         description: 安装实例的内存大小，可以不指定，会自动计算
         type: integer
-      mycnf_configs:
+      myCnfConfigs:
         description: map[port]my.cnf
         items:
           type: integer
@@ -832,7 +840,6 @@ definitions:
     required:
     - charset
     - host
-    - mycnf_configs
     - mysql_version
     - pkg
     - pkg_md5
@@ -936,6 +943,8 @@ definitions:
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.LocalBackupObj:
     properties:
+      backup_consistent_time:
+        type: string
       backup_dir:
         description: 备份所在目录
         type: string
@@ -971,6 +980,15 @@ definitions:
       inst_port:
         description: 备份所属 port
         type: integer
+    type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MySQLConfigParams:
+    properties:
+      mycnf_configs:
+        items:
+          type: integer
+        type: array
+    required:
+    - mycnf_configs
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfChangeComp:
     properties:
@@ -1305,7 +1323,7 @@ definitions:
         description: 是否启用 flashback
         type: boolean
       idempotent_mode:
-        description: 是否开启幂等模式, mysql --slave-exec-mode=idempotent or mysqlbinlog --idempotent
+        description: 是否开启幂等模式, mysqlbinlog --idempotent(>=5.7)
         type: boolean
       mysql_client_opt:
         $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.MySQLClientOpt'
@@ -1330,13 +1348,17 @@ definitions:
         description: --start-position
         type: integer
       start_time:
-        description: --start-datetime
+        description: |-
+          --start-datetime  时间格式
+          格式 "2006-01-02 15:04:05" 原样传递给 mysqlbinlog
+          格式"2006-01-02T15:04:05Z07:00"(示例"2023-12-11T05:03:05+08:00")按照机器本地时间，解析成 "2006-01-02 15:04:05" 再传递给 mysqlbinlog
+          在 Init 时会统一把时间字符串转换成 time.RFC3399
         type: string
       stop_pos:
         description: --stop-position
         type: integer
       stop_time:
-        description: --stop-datetime
+        description: --stop-datetime   时间格式同 StartTime，可带时区，会转换成机器本地时间
         type: string
       tables:
         description: row event 解析指定 tables
@@ -1369,7 +1391,9 @@ definitions:
           type: string
         type: array
       binlog_start_file:
-        description: 指定要开始应用的第 1 个 binlog。如果指定，一般要设置 start_pos，如果不指定则使用 start_time
+        description: |-
+          指定要开始应用的第 1 个 binlog。如果指定，一般要设置 start_pos，如果不指定则使用 start_time
+          BinlogStartFile 只能由外部传入，不要内部修改
         type: string
       parse_concurrency:
         description: 解析的并发度，默认 1
@@ -1536,7 +1560,9 @@ definitions:
       stop_time:
         type: string
       target_time:
-        description: 闪回的目标时间点，对应 recover-binlog 的 start_time, 精确到秒。目标实例的时区
+        description: |-
+          闪回的目标时间点，对应 recover-binlog 的 start_time, 精确到秒。目标实例的时区
+          可接受格式 ''
         type: string
       tgt_instance:
         $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject'
@@ -1597,9 +1623,6 @@ definitions:
         items:
           type: string
         type: array
-    required:
-    - dbname
-    - tables
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InitClusterRoutingComp:
     properties:
@@ -1620,10 +1643,18 @@ definitions:
         items:
           $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InstanceTuple'
         type: array
+      not_flush_all:
+        type: boolean
+      only_init_ctl:
+        type: boolean
       port:
         minimum: 3306
         type: integer
       spider_instances:
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance'
+        type: array
+      spider_slave_instances:
         items:
           $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance'
         type: array
@@ -1678,17 +1709,21 @@ definitions:
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.TableSchemaCheckParam:
     properties:
+      check_all:
+        description: 检查所有非系统库表
+        type: boolean
       check_objects:
         items:
           $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.CheckObject'
         type: array
       host:
         type: string
+      inconsistency_throws_err:
+        type: boolean
       port:
         minimum: 3306
         type: integer
     required:
-    - check_objects
     - host
     - port
     type: object
@@ -1765,6 +1800,22 @@ definitions:
         type: string
       dumper_id:
         type: string
+      kafka_pwd:
+        type: string
+      kafka_user:
+        type: string
+      l5_cmdid:
+        type: integer
+      l5_modid:
+        type: integer
+      protocol_type:
+        type: string
+      server_id:
+        type: integer
+      target_address:
+        type: string
+      target_port:
+        type: integer
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.InstallTbinlogDumperComp:
     properties:
@@ -1776,6 +1827,8 @@ definitions:
         $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.Configs'
       general:
         $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components.GeneralParam'
+      mySQLConfigParams:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MySQLConfigParams'
       renderConfigs:
         additionalProperties:
           $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_tbinlogdumper.renderDumperConfigs'

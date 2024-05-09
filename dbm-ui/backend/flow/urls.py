@@ -66,6 +66,7 @@ from backend.flow.views.migrate_views.riak_migrate import RiakClusterMigrateApiV
 from backend.flow.views.mysql_add_slave import AddMysqlSlaveSceneApiView
 from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
+from backend.flow.views.mysql_data_migrate import MysqlDataMigrateSceneApiView
 from backend.flow.views.mysql_edit_config import MysqlEditConfigSceneApiView
 from backend.flow.views.mysql_flashback import MysqlFlashbackSceneApiView
 from backend.flow.views.mysql_ha_apply import InstallMySQLHASceneApiView
@@ -427,4 +428,5 @@ urlpatterns = [
     url("^scene/sqlserver_add_slave$", SqlserverAddSlaveSceneApiView.as_view()),
     url("^scene/sqlserver_rebuild_in_local$", SqlserverRebuildInLocalSceneApiView.as_view()),
     url("^scene/sqlserver_rebuild_in_new_slave$", SqlserverRebuildInNewSlaveSceneApiView.as_view()),
+    url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
 ]
