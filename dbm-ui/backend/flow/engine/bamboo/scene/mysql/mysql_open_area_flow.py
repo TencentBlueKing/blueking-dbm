@@ -243,7 +243,7 @@ class MysqlOpenAreaFlow(object):
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
-                        bk_cloud_id=0,
+                        bk_cloud_id=source_cluster_schema["bk_cloud_id"],
                         exec_ip=exec_ip_list,
                         file_target_path=self.work_dir,
                         file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(

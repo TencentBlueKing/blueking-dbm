@@ -53,7 +53,8 @@ type OpenAreaDumpSchemaParam struct {
 // OneOpenAreaSchema 用于存放一个区库表的信息
 type OneOpenAreaSchema struct {
 	Schema string   `json:"schema"` // 指定dump的库
-	Tbales []string `json:"tables"`
+	Tables []string `json:"tables"`
+	DbList []string `json:"db_list"` // 用于兼容mysql数据迁移
 }
 
 // OpenAreaDumpSchemaRunTimeCtx TODO
@@ -85,11 +86,11 @@ func (c *OpenAreaDumpSchemaComp) Example() interface{} {
 			OpenAreaParam: []OneOpenAreaSchema{
 				{
 					Schema: "data1",
-					Tbales: []string{"tb1", "tb2"},
+					Tables: []string{"tb1", "tb2"},
 				},
 				{
 					Schema: "data2",
-					Tbales: []string{"tb1", "tb2"},
+					Tables: []string{"tb1", "tb2"},
 				},
 			},
 		},
@@ -172,7 +173,7 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpSchema() (err error) {
 		var dumper mysqlutil.Dumper
 		outputfileName := fmt.Sprintf("%s.sql", oneOpenAreaSchema.Schema)
 		schema := fmt.Sprintf("%s %s",
-			oneOpenAreaSchema.Schema, strings.Join(oneOpenAreaSchema.Tbales, " "),
+			oneOpenAreaSchema.Schema, strings.Join(oneOpenAreaSchema.Tables, " "),
 		)
 		// 导出表结构，同时导出存储过程、触发器、event
 		dumper = &mysqlutil.MySQLDumperTogether{
@@ -210,13 +211,13 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 
 	for _, oneOpenAreaSchema := range c.Params.OpenAreaParam {
 		var dumper mysqlutil.Dumper
-		if len(oneOpenAreaSchema.Tbales) == 0 {
+		if len(oneOpenAreaSchema.Tables) == 0 {
 
 			continue
 		}
 		outputfileName := fmt.Sprintf("%s.sql", oneOpenAreaSchema.Schema)
 		schema := fmt.Sprintf("%s %s",
-			oneOpenAreaSchema.Schema, strings.Join(oneOpenAreaSchema.Tbales, " "),
+			oneOpenAreaSchema.Schema, strings.Join(oneOpenAreaSchema.Tables, " "),
 		)
 
 		dumper = &mysqlutil.MySQLDumperTogether{
@@ -244,6 +245,46 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 			logger.Error("dump failed: ", err.Error())
 			return err
 		}
+	}
+
+	return nil
+}
+
+// MysqlDataMigrate 用于mysql数据迁移，需要导出库表结构和数据
+func (c *OpenAreaDumpSchemaComp) MysqlDataMigrate() (err error) {
+	for _, oneOpenAreaSchema := range c.Params.OpenAreaParam {
+		for _, db := range oneOpenAreaSchema.DbList {
+			var dumper mysqlutil.Dumper
+			// schema := strings.Join(oneOpenAreaSchema.DbList, " ")
+			outputfileName := fmt.Sprintf("%s.sql", db)
+
+			// 导出库，同时导出存储过程、触发器、event
+			dumper = &mysqlutil.MySQLDumperTogether{
+				MySQLDumper: mysqlutil.MySQLDumper{
+					DumpDir:      c.dumpDirPath,
+					Ip:           c.Params.Host,
+					Port:         c.Params.Port,
+					DbBackupUser: c.GeneralParam.RuntimeAccountParam.AdminUser,
+					DbBackupPwd:  c.GeneralParam.RuntimeAccountParam.AdminPwd,
+					DbNames:      []string{db},
+					DumpCmdFile:  c.dumpCmd,
+					Charset:      c.charset,
+					MySQLDumpOption: mysqlutil.MySQLDumpOption{
+						DumpRoutine:   true,
+						DumpTrigger:   true,
+						DumpEvent:     true,
+						NeedUseDb:     true,
+						GtidPurgedOff: c.GtidPurgedOff,
+					},
+				},
+				OutputfileName: outputfileName,
+			}
+			if err := dumper.Dump(); err != nil {
+				logger.Error("dump failed: ", err.Error())
+				return err
+			}
+		}
+
 	}
 
 	return nil
