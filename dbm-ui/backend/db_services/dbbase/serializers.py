@@ -81,18 +81,28 @@ class ClusterFilterSerializer(serializers.Serializer):
 
 class QueryBizClusterAttrsSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
     cluster_attrs = serializers.CharField(help_text=_("查询集群属性字段(逗号分隔)"), default="")
     instances_attrs = serializers.CharField(help_text=_("查询实例属性字段(逗号分隔)"), default="")
+
+    def validate_cluster_type(self, value):
+        cluster_types = [ct.strip() for ct in value.split(",")]
+        db_type_set = set()
+        # 检查特殊case 'redis'
+        if all(ct == "redis" for ct in cluster_types):
+            return RedisListRetrieveResource.cluster_types
+        for cluster_type in cluster_types:
+            normalized_type = ClusterType.cluster_type_to_db_type(cluster_type)
+            if not normalized_type:
+                raise serializers.ValidationError(_("未知的集群类型：{}".format(cluster_type)))
+            db_type_set.add(normalized_type)
+        if len(db_type_set) > 1:
+            raise serializers.ValidationError(_("所有集群类型必须属于同一种DBtype类型"))
+        return cluster_types
 
     def validate(self, attrs):
         attrs["cluster_attrs"] = attrs["cluster_attrs"].split(",") if attrs["cluster_attrs"] else []
         attrs["instances_attrs"] = attrs["instances_attrs"].split(",") if attrs["instances_attrs"] else []
-        if attrs["cluster_type"] == "redis":
-            attrs["cluster_type"] = RedisListRetrieveResource.cluster_types
-        else:
-            attrs["cluster_type"] = attrs["cluster_type"].split(",")
-
         return attrs
 
 
