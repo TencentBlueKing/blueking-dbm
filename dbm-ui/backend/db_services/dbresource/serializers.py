@@ -199,7 +199,7 @@ class QueryOperationListSerializer(serializers.Serializer):
     ticket_types = serializers.CharField(help_text=_("过滤的单据类型列表"), required=False)
     task_ids = serializers.CharField(help_text=_("过滤的任务ID列表"), required=False)
     ip_list = serializers.CharField(help_text=_("过滤IP列表"), required=False)
-    update_time = serializers.BooleanField(help_text=_("时间排序模式"), required=False, default=False)
+    ordering = serializers.CharField(max_length=255, help_text=_("排序字段"), default="update_time")
 
     operator = serializers.CharField(help_text=_("操作者"), required=False)
     begin_time = DBTimezoneField(help_text=_("操作开始时间"), required=False)
@@ -208,6 +208,14 @@ class QueryOperationListSerializer(serializers.Serializer):
 
     limit = serializers.IntegerField(help_text=_("分页大小"), required=False, default=10)
     offset = serializers.IntegerField(help_text=_("分页起始位置"), required=False, default=0)
+
+    def validate_ordering(self, value):
+        """验证排序字段是否合法。"""
+        allowed_orderings = ["update_time", "-update_time", "total_count", "-total_count"]
+
+        if value not in allowed_orderings:
+            raise serializers.ValidationError(_("排序参数只能是 'update_time' 或 'total_count'。"))
+        return value
 
     def validate(self, attrs):
         if attrs.get("ticket_ids"):
@@ -222,7 +230,8 @@ class QueryOperationListSerializer(serializers.Serializer):
         if attrs.get("ip_list"):
             attrs["ip_list"] = attrs["ip_list"].split(",")
 
-        attrs["orderby"] = "asc" if attrs["update_time"] else "desc"
+        if attrs.get("ordering"):
+            attrs["orderby"] = attrs.pop("ordering")
 
         return attrs
 

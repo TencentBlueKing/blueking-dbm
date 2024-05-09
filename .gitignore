@@ -8,3 +8,6 @@
 pre-*-bkcodeai
 .vscode
 .python-version
+
+bkcodeai.json
+package-lock.json

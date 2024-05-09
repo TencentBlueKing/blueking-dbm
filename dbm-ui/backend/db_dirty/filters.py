@@ -25,7 +25,7 @@ class DirtyMachineFilter(filters.FilterSet):
     ticket_ids = filters.CharFilter(field_name="ticket__id", method="filter_ticket_ids", label=_("单据ID"))
     task_ids = filters.CharFilter(field_name="flow__flow_obj_id", method="filter_task_ids", label=_("任务ID"))
     operator = filters.CharFilter(field_name="ticket__creator", lookup_expr="icontains", label=_("操作者"))
-    ip_list = filters.CharFilter(field_name="ip_list", method="filter_ip_list", label=_("过滤IP"))
+    ip = filters.CharFilter(field_name="ip", method="filter_ip", label=_("过滤IP"))
     bk_cloud_ids = NumberInFilter(field_name="bk_cloud_id", lookup_expr="in")
     bk_biz_ids = NumberInFilter(field_name="bk_biz_id", lookup_expr="in")
 
@@ -35,7 +35,7 @@ class DirtyMachineFilter(filters.FilterSet):
         except ValueError:
             return []
 
-    def filter_ip_list(self, queryset, name, value):
+    def filter_ip(self, queryset, name, value):
         return queryset.filter(ip__in=value.split(","))
 
     def filter_ticket_ids(self, queryset, name, value):
@@ -49,4 +49,4 @@ class DirtyMachineFilter(filters.FilterSet):
 
     class Meta:
         model = DirtyMachine
-        fields = ["ticket_types", "ticket_ids", "task_ids", "operator", "ip_list"]
+        fields = ["ticket_types", "ticket_ids", "task_ids", "operator", "ip"]
