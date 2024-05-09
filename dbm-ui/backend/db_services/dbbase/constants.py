@@ -35,3 +35,10 @@ class IpSource(str, StructuredEnum):
 
     MANUAL_INPUT = EnumField("manual_input", _("手动录入"))
     RESOURCE_POOL = EnumField("resource_pool", _("资源池"))
+
+
+class ResourceType(str, StructuredEnum):
+    """污点主机，资源操作枚举"""
+
+    SPOTTY_HOST = EnumField("spotty_host", _("污点主机"))
+    RESOURCE_RECORD = EnumField("resource_record", _("资源操作记录"))

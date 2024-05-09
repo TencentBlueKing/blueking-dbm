@@ -13,8 +13,14 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.components import CCApi
+from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.enums import ClusterPhase, ClusterType
+from backend.db_services.dbbase.constants import ResourceType
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
+from backend.dbm_init.constants import CC_APP_ABBR_ATTR
+from backend.ticket.constants import TicketType
 
 
 class IsClusterDuplicatedSerializer(serializers.Serializer):
@@ -108,7 +114,49 @@ class QueryBizClusterAttrsSerializer(serializers.Serializer):
 
 
 class ResourceAdministrationSerializer(serializers.Serializer):
-    resource_type = serializers.ChoiceField(help_text=_("服务类型"), choices=ClusterType.get_choices())
+    resource_type = serializers.ChoiceField(help_text=_("服务类型"), choices=ResourceType.get_choices())
+
+    def to_representation(self, instance):
+        resource_type = instance.get("resource_type")
+        # 污点主机
+        if resource_type == ResourceType.SPOTTY_HOST:
+            cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+            bk_cloud_ids = DirtyMachine.objects.values_list("bk_cloud_id", flat=True).distinct()
+            bk_cloud_id_list = [
+                {"value": bk_cloud_id, "text": cloud_info.get(str(bk_cloud_id), {}).get("bk_cloud_name", "")}
+                for bk_cloud_id in bk_cloud_ids
+            ]
+            # 业务信息
+            biz_infos = CCApi.search_business(
+                {
+                    "fields": ["bk_biz_id", "bk_biz_name", CC_APP_ABBR_ATTR],
+                },
+                use_admin=True,
+            ).get("info", [])
+            # 构建一个以业务ID为键的字典，便于快速查找
+            biz_info_dict = {biz_info["bk_biz_id"]: biz_info for biz_info in biz_infos}
+            # 从DirtyMachine模型获取去重后的业务ID列表
+            bk_biz_ids = list(DirtyMachine.objects.values_list("bk_biz_id", flat=True).distinct())
+            # 构建结果列表,直接从字典中查找匹配的业务信息
+            bk_biz_id_list = [
+                {"value": bk_biz_id, "text": biz_info_dict[bk_biz_id]["bk_biz_name"]}
+                for bk_biz_id in bk_biz_ids
+                if bk_biz_id in biz_info_dict
+            ]
+            # 单据类型
+            ticket_types = list(DirtyMachine.objects.all().values_list("ticket__ticket_type", flat=True).distinct())
+            ticket_types_list = [
+                {"value": ticket, "text": TicketType.get_choice_label(ticket)} for ticket in ticket_types
+            ]
+            resource_attrs = {
+                "bk_cloud_id": bk_cloud_id_list,
+                "bk_biz_ids": bk_biz_id_list,
+                "ticket_types": ticket_types_list,
+            }
+            return resource_attrs
+        elif resource_type == ResourceType.RESOURCE_RECORD:
+            # 资源操作记录不需要表头筛选数据,后续这里补充其他表头筛选数据
+            return {}
 
 
 class QueryBizClusterAttrsResponseSerializer(serializers.Serializer):
