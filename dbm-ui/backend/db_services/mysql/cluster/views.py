@@ -80,11 +80,8 @@ class ClusterViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=QueryClustersRequestSerializer)
     def query_clusters(self, request, bk_biz_id):
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(
-            ClusterServiceHandler(bk_biz_id).query_clusters(
-                [ClusterFilter.from_dict(filter_dict) for filter_dict in validated_data["cluster_filters"]]
-            )
-        )
+        cluster_filters = [ClusterFilter.from_dict(filter_dict) for filter_dict in validated_data["cluster_filters"]]
+        return Response(ClusterServiceHandler(bk_biz_id).query_clusters(cluster_filters=cluster_filters))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取关联集群从库的交集"),
