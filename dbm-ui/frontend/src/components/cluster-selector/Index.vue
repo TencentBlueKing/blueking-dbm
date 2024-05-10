@@ -64,7 +64,7 @@
             v-for="tabItem of tabList"
             :key="tabItem.id"
             ref="tabTipsRef"
-            disabled
+            :disabled="!onlyOneType"
             theme="light">
             <div
               class="tabs-item"
@@ -177,7 +177,8 @@
   interface Props {
     selected: Record<string, T[]>,
     clusterTypes: ClusterTypes[],
-    tabListConfig?: Record<string, TabConfig>
+    tabListConfig?: Record<string, TabConfig>,
+    onlyOneType?: boolean,
   }
 
   interface Emits {
@@ -324,6 +325,14 @@
     activeTab.value = obj.id;
     if (currentTab) {
       activePanelObj.value = currentTab;
+    }
+    if (props.onlyOneType) {
+      selectedMap.value = Object.keys(selectedMap.value).reduce((results, id) => {
+        Object.assign(results, {
+          [id]: {},
+        });
+        return results;
+      }, {} as Record<string, Record<string, any>>);
     }
   };
 
