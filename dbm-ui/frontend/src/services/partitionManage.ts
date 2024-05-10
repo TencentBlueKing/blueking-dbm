@@ -131,7 +131,7 @@ export const verifyPartitionField = function (params: {
   partition_column: string,
   partition_column_type: string,
 }) {
-  return http.post('/apis/partition/verify_partition_field/', params);
+  return http.post<string | null>('/apis/partition/verify_partition_field/', params);
 };
 
 // 修改分区策略
