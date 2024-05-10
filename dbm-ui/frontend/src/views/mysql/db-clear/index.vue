@@ -78,7 +78,8 @@
     @change="handleBatchInput" />
   <ClusterSelector
     v-model:is-show="isShowBatchSelector"
-    :cluster-types="[ClusterTypes.TENDBHA]"
+    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    only-one-type
     :selected="selectedClusters"
     @change="handleBatchSelectorChange" />
   <div
@@ -120,7 +121,7 @@
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
 
-  import { generateId } from '@utils';
+  import { generateId, messageError } from '@utils';
 
   import { truncateDataTypes } from './common/const';
   import type { InputItem } from './common/types';
@@ -133,6 +134,7 @@
   interface TableItem {
     cluster_domain: string,
     cluster_id: number,
+    cluster_type: string,
     db_patterns: string[],
     ignore_dbs: string[],
     table_patterns: string[],
@@ -140,6 +142,7 @@
     truncate_data_type: string,
     uniqueId: string
   }
+
   interface TableColumnData {
     index: number,
     data: TableItem
@@ -161,7 +164,10 @@
   const tableData = ref<Array<TableItem>>([getTableItem()]);
   const isShowBatchEdit = ref(false);
 
-  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({
+    [ClusterTypes.TENDBHA]: [],
+    [ClusterTypes.TENDBSINGLE]: [],
+  });
 
   const clusterInfoMap: Map<string, TendbhaModel> = reactive(new Map());
   const clusterDBNameMap: Map<number, Array<string>> = reactive(new Map());
@@ -295,6 +301,7 @@
           property={`${index}.table_patterns`}>
           <bk-tag-input
             v-model={data.table_patterns}
+            allow-auto-match
             disabled={data.truncate_data_type === 'drop_database'}
             allow-create
             clearable={false}
@@ -412,10 +419,6 @@
       uniqueId: generateId('SLAVE_ADD_'),
     };
   }
-
-  onBeforeUnmount(() => {
-    handleHideTips();
-  });
 
   /**
    * 设置输入框 tips
@@ -650,6 +653,7 @@
       const clusterInfo = clusterInfoMap.get(item.cluster_domain);
       if (clusterInfo) {
         item.cluster_id = clusterInfo.id;
+        item.cluster_type = clusterInfo.cluster_type;
       }
     }
 
@@ -716,7 +720,11 @@
   function handleBatchSelectorChange(selected: Record<string, Array<TendbhaModel>>) {
     selectedClusters.value = selected;
     const newList: TableItem[] = [];
-    selected[ClusterTypes.TENDBHA].forEach((item) => {
+    const selectedList = Object.keys(selected).reduce(
+      (list: TendbhaModel[], key) => list.concat(...selected[key]),
+      [],
+    );
+    selectedList.forEach((item) => {
       const domain = item.master_domain;
       clusterInfoMap.set(domain, item);
       if (!domainMemo[domain]) {
@@ -724,6 +732,7 @@
           ...getTableItem(),
           cluster_domain: domain,
           cluster_id: item.id,
+          cluster_type: item.cluster_type,
         };
         newList.push(row);
         domainMemo[domain] = true;
@@ -786,6 +795,7 @@
     const dataList = [...tableData.value];
     const domain = dataList[index].cluster_domain;
     if (domain) {
+      clusterInfoMap.delete(domain);
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
       selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
@@ -800,6 +810,8 @@
       onConfirm: () => {
         tableData.value = [getTableItem()];
         selectedClusters.value[ClusterTypes.TENDBHA] = [];
+        selectedClusters.value[ClusterTypes.TENDBSINGLE] = [];
+        clusterInfoMap.clear();
         domainMemo = {};
         nextTick(() => {
           window.changeConfirm = false;
@@ -812,10 +824,18 @@
   function handleSubmit() {
     toolboxTableRef.value.validate()
       .then(() => {
+        const clusterTypes = _.uniq(tableData.value.map(item => item.cluster_type));
+        // 限制只能提同一种类型的集群，否则提示
+        if (clusterTypes.length > 1) {
+          messageError('只允许提交一种集群类型');
+          return;
+        }
+
         isSubmitting.value = true;
         const formatList = (values: string[]) => values.map(val => val.trim()).filter(val => val);
         const params = {
-          ticket_type: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
+          ticket_type: clusterTypes[0] === ClusterTypes.TENDBHA
+            ? TicketTypes.MYSQL_HA_TRUNCATE_DATA : TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
           bk_biz_id: globalBizsStore.currentBizId,
           details: {
             infos: tableData.value.map(item => ({
@@ -848,6 +868,10 @@
   function handleCloseSuccess() {
     ticketId.value = 0;
   }
+
+  onBeforeUnmount(() => {
+    handleHideTips();
+  });
 </script>
 
 <style lang="less" scoped>
