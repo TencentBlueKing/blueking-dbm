@@ -72,7 +72,7 @@ class MySQLMigrateClusterRemoteFlow(object):
         # 定义备份文件存放到目标机器目录位置
         self.backup_target_path = f"/data/dbbak/{self.root_id}"
 
-    def migrate_cluster_flow(self):
+    def migrate_cluster_flow(self, use_for_upgrade=False):
         """
         成对迁移集群主从节点。
         元数据信息修改顺序：
@@ -101,6 +101,11 @@ class MySQLMigrateClusterRemoteFlow(object):
             slave = cluster_class.storageinstance_set.filter(
                 instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
             ).first()
+            # 如果是升级用途的话,需要改变module id
+            db_module_id = cluster_class.db_module_id
+            if use_for_upgrade:
+                db_module_id = self.data["new_db_module_id"]
+
             self.data["master_ip"] = master_model.machine.ip
             self.data["cluster_type"] = cluster_class.cluster_type
             self.data["old_slave_ip"] = slave.machine.ip
@@ -108,10 +113,10 @@ class MySQLMigrateClusterRemoteFlow(object):
             self.data["mysql_port"] = master_model.port
             self.data["bk_biz_id"] = cluster_class.bk_biz_id
             self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
-            self.data["db_module_id"] = cluster_class.db_module_id
+            self.data["db_module_id"] = db_module_id
             self.data["time_zone"] = cluster_class.time_zone
             self.data["created_by"] = self.ticket_data["created_by"]
-            self.data["module"] = cluster_class.db_module_id
+            self.data["module"] = db_module_id
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["uid"] = self.ticket_data["uid"]
             self.data["package"] = Package.get_latest_package(
