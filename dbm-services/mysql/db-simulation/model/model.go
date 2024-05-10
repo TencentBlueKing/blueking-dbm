@@ -53,7 +53,8 @@ func init() {
 
 // Migration TODO
 func Migration() {
-	DB.AutoMigrate(&TbSimulationTask{}, &TbRequestRecord{}, &TbSyntaxRule{}, &TbContainerRecord{})
+	DB.AutoMigrate(&TbSimulationTask{}, &TbRequestRecord{}, &TbSyntaxRule{}, &TbContainerRecord{},
+		&TbSqlFileSimulationInfo{})
 }
 
 func openDB(username, password, addr, name string) *gorm.DB {

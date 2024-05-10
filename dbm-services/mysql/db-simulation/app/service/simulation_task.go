@@ -11,6 +11,7 @@
 package service
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"regexp"
@@ -26,10 +27,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DelPod TODO
+// DelPod 控制运行模拟执行后是否删除拉起的Pod的开关
+// 用于保留现场排查问题
 var DelPod bool = true
 
-// BaseParam TODO
+// BaseParam 请求模拟执行的基础参数
 type BaseParam struct {
 	Uid           string             `json:"uid"`
 	NodeId        string             `json:"node_id"`
@@ -44,13 +46,12 @@ type BaseParam struct {
 }
 
 // SpiderSimulationExecParam TODO
-// SpiderSimulationExecParam TODO
 type SpiderSimulationExecParam struct {
 	BaseParam
 	SpiderVersion string `json:"spider_version"`
 }
 
-// SimulationTask TODO
+// SimulationTask 模拟执行任务定义
 type SimulationTask struct {
 	RequestId string
 	PodName   string
@@ -59,12 +60,12 @@ type SimulationTask struct {
 	TaskRuntimCtx
 }
 
-// GetSpiderImg TODO
+// GetSpiderImg 获取spider节点的镜像
 func (in SpiderSimulationExecParam) GetSpiderImg() string {
 	return config.GAppConfig.Image.SpiderImg
 }
 
-// GetTdbctlImg TODO
+// GetTdbctlImg 获取tdbctl的镜像配置
 func (in SpiderSimulationExecParam) GetTdbctlImg() string {
 	return config.GAppConfig.Image.TdbCtlImg
 }
@@ -77,10 +78,7 @@ type ExcuteSQLFileObj struct {
 	DbNames       []string `json:"dbnames"  binding:"gt=0"`      // 需要变更的DBNames,支持模糊匹配
 }
 
-// parseDbParamRe TODO
-// ConvertDbParamToRegular 解析DbNames参数成正则参数
-//
-//	@receiver e
+// parseDbParamRe ConvertDbParamToRegular 解析DbNames参数成正则参数
 func (e *ExcuteSQLFileObj) parseDbParamRe() (s []string) {
 	return changeToMatch(e.DbNames)
 }
@@ -108,7 +106,7 @@ func changeToMatch(input []string) []string {
 	return result
 }
 
-// GetImgFromMySQLVersion TODO
+// GetImgFromMySQLVersion 根据版本获取模拟执行运行的镜像配置
 func GetImgFromMySQLVersion(verion string) (img string, err error) {
 	switch {
 	case regexp.MustCompile("5.5").MatchString(verion):
@@ -124,20 +122,19 @@ func GetImgFromMySQLVersion(verion string) (img string, err error) {
 	}
 }
 
-// TaskRuntimCtx TODO
+// TaskRuntimCtx 模拟执行运行上下文
 type TaskRuntimCtx struct {
 	version         string
 	dbsExcludeSysDb []string
 }
 
-// TaskChan TODO
+// TaskChan 模拟执行任务队列
 var TaskChan chan SimulationTask
 
-// SpiderTaskChan TODO
+// SpiderTaskChan TendbCluster模拟执行任务队列
 var SpiderTaskChan chan SimulationTask
 
-// CtrlChan TODO
-// 并发控制
+// CtrlChan 并发控制
 var ctrlChan chan struct{}
 
 func init() {
@@ -146,7 +143,6 @@ func init() {
 	ctrlChan = make(chan struct{}, 30)
 }
 
-// init TODO
 func init() {
 	timer := time.NewTicker(60 * time.Second)
 	go func() {
@@ -163,7 +159,6 @@ func init() {
 	}()
 }
 
-// run TODO
 func run(task SimulationTask, tkType string) {
 	var err error
 	var so, se string
@@ -231,7 +226,7 @@ func (t *SimulationTask) getDbsExcludeSysDb() (err error) {
 	return nil
 }
 
-// SimulationRun TODO
+// SimulationRun 运行模拟执行
 func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Logger) (sstdout, sstderr string,
 	err error) {
 	logger.Info("will execute in %s", containerName)
@@ -253,7 +248,7 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	model.UpdatePhase(t.TaskId, model.Phase_LoadSchema)
 	stdout, stderr, err := t.DbPodSets.executeInPod(t.getLoadSchemaSQLCmd(t.Path, t.SchemaSQLFile),
 		containerName,
-		t.getExtmap(), true)
+		t.getExtmap(t.SchemaSQLFile), true)
 	sstdout += stdout.String() + "\n"
 	sstderr += stderr.String() + "\n"
 	if err != nil {
@@ -269,41 +264,70 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	}
 	model.UpdatePhase(t.TaskId, model.Phase_Running)
 	for _, e := range t.ExcuteObjects {
-		xlogger.Info("[start]-%s", e.SQLFile)
-		var realexcutedbs []string
-		intentionDbs, err := t.match(e.parseDbParamRe())
+		sstdout, sstderr, err = t.executeOneObject(e, containerName, xlogger)
 		if err != nil {
-			return "", "", err
+			return sstdout, sstderr, err
 		}
-		ignoreDbs, err := t.match(e.parseIgnoreDbParamRe())
-		if err != nil {
-			return "", "", err
-		}
-		realexcutedbs = util.FilterOutStringSlice(intentionDbs, ignoreDbs)
-		if len(realexcutedbs) <= 0 {
-			return "", "", fmt.Errorf("the changed db does not exist!!!")
-		}
-		for idx, cmd := range t.getLoadSQLCmd(t.Path, e.SQLFile, realexcutedbs) {
-			sstdout += util.RemovePassword(cmd) + "\n"
-			stdout, stderr, err := t.DbPodSets.executeInPod(cmd, containerName, t.getExtmap(), false)
-			sstdout += stdout.String() + "\n"
-			sstderr += stderr.String() + "\n"
-			if err != nil {
-				if idx == 0 {
-					xlogger.Error("download file failed:%s", err.Error())
-					return sstdout, sstderr, fmt.Errorf("download file %s failed:%s", e.SQLFile, err.Error())
-				}
-				xlogger.Error("when execute %s at %s, failed  %s\n", e.SQLFile, realexcutedbs[idx-1], err.Error())
-				xlogger.Error("stderr:\n	%s", stderr.String())
-				xlogger.Error("stdout:\n	%s", stdout.String())
-				return sstdout, sstderr, fmt.Errorf("\nexec %s in %s failed:%s\n %s", e.SQLFile, realexcutedbs[idx-1],
-					err.Error(), stderr.String())
-			}
-			xlogger.Info("%s \n %s", stdout.String(), stderr.String())
-		}
-		xlogger.Info("[end]-%s", e.SQLFile)
 	}
 	return sstdout, sstderr, err
+}
+
+func (t *SimulationTask) executeOneObject(e ExcuteSQLFileObj, containerName string, xlogger *logger.Logger) (sstdout,
+	sstderr string, err error) {
+	defer func() {
+		status := model.Task_Success
+		errMsg := ""
+		if err != nil {
+			status = model.Task_Failed
+			errMsg = err.Error()
+		}
+		errx := model.DB.Create(&model.TbSqlFileSimulationInfo{
+			TaskId:       t.TaskId,
+			FileNameHash: fmt.Sprintf("%x", sha256.Sum256([]byte(e.SQLFile))),
+			FileName:     e.SQLFile,
+			Status:       status,
+			ErrMsg:       errMsg,
+			CreateTime:   time.Now(),
+			UpdateTime:   time.Now(),
+		}).Error
+		if errx != nil {
+			logger.Warn("create sqlfile simulation record failed %v", errx)
+		}
+	}()
+	xlogger.Info("[start]-%s", e.SQLFile)
+	var realexcutedbs []string
+	intentionDbs, err := t.match(e.parseDbParamRe())
+	if err != nil {
+		return "", "", err
+	}
+	ignoreDbs, err := t.match(e.parseIgnoreDbParamRe())
+	if err != nil {
+		return "", "", err
+	}
+	realexcutedbs = util.FilterOutStringSlice(intentionDbs, ignoreDbs)
+	if len(realexcutedbs) <= 0 {
+		return "", "", fmt.Errorf("the changed db does not exist")
+	}
+	for idx, cmd := range t.getLoadSQLCmd(t.Path, e.SQLFile, realexcutedbs) {
+		sstdout += util.RemovePassword(cmd) + "\n"
+		stdout, stderr, err := t.DbPodSets.executeInPod(cmd, containerName, t.getExtmap(e.SQLFile), false)
+		sstdout += stdout.String() + "\n"
+		sstderr += stderr.String() + "\n"
+		if err != nil {
+			if idx == 0 {
+				xlogger.Error("download file failed:%s", err.Error())
+				return sstdout, sstderr, fmt.Errorf("download file %s failed:%s", e.SQLFile, err.Error())
+			}
+			xlogger.Error("when execute %s at %s, failed  %s\n", e.SQLFile, realexcutedbs[idx-1], err.Error())
+			xlogger.Error("stderr:\n	%s", stderr.String())
+			xlogger.Error("stdout:\n	%s", stdout.String())
+			return sstdout, sstderr, fmt.Errorf("\nexec %s in %s failed:%s\n %s", e.SQLFile, realexcutedbs[idx-1],
+				err.Error(), stderr.String())
+		}
+		xlogger.Info("%s \n %s", stdout.String(), stderr.String())
+	}
+	xlogger.Info("[end]-%s", e.SQLFile)
+	return sstdout, sstderr, nil
 }
 
 func (t *SimulationTask) match(regularDbNames []string) (matched []string, err error) {
@@ -322,16 +346,16 @@ func (t *SimulationTask) match(regularDbNames []string) (matched []string, err e
 	return
 }
 
-func (t *SimulationTask) getExtmap() map[string]string {
+func (t *SimulationTask) getExtmap(sqlFileName string) map[string]string {
 	return map[string]string{
 		"uid":        t.Uid,
 		"node_id":    t.NodeId,
 		"root_id":    t.RootId,
 		"version_id": t.VersionId,
+		"sqlfile":    sqlFileName,
 	}
 }
 
-// getXlogger TODO
 func (t *SimulationTask) getXlogger() *logger.Logger {
-	return logger.New(os.Stdout, true, logger.InfoLevel, t.getExtmap())
+	return logger.New(os.Stdout, true, logger.InfoLevel, t.getExtmap(""))
 }
