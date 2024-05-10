@@ -22,11 +22,12 @@ import { useEventBus } from '@hooks';
 
 import {
   downloadFile,
-  loginDialog,
   messageError,
   parseURL,
   permissionDialog,
 } from '@utils';
+
+import { showLoginModal } from '@blueking/login-modal';
 
 import RequestError from '../lib/request-error';
 
@@ -40,7 +41,9 @@ const redirectLogin = (loginUrl: string) => {
   const domain = `${protocol}://${host}`;
 
   if (hasLogined) {
-    loginDialog(`${domain}/login/plain/?c_url=${decodeURIComponent(`${window.location.origin}${window.PROJECT_ENV.VITE_PUBLIC_PATH}login-success.html`)}`);
+    showLoginModal({
+      loginUrl: `${domain}/login/plain/?c_url=${decodeURIComponent(`${window.location.origin}${window.PROJECT_ENV.VITE_PUBLIC_PATH}login-success.html`)}`,
+    });
   } else {
     window.location.href = `${domain}/login/?c_url=${decodeURIComponent(window.location.href)}`;
   }
