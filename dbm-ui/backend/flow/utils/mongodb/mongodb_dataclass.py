@@ -111,8 +111,10 @@ class ActKwargs:
         )
         return data["content"]
 
-    def save_key_file(self, namespace: str, conf_type: str, conf_file: str, key_file: str, cluster_name: str):
-        """保存keyfile到dbconfig"""
+    def save_conf(
+        self, conf_name: str, namespace: str, conf_type: str, conf_file: str, conf_value: str, cluster_name: str
+    ):
+        """保存配置到dbconfig"""
 
         DBConfigApi.upsert_conf_item(
             {
@@ -121,7 +123,7 @@ class ActKwargs:
                     "conf_type": conf_type,
                     "namespace": namespace,
                 },
-                "conf_items": [{"conf_name": "key_file", "conf_value": key_file, "op_type": OpType.UPDATE}],
+                "conf_items": [{"conf_name": conf_name, "conf_value": conf_value, "op_type": OpType.UPDATE}],
                 "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
                 "confirm": DEFAULT_CONFIG_CONFIRM,
                 "req_type": ReqType.SAVE_AND_PUBLISH,
@@ -131,30 +133,44 @@ class ActKwargs:
             }
         )
 
-    def set_save_key_file(self):
-        """复制集保存keyfile"""
+    def save_key_file(self, namespace: str, cluster_name: str, key_file: str):
+        """保存keyfile"""
 
-        self.save_key_file(
-            namespace=ClusterType.MongoReplicaSet.value,
+        self.save_conf(
+            conf_name="key_file",
+            namespace=namespace,
             conf_type=ConfigTypeEnum.DBConf.value,
             conf_file="{}-{}".format("Mongodb", self.db_main_version),
-            key_file=self.replicaset_info["key_file"],
-            cluster_name=self.replicaset_info["set_id"],
+            conf_value=key_file,
+            cluster_name=cluster_name,
         )
 
-    def cluster_save_key_file(self):
-        """cluster保存keyfile"""
+    def save_cache_size(self, namespace: str, cluster_name: str, cache_size: str):
+        """保存cachesize"""
 
-        self.save_key_file(
-            namespace=ClusterType.MongoShardedCluster.value,
+        self.save_conf(
+            conf_name="cacheSizeGB",
+            namespace=namespace,
             conf_type=ConfigTypeEnum.DBConf.value,
             conf_file="{}-{}".format("Mongodb", self.db_main_version),
-            key_file=self.payload["key_file"],
-            cluster_name=self.payload["cluster_id"],
+            conf_value=cache_size,
+            cluster_name=cluster_name,
         )
 
-    def get_key_file(self, cluster_name: str) -> str:
-        """获取keyfile"""
+    def save_oplog_size(self, namespace: str, cluster_name: str, oplog_size: str):
+        """保存oplogsize"""
+
+        self.save_conf(
+            conf_name="oplogSizeMB",
+            namespace=namespace,
+            conf_type=ConfigTypeEnum.DBConf.value,
+            conf_file="{}-{}".format("Mongodb", self.db_main_version),
+            conf_value=oplog_size,
+            cluster_name=cluster_name,
+        )
+
+    def get_conf(self, cluster_name: str) -> dict:
+        """从dbconfig获取配置"""
 
         return DBConfigApi.query_conf_item(
             params={
@@ -166,7 +182,7 @@ class ActKwargs:
                 "namespace": self.cluster_type,
                 "format": FormatType.MAP.value,
             }
-        )["content"]["key_file"]
+        )["content"]
 
     def get_init_info(self):
         """获取初始信息一些信息"""
@@ -394,7 +410,7 @@ class ActKwargs:
                     "dbVersion": self.payload["db_version"],
                     "instanceType": MongoDBInstanceType.MongoS,
                     "app": self.payload["app"],
-                    "setId": self.mongos_info["set_id"],
+                    "setId": self.mongos_info["conf_set_id"],
                     "keyFile": self.payload["key_file"],
                     "auth": True,
                     "configDB": config_db,
@@ -1132,6 +1148,12 @@ class ActKwargs:
 
         for mongos in self.payload["mongos_nodes"]:
             self.payload["hosts"].append({"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]})
+
+    @staticmethod
+    def get_config_set_name_replace(cluster_id) -> str:
+        """获取分片集群的configDB的set_id"""
+
+        return MongoRepository().fetch_one_cluster(set_get_domain=False, id=cluster_id).get_config().set_name
 
     def calc_param_replace(self, info: dict, instance_num: int):
         """ "计算参数"""

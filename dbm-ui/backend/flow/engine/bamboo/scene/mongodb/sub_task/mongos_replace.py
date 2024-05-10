@@ -48,12 +48,16 @@ def mongos_replace(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
     sub_sub_get_kwargs.payload["shards_nodes"] = []
     sub_sub_get_kwargs.payload["app"] = sub_sub_get_kwargs.payload["bk_app_abbr"]
     sub_sub_get_kwargs.mongos_info["port"] = sub_sub_get_kwargs.db_instance["port"]
-    cluster_name = sub_sub_get_kwargs.db_instance["cluster_name"]
-    sub_sub_get_kwargs.mongos_info["set_id"] = cluster_name
+    cluster_id = sub_sub_get_kwargs.db_instance["cluster_id"]
+    sub_sub_get_kwargs.mongos_info["conf_set_id"] = sub_sub_get_kwargs.get_config_set_name_replace(
+        cluster_id=cluster_id
+    )
     sub_sub_get_kwargs.cluster_type = ClusterType.MongoShardedCluster.value
-    sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_key_file(cluster_name=cluster_name)
+    sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_conf(
+        cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"]
+    )["key_file"]
     node = info["target"]
-    node["cluster_id"] = sub_sub_get_kwargs.db_instance["cluster_id"]
+    node["cluster_id"] = cluster_id
     sub_sub_get_kwargs.payload["mongos"] = {}
     sub_sub_get_kwargs.payload["mongos"]["nodes"] = [
         {

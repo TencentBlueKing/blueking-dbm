@@ -58,9 +58,9 @@ def increase_mongod(
 
         # 获取key_file
         sub_get_kwargs.cluster_type = sub_get_kwargs.payload["cluster_type"]
-        sub_get_kwargs.replicaset_info["key_file"] = sub_get_kwargs.get_key_file(
+        sub_get_kwargs.replicaset_info["key_file"] = sub_get_kwargs.get_conf(
             cluster_name=sub_get_kwargs.payload["cluster_name"]
-        )
+        )["key_file"]
 
         # 设置参数
         sub_get_kwargs.replicaset_info["set_id"] = sub_get_kwargs.payload["set_id"]

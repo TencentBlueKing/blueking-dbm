@@ -20,7 +20,6 @@ import (
 type DeInstallConfParams struct {
 	IP           string   `json:"ip" validate:"required"`
 	Port         int      `json:"port" validate:"required"`
-	App          string   `json:"app" validate:"required"`
 	SetId        string   `json:"setId" validate:"required"`
 	NodeInfo     []string `json:"nodeInfo" validate:"required"`     // []string ip,ip  如果为复制集节点，则为复制集所有节点的ip；如果为mongos，则为mongos的ip
 	InstanceType string   `json:"instanceType" validate:"required"` // mongod mongos
@@ -112,12 +111,12 @@ func (d *DeInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 	strPort := strconv.Itoa(d.ConfParams.Port)
 	d.PortDir = filepath.Join(d.DataDir, "mongodata", strPort)
 	d.DbpathDir = filepath.Join(d.DataDir, "mongodata", strPort, "db")
-	d.DbPathRenameDir = filepath.Join(d.DataDir, "mongodata", fmt.Sprintf("%s_%s_%s_%d",
-		d.ConfParams.InstanceType, d.ConfParams.App, d.ConfParams.SetId, d.ConfParams.Port))
+	d.DbPathRenameDir = filepath.Join(d.DataDir, "mongodata", fmt.Sprintf("%s_%s_%d",
+		d.ConfParams.InstanceType, d.ConfParams.SetId, d.ConfParams.Port))
 	d.IPInfo = strings.Join(d.ConfParams.NodeInfo, "|")
 	d.LogPortDir = filepath.Join(d.BackupDir, "mongolog", strPort)
-	d.LogPathRenameDir = filepath.Join(d.BackupDir, "mongolog", fmt.Sprintf("%s_%s_%s_%d",
-		d.ConfParams.InstanceType, d.ConfParams.App, d.ConfParams.SetId, d.ConfParams.Port))
+	d.LogPathRenameDir = filepath.Join(d.BackupDir, "mongolog", fmt.Sprintf("%s_%s_%d",
+		d.ConfParams.InstanceType, d.ConfParams.SetId, d.ConfParams.Port))
 
 	// 进行校验
 	if err := d.checkParams(); err != nil {
