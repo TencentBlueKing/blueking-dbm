@@ -9,41 +9,37 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
+import { InfoBox } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 
 import { createTicket } from '@services/source/ticket';
 
-import {
-  useInfoWithIcon,
-  useTicketMessage,
-} from '@hooks';
+import { useTicketMessage } from '@hooks';
 
 import { useGlobalBizs } from '@stores';
 
 import { TicketTypes } from '@common/const';
-
 
 export const useDisableCluster = () => {
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const ticketMessage = useTicketMessage();
 
-  const diabledCluster = (data: {
-    cluster_name: string,
-    id: number
-  }) => {
-    useInfoWithIcon({
-      type: 'warnning',
+  const diabledCluster = (data: { cluster_name: string; id: number }) => {
+    InfoBox({
+      type: 'warning',
       title: t('确定禁用该集群'),
       content: () => (
         <>
-          <p>{ t('集群') }：<span class='info-box-cluster-name'>{ data.cluster_name }</span></p>
-          <p>{ t('被禁用后将无法访问，如需恢复访问，可以再次「启用」') }</p>
+          <p>
+            {t('集群')}：<span class='info-box-cluster-name'>{data.cluster_name}</span>
+          </p>
+          <p>{t('被禁用后将无法访问，如需恢复访问，可以再次「启用」')}</p>
         </>
       ),
-      confirmTxt: t('禁用'),
+      confirmText: t('禁用'),
       onConfirm: async () => {
         try {
           const params = {
@@ -53,10 +49,9 @@ export const useDisableCluster = () => {
               cluster_ids: [data.id],
             },
           };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-            });
+          await createTicket(params).then((res) => {
+            ticketMessage(res.id);
+          });
           return true;
         } catch (_) {
           return false;

@@ -1,6 +1,6 @@
 <template>
   <BkDialog
-    ext-cls="sqlserver-cluster-reset"
+    class="sqlserver-cluster-reset"
     :is-show="isShow"
     theme="primary"
     :title="t('重置集群')"

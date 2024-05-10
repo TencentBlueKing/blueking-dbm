@@ -127,6 +127,7 @@
     ];
     fetchData();
   };
+  console.log('asdasdasdasd')
 </script>
 <style lang="less">
   .partition-execute-log {

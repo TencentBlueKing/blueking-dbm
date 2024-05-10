@@ -2,7 +2,6 @@
   <BkDialog
     dialog-type="show"
     :draggable="false"
-    height="auto"
     :is-show="isShow"
     quick-close
     :title="t('账号信息')"
@@ -14,9 +13,7 @@
           v-for="column of accountColumns"
           :key="column.key"
           class="details-item">
-          <div class="details-label">
-            {{ column.label }}：
-          </div>
+          <div class="details-label">{{ column.label }}：</div>
           <div class="details-value">
             {{ column.value ?? props.info?.account?.[column.key] }}
           </div>
@@ -28,7 +25,9 @@
           <span class="details-value">
             <BkButton
               hover-theme="danger"
-              @click="handleDeleteAccount()">{{ t('删除账号') }}</BkButton>
+              @click="handleDeleteAccount()">
+              {{ t('删除账号') }}
+            </BkButton>
           </span>
         </div>
       </div>
@@ -44,11 +43,11 @@
   import { useDeleteAccount } from '../hooks/useDeleteAccount';
 
   interface Props {
-    info: MongodbPermissonAccountModel,
+    info: MongodbPermissonAccountModel;
   }
 
   interface Emits {
-    (e: 'deleteAccount'): void,
+    (e: 'deleteAccount'): void;
   }
 
   const props = defineProps<Props>();
@@ -62,9 +61,9 @@
   const { deleteAccountReq } = useDeleteAccount();
 
   const accountColumns: Array<{
-    label: string,
-    key: keyof MongodbPermissonAccountModel['account'],
-    value?: string
+    label: string;
+    key: keyof MongodbPermissonAccountModel['account'];
+    value?: string;
   }> = [
     {
       label: t('账号名'),
@@ -88,10 +87,7 @@
   const isDelete = computed(() => !props.info?.rules?.length);
 
   const handleDeleteAccount = () => {
-    const {
-      user,
-      account_id: accountId,
-    } = props.info.account;
+    const { user, account_id: accountId } = props.info.account;
 
     deleteAccountReq(user, accountId, () => {
       emits('deleteAccount');

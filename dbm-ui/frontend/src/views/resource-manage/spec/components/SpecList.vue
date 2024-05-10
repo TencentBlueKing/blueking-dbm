@@ -103,6 +103,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -117,7 +118,6 @@
   import {
     useBeforeClose,
     useDebouncedRef,
-    useInfoWithIcon,
     useTableSettings,
   } from '@hooks';
 
@@ -497,7 +497,7 @@
   };
 
   const handleDelete = (list: ResourceSpecModel[], isBatch = true) => {
-    useInfoWithIcon({
+    InfoBox({
       type: 'warnning',
       title: t('确认删除以下规格'),
       content: () => (

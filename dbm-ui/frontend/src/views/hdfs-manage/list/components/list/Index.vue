@@ -860,12 +860,6 @@
   });
 </script>
 <style lang="less" scoped>
-  .settings-sideslider {
-    :deep(.bk-modal-content) {
-      height: 100%;
-    }
-  }
-
   .hdfs-list-page {
     :deep(.cell) {
       line-height: normal !important;

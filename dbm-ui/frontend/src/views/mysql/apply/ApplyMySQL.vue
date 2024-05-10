@@ -356,7 +356,7 @@
   <!-- 预览功能 -->
   <BkDialog
     v-model:is-show="isShowPreview"
-    header-position="left"
+    header-align="left"
     :height="624"
     :width="1180">
     <template #header>

@@ -207,13 +207,14 @@
   </SmartAction>
 </template>
 <script setup lang="ts">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getModules } from '@services/source/cmdb';
   import type { BizItem, HostDetails } from '@services/types';
 
-  import { useApplyBase, useInfo } from '@hooks';
+  import { useApplyBase } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -376,9 +377,10 @@
   };
 
   const handleReset = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         Object.assign(formData, genDefaultFormData());
         formRef.value.clearValidate();

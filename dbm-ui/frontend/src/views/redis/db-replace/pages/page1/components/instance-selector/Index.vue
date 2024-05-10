@@ -163,9 +163,9 @@
       display: none;
     }
 
-    .bk-modal-content {
-      padding: 0 !important;
-      overflow-y: hidden !important;
+    .bk-dialog-content {
+      padding: 0;
+      margin: 0;
     }
   }
 </style>

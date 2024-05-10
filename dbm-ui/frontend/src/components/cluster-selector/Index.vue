@@ -13,11 +13,10 @@
 
 <template>
   <BkDialog
+    class="cluster-selector-dialog"
     :close-icon="false"
     :draggable="false"
     :esc-close="false"
-    ext-cls="cluster-selector-dialog"
-    height="auto"
     :is-show="isShow"
     :quick-close="false"
     title=""
@@ -166,32 +165,32 @@
   import TendbhaTable from './components/tendbha/Index.vue';
 
   export type TabListType = {
-    name: string,
-    id: ClusterTypes,
-    tableContent: any,
-    resultContent: any,
+    name: string;
+    id: ClusterTypes;
+    tableContent: any;
+    resultContent: any;
     // 不可选行及提示
     disabledRowConfig?: {
-      handler: (data: any) => boolean,
-      tip?: string,
-    }[],
+      handler: (data: any) => boolean;
+      tip?: string;
+    }[];
     // 自定义列
-    customColums?: any[],
+    customColums?: any[];
     // 结果预览使用的key
-    previewResultKey?: string,
+    previewResultKey?: string;
     // 搜索栏下拉选项
-    searchSelectList?: SearchSelectList,
+    searchSelectList?: SearchSelectList;
     // 搜索栏的placeholder
-    searchPlaceholder?: string
-    showPreviewResultTitle?: boolean,
+    searchPlaceholder?: string;
+    showPreviewResultTitle?: boolean;
     // 多选模式
-    multiple?: boolean,
+    multiple?: boolean;
     // checkbox hover 提示
-    checkboxHoverTip?: (data: any) => string,
+    checkboxHoverTip?: (data: any) => string;
     // 状态列
-    columnStatusFilter?: (data: any) => boolean,
+    columnStatusFilter?: (data: any) => boolean;
     // 查询接口
-    getResourceList?: (params: any) => Promise<ListBase<Record<string, any>[]>>,
+    getResourceList?: (params: any) => Promise<ListBase<Record<string, any>[]>>;
   }[];
 
   export type TabItem = TabListType[number];
@@ -199,14 +198,14 @@
   export type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>;
 
   interface Props {
-    selected: Record<string, T[]>,
-    clusterTypes: ClusterTypes[],
-    tabListConfig?: Record<string, TabConfig>,
-    onlyOneType?: boolean,
+    selected: Record<string, T[]>;
+    clusterTypes: ClusterTypes[];
+    tabListConfig?: Record<string, TabConfig>;
+    onlyOneType?: boolean;
   }
 
   interface Emits {
-    (e: 'change', value: Props['selected']): void,
+    (e: 'change', value: Props['selected']): void;
   }
 
   const props = defineProps<Props>();
@@ -225,10 +224,12 @@
     [ClusterTypes.TENDBCLUSTER]: {
       id: ClusterTypes.TENDBCLUSTER,
       name: t('集群选择'),
-      disabledRowConfig: [{
-        handler: (data: T) => data.isOffline,
-        tip: t('集群已禁用'),
-      }],
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
       getResourceList: getSpiderList,
       tableContent: SpiderTable,
       resultContent: ResultPreview,
@@ -236,10 +237,12 @@
     [ClusterTypes.REDIS]: {
       id: ClusterTypes.REDIS,
       name: t('集群选择'),
-      disabledRowConfig: [{
-        handler: (data: T) => data.isOffline,
-        tip: t('集群已禁用'),
-      }],
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
       getResourceList: getRedisList,
       tableContent: RedisTable,
       resultContent: ResultPreview,
@@ -247,10 +250,12 @@
     [ClusterTypes.TENDBHA]: {
       id: ClusterTypes.TENDBHA,
       name: t('主从集群'),
-      disabledRowConfig: [{
-        handler: (data: T) => data.isOffline,
-        tip: t('集群已禁用'),
-      }],
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
       getResourceList: getTendbhaList,
       tableContent: TendbhaTable,
       resultContent: ResultPreview,
@@ -298,10 +303,12 @@
     [ClusterTypes.TENDBSINGLE]: {
       id: ClusterTypes.TENDBSINGLE,
       name: t('单节点'),
-      disabledRowConfig: [{
-        handler: (data: T) => data.isOffline,
-        tip: t('集群已禁用'),
-      }],
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
       getResourceList: getTendbsingleList,
       tableContent: TendbSingleTable,
       resultContent: ResultPreview,
@@ -338,43 +345,58 @@
     return tabListMap;
   });
 
-  const tabList = computed(() => (props.clusterTypes
-    ? props.clusterTypes.map(type => clusterTabListMap.value[type]) : []));
+  const tabList = computed(() =>
+    props.clusterTypes ? props.clusterTypes.map((type) => clusterTabListMap.value[type]) : [],
+  );
 
-  const selectedArr = computed(() => (activeTab.value
-    && selectedMap.value[activeTab.value] && (Object.keys(selectedMap.value).length > 0)
-    ? ({ [activeTab.value]: Object.values(selectedMap.value[activeTab.value]) }) :  {}));
+  const selectedArr = computed(() =>
+    activeTab.value && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value).length > 0
+      ? { [activeTab.value]: Object.values(selectedMap.value[activeTab.value]) }
+      : {},
+  );
 
   // 显示切换 tab tips
   // const showSwitchTabTips = computed(() => showTabTips.value && tabList.value.length > 1);
   // 选中结果是否为空
-  const isEmpty = computed(() => _.every(Object.values(selectedMap.value), item => Object.keys(item).length < 1));
+  const isEmpty = computed(() => _.every(Object.values(selectedMap.value), (item) => Object.keys(item).length < 1));
 
-  watch(() => props.clusterTypes, (types) => {
-    if (types) {
-      activePanelObj.value = clusterTabListMap.value[types[0]];
-      [activeTab.value] = types;
-    }
-  }, {
-    immediate: true,
-    deep: true,
-  });
+  watch(
+    () => props.clusterTypes,
+    (types) => {
+      if (types) {
+        activePanelObj.value = clusterTabListMap.value[types[0]];
+        [activeTab.value] = types;
+      }
+    },
+    {
+      immediate: true,
+      deep: true,
+    },
+  );
 
   watch(isShow, (show) => {
     if (show && tabList.value) {
-      selectedMap.value = tabList.value.map(item => item.id).reduce((result, tabKey) => {
-        if (!props.selected[tabKey]) {
-          return result;
-        }
-        const tabSelectMap = props.selected[tabKey].reduce((selectResult, selectItem) => ({
-          ...selectResult,
-          [selectItem.id]: selectItem,
-        }), {} as Record<string, T>);
-        return {
-          ...result,
-          [tabKey]: tabSelectMap,
-        };
-      }, {} as Record<string, Record<string, T>>);
+      selectedMap.value = tabList.value
+        .map((item) => item.id)
+        .reduce(
+          (result, tabKey) => {
+            if (!props.selected[tabKey]) {
+              return result;
+            }
+            const tabSelectMap = props.selected[tabKey].reduce(
+              (selectResult, selectItem) => ({
+                ...selectResult,
+                [selectItem.id]: selectItem,
+              }),
+              {} as Record<string, T>,
+            );
+            return {
+              ...result,
+              [tabKey]: tabSelectMap,
+            };
+          },
+          {} as Record<string, Record<string, T>>,
+        );
       showTabTips.value = true;
     }
   });
@@ -386,7 +408,7 @@
     if (activeTab.value === obj.id) {
       return;
     }
-    const currentTab = tabList.value.find(item => item.id === obj.id);
+    const currentTab = tabList.value.find((item) => item.id === obj.id);
     activeTab.value = obj.id;
     if (currentTab) {
       activePanelObj.value = currentTab;
@@ -426,7 +448,7 @@
    */
   const handleCopyCluster = () => {
     const copyValues = Object.values(selectedMap.value).reduce((result, selectItem) => {
-      result.push(...Object.values(selectItem).map(item => item.master_domain));
+      result.push(...Object.values(selectItem).map((item) => item.master_domain));
       return result;
     }, [] as string[]);
 
@@ -439,16 +461,19 @@
   };
 
   const handleConfirm = () => {
-    const result = Object.keys(selectedMap.value).reduce((result, tabKey) => ({
-      ...result,
-      [tabKey]: Object.values(selectedMap.value[tabKey]),
-    }), {});
+    const result = Object.keys(selectedMap.value).reduce(
+      (result, tabKey) => ({
+        ...result,
+        [tabKey]: Object.values(selectedMap.value[tabKey]),
+      }),
+      {},
+    );
     emits('change', result);
     handleClose();
   };
 
   const handleClose = () => {
-    isShow.value =  false;
+    isShow.value = false;
   };
 
   /**
@@ -486,26 +511,18 @@
   };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   @import '@styles/mixins.less';
 
   .cluster-selector-dialog {
     font-size: @font-size-mini;
 
-    :deep(.bk-modal-body) {
-      .bk-modal-header {
-        display: none;
-      }
-
-      .bk-modal-content {
-        padding: 0;
-        margin: 0;
-      }
-
-      .bk-modal-footer {
-        margin: 0;
-        padding: 8px 16px 8px;
-      }
+    .bk-modal-header {
+      display: none;
+    }
+    .bk-dialog-content {
+      padding: 0;
+      margin: 0;
     }
 
     .cluster-selector-tabs {

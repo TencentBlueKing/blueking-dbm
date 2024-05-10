@@ -53,13 +53,14 @@
   <SystemVersionLog v-model:is-show="isShowSystemVersionLog" />
 </template>
 <script setup lang="ts">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import urlJoin from 'url-join';
   import { onMounted, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getLogout } from '@services/source/logout';
 
-  import { useInfo, useSQLTaskNotify } from '@hooks';
+  import { useSQLTaskNotify } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
@@ -102,7 +103,7 @@
   };
 
   const handleSignOut = () => {
-    useInfo({
+    InfoBox({
       title: t('确认退出登录'),
       onConfirm: () =>
         getLogout().then(() => {

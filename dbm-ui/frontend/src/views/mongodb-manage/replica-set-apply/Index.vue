@@ -199,6 +199,7 @@
 </template>
 
 <script setup lang="ts">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -207,7 +208,6 @@
 
   import {
     useApplyBase,
-    useInfo,
   } from '@hooks';
 
   import {
@@ -346,9 +346,10 @@
   };
 
   const handleResetFormdata = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         Object.assign(formData, initData());
         nextTick(() => {

@@ -61,7 +61,6 @@
     <!-- 新增版本 -->
     <BkDialog
       v-model:is-show="createFileState.isShow"
-      height="auto"
       :mask-close="false"
       theme="primary"
       :title="t('新增版本')"

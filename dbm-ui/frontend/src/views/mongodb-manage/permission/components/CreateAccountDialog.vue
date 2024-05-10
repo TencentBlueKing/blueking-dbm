@@ -16,7 +16,6 @@
     class="account-dialog"
     :draggable="false"
     :esc-close="false"
-    height="auto"
     :is-show="isShow"
     :quick-close="false"
     :title="t('新建账号')"
@@ -89,7 +88,7 @@
       </BkButton>
     </template>
   </BkDialog>
-  <div style="display: none;">
+  <div style="display: none">
     <div
       id="account-pop"
       class="mongo-account-pop">
@@ -422,7 +421,7 @@
 
 <style lang="less">
   .mongo-account-pop {
-    color: #63656E;
+    color: #63656e;
 
     .mongo-account-pop-text {
       margin-top: 4px;

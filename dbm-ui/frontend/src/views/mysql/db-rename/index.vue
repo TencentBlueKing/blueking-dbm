@@ -14,12 +14,15 @@
 <template>
   <SuccessView
     v-if="ticketId"
-    :steps="[{
-      title: t('单据审批'),
-      status: 'loading',
-    }, {
-      title: t('DB重命名_执行'),
-    }]"
+    :steps="[
+      {
+        title: t('单据审批'),
+        status: 'loading',
+      },
+      {
+        title: t('DB重命名_执行'),
+      },
+    ]"
     :ticket-id="ticketId"
     :title="t('DB重命名任务提交成功')"
     @close="handleCloseSuccess" />
@@ -51,7 +54,7 @@
       class="mb-20">
       <span
         class="inline-block"
-        style=" margin-top: -2px;border-bottom: 1px dashed #979ba5;">
+        style="margin-top: -2px; border-bottom: 1px dashed #979ba5">
         {{ t('忽略业务连接') }}
       </span>
     </BkCheckbox>
@@ -83,6 +86,7 @@
 </template>
 
 <script setup lang="tsx">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -91,7 +95,7 @@
   import { getClusterDatabaseNameList } from '@services/source/remoteService';
   import { createTicket } from '@services/source/ticket';
 
-  import { useInfo, useTableMaxHeight, useTicketCloneInfo } from '@hooks';
+  import { useTableMaxHeight, useTicketCloneInfo } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -559,9 +563,10 @@
   }
 
   function handleReset() {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
         selectedClusters.value[ClusterTypes.TENDBHA] = [];

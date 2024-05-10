@@ -66,7 +66,7 @@
                   v-model="formdata.details.resource_spec.spider.count"
                   :min="2"
                   type="number" />
-                <span class="input-desc">{{ t('至少n台', {n: 2}) }}</span>
+                <span class="input-desc">{{ t('至少n台', { n: 2 }) }}</span>
               </BkFormItem>
             </div>
           </BkFormItem>
@@ -93,7 +93,7 @@
               style="width: 185px"
               type="number" />
             <span class="input-desc">
-              {{ t('范围min_max', {min: 25000, max: 65535}) }}
+              {{ t('范围min_max', { min: 25000, max: 65535 }) }}
             </span>
           </BkFormItem>
           <BkFormItem :label="t('备注')">
@@ -101,7 +101,7 @@
               v-model="formdata.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
-              style="width: 655px;"
+              style="width: 655px"
               type="textarea" />
           </BkFormItem>
         </DbCard>
@@ -132,13 +132,14 @@
 </template>
 
 <script setup lang="ts">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
   import type { BizItem } from '@services/types';
 
-  import { useApplyBase, useInfo } from '@hooks';
+  import { useApplyBase } from '@hooks';
 
   import { nameRegx } from '@common/regex';
 
@@ -225,9 +226,10 @@
 
   /** 重置表单 */
   const handleResetFormdata = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         formdata.value = initData();
         nextTick(() => {

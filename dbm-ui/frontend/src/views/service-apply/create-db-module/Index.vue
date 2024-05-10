@@ -119,6 +119,7 @@
 </template>
 
 <script setup lang="ts">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -129,8 +130,6 @@
     saveModulesDeployInfo,
     updateBusinessConfig,
   } from '@services/source/configs';
-
-  import { useInfo } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -425,9 +424,10 @@
   };
 
   const handleReset = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         const resetData = isNewModule ? getFormData() : { version: '', character_set: '' };
         _.merge(formData, resetData);

@@ -275,8 +275,9 @@
       display: none;
     }
 
-    .bk-modal-content {
-      padding: 0 !important;
+    .bk-dialog-content {
+      padding: 0;
+      margin: 0;
     }
 
     .content-wrapper {

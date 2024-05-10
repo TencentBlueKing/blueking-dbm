@@ -321,10 +321,6 @@
   }
 
   .log-sideslider {
-    :deep(.bk-modal-content) {
-      height: 100%;
-    }
-
     .log-sideslider-header {
       display: flex;
       align-items: center;

@@ -13,8 +13,6 @@
 
 <template>
   <BkDialog
-    class="entry-config-dialog"
-    height="450"
     :is-show="isShow"
     :quick-close="false"
     :title="t('修改入口配置')"
@@ -187,16 +185,6 @@
 </script>
 
 <style lang="less" scoped>
-  .entry-config-dialog {
-    :deep(.bk-dialog-header) {
-      padding: 18px 24px;
-    }
-
-    :deep(.bk-modal-close) {
-      font-size: 24px;
-    }
-  }
-
   .entry-config-table-box {
     max-height: fit-content;
   }

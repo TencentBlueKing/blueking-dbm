@@ -140,7 +140,6 @@
 
   import {
     useCopy,
-    useInfoWithIcon,
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
@@ -1086,8 +1085,8 @@
 
     const isOpen = type === TicketTypes.REDIS_PROXY_OPEN;
     const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title,
       content: () => (
         <div style="word-break: all;">
@@ -1131,9 +1130,8 @@
 
     InfoBox({
       title,
-      subTitle: t('启用 CLB 之后，该集群可以通过 CLB 来访问'),
+      content: t('启用 CLB 之后，该集群可以通过 CLB 来访问'),
       width: 400,
-      'ext-cls': 'redis-manage-infobox',
       onConfirm: async () => {
         try {
           const params = {
@@ -1161,13 +1159,12 @@
   const handleSwitchDNSBindCLB = (data: RedisModel) => {
     const isBind = data.dns_to_clb;
     const title = isBind ? t('确认恢复 DNS 域名指向？') : t('确认将 DNS 域名指向 CLB ?');
-    const subTitle = isBind ? t('DNS 域名恢复指向 Proxy') : t('业务不需要更换原域名也可实现负载均衡');
+    const content = isBind ? t('DNS 域名恢复指向 Proxy') : t('业务不需要更换原域名也可实现负载均衡');
     const type = isBind ? TicketTypes.REDIS_PLUGIN_DNS_UNBIND_CLB : TicketTypes.REDIS_PLUGIN_DNS_BIND_CLB;
     InfoBox({
       title,
-      subTitle,
+      content,
       width: 400,
-      'ext-cls': 'redis-manage-infobox',
       onConfirm: async () => {
         try {
           const params = {
@@ -1198,8 +1195,8 @@
       : TicketTypes.REDIS_PLUGIN_CREATE_POLARIS;
 
     const title = ticketType === TicketTypes.REDIS_PLUGIN_CREATE_POLARIS ? t('确定启用北极星') : t('确定禁用北极星');
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title,
       onConfirm: async () => {
         try {
@@ -1227,11 +1224,11 @@
    */
   const handleDeleteCluster = (data: RedisModel) => {
     const { cluster_name: name } = data;
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确定删除该集群'),
-      confirmTxt: t('删除'),
-      confirmTheme: 'danger',
+      confirmText: t('删除'),
+      confirmButtonTheme: 'danger',
       content: () => (
       <div style="word-break: all; text-align: left; padding-left: 16px;">
         <p>{t('集群【name】被删除后_将进行以下操作', { name })}</p>
@@ -1440,23 +1437,6 @@
     &:hover {
       color: #3a84ff;
       background-color: #e1ecff;
-    }
-  }
-
-  .redis-manage-infobox {
-    .bk-modal-body {
-      .bk-modal-header {
-        .bk-dialog-header {
-          .bk-dialog-title {
-            margin-top: 18px;
-            margin-bottom: 16px;
-          }
-        }
-      }
-
-      .bk-modal-footer {
-        height: 80px;
-      }
     }
   }
 </style>

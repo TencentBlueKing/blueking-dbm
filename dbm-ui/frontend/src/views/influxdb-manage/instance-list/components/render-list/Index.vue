@@ -147,6 +147,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import type { Emitter } from 'mitt';
   import { useI18n } from 'vue-i18n';
@@ -158,7 +159,7 @@
   import { getUserList } from '@services/source/user';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
-  import { useCopy, useInfoWithIcon, useLinkQueryColumnSerach, useTableSettings, useTicketMessage } from '@hooks';
+  import { useCopy, useLinkQueryColumnSerach, useTableSettings, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -708,10 +709,10 @@
    * 重启实例
    */
   const handleRestart = (data: InfluxDBInstanceModel[]) => {
-    useInfoWithIcon({
+    InfoBox({
       width: 480,
-      type: 'warnning',
-      confirmTxt: t('重启'),
+      type: 'warning',
+      confirmText: t('重启'),
       title: t('确认重启实例'),
       content: () => (
         <div style="word-break: all;">
@@ -751,10 +752,10 @@
    * 启用实例
    */
   const handleEnable = (data: InfluxDBInstanceModel) => {
-    useInfoWithIcon({
+    InfoBox({
       width: 480,
-      type: 'warnning',
-      confirmTxt: t('启用'),
+      type: 'warning',
+      confirmText: t('启用'),
       title: t('确认启用该实例'),
       content: () => (
         <div style="word-break: all;">
@@ -786,11 +787,11 @@
    * 禁用实例
    */
   const handlDisabled = (data: InfluxDBInstanceModel) => {
-    useInfoWithIcon({
+    InfoBox({
       width: 480,
-      type: 'warnning',
+      type: 'warning',
       title: t('确认禁用该实例'),
-      confirmTxt: t('禁用'),
+      confirmText: t('禁用'),
       content: () => (
         <div style="word-break: all;">
           <p>{t('实例【instance】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { instance: data.instance_address })}</p>
@@ -822,11 +823,11 @@
    */
   const handlDelete = (data: InfluxDBInstanceModel) => {
     const instanceAddress = data.instance_address;
-    useInfoWithIcon({
+    InfoBox({
       width: 480,
-      type: 'warnning',
-      confirmTheme: 'danger',
-      confirmTxt: t('删除'),
+      type: 'warning',
+      confirmButtonTheme: 'danger',
+      confirmText: t('删除'),
       title: t('确定删除该实例'),
       content: () => (
         <div style="word-break: all; text-align: left; padding-left: 16px;">

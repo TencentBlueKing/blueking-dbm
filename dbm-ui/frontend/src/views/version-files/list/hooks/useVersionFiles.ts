@@ -12,12 +12,11 @@
  */
 
 import { Message } from 'bkui-vue';
+import InfoBox from 'bkui-vue/lib/info-box';
 import type { Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { deletePackage, getPackages } from '@services/source/package';
-
-import { useInfo } from '@hooks';
 
 import type { IState, TypeParams } from '../components/types';
 
@@ -73,9 +72,11 @@ export const useVersionFiles = (state: IState, typeParams: Ref<TypeParams>) => {
    * 删除版本
    */
   function handleConfirmDelete(data: ServiceReturnType<typeof getPackages>['results'][number]) {
-    useInfo({
+    InfoBox({
       title: t('确认删除'),
       content: t('确认删除xx', [data.name]),
+      cancelText: t('取消'),
+      confirmText: t('确认'),
       onConfirm: () =>
         deletePackage({ id: data.id })
           .then(() => {

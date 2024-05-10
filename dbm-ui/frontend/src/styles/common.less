@@ -130,14 +130,6 @@
   }
 }
 
-.is-sticky-footer:not(.bk-modal-footer) {
-  position: sticky;
-  bottom: 0;
-  padding: 8px 24px;
-  background-color: #fafbfd;
-  border-top: 1px solid #dcdee5;
-}
-
 /** 悬浮固定底部 */
 .absolute-footer {
   .flex-center();
@@ -158,73 +150,6 @@
   }
 }
 
-/** info dialog */
-.db-info-dialog {
-  &__content {
-    text-align: center;
-  }
-
-  &__footer {
-    padding-top: 24px;
-    text-align: center;
-
-    .bk-button {
-      min-width: 88px;
-    }
-  }
-
-  &.bk-modal-wrapper.bk-dialog-wrapper {
-    .bk-modal-header {
-      .bk-dialog-header {
-        padding: 48px 24px 8px;
-      }
-
-      .bk-dialog-title {
-        height: unset;
-        margin-top: 0;
-      }
-    }
-
-    .bk-modal-content {
-      min-height: unset;
-      padding: 0 24px 24px;
-    }
-  }
-
-  /** with icon */
-  &.db-info-with-icon {
-    .bk-dialog-header {
-      padding-top: 26px !important;
-    }
-
-    .db-info-with-icon__icon {
-      display: block;
-      width: 42px;
-      height: 42px;
-      margin: 0 auto 20px;
-      font-size: 24px;
-      line-height: 42px;
-      color: @white-color;
-      border-radius: 50%;
-
-      &--success {
-        color: @success-color;
-        background-color: #e5f6ea;
-      }
-
-      &--warnning {
-        color: @warning-color;
-        background-color: #ffe8c3;
-      }
-
-      &--danger {
-        font-size: 32px;
-        color: @danger-color;
-        background-color: #fdd;
-      }
-    }
-  }
-}
 
 /** 面包屑下 steps 样式 */
 .top-steps {
@@ -264,6 +189,15 @@
 //   padding: 0 !important;
 // }
 // }
+
+.bk-modal-wrapper{
+  transform: none;
+  left: initial;
+  right: initial;
+}
+.bk-dialog-content{
+  max-height: unset !important;
+}
 
 /** 自定义面包屑 */
 .main-breadcrumbs.custom-main-breadcrumbs {
@@ -536,27 +470,6 @@
 //   }
 // }
 
-.bk-modal-wrapper.bk-sideslider-wrapper {
-  .bk-sideslider-footer {
-    padding: 4px 40px;
-    box-shadow: unset;
-
-    .bk-button {
-      width: 88px;
-    }
-  }
-
-  /** side silder sticky footer */
-  .bk-modal-footer.is-sticky-footer {
-    .bk-sideslider-footer {
-      position: sticky;
-      bottom: 0;
-      padding: 8px 24px !important;
-      background-color: #fafbfd;
-      border-top: 1px solid @border-disable;
-    }
-  }
-}
 
 .bk-radio-button {
   &.is-disabled {

@@ -12,13 +12,12 @@
  */
 
 import { Message } from 'bkui-vue';
+import InfoBox from 'bkui-vue/lib/info-box';
 import { useI18n } from 'vue-i18n';
 
 import { createAppAbbr } from '@services/source/cmdb';
 import { createTicket } from '@services/source/ticket';
 import type { BizItem } from '@services/types';
-
-import { useInfo } from '@hooks';
 
 import { useMainViewStore } from '@stores';
 
@@ -69,7 +68,7 @@ export const useApplyBase = () => {
    */
   function handleCreateAppAbbr(formdata: any) {
     const appAbbr = formdata.details.db_app_abbr;
-    useInfo({
+    InfoBox({
       title: t('确认创建业务Code'),
       content: t('业务Codexx将被保存到业务xx且保存后不允许修改', [appAbbr, bizState.info.display_name]),
       onConfirm: () => {

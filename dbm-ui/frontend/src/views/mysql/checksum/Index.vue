@@ -151,6 +151,7 @@
 
 <script setup lang="tsx">
   import type FormItem from 'bkui-vue/lib/form/form-item';
+  import InfoBox from 'bkui-vue/lib/info-box';
   import { format } from 'date-fns';
   import _ from 'lodash';
   import type { Instance, SingleTarget } from 'tippy.js';
@@ -164,7 +165,6 @@
   import type { InstanceInfos } from '@services/types/clusters';
 
   import {
-    useInfo,
     useTableMaxHeight,
     useTicketCloneInfo,
     useTimeZoneFormat,
@@ -291,7 +291,7 @@
     }
     return steps;
   });
-  
+
   const rules = {
     cluster: [
       {
@@ -987,9 +987,10 @@
   }
 
   function handleReset() {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
         formdata.data_repair.is_repair = true;

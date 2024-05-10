@@ -324,6 +324,7 @@
   </SmartAction>
 </template>
 <script setup lang="ts">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import {
@@ -336,7 +337,7 @@
     HostDetails,
   } from '@services/types';
 
-  import { useApplyBase, useInfo  } from '@hooks';
+  import { useApplyBase  } from '@hooks';
 
   // import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
@@ -718,7 +719,7 @@
 
   // 重置表单
   const handleReset = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {

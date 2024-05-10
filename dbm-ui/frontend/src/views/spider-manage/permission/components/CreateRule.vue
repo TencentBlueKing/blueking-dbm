@@ -401,7 +401,7 @@
 
 <style lang="less" scoped>
   .rule-form {
-    padding: 24px 40px 40px;
+    padding: 24px;
 
     .rule-setting-box {
       padding: 16px;

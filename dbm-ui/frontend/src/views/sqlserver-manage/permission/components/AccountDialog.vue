@@ -3,7 +3,6 @@
     class="account-dialog"
     :draggable="false"
     :esc-close="false"
-    height="auto"
     :is-show="accountDialogIsShow"
     :quick-close="false"
     :title="t('新建账号')"
@@ -30,7 +29,7 @@
             trigger: 'click',
             placement: 'right',
             theme: 'light',
-            content: userPlaceholder
+            content: userPlaceholder,
           }"
           :placeholder="userPlaceholder" />
       </BkFormItem>
@@ -47,7 +46,7 @@
             class="password-input"
             :placeholder="t('请输入')"
             type="password"
-            @blur="passwordInstance?.hide();"
+            @blur="passwordInstance?.hide()"
             @focus="handlePasswordFocus" />
           <BkButton
             class="password-generate-button"
@@ -98,12 +97,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getPasswordPolicy,
-    getRandomPassword,
-    getRSAPublicKeys,
-    verifyPasswordStrength,
-  } from '@services/permission';
+  import { getPasswordPolicy, getRandomPassword, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
   import { createSqlserverAccount } from '@services/source/sqlserverPermissionAccount';
 
   import { AccountTypes } from '@common/const';
@@ -112,15 +106,15 @@
   import { messageSuccess } from '@utils';
 
   interface Emits {
-    (e: 'success'): void
+    (e: 'success'): void;
   }
 
   interface StrengthItem {
-    keys: string[],
-    text: string
+    keys: string[];
+    text: string;
   }
 
-  type PasswordStrengthVerifyInfo = PasswordStrength['password_verify_info']
+  type PasswordStrengthVerifyInfo = PasswordStrength['password_verify_info'];
 
   type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
 
@@ -220,9 +214,7 @@
     },
   ];
 
-  const {
-    run: getRandomPasswordRun,
-  } = useRequest(getRandomPassword, {
+  const { run: getRandomPasswordRun } = useRequest(getRandomPassword, {
     manual: true,
     onSuccess(randomPasswordRes) {
       formData.password = randomPasswordRes.password;
@@ -265,12 +257,14 @@
 
       // 特殊提示（键盘序、字符序、数字序等）
       const keysMap: string[] = [];
-      const labelMap = passwordSpecialKeys.map((item) => {
-        if (item.value in excludeContinuousRule) {
-          keysMap.push(`follow_${item.value}_valid`);
-        }
-        return item.label;
-      }).join('、');
+      const labelMap = passwordSpecialKeys
+        .map((item) => {
+          if (item.value in excludeContinuousRule) {
+            keysMap.push(`follow_${item.value}_valid`);
+          }
+          return item.label;
+        })
+        .join('、');
       if (keysMap.length && labelMap.length) {
         passwordStrength.value.push({
           keys: keysMap,
@@ -308,10 +302,7 @@
     },
   });
 
-  const {
-    loading: isLoading,
-    run: runCreateAccount,
-  } = useRequest(createSqlserverAccount, {
+  const { loading: isLoading, run: runCreateAccount } = useRequest(createSqlserverAccount, {
     manual: true,
     onSuccess() {
       messageSuccess(t('账号创建成功'));
@@ -332,11 +323,14 @@
   /**
    * 校验密码
    */
-  watch(() => formData.password, (newPassword) => {
-    if (newPassword) {
-      debounceVerifyPassword();
-    }
-  });
+  watch(
+    () => formData.password,
+    (newPassword) => {
+      if (newPassword) {
+        debounceVerifyPassword();
+      }
+    },
+  );
 
   /**
    * 自动生成密码
@@ -384,7 +378,7 @@
     });
     passwordInstance.value?.destroy();
     passwordInstance.value = null;
-    passwordValidate.value = {} as  PasswordStrength;
+    passwordValidate.value = {} as PasswordStrength;
     passwordStrength.value = [];
   };
 
@@ -409,13 +403,13 @@
     runCreateAccount({
       password: getEncryptPassword(),
       user: formData.user,
-      account_type: AccountTypes.SQLSERVER
+      account_type: AccountTypes.SQLSERVER,
     });
   };
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+  @import '@styles/mixins.less';
 
   .account-dialog {
     .password-item {

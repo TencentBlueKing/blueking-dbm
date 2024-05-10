@@ -78,6 +78,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
@@ -89,7 +90,6 @@
 
   import {
     useCopy,
-    useInfoWithIcon,
     useStretchLayout,
     useTableSettings,
     useTicketMessage,
@@ -439,8 +439,8 @@
   };
 
   const handleEnableCluster = (row: MongodbModel) => {
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确定启用该集群'),
       content: () => (
         <p>
@@ -450,7 +450,7 @@
           </span>
         </p>
       ),
-      confirmTxt: t('启用'),
+      confirmText: t('启用'),
       onConfirm: async () => {
         try {
           await createTicket({
@@ -477,14 +477,12 @@
 
   const handleDeleteCluster = (row: MongodbModel) => {
     const { cluster_name: name } = row;
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确定删除该集群'),
-      confirmTxt: t('删除'),
-      confirmTheme: 'danger',
-      props: {
-        contentAlign: 'left',
-      },
+      confirmText: t('删除'),
+      confirmButtonTheme: 'danger',
+      contentAlign: 'left',
       content: () => (
         <div class="cluster-delete-content">
           <p>{t('集群【name】被删除后_将进行以下操作', { name })}</p>

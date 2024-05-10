@@ -201,6 +201,7 @@
     @change="handleAccountRulesChange" />
 </template>
 <script lang="tsx">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -217,7 +218,7 @@
   import { getWhitelist } from '@services/source/whitelist';
   import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
 
-  import { useCopy, useInfo, useStickyFooter, useTicketMessage } from '@hooks';
+  import { useCopy, useStickyFooter, useTicketMessage } from '@hooks';
 
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
@@ -766,7 +767,7 @@
 
     if (window.changeConfirm) {
       return new Promise((resolve) => {
-        useInfo({
+        InfoBox({
           title: t('确认离开当前页'),
           content: t('离开将会导致未保存信息丢失'),
           confirmTxt: t('离开'),

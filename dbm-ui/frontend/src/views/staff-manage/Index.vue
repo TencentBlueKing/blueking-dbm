@@ -59,14 +59,13 @@
 </template>
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getAdmins, updateAdmins } from '@services/source/dbadmin';
   import type { AdminItem } from '@services/types/staffSetting';
-
-  import { useInfo } from '@hooks';
 
   import DbMemberSelector from '@components/db-member-selector/index.vue';
 
@@ -137,9 +136,10 @@
   };
 
   const handleReset = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置'),
       content: t('重置将会恢复上次保存的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         adminList.value = adminListMemo;
         return true;

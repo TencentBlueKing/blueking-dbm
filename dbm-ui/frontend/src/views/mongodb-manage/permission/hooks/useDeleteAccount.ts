@@ -9,14 +9,12 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
-import { Message } from 'bkui-vue';
+ */
+import { InfoBox, Message } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
 import { deleteMongodbAccount } from '@services/source/mongodbPermissionAccount';
-
-import { useInfoWithIcon } from '@hooks';
 
 import { useGlobalBizs } from '@stores';
 
@@ -30,13 +28,11 @@ export const useDeleteAccount = () => {
   });
 
   const deleteAccountReq = (user: string, accountId: number, callback: () => void) => {
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确认删除该账号'),
       content: t('即将删除账号xx_删除后将不能恢复', { name: user }),
-      props: {
-        quickClose: true,
-      },
+      quickClose: true,
       onConfirm: async () => {
         try {
           run({

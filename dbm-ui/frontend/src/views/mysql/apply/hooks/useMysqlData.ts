@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import InfoBox from 'bkui-vue/lib/info-box';
 import _ from 'lodash';
 import { useI18n } from 'vue-i18n';
 
@@ -19,8 +20,6 @@ import { getLevelConfig } from '@services/source/configs';
 import { getInfrasHostSpecs } from '@services/source/infras';
 import { createTicket } from '@services/source/ticket';
 import type { HostDetails } from '@services/types';
-
-import { useInfo } from '@hooks';
 
 import {
   mysqlType,
@@ -121,14 +120,6 @@ export const useMysqlData = (type: string) => {
     }
   });
 
-  /**
-   * 查询层级（业务、模块、集群）配置详情
-   */
-  watch(() => formdata.details.db_module_id, (value) => {
-    if (value) {
-      fetchLevelConfig(value);
-    }
-  });
 
   /**
    * 获取配置详情下拉展示
@@ -151,6 +142,16 @@ export const useMysqlData = (type: string) => {
         loading.levelConfigs = false;
       });
   };
+
+  /**
+   * 查询层级（业务、模块、集群）配置详情
+   */
+  watch(() => formdata.details.db_module_id, (value) => {
+    if (value) {
+      fetchLevelConfig(value);
+    }
+  });
+
 
   /**
    * 获取服务器规格列表
@@ -201,9 +202,10 @@ export const useMysqlData = (type: string) => {
    * reset formdata
    */
   const handleResetFormdata = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         _.merge(formdata, getFormData(route.params.type as string));
         nextTick(() => {

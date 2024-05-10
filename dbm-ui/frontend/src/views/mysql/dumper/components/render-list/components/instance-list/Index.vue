@@ -534,11 +534,10 @@
     }
     if (data.isOnline) {
       InfoBox({
-        extCls: 'dumper-instance-infobox',
         infoType: 'warning',
         title: t('确认禁用该实例？'),
         confirmText: t('禁用'),
-        subTitle: <div class="dumper-instance-infobox-subtitle">
+        content: <div>
           <div>{t('实例')}：{data.ip}:{data.listen_port}</div>
           <div style="margin-top: 8px;">{t('禁用后数据传输将会终止，请谨慎操作！')}</div>
         </div>,
@@ -599,11 +598,10 @@
       return;
     }
     InfoBox({
-      infoType: 'warning',
-      extCls: ['dumper-instance-infobox', 'dumper-instance-infobox-delete'],
-      title: t('确认删除该实例？'),
+      type: 'warning',
       confirmText: t('删除'),
-      subTitle: <div class="dumper-instance-infobox-subtitle">
+      confirmButtonTheme: 'danger',
+      content: <div class="dumper-instance-infobox-subtitle">
           <div>{t('实例')}：{data.ip}:{data.listen_port}</div>
           <div style="margin-top: 8px;">{t('删除后数据传输将会终止，并删除实例，请谨慎操作！')}</div>
         </div>,
@@ -625,11 +623,11 @@
   // 批量删除
   const handleBatchDeleteInstance = () => {
     InfoBox({
-      infoType: 'warning',
-      extCls: ['dumper-instance-infobox', 'dumper-instance-infobox-delete'],
+      type: 'warning',
       title: t('确认批量删除n个实例？', { n: selectedInstances.value.length }),
       confirmText: t('删除'),
-      subTitle: t('删除后数据传输将会终止，并删除实例，请谨慎操作！'),
+      confirmButtonTheme: 'danger',
+      content: t('删除后数据传输将会终止，并删除实例，请谨慎操作！'),
       width: 400,
       onConfirm: () => {
         const params = {
@@ -744,36 +742,6 @@
 </script>
 
 <style lang="less">
-  .dumper-instance-infobox {
-    .bk-modal-body {
-      .bk-modal-content {
-        padding: 0 24px 30px;
-      }
-
-      .bk-modal-footer {
-        height: 56px;
-      }
-    }
-  }
-
-  .dumper-instance-infobox-delete {
-    .bk-modal-body {
-      .bk-modal-footer {
-        .bk-button-primary {
-          background-color: #ea3636;
-          border: none;
-        }
-      }
-    }
-  }
-
-  .dumper-instance-infobox-subtitle {
-    display: flex;
-    width: 100%;
-    justify-content: center;
-    flex-direction: column;
-  }
-
   .dumper-instance-status-migrate {
     color: #8e3aff;
     background-color: #f2edff;

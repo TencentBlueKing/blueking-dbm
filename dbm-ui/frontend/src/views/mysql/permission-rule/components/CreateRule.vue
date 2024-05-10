@@ -186,13 +186,14 @@
 
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { createAccountRule, getPermissionRules, queryAccountRules } from '@services/permission';
   import type { AccountRule, PermissionRuleAccount } from '@services/types/permission';
 
-  import { useInfo, useStickyFooter } from '@hooks';
+  import { useStickyFooter } from '@hooks';
 
   import { dbOperations } from '../common/const';
 
@@ -360,10 +361,11 @@
   function handleBeforeClose() {
     if (window.changeConfirm) {
       return new Promise((resolve) => {
-        useInfo({
+        InfoBox({
           title: t('确认离开当前页'),
           content: t('离开将会导致未保存信息丢失'),
-          confirmTxt: t('离开'),
+          confirmText: t('离开'),
+          cancelText: t('取消'),
           onConfirm: () => {
             window.changeConfirm = false;
             resolve(true);
@@ -421,7 +423,7 @@
 
 <style lang="less" scoped>
   .rule-form {
-    padding: 24px 40px 40px;
+    padding: 24px;
 
     .rule-setting-box {
       padding: 16px;
