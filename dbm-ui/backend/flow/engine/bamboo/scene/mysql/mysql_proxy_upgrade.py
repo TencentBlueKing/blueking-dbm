@@ -17,7 +17,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import ProxyInstance
+from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -34,6 +34,16 @@ logger = logging.getLogger("flow")
 class MySQLProxyLocalUpgradeFlow(object):
     """
     mysql proxy 本地升级场景
+    {
+        bk_biz_id: 0,
+        bk_cloud_id: 0,
+        infos:[
+            {
+                cluster_ids:[],
+                new_proxy_version:"",
+            }
+        ]
+    }
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -44,7 +54,9 @@ class MySQLProxyLocalUpgradeFlow(object):
         self.root_id = root_id
         self.data = data
         self.uid = data["uid"]
+        self.bk_cloud_id = data["bk_cloud_id"]
         self.new_proxy_version = data["new_proxy_version"]
+        self.upgrade_cluster_list = data["infos"]
         self.new_proxxy_version_num = proxy_version_parse(self.new_proxy_version)
 
     def __get_proxy_instance_by_host(self, proxy_ip: str) -> list:
@@ -55,15 +67,18 @@ class MySQLProxyLocalUpgradeFlow(object):
         proxy_upgrade_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
         # 声明子流程
-        for proxy in self.data["proxy_ip_list"]:
-            logger.info(_("wait upgrade proxy detail {}".format(proxy["ip"])))
+        for upgrade_info in self.upgrade_cluster_list:
+            cluster_ids = upgrade_info["cluster_ids"]
+            clusters = Cluster.objects.filter(id__in=cluster_ids)
+            proxies = ProxyInstance.objects.filter(cluster__in=clusters)
+            if len(proxies) <= 0:
+                raise DBMetaException(message=_("根据cluster ids:{}法找到对应的proxy实例").format(cluster_ids))
+
             sub_flow_context = copy.deepcopy(self.data)
-            sub_flow_context.pop("proxy_ip_list")
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
             proxy_ports = []
-            proxies = self.__get_proxy_instance_by_host(proxy["ip"])
-            if len(proxies) <= 0:
-                raise DBMetaException(message=_("根据proxy ip {} 无法找到对应的实例记录").format(proxy["ip"]))
+            proxy_ip_list = []
+
             for proxy_instance in proxies:
                 current_version = proxy_version_parse(proxy_instance.version)
                 if current_version >= self.new_proxxy_version_num:
@@ -74,11 +89,17 @@ class MySQLProxyLocalUpgradeFlow(object):
                     )
                     raise DBMetaException(message=_("待升级版本大于等于新版本，请确认升级的版本"))
                 proxy_ports.append(proxy_instance.port)
+                proxy_ip_list.append(proxy_instance.machine.ip)
+
+            if len(list(set(proxy_ip_list))) != 1:
+                raise DBMetaException(message=_("集群所属主机必须归属一个主机"))
+
+            proxy_ip = proxy_ip_list[0]
 
             sub_pipeline.add_sub_pipeline(
                 sub_flow=self.upgrade_mysql_proxy_subflow(
-                    bk_cloud_id=proxy["bk_cloud_id"],
-                    ip=proxy["ip"],
+                    bk_cloud_id=self.bk_cloud_id,
+                    ip=proxy_ip,
                     proxy_ports=proxy_ports,
                 )
             )
