@@ -37,11 +37,6 @@ type TbSimulationTask struct {
 	CreateTime    time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`
 }
 
-// GetTableName get sql table name
-func (obj *TbSimulationTask) GetTableName() string {
-	return "tb_simulation_task"
-}
-
 const (
 	// Phase_Waitting TODO
 	Phase_Waitting = "Waitting"

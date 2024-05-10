@@ -27,6 +27,11 @@ func RegisterRouter(engine *gin.Engine) {
 		context.String(http.StatusOK, "pong")
 	})
 	engine.POST("/app/debug", TurnOnDebug)
+
+	// query simulation task status info
+	t := engine.Group("/simulation")
+	t.POST("/task/file", handler.QueryFileTask)
+	t.POST("/task", handler.QueryTask)
 	// mysql
 	g := engine.Group("/mysql")
 	g.POST("/simulation", handler.Dbsimulation)
