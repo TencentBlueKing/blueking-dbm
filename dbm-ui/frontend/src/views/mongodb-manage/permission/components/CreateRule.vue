@@ -147,11 +147,11 @@
   type AuthItemKey = keyof typeof dbOperations;
 
   interface Props {
-    accountId: number,
+    accountId: number;
   }
 
   interface Emits {
-    (e: 'success'): void,
+    (e: 'success'): void;
   }
 
   const props = defineProps<Props>();
@@ -176,9 +176,10 @@
     existDBs.value = [];
 
     const user = selectedUserInfo.value?.user;
-    const dbs = formdata.value.access_db.replace(replaceReg, ',')
+    const dbs = formdata.value.access_db
+      .replace(replaceReg, ',')
       .split(',')
-      .filter(db => db !== '');
+      .filter((db) => db !== '');
 
     if (!user || dbs.length === 0) {
       return false;
@@ -188,13 +189,12 @@
       user,
       access_dbs: dbs,
       account_type: AccountTypes.MONGODB,
-    })
-      .then((res) => {
-        const rules = res.results[0]?.rules || [];
-        existDBs.value = rules.map(item => item.access_db);
+    }).then((res) => {
+      const rules = res.results[0]?.rules || [];
+      existDBs.value = rules.map((item) => item.access_db);
 
-        return rules.length === 0;
-      });
+      return rules.length === 0;
+    });
   };
 
   const { t } = useI18n();
@@ -211,10 +211,7 @@
         trigger: 'change',
         message: t('请设置权限'),
         validator: () => {
-          const {
-            mongo_user: mongoUser,
-            mongo_manager: mongoManager,
-          } = formdata.value.privilege;
+          const { mongo_user: mongoUser, mongo_manager: mongoManager } = formdata.value.privilege;
           return mongoUser.length !== 0 || mongoManager.length !== 0;
         },
       },
@@ -234,12 +231,9 @@
     ],
   };
 
-  const selectedUserInfo = computed(() => accounts.value.find(item => item.account_id === formdata.value.account_id));
+  const selectedUserInfo = computed(() => accounts.value.find((item) => item.account_id === formdata.value.account_id));
 
-  const {
-    loading: isSubmitting,
-    run: addMongodbAccountRuleRun,
-  } = useRequest(addMongodbAccountRule, {
+  const { loading: isSubmitting, run: addMongodbAccountRuleRun } = useRequest(addMongodbAccountRule, {
     manual: true,
     onSuccess() {
       Message({
@@ -252,13 +246,10 @@
     },
   });
 
-  const {
-    run: getPermissionRulesRun,
-    loading: getPermissionRulesLoading,
-  } = useRequest(getMongodbPermissionRules, {
+  const { run: getPermissionRulesRun, loading: getPermissionRulesLoading } = useRequest(getMongodbPermissionRules, {
     manual: true,
     onSuccess(permissionRules) {
-      accounts.value = permissionRules.results.map(item => item.account);
+      accounts.value = permissionRules.results.map((item) => item.account);
     },
   });
 
@@ -273,10 +264,8 @@
 
   const getAllCheckedboxValue = (key: AuthItemKey) => formdata.value.privilege[key].length === dbOperations[key].length;
 
-  const getAllCheckedboxIndeterminate = (key: AuthItemKey) => (
-    formdata.value.privilege[key].length > 0
-    && formdata.value.privilege[key].length !== dbOperations[key].length
-  );
+  const getAllCheckedboxIndeterminate = (key: AuthItemKey) =>
+    formdata.value.privilege[key].length > 0 && formdata.value.privilege[key].length !== dbOperations[key].length;
 
   const handleSelectedAll = (key: AuthItemKey, value: boolean) => {
     if (value) {
@@ -309,16 +298,15 @@
     };
     addMongodbAccountRuleRun(params);
   };
-
 </script>
 
 <style lang="less" scoped>
   .rule-form {
-    padding: 24px 40px 40px;
+    padding: 24px;
 
     .rule-setting-box {
       padding: 16px;
-      background: #F5F7FA;
+      background: #f5f7fa;
       border-radius: 2px;
     }
 
@@ -363,10 +351,9 @@
         width: 1px;
         height: 14px;
         background-color: #c4c6cc;
-        content: "";
+        content: '';
         transform: translateY(-50%);
       }
-
     }
 
     :deep(.privilege .bk-form-label::after) {
@@ -375,12 +362,11 @@
       width: 14px;
       color: @danger-color;
       text-align: center;
-      content: "*";
+      content: '*';
     }
 
     :deep(.privilege .is-required .bk-form-label::after) {
       display: none;
     }
   }
-
 </style>

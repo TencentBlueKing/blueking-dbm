@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { useInfo } from '@hooks';
+import InfoBox from 'bkui-vue/lib/info-box';
 
 import { t } from '@locales/index';
 
@@ -22,10 +22,10 @@ export const useBeforeClose = () => function sideSilderbeforeClose(flag?: boolea
   const closable = flag ?? window.changeConfirm;
   if (closable) {
     return new Promise((resolve) => {
-      useInfo({
+      InfoBox({
         title: t('确认离开当前页'),
         content: t('离开将会导致未保存信息丢失'),
-        confirmTxt: t('离开'),
+        confirmText: t('离开'),
         onConfirm: () => {
           const hasFlag = typeof flag === 'boolean';
           if (hasFlag === false) {

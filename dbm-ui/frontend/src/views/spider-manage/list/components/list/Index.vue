@@ -125,6 +125,7 @@
 
 <script setup lang="tsx">
   import { Checkbox } from 'bkui-vue';
+  import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -143,8 +144,6 @@
 
   import {
     useCopy,
-    useInfo,
-    useInfoWithIcon,
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
@@ -937,7 +936,7 @@
 
   // 下架运维节点
   const handleRemoveMNT = (data: TendbClusterModel) => {
-    useInfo({
+    InfoBox({
       width: 480,
       title: t('确认下架运维节点'),
       content: () => (
@@ -953,7 +952,8 @@
           </div>
         </>
       ),
-      confirmTxt: t('下架'),
+      confirmText: t('下架'),
+      cancelText: t('取消'),
       onConfirm: () => {
         if (removeMNTInstanceIds.value.length === 0) {
           messageWarn(t('请勾选要下架的运维节点'));
@@ -992,8 +992,8 @@
 
   // 下架只读集群
   const handleDestroySlave = (data: TendbClusterModel) => {
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确认下架只读集群'),
       content: t('下架后将无法访问只读集群'),
       onConfirm: () => createTicket({
@@ -1018,8 +1018,8 @@
 
     const isOpen = type === TicketTypes.TENDBCLUSTER_ENABLE;
     const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title,
       content: () => (
         <div style="word-break: all;">
@@ -1048,11 +1048,11 @@
   // 删除集群
   const handleDeleteCluster = (data: TendbClusterModel) => {
     const { cluster_name: name } = data;
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确定删除该集群'),
-      confirmTxt: t('删除'),
-      confirmTheme: 'danger',
+      confirmText: t('删除'),
+      confirmButtonTheme: 'danger',
       content: () => (
         <div style="word-break: all; text-align: left; padding-left: 16px;">
           <p>{t('集群【name】被删除后_将进行以下操作', { name })}</p>

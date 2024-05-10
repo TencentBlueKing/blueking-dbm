@@ -120,12 +120,10 @@
 
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
-  import BkButton from 'bkui-vue/lib/button';
+  import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
 
   import { getPasswordPolicy, updatePasswordPolicy } from '@services/permission';
-
-  import { useInfo } from '@hooks';
 
   const initData = () => ({
     max_length: 32,
@@ -172,9 +170,10 @@
   fetchPasswordPolicy();
 
   const handleReset = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置'),
       content: t('重置将会恢复默认设置的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         Object.assign(formData, initData());
         handleSubmit(t('重置成功'));

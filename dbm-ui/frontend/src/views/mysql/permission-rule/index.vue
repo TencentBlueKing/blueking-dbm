@@ -78,7 +78,6 @@
       v-model:is-show="accountDetailDialog.isShow"
       dialog-type="show"
       :draggable="false"
-      height="auto"
       quick-close
       :title="t('账号信息')"
       :width="480">
@@ -110,7 +109,7 @@
   </PermissionCatch>
 </template>
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
+  import { InfoBox,Message  } from 'bkui-vue';
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { differenceInHours } from 'date-fns';
   import { useI18n } from 'vue-i18n';
@@ -122,7 +121,6 @@
   import type { PermissionRuleInfo } from '@services/types/permission';
 
   import {
-    useInfoWithIcon,
     useTableMaxHeight,
     useTicketCloneInfo,
   } from '@hooks';
@@ -462,8 +460,8 @@
    * 删除账号
    */
   const handleDeleteAccount = (row: IPermissioRule) => {
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确认删除该账号'),
       content: t('即将删除账号xx_删除后将不能恢复', { name: row.account.user }),
       onConfirm: async () => {

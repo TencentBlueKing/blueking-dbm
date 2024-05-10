@@ -48,6 +48,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -59,8 +60,6 @@
     getAlarmGroupList,
   } from '@services/source/monitorNoticeGroup';
   import type { ListBase } from '@services/types';
-
-  import { useInfoWithIcon } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -294,8 +293,8 @@
   };
 
   const handleDelete = (id: number) => {
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确认删除该告警组'),
       content: t('删除后将无法恢复'),
       onConfirm: async () => {

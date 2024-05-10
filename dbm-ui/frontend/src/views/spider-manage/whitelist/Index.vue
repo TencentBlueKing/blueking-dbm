@@ -69,6 +69,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -79,7 +80,6 @@
 
   import {
     useCopy,
-    useInfoWithIcon,
   } from '@hooks';
 
   import RenderRow from '@components/render-row/index.vue';
@@ -274,8 +274,8 @@
 
   function handleDelete(ids: number[]) {
     const isSingle = ids.length === 1;
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: isSingle ? t('确认删除该组白名单') : t('确认删除该组白名单', [ids.length]),
       content: t('白名单删除后_不会影响现已授权实例_新增授权时将无法再选择_请谨慎操作'),
       onConfirm: () => {

@@ -417,8 +417,7 @@
     }
   }
 
-  :deep(.bk-modal-content) {
-    height: 100%;
+  :deep(.bk-sideslider-content) {
     padding: 15px;
   }
 

@@ -63,6 +63,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import {
@@ -71,7 +72,7 @@
   } from '@services/source/taskflow';
   import { createTicket } from '@services/source/ticket';
 
-  import { useCopy, useInfoWithIcon, useTicketMessage } from '@hooks';
+  import { useCopy, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -281,8 +282,8 @@
     }
 
     const firstData = data[0];
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确认从数据库中删除Key'),
       width: 500,
       extCls: 'redis-delete-keys-confirm',

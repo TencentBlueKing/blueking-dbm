@@ -91,17 +91,14 @@
 </script>
 <style lang="less">
   .db-system-version-log-dialog {
-    .bk-modal-body {
-      padding: 0 !important;
+    .bk-modal-header,
+    .bk-modal-footer {
+      display: none;
+    }
 
-      .bk-modal-header,
-      .bk-modal-footer {
-        display: none;
-      }
-
-      .bk-modal-content {
-        padding: 0 !important;
-      }
+    .bk-dialog-content {
+      padding: 0;
+      margin: 0;
     }
 
     .system-log-layout {

@@ -16,7 +16,6 @@
     class="account-dialog"
     :draggable="false"
     :esc-close="false"
-    height="auto"
     :is-show="isShow"
     :quick-close="false"
     :title="t('新建账号')"

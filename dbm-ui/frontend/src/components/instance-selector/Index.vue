@@ -13,12 +13,13 @@
 
 <template>
   <BkDialog
+    class="dbm-instance-selector"
     :close-icon="false"
     :draggable="false"
     :esc-close="false"
-    ext-cls="instance-selector-main"
     :is-show="isShow"
     :quick-close="false"
+    :width="1300"
     @closed="handleClose">
     <BkResizeLayout
       :border="false"
@@ -176,11 +177,7 @@
   import _ from 'lodash';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
-  import {
-    checkMongoInstances,
-    checkMysqlInstances,
-    checkRedisInstances,
-  } from '@services/source/instances';
+  import { checkMongoInstances, checkMysqlInstances, checkRedisInstances } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
   import { queryClusters as getMysqlClusterList , queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
   import { getRedisClusterList , getRedisMachineList } from '@services/source/redis';
@@ -193,7 +190,7 @@
 
   import ManualInputContent from './components/common/manual-content/Index.vue';
   import ManualInputHostContent from './components/common/manual-content-host/Index.vue';
-  import PanelTab  from './components/common/PanelTab.vue';
+  import PanelTab from './components/common/PanelTab.vue';
   import PreviewResult from './components/common/preview-result/Index.vue';
   import MongoClusterContent from './components/mongo/Index.vue';
   import MysqlContent from './components/mysql/Index.vue';
@@ -205,59 +202,59 @@
   export type TableSetting = ReturnType<typeof getSettings>;
 
   export type PanelListType = {
-    name: string,
-    id: string,
+    name: string;
+    id: string;
     topoConfig?: {
-      topoAlertContent?: Element,
-      filterClusterId?: number,
-      getTopoList?: (params: any) => Promise<any[]>,
-      countFunc?: (data: any) => number,
-    }
+      topoAlertContent?: Element;
+      filterClusterId?: number;
+      getTopoList?: (params: any) => Promise<any[]>;
+      countFunc?: (data: any) => number;
+    };
     tableConfig?: {
-      isRemotePagination?: boolean,
-      columnsChecked?: string[],
+      isRemotePagination?: boolean;
+      columnsChecked?: string[];
       firsrColumn?: {
-        label: string,
-        field: string,
-        role: string, // 接口过滤
-      },
+        label: string;
+        field: string;
+        role: string; // 接口过滤
+      };
       roleFilterList?: {
-        list: { text: string, value: string }[],
-      }
+        list: { text: string; value: string }[];
+      };
       disabledRowConfig?: {
-        handler: (data: any) => boolean,
-        tip?: string,
-      },
-      getTableList?: (params: any) => Promise<any>,
-      statusFilter?: (data: any) => boolean,
-    },
+        handler: (data: any) => boolean;
+        tip?: string;
+      };
+      getTableList?: (params: any) => Promise<any>;
+      statusFilter?: (data: any) => boolean;
+    };
     manualConfig?: {
-      checkType: 'ip' | 'instance',
-      checkKey: keyof IValue,
-      activePanelId?: string,
-      checkInstances?: (params: any) => Promise<any[] | ListBase<any[]>>,
-    },
+      checkType: 'ip' | 'instance';
+      checkKey: keyof IValue;
+      activePanelId?: string;
+      checkInstances?: (params: any) => Promise<any[] | ListBase<any[]>>;
+    };
     previewConfig?: {
-      displayKey?: keyof IValue,
-      showTitle?: boolean,
-      title?: string,
-    },
-    content?: any,
-  }[]
+      displayKey?: keyof IValue;
+      showTitle?: boolean;
+      title?: string;
+    };
+    content?: any;
+  }[];
 
   type PanelListItem = PanelListType[number];
 
-  type RedisModel = ServiceReturnType<typeof getRedisClusterList>[number]
-  type RedisHostModel = ServiceReturnType<typeof getRedisHostList>['results'][number]
+  type RedisModel = ServiceReturnType<typeof getRedisClusterList>[number];
+  type RedisHostModel = ServiceReturnType<typeof getRedisHostList>['results'][number];
 
   interface Props {
-    clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost')[],
-    tabListConfig?: Record<string, PanelListType>,
-    selected?: InstanceSelectorValues<T>,
+    clusterTypes: (ClusterTypes | 'TendbClusterHost')[];
+    tabListConfig?: Record<string, PanelListType>;
+    selected?: InstanceSelectorValues<T>;
   }
 
   interface Emits {
-    (e: 'change', value: Props['selected']): void
+    (e: 'change', value: Props['selected']): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -484,10 +481,10 @@
         name: t('主库主机'),
         topoConfig: {
           getTopoList: queryMysqlCluster,
-          countFunc: (clusterItem: { remote_db: { ip: string }[]}) => {
-            const ipList = clusterItem.remote_db.map(hostItem => hostItem.ip)
-            return new Set(ipList).size
-          }
+          countFunc: (clusterItem: { remote_db: { ip: string }[] }) => {
+            const ipList = clusterItem.remote_db.map((hostItem) => hostItem.ip);
+            return new Set(ipList).size;
+          },
         },
         tableConfig: {
           getTableList: getSpiderMachineList,
@@ -496,7 +493,7 @@
             field: 'ip',
             role: 'remote_master',
           },
-          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name']
+          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name'],
         },
         previewConfig: {
           displayKey: 'ip',
@@ -513,7 +510,7 @@
             field: 'ip',
             role: 'remote_master',
           },
-          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name']
+          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name'],
         },
         manualConfig: {
           checkInstances: getSpiderMachineList,
@@ -609,18 +606,21 @@
   });
 
   const previewTitleMap = computed(() => {
-    const titleMap = Object.keys(clusterTabListMap.value).reduce((results, key) => {
-      Object.assign(results, {
-        [key]: clusterTabListMap.value[key][0].previewConfig?.title ?? '',
-      });
-      return results;
-    }, {} as Record<string, string>);
+    const titleMap = Object.keys(clusterTabListMap.value).reduce(
+      (results, key) => {
+        Object.assign(results, {
+          [key]: clusterTabListMap.value[key][0].previewConfig?.title ?? '',
+        });
+        return results;
+      },
+      {} as Record<string, string>,
+    );
     titleMap.manualInput = t('手动输入');
     return titleMap;
   });
 
   const panelList = computed<PanelListType>(() => {
-    const pageList = _.flatMap(props.clusterTypes.map(type => tabListMap[type]));
+    const pageList = _.flatMap(props.clusterTypes.map((type) => tabListMap[type]));
     if (pageList.length < 3) {
       return pageList;
     }
@@ -644,25 +644,32 @@
     return setting;
   });
 
-  const isEmpty = computed(() => Object.values(lastValues).every(values => values.length < 1));
+  const isEmpty = computed(() => Object.values(lastValues).every((values) => values.length < 1));
   const renderCom = computed(() => activePanelObj.value?.content);
 
-  watch(() => props.clusterTypes, (types) => {
-    if (types) {
-      const activeObj = clusterTabListMap.value[types[0]];
-      [activePanelObj.value] = activeObj;
-      panelTabActive.value = activeObj[0].id;
-    }
-  }, {
-    immediate: true,
-    deep: true,
-  });
+  watch(
+    () => props.clusterTypes,
+    (types) => {
+      if (types) {
+        const activeObj = clusterTabListMap.value[types[0]];
+        [activePanelObj.value] = activeObj;
+        panelTabActive.value = activeObj[0].id;
+      }
+    },
+    {
+      immediate: true,
+      deep: true,
+    },
+  );
 
-  watch(() => isShow, (show) => {
-    if (show && props.selected) {
-      Object.assign(lastValues, props.selected);
-    }
-  });
+  watch(
+    () => isShow,
+    (show) => {
+      if (show && props.selected) {
+        Object.assign(lastValues, props.selected);
+      }
+    },
+  );
 
   const handleChangePanel = (obj: PanelListItem) => {
     activePanelObj.value = obj;
@@ -682,27 +689,17 @@
   };
 </script>
 <style lang="less">
-  .instance-selector-main {
+  .dbm-instance-selector {
     display: block;
     width: 80%;
     max-width: 1600px;
     min-width: 1200px;
-
-    .bk-modal-body {
-      .bk-modal-header {
-        display: none;
-      }
-
-      .bk-modal-content {
-        padding: 0 !important;
-        overflow-y: hidden !important;
-        margin: 0;
-      }
-
-      .bk-modal-footer {
-        margin: 0;
-        padding: 8px 16px 8px;
-      }
+    .bk-modal-header {
+      display: none;
+    }
+    .bk-dialog-content {
+      padding: 0;
+      margin: 0;
     }
   }
 </style>

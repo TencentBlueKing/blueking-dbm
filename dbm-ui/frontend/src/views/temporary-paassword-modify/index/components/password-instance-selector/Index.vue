@@ -155,9 +155,9 @@
       display: none;
     }
 
-    .bk-modal-content {
-      max-height: calc(100% - 300px) !important;
-      padding: 0 !important;
+    .bk-dialog-content {
+      padding: 0;
+      margin: 0;
     }
   }
 </style>

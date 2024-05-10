@@ -11,12 +11,11 @@
  * the specific language governing permissions and limitations under the License.
  */
 import { Message } from 'bkui-vue';
+import { InfoBox } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
 import { deleteAccount } from '@services/permission';
-
-import { useInfoWithIcon } from '@hooks';
 
 import { AccountTypes } from '@common/const';
 
@@ -32,13 +31,11 @@ export const useDeleteAccount = () => {
   });
 
   const deleteAccountReq = (user: string, accountId: number, callback: () => void) => {
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确认删除该账号'),
       content: t('即将删除账号xx_删除后将不能恢复', { name: user }),
-      props: {
-        quickClose: true,
-      },
+      quickClose: true,
       onConfirm: async () => {
         try {
           run({

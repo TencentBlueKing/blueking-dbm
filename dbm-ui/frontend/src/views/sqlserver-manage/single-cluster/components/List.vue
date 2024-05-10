@@ -132,6 +132,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import {
@@ -149,7 +150,6 @@
 
   import {
     useCopy,
-    useInfoWithIcon,
     useStretchLayout,
     useTableSettings,
     useTicketMessage,
@@ -455,8 +455,8 @@
     if (!type) return;
 
     const isOpen = type === TicketTypes.SQLSERVER_ENABLE;
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: isOpen ? t('确定启用该集群？') : t('确定禁用该集群？'),
       content: () => (
         <div style="word-break: all;">
@@ -468,7 +468,7 @@
           }
         </div>
       ),
-      confirmTxt: isOpen ? t('启用') : t('禁用'),
+      confirmText: isOpen ? t('启用') : t('禁用'),
       onConfirm: () => {
         createTicketRun({
           bk_biz_id: currentBizId,
@@ -487,11 +487,11 @@
    */
   const handleDeleteCluster = (data: SqlServerSingleClusterModel) => {
     const { cluster_name: name } = data;
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确定删除该集群'),
-      confirmTxt: t('删除'),
-      confirmTheme: 'danger',
+      confirmText: t('删除'),
+      confirmButtonTheme: 'danger',
       content: () => (
         <div style="word-break: all; text-align: left; padding-left: 16px;">
           <p>{ t('集群【name】被删除后_将进行以下操作', { name }) }</p>

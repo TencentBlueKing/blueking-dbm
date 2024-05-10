@@ -126,31 +126,12 @@
 </script>
 <style lang="less">
   .import-host-dialog {
-    display: block;
-    font-size: 12px;
-
-    .bk-modal-body {
-      padding-bottom: 0 !important;
-
-      .bk-modal-header {
-        display: none;
-      }
-
-      .bk-modal-content {
-        height: auto !important;
-        max-height: none !important;
-        min-height: auto !important;
-        padding: 0 !important;
-        overflow: initial !important;
-      }
-
-      .bk-modal-footer {
-        position: unset;
-      }
-
-      .bk-modal-close {
-        display: none;
-      }
+    .bk-modal-header {
+      display: none;
+    }
+    .bk-dialog-content {
+      padding: 0;
+      margin: 0;
     }
   }
 </style>

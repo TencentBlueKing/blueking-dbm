@@ -1,7 +1,8 @@
 <template>
   <BkSideslider
     v-model:is-show="isShow"
-    :title="data ? data.id ? t('编辑分区策略') : t('克隆分区策略') : t('新建分区策略')"
+    render-directive="if"
+    :title="data ? (data.id ? t('编辑分区策略') : t('克隆分区策略')) : t('新建分区策略')"
     :width="1000">
     <div class="partition-operation-box">
       <BkAlert
@@ -150,12 +151,12 @@
   import { dbRegex } from '@common/regex';
 
   interface Props {
-    data?: PartitionModel,
+    data?: PartitionModel;
   }
 
-  interface Emits{
-    (e: 'editSuccess'): void,
-    (e: 'createSuccess', params: ServiceReturnType<typeof createParitition>, clusterId: number): void
+  interface Emits {
+    (e: 'editSuccess'): void;
+    (e: 'createSuccess', params: ServiceReturnType<typeof createParitition>, clusterId: number): void;
   }
 
   const props = defineProps<Props>();
@@ -242,22 +243,23 @@
         trigger: 'blur',
       },
       {
-        validator: (value: string) => verifyPartitionField({
-          cluster_id: formData.cluster_id,
-          dblikes: formData.dblikes,
-          tblikes: formData.tblikes,
-          partition_column: value,
-          partition_column_type: formData.partition_column_type,
-        }).then((result) => {
-          if (result) {
-            showPopConfirm = true;
-            verifyWarnTip.value = result;
-          } else {
-            showPopConfirm = false;
-            verifyWarnTip.value = '';
-          }
-          return true;
-        }),
+        validator: (value: string) =>
+          verifyPartitionField({
+            cluster_id: formData.cluster_id,
+            dblikes: formData.dblikes,
+            tblikes: formData.tblikes,
+            partition_column: value,
+            partition_column_type: formData.partition_column_type,
+          }).then((result) => {
+            if (result) {
+              showPopConfirm = true;
+              verifyWarnTip.value = result;
+            } else {
+              showPopConfirm = false;
+              verifyWarnTip.value = '';
+            }
+            return true;
+          }),
         message: t('分区字段验证失败'),
         trigger: 'blur',
       },
@@ -294,23 +296,27 @@
     ],
   });
 
-  watch(() => props.data, () => {
-    if (props.data) {
-      formData.cluster_id = props.data.cluster_id;
-      formData.dblikes = [props.data.dblike];
-      formData.tblikes = [props.data.tblike];
-      formData.partition_column = props.data.partition_columns;
-      formData.partition_column_type = props.data.partition_column_type;
-      formData.expire_time = props.data.expire_time;
-      formData.partition_time_interval = props.data.partition_time_interval;
-    } else {
-      // 从编辑态进入创建态，初始化表单
-      Object.assign(formData, initFormData());
-    }
-    isEditMode.value = Boolean(props.data && props.data.id);
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (props.data) {
+        formData.cluster_id = props.data.cluster_id;
+        formData.dblikes = [props.data.dblike];
+        formData.tblikes = [props.data.tblike];
+        formData.partition_column = props.data.partition_columns;
+        formData.partition_column_type = props.data.partition_column_type;
+        formData.expire_time = props.data.expire_time;
+        formData.partition_time_interval = props.data.partition_time_interval;
+      } else {
+        // 从编辑态进入创建态，初始化表单
+        Object.assign(formData, initFormData());
+      }
+      isEditMode.value = Boolean(props.data && props.data.id);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleCancel = () => {
     isShow.value = false;
@@ -358,14 +364,13 @@
   };
 
   const handleSubmit = () => {
-    formRef.value.validate()
-      .then(() => {
-        if (showPopConfirm) {
-          warnConfirming.value = true;
-          return;
-        }
-        submitPartition();
-      });
+    formRef.value.validate().then(() => {
+      if (showPopConfirm) {
+        warnConfirming.value = true;
+        return;
+      }
+      submitPartition();
+    });
   };
 </script>
 <style lang="less">

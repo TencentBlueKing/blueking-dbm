@@ -14,12 +14,15 @@
 <template>
   <SuccessView
     v-if="ticketId"
-    :steps="[{
-      title: t('单据审批'),
-      status: 'loading',
-    }, {
-      title: t('添加从库_执行'),
-    }]"
+    :steps="[
+      {
+        title: t('单据审批'),
+        status: 'loading',
+      },
+      {
+        title: t('添加从库_执行'),
+      },
+    ]"
     :ticket-id="ticketId"
     :title="t('添加从库任务提交成功')"
     @close="handleCloseSuccess" />
@@ -86,6 +89,7 @@
 </template>
 
 <script setup lang="tsx">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -97,7 +101,7 @@
   } from '@services/source/mysqlCluster';
   import { createTicket } from '@services/source/ticket';
 
-  import { useInfo, useTableMaxHeight, useTicketCloneInfo } from '@hooks';
+  import { useTableMaxHeight, useTicketCloneInfo } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -487,9 +491,10 @@
   };
 
   const handleReset = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText : t('取消'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
         selectedClusters.value[ClusterTypes.TENDBHA] = [];

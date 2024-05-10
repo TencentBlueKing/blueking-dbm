@@ -399,14 +399,9 @@
       }
     }
 
-    :deep(.bk-modal-content) {
-      height: 100%;
-      max-height: calc(100% - 60px) !important;
+    :deep(.bk-sideslider-content) {
+      height: calc(100vh - 60px);
       padding: 16px;
-    }
-
-    :deep(.bk-modal-footer) {
-      display: none;
     }
   }
 

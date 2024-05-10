@@ -171,6 +171,7 @@
 </template>
 
 <script setup lang="ts">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -180,8 +181,6 @@
     saveModulesDeployInfo,
   } from '@services/source/configs';
   import { listSqlserverSystemVersion } from '@services/source/version'
-
-  import { useInfo } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -384,9 +383,10 @@
    * 重置表单
    */
   const resetFormData = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         Object.assign(formData, getFormData());
         nextTick(() => {

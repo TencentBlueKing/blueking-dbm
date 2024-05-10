@@ -2,7 +2,6 @@
   <BkDialog
     dialog-type="show"
     :draggable="false"
-    height="auto"
     :is-show="isShow"
     quick-close
     :title="t('账号信息')"

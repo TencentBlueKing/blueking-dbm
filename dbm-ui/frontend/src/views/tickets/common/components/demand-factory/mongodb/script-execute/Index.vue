@@ -12,8 +12,7 @@
 -->
 
 <template>
-  <div
-    class="ticket-details__info">
+  <div class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('脚本来源') }}：</span>
@@ -21,8 +20,7 @@
           {{ ticketDetails.details.mode === 'file' ? t('脚本文件') : t('手动输入') }}
         </span>
       </div>
-      <div
-        class="ticket-details__item">
+      <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('脚本执行内容') }}：</span>
         <BkButton
           text
@@ -39,7 +37,7 @@
         <span>{{ t('目标集群') }}：</span>
         <DBCollapseTable
           :show-icon="false"
-          style="width: 800px;"
+          style="width: 800px"
           :table-props="clusterState.tableProps"
           :title="clusterState.clusterType" />
       </div>
@@ -53,7 +51,7 @@
       :z-index="99999"
       @closed="handleClose">
       <div
-        v-if="(uploadFileList.length > 1)"
+        v-if="uploadFileList.length > 1"
         class="editor-layout">
         <div class="editor-layout-left">
           <RenderFileList
@@ -203,11 +201,10 @@
   const handleFileSortChange = (list: string[]) => {
     uploadFileList.value = list;
   };
-
 </script>
 
 <style lang="less" scoped>
-  @import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
   .sql-mode-execute {
     i {
@@ -238,8 +235,7 @@
     }
   }
 
-  :deep(.bk-modal-content) {
-    height: 100%;
+  :deep(.bk-sideslider-content) {
     padding: 15px;
   }
 
@@ -261,5 +257,4 @@
       }
     }
   }
-
 </style>

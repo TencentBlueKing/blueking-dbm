@@ -76,6 +76,7 @@
 
 <script setup lang="tsx">
   import type FormItem from 'bkui-vue/lib/form/form-item';
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -86,7 +87,7 @@
   } from '@services/source/ipchooser';
   import { createTicket } from '@services/source/ticket';
 
-  import { useInfo, useTableMaxHeight, useTicketCloneInfo } from '@hooks';
+  import { useTableMaxHeight, useTicketCloneInfo } from '@hooks';
 
   import { TicketTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
@@ -415,9 +416,10 @@
   };
 
   const handleReset = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
         nextTick(() => {

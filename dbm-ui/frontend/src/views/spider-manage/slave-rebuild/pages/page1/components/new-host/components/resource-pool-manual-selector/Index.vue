@@ -13,7 +13,7 @@
 
 <template>
   <BkDialog
-  class="instance-selector-main"
+    class="instance-selector-main"
     :close-icon="false"
     :draggable="false"
     :esc-close="false"
@@ -37,7 +37,7 @@
             title="已自定义过滤出符合要求的可用机器" />
         </div>
         <Table
-        :disable-host-method="disableHostMethod"
+          :disable-host-method="disableHostMethod"
           :last-values="lastValues"
           @change="handleChange">
         </Table>
@@ -180,9 +180,9 @@
       display: none;
     }
 
-    .bk-modal-content {
-      padding: 0 !important;
-      overflow-y: hidden !important;
+    .bk-dialog-content {
+      padding: 0;
+      margin: 0;
     }
   }
 </style>

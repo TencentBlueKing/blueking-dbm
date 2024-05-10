@@ -11,11 +11,10 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import InfoBox from 'bkui-vue/lib/info-box';
 import { useRouter } from 'vue-router';
 
 import TicketModel from '@services/model/ticket/ticket';
-
-import { useInfo } from '@hooks';
 
 import { messageError } from '@utils';
 
@@ -76,7 +75,7 @@ export const createTicket = (formData: Record<string, any>) => http.post<TicketI
         },
       });
       return new Promise((resolve: (value: TicketItem) => void, reject) => {
-        useInfo({
+        InfoBox({
           title: t('是否继续提交单据'),
           content: () => {
             if (locale.value === 'en') {
@@ -97,8 +96,8 @@ export const createTicket = (formData: Record<string, any>) => http.post<TicketI
               </span>
             );
           },
-          confirmTxt: t('继续提单'),
-          cancelTxt: t('取消提单'),
+          confirmText: t('继续提单'),
+          cancelText: t('取消提单'),
           onConfirm: async () => {
             try {
               const res = await createTicket({ ...formData, ignore_duplication: true });
@@ -124,7 +123,8 @@ export const createTicket = (formData: Record<string, any>) => http.post<TicketI
 /**
  * 获取单据列表
  */
-export const getTickets = (params: GetTicketParams = {}) => http.get<ListBase<TicketModel[]>>('/apis/tickets/', params).then(data => ({
+export const getTickets = (params: GetTicketParams = {}) => http.get<ListBase<TicketModel[]>>('/apis/tickets/', params)
+.then(data => ({
   ...data,
   results: data.results.map(item => new TicketModel(item)),
 }));
@@ -132,7 +132,8 @@ export const getTickets = (params: GetTicketParams = {}) => http.get<ListBase<Ti
 /**
  * 获取我的待办单据
  */
-export const getTodoTickets = (params: GetTicketParams = {}) => http.get<ListBase<TicketModel[]>>('/apis/tickets/get_todo_tickets/', params).then(data => ({
+export const getTodoTickets = (params: GetTicketParams = {}) => http.get<ListBase<TicketModel[]>>('/apis/tickets/get_todo_tickets/', params)
+.then(data => ({
   ...data,
   results: data.results.map(item => new TicketModel(item)),
 }));

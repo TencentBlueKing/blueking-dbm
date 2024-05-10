@@ -266,7 +266,7 @@
   <!-- 预览功能 -->
   <BkDialog
     v-model:is-show="isShowPreview"
-    header-position="left"
+    header-align="left"
     :height="624"
     :width="1180">
     <template #header>
@@ -289,6 +289,7 @@
 </template>
 
 <script setup lang="tsx">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
@@ -297,7 +298,7 @@
   import { getLevelConfig } from '@services/source/configs';
   import type { BizItem, HostDetails } from '@services/types';
 
-  import { useApplyBase, useInfo } from '@hooks';
+  import { useApplyBase } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -646,9 +647,10 @@
    * 重置表单
    */
   const handleResetFormdata = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         Object.assign(formData, getDefaultformData());
         nextTick(() => {

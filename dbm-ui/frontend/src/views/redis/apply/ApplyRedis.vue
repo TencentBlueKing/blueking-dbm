@@ -337,6 +337,7 @@
 </template>
 
 <script setup lang="ts">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
@@ -345,7 +346,7 @@
   import { getCapSpecs } from '@services/source/infras';
   import type { BizItem, HostDetails } from '@services/types';
 
-  import { useApplyBase, useInfo } from '@hooks';
+  import { useApplyBase } from '@hooks';
 
   import { useFunController } from '@stores';
 
@@ -489,7 +490,6 @@
   };
 
   const isManualInput = computed(() => state.formdata.details.ip_source === redisIpSources.manual_input.id);
-  // const isDefaultCity = computed(() => state.formdata.details.city_code === 'default');
 
   const disableCapSpecs = computed(() => {
     const { master, slave } = state.formdata.details.nodes;
@@ -618,9 +618,10 @@
 
   /** 重置表单 */
   const handleResetFormdata = () => {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         state.formdata = initData();
         nextTick(() => {

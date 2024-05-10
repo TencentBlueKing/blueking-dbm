@@ -480,8 +480,6 @@
   // const handleClickCancelRecopy = () => {
   //   showRecopyDialog.value = false;
   // };
-
-
 </script>
 
 <style lang="less" scoped>
@@ -556,16 +554,6 @@
           border-bottom: 1px dashed #979ba5;
         }
       }
-    }
-  }
-
-  .recopy-dialog {
-    :deep(.bk-modal-content) {
-      padding: 0 43px 24px;
-    }
-
-    :deep(.bk-dialog-header) {
-      padding: 48px 24px 18px;
     }
   }
 

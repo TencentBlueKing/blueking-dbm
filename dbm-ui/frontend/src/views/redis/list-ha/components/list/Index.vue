@@ -60,6 +60,7 @@
 </template>
 
 <script setup lang="tsx">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
@@ -75,7 +76,6 @@
 
   import {
     useCopy,
-    useInfoWithIcon,
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
@@ -636,8 +636,8 @@
   const handleSwitchRedis = (type: TicketTypesStrings, data: RedisModel) => {
     const isOpen = type === TicketTypes.REDIS_INSTANCE_PROXY_OPEN;
     const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title,
       content: () => (
         <div style="word-break: all;">
@@ -674,8 +674,8 @@
    */
   const handleDeleteCluster = (data: RedisModel) => {
     const { cluster_name: name } = data;
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确定删除该集群'),
       confirmTxt: t('删除'),
       confirmTheme: 'danger',

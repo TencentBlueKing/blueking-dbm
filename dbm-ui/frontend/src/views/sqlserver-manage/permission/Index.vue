@@ -52,7 +52,6 @@
     v-model:is-show="accountInformationShow"
     dialog-type="show"
     :draggable="false"
-    height="auto"
     quick-close
     :title="t('账号信息')"
     :width="480">
@@ -97,6 +96,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -107,7 +107,6 @@
   } from '@services/source/sqlserverPermissionAccount';
 
   import {
-    useInfoWithIcon,
     useTableMaxHeight,
   } from '@hooks';
 
@@ -349,8 +348,8 @@
   };
 
   const handleDeleteAccount = (data: SqlserverPermissionAccountModel) => {
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确认删除该账号'),
       content: t('即将删除账号xx_删除后将不能恢复', { name: data.account.user }),
       onConfirm: async () => {

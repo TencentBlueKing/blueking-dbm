@@ -93,12 +93,13 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
   import { createTicket } from '@services/source/ticket';
 
-  import { useBeforeClose, useInfoWithIcon, useStickyFooter, useTicketMessage } from '@hooks';
+  import { useBeforeClose, useStickyFooter, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -325,11 +326,11 @@
   async function handleConfirm() {
     await formRef.value?.validate?.();
 
-    useInfoWithIcon({
-      type: 'warnning',
+    InfoBox({
+      type: 'warning',
       title: t('确认从数据库中删除Key'),
       width: 500,
-      extCls: 'redis-delete-keys-confirm',
+      class: 'redis-delete-keys-confirm',
       content: () => (
         <div class="delete-confirm">
           {

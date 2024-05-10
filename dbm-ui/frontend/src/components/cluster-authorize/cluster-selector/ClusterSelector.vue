@@ -547,8 +547,9 @@
       display: none;
     }
 
-    :deep(.bk-modal-content) {
+    :deep(.bk-dialog-content) {
       padding: 0;
+      margin: 0;
     }
 
     &__tabs {

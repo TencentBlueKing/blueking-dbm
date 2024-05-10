@@ -10,10 +10,9 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-import TicketModel from '@services/model/ticket/ticket';
-import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe'
+import InfoBox from 'bkui-vue/lib/info-box';
 
-import { useInfo } from '@hooks';
+import TicketModel from '@services/model/ticket/ticket';
 
 import { getRouter } from '@router/index';
 
@@ -101,7 +100,7 @@ export function createTicket(formData: Record<string, any>) {
           },
         });
         return new Promise((resolve: (value: TicketItem) => void, reject) => {
-          useInfo({
+          InfoBox({
             title: t('是否继续提交单据'),
             content: () => {
               if (locale.value === 'en') {
@@ -122,8 +121,8 @@ export function createTicket(formData: Record<string, any>) {
                 </span>
               );
             },
-            confirmTxt: t('继续提单'),
-            cancelTxt: t('取消提单'),
+            confirmText: t('继续提单'),
+            cancelText: t('取消提单'),
             onConfirm: async () => {
               try {
                 const res = await createTicket({

@@ -47,6 +47,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import {
     onMounted,
@@ -64,7 +65,6 @@
 
   import {
     useCopy,
-    useInfoWithIcon,
   } from '@hooks';
 
   import { ipv4 } from '@common/regex';
@@ -263,9 +263,9 @@
   const transferHosts = (data: DirtyMachinesModel[] = []) => {
     if (data.length === 0) return;
 
-    useInfoWithIcon({
+    InfoBox({
       width: 480,
-      type: 'warnning',
+      type: 'warning',
       title: t('确认将以下主机转移至待回收模块'),
       content: () => (
         <div style="word-break: all;">

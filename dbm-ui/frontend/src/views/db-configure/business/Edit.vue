@@ -97,7 +97,6 @@
     dialog-type="show"
     :esc-close="false"
     header-align="center"
-    height="auto"
     :quick-close="false"
     theme="primary"
     :title="$t('确认发布')"

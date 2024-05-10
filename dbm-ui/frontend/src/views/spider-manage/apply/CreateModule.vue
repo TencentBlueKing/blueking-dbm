@@ -127,13 +127,12 @@
 
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { createModules } from '@services/source/cmdb';
   import { saveModulesDeployInfo } from '@services/source/configs';
-
-  import { useInfo } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -196,7 +195,7 @@
     {
       label: 'gb2312',
       value: 'gb2312',
-    }
+    },
   ];
   const rules = {
     module_name: [
@@ -314,9 +313,10 @@
   };
 
   function handleReset() {
-    useInfo({
+    InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
+      cancelText: t('取消'),
       onConfirm: () => {
         const resetData = isNewModule.value ? getFormData() : { version: '', character_set: '' };
         _.merge(formdata, resetData);

@@ -623,16 +623,9 @@
         display: none;
       }
 
-      :deep(.bk-modal-content) {
-        height: unset;
-        max-height: unset;
-        min-height: unset;
+      :deep(.bk-dialog-content) {
         padding: 0;
-        overflow: hidden !important;
-      }
-
-      :deep(.bk-modal-footer) {
-        border-top: 0;
+        margin: 0;
       }
 
       :deep(.bk-button) {

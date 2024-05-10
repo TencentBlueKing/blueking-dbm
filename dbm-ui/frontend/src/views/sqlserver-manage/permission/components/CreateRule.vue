@@ -50,11 +50,11 @@
                 v-model="allChecked"
                 v-bk-tooltips="{
                   content: t('你已选择所有权限'),
-                  disabled: !checkAllPrivileges
+                  disabled: !checkAllPrivileges,
                 }"
                 class="check-all"
                 :disabled="checkAllPrivileges"
-                :indeterminate="!!formData.privilege.length&&formData.privilege.length!==dbOperations.length"
+                :indeterminate="!!formData.privilege.length && formData.privilege.length !== dbOperations.length"
                 @change="(value: boolean) => handleSelectedAll(value)">
                 {{ t('全选') }}
               </BkCheckbox>
@@ -66,7 +66,7 @@
                   :key="dmlItem"
                   v-bk-tooltips="{
                     content: t('你已选择所有权限'),
-                    disabled: !checkAllPrivileges
+                    disabled: !checkAllPrivileges,
                   }"
                   :disabled="checkAllPrivileges"
                   :label="dmlItem">
@@ -78,7 +78,7 @@
         </div>
         <div
           class="rule-setting-box"
-          style="margin-top: 16px;">
+          style="margin-top: 16px">
           <BkFormItem
             class="mb-0"
             :label="t('数据库全局权限(owner)')">
@@ -109,35 +109,30 @@
 </template>
 
 <script setup lang="ts">
+  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
-  import {
-    addSqlserverAccountRule,
-    querySqlserverAccountRules,
-  } from '@services/source/sqlserverPermissionAccount';
+  import { addSqlserverAccountRule, querySqlserverAccountRules } from '@services/source/sqlserverPermissionAccount';
 
-  import {
-    useInfo,
-    useStickyFooter,
-  } from '@hooks';
+  import { useStickyFooter } from '@hooks';
 
-  import DbForm from '@components/db-form/index.vue'
+  import DbForm from '@components/db-form/index.vue';
 
   import { messageSuccess } from '@utils';
 
   import { AccountTypes } from '@/common/const';
 
   interface Props {
-    accountId: number
-    accountMapList: SqlserverPermissionAccountModel['account'][]
-    dbOperations: string[]
+    accountId: number;
+    accountMapList: SqlserverPermissionAccountModel['account'][];
+    dbOperations: string[];
   }
 
   interface Emits {
-    (e: 'success'): void
+    (e: 'success'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -177,10 +172,11 @@
   const verifyAccountRules = () => {
     existDBs.value = [];
 
-    const userInfo = props.accountMapList.find((item) => item.account_id === formData.account_id)
-    const dbs = formData.access_db.replace(/\n|;/g, ',')
+    const userInfo = props.accountMapList.find((item) => item.account_id === formData.account_id);
+    const dbs = formData.access_db
+      .replace(/\n|;/g, ',')
       .split(',')
-      .filter(db => db);
+      .filter((db) => db);
 
     if (!userInfo || dbs.length === 0) {
       return false;
@@ -189,12 +185,11 @@
     return querySqlserverAccountRules({
       user: userInfo.user,
       access_dbs: dbs,
-    })
-      .then((res) => {
-        const rules = res.results[0]?.rules || [];
-        existDBs.value = rules.map(item => item.access_db);
-        return rules.length === 0;
-      });
+    }).then((res) => {
+      const rules = res.results[0]?.rules || [];
+      existDBs.value = rules.map((item) => item.access_db);
+      return rules.length === 0;
+    });
   };
 
   const rules = {
@@ -224,10 +219,7 @@
 
   const allChecked = computed(() => formData.privilege.length === props.dbOperations.length);
 
-  const {
-    loading: isSubmitting,
-    run: addSqlserverAccountRuleRun,
-  } = useRequest(addSqlserverAccountRule, {
+  const { loading: isSubmitting, run: addSqlserverAccountRuleRun } = useRequest(addSqlserverAccountRule, {
     manual: true,
     onSuccess() {
       messageSuccess(t('成功添加授权规则'));
@@ -277,10 +269,10 @@
   const handleBeforeClose = () => {
     if (window.changeConfirm) {
       return new Promise((resolve) => {
-        useInfo({
+        InfoBox({
           title: t('确认离开当前页'),
           content: t('离开将会导致未保存信息丢失'),
-          confirmTxt: t('离开'),
+          confirmText: t('离开'),
           onConfirm: () => {
             window.changeConfirm = false;
             resolve(true);
@@ -294,7 +286,9 @@
 
   const handleClose = async () => {
     const result = await handleBeforeClose();
-    if (!result) return;
+    if (!result) {
+      return;
+    }
     isShow.value = false;
     _.merge(formData, initFormdata());
     checkAllPrivileges.value = false;
@@ -311,91 +305,91 @@
       access_db: formData.access_db.replace(/\n|;/g, ','), // 统一分隔符
       privilege: {},
       account_id: formData.account_id,
-      account_type: AccountTypes.SQLSERVER
-    }
+      account_type: AccountTypes.SQLSERVER,
+    };
     if (checkAllPrivileges.value) {
       Object.assign(params.privilege, {
-        sqlserver_owner: ['db_owner']
-      })
+        sqlserver_owner: ['db_owner'],
+      });
     } else {
       Object.assign(params.privilege, {
-        sqlserver_dml: formData.privilege
-      })
+        sqlserver_dml: formData.privilege,
+      });
     }
     addSqlserverAccountRuleRun(params);
   };
 </script>
 
 <style lang="less" scoped>
-.rule-form {
-  padding: 24px 40px 40px;
+  .rule-form {
+    padding: 24px;
 
-  .rule-setting-box {
-    padding: 16px;
-    background: #F5F7FA;
-    border-radius: 2px;
-  }
-
-  .rule-form-textarea {
-    height: var(--height);
-    max-height: 160px;
-    min-height: 32px;
-
-    :deep(textarea) {
-      line-height: 1.8;
+    .rule-setting-box {
+      padding: 16px;
+      background: #f5f7fa;
+      border-radius: 2px;
     }
-  }
 
-  .rule-form-item {
-    :deep(.bk-form-label) {
-      font-weight: bold;
-      color: @title-color;
+    .rule-form-textarea {
+      height: var(--height);
+      max-height: 160px;
+      min-height: 32px;
 
-      &::after {
-        position: absolute;
-        top: 0;
-        width: 14px;
-        line-height: 24px;
-        color: @danger-color;
-        text-align: center;
-        content: "*";
+      :deep(textarea) {
+        line-height: 1.8;
       }
     }
-  }
 
-  .rule-form-row {
-    display: flex;
-    width: 100%;
-    align-items: flex-start;
+    .rule-form-item {
+      :deep(.bk-form-label) {
+        font-weight: bold;
+        color: @title-color;
 
-    .rule-form-checkbox-group {
+        &::after {
+          position: absolute;
+          top: 0;
+          width: 14px;
+          line-height: 24px;
+          color: @danger-color;
+          text-align: center;
+          content: '*';
+        }
+      }
+    }
+
+    .rule-form-row {
       display: flex;
-      flex: 1;
-      flex-wrap: wrap;
+      width: 100%;
+      align-items: flex-start;
 
-      .bk-checkbox {
-        margin-right: 35px;
-        margin-bottom: 16px;
-        margin-left: 0;
+      .rule-form-checkbox-group {
+        display: flex;
+        flex: 1;
+        flex-wrap: wrap;
+
+        .bk-checkbox {
+          margin-right: 35px;
+          margin-bottom: 16px;
+          margin-left: 0;
+        }
       }
-    }
 
-    .check-all {
-      position: relative;
-      width: 50px;
-      margin-right: 48px;
+      .check-all {
+        position: relative;
+        width: 50px;
+        margin-right: 48px;
 
-      &::after {
-        position: absolute;
-        top: 50%;
-        right: -24px;
-        width: 1px;
-        height: 14px;
-        background-color: #c4c6cc;
-        content: "";
-        transform: translateY(-50%);
+        &::after {
+          position: absolute;
+          top: 50%;
+          right: -24px;
+          width: 1px;
+          height: 14px;
+          background-color: #c4c6cc;
+          content: '';
+          transform: translateY(-50%);
+        }
       }
     }
   }
-}
 </style>
