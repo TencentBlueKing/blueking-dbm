@@ -68,7 +68,7 @@ class MySQLMigrateClusterFlow(object):
         self.ticket_data = ticket_data
         self.data = {}
 
-    def deploy_migrate_cluster_flow(self):
+    def deploy_migrate_cluster_flow(self, use_for_upgrade=False):
         """
         成对迁移集群主从节点。
         增加单据临时ADMIN账号的添加和删除逻辑
@@ -98,6 +98,12 @@ class MySQLMigrateClusterFlow(object):
             slave = cluster_class.storageinstance_set.filter(
                 instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
             ).first()
+
+            # 如果是升级用途的话,需要改变module id
+            db_module_id = cluster_class.db_module_id
+            if use_for_upgrade:
+                db_module_id = self.data["new_db_module_id"]
+
             self.data["master_ip"] = master_model.machine.ip
             self.data["cluster_type"] = cluster_class.cluster_type
             self.data["old_slave_ip"] = slave.machine.ip
@@ -105,15 +111,22 @@ class MySQLMigrateClusterFlow(object):
             self.data["mysql_port"] = master_model.port
             self.data["bk_biz_id"] = cluster_class.bk_biz_id
             self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
-            self.data["db_module_id"] = cluster_class.db_module_id
+            self.data["db_module_id"] = db_module_id
             self.data["time_zone"] = cluster_class.time_zone
             self.data["created_by"] = self.ticket_data["created_by"]
-            self.data["module"] = cluster_class.db_module_id
+            self.data["module"] = db_module_id
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["uid"] = self.ticket_data["uid"]
             self.data["package"] = Package.get_latest_package(
                 version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
             ).name
+
+            if use_for_upgrade:
+                new_major_version = self.data["new_mysql_version"]
+                self.data["package"] = Package.get_latest_package(
+                    version=new_major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+                ).name
+
             self.data["ports"] = get_ports(info["cluster_ids"])
             self.data["force"] = info.get("force", False)
             self.data["charset"], self.data["db_version"] = get_version_and_charset(

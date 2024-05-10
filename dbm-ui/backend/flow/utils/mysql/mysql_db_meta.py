@@ -934,6 +934,15 @@ class MySQLDBMeta(object):
                 machine__ip=self.cluster["proxy_ip"],
             ).update(version=self.cluster["version"])
 
+    def update_mysql_instance_version(self):
+        """
+        升级后更新mysql版本信息
+        """
+        with atomic():
+            StorageInstance.objects.filter(
+                machine__ip=self.cluster["ip"],
+            ).update(version=self.cluster["version"])
+
     def update_machine_system_info(self):
         """
         更新machine system info
