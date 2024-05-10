@@ -204,6 +204,11 @@ class _CCApi(BaseApi):
             url="find_host_biz_relations/",
             description=_("查询主机业务关系信息"),
         )
+        self.find_module_batch = self.generate_data_api(
+            method="POST",
+            url="find_module_batch/",
+            description=_("批量查询某业务的模块详情"),
+        )
 
 
 CCApi = _CCApi()
