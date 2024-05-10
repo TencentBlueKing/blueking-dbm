@@ -177,13 +177,14 @@
 </script>
 
 <script setup lang="ts" generic="T extends IValue">
-  import _ from 'lodash';
-
   import MongodbModel from '@services/model/mongodb/mongodb';
   import { checkMongoInstances, checkMysqlInstances, checkRedisInstances } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
-  import { queryClusters as getMysqlClusterList , queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
-  import { getRedisClusterList , getRedisMachineList } from '@services/source/redis';
+  import {
+    queryClusters as getMysqlClusterList,
+    queryClusters as queryMysqlCluster,
+  } from '@services/source/mysqlCluster';
+  import { getRedisClusterList } from '@services/source/redis';
   import { getRedisHostList } from '@services/source/redisToolbox';
   import { getSpiderInstanceList, getSpiderMachineList } from '@services/source/spider';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
