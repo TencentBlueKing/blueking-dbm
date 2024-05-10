@@ -1,4 +1,4 @@
-// Package common TODO
+// Package common 公共函数
 package common
 
 import (
@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -394,7 +395,8 @@ func GetNodeInfo26(ip string, port int, username string, password string) (
 	var statusSlice bson.A
 	var confSlice bson.A
 	// 设置mongodb连接参数
-	clientOptions := options.Client().ApplyURI(fmt.Sprintf("mongodb://%s:%s@%s:%d", username, password, ip, port))
+	clientOptions := options.Client().ApplyURI(fmt.Sprintf("mongodb://%s:%s@%s:%d",
+		username, url.QueryEscape(password), ip, port))
 	// 连接mongodb
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
@@ -430,15 +432,18 @@ func GetCurrentNodeInfo(mainDbVersion float64, statusSlice bson.A, confSlice bso
 	flag := false
 	for _, key := range statusSlice {
 		var statusInfo map[string]interface{}
+		var nodeState int
 		if mainDbVersion < 2.6 {
 			statusInfo = key.(map[string]interface{})
+			nodeState, _ = strconv.Atoi(fmt.Sprintf("%1.0f", statusInfo["state"]))
 		} else {
 			infoMap := map[string]interface{}(key.(bson.M))
 			statusInfo = infoMap
+			nodeState = int(statusInfo["state"].(int32))
 		}
 		if statusInfo["name"].(string) == source {
 			id, _ = strconv.Atoi(fmt.Sprintf("%1.0f", statusInfo["_id"]))
-			state, _ = strconv.Atoi(fmt.Sprintf("%1.0f", statusInfo["state"]))
+			state = nodeState
 			flag = true
 			break
 		}
@@ -501,12 +506,14 @@ func GetNodeInfo(mongoBin string, ip string, port int, username string, password
 		var statusInfo map[string]interface{}
 		if mainDbVersion < 2.6 {
 			statusInfo = v.(map[string]interface{})
+			member["state"] = fmt.Sprintf("%1.0f", statusInfo["state"])
 		} else {
 			infoMap := map[string]interface{}(v.(bson.M))
 			statusInfo = infoMap
+			member["state"] = fmt.Sprintf("%d", statusInfo["state"])
 		}
 		member["name"] = statusInfo["name"].(string)
-		member["state"] = fmt.Sprintf("%1.0f", statusInfo["state"])
+
 		for _, k := range confSlice {
 			var confInfo map[string]interface{}
 			if mainDbVersion < 2.6 {

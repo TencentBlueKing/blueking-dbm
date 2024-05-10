@@ -24,7 +24,6 @@ type MongoSConfParams struct {
 	Port            int      `json:"port" validate:"required"`
 	DbVersion       string   `json:"dbVersion" validate:"required"`
 	InstanceType    string   `json:"instanceType" validate:"required"` // mongos mongod
-	App             string   `json:"app" validate:"required"`
 	SetId           string   `json:"setId" validate:"required"`
 	KeyFile         string   `json:"keyFile" validate:"required"`  // keyFile的内容 app-setId
 	Auth            bool     `json:"auth"`                         // true：以验证方式启动mongos false：以非验证方式启动mongos
@@ -163,7 +162,7 @@ func (s *MongoSInstall) makeConfContent() error {
 			"get %s version fail, error:%s", s.ConfParams.InstanceType, err)
 		return fmt.Errorf("get %s version fail, error:%s", s.ConfParams.InstanceType, err)
 	}
-	clusterId := strings.Join([]string{s.ConfParams.App, s.ConfParams.SetId, "conf"}, "-")
+	clusterId := s.ConfParams.SetId
 	IpConfigDB := strings.Join(s.ConfParams.ConfigDB, ",")
 	configDB := strings.Join([]string{clusterId, IpConfigDB}, "/")
 

@@ -215,7 +215,7 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
             nodes = [{"ip": machine["ip"], "bk_cloud_id": machine["bk_cloud_id"]} for machine in machines]
             replica_set["nodes"] = nodes
             shards.append(replica_set)
-            add_shards["{}-{}".format(app, replica_set["set_id"])] = ",".join(
+            add_shards[replica_set["set_id"]] = ",".join(
                 ["{}:{}".format(node["ip"], str(replica_set["port"])) for node in nodes[0:-1]]
             )
 
@@ -225,7 +225,7 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
     # mongos
     mongos = {}
     mongos["port"] = payload["proxy_port"]  # 默认27021
-    mongos["set_id"] = payload["cluster_name"]
+    mongos["conf_set_id"] = config["set_id"]
     mongos["domain"] = "mongos.{}.{}.db".format(payload["cluster_name"], app)
     nodes = [{"ip": machine["ip"], "bk_cloud_id": machine["bk_cloud_id"]} for machine in payload["nodes"]["mongos"]]
     mongos["nodes"] = nodes

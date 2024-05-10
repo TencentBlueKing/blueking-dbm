@@ -14,6 +14,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBManagerUser, MongoDBTask
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.add_domain_to_dns import ExecAddDomainToDnsOperationComponent
@@ -67,7 +68,22 @@ def replicaset_install(
 
     if not cluster:
         # 保存keyfile到dbconfig
-        sub_get_kwargs.set_save_key_file()
+        namespace = ClusterType.MongoReplicaSet.value
+        cluster_name = sub_get_kwargs.replicaset_info["set_id"]
+        sub_get_kwargs.save_key_file(
+            namespace=namespace, cluster_name=cluster_name, key_file=sub_get_kwargs.replicaset_info["key_file"]
+        )
+        # cachesize和oplogsize到dbconfig
+        sub_get_kwargs.save_cache_size(
+            namespace=namespace,
+            cluster_name=cluster_name,
+            cache_size=str(sub_get_kwargs.replicaset_info["cacheSizeGB"]),
+        )
+        sub_get_kwargs.save_oplog_size(
+            namespace=namespace,
+            cluster_name=cluster_name,
+            oplog_size=str(sub_get_kwargs.replicaset_info["oplogSizeMB"]),
+        )
         # 密码服务获取管理用户密码
         kwargs = sub_get_kwargs.get_get_manager_password_kwargs()
         sub_pipeline.add_act(

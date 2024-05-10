@@ -20,7 +20,6 @@ import (
 type InitConfParams struct {
 	IP        string          `json:"ip" validate:"required"`
 	Port      int             `json:"port" validate:"required"`
-	App       string          `json:"app" validate:"required"`
 	SetId     string          `json:"setId" validate:"required"`
 	ConfigSvr bool            `json:"configSvr"`                    // shardsvr  configsvr
 	Ips       []string        `json:"ips" validate:"required"`      // ip:port
@@ -107,7 +106,7 @@ func (i *InitiateReplicaset) Init(runtime *jobruntime.JobGenericRuntime) error {
 			"get parameters of initiateReplicaset fail by json.Unmarshal, error:%s", err))
 		return fmt.Errorf("get parameters of initiateReplicaset fail by json.Unmarshal, error:%s", err)
 	}
-	i.ClusterId = strings.Join([]string{i.ConfParams.App, i.ConfParams.SetId}, "-")
+	i.ClusterId = i.ConfParams.SetId
 	i.runtime.Logger.Info("init successfully")
 
 	// 进行校验

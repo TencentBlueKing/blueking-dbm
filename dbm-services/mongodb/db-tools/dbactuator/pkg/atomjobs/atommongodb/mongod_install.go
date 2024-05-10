@@ -49,11 +49,10 @@ type MongoDBConfParams struct {
 	Port            int    `json:"port" validate:"required"`
 	DbVersion       string `json:"dbVersion" validate:"required"`
 	InstanceType    string `json:"instanceType" validate:"required"` // mongos mongod
-	App             string `json:"app" validate:"required"`
-	SetId           string `json:"setId" validate:"required"`   // 复制集为集群id，cluster为集群id+序号
-	KeyFile         string `json:"keyFile" validate:"required"` // keyFile的内容 app-setId
-	Auth            bool   `json:"auth"`                        // true：以验证方式启动mongod false：以非验证方式启动mongod
-	ClusterRole     string `json:"clusterRole"`                 // 部署cluster时填写，shardsvr  configsvr；部署复制集时为空
+	SetId           string `json:"setId" validate:"required"`        // 复制集为集群id，cluster为集群id+序号
+	KeyFile         string `json:"keyFile" validate:"required"`      // keyFile的内容 app-setId
+	Auth            bool   `json:"auth"`                             // true：以验证方式启动mongod false：以非验证方式启动mongod
+	ClusterRole     string `json:"clusterRole"`                      // 部署cluster时填写，shardsvr  configsvr；部署复制集时为空
 	DbConfig        struct {
 		SlowOpThresholdMs int    `json:"slowOpThresholdMs"`
 		CacheSizeGB       int    `json:"cacheSizeGB"`
@@ -199,8 +198,7 @@ func (m *MongoDBInstall) makeConfContent() error {
 		conf.Storage.Engine = "wiredTiger"
 		conf.Storage.WiredTiger.EngineConfig.CacheSizeGB = m.ConfParams.DbConfig.CacheSizeGB
 		conf.Replication.OplogSizeMB = m.ConfParams.DbConfig.OplogSizeMB
-		conf.Replication.ReplSetName = strings.Join([]string{m.ConfParams.App, m.ConfParams.SetId},
-			"-")
+		conf.Replication.ReplSetName = m.ConfParams.SetId
 		conf.SystemLog.LogAppend = true
 		conf.SystemLog.Path = m.LogPath
 		conf.SystemLog.Destination = m.ConfParams.DbConfig.Destination
@@ -238,8 +236,7 @@ func (m *MongoDBInstall) makeConfContent() error {
 	m.runtime.Logger.Info("start to make mongodb config file content")
 	NoAuthConf := common.IniNoAuthMongoDBConf
 	AuthConf := common.IniAuthMongoDBConf
-	replSet := strings.Join([]string{m.ConfParams.App, m.ConfParams.SetId},
-		"-")
+	replSet := m.ConfParams.SetId
 	NoAuthConf = strings.Replace(NoAuthConf, "{{replSet}}", replSet, -1)
 	AuthConf = strings.Replace(AuthConf, "{{replSet}}", replSet, -1)
 	NoAuthConf = strings.Replace(NoAuthConf, "{{dbpath}}", m.DbpathDir, -1)

@@ -13,6 +13,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBClusterRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
@@ -135,8 +136,16 @@ class MongoDBInstallFlow(object):
         self.prepare_job(pipeline=pipeline)
 
         # 保存keyfile到dbconfig
-        self.get_kwargs.cluster_save_key_file()
-
+        namespace = ClusterType.MongoShardedCluster.value
+        cluster_name = self.data["cluster_id"]
+        self.get_kwargs.save_key_file(namespace=namespace, cluster_name=cluster_name, key_file=self.data["key_file"])
+        # cachesize和oplogsize到dbconfig
+        self.get_kwargs.save_cache_size(
+            namespace=namespace, cluster_name=cluster_name, cache_size=str(self.data["shards"][0]["cacheSizeGB"])
+        )
+        self.get_kwargs.save_oplog_size(
+            namespace=namespace, cluster_name=cluster_name, oplog_size=str(self.data["shards"][0]["oplogSizeMB"])
+        )
         # 密码服务获取管理用户密码 shard，config的密码保持一致
         kwargs = self.get_kwargs.get_get_manager_password_kwargs()
         pipeline.add_act(
