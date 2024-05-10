@@ -133,7 +133,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_ADD_SLAVE = EnumField("MYSQL_ADD_SLAVE", _("MySQL 添加从库"))
     MYSQL_RESTORE_SLAVE = EnumField("MYSQL_RESTORE_SLAVE", _("MySQL Slave重建"))
     MYSQL_RESTORE_LOCAL_SLAVE = EnumField("MYSQL_RESTORE_LOCAL_SLAVE", _("MySQL Slave原地重建"))
-    MYSQL_MIGRATE_CLUSTER = EnumField("MYSQL_MIGRATE_CLUSTER", _("MySQL 克隆主从"))
+    MYSQL_MIGRATE_CLUSTER = EnumField("MYSQL_MIGRATE_CLUSTER", _("MySQL 迁移主从"))
     MYSQL_MASTER_SLAVE_SWITCH = EnumField("MYSQL_MASTER_SLAVE_SWITCH", _("MySQL 主从互换"))
     MYSQL_MASTER_FAIL_OVER = EnumField("MYSQL_MASTER_FAIL_OVER", _("MySQL 主库故障切换"))
     MYSQL_HA_APPLY = EnumField("MYSQL_HA_APPLY", _("MySQL 高可用部署"))

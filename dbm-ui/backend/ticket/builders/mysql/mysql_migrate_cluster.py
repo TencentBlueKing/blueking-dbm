@@ -32,7 +32,7 @@ class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
     )
-    infos = serializers.ListField(help_text=_("克隆主从信息"), child=MigrateClusterInfoSerializer())
+    infos = serializers.ListField(help_text=_("迁移主从信息"), child=MigrateClusterInfoSerializer())
     backup_source = serializers.ChoiceField(
         help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), default=MySQLBackupSource.REMOTE
     )
@@ -87,6 +87,6 @@ class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
 class MysqlMigrateClusterFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlMigrateClusterDetailSerializer
     inner_flow_builder = MysqlMigrateClusterParamBuilder
-    inner_flow_name = _("克隆主从执行")
+    inner_flow_name = _("迁移主从执行")
     resource_batch_apply_builder = MysqlMigrateClusterResourceParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
