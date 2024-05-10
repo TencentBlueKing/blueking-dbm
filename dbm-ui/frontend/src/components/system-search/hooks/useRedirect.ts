@@ -18,6 +18,8 @@ export const useRedirect = () => {
 
   const routerNameMap = {
     TwemproxyRedisInstance: 'DatabaseRedisList',
+    PredixyTendisplusCluster: 'DatabaseRedisList',
+    TwemproxyTendisSSDInstance: 'DatabaseRedisList',
     tendbha: 'DatabaseTendbha',
     tendbsingle: 'DatabaseTendbsingle',
     tendbcluster: 'tendbClusterList',
