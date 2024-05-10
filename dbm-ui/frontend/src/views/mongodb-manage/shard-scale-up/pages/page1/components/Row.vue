@@ -80,7 +80,10 @@
 
   export interface InfoItem {
     cluster_ids: number[];
-    add_shard_nodes: number;
+    add_shard_nodes_num: number;
+    current_shard_nodes_num: number;
+    node_replica_count: number;
+    shards_num: number;
     resource_spec: {
       shard_nodes: {
         spec_id: number;
@@ -195,10 +198,10 @@
         cluster_ids: props.data.isMongoReplicaSet
           ? [props.data.clusterId, ...relatedClusterIds]
           : [props.data.clusterId],
-        add_shard_nodes: nodeNum - props.data.currentNodeNum, // 增加shard节点数
+        add_shard_nodes_num: nodeNum - props.data.currentNodeNum, // 增加shard节点数
         current_shard_nodes_num: props.data.currentNodeNum, // 当前shard节点数
-        machine_instance_num: props.data.machineInstanceNum, // 单机部署实例
-        shard_num: props.data.shardNum, // 分片数
+        node_replica_count: props.data.machineInstanceNum, // 单机部署实例
+        shards_num: props.data.shardNum, // 分片数
         resource_spec: {
           shard_nodes: {
             spec_id: props.data.sepcId,

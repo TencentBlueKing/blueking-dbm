@@ -125,6 +125,7 @@
                     cluster_id: props.data.id,
                     shard_machine_group: currentSpecData!.machine_pair,
                     shard_node_count: 3, // 固定值
+                    shards_num: currentSpecData!.shard_num,
                     resource_spec: {
                       mongodb: {
                         spec_id: props.data.specId,

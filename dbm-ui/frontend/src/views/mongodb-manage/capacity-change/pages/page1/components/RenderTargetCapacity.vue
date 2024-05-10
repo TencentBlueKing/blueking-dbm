@@ -128,6 +128,7 @@
     getValue: () => Promise<{
       shard_machine_group: number;
       shard_node_count: number;
+      shards_num: number;
       resource_spec: {
         mongodb: {
           spec_id: number;
@@ -205,6 +206,7 @@
       return Promise.resolve({
         shard_machine_group: localValue.value!.machine_pair,
         shard_node_count: props.rowData.shardNodeCount,
+        shards_num: localValue.value!.shard_num,
         resource_spec: {
           mongodb: {
             spec_id: localValue.value!.spec_id,

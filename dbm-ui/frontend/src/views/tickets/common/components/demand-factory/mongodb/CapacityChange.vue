@@ -56,6 +56,7 @@
       };
       shard_machine_group: number;
       shard_node_count: number;
+      shards_num: number;
     }[];
     ip_source: string;
     specs: {
@@ -109,6 +110,10 @@
       label: t('目标机器组数'),
       field: 'shard_machine_group',
     },
+    {
+      label: t('分片数'),
+      field: 'shards_num',
+    }
   ];
 
   const dataList = computed(() => {
@@ -122,6 +127,7 @@
       target_spec: specs[item.resource_spec.mongodb.spec_id].name,
       shard_node_count: item.shard_node_count,
       shard_machine_group: item.shard_machine_group,
+      shards_num: item.shards_num,
     }));
   });
 </script>

@@ -11,7 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { SpecInfo } from '@services/model/ticket/details/common';
-import type { clustersItems } from '@services/types/ticket';
+import type {  clustersItems } from '@services/types/ticket';
+
+import { ClusterTypes } from '@common/const';
 
 // MongoDB 副本集群
 export interface DetailsMongoDBReplicaSet {
@@ -111,7 +113,8 @@ export interface DetailsSqlserver {
     }[];
   };
   resource_spec: {
-    backend: SpecInfo;
+    [ClusterTypes.SQLSERVER_SINGLE]: SpecInfo;
+    [ClusterTypes.SQLSERVER_HA]: SpecInfo;
   };
   spec: string;
   spec_display: string;

@@ -346,8 +346,8 @@
         backend: {
           spec_id: '',
           spec_name: '',
-          spec_cluster_type: 'mysql',
-          spec_machine_type: 'backend',
+          // spec_cluster_type: 'mysql',
+          // spec_machine_type: 'backend',
           affinity: '',
           location_spec: {
             city: '', // 城市
@@ -615,9 +615,11 @@
         return {
           ...details,
           resource_spec: {
-            backend: {
+            [clusterType]: {
               ...details.resource_spec.backend,
               ...specBackendRef.value!.getData(),
+              spec_cluster_type: clusterType,
+              spec_machine_type: clusterType,
               affinity: details.disaster_tolerance_level,
               location_spec: {
                 city: cityCode,
@@ -782,10 +784,12 @@
         .apply-form-database-label {
           width: 140px;
           text-align: right;
+          flex-shrink: 0;
         }
 
         .apply-form-database-value {
           color: #313238;
+          word-break: break-all;
         }
       }
     }
