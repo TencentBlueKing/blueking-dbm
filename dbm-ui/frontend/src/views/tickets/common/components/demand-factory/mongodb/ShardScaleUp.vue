@@ -34,33 +34,38 @@
   import type { TicketDetails } from '@services/types/ticket';
 
   interface ShardScaleUpDetails {
-    clusters: Record<number, {
-      alias: string;
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      cluster_type: string;
-      cluster_type_name: string;
-      creator: string;
-      db_module_id: number;
-      disaster_tolerance_level: string;
-      id: number;
-      immute_domain: string;
-      major_version: string;
-      name: string;
-      phase: string;
-      region: string;
-      status: string;
-      tag: {
+    clusters: Record<
+      number,
+      {
+        alias: string;
         bk_biz_id: number;
+        bk_cloud_id: number;
+        cluster_type: string;
+        cluster_type_name: string;
+        creator: string;
+        db_module_id: number;
+        disaster_tolerance_level: string;
+        id: number;
+        immute_domain: string;
+        major_version: string;
         name: string;
-        type: string;
-      }[];
-      time_zone: string;
-      updater: string;
-    }>;
+        phase: string;
+        region: string;
+        status: string;
+        tag: {
+          bk_biz_id: number;
+          name: string;
+          type: string;
+        }[];
+        time_zone: string;
+        updater: string;
+      }
+    >;
     infos: {
-      add_shard_nodes: number;
-      cluster_id: number;
+      add_shard_nodes_num: number;
+      cluster_ids: number[];
+      node_replica_count: number;
+      current_shard_nodes_num: number;
       resource_spec: {
         shard_nodes: {
           count: number;
@@ -73,17 +78,14 @@
   }
 
   interface Props {
-    ticketDetails: TicketDetails<ShardScaleUpDetails>
+    ticketDetails: TicketDetails<ShardScaleUpDetails>;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const {
-    clusters,
-    infos,
-  } = props.ticketDetails.details;
+  const { clusters, infos } = props.ticketDetails.details;
   const columns = [
     {
       label: t('目标集群'),
@@ -102,40 +104,38 @@
     },
     {
       label: t('扩容至（节点数）'),
-      field: 'add_shard_nodes',
+      field: 'add_shard_nodes_num',
       showOverflowTooltip: true,
     },
   ];
 
-  const tableData = infos.map(item => ({
-    immute_domain: clusters[item.cluster_id].immute_domain,
-    cluster_type: clusters[item.cluster_id].cluster_type_name,
-    add_shard_nodes: item.add_shard_nodes,
-    current_nodes: item.add_shard_nodes - item.resource_spec.shard_nodes.count,
+  const tableData = infos.map((item) => ({
+    immute_domain: clusters[item.cluster_ids[0]].immute_domain,
+    cluster_type: clusters[item.cluster_ids[0]].cluster_type_name,
+    add_shard_nodes_num: item.add_shard_nodes_num,
+    current_nodes: item.add_shard_nodes_num - item.resource_spec.shard_nodes.count,
   }));
-
-
 </script>
 <style lang="less" scoped>
-@import "@views/tickets/common/styles/DetailsTable.less";
-@import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/DetailsTable.less';
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
-.ticket-details {
-  &__info {
-    padding-left: 80px;
-  }
+  .ticket-details {
+    &__info {
+      padding-left: 80px;
+    }
 
-  &__item {
-    &-label {
-      min-width: 0;
-      text-align: left;
+    &__item {
+      &-label {
+        min-width: 0;
+        text-align: left;
+      }
     }
   }
-}
 
-.details-backup {
-  &__table {
-    padding-left: 80px;
+  .details-backup {
+    &__table {
+      padding-left: 80px;
+    }
   }
-}
 </style>

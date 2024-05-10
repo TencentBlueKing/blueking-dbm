@@ -26,7 +26,7 @@
 
   import { useSystemEnviron } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import PreviewTable from '@views/sqlserver-manage/apply/components/PreviewTable.vue';
 
@@ -56,7 +56,7 @@
   } = details
   const isSingleType = ticketType === TicketTypes.SQLSERVER_SINGLE_APPLY;
   const isFromResourcePool = ipSource === 'resource_pool';
-  const backendSpec = resourceSpec.backend;
+  const backendSpec = resourceSpec[isSingleType ? ClusterTypes.SQLSERVER_SINGLE : ClusterTypes.SQLSERVER_HA];
 
   const config: DemandInfoConfig[] = [
     {

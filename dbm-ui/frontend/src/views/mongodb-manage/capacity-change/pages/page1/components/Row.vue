@@ -83,6 +83,7 @@
     cluster_id: number;
     shard_machine_group: number;
     shard_node_count: number;
+    shards_num: number;
     resource_spec: {
       mongodb: {
         spec_id: number;
