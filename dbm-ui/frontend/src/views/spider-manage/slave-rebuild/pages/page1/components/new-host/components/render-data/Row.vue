@@ -45,11 +45,13 @@
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
 
 <script lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import SpiderMachineModel from '@services/model/spider/spiderMachine';
@@ -104,6 +106,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'hostInputFinish', value: string): void;
   }
 
@@ -138,13 +141,26 @@
     emits('remove');
   };
 
+  const getRowData = () => [oldSlaveRef.value!.validate(), newSlaveRef.value!.getValue()];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [oldSlaveValue, newSlaveData] = rowData.map((item) =>
+        item.status === 'fulfilled' ? item.value : item.reason,
+      );
+      emits('clone', {
+        rowKey: random(),
+        isLoading: false,
+        oldSlave: _.cloneDeep(props.data.oldSlave),
+      });
+    });
+  };
+
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([oldSlaveRef.value!.validate(), newSlaveRef.value!.getValue()]).then(
-        ([oldSlaveValue, newSlaveData]) => ({
-          ...newSlaveData,
-        }),
-      );
+      return Promise.all(getRowData()).then(([oldSlaveValue, newSlaveData]) => ({
+        ...newSlaveData,
+      }));
     },
   });
 </script>

@@ -142,7 +142,8 @@
     getValue() {
       return selectRef.value
         .getValue()
-        .then(() => ({ add_spider_role: localValue.value }));
+        .then(() => ({ add_spider_role: localValue.value }))
+        .catch(() => Promise.reject({ add_spider_role: localValue.value }))
     },
   });
 </script>

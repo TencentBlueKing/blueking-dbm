@@ -136,6 +136,12 @@
           bk_cloud_id: modelValue.value!.bkCloudId,
           cluster_shard_num: modelValue.value!.clusterShardNum,
           db_module_id: modelValue.value!.dbModuleId,
+        }))
+        .catch(() => Promise.reject({
+          cluster_id: modelValue.value?.id,
+          bk_cloud_id: modelValue.value?.bkCloudId,
+          cluster_shard_num: modelValue.value?.clusterShardNum,
+          db_module_id: modelValue.value?.dbModuleId,
         }));
     },
   });

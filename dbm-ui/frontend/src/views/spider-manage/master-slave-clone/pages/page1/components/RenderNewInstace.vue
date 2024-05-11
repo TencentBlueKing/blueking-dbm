@@ -154,6 +154,7 @@
 
   interface Props {
     clusterData: IDataRow['clusterData'];
+    newHostList: IDataRow['newHostList']
   }
 
   interface Exposes {
@@ -165,7 +166,7 @@
     }[]>;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const genHostKey = (hostData: HostTopoInfo) => `#${hostData.bk_cloud_id}#${hostData.ip}`;
 
@@ -221,7 +222,7 @@
             bk_host_innerip: [masterIp, slaveIp],
           },
           bk_biz_id: currentBizId,
-        }).then((data) => {
+        }).then(async (data) => {
           // 一个 IP 存在于多个管控区域
           if (data.hosts_topo_info.length > 2) {
             isConflict.value = true;
@@ -247,21 +248,20 @@
                 slaveHost = item;
                 singleHostSelectMemo[instanceKey][genHostKey(slaveHost)] = true;
               }
-              if (!_.isEmpty(masterHost) && !_.isEmpty(slaveHost)) {
-                checkHost({
-                  ip_list: [masterHost.ip, slaveHost.ip],
-                  scope_list: [
-                    {
-                      scope_id: currentBizId,
-                      scope_type: 'biz'
-                    }
-                  ],
-                  mode: 'all'
-                }).then(hostList => {
-                  localHostList.value = hostList
-                })
-              }
             }));
+            if (!_.isEmpty(masterHost) && !_.isEmpty(slaveHost)) {
+              const hostList = await checkHost({
+                ip_list: [masterHost.ip, slaveHost.ip],
+                scope_list: [
+                  {
+                    scope_id: currentBizId,
+                    scope_type: 'biz'
+                  }
+                ],
+                mode: 'all'
+              })
+              localHostList.value = hostList
+            }
             return true;
           }
           return false;
@@ -294,6 +294,12 @@
     const [fisrt, last] = localValue.value.split(splitReg);
     return _.trim(fisrt) === _.trim(last);
   });
+
+  watch(() => props.newHostList, () => {
+    localValue.value = props.newHostList.join(',')
+  }, {
+    immediate: true
+  })
 
   watch(isConflict, () => {
     nextTick(() => {
@@ -360,14 +366,15 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value!.getValue().then(() =>
-        Promise.resolve(localHostList.value.map(hostItem => ({
-          ip: hostItem.ip,
-          bk_cloud_id: hostItem.cloud_id,
-          bk_host_id: hostItem.host_id,
-          bk_biz_id: hostItem.biz.id
-        })))
-      );
+      const hostList = localHostList.value.map(hostItem => ({
+        ip: hostItem.ip,
+        bk_cloud_id: hostItem.cloud_id,
+        bk_host_id: hostItem.host_id,
+        bk_biz_id: hostItem.biz.id
+      }))
+      return inputRef.value!.getValue()
+        .then(() => Promise.resolve(hostList))
+        .catch(() => Promise.reject(hostList))
     },
   });
 </script>

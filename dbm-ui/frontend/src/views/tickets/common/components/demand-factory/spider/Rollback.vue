@@ -20,12 +20,13 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { SpiderRollbackDetails, TicketDetails } from '@services/types/ticket';
+  import type { SpiderRollbackDetails } from '@services/model/ticket/details/spider';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketDetails: TicketDetails<SpiderRollbackDetails>;
+    ticketDetails: TicketModel<SpiderRollbackDetails>;
   }
 
   const props = defineProps<Props>();

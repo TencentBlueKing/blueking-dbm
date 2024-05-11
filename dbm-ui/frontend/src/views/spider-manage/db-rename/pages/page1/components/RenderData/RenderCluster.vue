@@ -44,7 +44,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['clusterData'],
+    modelValue: IDataRow['clusterData'],
   }
 
   interface Emits {
@@ -162,7 +162,8 @@
         .getValue()
         .then(() => ({
           cluster_id: localClusterId.value,
-        }));
+        }))
+        .catch(() => Promise.reject({ cluster_id: localClusterId.value }));
     },
   });
 </script>
