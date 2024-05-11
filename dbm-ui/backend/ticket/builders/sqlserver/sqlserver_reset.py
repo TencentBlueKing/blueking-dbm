@@ -17,11 +17,11 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import fetch_cluster_ids
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class SQLServerResetDetailSerializer(MySQLBaseOperateDetailSerializer):
+class SQLServerResetDetailSerializer(SQLServerBaseOperateDetailSerializer):
     class ResetInfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         new_cluster_name = serializers.CharField(help_text=_("重置集群名"))
@@ -47,7 +47,7 @@ class SQLServerResetFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_RESET)
-class SQLServerResetFlowBuilder(BaseMySQLTicketFlowBuilder):
+class SQLServerResetFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerResetDetailSerializer
     inner_flow_builder = SQLServerResetFlowParamBuilder
     inner_flow_name = _("SQLServer 集群重置执行")

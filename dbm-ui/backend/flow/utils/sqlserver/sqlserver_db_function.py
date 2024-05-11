@@ -16,7 +16,7 @@ from typing import Dict, List
 from django.db.models import QuerySet
 
 from backend.components import DRSApi
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import (
@@ -463,7 +463,7 @@ def drop_sqlserver_random_job_user(
             "bk_cloud_id": bk_cloud_id,
             "addresses": [s.ip_port for s in storages] + other_instances,
             "cmds": [
-                f"IF SUSER_SID('{user}') IS NOT NULL " f"drop login [{user}] ;",
+                f"USE MASTER IF SUSER_SID('{user}') IS NOT NULL " f"drop login [{user}] ;",
             ],
             "force": False,
         }
@@ -513,8 +513,12 @@ def insert_sqlserver_config(
     """
     old_backup_config = {}
     master = cluster.storageinstance_set.get(instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER])
-    sync_mode = SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
-    drop_sql = f"use Monitor truncate table [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[APP_SETTING]"
+    if cluster.cluster_type == ClusterType.SqlserverHA:
+        sync_mode = SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
+    else:
+        sync_mode = ""
+    drop_sql = "use Monitor truncate table [Monitor].[dbo].[APP_SETTING]"
+
     for storage in storages:
         if is_get_old_backup_config:
             # 按照需求获取旧的备份配置

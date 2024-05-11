@@ -1224,6 +1224,7 @@ class SqlserverCharSet(str, StructuredEnum):
 
     Chinese_PRC_CI_AS = EnumField("Chinese_PRC_CI_AS", _("Chinese_PRC_CI_AS"))
     Latin1_General_100_CI_AS = EnumField("Latin1_General_100_CI_AS", _("Latin1_General_100_CI_AS"))
+    GBK_CharSet = EnumField("GBK", _("GBK"))
 
 
 # sqlserver sqlcmd 文件输入格式编码对应的编号

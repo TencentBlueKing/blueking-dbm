@@ -67,7 +67,7 @@ class SQLServerRollbackDetailSerializer(SQLServerBaseOperateDetailSerializer):
 
 
 class SQLServerDataMigrateFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SqlserverController.fake_scene
+    controller = SqlserverController.db_construct_scene
 
     def format_ticket_data(self):
         super().format_ticket_data()

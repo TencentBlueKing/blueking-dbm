@@ -184,7 +184,7 @@ SQLSERVER_DATA_MIGRATE_TICKET_DATA = {
                 "dst_cluster": CLUSTER_ID + 1,
                 "db_list": [],
                 "ignore_db_list": [],
-                "dts_infos": [{"db_name": "test_database", "target_db_name": "test_database"}],
+                "rename_infos": [{"db_name": "test_database", "target_db_name": "test_database"}],
             }
         ],
     },

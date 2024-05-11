@@ -155,7 +155,10 @@ class SQLServerSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, infos: List[Dict]):
         # 适配手动输入和资源池导入的角色类型
-        backend_nodes = ticket_data["nodes"][MachineType.SQLSERVER_SINGLE.value] or ticket_data["nodes"]["single"]
+        if ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+            backend_nodes = ticket_data["nodes"][MachineType.SQLSERVER_SINGLE.value] or ticket_data["nodes"]["single"]
+        else:
+            backend_nodes = ticket_data["nodes"]["backend"]
         for index, apply_info in enumerate(infos):
             apply_info["mssql_host"] = backend_nodes[index]
 

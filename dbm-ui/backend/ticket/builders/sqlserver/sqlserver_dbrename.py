@@ -18,8 +18,8 @@ from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver import sqlserver_db_function
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, DBTableField
-from backend.ticket.builders.sqlserver.base import SQLServerBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import DBTableField
+from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
@@ -60,7 +60,7 @@ class SQLServerRenameFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_DBRENAME)
-class SQLServerRenameFlowBuilder(BaseMySQLTicketFlowBuilder):
+class SQLServerRenameFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerRenameSerializer
     inner_flow_builder = SQLServerRenameFlowParamBuilder
     inner_flow_name = _("SQLServer DB重命名执行")

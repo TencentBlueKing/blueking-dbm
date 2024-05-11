@@ -14,8 +14,7 @@ from rest_framework import serializers
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate, HostInfoSerializer
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.builders.sqlserver.base import SQLServerBaseOperateDetailSerializer
+from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
@@ -47,7 +46,7 @@ class SQLServerMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_MASTER_SLAVE_SWITCH)
-class SQLServerMasterSlaveSwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
+class SQLServerMasterSlaveSwitchFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerMasterSlaveSwitchDetailSerializer
     inner_flow_builder = SQLServerMasterSlaveSwitchParamBuilder
     inner_flow_name = _("SQLServer 主从互换执行")

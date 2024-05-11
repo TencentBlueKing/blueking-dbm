@@ -17,8 +17,9 @@ from backend import env
 from backend.db_services.dbpermission.db_authorize.serializers import PreCheckAuthorizeRulesSerializer
 from backend.db_services.mysql.permission.exceptions import AuthorizeDataHasExpiredException
 from backend.flow.engine.controller.sqlserver import SqlserverController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
+from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
@@ -54,7 +55,7 @@ class SQLServerAuthorizeRulesFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_AUTHORIZE_RULES)
-class SQLServerRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
+class SQLServerRulesFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerAuthorizeRulesSerializer
     inner_flow_builder = SQLServerAuthorizeRulesFlowParamBuilder
     inner_flow_name = _("SQLServer 授权执行")
@@ -71,7 +72,7 @@ class SQLServerRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
         self.ticket.update_details(rules_set=data)
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_EXCEL_AUTHORIZE_RULES)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_EXCEL_AUTHORIZE_RULES, iam=ActionEnum.SQLSERVER_AUTHORIZE_RULES)
 class SQLServerExcelAuthorizeRulesFlowBuilder(SQLServerRulesFlowBuilder):
     serializer = SQLServerExcelAuthorizeRulesSerializer
     inner_flow_name = _("SQLServer Excel授权执行")

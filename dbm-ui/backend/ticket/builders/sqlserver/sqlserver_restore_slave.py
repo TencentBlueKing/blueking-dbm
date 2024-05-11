@@ -12,16 +12,22 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.sqlserver import SqlserverController
+from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.builders.sqlserver.base import SQLServerBaseOperateResourceParamBuilder
+from backend.ticket.builders.sqlserver.base import (
+    BaseSQLServerTicketFlowBuilder,
+    SQLServerBaseOperateDetailSerializer,
+    SQLServerBaseOperateResourceParamBuilder,
+)
 from backend.ticket.constants import TicketType
+from backend.ticket.exceptions import TicketParamsVerifyException
 
 
-class SQLServerRestoreSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
+class SQLServerRestoreSlaveDetailSerializer(SQLServerBaseOperateDetailSerializer):
     class SlaveInfoSerializer(serializers.Serializer):
         cluster_ids = serializers.ListField(help_text=_("集群列表"), child=serializers.IntegerField())
         resource_spec = serializers.JSONField(help_text=_("资源池规格"), required=False)
@@ -44,22 +50,40 @@ class SQLServerRestoreSlaveFlowParamBuilder(builders.FlowParamBuilder):
     controller = SqlserverController.slave_rebuild_in_new_slave_scene
 
     def format_ticket_data(self):
-        for info in self.ticket_data["infos"]:
-            info["slave_host"] = info.pop("slave")
-            info["port"] = info["slave_host"].pop("port")
+        pass
+        # for info in self.ticket_data["infos"]:
+        #     info["slave_host"] = info.pop("slave")
+        #     info["port"] = info["slave_host"].pop("port")
 
 
 class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourceParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:
-            info["new_slave_host"] = info["sqlserver"][0]
+            info["new_slave_host"] = info["sqlserver_ha"][0]
         next_flow.save(update_fields=["details"])
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_RESTORE_SLAVE)
-class SQLServerRestoreSlaveFlowBuilder(BaseMySQLTicketFlowBuilder):
+class SQLServerRestoreSlaveFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerRestoreSlaveDetailSerializer
     resource_batch_apply_builder = SQLServerRestoreSlaveResourceParamBuilder
     inner_flow_builder = SQLServerRestoreSlaveFlowParamBuilder
     inner_flow_name = _("SQLServer Slave重建执行")
+
+    def patch_ticket_detail(self):
+        # 补充数据库版本和字符集
+
+        cluster_ids = [cluster_id for info in self.ticket.details["infos"] for cluster_id in info["cluster_ids"]]
+        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        for info in self.ticket.details["infos"]:
+            db_config = get_module_infos(
+                bk_biz_id=self.ticket.bk_biz_id,
+                db_module_id=id__cluster[info["cluster_ids"][0]].db_module_id,
+                cluster_type=id__cluster[info["cluster_ids"][0]].cluster_type,
+            )
+            # 校验配置是否存在
+            if not db_config.get("db_version") or not db_config.get("charset") or not db_config.get("sync_type"):
+                raise TicketParamsVerifyException(_("获取数据库字符集或版本失败，请检查获取参数, db_config: {}").format(db_config))
+
+            info["system_version"] = db_config["system_version"].split(",")
