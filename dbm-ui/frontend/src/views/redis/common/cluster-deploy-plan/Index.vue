@@ -227,6 +227,7 @@
     };
     title?: string,
     showTitleTag?: boolean,
+    hideShardColumn?: boolean;
   }
 
   export interface CapacityNeed {
@@ -257,6 +258,7 @@
     }),
     title: '',
     showTitleTag: true,
+    hideShardColumn: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -360,7 +362,7 @@
         sort: true,
       },
     ];
-    if (props.isSameShardNum) {
+    if (props.hideShardColumn) {
       // 集群容量变更，去除集群分片列
       totalColums.splice(2, 1);
     }

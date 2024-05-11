@@ -15,16 +15,16 @@
   <div class="task-history-list-page">
     <div class="header-action">
       <DbSearchSelect
-        v-model="state.filter.searchValues"
         :data="searchData"
         :get-menu-list="getMenuList"
-        :placeholder="$t('ID_任务类型_状态_关联单据')"
+        :model-value="searchValue"
+        :placeholder="t('ID_任务类型_状态_关联单据')"
         style="width: 500px;"
-        @change="fetchTableData" />
+        @change="handleSearchValueChange" />
       <BkDatePicker
         v-model="state.filter.daterange"
         class="ml-8"
-        :placeholder="$t('选择日期范围')"
+        :placeholder="t('选择日期范围')"
         style="width: 300px;"
         type="daterange"
         @change="fetchTableData" />
@@ -33,7 +33,8 @@
       ref="tableRef"
       :columns="columns"
       :data-source="getTaskflow"
-      @clear-search="handleClearSearch" />
+      @clear-search="handleClearSearch"
+      @column-filter="columnFilterChange" />
   </div>
   <!-- 结果文件功能 -->
   <RedisResultFiles
@@ -53,10 +54,13 @@
   import { getTicketTypes } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
+  import { useLinkQueryColumnSerach } from '@hooks';
+
   import {
     TicketTypes,
     type TicketTypesStrings,
   } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -74,6 +78,14 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+
+  const {
+    searchValue,
+    columnCheckedMap,
+    columnFilterChange,
+    clearSearchValue,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach(ClusterTypes.TENDBHA, [], () => fetchTableData(), false, false);
 
   /**
    * 近 7 天
@@ -94,7 +106,6 @@
     ticketTypes: [],
     filter: {
       daterange: initDate(),
-      searchValues: [],
     },
   });
   /** 查看结果文件功能 */
@@ -110,13 +121,13 @@
     },
     {
       name: t('任务类型'),
-      id: 'ticket_type__in',
+      id: 'ticket_type',
       multiple: true,
       children: state.ticketTypes,
     },
     {
       name: t('状态'),
-      id: 'status__in',
+      id: 'status',
       multiple: true,
       children: Object.keys(TaskFlowModel.STATUS_TEXT_MAP).map((id: string) => ({
         id,
@@ -159,12 +170,14 @@
     },
     {
       label: t('任务类型'),
-      field: 'ticket_type_display',
+      field: 'ticket_type',
       filter: {
         list: state.ticketTypes.map(item => ({
-          text: item.name, value: item.name,
+          text: item.name, value: item.id,
         })),
+        checked: columnCheckedMap.value.ticket_type,
       },
+      render: ({ data }: { data: TaskFlowModel }) => <span>{data.ticket_type_display || '--'}</span>,
     },
     {
       label: t('状态'),
@@ -173,6 +186,7 @@
         list: Object.keys(TaskFlowModel.STATUS_TEXT_MAP).map(id => ({
           text: t(TaskFlowModel.STATUS_TEXT_MAP[id]), value: id,
         })),
+        checked: columnCheckedMap.value.status,
       },
       render: ({ data }: { data: TaskFlowModel }) => (
         <DbStatus
@@ -249,7 +263,7 @@
   });
 
   const fetchTableData = () => {
-    const { daterange, searchValues } = state.filter;
+    const { daterange } = state.filter;
     const dateParams = daterange.filter(item => item).length === 0
       ? {}
       : {
@@ -259,7 +273,7 @@
 
     tableRef.value.fetchData({
       ...dateParams,
-      ...getSearchSelectorParams(searchValues),
+      ...getSearchSelectorParams(searchValue.value),
     }, {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
@@ -268,13 +282,13 @@
 
   async function getMenuList(item: ISearchItem | undefined, keyword: string) {
     if (item?.id !== 'created_by' && keyword) {
-      return getMenuListSearch(item, keyword, searchData.value, state.filter.searchValues);
+      return getMenuListSearch(item, keyword, searchData.value, searchValue.value);
     }
 
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
-      const selected = (state.filter.searchValues || []).map(value => value.id);
+      const selected = (searchValue.value || []).map(value => value.id);
       return searchData.value.filter(item => !selected.includes(item.id));
     }
 
@@ -297,9 +311,8 @@
   }
 
   const handleClearSearch = () => {
-    state.filter.searchValues = [];
     state.filter.daterange = ['', ''];
-    fetchTableData();
+    clearSearchValue();
   };
 
 

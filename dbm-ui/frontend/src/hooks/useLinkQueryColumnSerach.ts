@@ -18,7 +18,7 @@ import { queryBizClusterAttrs } from '@services/source/dbbase';
 
 import { useGlobalBizs } from '@stores';
 
-import type { ClusterTypes } from '@common/const';
+import { ClusterTypes } from '@common/const';
 import {
   batchSplitRegex,
   domainPort,
@@ -39,11 +39,10 @@ type ColumnCheckedMap = Record<string, string[]>;
 export const useLinkQueryColumnSerach = (
   clusterType: ClusterTypes,
   attrs: string[],
-  fetchDataFn?: () => void,
+  fetchDataFn = () => {},
   isCluster = true,
+  isQueryAttrs = true,
 ) => {
-  const queryTableDataFn = fetchDataFn ? fetchDataFn : () => {};
-
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
@@ -65,32 +64,34 @@ export const useLinkQueryColumnSerach = (
     ordering?: string,
   } = {};
 
-  const attrsObj = isCluster ? {
-    cluster_attrs: attrs.join(','),
-  } : {
-    instances_attrs: attrs.join(','),
-  };
+  if (isQueryAttrs) {
+    const attrsObj = isCluster ? {
+      cluster_attrs: attrs.join(','),
+    } : {
+      instances_attrs: attrs.join(','),
+    };
 
-  // 查询表头筛选列表
-  queryBizClusterAttrs({
-    bk_biz_id: currentBizId,
-    cluster_type: clusterType,
-    ...attrsObj,
-  }).then((resultObj) => {
-    columnAttrs.value = resultObj;
-    searchAttrs.value = Object.entries(resultObj).reduce((results, item) => {
-      Object.assign(results, {
-        [item[0]]: item[1].map(item => ({
-          id: item.value,
-          name: item.text,
-        })),
-      });
-      return results;
-    }, {} as SearchAttrs);
-  });
+    // 查询表头筛选列表
+    queryBizClusterAttrs({
+      bk_biz_id: currentBizId,
+      cluster_type: clusterType,
+      ...attrsObj,
+    }).then((resultObj) => {
+      columnAttrs.value = resultObj;
+      searchAttrs.value = Object.entries(resultObj).reduce((results, item) => {
+        Object.assign(results, {
+          [item[0]]: item[1].map(item => ({
+            id: item.value,
+            name: item.text,
+          })),
+        });
+        return results;
+      }, {} as SearchAttrs);
+    });
+  }
 
   onMounted(() => {
-    queryTableDataFn();
+    fetchDataFn();
   });
 
   // 表头筛选
@@ -115,7 +116,7 @@ export const useLinkQueryColumnSerach = (
     }
     if (data.checked.length === 0) {
       searchValue.value = searchValue.value.filter(item => item.id !== data.column.field);
-      queryTableDataFn();
+      fetchDataFn();
       return;
     }
 
@@ -135,7 +136,7 @@ export const useLinkQueryColumnSerach = (
     } else {
       searchValue.value.push(columnSearchObj);
     }
-    queryTableDataFn();
+    fetchDataFn();
   };
 
   // 表头排序
@@ -154,7 +155,7 @@ export const useLinkQueryColumnSerach = (
     } else {
       delete sortValue.ordering;
     }
-    queryTableDataFn();
+    fetchDataFn();
   };
 
   // 搜索框输入校验
@@ -195,6 +196,11 @@ export const useLinkQueryColumnSerach = (
     const handledValueList: ISearchValue[] = [];
     // console.log('valueList>>>', valueList);
     valueList.forEach((item) => {
+      if (!['domain', 'instance', 'ip'].includes(item.id)) {
+        // 非域名/ip类，原样返回
+        handledValueList.push(item);
+        return;
+      }
       const values = item.values ? item.values.reduce((results, value) => {
         const idList = _.uniq(`${value.id}`.split(batchSplitRegex));
         const nameList = _.uniq(`${value.name}`.split(batchSplitRegex));
@@ -224,8 +230,7 @@ export const useLinkQueryColumnSerach = (
     });
 
     searchValue.value = handledValueList;
-    console.log('searchValue.value>>>', searchValue.value);
-    queryTableDataFn();
+    fetchDataFn();
   };
 
   /**
@@ -233,7 +238,7 @@ export const useLinkQueryColumnSerach = (
    */
   const clearSearchValue = () => {
     searchValue.value = [];
-    queryTableDataFn();
+    fetchDataFn();
   };
 
   return {
