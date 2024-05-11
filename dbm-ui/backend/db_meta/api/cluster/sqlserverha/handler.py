@@ -309,9 +309,10 @@ class SqlserverHAClusterHandler(ClusterHandler):
             )[0]
             new_slave_obj.db_module_id = cluster.db_module_id
             new_slave_obj.machine.db_module_id = cluster.db_module_id
-            new_slave_obj.cluster = cluster
+            # new_slave_obj.cluster = cluster
             new_slave_obj.save(update_fields=["db_module_id"])
             new_slave_obj.machine.save(update_fields=["db_module_id"])
+            cluster.storageinstance_set.add(new_slave_obj)
 
             # 添加对应cmdb服务实例信息
             SqlserverCCTopoOperator(cluster).transfer_instances_to_cluster_module([new_slave_obj])
@@ -390,9 +391,10 @@ class SqlserverHAClusterHandler(ClusterHandler):
             )[0]
             new_slave_obj.db_module_id = cluster.db_module_id
             new_slave_obj.machine.db_module_id = cluster.db_module_id
-            new_slave_obj.cluster = cluster
+            # new_slave_obj.cluster = cluster
             new_slave_obj.save(update_fields=["db_module_id"])
             new_slave_obj.machine.save(update_fields=["db_module_id"])
+            cluster.storageinstance_set.add(new_slave_obj)
 
             # 添加对应cmdb服务实例信息
             SqlserverCCTopoOperator(cluster).transfer_instances_to_cluster_module([new_slave_obj])

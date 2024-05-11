@@ -23,6 +23,7 @@ from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, Affinit
 from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, Spec, StorageInstance
+from backend.db_services.ipchooser.constants import BkOsType
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.dumper.handlers import DumperHandler
@@ -473,6 +474,12 @@ class BaseOperateResourceParamBuilder(builders.ResourceApplyParamBuilder):
             # 如果已经存在则跳过
             if info.get("bk_cloud_id") and info.get("bk_biz_id"):
                 continue
+
+            # 获取系统版本跟类型
+            os_names = info.get("system_version")
+            os_type = BkOsType.db_type_to_os_type(TicketType.get_db_type_by_ticket(self.ticket.ticket_type))
+            # 增加os_names和os_type过滤
+            info["resource_params"] = {"os_names": os_names, "os_type": os_type}
 
             # 默认从集群中获取云区域ID和业务ID
             cluster_id = info.get("cluster_id") or info.get("src_cluster") or info.get("cluster_ids")[0]

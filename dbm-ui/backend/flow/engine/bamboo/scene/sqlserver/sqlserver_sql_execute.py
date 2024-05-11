@@ -51,7 +51,7 @@ class SqlserverSQLExecuteFlow(BaseFlow):
         """
         file_list = []
         for obj in self.data["execute_objects"]:
-            file_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}{self.data['path']}/{obj['sql_file']}")
+            file_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.data['path']}/{obj['sql_file']}")
         return file_list
 
     def run_flow(self):

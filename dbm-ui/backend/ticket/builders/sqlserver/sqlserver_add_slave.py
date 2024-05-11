@@ -16,12 +16,15 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.builders.sqlserver.base import SQLServerBaseOperateResourceParamBuilder
+from backend.ticket.builders.sqlserver.base import (
+    BaseSQLServerTicketFlowBuilder,
+    SQLServerBaseOperateDetailSerializer,
+    SQLServerBaseOperateResourceParamBuilder,
+)
 from backend.ticket.constants import TicketType
 
 
-class SQLServerAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
+class SQLServerAddSlaveDetailSerializer(SQLServerBaseOperateDetailSerializer):
     class SlaveInfoSerializer(serializers.Serializer):
         cluster_ids = serializers.ListField(help_text=_("集群列表"), child=serializers.IntegerField())
         resource_spec = serializers.JSONField(help_text=_("资源池规格"), required=False)
@@ -51,7 +54,7 @@ class SQLServerAddSlaveResourceParamBuilder(SQLServerBaseOperateResourceParamBui
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_ADD_SLAVE)
-class SQLServerAddSlaveFlowBuilder(BaseMySQLTicketFlowBuilder):
+class SQLServerAddSlaveFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerAddSlaveDetailSerializer
     resource_batch_apply_builder = SQLServerAddSlaveResourceParamBuilder
     inner_flow_builder = SQLServerAddSlaveFlowParamBuilder

@@ -326,7 +326,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     bk_biz_id=int(self.data["bk_biz_id"]),
                     bk_cloud_id=int(cluster.bk_cloud_id),
                     master_host=[],
-                    slave_host=[info["new_slave_host"]["ip"]],
+                    slave_host=[Host(**info["new_slave_host"])],
                     cluster_domain_list=[c["immutable_domain"] for c in sub_flow_context["clusters"]],
                 )
             )

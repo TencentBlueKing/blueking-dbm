@@ -90,7 +90,10 @@ class SQLServerHAApplyFlowParamBuilder(SQLServerSingleApplyFlowParamBuilder):
 
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, infos: List[Dict]):
-        backend_nodes = ticket_data["nodes"][MachineType.SQLSERVER_HA.value]
+        if ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+            backend_nodes = ticket_data["nodes"][MachineType.SQLSERVER_HA.value]
+        else:
+            backend_nodes = ticket_data["nodes"]["backend"]
         for index, apply_info in enumerate(infos):
             # 每组集群需要两个后端 IP 和两个 Proxy IP
             start, end = index * 2, (index + 1) * 2

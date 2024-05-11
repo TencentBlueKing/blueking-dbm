@@ -15,11 +15,11 @@ from rest_framework import serializers
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class SQLServerRestoreLocalSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
+class SQLServerRestoreLocalSlaveDetailSerializer(SQLServerBaseOperateDetailSerializer):
     class SlaveInfoSerializer(serializers.Serializer):
         slave = InstanceInfoSerializer(help_text=_("从库实例信息"))
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
@@ -45,7 +45,7 @@ class SQLServerRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_RESTORE_LOCAL_SLAVE)
-class SQLServerRestoreLocalSlaveFlowBuilder(BaseMySQLTicketFlowBuilder):
+class SQLServerRestoreLocalSlaveFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerRestoreLocalSlaveDetailSerializer
     inner_flow_builder = SQLServerRestoreLocalSlaveParamBuilder
     inner_flow_name = _("SQLServer Slave原地重建执行")
