@@ -98,6 +98,8 @@
             v-model="item.value"
             :clearable="false"
             collapse-tags
+            filterable
+            :input-search="false"
             multiple
             multiple-mode="tag">
             <BkOption
@@ -115,6 +117,7 @@
               allow-create
               collapse-tags
               has-delete-icon
+              :paste-fn="pasteCallback"
               :placeholder="t('请输入')" />
           </div>
         </div>
@@ -143,12 +146,32 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { batchSplitRegex } from '@common/regex';
+
   import { signMap } from '@components/monitor-rule-check/index.vue';
 
   type TargetItem = MonitorPolicyModel['targets'][0];
-  type CustomItem = MonitorPolicyModel['custom_conditions'][0]
+  type CustomItem = MonitorPolicyModel['custom_conditions'][0];
 
-  type FlowListType = ReturnType<typeof initFlowList>;
+  type FlowListType = {
+    activeAdd: boolean,
+    activeMinus: boolean,
+    id: TargetType,
+    isCustom: boolean,
+    isSelect: boolean,
+    method: string,
+    selectList: {
+      value: string;
+      label: string;
+    }[],
+    title: string,
+    titleList: {
+      value: string;
+      label: string;
+    }[],
+    value: string[],
+    valueList: string[],
+  }[]
 
   interface Exposes {
     getValue: () => any;
@@ -156,24 +179,28 @@
   }
 
   interface Props {
-    dbType: string,
-    targets: TargetItem[],
-    customs: CustomItem[],
-    bizsMap: Record<string, string>,
-    moduleList: SelectItem<string>[],
-    clusterList: SelectItem<string>[],
-    disabled?: boolean,
+    dbType: string;
+    targets: TargetItem[];
+    customs: CustomItem[];
+    bizsMap: Record<string, string>;
+    moduleList: SelectItem<string>[];
+    clusterList: SelectItem<string>[];
+    disabled?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     disabled: false,
   });
 
+  let titleListRaw: FlowListType[number]['titleList'] = [];
+
   function initFlowList() {
     const titles = [TargetType.CLUSTER, TargetType.MODULE] as string[];
     let selectCounts = 0;
     const targets = _.cloneDeep(props.targets).reduce((results, item) => {
-      if (!([TargetType.BIZ, TargetType.PLATFORM] as string[]).includes(item.level)) {
+      if (
+        !([TargetType.BIZ, TargetType.PLATFORM] as string[]).includes(item.level)
+      ) {
         if (titles.includes(item.level)) {
           selectCounts = selectCounts + 1;
         }
@@ -249,13 +276,29 @@
       activeAdd: false,
       activeMinus: false,
     }));
-    return [...targetList, ...customeList];
+    return [...targetList, ...customeList] as FlowListType;
   }
 
-  function generateFlowSelectItem(item: SelectObjType) {
+  function generateFlowSelectItem() {
+    const item = {
+      id: TargetType.MODULE,
+      title: '0',
+      titleList: _.cloneDeep(titleListRaw),
+      selectList: [],
+      isCustom: false,
+      isSelect: true,
+      activeAdd: true,
+      activeMinus: true,
+      value: [],
+    } as unknown as FlowListType[number];
+
+    if (!isMySql.value) {
+      // 非 mysql
+      item.id = TargetType.CLUSTER;
+      item.title = '1';
+    }
+
     if (flowList.value.length > 0) {
-      flowList.value[0].activeAdd = false;
-      flowList.value[0].titleList = [];
       if (flowList.value[0].id === TargetType.MODULE) {
         // 已经有 模块栏
         Object.assign(item, {
@@ -271,8 +314,14 @@
           activeAdd: false,
           activeMinus: true,
         });
-        return item as unknown as FlowListType[number];
+        return item;
       }
+      Object.assign(item, {
+        selectList: props.moduleList,
+        activeAdd: false,
+        activeMinus: true,
+      });
+      return item;
     }
     Object.assign(item, {
       selectList: isMySql.value ? props.moduleList : props.clusterList,
@@ -280,26 +329,31 @@
       activeAdd: isMySql.value,
       activeMinus: true,
     });
-    return item as unknown as FlowListType[number];
+    return item;
   }
 
   const enum TargetType {
     BIZ = 'appid',
     CLUSTER = 'cluster_domain',
     MODULE = 'db_module',
-    PLATFORM = 'platform'
+    PLATFORM = 'platform',
   }
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const isPlatform = computed(() => props.targets.filter(item => item.level === TargetType.PLATFORM).length > 0);
+  const isPlatform = computed(() => props.targets.filter(item => item.level === TargetType.PLATFORM).length
+    > 0);
+
   const isMySql = computed(() => props.dbType === 'mysql');
+
+  const bizId = computed(() => (isPlatform.value
+    ? currentBizId
+    : props.targets.find(item => item.level === TargetType.BIZ)!.rule
+      .value[0]));
 
   const bizObj = computed(() => {
     const selectCount = flowList.value.filter(item => item.isSelect).length;
-    const bizId = isPlatform ? currentBizId
-      : props.targets.filter(item => item.level === TargetType.BIZ)[0].rule.value[0];
     return {
       title: '0',
       titleList: [
@@ -311,7 +365,7 @@
       selectList: [
         {
           value: '0',
-          label: props.bizsMap[bizId],
+          label: props.bizsMap[bizId.value],
         },
       ],
       value: ['0'],
@@ -319,61 +373,63 @@
     };
   });
 
-  let titleListRaw: {
-    value: string,
-    label: string,
-  }[] = [];
-
-  const commonSelectObj = {
-    id: TargetType.MODULE,
-    title: '0',
-    titleList: _.cloneDeep(titleListRaw),
-    selectList: [],
-    isCustom: false,
-    isSelect: true,
-    activeAdd: true,
-    activeMinus: true,
-    value: [],
-  };
-
-  type SelectObjType = typeof commonSelectObj;
 
   const flowList = ref<FlowListType>([]);
 
-  watch(isMySql, (status) => {
-    if (!status) {
+  watch(
+    isMySql,
+    (status) => {
+      if (!status) {
+        titleListRaw = [
+          {
+            value: '1',
+            label: t('集群'),
+          },
+        ];
+        return;
+      }
       titleListRaw = [
+        {
+          value: '0',
+          label: t('模块'),
+        },
         {
           value: '1',
           label: t('集群'),
         },
       ];
-      return;
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => [props.clusterList, props.moduleList],
+    () => {
+      flowList.value = initFlowList();
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const pasteCallback = (text: string) => {
+    if (!_.trim(text)) {
+      return [];
     }
-    titleListRaw = [
-      {
-        value: '0',
-        label: t('模块'),
-      },
-      {
-        value: '1',
-        label: t('集群'),
-      },
-    ];
-  }, {
-    immediate: true,
-  });
+    return text.split(batchSplitRegex).map(item => ({
+      id: item,
+      name: item,
+    }));
+  };
 
-  watch(() => [props.clusterList, props.moduleList], () => {
-    flowList.value = initFlowList();
-  }, {
-    immediate: true,
-  });
-
-  const handleTitleChange = (index:number, value: string) => {
+  const handleTitleChange = (index: number, value: string) => {
     const isModule = value === '0';
     flowList.value[index].id = isModule ? TargetType.MODULE : TargetType.CLUSTER;
-    flowList.value[index].selectList = isModule ? props.moduleList : props.clusterList;
+    flowList.value[index].selectList = isModule
+      ? props.moduleList
+      : props.clusterList;
     flowList.value[index].value = [];
   };
 
@@ -381,26 +437,35 @@
     if (props.disabled || !isAddActive) {
       return;
     }
-    const item = _.cloneDeep(commonSelectObj);
-    if (!isMySql.value) {
-      // 非 mysql
-      item.id = TargetType.CLUSTER;
-      item.title = '1';
+
+    if (flowList.value.length > 0) {
+      flowList.value[0].activeAdd = false;
+      flowList.value[0].titleList = [];
     }
+
     if (index === -1 && bizObj.value.activeAdd) {
       // 点击业务栏添加
       const selectCount = flowList.value.filter(item => item.isSelect).length;
       if (selectCount === 1) {
-        const newItem = generateFlowSelectItem(item);
-        flowList.value.splice(1, 0, newItem);
+        const newItem = generateFlowSelectItem();
+        if (newItem.id === TargetType.MODULE) {
+          flowList.value.splice(0, 0, newItem);
+        } else {
+          flowList.value.splice(1, 0, newItem);
+        }
+
         return;
       }
-      const newItem = generateFlowSelectItem(item);
+      const newItem = generateFlowSelectItem();
       flowList.value.unshift(newItem);
     } else {
       // 点击 集群栏或者模块栏
-      const newItem = generateFlowSelectItem(item);
-      flowList.value.splice(index + 1, 0, newItem);
+      const newItem = generateFlowSelectItem();
+      if (newItem.id === TargetType.MODULE) {
+        flowList.value.splice(index, 0, newItem);
+      } else {
+        flowList.value.splice(index + 1, 0, newItem);
+      }
     }
   };
 
@@ -408,7 +473,7 @@
     flowList.value.splice(index, 1);
     nextTick(() => {
       if (flowList.value.length > 0) {
-        flowList.value[0].activeAdd  = true;
+        flowList.value[0].activeAdd = true;
         flowList.value[0].titleList = _.cloneDeep(titleListRaw);
       }
     });
@@ -416,29 +481,32 @@
 
   defineExpose<Exposes>({
     getValue() {
-      const defalutObj =  {
+      const defalutObj = {
         rule: {
           key: TargetType.BIZ,
-          // eslint-disable-next-line max-len
-          value: isPlatform.value ? [currentBizId] : [props.targets.filter(item => item.level === TargetType.BIZ)[0].rule.value[0]],
+          value: [bizId.value],
         },
         level: TargetType.BIZ,
       };
-      const targetList = flowList.value.filter(item => !item.isCustom).map(row => ({
-        rule: {
-          key: row.id,
-          value: row.value,
-        },
-        level: row.id,
-      }));
+      const targetList = flowList.value
+        .filter(item => !item.isCustom)
+        .map(row => ({
+          rule: {
+            key: row.id,
+            value: row.value,
+          },
+          level: row.id,
+        }));
       const targets = [defalutObj, ...targetList];
-      const customs = flowList.value.filter(item => item.isCustom).map(item => ({
-        condition: 'and',
-        dimension_name: item.title,
-        key: item.id,
-        method: item.method,
-        value: item.valueList,
-      }));
+      const customs = flowList.value
+        .filter(item => item.isCustom)
+        .map(item => ({
+          condition: 'and',
+          dimension_name: item.title,
+          key: item.id,
+          method: item.method,
+          value: item.valueList,
+        }));
       return {
         targets,
         custom_conditions: customs,
@@ -508,12 +576,6 @@
         }
       }
 
-      .item-box {
-        position: relative;
-        display: flex;
-        width: 100%;
-        height: 32px;
-
         .left-bar {
           position: absolute;
           top: 15px;
@@ -535,36 +597,108 @@
             width: 100%;
 
             :deep(.bk-input) {
-              border-radius: 2px 0 0 2px;
+              border-left-width: 0;
+              border-bottom-left-radius: 0;
+              border-top-left-radius: 0;
             }
           }
         }
 
-        .content {
-          flex: 1;
+        .item-box {
+          position: relative;
+          display: flex;
+          width: 100%;
+          height: 32px;
 
-          .is-focus {
-            :deep(.bk-select-tag) {
-              border-left-color: #3a84ff;
+          .left-bar {
+            position: absolute;
+            top: 15px;
+            left: -40px;
+            width: 40px;
+            height: 0;
+            border-bottom: 1px solid #c4c6cc;
+          }
 
-              &:hover {
-                border-left-color: #3a84ff;
+          .title-box {
+            display: flex;
+            width: 80px;
+            height: 32px;
+            background: #fafbfd;
+            align-items: center;
+            justify-content: space-between;
+
+            .title-select {
+              width: 100%;
+
+              :deep(.bk-input) {
+                border-radius: 2px 0 0 2px;
               }
             }
           }
 
-          :deep(.bk-input) {
-            outline: none;
+          .content {
+            flex: 1;
+
+            .is-focus {
+              :deep(.bk-select-tag) {
+                border-left-color: #3a84ff;
+
+                &:hover {
+                  border-left-color: #3a84ff;
+                }
+              }
+            }
+
+            :deep(.bk-input) {
+              outline: none;
+            }
           }
 
-          :deep(.bk-select-tag) {
-            width: 100%;
-            min-height: 32px;
-            overflow: hidden;
-            border-left-color: transparent;
-            border-bottom-left-radius: 0;
-            border-top-left-radius: 0;
+          :deep(.bk-select-tag-wrapper) {
+            gap: 4px;
+          }
 
+          .is-focus {
+            :deep(.bk-select-tag) {
+              width: 100%;
+              min-height: 32px;
+              overflow: hidden;
+              border-left-color: transparent;
+              border-bottom-left-radius: 0;
+              border-top-left-radius: 0;
+
+              &:hover {
+                border-left-color: #a4a2a2;
+              }
+
+              .bk-select-tag-wrapper {
+                height: auto;
+                max-height: 100px;
+                overflow-y: auto;
+              }
+            }
+
+            .content-custom {
+              display: flex;
+              width: 100%;
+          }
+
+              .condition {
+                width: 60px;
+                height: 32px;
+                line-height: 32px;
+                text-align: center;
+                border: 1px solid #c4c6cc;
+                border-right: none;
+              }
+
+              .bk-tag-input {
+                flex: 1;
+
+                :deep(.bk-tag-input-trigger) {
+                  border-radius: 0;
+                }
+              }
             &:hover {
               border-left-color: #a4a2a2;
             }
@@ -573,13 +707,18 @@
               height: auto;
               max-height: 100px;
               overflow-y: auto;
+              gap: 4px;
             }
           }
 
-          .content-custom {
+          .operate-box {
             display: flex;
-            width: 100%;
+            width: 85px;
+            align-items: center;
+            padding-left: 12px;
 
+            .plus {
+              margin-right: 12px;
             .condition {
               width: 60px;
               height: 32px;
@@ -589,16 +728,25 @@
               border-right: none;
             }
 
-            .bk-tag-input {
-              flex: 1;
+            .icon {
+              font-size: 18px;
+              color: #979ba5;
+              cursor: pointer;
+            }
 
-              :deep(.bk-tag-input-trigger) {
-                border-radius: 0;
-              }
+            .active-icon {
+              color: #979ba5;
+            }
+
+            .no-active-icon {
+              color: #c4c6cc;
             }
           }
         }
 
+        .other {
+          margin-top: 21px;
+        }
         .operate-box {
           display: flex;
           width: 85px;
@@ -623,11 +771,6 @@
             color: #c4c6cc;
           }
         }
-      }
-
-      .other {
-        margin-top: 21px;
-      }
 
       .custom {
         .title-box {
@@ -645,4 +788,5 @@
       }
     }
   }
+}
 </style>

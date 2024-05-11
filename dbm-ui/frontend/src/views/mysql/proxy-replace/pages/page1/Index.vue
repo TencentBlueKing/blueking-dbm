@@ -40,8 +40,8 @@
         <BkCheckbox
           v-model="isSafe"
           v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')"
-          :false-label="false"
-          true-label>
+          :false-label="1"
+          :true-label="0">
           <span class="safe-action-text">{{ t('忽略业务连接') }}</span>
         </BkCheckbox>
       </div>
@@ -114,8 +114,8 @@
   const rowRefs = ref();
   const isShowBatchProxySelector = ref(false);
   const isShowBatchEntry = ref(false);
-  const isSubmitting = ref(false);
-  const isSafe = ref(false);
+  const isSubmitting  = ref(false);
+  const isSafe = ref(1);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedIntances = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
@@ -188,17 +188,16 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
-        createTicket({
-          ticket_type: 'MYSQL_PROXY_SWITCH',
-          remark: '',
-          details: {
-            infos: data,
-            is_safe: isSafe.value,
-          },
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          window.changeConfirm = false;
+      .then(data => createTicket({
+        ticket_type: 'MYSQL_PROXY_SWITCH',
+        remark: '',
+        details: {
+          infos: data,
+          is_safe: Boolean(isSafe.value),
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        window.changeConfirm = false;
 
           router.push({
             name: 'MySQLProxyReplace',

@@ -94,6 +94,7 @@
   import RedisProxyScaleUp from './redis/ProxyScaleUp.vue';
   import RedisRollbackDataCopy from './redis/RollbackDataCopy.vue';
   import RedisStructureDelete from './redis/StructureDelete.vue';
+  import RedisVersionUpgrade from './redis/VersionUpgrade.vue';
   import SpiderAddNodes from './spider/AddNodes.vue';
   import SpiderAuthorizeRules from './spider/AuthorizeRules.vue';
   import SpiderCheckSum from './spider/CheckSum.vue';
@@ -129,14 +130,46 @@
 
   const props = defineProps<Props>();
 
+  const mysqlTicketType = [
+    TicketTypes.MYSQL_AUTHORIZE_RULES,
+    TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES,
+  ];
+
+  const mysqlTruncateDataTypes = [
+    TicketTypes.MYSQL_HA_TRUNCATE_DATA,
+    TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
+  ];
+
+  const mysqlRenameTypes = [
+    TicketTypes.MYSQL_HA_RENAME_DATABASE,
+    TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
+  ];
+
+  const mysqlClusterTicketType = [
+    TicketTypes.MYSQL_HA_DISABLE,
+    TicketTypes.MYSQL_SINGLE_DISABLE,
+    TicketTypes.MYSQL_HA_ENABLE,
+    TicketTypes.MYSQL_SINGLE_ENABLE,
+    TicketTypes.MYSQL_HA_DESTROY,
+    TicketTypes.MYSQL_SINGLE_DESTROY,
+  ];
+
+  const mysqlSlaveType = [
+    TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
+    TicketTypes.MYSQL_ADD_SLAVE,
+  ];
+
+  const dumperNodeStatusUpdateType = [
+    TicketTypes.TBINLOGDUMPER_DISABLE_NODES,
+    TicketTypes.TBINLOGDUMPER_ENABLE_NODES,
+  ];
+
   const redisKeysType = [
     TicketTypes.REDIS_KEYS_EXTRACT,
     TicketTypes.REDIS_KEYS_DELETE,
     TicketTypes.REDIS_BACKUP,
     TicketTypes.REDIS_PURGE,
   ];
-
-  const mysqlTicketType = [TicketTypes.MYSQL_AUTHORIZE_RULES, TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES];
 
   const clusterTicketType = [
     TicketTypes.REDIS_PROXY_CLOSE,
@@ -159,15 +192,6 @@
     TicketTypes.RIAK_CLUSTER_DESTROY,
   ];
 
-  const mysqlClusterTicketType = [
-    TicketTypes.MYSQL_HA_DISABLE,
-    TicketTypes.MYSQL_SINGLE_DISABLE,
-    TicketTypes.MYSQL_HA_ENABLE,
-    TicketTypes.MYSQL_SINGLE_ENABLE,
-    TicketTypes.MYSQL_HA_DESTROY,
-    TicketTypes.MYSQL_SINGLE_DESTROY,
-  ];
-
   const sqlserverApplyTiketType = [TicketTypes.SQLSERVER_SINGLE_APPLY, TicketTypes.SQLSERVER_HA_APPLY];
 
   const sqlserverClusterTicketType = [
@@ -179,16 +203,12 @@
     TicketTypes.SQLSERVER_DESTROY,
   ];
 
-  const dumperNodeStatusUpdateType = [TicketTypes.TBINLOGDUMPER_DISABLE_NODES, TicketTypes.TBINLOGDUMPER_ENABLE_NODES];
-
   const bigDataReplaceType = [
     TicketTypes.ES_REPLACE,
     TicketTypes.HDFS_REPLACE,
     TicketTypes.KAFKA_REPLACE,
     TicketTypes.PULSAR_REPLACE,
   ];
-
-  const mysqlSlaveType = [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, TicketTypes.MYSQL_ADD_SLAVE];
 
   const spiderSlaveType = [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, TicketTypes.TENDBCLUSTER_RESTORE_SLAVE];
 
@@ -271,10 +291,8 @@
     [TicketTypes.INFLUXDB_APPLY]: DetailsInfluxDB,
     [TicketTypes.INFLUXDB_REPLACE]: InfluxdbReplace,
     [TicketTypes.KAFKA_APPLY]: DetailsKafka,
-    [TicketTypes.MYSQL_HA_RENAME_DATABASE]: MySQLRename,
     [TicketTypes.MYSQL_PROXY_SWITCH]: MySQLProxySwitch,
     [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: MySQLTableBackup,
-    [TicketTypes.MYSQL_HA_TRUNCATE_DATA]: MySQLHATruncate,
     [TicketTypes.MYSQL_MIGRATE_CLUSTER]: MySQLMigrateCluster,
     [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: MySQLMasterSlaveSwitch,
     [TicketTypes.MYSQL_PROXY_ADD]: MySQLProxyAdd,
@@ -302,6 +320,7 @@
     [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: RedisClusterTypeUpdate,
     [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: RedisDataCheckAndRepair,
     [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: RedisRollbackDataCopy,
+    [TicketTypes.REDIS_CLUSTER_VERSION_UPDATE_ONLINE]: RedisVersionUpgrade,
     [TicketTypes.TENDBCLUSTER_APPLY]: DetailsSpider,
     [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: SpiderAddNodes,
     [TicketTypes.TENDBCLUSTER_CHECKSUM]: SpiderCheckSum,
@@ -353,6 +372,14 @@
     // MySQL Slave
     if (mysqlSlaveType.includes(ticketType)) {
       return MySQLSlave;
+    }
+    // MySQL 清档
+    if (mysqlTruncateDataTypes.includes(ticketType)) {
+      return MySQLHATruncate;
+    }
+    // MySQL 重命名
+    if (mysqlRenameTypes.includes(ticketType)) {
+      return MySQLRename;
     }
     // Redis、大数据启停删单据
     if (clusterTicketType.includes(ticketType)) {

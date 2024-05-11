@@ -189,7 +189,7 @@ export default class Tendbha {
   get slaveDomainDisplayName() {
     const port = this.slaves[0]?.port;
     const displayName = port ? `${this.slave_domain}:${port}` : this.slave_domain;
-    return displayName;
+    return this.slave_domain ? displayName : '--';
   }
 
   get createAtDisplay() {

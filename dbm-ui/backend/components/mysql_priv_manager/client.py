@@ -31,6 +31,11 @@ class _DBPrivManagerApi(BaseApi):
             url="/priv/get_account_rule_list",
             description=_("帐号规则清单"),
         )
+        self.pre_check_add_account_rule = self.generate_data_api(
+            method="POST",
+            url="/priv/add_account_rule_dry_run",
+            description=_("添加帐号规则前置检查"),
+        )
         self.add_account_rule = self.generate_data_api(
             method="POST",
             url="/priv/add_account_rule",

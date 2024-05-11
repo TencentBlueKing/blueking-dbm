@@ -2060,3 +2060,69 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             "action": DBActuatorActionEnum.StandardizeTenDBHAProxy.value,
             "payload": {"general": {}, "extend": {}},  # {"runtime_account": self.account},
         }
+
+    def get_mysql_data_migrate_dump_payload(self, **kwargs):
+        """
+        数据迁移导出库表结构与数据
+        @param kwargs:
+        @return:
+        """
+        fileserver = {}
+        db_cloud_token = AsymmetricHandler.encrypt(
+            name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{self.bk_cloud_id}_dbactuator_token"
+        )
+        nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=self.bk_cloud_id).last().internal_address
+        bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if self.bk_cloud_id else settings.BKREPO_ENDPOINT_URL
+
+        fileserver.update(
+            {
+                "url": bkrepo_url,
+                "bucket": settings.BKREPO_BUCKET,
+                "username": settings.BKREPO_USERNAME,
+                "password": settings.BKREPO_PASSWORD,
+                "project": settings.BKREPO_PROJECT,
+                "upload_path": BKREPO_SQLFILE_PATH,
+            }
+        )
+
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.MysqlDataMigrateDump.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "charset": "default",
+                    "root_id": self.cluster["root_id"],
+                    "bk_cloud_id": self.bk_cloud_id,
+                    "db_cloud_token": db_cloud_token,
+                    "dump_dir_name": f"{self.cluster['root_id']}_migrate",
+                    "fileserver": fileserver,
+                    "open_area_param": self.cluster["open_area_param"],
+                },
+            },
+        }
+
+    def get_mysql_data_migrate_import_payload(self, **kwargs):
+        """
+        数据迁移导入库表结构与数据
+        @param kwargs:
+        @return:
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.MysqlDataMigrateImport.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "charset": "default",
+                    "root_id": self.cluster["root_id"],
+                    "bk_cloud_id": self.bk_cloud_id,
+                    "dump_dir_name": f"{self.cluster['root_id']}_migrate",
+                    "open_area_param": self.cluster["open_area_param"],
+                },
+            },
+        }

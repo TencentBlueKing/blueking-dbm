@@ -42,16 +42,11 @@
       :cluster-id="operationData?.cluster_id || operationDryRunDataClusterId"
       :operation-dry-run-data="operationDryRunData"
       :partition-data="operationData" />
-    <DbSideslider
+    <PartitionOperation
       v-model:is-show="isShowOperation"
-      :confirm-text="operationData && operationData.id ? t('提交') : t('保存并执行')"
-      :title="operationData ? (operationData.id ? t('编辑分区策略') : t('克隆分区策略')) : t('新建分区策略')"
-      :width="1000">
-      <PartitionOperation
-        :data="operationData"
-        @create-success="handleOperationCreateSuccess"
-        @edit-success="handleOperationEditSuccess" />
-    </DbSideslider>
+      :data="operationData"
+      @create-success="handleOperationCreateSuccess"
+      @edit-success="handleOperationEditSuccess" />
     <DbSideslider
       v-model:is-show="isShowExecuteLog"
       :title="t(`查看执行记录`)"

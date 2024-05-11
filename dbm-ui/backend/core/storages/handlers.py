@@ -16,6 +16,7 @@ from typing import Any, Dict, List
 from bkstorages.exceptions import RequestError as BKStorageError
 from rest_framework.status import HTTP_200_OK
 
+from backend import env
 from backend.core.storages.storage import CustomBKRepoStorage, get_storage
 from backend.exceptions import ApiRequestError, ApiResultError
 
@@ -79,3 +80,20 @@ class StorageHandler(object):
             raise ApiRequestError(e)
 
         return True
+
+    def create_bkrepo_access_token(self, path: str):
+        """
+        获取制品库临时凭证，并返回制品库相关信息
+        :param path: 授权路径
+        """
+        # 过期时间默认一天，且限制访问1次
+        expire_time = 3600 * 24
+        permits = 1
+        data = self.storage.client.create_bkrepo_access_token(paths=[path], expire_time=expire_time, permits=permits)
+        return {
+            "token": data[0]["token"],
+            "url": env.BKREPO_ENDPOINT_URL,
+            "project": env.BKREPO_PROJECT,
+            "repo": env.BKREPO_BUCKET,
+            "path": path,
+        }

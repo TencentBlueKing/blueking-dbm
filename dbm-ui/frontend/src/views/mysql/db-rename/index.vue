@@ -48,8 +48,7 @@
     <BkCheckbox
       v-model="isForce"
       v-bk-tooltips="t('如忽略_有连接的情况下也会执行')"
-      class="mb-20"
-      :false-label="false">
+      class="mb-20">
       <span
         class="inline-block"
         style=" margin-top: -2px;border-bottom: 1px dashed #979ba5;">
@@ -77,7 +76,8 @@
     @change="handleBatchInput" />
   <ClusterSelector
     v-model:is-show="isShowBatchSelector"
-    :cluster-types="[ClusterTypes.TENDBHA]"
+    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    only-one-type
     :selected="selectedClusters"
     @change="handleBatchSelectorChange" />
 </template>
@@ -99,7 +99,7 @@
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
 
-  import { generateId } from '@utils';
+  import { generateId, messageError } from '@utils';
 
   import BatchInput from './components/BatchInput.vue';
 
@@ -108,6 +108,7 @@
   interface TableItem {
     cluster_id: number,
     cluster_domain: string,
+    cluster_type: string,
     from_database: string,
     to_database: string,
     uniqueId: string
@@ -135,7 +136,10 @@
   const isForce = ref(false);
   const tableData = ref<Array<TableItem>>([getTableItem()]);
 
-  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({
+    [ClusterTypes.TENDBHA]: [],
+    [ClusterTypes.TENDBSINGLE]: [],
+  });
 
   const clusterRules = [
     {
@@ -149,6 +153,7 @@
       trigger: 'blur',
     },
   ];
+
   const columns = [
     {
       label: () => (
@@ -218,10 +223,11 @@
   /**
    * 获取表格数据
    */
-  function getTableItem(): TableItem {
+  function getTableItem() {
     return {
       cluster_id: 0,
       cluster_domain: '',
+      cluster_type: '',
       from_database: '',
       to_database: '',
       uniqueId: generateId('CLONE_INSTANCE_'),
@@ -363,6 +369,7 @@
           const list = tableData.value.filter(tableItem => tableItem.cluster_domain === item.master_domain);
           for (const tableItem of list) {
             tableItem.cluster_id = item.id;
+            tableItem.cluster_type = item.cluster_type;
           }
         }
         return res;
@@ -489,11 +496,15 @@
 
   function handleRemoveItem(index: number) {
     const dataList = [...tableData.value];
-    const domain = dataList[index].cluster_domain;
+    const {
+      cluster_domain: domain,
+      cluster_type: clusterType,
+    } = dataList[index];
     if (domain) {
+      clusterInfoMap.delete(domain);
       delete domainMemo[domain];
-      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
-      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+      const clustersArr = selectedClusters.value[clusterType];
+      selectedClusters.value[clusterType] = clustersArr.filter(item => item.master_domain !== domain);
     }
     tableData.value.splice(index, 1);
   }
@@ -504,7 +515,11 @@
   function handleBatchSelectorChange(selected: Record<string, Array<TendbhaModel>>) {
     selectedClusters.value = selected;
     const newList: TableItem[] = [];
-    selected[ClusterTypes.TENDBHA].forEach((item) => {
+    const selectedList = Object.keys(selected).reduce(
+      (list: TendbhaModel[], key) => list.concat(...selected[key]),
+      [],
+    );
+    selectedList.forEach((item) => {
       const domain = item.master_domain;
       clusterInfoMap.set(domain, item);
       if (!domainMemo[domain]) {
@@ -512,6 +527,7 @@
           ...getTableItem(),
           cluster_domain: item.master_domain,
           cluster_id: item.id,
+          cluster_type: item.cluster_type,
         };
         newList.push(row);
         domainMemo[domain] = true;
@@ -534,6 +550,8 @@
       onConfirm: () => {
         tableData.value = [getTableItem()];
         selectedClusters.value[ClusterTypes.TENDBHA] = [];
+        selectedClusters.value[ClusterTypes.TENDBSINGLE] = [];
+        clusterInfoMap.clear();
         domainMemo = {};
         nextTick(() => {
           window.changeConfirm = false;
@@ -546,9 +564,17 @@
   function handleSubmit() {
     toolboxTableRef.value.validate()
       .then(() => {
+        const clusterTypes = _.uniq(tableData.value.map(item => item.cluster_type));
+        // 限制只能提同一种类型的集群，否则提示
+        if (clusterTypes.length > 1) {
+          messageError('只允许提交一种集群类型');
+          return;
+        }
+
         isSubmitting.value = true;
         const params = {
-          ticket_type: TicketTypes.MYSQL_HA_RENAME_DATABASE,
+          ticket_type: clusterTypes[0] === ClusterTypes.TENDBHA
+            ? TicketTypes.MYSQL_HA_RENAME_DATABASE : TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
           bk_biz_id: globalBizsStore.currentBizId,
           details: {
             infos: tableData.value.map(item => ({
@@ -559,6 +585,7 @@
             })),
           },
         };
+
         createTicket(params)
           .then((res) => {
             ticketId.value = res.id;

@@ -38,9 +38,7 @@
         <RegionItem
           ref="regionItemRef"
           v-model="state.formdata.details.city_code" />
-        <DbCard
-          v-if="!isDefaultCity"
-          :title="t('数据库部署信息')">
+        <DbCard :title="t('数据库部署信息')">
           <AffinityItem v-model="state.formdata.details.resource_spec.backend_group.affinity" />
         </DbCard>
         <DbCard :title="t('部署需求')">
@@ -531,6 +529,7 @@
     };
     return types[state.formdata.details.cluster_type as keyof typeof types];
   });
+  // const isDefaultCity = computed(() => state.formdata.details.city_code === 'default');
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
@@ -778,7 +777,7 @@
               count: specInfo.machine_pair,
               spec_info: specInfo,
               location_spec: {
-                city: cityName,
+                city: cityCode,
                 sub_zone_ids: [],
               },
             },

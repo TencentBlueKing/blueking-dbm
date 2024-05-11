@@ -74,7 +74,8 @@ class DropTempUserForClusterService(BaseService):
         try:
             # 删除localhost和 local_ip用户
             for instance in self._get_instance_for_cluster(cluster=cluster):
-                cmd = []
+                # 默认先关闭binlog记录， 最后统一打开
+                cmd = ["set session sql_log_bin = 0 ;"]
                 if instance["is_tdbctl"]:
                     cmd.append("set tc_admin = 0;")
                 self.log_info(f"the cluster version is {cluster.major_version}")
@@ -88,11 +89,13 @@ class DropTempUserForClusterService(BaseService):
                         f"drop user `{user}`@`localhost`;",
                         f"drop user `{user}`@`{instance['ip_port'].split(':')[0]}`;",
                     ]
+                # 最后统一打开binlog, 避免复用异常
+                cmd.append("set session sql_log_bin = 1 ;")
                 resp = DRSApi.rpc(
                     {
                         "addresses": [instance["ip_port"]],
                         "cmds": cmd,
-                        "force": False,
+                        "force": True,  # 中间出错也要执行下去，保证重新打开binlog
                         "bk_cloud_id": cluster.bk_cloud_id,
                     }
                 )

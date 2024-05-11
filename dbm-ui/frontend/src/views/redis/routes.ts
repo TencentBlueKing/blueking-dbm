@@ -122,6 +122,14 @@ export const redisToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/redis/db-data-copy-record/Index.vue'),
   },
+  {
+    name: 'RedisVersionUpgrade',
+    path: 'version-upgrade/:page?',
+    meta: {
+      navName: t('版本升级'),
+    },
+    component: () => import('@views/redis/version-upgrade/Index.vue'),
+  },
 ];
 
 const toolboxRoutes: RouteRecordRaw[] = [

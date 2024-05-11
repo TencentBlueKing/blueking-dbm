@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.mysql_partition import MySQLPartitionDetailSerializer
+from backend.ticket.builders.mysql.mysql_partition import MySQLPartitionDetailSerializer, MySQLPartitionParamBuilder
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -22,11 +22,11 @@ class SpiderPartitionDetailSerializer(MySQLPartitionDetailSerializer, TendbBaseO
     pass
 
 
-class SpiderPartitionParamBuilder(builders.FlowParamBuilder):
+class SpiderPartitionParamBuilder(MySQLPartitionParamBuilder):
     controller = SpiderController.spider_partition
 
     def format_ticket_data(self):
-        pass
+        super().format_ticket_data()
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_PARTITION)

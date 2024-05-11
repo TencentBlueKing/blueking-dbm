@@ -43,7 +43,9 @@
       :max-height="tableMaxHeight"
       @add="handleAddItem"
       @remove="handleRemoveItem" />
-    <BkForm form-type="vertical">
+    <BkForm
+      class="mb-20"
+      form-type="vertical">
       <BkFormItem
         :label="t('备份源')"
         required>
@@ -51,7 +53,7 @@
           <BkRadio label="local">
             {{ t('本地备份') }}
           </BkRadio>
-          <BkRadio label="">
+          <BkRadio label="remote">
             {{ t('远程备份') }}
           </BkRadio>
         </BkRadioGroup>
@@ -509,8 +511,8 @@
                 cluster_ids: [item.cluster_id].concat(item.checked_related.map(item => item.id)),
               };
             }),
+            backup_source: backupSource.value,
           },
-          backup_source: backupSource.value,
         };
         createTicket(params)
           .then((res) => {

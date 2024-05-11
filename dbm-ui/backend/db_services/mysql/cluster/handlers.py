@@ -85,6 +85,11 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
         filter_conditions = Q()
         for cluster_filter in cluster_filters:
             filter_conditions |= Q(**cluster_filter.export_filter_conditions())
+        # 限制业务和集群类型只能是mysql & tendbcluster
+        filter_conditions &= Q(
+            cluster_type__in=[ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster],
+            bk_biz_id=self.bk_biz_id,
+        )
 
         clusters: QuerySet = Cluster.objects.prefetch_related("storageinstance_set", "proxyinstance_set").filter(
             filter_conditions

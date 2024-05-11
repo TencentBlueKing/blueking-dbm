@@ -48,8 +48,9 @@ type OpenAreaImportSchemaParam struct {
 
 // OneOpenAreaImportSchema TODO
 type OneOpenAreaImportSchema struct {
-	Schema string `json:"schema"` // 指定dump的库
-	NewDB  string `json:"newdb"`
+	Schema string   `json:"schema"` // 指定dump的库
+	NewDB  string   `json:"newdb"`
+	DbList []string `json:"db_list"`
 }
 
 // OpenAreaImportSchemaRunTimeCtx TODO
@@ -209,6 +210,24 @@ func (c *OpenAreaImportSchemaComp) CreateNewDatabase() (err error) {
 	return
 }
 
+// CreateDatabase TODO
+func (c *OpenAreaImportSchemaComp) CreateDatabase() (err error) {
+	// 导出文件有create database语句，这里先创建一次，重复的话报错终止
+	for _, oneShemaInfo := range c.Params.OpenAreaParam {
+		for _, db := range oneShemaInfo.DbList {
+			createDBSql := fmt.Sprintf("create database `%s` charset %s;",
+				db, c.charset)
+			_, err := c.conn.Exec(createDBSql)
+			if err != nil {
+				logger.Error("create db %s got an error:%s", db, err.Error())
+				return err
+			}
+		}
+
+	}
+	return
+}
+
 // OpenAreaImportSchema TODO
 func (c *OpenAreaImportSchemaComp) OpenAreaImportSchema() (err error) {
 	for _, oneShemaInfo := range c.Params.OpenAreaParam {
@@ -251,6 +270,32 @@ func (c *OpenAreaImportSchemaComp) OpenAreaImportData() (err error) {
 			logger.Error("执行%s文件失败！", dataFileName)
 			return err
 		}
+	}
+	return nil
+}
+
+// MysqlDataMigrateImport TODO
+func (c *OpenAreaImportSchemaComp) MysqlDataMigrateImport() (err error) {
+	for _, oneShemaInfo := range c.Params.OpenAreaParam {
+		for _, db := range oneShemaInfo.DbList {
+			dataFileName := fmt.Sprintf("%s.sql", db)
+			err = mysqlutil.ExecuteSqlAtLocal{
+				IsForce:          false,
+				Charset:          c.charset,
+				NeedShowWarnings: false,
+				Host:             c.Params.Host,
+				Port:             c.Params.Port,
+				Socket:           c.socket,
+				WorkDir:          c.dumpDir,
+				User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
+				Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
+			}.ExcuteSqlByMySQLClientOne(dataFileName, db)
+			if err != nil {
+				logger.Error("执行%s文件失败！", dataFileName)
+				return err
+			}
+		}
+
 	}
 	return nil
 }

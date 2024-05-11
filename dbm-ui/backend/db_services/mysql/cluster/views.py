@@ -49,11 +49,8 @@ class ClusterViewSet(BaseClusterViewSet):
     def query_clusters(self, request, bk_biz_id):
         # TODO: Deprecated, 这个视图方法将被移除，请不要调用
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(
-            ClusterServiceHandler(bk_biz_id).query_clusters(
-                [ClusterFilter.from_dict(filter_dict) for filter_dict in validated_data["cluster_filters"]]
-            )
-        )
+        cluster_filters = [ClusterFilter.from_dict(filter_dict) for filter_dict in validated_data["cluster_filters"]]
+        return Response(ClusterServiceHandler(bk_biz_id).query_clusters(cluster_filters=cluster_filters))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询tendbcluster集群的remote相关角色机器"),

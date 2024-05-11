@@ -129,7 +129,7 @@ MIDDLEWARE = (
     # 跨域中间件
     "corsheaders.middleware.CorsMiddleware",
     # 接口耗时调试工具
-    # "pyinstrument.middleware.ProfilerMiddleware",
+    "pyinstrument.middleware.ProfilerMiddleware",
     # JWT认证，透传的应用信息，透传的用户信息
     "apigw_manager.apigw.authentication.ApiGatewayJWTGenericMiddleware",
     "apigw_manager.apigw.authentication.ApiGatewayJWTAppMiddleware",

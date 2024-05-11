@@ -285,6 +285,18 @@ class MySQLRestoreSlaveFlow(object):
                 )
 
                 uninstall_svr_sub_pipeline.add_act(
+                    act_name=_("下发db-actor到节点{}".format(self.data["old_slave_ip"])),
+                    act_component_code=TransFileComponent.code,
+                    kwargs=asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=cluster_class.bk_cloud_id,
+                            exec_ip=[self.data["old_slave_ip"]],
+                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                        )
+                    ),
+                )
+
+                uninstall_svr_sub_pipeline.add_act(
                     act_name=_("清理机器配置"),
                     act_component_code=MySQLClearMachineComponent.code,
                     kwargs=asdict(
