@@ -164,7 +164,7 @@
     table_patterns: [],
   }
 
-  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleList>> = {
+  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleList | typeof getSpiderResources>> = {
     [ClusterTypes.TENDBSINGLE]: getTendbsingleList,
     [ClusterTypes.TENDBHA]: getTendbhaList,
     [ClusterTypes.TENDBCLUSTER]: getSpiderResources,
@@ -217,25 +217,26 @@
       field: 'dbnames',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.map(item => <bk-tag>{item}</bk-tag>)}
-      </div>
-    ),
+        <div class="text-overflow" v-overflow-tips={{
+            content: cell,
+          }}>
+          {cell.map(item => <bk-tag>{item}</bk-tag>)}
+        </div>
+      ),
     },
     {
       label: t('忽略的DB'),
       field: 'ignore_dbnames',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-      </div>
-    ),
-    }];
+        <div class="text-overflow" v-overflow-tips={{
+            content: cell,
+          }}>
+          {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
+        </div>
+      ),
+    },
+  ];
 
   const backupConfig = [
     {
@@ -301,12 +302,15 @@
   // 目标DB
   const dataList = computed(() => {
     const list: targetDBItem[] = [];
-    const dbList = props.ticketDetails?.details?.execute_objects || [];
+    const dbList = props.ticketDetails.details.execute_objects || [];
+    const checkDbsMap: Record<string, boolean> = {};
     dbList.forEach((item) => {
-      list.push(Object.assign({
-        dbnames: item.dbnames,
-        ignore_dbnames: item.ignore_dbnames,
-      }));
+      const key = `${item.dbnames.join('-')}_${item.ignore_dbnames.join('-')}`;
+      if (checkDbsMap[key]) {
+        return;
+      }
+      checkDbsMap[key] = true;
+      list.push(item);
     });
     return list;
   });

@@ -410,6 +410,7 @@
   function getTableItem(): TableItem {
     return {
       cluster_domain: '',
+      cluster_type: '',
       cluster_id: 0,
       db_patterns: [],
       ignore_dbs: [],
@@ -462,10 +463,10 @@
   // 选择清档类型
   function handleSelectedTruncate(index: number, value: string) {
     const data = tableData.value[index];
-    // 清档类型为删除数据库，则不需要填写表相关内容
+    // 清档类型为删除数据库，则不需要填写表相关内容，并设置为 *
     if (value === 'drop_database') {
-      data.table_patterns = [];
-      data.ignore_tables = [];
+      data.table_patterns = ['*'];
+      data.ignore_tables = ['*'];
       const tableRef = formItemRefs.get(`${data.uniqueId}_table_patterns_${index}`);
       const ignoreRef = formItemRefs.get(`${data.uniqueId}_ignore_tables_${index}`);
       tableRef && tableRef.clearValidate();
