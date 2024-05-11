@@ -66,7 +66,7 @@
         {{ t('回档表名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-      :min-width="100"
+        :min-width="100"
         :required="false"
         :width="120">
         {{ t('忽略DB名') }}
@@ -96,9 +96,9 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  interface Emits{
-    (e: 'batchSelectCluster'): void
-    (e: 'batchEditBackupSource', value: string): void
+  interface Emits {
+    (e: 'batchSelectCluster'): void;
+    (e: 'batchEditBackupSource', value: string): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -126,10 +126,9 @@
     emits('batchSelectCluster');
   };
 
-  const handleBatchEdit = (value: string) => {
-    emits('batchEditBackupSource', value);
+  const handleBatchEdit = (value: string | string[]) => {
+    emits('batchEditBackupSource', value as string);
   };
-
 </script>
 <style lang="less">
   .render-data {

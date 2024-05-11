@@ -5,7 +5,7 @@
     "ignoreDeprecations": "5.0",
     "resolvePackageJsonExports": false,
     "resolveJsonModule": true,
-    "lib": [ "es2016", "dom", "es2018", "es2018.promise"],
+    "lib": [ "es2016", "dom", "es2018", "es2018.promise", "ES2020.Promise"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],

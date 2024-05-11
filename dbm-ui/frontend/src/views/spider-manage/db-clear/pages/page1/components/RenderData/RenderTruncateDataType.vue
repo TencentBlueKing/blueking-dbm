@@ -77,9 +77,16 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editSelectRef.value.getValue().then(() => ({
-        truncate_data_type: localValue.value,
-      }));
+      return editSelectRef.value
+        .getValue()
+        .then(() => ({
+          truncate_data_type: localValue.value,
+        }))
+        .catch(() =>
+          Promise.reject({
+            truncate_data_type: localValue.value,
+          }),
+        );
     },
   });
 </script>

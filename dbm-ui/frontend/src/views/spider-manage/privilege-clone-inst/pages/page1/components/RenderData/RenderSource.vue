@@ -133,7 +133,10 @@
           return ({
             source: localInstanceAddress.value,
           });
-        });
+        })
+        .catch(() => Promise.reject({
+          target: localInstanceAddress.value,
+        }))
     },
   });
 </script>

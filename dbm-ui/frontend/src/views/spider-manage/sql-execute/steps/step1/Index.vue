@@ -17,6 +17,7 @@
       <TaskTips />
       <DbForm
         ref="formRef"
+        class="toolbox-form"
         form-type="vertical"
         :model="formData">
         <TargetCluster v-model="formData.cluster_ids" />
@@ -47,6 +48,7 @@
         <Backup v-model="formData.backup" />
         <ExecuteMode v-model="formData.ticket_mode" />
       </DbForm>
+      <TicketRemark v-model="formData.remark" />
     </div>
     <template #action>
       <span
@@ -86,12 +88,20 @@
 
   import { querySemanticData, semanticCheck } from '@services/source/sqlImport';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
+  import { TicketTypes } from '@common/const';
+
+  import TicketRemark from '@components/ticket-remark/Index.vue';
+
   import Backup from './components/backup/Index.vue';
+  import type { IDataRow as BackupRow } from './components/backup/RenderData/Row.vue';
   import ExecuteMode from './components/ExecuteMode.vue';
   import SqlFile from './components/sql-file/Index.vue';
   import TargetDb from './components/target-db/Index.vue';
+  import type { IDataRow as TargetDbRow } from './components/target-db/RenderData/Row.vue';
   import TargetCluster from './components/TargetCluster.vue';
   import TaskTips from './components/TaskTips.vue';
 
@@ -103,19 +113,43 @@
   const createDefaultData = () => ({
     bk_biz_id: currentBizId,
     charset: 'default',
-    cluster_ids: [],
+    cluster_ids: [] as number[],
     import_mode: 'manual',
     execute_sql_files: [],
-    execute_db_infos: [],
-    backup: [],
+    execute_db_infos: [] as TargetDbRow[],
+    backup: [] as BackupRow[],
     ticket_mode: {
       mode: 'manual',
       trigger_time: '',
     },
     ticket_type: 'TENDBCLUSTER_SEMANTIC_CHECK',
+    remark: '',
   });
 
   const { t } = useI18n();
+
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
+    onSuccess(cloneData) {
+      const {
+        backup,
+        charset,
+        import_mode: importMode,
+        execute_db_infos: executeDbInfos,
+        cluster_ids: clusterIds,
+        ticket_mode: ticketMode,
+        remark,
+      } = cloneData;
+      formData.backup = backup;
+      formData.charset = charset;
+      formData.import_mode = importMode;
+      formData.execute_db_infos = executeDbInfos;
+      formData.cluster_ids = clusterIds;
+      formData.ticket_mode = ticketMode;
+      formData.remark = remark;
+      window.changeConfirm = true;
+    },
+  });
 
   const formRef = ref();
   const sqlFileRef = ref();
@@ -189,6 +223,7 @@
             query: {
               rootId: data.root_id,
               nodeId: data.node_id,
+              remark: formData.remark,
             },
           });
         });
@@ -208,13 +243,13 @@
   .spider-sql-execute-page {
     padding-bottom: 40px;
 
-    .bk-form-label {
-      font-weight: bold;
-      color: #313238;
+    // .bk-form-label {
+    //   font-weight: bold;
+    //   color: #313238;
 
-      &::after {
-        line-height: unset !important;
-      }
-    }
+    //   &::after {
+    //     line-height: unset !important;
+    //   }
+    // }
   }
 </style>

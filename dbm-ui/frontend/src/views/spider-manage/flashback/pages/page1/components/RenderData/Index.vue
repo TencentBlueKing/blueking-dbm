@@ -30,33 +30,119 @@
         <RenderTableHeadColumn
           :min-width="170"
           :width="180">
+          <template #append>
+            <BatchEditColumn
+              v-model="batchEditShow.startTime"
+              :disable-fn="disabledStartTime"
+              :title="t('回档时间')"
+              type="datetime"
+              @change="(value) => handleBatchEditChange(value as string, 'startTime')">
+              <span
+                v-bk-tooltips="t('统一设置')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('startTime')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
           {{ t('回档时间') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="170"
           :width="180">
+          <template #append>
+            <BatchEditColumn
+              v-model="batchEditShow.endTime"
+              :disable-fn="disabledEndTime"
+              :title="t('截止时间')"
+              type="datetime"
+              @change="(value) => handleBatchEditChange(value as string, 'endTime')">
+              <span
+                v-bk-tooltips="t('统一设置')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('endTime')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
           {{ t('截止时间') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
           :width="190">
+          <template #append>
+            <BatchEditColumn
+              v-model="batchEditShow.databases"
+              :title="t('备份DB名')"
+              type="taginput"
+              @change="(value) => handleBatchEditChange(value, 'databases')">
+              <span
+                v-bk-tooltips="t('统一设置')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('databases')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
           {{ t('目标库') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
           :width="350">
+          <template #append>
+            <BatchEditColumn
+              v-model="batchEditShow.tables"
+              :title="t('备份DB名')"
+              type="taginput"
+              @change="(value) => handleBatchEditChange(value, 'tables')">
+              <span
+                v-bk-tooltips="t('统一设置')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('tables')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
           {{ t('目标表') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
           :required="false"
           :width="180">
+          <template #append>
+            <BatchEditColumn
+              v-model="batchEditShow.databasesIgnore"
+              :title="t('备份DB名')"
+              type="taginput"
+              @change="(value) => handleBatchEditChange(value, 'databasesIgnore')">
+              <span
+                v-bk-tooltips="t('统一设置')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('databasesIgnore')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
           {{ t('忽略库') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
           :required="false"
           :width="180">
+          <template #append>
+            <BatchEditColumn
+              v-model="batchEditShow.tablesIgnore"
+              :title="t('备份DB名')"
+              type="taginput"
+              @change="(value) => handleBatchEditChange(value, 'tablesIgnore')">
+              <span
+                v-bk-tooltips="t('统一设置')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('tablesIgnore')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
           {{ t('忽略表') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
@@ -74,21 +160,52 @@
   </div>
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import type { IDataRowBatchKey } from './Row.vue';
+
   interface Emits {
     (e: 'batchSelectCluster'): void;
+    (e: 'batchEdit', value: string | string[], filed: IDataRowBatchKey): void;
   }
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
+  const startTime = ref('');
+  const batchEditShow = reactive({
+    startTime: false,
+    endTime: false,
+    databases: false,
+    tables: false,
+    databasesIgnore: false,
+    tablesIgnore: false,
+  });
+
+  const disabledStartTime = (date?: Date | number) => !!date && date.valueOf() > Date.now();
+
+  const disabledEndTime = (date?: Date | number) =>
+    !!date && (date.valueOf() > Date.now() || date.valueOf() < dayjs(startTime.value).valueOf());
+
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
+  };
+
+  const handleBatchEditShow = (key: IDataRowBatchKey) => {
+    batchEditShow[key] = !batchEditShow[key];
+  };
+
+  const handleBatchEditChange = (value: string | string[], filed: IDataRowBatchKey) => {
+    if (filed === 'startTime') {
+      startTime.value = value as string;
+    }
+    emits('batchEdit', value, filed);
   };
 </script>
 <style lang="less">
