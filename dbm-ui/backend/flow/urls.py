@@ -93,6 +93,7 @@ from backend.flow.views.mongodb_scene import (
 from backend.flow.views.mysql_add_slave import AddMysqlSlaveSceneApiView
 from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
+from backend.flow.views.mysql_data_migrate import MysqlDataMigrateSceneApiView
 from backend.flow.views.mysql_edit_config import MysqlEditConfigSceneApiView
 from backend.flow.views.mysql_flashback import MysqlFlashbackSceneApiView
 from backend.flow.views.mysql_ha_apply import InstallMySQLHASceneApiView
@@ -412,6 +413,7 @@ urlpatterns = [
     url(r"^scene/replace_pulsar$", ReplacePulsarSceneApiView.as_view()),
     url(r"^scene/fake_install_pulsar$", FakeInstallPulsarSceneApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
+    url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
     # spider
     url(r"^scene/add_spider_mnt$", AddSpiderMNTSceneApiView.as_view()),
     url(r"^scene/install_tendb_cluster$", InstallSpiderClusterSceneApiView.as_view()),

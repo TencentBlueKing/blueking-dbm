@@ -8,7 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
+from django.urls import include, path, re_path
+
+from backend.db_services.mysql.sqlparse.views import parse_sql
 
 urlpatterns = [
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.resources.urls")),
@@ -20,4 +22,5 @@ urlpatterns = [
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.fixpoint_rollback.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.open_area.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.dumper.urls")),
+    re_path("^parse_sql/?$", parse_sql, name="parse_sql"),
 ]

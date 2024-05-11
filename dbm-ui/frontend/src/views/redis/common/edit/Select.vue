@@ -42,6 +42,7 @@
       <BkOption
         v-for="(item, index) in list"
         :key="index"
+        :disabled="item.disabled"
         :label="item.label"
         :value="item.value" />
     </BkSelect>
@@ -51,8 +52,9 @@
   type IKey = string | number | string[];
 
   export interface IListItem {
-    value: IKey;
-    label: string;
+    value: IKey,
+    label: string,
+    disabled?: boolean,
   }
 </script>
 <script setup lang="ts">
@@ -90,26 +92,22 @@
 
   const localValue = ref<IKey>('');
 
-  watch(
-    modelValue,
-    (value) => {
-      if (!value) {
-        return;
-      }
-      localValue.value = value;
-      if (typeof value !== 'object' && value) {
-        validator(value);
-        return;
-      }
-      if (Array.isArray(value) && value.length > 0) {
-        validator(value);
-        return;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  watch(modelValue, (value) => {
+    if (value === undefined) {
+      return;
+    }
+    localValue.value = value;
+    if (typeof value !== 'object' && value) {
+      validator(value);
+      return;
+    }
+    if (Array.isArray(value) && value.length > 0) {
+      validator(value);
+      return;
+    }
+  }, {
+    immediate: true,
+  });
 
   // 选择
   const handleSelect = (value: IKey) => {
@@ -158,9 +156,19 @@
   .is-readonly {
     background-color: #fafbfd;
 
-    :deep(input) {
-      &:hover {
-        cursor: pointer;
+    .bk-select-trigger {
+      height: 100%;
+      background: inherit;
+
+      .bk-input {
+        height: 100%;
+        border: none;
+        outline: none;
+
+        input {
+          background: transparent;
+          padding: 0 8px 0 16px;
+        }
       }
     }
   }

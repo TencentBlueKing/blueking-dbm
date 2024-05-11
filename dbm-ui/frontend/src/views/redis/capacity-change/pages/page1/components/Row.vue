@@ -13,19 +13,12 @@
 
 <template>
   <tr>
-    <!-- <FixedColumn fixed="left">
+    <td style="padding: 0;">
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.targetCluster"
         :inputed="inputedClusters"
-        @on-input-finish="handleInputFinish" />
-    </FixedColumn> -->
-    <td style="padding: 0">
-      <RenderTargetCluster
-        ref="clusterRef"
-        :data="data.targetCluster"
-        :inputed="inputedClusters"
-        @on-input-finish="handleInputFinish" />
+        @input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0">
       <RenderText

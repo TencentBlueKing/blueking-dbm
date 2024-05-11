@@ -8,9 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.db_services.dbpermission.constants import AccountType
-from backend.db_services.dbpermission.db_account.views import BaseDBAccountViewSet
+from django.utils.translation import ugettext as _
+from rest_framework.decorators import action
+
+from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_services.dbpermission.db_account.serializers import AddAccountRuleSerializer
+from backend.db_services.dbpermission.db_account.views import SWAGGER_TAG, BaseDBAccountViewSet
+from backend.db_services.mysql.permission.db_account.handlers import MySQLAccountHandler
 
 
 class DBAccountViewSet(BaseDBAccountViewSet):
-    account_type = AccountType.MYSQL
+    account_handler = MySQLAccountHandler
+
+    @common_swagger_auto_schema(
+        operation_summary=_("添加账号规则前置检查"), request_body=AddAccountRuleSerializer(), tags=[SWAGGER_TAG]
+    )
+    @action(methods=["POST"], detail=False, serializer_class=AddAccountRuleSerializer)
+    def pre_check_add_account_rule(self, request, bk_biz_id):
+        return self._view_common_handler(
+            request, bk_biz_id, self.account_rule_meta, self.account_handler.pre_check_add_account_rule.__name__
+        )

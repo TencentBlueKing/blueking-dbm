@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.core.storages.handlers import StorageHandler
-from backend.core.storages.serializers import BatchDownloadFileSerializer, FileSerializer
+from backend.core.storages.serializers import BatchDownloadFileSerializer, CreateTokenSerializer, FileSerializer
 
 SWAGGER_TAG = "storage"
 
@@ -42,3 +42,11 @@ class StorageViewSet(viewsets.SystemViewSet):
     def delete_file(self, request):
         file_path = self.params_validate(self.get_serializer_class())["file_path"]
         return Response(StorageHandler().delete_file(file_path=file_path))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取临时凭证"), request_body=CreateTokenSerializer(), tags=[SWAGGER_TAG]
+    )
+    @action(methods=["POST"], detail=False, serializer_class=CreateTokenSerializer)
+    def create_bkrepo_access_token(self, request):
+        file_path = self.params_validate(self.get_serializer_class())["file_path"]
+        return Response(StorageHandler().create_bkrepo_access_token(path=file_path))

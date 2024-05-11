@@ -41,6 +41,8 @@ type ExcutePartitionSQLComp struct {
 // ExcutePartitionSQLParam TODO
 type ExcutePartitionSQLParam struct {
 	BkBizId      int    `json:"bk_biz_id"`
+	DbAppAbbr    string `json:"db_app_abbr"` // 业务名称缩写
+	BkBizName    string `json:"bk_biz_name"` // 业务名称
 	ClusterId    int    `json:"cluster_id"`
 	ImmuteDomain string `json:"immute_domain"`
 	MasterIp     string `json:"master_ip"  validate:"required,ip"` // 当前实例的主机地址
@@ -63,8 +65,9 @@ type ExcutePartitionSQLObj struct {
 
 // InitPartitionContent TODO
 type InitPartitionContent struct {
-	NeedSize int64  `json:"need_size"`
-	Sql      string `json:"sql"`
+	NeedSize     int64  `json:"need_size"`
+	Sql          string `json:"sql"`
+	HasUniqueKey bool   `json:"has_unique_key"`
 }
 
 // ExcutePartitionSQLRunTimeCtx TODO
@@ -176,7 +179,22 @@ func (e *ExcutePartitionSQLComp) Excute() (err error) {
 					err = e.excuteOne(dbw, initPartition, errfile, 10)
 				} else {
 					// 初始化分区使用pt工具，因此通过命令行的形式进行执行
-					err = e.excuteInitSql(eb.InitPartition, errfile, 10)
+					// err = e.excuteInitSql(eb.InitPartition, errfile, 10)
+					// 写一个方法 有唯一键的和没有的分成两个数组 分别执行
+					// 没有唯一键的不能用pt工具
+
+					fmt.Printf("%+v", e.Params)
+
+					hasUnikeyInit, hasNotUnikeyInit := e.initSQLClassify(eb.InitPartition)
+					if len(hasUnikeyInit) > 0 {
+						// 有唯一键的可以使用pt工具执行
+						err = e.excuteInitSql(hasUnikeyInit, errfile, 10)
+					}
+
+					if len(hasNotUnikeyInit) > 0 {
+						err = e.excuteOne(dbw, hasNotUnikeyInit, errfile, 10)
+					}
+
 				}
 				if err != nil {
 					lock.Lock()
@@ -233,6 +251,8 @@ func (e *ExcutePartitionSQLComp) Excute() (err error) {
 				body.Dimension["ticket"] = e.Params.Ticket
 				body.Dimension["cluster_domain"] = e.Params.ImmuteDomain
 				body.Dimension["shard_name"] = e.Params.ShardName
+				body.Dimension["db_app_abbr"] = e.Params.DbAppAbbr
+				body.Dimension["bk_biz_name"] = e.Params.BkBizName
 				manager := ma.NewManager("http://127.0.0.1:9999")
 				sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension)
 				errs = append(errs, strings.Join(errsall, ";\n"))
@@ -412,4 +432,19 @@ func (e *ExcutePartitionSQLComp) getNewPartitionSQL(partitionSQLs []string) []st
 		newPartitionSQLs = append(newPartitionSQLs, sql)
 	}
 	return newPartitionSQLs
+}
+
+func (e *ExcutePartitionSQLComp) initSQLClassify(initPartitions []InitPartitionContent) (
+	[]InitPartitionContent, []string) {
+	var hasUnikeyInit []InitPartitionContent
+	var hasNotUnikeyInit []string
+
+	for _, initPartition := range initPartitions {
+		if initPartition.HasUniqueKey {
+			hasUnikeyInit = append(hasUnikeyInit, initPartition)
+		} else {
+			hasNotUnikeyInit = append(hasNotUnikeyInit, initPartition.Sql)
+		}
+	}
+	return hasUnikeyInit, hasNotUnikeyInit
 }

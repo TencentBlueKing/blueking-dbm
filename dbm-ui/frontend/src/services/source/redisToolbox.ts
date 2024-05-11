@@ -194,3 +194,14 @@ export const listClusterHostsCreateSlaveProxy = async (obj: {
       results: data.results.map((item) => new RedisHostModel(item)).filter((item) => item.isSlaveFailover),
     }));
 };
+
+/**
+ * 查询集群版本信息
+ */
+export function getClusterVersions(params: {
+  node_type: string,
+  cluster_id?: number,
+  cluster_type?: string,
+}) {
+  return http.get<string[]>(`${getRootPath()}/get_cluster_versions/`, params);
+}

@@ -58,7 +58,8 @@
         <BkInput
           v-model="localValue"
           :placeholder="placeholder"
-          style="height: 320px; margin: 12px 0 30px"
+          :rows="20"
+          style="height: 320px; margin: 12px 0 30px;"
           type="textarea"
           @input="handleInputChange" />
       </div>
@@ -178,7 +179,7 @@
 
   const placeholder = t('请分别输入集群_起止时间_目标库_目标表_忽略库_忽略表_多个对象_换行分隔');
 
-  const matchReg = /([^ ]+) +([^ ]+) +(local) +((?:[\d-]+ [\d:]+)|(?:\d+)) +([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+)$/;
+  const matchReg = /([^ ]+) +([^ ]+) +(local|remote) +((?:[\d-]+ [\d:]+)|(?:\d+)) +([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+)$/;
 
   const inputRef = ref();
   const isChecking = ref(false);

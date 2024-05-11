@@ -274,7 +274,7 @@ class MySQLDBMeta(object):
         """
         # 获取cluster_types_list
         cluster_types = (
-            Cluster.objects.filter(cluster_id__in=self.cluster["cluster_ids"])
+            Cluster.objects.filter(id__in=self.cluster["cluster_ids"])
             .values_list("cluster_type", flat=True)
             .distinct()
         )
@@ -417,7 +417,7 @@ class MySQLDBMeta(object):
 
         # 获取cluster_types_list
         cluster_types = (
-            Cluster.objects.filter(cluster_id__in=self.cluster["cluster_ids"])
+            Cluster.objects.filter(id__in=self.cluster["cluster_ids"])
             .values_list("cluster_type", flat=True)
             .distinct()
         )
@@ -594,7 +594,7 @@ class MySQLDBMeta(object):
         """
         # 获取cluster_types_list
         cluster_types = (
-            Cluster.objects.filter(cluster_id__in=self.cluster["cluster_ids"])
+            Cluster.objects.filter(id__in=self.cluster["cluster_ids"])
             .values_list("cluster_type", flat=True)
             .distinct()
         )
@@ -920,7 +920,7 @@ class MySQLDBMeta(object):
         实例卸载完毕修改元数据
         """
         cluster_types = (
-            Cluster.objects.filter(cluster_id__in=self.cluster["cluster_ids"])
+            Cluster.objects.filter(id__in=self.cluster["cluster_ids"])
             .values_list("cluster_type", flat=True)
             .distinct()
         )

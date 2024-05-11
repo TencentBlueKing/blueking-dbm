@@ -72,12 +72,13 @@ def _build_backup_info_files(backups_info: []):
 
         backups[bid].is_full_backup = i.get("is_full_backup")
         for f in i.get("file_list", []):
-            bf = BackupFile(f.get("file_name"), f.get("file_size"), f.get("file_type"), f.get("task_id"))
-            if f.get("file_type") == "index":
+            file_type = f.get("file_type")
+            bf = BackupFile(f.get("file_name"), f.get("file_size"), file_type, f.get("task_id"))
+            if file_type == "index":
                 backups[bid].file_index = bf
-            elif f.get("file_type") == "priv":
+            elif file_type == "priv":
                 backups[bid].file_priv = bf
-            elif f.get("file_type") == "tar":
+            elif file_type == "tar" or file_type == "part":
                 backups[bid].file_tar.append(bf)
             else:
                 pass

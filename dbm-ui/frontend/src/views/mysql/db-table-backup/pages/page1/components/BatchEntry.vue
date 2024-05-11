@@ -54,7 +54,8 @@
         <BkInput
           v-model="localValue"
           :placeholder="placeholder"
-          style="height: 320px; margin: 12px 0 30px"
+          :rows="20"
+          style="height: 320px; margin: 12px 0 30px;"
           type="textarea"
           @input="handleInputChange" />
       </div>
@@ -224,7 +225,6 @@
     });
 
     isChecking.value = true;
-
     queryClusters({
       cluster_filters: validList.map(item => ({
         immute_domain: item.domain,

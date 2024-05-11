@@ -15,7 +15,9 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DBType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import (
     remote_node_migrate_sub_flow,
     remote_node_uninstall_sub_flow,
@@ -23,7 +25,8 @@ from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import (
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import ClearMachineKwargs, DBMetaOPKwargs
+from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.utils.mysql.mysql_act_dataclass import ClearMachineKwargs, DBMetaOPKwargs, DownloadMediaKwargs
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 from backend.flow.utils.spider.tendb_cluster_info import get_remotedb_info
 
@@ -160,6 +163,17 @@ class TenDBMigrateFlow(object):
                             db_meta_class_func=SpiderDBMeta.remotedb_migrate_remove_storage.__name__,
                             cluster=node_cluster,
                             is_update_trans_data=True,
+                        )
+                    ),
+                )
+                uninstall_sub_pipeline.add_act(
+                    act_name=_("下发db-actor到节点{}".format(ip)),
+                    act_component_code=TransFileComponent.code,
+                    kwargs=asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=self.data["bk_cloud_id"],
+                            exec_ip=[ip],
+                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                         )
                     ),
                 )

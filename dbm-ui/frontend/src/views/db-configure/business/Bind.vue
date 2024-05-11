@@ -112,7 +112,7 @@
     version: '',
     character_set: '',
   });
-  const characterList = ['utf8', 'utf8mb4', 'gbk', 'latin1'];
+  const characterList = ['utf8', 'utf8mb4', 'gbk', 'latin1', 'gb2312'];
   const versionState = reactive({
     list: [] as string[],
     loading: false,

@@ -3,6 +3,7 @@ package atomredis
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
@@ -189,8 +190,9 @@ func (job *RedisClusterForget) clusterForgetNode(
 		defer nodeConn.Close()
 
 		if err := nodeConn.ClusterForget(fnode.NodeID); err != nil {
-			job.runtime.Logger.Error("forget node %s:%s failed :+%v", fnode.Addr, fnode.NodeID, err)
-			if ignoreErr {
+			// // (error) ERR:18,msg:forget node unkown  传了不存在的NodeID  1. 节点表中找不到指定的节点标识。 !!! 这里和官方版本返回错误不一致 !!!
+			job.runtime.Logger.Error("forget node %s:%s failed :+%v [just Ignore::%+v]", fnode.Addr, fnode.NodeID, err, fnode)
+			if ignoreErr && (strings.Contains(err.Error(), "Unknown node") || strings.Contains(err.Error(), "node unkown")) {
 				job.runtime.Logger.Warn("current node status maybe fail, ignore %s:%+v", node.Addr, err)
 				continue
 			}

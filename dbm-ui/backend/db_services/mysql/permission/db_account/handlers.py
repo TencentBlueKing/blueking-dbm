@@ -10,10 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+from typing import Any, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.components import DBPrivManagerApi
 from backend.db_services.dbpermission.constants import PrivilegeType
+from backend.db_services.dbpermission.db_account.dataclass import AccountRuleMeta
 from backend.db_services.dbpermission.db_account.handlers import AccountHandler
 from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
 
@@ -24,6 +27,25 @@ class MySQLAccountHandler(AccountHandler):
     """
     封装账号相关的处理操作
     """
+
+    def pre_check_add_account_rule(self, account_rule: AccountRuleMeta) -> Optional[Any]:
+        """
+        - 添加账号规则前置检查
+        @param account_rule: 账号规则元信息
+        """
+        account_rule_params = {
+            "bk_biz_id": self.bk_biz_id,
+            "operator": self.operator,
+            "cluster_type": self.account_type,
+            "account_id": account_rule.account_id,
+            "priv": account_rule.privilege,
+            "dbname": account_rule.access_db,
+        }
+        resp = DBPrivManagerApi.pre_check_add_account_rule(params=account_rule_params, raw=True)
+        # 如果不允许执行，说明前置检查失败，抛出message
+        if not resp["data"]["force_run"]:
+            raise DBPermissionBaseException(_("创建授权规则前置检查失败，错误信息: {}").format(resp["message"]))
+        return {"force_run": resp["data"]["force_run"], "warning": resp["message"]}
 
     def has_high_risk_privileges(self, rule_sets):
         """

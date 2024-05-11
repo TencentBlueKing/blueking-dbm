@@ -19,3 +19,7 @@ class BatchDownloadFileSerializer(serializers.Serializer):
 
 class FileSerializer(serializers.Serializer):
     file_path = serializers.CharField(help_text=_("文件路径"))
+
+
+class CreateTokenSerializer(serializers.Serializer):
+    file_path = serializers.CharField(help_text=_("文件路径"))

@@ -62,7 +62,7 @@ class MysqlHaDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
     def patch_ticket_detail(self):
         # TODO: 集群下架流程，暂时不需要联动dumper下架，后续看体验再加上
         # self.ticket.update_details(dumper_destroy_infos=self.cluster_dumper_destroy())
-        pass
+        super().patch_ticket_detail()
 
     def custom_ticket_flows(self):
         # 下架流程

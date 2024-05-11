@@ -368,14 +368,14 @@ export interface MySQLCloneDetails {
  * MySQL Slave详情
  */
 export interface MySQLSlaveDetails {
-  clusters: clustersItems;
+  backup_source: string,
+  clusters: clustersItems,
   infos: {
-    backup_source: string;
-    cluster_ids: number[];
-    cluster_id: number;
-    new_slave: MysqlIpItem;
-    slave: MysqlIpItem;
-  }[];
+    cluster_ids: number[],
+    cluster_id: number,
+    new_slave: MysqlIpItem,
+    slave: MysqlIpItem,
+  }[],
 }
 
 /**
@@ -792,6 +792,19 @@ export interface MySQLDetails {
     backend: SpecInfo;
     single: SpecInfo;
   };
+}
+
+/**
+ * redis 版本升级
+ */
+export interface RedisVersionUpgrade {
+  clusters: clustersItems,
+  infos: {
+    cluster_id: number,
+    current_versions: string[],
+    node_type: string,
+    target_version: string
+  }[],
 }
 
 // Spider Checksum

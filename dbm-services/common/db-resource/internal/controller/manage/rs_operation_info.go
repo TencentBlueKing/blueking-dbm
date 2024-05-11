@@ -13,7 +13,6 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"dbm-services/common/db-resource/internal/model"
@@ -22,6 +21,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 )
 
@@ -95,11 +95,10 @@ func (p GetOperationInfoParam) query(db *gorm.DB) {
 	if cmutil.IsNotEmpty(p.BeginTime) {
 		db.Where("create_time >= ? ", p.BeginTime)
 	}
-	switch strings.ToLower(strings.TrimSpace(p.Orderby)) {
-	case "asc":
-		db.Order("create_time asc")
-	default:
+	if lo.IsEmpty(p.Orderby) {
 		db.Order("create_time desc")
+	} else {
+		db.Order(p.Orderby)
 	}
 }
 

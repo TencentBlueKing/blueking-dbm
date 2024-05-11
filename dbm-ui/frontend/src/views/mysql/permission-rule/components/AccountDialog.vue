@@ -348,7 +348,7 @@
       ...state.formdata,
       password: getEncyptPassword(),
       bk_biz_id: globalbizsStore.currentBizId,
-      account_type: AccountTypes.MYSQL
+      account_type: AccountTypes.MYSQL,
     };
     createAccount(params)
       .then(() => {

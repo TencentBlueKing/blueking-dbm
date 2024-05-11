@@ -53,6 +53,8 @@
         v-model="state.values"
         class="batch-input-textarea"
         :placeholder="placeholder"
+        :rows="20"
+        style="height: 320px; margin: 12px 0 30px;"
         type="textarea"
         @input="handleInput" />
       <div class="batch-input-errors">

@@ -76,7 +76,7 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
     # 针对集群维度声明子流程
     cluster_switch_sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(switch_sub_flow_context))
 
-    # 切换前做预检测, 克隆主从时客户端连接检测和checksum检验默认检测
+    # 切换前做预检测, 迁移主从时客户端连接检测和checksum检验默认检测
     sub_flow = check_sub_flow(
         uid=ticket_data["uid"],
         root_id=root_id,

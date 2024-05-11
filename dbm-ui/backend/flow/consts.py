@@ -396,6 +396,8 @@ class DBActuatorActionEnum(str, StructuredEnum):
     StandardizeMySQLInstance = EnumField("standardize-mysql", _("标准化MySQL实例"))
     StandardizeTenDBHAProxy = EnumField("standardize-proxy", _("标准化Proxy实例"))
     Upgrade = EnumField("upgrade", _("本地升级"))
+    MysqlDataMigrateDump = EnumField("mysql_data_migrate_dump", _("Mysql数据迁移导出库"))
+    MysqlDataMigrateImport = EnumField("mysql_data_migrate_import", _("Mysql数据迁移导入库"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
