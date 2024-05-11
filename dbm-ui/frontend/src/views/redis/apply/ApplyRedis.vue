@@ -778,7 +778,7 @@
               count: specInfo.machine_pair,
               spec_info: specInfo,
               location_spec: {
-                city: cityName,
+                city: cityCode,
                 sub_zone_ids: [],
               },
             },
