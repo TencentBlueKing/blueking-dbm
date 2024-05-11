@@ -103,7 +103,14 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => ({ spider_reduced_to_count: Number(localValue.value) }));
+      return editRef.value
+        .getValue()
+        .then(() => ({ spider_reduced_to_count: Number(localValue.value) }))
+        .catch(() =>
+          Promise.reject({
+            spider_reduced_to_count: Number(localValue.value),
+          }),
+        );
     },
   });
 </script>

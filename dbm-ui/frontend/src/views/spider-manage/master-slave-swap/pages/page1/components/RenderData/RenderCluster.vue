@@ -82,6 +82,10 @@
         const [currentProxyData] = data;
         relatedClusterList.value = currentProxyData.related_clusters;
         emits('change', relatedClusterList.value.map(item => item.id));
+        setTimeout(() => {
+          // 行复制后，查询到对应数据后消除验证失败的样式
+          inputRef.value.getValue();
+        });
       })
         .finally(() => {
           isLoading.value = false;
@@ -99,8 +103,11 @@
         .getValue()
         .then(() => ({
           cluster_id: relatedClusterList.value.map(item => item.id)[0],
-        }));
-    },
+        }))
+        .catch(() => Promise.reject({
+          cluster_id: relatedClusterList.value.map(item => item.id)[0],
+        }))
+    }
   });
 </script>
 <style lang="less" scoped>

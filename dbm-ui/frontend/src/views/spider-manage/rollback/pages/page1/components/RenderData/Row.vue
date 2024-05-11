@@ -23,6 +23,7 @@
       <td style="padding: 0">
         <RenderMode
           ref="modeRef"
+          :backup-type="data.rollbackupType"
           :cluster-id="localClusterId"
           :rollback-time="data.rollbackTime" />
       </td>
@@ -73,6 +74,8 @@
     tablesIgnore?: string[];
   }
 
+  export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData' | 'rollbackTime'>;
+
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
@@ -110,15 +113,13 @@
   const tablesIgnoreRef = ref();
 
   const localClusterId = ref(0);
-  const localRollbackuoType = ref('');
 
   watch(
-    () => props.data,
+    () => props.data.clusterData,
     () => {
       if (props.data.clusterData) {
         localClusterId.value = props.data.clusterData.id;
       }
-      localRollbackuoType.value = props.data.rollbackupType;
     },
     {
       immediate: true,

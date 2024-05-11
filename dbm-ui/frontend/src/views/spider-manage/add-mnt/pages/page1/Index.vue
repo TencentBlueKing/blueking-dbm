@@ -28,8 +28,10 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -65,11 +67,14 @@
   import TendbClusterModel from '@services/model/spider/tendbCluster';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -78,9 +83,20 @@
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
 
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark;
+      window.changeConfirm = true;
+    },
+  });
+
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
   const isSubmitting = ref(false);
+  const remark = ref('');
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbClusterModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
@@ -150,13 +166,32 @@
     }
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(
+      index + 1,
+      0,
+      Object.assign(sourceData, {
+        clusterData: {
+          ...sourceData.clusterData,
+          domain: tableData.value[index].clusterData?.domain ?? '',
+        },
+      }),
+    );
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: 'TENDBCLUSTER_SPIDER_MNT_APPLY',
-          remark: '',
+          ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
+          remark: remark.value,
           details: {
             infos: data,
           },
@@ -181,6 +216,7 @@
   };
 
   const handleReset = () => {
+    remark.value = '';
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
     domainMemo = {};
@@ -191,5 +227,11 @@
 <style lang="less">
   .spider-manage-add-mnt-page {
     padding-bottom: 20px;
+
+    :deep(.bk-form-label) {
+      font-size: 12px;
+      font-weight: bold;
+      color: #313238;
+    }
   }
 </style>

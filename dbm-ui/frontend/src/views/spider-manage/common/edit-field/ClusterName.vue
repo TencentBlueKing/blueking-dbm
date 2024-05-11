@@ -137,7 +137,8 @@
     getValue() {
       return editRef.value
         .getValue()
-        .then(() => (localValue.value));
+        .then(() => (localValue.value))
+        .catch(() => Promise.reject(localValue))
     },
   });
 </script>

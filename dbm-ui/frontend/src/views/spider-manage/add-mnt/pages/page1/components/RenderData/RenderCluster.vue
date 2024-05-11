@@ -40,7 +40,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Exposes {
-    getValue: () => Array<number>
+    getValue: () => Record<'cluster_id', number>
   }
 
   const modelValue = defineModel<IDataRow['clusterData']>()
@@ -126,6 +126,9 @@
         .getValue()
         .then(() => ({
           cluster_id: modelValue.value!.id,
+        }))
+        .catch(() => Promise.reject({
+          cluster_id: modelValue.value?.id,
         }));
     },
   });

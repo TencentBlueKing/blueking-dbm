@@ -29,6 +29,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @node-type-choosed="(label: string) => handleChangeNodeType(index, item.cluster, label)"
           @remove="handleRemove(index, item.cluster)" />
@@ -46,6 +47,7 @@
           {{ t('忽略业务连接') }}
         </span>
       </div>
+      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowClusterSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -86,6 +88,8 @@
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
+  import { useTicketCloneInfo } from '@hooks'
+
   import { useGlobalBizs } from '@stores';
 
   import {
@@ -94,6 +98,7 @@
   } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import { random } from '@utils';
 
@@ -107,6 +112,18 @@
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.tableDataList;
+      isIgnoreBusinessAccess.value = cloneData.isSafe
+      remark.value = cloneData.remark
+      window.changeConfirm = true;
+    },
+  });
+
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
   const isSubmitting  = ref(false);
@@ -114,8 +131,9 @@
   const tableData = ref([createRowData()]);
   const isIgnoreBusinessAccess = ref(false);
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const remark = ref('')
 
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   const totalNum = computed(() => (tableData.value.length > 0
     ? new Set(tableData.value.map(item => item.cluster)).size : 0));
@@ -254,6 +272,31 @@
     selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== cluster);
   };
 
+
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    const clusterData = dataList[index]
+    dataList.splice(
+      index + 1,
+      0,
+      Object.assign(sourceData, {
+        cluster: clusterData.cluster,
+        clusterId: clusterData.clusterId,
+        bkCloudId: clusterData.bkCloudId,
+        masterCount: clusterData.masterCount,
+        slaveCount: clusterData.slaveCount,
+        spiderMasterList: clusterData.spiderMasterList,
+        spiderSlaveList: clusterData.spiderSlaveList,
+        spec: clusterData.spec
+      }),
+    );
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   // 点击提交按钮
   const handleSubmit = async () => {
     const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
@@ -261,7 +304,7 @@
     }) => item.getValue()));
     const params: SubmitTicket<TicketTypes, InfoItem[]> & { remark: string, details: { is_safe: boolean }} = {
       bk_biz_id: currentBizId,
-      remark: '',
+      remark: remark.value,
       ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
       details: {
         is_safe: !isIgnoreBusinessAccess.value,
@@ -297,6 +340,7 @@
 
   // 重置
   const handleReset = () => {
+    remark.value = ''
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
     domainMemo = {};
