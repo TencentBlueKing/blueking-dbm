@@ -91,7 +91,12 @@ class CheckExpiredJobUserForMysql(object):
         DRSApi.rpc(
             {
                 "addresses": [address],
-                "cmds": ["set tc_admin = 0;", f"drop user `{user_info['user']}`@`{user_info['host']}`;"],
+                "cmds": [
+                    "set session sql_log_bin = 0;",
+                    "set tc_admin = 0;",
+                    f"drop user `{user_info['user']}`@`{user_info['host']}`;",
+                    "set session sql_log_bin = 1;",
+                ],
                 "force": True,
                 "bk_cloud_id": cluster.bk_cloud_id,
             }
