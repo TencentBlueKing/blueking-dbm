@@ -184,7 +184,7 @@ func (m *Checker) CheckOnePartitionConfig(ctx context.Context, cancel context.Ca
 		defer func() {
 			finish <- 1
 		}()
-		initSql, addSql, dropSql, err = config.GetPartitionDbLikeTbLike(dbtype, splitCnt)
+		initSql, addSql, dropSql, err = config.GetPartitionDbLikeTbLike(dbtype, splitCnt, m.FromCron)
 		if err != nil {
 			errorChan <- err
 			return
