@@ -3,10 +3,14 @@
     :data="withFavorBizList"
     :generate-key="(item: IAppItem) => item.bk_biz_id"
     :generate-name="(item: IAppItem) => item.display_name"
+    :search-extension-method="searchExtensionMethod"
     style="margin: 0 12px"
     theme="dark"
     :value="currentBiz"
     @change="handleAppChange">
+    <template #value="{data}">
+      <div>{{ data.name }} (#{{ data.bk_biz_id }}, {{ data.english_name }})</div>
+    </template>
     <template #default="{ data }">
       <AuthComponent
         action-id="DB_MANAGE"
@@ -14,7 +18,14 @@
         :resource-id="data.bk_biz_id"
         resource-type="biz">
         <div class="db-app-select-item">
-          <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
+          <div>
+            <span style="color: #C4C6CC">{{ data.name }} </span>
+            <span style="color: #979BA5">
+              (#{{ data.bk_biz_id }}
+              <template v-if="data.english_name">, {{ data.english_name }}</template>
+              )
+            </span>
+          </div>
           <div style="margin-left: auto;">
             <DbIcon
               v-if="favorBizIdMap[data.bk_biz_id]"
@@ -71,7 +82,7 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import { makeMap } from '@utils';
+  import { encodeRegexp, makeMap } from '@utils';
 
   import AppSelect from '@blueking/app-select';
 
@@ -91,6 +102,12 @@
 
   const currentBiz = computed(() => _.find(bizList, item => item.bk_biz_id === window.PROJECT_CONFIG.BIZ_ID));
   const withFavorBizList = computed(() => _.sortBy(bizList, item => favorBizIdMap.value[item.bk_biz_id]));
+
+  const searchExtensionMethod = (data: IAppItem, keyword: string) => {
+    const rule = new RegExp(encodeRegexp(keyword), 'i');
+
+    return rule.test(data.english_name);
+  };
 
   const handleAppChange = (appInfo: IAppItem) => {
     const {
