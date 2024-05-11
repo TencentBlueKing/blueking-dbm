@@ -35,6 +35,7 @@
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
+      @copy="handleCopy"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -95,6 +96,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'copy', value: IDataRow): void;
     (e: 'onClusterInputFinish', value: string): void;
   }
 
@@ -166,9 +168,23 @@
     emits('remove');
   };
 
+  const getRowData = () => [sepcRef.value.getValue(), numRef.value.getValue()];
+
+  const handleCopy = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [specId, targetNum] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits('copy', {
+        ...props.data,
+        rowKey: random(),
+        isLoading: false,
+        targetNum: targetNum.count,
+      });
+    });
+  };
+
   defineExpose<Exposes>({
     async getValue() {
-      return await Promise.all([sepcRef.value.getValue(), numRef.value.getValue()]).then((data) => {
+      return Promise.all(getRowData()).then((data) => {
         const [specId, targetNum] = data;
         return {
           cluster_id: props.data.clusterId,

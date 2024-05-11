@@ -40,7 +40,7 @@
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>;
+    getValue: () => Record<'bk_cloud_id', number>;
   }
 
   const props = defineProps<Props>();
@@ -98,9 +98,16 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => ({
-        bk_cloud_id: localBkNetId.value,
-      }));
+      return editRef.value
+        .getValue()
+        .then(() => ({
+          bk_cloud_id: localBkNetId.value,
+        }))
+        .catch(() =>
+          Promise.reject({
+            bk_cloud_id: localBkNetId.value,
+          }),
+        );
     },
   });
 </script>

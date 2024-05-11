@@ -128,7 +128,10 @@
         .getValue()
         .then(() => ({
           target: localInstanceAddress.value,
-        }));
+        }))
+        .catch(() => Promise.reject({
+          target: localInstanceAddress.value,
+        }))
     },
   });
 </script>

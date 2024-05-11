@@ -259,7 +259,6 @@ export interface MysqlQueryAccountParams {
   access_dbs: string[];
 }
 
-
 /**
  * es - 单据详情
  */
@@ -340,12 +339,6 @@ export interface ClusterOperationDetails {
   cluster_id: number;
 }
 
-
-
-
-
-
-
 /**
  * 大数据实例重启
  */
@@ -361,8 +354,6 @@ export interface BigDataRebootDetails {
     port: number;
   }[];
 }
-
-
 
 /**
  * clusters参数
@@ -468,310 +459,15 @@ export interface SpecInfo {
   }[];
 }
 
-
-
 /**
  * redis 版本升级
  */
 export interface RedisVersionUpgrade {
-  clusters: clustersItems,
-  infos: {
-    cluster_id: number,
-    current_versions: string[],
-    node_type: string,
-    target_version: string
-  }[],
-}
-
-// Spider Checksum
-export interface SpiderCheckSumDetails {
-  data_repair: {
-    is_repair: boolean;
-    mode: 'timer' | 'manual';
-  };
-  is_sync_non_innodb: true;
-  timing: string;
-  runtime_hour: number;
+  clusters: clustersItems;
   infos: {
     cluster_id: number;
-    checksum_scope: 'partial' | 'all';
-    backup_infos: {
-      master: string;
-      slave: string;
-      db_patterns: string[];
-      ignore_dbs: string[];
-      table_patterns: string[];
-      ignore_tables: string[];
-    }[];
+    current_versions: string[];
+    node_type: string;
+    target_version: string;
   }[];
 }
-
-// Spider slave集群添加
-export interface SpiderSlaveApplyDetails {
-  ip_source: 'manual_input';
-  infos: {
-    cluster_id: number;
-    resource_spec: {
-      spider_slave_ip_list: {
-        spec_id: number;
-        count: number;
-      };
-    };
-  }[];
-}
-
-// Spider 临时节点添加
-export interface SpiderMNTApplyDetails {
-  infos: {
-    cluster_id: number;
-    bk_cloud_id: number;
-    spider_ip_list: {
-      ip: string;
-      bk_cloud_id: number;
-      bk_host_id: number;
-    }[];
-    immutable_domain: string;
-  }[];
-}
-
-// Spider 集群下架
-export interface SpiderDestroyDetails {
-  force: boolean; // 实例强制下架，默认先给false
-  cluster_ids: number[]; // 待下架的id 列表
-}
-
-// Spider 集群启动
-export interface SpiderEnableDetails {
-  is_only_add_slave_domain: boolean; // 只启用只读集群的话, 这个参数为true
-  cluster_ids: number[]; // 待下架的id 列表
-}
-
-// Spider 集群禁用
-export interface SpiderDisableDetails {
-  cluster_ids: number[]; // 待禁用的id 列表
-}
-
-// Spider Tendbcluster 重命名
-export interface SpiderRenameDatabaseDetails {
-  infos: {
-    cluster_id: number;
-    from_database: string;
-    to_database: string;
-    force: boolean;
-  }[];
-}
-
-// Spider remote 主从互切
-export interface SpiderMasterSlaveSwitchDetails {
-  force: boolean; // 互切单据就传False，表示安全切换
-  is_check_process: boolean;
-  is_verify_checksum: boolean;
-  is_check_delay: boolean; // 目前互切单据延时属于强制检测，故必须传True， 用户没有选择
-  infos: {
-    cluster_id: 1;
-    switch_tuples: {
-      master: {
-        ip: string;
-        bk_cloud_id: number;
-      };
-      slave: {
-        ip: string;
-        bk_cloud_id: number;
-      };
-    }[];
-  }[];
-}
-
-// Spider remote主故障切换
-export type SpiderMasterFailoverDetails = SpiderMasterSlaveSwitchDetails;
-
-// spider扩容接入层
-export interface SpiderAddNodesDeatils {
-  ip_source: 'resource_pool';
-  infos: {
-    cluster_id: number;
-    add_spider_role: string;
-    resource_spec: {
-      spider_ip_list: {
-        count: number;
-        spec_id: number;
-      };
-    };
-  }[];
-}
-
-// Spider TenDBCluster 库表备份
-export interface SpiderTableBackupDetails {
-  infos: {
-    cluster_id: number;
-    db_patterns: string[];
-    ignore_dbs: string[];
-    table_patterns: string[];
-    ignore_tables: string[];
-    backup_local: string;
-  }[];
-}
-
-// Spider TenDBCluster 全备单据
-export interface SpiderFullBackupDetails {
-  infos: {
-    backup_type: 'logical' | 'physical';
-    file_tag: 'MYSQL_FULL_BACKUP' | 'LONGDAY_DBFILE_3Y';
-    clusters: {
-      cluster_id: number;
-      backup_local: string; // spider_mnt:: 127.0.0.1: 8000
-    }[];
-  };
-}
-
-// spider 缩容接入层
-export interface SpiderReduceNodesDetails {
-  is_safe: boolean; // 是否做安全检测
-  infos: {
-    cluster_id: number;
-    spider_reduced_to_count: number;
-    reduce_spider_role: string;
-  }[];
-}
-
-// Spider 集群remote节点扩缩容
-export interface SpiderNodeRebalanceDetails {
-  need_checksum: true;
-  trigger_checksum_type: 'now' | 'timer';
-  trigger_checksum_time: string;
-  infos: {
-    bk_cloud_id: number;
-    cluster_id: number;
-    db_module_id: number;
-    cluster_shard_num: number; // 集群分片数
-    remote_shard_num: number; // 单机分片数
-    resource_spec: {
-      backend_group: {
-        spec_id: number;
-        count: number;
-        affinity: string; // 亲和性要求
-      };
-    };
-  }[];
-}
-
-// spider 定点回档
-export interface SpiderRollbackDetails {
-  cluster_id: number,
-  clusters: clustersItems,
-  rollback_type: 'REMOTE_AND_BACKUPID' | 'REMOTE_AND_TIME',
-  rollback_time: string,
-  backupinfo: {
-    backup_begin_time: string;
-    backup_end_time: string;
-    backup_id: string;
-    backup_time: string;
-    bill_id: string;
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    cluster_address: string;
-    cluster_id: number;
-  },
-  databases: string[],
-  tables: string[],
-  databases_ignore: string[],
-  tables_ignore: string[],
-}
-
-// Spider flashback
-export interface SpiderFlashbackDetails {
-  infos: {
-    cluster_id: number;
-    start_time: string;
-    end_time: string;
-    databases: string[];
-    databases_ignore: string[];
-    tables: string[];
-    tables_ignore: string[];
-  }[];
-}
-
-// Spider tendbcluster 清档
-export interface SpiderTruncateDatabaseDetails {
-  infos: {
-    cluster_id: number;
-    db_patterns: string[];
-    ignore_dbs: string[];
-    table_patterns: string[];
-    ignore_tables: string[];
-    truncate_data_type: 'truncate_table' | 'drop_table' | 'drop_database';
-    force: boolean;
-  }[];
-}
-
-// Spider 只读集群下架
-export interface SpiderSlaveDestroyDetails {
-  is_safe: boolean;
-  cluster_ids: number[];
-}
-
-// Spider 运维节点下架
-export interface SpiderMNTDestroyDetails {
-  is_safe: boolean;
-  infos: {
-    cluster_id: number;
-    spider_ip_list: {
-      ip: string;
-      bk_cloud_id: number;
-    }[];
-  }[];
-}
-
-export interface SpiderPartitionManageDetails {
-  infos: {
-    config_id: string;
-    cluster_id: number;
-    bk_cloud_id: number;
-    immute_domain: string;
-    partition_objects: {
-      ip: string;
-      port: number;
-      shard_name: string;
-      execute_objects: [
-        {
-          dblike: string;
-          tblike: string;
-          config_id: number;
-          add_partition: [];
-          drop_partition: [];
-          init_partition: [
-            {
-              sql: string;
-              need_size: number;
-            },
-          ];
-        },
-      ];
-    }[];
-  }[];
-  clusters: {
-    [key: number]: {
-      id: number;
-      name: string;
-      alias: string;
-      phase: string;
-      region: string;
-      status: string;
-      creator: string;
-      updater: string;
-      bk_biz_id: number;
-      time_zone: string;
-      bk_cloud_id: number;
-      cluster_type: string;
-      db_module_id: number;
-      immute_domain: string;
-      major_version: string;
-      cluster_type_name: string;
-    };
-  };
-}
-
-
-
-
-
