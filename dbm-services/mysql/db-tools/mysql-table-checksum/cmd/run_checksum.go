@@ -11,8 +11,7 @@ import (
 	"github.com/juju/fslock"
 )
 
-func generateRun(mode config.CheckMode, configPath string) /*func(cmd *cobra.Command, args []string)*/ error {
-	// return func(cmd *cobra.Command, args []string) error {
+func generateRun(mode config.CheckMode, configPath string) error {
 	err := config.InitConfig(configPath)
 	if err != nil {
 		return err
