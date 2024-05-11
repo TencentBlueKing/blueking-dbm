@@ -26,7 +26,7 @@ logger = logging.getLogger("celery")
 
 
 @register_periodic_task(run_every=crontab(minute=00, hour=6))
-def mysql_backup_check_task():
+def check_expired_job_users_for_mysql():
     """
     mysql 临时账号巡检
     每条凌晨6点执行
@@ -42,7 +42,7 @@ def mysql_backup_check_task():
 
 
 @register_periodic_task(run_every=crontab(minute=00, hour=7))
-def sqlserver_backup_check_task():
+def check_expired_job_users_for_sqlserver():
     """
     sqlserver临时账号巡检
     每条凌晨7点执行
