@@ -31,6 +31,10 @@ from backend.flow.plugins.components.collections.mysql.filter_database_table_fro
     FilterDatabaseTableFromRegexComponent,
 )
 from backend.flow.plugins.components.collections.mysql.general_check_db_in_using import GeneralCheckDBInUsingComponent
+from backend.flow.plugins.components.collections.mysql.rename_database_confirm_empty_from import (
+    RenameDatabaseConfirmEmptyFromComponent,
+)
+from backend.flow.plugins.components.collections.mysql.rename_database_drop_from import RenameDatabaseDropFromComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.truncate_data_create_stage_database import (
     TruncateDataCreateStageDatabaseComponent,
@@ -193,6 +197,17 @@ class MySQLTruncateFlow(object):
                                 get_mysql_payload_func=MysqlActPayload.get_dump_na_table_payload.__name__,
                             )
                         ),
+                    )
+
+                    instance_pipe.add_act(
+                        act_name=_("确认源数据库已空"),
+                        act_component_code=RenameDatabaseConfirmEmptyFromComponent.code,
+                        kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
+                    )
+                    instance_pipe.add_act(
+                        act_name=_("删除源数据库"),
+                        act_component_code=RenameDatabaseDropFromComponent.code,
+                        kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
                     )
 
                 instance_pipe.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
