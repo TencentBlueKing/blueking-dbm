@@ -69,6 +69,7 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 				<-tokenBucket
 				wg.Done()
 			}()
+			item.FromCron = true
 			objects, err := (*item).DryRun()
 			if err != nil {
 				code, _ := errno.DecodeErr(err)

@@ -18,7 +18,7 @@ import (
 )
 
 // GetPartitionDbLikeTbLike TODO
-func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt int) ([]InitSql, []string, []string,
+func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt int, fromCron bool) ([]InitSql, []string, []string,
 	error) {
 	var addSqls, dropSqls, errs Messages
 	var initSqls InitMessages
@@ -28,7 +28,7 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 	dropSqls.list = []string{}
 	errs.list = []string{}
 
-	tbs, errOuter := config.GetDbTableInfo()
+	tbs, errOuter := config.GetDbTableInfo(fromCron)
 	if errOuter != nil {
 		slog.Error("GetDbTableInfo error", errOuter)
 		return nil, nil, nil, fmt.Errorf("get database and table info failed：%s", errOuter.Error())
@@ -91,7 +91,7 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 }
 
 // GetDbTableInfo TODO
-func (config *PartitionConfig) GetDbTableInfo() (ptlist []ConfigDetail, err error) {
+func (config *PartitionConfig) GetDbTableInfo(fromCron bool) (ptlist []ConfigDetail, err error) {
 	address := fmt.Sprintf("%s:%d", config.ImmuteDomain, config.Port)
 	slog.Info(fmt.Sprintf("get real partition info from (%s/%s,%s)", address, config.DbLike, config.TbLike))
 
@@ -144,18 +144,34 @@ func (config *PartitionConfig) GetDbTableInfo() (ptlist []ConfigDetail, err erro
 				slog.Error("GetDbTableInfo", sql, err.Error())
 				return nil, err
 			}
-			// 分区表至少会有一个分区
-			for _, v := range output.CmdResults[0].TableData {
-				// 如果发现分区字段、分区间隔与规则不符合，需要重新做分区，页面调整了分区规则
-				ok, errInner := CheckPartitionExpression(v["PARTITION_EXPRESSION"].(string),
-					v["PARTITION_METHOD"].(string),
-					config.PartitionColumn, config.PartitionType)
-				if errInner != nil {
-					slog.Error("CheckPartitionExpression", "error", errInner.Error())
-					return nil, errInner
-				} else if !ok {
-					partitioned = false
-					break
+			// (1)兼容【分区字段为空】的历史问题，对于某些特殊的分区类型，旧系统已经不在页面上支持，所以旧系统有意将分区字段留空，
+			// 		使其无法在页面编辑，避免改变了其他所属分区类别，因此无法核对比较，但不影响新增和删除分区。
+			// (2)兼容web业务的特殊定制类型，分区字段类型为int，但是系统记录为timestamp，因此无法核对比较，但不影响新增和删除分区。
+			webCustomization := config.BkBizId == 159 && config.PartitionColumn == "Fcreate_time"
+			if config.PartitionColumn != "" && !webCustomization {
+				// 分区表至少会有一个分区
+				for _, v := range output.CmdResults[0].TableData {
+					// 如果发现分区字段、分区间隔与规则不符合，需要重新做分区，页面调整了分区规则
+					ok, errInner := CheckPartitionExpression(v["PARTITION_EXPRESSION"].(string),
+						v["PARTITION_METHOD"].(string),
+						config.PartitionColumn, config.PartitionType)
+					if errInner != nil {
+						slog.Error("CheckPartitionExpression", "error", errInner.Error())
+						return nil, errInner
+					} else if !ok {
+						// 如果页面调整了分区规则，允许在页面手动执行执行分区。定时任务不对已经分区过的表做初始化，风险高
+						if fromCron {
+							tips := fmt.Sprintf("partition crontab task not init partitioned table " +
+								"when partition expression in db not consistent with config in system, " +
+								"please confirm, you can execute from web")
+							slog.Error("CheckPartitionExpression", "tips", tips,
+								"db", db, "tb", tb)
+							return nil, fmt.Errorf("db like: [%s] and table like: [%s]: %s", db, tb, tips)
+						} else {
+							partitioned = false
+							break
+						}
+					}
 				}
 			}
 			if partitioned == true && len(output.CmdResults[0].TableData) == 2 {
@@ -165,7 +181,16 @@ func (config *PartitionConfig) GetDbTableInfo() (ptlist []ConfigDetail, err erro
 					slog.Error("CalculateInterval", "error", errInner.Error())
 					return nil, errInner
 				} else if !ok {
-					partitioned = false
+					if fromCron {
+						tips := fmt.Sprintf("partition crontab task not init partitioned table " +
+							"when partition interval in db not consistent with config in system, " +
+							"please confirm, you can execute from web")
+						slog.Error("CalculateInterval", "tips", tips,
+							"db", db, "tb", tb)
+						return nil, fmt.Errorf("db like: [%s] and table like: [%s]: %s", db, tb, tips)
+					} else {
+						partitioned = false
+					}
 				}
 			}
 		}
