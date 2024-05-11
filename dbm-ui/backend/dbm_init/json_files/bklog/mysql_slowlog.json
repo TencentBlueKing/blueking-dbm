@@ -41,6 +41,23 @@
             "verdict": true,
             "is_delete": false,
             "alias_name": "",
+            "field_name": "db_name",
+            "field_type": "string",
+            "description": "",
+            "field_index": 1,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "",
+            "option": {
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
             "field_name": "access_source_host",
             "field_type": "string",
             "description": "",

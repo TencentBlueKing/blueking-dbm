@@ -13,13 +13,13 @@ dependencies:
   version: 9.15.2
 - name: reloader
   repository: https://stakater.github.io/stakater-charts
-  version: 1.0.93
+  version: 1.0.95
 - name: grafana
   repository: file://./charts/grafana
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.36
+  version: 0.1.37
 - name: dbconfig
   repository: file://charts/dbconfig
   version: 0.1.13
@@ -56,5 +56,5 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:f64182c5270d19aa9eb7107b253dbf18cd6562b0e1a4fefdc60269f622f6cc6c
-generated: "2024-05-08T16:44:54.380362+08:00"
+digest: sha256:aee792d18a336c888e42616e83c27b4f015baf04f9fd63c266fe0a5bf21460a3
+generated: "2024-05-10T21:15:46.7211+08:00"
