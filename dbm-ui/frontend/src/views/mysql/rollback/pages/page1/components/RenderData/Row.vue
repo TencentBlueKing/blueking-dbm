@@ -13,14 +13,14 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderCluster
         ref="clusterRef"
         :model-value="data.clusterData"
         @id-change="handleClusterIdChange"
         @input-create="handleCreate" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderHost
         ref="hostRef"
         :cloud-id="cloudId"
@@ -28,13 +28,13 @@
         :domain="data.clusterData?.domain"
         :model-value="data.rollbackIp" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderBackup
         ref="backupSourceRef"
         :model-value="localBackupSource"
         @change="handleBackupSourceChange" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderMode
         ref="modeRef"
         :backup-source="localBackupSource"
@@ -42,26 +42,26 @@
         :cluster-id="localClusterId"
         :rollback-time="data.rollbackTime" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderDbName
         ref="databasesRef"
         :cluster-id="localClusterId"
         :model-value="data.databases" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTableName
         ref="tablesRef"
         :cluster-id="localClusterId"
         :model-value="data.tables" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderDbName
         ref="databasesIgnoreRef"
         :cluster-id="localClusterId"
         :model-value="data.databasesIgnore"
         :required="false" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTableName
         ref="tablesIgnoreRef"
         :cluster-id="localClusterId"
@@ -162,6 +162,7 @@
     },
     {
       immediate: true,
+      deep: true,
     },
   );
 

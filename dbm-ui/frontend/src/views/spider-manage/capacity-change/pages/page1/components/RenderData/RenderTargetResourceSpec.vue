@@ -79,24 +79,30 @@
   </DbSideslider>
 </template>
 <script setup lang="ts">
-  import { ref, shallowRef, watch } from 'vue';
+  import { ref, shallowRef, type UnwrapRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type SpiderModel from '@services/model/spider/spider';
+  import { getResourceSpec } from '@services/source/dbresourceSpec';
 
   import { useBeforeClose } from '@hooks';
 
-  import ClusterSpecPlanSelector, { type IRowData } from '@components/cluster-spec-plan-selector/Index.vue';
+  import ClusterSpecPlanSelector from '@components/cluster-spec-plan-selector/Index.vue';
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
+
+  import type { IDataRow } from './Row.vue';
 
   interface Props {
     clusterData?: SpiderModel;
+    rowData: IDataRow;
   }
+
   interface Exposes {
     getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
+
   defineOptions({
     inheritAttrs: false,
   });
@@ -111,7 +117,12 @@
     futureCapacity: 0,
   });
   const choosedSpecId = ref(-1);
-  const localSpec = shallowRef<IRowData>();
+  const localSpec = shallowRef<{
+    spec_id: number;
+    spec_name: string;
+    machine_pair: number;
+    capacity: number;
+  }>();
   const showText = computed(() => `${localSpec.value ? `${localSpec.value.capacity} G` : ''}`);
 
   const rules = [
@@ -139,6 +150,26 @@
     },
   );
 
+  watch(
+    () => props.rowData.resource_spec?.backend_group.spec_id,
+    (newSpecId) => {
+      if (newSpecId) {
+        getResourceSpec({ spec_id: newSpecId }).then((specData) => {
+          const backend = props.rowData.resource_spec?.backend_group;
+          handlePlanChange(newSpecId, {
+            spec_id: newSpecId,
+            spec_name: specData.spec_name,
+            machine_pair: backend?.count ?? 0,
+            capacity: backend?.futureCapacity ?? 0,
+          });
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleShowSelector = () => {
     if (!props.clusterData) {
       return;
@@ -147,7 +178,7 @@
     choosedSpecId.value = -1;
   };
 
-  const handlePlanChange = (specId: number, specData: IRowData) => {
+  const handlePlanChange = (specId: number, specData: NonNullable<UnwrapRef<typeof localSpec>>) => {
     choosedSpecId.value = specId;
     localSpec.value = specData;
     futureSpec.value = {
@@ -170,21 +201,42 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue().then(() => {
-        if (!props.clusterData || !localSpec.value) {
-          return Promise.reject();
-        }
-        return {
-          remote_shard_num: Math.ceil(props.clusterData.cluster_shard_num / localSpec.value.machine_pair),
-          resource_spec: {
-            backend_group: {
-              spec_id: localSpec.value.spec_id,
-              count: localSpec.value.machine_pair,
-              affinity: '',
+      return inputRef.value
+        .getValue()
+        .then(() => {
+          if (!props.clusterData || !localSpec.value) {
+            return Promise.reject();
+          }
+          return {
+            remote_shard_num: Math.ceil(props.clusterData.cluster_shard_num / localSpec.value.machine_pair),
+            resource_spec: {
+              backend_group: {
+                spec_id: localSpec.value.spec_id,
+                count: localSpec.value.machine_pair,
+                affinity: '',
+                futureCapacity: localSpec.value.capacity,
+                specName: localSpec.value.spec_name,
+              },
             },
-          },
-        };
-      });
+          };
+        })
+        .catch(() => {
+          if (!props.clusterData || !localSpec.value) {
+            return Promise.reject({ resource_spec: undefined });
+          }
+          return Promise.reject({
+            remote_shard_num: Math.ceil(props.clusterData.cluster_shard_num / localSpec.value.machine_pair),
+            resource_spec: {
+              backend_group: {
+                spec_id: localSpec.value.spec_id,
+                count: localSpec.value.machine_pair,
+                affinity: '',
+                futureCapacity: localSpec.value.capacity,
+                specName: localSpec.value.spec_name,
+              },
+            },
+          });
+        });
     },
   });
 </script>

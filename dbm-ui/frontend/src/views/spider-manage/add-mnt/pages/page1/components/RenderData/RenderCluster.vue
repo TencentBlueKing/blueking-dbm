@@ -51,7 +51,7 @@
   }
 
   interface Exposes {
-    getValue: () => Array<number>
+    getValue: () => Record<'cluster_id', number>
   }
 
   const props = defineProps<Props>();
@@ -159,7 +159,9 @@
         .getValue()
         .then(() => ({
           cluster_id: localClusterId.value,
-        }));
+        })).catch(() => Promise.reject({
+          cluster_id: localClusterId.value,
+        }))
     },
   });
 </script>

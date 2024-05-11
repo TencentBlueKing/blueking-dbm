@@ -30,9 +30,11 @@
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @copy="(payload: IDataRow) => handleCopy(index, payload)"
           @node-type-choosed="(label: string) => handleChangeNodeType(index, item.cluster, label)"
           @remove="handleRemove(index, item.cluster)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -65,6 +67,7 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import _ from 'lodash'
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -72,6 +75,8 @@
   import { getSpiderList } from '@services/source/spider';
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
+
+  import { useTicketCloneInfo } from '@hooks'
 
   import { useGlobalBizs } from '@stores';
 
@@ -81,6 +86,7 @@
   } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import { random } from '@utils';
 
@@ -95,11 +101,22 @@
   const { t } = useI18n();
   const router = useRouter();
 
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark
+      window.changeConfirm = true;
+    },
+  });
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});
+  const remark = ref('')
 
   const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
@@ -244,6 +261,27 @@
     selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== cluster);
   };
 
+  // 复制行数据
+  const handleCopy = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    const rowData = _.cloneDeep(dataList[index])
+    dataList.splice(index + 1, 0, Object.assign(sourceData, {
+      clusterId: rowData.clusterId,
+      bkCloudId: rowData.bkCloudId,
+      masterCount: rowData.masterCount,
+      slaveCount: rowData.slaveCount,
+      mntCount: rowData.mntCount,
+      spiderMasterList: rowData.spiderMasterList,
+      spiderSlaveList: rowData.spiderSlaveList,
+      spec: rowData.spec,
+      clusterType: rowData.clusterType,
+    }))
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   // 点击提交按钮
   const handleSubmit = async () => {
     const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
@@ -251,7 +289,7 @@
     }) => item.getValue()));
 
     const params: SubmitTicket<TicketTypes, InfoItem[]> & { remark: string} = {
-      remark: '',
+      remark: remark.value,
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
       details: {
@@ -287,6 +325,7 @@
   };
 
   const handleReset = () => {
+    remark.value = ''
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
     domainMemo = {};

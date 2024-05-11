@@ -28,7 +28,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['targetNum'];
+    data?: IDataRow['targetNum'];
     isLoading?: boolean;
   }
 
@@ -37,12 +37,12 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
+    data: '',
     min: 0,
   });
 
   const { t } = useI18n();
-  const localValue = ref(props.modelValue);
+  const localValue = ref(props.data);
   const editRef = ref();
 
   const nonInterger = /\D/g;
@@ -67,7 +67,10 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => ({ count: Number(localValue.value) }));
+      return editRef.value
+        .getValue()
+        .then(() => ({ count: Number(localValue.value) }))
+        .catch(() => Promise.reject({ count: Number(localValue.value) }));
     },
   });
 </script>

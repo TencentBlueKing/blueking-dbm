@@ -38,11 +38,13 @@
       <td style="padding: 0">
         <RenderTargetResourceSpec
           ref="targetResourceSpecRef"
-          :cluster-data="localClusterData" />
+          :cluster-data="localClusterData"
+          :row-data="data" />
       </td>
       <OperateColumn
         :removeable="removeable"
         @add="handleAppend"
+        @copy="handleCopy"
         @remove="handleRemove" />
     </tr>
   </tbody>
@@ -65,13 +67,15 @@
       name: string;
     };
     clusterShardNum?: number;
-    clusterCapacity?: string;
+    clusterCapacity?: number;
     machinePairCnt?: number;
     resource_spec?: {
       backend_group: {
         spec_id: number;
         count: number;
-        affinity: '';
+        affinity: string;
+        futureCapacity: number;
+        specName: string;
       };
     };
   }
@@ -104,6 +108,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'copy', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -114,9 +119,9 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const resourceSpecRef = ref();
-  const targetResourceSpecRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
+  const resourceSpecRef = ref<InstanceType<typeof RenderResourceSpec>>();
+  const targetResourceSpecRef = ref<InstanceType<typeof RenderTargetResourceSpec>>();
 
   const localClusterId = ref(0);
   const localClusterData = ref<SpiderModel>();
@@ -151,13 +156,40 @@
     emits('remove');
   };
 
+  const getRowData = () => [
+    clusterRef.value!.getValue(),
+    resourceSpecRef.value!.getValue(),
+    targetResourceSpecRef.value!.getValue(),
+  ];
+
+  const handleCopy = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [clusterData, resourceSpecData, targetResourceSpecData] = rowData.map((item) =>
+        item.status === 'fulfilled' ? item.value : item.reason,
+      );
+      emits(
+        'copy',
+        createRowData({
+          clusterData: {
+            id: clusterData.cluster_id,
+            domain: '',
+          },
+          resourceSpec: {
+            id: localClusterData.value?.cluster_spec.spec_id ?? 0,
+            name: localClusterData.value?.cluster_spec.spec_name ?? '',
+          },
+          clusterShardNum: resourceSpecData.cluster_shard_num,
+          clusterCapacity: localClusterData.value?.cluster_capacity ?? 0,
+          machinePairCnt: localClusterData.value?.machine_pair_cnt ?? 0,
+          resource_spec: targetResourceSpecData.resource_spec,
+        }),
+      );
+    });
+  };
+
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        clusterRef.value.getValue(),
-        resourceSpecRef.value.getValue(),
-        targetResourceSpecRef.value.getValue(),
-      ]).then(([clusterData, resourceSpecData, targetResourceSpecData]) => ({
+      return Promise.all(getRowData()).then(([clusterData, resourceSpecData, targetResourceSpecData]) => ({
         ...clusterData,
         ...resourceSpecData,
         ...targetResourceSpecData,

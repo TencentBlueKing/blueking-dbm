@@ -21,6 +21,7 @@
       </table>
     </div>
     <SpecPlanSelector
+      class="mb-24"
       :cloud-id="data.bk_cloud_id"
       cluster-type="tendbcluster"
       machine-type="remote"
@@ -30,6 +31,19 @@
       }"
       :shard-num="data.cluster_shard_num"
       @change="handlePlanChange" />
+    <BkFormItem
+      :label="t('备份源')"
+      property="backup_source"
+      required>
+      <BkRadioGroup v-model="formdata.backup_source">
+        <BkRadio label="local">
+          {{ t('本地备份') }}
+        </BkRadio>
+        <BkRadio label="remote">
+          {{ t('远程备份') }}
+        </BkRadio>
+      </BkRadioGroup>
+    </BkFormItem>
     <BkFormItem
       class="mt-24"
       :label="t('数据校验')"
@@ -99,6 +113,7 @@
     need_checksum: false,
     trigger_checksum_type: 'timer',
     trigger_checksum_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    backup_source: 'local'
   });
   const initformdata = JSON.stringify(formdata.value);
   const currentSpec = shallowRef<IRowData>();

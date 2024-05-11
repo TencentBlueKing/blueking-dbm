@@ -30,6 +30,7 @@
       <OperateColumn
         :removeable="removeable"
         @add="handleAppend"
+        @copy="handleCopy"
         @remove="handleRemove" />
     </tr>
   </tbody>
@@ -66,6 +67,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'copy', value: IDataRow): void;
     (e: 'inputClusterFinish', value: IDataRow): void;
   }
 
@@ -117,14 +119,32 @@
     emits('remove');
   };
 
-  defineExpose<Exposes>({
-    getValue() {
-      return Promise.all([clusterRef.value.getValue(), backupLocalRef.value.getValue()]).then(
-        ([clusterData, backupLocalData]) => ({
-          ...clusterData,
-          ...backupLocalData,
+  const handleCopy = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [clusterData, backupLocalData] = rowData.map((item) =>
+        item.status === 'fulfilled' ? item.value : item.reason,
+      );
+      emits(
+        'copy',
+        createRowData({
+          clusterData: {
+            id: clusterData.cluster_id,
+            domain: '',
+          },
+          backupLocal: backupLocalData.backup_local,
         }),
       );
+    });
+  };
+
+  const getRowData = () => [clusterRef.value.getValue(), backupLocalRef.value.getValue()];
+
+  defineExpose<Exposes>({
+    getValue() {
+      return Promise.all(getRowData()).then(([clusterData, backupLocalData]) => ({
+        ...clusterData,
+        ...backupLocalData,
+      }));
     },
   });
 </script>

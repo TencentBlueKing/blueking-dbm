@@ -77,7 +77,10 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => ({ count: Number(localValue.value) - props.min }));
+      return editRef.value
+        .getValue()
+        .then(() => ({ count: Number(localValue.value) - props.min }))
+        .catch(() => Promise.reject({ count: 0 }));
     },
   });
 </script>
