@@ -135,7 +135,7 @@ dbm:
 
   ingressPublic:
     # 在跨云管控场景下，需要配置公网 clb 进行访问
-    enabled: false
+    enabled: true
     className: ""
     hostname: "bkdbm-public.example.com"
     paths:
