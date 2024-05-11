@@ -15,8 +15,6 @@ type Reporter struct {
 	cfg    *config.Config
 }
 
-// var reporter *lumberjack.Logger
-
 // NewReporter 新建上报
 func NewReporter(cfg *config.Config) *Reporter {
 	return &Reporter{
