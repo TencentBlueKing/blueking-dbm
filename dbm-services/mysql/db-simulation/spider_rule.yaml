@@ -4,6 +4,7 @@ CommandRule:
     desc: "高危命令"
     item:
       [
+        "drop_db",
         "drop_table",
         "drop_index",
         "lock_tables",
@@ -29,7 +30,6 @@ CommandRule:
         "revoke",
         "kill",
         "reset",
-        "drop_db",
         "drop_user",
         "grant",
         "create_user",
