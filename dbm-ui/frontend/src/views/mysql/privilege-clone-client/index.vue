@@ -97,7 +97,7 @@
   import SuccessView from '@/components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@/components/mysql-toolbox/ToolboxTable.vue';
   import { useGlobalBizs } from '@/stores';
-  import type { TableProps } from '@/types/bkui-vue';
+  // import type { TableProps } from '@/types/bkui-vue';
 
   type FormItemInstance = InstanceType<typeof FormItem>;
 
@@ -147,9 +147,9 @@
   });
 
   const hostTopoMap: Map<string, ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number]> = reactive(new Map());
-  const targetHostNotExistMap: Map<string, string[]> = new Map();
+  // const targetHostNotExistMap: Map<string, string[]> = new Map();
 
-  const columns: TableProps['columns'] = [
+  const columns = [
     {
       label: () => (
         <span>
@@ -163,7 +163,7 @@
           key={`${data.uniqueId}_source`}
           error-display-type="tooltips"
           ref={setFormItemRefs.bind(null, 'source')}
-          rules={getSourceRules(data)}
+          rules={getSourceRules()}
           property={`${index}.source`}>
           <bk-input v-model={data.source} placeholder={t('请输入xx', [t('管控区域_IP')])} />
         </bk-form-item>
@@ -174,10 +174,10 @@
       field: 'topo',
       showOverflowTooltip: false,
       render: ({ data }: TableColumnData) => {
-        const topo = hostTopoMap.get(getSourceInfos(data.source).ip)?.topo || [];
+        const topo = hostTopoMap.get(getSourceInfos(data.source).ip)?.topo ?? [];
         const count = topo.length;
         if (count === 0) {
-          return <p class="placeholder">{t('输入客户端后自动生成')}</p>;
+          return <p class="placeholder">--</p>;
         }
         return (
           <div class="module-paths">
@@ -229,10 +229,22 @@
   /**
    * 获取源客户端 ip 正则校验
    */
-  const getSourceRules = (data: TableItem) => [
+  const getSourceRules = () => [
     {
       validator: (ip: string) => !!ip,
       message: t('请输入'),
+      trigger: 'blur',
+    },
+    {
+      validator: (ip: string) => {
+        const items = ip.split(':');
+        const isPass = ipv4.test(items[1]);
+        if (isPass) {
+          fetchHostTopoInfos([ip]);
+        }
+        return ipv4.test(items[1]);
+      },
+      message: t('请输入合法ipv4'),
       trigger: 'blur',
     },
     {
@@ -243,19 +255,11 @@
       message: t('请输入xx', [t('管控区域')]),
       trigger: 'blur',
     },
-    {
-      validator: (ip: string) => {
-        const items = ip.split(':');
-        return ipv4.test(items[1]);
-      },
-      message: t('请输入合法ipv4'),
-      trigger: 'blur',
-    },
-    {
-      validator: (value: string) => verifySourceHost(data, value),
-      message: t('IP不存在'),
-      trigger: 'blur',
-    },
+    // {
+    //   validator: (value: string) => verifySourceHost(data, value),
+    //   message: t('IP不存在'),
+    //   trigger: 'blur',
+    // },
   ];
 
   /**
@@ -292,12 +296,12 @@
       message: t('新客户端IP重复'),
       trigger: 'blur',
     },
-    {
-      validator: (value: string) => verifyTargetHost(data, value),
-      message: () => t('部分IP不存在'),
-      // message: () => `${targetHostNotExistMap.get(data.uniqueId)?.join('，')} ${t('IP不存在')}`,
-      trigger: 'blur',
-    },
+    // {
+    //   validator: (value: string) => verifyTargetHost(data, value),
+    //   message: () => t('部分IP不存在'),
+    //   // message: () => `${targetHostNotExistMap.get(data.uniqueId)?.join('，')} ${t('IP不存在')}`,
+    //   trigger: 'blur',
+    // },
   ];
 
   /**
@@ -318,42 +322,43 @@
   /**
    * 校验源客户端主机是否存在
    */
-  const verifySourceHost = (data: TableItem, value: string) => {
-    // 已经查询过且存在的主机
-    const curHostTopo = hostTopoMap.get(getSourceInfos(data.source).ip)?.topo || [];
-    if (curHostTopo.length > 0) {
-      return true;
-    }
+  // const verifySourceHost = (data: TableItem, value: string) => {
+  //   // 已经查询过且存在的主机
+  //   const curHostTopo = hostTopoMap.get(getSourceInfos(data.source).ip)?.topo || [];
+  //   if (curHostTopo.length > 0) {
+  //     return true;
+  //   }
 
-    const ips = tableData.value.map(item => item.source).filter(source => ipv4.test(getSourceInfos(source).ip.trim()));
-    return fetchHostTopoInfos(ips).then(() => Boolean(hostTopoMap.get(getSourceInfos(value).ip)?.topo?.length));
-  };
+  // eslint-disable-next-line max-len
+  //   const ips = tableData.value.map(item => item.source).filter(source => ipv4.test(getSourceInfos(source).ip.trim()));
+  //   return fetchHostTopoInfos(ips).then(() => Boolean(hostTopoMap.get(getSourceInfos(value).ip)?.topo?.length));
+  // };
 
   /**
    * 校验新客户端主机是否存在
    */
-  const verifyTargetHost = (data: TableItem, value: string) => {
-    const targets = value.split('\n')
-      .map(ip => ip.trim())
-      .filter(ip => ip);
-    targetHostNotExistMap.delete(data.uniqueId);
+  // const verifyTargetHost = (data: TableItem, value: string) => {
+  //   const targets = value.split('\n')
+  //     .map(ip => ip.trim())
+  //     .filter(ip => ip);
+  //   targetHostNotExistMap.delete(data.uniqueId);
 
-    // 已经查询过且存在的主机
-    if (targets.every(ip => Boolean(hostTopoMap.get(ip)?.topo?.length))) {
-      return true;
-    }
+  //   // 已经查询过且存在的主机
+  //   if (targets.every(ip => Boolean(hostTopoMap.get(ip)?.topo?.length))) {
+  //     return true;
+  //   }
 
-    return fetchHostTopoInfos(targets).then((res) => {
-      // 判断主机是否存在
-      const existHosts = res.hosts_topo_info.filter(item => item.topo.length !== 0).map(item => item.ip);
-      const hasNotExistHost = existHosts.length !== targets.length;
-      if (hasNotExistHost) {
-        const notExistHosts = targets.filter(ip => !existHosts.includes(ip));
-        targetHostNotExistMap.set(data.uniqueId, notExistHosts);
-      }
-      return !hasNotExistHost;
-    });
-  };
+  //   return fetchHostTopoInfos(targets).then((res) => {
+  //     // 判断主机是否存在
+  //     const existHosts = res.hosts_topo_info.filter(item => item.topo.length !== 0).map(item => item.ip);
+  //     const hasNotExistHost = existHosts.length !== targets.length;
+  //     if (hasNotExistHost) {
+  //       const notExistHosts = targets.filter(ip => !existHosts.includes(ip));
+  //       targetHostNotExistMap.set(data.uniqueId, notExistHosts);
+  //     }
+  //     return !hasNotExistHost;
+  //   });
+  // };
 
   /**
    * 批量添加若只有一行且为空则清空
