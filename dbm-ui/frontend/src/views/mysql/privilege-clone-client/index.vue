@@ -238,6 +238,14 @@
     {
       validator: (ip: string) => {
         const items = ip.split(':');
+        return items.length === 2 && /^\d+$/.test(items[0]);
+      },
+      message: t('请输入xx', [t('管控区域')]),
+      trigger: 'blur',
+    },
+    {
+      validator: (ip: string) => {
+        const items = ip.split(':');
         const isPass = ipv4.test(items[1]);
         if (isPass) {
           fetchHostTopoInfos([ip]);
@@ -245,14 +253,6 @@
         return ipv4.test(items[1]);
       },
       message: t('请输入合法ipv4'),
-      trigger: 'blur',
-    },
-    {
-      validator: (ip: string) => {
-        const items = ip.split(':');
-        return items.length === 2 && /^\d+$/.test(items[0]);
-      },
-      message: t('请输入xx', [t('管控区域')]),
       trigger: 'blur',
     },
     // {

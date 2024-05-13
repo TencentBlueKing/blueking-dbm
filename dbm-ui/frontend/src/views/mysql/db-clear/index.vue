@@ -471,6 +471,9 @@
       const ignoreRef = formItemRefs.get(`${data.uniqueId}_ignore_tables_${index}`);
       tableRef && tableRef.clearValidate();
       ignoreRef && ignoreRef.clearValidate();
+    } else {
+      data.table_patterns = [];
+      data.ignore_tables = [];
     }
   }
 
@@ -654,7 +657,6 @@
       const clusterInfo = clusterInfoMap.get(item.cluster_domain);
       if (clusterInfo) {
         item.cluster_id = clusterInfo.id;
-        item.cluster_type = clusterInfo.cluster_type;
       }
     }
 
@@ -672,6 +674,7 @@
           const list = tableData.value.filter(tableItem => tableItem.cluster_domain === item.master_domain);
           for (const tableItem of list) {
             tableItem.cluster_id = item.id;
+            tableItem.cluster_type = item.cluster_type;
           }
         }
 
