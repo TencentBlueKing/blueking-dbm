@@ -194,7 +194,7 @@
     {
       label: 'gb2312',
       value: 'gb2312',
-    }
+    },
   ];
   const rules = {
     module_name: [
@@ -311,6 +311,7 @@
         theme: 'success',
       });
       window.changeConfirm = false;
+      window.close();
     } catch (e) {
       console.log(e);
     }

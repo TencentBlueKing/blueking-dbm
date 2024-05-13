@@ -105,7 +105,7 @@
       value: menuEnum.resourceManage,
     },
     userProfile.globalManage && {
-      label: t('平台管理'),
+      label: t('全局配置'),
       value: menuEnum.platformManage,
     },
     {

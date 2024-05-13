@@ -248,7 +248,7 @@
         theme: 'success',
       });
       window.changeConfirm = false;
-      router.go(-1);
+      window.close();
     } catch (e) {
       console.log(e);
     }
