@@ -56,14 +56,6 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
         # 库表选择器校验
         super().validate_database_table_selector(attrs)
 
-        # 校验slave角色是否一致
-        super().validate_instance_role(attrs, instance_key=["slaves"], role=InstanceInnerRole.SLAVE)
-
-        # 校验slave的关联集群是否一致
-        super().validate_instance_related_clusters(
-            attrs, instance_key=["slaves"], cluster_key=["cluster_id"], role=InstanceInnerRole.SLAVE
-        )
-
         # 校验定时时间不能早于当前时间
         if str2datetime(attrs["timing"]) < datetime.now(timezone.utc):
             raise serializers.ValidationError(_("定时时间必须晚于当前时间"))

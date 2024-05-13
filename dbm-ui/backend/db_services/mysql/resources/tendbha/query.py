@@ -87,7 +87,14 @@ class ListRetrieveResource(query.ListRetrieveResource):
         """将集群对象转为可序列化的 dict 结构"""
         proxies = [m.simple_desc for m in cluster.proxies]
         masters = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.MASTER]
-        slaves = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.SLAVE]
+        # slave的对等点必须是master,此时slave要考虑repeater，对等点也是master
+        slaves = [
+            m.simple_desc
+            for m in cluster.storages
+            if m.instance_inner_role in [InstanceInnerRole.SLAVE, InstanceInnerRole.REPEATER]
+            if m.as_receiver.first() and m.as_receiver.first().ejector.instance_inner_role == InstanceInnerRole.MASTER
+        ]
+
         cluster_role_info = {"proxies": proxies, "masters": masters, "slaves": slaves}
         cluster_info = super()._to_cluster_representation(
             cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map
