@@ -184,7 +184,7 @@ export interface RedisDataCheckAndRepairDetails {
   ];
 }
 
-enum RedisClusterType {
+export enum RedisClusterType {
   REDIS_INSTANCE = 'RedisInstance', // 主从版
   REDIS_CLUSTER = 'RedisCluster', // 集群版
 }

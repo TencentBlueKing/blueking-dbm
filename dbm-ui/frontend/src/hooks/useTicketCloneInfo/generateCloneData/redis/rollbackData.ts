@@ -11,12 +11,13 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { RedisRollbackDataCopyDetails } from '@services/model/ticket/details/redis';
+import TicketModel from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Redis 以构造实例恢复
-export function generateRedisRollbackDataCloneData(details: RedisRollbackDataCopyDetails) {
-  const { clusters, infos } = details;
+export function generateRedisRollbackDataCloneData(ticketData: TicketModel<RedisRollbackDataCopyDetails>) {
+  const { clusters, infos } = ticketData.details;
   const tableList = infos.map((item) => ({
     rowKey: random(),
     isLoading: false,
@@ -30,6 +31,6 @@ export function generateRedisRollbackDataCloneData(details: RedisRollbackDataCop
 
   return Promise.resolve({
     tableList,
-    writeMode: details.write_mode,
+    writeMode: ticketData.details.write_mode,
   });
 }

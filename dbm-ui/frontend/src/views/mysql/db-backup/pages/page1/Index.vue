@@ -98,9 +98,11 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
@@ -115,6 +117,23 @@
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_HA_FULL_BACKUP,
+    onSuccess(cloneData) {
+      const {
+        backupType,
+        tableDataList,
+        fileTag,
+      } = cloneData
+      tableData.value = tableDataList;
+      formData.backup_type = backupType;
+      formData.file_tag = fileTag;
+      window.changeConfirm = true;
+    },
+  });
+
 
   const formRef = ref();
   const rowRefs = ref();

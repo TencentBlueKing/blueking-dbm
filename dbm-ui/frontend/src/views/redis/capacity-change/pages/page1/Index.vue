@@ -30,7 +30,7 @@
           :removeable="tableData.length < 2"
           :versions-map="versionsMap"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domainObj: RedisModel) => handleChangeCluster(index, domainObj)"
           @remove="handleRemove(index)" />
       </RenderData>
     </div>
@@ -93,10 +93,6 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_SCALE_UPDOWN,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
       tableData.value = cloneData;
       window.changeConfirm = true;
     },
@@ -176,29 +172,11 @@
   };
 
   // 输入集群后查询集群信息并填充到table
-  const handleChangeCluster = async (index: number, domain: string) => {
-    if (!domain) {
-      const cluster = tableData.value[index].targetCluster;
-      domainMemo[cluster] = false;
-      tableData.value[index].targetCluster = '';
-      return;
-    }
-    tableData.value[index].isLoading = true;
-    const result = await getRedisList({ exact_domain: domain }).finally(() => {
-      tableData.value[index].isLoading = false;
-    });
-    if (result.results.length < 1) {
-      return;
-    }
-    const list = result.results.filter((item) => item.master_domain === domain);
-    if (list.length === 0) {
-      return;
-    }
-    const item = list[0];
-    const row = generateRowDateFromRequest(item);
+  const handleChangeCluster = async (index: number, domainObj: RedisModel) => {
+    const row = generateRowDateFromRequest(domainObj);
     tableData.value[index] = row;
-    domainMemo[domain] = true;
-    selectedClusters.value[ClusterTypes.REDIS].push(item);
+    domainMemo[domainObj.master_domain] = true;
+    selectedClusters.value[ClusterTypes.REDIS].push(domainObj);
   };
 
   // 追加一个集群

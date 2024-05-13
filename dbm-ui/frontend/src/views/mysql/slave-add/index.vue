@@ -97,7 +97,7 @@
   } from '@services/source/mysqlCluster';
   import { createTicket } from '@services/source/ticket';
 
-  import { useInfo, useTableMaxHeight } from '@hooks';
+  import { useInfo, useTableMaxHeight, useTicketCloneInfo } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -134,6 +134,16 @@
   } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const tableMaxHeight = useTableMaxHeight(334);
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_ADD_SLAVE,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.tableDataList;
+      fetchClusterInfoByDomains();
+      window.changeConfirm = true;
+    },
+  });
 
   const ticketId = ref(0);
   const toolboxTableRef = ref();

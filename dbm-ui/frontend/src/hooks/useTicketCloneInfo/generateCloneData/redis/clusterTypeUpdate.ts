@@ -12,6 +12,7 @@
  */
 import RedisModel from '@services/model/redis/redis';
 import type { RedisClusterTypeUpdateDetails } from '@services/model/ticket/details/redis';
+import TicketModel from '@services/model/ticket/ticket';
 import { getRedisList } from '@services/source/redis';
 
 import { random } from '@utils';
@@ -19,8 +20,8 @@ import { random } from '@utils';
 import { t } from '@locales/index';
 
 // Redis 集群类型变更
-export async function generateRedisClusterTypeUpdateCloneData(details: RedisClusterTypeUpdateDetails) {
-  const { clusters, infos } = details;
+export async function generateRedisClusterTypeUpdateCloneData(ticketData: TicketModel<RedisClusterTypeUpdateDetails>) {
+  const { clusters, infos } = ticketData.details;
   const clusterListResult = await getRedisList({
     cluster_ids: infos.map((item) => item.src_cluster).join(','),
   });
@@ -68,7 +69,7 @@ export async function generateRedisClusterTypeUpdateCloneData(details: RedisClus
   });
   return {
     tableList: tableData,
-    type: details.data_check_repair_setting.type,
-    frequency: details.data_check_repair_setting.execution_frequency,
+    type: ticketData.details.data_check_repair_setting.type,
+    frequency: ticketData.details.data_check_repair_setting.execution_frequency,
   };
 }

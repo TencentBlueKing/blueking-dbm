@@ -88,7 +88,7 @@
   const router = useRouter();
   const route = useRoute();
 
-  const isEditMode = route.name === 'mysqlOpenareaTemplateEdit';
+  const isEditMode = route.name === 'MySQLOpenareaTemplateEdit';
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
@@ -152,7 +152,7 @@
           messageSuccess(isEditMode ? t('编辑成功') : t('新建成功'));
           window.changeConfirm = false;
           router.push({
-            name: 'mysqlOpenareaTemplate',
+            name: 'MySQLOpenareaTemplate',
           });
         });
       })
@@ -168,7 +168,7 @@
   defineExpose({
     routerBack() {
       router.push({
-        name: 'mysqlOpenareaTemplate',
+        name: 'MySQLOpenareaTemplate',
       });
     },
   });

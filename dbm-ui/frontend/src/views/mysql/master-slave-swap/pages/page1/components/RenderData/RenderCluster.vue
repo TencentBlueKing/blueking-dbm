@@ -64,7 +64,10 @@
   const isLoading = ref(false);
   const relatedClusterList = shallowRef<InstanceInfos['related_clusters']>([]);
 
-  watch(() => props.masterData, () => {
+  watch(() => props.masterData, (newMasterData, oldMasterData) => {
+    if (newMasterData?.bk_host_id === oldMasterData?.bk_host_id) {
+      return;
+    }
     relatedClusterList.value = [];
     emits('change', []);
     if (props.masterData && props.masterData.ip) {

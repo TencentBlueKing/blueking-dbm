@@ -72,6 +72,7 @@
 </template>
 <script setup lang="ts">
   import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
+  import type { RedisClusterType as ClusterType } from '@services/model/ticket/details/redis';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -85,7 +86,6 @@
 
   import { destroyLocalStorage } from '../../Index.vue';
 
-  import { ClusterType } from './RenderClusterType.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './Row.vue';
 
   interface Props {
@@ -107,11 +107,7 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
-      tableData.value = cloneData.tableList as unknown as IDataRow[];
+      tableData.value = cloneData.tableList;
       window.changeConfirm = true;
     },
   });

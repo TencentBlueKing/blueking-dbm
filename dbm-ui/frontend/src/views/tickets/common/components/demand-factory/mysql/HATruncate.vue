@@ -21,12 +21,13 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { MySQLHATruncateDetails, TicketDetails } from '@services/types/ticket';
+  import type { MySQLHATruncateDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import { truncateDataTypes } from '@views/mysql/db-clear/common/const';
 
   interface Props {
-    ticketDetails: TicketDetails<MySQLHATruncateDetails>
+    ticketDetails: TicketModel<MySQLHATruncateDetails>
   }
 
   const props = defineProps<Props>();

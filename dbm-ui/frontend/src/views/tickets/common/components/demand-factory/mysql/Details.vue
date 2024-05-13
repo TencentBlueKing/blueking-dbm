@@ -157,8 +157,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type { MySQLDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
   import { getInfrasCities } from '@services/ticket';
-  import type { MySQLDetails, TicketDetails } from '@services/types/ticket';
 
   import { useSystemEnviron } from '@stores';
 
@@ -169,7 +170,7 @@
   import SpecInfos from '../../SpecInfos.vue';
 
   interface Props {
-    ticketDetails: TicketDetails<MySQLDetails>;
+    ticketDetails: TicketModel<MySQLDetails>;
   }
 
   const props = defineProps<Props>();

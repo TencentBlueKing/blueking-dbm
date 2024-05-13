@@ -54,6 +54,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import RedisModel from '@services/model/redis/redis';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
@@ -112,7 +114,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', value: string): void;
+    (e: 'clusterInputFinish', value: RedisModel): void;
   }
 
   interface Exposes {
@@ -135,7 +137,7 @@
     targetMax.value = arr.length;
   };
 
-  const handleInputFinish = (value: string) => {
+  const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
   };
 

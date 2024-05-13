@@ -154,7 +154,7 @@ export default [
     children: [
       {
         name: t('开区模版'),
-        id: 'mysqlOpenareaTemplate',
+        id: 'MySQLOpenareaTemplate',
         parentId: 'mysql_openarea',
       },
     ],

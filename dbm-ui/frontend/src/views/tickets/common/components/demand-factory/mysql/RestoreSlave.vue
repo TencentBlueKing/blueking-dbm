@@ -21,14 +21,11 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type {
-    MysqlIpItem,
-    MySQLRestoreSlaveDetails,
-    TicketDetails,
-  } from '@services/types/ticket';
+  import type { MysqlIpItem, MySQLRestoreSlaveDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<MySQLRestoreSlaveDetails>
+    ticketDetails: TicketModel<MySQLRestoreSlaveDetails>
   }
 
   const props = defineProps<Props>();
@@ -45,15 +42,17 @@
   }
 
   // MySQL Slave重建
-  const columns: any = [{
-    label: t('集群ID'),
-    field: 'cluster_ids',
-    render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('集群名称'),
-    field: 'immute_domain',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: restoreSlaveItem }) => (
+  const columns = [
+    {
+      label: t('集群ID'),
+      field: 'cluster_ids',
+      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('集群名称'),
+      field: 'immute_domain',
+      showOverflowTooltip: false,
+      render: ({ data }: { data: restoreSlaveItem }) => (
       <div class="cluster-name text-overflow"
         v-overflow-tips={{
           content: `
@@ -66,25 +65,32 @@
         <span class="cluster-name__alias">{data.name}</span>
       </div>
     ),
-  }, {
-    label: t('旧从库主机'),
-    field: 'old_slave',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('新从库主机'),
-    field: 'new_slave',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('备份源'),
-    field: 'backup_source',
-    render: ({ cell }: { cell: string }) => <span>{cell === 'local' ? t('本地备份') : '--'}</span>,
-  }];
+    },
+    {
+      label: t('旧从库主机'),
+      field: 'old_slave',
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('新从库主机'),
+      field: 'new_slave',
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('备份源'),
+      field: 'backup_source',
+      render: ({ cell }: { cell: string }) => <span>{cell === 'local' ? t('本地备份') : '--'}</span>,
+    }
+  ];
 
   const dataList = computed(() => {
     const list: restoreSlaveItem[] = [];
-    const infosData = props.ticketDetails?.details?.infos || [];
-    const clusters = props.ticketDetails?.details?.clusters || {};
-    infosData.forEach((item) => {
+    const {
+      clusters,
+      backup_source,
+      infos,
+    } = props.ticketDetails.details;
+    infos.forEach((item) => {
       if (item.cluster_ids) {
         item.cluster_ids.forEach((id) => {
           const clusterData = clusters[id];
@@ -92,7 +98,7 @@
             cluster_ids: id,
             new_slave: item.new_slave.ip,
             old_slave: item.old_slave.ip,
-            backup_source: item.backup_source,
+            backup_source,
             immute_domain: clusterData.immute_domain,
             name: clusterData.name,
           }));

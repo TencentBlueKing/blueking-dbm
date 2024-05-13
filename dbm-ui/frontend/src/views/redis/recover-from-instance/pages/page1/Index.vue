@@ -110,12 +110,11 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
-      const { tableList, writeMode } = cloneData;
-
+      const {
+        tableList,
+        writeMode,
+      } = cloneData;
+      
       tableData.value = tableList;
       writeType.value = writeMode;
       window.changeConfirm = true;

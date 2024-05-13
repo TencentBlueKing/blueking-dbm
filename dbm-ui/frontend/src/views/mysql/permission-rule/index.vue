@@ -67,6 +67,7 @@
       @success="fetchData" />
     <!-- 集群授权 -->
     <ClusterAuthorize
+      ref="clusterAuthorizeRef"
       v-model="authorizeState.isShow"
       :access-dbs="authorizeState.dbs"
       :account-type="AccountTypes.MYSQL"
@@ -123,12 +124,14 @@
   import {
     useInfoWithIcon,
     useTableMaxHeight,
+    useTicketCloneInfo,
   } from '@hooks';
 
   import {
     AccountTypes,
     ClusterTypes,
     OccupiedInnerHeight,
+    TicketTypes,
   } from '@common/const';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue'
@@ -144,6 +147,30 @@
   type IPermissioRule = ServiceReturnType<typeof getPermissionRules>['results'][number]
 
   const { t } = useI18n();
+
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_AUTHORIZE_RULES,
+    onSuccess(cloneData) {
+      const {
+        dbs,
+        user,
+        clusterType,
+        clusterList,
+        sourceIpList,
+      } = cloneData;
+      authorizeState.isShow = true;
+      authorizeState.dbs = dbs;
+      authorizeState.user = user;
+      clusterAuthorizeRef.value!.initSelectorData({
+        clusterType,
+        clusterList,
+        sourceIpList,
+      });
+      window.changeConfirm = true;
+    },
+  });
+
+  const clusterAuthorizeRef = ref<InstanceType<typeof ClusterAuthorize>>();
 
   /**
    * search select 过滤参数

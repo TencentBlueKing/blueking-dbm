@@ -12,32 +12,30 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <ColumnCluster
-          ref="clusterRef"
-          :model-value="localClusterData" />
-      </td>
-      <td
-        v-for="variableName in variableList"
-        :key="variableName"
-        style="padding: 0">
-        <ColumnVariable
-          ref="variableRefs"
-          :name="variableName" />
-      </td>
-      <td style="padding: 0">
-        <ColumnHost
-          ref="hostRef"
-          :cluster-data="localClusterData" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <ColumnCluster
+        ref="clusterRef"
+        :model-value="localClusterData" />
+    </td>
+    <td
+      v-for="variableName in variableList"
+      :key="variableName"
+      style="padding: 0">
+      <ColumnVariable
+        ref="variableRefs"
+        :name="variableName" />
+    </td>
+    <td style="padding: 0">
+      <ColumnHost
+        ref="hostRef"
+        :cluster-data="localClusterData" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';

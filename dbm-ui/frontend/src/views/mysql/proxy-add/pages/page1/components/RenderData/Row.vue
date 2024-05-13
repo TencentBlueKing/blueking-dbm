@@ -12,43 +12,41 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :model-value="data.clusterData"
-          relate-cluster-tips="同主机关联的其他集群，勾选后一并添加"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
-      </td>
-      <td style="padding: 0">
-        <RenderProxy
-          ref="proxyRef"
-          :cloud-id="cloudId"
-          :disabled="!localClusterId"
-          :domain="data.clusterData?.domain"
-          :model-value="data.proxyIp" />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
+  <tr>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        :model-value="data.clusterData"
+        relate-cluster-tips="同主机关联的其他集群，勾选后一并添加"
+        @id-change="handleClusterIdChange"
+        @input-create="handleCreate" />
+    </td>
+    <td style="padding: 0">
+      <RenderProxy
+        ref="proxyRef"
+        :cloud-id="cloudId"
+        :disabled="!localClusterId"
+        :domain="data.clusterData?.domain"
+        :model-value="data.proxyIp" />
+    </td>
+    <td>
+      <div class="action-box">
+        <div
+          class="action-btn"
+          @click="handleAppend">
+          <DbIcon type="plus-fill" />
         </div>
-      </td>
-    </tr>
-  </tbody>
+        <div
+          class="action-btn"
+          :class="{
+            disabled: removeable,
+          }"
+          @click="handleRemove">
+          <DbIcon type="minus-fill" />
+        </div>
+      </div>
+    </td>
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';

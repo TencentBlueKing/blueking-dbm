@@ -156,7 +156,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   },
   {
     path: 'openarea-template',
-    name: 'mysqlOpenareaTemplate',
+    name: 'MySQLOpenareaTemplate',
     meta: {
       navName: t('开区模版'),
     },
@@ -263,7 +263,7 @@ const commonRouters: RouteRecordRaw[] = [
       },
       {
         path: 'openarea-template-create',
-        name: 'mysqlOpenareaTemplateCreate',
+        name: 'MySQLOpenareaTemplateCreate',
         meta: {
           navName: t('新建开区模板'),
         },
@@ -271,7 +271,7 @@ const commonRouters: RouteRecordRaw[] = [
       },
       {
         path: 'openarea-template-edit/:id',
-        name: 'mysqlOpenareaTemplateEdit',
+        name: 'MySQLOpenareaTemplateEdit',
         meta: {
           navName: t('编辑开区模板'),
         },

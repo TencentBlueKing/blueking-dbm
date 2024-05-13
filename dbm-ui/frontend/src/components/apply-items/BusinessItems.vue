@@ -172,7 +172,7 @@
   );
 
   watch(
-    bizId,
+    () => [bizId.value, bizList.value],
     () => {
       currentBiz.value = _.find(bizList.value, (item) => item.bk_biz_id === bizId.value);
       const englishName = currentBiz.value?.english_name;

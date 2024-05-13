@@ -114,10 +114,6 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_CUTOFF,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
       tableData.value = cloneData;
       sortTableByCluster();
       updateSlaveMasterMap();

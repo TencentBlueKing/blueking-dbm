@@ -108,6 +108,7 @@
   import {
     useInfo,
     useTableMaxHeight,
+    useTicketCloneInfo,
   } from '@hooks';
 
   import {
@@ -151,6 +152,19 @@
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const tableMaxHeight = useTableMaxHeight(334);
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
+    onSuccess(cloneData) {
+      const {
+        tableDataList,
+      } = cloneData;
+      tableData.value = tableDataList;
+      window.changeConfirm = true;
+    },
+  });
+
   let tippyInst:Instance | undefined;
 
   const ticketId = ref(0);

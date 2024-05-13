@@ -70,9 +70,7 @@
   </tr>
 </template>
 <script lang="ts">
-  import { ref } from 'vue';
-
-  import { RedisClusterTypes } from '@services/model/redis/redis';
+  import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
@@ -148,7 +146,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', value: string): void;
+    (e: 'clusterInputFinish', value: RedisModel): void;
   }
 
   interface Exposes {
@@ -177,7 +175,7 @@
     return [];
   });
 
-  const handleInputFinish = (value: string) => {
+  const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
   };
 

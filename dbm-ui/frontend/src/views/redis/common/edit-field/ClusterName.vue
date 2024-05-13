@@ -17,8 +17,7 @@
       ref="editRef"
       v-model="localValue"
       :placeholder="t('请输入或选择集群')"
-      :rules="rules"
-      @submit="handleInputFinish" />
+      :rules="rules" />
   </div>
 </template>
 <script setup lang="ts">
@@ -36,12 +35,14 @@
   }
 
   interface Emits {
-    (e: 'inputFinish', value: string): void
+    (e: 'inputFinish', value: RedisModel): void;
   }
 
   interface Exposes {
     getValue: () => Promise<string>;
   }
+
+  type RedisModel = ServiceReturnType<typeof getRedisList>['results'][number];
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
@@ -65,8 +66,11 @@
     },
     {
       validator: async (value: string) => {
-        const result = await getRedisList({ exact_domain: value });
-        return result.results.filter((item) => item.master_domain === value).length > 0;
+        const listResult = await getRedisList({ exact_domain: value });
+        if (listResult.results.length) {
+          emits('inputFinish', listResult.results[0]);
+        }
+        return listResult.results.length > 0;
       },
       message: t('目标集群不存在'),
     },
@@ -76,22 +80,15 @@
     },
   ];
 
-  let oldInputValue = '';
-
-  watch(() => props.data, (data) => {
-    localValue.value = data;
-    oldInputValue = data;
-  }, {
-    immediate: true,
-  });
-
-  const handleInputFinish = (value: string) => {
-    if (oldInputValue === value) {
-      return;
-    }
-    oldInputValue = value;
-    emits('inputFinish', value);
-  };
+  watch(
+    () => props.data,
+    (data) => {
+      localValue.value = data;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {

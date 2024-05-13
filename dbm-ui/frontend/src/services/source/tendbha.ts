@@ -14,14 +14,10 @@
 import TendbhaModel from '@services/model/mysql/tendbha';
 import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 import type { ListBase, ResourceItem, ResourceTopo } from '../types';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/mysql/bizs/${currentBizId}/tendbha_resources`;
+const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/tendbha_resources`;
 
 /**
  * 查询资源列表
@@ -35,7 +31,7 @@ export function getTendbhaList(params: {
   cluster_ids?: number[] | number;
   domain?: string;
 }) {
-  return http.get<ListBase<TendbhaModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<TendbhaModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
       (item) =>
@@ -74,14 +70,14 @@ export function getTendbhaTableFields() {
       key: string;
       name: string;
     }[]
-  >(`${path}/get_table_fields/`);
+  >(`${getRootPath()}/get_table_fields/`);
 }
 
 /**
  * 获取集群实例列表
  */
 export const getTendbhaInstanceList = function (params: Record<string, any> & { role_exclude?: string }) {
-  return http.get<ListBase<TendbhaInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+  return http.get<ListBase<TendbhaInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new TendbhaInstanceModel(item)),
   }));
@@ -131,33 +127,33 @@ export function retrieveTendbhaInstance(params: {
   cluster_id?: number;
   dbType: string;
 }) {
-  return http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
+  return http.get<InstanceDetails>(`${getRootPath()}/retrieve_instance/`, params);
 }
 
 /**
  * 获取集群详情
  */
 export function getTendbhaDetail(params: { id: number }) {
-  return http.get<ResourceItem>(`${path}/${params.id}/`);
+  return http.get<ResourceItem>(`${getRootPath()}/${params.id}/`);
 }
 
 /**
  * 获取集群拓扑
  */
 export function getTendbhaTopoGraph(params: { cluster_id: number }) {
-  return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
+  return http.get<ResourceTopo>(`${getRootPath()}/${params.cluster_id}/get_topo_graph/`);
 }
 
 /**
  * 导出集群数据为 excel 文件
  */
 export function exportTendbhaClusterToExcel(params: { cluster_ids?: number[] }) {
-  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出实例数据为 excel 文件
  */
 export function exportTendbhaInstanceToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
 }

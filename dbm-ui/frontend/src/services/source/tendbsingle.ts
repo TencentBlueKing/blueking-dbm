@@ -13,20 +13,16 @@
 import TendbsingleInstanceModel from '@services/model/mysql/tendbha-instance';
 import TendbsingleModel from '@services/model/mysql/tendbsingle';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 import type { ListBase, ResourceItem, ResourceTopo } from '../types';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/mysql/bizs/${currentBizId}/tendbsingle_resources`;
+const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/tendbsingle_resources`;
 
 /**
  * 查询资源列表
  */
 export function getTendbsingleList(params: { limit: number; offset: number; cluster_ids?: number[] | number }) {
-  return http.get<ListBase<TendbsingleModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<TendbsingleModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
       (item) =>
@@ -60,14 +56,14 @@ export function getTendbsingleTableFields() {
       key: string;
       name: string;
     }[]
-  >(`${path}/get_table_fields/`);
+  >(`${getRootPath()}/get_table_fields/`);
 }
 
 /**
  * 获取集群实例列表
  */
 export function getTendbsingleInstanceList(params: Record<string, any>) {
-  return http.get<ListBase<TendbsingleInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+  return http.get<ListBase<TendbsingleInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item: TendbsingleInstanceModel) => new TendbsingleInstanceModel(item)),
   }));
@@ -117,33 +113,33 @@ export function retrieveTendbsingleInstance(params: {
   cluster_id?: number;
   dbType: string;
 }) {
-  return http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
+  return http.get<InstanceDetails>(`${getRootPath()}/retrieve_instance/`, params);
 }
 
 /**
  * 获取集群详情
  */
 export function getTendbsingleDetail(params: { id: number }) {
-  return http.get<ResourceItem>(`${path}/${params.id}/`);
+  return http.get<ResourceItem>(`${getRootPath()}/${params.id}/`);
 }
 
 /**
  * 获取集群拓扑
  */
 export function getTendbsingleTopoGraph(params: { cluster_id: number }) {
-  return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
+  return http.get<ResourceTopo>(`${getRootPath()}/${params.cluster_id}/get_topo_graph/`);
 }
 
 /**
  * 导出集群数据为 excel 文件
  */
 export function exportTendbsingleClusterToExcel(params: { cluster_ids?: number[] }) {
-  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出实例数据为 excel 文件
  */
 export function exportTendbsingleInstanceToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
 }

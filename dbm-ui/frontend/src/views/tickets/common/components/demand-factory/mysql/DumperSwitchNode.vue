@@ -20,13 +20,11 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type {
-    DumperSwitchNodeDetails,
-    TicketDetails,
-  } from '@services/types/ticket';
+  import type { DumperSwitchNodeDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<DumperSwitchNodeDetails>
+    ticketDetails: TicketModel<DumperSwitchNodeDetails>
   }
 
   const props = defineProps<Props>();

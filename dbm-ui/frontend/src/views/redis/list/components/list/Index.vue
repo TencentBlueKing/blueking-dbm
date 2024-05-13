@@ -232,10 +232,6 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_KEYS_EXTRACT,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
       extractState.isShow = true;
       extractState.data = cloneData;
       window.changeConfirm = true;
@@ -246,10 +242,6 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_KEYS_DELETE,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
       deleteKeyState.isShow = true;
       deleteKeyState.data = cloneData;
       window.changeConfirm = true;
@@ -260,10 +252,6 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_BACKUP,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
       backupState.isShow = true;
       backupState.data = cloneData;
       window.changeConfirm = true;
@@ -274,10 +262,6 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_PURGE,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
       purgeState.isShow = true;
       purgeState.data = cloneData;
       window.changeConfirm = true;

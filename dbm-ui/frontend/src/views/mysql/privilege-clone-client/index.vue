@@ -86,7 +86,7 @@
   } from '@services/source/ipchooser';
   import { createTicket } from '@services/source/ticket';
 
-  import { useInfo, useTableMaxHeight } from '@hooks';
+  import { useInfo, useTableMaxHeight, useTicketCloneInfo } from '@hooks';
 
   import { TicketTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
@@ -115,6 +115,21 @@
     data: TableItem
   }
 
+  const { t } = useI18n();
+  const globalBizsStore = useGlobalBizs();
+  const tableMaxHeight = useTableMaxHeight(334);
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
+    onSuccess(cloneData) {
+      const { tableDataList } = cloneData;
+      tableData.value = tableDataList;
+      fetchHostTopoInfos(tableDataList.map(item => item.source));
+      window.changeConfirm = true;
+    },
+  });
+
   const getSourceInfos = (cloudIp = '') => {
     const [cloudId, ip] = cloudIp.split(':');
     return {
@@ -132,10 +147,6 @@
     target: '',
     uniqueId: generateId('CLONE_CLIENT_'),
   });
-
-  const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
-  const tableMaxHeight = useTableMaxHeight(334);
 
   const ticketId = ref(0);
   const toolboxTableRef = ref();

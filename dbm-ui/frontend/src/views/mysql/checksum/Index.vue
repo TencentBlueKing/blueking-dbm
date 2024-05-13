@@ -166,6 +166,7 @@
   import {
     useInfo,
     useTableMaxHeight,
+    useTicketCloneInfo,
     useTimeZoneFormat,
   } from '@hooks';
 
@@ -235,6 +236,18 @@
   const tableMaxHeight = useTableMaxHeight(334);
   const formatDateToUTC = useTimeZoneFormat();
 
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_CHECKSUM,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.tableDataList,
+      formdata.timing = cloneData.timing;
+      formdata.runtime_hour = cloneData.runtime_hour;
+      formdata.data_repair = cloneData.data_repair;
+      window.changeConfirm = true;
+    },
+  });
+
   const ticketId = ref(0);
   const toolboxTableRef = ref();
   const checksumFormRef = ref();
@@ -243,6 +256,7 @@
   const isSubmitting = ref(false);
   const popRef = ref<HTMLDivElement>();
   const isShowInputTips = ref(false);
+  const tableData = ref<Array<TableItem>>([getTableItem()]);
 
   const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
 
@@ -277,7 +291,7 @@
     }
     return steps;
   });
-  const tableData = ref<Array<TableItem>>([getTableItem()]);
+  
   const rules = {
     cluster: [
       {

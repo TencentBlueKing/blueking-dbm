@@ -12,13 +12,14 @@
  */
 import RedisModel from '@services/model/redis/redis';
 import type { RedisProxyScaleUpDetails } from '@services/model/ticket/details/redis';
+import TicketModel from '@services/model/ticket/ticket';
 import { getRedisList } from '@services/source/redis';
 
 import { random } from '@utils';
 
 // Redis 接入层扩容
-export async function generateRedisProxyScaleUpCloneData(details: RedisProxyScaleUpDetails) {
-  const { clusters, infos, specs } = details;
+export async function generateRedisProxyScaleUpCloneData(ticketData: TicketModel<RedisProxyScaleUpDetails>) {
+  const { clusters, infos, specs } = ticketData.details;
   const clusterListResult = await getRedisList({
     cluster_ids: infos.map((item) => item.cluster_id).join(','),
   });

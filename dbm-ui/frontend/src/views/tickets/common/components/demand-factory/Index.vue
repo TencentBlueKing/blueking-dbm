@@ -72,9 +72,10 @@
   import MySQLProxyAdd from './mysql/ProxyAdd.vue';
   import MySQLProxySwitch from './mysql/ProxySwitch.vue';
   import MySQLRename from './mysql/Rename.vue';
+  import MySQLRestoreLocalSlave from './mysql/RestoreLocalSlave.vue';
   import MySQLRestoreSlave from './mysql/RestoreSlave.vue';
   import MySQLRollbackCluster from './mysql/RollbackCluster.vue';
-  import MySQLSlave from './mysql/Slave.vue';
+  import MySQLAddSlave from './mysql/SlaveAdd.vue';
   import MySQLTableBackup from './mysql/TableBackup.vue';
   import RedisAddSlave from './redis/AddSlave.vue';
   import CLBDetail from './redis/CLBDetail.vue';
@@ -152,11 +153,6 @@
     TicketTypes.MYSQL_SINGLE_ENABLE,
     TicketTypes.MYSQL_HA_DESTROY,
     TicketTypes.MYSQL_SINGLE_DESTROY,
-  ];
-
-  const mysqlSlaveType = [
-    TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
-    TicketTypes.MYSQL_ADD_SLAVE,
   ];
 
   const dumperNodeStatusUpdateType = [
@@ -300,9 +296,11 @@
     [TicketTypes.MYSQL_FLASHBACK]: MySQLFlashback,
     [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: MySQLRollbackCluster,
     [TicketTypes.MYSQL_RESTORE_SLAVE]: MySQLRestoreSlave,
+    [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: MySQLRestoreLocalSlave,
     [TicketTypes.MYSQL_HA_FULL_BACKUP]: MySQLFullBackup,
     [TicketTypes.MYSQL_CHECKSUM]: MySQLChecksum,
     [TicketTypes.MYSQL_OPEN_AREA]: MysqlOpenArea,
+    [TicketTypes.MYSQL_ADD_SLAVE]: MySQLAddSlave,
     [TicketTypes.TBINLOGDUMPER_INSTALL]: DumperInstall,
     [TicketTypes.TBINLOGDUMPER_SWITCH_NODES]: DumperSwitchNode,
     [TicketTypes.PULSAR_APPLY]: DetailsPulsar,
@@ -368,10 +366,6 @@
     // M权限克隆
     if (clones.includes(ticketType)) {
       return MySQLClone;
-    }
-    // MySQL Slave
-    if (mysqlSlaveType.includes(ticketType)) {
-      return MySQLSlave;
     }
     // MySQL 清档
     if (mysqlTruncateDataTypes.includes(ticketType)) {

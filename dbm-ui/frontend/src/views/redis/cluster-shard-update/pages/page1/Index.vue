@@ -30,7 +30,7 @@
           :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domainObj: RedisModel) => handleChangeCluster(index, domainObj)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div
@@ -114,7 +114,6 @@
 
   import RedisModel from '@services/model/redis/redis';
   import { RepairAndVerifyFrequencyModes, RepairAndVerifyModes } from '@services/model/redis/redis-dst-history-job';
-  import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
   import { getClusterTypeToVersions } from '@services/source/version';
   import type { SubmitTicket } from '@services/types/ticket';
@@ -149,11 +148,8 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
       const { tableList, type, frequency } = cloneData;
+
       tableData.value = tableList;
       repairAndVerifyType.value = type;
       repairAndVerifyFrequency.value = frequency;
@@ -251,29 +247,11 @@
   };
 
   // 输入集群后查询集群信息并填充到table
-  const handleChangeCluster = async (index: number, domain: string) => {
-    if (!domain) {
-      const cluster = tableData.value[index].srcCluster;
-      domainMemo[cluster] = false;
-      tableData.value[index].srcCluster = '';
-      return;
-    }
-    tableData.value[index].isLoading = true;
-    const result = await getRedisList({ exact_domain: domain }).finally(() => {
-      tableData.value[index].isLoading = false;
-    });
-    if (result.results.length < 1) {
-      return;
-    }
-    const list = result.results.filter((item) => item.master_domain === domain);
-    if (list.length === 0) {
-      return;
-    }
-    const item = list[0];
-    const row = generateTableRow(item);
+  const handleChangeCluster = async (index: number, domainObj: RedisModel) => {
+    const row = generateTableRow(domainObj);
     tableData.value[index] = row;
-    domainMemo[domain] = true;
-    selectedClusters.value[ClusterTypes.REDIS].push(item);
+    domainMemo[domainObj.master_domain] = true;
+    selectedClusters.value[ClusterTypes.REDIS].push(domainObj);
   };
 
   // 追加一个集群

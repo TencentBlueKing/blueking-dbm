@@ -13,6 +13,7 @@
 
 <template>
   <BkPopover
+    always
     height="0"
     placement="bottom"
     :popover-delay="[100, 200]"
@@ -21,13 +22,11 @@
     <slot />
     <template #content>
       <div class="spec-diaplay-panel">
-        <div class="title">
-          {{ data.name }} {{ $t('规格') }}
-        </div>
+        <div class="title">{{ data.name }} {{ $t('规格') }}</div>
         <div class="items">
           <div class="item">
-            <div class="item__title">CPU：</div>
-            <div class="item__content">
+            <div class="item-title">CPU：</div>
+            <div class="item-content">
               {{
                 data.cpu.min === data.cpu.max
                   ? $t('n核', { n: data.cpu.min })
@@ -36,36 +35,36 @@
             </div>
           </div>
           <div class="item">
-            <div class="item__title">{{ $t('内存') }}：</div>
-            <div class="item__content">
+            <div class="item-title">{{ $t('内存') }}：</div>
+            <div class="item-content">
               {{ data.mem.min === data.mem.max ? data.mem.min : `(${data.mem.min}~${data.mem.max})` }} G
             </div>
           </div>
           <div
             class="item"
             style="align-items: flex-start">
-            <div class="item__title">{{ $t('磁盘') }}：</div>
-            <div class="item__content">
+            <div class="item-title">{{ $t('磁盘') }}：</div>
+            <div class="item-content">
               <div class="table">
                 <div class="head">
-                  <div class="head_one">
+                  <div class="head-one">
                     {{ $t('挂载点') }}
                   </div>
-                  <div class="head_two">
+                  <div class="head-two">
                     {{ $t('最小容量(G)') }}
                   </div>
-                  <div class="head_three">
+                  <div class="head-three">
                     {{ $t('磁盘类别') }}
                   </div>
                 </div>
                 <div class="row">
-                  <div class="row_one">
+                  <div class="row-one">
                     {{ data.storage_spec[0].mount_point }}
                   </div>
-                  <div class="row_two">
+                  <div class="row-two">
                     {{ data.storage_spec[0].size }}
                   </div>
-                  <div class="row_three">
+                  <div class="row-three">
                     {{ data.storage_spec[0].type }}
                   </div>
                 </div>
@@ -75,10 +74,10 @@
           <div
             v-if="!hideQps"
             class="item">
-            <div class="item__title">
+            <div class="item-title">
               {{ $t('单机 QPS') }}
             </div>
-            <div class="item__content">
+            <div class="item-content">
               {{ data.qps.min === data.qps.max ? `${data.qps.min}/s` : `${data.qps.min}/s~${data.qps.max}/s` }}
             </div>
           </div>
@@ -145,29 +144,7 @@
   });
 </script>
 <style lang="less" scoped>
-
-.spec-diaplay-panel {
-  display: flex;
-  width: 514px;
-  padding: 16px 24px 20px 16px;
-  margin-top: -12px;
-  margin-left: -12px;
-  background: #FFF;
-  border: 1px solid #DCDEE5;
-  box-shadow: 0 3px 6px 0 #00000029;
-  box-sizing: border-box;
-  flex-direction: column;
-
-  .title {
-    height: 20px;
-    margin-bottom: 18px;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 20px;
-    color: #63656E;
-  }
-
-  .items {
+  .spec-diaplay-panel {
     display: flex;
     width: 514px;
     padding: 16px 24px 20px 16px;
@@ -190,15 +167,30 @@
 
     .items {
       display: flex;
+      width: 100%;
+      padding: 16px 24px 20px 16px;
+      margin-top: -12px;
+      margin-left: -12px;
+      background: #fff;
+      box-sizing: border-box;
       flex-direction: column;
       gap: 18px;
+
+      .title {
+        height: 20px;
+        margin-bottom: 18px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 20px;
+        color: #63656e;
+      }
 
       .item {
         display: flex;
         width: 100%;
         align-items: center;
 
-        &__title {
+        .item-title {
           min-width: 36px;
           font-size: 12px;
           letter-spacing: 0;
@@ -206,7 +198,7 @@
           text-align: right;
         }
 
-        &__content {
+        .item-content {
           font-size: 12px;
           letter-spacing: 0;
           color: #313238;
@@ -227,13 +219,13 @@
               width: 100%;
               background: #f0f1f5;
 
-              &_one {
+              .head-one {
                 .cell_common();
 
                 border-bottom: none;
               }
 
-              &_two {
+              .head-two {
                 .cell_common();
 
                 width: 120px;
@@ -242,7 +234,7 @@
                 border-left: none;
               }
 
-              &_three {
+              .head-three {
                 .cell_common();
 
                 width: 120px;
@@ -254,11 +246,11 @@
               display: flex;
               width: 100%;
 
-              &_one {
+              .row-one {
                 .cell_common();
               }
 
-              &_two {
+              .row-two {
                 .cell_common();
 
                 width: 120px;
@@ -266,7 +258,7 @@
                 border-left: none;
               }
 
-              &_three {
+              .row-three {
                 .cell_common();
 
                 width: 120px;
@@ -276,6 +268,5 @@
         }
       }
     }
-   } 
   }
 </style>

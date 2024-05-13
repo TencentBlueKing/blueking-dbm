@@ -91,7 +91,7 @@
   import { getClusterDatabaseNameList } from '@services/source/remoteService';
   import { createTicket } from '@services/source/ticket';
 
-  import { useInfo, useTableMaxHeight } from '@hooks';
+  import { useInfo, useTableMaxHeight, useTicketCloneInfo } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -125,6 +125,21 @@
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const tableMaxHeight = useTableMaxHeight(334);
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_HA_RENAME_DATABASE,
+    onSuccess(cloneData) {
+      const {
+        force,
+        tableDataList
+      } = cloneData;
+      tableData.value = tableDataList;
+      isForce.value = force;
+      window.changeConfirm = true;
+    },
+  });
+
 
   const ticketId = ref(0);
   const toolboxTableRef = ref();

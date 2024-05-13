@@ -83,7 +83,7 @@
   import { createTicket } from '@services/source/ticket';
   import type { InstanceInfos } from '@services/types/clusters';
 
-  import { useInfo, useTableMaxHeight } from '@hooks';
+  import { useInfo, useTableMaxHeight, useTicketCloneInfo } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { ipPort } from '@common/regex';
@@ -116,6 +116,16 @@
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const tableMaxHeight = useTableMaxHeight(334);
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.tableDataList;
+      fetchInstanceInfos(cloneData.tableDataList.map(item => item.source));
+      window.changeConfirm = true;
+    },
+  });
 
   const ticketId = ref(0);
   const toolboxTableRef = ref();

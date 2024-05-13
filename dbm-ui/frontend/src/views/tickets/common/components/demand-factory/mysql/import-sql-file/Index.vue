@@ -123,15 +123,13 @@
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
+  import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
   import { getResources as getSpiderResources } from '@services/source/spider';
   import { batchFetchFile } from '@services/source/storage';
   import { getTendbhaList } from '@services/source/tendbha';
   import { getTendbsingleList } from '@services/source/tendbsingle';
   import type { ResourceItem } from '@services/types';
-  import type {
-    MySQLImportSQLFileDetails,
-    TicketDetails,
-  } from '@services/types/ticket';
 
   import { useDefaultPagination } from '@hooks';
 
@@ -146,7 +144,7 @@
   import RenderFileList from './components/SqlFileList.vue';
 
   interface Props {
-    ticketDetails: TicketDetails<MySQLImportSQLFileDetails>
+    ticketDetails: TicketModel<MySQLImportSQLFileDetails>
   }
 
   const props = defineProps<Props>();

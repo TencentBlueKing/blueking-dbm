@@ -67,7 +67,7 @@
   }
 
   interface Emits {
-    (e: 'inputFinish', value: string): void
+    (e: 'inputFinish', value: string): void;
   }
 
   interface Exposes {

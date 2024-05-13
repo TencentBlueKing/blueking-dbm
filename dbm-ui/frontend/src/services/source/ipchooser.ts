@@ -26,11 +26,11 @@ const path = '/apis/ipchooser';
  * 根据用户手动输入的`IP`/`IPv6`/`主机名`/`host_id`等关键字信息获取真实存在的机器信息
  */
 export function checkHost(params: {
-  mode?: string;
   ip_list: string[];
+  mode?: string;
   ipv6_list?: string[];
   key_list?: string[];
-  scope_list: IpScope[];
+  scope_list?: IpScope[];
 }) {
   return http.post<HostDetails[]>(`${path}/host/check/`, params);
 }

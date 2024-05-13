@@ -93,6 +93,7 @@
 
   interface Props {
     oldSlave?: IDataRow['oldSlave'];
+    newSlave?: IDataRow['newSlave'];
   }
 
   interface Exposes {
@@ -105,7 +106,7 @@
     }>;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -127,6 +128,21 @@
   ];
 
   const { message: errorMessage, validator } = useValidtor(rules);
+
+  watch(() => props.newSlave, () => {
+    if (props.newSlave) {
+      localHostData.value = {
+        biz: {
+          id: props.newSlave.bkBizId,
+        },
+        cloud_id: props.newSlave.bkCloudId,
+        host_id: props.newSlave.bkHostId,
+        ip: props.newSlave.ip,
+      } as HostDetails
+    }
+  }, {
+    immediate: true,
+  })
 
   watch(
     localHostData,

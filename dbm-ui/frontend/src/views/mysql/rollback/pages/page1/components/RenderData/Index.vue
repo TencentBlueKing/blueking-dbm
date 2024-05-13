@@ -15,8 +15,8 @@
   <div class="render-data">
     <RenderTable>
       <RenderTableHeadColumn
-        :min-width="180"
-        :width="180">
+        :min-width="130"
+        :width="150">
         {{ t('待回档集群') }}
         <template #append>
           <span
@@ -26,10 +26,14 @@
           </span>
         </template>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="180"
+        :width="180">
         {{ t('回档到新主机') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="100"
+        :width="120">
         <template #append>
           <BatchEditColumn
             v-model="isShowBatchEdit"
@@ -46,22 +50,35 @@
         </template>
         {{ t('备份源') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :min-width="240">
+      <RenderTableHeadColumn
+        :min-width="240"
+        :width="260">
         {{ t('回档类型') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="100"
+        :width="120">
         {{ t('回档DB名') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="100"
+        :width="120">
         {{ t('回档表名') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+      :min-width="100"
+        :required="false"
+        :width="120">
         {{ t('忽略DB名') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :min-width="100"
+        :required="false"
+        :width="120">
         {{ t('忽略表名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        fixed="right"
         :required="false"
         :width="90">
         {{ t('操作') }}
@@ -76,9 +93,8 @@
   import { useI18n } from 'vue-i18n';
 
   import BatchEditColumn from '@components/batch-edit-column/Index.vue';
-
-  import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/mysql/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
+  import RenderTable from '@components/render-table/Index.vue';
 
   interface Emits{
     (e: 'batchSelectCluster'): void

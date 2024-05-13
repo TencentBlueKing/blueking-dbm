@@ -91,9 +91,11 @@
   import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
@@ -116,6 +118,25 @@
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_MASTER_FAIL_OVER,
+    onSuccess(cloneData) {
+      const {
+        isCheckDelay,
+        isCheckProcess,
+        isVerifyChecksum,
+        tableDataList,
+      } = cloneData;
+      tableData.value = tableDataList;
+      formData.is_check_process = isCheckProcess;
+      formData.is_verify_checksum = isVerifyChecksum;
+      formData.is_check_delay = isCheckDelay;
+      window.changeConfirm = true;
+    },
+  });
+
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);

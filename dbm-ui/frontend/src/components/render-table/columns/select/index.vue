@@ -100,7 +100,7 @@
   watch(
     modelValue,
     (value) => {
-      if (!value) {
+      if (value === undefined) {
         return;
       }
       localValue.value = value;

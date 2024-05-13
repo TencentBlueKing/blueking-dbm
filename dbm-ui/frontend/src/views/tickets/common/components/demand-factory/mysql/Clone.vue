@@ -21,15 +21,13 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type {
-    MySQLCloneDetails,
-    TicketDetails,
-  } from '@services/types/ticket';
+  import type { MySQLCloneDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import { useCopy } from '@hooks';
 
   interface Props {
-    ticketDetails: TicketDetails<MySQLCloneDetails>
+    ticketDetails: TicketModel<MySQLCloneDetails>
   }
 
   const props = defineProps<Props>();

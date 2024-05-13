@@ -139,7 +139,7 @@
         messageSuccess(t('新建开区成功'));
         window.changeConfirm = false;
         router.push({
-          name: 'mysqlOpenareaTemplate',
+          name: 'MySQLOpenareaTemplate',
         });
       });
     },
