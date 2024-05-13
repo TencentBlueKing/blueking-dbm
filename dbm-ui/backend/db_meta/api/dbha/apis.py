@@ -27,7 +27,6 @@ from backend.db_meta.enums import (
     ClusterType,
     InstanceInnerRole,
     InstancePhase,
-    InstanceRole,
     InstanceStatus,
 )
 from backend.db_meta.exceptions import (
@@ -363,11 +362,11 @@ def swap_cc_svr_instance_role(ins1_obj: StorageInstance, ins2_obj: StorageInstan
     # 切换新master服务实例角色标签
     cc_manage.add_label_for_service_instance(
         bk_instance_ids=[ins1_obj.bk_instance_id],
-        labels_dict={"instance_role": InstanceRole.BACKEND_MASTER.value},
+        labels_dict={"instance_role": ins1_obj.instance_role},
     )
 
     # 切换新slave服务实例角色标签
     cc_manage.add_label_for_service_instance(
         bk_instance_ids=[ins2_obj.bk_instance_id],
-        labels_dict={"instance_role": InstanceRole.BACKEND_SLAVE.value},
+        labels_dict={"instance_role": ins2_obj.instance_role},
     )
