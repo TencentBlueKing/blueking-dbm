@@ -30,7 +30,7 @@ type TbSimulationTask struct {
 	Status        string    `gorm:"column:status;type:varchar(16);not null" json:"status"`
 	Stdout        string    `gorm:"column:stdout;type:mediumtext" json:"stdout"`
 	Stderr        string    `gorm:"column:stderr;type:mediumtext" json:"stderr"`
-	SysErrMsg     string    `gorm:"column:sys_err_msg;type:varchar(512);not null" json:"sys_err_msg"`
+	SysErrMsg     string    `gorm:"column:sys_err_msg;type:text" json:"sys_err_msg"`
 	Extra         string    `gorm:"column:extra;type:varchar(512);not null" json:"extra"`
 	HeartbeatTime time.Time `gorm:"column:heartbeat_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"heartbeat_time"`
 	UpdateTime    time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`
