@@ -149,6 +149,17 @@ class TenDBMigrateFlow(object):
             for ip in [node["master_ip"], node["slave_ip"]]:
                 node_cluster["uninstall_ip"] = ip
                 uninstall_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                uninstall_sub_pipeline.add_act(
+                    act_name=_("下发db-actor到节点{}".format(ip)),
+                    act_component_code=TransFileComponent.code,
+                    kwargs=asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=self.data["bk_cloud_id"],
+                            exec_ip=[ip],
+                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                        )
+                    ),
+                )
                 uninstall_sub_pipeline.add_sub_pipeline(
                     sub_flow=remote_node_uninstall_sub_flow(
                         root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=ip
@@ -166,17 +177,7 @@ class TenDBMigrateFlow(object):
                         )
                     ),
                 )
-                uninstall_sub_pipeline.add_act(
-                    act_name=_("下发db-actor到节点{}".format(ip)),
-                    act_component_code=TransFileComponent.code,
-                    kwargs=asdict(
-                        DownloadMediaKwargs(
-                            bk_cloud_id=self.data["bk_cloud_id"],
-                            exec_ip=[ip],
-                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                        )
-                    ),
-                )
+
                 # 下线机器
                 uninstall_sub_pipeline.add_act(
                     act_name=_("清理机器配置"),

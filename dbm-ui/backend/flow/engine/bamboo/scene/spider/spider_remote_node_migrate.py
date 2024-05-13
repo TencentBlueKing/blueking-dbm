@@ -200,6 +200,18 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
         kwargs=asdict(exec_act_kwargs),
     )
 
+    sub_pipeline.add_act(
+        act_name=_("下发db-actor到节点"),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=int(cluster["bk_cloud_id"]),
+                exec_ip=[cluster["master_ip"], cluster["new_slave_ip"], cluster["new_master_ip"]],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
+    )
+
     backup_info = cluster["backupinfo"]
     #  主从并发下载备份介质 下载为异步下载，定时调起接口扫描下载结果
     task_ids = [i["task_id"] for i in backup_info["file_list_details"]]
