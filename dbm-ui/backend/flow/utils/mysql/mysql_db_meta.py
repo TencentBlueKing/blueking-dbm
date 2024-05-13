@@ -777,10 +777,9 @@ class MySQLDBMeta(object):
                     port_list=[master.port],
                 )
                 api.cluster.tendbha.remove_slave(cluster_id=cluster.id, target_slave_ip=old_slave.machine.ip)
-                CcManage(self.bk_biz_id, cluster_type=cluster.cluster_type).delete_service_instance(
+                CcManage(cluster.bk_biz_id, cluster_type=cluster.cluster_type).delete_service_instance(
                     bk_instance_ids=[old_slave.bk_instance_id]
                 )
-
                 # 删除实例元数据信息
                 api.storage_instance.delete(
                     [
@@ -792,11 +791,9 @@ class MySQLDBMeta(object):
                     ]
                 )
             if not StorageInstance.objects.filter(
-                machine__ip=self.cluster["uninstall_ip"], machine__bk_cloud_id=int(self.ticket_data["bk_cloud_id"])
+                machine__ip=self.cluster["uninstall_ip"], machine__bk_cloud_id=cluster.bk_cloud_id
             ).exists():
-                api.machine.delete(
-                    machines=[self.cluster["uninstall_ip"]], bk_cloud_id=int(self.ticket_data["bk_cloud_id"])
-                )
+                api.machine.delete(machines=[self.cluster["uninstall_ip"]], bk_cloud_id=cluster.bk_cloud_id)
 
     def tendb_modify_storage_status(self):
         storage = StorageInstance.objects.get(id=self.cluster["storage_id"])
@@ -910,12 +907,6 @@ class MySQLDBMeta(object):
         """
         实例卸载完毕修改元数据
         """
-        cluster_types = (
-            Cluster.objects.filter(id__in=self.cluster["cluster_ids"])
-            .values_list("cluster_type", flat=True)
-            .distinct()
-        )
-        cluster_types_list = list(cluster_types)
         with atomic():
             for port in self.cluster["ports"]:
                 storage = StorageInstance.objects.get(
@@ -923,15 +914,11 @@ class MySQLDBMeta(object):
                     machine__bk_cloud_id=self.cluster["bk_cloud_id"],
                     port=port,
                 )
-                # 删除port之前先注销实例级别监控
-                for cluster_type in cluster_types_list:
-                    cc_manage = CcManage(storage.bk_biz_id, cluster_type=cluster_type)
-                    cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
+                cc_manage = CcManage(storage.bk_biz_id, cluster_type=self.cluster["cluster_type"])
+                cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
                 storage.delete()
 
             if not StorageInstance.objects.filter(
-                machine__ip=self.cluster["uninstall_ip"], machine__bk_cloud_id=int(self.ticket_data["bk_cloud_id"])
+                machine__ip=self.cluster["uninstall_ip"], machine__bk_cloud_id=self.cluster["bk_cloud_id"]
             ).exists():
-                api.machine.delete(
-                    machines=[self.cluster["uninstall_ip"]], bk_cloud_id=int(self.ticket_data["bk_cloud_id"])
-                )
+                api.machine.delete(machines=[self.cluster["uninstall_ip"]], bk_cloud_id=self.cluster["bk_cloud_id"])

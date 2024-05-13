@@ -283,7 +283,7 @@ class MySQLRestoreSlaveFlow(object):
                     kwargs=asdict(
                         ClearMachineKwargs(
                             exec_ip=self.data["old_slave_ip"],
-                            bk_cloud_id=self.data["bk_cloud_id"],
+                            bk_cloud_id=cluster_class.bk_cloud_id,
                         )
                     ),
                 )

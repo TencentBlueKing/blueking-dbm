@@ -140,7 +140,7 @@ class MySQLMigrateClusterFlow(object):
                 "cluster_ports": self.data["ports"],
                 "new_master_ip": self.data["new_master_ip"],
                 "new_slave_ip": self.data["new_slave_ip"],
-                "bk_cloud_id": self.data["bk_cloud_id"],
+                "bk_cloud_id": cluster_class.bk_cloud_id,
             }
             install_sub_pipeline.add_act(
                 act_name=_("安装完毕,写入初始化实例的db_meta元信息"),
@@ -300,7 +300,7 @@ class MySQLMigrateClusterFlow(object):
                     "uninstall_ip": ip,
                     "remote_port": self.data["ports"],
                     "backend_port": self.data["ports"],
-                    "bk_cloud_id": self.data["bk_cloud_id"],
+                    "bk_cloud_id": cluster_class.bk_cloud_id,
                 }
 
                 uninstall_svr_sub_pipeline.add_act(
@@ -322,14 +322,19 @@ class MySQLMigrateClusterFlow(object):
                         ExecActuatorKwargs(
                             exec_ip=ip,
                             cluster_type=ClusterType.TenDBHA,
-                            bk_cloud_id=cluster["bk_cloud_id"],
+                            bk_cloud_id=cluster_class.bk_cloud_id,
                             cluster=cluster,
                             get_mysql_payload_func=MysqlActPayload.get_clear_surrounding_config_payload.__name__,
                         )
                     ),
                 )
 
-                cluster = {"uninstall_ip": ip, "ports": self.data["ports"], "bk_cloud_id": self.data["bk_cloud_id"]}
+                cluster = {
+                    "uninstall_ip": ip,
+                    "ports": self.data["ports"],
+                    "bk_cloud_id": cluster_class.bk_cloud_id,
+                    "cluster_type": cluster_class.cluster_type,
+                }
                 uninstall_svr_sub_pipeline.add_act(
                     act_name=_("卸载实例前先删除元数据"),
                     act_component_code=MySQLDBMetaComponent.code,
@@ -348,7 +353,7 @@ class MySQLMigrateClusterFlow(object):
                     kwargs=asdict(
                         ClearMachineKwargs(
                             exec_ip=ip,
-                            bk_cloud_id=self.data["bk_cloud_id"],
+                            bk_cloud_id=cluster_class.bk_cloud_id,
                         )
                     ),
                 )

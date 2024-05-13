@@ -14,11 +14,12 @@ from dataclasses import asdict
 
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME
+from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME, DBType
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import MysqlChangeMasterType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import TenDBGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_backup
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
@@ -26,8 +27,14 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile import (
     MySQLDownloadBackupfileComponent,
 )
+from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent as MySQLTransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadBackupFileKwargs, ExecActuatorKwargs, P2PFileKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import (
+    DownloadBackupFileKwargs,
+    DownloadMediaKwargs,
+    ExecActuatorKwargs,
+    P2PFileKwargs,
+)
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.utils.time import str2datetime
 
@@ -79,6 +86,18 @@ def mysql_restore_data_sub_flow(
                 file_target_path=cluster["file_target_path"],
                 source_ip_list=[backup_info["instance_ip"]],
                 exec_ip=cluster["new_slave_ip"],
+            )
+        ),
+    )
+
+    sub_pipeline.add_act(
+        act_name=_("下发db-actor到节点{}".format(cluster["master_ip"])),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster_model.bk_cloud_id,
+                exec_ip=[cluster["master_ip"], cluster["new_slave_ip"]],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
             )
         ),
     )
@@ -271,6 +290,18 @@ def mysql_restore_master_slave_sub_flow(
         act_name=_("创建目录 {}".format(cluster["file_target_path"])),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
+    )
+
+    sub_pipeline.add_act(
+        act_name=_("下发db-actor到节点"),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster_model.bk_cloud_id,
+                exec_ip=[cluster["master_ip"], cluster["new_slave_ip"], cluster["new_master_ip"]],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
     )
 
     task_ids = ["{}/{}".format(backup_info["backup_dir"], i["file_name"]) for i in backup_info["file_list"]]
