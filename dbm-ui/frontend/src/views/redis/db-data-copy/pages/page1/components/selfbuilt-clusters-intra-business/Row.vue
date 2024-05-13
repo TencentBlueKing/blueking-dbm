@@ -59,6 +59,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import { RedisClusterType as ClusterType } from '@services/model/ticket/details/redis';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
@@ -70,7 +72,7 @@
   import { random } from '@utils';
 
   import RenderAccessCode from './RenderAccessCode.vue';
-  import RenderClusterType, { ClusterType } from './RenderClusterType.vue';
+  import RenderClusterType from './RenderClusterType.vue';
   import RenderSourceCluster from './RenderSourceCluster.vue';
 
   export interface IDataRow {

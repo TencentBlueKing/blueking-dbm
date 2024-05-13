@@ -12,13 +12,14 @@
  */
 import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
 import type { RedisScaleUpDownDetails } from '@services/model/ticket/details/redis';
+import TicketModel from '@services/model/ticket/ticket';
 import { getRedisList } from '@services/source/redis';
 
 import { random } from '@utils';
 
 // Redis 集群容量变更
-export async function generateRedisScaleUpdownCloneData(details: RedisScaleUpDownDetails) {
-  const { clusters, infos } = details;
+export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<RedisScaleUpDownDetails>) {
+  const { clusters, infos } = ticketData.details;
   const clusterListResult = await getRedisList({
     cluster_ids: infos.map((item) => item.cluster_id).join(','),
   });

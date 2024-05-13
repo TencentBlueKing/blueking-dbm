@@ -21,14 +21,11 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type {
-    MysqlIpItem,
-    MySQLMasterSlaveDetails,
-    TicketDetails,
-  } from '@services/types/ticket';
+  import type { MysqlIpItem, MySQLMasterSlaveDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<MySQLMasterSlaveDetails>
+    ticketDetails: TicketModel<MySQLMasterSlaveDetails>
   }
 
   const props = defineProps<Props>();

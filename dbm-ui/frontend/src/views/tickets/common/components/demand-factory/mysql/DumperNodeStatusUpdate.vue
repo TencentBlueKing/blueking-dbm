@@ -20,13 +20,11 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type {
-    DumperNodeStatusUpdateDetails,
-    TicketDetails,
-  } from '@services/types/ticket';
+  import type { DumperNodeStatusUpdateDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<DumperNodeStatusUpdateDetails>
+    ticketDetails: TicketModel<DumperNodeStatusUpdateDetails>
   }
 
   type RowData = DumperNodeStatusUpdateDetails['dumpers'][string];

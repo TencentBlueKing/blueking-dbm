@@ -12,71 +12,69 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
-      </td>
-      <td style="padding: 0">
-        <RenderStartTime
-          ref="startTimeRef"
-          v-model="localStartTime" />
-      </td>
-      <td style="padding: 0">
-        <RenderEndTime
-          ref="endTimeRef"
-          v-model="localEndTime"
-          :start-time="localStartTime" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="databasesRef"
-          :cluster-id="localClusterId"
-          :model-value="data.databases" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="tablesRef"
-          :cluster-id="localClusterId"
-          :model-value="data.tables" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="databasesIgnoreRef"
-          :cluster-id="localClusterId"
-          :model-value="data.databasesIgnore"
-          :required="false" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="tablesIgnoreRef"
-          :cluster-id="localClusterId"
-          :model-value="data.tablesIgnore"
-          :required="false" />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
+  <tr>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        :model-value="data.clusterData"
+        @id-change="handleClusterIdChange"
+        @input-create="handleCreate" />
+    </td>
+    <td style="padding: 0">
+      <RenderStartTime
+        ref="startTimeRef"
+        v-model="localStartTime" />
+    </td>
+    <td style="padding: 0">
+      <RenderEndTime
+        ref="endTimeRef"
+        v-model="localEndTime"
+        :start-time="localStartTime" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="databasesRef"
+        :cluster-id="localClusterId"
+        :model-value="data.databases" />
+    </td>
+    <td style="padding: 0">
+      <RenderTableName
+        ref="tablesRef"
+        :cluster-id="localClusterId"
+        :model-value="data.tables" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="databasesIgnoreRef"
+        :cluster-id="localClusterId"
+        :model-value="data.databasesIgnore"
+        :required="false" />
+    </td>
+    <td style="padding: 0">
+      <RenderTableName
+        ref="tablesIgnoreRef"
+        :cluster-id="localClusterId"
+        :model-value="data.tablesIgnore"
+        :required="false" />
+    </td>
+    <td>
+      <div class="action-box">
+        <div
+          class="action-btn"
+          @click="handleAppend">
+          <DbIcon type="plus-fill" />
         </div>
-      </td>
-    </tr>
-  </tbody>
+        <div
+          class="action-btn"
+          :class="{
+            disabled: removeable,
+          }"
+          @click="handleRemove">
+          <DbIcon type="minus-fill" />
+        </div>
+      </div>
+    </td>
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';
@@ -151,6 +149,7 @@
       if (props.data.clusterData) {
         localClusterId.value = props.data.clusterData.id;
         localStartTime.value = props.data.startTime;
+        localEndTime.value = props.data.endTime;
       }
     },
     {

@@ -37,15 +37,13 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type {
-    MySQLChecksumDetails,
-    TicketDetails,
-  } from '@services/types/ticket';
+  import type { MySQLChecksumDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketDetails: TicketDetails<MySQLChecksumDetails>
+    ticketDetails: TicketModel<MySQLChecksumDetails>
   }
 
   const props = defineProps<Props>();

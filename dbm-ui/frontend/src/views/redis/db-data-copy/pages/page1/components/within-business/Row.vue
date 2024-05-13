@@ -46,6 +46,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import RedisModel from '@services/model/redis/redis';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderSourceCluster from '@views/redis/common/edit-field/ClusterName.vue';
@@ -88,7 +90,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', value: string): void;
+    (e: 'clusterInputFinish', value: RedisModel): void;
   }
 
   interface Exposes {
@@ -119,7 +121,7 @@
     },
   );
 
-  const handleInputFinish = (value: string) => {
+  const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
   };
 

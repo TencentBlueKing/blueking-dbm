@@ -12,41 +12,39 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderOriginalProxy
-          ref="targetRef"
-          :model-value="data.originProxyIp"
-          @input-create="handleCreate" />
-      </td>
-      <td style="padding: 0">
-        <RenderTargetProxyIp
-          ref="originRef"
-          :cloud-id="data.originProxyIp?.bk_cloud_id ?? null"
-          :disabled="!data.originProxyIp?.bk_host_id"
-          :model-value="data.targetProxyIp"
-          :target-ip="data.originProxyIp?.ip" />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
+  <tr>
+    <td style="padding: 0">
+      <RenderOriginalProxy
+        ref="targetRef"
+        :model-value="data.originProxyIp"
+        @input-create="handleCreate" />
+    </td>
+    <td style="padding: 0">
+      <RenderTargetProxyIp
+        ref="originRef"
+        :cloud-id="data.originProxyIp?.bk_cloud_id ?? null"
+        :disabled="!data.originProxyIp?.bk_host_id"
+        :model-value="data.targetProxyIp"
+        :target-ip="data.originProxyIp?.ip" />
+    </td>
+    <td>
+      <div class="action-box">
+        <div
+          class="action-btn"
+          @click="handleAppend">
+          <DbIcon type="plus-fill" />
         </div>
-      </td>
-    </tr>
-  </tbody>
+        <div
+          class="action-btn"
+          :class="{
+            disabled: removeable,
+          }"
+          @click="handleRemove">
+          <DbIcon type="minus-fill" />
+        </div>
+      </div>
+    </td>
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';

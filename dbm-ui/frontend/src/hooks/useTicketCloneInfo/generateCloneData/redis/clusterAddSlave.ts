@@ -11,13 +11,14 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { RedisAddSlaveDetails } from '@services/model/ticket/details/redis';
+import TicketModel from '@services/model/ticket/ticket';
 import { queryInfoByIp } from '@services/source/redisToolbox';
 
 import { random } from '@utils';
 
 // Redis 重建从库
-export async function generateRedisClusterAddSlaveCloneData(details: RedisAddSlaveDetails) {
-  const { infos } = details;
+export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketModel<RedisAddSlaveDetails>) {
+  const { infos } = ticketData.details;
   const ips: string[] = [];
   const IpInfoMap: Record<
     string,

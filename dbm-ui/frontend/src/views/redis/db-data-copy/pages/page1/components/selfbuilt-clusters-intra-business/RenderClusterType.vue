@@ -24,14 +24,10 @@
     </div>
   </BkLoading>
 </template>
-<script lang="ts">
-  export enum ClusterType {
-    REDIS_INSTANCE = 'RedisInstance', // 主从版
-    REDIS_CLUSTER = 'RedisCluster', // 集群版
-  }
-</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { RedisClusterType as ClusterType } from '@services/model/ticket/details/redis';
 
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 

@@ -110,11 +110,11 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
-      const { tableList, force } = cloneData;
+      const {
+        tableList,
+        force,
+      } = cloneData;
+      
       tableData.value = tableList;
       isForceSwitch.value = force;
       window.changeConfirm = true;

@@ -65,7 +65,7 @@
           :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domainObj: RedisModel) => handleChangeCluster(index, domainObj)"
           @remove="handleRemove(index)" />
       </template>
     </RenderTable>
@@ -82,7 +82,6 @@
 
   import RedisModel from '@services/model/redis/redis';
   import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
-  import { getRedisList } from '@services/source/redis';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -120,11 +119,7 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
-      tableData.value = cloneData.tableList as unknown as IDataRow[];
+      tableData.value = cloneData.tableList;
       window.changeConfirm = true;
     },
   });
@@ -237,29 +232,11 @@
   };
 
   // 输入集群后查询集群信息并填充到table
-  const handleChangeCluster = async (index: number, domain: string) => {
-    if (!domain) {
-      const { srcCluster } = tableData.value[index];
-      domainMemo[srcCluster] = false;
-      tableData.value[index].srcCluster = '';
-      return;
-    }
-    tableData.value[index].isLoading = true;
-    const result = await getRedisList({ exact_domain: domain }).finally(() => {
-      tableData.value[index].isLoading = false;
-    });
-    if (result.results.length < 1) {
-      return;
-    }
-    const list = result.results.filter((item) => item.master_domain === domain);
-    if (list.length === 0) {
-      return;
-    }
-    const item = list[0];
-    const row = generateTableRow(item);
+  const handleChangeCluster = async (index: number, domainObj: RedisModel) => {
+    const row = generateTableRow(domainObj);
     tableData.value[index] = row;
-    domainMemo[domain] = true;
-    selectedClusters.value[ClusterTypes.REDIS].push(item);
+    domainMemo[domainObj.master_domain] = true;
+    selectedClusters.value[ClusterTypes.REDIS].push(domainObj);
   };
 
   // 检测列表是否为空

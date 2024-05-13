@@ -86,12 +86,18 @@
 
   import { querySemanticData, semanticCheck } from '@services/source/sqlImport';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
+  import { TicketTypes } from '@common/const';
+
   import Backup from './components/backup/Index.vue';
+  import type { IDataRow as BackupRow } from './components/backup/RenderData/Row.vue';
   import ExecuteMode from './components/ExecuteMode.vue';
   import SqlFile from './components/sql-file/Index.vue';
   import TargetDb from './components/target-db/Index.vue';
+  import type { IDataRow as TargetDbRow } from './components/target-db/RenderData/Row.vue';
   import TargetCluster from './components/TargetCluster.vue';
   import TaskTips from './components/TaskTips.vue';
 
@@ -103,11 +109,11 @@
   const createDefaultData = () => ({
     bk_biz_id: currentBizId,
     charset: 'default',
-    cluster_ids: [],
+    cluster_ids: [] as number[],
     import_mode: 'manual',
     execute_sql_files: [],
-    execute_db_infos: [],
-    backup: [],
+    execute_db_infos: [] as TargetDbRow[],
+    backup: [] as BackupRow[],
     ticket_mode: {
       mode: 'manual',
       trigger_time: '',
@@ -116,6 +122,27 @@
   });
 
   const { t } = useI18n();
+
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_IMPORT_SQLFILE,
+    onSuccess(cloneData) {
+      const {
+        backup,
+        charset,
+        import_mode: importMode,
+        execute_db_infos: executeDbInfos,
+        cluster_ids: clusterIds,
+        ticket_mode: ticketMode,
+      } = cloneData;
+      formData.backup = backup;
+      formData.charset = charset;
+      formData.import_mode = importMode;
+      formData.execute_db_infos = executeDbInfos;
+      formData.cluster_ids = clusterIds;
+      formData.ticket_mode = ticketMode;
+      window.changeConfirm = true;
+    },
+  });
 
   const formRef = ref();
   const sqlFileRef = ref();

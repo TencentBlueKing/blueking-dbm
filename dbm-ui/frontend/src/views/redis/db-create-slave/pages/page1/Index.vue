@@ -125,10 +125,6 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
       tableData.value = cloneData;
       window.changeConfirm = true;
     }

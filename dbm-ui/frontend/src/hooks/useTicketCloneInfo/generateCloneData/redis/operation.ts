@@ -12,10 +12,11 @@
  */
 import RedisModel from '@services/model/redis/redis';
 import type { RedisKeysDetails } from '@services/model/ticket/details/redis';
+import TicketModel from '@services/model/ticket/ticket';
 
 // Redis 提取Key/删除Key/备份
-export function generateRedisOperationCloneData(details: RedisKeysDetails) {
-  const { clusters, rules } = details;
+export function generateRedisOperationCloneData(ticketData: TicketModel<RedisKeysDetails>) {
+  const { clusters, rules } = ticketData.details;
   return Promise.resolve(
     rules.map(
       (item) =>

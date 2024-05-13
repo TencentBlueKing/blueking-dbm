@@ -135,7 +135,7 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
@@ -187,11 +187,15 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
-      const { tableList, executeType, executeTime, stopTime, isKeepCheck, isRepairEnable, repairType } = cloneData;
+      const {
+        tableList,
+        executeType,
+        executeTime,
+        stopTime,
+        isKeepCheck,
+        isRepairEnable,
+        repairType,
+      } = cloneData;
 
       tableData.value = tableList;
       executeMode.value = executeType;

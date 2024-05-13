@@ -11,23 +11,21 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { RedisDataCopyDetails } from '@services/model/ticket/details/redis';
+import TicketModel from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Redis 集群数据复制
-export function generateRedisDataCopyCloneData(details: RedisDataCopyDetails) {
-  const { clusters, infos } = details;
-
-  const isUserBuilt = details.dts_copy_type === 'user_built_to_dbm';
-  const isCopyToSystem = details.dts_copy_type === 'copy_to_other_system';
+export function generateRedisDataCopyCloneData(ticketData: TicketModel<RedisDataCopyDetails>) {
+  const { clusters, infos } = ticketData.details;
 
   const tableList = infos.map((item) => ({
     rowKey: random(),
     isLoading: false,
-    srcCluster: isUserBuilt ? item.src_cluster : clusters[item.src_cluster].immute_domain,
+    srcCluster: clusters[item.src_cluster].immute_domain,
     srcClusterId: item.src_cluster,
     clusterType: item.src_cluster_type,
-    targetCluster: isCopyToSystem ? item.dst_cluster : clusters[item.dst_cluster].immute_domain,
+    targetCluster: clusters[item.dst_cluster].immute_domain,
     targetClusterId: item.dst_cluster,
     includeKey: item.key_white_regex ? item.key_white_regex.split(',') : [],
     excludeKey: item.key_black_regex ? item.key_black_regex.split(',') : [],
@@ -37,8 +35,8 @@ export function generateRedisDataCopyCloneData(details: RedisDataCopyDetails) {
 
   return Promise.resolve({
     tableList,
-    copyMode: details.dts_copy_type,
-    writeMode: details.write_mode,
-    disconnectSetting: details.sync_disconnect_setting,
+    copyMode: ticketData.details.dts_copy_type,
+    writeMode: ticketData.details.write_mode,
+    disconnectSetting: ticketData.details.sync_disconnect_setting,
   });
 }

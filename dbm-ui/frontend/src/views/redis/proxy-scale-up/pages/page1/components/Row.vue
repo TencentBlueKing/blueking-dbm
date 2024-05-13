@@ -115,7 +115,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', value: string): void;
+    (e: 'clusterInputFinish', value: RedisModel): void;
   }
 
   interface Exposes {
@@ -181,7 +181,7 @@
     },
   );
 
-  const handleInputFinish = (value: string) => {
+  const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
   };
 

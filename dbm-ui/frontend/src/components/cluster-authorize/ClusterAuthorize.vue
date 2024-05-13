@@ -34,6 +34,7 @@
         <IpSelector
           :biz-id="bizId"
           button-text="添加 IP"
+          :data="selectedIpList"
           :is-cloud-area-restrictions="false"
           :panel-list="['staticTopo', 'manualInput', 'dbmWhitelist']"
           service-mode="all"
@@ -257,6 +258,14 @@
     (e: 'success'): void,
   }
 
+  interface Exposes {
+    initSelectorData: (data: {
+      clusterType: ClusterTypes,
+      clusterList: ResourceItem[],
+      sourceIpList: ServiceReturnType<typeof checkHost>
+    }) => void,
+  }
+
   type ClusterSelectorResult = Record<string, Array<ResourceItem>>
 
   const props = withDefaults(defineProps<Props>(), {
@@ -267,10 +276,24 @@
     tabList: () => [],
     permissonRuleList: () => [],
   });
+
   const emits = defineEmits<Emits>();
+
   const isShow = defineModel<boolean>({
     required: true,
     default: false,
+  });
+
+  /**
+   * 重置表单数据
+   */
+  const initFormdata = (user = '', accessDbs: string[] = []): AuthorizePreCheckData & { mongo_users: number } => ({
+    access_dbs: [...accessDbs],
+    source_ips: [],
+    target_instances: [],
+    user,
+    cluster_type: '',
+    mongo_users: 0,
   });
 
   const router = useRouter();
@@ -278,7 +301,7 @@
   const ticketMessage = useTicketMessage();
   const copy = useCopy();
 
-  const tabListConfigMap: Record<string, TabConfig> = {
+  const tabListConfigMap = {
     [ClusterTypes.MONGO_REPLICA_SET]: {
       name: t('副本集集群'),
       showPreviewResultTitle: true,
@@ -295,25 +318,15 @@
       name: t('主从集群'),
       showPreviewResultTitle: true,
     },
-  };
-
-  /**
-   * 重置表单数据
-   */
-  const initFormdata = (user = '', accessDbs: string[] = []): AuthorizePreCheckData & { mongo_users: number } => ({
-    access_dbs: [...accessDbs],
-    source_ips: [],
-    target_instances: [],
-    user,
-    cluster_type: '',
-    mongo_users: 0,
-  });
+  } as Record<string, TabConfig>;
 
   const formRef = ref();
   /** 设置底部按钮粘性布局 */
   useStickyFooter(formRef);
 
   const accoutRulesShow = ref(false);
+  const selectedIpList = ref<ServiceReturnType<typeof checkHost>>([])
+
   const selectedList = shallowRef<MongodbPermissonAccountModel[]>([]);
 
   const state = reactive({
@@ -590,6 +603,7 @@
    * ip 选择
    */
   const handleChangeIP = (data: ServiceReturnType<typeof checkHost>) => {
+    selectedIpList.value = data;
     state.formdata.source_ips = data.map(item => ({
       ip: item.ip,
       bk_host_id: item.host_id,
@@ -796,6 +810,27 @@
     window.changeConfirm = false;
     isShow.value = false;
   };
+
+  defineExpose<Exposes>({
+    initSelectorData(data: Parameters<Exposes['initSelectorData']>[number]) {
+      nextTick(() => {
+        const {
+          clusterType,
+          clusterList,
+          sourceIpList,
+        } = data;
+
+        clusterState.clusterType = clusterType;
+        clusterState.tableProps.data = clusterList;
+        state.formdata.source_ips = sourceIpList.map(item => ({
+          ip: item.ip,
+          bk_host_id: item.host_id,
+          bk_biz_id: item.biz.id,
+        }));
+        selectedIpList.value = sourceIpList;
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

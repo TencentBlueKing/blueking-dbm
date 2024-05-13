@@ -48,17 +48,15 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
   import { queryAccountRules } from '@services/permission';
   import { getHostInAuthorize } from '@services/ticket';
-  import type {
-    MysqlAuthorizationDetails,
-    TicketDetails,
-  } from '@services/types/ticket';
 
   import {
+    AccountTypes,
     ClusterTypes,
-    TicketTypes,
-  } from '@common/const';
+    TicketTypes  } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
@@ -78,7 +76,7 @@
   }
 
   interface Props {
-    ticketDetails: TicketDetails<MysqlAuthorizationDetails>
+    ticketDetails: TicketModel<MysqlAuthorizationDetails>
   }
 
   const props = defineProps<Props>();
@@ -160,7 +158,7 @@
       ),
     },
     {
-      label: t('访问 DB'),
+      label: t('访问DB'),
       field: 'access_db',
       render: ({ data }: { data: AccessDetails }) => <bk-tag>{ data.access_db }</bk-tag>,
     },
@@ -203,6 +201,7 @@
         bizId,
         user: details?.authorize_data?.user,
         access_dbs: details?.authorize_data?.access_dbs,
+        account_type: AccountTypes.MYSQL,
       };
       queryAccountRules(params)
         .then((res) => {

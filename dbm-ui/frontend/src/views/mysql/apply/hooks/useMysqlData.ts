@@ -58,7 +58,7 @@ const getFormData = (type: string) => ({
     resource_spec: {
       single: {
         count: 0,
-        spec_id: '',
+        spec_id: '' as string | number,
         location_spec: {
           city: '',
           sub_zone_ids: [],
@@ -66,7 +66,7 @@ const getFormData = (type: string) => ({
       },
       backend: {
         count: 0,
-        spec_id: '',
+        spec_id: '' as string | number,
         affinity: 'NONE',
         location_spec: {
           city: '',
@@ -75,7 +75,7 @@ const getFormData = (type: string) => ({
       },
       proxy: {
         count: 0,
-        spec_id: '',
+        spec_id: '' as string | number,
       },
     },
   },
@@ -125,7 +125,9 @@ export const useMysqlData = (type: string) => {
    * 查询层级（业务、模块、集群）配置详情
    */
   watch(() => formdata.details.db_module_id, (value) => {
-    if (value) fetchLevelConfig(value);
+    if (value) {
+      fetchLevelConfig(value);
+    }
   });
 
   /**
@@ -175,7 +177,6 @@ export const useMysqlData = (type: string) => {
    */
   watch(() => formdata.bk_biz_id, (value) => {
     if (value) {
-      formdata.details.db_module_id = null;
       fetchModules(value);
     }
   });

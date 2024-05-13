@@ -35,11 +35,14 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import TableEditSelect, { type IListItem } from '@components/render-table/columns/select/index.vue';
 
   import { random } from '@utils';
 
+  import type { IDataRow } from './Row.vue';
+
   interface Props {
+    data: IDataRow['slaveData'];
     clusterList: number[];
   }
 
@@ -67,7 +70,9 @@
   const editRef = ref();
   const localValue = ref('');
   const isLoading = ref(false);
-  const slaveHostSelectList = shallowRef([] as Array<{ id: string; name: string }>);
+
+  const slaveHostSelectList = shallowRef<IListItem[]>([]);
+
   let allSlaveHostList: ISlaveHost[] = [];
 
   const rules = [
@@ -80,7 +85,12 @@
   watch(
     () => props.clusterList,
     () => {
-      localValue.value = '';
+      if (props.data) {
+        localValue.value = genHostKey(props.data);
+      } else {
+        localValue.value = '';
+      }
+
       slaveHostSelectList.value = [];
       allSlaveHostList = [];
       if (props.clusterList.length > 0) {
@@ -91,8 +101,8 @@
         })
           .then((data) => {
             slaveHostSelectList.value = data.map((hostData) => ({
-              id: genHostKey(hostData),
-              name: hostData.ip,
+              value: genHostKey(hostData),
+              label: hostData.ip,
             }));
             allSlaveHostList = data;
           })

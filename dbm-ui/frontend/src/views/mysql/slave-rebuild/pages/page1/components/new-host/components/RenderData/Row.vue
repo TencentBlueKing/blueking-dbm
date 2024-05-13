@@ -26,6 +26,7 @@
     <td style="padding: 0;">
       <RenderNewSlave
         ref="newSlaveRef"
+        :new-slave="localNewSlave"
         :old-slave="localOldSlave" />
     </td>
     <OperateColumn
@@ -56,6 +57,7 @@
     };
     clusterId?: number;
     newSlave?: {
+      bkBizId: number;
       bkCloudId: number;
       bkHostId: number;
       ip: string;
@@ -94,12 +96,14 @@
   const newSlaveRef = ref<InstanceType<typeof RenderNewSlave>>();
 
   const localOldSlave = ref<IDataRow['oldSlave']>();
+  const localNewSlave = ref<IDataRow['newSlave']>();
 
   watch(
     () => props.data,
     () => {
       if (props.data) {
         localOldSlave.value = props.data.oldSlave;
+        localNewSlave.value = props.data.newSlave;
       }
     },
     {

@@ -11,12 +11,13 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { RedisDBReplaceDetails } from '@services/model/ticket/details/redis';
+import TicketModel from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Redis 整机替换
-export function generateRedisClusterCutoffCloneData(details: RedisDBReplaceDetails) {
-  const { clusters, infos, specs } = details;
+export function generateRedisClusterCutoffCloneData(ticketData: TicketModel<RedisDBReplaceDetails>) {
+  const { clusters, infos, specs } = ticketData.details;
   return Promise.resolve(
     infos.reduce(
       (dataList, item) => {

@@ -11,13 +11,14 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { RedisMasterSlaveSwitchDetails } from '@services/model/ticket/details/redis';
+import TicketModel from '@services/model/ticket/ticket';
 import { queryMasterSlaveByIp } from '@services/source/redisToolbox';
 
 import { random } from '@utils';
 
 // Redis 主从切换
-export async function generateRedisMasterSlaveSwitchCloneData(details: RedisMasterSlaveSwitchDetails) {
-  const { infos, force } = details;
+export async function generateRedisMasterSlaveSwitchCloneData(ticketData: TicketModel<RedisMasterSlaveSwitchDetails>) {
+  const { infos, force } = ticketData.details;
   const ips: string[] = [];
   const ipSwitchMode: Record<string, string> = {};
   infos.forEach((item) => {

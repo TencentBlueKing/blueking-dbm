@@ -41,13 +41,11 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type {
-    MySQLFullBackupDetails,
-    TicketDetails,
-  } from '@services/types/ticket';
+  import type { MySQLFullBackupDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<MySQLFullBackupDetails>
+    ticketDetails: TicketModel<MySQLFullBackupDetails>
   }
 
   const props = defineProps<Props>();

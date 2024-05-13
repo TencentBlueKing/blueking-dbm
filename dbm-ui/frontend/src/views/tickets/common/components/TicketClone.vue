@@ -74,6 +74,35 @@
     [TicketTypes.REDIS_PLUGIN_DELETE_CLB]: 'DatabaseRedisList', // Redis 删除CLB
     [TicketTypes.REDIS_PLUGIN_CREATE_POLARIS]: 'DatabaseRedisList', // Redis 删除构造任务
     [TicketTypes.REDIS_PLUGIN_DELETE_POLARIS]: 'DatabaseRedisList', // Redis 删除构造任务
+    [TicketTypes.MYSQL_SINGLE_APPLY]: 'SelfServiceApplySingle', // Mysql 单节点部署
+    [TicketTypes.MYSQL_HA_APPLY]: 'SelfServiceApplyHa', // Mysql 主从部署
+    [TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES]: '', // Mysql excel 授权
+    [TicketTypes.MYSQL_AUTHORIZE_RULES]: 'PermissionRules', // Mysql 授权
+    [TicketTypes.MYSQL_HA_DISABLE]: 'DatabaseTendbha', // Mysql 禁用
+    [TicketTypes.MYSQL_HA_ENABLE]: 'DatabaseTendbha', // Mysql 启用
+    [TicketTypes.MYSQL_HA_DESTROY]: 'DatabaseTendbha', // Mysql 删除
+    [TicketTypes.MYSQL_SINGLE_DISABLE]: 'DatabaseTendbsingle', // Mysql 单节点禁用
+    [TicketTypes.MYSQL_SINGLE_ENABLE]: 'DatabaseTendbsingle', // Mysql 单节点启用
+    [TicketTypes.MYSQL_SINGLE_DESTROY]: 'DatabaseTendbsingle', // Mysql 单节点删除
+    [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: 'MySQLPrivilegeCloneInst', // Mysql DB实例权限克隆
+    [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: 'MySQLPrivilegeCloneClient', // Mysql 客户端权限克隆
+    [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: 'MySQLSlaveRebuild', // Mysql 重建从库
+    [TicketTypes.MYSQL_HA_RENAME_DATABASE]: 'MySQLDBRename', // Mysql DB重命名
+    [TicketTypes.MYSQL_ADD_SLAVE]: 'MySQLSlaveAdd', // Mysql 添加从库
+    [TicketTypes.MYSQL_HA_TRUNCATE_DATA]: 'MySQLDBClear', // Mysql 清档
+    [TicketTypes.MYSQL_CHECKSUM]: 'MySQLChecksum', // Mysql 数据校验修复
+    [TicketTypes.MYSQL_PROXY_SWITCH]: 'MySQLProxyReplace', // Mysql 替换Proxy
+    [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: 'MySQLDBTableBackup', // Mysql 库表备份
+    [TicketTypes.MYSQL_MIGRATE_CLUSTER]: 'MySQLMasterSlaveClone', // Mysql 迁移主从
+    [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: 'MySQLMasterSlaveSwap', // Mysql 主从互切
+    [TicketTypes.MYSQL_PROXY_ADD]: 'MySQLProxyAdd', // Mysql 添加Proxy
+    [TicketTypes.MYSQL_MASTER_FAIL_OVER]: 'MySQLMasterFailover', // Mysql 主库故障切换
+    [TicketTypes.MYSQL_IMPORT_SQLFILE]: 'MySQLExecute', // Mysql 变更SQL执行
+    [TicketTypes.MYSQL_FLASHBACK]: 'MySQLDBFlashback', // Mysql 闪回
+    [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: 'MySQLDBRollback', // Mysql 定点构造
+    [TicketTypes.MYSQL_RESTORE_SLAVE]: 'MySQLSlaveRebuild', // Mysql 重建从库
+    [TicketTypes.MYSQL_HA_FULL_BACKUP]: 'MySQLDBBackup', // Mysql 全库备份
+    [TicketTypes.MYSQL_OPEN_AREA]: 'MySQLOpenareaTemplate', // Mysql 新建开区
   };
 
   const isShowTicketClone = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);

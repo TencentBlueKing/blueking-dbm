@@ -92,10 +92,12 @@ export function getRedisListByBizId(
     bk_biz_id?: number;
   } = {},
 ) {
-  return http.get<ListBase<RedisModel[]>>(`${getRootPath()}/redis_resources/`, params).then((data) => ({
-    ...data,
-    results: data.results.map((item) => new RedisModel(item)),
-  }));
+  return http
+    .get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
+    .then((data) => ({
+      ...data,
+      results: data.results.map((item) => new RedisModel(item)),
+    }));
 }
 
 /**

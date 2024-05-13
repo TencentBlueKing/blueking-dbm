@@ -86,7 +86,7 @@
             permission={data.permission.mysql_openarea_config_update}
             class="ml-16"
             to={{
-              name: 'mysqlOpenareaTemplateEdit',
+              name: 'MySQLOpenareaTemplateEdit',
               params: {
                 id: data.id,
               },
@@ -129,7 +129,7 @@
 
   const handleGoCreate = () => {
     router.push({
-      name: 'mysqlOpenareaTemplateCreate',
+      name: 'MySQLOpenareaTemplateCreate',
     });
   };
 

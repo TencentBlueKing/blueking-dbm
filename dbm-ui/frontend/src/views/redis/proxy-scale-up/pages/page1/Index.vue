@@ -29,7 +29,7 @@
           :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(domainObj: RedisModel) => handleChangeCluster(index, domainObj)"
           @remove="handleRemove(index)" />
       </RenderData>
       <ClusterSelector
@@ -67,7 +67,6 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel from '@services/model/redis/redis';
-  import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -94,10 +93,6 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_PROXY_SCALE_UP,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
       tableData.value = cloneData;
       window.changeConfirm = true;
     }
@@ -172,29 +167,29 @@
   };
 
   // 输入集群后查询集群信息并填充到table
-  const handleChangeCluster = async (index: number, domain: string) => {
-    if (!domain) {
-      const { cluster } = tableData.value[index];
-      domainMemo[cluster] = false;
-      tableData.value[index].cluster = '';
-      return;
-    }
-    tableData.value[index].isLoading = true;
-    const result = await getRedisList({ exact_domain: domain }).finally(() => {
-      tableData.value[index].isLoading = false;
-    });
-    if (result.results.length < 1) {
-      return;
-    }
-    const list = result.results.filter(item => item.master_domain === domain);
-    if (list.length === 0) {
-      return;
-    }
-    const item = list[0];
-    const row = await generateRowDateFromRequest(item);
+  const handleChangeCluster = async (index: number, domainObj: RedisModel) => {
+    // if (!domain) {
+    //   const { cluster } = tableData.value[index];
+    //   domainMemo[cluster] = false;
+    //   tableData.value[index].cluster = '';
+    //   return;
+    // }
+    // tableData.value[index].isLoading = true;
+    // const result = await getRedisList({ exact_domain: domain }).finally(() => {
+    //   tableData.value[index].isLoading = false;
+    // });
+    // if (result.results.length < 1) {
+    //   return;
+    // }
+    // const list = result.results.filter(item => item.master_domain === domain);
+    // if (list.length === 0) {
+    //   return;
+    // }
+    // const item = list[0];
+    const row = generateRowDateFromRequest(domainObj);
     tableData.value[index] = row;
-    domainMemo[domain] = true;
-    selectedClusters.value[ClusterTypes.REDIS].push(item);
+    domainMemo[domainObj.master_domain] = true;
+    selectedClusters.value[ClusterTypes.REDIS].push(domainObj);
   };
 
   // 追加一个集群

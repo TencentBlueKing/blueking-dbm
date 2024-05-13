@@ -21,12 +21,13 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { MySQLRollbackDetails, TicketDetails } from '@services/types/ticket';
+  import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketDetails: TicketDetails<MySQLRollbackDetails>
+    ticketDetails: TicketModel<MySQLRollbackDetails>
   }
 
   const props = defineProps<Props>();

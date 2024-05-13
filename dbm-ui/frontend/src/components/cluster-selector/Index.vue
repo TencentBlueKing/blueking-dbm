@@ -492,7 +492,7 @@
   .cluster-selector-dialog {
     font-size: @font-size-mini;
 
-    .bk-modal-body {
+    :deep(.bk-modal-body) {
       .bk-modal-header {
         display: none;
       }

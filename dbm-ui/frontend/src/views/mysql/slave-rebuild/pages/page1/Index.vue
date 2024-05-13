@@ -36,12 +36,19 @@
           true-value="MYSQL_RESTORE_SLAVE" />
       </div>
     </div>
-    <Component :is="renderCom" />
+    <Component
+      :is="renderCom"
+      :backup-type="backupType"
+      :data-list="dataList"/>
   </div>
 </template>
 <script setup lang="tsx">
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { useTicketCloneInfo } from '@hooks';
+
+  import { TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
@@ -50,12 +57,41 @@
 
   const { t } = useI18n();
 
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
+    onSuccess(cloneData) {
+      const {
+        backupType: backupSouce,
+        tableDataList,
+      } = cloneData;
+      ticketType.value = TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE;
+      backupType.value = backupSouce;
+      dataList.value = tableDataList;
+      window.changeConfirm = true;
+    },
+  });
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_RESTORE_SLAVE,
+    onSuccess(cloneData) {
+      const { tableDataList } = cloneData;
+      ticketType.value = TicketTypes.MYSQL_RESTORE_SLAVE;
+      dataList.value = tableDataList;
+      window.changeConfirm = true;
+    },
+  });
+
   const comMap = {
     MYSQL_RESTORE_LOCAL_SLAVE: OriginalHost,
     MYSQL_RESTORE_SLAVE: NewHost,
   };
 
   const ticketType = ref<keyof typeof comMap>('MYSQL_RESTORE_LOCAL_SLAVE');
+
+  const dataList = ref();
+  const backupType = ref();
 
   const renderCom = computed(() => comMap[ticketType.value]);
 </script>

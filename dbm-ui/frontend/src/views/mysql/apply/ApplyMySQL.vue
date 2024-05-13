@@ -383,7 +383,7 @@
 
   import type { BizItem, HostDetails } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketCloneInfo } from '@hooks';
 
   import { ClusterTypes, mysqlType,type MysqlTypeString, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
@@ -405,6 +405,85 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_HA_APPLY,
+    onSuccess(cloneData) {
+      const {
+        affinity,
+        bizId,
+        cloudId,
+        backendSpecId,
+        cityCode,
+        clusterCount,
+        dbModuleId,
+        domains,
+        instNum,
+        ipSource,
+        // nodes,
+        proxySpecId,
+        remark,
+        startMysqlPort,
+        startProxyPort,
+      } = cloneData;
+
+      formdata.details.resource_spec.backend.affinity = affinity;
+      formdata.bk_biz_id = bizId;
+      formdata.details.bk_cloud_id = cloudId;
+      formdata.details.resource_spec.backend.spec_id = backendSpecId;
+      formdata.details.city_code = cityCode;
+      formdata.details.cluster_count = clusterCount;
+      formdata.details.db_module_id = dbModuleId;
+      formdata.details.domains = domains;
+      formdata.details.inst_num = instNum;
+      formdata.details.ip_source = ipSource;
+      formdata.details.resource_spec.proxy.spec_id = proxySpecId;
+      formdata.remark = remark;
+      formdata.details.start_mysql_port = startMysqlPort;
+      formdata.details.start_proxy_port = startProxyPort;
+
+      // TODO: 需要提供接口补全每台主机的信息，不然会缺少字段导致数据处理报错
+      // formdata.details.nodes = nodes;
+    },
+  });
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_SINGLE_APPLY,
+    onSuccess(cloneData) {
+      const {
+        affinity,
+        bizId,
+        cloudId,
+        cityCode,
+        clusterCount,
+        dbModuleId,
+        domains,
+        instNum,
+        ipSource,
+        // nodes,
+        remark,
+        startMysqlPort,
+        singleSpecId
+      } = cloneData;
+
+      formdata.details.resource_spec.backend.affinity = affinity;
+      formdata.bk_biz_id = bizId;
+      formdata.details.bk_cloud_id = cloudId;
+      formdata.details.city_code = cityCode;
+      formdata.details.cluster_count = clusterCount;
+      formdata.details.db_module_id = dbModuleId;
+      formdata.details.domains = domains;
+      formdata.details.inst_num = instNum;
+      formdata.details.ip_source = ipSource;
+      formdata.details.resource_spec.single.spec_id = singleSpecId;
+      formdata.remark = remark;
+      formdata.details.start_mysql_port = startMysqlPort;
+      // formdata.details.nodes = nodes;
+    },
+  });
+
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const isSingleType = route.name === 'SelfServiceApplySingle';

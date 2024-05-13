@@ -68,23 +68,10 @@
         :model-value="data.tablesIgnore"
         :required="false" />
     </td>
-    <td>
-      <div class="action-box">
-        <div
-          class="action-btn"
-          @click="handleAppend">
-          <DbIcon type="plus-fill" />
-        </div>
-        <div
-          class="action-btn"
-          :class="{
-            disabled: removeable
-          }"
-          @click="handleRemove">
-          <DbIcon type="minus-fill" />
-        </div>
-      </div>
-    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
   </tr>
 </template>
 <script lang="ts">
@@ -123,6 +110,8 @@
 </script>
 <script setup lang="ts">
   import { ref, watch } from 'vue';
+
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';

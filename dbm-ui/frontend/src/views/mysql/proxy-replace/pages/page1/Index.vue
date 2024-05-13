@@ -85,9 +85,11 @@
   import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
@@ -110,6 +112,20 @@
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_PROXY_SWITCH,
+    onSuccess(cloneData) {
+      const {
+        force,
+        tableDataList,
+      } = cloneData;
+      tableData.value = tableDataList;
+      isSafe.value = force ? 1 : 0;
+      window.changeConfirm = true;
+    },
+  });
 
   const rowRefs = ref();
   const isShowBatchProxySelector = ref(false);
@@ -199,16 +215,16 @@
       }).then((data) => {
         window.changeConfirm = false;
 
-          router.push({
-            name: 'MySQLProxyReplace',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
+        router.push({
+          name: 'MySQLProxyReplace',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      }),
       )
       .finally(() => {
         isSubmitting.value = false;

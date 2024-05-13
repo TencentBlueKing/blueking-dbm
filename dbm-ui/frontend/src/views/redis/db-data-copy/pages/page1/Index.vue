@@ -178,6 +178,7 @@
     RepairAndVerifyModes,
     WriteModes,
   } from '@services/model/redis/redis-dst-history-job';
+  import type { RedisClusterType as ClusterType } from '@services/model/ticket/details/redis';
   import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
@@ -201,7 +202,6 @@
   import RenderIntraBusinessToThirdPartTable from './components/intra-business-third/Index.vue';
   import type { SelectItem } from './components/RenderTargetCluster.vue';
   import RenderSelfbuiltToIntraBusinessTable from './components/selfbuilt-clusters-intra-business/Index.vue';
-  import { ClusterType } from './components/selfbuilt-clusters-intra-business/RenderClusterType.vue';
   import RenderWithinBusinessTable from './components/within-business/Index.vue';
 
   type InfoTypes = InfoItem | CrossBusinessInfoItem | IntraBusinessToThirdInfoItem | SelfbuiltClusterToIntraInfoItem;
@@ -230,11 +230,12 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
     onSuccess(cloneData) {
-      if (!cloneData) {
-        return;
-      }
-
-      const { copyMode, writeMode, disconnectSetting } = cloneData;
+      const {
+        copyMode,
+        writeMode,
+        disconnectSetting,
+      } = cloneData;
+      
       copyType.value = copyMode;
       writeType.value = writeMode;
       disconnectType.value = disconnectSetting.type;

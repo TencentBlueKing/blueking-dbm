@@ -90,6 +90,13 @@
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
+  interface Props {
+    dataList?: IDataRow[];
+    backupType?: string;
+  }
+
+  const props = defineProps<Props>();
+
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -117,6 +124,15 @@
   } as unknown as Record<ClusterTypes, PanelListType>;
 
   let instanceMemo = {} as Record<string, boolean>;
+
+  watch(() => props.dataList, () => {
+    if (props.dataList) {
+      tableData.value = props.dataList;
+      backupSource.value = props.backupType;
+    }
+  }, {
+    immediate: true,
+  })
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
