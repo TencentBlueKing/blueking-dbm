@@ -20,6 +20,10 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </AuthButton>
+      <ClusterIpInstanceCopy
+        :data-list="tableDataList"
+        :role-list="['zookeeper', 'broker']"
+        :selected="selected" />
       <DropdownExportExcel
         :ids="selectedIds"
         type="kafka" />
@@ -130,6 +134,8 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterIpInstanceCopy from '@components/cluster-ip-instance-copy/Index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -188,7 +194,8 @@
     }
     return classList.filter(cls => cls).join(' ');
   };
-  const tableRef = ref();
+
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -200,6 +207,7 @@
   const selected = shallowRef<KafkaModel[]>([]);
 
   const selectedIds = computed(() => selected.value.map(item => item.id));
+  const tableDataList = computed(() => tableRef.value?.getData() || [])
   const isCN = computed(() => locale.value === 'zh-cn');
   const paginationExtra = computed(() => {
     if (!isStretchLayoutOpen.value) {

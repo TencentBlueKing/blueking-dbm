@@ -163,4 +163,8 @@ export default class Spider {
   get isClusterNormal() {
     return this.status === 'normal';
   }
+
+  get isAbnormal() {
+    return this.status === 'abnormal';
+  }
 }

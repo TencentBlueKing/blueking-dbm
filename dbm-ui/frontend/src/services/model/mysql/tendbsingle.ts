@@ -123,6 +123,10 @@ export default class Tendbsingle {
     return this.phase === 'offline';
   }
 
+  get isAbnormal() {
+    return this.status === 'abnormal';
+  }
+
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Tendbsingle.MYSQL_SINGLE_ENABLE));
   }

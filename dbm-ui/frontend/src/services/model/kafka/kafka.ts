@@ -212,6 +212,10 @@ export default class Kafka {
     return this.phase === 'offline';
   }
 
+  get isAbnormal() {
+    return this.status === 'abnormal';
+  }
+
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Kafka.KAFKA_ENABLE));
   }

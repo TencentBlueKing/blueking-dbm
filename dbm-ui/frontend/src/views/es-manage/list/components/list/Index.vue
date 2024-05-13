@@ -21,6 +21,10 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </AuthButton>
+      <ClusterIpInstanceCopy
+        :data-list="tableDataList"
+        :role-list="['es_master', 'es_client', 'es_datanode_hot', 'es_datanode_cold']"
+        :selected="selected" />
       <DropdownExportExcel
         :has-selected="hasSelected"
         :ids="selectedIds"
@@ -131,6 +135,8 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterIpInstanceCopy from '@components/cluster-ip-instance-copy/Index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -246,7 +252,7 @@
   ] as SearchSelectData);
 
   const dataSource = getEsList;
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
@@ -259,6 +265,7 @@
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
+  const tableDataList = computed(() => tableRef.value?.getData<EsModel>() || [])
 
   const paginationExtra = computed(() => {
     if (isStretchLayoutOpen.value) {

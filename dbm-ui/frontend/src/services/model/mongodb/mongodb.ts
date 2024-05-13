@@ -234,6 +234,10 @@ export default class Mongodb {
     return this.status === 'normal';
   }
 
+  get isAbnormal() {
+    return this.status === 'abnormal';
+  }
+
   get masterDomainDisplayName() {
     return `${this.master_domain}:${this.cluster_access_port}`;
   }

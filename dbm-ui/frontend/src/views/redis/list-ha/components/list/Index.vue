@@ -22,6 +22,10 @@
           @click="handleApply">
           {{ t('申请实例') }}
         </AuthButton>
+        <ClusterIpInstanceCopy
+          :data-list="tableDataList"
+          :role-list="['redis_master', 'redis_slave']"
+          :selected="selected" />
         <DropdownExportExcel
           :ids="selectedIds"
           type="redis" />
@@ -95,7 +99,9 @@
 
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import ClusterIpInstanceCopy from '@components/cluster-ip-instance-copy/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -125,8 +131,6 @@
 
   let isInit = true;
 
-  const tableRef = ref();
-
   const {
     columnAttrs,
     searchAttrs,
@@ -145,6 +149,7 @@
     'time_zone',
   ], () => fetchData(isInit));
 
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const showEditEntryConfig = ref(false);
   const selected = ref<RedisModel[]>([])
 
@@ -222,6 +227,7 @@
     };
   });
   const selectedIds = computed(() => selected.value.map(item => item.id));
+  const tableDataList = computed(() => tableRef.value?.getData<RedisModel>() || [])
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
@@ -594,7 +600,7 @@
       ...getSearchSelectorParams(searchValue.value),
       cluster_type: ClusterTypes.REDIS_INSTANCE,
     }
-    tableRef.value.fetchData(params, {
+    tableRef.value!.fetchData(params, {
       ...sortValue,
     }, loading);
     isInit = false;

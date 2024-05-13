@@ -20,6 +20,10 @@
         @click="handleApply">
         {{ t('实例申请') }}
       </AuthButton>
+      <ClusterIpInstanceCopy
+        :data-list="tableDataList"
+        :role-list="['proxies', 'masters', 'slaves']"
+        :selected="state.selected" />
       <span
         v-bk-tooltips="{
           disabled: hasSelected,
@@ -142,7 +146,9 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterIpInstanceCopy from '@components/cluster-ip-instance-copy/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -215,7 +221,7 @@
   ], () => fetchData());
 
 
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const isInit = ref(false);
   const showEditEntryConfig = ref(false);
@@ -233,6 +239,7 @@
   });
 
   const isCN = computed(() => locale.value === 'zh-cn');
+  const tableDataList = computed(() => tableRef.value?.getData<TendbhaModel>() || [])
   const hasSelected = computed(() => state.selected.length > 0);
   const selectedIds = computed(() => state.selected.map(item => item.id));
 

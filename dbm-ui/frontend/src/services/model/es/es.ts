@@ -220,6 +220,10 @@ export default class Es {
     return this.phase === 'offline';
   }
 
+  get isAbnormal() {
+    return this.status === 'abnormal';
+  }
+
   get domainDisplayName() {
     const { port } = this.es_master[0];
     const displayName = port ? `${this.domain}:${port}` : this.domain;

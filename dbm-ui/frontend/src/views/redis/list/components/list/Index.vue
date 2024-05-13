@@ -17,11 +17,15 @@
       <div>
         <AuthButton
           action-id="redis_cluster_apply"
-          class="mr-8 mb-16"
+          class="mb-16"
           theme="primary"
           @click="handleApply">
           {{ t('申请实例') }}
         </AuthButton>
+        <ClusterIpInstanceCopy
+          :data-list="tableDataList"
+          :role-list="['proxy', 'redis_master', 'redis_slave']"
+          :selected="state.selected" />
         <BkDropdown
           v-bk-tooltips="{
             disabled: hasSelected,
@@ -32,7 +36,9 @@
           @click.stop
           @hide="() => (isShowDropdown = false)"
           @show="() => (isShowDropdown = true)">
-          <BkButton :disabled="!hasSelected">
+          <BkButton
+            class="ml-8"
+            :disabled="!hasSelected">
             <span class="pr-4">{{ t('批量操作') }}</span>
             <DbIcon
               class="cluster-dropdown-icon"
@@ -161,7 +167,9 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterIpInstanceCopy from '@components/cluster-ip-instance-copy/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
@@ -207,7 +215,6 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
 
-  const tableRef = ref();
 
   const {
     columnAttrs,
@@ -286,6 +293,7 @@
 
   const disabledOperations: string[] = [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_CLOSE];
 
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowDropdown = ref(false);
   const showEditEntryConfig = ref(false);
 
@@ -404,6 +412,7 @@
   const hasSelected = computed(() => state.selected.length > 0);
   const selectedIds = computed(() => state.selected.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
+  const tableDataList = computed(() => tableRef.value?.getData<RedisModel>() || [])
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
       return isCN.value ? 240 : 320;
@@ -997,7 +1006,7 @@
         ClusterTypes.PREDIXY_REDIS_CLUSTER,
       ].join(',')
     }
-    tableRef.value.fetchData(params, {
+    tableRef.value!.fetchData(params, {
       ...sortValue,
     }, loading);
     isInit = false;

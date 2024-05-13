@@ -126,6 +126,10 @@ export default class Tendbha {
     return this.phase === 'offline';
   }
 
+  get isAbnormal() {
+    return this.status === 'abnormal';
+  }
+
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Tendbha.MYSQL_HA_ENABLE));
   }

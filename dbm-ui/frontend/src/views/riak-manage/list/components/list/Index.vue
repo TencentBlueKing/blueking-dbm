@@ -19,6 +19,10 @@
         @click="toApply">
         {{ t('申请实例') }}
       </BkButton>
+      <ClusterIpInstanceCopy
+        :data-list="tableDataList"
+        :role-list="['riak_node']"
+        :selected="selected" />
       <DropdownExportExcel
         class="mr-8"
         :ids="selectedIds"
@@ -101,6 +105,7 @@
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import ClusterIpInstanceCopy from '@components/cluster-ip-instance-copy/Index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
@@ -230,6 +235,7 @@
   const selected = shallowRef<RiakModel[]>([]);
 
   const selectedIds = computed(() => selected.value.map(item => item.id));
+  const tableDataList = computed(() => tableRef.value?.getData<RiakModel>() || [])
 
   const columns = computed(() => [
     {

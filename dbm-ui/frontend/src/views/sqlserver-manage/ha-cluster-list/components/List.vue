@@ -7,69 +7,10 @@
           @click="handleApply">
           {{ t('实例申请') }}
         </BkButton>
-        <BkDropdown
-          class="ml-8"
-          @hide="() => (isCopyDropdown = false)"
-          @show="() => (isCopyDropdown = true)">
-          <BkButton
-            class="dropdown-button"
-            :class="{ active: isCopyDropdown }">
-            {{ t('复制') }}
-            <DbIcon type="up-big dropdown-button-icon" />
-          </BkButton>
-          <template #content>
-            <BkDropdownMenu>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="tableDataList.length === 0"
-                  text
-                  @click="handleCopy(tableDataList)">
-                  {{ t('所有集群 IP') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="selected.length === 0"
-                  text
-                  @click="handleCopy(selected)">
-                  {{ t('已选集群 IP') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="abnormalDataList.length === 0"
-                  text
-                  @click="handleCopy(abnormalDataList)">
-                  {{ t('异常集群 IP') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="tableDataList.length === 0"
-                  text
-                  @click="handleCopy(tableDataList, true)">
-                  {{ t('所有集群实例') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="selected.length === 0"
-                  text
-                  @click="handleCopy(selected, true)">
-                  {{ t('已选集群实例') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="abnormalDataList.length === 0"
-                  text
-                  @click="handleCopy(abnormalDataList, true)">
-                  {{ t('异常集群实例') }}
-                </BkButton>
-              </BkDropdownItem>
-            </BkDropdownMenu>
-          </template>
-        </BkDropdown>
+        <ClusterIpInstanceCopy
+          :data-list="tableDataList"
+          :role-list="['masters', 'slaves']"
+          :selected="selected" />
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
@@ -171,6 +112,7 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import ClusterIpInstanceCopy from '@components/cluster-ip-instance-copy/Index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
@@ -203,7 +145,6 @@
   const copy = useCopy();
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const isCopyDropdown = ref(false);
   const selected = ref<SqlServerHaClusterModel[]>([]);
   const searchValues = ref([]);
   const isShowExcelAuthorize = ref(false);
@@ -219,8 +160,7 @@
     db_module_name: string,
   }[]>([]);
 
-  const tableDataList = computed(() => tableRef.value!.getData<SqlServerHaClusterModel>());
-  const abnormalDataList = computed(() => tableDataList.value.filter(dataItem => dataItem.isAbnormal));
+  const tableDataList = computed(() => tableRef.value?.getData<SqlServerHaClusterModel>() || []);
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
 
@@ -381,6 +321,7 @@
     },
     {
       label: t('操作'),
+      field: '',
       width: tableOperationWidth.value,
       fixed: 'right',
       render: ({ data }: { data: SqlServerHaClusterModel }) => (
@@ -456,6 +397,7 @@
     })),
     checked: columns.map(item => item.field).filter(key => !!key && key !== 'id'),
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
 
   const {
@@ -476,15 +418,6 @@
     }, {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
-  };
-
-  const handleCopy = (dataList: SqlServerHaClusterModel[], isInstance = false) => {
-    const list = dataList.reduce((prevList, tableItem) => {
-      const masterList = tableItem.masters.map(masterItem => (isInstance ? `${masterItem.ip}:${masterItem.port}` : `${masterItem.ip}`));
-      const slaveList = tableItem.slaves.map(slavesItem => (isInstance ? `${slavesItem.ip}:${slavesItem.port}` : `${slavesItem.ip}`));
-      return [...prevList, ...masterList, ...slaveList];
-    }, [] as string[]);
-    copy(list.join('\n'));
   };
 
   /**

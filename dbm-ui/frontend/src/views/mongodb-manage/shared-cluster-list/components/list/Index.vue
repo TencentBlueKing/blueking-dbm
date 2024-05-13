@@ -15,13 +15,17 @@
   <div class="shared-cluster-list">
     <div class="header-action">
       <BkButton
-        class="mr-8 mb-8"
+        class="mb-8"
         theme="primary"
         @click="handleApply">
         {{ t('申请实例') }}
       </BkButton>
+      <ClusterIpInstanceCopy
+        :data-list="tableDataList"
+        :role-list="['mongo_config', 'mongos', 'mongodb']"
+        :selected="selected" />
       <BkButton
-        class="mr-8 mb-8"
+        class="ml-8 mb-8"
         :disabled="!hasSelected"
         @click="handleShowClusterAuthorize">
         {{ t('批量授权') }}
@@ -33,14 +37,14 @@
         }"
         class="inline-block">
         <BkButton
-          class="mr-8 mb-8"
+          class="ml-8 mb-8"
           :disabled="!hasData"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
         </BkButton>
       </span>
       <DropdownExportExcel
-        class="mr-8 mb-8 export-excel-button"
+        class="ml-8 mb-8"
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="mongodb" />
@@ -127,6 +131,7 @@
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import ClusterIpInstanceCopy from '@components/cluster-ip-instance-copy/Index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
@@ -188,7 +193,8 @@
   const excelAuthorizeShow = ref(false);
   const selected = shallowRef<MongodbModel[]>([]);
 
-  const hasData = computed(() => (tableRef.value?.getData() || []).length > 0);
+  const tableDataList = computed(() => tableRef.value?.getData<MongodbModel>() || [])
+  const hasData = computed(() => tableDataList.value.length > 0);
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const columns = computed(() => [
@@ -390,6 +396,7 @@
       'mongodb',
     ],
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
 
   const {
@@ -584,10 +591,6 @@
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 8px;
-
-      .export-excel-button {
-        margin-left: 0 !important;
-      }
 
       .header-action-search-select {
         width: 500px;

@@ -214,6 +214,10 @@ export default class Pulsar {
     return this.phase === 'offline';
   }
 
+  get isAbnormal() {
+    return this.status === 'abnormal';
+  }
+
   get isNew() {
     return isRecentDays(this.create_at, 24 * 3);
   }

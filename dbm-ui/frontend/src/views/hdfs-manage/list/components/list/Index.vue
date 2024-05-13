@@ -21,6 +21,10 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </AuthButton>
+      <ClusterIpInstanceCopy
+        :data-list="tableDataList"
+        :role-list="['hdfs_namenode', 'hdfs_zookeeper', 'hdfs_journalnode', 'hdfs_datanode']"
+        :selected="selected" />
       <DropdownExportExcel
         :ids="selectedIds"
         type="hdfs" />
@@ -139,6 +143,8 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterIpInstanceCopy from '@components/cluster-ip-instance-copy/Index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -195,7 +201,7 @@
 
   const dataSource = getHdfsList;
 
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
 
   const isShowExpandsion = ref(false);
@@ -209,6 +215,7 @@
   const selected = shallowRef<HdfsModel[]>([]);
 
   const selectedIds = computed(() => selected.value.map(item => item.id));
+  const tableDataList = computed(() => tableRef.value?.getData<HdfsModel>() || [])
   const isCN = computed(() => locale.value === 'zh-cn');
   const paginationExtra = computed(() => {
     if (isStretchLayoutOpen.value) {

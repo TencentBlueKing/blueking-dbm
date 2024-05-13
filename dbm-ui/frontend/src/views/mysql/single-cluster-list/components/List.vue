@@ -20,6 +20,10 @@
         @click="handleApply">
         {{ t('实例申请') }}
       </AuthButton>
+      <ClusterIpInstanceCopy
+        :data-list="tableDataList"
+        :role-list="['masters']"
+        :selected="state.selected" />
       <span
         v-bk-tooltips="{
           disabled: hasSelected,
@@ -127,7 +131,9 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterIpInstanceCopy from '@components/cluster-ip-instance-copy/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -185,7 +191,7 @@
     'time_zone',
   ], () => fetchData());
 
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const showEditEntryConfig = ref(false);
 
@@ -199,6 +205,7 @@
   });
 
   const isCN = computed(() => locale.value === 'zh-cn');
+  const tableDataList = computed(() => tableRef.value?.getData<TendbsingleModel>() || [])
   const hasSelected = computed(() => state.selected.length > 0);
   const selectedIds = computed(() => state.selected.map(item => item.id));
   const searchSelectData = computed(() => [
@@ -581,7 +588,7 @@
 
   const fetchData = () => {
     const params = getSearchSelectorParams(searchValue.value);
-    tableRef.value.fetchData(params, { ...sortValue });
+    tableRef.value!.fetchData(params, { ...sortValue });
   };
 
   // 设置行样式

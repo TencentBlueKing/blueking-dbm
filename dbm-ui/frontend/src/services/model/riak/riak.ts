@@ -210,6 +210,10 @@ export default class Riak {
     return this.phase === 'online';
   }
 
+  get isAbnormal() {
+    return this.status === 'abnormal';
+  }
+
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Riak.RIAK_CLUSTER_ENABLE));
   }

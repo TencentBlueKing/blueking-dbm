@@ -20,6 +20,10 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </AuthButton>
+      <ClusterIpInstanceCopy
+        :data-list="tableDataList"
+        :role-list="['pulsar_bookkeeper', 'pulsar_zookeeper', 'pulsar_broker']"
+        :selected="selected" />
       <DropdownExportExcel
         :ids="selectedIds"
         type="pulsar" />
@@ -32,7 +36,6 @@
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
-
     <div
       class="table-wrapper"
       :class="{ 'is-shrink-table': isStretchLayoutOpen }">
@@ -122,6 +125,8 @@
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterIpInstanceCopy from '@components/cluster-ip-instance-copy/Index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -132,8 +137,6 @@
     getMenuListSearch,
     getSearchSelectorParams,
   } from '@utils';
-
-  import { useTimeoutPoll } from '@vueuse/core';
 
   import ManagerPassword from './components/ManagerPassword.vue';
 
@@ -191,7 +194,7 @@
     return classStack.join(' ');
   };
 
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -203,6 +206,7 @@
   const selected = shallowRef<PulsarModel[]>([]);
 
   const selectedIds = computed(() => selected.value.map(item => item.id));
+  const tableDataList = computed(() => tableRef.value?.getData<PulsarModel>() || [])
   const isCN = computed(() => locale.value === 'zh-cn');
   const paginationExtra = computed(() => {
     if (isStretchLayoutOpen.value) {
