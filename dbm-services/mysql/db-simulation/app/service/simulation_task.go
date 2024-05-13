@@ -18,13 +18,13 @@ import (
 	"strings"
 	"time"
 
+	"errors"
+
 	util "dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/model"
-
-	"github.com/pkg/errors"
 )
 
 // DelPod 控制运行模拟执行后是否删除拉起的Pod的开关
@@ -252,24 +252,29 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	sstdout += stdout.String() + "\n"
 	sstderr += stderr.String() + "\n"
 	if err != nil {
-		logger.Error("load database schema sql failed %s", err.Error())
-		return sstdout, sstderr, errors.Wrap(err, "[导入表结构失败]")
+		logger.Error("load database schema sql failed %v", err)
+		return sstdout, sstderr, err
 	}
 	xlogger.Info(stdout.String(), stderr.String())
 	// load real databases
 	if err = t.getDbsExcludeSysDb(); err != nil {
-		logger.Error("getDbsExcludeSysDb faiked")
-		err = errors.Wrap(err, "[getDbsExcludeSysDb failed]")
-		return sstdout, sstderr, err
+		logger.Error("getDbsExcludeSysDb faiked %v", err)
+		return sstdout, sstderr, fmt.Errorf("[getDbsExcludeSysDb failed]:%w", err)
 	}
 	model.UpdatePhase(t.TaskId, model.Phase_Running)
+	errs := []error{}
+	sstderrs := []string{}
 	for _, e := range t.ExcuteObjects {
 		sstdout, sstderr, err = t.executeOneObject(e, containerName, xlogger)
 		if err != nil {
-			return sstdout, sstderr, err
+			errs = append(errs, fmt.Errorf("%s:%w\n", e.SQLFile, err))
+			sstderrs = append(sstderrs, sstderr)
 		}
 	}
-	return sstdout, sstderr, err
+	if len(errs) > 0 {
+		return sstdout, strings.Join(sstderrs, "\n"), errors.Join(errs...)
+	}
+	return sstdout, sstderr, nil
 }
 
 func (t *SimulationTask) executeOneObject(e ExcuteSQLFileObj, containerName string, xlogger *logger.Logger) (sstdout,
