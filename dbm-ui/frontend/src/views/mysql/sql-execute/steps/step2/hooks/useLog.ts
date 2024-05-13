@@ -18,107 +18,49 @@ import {
   shallowRef,
 } from 'vue';
 
-import {
-  getNodeLog,
-  getRetryNodeHistories,
-} from '@services/source/taskflow';
+import { semanticCheckResultLogs } from '@services/source/sqlImport';
 
-export type ILogItem = ServiceReturnType<typeof getNodeLog>[number]
-
-
-export const parseLog = (list: ILogItem[]) => {
-  const fileStartReg = /.*\[start\]-(.+)$/;
-  const fileEndRef = /.*\[end\]-(.+)$/;
-  const fileLogMap = {} as Record<string, ILogItem[]>;
-
-  let fileStart = false;
-  let fileName = '';
-
-  list.forEach((item) => {
-    const fileStartCheck = item.message.match(fileStartReg);
-    if (fileStartCheck) {
-      fileStart = true;
-      fileName = fileStartCheck[1].replace(/[^_]+_/, '');
-      fileLogMap[fileName] = [];
-      return;
-    }
-
-    const fileEndCheck = item.message.match(fileEndRef);
-    if (fileEndCheck) {
-      fileStart = false;
-      return;
-    }
-    if (fileStart) {
-      fileLogMap[fileName].push(item);
-    }
-  });
-  return fileLogMap;
-};
-
+export type IFileLogItem = ServiceReturnType<typeof semanticCheckResultLogs>[number];
+export type ILogItem = IFileLogItem['match_logs'][number];
 
 export default function (rootId: string, nodeId: string) {
-  let versionId = '';
   const isLoading = ref(false);
   const wholeLogList = shallowRef([] as ILogItem[]);
-  const fileLogMap = shallowRef({} as Record<string, ILogItem[]>);
+  const fileLogMap = shallowRef({} as Record<string, IFileLogItem>);
 
-  let lastLogLength = 0;
   let logTimer = 0;
   const fetchLog = () => {
-    getNodeLog({
-      version_id: versionId,
-      root_id: rootId as string,
-      node_id: nodeId as string,
+    semanticCheckResultLogs({
+      cluster_type: 'mysql',
+      root_id: rootId,
+      node_id: nodeId,
     }).then((logData) => {
-      if (lastLogLength !== logData.length) {
-        wholeLogList.value = logData as ILogItem[];
-        fileLogMap.value = parseLog(logData);
-      }
-      lastLogLength = logData.length;
+      const wholeist: ILogItem[] = [];
+      const fileMap: Record<string, IFileLogItem> = {};
+      logData.forEach((logItem) => {
+        wholeist.push(...logItem.match_logs);
+        const filename = logItem.filename.replace(/[^_]+_/, '');
+        fileMap[filename] = logItem;
+      });
 
-      if (logTimer < 0) {
-        return;
-      }
+      wholeLogList.value = wholeist;
+      fileLogMap.value = fileMap;
+
       logTimer = setTimeout(() => {
         fetchLog();
-      }, 2000);
+      }, 5000);
     })
       .finally(() => {
         isLoading.value = false;
       });
   };
 
-  let versionTimer = 0;
-  const fetchVersion = () => {
-    isLoading.value = true;
-    getRetryNodeHistories({
-      root_id: rootId,
-      node_id: nodeId,
-    }).then((data) => {
-      if (data.length > 0 && data[0].version) {
-        versionId = data[0].version;
-        fetchLog();
-        clearTimeout(versionTimer);
-        return;
-      }
-
-      if (versionTimer < 0) {
-        return;
-      }
-      versionTimer = setTimeout(() => {
-        fetchVersion();
-      }, 2000);
-    })
-      .catch(() => {
-        isLoading.value = false;
-      });
-  };
-
-  fetchVersion();
+  onMounted(() => {
+    fetchLog();
+  });
 
   onBeforeUnmount(() => {
-    logTimer = -1;
-    versionTimer = -1;
+    clearTimeout(logTimer);
   });
   return {
     isLoading,

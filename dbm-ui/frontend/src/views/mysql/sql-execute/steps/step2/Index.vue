@@ -22,8 +22,6 @@
         class="layout-left">
         <RenderFileList
           v-model="selectFileName"
-          :file-log-map="fileLogMap"
-          :flow-status="flowStatus"
           :list="fileDataList" />
       </div>
       <div
@@ -105,10 +103,6 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import {
-    ref,
-    watch,
-  } from 'vue';
-  import {
     useRoute,
     useRouter,
   } from 'vue-router';
@@ -173,16 +167,13 @@
     return statusComMap[flowStatus.value as keyof typeof statusComMap];
   });
 
-  const fileDataList = computed<IFileItem[]>(() => {
-    const lastLogFileIndex = Math.max(Object.keys(fileLogMap.value).length - 1, 0);
-    return fileNameList.value.map((name, index) => ({
-      name,
-      isPending: index === lastLogFileIndex && flowStatus.value === 'pending',
-      isSuccessed: index < lastLogFileIndex || (index === lastLogFileIndex && flowStatus.value === 'successed'),
-      isFailed: index === lastLogFileIndex && flowStatus.value === 'failed',
-      isWaiting: index > lastLogFileIndex,
-    }));
-  });
+  const fileDataList = computed<IFileItem[]>(() => fileNameList.value.map(name => ({
+    name,
+    isPending: fileLogMap.value[name]?.status === 'RUNNING',
+    isSuccessed: fileLogMap.value[name]?.status === 'SUCCEEDED',
+    isFailed: fileLogMap.value[name]?.status === 'FAILED',
+    isWaiting: fileLogMap.value[name]?.status === 'PENDING',
+  })));
 
   const currentSelectFileData = computed(() => _.find(
     fileDataList.value,
@@ -191,11 +182,12 @@
   // 本地文件需要显示文件列表
   const isShowFileList = computed(() => fileImportMode.value === 'file');
 
+
   watch([fileImportMode, selectFileName, fileLogMap], () => {
     if (fileImportMode.value === 'file') {
       // SQL 文件显示对应文件执行日志
       // 若没有任何一个文件的执行日志，则显示启动的完整的日志
-      renderLog.value = fileLogMap.value[selectFileName.value] || wholeLogList.value;
+      renderLog.value = fileLogMap.value[selectFileName.value]?.match_logs || wholeLogList.value;
     } else {
       // 手动输入显示所有文件
       renderLog.value = wholeLogList.value;
