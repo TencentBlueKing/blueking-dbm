@@ -55,10 +55,6 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
 
   import { querySemanticData } from '@services/source/sqlImport';
 
@@ -96,16 +92,13 @@
     fileLogMap,
   } = useLog(props.rootId, props.nodeId);
 
-  const fileDataList = computed<IFileItem[]>(() => {
-    const lastLogFileIndex = Math.max(Object.keys(fileLogMap.value).length - 1, 0);
-    return fileList.value.map((name, index) => ({
-      name,
-      isPending: index === lastLogFileIndex && flowStatus.value === 'pending',
-      isSuccessed: index < lastLogFileIndex || (index === lastLogFileIndex && flowStatus.value === 'successed'),
-      isFailed: index === lastLogFileIndex && flowStatus.value === 'failed',
-      isWaiting: index > lastLogFileIndex,
-    }));
-  });
+  const fileDataList = computed<IFileItem[]>(() => fileList.value.map(name => ({
+    name,
+    isPending: fileLogMap.value[name]?.status === 'RUNNING',
+    isSuccessed: fileLogMap.value[name]?.status === 'SUCCEEDED',
+    isFailed: fileLogMap.value[name]?.status === 'FAILED',
+    isWaiting: fileLogMap.value[name]?.status === 'PENDING',
+  })));
 
   const currentSelectFileData = computed(() => _.find(
     fileDataList.value,

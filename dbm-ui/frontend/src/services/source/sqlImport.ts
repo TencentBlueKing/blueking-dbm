@@ -77,3 +77,22 @@ export function semanticCheck(params: {
 }) {
   return http.post<SemanticCheckResultModel>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/semantic_check/`, params);
 }
+
+/**
+ * 获取语义执行的结果日志
+ */
+export function semanticCheckResultLogs(params: {
+  cluster_type: string,
+  root_id: string,
+  node_id: string,
+}) {
+  return http.post<{
+    filename: string;
+    match_logs: {
+      timestamp: string;
+      levelname: string;
+      message: string;
+    }[];
+    status: string;
+}[]>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/get_semantic_check_result_logs/`, params);
+}
