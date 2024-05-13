@@ -159,11 +159,12 @@ class CcManage(object):
         return updated_hosts, failed_updates
 
     def update_host_properties(
-        self, bk_host_ids: List[int], need_monitor: bool, dbm_meta=None, update_operator: bool = True
+        self, bk_host_ids: List[int], need_monitor: bool = True, dbm_meta=None, update_operator: bool = True
     ):
         """
         批量更新主机属性
         """
+
         # 给业务主机模型增加dbm_meta自定义字段
         Services.init_cc_dbm_meta(self.bk_biz_id)
 
