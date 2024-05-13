@@ -18,13 +18,16 @@ from django.utils.translation import ugettext as _
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Spec
+from backend.db_services.dbresource.enmus import DeployPlanChangeType
 from backend.db_services.dbresource.exceptions import SpecOperateException
 
 
 class ClusterSpecFilter(object):
     """集群规格的过滤器"""
 
-    def __init__(self, capacity, future_capacity, spec_cluster_type, spec_machine_type, qps=None, shard_num=0):
+    def __init__(
+        self, capacity, future_capacity, spec_cluster_type, spec_machine_type, qps=None, shard_num=0, old_spec_id=0
+    ):
         # 用户的当前容量，期望容量，期望qps范围和分片数(可选)
         self.capacity: int = capacity
         self.future_capacity: int = future_capacity
@@ -32,11 +35,34 @@ class ClusterSpecFilter(object):
         self.filter_shard_num = shard_num
         # 当前集群的筛选规格
         self.specs: List[Dict[str, Any]] = [
-            {**model_to_dict(spec), "capacity": spec.capacity}
+            {
+                **model_to_dict(spec),
+                "capacity": spec.capacity,
+                "change_type": DeployPlanChangeType.replace_change.value,
+            }
             for spec in Spec.objects.filter(
                 spec_machine_type=spec_machine_type, spec_cluster_type=spec_cluster_type, enable=True
             )
         ]
+
+        if (
+            spec_cluster_type
+            in [ClusterType.TendisPredixyRedisCluster.value, ClusterType.TendisPredixyTendisplusCluster.value]
+            and old_spec_id != 0
+        ):
+            spec_old = Spec.objects.get(
+                spec_machine_type=spec_machine_type,
+                spec_cluster_type=spec_cluster_type,
+                enable=True,
+                spec_id=old_spec_id,
+            )
+            self.specs.append(
+                {
+                    **model_to_dict(spec_old),
+                    "capacity": spec_old.capacity,
+                    "change_type": DeployPlanChangeType.inplace_change.value,
+                }
+            )
 
     def calc_machine_pair(self):
         """计算每种规格所需的机器组数和集群总容量: 目标容量 / 规格容量"""
