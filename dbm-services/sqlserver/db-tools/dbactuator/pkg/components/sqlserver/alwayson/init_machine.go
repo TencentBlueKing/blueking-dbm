@@ -32,7 +32,7 @@ type InitMachineForAlwaysOnParam struct {
 	Host       string     `json:"host" validate:"required,ip" `     // 本地hostip
 	Port       int        `json:"port"  validate:"required,gt=0"`   // 需要操作的实例端口
 	AddMembers []Instnace `json:"add_members"  validate:"required"` // 集群成员
-	IsFirst    bool       `json:"is_first"  validate:"required"`    // 是否第一次部署alwayon
+	IsFirst    bool       `json:"is_first" `                        // 是否第一次部署alwayon
 }
 
 type Instnace struct {

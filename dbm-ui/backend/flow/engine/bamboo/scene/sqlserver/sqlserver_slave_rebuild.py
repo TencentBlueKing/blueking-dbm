@@ -15,14 +15,15 @@ from dataclasses import asdict
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterEntryType, ClusterType
+from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
-from backend.flow.consts import SqlserverCleanMode, SqlserverSyncModeMaps
+from backend.flow.consts import SqlserverCleanMode, SqlserverSyncMode, SqlserverSyncModeMaps
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
+    build_always_on_sub_flow,
     install_sqlserver_sub_flow,
     install_surrounding_apps_sub_flow,
     sync_dbs_for_cluster_sub_flow,
@@ -46,11 +47,12 @@ from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPaylo
 from backend.flow.utils.sqlserver.sqlserver_db_function import (
     create_sqlserver_login_sid,
     get_dbs_for_drs,
+    get_group_name,
     get_sync_filter_dbs,
 )
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
-from backend.flow.utils.sqlserver.validate import SqlserverCluster
+from backend.flow.utils.sqlserver.validate import SqlserverCluster, SqlserverInstance
 
 logger = logging.getLogger("flow")
 
@@ -228,19 +230,64 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     ),
                 )
 
-                # 数据库建立新的同步关系
-                cluster_sub_pipeline.add_sub_pipeline(
-                    sub_flow=sync_dbs_for_cluster_sub_flow(
-                        uid=self.data["uid"],
-                        root_id=self.root_id,
-                        cluster=cluster,
-                        sync_slaves=[Host(**info["new_slave_host"])],
-                        sync_dbs=list(
-                            set(get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[]))
-                            - set(get_sync_filter_dbs(cluster.id))
-                        ),
+                # 如果是AlwaysOn集群，新机器加入到集群的AlwaysOn可用组
+                if (
+                    SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
+                    == SqlserverSyncMode.ALWAYS_ON
+                ):
+                    master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+                    slave_instances = cluster.storageinstance_set.filter(
+                        instance_role=InstanceRole.BACKEND_SLAVE
+                    ).exclude(machine__ip=info["old_slave_host"]["ip"])
+
+                    # 计算集群slaves信息
+                    slaves = [
+                        SqlserverInstance(
+                            host=s.machine.ip, port=s.port, bk_cloud_id=cluster.bk_cloud_id, is_new=False
+                        )
+                        for s in slave_instances
+                    ]
+
+                    # 添加新slave到slaves信息上
+                    slaves.append(
+                        SqlserverInstance(
+                            host=info["new_slave_host"]["ip"],
+                            port=master_instance.port,
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            is_new=True,
+                        )
                     )
+                    cluster_sub_pipeline.add_sub_pipeline(
+                        sub_flow=build_always_on_sub_flow(
+                            uid=self.data["uid"],
+                            root_id=self.root_id,
+                            master_instance=SqlserverInstance(
+                                host=master_instance.machine.ip,
+                                port=master_instance.port,
+                                bk_cloud_id=cluster.bk_cloud_id,
+                                is_new=False,
+                            ),
+                            slave_instances=slaves,
+                            cluster_name=cluster.name,
+                            group_name=get_group_name(master_instance, cluster.bk_cloud_id),
+                        )
+                    )
+
+                # 数据库建立新的同步关系
+                sync_dbs = list(
+                    set(get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[]))
+                    - set(get_sync_filter_dbs(cluster.id))
                 )
+                if len(sync_dbs) > 0:
+                    cluster_sub_pipeline.add_sub_pipeline(
+                        sub_flow=sync_dbs_for_cluster_sub_flow(
+                            uid=self.data["uid"],
+                            root_id=self.root_id,
+                            cluster=cluster,
+                            sync_slaves=[Host(**info["new_slave_host"])],
+                            sync_dbs=sync_dbs,
+                        )
+                    )
 
                 # 并发替换从域名映射
                 entry_list = old_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()

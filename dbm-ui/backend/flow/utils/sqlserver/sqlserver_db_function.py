@@ -326,7 +326,7 @@ def get_group_name(master_instance: StorageInstance, bk_cloud_id: int):
     if ret[0]["error_msg"]:
         raise Exception(f"[{master_instance.ip_port}] get_group_name failed: {ret[0]['error_msg']}")
 
-    if len(ret[0]["cmd_results"][0]["table_data"]):
+    if len(ret[0]["cmd_results"][0]["table_data"]) == 0:
         raise Exception(f"[{master_instance.ip_port}] get_group_name is null")
     return ret[0]["cmd_results"][0]["table_data"][0]["name"]
 

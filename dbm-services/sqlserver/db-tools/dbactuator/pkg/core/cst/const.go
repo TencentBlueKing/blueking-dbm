@@ -64,6 +64,8 @@ const (
 	SQLSERVER_UNZIP_TOOL = "C:\\Program Files\\7-Zip\\7z"
 	// window hostname 文件
 	WINDOW_ETC_HOSTS = "C:\\Windows\\System32\\drivers\\etc\\hosts"
+	// 内部backupclient需要创建的目录
+	CYGWIN_MSSQL_PATH = "C:\\cygwinroot\\home\\mssql"
 )
 
 // 定义一些sqlserver专用的注册表信息
@@ -163,7 +165,8 @@ const (
 // 判断实例是否有业务进程
 const (
 	CHECK_INST_SQL = "select spid, DB_NAME(dbid) as dbname ,cmd, status, program_name,hostname, login_time" +
-		" from master.sys.sysprocesses where dbid >4  and dbid != DB_ID('Monitor') order by login_time desc;"
+		" from master.sys.sysprocesses where dbid >4  and dbid != DB_ID('Monitor') " +
+		" and lastwaittype != 'PARALLEL_REDO_WORKER_WAIT_WORK' order by login_time desc;"
 )
 
 // 定义SQL版本兼容性级别范围

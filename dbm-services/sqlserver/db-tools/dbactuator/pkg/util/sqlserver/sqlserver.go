@@ -165,7 +165,8 @@ func (h *DbWorker) GetGroupName() (name string, err error) {
 func (h *DbWorker) CheckDBProcessExist(dbName string) bool {
 	var procinfos []ProcessInfo
 	checkCmd := fmt.Sprintf("select spid, DB_NAME(dbid) as dbname ,cmd, status, program_name,hostname, login_time"+
-		" from master.sys.sysprocesses where dbid >4  and dbid = DB_ID('%s') order by login_time desc;", dbName)
+		" from master.sys.sysprocesses where dbid >4  and dbid = DB_ID('%s') and lastwaittype != 'PARALLEL_REDO_WORKER_WAIT_WORK' "+
+		" order by login_time desc;", dbName)
 	if err := h.Queryx(&procinfos, checkCmd); err != nil {
 		logger.Error("check-db-process failed %v", err)
 		return false

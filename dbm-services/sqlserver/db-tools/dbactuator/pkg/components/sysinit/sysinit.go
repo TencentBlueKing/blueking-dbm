@@ -181,6 +181,15 @@ func (s *SysInitParam) CreateSysDir() error {
 		}
 		logger.Info("create system-dir [%s] successfully", dirName)
 	}
+	// 增加一个cygwin目录，目的让备份系统可以顺利下载文件
+	cygwinHomeDir := osutil.WINSFile{FileName: cst.CYGWIN_MSSQL_PATH}
+	_, cygwinHomecheck := cygwinHomeDir.FileExists()
+	if cygwinHomecheck {
+		// 表示目录在系统存在，跳过
+		return nil
+	}
+	// 创建mssql目录，不捕捉日志
+	cygwinHomeDir.Create(0777)
 	return nil
 }
 

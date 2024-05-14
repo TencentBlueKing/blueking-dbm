@@ -33,7 +33,7 @@ type BuildAlwaysOnParam struct {
 	Port      int        `json:"port"  validate:"required,gt=0"`  // 需要操作的实例端口
 	AddSlaves []Instnace `json:"add_slaves"  validate:"required"` // 加入的集群成员
 	GroupName string     `json:"group_name"  validate:"required"` // always-on的groupname
-	IsFirst   bool       `json:"is_first"  validate:"required"`   // 是否第一次部署alwayon
+	IsFirst   bool       `json:"is_first" `                       // 是否第一次部署alwayon
 }
 
 // CreateRunTimeCtx todo
