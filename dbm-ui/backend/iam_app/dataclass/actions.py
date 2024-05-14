@@ -772,48 +772,41 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    INFLUXDB_APPLY = ActionMeta(
-        id=TicketType.INFLUXDB_APPLY.lower(),
-        related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
-        subgroup=_("实例管理"),
-        is_ticket_action=True
-    )
-
-    INFLUXDB_VIEW = ActionMeta(
-        id="influxdb_view",
-        name=_("InfluxDB 实例查看"),
-        name_en="influxdb_view",
-        type="view",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.INFLUXDB],
-        group=_("InfluxDB"),
-        subgroup=_("实例管理"),
-    )
-
+    # TODO: 暂时屏蔽对influxdb的鉴权
+    # INFLUXDB_VIEW = ActionMeta(
+    #     id="influxdb_view",
+    #     name=_("InfluxDB 实例查看"),
+    #     name_en="influxdb_view",
+    #     type="view",
+    #     related_actions=[DB_MANAGE.id],
+    #     related_resource_types=[ResourceEnum.INFLUXDB],
+    #     group=_("InfluxDB"),
+    #     subgroup=_("实例管理"),
+    # )
+    #
+    #
+    # INFLUXDB_ENABLE_DISABLE = ActionMeta(
+    #     id="influxdb_enable_disable",
+    #     name=_("InfluxDB 实例禁用启用"),
+    #     name_en="influxdb_enable_disable",
+    #     type="execute",
+    #     related_actions=[INFLUXDB_VIEW.id],
+    #     related_resource_types=[ResourceEnum.INFLUXDB],
+    #     group=_("InfluxDB"),
+    #     subgroup=_("实例管理"),
+    # )
     # TODO: 这里的分组管理设计不仅仅针对influxdb使用。
     #  不过目前只有influxdb使用了分组的概念，所以暂归属到InfluxDB中
-    GROUP_MANAGE = ActionMeta(
-        id="group_manage",
-        name=_("InfluxDB 分组管理"),
-        name_en="group_manage",
-        type="manage",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("InfluxDB"),
-        subgroup=_("实例管理"),
-    )
-
-    INFLUXDB_ENABLE_DISABLE = ActionMeta(
-        id="influxdb_enable_disable",
-        name=_("InfluxDB 实例禁用启用"),
-        name_en="influxdb_enable_disable",
-        type="execute",
-        related_actions=[INFLUXDB_VIEW.id],
-        related_resource_types=[ResourceEnum.INFLUXDB],
-        group=_("InfluxDB"),
-        subgroup=_("实例管理"),
-    )
+    # GROUP_MANAGE = ActionMeta(
+    #     id="group_manage",
+    #     name=_("InfluxDB 分组管理"),
+    #     name_en="group_manage",
+    #     type="manage",
+    #     related_actions=[DB_MANAGE.id],
+    #     related_resource_types=[ResourceEnum.BUSINESS],
+    #     group=_("InfluxDB"),
+    #     subgroup=_("实例管理"),
+    # )
 
     ES_APPLY = ActionMeta(
         id="es_apply",
@@ -868,34 +861,34 @@ class ActionEnum:
 
     DORIS_VIEW = ActionMeta(
         id="doris_view",
-        name=_("DORIS 集群详情查看"),
+        name=_("Doris 集群详情查看"),
         name_en="doris_view",
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.DORIS],
-        group=_("DORIS"),
+        group=_("Doris"),
         subgroup=_("集群管理"),
     )
 
     DORIS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="doris_access_entry_view",
-        name=_("DORIS 获取访问方式"),
+        name=_("Doris 获取访问方式"),
         name_en="doris_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.DORIS],
-        group=_("DORIS"),
+        group=_("Doris"),
         subgroup=_("集群管理"),
     )
 
     DORIS_ENABLE_DISABLE = ActionMeta(
         id="doris_enable_disable",
-        name=_("DORIS 集群禁用启用"),
+        name=_("Doris 集群禁用启用"),
         name_en="doris_enable_disable",
         type="execute",
         related_actions=[DORIS_VIEW.id],
         related_resource_types=[ResourceEnum.DORIS],
-        group=_("DORIS"),
+        group=_("Doris"),
         subgroup=_("集群管理"),
     )
 
@@ -1004,7 +997,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.PULSAR],
-        group=_("PULSAR"),
+        group=_("Pulsar"),
         subgroup=_("集群管理"),
     )
 
@@ -1045,7 +1038,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.RIAK],
-        group=_("RIAK"),
+        group=_("Riak"),
         subgroup=_("集群管理"),
     )
 

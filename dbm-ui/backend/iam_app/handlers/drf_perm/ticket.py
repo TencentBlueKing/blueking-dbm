@@ -119,7 +119,7 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
     def authorize_instance_ids_getters(request, view):
         authorize_resource_tuples = []
         if "authorize_data" in request.data["details"]:
-            authorize_data_list = request.data["details"]["authorize_data"]
+            authorize_data_list = [request.data["details"]["authorize_data"]]
         else:
             authorize_data_list = request.data["details"]["authorize_data_list"]
         for data in authorize_data_list:

@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components import DBPrivManagerApi
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbpermission.constants import AUTHORIZE_DATA_EXPIRE_TIME, AccountType
 from backend.db_services.dbpermission.db_authorize.dataclass import AuthorizeMeta, ExcelAuthorizeMeta
@@ -129,8 +130,10 @@ class AuthorizeHandler(object):
         cache.delete_many(to_delete_cache_uid_list)
         authorize_uid = data_cache(key=None, data=to_cache_data_list, cache_time=AUTHORIZE_DATA_EXPIRE_TIME)
         db_type = ClusterType.cluster_type_to_db_type(excel_authorize.cluster_type)
+        # 下载excel的url中，mysql和tendbcluster同用一个路由
+        route_type = DBType.MySQL.value if db_type == DBType.TenDBCluster else db_type
         excel_url = (
-            f"{env.BK_SAAS_HOST}/apis/{db_type}/bizs/{self.bk_biz_id}/permission/authorize"
+            f"{env.BK_SAAS_HOST}/apis/{route_type}/bizs/{self.bk_biz_id}/permission/authorize"
             f"/get_authorize_info_excel/?authorize_uid={authorize_uid}"
         )
 

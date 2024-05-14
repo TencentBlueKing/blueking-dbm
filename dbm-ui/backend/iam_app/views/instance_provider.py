@@ -16,7 +16,7 @@ from django.db import models
 
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import StorageInstance
-from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
+from backend.iam_app.dataclass.resources import ResourceMeta
 from backend.iam_app.views.iam_provider import BaseModelResourceProvider
 
 logger = logging.getLogger("root")
@@ -62,6 +62,7 @@ class InstanceResourceProvider(BaseModelResourceProvider):
         )
 
 
-class InfluxDBInstanceResourceProvider(InstanceResourceProvider):
-    resource_meta: ResourceMeta = ResourceEnum.INFLUXDB
-    instance_roles: List[InstanceRole] = [InstanceRole.INFLUXDB]
+# TODO: 暂时屏蔽对influxdb的鉴权
+# class InfluxDBInstanceResourceProvider(InstanceResourceProvider):
+#     resource_meta: ResourceMeta = ResourceEnum.INFLUXDB
+#     instance_roles: List[InstanceRole] = [InstanceRole.INFLUXDB]

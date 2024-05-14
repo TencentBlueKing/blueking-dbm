@@ -116,7 +116,7 @@ class IAMPermission(permissions.BasePermission):
                 resources = self.resources[0] if self.resources else []
                 iam.is_allowed(action=action, resources=resources, is_raise_exception=True)
             else:
-                iam.batch_is_allowed(actions=[action], resources=self.resources, is_raise_exception=True)
+                iam.batch_is_allowed(actions=[action], resources_list=self.resources, is_raise_exception=True)
 
         return True
 

@@ -26,6 +26,7 @@ class Command(BaseCommand):
                 "itsm",
                 "bklog",
                 "bkcc",
+                "iam",
                 "bkmonitor_alarm",
                 "bkmonitor_channel",
                 "register_application",
@@ -73,3 +74,6 @@ class Command(BaseCommand):
 
         if srv_type == "all" or srv_type == "register_application":
             Services.auto_register_application()
+
+        if srv_type == "all" or srv_type == "iam":
+            Services.auto_create_iam_migrations()

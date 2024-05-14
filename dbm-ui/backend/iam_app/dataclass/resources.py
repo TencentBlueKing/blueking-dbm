@@ -648,7 +648,7 @@ class ResourceEnum:
     MYSQL = MySQLResourceMeta()
     TENDBCLUSTER = TendbClusterResourceMeta()
     REDIS = RedisResourceMeta()
-    INFLUXDB = InfluxDBResourceMeta()
+    # INFLUXDB = InfluxDBResourceMeta()
     ES = EsResourceMeta()
     DORIS = DorisResourceMeta()
     KAFKA = KafkaResourceMeta()

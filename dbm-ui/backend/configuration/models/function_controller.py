@@ -53,7 +53,8 @@ FUNCTION_CONTROLLER_INIT_MAP = {
             DBType.Es.value: {"is_enabled": True},
             DBType.Kafka.value: {"is_enabled": True},
             DBType.Hdfs.value: {"is_enabled": True},
-            DBType.InfluxDB.value: {"is_enabled": True},
+            # TODO: 暂时屏蔽对influxdb的鉴权
+            DBType.InfluxDB.value: {"is_enabled": False},
             DBType.Pulsar.value: {"is_enabled": True},
         },
     },

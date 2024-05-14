@@ -17,7 +17,10 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.db_meta.models import Cluster
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission
 
 from .apis import (
     dts_job_disconnct_sync,
@@ -41,7 +44,17 @@ logger = logging.getLogger("flow")
 class TendisDtsJobViewSet(viewsets.AuditedModelViewSet):
     serializer_class = TbTendisDTSJobSerializer
 
-    action_permission_map = {}
+    @staticmethod
+    def inst_getter(request, view):
+        cluster_domains = [request.data["src_cluster"].split(":")[0], request.data["dst_cluster"].split(":")[0]]
+        cluster_ids = Cluster.objects.filter(immute_domain__in=cluster_domains).values_list("id", flat=True)
+        return list(cluster_ids)
+
+    action_permission_map = {
+        ("dts_job_disconnect_sync",): [
+            ResourceActionPermission([ActionEnum.REDIS_CLUSTER_DATA_COPY], ResourceEnum.REDIS, inst_getter)
+        ]
+    }
     default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(

@@ -102,6 +102,9 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
     list_perm_actions = [
         ActionEnum.REDIS_KEYS_DELETE,
         ActionEnum.REDIS_KEYS_EXTRACT,
+        ActionEnum.REDIS_PLUGIN_CREATE_CLB,
+        ActionEnum.REDIS_PLUGIN_DNS_BIND_CLB,
+        ActionEnum.REDIS_PLUGIN_CREATE_POLARIS,
         ActionEnum.REDIS_DESTROY,
         ActionEnum.REDIS_OPEN_CLOSE,
         ActionEnum.REDIS_PURGE,

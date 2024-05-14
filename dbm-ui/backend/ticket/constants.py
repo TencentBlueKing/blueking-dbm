@@ -201,11 +201,11 @@ class TicketType(str, StructuredEnum):
     TENDBCLUSTER_DB_TABLE_BACKUP = TicketEnumField("TENDBCLUSTER_DB_TABLE_BACKUP", _("TenDB Cluster 库表备份"), _("备份"))
     TENDBCLUSTER_RENAME_DATABASE = TicketEnumField("TENDBCLUSTER_RENAME_DATABASE", _("TenDB Cluster 数据库重命名"), _("SQL 任务"))  # noqa
     TENDBCLUSTER_TRUNCATE_DATABASE = TicketEnumField("TENDBCLUSTER_TRUNCATE_DATABASE", _("TenDB Cluster 清档"), _("数据处理"))
-    TENDBCLUSTER_MASTER_FAIL_OVER = TicketEnumField("TENDBCLUSTER_MASTER_FAIL_OVER", _("TenDB Cluster 主故障切换"), _("集群维护"))  # noqa
+    TENDBCLUSTER_MASTER_FAIL_OVER = TicketEnumField("TENDBCLUSTER_MASTER_FAIL_OVER", _("TenDB Cluster 主库故障切换"), _("集群维护"))  # noqa
     TENDBCLUSTER_MASTER_SLAVE_SWITCH = TicketEnumField("TENDBCLUSTER_MASTER_SLAVE_SWITCH", _("TenDB Cluster 主从互切"), _("集群维护"))  # noqa
-    TENDBCLUSTER_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_IMPORT_SQLFILE", _("TenDB Cluster 变更SQL执行"), _("SQL 任务"))
-    TENDBCLUSTER_SEMANTIC_CHECK = TicketEnumField("TENDBCLUSTER_SEMANTIC_CHECK", _("TenDB Cluster 模拟执行"), register_iam=False)
-    TENDBCLUSTER_SPIDER_ADD_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_ADD_NODES", _("TenDB Cluster 扩容接入层"), _("集群维护"))
+    TENDBCLUSTER_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_IMPORT_SQLFILE", _("TenDB Cluster 变更SQL执行"), _("SQL 任务"))  # noqa
+    TENDBCLUSTER_SEMANTIC_CHECK = TicketEnumField("TENDBCLUSTER_SEMANTIC_CHECK", _("TenDB Cluster 模拟执行"), register_iam=False)  # noqa
+    TENDBCLUSTER_SPIDER_ADD_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_ADD_NODES", _("TenDB Cluster 扩容接入层"), _("集群维护"))  # noqa
     TENDBCLUSTER_SPIDER_REDUCE_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_REDUCE_NODES", _("TenDB Cluster 缩容接入层"), _("集群维护"))  # noqa
     TENDBCLUSTER_SPIDER_MNT_APPLY = TicketEnumField("TENDBCLUSTER_SPIDER_MNT_APPLY", _("TenDB Cluster 添加运维节点"), _("运维 Spider 管理"))  # noqa
     TENDBCLUSTER_SPIDER_MNT_DESTROY = TicketEnumField("TENDBCLUSTER_SPIDER_MNT_DESTROY", _("TenDB Cluster 下架运维节点"), _("运维 Spider 管理"))  # noqa
@@ -252,7 +252,7 @@ class TicketType(str, StructuredEnum):
     SQLSERVER_ENABLE = TicketEnumField("SQLSERVER_ENABLE", _("SQLServer 集群启用"), register_iam=False)
     SQLSERVER_DBRENAME = TicketEnumField("SQLSERVER_DBRENAME", _("SQLServer DB重命名"), _("集群维护"))
     SQLSERVER_MASTER_SLAVE_SWITCH = TicketEnumField("SQLSERVER_MASTER_SLAVE_SWITCH", _("SQLServer 主从互切"), _("集群维护"))
-    SQLSERVER_MASTER_FAIL_OVER = TicketEnumField("SQLSERVER_MASTER_FAIL_OVER", _("SQLServer 主故障切换"), _("集群维护"))
+    SQLSERVER_MASTER_FAIL_OVER = TicketEnumField("SQLSERVER_MASTER_FAIL_OVER", _("SQLServer 主库故障切换"), _("集群维护"))
     SQLSERVER_RESTORE_LOCAL_SLAVE = TicketEnumField("SQLSERVER_RESTORE_LOCAL_SLAVE", _("SQLServer 原地重建"), _("集群维护"))
     SQLSERVER_RESTORE_SLAVE = TicketEnumField("SQLSERVER_RESTORE_SLAVE", _("SQLServer 新机重建"), _("集群维护"))
     SQLSERVER_ADD_SLAVE = TicketEnumField("SQLSERVER_ADD_SLAVE", _("SQLServer 添加从库"), _("集群维护"))
@@ -349,21 +349,22 @@ class TicketType(str, StructuredEnum):
     PULSAR_DISABLE = TicketEnumField("PULSAR_DISABLE", _("Pulsar 集群禁用"), register_iam=False)
     PULSAR_DESTROY = TicketEnumField("PULSAR_DESTROY", _("Pulsar 集群删除"), _("集群管理"))
 
-    INFLUXDB_APPLY = TicketEnumField("INFLUXDB_APPLY", _("InfluxDB 实例部署"), _("实例管理"))
-    INFLUXDB_REBOOT = TicketEnumField("INFLUXDB_REBOOT", _("InfluxDB 实例重启"), _("实例管理"))
+    # TODO: 暂时屏蔽对influxdb的鉴权
+    INFLUXDB_APPLY = TicketEnumField("INFLUXDB_APPLY", _("InfluxDB 实例部署"), _("实例管理"), register_iam=False)
+    INFLUXDB_REBOOT = TicketEnumField("INFLUXDB_REBOOT", _("InfluxDB 实例重启"), _("实例管理"), register_iam=False)
     INFLUXDB_ENABLE = TicketEnumField("INFLUXDB_ENABLE", _("InfluxDB 实例启用"), register_iam=False)
     INFLUXDB_DISABLE = TicketEnumField("INFLUXDB_DISABLE", _("InfluxDB 实例禁用"), register_iam=False)
-    INFLUXDB_DESTROY = TicketEnumField("INFLUXDB_DESTROY", _("InfluxDB 实例删除"), _("实例管理"))
-    INFLUXDB_REPLACE = TicketEnumField("INFLUXDB_REPLACE", _("InfluxDB 实例替换"), _("实例管理"))
+    INFLUXDB_DESTROY = TicketEnumField("INFLUXDB_DESTROY", _("InfluxDB 实例删除"), _("实例管理"), register_iam=False)
+    INFLUXDB_REPLACE = TicketEnumField("INFLUXDB_REPLACE", _("InfluxDB 实例替换"), _("实例管理"), register_iam=False)
 
-    DORIS_APPLY = TicketEnumField("DORIS_APPLY", _("DORIS 集群部署"), register_iam=False)
-    DORIS_SCALE_UP = TicketEnumField("DORIS_SCALE_UP", _("DORIS 集群扩容"), _("集群管理"))
-    DORIS_SHRINK = TicketEnumField("DORIS_SHRINK", _("DORIS 集群缩容"), _("集群管理"))
-    DORIS_REBOOT = TicketEnumField("DORIS_REBOOT", _("DORIS 实例重启"), _("集群管理"))
-    DORIS_REPLACE = TicketEnumField("DORIS_REPLACE", _("DORIS 集群替换"), _("集群管理"))
-    DORIS_ENABLE = TicketEnumField("DORIS_ENABLE", _("DORIS 集群启用"), register_iam=False)
-    DORIS_DISABLE = TicketEnumField("DORIS_DISABLE", _("DORIS 集群禁用"), register_iam=False)
-    DORIS_DESTROY = TicketEnumField("DORIS_DESTROY", _("DORIS 集群删除"), _("集群管理"))
+    DORIS_APPLY = TicketEnumField("DORIS_APPLY", _("Doris 集群部署"), register_iam=False)
+    DORIS_SCALE_UP = TicketEnumField("DORIS_SCALE_UP", _("Doris 集群扩容"), _("集群管理"))
+    DORIS_SHRINK = TicketEnumField("DORIS_SHRINK", _("Doris 集群缩容"), _("集群管理"))
+    DORIS_REBOOT = TicketEnumField("DORIS_REBOOT", _("Doris 实例重启"), _("集群管理"))
+    DORIS_REPLACE = TicketEnumField("DORIS_REPLACE", _("Doris 集群替换"), _("集群管理"))
+    DORIS_ENABLE = TicketEnumField("DORIS_ENABLE", _("Doris 集群启用"), register_iam=False)
+    DORIS_DISABLE = TicketEnumField("DORIS_DISABLE", _("Doris 集群禁用"), register_iam=False)
+    DORIS_DESTROY = TicketEnumField("DORIS_DESTROY", _("Doris 集群删除"), _("集群管理"))
 
     # Riak
     RIAK_CLUSTER_APPLY = TicketEnumField("RIAK_CLUSTER_APPLY", _("Riak 集群部署"), register_iam=False)

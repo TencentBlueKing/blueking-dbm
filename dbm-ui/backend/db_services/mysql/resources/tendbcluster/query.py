@@ -199,14 +199,16 @@ class ListRetrieveResource(query.ListRetrieveResource):
         return super()._filter_instance_hook(bk_biz_id, query_params, instances, **kwargs)
 
     @classmethod
-    def _to_instance_representation(cls, instance: dict, cluster_entry_map: dict, **kwargs) -> Dict[str, Any]:
+    def _to_instance_representation(
+        cls, instance: dict, cluster_entry_map: dict, db_module_names_map: dict, **kwargs
+    ) -> Dict[str, Any]:
         """
         将实例对象转为可序列化的 dict 结构
         @param instance: 实例信息
         @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
         """
         instance["port"] = instance["inst_port"]
-        return super()._to_instance_representation(instance, cluster_entry_map, **kwargs)
+        return super()._to_instance_representation(instance, cluster_entry_map, db_module_names_map, **kwargs)
 
     @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:

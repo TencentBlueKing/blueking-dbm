@@ -24,10 +24,7 @@ from backend.bk_web.swagger import (
 from backend.db_meta.models import Group
 from backend.db_services.group.handlers import GroupHandler
 from backend.db_services.group.serializers import GroupMoveInstancesSerializer, GroupSerializer
-from backend.iam_app.dataclass import ResourceEnum
-from backend.iam_app.dataclass.actions import ActionEnum
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission, get_request_key_id
-from backend.iam_app.handlers.permission import Permission
+from backend.iam_app.handlers.drf_perm.base import RejectPermission, get_request_key_id
 
 SWAGGER_TAG = _("分组")
 
@@ -41,6 +38,7 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
     serializer_class = GroupSerializer
     pagination_class = AuditedLimitOffsetPagination
 
+    # TODO: 暂时屏蔽对influxdb的鉴权
     def get_action_permission_map(self):
         return {
             (
@@ -48,11 +46,13 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
                 "update",
                 "destroy",
                 "move_instances",
-            ): [ResourceActionPermission([ActionEnum.GROUP_MANAGE], ResourceEnum.BUSINESS, self.inst_getter)]
+            ): [RejectPermission()]
+            # [ResourceActionPermission([ActionEnum.GROUP_MANAGE], ResourceEnum.BUSINESS, self.inst_getter)]
         }
 
     def get_default_permission_class(self):
-        return [DBManagePermission()]
+        # return [DBManagePermission()]
+        return [RejectPermission()]
 
     @staticmethod
     def inst_getter(request, view):
@@ -86,11 +86,12 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
         auto_schema=PaginatedResponseSwaggerAutoSchema,
         tags=[SWAGGER_TAG],
     )
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["bk_biz_id"],
-        actions=[ActionEnum.GROUP_MANAGE],
-        resource_meta=ResourceEnum.BUSINESS,
-    )
+    # TODO: 暂时屏蔽对influxdb的鉴权
+    # @Permission.decorator_external_permission_field(
+    #     param_field=lambda d: d["bk_biz_id"],
+    #     actions=[ActionEnum.GROUP_MANAGE],
+    #     resource_meta=ResourceEnum.BUSINESS,
+    # )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
