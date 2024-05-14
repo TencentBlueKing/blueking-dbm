@@ -140,8 +140,7 @@
   </BkTimeline>
   <RedisResultFiles
     :id="fileState.id"
-    v-model="fileState.isShow"
-    :show-delete="false" />
+    v-model="fileState.isShow" />
 </template>
 
 <script setup lang="tsx">

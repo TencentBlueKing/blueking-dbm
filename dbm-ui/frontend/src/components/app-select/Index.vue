@@ -209,8 +209,6 @@
     overflow: hidden;
   }
   .db-app-select-name{
-    // flex: 1 1 auto;
-    // max-width: 175px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

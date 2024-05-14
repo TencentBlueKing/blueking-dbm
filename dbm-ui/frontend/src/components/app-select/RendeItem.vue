@@ -48,7 +48,6 @@
       width: maxWidth,
     } = rootRef.value!.getBoundingClientRect();
 
-    console.log('rendertest = ', renderText, maxWidth, width);
     text.value = width > maxWidth ? renderText : '';
   });
 
