@@ -98,12 +98,6 @@ func main() {
 	if err != nil {
 		return
 	}
-	err = clustertest.PredixyRedisClusterInstallTest(localIP, redisPkgName, redisPkgMd5,
-		dbtoolsPkgName, dbtoolsPkgMd5,
-		predixyPkgName, predixyPkgMd5)
-	if err != nil {
-		return
-	}
 
 	// PredixyTendisplusClusterForgetTest forget节点测试
 	if err = clustertest.PredixyTendisplusClusterForgetTest(localIP,
@@ -217,6 +211,19 @@ func main() {
 		return
 	}
 	err = clustertest.PredixyTendisplusClusterClear(localIP, true)
+	if err != nil {
+		return
+	}
+
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>start predixy redis_cluster test>>>>>>>>>>>>>>>")
+	err = clustertest.PredixyRedisClusterInstallTest(localIP, redisPkgName, redisPkgMd5,
+		dbtoolsPkgName, dbtoolsPkgMd5,
+		predixyPkgName, predixyPkgMd5)
+	if err != nil {
+		return
+	}
+	err = clustertest.PredixyRedisClusterClear(localIP, true)
 	if err != nil {
 		return
 	}
