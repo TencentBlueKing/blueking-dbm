@@ -3,6 +3,7 @@
     :data="withFavorBizList"
     :generate-key="(item: IAppItem) => item.bk_biz_id"
     :generate-name="(item: IAppItem) => item.display_name"
+    render-popover-directive="if"
     :search-extension-method="searchExtensionMethod"
     style="margin: 0 12px"
     theme="dark"
@@ -18,14 +19,7 @@
         :resource-id="data.bk_biz_id"
         resource-type="biz">
         <div class="db-app-select-item">
-          <div>
-            <span style="color: #C4C6CC">{{ data.name }} </span>
-            <span style="color: #979BA5">
-              (#{{ data.bk_biz_id }}
-              <template v-if="data.english_name">, {{ data.english_name }}</template>
-              )
-            </span>
-          </div>
+          <RenderItem :data="data" />
           <div style="margin-left: auto;">
             <DbIcon
               v-if="favorBizIdMap[data.bk_biz_id]"
@@ -85,6 +79,8 @@
   import { encodeRegexp, makeMap } from '@utils';
 
   import AppSelect from '@blueking/app-select';
+
+  import RenderItem from './RendeItem.vue';
 
   import '@blueking/app-select/dist/style.css';
 
@@ -198,6 +194,7 @@
   display: flex;
   align-items: center;
   width: 100%;
+  user-select: none;
 
   &:hover{
     .favor-btn{
@@ -205,10 +202,39 @@
     }
   }
 
+  .db-app-select-text{
+    display: flex;
+    flex: 1;
+    padding-right: 12px;
+    overflow: hidden;
+  }
+  .db-app-select-name{
+    // flex: 1 1 auto;
+    // max-width: 175px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #C4C6CC;
+  }
+  .db-app-select-desc{
+    display: flex;
+    white-space: nowrap;
+    color: #979BA5;
+    overflow: hidden;
+  }
+  .db-app-select-en-name{
+    flex: 0 1 auto;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
   .favor-btn{
     opacity: 0%;
     transition: all .1s;
   }
+}
+.db-app-select-tooltips{
+  white-space: nowrap;
+  z-index: 1000000 !important;
 }
 
 .tippy-box[data-theme="bk-app-select-menu"]{
