@@ -24,7 +24,7 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.ticket.constants import FlowRetryType, FlowType
-from backend.ticket.models import Flow, Ticket, TicketFlowConfig
+from backend.ticket.models import Flow, Ticket, TicketFlowsConfig
 
 logger = logging.getLogger("root")
 
@@ -299,13 +299,15 @@ class TicketFlowBuilder:
     def need_itsm(self):
         """是否需要itsm审批节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
         assert self.ticket_type is not None, "Please make sure FlowBuilder set the ticket type! "
-        return TicketFlowConfig.objects.get(ticket_type=self.ticket_type).configs["need_itsm"]
+        config = TicketFlowsConfig.get_config(ticket_type=self.ticket_type, bk_biz_id=self.ticket.bk_biz_id)
+        return config["need_itsm"]
 
     @property
     def need_manual_confirm(self):
         """是否需要人工确认节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
         assert self.ticket_type is not None, "Please make sure FlowBuilder set the ticket type! "
-        return TicketFlowConfig.objects.get(ticket_type=self.ticket_type).configs["need_manual_confirm"]
+        config = TicketFlowsConfig.get_config(ticket_type=self.ticket_type, bk_biz_id=self.ticket.bk_biz_id)
+        return config["need_manual_confirm"]
 
     @property
     def need_resource_pool(self):

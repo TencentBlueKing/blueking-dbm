@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import uuid
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.models import StateType
 from backend.tests.mock_data import constant
@@ -50,6 +51,14 @@ MYSQL_AUTHORIZE_CLONE_CLIENT_TICKET_DATA = {
     },
     "remark": "",
     "ticket_type": "MYSQL_CLIENT_CLONE_RULES",
+}
+
+MYSQL_CLONE_CLIENT_TICKET_CONFIG = {
+    "bk_biz_id": constant.BK_BIZ_ID,
+    "ticket_type": TicketType.MYSQL_CLIENT_CLONE_RULES,
+    "configs": {"need_itsm": True, "need_manual_confirm": True},
+    "editable": 1,
+    "group": DBType.MySQL,
 }
 
 MYSQL_SINGLE_APPLY_TICKET_DATA = {
