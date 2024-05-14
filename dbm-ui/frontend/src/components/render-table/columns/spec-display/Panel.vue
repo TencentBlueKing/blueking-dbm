@@ -13,7 +13,6 @@
 
 <template>
   <BkPopover
-    always
     height="0"
     placement="bottom"
     :popover-delay="[100, 200]"

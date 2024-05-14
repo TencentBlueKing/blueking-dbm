@@ -388,7 +388,7 @@
     const values = Object.values(redisClusterTypes);
     const redisController = funControllerStore.funControllerData.redis;
 
-    return values.filter((item) => redisController.children[item.id as RedisFunctions].is_enabled);
+    return values.filter((item) => redisController.children[item.id as RedisFunctions]?.is_enabled);
   });
 
   /** 初始化数据 */
@@ -489,7 +489,7 @@
   };
 
   const isManualInput = computed(() => state.formdata.details.ip_source === redisIpSources.manual_input.id);
-  const isDefaultCity = computed(() => state.formdata.details.city_code === 'default');
+  // const isDefaultCity = computed(() => state.formdata.details.city_code === 'default');
 
   const disableCapSpecs = computed(() => {
     const { master, slave } = state.formdata.details.nodes;
