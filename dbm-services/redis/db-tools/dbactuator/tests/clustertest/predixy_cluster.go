@@ -207,6 +207,15 @@ func PredixyRedisClusterInstallTest(serverIP,
 	return nil
 }
 
+// PredixyRedisClusterClear predixy+redis_cluster清理
+func PredixyRedisClusterClear(serverIP string, clearDataDir bool) (err error) {
+	// 先清理
+	redistest.RedisInstanceMasterClear(serverIP, consts.TendisTypePredixyRedisCluster, true)
+	redistest.RedisInstanceSlaveClear(serverIP, consts.TendisTypePredixyRedisCluster, true)
+	proxytest.PredixyClear(serverIP, consts.TestRedisPredixyPort, true)
+	return nil
+}
+
 // PredixyTendisplusClusterForgetTest predixy+tendisplus cluster集群Forget
 func PredixyTendisplusClusterForgetTest(serverIP,
 	tendisplusPkgName, tendisplusPkgMd5,

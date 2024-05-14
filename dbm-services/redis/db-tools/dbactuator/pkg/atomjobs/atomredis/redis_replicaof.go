@@ -242,25 +242,27 @@ func (task *ReplicaTask) IsReplicaStatusOk() (status bool) {
 
 // CreateReplicaREL create replica relationship
 func (task *ReplicaTask) CreateReplicaREL() {
-	_, task.Err = task.MasterCli.ConfigSet("appendonly", "no")
-	if task.Err != nil {
-		return
-	}
-	task.runtime.Logger.Info("master(%s) 'confxx set appendonly no' ok ", task.MasterAddr())
+	if consts.IsRedisInstanceDbType(task.DbType) {
+		_, task.Err = task.MasterCli.ConfigSet("appendonly", "no")
+		if task.Err != nil {
+			return
+		}
+		task.runtime.Logger.Info("master(%s) 'confxx set appendonly no' ok ", task.MasterAddr())
 
-	_, task.Err = task.SlaveCli.ConfigSet("appendonly", "yes")
-	if task.Err != nil {
-		return
+		_, task.Err = task.SlaveCli.ConfigSet("appendonly", "yes")
+		if task.Err != nil {
+			return
+		}
+		task.runtime.Logger.Info("slave(%s) 'confxx set appendonly yes' ok ", task.SlaveAddr())
 	}
-	task.runtime.Logger.Info("slave(%s) 'confxx set appendonly yes' ok ", task.SlaveAddr())
 
 	_, task.Err = task.SlaveCli.ConfigSet("masterauth", task.MasterAuth)
 	if task.Err != nil {
 		return
 	}
-	task.runtime.Logger.Info("slave(%s) 'confxx set masterauth xxx' ok ", task.SlaveAddr())
+	task.runtime.Logger.Info("slave(%s) 'confxx set masterauth xxx' ok", task.SlaveAddr())
 
-	if consts.IsRedisInstanceDbType(task.DbType) {
+	if consts.IsRedisInstanceDbType(task.DbType) || consts.IsTendisSSDInstanceDbType(task.DbType) {
 		_, task.Err = task.SlaveCli.ConfigSet("slave-read-only", "yes")
 		if task.Err != nil {
 			return
