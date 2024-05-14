@@ -254,7 +254,12 @@ export function queryTicketFlowDescribe(params: {
   ticket_types?: string,
   limit?: number,
   offset?: number,
+  bk_biz_id?: number,
 }) {
+  // 组件 db-table 传值问题，临时解决 bk_biz_id 多余传值
+  // eslint-disable-next-line no-param-reassign
+  delete params.bk_biz_id;
+
   return http.get<{
     configs: Record<string, boolean>;
     creator: string;

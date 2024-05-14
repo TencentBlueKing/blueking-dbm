@@ -244,7 +244,6 @@
   watch(() => props.activeDbType, (type) => {
     if (type) {
       searchValue.value = [];
-      fetchHostNodes();
     }
   });
 
