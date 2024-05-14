@@ -347,6 +347,21 @@ func CronStart(r *gin.Context) {
 	return
 }
 
+// RunOnce 调度执行一次
+func RunOnce(r *gin.Context) {
+	var input cron.PartitionJob
+	err := r.ShouldBind(&input)
+	if err != nil {
+		err = errno.ErrReadEntity.Add(err.Error())
+		slog.Error(err.Error())
+		SendResponse(r, err, nil)
+		return
+	}
+	input.ExecutePartitionOneTime(input.ClusterType)
+	SendResponse(r, nil, "调度一次成功")
+	return
+}
+
 // InitMonitor 初始监控配置
 func InitMonitor(r *gin.Context) {
 	monitor.InitMonitor()

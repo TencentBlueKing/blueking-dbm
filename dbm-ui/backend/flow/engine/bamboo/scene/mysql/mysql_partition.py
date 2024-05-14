@@ -120,18 +120,6 @@ class MysqlPartitionFlow(object):
                 ),
             )
 
-            sub_pipeline.add_act(
-                act_name=_("下发actuator介质"),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        exec_ip=ip,
-                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                    )
-                ),
-            )
-
             cluster = {"ip": ip, "port": port, "file_path": os.path.join(BK_PKG_INSTALL_PATH, "partition", filename)}
 
             sub_pipeline.add_act(

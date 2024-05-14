@@ -20,6 +20,7 @@ from backend.flow.views.cloud_redis_dts_server_apply import (
     CloudRedisDTSServerApplySceneApiView,
     CloudRedisDTSServerReduceSceneApiView,
 )
+from backend.flow.views.download_dbactor import DownloadDbactorApiView
 from backend.flow.views.es_apply import InstallEsSceneApiView
 from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
@@ -429,4 +430,5 @@ urlpatterns = [
     url("^scene/sqlserver_rebuild_in_local$", SqlserverRebuildInLocalSceneApiView.as_view()),
     url("^scene/sqlserver_rebuild_in_new_slave$", SqlserverRebuildInNewSlaveSceneApiView.as_view()),
     url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
+    url("^scene/download_dbactor$", DownloadDbactorApiView.as_view()),
 ]

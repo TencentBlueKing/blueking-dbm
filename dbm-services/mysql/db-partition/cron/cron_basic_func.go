@@ -11,6 +11,7 @@
 package cron
 
 import (
+	"dbm-services/mysql/db-partition/util"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -41,6 +42,7 @@ func (m PartitionJob) Run() {
 		monitor.SendEvent(monitor.PartitionDeveloperEvent, dimension, content, Scheduler)
 		slog.Error("msg", "model.Lock err", err)
 	} else if flag {
+		m.ExecutePartitionCron(service.Tendbsingle)
 		m.ExecutePartitionCron(service.Tendbha)
 		m.ExecutePartitionCron(service.Tendbcluster)
 	} else {
@@ -59,8 +61,86 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 		slog.Error("msg", "get need partition list fail", errOuter)
 		return
 	}
+	var UniqMap = make(map[int]struct{})
+	var UniqMachine = make(map[string]struct{})
+	var cloudMachineList = make(map[int64][]string)
+	var InstanceRole string
+	switch clusterType {
+	case service.Tendbsingle:
+		InstanceRole = service.Orphan
+	case service.Tendbha:
+		InstanceRole = service.BackendMaster
+	case service.Tendbcluster:
+		InstanceRole = service.RemoteMaster
+	default:
+		slog.Error(fmt.Sprintf("cluster type %s not support", clusterType))
+		return
+	}
+
+	for _, need := range needMysql {
+		if _, isExists := UniqMap[need.BkBizId]; isExists == false {
+			UniqMap[need.BkBizId] = struct{}{}
+			clusters, err := service.GetAllClustersInfo(service.BkBizId{BkBizId: int64(need.BkBizId)})
+			if err != nil {
+				dimension := monitor.NewDeveloperEventDimension(Scheduler)
+				content := fmt.Sprintf("partition error. "+
+					"get cluster from dbmeta/priv_manager/biz_clusters error: %s", err.Error())
+				monitor.SendEvent(monitor.PartitionDeveloperEvent, dimension, content, Scheduler)
+				slog.Error("msg", "partition error. "+
+					"get cluster from dbmeta/priv_manager/biz_clusters error", err)
+				continue
+			}
+			for _, cluster := range clusters {
+				if cluster.ClusterType == clusterType {
+					for _, storage := range cluster.Storages {
+						if storage.InstanceRole == InstanceRole {
+							if _, existFlag := UniqMachine[fmt.Sprintf("%s|%d",
+								storage.IP, cluster.BkCloudId)]; existFlag == false {
+								cloudMachineList[cluster.BkCloudId] = append(
+									cloudMachineList[cluster.BkCloudId], storage.IP)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	var wgDownload sync.WaitGroup
+	slog.Error("msg", "cloudMachineList", fmt.Sprintf("%v", cloudMachineList))
+	tokenBucketDownload := make(chan int, 20)
+	for cloud, machines := range cloudMachineList {
+		tmp := util.SplitArray(machines, 5)
+		slog.Error("msg", "cloud", cloud, "machines", fmt.Sprintf("%v", machines))
+		slog.Error("msg", "cloud", cloud, "tmp", fmt.Sprintf("%v", tmp))
+
+		for _, ips := range tmp {
+			wgDownload.Add(1)
+			tokenBucketDownload <- 0
+			go func(cloud int64, ips []string) {
+				defer func() {
+					<-tokenBucketDownload
+					wgDownload.Done()
+				}()
+				// 按照机器提前下载好dbactor，减少重复下次
+				err := service.DownloadDbactor(cloud, ips)
+				if err != nil {
+					dimension := monitor.NewDeveloperEventDimension(Scheduler)
+					content := fmt.Sprintf("%v download dbactor fail: %s", ips, err.Error())
+					monitor.SendEvent(monitor.PartitionDeveloperEvent, dimension, content, Scheduler)
+					slog.Error("msg", "download dbactor fail. "+
+						"dbmeta/apis/v1/flow/scene/download_dbactor/ error", err)
+					return
+				}
+				// 下发dbactor时间，避免造成瓶颈
+				time.Sleep(2 * time.Minute)
+			}(cloud, ips)
+		}
+	}
+	wgDownload.Wait()
+	close(tokenBucketDownload)
+
 	var wg sync.WaitGroup
-	tokenBucket := make(chan int, 30)
+	tokenBucket := make(chan int, 40)
 	for _, item := range needMysql {
 		wg.Add(1)
 		tokenBucket <- 0
@@ -92,6 +172,107 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 			}
 			slog.Info("do create partition ticket")
 			service.CreatePartitionTicket(*item, objects, m.ZoneOffset, m.CronDate, Scheduler)
+			time.Sleep(40 * time.Second)
+		}(item)
+	}
+	wg.Wait()
+	close(tokenBucket)
+}
+
+// ExecutePartitionOneTime 一次性调度
+func (m PartitionJob) ExecutePartitionOneTime(clusterType string) {
+	needMysql, errOuter := service.NeedPartition(m.CronType, clusterType, m.ZoneOffset, m.CronDate)
+	if errOuter != nil {
+		slog.Error("testtest", "get need partition list fail", errOuter)
+		return
+	}
+	var UniqMap = make(map[int]struct{})
+	var UniqMachine = make(map[string]struct{})
+	var cloudMachineList = make(map[int64][]string)
+	var InstanceRole string
+	switch clusterType {
+	case service.Tendbsingle:
+		InstanceRole = service.Orphan
+	case service.Tendbha:
+		InstanceRole = service.BackendMaster
+	case service.Tendbcluster:
+		InstanceRole = service.RemoteMaster
+	default:
+		slog.Error(fmt.Sprintf("cluster type %s not support", clusterType))
+		return
+	}
+	for _, need := range needMysql {
+		if _, isExists := UniqMap[need.BkBizId]; isExists == false {
+			UniqMap[need.BkBizId] = struct{}{}
+			clusters, err := service.GetAllClustersInfo(service.BkBizId{BkBizId: int64(need.BkBizId)})
+			if err != nil {
+				slog.Error("msg", "partition error. "+
+					"get cluster from dbmeta/priv_manager/biz_clusters error", err)
+				continue
+			}
+			for _, cluster := range clusters {
+				if cluster.ClusterType == clusterType {
+					for _, storage := range cluster.Storages {
+						if storage.InstanceRole == InstanceRole {
+							if _, existFlag := UniqMachine[fmt.Sprintf("%s|%d",
+								storage.IP, cluster.BkCloudId)]; existFlag == false {
+								cloudMachineList[cluster.BkCloudId] = append(
+									cloudMachineList[cluster.BkCloudId], storage.IP)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	var wgDownload sync.WaitGroup
+	tokenBucketDownload := make(chan int, 20)
+	for cloud, machines := range cloudMachineList {
+		tmp := util.SplitArray(machines, 5)
+		for _, ips := range tmp {
+			wgDownload.Add(1)
+			tokenBucketDownload <- 0
+			go func(cloud int64, ips []string) {
+				defer func() {
+					<-tokenBucketDownload
+					wgDownload.Done()
+				}()
+				// 按照机器提前下载好dbactor，减少重复下次
+				err := service.DownloadDbactor(cloud, ips)
+				if err != nil {
+					slog.Error("msg", "download dbactor fail. "+
+						"dbmeta/apis/v1/flow/scene/download_dbactor error", err)
+					return
+				}
+				// 下发dbactor时间，避免造成瓶颈
+				time.Sleep(2 * time.Minute)
+			}(cloud, ips)
+		}
+	}
+	wgDownload.Wait()
+	close(tokenBucketDownload)
+
+	var wg sync.WaitGroup
+	tokenBucket := make(chan int, 40)
+	for _, item := range needMysql {
+		wg.Add(1)
+		tokenBucket <- 0
+		go func(item *service.Checker) {
+			defer func() {
+				<-tokenBucket
+				wg.Done()
+			}()
+			objects, err := (*item).DryRun()
+			if err != nil {
+				code, _ := errno.DecodeErr(err)
+				if code != errno.NothingToDo.Code {
+					slog.Error(fmt.Sprintf("%v", *item), "get partition sql fail", err)
+				}
+				return
+			}
+			slog.Info("do create partition ticket")
+			service.CreatePartitionTicket(*item, objects, m.ZoneOffset, m.CronDate, Scheduler)
+			time.Sleep(40 * time.Second)
 		}(item)
 	}
 	wg.Wait()
