@@ -35,7 +35,7 @@ from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowConfig, Todo
+from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.serializers import (
     ClusterModifyOpSerializer,
     CountTicketSLZ,
@@ -449,7 +449,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         from backend.ticket.builders import BuilderFactory
 
         data = self.params_validate(self.get_serializer_class())
-        ticket_flow_configs = TicketFlowConfig.objects.filter(group=data["db_type"], editable=True)
+        ticket_flow_configs = TicketFlowsConfig.objects.filter(
+            bk_biz_id=data["bk_biz_id"], group=data["db_type"], editable=True
+        )
         if data.get("ticket_types"):
             ticket_flow_configs = ticket_flow_configs.filter(ticket_type__in=data["ticket_types"])
 
@@ -476,7 +478,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=UpdateTicketFlowConfigSerializer)
     def update_ticket_flow_config(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        TicketFlowConfig.objects.filter(ticket_type__in=data["ticket_types"]).update(configs=data["configs"])
+        TicketFlowsConfig.objects.filter(bk_biz_id=data["bk_biz_id"], ticket_type__in=data["ticket_types"]).update(
+            configs=data["configs"]
+        )
         return Response()
 
     @common_swagger_auto_schema(

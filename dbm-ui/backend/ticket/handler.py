@@ -13,12 +13,13 @@ from typing import Dict, List
 from django.utils.translation import ugettext as _
 
 from backend import env
+from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
 from backend.ticket.constants import FlowTypeConfig, TicketType
-from backend.ticket.models import Ticket, TicketFlowConfig
+from backend.ticket.models import Ticket, TicketFlowsConfig
 
 
 class TicketHandler:
@@ -147,9 +148,10 @@ class TicketHandler:
     def ticket_flow_config_init(cls):
         """初始化单据配置"""
 
-        exist_ticket_types = list(TicketFlowConfig.objects.all().values_list("ticket_type", flat=True))
+        exist_ticket_types = list(TicketFlowsConfig.objects.all().values_list("ticket_type", flat=True))
         created_configs = [
-            TicketFlowConfig(
+            TicketFlowsConfig(
+                bk_biz_id=PLAT_BIZ_ID,
                 creator="admin",
                 updater="admin",
                 ticket_type=ticket_type,
@@ -163,4 +165,4 @@ class TicketHandler:
             for ticket_type, flow_class in BuilderFactory.registry.items()
             if ticket_type not in exist_ticket_types
         ]
-        TicketFlowConfig.objects.bulk_create(created_configs)
+        TicketFlowsConfig.objects.bulk_create(created_configs)

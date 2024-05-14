@@ -20,7 +20,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
-from backend.configuration.constants import DBType
+from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
     FlowRetryType,
@@ -205,18 +205,30 @@ class Ticket(AuditedModel):
         return ticket
 
 
-class TicketFlowConfig(AuditedModel):
+class TicketFlowsConfig(AuditedModel):
     """
     单据流程配置，暂时只可配置单据审批、人工确认
     """
 
-    ticket_type = models.CharField(_("单据类型"), choices=TicketType.get_choices(), max_length=128, primary_key=True)
+    bk_biz_id = models.IntegerField(_("业务ID"), default=0)
+    ticket_type = models.CharField(_("单据类型"), choices=TicketType.get_choices(), max_length=128)
     group = models.CharField(_("单据分组类型"), choices=DBType.get_choices(), max_length=LEN_NORMAL)
     editable = models.BooleanField(_("是否支持用户配置"))
     configs = models.JSONField(_("单据配置 eg: {'need_itsm': false, 'need_manual_confirm': false}"), default=dict)
 
     class Meta:
         indexes = [models.Index(fields=["group"])]
+        verbose_name = _("单据流程配置")
+        verbose_name_plural = _("单据流程配置")
+
+    @classmethod
+    def get_config(cls, ticket_type, bk_biz_id=PLAT_BIZ_ID):
+        """获取单据类型的配置"""
+        # 优先获取业务的单据配置，如果业务配置没有则获取平台的
+        try:
+            return cls.objects.get(bk_biz_id=bk_biz_id, ticket_type=ticket_type).configs
+        except cls.DoesNotExist:
+            return cls.objects.get(bk_biz_id=PLAT_BIZ_ID, ticket_type=ticket_type).configs
 
 
 class ClusterOperateRecordManager(models.Manager):
