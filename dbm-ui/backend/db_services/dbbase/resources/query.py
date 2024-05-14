@@ -605,11 +605,21 @@ class ListRetrieveResource(BaseListRetrieveResource):
 
     @classmethod
     def _filter_instance_hook(cls, bk_biz_id, query_params, instances, **kwargs):
-        # 查询访问入口
         cluster_ids = [instance["cluster__id"] for instance in instances]
+        # 查询访问入口
         cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
+        # 查询云区域信息
+        cloud = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        # 获取DB模块的映射信息
+        db_module_names_map = {
+            module.db_module_id: module.db_module_name
+            for module in DBModule.objects.filter(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        }
         # 将实例的查询结果序列化为实例字典信息
-        instance_infos = [cls._to_instance_representation(inst, cluster_entry_map, **kwargs) for inst in instances]
+        instance_infos = [
+            cls._to_instance_representation(inst, cluster_entry_map, db_module_names_map, cloud_info=cloud, **kwargs)
+            for inst in instances
+        ]
         # 特例：如果有extra参数，则补充额外实例信息
         if query_params.get("extra"):
             cls._fill_instance_extra_info(bk_biz_id, instance_infos, **kwargs)
@@ -680,13 +690,16 @@ class ListRetrieveResource(BaseListRetrieveResource):
         return instance_queryset
 
     @classmethod
-    def _to_instance_representation(cls, instance: dict, cluster_entry_map: dict, **kwargs) -> Dict[str, Any]:
+    def _to_instance_representation(
+        cls, instance: dict, cluster_entry_map: dict, db_module_names_map: dict, **kwargs
+    ) -> Dict[str, Any]:
         """
         将实例对象转为可序列化的 dict 结构
         @param instance: 实例信息
         @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
+        @param db_module_names_map: key 是 db_module_id, value 是 db_module_name
         """
-        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        cloud_info = kwargs.get("cloud_info", {})
         bk_cloud_name = cloud_info.get(str(instance["machine__bk_cloud_id"]), {}).get("bk_cloud_name", "")
         return {
             "id": instance["id"],
@@ -695,6 +708,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "cluster_name": instance["cluster__name"],
             "version": instance["cluster__major_version"],
             "db_module_id": instance["cluster__db_module_id"],
+            "db_module_name": db_module_names_map.get(instance["cluster__db_module_id"], ""),
             "bk_cloud_id": instance["machine__bk_cloud_id"],
             "bk_cloud_name": bk_cloud_name,
             "ip": instance["machine__ip"],

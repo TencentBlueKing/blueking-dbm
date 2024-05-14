@@ -27,24 +27,28 @@ class RedisDataStructureTaskDeleteDetailSerializer(SkipToRepresentationMixin, se
 
     class InfoSerializer(serializers.Serializer):
         related_rollback_bill_id = serializers.CharField(help_text=_("关联单据ID"))
-        prod_cluster = serializers.CharField(help_text=_("集群域名"))
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
 
         def validate(self, attr):
             """业务逻辑校验"""
-            prod_cluster = attr.get("prod_cluster")
+            # 判断集群是否存在
+            try:
+                prod_cluster = Cluster.objects.get(id=attr["cluster_id"])
+            except Cluster.DoesNotExist:
+                raise serializers.ValidationError(_("目标集群{}不存在，请确认.").format(attr["cluster_id"]))
 
-            if not Cluster.objects.filter(immute_domain=prod_cluster).exists():
-                raise serializers.ValidationError(_("目标集群{}不存在，请确认.").format(prod_cluster))
-
+            # 判断构造实例是否存在
             if not TbTendisRollbackTasks.objects.filter(
                 related_rollback_bill_id=attr.get("related_rollback_bill_id"),
-                prod_cluster=prod_cluster,
+                prod_cluster=prod_cluster.immute_domain,
                 bk_cloud_id=attr.get("bk_cloud_id"),
                 destroyed_status=DestroyedStatus.NOT_DESTROYED,
             ).exists():
-                raise serializers.ValidationError(_("集群{}: 没有找到未销毁的实例.").format(prod_cluster))
+                raise serializers.ValidationError(_("集群{}: 没有找到未销毁的实例.").format(prod_cluster.immute_domain))
 
+            # 填写域名
+            attr["prod_cluster"] = prod_cluster.immute_domain
             return attr
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())

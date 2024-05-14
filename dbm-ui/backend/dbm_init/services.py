@@ -17,6 +17,7 @@ import subprocess
 from bk_notice_sdk.views import api_call
 from blueapps.account.models import User
 from django.conf import settings
+from django.core.management import call_command
 from django.http import HttpRequest
 from django.utils import timezone
 
@@ -35,6 +36,7 @@ from backend.db_services.ipchooser.constants import DB_MANAGE_SET, DIRTY_MODULE,
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.dbm_init.json_files.format import JsonConfigFormat
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError
+from backend.iam_app.dataclass import generate_iam_migration_json
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
@@ -517,3 +519,12 @@ class Services:
                 logger.info("dbm注册平台失败:" + response["message"])
         except Exception as e:
             logger.info("dbm注册平台异常: %s" % str(e))
+
+    @classmethod
+    def auto_create_iam_migrations(cls):
+        """自动注册iam"""
+        try:
+            generate_iam_migration_json(json_name="initial.json")
+            call_command("iam_makemigrations", "initial.json")
+        except Exception as e:
+            logger.info("dbm生成iam模型异常: %s" % str(e))

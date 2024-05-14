@@ -20,7 +20,7 @@ from backend.db_meta.models.instance import StorageInstance
 from backend.db_proxy.models import ClusterExtension
 from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.ticket.constants import TicketFlowStatus, TicketType
+from backend.ticket.constants import TicketFlowStatus
 from backend.ticket.models import InstanceOperateRecord
 from backend.utils.time import datetime2str
 
@@ -58,12 +58,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         # 获取实例的重启操作的映射
         restart_records = InstanceOperateRecord.objects.filter(
             instance_id__in=instance_ids,
-            ticket__ticket_type__in=[
-                TicketType.ES_REBOOT,
-                TicketType.HDFS_REBOOT,
-                TicketType.KAFKA_REBOOT,
-                TicketType.PULSAR_REBOOT,
-            ],
+            ticket__ticket_type__in=InstanceOperateRecord.objects.REBOOT_TICKET_TYPES,
         ).order_by("create_at")
         restart_map = {record.instance_id: record.create_at for record in restart_records}
 
@@ -112,9 +107,11 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         return cluster_info
 
     @classmethod
-    def _to_instance_representation(cls, instance: dict, cluster_entry_map: dict, **kwargs) -> Dict[str, Any]:
+    def _to_instance_representation(
+        cls, instance: dict, cluster_entry_map: dict, db_module_names_map: dict, **kwargs
+    ) -> Dict[str, Any]:
         """实例序列化"""
-        instance_info = super()._to_instance_representation(instance, cluster_entry_map, **kwargs)
+        instance_info = super()._to_instance_representation(instance, cluster_entry_map, db_module_names_map, **kwargs)
         # 补充重启时间和操作记录
         restart_at = kwargs["restart_map"].get(instance["id"])
         instance_info.update(

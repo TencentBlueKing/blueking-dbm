@@ -33,7 +33,6 @@ class ConfigViewSet(viewsets.SystemViewSet):
         (
             "list_biz_configs",
             "get_level_config",
-            "list_config_version_history",
             "get_config_version_detail",
         ): [BizDBConfigPermission([ActionEnum.DBCONFIG_VIEW])],
         (
@@ -49,6 +48,15 @@ class ConfigViewSet(viewsets.SystemViewSet):
         ("list_config_names",): [],
     }
     default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
+
+    def _get_custom_permissions(self):
+        # list_config_version_history需要根据业务ID来判断是业务配置还是平台配置
+        if self.action == "list_config_version_history":
+            if int(self.request.query_params.get("bk_biz_id", 0)):
+                return [BizDBConfigPermission([ActionEnum.DBCONFIG_VIEW])]
+            else:
+                return [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_VIEW])]
+        return super()._get_custom_permissions()
 
     @common_swagger_auto_schema(
         operation_summary=_("查询配置项名称列表"),

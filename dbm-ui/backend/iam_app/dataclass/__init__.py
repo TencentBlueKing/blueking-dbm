@@ -9,9 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+import os
 from collections import defaultdict
 from typing import Any, Dict, List
 
+from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from ...env import BK_IAM_SYSTEM_ID
@@ -32,7 +34,7 @@ IAM_SYSTEM_DEFINITION = {
 }
 
 
-def generate_iam_migration_json():
+def generate_iam_migration_json(json_name: str = ""):
     """
     根据dataclass的定义自动生成操作，操作组，资源和实例视图的json文件
     """
@@ -129,6 +131,10 @@ def generate_iam_migration_json():
     # 导出 资源创建联动动作定义
     iam_json_content.append({"operation": "upsert_resource_creator_actions", "data": iam_resource_creator_actions})
 
-    iam_migrate_json_path = "backend/iam_app/migration_json_files/initial—tmp.json"
+    # 获取dbm在iam完整的注册json
+    dbm_iam_json = {"system_id": BK_IAM_SYSTEM_ID, "operations": iam_json_content}
+
+    json_name = json_name or "initial—tmp.json"
+    iam_migrate_json_path = os.path.join(settings.BASE_DIR, f"backend/iam_app/migration_json_files/{json_name}")
     with open(iam_migrate_json_path, "w+") as f:
-        f.write(json.dumps(iam_json_content, ensure_ascii=False, indent=4))
+        f.write(json.dumps(dbm_iam_json, ensure_ascii=False, indent=4))

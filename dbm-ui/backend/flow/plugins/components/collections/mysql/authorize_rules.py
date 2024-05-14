@@ -18,6 +18,7 @@ from pipeline.core.flow.activity import Service
 
 from backend import env
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
+from backend.configuration.constants import DBType
 from backend.db_services.dbpermission.db_authorize.models import AuthorizeRecord
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
@@ -104,11 +105,13 @@ class AuthorizeRules(BaseService):
                 )
             )
         # 打印授权结果详情链接下载
+        # 下载excel的url中，mysql和tendbcluster同用一个路由
+        route_type = DBType.MySQL.value if db_type == DBType.TenDBCluster else db_type
         self.log_info(
             _(
                 "授权结果详情请下载excel: <a href='{}/apis/{}/bizs/{}/permission/authorize/"
                 "get_authorize_info_excel/?ticket_id={}'>excel 下载</a>"
-            ).format(env.BK_SAAS_HOST, db_type, bk_biz_id, ticket_id)
+            ).format(env.BK_SAAS_HOST, route_type, bk_biz_id, ticket_id)
         )
         return overall_result
 

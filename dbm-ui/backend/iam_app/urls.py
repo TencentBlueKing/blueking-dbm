@@ -36,7 +36,6 @@ from backend.iam_app.views.cluster_provider import (
 from backend.iam_app.views.dbtype_provider import DBTypeResourceProvider
 from backend.iam_app.views.dumper_config_provider import DumperSubscribeConfigResourceProvider
 from backend.iam_app.views.flow_provider import FlowResourceProvider
-from backend.iam_app.views.instance_provider import InfluxDBInstanceResourceProvider
 from backend.iam_app.views.monitor_policy_provider import MonitorPolicyResourceProvider
 from backend.iam_app.views.notify_group_provider import NotifyGroupResourceProvider
 from backend.iam_app.views.openarea_config_provider import OpenareaConfigResourceProvider
@@ -56,7 +55,8 @@ dispatcher.register(r"dumper_subscribe_config", DumperSubscribeConfigResourcePro
 dispatcher.register(r"mysql", MySQLResourceProvider())
 dispatcher.register(r"tendbcluster", TendbClusterResourceProvider())
 dispatcher.register(r"redis", RedisClusterResourceProvider())
-dispatcher.register(r"influxdb", InfluxDBInstanceResourceProvider())
+# TODO: 暂时屏蔽对influxdb的鉴权
+# dispatcher.register(r"influxdb", InfluxDBInstanceResourceProvider())
 dispatcher.register(r"es", EsClusterResourceProvider())
 dispatcher.register(r"hdfs", HdfsClusterResourceProvider())
 dispatcher.register(r"kafka", KafkaClusterResourceProvider())

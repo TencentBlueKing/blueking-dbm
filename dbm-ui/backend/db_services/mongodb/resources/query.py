@@ -197,7 +197,9 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
         )
 
     @classmethod
-    def _to_instance_representation(cls, instance: dict, cluster_entry_map: dict, **kwargs) -> Dict[str, Any]:
+    def _to_instance_representation(
+        cls, instance: dict, cluster_entry_map: dict, db_module_names_map: dict, **kwargs
+    ) -> Dict[str, Any]:
         """获取mongo实例信息"""
         bk_host_id, port = instance["machine__bk_host_id"], instance["port"]
         instance_operator_record_map = kwargs["instance_operator_record_map"]
@@ -205,7 +207,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             "shard": instance["shard"],
             "operations": instance_operator_record_map.get(f"{bk_host_id}:{port}", []),
         }
-        instance_info = super()._to_instance_representation(instance, cluster_entry_map, **kwargs)
+        instance_info = super()._to_instance_representation(instance, cluster_entry_map, db_module_names_map, **kwargs)
         instance_info.update(instance_extra_info)
         return instance_info
 
