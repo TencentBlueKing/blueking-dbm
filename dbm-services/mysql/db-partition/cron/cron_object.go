@@ -6,14 +6,12 @@ const Daily = "daily"
 // Retry TODO
 const Retry = "retry"
 
-// Heartbeat TODO
-const Heartbeat = "heartbeat"
-
 // PartitionJob TODO
 type PartitionJob struct {
-	CronType   string
-	ZoneOffset int
-	ZoneName   string
-	CronDate   string
-	Hour       string
+	CronType    string `json:"cron_type"`
+	ZoneOffset  int    `json:"zone_offset"`
+	ZoneName    string `json:"zone_name"`
+	CronDate    string `json:"cron_date"`
+	Hour        string `json:"hour"`
+	ClusterType string `json:"cluster_type"`
 }
