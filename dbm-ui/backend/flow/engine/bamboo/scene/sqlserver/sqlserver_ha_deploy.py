@@ -129,6 +129,7 @@ class SqlserverHAApplyFlow(BaseFlow):
                             ],
                             cluster_name=cluster["name"],
                             group_name=cluster["immutable_domain"],
+                            is_use_sa=True,
                         )
                     )
 

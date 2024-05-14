@@ -57,6 +57,27 @@ class PayloadHandler(object):
         }
 
     @staticmethod
+    def get_sa_account():
+        """
+        获取sqlserver实例sa内置帐户密码，一些部署类单据的专属
+        """
+        user_map = {}
+        value_to_name = {member.value: member.name.lower() for member in SqlserverUserName}
+        data = DBPrivManagerApi.get_password(
+            {
+                "instances": [DEFAULT_INSTANCE],
+                "users": [
+                    {"username": SqlserverUserName.SA.value, "component": SqlserverComponent.SQLSERVER.value},
+                ],
+            }
+        )
+        for user in data["items"]:
+            user_map[value_to_name[user["username"]] + "_user"] = user["username"]
+            user_map[value_to_name[user["username"]] + "_pwd"] = base64.b64decode(user["password"]).decode("utf-8")
+
+        return user_map
+
+    @staticmethod
     def get_init_system_account():
         """
         系统账号初始化

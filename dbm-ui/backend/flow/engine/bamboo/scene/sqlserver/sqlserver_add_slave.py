@@ -171,18 +171,20 @@ class SqlserverAddSlaveFlow(BaseFlow):
                 )
 
                 # 数据库建立新的同步关系
-                cluster_sub_pipeline.add_sub_pipeline(
-                    sub_flow=sync_dbs_for_cluster_sub_flow(
-                        uid=self.data["uid"],
-                        root_id=self.root_id,
-                        cluster=cluster,
-                        sync_slaves=[Host(**info["new_slave_host"])],
-                        sync_dbs=list(
-                            set(get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[]))
-                            - set(get_sync_filter_dbs(cluster.id))
-                        ),
-                    )
+                sync_dbs = list(
+                    set(get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[]))
+                    - set(get_sync_filter_dbs(cluster.id))
                 )
+                if len(sync_dbs) > 0:
+                    cluster_sub_pipeline.add_sub_pipeline(
+                        sub_flow=sync_dbs_for_cluster_sub_flow(
+                            uid=self.data["uid"],
+                            root_id=self.root_id,
+                            cluster=cluster,
+                            sync_slaves=[Host(**info["new_slave_host"])],
+                            sync_dbs=sync_dbs,
+                        )
+                    )
 
                 # 删除随机账号
                 cluster_sub_pipeline.add_act(
@@ -221,7 +223,7 @@ class SqlserverAddSlaveFlow(BaseFlow):
                     bk_biz_id=int(self.data["bk_biz_id"]),
                     bk_cloud_id=int(cluster.bk_cloud_id),
                     master_host=[],
-                    slave_host=[info["new_slave_host"]["ip"]],
+                    slave_host=[Host(**info["new_slave_host"])],
                     cluster_domain_list=[c["immutable_domain"] for c in sub_flow_context["clusters"]],
                 )
             )

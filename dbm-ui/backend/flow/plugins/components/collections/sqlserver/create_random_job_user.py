@@ -56,6 +56,7 @@ class SqlserverAddJobUserService(BaseService):
                 if info["address"] in other_instances:
                     # 如果在集群之外的实例报错，直接异常
                     is_error = True
+                    continue
 
                 inst_status = storages.get(
                     machine__ip=info["address"].split(":")[0], port=int(info["address"].split(":")[1])

@@ -309,7 +309,6 @@ class SqlserverHAClusterHandler(ClusterHandler):
             )[0]
             new_slave_obj.db_module_id = cluster.db_module_id
             new_slave_obj.machine.db_module_id = cluster.db_module_id
-            # new_slave_obj.cluster = cluster
             new_slave_obj.save(update_fields=["db_module_id"])
             new_slave_obj.machine.save(update_fields=["db_module_id"])
             cluster.storageinstance_set.add(new_slave_obj)
@@ -380,7 +379,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
                 {
                     "ip": new_slave_host.ip,
                     "port": cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER).port,
-                    "instance_role": InstanceRole.BACKEND_SLAVE,
+                    "instance_role": InstanceRole.BACKEND_SLAVE.value,
                     "is_stand_by": is_stand_by,
                     "db_version": cluster.major_version,
                 }
@@ -391,10 +390,15 @@ class SqlserverHAClusterHandler(ClusterHandler):
             )[0]
             new_slave_obj.db_module_id = cluster.db_module_id
             new_slave_obj.machine.db_module_id = cluster.db_module_id
-            # new_slave_obj.cluster = cluster
             new_slave_obj.save(update_fields=["db_module_id"])
             new_slave_obj.machine.save(update_fields=["db_module_id"])
+
+            # 关联集群
             cluster.storageinstance_set.add(new_slave_obj)
+
+            # 添加映射关系
+            master_storage_obj = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+            StorageInstanceTuple.objects.create(ejector=master_storage_obj, receiver=new_slave_obj)
 
             # 添加对应cmdb服务实例信息
             SqlserverCCTopoOperator(cluster).transfer_instances_to_cluster_module([new_slave_obj])

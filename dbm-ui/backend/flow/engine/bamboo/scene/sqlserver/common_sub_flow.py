@@ -607,6 +607,7 @@ def build_always_on_sub_flow(
     slave_instances: List[SqlserverInstance],
     cluster_name: str,
     group_name: str,
+    is_use_sa: bool = False,
 ):
     """
     建立集群always_on可用组的子流程
@@ -616,6 +617,7 @@ def build_always_on_sub_flow(
     @param slave_instances: 集群从实例
     @param cluster_name: 集群名称
     @param group_name: 可用组名称
+    @param is_use_sa: 是否使用sa账号，兼容集群部署时调用的场景
     """
     global_data = {
         "uid": uid,
@@ -629,7 +631,15 @@ def build_always_on_sub_flow(
     cluster_instances = [master_instance] + slave_instances
     for inst in cluster_instances:
         add_instances = copy.deepcopy(cluster_instances)
-        add_instances.remove(inst)
+        # add_instances.remove(inst)
+        if inst.is_new:
+            # 表示机器是新加入，应该加入集群所有的节点信息到新机器上
+            add_instances.remove(inst)
+            add_members = [asdict(s) for s in add_instances]
+        else:
+            # 表示机器已经加入到集群内，则只加入新机器节点信息即可
+            add_members = [asdict(s) for s in add_instances if s.is_new]
+
         acts_list.append(
             {
                 "act_name": _("[{}]为alwaysOn做别名初始化".format(inst.host)),
@@ -640,8 +650,9 @@ def build_always_on_sub_flow(
                         get_payload_func=SqlserverActPayload.get_init_machine_for_always_on.__name__,
                         custom_params={
                             "port": inst.port,
-                            "add_members": [asdict(s) for s in add_instances],
+                            "add_members": add_members,
                             "is_first": inst.is_new,
+                            "is_use_sa": is_use_sa,
                         },
                     )
                 ),
@@ -660,9 +671,10 @@ def build_always_on_sub_flow(
                 get_payload_func=SqlserverActPayload.get_build_always_on.__name__,
                 custom_params={
                     "port": master_instance.port,
-                    "add_slaves": [asdict(s) for s in slave_instances],
+                    "add_slaves": [asdict(s) for s in slave_instances if s.is_new],
                     "group_name": group_name,
                     "is_first": master_instance.is_new,
+                    "is_use_sa": is_use_sa,
                 },
             )
         ),

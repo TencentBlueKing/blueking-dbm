@@ -361,11 +361,16 @@ class SqlserverActPayload(PayloadHandler):
         """
         建立实例加入always_on可用组的payload
         """
+        if kwargs["custom_params"]["is_use_sa"]:
+            runtime_account = self.get_sa_account()
+        else:
+            runtime_account = self.get_sqlserver_account()
+
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.BuildAlwaysOn.value,
             "payload": {
-                "general": {"runtime_account": self.get_sqlserver_account()},
+                "general": {"runtime_account": runtime_account},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
@@ -380,11 +385,16 @@ class SqlserverActPayload(PayloadHandler):
         """
         建立always_on可用组之前初始化机器的payload
         """
+        if kwargs["custom_params"]["is_use_sa"]:
+            runtime_account = self.get_sa_account()
+        else:
+            runtime_account = self.get_sqlserver_account()
+        print(kwargs["custom_params"].get("is_first", True))
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.InitForAlwaysOn.value,
             "payload": {
-                "general": {"runtime_account": self.get_sqlserver_account()},
+                "general": {"runtime_account": runtime_account},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
