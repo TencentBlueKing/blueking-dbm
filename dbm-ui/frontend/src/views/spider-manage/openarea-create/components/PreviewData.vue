@@ -10,7 +10,7 @@
   import type { UnwrapRef } from 'vue';
   import {
     shallowRef,
-    watch,
+    watch
   } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';

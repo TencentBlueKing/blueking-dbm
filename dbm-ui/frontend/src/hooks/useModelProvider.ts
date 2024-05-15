@@ -24,13 +24,17 @@ const findProvider = (componentInstance: ComponentInternalInstance | null): Comp
         target = child;
         return;
       }
-      if (typeof child.type !== 'object' && typeof child.type !== 'function') {
+
+      if (
+        (typeof child.type === 'object' && child.type.name === 'Teleport') ||
+        (typeof child.type !== 'object' && typeof child.type !== 'function')
+      ) {
         return search(child.children);
       }
-      if (child.isMounted && child.subTree) {
-        search([child.subTree]);
-      } else if (child.component) {
+      if (child.component) {
         search([child.component]);
+      } else if (child.isMounted && child.subTree) {
+        search([child.subTree]);
       }
     });
   };
