@@ -1202,17 +1202,35 @@ class RedisDBMeta(object):
         """
         cluster_id = self.cluster["cluster_id"]
         new_domain = self.cluster["new_domain"]
+        new_name = new_domain.split(".")[-3]
         cluster = Cluster.objects.get(id=cluster_id)
         cluster_entry = ClusterEntry.objects.get(
             Q(cluster__id=cluster.id)
             & Q(cluster_entry_type=ClusterEntryType.DNS)
             & (Q(role=ClusterEntryRole.PROXY_ENTRY) | Q(role=ClusterEntryRole.MASTER_ENTRY)),
         )
+        host_ids = set()
+        for inst in cluster.proxyinstance_set.all():
+            host_ids.add(inst.machine.bk_host_id)
+        for inst in cluster.storageinstance_set.all():
+            host_ids.add(inst.machine.bk_host_id)
+        cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
+        cc_manage.recycle_host(list(host_ids))
+
+        db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+        CcManage(cluster.bk_biz_id, cluster.cluster_type).delete_cluster_modules(db_type=db_type, cluster=cluster)
+
         cluster.immute_domain = new_domain
-        cluster.save(update_fields=["immute_domain"])
+        cluster.name = new_name
+        cluster.save(update_fields=["immute_domain", "name"])
 
         cluster_entry.entry = new_domain
         cluster_entry.save(update_fields=["entry"])
+
+        storageinstances = cluster.storageinstance_set.all()
+        proxyinstances = cluster.proxyinstance_set.all()
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(storageinstances, is_increment=False)
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(proxyinstances, is_increment=False)
 
     def redis_cluster_version_update(self):
         """

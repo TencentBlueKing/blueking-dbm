@@ -135,9 +135,9 @@ class CcManage(object):
                 update_info = {
                     "properties": {
                         # 主机状态
-                        env.CMDB_HOST_STATE_ATTR: env.CMDB_NEED_MONITOR_STATUS
-                        if need_monitor
-                        else env.CMDB_NO_MONITOR_STATUS,
+                        env.CMDB_HOST_STATE_ATTR: (
+                            env.CMDB_NEED_MONITOR_STATUS if need_monitor else env.CMDB_NO_MONITOR_STATUS
+                        ),
                     },
                     "bk_host_id": machine["bk_host_id"],
                 }

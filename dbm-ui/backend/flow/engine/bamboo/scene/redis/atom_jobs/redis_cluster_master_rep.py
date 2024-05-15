@@ -101,7 +101,7 @@ def TwemproxyClusterMasterReplaceJob(
             new_master_addr = "{}{}{}".format(new_master_ip, IP_PORT_DIVIDER, new_ins_port)
             new_instances_to_master[new_slave_addr] = old_master_addr
             new_instances_to_master[new_master_addr] = old_master_addr
-            replace_link_info[old_master_addr] = one_link  # old_master:====>
+            replace_link_info[old_master_addr] = one_link
             new_ins_port += 1
 
     twemproxy_server_shards = get_twemproxy_cluster_server_shards(
