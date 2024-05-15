@@ -14,6 +14,7 @@ import logging
 from typing import Any
 
 from django.db import transaction
+from django.db.models import Q
 from django.db.transaction import atomic
 from django.utils.translation import ugettext as _
 
@@ -1193,6 +1194,25 @@ class RedisDBMeta(object):
                     exists_insts.append("{}#{}".format(row["ip"], row["port"]))
                 if exists_insts:
                     dns_manage.recycle_domain_record(del_instance_list=exists_insts)
+
+    @transaction.atomic
+    def redis_cluster_rename_domain(self):
+        """
+        重命名集群域名
+        """
+        cluster_id = self.cluster["cluster_id"]
+        new_domain = self.cluster["new_domain"]
+        cluster = Cluster.objects.get(id=cluster_id)
+        cluster_entry = ClusterEntry.objects.get(
+            Q(cluster__id=cluster.id)
+            & Q(cluster_entry_type=ClusterEntryType.DNS)
+            & (Q(role=ClusterEntryRole.PROXY_ENTRY) | Q(role=ClusterEntryRole.MASTER_ENTRY)),
+        )
+        cluster.immute_domain = new_domain
+        cluster.save(update_fields=["immute_domain"])
+
+        cluster_entry.entry = new_domain
+        cluster_entry.save(update_fields=["entry"])
 
     def redis_cluster_version_update(self):
         """
