@@ -16,6 +16,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
+from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
@@ -34,6 +35,9 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
         resource_spec = serializers.JSONField(help_text=_("规格要求"))
 
     infos = serializers.ListSerializer(help_text=_("集群扩缩容信息"), child=NodeRebalanceItemSerializer())
+    backup_source = serializers.ChoiceField(
+        help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), default=MySQLBackupSource.REMOTE
+    )
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
     )
