@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 
 	"dbm-services/common/dbha/ha-module/config"
@@ -35,6 +36,7 @@ type MySQLDetectInstance struct {
 	Pass    string
 	Timeout int
 	realDB  *gorm.DB
+	dbMutex sync.Mutex // Mutex for protecting realDB
 }
 
 // MySQLDetectResponse mysql instance response struct
@@ -181,6 +183,10 @@ func (m *MySQLDetectInstance) Detection() error {
 
 // CheckMySQL check whether mysql alive
 func (m *MySQLDetectInstance) CheckMySQL(errChan chan error) {
+	// Lock the mutex before accessing realDB, unexpected nil may lead to core dump
+	m.dbMutex.Lock()
+	defer m.dbMutex.Unlock()
+
 	if m.realDB == nil {
 		connParam := fmt.Sprintf("%s:%s@(%s:%d)/%s", m.User, m.Pass, m.Ip, m.Port, "infodba_schema")
 		db, err := gorm.Open(mysql.Open(connParam), &gorm.Config{
