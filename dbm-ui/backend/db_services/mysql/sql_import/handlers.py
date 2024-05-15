@@ -338,8 +338,8 @@ class SQLHandler(object):
         """
 
         # 定义匹配日志的开始和结束正则
-        start_patterns = re.compile(r".*\[start]-(\w+\.sql)")
-        end_patterns = re.compile(r".*\[end]-(\w+\.sql)")
+        start_patterns = re.compile(r".*\[start]-(.*\.sql)")
+        end_patterns = re.compile(r".*\[end]-(.*\.sql)")
 
         current_sql_filename: str = ""
         current_sql_logs: List[Dict] = []

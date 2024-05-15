@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Callable, Dict, List
 
-from django.db.models import F, Q
+from django.db.models import F, Q, QuerySet
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.api.cluster.tendbha.detail import scan_cluster
@@ -76,6 +76,23 @@ class ListRetrieveResource(query.ListRetrieveResource):
         return graph
 
     @classmethod
+    def _filter_cluster_hook(
+        cls,
+        bk_biz_id,
+        cluster_queryset: QuerySet,
+        proxy_queryset: QuerySet,
+        storage_queryset: QuerySet,
+        limit: int,
+        offset: int,
+        **kwargs,
+    ) -> ResourceList:
+        # 提前预取storage的tuple TODO: 优化不是很明显？
+        storage_queryset = storage_queryset.prefetch_related("as_receiver__ejector").all()
+        return super()._filter_cluster_hook(
+            bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset, **kwargs
+        )
+
+    @classmethod
     def _to_cluster_representation(
         cls,
         cluster: Cluster,
@@ -92,12 +109,12 @@ class ListRetrieveResource(query.ListRetrieveResource):
             m.simple_desc
             for m in cluster.storages
             if m.instance_inner_role in [InstanceInnerRole.SLAVE, InstanceInnerRole.REPEATER]
-            if m.as_receiver.first() and m.as_receiver.first().ejector.instance_inner_role == InstanceInnerRole.MASTER
+            if m.as_receiver.first().ejector.instance_inner_role == InstanceInnerRole.MASTER
         ]
 
         cluster_role_info = {"proxies": proxies, "masters": masters, "slaves": slaves}
         cluster_info = super()._to_cluster_representation(
-            cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map
+            cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map, **kwargs
         )
         cluster_info.update(cluster_role_info)
         return cluster_info

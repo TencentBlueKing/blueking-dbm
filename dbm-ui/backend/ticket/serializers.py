@@ -257,6 +257,9 @@ class QueryTicketFlowDescribeSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(help_text=_("单据分组类型"), choices=DBType.get_choices())
     ticket_types = serializers.CharField(help_text=_("单据类型"), default="")
 
+    limit = serializers.IntegerField(help_text=_("每页限制"), required=False, default=10)
+    offset = serializers.IntegerField(help_text=_("起始"), required=False, default=0)
+
     def validate(self, attrs):
         if attrs.get("ticket_types"):
             attrs["ticket_types"] = attrs["ticket_types"].split(",")
