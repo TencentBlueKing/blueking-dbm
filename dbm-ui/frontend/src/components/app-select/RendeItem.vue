@@ -5,14 +5,14 @@
       disabled: !Boolean(text),
       content: text,
       allowHtml: true,
-      extCls : 'db-app-select-tooltips',
+      extCls: 'db-app-select-tooltips',
     }"
     class="db-app-select-text">
     <div
       class="db-app-select-name"
       :style="{
-        'max-width': text ? '175px': 'unset',
-        'flex': text ? '1 0 auto' : 'unset'
+        'max-width': text ? '175px' : 'unset',
+        flex: text ? '1 0 auto' : 'unset',
       }">
       {{ data.name }}
     </div>
@@ -22,7 +22,8 @@
         v-if="data.english_name"
         class="db-app-select-en-name">
         , {{ data.english_name }}
-      </div>)
+      </div>
+      )
     </div>
   </div>
 </template>
@@ -34,22 +35,20 @@
   import { calcTextWidth } from '@utils';
 
   defineProps<{
-    data: ServiceReturnType<typeof getBizs>[number]
+    data: ServiceReturnType<typeof getBizs>[number];
   }>();
 
   const rootRef = ref<HTMLElement>();
   const text = ref('');
 
   onMounted(() => {
-    const renderText = rootRef.value!.innerText.replace(/\n/g, '');
+    setTimeout(() => {
+      const renderText = rootRef.value!.innerText.replace(/\n/g, '');
 
-    const width = calcTextWidth(renderText, rootRef.value);
-    const {
-      width: maxWidth,
-    } = rootRef.value!.getBoundingClientRect();
+      const width = calcTextWidth(renderText, rootRef.value);
+      const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
 
-    text.value = width > maxWidth ? renderText : '';
+      text.value = width > maxWidth ? renderText : '';
+    }, 20);
   });
-
 </script>
-
