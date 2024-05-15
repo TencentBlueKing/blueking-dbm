@@ -17,7 +17,7 @@
       <template #default>
         <RenderTableHeadColumn
           :min-width="120"
-          :width="200">
+          :width="160">
           {{ t('变量名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
@@ -25,9 +25,7 @@
           :width="180">
           {{ t('说明') }}
         </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="170"
-          :width="180">
+        <RenderTableHeadColumn :width="140">
           {{ t('类型') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
