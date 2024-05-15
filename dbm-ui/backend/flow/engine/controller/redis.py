@@ -29,6 +29,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import Redi
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_proxy_version_upgrade import (
     RedisProxyVersionUpgradeSceneFlow,
 )
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_rename_domain import RedisClusterRenameDomainFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_auotfix import RedisClusterAutoFixSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr import RedisClusterCMRSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_mss import RedisClusterMSSSceneFlow
@@ -370,3 +371,7 @@ class RedisController(BaseController):
         """
         flow = DirtyMachineClearFlow(root_id=self.root_id, data=self.ticket_data)
         flow.dirty_machine_clear_flow()
+
+    def redis_cluster_rename_domain(self):
+        flow = RedisClusterRenameDomainFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_cluster_rename_domain()
