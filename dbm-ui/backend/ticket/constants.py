@@ -307,6 +307,7 @@ class TicketType(str, StructuredEnum):
                                                   _("Redis 集群设置maxmemory"), register_iam=False)
     REDIS_CLUSTER_STORAGES_CLI_CONNS_KILL = TicketEnumField("REDIS_CLUSTER_STORAGES_CLI_CONNS_KILL",
                                                             _("Redis 集群存储层cli连接kill"), register_iam=False)
+    REDIS_CLUSTER_RENAME_DOMAIN = TicketEnumField("REDIS_CLUSTER_RENAME_DOMAIN", _("Redis集群域名重命名"), register_iam=False)
 
     # 大数据
     KAFKA_APPLY = TicketEnumField("KAFKA_APPLY", _("Kafka 集群部署"), register_iam=False)
