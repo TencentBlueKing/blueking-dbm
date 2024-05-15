@@ -146,6 +146,7 @@ class TenDBClusterAddNodesFlow(object):
                 root_id=self.root_id,
                 parent_global_data=copy.deepcopy(sub_flow_context),
                 spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+                is_collect_sysinfo=True,
             )
         )
         return sub_pipeline.build_sub_process(sub_name=_("[{}]添加spider-master节点流程".format(cluster.name)))
@@ -184,6 +185,7 @@ class TenDBClusterAddNodesFlow(object):
                 root_id=self.root_id,
                 parent_global_data=copy.deepcopy(sub_flow_context),
                 spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
+                is_collect_sysinfo=True,
             )
         )
         return sub_pipeline.build_sub_process(sub_name=_("[{}]添加spider-slave节点流程".format(cluster.name)))

@@ -408,7 +408,7 @@ class TenDBClusterApplyFlow(object):
                 bk_cloud_id=int(self.data["bk_cloud_id"]),
                 spiders=[spider["ip"] for spider in self.data["spider_ip_list"]],
                 root_id=self.root_id,
-                collect_sysinfo=True,
+                is_collect_sysinfo=True,
                 parent_global_data=copy.deepcopy(self.data),
                 spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
             )
