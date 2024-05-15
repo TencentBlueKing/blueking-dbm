@@ -53,6 +53,7 @@
   import MySQLMasterSlaveSwitch from './mysql/MasterSlaveSwitch.vue';
   import MySQLMigrateCluster from './mysql/MigrateCluster.vue';
   import MysqlOpenArea from './mysql/OpenArea.vue';
+  import MysqlParition from './mysql/Partition.vue';
   import MySQLProxyAdd from './mysql/ProxyAdd.vue';
   import MySQLProxySwitch from './mysql/ProxySwitch.vue';
   import MySQLRename from './mysql/Rename.vue';
@@ -90,7 +91,6 @@
   import SpiderMNTApply from './spider/MNTApply.vue';
   import SpiderMNTDestroy from './spider/MNTDestroy.vue';
   import SpiderNodeRebalance from './spider/NodeRebalance.vue';
-  import SpiderPartitionManage from './spider/PartitionManage.vue';
   import SpiderReduceNodes from './spider/ReduceNodes.vue';
   import SpiderRenameDatabase from './spider/RenameDatabase.vue';
   import SpiderRollback from './spider/Rollback.vue';
@@ -288,7 +288,6 @@
     [TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY]: SpiderSlaveDestroy,
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: SpiderTableBackup,
     [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: SpiderTruncateDatabase,
-    [TicketTypes.TENDBCLUSTER_PARTITION]: SpiderPartitionManage,
     [TicketTypes.RIAK_CLUSTER_APPLY]: DetailRiak,
     [TicketTypes.RIAK_CLUSTER_REBOOT]: RiakReboot,
   };
@@ -368,6 +367,9 @@
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];
+    }
+    if ([TicketTypes.MYSQL_PARTITION, TicketTypes.TENDBCLUSTER_PARTITION].includes(ticketType)) {
+      return MysqlParition;
     }
     return DetailsMySQL;
   });
