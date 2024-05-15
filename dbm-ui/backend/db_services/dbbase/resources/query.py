@@ -429,6 +429,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
             Prefetch("proxyinstance_set", queryset=proxy_queryset.select_related("machine"), to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_queryset.select_related("machine"), to_attr="storages"),
             "tag_set",
+            # 预取优化access_port。TODO: 如果access port作为集群字段则删除当前逻辑
+            "proxyinstance_set",
+            "storageinstance_set",
         )
         cluster_ids = list(cluster_queryset.values_list("id", flat=True))
 
@@ -448,14 +451,24 @@ class ListRetrieveResource(BaseListRetrieveResource):
         for record in records:
             cluster_operate_records_map[record.cluster_id].append(record.summary)
 
+        # 获取云区域信息和业务信息
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        bk_biz_ids = list(cluster_queryset.values_list("bk_biz_id", flat=True))
+        biz_info = {biz.bk_biz_id: biz for biz in AppCache.objects.filter(bk_biz_id__in=bk_biz_ids)}
+
         # 将集群的查询结果序列化为集群字典信息
         clusters: List[Dict[str, Any]] = []
         for cluster in cluster_queryset:
-            clusters.append(
-                cls._to_cluster_representation(
-                    cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map, **kwargs
-                )
+            cluster_info = cls._to_cluster_representation(
+                cluster=cluster,
+                db_module_names_map=db_module_names_map,
+                cluster_entry_map=cluster_entry_map,
+                cluster_operate_records_map=cluster_operate_records_map,
+                cloud_info=cloud_info,
+                biz_info=biz_info,
+                **kwargs,
             )
+            clusters.append(cluster_info)
 
         return ResourceList(count=count, data=clusters)
 
@@ -476,7 +489,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param cluster_operate_records_map: key 是 cluster.id, value 是当前集群对应的 操作记录 映射
         """
         cluster_entry = cluster_entry_map.get(cluster.id, {})
-        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        cloud_info, biz_info = kwargs["cloud_info"], kwargs["biz_info"]
         bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
         return {
             "id": cluster.id,
@@ -493,7 +506,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "master_domain": cluster_entry.get("master_domain", ""),
             "slave_domain": cluster_entry.get("slave_domain", ""),
             "bk_biz_id": cluster.bk_biz_id,
-            "bk_biz_name": AppCache.objects.get(bk_biz_id=cluster.bk_biz_id).bk_biz_name,
+            "bk_biz_name": biz_info[cluster.bk_biz_id].bk_biz_name,
             "bk_cloud_id": cluster.bk_cloud_id,
             "bk_cloud_name": bk_cloud_name,
             "major_version": cluster.major_version,

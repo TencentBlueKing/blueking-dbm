@@ -173,6 +173,7 @@ class TaskFlowHandler:
                 "end_time": end_time,
                 "query_string": query_string,
                 "start": 0,
+                "size": 10000,
             }
         )
         return resp["hits"]["hits"]

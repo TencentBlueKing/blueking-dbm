@@ -449,26 +449,31 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         from backend.ticket.builders import BuilderFactory
 
         data = self.params_validate(self.get_serializer_class())
-        ticket_flow_configs = TicketFlowsConfig.objects.filter(
-            bk_biz_id=data["bk_biz_id"], group=data["db_type"], editable=True
-        )
+        limit, offset = data["limit"], data["offset"]
+
+        # 根据条件过滤单据配置
+        config_filter = Q(bk_biz_id=data["bk_biz_id"], group=data["db_type"], editable=True)
         if data.get("ticket_types"):
-            ticket_flow_configs = ticket_flow_configs.filter(ticket_type__in=data["ticket_types"])
+            config_filter &= Q(ticket_type__in=data["ticket_types"])
+
+        ticket_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
+        ticket_flow_config_count = ticket_flow_configs.count()
+        ticket_flow_configs = ticket_flow_configs[offset : offset + limit]
 
         # 获得单据类型与单据flow配置映射表
         flow_config_map = {config.ticket_type: config.configs for config in ticket_flow_configs}
-
         flow_desc_list: List[Dict] = []
+        # 获取单据流程配置信息
         for flow_config in ticket_flow_configs:
             flow_config_info = model_to_dict(flow_config)
             flow_config_info["ticket_type_display"] = flow_config.get_ticket_type_display()
             flow_config_info["update_at"] = flow_config.update_at
-            # 获取当前单据的执行流程
+            # 获取当前单据的执行流程描述
             flow_desc = BuilderFactory.registry[flow_config.ticket_type].describe_ticket_flows(flow_config_map)
             flow_config_info["flow_desc"] = flow_desc
             flow_desc_list.append(flow_config_info)
 
-        return Response(flow_desc_list)
+        return Response({"count": ticket_flow_config_count, "results": flow_desc_list})
 
     @swagger_auto_schema(
         operation_summary=_("修改可编辑的单据流程"),
