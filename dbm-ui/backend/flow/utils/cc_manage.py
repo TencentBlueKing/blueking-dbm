@@ -178,13 +178,15 @@ class CcManage(object):
                 # 这里可以认为一批操作的机器的数据库类型是相同的
                 db_type = ClusterType.cluster_type_to_db_type(machines.first().cluster_type)
                 biz_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=self.bk_biz_id, db_type=db_type)
+                operator = biz_dba[0]
+                bk_bak_operator = biz_dba[1] if len(biz_dba) > 1 else operator
                 host_info_list = [
                     {
                         "bk_host_id": machine.bk_host_id,
                         # 主要维护人
-                        "operator": ",".join(biz_dba),
+                        "operator": operator,
                         # 备份维护人
-                        "bk_bak_operator": ",".join(biz_dba),
+                        "bk_bak_operator": bk_bak_operator,
                         # db_meta信息
                         CC_HOST_DBM_ATTR: json.dumps(machine.dbm_meta),
                     }

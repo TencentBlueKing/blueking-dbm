@@ -19,7 +19,7 @@ from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.configuration.models import DBAdministrator
+from backend.configuration.handlers.dba import DBAdministratorHandler
 from backend.db_meta import api
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
@@ -1128,7 +1128,7 @@ class RedisDBMeta(object):
         """
         更新dba
         """
-        DBAdministrator.upsert_biz_admins(self.ticket_data["bk_biz_id"], self.cluster["db_admins"])
+        DBAdministratorHandler.upsert_biz_admins(self.ticket_data["bk_biz_id"], self.cluster["db_admins"])
 
     def storageinstance_bind_entry(self) -> bool:
         """
