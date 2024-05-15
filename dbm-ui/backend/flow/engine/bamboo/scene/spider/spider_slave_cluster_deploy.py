@@ -110,6 +110,7 @@ class TenDBSlaveClusterApplyFlow(object):
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(sub_flow_context),
                     spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
+                    is_collect_sysinfo=True,
                 )
             )
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]添加slave集群".format(cluster.name))))

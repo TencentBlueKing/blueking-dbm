@@ -104,6 +104,7 @@ class TenDBClusterAddSpiderMNTFlow(object):
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(sub_flow_context),
                     spider_role=TenDBClusterSpiderRole.SPIDER_MNT,
+                    is_collect_sysinfo=True,
                 )
             )
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}添加spider_mnt节点流程".format(cluster.name))))
