@@ -70,7 +70,8 @@
     :close-icon="false"
     :esc-close="false"
     :quick-close="false"
-    scrollable>
+    scrollable
+    width="80%">
     <div
       v-if="cloudTips"
       style="padding: 8px 16px">

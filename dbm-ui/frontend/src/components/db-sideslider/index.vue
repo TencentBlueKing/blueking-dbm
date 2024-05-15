@@ -25,25 +25,25 @@
     <template #default>
       <slot />
     </template>
-    <template #footer>
-      <template v-if="showFooter">
-        <slot name="footer">
-          <BkButton
-            class="mr8"
-            :disabled="disabledConfirm"
-            :loading="isLoading"
-            style="width: 102px"
-            theme="primary"
-            @click="handleConfirm">
-            {{ confirmText || $t('提交') }}
-          </BkButton>
-          <BkButton
-            style="min-width: 64px"
-            @click="handleCancle">
-            {{ cancelText || $t('取消') }}
-          </BkButton>
-        </slot>
-      </template>
+    <template
+      v-if="showFooter"
+      #footer>
+      <slot name="footer">
+        <BkButton
+          class="mr8"
+          :disabled="disabledConfirm"
+          :loading="isLoading"
+          style="width: 102px"
+          theme="primary"
+          @click="handleConfirm">
+          {{ confirmText || $t('提交') }}
+        </BkButton>
+        <BkButton
+          style="min-width: 64px"
+          @click="handleCancle">
+          {{ cancelText || $t('取消') }}
+        </BkButton>
+      </slot>
     </template>
   </BkSideslider>
 </template>

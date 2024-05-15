@@ -88,6 +88,11 @@
     {
       label: t('失败原因'),
       field: 'check_info',
+      showOverflowTooltip: {
+        popoverOption: {
+          maxWidth: 300,
+        }
+      },
       render: ({ data }: {data: PartitionLogModel}) => data.check_info || '--',
     },
   ];

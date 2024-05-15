@@ -4,8 +4,8 @@
   </div>
 </template>
 <script setup lang="ts">
-  const modelValue = defineModel<boolean>({
+  const modelValue = defineModel<string>({
     required: false,
-    default: false,
+    default: '',
   });
 </script>
