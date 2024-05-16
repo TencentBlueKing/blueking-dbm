@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
@@ -32,14 +32,23 @@ from backend.tests.mock_data.ticket.sqlserver_flow import (
     SQLSERVER_DISABLE_TICKET_DATA,
     SQLSERVER_ENABLE_TICKET_DATA,
     SQLSERVER_HA_APPLY_TICKET_DATA,
+    SQLSERVER_IMPORT_SQLFILE_TICKET_DATA,
     SQLSERVER_MACHINE_DATA,
+    SQLSERVER_MASTER_FAIL_OVER_TICKET_DATA,
+    SQLSERVER_MASTER_SLAVE_SWITCH_TICKET_DATA,
+    SQLSERVER_RESET_TICKET_DATA,
+    SQLSERVER_RESTORE_LOCAL_SLAVE_TICKET_DATA,
+    SQLSERVER_RESTORE_SLAVE_SOURCE_TICKET_DATA,
+    SQLSERVER_RESTORE_SLAVE_TICKET_DATA,
+    SQLSERVER_ROLLBACK_TICKET_DATA,
     SQLSERVER_SINGLE_APPLY_TICKET_DATA,
+    SQLSERVER_SLAVE_SOURCE_APPLICATION_DATA,
     SQLSERVER_SOURCE_APPLICATION_DATA,
     SQLSERVER_SPEC_DATA,
     SQLSERVER_STORAGE_INSTANCE_DATA,
 )
 from backend.tests.ticket.server_base import TestFlowBase
-from backend.ticket.constants import TicketFlowStatus, TicketStatus
+from backend.ticket.constants import TicketFlowStatus, TicketStatus, TicketType
 
 logger = logging.getLogger("test")
 pytestmark = pytest.mark.django_db
@@ -53,6 +62,12 @@ CHANGED_MOCK_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.SUCCEEDED, TicketF
 def set_empty_middleware():
     with patch.object(settings, "MIDDLEWARE", []):
         yield
+
+
+def custom_side_effect(ticket_data):
+    if ticket_data["ticket_type"] == TicketType.SQLSERVER_RESTORE_SLAVE.value:
+        return (1, SQLSERVER_SLAVE_SOURCE_APPLICATION_DATA)
+    return (1, SQLSERVER_SOURCE_APPLICATION_DATA)
 
 
 class TestSqlServerApplyFlow(TestFlowBase, TestCase):
@@ -96,6 +111,38 @@ class TestSqlServerApplyFlow(TestFlowBase, TestCase):
     def test_sqlserver_clear_flow(self):
         self.flow_test(client, SQLSERVER_CLEAR_DBS_TICKET_DATA)
 
+    # SQLSERVER import_sqlfile: start --> itsm --> INNER_FLOW --> end
+    def test_sqlserver_import_sqlfile_flow(self):
+        self.flow_test(client, SQLSERVER_IMPORT_SQLFILE_TICKET_DATA, False)
+
+    # SQLSERVER master_slave_switch: start --> itsm --> INNER_FLOW --> end
+    def test_master_slave_switch_flow(self):
+        self.flow_test(client, SQLSERVER_MASTER_SLAVE_SWITCH_TICKET_DATA)
+
+    # SQLSERVER master_fail_over: start --> itsm --> INNER_FLOW --> end
+    def test_master_fail_over_flow(self):
+        self.flow_test(client, SQLSERVER_MASTER_FAIL_OVER_TICKET_DATA)
+
+    # SQLSERVER reset: start --> itsm --> INNER_FLOW --> end
+    def test_sqlserver_reset_flow(self):
+        self.flow_test(client, SQLSERVER_RESET_TICKET_DATA)
+
+    # SQLSERVER restore_local_slave: start --> itsm --> INNER_FLOW --> end
+    def test_restore_local_slave_flow(self):
+        self.flow_test(client, SQLSERVER_RESTORE_LOCAL_SLAVE_TICKET_DATA)
+
+    # SQLSERVER restore_slave: start --> itsm --> INNER_FLOW --> end
+    def test_restore_slave_flow(self):
+        self.flow_test(client, SQLSERVER_RESTORE_SLAVE_TICKET_DATA)
+
+    # SQLSERVER restore_slave_source: start --> itsm --> INNER_FLOW --> end
+    def test_restore_slave_source_flow(self):
+        self.flow_test(client, SQLSERVER_RESTORE_SLAVE_SOURCE_TICKET_DATA)
+
+    # SQLSERVER restore_rollback: start --> itsm --> INNER_FLOW --> end
+    def test_sqlserver_rollback_flow(self):
+        self.flow_test(client, SQLSERVER_ROLLBACK_TICKET_DATA)
+
     def apply_patches(self):
         # 扩展基类的apply_patches方法来包括新的patch
         super().apply_patches()
@@ -103,18 +150,28 @@ class TestSqlServerApplyFlow(TestFlowBase, TestCase):
         # 定义并启动新的patch
         mock_resource_apply_patch = patch(
             "backend.ticket.flow_manager.resource.ResourceApplyFlow.apply_resource",
-            lambda resource_request_id, node_infos: (1, SQLSERVER_SOURCE_APPLICATION_DATA),
+            new_callable=MagicMock,
+            side_effect=custom_side_effect,
         )
         mock_get_drs_api_patch = patch(
             "backend.flow.utils.sqlserver.sqlserver_db_function.DRSApi", new_callable=lambda: DRSApiMock()
         )
-        mock_get_module_infos_patch = patch(
+        mock_single_module_infos_patch = patch(
             "backend.ticket.builders.sqlserver.sqlserver_single_apply.get_module_infos",
+            return_value={"mocked_key": "mocked_value"},
+        )
+        mock_restore_slave_module_infos_patch = patch(
+            "backend.ticket.builders.sqlserver.sqlserver_restore_slave.get_module_infos",
             return_value={"mocked_key": "mocked_value"},
         )
         # 启动新的patch并添加到self.mocks列表中以便随后可以停止它
         self.mocks.extend(
-            [mock_resource_apply_patch.start(), mock_get_drs_api_patch.start(), mock_get_module_infos_patch.start()]
+            [
+                mock_resource_apply_patch.start(),
+                mock_get_drs_api_patch.start(),
+                mock_single_module_infos_patch.start(),
+                mock_restore_slave_module_infos_patch.start(),
+            ]
         )
 
     def setup(self):
@@ -135,6 +192,7 @@ class TestSqlServerApplyFlow(TestFlowBase, TestCase):
 
         super().setup()
         self.mocks[-1].return_value = DBCONFIG_DATA
+        self.mocks[-2].return_value = DBCONFIG_DATA
 
     def teardown(self):
         """

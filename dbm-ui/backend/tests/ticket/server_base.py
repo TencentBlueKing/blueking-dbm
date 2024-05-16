@@ -54,7 +54,7 @@ class TestFlowBase:
             if hasattr(mock, "stop"):
                 mock.stop()
 
-    def flow_test(self, client, ticket_data):
+    def flow_test(self, client, ticket_data, is_pause=True):
 
         self.setup()
         client.login(username="admin")
@@ -65,10 +65,12 @@ class TestFlowBase:
         current_flow = Flow.objects.filter(flow_obj_id=SN).first()
         assert current_flow is not None
 
-        # PAUSE流程
-        client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
-        current_flow = Flow.objects.exclude(flow_obj_id="").last()
-        assert current_flow.flow_type == FlowType.PAUSE
+        if is_pause:
+            # PAUSE流程
+            client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
+            current_flow = Flow.objects.exclude(flow_obj_id="").last()
+            assert current_flow.flow_type == FlowType.PAUSE
+
         # INNER_FLOW
         client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
         current_flow = Flow.objects.exclude(flow_obj_id="").last()
