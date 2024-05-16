@@ -75,6 +75,8 @@
   });
 </script>
 <script setup lang="ts">
+  import { ClusterTypes } from '@common/const';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderCluster from '@views/mongodb-manage/components/edit-field/ClusterName.vue';
@@ -88,7 +90,7 @@
   interface Props {
     data: IDataRow;
     removeable: boolean;
-    clusterType: string;
+    clusterType: ClusterTypes;
     isShardCluster: boolean;
   }
 
@@ -177,8 +179,8 @@
           ignoreTablesData,
         ]) =>
           ({
-            cluster_ids: isShardCluster.value ? [clusterId] : clusterIds,
-            cluster_type: clusterType.value,
+            cluster_ids: props.isShardCluster ? [clusterId] : clusterIds,
+            cluster_type: props.clusterType,
             ns_filter: {
               ...dbPatternsData,
               ...tablePatternsData,
