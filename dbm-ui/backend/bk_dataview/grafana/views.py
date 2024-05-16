@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
 from urllib import parse
 
@@ -22,11 +23,16 @@ from django.views.generic import View
 
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
 from backend.db_monitor.models import Dashboard as MonitorDash
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import IAMPermission
 
-from ...db_meta.enums import ClusterType
 from . import client
 from .constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
+from .promsql import extract_condition_from_promql
 from .provisioning import Dashboard, Datasource
 from .settings import grafana_settings
 from .utils import requests_curl_log
@@ -308,6 +314,9 @@ class ProxyBaseView(View):
         # 需主动转换 QueryDict 为 dict, 否则对多个值的query只会获取一个值
         params = dict(query_dict)
 
+        # 鉴权
+        self._auth(request)
+
         try:
             proxy_response = rpool.request(
                 request.method,
@@ -373,6 +382,31 @@ class ProxyBaseView(View):
 
         response = self.get_django_response(proxy_response)
         return response
+
+    def _auth(self, request):
+        url = self.get_request_url(request)
+        if url.endswith("/timeseries/time_series/unify_query/"):
+            # 这里仅针对 DBM 场景处理，基本都是简单的一级查询，暂不考虑复杂情况
+            condition = {
+                match["key"]: match["value"][0]
+                for match in json.loads(request.body.decode())["query_configs"][0]["where"]
+            }
+        elif url.endswith("/timeseries/graph_promql_query/"):
+            condition = extract_condition_from_promql(json.loads(request.body.decode())["promql"])
+        else:
+            return True
+
+        cluster_domain = condition.get("cluster_domain")
+        if not cluster_domain:
+            # TODO review 其他 promql 查询条件
+            return True
+        cluster = Cluster.objects.get(immute_domain=cluster_domain)
+        actions = [ActionEnum.cluster_type_to_action(cluster.cluster_type, action_key="VIEW")]
+        resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster.cluster_type)
+        resources = [[resource] for resource in resource_meta.batch_create_instances([cluster.id])]
+        result = IAMPermission(actions, resources).has_permission(request, "")
+        if not result:
+            raise Http404
 
 
 class StaticView(ProxyBaseView):
