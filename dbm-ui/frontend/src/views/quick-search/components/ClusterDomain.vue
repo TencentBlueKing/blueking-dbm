@@ -254,6 +254,8 @@
       [t('集群类型')]: dataItem.cluster_type,
       [t('主域名')]: dataItem.immute_domain,
       [t('主版本')]: dataItem.major_version,
+      [t('业务ID')]: String(dataItem.bk_biz_id),
+      [t('业务名称')]: props.bizIdNameMap[dataItem.bk_biz_id],
       [t('地域')]: dataItem.region,
       [t('容灾等级')]: dataItem.disaster_tolerance_level,
     }));
@@ -263,6 +265,8 @@
       { width: 16 },
       { width: 24 },
       { width: 24 },
+      { width: 16 },
+      { width: 10 },
       { width: 16 },
       { width: 10 },
       { width: 10 },
