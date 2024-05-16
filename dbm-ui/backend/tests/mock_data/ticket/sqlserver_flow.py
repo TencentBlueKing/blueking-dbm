@@ -119,7 +119,7 @@ SQLSERVER_HA_APPLY_TICKET_DATA = {
         "nodes": {"backend": []},
         "resource_spec": {
             "sqlserver_ha": {
-                "spec_id": 101,
+                "spec_id": 102,
                 "spec_name": "2核_4G_10G",
                 "spec_cluster_type": "sqlserver_ha",
                 "spec_machine_type": "sqlserver_ha",
@@ -207,6 +207,142 @@ SQLSERVER_CLEAR_DBS_TICKET_DATA = {
     },
 }
 
+# SQLSERVER 导入sql执行单据
+SQLSERVER_IMPORT_SQLFILE_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.SQLSERVER_IMPORT_SQLFILE,
+    "details": {
+        "charset": "GBK",
+        "force": False,
+        "cluster_ids": [CLUSTER_ID + 1],
+        "execute_sql_files": ["sql_server.sql"],
+        "execute_db_infos": [{"dbnames": ["master"], "ignore_dbnames": []}],
+        "ticket_mode": {"mode": "auto", "trigger_time": "2024-04-29T12:11:11+08:00"},
+    },
+}
+
+# SQLSERVER 主从互切单据
+SQLSERVER_MASTER_SLAVE_SWITCH_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.SQLSERVER_MASTER_SLAVE_SWITCH,
+    "remark": "",
+    "details": {
+        "infos": [
+            {
+                "cluster_ids": [CLUSTER_ID + 1],
+                "master": {"ip": "1.1.1.3", "bk_cloud_id": 0, "bk_host_id": 2},
+                "slave": {"ip": "1.1.1.4", "bk_cloud_id": 0, "bk_host_id": 3},
+            }
+        ]
+    },
+}
+
+# SQLSERVER 主故障切换单据
+SQLSERVER_MASTER_FAIL_OVER_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.SQLSERVER_MASTER_FAIL_OVER,
+    "remark": "",
+    "details": {
+        "infos": [
+            {
+                "cluster_ids": [CLUSTER_ID + 1],
+                "master": {"ip": "1.1.1.3", "bk_cloud_id": 0, "bk_host_id": 2},
+                "slave": {"ip": "1.1.1.4", "bk_cloud_id": 0, "bk_host_id": 3},
+            }
+        ]
+    },
+}
+
+# SQLSERVER 重置单据
+SQLSERVER_RESET_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.SQLSERVER_RESET,
+    "remark": "",
+    "details": {
+        "infos": [
+            {
+                "cluster_id": CLUSTER_ID + 1,
+                "new_cluster_name": "sqlserverha03",
+                "new_immutable_domain": "sqlserver-hadb.sqlserverha03",
+                "new_slave_domain": "sqlserver-singledb.test2.dba-test.db",
+            }
+        ]
+    },
+}
+
+# SQLSERVER 从库原地重建单据
+SQLSERVER_RESTORE_LOCAL_SLAVE_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.SQLSERVER_RESTORE_LOCAL_SLAVE,
+    "remark": "xxx",
+    "details": {
+        "infos": [
+            {
+                "cluster_id": CLUSTER_ID + 1,
+                "slave": {"ip": "1.1.1.4", "bk_cloud_id": 0, "port": 48322, "bk_host_id": 3},
+            }
+        ]
+    },
+}
+
+# SQLSERVER 从库新机重建单据
+SQLSERVER_RESTORE_SLAVE_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.SQLSERVER_RESTORE_SLAVE,
+    "remark": "xxx",
+    "details": {
+        "ip_source": "manual_input",
+        "infos": [
+            {
+                "cluster_ids": [CLUSTER_ID + 1],
+                "old_slave_host": {"ip": "1.1.1.4", "bk_cloud_id": 0, "bk_host_id": 3},
+                "new_slave_host": {"ip": "1.1.1.5", "bk_cloud_id": 0, "bk_host_id": 4},
+            }
+        ],
+    },
+}
+
+# SQLSERVER 从库资源池新机重建单据
+SQLSERVER_RESTORE_SLAVE_SOURCE_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.SQLSERVER_RESTORE_SLAVE,
+    "remark": "xxx",
+    "details": {
+        "ip_source": "resource_pool",
+        "infos": [
+            {
+                "resource_spec": {"sqlserver_ha": {"spec_id": 102, "count": 1}},
+                "cluster_ids": [CLUSTER_ID + 1],
+                "old_slave_host": {"ip": "1.1.1.3", "bk_cloud_id": 0, "bk_host_id": 2},
+            }
+        ],
+    },
+}
+# SQLSERVER 定点构造申请单据
+SQLSERVER_ROLLBACK_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.SQLSERVER_ROLLBACK,
+    "details": {
+        "is_local": False,  # 是否代表原地构造，true代表是，false代表远程构造
+        "infos": [
+            {
+                "src_cluster": CLUSTER_ID,
+                "dst_cluster": CLUSTER_ID + 1,  # 如果是原地构造，target_cluster_id=cluster_id
+                "db_list": [],
+                "ignore_db_list": [],
+                "rename_infos": [
+                    {
+                        "db_name": "SampleDatabaseRollback2",
+                        "target_db_name": "SampleDatabase2",
+                        "rename_db_name": "SampleDatabaseBak001",
+                    }
+                ],
+                "restore_backup_file": {"backup_id": "XXX", "logs": [{}]},
+            }
+        ],
+    },
+}
+
 # SQLSERVER 资源池申请
 SQLSERVER_SOURCE_APPLICATION_DATA = {
     "sqlserver_single": [
@@ -228,7 +364,26 @@ SQLSERVER_SOURCE_APPLICATION_DATA = {
             "sub_zone_id": "",
             "rack_id": "",
             "device_class": "",
-        }
+        },
+        {
+            "bk_biz_id": BK_BIZ_ID,
+            "ip": "1.1.1.5",
+            "bk_cloud_id": 0,
+            "bk_host_id": 1,
+            "bk_cpu": 4,
+            "bk_disk": 199,
+            "bk_mem": 4095,
+            "storage_device": {
+                "C:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
+                "D:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
+                "E:": {"size": 0, "disk_id": "", "disk_type": "", "file_type": ""},
+            },
+            "city": "",
+            "sub_zone": "",
+            "sub_zone_id": "",
+            "rack_id": "",
+            "device_class": "",
+        },
     ],
     "sqlserver_ha": [
         {
@@ -272,12 +427,38 @@ SQLSERVER_SOURCE_APPLICATION_DATA = {
     ],
 }
 
+# SQLSERVER 冲库资源池申请
+SQLSERVER_SLAVE_SOURCE_APPLICATION_DATA = {
+    "0_sqlserver_ha": [
+        {
+            "bk_biz_id": BK_BIZ_ID,
+            "ip": "1.1.1.4",
+            "bk_cloud_id": 0,
+            "bk_host_id": 3,
+            "bk_cpu": 2,
+            "bk_disk": 199,
+            "bk_mem": 4095,
+            "storage_device": {
+                "C:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
+                "D:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
+                "E:": {"size": 0, "disk_id": "", "disk_type": "", "file_type": ""},
+            },
+            "city": "",
+            "sub_zone": "",
+            "sub_zone_id": "",
+            "rack_id": "",
+            "device_class": "",
+        },
+    ],
+}
+
+
 DBCONFIG_DATA = {
     "buffer_percent": "50",
     "charset": "Chinese_PRC_CI_AS",
     "db_version": "MSSQL_Enterprise_2016",
     "max_remain_mem_gb": "32",
-    "sync_type": "image",
+    "sync_type": "mirroring",
     "system_version": "WindowsServer2016",
 }
 
@@ -328,8 +509,8 @@ SQLSERVER_SPEC_DATA = [
         "spec_name": "1核_1G_10G",
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
-        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
-        "spec_cluster_type": ClusterType.SqlserverHA.value,
+        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "c:"}],
+        "spec_cluster_type": ClusterType.SqlserverSingle.value,
         "spec_machine_type": "backend",
         "qps": {"max": 0, "min": 0},
         "enable": 1,
@@ -339,7 +520,7 @@ SQLSERVER_SPEC_DATA = [
         "spec_name": "1核_1G_10G",
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
-        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "c:"}],
         "spec_cluster_type": ClusterType.SqlserverHA.value,
         "spec_machine_type": "backend",
         "qps": {"max": 0, "min": 0},
@@ -350,7 +531,7 @@ SQLSERVER_SPEC_DATA = [
         "spec_name": "1核_1G_10G",
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
-        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "c:"}],
         "spec_cluster_type": ClusterType.SqlserverHA.value,
         "spec_machine_type": "backend",
         "qps": {"max": 0, "min": 0},
