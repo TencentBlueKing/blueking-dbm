@@ -283,7 +283,17 @@ func (job *TendisKeysPattern) UntarMedia() (err error) {
 		return
 	}
 	job.runtime.Logger.Info(cpCmd)
-
+	// 因为tendisplus 底层 rocksdb 引擎会做升级,提取key必须依赖每个版本本身自带的ldb工具
+	ldbTendisPath := filepath.Join(consts.UsrLocal, "redis", "bin", "ldb_tendis")
+	ldbTendplusPath := filepath.Join(job.saveDir, "ldb_tendisplus")
+	if util.FileExists(ldbTendisPath) {
+		cpCmd = fmt.Sprintf("cp %s %s", ldbTendisPath, ldbTendplusPath)
+		job.runtime.Logger.Info(cpCmd)
+		_, err = util.RunBashCmd(cpCmd, "", nil, 1*time.Minute)
+		if err != nil {
+			return
+		}
+	}
 	return nil
 
 }
