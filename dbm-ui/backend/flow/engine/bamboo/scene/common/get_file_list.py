@@ -364,13 +364,11 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{influxdb_pkg.path}",
         ]
 
-    def fetch_kafka_actuator_path(self) -> list:
+    def kafka_dbactuator(self) -> list:
         """
         只拉取kafka actuator
         """
-        return [
-            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
-        ]
+        return self.get_db_actuator_package()
 
     def redis_base(self) -> list:
         """

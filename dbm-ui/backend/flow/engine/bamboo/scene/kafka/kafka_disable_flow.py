@@ -14,12 +14,15 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.consts import KafkaActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.kafka.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.kafka.kafka_db_meta import KafkaDBMetaComponent
+from backend.flow.plugins.components.collections.kafka.trans_flies import TransFileComponent
 from backend.flow.utils.kafka.kafka_act_playload import get_base_payload
 from backend.flow.utils.kafka.kafka_context_dataclass import ActKwargs, ApplyContext
 
@@ -55,9 +58,18 @@ class KafkaDisableFlow(object):
         :return:
         """
         kafka_pipeline = Builder(root_id=self.root_id, data=self.data)
+        trans_files = GetFileList(db_type=DBType.Kafka)
         all_ips = self.__get_all_node_ips()
         act_kwargs = ActKwargs(bk_cloud_id=self.data["bk_cloud_id"])
         act_kwargs.set_trans_data_dataclass = ApplyContext.__name__
+
+        # 下发dbacuator
+        act_kwargs.file_list = trans_files.get_db_actuator_package()
+        act_kwargs.exec_ip = [{"ip": ip} for ip in all_ips]
+        kafka_pipeline.add_act(
+            act_name=_("下发dbacuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+        )
+
         sub_pipelines = []
         for ip in all_ips:
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
