@@ -23,7 +23,7 @@ class PreCheckCloneSerializer(serializers.Serializer):
         source = serializers.CharField(help_text=_("旧实例/旧客户端IP"))
         target = serializers.CharField(help_text=_("新实例/新客户端IP"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-        module = serializers.CharField(help_text=_("模块名"), required=False)
+        module = serializers.CharField(help_text=_("模块名"), required=False, allow_blank=True, allow_null=True)
         cluster_domain = serializers.CharField(help_text=_("集群域名"), required=False)
 
         class Meta:
