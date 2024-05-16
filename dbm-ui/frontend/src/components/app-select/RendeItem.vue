@@ -49,6 +49,6 @@
       const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
 
       text.value = width > maxWidth ? renderText : '';
-    }, 20);
+    });
   });
 </script>
