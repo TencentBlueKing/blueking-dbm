@@ -453,8 +453,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
 
         # 获取云区域信息和业务信息
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
-        bk_biz_ids = list(cluster_queryset.values_list("bk_biz_id", flat=True))
-        biz_info = {biz.bk_biz_id: biz for biz in AppCache.objects.filter(bk_biz_id__in=bk_biz_ids)}
+        biz_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
 
         # 将集群的查询结果序列化为集群字典信息
         clusters: List[Dict[str, Any]] = []
@@ -506,7 +505,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "master_domain": cluster_entry.get("master_domain", ""),
             "slave_domain": cluster_entry.get("slave_domain", ""),
             "bk_biz_id": cluster.bk_biz_id,
-            "bk_biz_name": biz_info[cluster.bk_biz_id].bk_biz_name,
+            "bk_biz_name": biz_info.bk_biz_name,
             "bk_cloud_id": cluster.bk_cloud_id,
             "bk_cloud_name": bk_cloud_name,
             "major_version": cluster.major_version,
