@@ -15,7 +15,7 @@
     "lint:style": "stylelint --fix ./src/**/*.{vue,css,less} --custom-syntax"
   },
   "dependencies": {
-    "@blueking/app-select": "0.0.1-beta.11",
+    "@blueking/app-select": "0.0.1-beta.12",
     "@blueking/bk-weweb": "0.0.24",
     "@blueking/bkflow.js": "0.1.10",
     "@blueking/date-picker": "0.0.72",
