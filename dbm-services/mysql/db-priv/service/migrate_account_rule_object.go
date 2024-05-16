@@ -39,7 +39,8 @@ type MigratePara struct {
 	Key   string `json:"key"`
 	Mode  string `json:"mode"`
 	// 迁移范围，可选all、mysql、spider
-	Range string `json:"range"`
+	Range       string `json:"range"`
+	SapPassword string `json:"sap_password"`
 }
 
 // DbConf 帐号规则所在数据库的配置

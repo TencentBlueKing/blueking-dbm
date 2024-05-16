@@ -47,17 +47,32 @@ func GetAccountRuleInfo(bkBizId int64, clusterType string, user, dbname string) 
 func ImportBackendPrivilege(account TbAccounts, accountRule TbAccountRules, address string, proxyIPs []string,
 	sourceIps []string, clusterType string, tendbhaMasterDomain bool, bkCloudId int64, dedicated bool) error {
 	var backendSQL []string
+	var localhostSQL []string
 	mysqlVersion, err := GetMySQLVersion(address, bkCloudId)
 	if err != nil {
 		slog.Error("mysqlVersion", err)
 		return err
 	}
 	if tendbhaMasterDomain {
-		backendSQL, err = GenerateBackendSQL(account, accountRule, proxyIPs, mysqlVersion, address, clusterType,
-			tendbhaMasterDomain, bkCloudId, dedicated)
-		if err != nil {
-			slog.Error("backendSQL", err)
-			return err
+		hasLocahost := util.HasElem("localhost", sourceIps)
+		hasIp := !hasLocahost || (hasLocahost && len(sourceIps) > 1)
+		if hasIp {
+			backendSQL, err = GenerateBackendSQL(account, accountRule, proxyIPs, mysqlVersion, address, clusterType,
+				tendbhaMasterDomain, bkCloudId, dedicated)
+			if err != nil {
+				slog.Error("backendSQL", err)
+				return err
+			}
+		}
+		if hasLocahost {
+			localhostSQL, err = GenerateBackendSQL(account, accountRule, []string{"localhost"},
+				mysqlVersion, address, clusterType,
+				tendbhaMasterDomain, bkCloudId, dedicated)
+			if err != nil {
+				slog.Error("get localhost sql error", err)
+				return err
+			}
+			backendSQL = append(backendSQL, localhostSQL...)
 		}
 	} else {
 		backendSQL, err = GenerateBackendSQL(account, accountRule, sourceIps, mysqlVersion, address, clusterType,
@@ -260,6 +275,9 @@ func GenerateProxyPrivilege(user string, ips []string) []string {
 		sql      string
 		proxySQL []string
 	)
+	if util.HasElem("localhost", ips) {
+		ips = util.StringsRemove(ips, "localhost")
+	}
 	for _, ip := range ips {
 		sql = fmt.Sprintf("refresh_users('%s@%s','+');", user, ip)
 		proxySQL = append(proxySQL, sql)

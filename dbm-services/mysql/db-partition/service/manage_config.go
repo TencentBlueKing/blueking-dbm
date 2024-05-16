@@ -46,30 +46,30 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 	}
 	where := " 1=1 "
 	if m.BkBizId > 0 {
-		where = fmt.Sprintf("%s and config.bk_biz_id=%d", where, m.BkBizId)
+		where = fmt.Sprintf("%s and bk_biz_id=%d", where, m.BkBizId)
 	}
 	if len(m.Ids) != 0 {
 		var temp = make([]string, len(m.Ids))
 		for k, id := range m.Ids {
 			temp[k] = strconv.FormatInt(id, 10)
 		}
-		ids := " and config.id in (" + strings.Join(temp, ",") + ") "
+		ids := " and id in (" + strings.Join(temp, ",") + ") "
 		where = where + ids
 	}
 	if len(m.ImmuteDomains) != 0 {
-		dns := " and config.immute_domain in ('" + strings.Join(m.ImmuteDomains, "','") + "') "
+		dns := " and immute_domain in ('" + strings.Join(m.ImmuteDomains, "','") + "') "
 		where = where + dns
 	}
 	if len(m.DbLikes) != 0 {
-		dblike := " and config.dblike in ('" + strings.Join(m.DbLikes, "','") + "') "
+		dblike := " and dblike in ('" + strings.Join(m.DbLikes, "','") + "') "
 		where = where + dblike
 	}
 	if len(m.TbLikes) != 0 {
-		tblike := " and config.tblike in ('" + strings.Join(m.TbLikes, "','") + "') "
+		tblike := " and tblike in ('" + strings.Join(m.TbLikes, "','") + "') "
 		where = where + tblike
 	}
 	cnt := Cnt{}
-	vsql := fmt.Sprintf("select count(*) as cnt from `%s` as config where %s", configTb, where)
+	vsql := fmt.Sprintf("select count(*) as cnt from `%s` where %s", configTb, where)
 	err := model.DB.Self.Raw(vsql).Scan(&cnt).Error
 	if err != nil {
 		slog.Error(vsql, "execute error", err)
@@ -98,14 +98,14 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 	vsql = fmt.Sprintf("SELECT config.*, logs.create_time as execute_time, "+
 		"logs.ticket_id as ticket_id, logs.check_info as check_info, "+
 		"logs.status as status FROM "+
-		"%s AS config LEFT JOIN "+
+		"(select * from %s where %s ) AS config LEFT JOIN "+
 		"(SELECT log.* FROM %s AS log, "+
 		"(SELECT inner_config.id AS config_id, MAX(inner_log.id) AS log_id FROM "+
 		"%s AS inner_config LEFT JOIN "+
 		"%s AS inner_log ON inner_config.id = inner_log.config_id where "+
 		"inner_log.create_time > DATE_SUB(now(),interval 100 day) GROUP BY inner_config.id) "+
-		"AS latest_log WHERE log.id = latest_log.log_id) AS logs ON config.id = logs.config_id where %s ",
-		configTb, logTb, configTb, logTb, condition)
+		"AS latest_log WHERE log.id = latest_log.log_id) AS logs ON config.id = logs.config_id",
+		configTb, condition, logTb, configTb, logTb)
 	err = model.DB.Self.Raw(vsql).Scan(&allResults).Error
 	if err != nil {
 		slog.Error(vsql, "execute error", err)

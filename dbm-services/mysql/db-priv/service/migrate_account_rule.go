@@ -27,7 +27,7 @@ func (m *MigratePara) MigrateAccountRule(jsonPara string, ticket string) ([]Priv
 	}
 	defer GcsDb.Self.Close()
 	// 检查scr、gcs中的账号规则，mysql和spider的一起检查
-	users, errMsg := CheckOldPriv(m.Key, appWhere, &exclude)
+	users, errMsg := CheckOldPriv(m.Key, appWhere, m.SapPassword, &exclude)
 	passTips := "all check pass"
 	// 仅检查，不迁移
 	if m.Mode == "check" {
@@ -174,6 +174,10 @@ func (m *MigratePara) CheckPara() (map[string]int64, error) {
 		slog.Error("key为空，请设置")
 		return nil, fmt.Errorf("key为空，请设置")
 	}
+	if m.SapPassword == "" {
+		slog.Error("sap_password为空，请设置")
+		return nil, fmt.Errorf("sap_password为空，请设置")
+	}
 	if m.Mode != "check" && m.Mode != "run" && m.Mode != "force-run" {
 		slog.Error(fmt.Sprintf(
 			"mode值为:%s，请设置，可选模式\ncheck --- 仅检查不实施\nrun --- 检查并且迁移\nforce-run --- 强制执行", m.Mode))
@@ -187,7 +191,7 @@ func (m *MigratePara) CheckPara() (map[string]int64, error) {
 }
 
 // CheckOldPriv 检查旧的密码格式
-func CheckOldPriv(key, appWhere string, exclude *[]AppUser) ([]PrivModule, []string) {
+func CheckOldPriv(key, appWhere, sap string, exclude *[]AppUser) ([]PrivModule, []string) {
 	slog.Info("begin check different privileges")
 	// 检查是否存在多种权限，需要合并
 	err1 := CheckDifferentPrivileges(appWhere)
@@ -201,7 +205,7 @@ func CheckOldPriv(key, appWhere string, exclude *[]AppUser) ([]PrivModule, []str
 	slog.Info("CheckPrivilegesFormat", "error", err2)
 	slog.Info("CheckPrivilegesFormat", "exclude", exclude)
 	// 检查密码，并且获取帐号以及密码
-	users, err3 := CheckAndGetPassword(key, appWhere, exclude)
+	users, err3 := CheckAndGetPassword(key, appWhere, sap, exclude)
 	slog.Info("CheckAndGetPassword", "error", err3)
 	slog.Info("CheckAndGetPassword", "exclude", exclude)
 	err := append(err1, err2...)
