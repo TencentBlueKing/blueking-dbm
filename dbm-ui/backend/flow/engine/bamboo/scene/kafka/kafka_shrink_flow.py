@@ -94,7 +94,7 @@ class KafkaShrinkFlow(object):
         # 拼接活动节点需要的私有参数
         act_kwargs = ActKwargs(bk_cloud_id=self.data["bk_cloud_id"])
         act_kwargs.set_trans_data_dataclass = ApplyContext.__name__
-        act_kwargs.file_list = trans_files.fetch_kafka_actuator_path()
+        act_kwargs.file_list = trans_files.get_db_actuator_package()
 
         # 下发dbacuator
         exclude_brokers = self.__get_all_node_ips()
