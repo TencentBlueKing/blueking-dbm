@@ -42,16 +42,15 @@ func (m PartitionJob) Run() {
 		monitor.SendEvent(monitor.PartitionDeveloperEvent, dimension, content, Scheduler)
 		slog.Error("msg", "model.Lock err", err)
 	} else if flag {
-		m.ExecutePartitionCron(service.Tendbsingle)
-		m.ExecutePartitionCron(service.Tendbha)
-		m.ExecutePartitionCron(service.Tendbcluster)
+		m.ExecutePartition(service.Tendbha)
+		m.ExecutePartition(service.Tendbcluster)
 	} else {
 		slog.Warn("set redis mutual exclusion fail, do nothing", "key", key)
 	}
 }
 
-// ExecutePartitionCron 执行所有业务的分区
-func (m PartitionJob) ExecutePartitionCron(clusterType string) {
+// ExecutePartition 执行业务的分区
+func (m PartitionJob) ExecutePartition(clusterType string) {
 	zone := fmt.Sprintf("%+03d:00", m.ZoneOffset)
 	needMysql, errOuter := service.NeedPartition(m.CronType, clusterType, m.ZoneOffset, m.CronDate)
 	if errOuter != nil {
@@ -64,15 +63,7 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 	var UniqMap = make(map[int]struct{})
 	var UniqMachine = make(map[string]struct{})
 	var cloudMachineList = make(map[int64][]string)
-	var InstanceRole string
-	switch clusterType {
-	case service.Tendbsingle:
-		InstanceRole = service.Orphan
-	case service.Tendbha:
-		InstanceRole = service.BackendMaster
-	case service.Tendbcluster:
-		InstanceRole = service.RemoteMaster
-	default:
+	if clusterType != service.Tendbha && service.Tendbcluster != clusterType {
 		slog.Error(fmt.Sprintf("cluster type %s not support", clusterType))
 		return
 	}
@@ -91,9 +82,19 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 				continue
 			}
 			for _, cluster := range clusters {
-				if cluster.ClusterType == clusterType {
+				if clusterType == service.Tendbha {
 					for _, storage := range cluster.Storages {
-						if storage.InstanceRole == InstanceRole {
+						if storage.InstanceRole == service.Orphan || storage.InstanceRole == service.BackendMaster {
+							if _, existFlag := UniqMachine[fmt.Sprintf("%s|%d",
+								storage.IP, cluster.BkCloudId)]; existFlag == false {
+								cloudMachineList[cluster.BkCloudId] = append(
+									cloudMachineList[cluster.BkCloudId], storage.IP)
+							}
+						}
+					}
+				} else {
+					for _, storage := range cluster.Storages {
+						if storage.InstanceRole == service.RemoteMaster {
 							if _, existFlag := UniqMachine[fmt.Sprintf("%s|%d",
 								storage.IP, cluster.BkCloudId)]; existFlag == false {
 								cloudMachineList[cluster.BkCloudId] = append(
@@ -106,13 +107,9 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 		}
 	}
 	var wgDownload sync.WaitGroup
-	slog.Error("msg", "cloudMachineList", fmt.Sprintf("%v", cloudMachineList))
-	tokenBucketDownload := make(chan int, 20)
+	tokenBucketDownload := make(chan int, 5)
 	for cloud, machines := range cloudMachineList {
-		tmp := util.SplitArray(machines, 5)
-		slog.Error("msg", "cloud", cloud, "machines", fmt.Sprintf("%v", machines))
-		slog.Error("msg", "cloud", cloud, "tmp", fmt.Sprintf("%v", tmp))
-
+		tmp := util.SplitArray(machines, 20)
 		for _, ips := range tmp {
 			wgDownload.Add(1)
 			tokenBucketDownload <- 0
@@ -140,7 +137,7 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 	close(tokenBucketDownload)
 
 	var wg sync.WaitGroup
-	tokenBucket := make(chan int, 40)
+	tokenBucket := make(chan int, 10)
 	for _, item := range needMysql {
 		wg.Add(1)
 		tokenBucket <- 0
@@ -173,7 +170,7 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 			}
 			slog.Info("do create partition ticket")
 			service.CreatePartitionTicket(*item, objects, m.ZoneOffset, m.CronDate, Scheduler)
-			time.Sleep(40 * time.Second)
+			time.Sleep(30 * time.Second)
 		}(item)
 	}
 	wg.Wait()
@@ -190,31 +187,38 @@ func (m PartitionJob) ExecutePartitionOneTime(clusterType string) {
 	var UniqMap = make(map[int]struct{})
 	var UniqMachine = make(map[string]struct{})
 	var cloudMachineList = make(map[int64][]string)
-	var InstanceRole string
-	switch clusterType {
-	case service.Tendbsingle:
-		InstanceRole = service.Orphan
-	case service.Tendbha:
-		InstanceRole = service.BackendMaster
-	case service.Tendbcluster:
-		InstanceRole = service.RemoteMaster
-	default:
+	if clusterType != service.Tendbha && service.Tendbcluster != clusterType {
 		slog.Error(fmt.Sprintf("cluster type %s not support", clusterType))
 		return
 	}
+
 	for _, need := range needMysql {
 		if _, isExists := UniqMap[need.BkBizId]; isExists == false {
 			UniqMap[need.BkBizId] = struct{}{}
 			clusters, err := service.GetAllClustersInfo(service.BkBizId{BkBizId: int64(need.BkBizId)})
 			if err != nil {
+				dimension := monitor.NewDeveloperEventDimension(Scheduler)
+				content := fmt.Sprintf("partition error. "+
+					"get cluster from dbmeta/priv_manager/biz_clusters error: %s", err.Error())
+				monitor.SendEvent(monitor.PartitionDeveloperEvent, dimension, content, Scheduler)
 				slog.Error("msg", "partition error. "+
 					"get cluster from dbmeta/priv_manager/biz_clusters error", err)
 				continue
 			}
 			for _, cluster := range clusters {
-				if cluster.ClusterType == clusterType {
+				if clusterType == service.Tendbha {
 					for _, storage := range cluster.Storages {
-						if storage.InstanceRole == InstanceRole {
+						if storage.InstanceRole == service.Orphan || storage.InstanceRole == service.BackendMaster {
+							if _, existFlag := UniqMachine[fmt.Sprintf("%s|%d",
+								storage.IP, cluster.BkCloudId)]; existFlag == false {
+								cloudMachineList[cluster.BkCloudId] = append(
+									cloudMachineList[cluster.BkCloudId], storage.IP)
+							}
+						}
+					}
+				} else {
+					for _, storage := range cluster.Storages {
+						if storage.InstanceRole == service.RemoteMaster {
 							if _, existFlag := UniqMachine[fmt.Sprintf("%s|%d",
 								storage.IP, cluster.BkCloudId)]; existFlag == false {
 								cloudMachineList[cluster.BkCloudId] = append(
@@ -226,10 +230,11 @@ func (m PartitionJob) ExecutePartitionOneTime(clusterType string) {
 			}
 		}
 	}
+
 	var wgDownload sync.WaitGroup
-	tokenBucketDownload := make(chan int, 20)
+	tokenBucketDownload := make(chan int, 5)
 	for cloud, machines := range cloudMachineList {
-		tmp := util.SplitArray(machines, 5)
+		tmp := util.SplitArray(machines, 20)
 		for _, ips := range tmp {
 			wgDownload.Add(1)
 			tokenBucketDownload <- 0
@@ -254,7 +259,7 @@ func (m PartitionJob) ExecutePartitionOneTime(clusterType string) {
 	close(tokenBucketDownload)
 
 	var wg sync.WaitGroup
-	tokenBucket := make(chan int, 40)
+	tokenBucket := make(chan int, 10)
 	for _, item := range needMysql {
 		wg.Add(1)
 		tokenBucket <- 0
@@ -273,7 +278,7 @@ func (m PartitionJob) ExecutePartitionOneTime(clusterType string) {
 			}
 			slog.Info("do create partition ticket")
 			service.CreatePartitionTicket(*item, objects, m.ZoneOffset, m.CronDate, Scheduler)
-			time.Sleep(40 * time.Second)
+			time.Sleep(30 * time.Second)
 		}(item)
 	}
 	wg.Wait()
