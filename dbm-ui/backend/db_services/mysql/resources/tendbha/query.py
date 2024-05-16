@@ -109,7 +109,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             m.simple_desc
             for m in cluster.storages
             if m.instance_inner_role in [InstanceInnerRole.SLAVE, InstanceInnerRole.REPEATER]
-            if m.as_receiver.first().ejector.instance_inner_role == InstanceInnerRole.MASTER
+            if m.as_receiver.exists() and m.as_receiver.first().ejector.instance_inner_role == InstanceInnerRole.MASTER
         ]
 
         cluster_role_info = {"proxies": proxies, "masters": masters, "slaves": slaves}
