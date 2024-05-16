@@ -199,6 +199,7 @@ SQLSERVER_CLEAR_DBS_TICKET_DATA = {
             {
                 "cluster_id": CLUSTER_ID,
                 "clean_dbs": ["test_database"],
+                "clean_dbs_patterns": ["test%"],
                 "clean_tables": ["t1"],
                 "clean_mode": "clean_tables",
             }
