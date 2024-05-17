@@ -98,6 +98,7 @@ class MongoDBCluster:
         bk_biz_id: int = None,
         immute_domain: str = None,
         app: str = None,
+        region: str = None,
     ):
         self.cluster_id = cluster_id
         self.name = name
@@ -107,6 +108,7 @@ class MongoDBCluster:
         self.immute_domain = immute_domain
         self.bk_cloud_id = bk_cloud_id
         self.app = app
+        self.region = region
 
     @abstractmethod
     def get_shards(self):
@@ -136,6 +138,7 @@ class ReplicaSetCluster(MongoDBCluster):
         bk_biz_id=None,
         immute_domain=None,
         app: str = None,
+        region: str = None,
         shard: ReplicaSet = None,
     ):
         super().__init__(
@@ -147,6 +150,7 @@ class ReplicaSetCluster(MongoDBCluster):
             bk_biz_id,
             immute_domain,
             app,
+            region,
         )
         self.shard = shard
 
@@ -176,6 +180,7 @@ class ShardedCluster(MongoDBCluster):
         bk_biz_id=None,
         immute_domain=None,
         app: str = None,
+        region: str = None,
         shards: List[ReplicaSet] = None,
         mongos: List[MongoNode] = None,
         configsvr: ReplicaSet = None,
@@ -189,6 +194,7 @@ class ShardedCluster(MongoDBCluster):
             bk_biz_id,
             immute_domain,
             app,
+            region,
         )
         self.shards = shards
         self.mongos = mongos
@@ -232,6 +238,7 @@ class MongoRepository:
                     immute_domain=i.immute_domain,
                     app=None,  # app和bk_biz_id是1-1的关系，有一个就够了
                     shard=shard,
+                    region=i.region,
                 )
 
                 rows.append(row)
@@ -263,6 +270,7 @@ class MongoRepository:
                     mongos=mongos,
                     shards=shards,
                     configsvr=configsvr,
+                    region=i.region,
                 )
 
                 rows.append(row)
@@ -277,8 +285,8 @@ class MongoRepository:
         return None
 
     @classmethod
-    def fetch_many_cluster_dict(cls, **kwargs):
-        clusters = cls.fetch_many_cluster(**kwargs)
+    def fetch_many_cluster_dict(cls, set_get_domain: bool, **kwargs):
+        clusters = cls.fetch_many_cluster(set_get_domain, **kwargs)
         clusters_map = {}
         for cluster in clusters:
             clusters_map[cluster.cluster_id] = cluster
@@ -481,7 +489,7 @@ class MongoNodeWithLabel(object):
         if not cluster_id_list:
             return instance_list
 
-        clusters = MongoRepository.fetch_many_cluster_dict(id__in=cluster_id_list)
+        clusters = MongoRepository.fetch_many_cluster_dict(set_get_domain=False, id__in=cluster_id_list)
         for cluster_id in clusters:
             cluster = clusters[cluster_id]
             for rs in cluster.get_shards():

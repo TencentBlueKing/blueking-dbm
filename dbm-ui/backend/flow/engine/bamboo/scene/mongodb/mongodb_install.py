@@ -119,7 +119,7 @@ class MongoDBInstallFlow(object):
                 kwargs=kwargs,
             )
 
-        # dbmon
+        # # 安装dbmon
         # self.install_dbmon(data=self.data, pipeline=pipeline)
         # 运行流程
         pipeline.run_pipeline()
@@ -209,6 +209,9 @@ class MongoDBInstallFlow(object):
             act_component_code=ExecAddDomainToDnsOperationComponent.code,
             kwargs=kwargs,
         )
+
+        # 安装dbmon
+        # self.install_dbmon(data=self.data, pipeline=pipeline)
 
         # 运行流程
         pipeline.run_pipeline()

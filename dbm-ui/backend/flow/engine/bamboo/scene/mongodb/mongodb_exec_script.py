@@ -32,6 +32,7 @@ class MongoExecScriptFlow(object):
         self.data = data
         self.get_kwargs = ActKwargs()
         self.get_kwargs.payload = data
+        self.get_kwargs.root_id = root_id
 
     def multi_cluster_exec_script_flow(self):
         """

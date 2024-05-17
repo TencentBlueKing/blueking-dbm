@@ -78,7 +78,7 @@ func NewJobGenericRuntime(uid, rootID string,
 // SetLogger set logger
 func (r *JobGenericRuntime) SetLogger() {
 	var err error
-	logFile := fmt.Sprintf("redis_actuator_%s_%s.log", r.UID, r.NodeID)
+	logFile := fmt.Sprintf("mongo_actuator_%s_%s.log", r.UID, r.NodeID)
 	err = util.MkDirsIfNotExists([]string{logDir})
 	if err != nil {
 		panic(err)
