@@ -53,7 +53,7 @@ class TestTicketFlowsConfig:
     @patch.object(InnerFlow, "_run")
     @patch.object(InnerFlow, "status", new_callable=PropertyMock)
     @patch.object(TicketViewSet, "get_permissions", lambda x: [])
-    def test_ticket_flows_config(self, mocked_status, mocked__run, mocked_permission_classes, db):
+    def test_ticket_flows_config(self, mocked_status, mocked__run, mocked_permission_classes, db, init_app):
         """
         以mysql客户端权限克隆为例，测试单据流程设置
         """

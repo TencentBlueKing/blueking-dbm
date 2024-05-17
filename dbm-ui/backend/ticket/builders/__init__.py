@@ -21,7 +21,7 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.ticket.constants import FlowRetryType, FlowType
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig
@@ -131,6 +131,7 @@ class ItsmParamBuilder(CallBackBuilderMixin):
         self.details.pop("clusters", None)
         service_id = SystemSettings.get_setting_value(SystemSettingsEnum.BK_ITSM_SERVICE_ID.value)
         title = self.ticket.get_ticket_type_display()
+        app = AppCache.objects.get(bk_biz_id=self.ticket.bk_biz_id)
         params = {
             "service_id": service_id,
             "creator": self.ticket.creator,
@@ -153,6 +154,11 @@ class ItsmParamBuilder(CallBackBuilderMixin):
                     "name": _("需求信息"),
                     "type": "LINK",
                     "value": f"{self.ticket.url}&isFullscreen=true",
+                },
+                {
+                    "name": _("业务名"),
+                    "type": "STRING",
+                    "value": f"{app.bk_biz_name}(#{app.bk_biz_id}, {app.db_app_abbr})",
                 },
             ],
             "meta": {

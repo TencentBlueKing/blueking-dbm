@@ -189,7 +189,7 @@ class SQLHandler(object):
 
         # 获取语义执行的node id
         tree = FlowTree.objects.get(root_id=root_id)
-        node_id = self.get_node_id_by_component(tree=tree.tree, component_code=SemanticCheckComponent.code)
+        node_id = TaskFlowHandler.get_node_id_by_component(tree=tree.tree, component_code=SemanticCheckComponent.code)
 
         # 缓存用户的语义检查，并删除过期的数据。注：django的cache不支持redis命令，这里只能使用原生redis客户端进行操作
         now = int(time.time())
@@ -279,7 +279,7 @@ class SQLHandler(object):
             {
                 "bk_biz_id": tree.bk_biz_id,
                 "root_id": tree.root_id,
-                "node_id": self.get_node_id_by_component(tree.tree, code),
+                "node_id": TaskFlowHandler.get_node_id_by_component(tree.tree, code),
                 "created_at": tree.created_at,
                 "status": tree.status,
                 "is_alter": task_ids__status_map[tree.root_id] != tree.status,
@@ -308,25 +308,6 @@ class SQLHandler(object):
             semantic_info_list.extend(self._get_user_semantic_tasks(DBType.TenDBCluster, SemanticCheckComponent.code))
 
         return semantic_info_list
-
-    def get_node_id_by_component(self, tree: Dict, component_code: str) -> str:
-        """
-        根据component获取node id
-        :param tree: 流程树对象
-        :param component_code: 组件code名称
-        """
-
-        activities: Dict = tree["activities"]
-        for node_id, activity in activities.items():
-            if activity.get("component") and activity["component"]["code"] == component_code:
-                return node_id
-
-            if activity.get("pipeline"):
-                node_id = self.get_node_id_by_component(activity["pipeline"], component_code)
-                if node_id:
-                    return node_id
-
-        return ""
 
     @classmethod
     def parse_semantic_check_logs(cls, root_id: str, logs: List[Dict], sql_files: List[str]) -> List[Dict]:

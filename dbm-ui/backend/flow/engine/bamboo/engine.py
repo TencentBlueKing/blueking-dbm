@@ -16,6 +16,7 @@ from bamboo_engine import api, builder, states
 from bamboo_engine.api import EngineAPIResult
 from bamboo_engine.builder import Data
 from django.utils.translation import ugettext as _
+from pipeline.eri.models import State
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from backend.flow.engine.bamboo.builder import Builder
@@ -98,6 +99,10 @@ class BambooEngine:
 
     def get_node_histories(self, node_id: str) -> EngineAPIResult:
         result = api.get_node_histories(runtime=BambooDjangoRuntime(), node_id=node_id)
+        return result
+
+    def get_node_state(self, node_id: str) -> State:
+        result = self.runtime.get_state_or_none(node_id)
         return result
 
     def get_pipeline_states(self) -> EngineAPIResult:
