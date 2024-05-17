@@ -9,7 +9,9 @@
         :active-key="currentActiveKey"
         :opened-keys="[parentKey]"
         @click="handleMenuChange">
-        <BkMenuGroup :name="t('告警事件')">
+        <BkMenuGroup
+          v-db-console="'observableManage.DBHASwitchEvents'"
+          :name="t('告警事件')">
           <BkMenuItem key="DBHASwitchEvents">
             <template #icon>
               <DbIcon type="db-config" />
@@ -21,7 +23,9 @@
             </span>
           </BkMenuItem>
         </BkMenuGroup>
-        <BkMenuGroup :name="t('巡检')">
+        <BkMenuGroup
+          v-db-console="'observableManage.healthReport'"
+          :name="t('巡检')">
           <BkMenuItem key="inspectionManage">
             <template #icon>
               <DbIcon type="db-config" />

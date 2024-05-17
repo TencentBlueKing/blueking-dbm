@@ -12,37 +12,39 @@
 -->
 
 <template>
-  <span
-    v-if="data?.operationTicketId && !disabled"
-    ref="rootRef"
-    class="cluster-operation-status-tips"
-    @mouseenter="handleMouseenter">
-    <slot />
-    <div style="display: none">
-      <div
-        ref="popRef"
-        style="font-size: 12px; line-height: 16px; color: #63656e">
-        <I18nT
-          keypath="xx_跳转_单据_查看进度"
-          tag="span">
-          <span>{{ data.operationStatusText }}</span>
-          <AuthRouterLink
-            action-id="ticket_view"
-            :resource="data.operationTicketId"
-            target="_blank"
-            :to="{
-              name: 'bizTicketManage',
-              query: {
-                id: data.operationTicketId,
-              },
-            }">
-            {{ $t('单据') }}
-          </AuthRouterLink>
-        </I18nT>
+  <span>
+    <span
+      v-if="data?.operationTicketId && !disabled"
+      ref="rootRef"
+      class="cluster-operation-status-tips"
+      @mouseenter="handleMouseenter">
+      <slot />
+      <div style="display: none">
+        <div
+          ref="popRef"
+          style="font-size: 12px; line-height: 16px; color: #63656e">
+          <I18nT
+            keypath="xx_跳转_单据_查看进度"
+            tag="span">
+            <span>{{ data.operationStatusText }}</span>
+            <AuthRouterLink
+              action-id="ticket_view"
+              :resource="data.operationTicketId"
+              target="_blank"
+              :to="{
+                name: 'bizTicketManage',
+                query: {
+                  id: data.operationTicketId,
+                },
+              }">
+              {{ $t('单据') }}
+            </AuthRouterLink>
+          </I18nT>
+        </div>
       </div>
-    </div>
+    </span>
+    <slot v-else />
   </span>
-  <slot v-else />
 </template>
 <script lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';

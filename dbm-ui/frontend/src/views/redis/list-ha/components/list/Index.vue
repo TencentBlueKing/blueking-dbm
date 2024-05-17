@@ -14,18 +14,18 @@
 <template>
   <div class="redis-cluster-list-page">
     <div class="operation-box">
-      <div>
-        <AuthButton
-          action-id="redis_cluster_apply"
-          class="mb-16"
-          theme="primary"
-          @click="handleApply">
-          {{ t('申请实例') }}
-        </AuthButton>
-        <DropdownExportExcel
-          :ids="selectedIds"
-          type="redis" />
-      </div>
+      <AuthButton
+        v-db-console="'redis.haClusterManage.instanceApply'"
+        action-id="redis_cluster_apply"
+        class="mb-16"
+        theme="primary"
+        @click="handleApply">
+        {{ t('申请实例') }}
+      </AuthButton>
+      <DropdownExportExcel
+        v-db-console="'redis.haClusterManage.export'"
+        :ids="selectedIds"
+        type="redis" />
       <DbSearchSelect
         class="operations-right mb-16"
         :data="searchSelectData"
@@ -266,6 +266,7 @@
                     onClick={() => copy(data.masterDomainDisplayName)} />
                 )}
                 <auth-button
+                  v-db-console="redis.haClusterManage.modifyEntryConfiguration"
                   v-bk-tooltips={t('修改入口配置')}
                   action-id="access_entry_edit"
                   resource="redis"
@@ -467,7 +468,9 @@
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: { data: RedisModel }) => (
         data.isOnline ? (
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="redis.haClusterManage.disable">
               <auth-button
                 action-id="redis_open_close"
                 resource={data.id}
@@ -480,7 +483,9 @@
             </OperationBtnStatusTips>
           ) : (
             <>
-              <OperationBtnStatusTips data={data}>
+              <OperationBtnStatusTips
+                data={data}
+                v-db-console="redis.haClusterManage.enabley">
                 <auth-button
                   action-id="redis_open_close"
                   resource={data.id}
@@ -491,7 +496,9 @@
                   { t('启用') }
                 </auth-button>
               </OperationBtnStatusTips>
-              <OperationBtnStatusTips data={data}>
+              <OperationBtnStatusTips
+                data={data}
+                v-db-console="redis.haClusterManage.delete">
                 <auth-button
                   class="ml-16"
                   action-id="redis_destroy"

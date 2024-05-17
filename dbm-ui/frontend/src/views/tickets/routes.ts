@@ -10,32 +10,44 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-
 import type { RouteRecordRaw } from 'vue-router';
+
+import FunctionControllModel from '@services/model/function-controller/functionController';
+
+import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-const routes: RouteRecordRaw[] = [
-  {
-    name: 'SelfServiceMyTickets',
-    path: 'my-tickets/:typeId?',
-    meta: {
-      navName: t('单据'),
-      fullscreen: true,
-    },
-    component: () => import('@views/tickets/my-tickets/Index.vue'),
+const selfServiceMyTicketsRoute = {
+  name: 'SelfServiceMyTickets',
+  path: 'my-tickets/:typeId?',
+  meta: {
+    navName: t('单据'),
+    fullscreen: true,
   },
-  {
-    name: 'MyTodos',
-    path: 'my-todos',
-    meta: {
-      navName: t('我的待办'),
-      fullscreen: true,
-    },
-    component: () => import('@views/tickets/my-todos/Index.vue'),
-  },
-];
+  component: () => import('@views/tickets/my-tickets/Index.vue'),
+}
 
-export default function getRoutes() {
+const myTodosRoute = {
+  name: 'MyTodos',
+  path: 'my-todos',
+  meta: {
+    navName: t('我的待办'),
+    fullscreen: true,
+  },
+  component: () => import('@views/tickets/my-todos/Index.vue'),
+}
+
+export default function getRoutes(funControllerData: FunctionControllModel) {
+  const routes: RouteRecordRaw[] = [];
+
+  if (checkDbConsole(funControllerData, 'personalWorkbench.myTickets')) {
+    routes.push(selfServiceMyTicketsRoute);
+  }
+
+  if (checkDbConsole(funControllerData, 'personalWorkbench.myTodos')) {
+    routes.push(myTodosRoute);
+  }
+
   return routes;
 }

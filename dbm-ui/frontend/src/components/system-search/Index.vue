@@ -14,6 +14,7 @@
 <template>
   <div
     ref="rootRef"
+    v-db-console="'globalSearch'"
     class="dbm-system-search"
     data-role="db-system-search"
     :style="styles"
@@ -38,7 +39,7 @@
             <DbIcon
               class="mr-4"
               type="search" />
-            {{ t("搜索") }}
+            {{ t('搜索') }}
           </BkButton>
         </div>
       </template>
@@ -221,51 +222,51 @@
     max-width: 700px;
     transition: all 0.1s;
 
-  @media screen and (max-width: 1450px) {
-    flex: 1 !important;
-    width: auto !important;
-  }
-
-  .search-input {
-    overflow: hidden;
-    border: 1px solid transparent;
-    border-radius: 2px;
-
-    .bk-input--text,
-    .bk-input--suffix-icon {
-      background: #303d55;
-      border-radius: 0;
+    @media screen and (max-width: 1450px) {
+      flex: 1 !important;
+      width: auto !important;
     }
 
-    .bk-input--text {
-      color: #fff;
-      border-radius: 0;
+    .search-input {
+      overflow: hidden;
+      border: 1px solid transparent;
+      border-radius: 2px;
 
-      &::placeholder {
-        color: #929bb2;
+      .bk-input--text,
+      .bk-input--suffix-icon {
+        background: #303d55;
+        border-radius: 0;
+      }
+
+      .bk-input--text {
+        color: #fff;
+        border-radius: 0;
+
+        &::placeholder {
+          color: #929bb2;
+        }
+      }
+
+      .serach-btn {
+        display: flex;
+        padding-right: 4px;
+        background: #303d55;
+        align-items: center;
+
+        &::before {
+          width: 1px;
+          height: 12px;
+          margin-right: 6px;
+          background: #63656e;
+          content: '';
+        }
       }
     }
+  }
 
-    .serach-btn {
-      display: flex;
-      padding-right: 4px;
-      background: #303d55;
-      align-items: center;
-
-      &::before {
-        width: 1px;
-        height: 12px;
-        margin-right: 6px;
-        background: #63656e;
-        content: "";
-      }
+  [data-tippy-root] .tippy-box[data-theme~='system-search-popover-theme'] {
+    .tippy-content {
+      padding: 0 !important;
     }
   }
-}
-
-[data-tippy-root] .tippy-box[data-theme~="system-search-popover-theme"] {
-  .tippy-content {
-    padding: 0 !important;
-  }
-}
 </style>

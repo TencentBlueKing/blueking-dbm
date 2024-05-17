@@ -16,7 +16,9 @@
           :key="item"
           :name="item" />
         <ModuleConfig v-model="renderModuleList" />
-        <BkMenuGroup :name="t('安全')">
+        <BkMenuGroup
+          v-db-console="'databaseManage.temporaryPaasswordModify'"
+          :name="t('安全')">
           <BkMenuItem key="DBPasswordTemporaryModify">
             <template #icon>
               <DbIcon type="password" />
@@ -28,7 +30,9 @@
             </span>
           </BkMenuItem>
         </BkMenuGroup>
-        <BkMenuGroup :name="t('任务中心')">
+        <BkMenuGroup
+          v-db-console="'databaseManage.missionManage'"
+          :name="t('任务中心')">
           <BkMenuItem key="ticketManage">
             <template #icon>
               <DbIcon type="ticket" />

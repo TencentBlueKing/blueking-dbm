@@ -16,7 +16,9 @@
             {{ t('集群视图') }}
           </span>
         </BkMenuItem>
-        <BkMenuItem key="tendbClusterInstance">
+        <BkMenuItem
+          key="tendbClusterInstance"
+          v-db-console="'tendbCluster.instanceManage'">
           <span
             v-overflow-tips.right
             class="text-overflow">
@@ -24,7 +26,9 @@
           </span>
         </BkMenuItem>
       </BkSubmenu>
-      <BkMenuItem key="spiderPartitionManage">
+      <BkMenuItem
+        key="spiderPartitionManage"
+        v-db-console="'tendbCluster.partitionManage'">
         <template #icon>
           <DbIcon type="mobanshili" />
         </template>
@@ -36,6 +40,7 @@
       </BkMenuItem>
       <BkSubmenu
         key="spider-permission"
+        v-db-console="'tendbCluster.permissionManage'"
         :title="t('权限管理')">
         <template #icon>
           <DbIcon type="history" />
@@ -62,9 +67,12 @@
         v-for="toolboxGroupId in toolboxMenuSortList"
         :id="toolboxGroupId"
         :key="toolboxGroupId"
+        v-db-console="'tendbCluster.toolbox'"
         :favor-map="favorMeunMap"
         :toolbox-menu-config="toolboxMenuConfig" />
-      <BkMenuItem key="spiderToolbox">
+      <BkMenuItem
+        key="spiderToolbox"
+        v-db-console="'tendbCluster.toolbox'">
         <template #icon>
           <DbIcon type="tools" />
         </template>

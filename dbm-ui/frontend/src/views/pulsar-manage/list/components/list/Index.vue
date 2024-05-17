@@ -15,12 +15,14 @@
   <div class="pulsar-list-page">
     <div class="header-action">
       <AuthButton
+        v-db-console="'pulsar.clusterManage.instanceApply'"
         action-id="pulsar_apply"
         theme="primary"
         @click="handleGoApply">
         {{ t('申请实例') }}
       </AuthButton>
       <DropdownExportExcel
+        v-db-console="'pulsar.clusterManage.export'"
         :ids="selectedIds"
         type="pulsar" />
       <DbSearchSelect
@@ -132,8 +134,6 @@
     getMenuListSearch,
     getSearchSelectorParams,
   } from '@utils';
-
-  import { useTimeoutPoll } from '@vueuse/core';
 
   import ManagerPassword from './components/ManagerPassword.vue';
 
@@ -260,6 +260,7 @@
                 )}
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
+                  v-db-console="pulsar.clusterManage.modifyEntryConfiguration"
                   action-id="access_entry_edit"
                   resource="pulsar"
                   permission={data.permission.access_entry_edit}
@@ -416,11 +417,12 @@
       render: ({ data }: {data: PulsarModel}) => {
         const renderAction = (theme = 'primary') => {
           const baseAction = [
-          <auth-button
+            <auth-button
               text
               theme="primary"
               action-id="pulsar_access_entry_view"
               permission={data.permission.pulsar_access_entry_view}
+              v-db-console="pulsar.clusterManage.getAccess"
               resource={data.id}
               class="mr8"
               onClick={() => handleShowPassword(data)}>
@@ -434,6 +436,7 @@
                 theme="primary"
                 action-id="pulsar_enable_disable"
                 permission={data.permission.pulsar_enable_disable}
+                v-db-console="pulsar.clusterManage.enable"
                 resource={data.id}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
@@ -445,6 +448,7 @@
                 theme="primary"
                 action-id="pulsar_destroy"
                 permission={data.permission.pulsar_destroy}
+                v-db-console="pulsar.clusterManage.delete"
                 disabled={Boolean(data.operationTicketId)}
                 resource={data.id}
                 class="mr8"
@@ -456,7 +460,9 @@
             ];
           }
           return [
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="pulsar.clusterManage.scaleUp">
               <auth-button
                 text
                 class="mr8"
@@ -469,7 +475,9 @@
                 { t('扩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="pulsar.clusterManage.scaleDown">
               <auth-button
                 text
                 class="mr8"
@@ -482,7 +490,9 @@
                 { t('缩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="pulsar.clusterManage.disable">
               <auth-button
                 text
                 class="mr8"
@@ -497,6 +507,7 @@
               </auth-button>
             </OperationBtnStatusTips>,
             <a
+              v-db-console="pulsar.clusterManage.manage"
               class="mr8"
               href={data.access_url}
               style={[theme === '' ? 'color: #63656e' : '']}

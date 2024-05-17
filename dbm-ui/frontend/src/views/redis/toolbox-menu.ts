@@ -17,6 +17,7 @@ export interface MenuChild {
   name: string;
   id: string;
   parentId: string;
+  dbConsoleValue: string;
 }
 
 export default [
@@ -29,46 +30,55 @@ export default [
         name: t('集群容量变更'),
         id: 'RedisCapacityChange',
         parentId: 'manage',
+        dbConsoleValue: 'redis.toolbox.capacityChange',
       },
       {
         name: t('扩容接入层'),
         id: 'RedisProxyScaleUp',
         parentId: 'manage',
+        dbConsoleValue: 'redis.toolbox.proxyScaleUp',
       },
       {
         name: t('缩容接入层'),
         id: 'RedisProxyScaleDown',
         parentId: 'manage',
+        dbConsoleValue: 'redis.toolbox.proxyScaleDown',
       },
       {
         name: t('集群分片变更'),
         id: 'RedisClusterShardUpdate',
         parentId: 'manage',
+        dbConsoleValue: 'redis.toolbox.clusterShardChange',
       },
       {
         name: t('集群类型变更'),
         id: 'RedisClusterTypeUpdate',
         parentId: 'manage',
+        dbConsoleValue: 'redis.toolbox.clusterTypeChange',
       },
       {
         name: t('重建从库'),
         id: 'RedisDBCreateSlave',
         parentId: 'manage',
+        dbConsoleValue: 'redis.toolbox.slaveRebuild',
       },
       {
         name: t('主从切换'),
         id: 'RedisMasterFailover',
         parentId: 'manage',
+        dbConsoleValue: 'redis.toolbox.masterSlaveSwap',
       },
       {
         name: t('整机替换'),
         id: 'RedisDBReplace',
         parentId: 'manage',
+        dbConsoleValue: 'redis.toolbox.dbReplace',
       },
       {
         name: t('版本升级'),
         id: 'RedisVersionUpgrade',
         parentId: 'manage',
+        dbConsoleValue: 'redis.toolbox.versionUpgrade',
       },
     ],
   },
@@ -81,16 +91,19 @@ export default [
         name: t('定点构造'),
         id: 'RedisDBStructure',
         parentId: 'struct',
+        dbConsoleValue: 'redis.toolbox.rollback',
       },
       {
         name: t('构造实例'),
         id: 'RedisStructureInstance',
         parentId: 'struct',
+        dbConsoleValue: 'redis.toolbox.rollbackRecord',
       },
       {
         name: t('以构造实例恢复'),
         id: 'RedisRecoverFromInstance',
         parentId: 'struct',
+        dbConsoleValue: 'redis.toolbox.recoverFromInstance',
       },
     ],
   },
@@ -103,11 +116,13 @@ export default [
         name: t('数据复制'),
         id: 'RedisDBDataCopy',
         parentId: 'dts',
+        dbConsoleValue: 'redis.toolbox.dataCopy',
       },
       {
         name: t('数据复制记录'),
         id: 'RedisDBDataCopyRecord',
         parentId: 'dts',
+        dbConsoleValue: 'redis.toolbox.dataCopyRecord',
       },
     ],
   },

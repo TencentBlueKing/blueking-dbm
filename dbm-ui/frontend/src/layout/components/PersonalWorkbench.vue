@@ -4,8 +4,12 @@
     :active-key="currentActiveKey"
     :opened-keys="[parentKey]"
     @click="handleMenuChange">
-    <BkMenuGroup :name="t('个人工作台')">
-      <BkMenuItem key="serviceApply">
+    <BkMenuGroup
+      v-db-console="'personalWorkbench'"
+      :name="t('个人工作台')">
+      <BkMenuItem
+        key="serviceApply"
+        v-db-console="'personalWorkbench.serviceApply'">
         <template #icon>
           <DbIcon type="ticket" />
         </template>
@@ -15,7 +19,9 @@
           {{ t("服务申请") }}
         </span>
       </BkMenuItem>
-      <BkMenuItem key="SelfServiceMyTickets">
+      <BkMenuItem
+        key="SelfServiceMyTickets"
+        v-db-console="'personalWorkbench.myTickets'">
         <template #icon>
           <DbIcon type="ticket" />
         </template>
@@ -25,7 +31,9 @@
           {{ t("单据") }}
         </span>
       </BkMenuItem>
-      <BkMenuItem key="MyTodos">
+      <BkMenuItem
+        key="MyTodos"
+        v-db-console="'personalWorkbench.myTodos'">
         <template #icon>
           <DbIcon type="todos" />
         </template>

@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
 import _ from 'lodash';
 import {
   createRouter,
@@ -22,8 +21,6 @@ import {
 import type {
   BigdataFunctions,
   MongoFunctions,
-  MySQLFunctions,
-  RedisFunctions,
 } from '@services/model/function-controller/functionController';
 
 import {
@@ -63,6 +60,8 @@ import getTicketManageRoutes from '@views/ticket-manage/routes';
 import getTicketsRoutes from '@views/tickets/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
+
+import { checkDbConsole } from '@utils';
 
 import { connectToMain, rootPath } from '@blueking/sub-saas';
 
@@ -114,8 +113,6 @@ export default () => {
   }
 
   const { funControllerData } = useFunController();
-  const mysqlController = funControllerData.getFlatData<MySQLFunctions, 'mysql'>('mysql');
-  const redisController = funControllerData.getFlatData<RedisFunctions, 'redis'>('redis');
   const bigdataController = funControllerData.getFlatData<BigdataFunctions, 'bigdata'>('bigdata');
   const mongdbController = funControllerData.getFlatData<MongoFunctions, 'mongodb'>('mongodb');
 
@@ -124,45 +121,45 @@ export default () => {
       path: rootPath,
       name: 'index',
       redirect: {
-        name: 'serviceApply',
+        name: checkDbConsole(funControllerData, 'personalWorkbench.serviceApply') ? 'serviceApply' : 'DatabaseTendbha',
       },
       children: [
-        ...getResourceManageRoutes(),
-        ...getVersionFilesRoutes(),
-        ...getPlatformDbConfigureRoutes(),
-        ...getPasswordManageRoutes(),
-        ...getServiceApplyRoutes(),
+        ...getResourceManageRoutes(funControllerData),
+        ...getVersionFilesRoutes(funControllerData),
+        ...getPlatformDbConfigureRoutes(funControllerData),
+        ...getPasswordManageRoutes(funControllerData),
+        ...getServiceApplyRoutes(funControllerData),
         ...getQuickSearchRoutes(),
-        ...getTicketsRoutes(),
-        ...getDutyRuleManageRoutes()
+        ...getTicketsRoutes(funControllerData),
+        ...getDutyRuleManageRoutes(funControllerData)
       ],
     },
     {
       path: `${rootPath}${currentBiz}`,
       children: [
-        ...getDbConfRoutes(),
+        ...getDbConfRoutes(funControllerData),
         ...getESRoutes(bigdataController),
-        ...getDbhaSwitchEventsRouters(),
+        ...getDbhaSwitchEventsRouters(funControllerData),
         ...getHDFSRoutes(bigdataController),
         ...getInfluxDBRoutes(bigdataController),
-        ...getInspectionRoutes(),
+        ...getInspectionRoutes(funControllerData),
         ...getKafkaRoutes(bigdataController),
-        ...getDBMonitorAlarmRoutes(),
-        ...getPlatMonitorAlarmRoutes(),
-        ...getMysqlRoutes(mysqlController),
-        ...getNotificationSettingRoutes(),
+        ...getDBMonitorAlarmRoutes(funControllerData),
+        ...getPlatMonitorAlarmRoutes(funControllerData),
+        ...getMysqlRoutes(funControllerData),
+        ...getNotificationSettingRoutes(funControllerData),
         ...getPulsarRoutes(bigdataController),
-        ...getRedisRoutes(redisController),
-        ...getSpiderManageRoutes(),
-        ...getStaffManageRoutes(),
-        ...getTaskHistoryRoutes(),
-        ...getWhitelistRoutes(),
-        ...getTicketManageRoutes(),
-        ...getTemporaryPasswordModify(),
+        ...getRedisRoutes(funControllerData),
+        ...getSpiderManageRoutes(funControllerData),
+        ...getStaffManageRoutes(funControllerData),
+        ...getTaskHistoryRoutes(funControllerData),
+        ...getWhitelistRoutes(funControllerData),
+        ...getTicketManageRoutes(funControllerData),
+        ...getTemporaryPasswordModify(funControllerData),
         ...getRiakManage(bigdataController),
-        ...getTicketFlowSettingRoutes(),
+        ...getTicketFlowSettingRoutes(funControllerData),
         ...getMongoRoutes(mongdbController),
-        ...getSqlServerRouters(),
+        ...getSqlServerRouters(funControllerData),
       ],
     },
     {

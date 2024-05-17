@@ -16,6 +16,7 @@
     <div class="operation-box">
       <div>
         <AuthButton
+          v-db-console="'redis.clusterManage.instanceApply'"
           action-id="redis_cluster_apply"
           class="mr-8 mb-16"
           theme="primary"
@@ -27,6 +28,7 @@
             disabled: hasSelected,
             content: t('请选择操作集群'),
           }"
+          v-db-console="'redis.clusterManage.batchOperation'"
           class="cluster-dropdown mb-16"
           :disabled="!hasSelected"
           @click.stop
@@ -41,22 +43,31 @@
           </BkButton>
           <template #content>
             <BkDropdownMenu>
-              <BkDropdownItem @click="handleShowExtract(state.selected)">
+              <BkDropdownItem
+                v-db-console="'redis.clusterManage.extractKey'"
+                @click="handleShowExtract(state.selected)" >
                 {{ t('提取Key') }}
               </BkDropdownItem>
-              <BkDropdownItem @click="handlShowDeleteKeys(state.selected)">
+              <BkDropdownItem
+                v-db-console="'redis.clusterManage.deleteKey'"
+                @click="handlShowDeleteKeys(state.selected)">
                 {{ t('删除Key') }}
               </BkDropdownItem>
-              <BkDropdownItem @click="handleShowBackup(state.selected)">
+              <BkDropdownItem
+                v-db-console="'redis.clusterManage.backup'"
+                @click="handleShowBackup(state.selected)">
                 {{ t('备份') }}
               </BkDropdownItem>
-              <BkDropdownItem @click="handleShowPurge(state.selected)">
+              <BkDropdownItem
+                v-db-console="'redis.clusterManage.dbClear'"
+                @click="handleShowPurge(state.selected)">
                 {{ t('清档') }}
               </BkDropdownItem>
             </BkDropdownMenu>
           </template>
         </BkDropdown>
         <DropdownExportExcel
+          v-db-console="'redis.clusterManage.export'"
           :ids="selectedIds"
           type="redis" />
       </div>
@@ -126,6 +137,7 @@
     useRouter,
   } from 'vue-router';
 
+  import type { ExtractedControllerDataKeys } from '@services/model/function-controller/functionController';
   import RedisModel from '@services/model/redis/redis';
   import {
     getRedisDetail,
@@ -147,7 +159,7 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { useFunController, useGlobalBizs } from '@stores';
 
   import {
     ClusterTypes,
@@ -205,6 +217,8 @@
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
+
+  const { funControllerData } = useFunController();
 
   const tableRef = ref();
 
@@ -449,6 +463,7 @@
                     onClick={() => copy(data.masterDomainDisplayName)} />
                 )}
                 <auth-button
+                  v-db-console="redis.clusterManage.modifyEntryConfiguration"
                   v-bk-tooltips={t('修改入口配置')}
                   action-id="access_entry_edit"
                   resource="redis"
@@ -669,6 +684,7 @@
         const getOperations = (theme = 'primary') => {
           const baseOperations = [
             <OperationBtnStatusTips
+              v-db-console="redis.clusterManage.backup"
               data={data}
               disabled={!data.isOffline}>
               <auth-button
@@ -683,6 +699,7 @@
               </auth-button>
             </OperationBtnStatusTips>,
             <OperationBtnStatusTips
+              v-db-console="redis.clusterManage.dbClear"
               data={data}
               disabled={!data.isOffline}>
               <auth-button
@@ -699,7 +716,9 @@
           ];
           if (data.bk_cloud_id > 0) {
             return [
-              <span v-bk-tooltips={t('暂不支持跨管控区域提取Key')}>
+              <span
+                v-bk-tooltips={t('暂不支持跨管控区域提取Key')}
+                v-db-console="redis.clusterManage.extractKey">
                 <auth-button
                   action-id="redis_keys_extract"
                   resource={data.id}
@@ -710,7 +729,9 @@
                   {t('提取Key')}
                 </auth-button>
               </span>,
-              <span v-bk-tooltips={t('暂不支持跨管控区域删除Key')}>
+              <span
+                v-bk-tooltips={t('暂不支持跨管控区域删除Key')}
+                v-db-console="redis.clusterManage.deleteKey">
                 <auth-button
                   action-id="redis_keys_delete"
                   resource={data.id}
@@ -726,6 +747,7 @@
           }
           return [
             <OperationBtnStatusTips
+              v-db-console="redis.clusterManage.extractKey"
               data={data}
               disabled={!data.isOffline}>
               <auth-button
@@ -740,6 +762,7 @@
               </auth-button>
             </OperationBtnStatusTips>,
             <OperationBtnStatusTips
+              v-db-console="redis.clusterManage.deleteKey"
               data={data}
               disabled={!data.isOffline}>
               <auth-button
@@ -757,10 +780,22 @@
           ];
         };
 
+        const dropdownDbConsoleValueList = [
+          'redis.clusterManage.getAccess',
+          'redis.clusterManage.enableCLB',
+          'redis.clusterManage.DNSDomainToCLB',
+          'redis.clusterManage.enablePolaris',
+          'redis.clusterManage.disable',
+          'redis.clusterManage.enable',
+          'redis.clusterManage.delete',
+        ]
+        const isShowDropdown = dropdownDbConsoleValueList.every(value => !funControllerData[value as ExtractedControllerDataKeys]) ||
+          dropdownDbConsoleValueList.some(value => funControllerData[value as ExtractedControllerDataKeys].is_enabled)
+        
         return (
             <div class="operations">
               {getOperations()}
-              <bk-dropdown
+              {isShowDropdown && <bk-dropdown
                 class="operations__more"
                 trigger="click"
                 popover-options={{ zIndex: 10 }}>
@@ -768,7 +803,7 @@
                   default: () => <db-icon type="more" />,
                   content: () => (
                     <bk-dropdown-menu>
-                      <bk-dropdown-item>
+                      <bk-dropdown-item v-db-console="redis.clusterManage.getAccess">
                         <OperationBtnStatusTips
                         data={data}
                         disabled={!data.isOffline}>
@@ -785,7 +820,7 @@
                         </OperationBtnStatusTips>
                       </bk-dropdown-item>
                       <fun-controller moduleId="addons" controllerId="redis_nameservice">
-                        <bk-dropdown-item>
+                        <bk-dropdown-item v-db-console="redis.clusterManage.enableCLB">
                           <OperationBtnStatusTips
                             data={data}
                             disabled={!data.isOffline}>
@@ -798,7 +833,7 @@
                             </bk-button>
                           </OperationBtnStatusTips>
                         </bk-dropdown-item>
-                        <bk-dropdown-item>
+                        <bk-dropdown-item v-db-console="redis.clusterManage.DNSDomainToCLB">
                           <OperationBtnStatusTips
                             data={data}
                             disabled={!data.isOffline}>
@@ -811,7 +846,7 @@
                             </bk-button>
                           </OperationBtnStatusTips>
                         </bk-dropdown-item>
-                        <bk-dropdown-item>
+                        <bk-dropdown-item v-db-console="redis.clusterManage.enablePolaris">
                           <OperationBtnStatusTips
                             data={data}
                             disabled={!data.isOffline}>
@@ -827,7 +862,7 @@
                       </fun-controller>
                       {
                         data.isOnline && (
-                          <bk-dropdown-item>
+                          <bk-dropdown-item v-db-console="redis.clusterManage.disable">
                             <OperationBtnStatusTips data={data}>
                               <auth-button
                                 action-id="redis_open_close"
@@ -845,7 +880,7 @@
                       }
                       {
                         !data.isOnline && (
-                          <bk-dropdown-item>
+                          <bk-dropdown-item v-db-console="redis.clusterManage.enable">
                             <OperationBtnStatusTips data={data}>
                               <auth-button
                                 action-id="redis_open_close"
@@ -863,7 +898,7 @@
                       }
                       {
                         data.isOffline && (
-                          <bk-dropdown-item>
+                          <bk-dropdown-item v-db-console="redis.clusterManage.delete">
                             <OperationBtnStatusTips data={data}>
                               <auth-button
                                 action-id="redis_destroy"
@@ -882,7 +917,7 @@
                     </bk-dropdown-menu>
                   ),
                 }}
-              </bk-dropdown>
+              </bk-dropdown>}
             </div>
         );
       },

@@ -5,7 +5,9 @@
     :opened-keys="[parentKey]"
     @click="handleMenuChange">
     <BkMenuGroup :name="t('资源管理')">
-      <BkMenuItem key="resourceSpec">
+      <BkMenuItem
+        key="resourceSpec"
+        v-db-console="'resourceManage.resourceSpec'">
         <template #icon>
           <DbIcon type="spec" />
         </template>
@@ -15,7 +17,9 @@
           {{ t('资源规格管理') }}
         </span>
       </BkMenuItem>
-      <BkMenuItem key="resourcePool">
+      <BkMenuItem
+        key="resourcePool"
+        v-db-console="'resourceManage.resourcePool'">
         <template #icon>
           <DbIcon type="list" />
         </template>
@@ -25,7 +29,9 @@
           {{ t('DB 资源池管理') }}
         </span>
       </BkMenuItem>
-      <BkMenuItem key="resourcePoolOperationRecord">
+      <BkMenuItem
+        key="resourcePoolOperationRecord"
+        v-db-console="'resourceManage.resourceOperationRecord'">
         <template #icon>
           <DbIcon type="list" />
         </template>
@@ -35,7 +41,9 @@
           {{ t('资源操作记录') }}
         </span>
       </BkMenuItem>
-      <BkMenuItem key="resourcePoolDirtyMachines">
+      <BkMenuItem
+        key="resourcePoolDirtyMachines"
+        v-db-console="'resourceManage.dirtyHostManage'">
         <template #icon>
           <DbIcon type="dirty-host" />
         </template>

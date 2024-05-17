@@ -10,36 +10,43 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-
 import type { RouteRecordRaw } from 'vue-router';
+
+import FunctionControllModel from '@services/model/function-controller/functionController';
+
+import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-const routes: RouteRecordRaw[] = [
-  {
-    name: 'ticketManage',
-    path: 'ticket-manage',
-    component: () => import('@views/ticket-manage/Index.vue'),
-    meta: {
-      navName: t('单据管理'),
-    },
-    redirect: {
-      name: 'bizTicketManage',
-    },
-    children: [
-      {
-        name: 'bizTicketManage',
-        path: 'index',
-        meta: {
-          navName: t('单据'),
-          fullscreen: true,
-        },
-        component: () => import('@views/tickets/my-tickets/Index.vue'),
-      },
-    ],
-  },
-];
+export default function getRoutes(funControllerData: FunctionControllModel) {
+  const bizTicketManageComponent = checkDbConsole(funControllerData, 'databaseManage.missionManage')
+    ? () => import('@views/tickets/my-tickets/Index.vue')
+    : Promise.resolve(null);
 
-export default function getRoutes() {
+  const routes: RouteRecordRaw[] = [
+    {
+      name: 'ticketManage',
+      path: 'ticket-manage',
+      component: () => import('@views/ticket-manage/Index.vue'),
+      meta: {
+        navName: t('单据管理'),
+      },
+      redirect: {
+        name: 'bizTicketManage',
+      },
+      children: [
+        {
+          name: 'bizTicketManage',
+          path: 'index',
+          meta: {
+            navName: t('单据'),
+            fullscreen: true,
+          },
+          component: bizTicketManageComponent,
+        },
+      ],
+    },
+  ];
+
   return routes;
 }

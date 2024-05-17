@@ -42,8 +42,7 @@ export const useUserProfile = defineStore('UserProfile', {
      */
     fetchProfile() {
       return getProfile().then((result) => {
-        // this.globalManage = Boolean(result.global_manage);
-        this.globalManage = true;
+        this.globalManage = Boolean(result.global_manage);
         this.rerourceManage = Boolean(result.resource_manage);
         this.username = result.username;
 

@@ -10,37 +10,49 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-
 import type { RouteRecordRaw } from 'vue-router';
+
+import FunctionControllModel from '@services/model/function-controller/functionController';
+
+import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-const routes: RouteRecordRaw[] = [
-  {
-    name: 'DBMonitorStrategy',
-    path: 'monitor-strategy',
-    meta: {
-      navName: t('监控策略'),
-      tags: [
-        {
-          theme: 'info',
-          text: t('业务'),
-        },
-      ],
-      fullscreen: true,
-    },
-    component: () => import('@views/monitor-alarm-db/monitor-strategy/Index.vue'),
+const dbMonitorStrategyRoute = {
+  name: 'DBMonitorStrategy',
+  path: 'monitor-strategy',
+  meta: {
+    navName: t('监控策略'),
+    tags: [
+      {
+        theme: 'info',
+        text: t('业务'),
+      },
+    ],
+    fullscreen: true,
   },
-  {
-    name: 'DBMonitorAlarmGroup',
-    path: 'alarm-group',
-    meta: {
-      navName: t('告警组'),
-    },
-    component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
-  },
-];
+  component: () => import('@views/monitor-alarm-db/monitor-strategy/Index.vue'),
+}
 
-export default function getRoutes() {
+const dbMonitorAlarmGroupRoute = {
+  name: 'DBMonitorAlarmGroup',
+  path: 'alarm-group',
+  meta: {
+    navName: t('告警组'),
+  },
+  component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
+}
+
+export default function getRoutes(funControllerData: FunctionControllModel) {
+  const routes: RouteRecordRaw[] = [];
+
+  if (checkDbConsole(funControllerData, 'bizConfigManage.monitorStrategy')) {
+    routes.push(dbMonitorStrategyRoute);
+  }
+
+  if (checkDbConsole(funControllerData, 'bizConfigManage.alarmGroup')) {
+    routes.push(dbMonitorAlarmGroupRoute);
+  }
+
   return routes;
 }

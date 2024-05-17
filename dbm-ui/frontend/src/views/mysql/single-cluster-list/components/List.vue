@@ -15,6 +15,7 @@
   <div class="mysql-single-cluster-list-page">
     <div class="operation-box">
       <AuthButton
+        v-db-console="'mysql.singleClusterList.instanceApply'"
         action-id="mysql_apply"
         theme="primary"
         @click="handleApply">
@@ -25,6 +26,7 @@
           disabled: hasSelected,
           content: t('请选择集群'),
         }"
+        v-db-console="'mysql.singleClusterList.batchAuthorize'"
         class="inline-block">
         <BkButton
           class="ml-8"
@@ -34,11 +36,13 @@
         </BkButton>
       </span>
       <BkButton
+        v-db-console="'mysql.singleClusterList.importAuthorize'"
         class="ml-8"
         @click="handleShowExcelAuthorize">
         {{ t('导入授权') }}
       </BkButton>
       <DropdownExportExcel
+        v-db-console="'mysql.singleClusterList.export'"
         :ids="selectedIds"
         type="tendbsingle" />
       <DbSearchSelect
@@ -311,6 +315,7 @@
                   onClick={() => copy(data.masterDomainDisplayName)} />
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
+                  v-db-console="mysql.singleClusterList.modifyEntryConfiguration"
                   action-id="access_entry_edit"
                   resource="mysql"
                   permission={data.permission.access_entry_edit}
@@ -475,6 +480,7 @@
       render: ({ data }: ColumnData) => (
         <>
           <bk-button
+            v-db-console="mysql.singleClusterList.authorize"
             text
             theme="primary"
             class="mr-8"
@@ -483,7 +489,9 @@
           </bk-button>
           {
             data.isOnline ? (
-              <OperationBtnStatusTips data={data}>
+              <OperationBtnStatusTips
+                data={data}
+                v-db-console="mysql.singleClusterList.disable">
                 <auth-button
                   text
                   theme="primary"
@@ -498,7 +506,9 @@
               </OperationBtnStatusTips>
             ) : (
               <>
-                <OperationBtnStatusTips data={data}>
+                <OperationBtnStatusTips
+                  data={data}
+                  v-db-console="mysql.singleClusterList.enable">
                   <auth-button
                     text
                     theme="primary"
@@ -511,7 +521,9 @@
                     { t('启用') }
                   </auth-button>
                 </OperationBtnStatusTips>
-                <OperationBtnStatusTips data={data}>
+                <OperationBtnStatusTips
+                  data={data}
+                  v-db-console="mysql.singleClusterList.delete">
                   <auth-button
                     text
                     theme="primary"

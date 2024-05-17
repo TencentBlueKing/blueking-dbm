@@ -10,27 +10,11 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import FunctionControllModel, { type ExtractedControllerDataKeys } from '@services/model/function-controller/functionController';
 
-import type { RouteRecordRaw } from 'vue-router';
-
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
-import { checkDbConsole } from '@utils';
-
-import { t } from '@locales/index';
-
-const routes: RouteRecordRaw[] = [
-  {
-    name: 'PlatformNotificationSetting',
-    path: 'notification-setting',
-    meta: {
-      navName: t('通知设置'),
-      isMenu: true,
-    },
-    component: () => import('@views/notification-setting/Index.vue'),
-  },
-];
-
-export default function getRoutes(funControllerData: FunctionControllModel) {
-  return checkDbConsole(funControllerData, 'globalConfigManage.rotationManage') ? routes : [];
+/**
+ * 检查 dbconsole 开关
+ */
+export function checkDbConsole(funControllerData: FunctionControllModel, key: ExtractedControllerDataKeys) {
+  return !funControllerData[key] || funControllerData[key].is_enabled
 }
