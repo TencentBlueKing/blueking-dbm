@@ -169,4 +169,4 @@ def create_mongoset(
         logger.error(traceback.format_exc())
         raise Exception("mongoset add dns entry failed {}".format(e))
 
-    MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
+    MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs, is_increment=True)
