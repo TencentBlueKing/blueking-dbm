@@ -248,7 +248,18 @@
         theme: 'success',
       });
       window.changeConfirm = false;
-      window.close();
+
+      // 跳转到数据库配置并选中当前模块
+      router.push({
+        name: 'DbConfigureList',
+        params: {
+          clusterType: ticketInfo.value.type,
+        },
+        query: {
+          treeId: moduleId.value ? `module-${moduleId.value}` : '',
+          parentId: `app-${bizId.value}`,
+        },
+      });
     } catch (e) {
       console.log(e);
     }
@@ -475,14 +486,8 @@
 
   defineExpose({
     routerBack() {
-      if (!route.query.from) {
-        router.push({
-          name: 'serviceApply',
-        });
-        return;
-      }
       router.push({
-        name: route.query.from as string,
+        name: 'DbConfigureList',
       });
     },
   });

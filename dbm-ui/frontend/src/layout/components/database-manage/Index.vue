@@ -82,7 +82,7 @@
     parentKey,
     key: currentActiveKey,
     routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'DatabaseTendbsingle', isModuleLoading);
+  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'DatabaseTendbha', isModuleLoading);
 
   const styles = useMenuStyles(menuBoxRef);
 

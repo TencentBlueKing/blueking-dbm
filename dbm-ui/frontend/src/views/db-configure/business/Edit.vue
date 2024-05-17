@@ -148,6 +148,8 @@
     updateBusinessConfig,
   } from '@services/source/configs';
 
+  import { useBeforeClose } from '@hooks';
+
   import { ConfLevels } from '@common/const';
 
   import DiffCompare from '../components/DiffCompare.vue';
@@ -161,6 +163,7 @@
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
+  const handleBeforeClose = useBeforeClose();
 
   const { clusterType, confType, version } = route.params as {
     clusterType: string,
@@ -325,40 +328,36 @@
   };
 
   const handleCancel = () => {
-    const { back } = window.history.state;
-    if (back) {
-      router.push({
-        name: 'DbConfigureList',
+    const isApp = levelParams.value.level_name === ConfLevels.APP;
+    const params = { ...route.params };
+    const query = { ...route.query };
+    if (!isApp) {
+      Object.assign(params, {
+        clusterType,
       });
-    } else {
-      const isApp = levelParams.value.level_name === ConfLevels.APP;
-      const params = { ...route.params };
-      const query = { ...route.query };
-      if (!isApp) {
-        Object.assign(params, {
-          clusterType,
-        });
-        Object.assign(query, {
-          treeId: route.params.treeId,
-          parentId: route.params.parentId,
-        });
-      }
-      router.replace({
-        name: isApp ? 'DbConfigureDetail' : 'DbConfigureList',
-        params,
-        query,
+      Object.assign(query, {
+        treeId: route.params.treeId,
+        parentId: route.params.parentId,
       });
     }
+    router.replace({
+      name: 'DbConfigureList',
+      params,
+      query,
+    });
   };
 
   defineExpose({
-    routerBack() {
+    async routerBack() {
       if (!route.query.form) {
-        router.push({
-          name: 'DbConfigureList',
-        });
+        const result = await handleBeforeClose();
+        if (!result) {
+          return;
+        }
+        handleCancel();
         return;
       }
+
       router.push({
         name: route.query.form as string,
       });

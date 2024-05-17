@@ -218,6 +218,7 @@
         background: #fff0f1;
 
         .placeholder {
+          height: 42px;
           line-height: 42px;
         }
       }

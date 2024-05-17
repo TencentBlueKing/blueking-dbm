@@ -202,14 +202,14 @@ const renderRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/spider-manage/Index.vue'),
     children: [
-      {
-        name: 'createSpiderModule',
-        path: 'create-module/:bizId(\\d+)',
-        meta: {
-          navName: t('新建模块'),
-        },
-        component: () => import('@views/spider-manage/apply/CreateModule.vue'),
-      },
+      // {
+      //   name: 'createSpiderModule',
+      //   path: 'create-module/:bizId(\\d+)',
+      //   meta: {
+      //     navName: t('新建模块'),
+      //   },
+      //   component: () => import('@views/spider-manage/apply/CreateModule.vue'),
+      // },
       {
         name: 'tendbClusterList',
         path: 'list',
