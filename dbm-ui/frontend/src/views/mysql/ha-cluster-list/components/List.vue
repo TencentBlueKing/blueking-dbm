@@ -15,6 +15,7 @@
   <div class="mysql-ha-cluster-list">
     <div class="operation-box">
       <AuthButton
+        v-db-console="'mysql.haClusterList.instanceApply'"
         action-id="mysql_apply"
         theme="primary"
         @click="handleApply">
@@ -25,6 +26,7 @@
           disabled: hasSelected,
           content: t('请选择集群'),
         }"
+        v-db-console="'mysql.haClusterList.batchSubscription'"
         class="inline-block">
         <BkButton
           class="ml-8"
@@ -38,6 +40,7 @@
           disabled: hasSelected,
           content: t('请选择集群'),
         }"
+        v-db-console="'mysql.haClusterList.batchAuthorize'"
         class="inline-block">
         <BkButton
           class="ml-8"
@@ -47,11 +50,13 @@
         </BkButton>
       </span>
       <BkButton
+        v-db-console="'mysql.haClusterList.importAuthorize'"
         class="ml-8"
         @click="handleShowExcelAuthorize">
         {{ t('导入授权') }}
       </BkButton>
       <DropdownExportExcel
+        v-db-console="'mysql.haClusterList.export'"
         :ids="selectedIds"
         type="tendbha" />
       <DbSearchSelect
@@ -352,6 +357,7 @@
                   onClick={() => copy(data.masterDomainDisplayName)} />
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
+                  v-db-console="mysql.haClusterList.modifyEntryConfiguration"
                   action-id="access_entry_edit"
                   resource="mysql"
                   permission={data.permission.access_entry_edit}
@@ -458,6 +464,7 @@
                   onClick={() => copy(data.slaveDomainDisplayName)} />
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
+                  v-db-console="mysql.haClusterList.modifyEntryConfiguration"
                   action-id="access_entry_edit"
                   resource="mysql"
                   permission={data.permission.access_entry_edit}
@@ -585,6 +592,7 @@
         <>
           {isShowDumperEntry.value && (
             <bk-button
+              v-db-console="mysql.haClusterList.authorize"
               text
               theme="primary"
               class="mr-8"
@@ -594,6 +602,7 @@
           )}
           {isShowDumperEntry.value && (
             <auth-button
+              v-db-console="mysql.dataSubscription"
               action-id="tbinlogdumper_install"
               resource={data.id}
               permission={data.permission.tbinlogdumper_install}
@@ -606,7 +615,9 @@
           )}
           {
             data.isOnline ? (
-              <OperationBtnStatusTips data={data}>
+              <OperationBtnStatusTips
+                data={data}
+                v-db-console="mysql.haClusterList.disable">
                 <auth-button
                   text
                   theme="primary"
@@ -621,7 +632,9 @@
               </OperationBtnStatusTips>
             ) : (
               <>
-                <OperationBtnStatusTips data={data}>
+                <OperationBtnStatusTips
+                  data={data}
+                  v-db-console="mysql.haClusterList.enable">
                   <auth-button
                     text
                     theme="primary"
@@ -634,7 +647,9 @@
                     { t('启用') }
                   </auth-button>
                 </OperationBtnStatusTips>
-                <OperationBtnStatusTips data={data}>
+                <OperationBtnStatusTips
+                  data={data}
+                  v-db-console="mysql.haClusterList.delete">
                   <auth-button
                     text
                     theme="primary"

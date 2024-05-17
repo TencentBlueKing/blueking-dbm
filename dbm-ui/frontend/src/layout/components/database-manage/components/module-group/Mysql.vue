@@ -31,7 +31,9 @@
               {{ t('集群视图') }}
             </span>
           </BkMenuItem>
-          <BkMenuItem key="DatabaseTendbhaInstance">
+          <BkMenuItem
+            key="DatabaseTendbhaInstance"
+            v-db-console="'mysql.haInstanceList'">
             <span
               v-overflow-tips.right
               class="text-overflow">
@@ -40,7 +42,9 @@
           </BkMenuItem>
         </BkSubmenu>
       </FunController>
-      <BkMenuItem key="mysqlPartitionManage">
+      <BkMenuItem
+        key="mysqlPartitionManage"
+        v-db-console="'mysql.partitionManage'">
         <template #icon>
           <DbIcon type="mobanshili" />
         </template>
@@ -52,6 +56,7 @@
       </BkMenuItem>
       <BkSubmenu
         key="database-permission"
+        v-db-console="'mysql.permissionManage'"
         :title="t('权限管理')">
         <template #icon>
           <DbIcon type="history" />
@@ -74,7 +79,9 @@
       <FunController
         controller-id="toolbox"
         module-id="mysql">
-        <BkMenuItem key="DumperDataSubscription">
+        <BkMenuItem
+          key="DumperDataSubscription"
+          v-db-console="'mysql.dataSubscription'">
           <template #icon>
             <i class="db-icon-mobanshili" />
           </template>
@@ -92,12 +99,15 @@
         v-for="toolboxGroupId in toolboxMenuSortList"
         :id="toolboxGroupId"
         :key="toolboxGroupId"
+        v-db-console="'mysql.toolbox'"
         :favor-map="favorMeunMap"
         :toolbox-menu-config="toolboxMenuConfig" />
       <FunController
         :controller-id="dumperControlId"
         module-id="mysql">
-        <BkMenuItem key="MySQLToolbox">
+        <BkMenuItem
+          key="MySQLToolbox"
+          v-db-console="'mysql.toolbox'">
           <template #icon>
             <DbIcon type="tools" />
           </template>

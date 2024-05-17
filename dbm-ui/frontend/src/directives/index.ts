@@ -15,6 +15,7 @@ import * as directives from 'bkui-vue/lib/directives';
 import type { App } from 'vue';
 
 import Cursor from './cursor';
+import DbConsole from './dbConsole';
 import OverflowTips from './overflowTips';
 
 type BkuiDirectives = keyof typeof directives;
@@ -32,4 +33,5 @@ export const setGlobalDirectives = (app: App<Element>) => {
   // 自定义指令
   app.directive('overflow-tips', OverflowTips);
   app.directive('cursor', Cursor);
+  app.directive('db-console', DbConsole);
 };

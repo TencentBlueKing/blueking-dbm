@@ -15,6 +15,7 @@
   <div class="es-list-page">
     <div class="header-action">
       <AuthButton
+        v-db-console="'es.clusterManage.instanceApply'"
         action-id="es_apply"
         class="mb16"
         theme="primary"
@@ -22,6 +23,7 @@
         {{ t('申请实例') }}
       </AuthButton>
       <DropdownExportExcel
+        v-db-console="'es.clusterManage.export'"
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="es" />
@@ -327,6 +329,7 @@
                 )}
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
+                  v-db-console="es.clusterManage.modifyEntryConfiguration"
                   action-id="access_entry_edit"
                   resource="es"
                   permission={data.permission.access_entry_edit}
@@ -513,6 +516,7 @@
               theme="primary"
               action-id="es_access_entry_view"
               permission={data.permission.es_access_entry_view}
+              v-db-console="es.clusterManage.getAccess"
               resource={data.id}
               class="mr8"
               onClick={() => handleShowPassword(data)}>
@@ -526,6 +530,7 @@
                 theme="primary"
                 action-id="es_enable_disable"
                 permission={data.permission.es_enable_disable}
+                v-db-console="es.clusterManage.enable"
                 resource={data.id}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
@@ -538,6 +543,7 @@
                 action-id="es_destroy"
                 class="mr8"
                 permission={data.permission.es_destroy}
+                v-db-console="es.clusterManage.delete"
                 disabled={Boolean(data.operationTicketId)}
                 resource={data.id}
                 loading={tableDataActionLoadingMap.value[data.id]}
@@ -548,7 +554,9 @@
             ];
           }
           return [
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="es.clusterManage.scaleUp">
               <auth-button
                 text
                 theme="primary"
@@ -561,7 +569,9 @@
                 { t('扩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="es.clusterManage.scaleDown">
               <auth-button
                 text
                 theme="primary"
@@ -574,7 +584,9 @@
                 { t('缩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="es.clusterManage.disable">
               <auth-button
                 text
                 class="mr8"
@@ -589,6 +601,7 @@
               </auth-button>
             </OperationBtnStatusTips>,
             <a
+              v-db-console="es.clusterManage.manage"
               class="mr8"
               style={[theme === '' ? 'color: #63656e' : '']}
               href={data.access_url}

@@ -10,7 +10,9 @@
         :opened-keys="[parentKey]"
         @click="handleMenuChange">
         <BkMenuGroup :name="t('业务配置')">
-          <BkMenuItem key="DbConfigure">
+          <BkMenuItem
+            key="DbConfigure"
+            v-db-console="'bizConfigManage.dbConfigure'">
             <template #icon>
               <DbIcon type="db-config" />
             </template>
@@ -22,7 +24,9 @@
           </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup :name="t('监控告警')">
-          <BkMenuItem key="DBMonitorStrategy">
+          <BkMenuItem
+            key="DBMonitorStrategy"
+            v-db-console="'bizConfigManage.monitorStrategy'">
             <template #icon>
               <DbIcon type="gaojingcelve" />
             </template>
@@ -32,7 +36,9 @@
               {{ t('监控策略') }}
             </span>
           </BkMenuItem>
-          <BkMenuItem key="DBMonitorAlarmGroup">
+          <BkMenuItem
+            key="DBMonitorAlarmGroup"
+            v-db-console="'bizConfigManage.alarmGroup'">
             <template #icon>
               <DbIcon type="yonghuzu" />
             </template>
@@ -44,7 +50,9 @@
           </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup :name="t('设置')">
-          <BkMenuItem key="StaffManage">
+          <BkMenuItem
+            key="StaffManage"
+            v-db-console="'bizConfigManage.StaffManage'">
             <template #icon>
               <DbIcon type="db-config" />
             </template>

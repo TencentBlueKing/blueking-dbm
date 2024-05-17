@@ -23,6 +23,7 @@
           v-for="item of currentConfig.children"
           :key="item.id">
           <div
+            v-db-console="item.dbConsoleValue"
             class="toolbox-side-item"
             :class="{
               'toolbox-side-item--active': item.id === activeViewName,

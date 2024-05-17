@@ -14,7 +14,9 @@
             {{ t('集群管理') }}
           </span>
         </BkMenuItem>
-        <BkMenuItem key="DatabaseRedisInstanceList">
+        <BkMenuItem
+          key="DatabaseRedisInstanceList"
+          v-db-console="'redis.instanceManage'">
           <span
             v-overflow-tips.right
             class="text-overflow">
@@ -35,7 +37,9 @@
             {{ t('主从管理') }}
           </span>
         </BkMenuItem>
-        <BkMenuItem key="DatabaseRedisHaInstanceList">
+        <BkMenuItem
+          key="DatabaseRedisHaInstanceList"
+          v-db-console="'redis.haInstanceManage'">
           <span
             v-overflow-tips.right
             class="text-overflow">
@@ -50,12 +54,15 @@
         v-for="toolboxGroupId in toolboxMenuSortList"
         :id="toolboxGroupId"
         :key="toolboxGroupId"
+        v-db-console="'redis.toolbox'"
         :favor-map="favorMeunMap"
         :toolbox-menu-config="toolboxMenuConfig" />
       <FunController
         controller-id="toolbox"
         module-id="redis">
-        <BkMenuItem key="RedisToolbox">
+        <BkMenuItem
+          key="RedisToolbox"
+          v-db-console="'redis.toolbox'">
           <template #icon>
             <DbIcon type="tools" />
           </template>

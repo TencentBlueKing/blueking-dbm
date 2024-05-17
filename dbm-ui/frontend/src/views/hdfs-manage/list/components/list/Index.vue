@@ -15,6 +15,7 @@
   <div class="hdfs-list-page">
     <div class="header-action">
       <AuthButton
+        v-db-console="'hdfs.clusterManage.instanceApply'"
         action-id="hdfs_apply"
         class="mb16"
         theme="primary"
@@ -22,6 +23,7 @@
         {{ t('申请实例') }}
       </AuthButton>
       <DropdownExportExcel
+        v-db-console="'hdfs.clusterManage.export'"
         :ids="selectedIds"
         type="hdfs" />
       <DbSearchSelect
@@ -338,6 +340,7 @@
                   )}
                   <auth-button
                     v-bk-tooltips={t('修改入口配置')}
+                    v-db-console="hdfs.clusterManage.modifyEntryConfiguration"
                     action-id="access_entry_edit"
                     resource="hdfs"
                     permission={data.permission.access_entry_edit}
@@ -527,6 +530,7 @@
             theme="primary"
             action-id="hdfs_access_entry_view"
             permission={data.permission.hdfs_access_entry_view}
+            v-db-console="hdfs.clusterManage.getAccess"
             resource={data.id}
             class="mr8"
             onClick={() => handleShowPassword(data)}>
@@ -537,6 +541,7 @@
             theme="primary"
             action-id="hdfs_view"
             permission={data.permission.hdfs_view}
+            v-db-console="hdfs.clusterManage.viewAccessConfiguration"
             resource={data.id}
             class="mr8"
             onClick={() => handleShowSettings(data)}>
@@ -550,6 +555,7 @@
                 theme="primary"
                 action-id="hdfs_enable_disable"
                 permission={data.permission.hdfs_enable_disable}
+                v-db-console="hdfs.clusterManage.enable"
                 resource={data.id}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
@@ -561,6 +567,7 @@
                 theme="primary"
                 action-id="hdfs_destroy"
                 permission={data.permission.hdfs_destroy}
+                v-db-console="hdfs.clusterManage.delete"
                 resource={data.id}
                 disabled={Boolean(data.operationTicketId)}
                 class="mr8"
@@ -579,6 +586,7 @@
                 theme="primary"
                 action-id="hdfs_scale_up"
                 permission={data.permission.hdfs_scale_up}
+                v-db-console="hdfs.clusterManage.scaleUp"
                 resource={data.id}
                 disabled={data.operationDisabled}
                 onClick={() => handleShowExpansion(data)}>
@@ -592,6 +600,7 @@
                 theme="primary"
                 action-id="hdfs_shrink"
                 permission={data.permission.hdfs_shrink}
+                v-db-console="hdfs.clusterManage.scaleDown"
                 resource={data.id}
                 disabled={data.operationDisabled}
                 onClick={() => handleShowShrink(data)}>
@@ -605,6 +614,7 @@
                 theme="primary"
                 action-id="hdfs_enable_disable"
                 permission={data.permission.hdfs_enable_disable}
+                v-db-console="hdfs.clusterManage.disable"
                 resource={data.id}
                 disabled={data.operationDisabled}
                 loading={tableDataActionLoadingMap.value[data.id]}
@@ -613,6 +623,7 @@
               </auth-button>
             </OperationBtnStatusTips>,
             <a
+              v-db-console="hdfs.clusterManage.manage"
               class="mr8"
               style={[theme === '' ? 'color: #63656e' : '']}
               href={data.access_url}

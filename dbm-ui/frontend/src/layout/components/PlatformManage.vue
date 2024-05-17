@@ -8,7 +8,9 @@
         :active-key="currentActiveKey"
         :opened-keys="[parentKey]"
         @click="handleMenuChange">
-        <BkMenuGroup :name="t('文件管理')">
+        <BkMenuGroup
+          v-db-console="'globalConfigManage.versionFile'"
+          :name="t('文件管理')">
           <BkMenuItem key="PlatformVersionFiles">
             <template #icon>
               <DbIcon type="version" />
@@ -20,7 +22,9 @@
             </span>
           </BkMenuItem>
         </BkMenuGroup>
-        <BkMenuGroup :name="t('配置管理')">
+        <BkMenuGroup
+          v-db-console="'globalConfigManage.dbConfig'"
+          :name="t('配置管理')">
           <BkMenuItem key="PlatformDbConfigure">
             <template #icon>
               <DbIcon type="db-config" />
@@ -33,7 +37,9 @@
           </BkMenuItem>
         </BkMenuGroup>
         <FunController module-id="monitor">
-          <BkMenuGroup :name="t('监控告警')">
+          <BkMenuGroup
+            v-db-console="'globalConfigManage.monitorStrategy'"
+            :name="t('监控告警')">
             <FunController
               controller-id="monitor_policy"
               module-id="monitor">
@@ -65,7 +71,9 @@
           </BkMenuGroup>
         </FunController>
         <FunController module-id="monitor">
-          <BkMenuGroup :name="t('轮值')">
+          <BkMenuGroup
+            v-db-console="'globalConfigManage.rotationManage'"
+            :name="t('轮值')">
             <FunController
               controller-id="duty_rule"
               module-id="monitor">
@@ -96,7 +104,9 @@
             </FunController>
           </BkMenuGroup>
         </FunController>
-        <BkMenuGroup :name="t('密码安全')">
+        <BkMenuGroup
+          v-db-console="'globalConfigManage.passwordSafe'"
+          :name="t('密码安全')">
           <BkMenuItem key="PlatformPasswordRandomization">
             <template #icon>
               <DbIcon type="pingbi" />
@@ -119,7 +129,9 @@
           </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup :name="t('设置')">
-          <BkMenuItem key="PlatformStaffManage">
+          <BkMenuItem
+            key="PlatformStaffManage"
+            v-db-console="'globalConfigManage.staffManage'">
             <template #icon>
               <DbIcon type="dba-config" />
             </template>
@@ -129,7 +141,9 @@
               {{ t('DBA人员管理') }}
             </span>
           </BkMenuItem>
-          <BkMenuItem key="PlatformTicketFlowSetting">
+          <BkMenuItem
+            key="PlatformTicketFlowSetting"
+            v-db-console="'globalConfigManage.ticketFlowSetting'">
             <template #icon>
               <DbIcon type="dba-config" />
             </template>
@@ -141,6 +155,7 @@
           </BkMenuItem>
           <BkSubmenu
             key="platform-mysql"
+            v-db-console="'globalConfigManage.whitelistManage'"
             title="MySQL">
             <template #icon>
               <DbIcon type="mysql" />

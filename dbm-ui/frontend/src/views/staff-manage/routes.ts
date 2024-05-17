@@ -10,31 +10,43 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-
 import type { RouteRecordRaw } from 'vue-router';
+
+import FunctionControllModel from '@services/model/function-controller/functionController';
+
+import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-const routes: RouteRecordRaw[] = [
-  {
-    name: 'StaffManage',
-    path: 'staff-manage',
-    meta: {
-      navName: t('DBA人员管理'),
-      fullScreen: true,
-    },
-    component: () => import('@views/staff-manage/Index.vue'),
+const staffManageRoute = {
+  name: 'StaffManage',
+  path: 'staff-manage',
+  meta: {
+    navName: t('DBA人员管理'),
+    fullScreen: true,
   },
-  {
-    name: 'PlatformStaffManage',
-    path: 'platform-staff-manage',
-    meta: {
-      navName: t('DBA人员管理'),
-    },
-    component: () => import('@views/staff-manage/Index.vue'),
-  },
-];
+  component: () => import('@views/staff-manage/Index.vue'),
+}
 
-export default function getRoutes() {
+const platformStaffManageRoute = {
+  name: 'PlatformStaffManage',
+  path: 'platform-staff-manage',
+  meta: {
+    navName: t('DBA人员管理'),
+  },
+  component: () => import('@views/staff-manage/Index.vue'),
+}
+
+export default function getRoutes(funControllerData: FunctionControllModel) {
+  const routes: RouteRecordRaw[] = [];
+
+  if (checkDbConsole(funControllerData, 'globalConfigManage.staffManage')) {
+    routes.push(platformStaffManageRoute);
+  }
+
+  if (checkDbConsole(funControllerData, 'bizConfigManage.StaffManage')) {
+    routes.push(staffManageRoute);
+  }
+
   return routes;
 }

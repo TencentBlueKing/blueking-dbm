@@ -17,6 +17,7 @@ export interface MenuChild {
   name: string;
   id: string;
   parentId: string;
+  dbConsoleValue: string;
 }
 
 export default [
@@ -29,11 +30,13 @@ export default [
         name: t('变更SQL执行'),
         id: 'MySQLExecute',
         parentId: 'sql',
+        dbConsoleValue: 'mysql.toolbox.sqlExecute'
       },
       {
         name: t('DB重命名'),
         id: 'MySQLDBRename',
         parentId: 'sql',
+        dbConsoleValue: 'mysql.toolbox.dbRename'
       },
     ],
   },
@@ -46,11 +49,13 @@ export default [
         name: t('库表备份'),
         id: 'MySQLDBTableBackup',
         parentId: 'copy',
+        dbConsoleValue: 'mysql.toolbox.dbTableBackup'
       },
       {
         name: t('全库备份'),
         id: 'MySQLDBBackup',
         parentId: 'copy',
+        dbConsoleValue: 'mysql.toolbox.dbBackup'
       },
     ],
   },
@@ -63,11 +68,13 @@ export default [
         name: t('定点构造'),
         id: 'MySQLDBRollback',
         parentId: 'fileback',
+        dbConsoleValue: 'mysql.toolbox.rollback'
       },
       {
         name: t('闪回'),
         id: 'MySQLDBFlashback',
         parentId: 'fileback',
+        dbConsoleValue: 'mysql.toolbox.flashback'
       },
     ],
   },
@@ -80,11 +87,13 @@ export default [
         name: t('客户端权限克隆'),
         id: 'MySQLPrivilegeCloneClient',
         parentId: 'privilege',
+        dbConsoleValue: 'mysql.toolbox.clientPermissionClone'
       },
       {
         name: t('DB实例权限克隆'),
         id: 'MySQLPrivilegeCloneInst',
         parentId: 'privilege',
+        dbConsoleValue: 'mysql.toolbox.dbInstancePermissionClone'
       },
     ],
   },
@@ -97,36 +106,43 @@ export default [
         name: t('重建从库'),
         id: 'MySQLSlaveRebuild',
         parentId: 'migrate',
+        dbConsoleValue: 'mysql.toolbox.slaveRebuild'
       },
       {
         name: t('添加从库'),
         id: 'MySQLSlaveAdd',
         parentId: 'migrate',
+        dbConsoleValue: 'mysql.toolbox.slaveAdd'
       },
       {
         name: t('迁移主从'),
         id: 'MySQLMasterSlaveClone',
         parentId: 'migrate',
+        dbConsoleValue: 'mysql.toolbox.masterSlaveClone'
       },
       {
         name: t('主从互切'),
         id: 'MySQLMasterSlaveSwap',
         parentId: 'migrate',
+        dbConsoleValue: 'mysql.toolbox.masterSlaveSwap'
       },
       {
         name: t('替换Proxy'),
         id: 'MySQLProxyReplace',
         parentId: 'migrate',
+        dbConsoleValue: 'mysql.toolbox.proxyReplace'
       },
       {
         name: t('添加Proxy'),
         id: 'MySQLProxyAdd',
         parentId: 'migrate',
+        dbConsoleValue: 'mysql.toolbox.proxyAdd'
       },
       {
         name: t('主库故障切换'),
         id: 'MySQLMasterFailover',
         parentId: 'migrate',
+        dbConsoleValue: 'mysql.toolbox.masterFailover'
       },
     ],
   },
@@ -139,11 +155,13 @@ export default [
         name: t('清档'),
         id: 'MySQLDBClear',
         parentId: 'data',
+        dbConsoleValue: 'mysql.toolbox.dbClear'
       },
       {
         name: t('数据校验修复'),
         id: 'MySQLChecksum',
         parentId: 'data',
+        dbConsoleValue: 'mysql.toolbox.checksum'
       },
     ],
   },
@@ -156,6 +174,7 @@ export default [
         name: t('开区模版'),
         id: 'MySQLOpenareaTemplate',
         parentId: 'mysql_openarea',
+        dbConsoleValue: 'mysql.toolbox.openareaTemplate'
       },
     ],
   },

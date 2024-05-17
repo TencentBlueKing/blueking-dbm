@@ -15,12 +15,14 @@
   <div class="kafka-list-page">
     <div class="header-action">
       <AuthButton
+        v-db-console="'kafka.clusterManage.instanceApply'"
         action-id="kafka_apply"
         theme="primary"
         @click="handleGoApply">
         {{ t('申请实例') }}
       </AuthButton>
       <DropdownExportExcel
+        v-db-console="'kafka.clusterManage.export'"
         :ids="selectedIds"
         type="kafka" />
       <DbSearchSelect
@@ -322,6 +324,7 @@
                 )}
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
+                  v-db-console="kafka.clusterManage.modifyEntryConfiguration"
                   action-id="access_entry_edit"
                   resource="kafka"
                   permission={data.permission.access_entry_edit}
@@ -482,6 +485,7 @@
               theme="primary"
               action-id="kafka_access_entry_view"
               permission={data.permission.kafka_access_entry_view}
+              v-db-console="kafka.clusterManage.getAccess"
               resource={data.id}
               class="mr8"
               onClick={() => handleShowPassword(data)}>
@@ -490,7 +494,9 @@
           ];
           if (data.isOffline) {
             return [
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="kafka.clusterManage.enable">
               <auth-button
                 text
                 theme="primary"
@@ -504,7 +510,9 @@
                 { t('启用') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="kafka.clusterManage.delete">
               <auth-button
                 text
                 theme="primary"
@@ -524,7 +532,8 @@
           return [
             <OperationBtnStatusTips
               data={data}
-              disabled={!data.isOffline}>
+              disabled={!data.isOffline}
+              v-db-console="kafka.clusterManage.scaleUp">
               <auth-button
                 text
                 class="mr8"
@@ -539,7 +548,8 @@
             </OperationBtnStatusTips>,
             <OperationBtnStatusTips
               data={data}
-              disabled={!data.isOffline}>
+              disabled={!data.isOffline}
+              v-db-console="kafka.clusterManage.scaleDown">
               <auth-button
                 text
                 class="mr8"
@@ -552,7 +562,9 @@
                 { t('缩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="kafka.clusterManage.disable">
               <auth-button
                 text
                 class="mr8"
@@ -567,6 +579,7 @@
               </auth-button>
             </OperationBtnStatusTips>,
             <a
+              v-db-console="kafka.clusterManage.manage"
               class="mr8"
               style={[theme === '' ? 'color: #63656e' : '']}
               href={data.access_url}

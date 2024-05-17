@@ -15,6 +15,7 @@
     <div class="operations">
       <div class="mb-16">
         <AuthButton
+          v-db-console="'tendbCluster.clusterManage.instanceApply'"
           action-id="tendbcluster_apply"
           theme="primary"
           @click="handleApply">
@@ -25,6 +26,7 @@
             disabled: hasSelected,
             content: t('请选择集群'),
           }"
+          v-db-console="'tendbCluster.clusterManage.batchAuthorize'"
           class="inline-block">
           <BkButton
             class="ml-8"
@@ -38,6 +40,7 @@
             disabled: hasData,
             content: t('请先创建实例'),
           }"
+          v-db-console="'tendbCluster.clusterManage.importAuthorize'"
           class="inline-block">
           <BkButton
             class="ml-8"
@@ -47,6 +50,7 @@
           </BkButton>
         </span>
         <DropdownExportExcel
+          v-db-console="'tendbCluster.clusterManage.export'"
           :ids="selectedIds"
           type="spider" />
       </div>
@@ -132,6 +136,7 @@
     useRouter,
   } from 'vue-router';
 
+  import type { ExtractedControllerDataKeys } from '@services/model/function-controller/functionController';
   import TendbClusterModel from '@services/model/spider/tendbCluster';
   import {
     getSpiderDetail,
@@ -150,7 +155,7 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { useFunController, useGlobalBizs } from '@stores';
 
   import {
     AccountTypes,
@@ -197,6 +202,8 @@
   const { currentBizId } = useGlobalBizs();
   const copy = useCopy();
   const ticketMessage = useTicketMessage();
+  const { funControllerData } = useFunController();
+
   const {
     columnAttrs,
     searchAttrs,
@@ -356,6 +363,7 @@
                 )}
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
+                  v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration"
                   action-id="access_entry_edit"
                   resource="tendbcluster"
                   permission={data.permission.access_entry_edit}
@@ -454,6 +462,7 @@
           }
           <auth-button
             v-bk-tooltips={t('修改入口配置')}
+            v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration"
             action-id="access_entry_edit"
             resource="tendbcluster"
             permission={data.permission.access_entry_edit}
@@ -682,6 +691,7 @@
                 theme={theme}
                 action-id="tendbcluster_node_rebalance"
                 permission={data.permission.tendbcluster_node_rebalance}
+                v-db-console="tendbCluster.clusterManage.clusterCapacityChange"
                 disabled={data.operationDisabled}
                 onClick={() => handleShowCapacityChange(data)}>
                 { t('集群容量变更') }
@@ -694,6 +704,7 @@
                 <auth-button
                   action-id="tendbcluster_enable_disable"
                   permission={data.permission.tendbcluster_enable_disable}
+                  v-db-console="tendbCluster.clusterManage.enable"
                   resource={data.id}
                   text
                   theme={theme}
@@ -707,6 +718,7 @@
                 <auth-button
                   action-id="tendbcluster_destroy"
                   permission={data.permission.tendbcluster_destroy}
+                  v-db-console="tendbCluster.clusterManage.delete"
                   resource={data.id}
                   text
                   theme={theme}
@@ -722,86 +734,104 @@
         };
         const getDropdownOperations = () => {
           const operations = [
-            <OperationBtnStatusTips
-              data={data}
-              disabled={!data.isOffline}>
-              <auth-button
-                action-id="tendbcluster_spider_add_nodes"
-                permission={data.permission.tendbcluster_spider_add_nodes}
-                resource={data.id}
-                text
-                disabled={data.isOffline}
-                class="mr-8"
-                onClick={() => handleShowScaleUp(data)}>
-                { t('扩容接入层') }
-              </auth-button>
-            </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              disabled={!data.isOffline}>
-              <auth-button
-                action-id="tendbcluster_spider_reduce_nodes"
-                permission={data.permission.tendbcluster_spider_reduce_nodes}
-                resource={data.id}
-                text
-                disabled={data.isOffline}
-                class="mr-8"
-                onClick={() => handleShowShrink(data)}>
-                { t('缩容接入层') }
-              </auth-button>
-            </OperationBtnStatusTips>,
+            <bk-dropdown-item v-db-console="tendbCluster.clusterManage.proxyScaleUp">
+              <OperationBtnStatusTips
+                data={data}
+                disabled={!data.isOffline}>
+                <auth-button
+                  action-id="tendbcluster_spider_add_nodes"
+                  permission={data.permission.tendbcluster_spider_add_nodes}
+                  resource={data.id}
+                  text
+                  disabled={data.isOffline}
+                  class="mr-8"
+                  onClick={() => handleShowScaleUp(data)}>
+                  { t('扩容接入层') }
+                </auth-button>
+              </OperationBtnStatusTips>
+            </bk-dropdown-item>,
+            <bk-dropdown-item v-db-console="tendbCluster.clusterManage.proxyScaleDown">
+              <OperationBtnStatusTips
+                data={data}
+                disabled={!data.isOffline}>
+                <auth-button
+                  action-id="tendbcluster_spider_reduce_nodes"
+                  permission={data.permission.tendbcluster_spider_reduce_nodes}
+                  resource={data.id}
+                  text
+                  disabled={data.isOffline}
+                  class="mr-8"
+                  onClick={() => handleShowShrink(data)}>
+                  { t('缩容接入层') }
+                </auth-button>
+              </OperationBtnStatusTips>
+            </bk-dropdown-item>,
           ];
           if (data.spider_mnt.length > 0) {
             operations.push((
-              <auth-button
-                action-id="tendbcluster_spider_mnt_destroy"
-                permission={data.permission.tendbcluster_spider_mnt_destroy}
-                resource={data.id}
-                text
-                class="mr-8"
-                onClick={() => handleRemoveMNT(data)}>
-                { t('下架运维节点') }
-              </auth-button>
+              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.removeMNTNode">
+                <auth-button
+                  action-id="tendbcluster_spider_mnt_destroy"
+                  permission={data.permission.tendbcluster_spider_mnt_destroy}
+                  resource={data.id}
+                  text
+                  class="mr-8"
+                  onClick={() => handleRemoveMNT(data)}>
+                  { t('下架运维节点') }
+                </auth-button>
+              </bk-dropdown-item>
             ));
           }
           if (data.spider_slave.length > 0) {
             operations.push((
-              <auth-button
-                action-id="tendb_spider_slave_destroy"
-                permission={data.permission.tendb_spider_slave_destroy}
-                resource={data.id}
-                text
-                class="mr-8"
-                onClick={() => handleDestroySlave(data)}>
-                { t('下架只读集群') }
-              </auth-button>
+              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.removeReadonlyNode">
+                <auth-button
+                  action-id="tendb_spider_slave_destroy"
+                  permission={data.permission.tendb_spider_slave_destroy}
+                  resource={data.id}
+                  text
+                  class="mr-8"
+                  onClick={() => handleDestroySlave(data)}>
+                  { t('下架只读集群') }
+                </auth-button>
+              </bk-dropdown-item>
             ));
           }
           operations.push((
-            <OperationBtnStatusTips data={data}>
-              <auth-button
-                action-id="tendbcluster_enable_disable"
-                permission={data.permission.tendbcluster_enable_disable}
-                resource={data.id}
-                text
-                disabled={data.operationDisabled}
-                class="mr-8"
-                onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_DISABLE, data)}>
-                { t('禁用') }
-              </auth-button>
-            </OperationBtnStatusTips>
+            <bk-dropdown-item v-db-console="tendbCluster.clusterManage.disable">
+              <OperationBtnStatusTips data={data}>
+                <auth-button
+                  action-id="tendbcluster_enable_disable"
+                  permission={data.permission.tendbcluster_enable_disable}
+                  resource={data.id}
+                  text
+                  disabled={data.operationDisabled}
+                  class="mr-8"
+                  onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_DISABLE, data)}>
+                  { t('禁用') }
+                </auth-button>
+              </OperationBtnStatusTips>
+            </bk-dropdown-item>
           ));
 
           return data.isOnline ? operations : [];
         };
 
         const renderDropdownOperations = getDropdownOperations();
-
+        const dropdownDbConsoleValueList = [
+          'tendbCluster.clusterManage.proxyScaleUp',
+          'tendbCluster.clusterManage.proxyScaleDown',
+          'tendbCluster.clusterManage.removeMNTNode',
+          'tendbCluster.clusterManage.removeReadonlyNode',
+          'tendbCluster.clusterManage.disable'
+        ]
+        const isShowDropdown = dropdownDbConsoleValueList.every(value => !funControllerData[value as ExtractedControllerDataKeys]) ||
+          dropdownDbConsoleValueList.some(value => funControllerData[value as ExtractedControllerDataKeys].is_enabled)
         return (
           <>
             { getOperations() }
             {
-              renderDropdownOperations.length > 0
+              renderDropdownOperations.length > 0 && isShowDropdown
                 ? (
                   <bk-dropdown
                     class="operations-more"
@@ -812,9 +842,7 @@
                       default: () => <db-icon type="more" />,
                       content: () => (
                         <bk-dropdown-menu class="operations-menu">
-                          {
-                            renderDropdownOperations.map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
-                          }
+                          { renderDropdownOperations }
                         </bk-dropdown-menu>
                       ),
                     }}
