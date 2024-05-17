@@ -444,7 +444,13 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         responses={status.HTTP_200_OK: TicketFlowDescribeSerializer},
         tags=[TICKET_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=QueryTicketFlowDescribeSerializer, filter_fields={})
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=QueryTicketFlowDescribeSerializer,
+        filter_fields={},
+        pagination_class=None,
+    )
     def query_ticket_flow_describe(self, request, *args, **kwargs):
         from backend.ticket.builders import BuilderFactory
 
