@@ -20,7 +20,7 @@
     single
     @change="handleTagValueChange">
     <template #tip>
-      <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
+      <p>{{ t('%：匹配任意长度字符串，如 a%') }}</p>
     </template>
   </TableTagInput>
 </template>
@@ -44,11 +44,11 @@
       validator: (value: string []) => value && value.length > 0,
       message: t('不能为空'),
     },
-    {
-      validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
-      message: t('% 不允许单独使用'),
-      trigger: 'change',
-    },
+    // {
+    //   validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
+    //   message: t('% 不允许单独使用'),
+    //   trigger: 'change',
+    // },
     {
       validator: (value: string []) => _.some(value, item => /^[a-zA-Z0-9_%]+$/.test(item)),
       message: t('不合法的输入'),

@@ -55,11 +55,15 @@
                     class="content-tree-name text-overflow">
                     {{ item.name }}
                   </span>
-                  <i
+                  <BkButton
                     v-if="hasModules && item.levelType === ConfLevels.APP"
                     v-bk-tooltips="$t('新建DB模块')"
-                    class="content-tree-add db-icon-add"
-                    @click.stop="createModule" />
+                    size="small"
+                    theme="primary"
+                    @click.stop="createModule">
+                    <DbIcon type="add" />
+                  <!-- <i class="content-tree-add db-icon-add"/> -->
+                  </BkButton>
                 </div>
               </template>
               <template #empty>
@@ -132,12 +136,6 @@
   const hasModuleClusters: string[] = [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA];
   const hasModules = computed(() => hasModuleClusters.includes(clusterType.value));
 
-  const getIconText = (item: TreeData) => {
-    if (item.levelType === ConfLevels.APP) return '业';
-    if (item.levelType === ConfLevels.MODULE) return '模';
-    return '集';
-  };
-
   /**
    * content component
    */
@@ -154,6 +152,18 @@
 
     return '';
   });
+
+  watch(() => route.query, () => {
+    if (!route.query.parentId && route.query.treeId && treeState.selected) {
+      treeState.activeNode = treeState.selected;
+    }
+  });
+
+  const getIconText = (item: TreeData) => {
+    if (item.levelType === ConfLevels.APP) return '业';
+    if (item.levelType === ConfLevels.MODULE) return '模';
+    return '集';
+  };
 
   const handleClearSearch = () => {
     treeState.search = '';

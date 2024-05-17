@@ -63,6 +63,22 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-configure/business/Bind.vue'),
       },
+      {
+        name: 'SelfServiceCreateDbModule',
+        path: 'create-db-module/:type/:bk_biz_id/',
+        meta: {
+          navName: t('新建模块'),
+        },
+        component: () => import('@views/service-apply/create-db-module/Index.vue'),
+      },
+      {
+        name: 'createSpiderModule',
+        path: 'create-module/:bizId(\\d+)',
+        meta: {
+          navName: t('新建模块'),
+        },
+        component: () => import('@views/spider-manage/apply/CreateModule.vue'),
+      },
     ],
   },
 ];

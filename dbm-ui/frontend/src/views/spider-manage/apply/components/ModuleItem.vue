@@ -139,7 +139,7 @@
         bizId: props.bizId,
       },
     });
-    window.open(routeLocation.href, '__blank');
+    window.open(routeLocation.href, '_blank');
   };
 
   // // 绑定模块

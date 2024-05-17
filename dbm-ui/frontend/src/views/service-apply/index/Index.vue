@@ -31,9 +31,9 @@
             @click="handleApply(serviceIdMap[id])">
             <DbIcon
               class="item-icon"
-              :type="serviceIdMap[id].icon" />
+              :type="serviceIdMap[id]?.icon" />
             <div class="item-text">
-              {{ serviceIdMap[id].name }}
+              {{ serviceIdMap[id]?.name }}
             </div>
             <div style="padding: 20px 0 20px 8px; margin-left: auto">
               <DbIcon
