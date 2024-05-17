@@ -163,6 +163,24 @@ class TaskFlowHandler:
         )
         return sorted(histories, key=itemgetter("started_time"), reverse=True)
 
+    @classmethod
+    def get_node_id_by_component(cls, tree: Dict, component_code: str) -> str:
+        """
+        根据component获取node id
+        先仅考虑获取流程中单个的component_code的node id
+        :param tree: 流程树对象
+        :param component_code: 组件code名称
+        """
+        activities: Dict = tree["activities"]
+        for node_id, activity in activities.items():
+            if activity.get("component") and activity["component"]["code"] == component_code:
+                return node_id
+            if activity.get("pipeline"):
+                node_id = cls.get_node_id_by_component(activity["pipeline"], component_code)
+                if node_id:
+                    return node_id
+        return ""
+
     @staticmethod
     def bklog_esquery_search(indices, query_string, start_time, end_time):
         """esquery搜索"""

@@ -18,7 +18,7 @@ from django.utils.crypto import get_random_string
 
 from backend.db_meta import models
 from backend.db_meta.enums import AccessLayer, ClusterType, MachineType
-from backend.db_meta.models import BKCity, Cluster, DBModule, LogicalCity, Machine
+from backend.db_meta.models import AppCache, BKCity, Cluster, DBModule, LogicalCity, Machine
 from backend.flow.models import FlowTree
 from backend.tests.constants import TEST_ADMIN_USERNAME
 from backend.tests.mock_data import constant
@@ -119,6 +119,16 @@ def init_cluster():
         cluster_type=ClusterType.TenDBHA.value,
     )
     yield cluster
+
+
+@pytest.fixture
+def init_app():
+    app = AppCache.objects.create(
+        bk_biz_id=constant.BK_BIZ_ID,
+        db_app_abbr="DBA",
+        bk_biz_name="dba",
+    )
+    yield app
 
 
 @pytest.fixture
