@@ -15,6 +15,7 @@ from pipeline.component_framework.component import Component
 
 from backend.components.db_remote_service.client import DRSApi
 from backend.constants import IP_PORT_DIVIDER
+from backend.flow.consts import STAGE_DB_HEADER
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 
@@ -57,7 +58,8 @@ class FilterDatabaseTableFromRegexService(BaseService):
         targets = {}
         for row in get_dbs_res[0]["cmd_results"][0]["table_data"]:
             db = row["Database"]
-            if db_filter_pattern.match(db):
+            # 其他清档单据生成的 stage 库不作为清档目标
+            if db_filter_pattern.match(db) and not db.startswith(STAGE_DB_HEADER):
                 targets[db] = {}
 
         self.log_info("[{}] db filter: {}".format(kwargs["node_name"], targets))
