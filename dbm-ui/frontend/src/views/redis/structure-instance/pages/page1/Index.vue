@@ -16,22 +16,18 @@
     <BkAlert
       closable
       theme="info"
-      :title="
-        t(
-          '构造实例：通过定点构造产生的实例，可以将实例数据写回原集群或者直接销毁',
-        )
-      " />
+      :title="t('构造实例：通过定点构造产生的实例，可以将实例数据写回原集群或者直接销毁')" />
     <div class="buttons">
       <BkButton
         :disabled="!isIndeterminate"
         @click="handleBatchDestruct">
-        {{ t("批量销毁") }}
+        {{ t('批量销毁') }}
       </BkButton>
       <BkButton
         class="ml-8"
         :disabled="!isIndeterminate"
         @click="handleBatchDataCopy">
-        {{ t("批量回写") }}
+        {{ t('批量回写') }}
       </BkButton>
     </div>
     <BkLoading
@@ -48,8 +44,7 @@
         :settings="settings"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
-        @refresh="fetchHostNodes"
-        @row-click.stop="handleRowClick" />
+        @refresh="fetchHostNodes" />
     </BkLoading>
   </div>
 </template>
@@ -167,13 +162,13 @@
 
   // 渲染多选框
   const renderCheckbox = (data: RedisRollbackModel) => (
-  <bk-checkbox
-    disabled={!data.isNotDestroyed}
-    model-value={Boolean(checkedMap.value[data.id])}
-    style="margin-right:8px;vertical-align: middle;"
-    onClick={(e: Event) => e.stopPropagation()}
-    onChange={(value: boolean) => handleTableSelectOne(value, data)}
-  />
+    <bk-checkbox
+      disabled={!data.isNotDestroyed}
+      model-value={Boolean(checkedMap.value[data.id])}
+      style="margin-right:8px;vertical-align: middle;"
+      onClick={(e: Event) => e.stopPropagation()}
+      onChange={(value: boolean) => handleTableSelectOne(value, data)}
+    />
   );
 
   const handleControlTip = (data: RedisRollbackModel, isShow: boolean) => {
@@ -275,17 +270,17 @@
   const columns = [
     {
       label: () => (
-      <div class="first-column">
-        <bk-checkbox
-          label={true}
-          indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
-          model-value={isSelectedAll.value}
-          onClick={(e: Event) => e.stopPropagation()}
-          onChange={handleSelectPageAll}
-        />
-        {t('构造的集群')}
-      </div>
-    ),
+        <div class="first-column">
+          <bk-checkbox
+            label={true}
+            indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
+            model-value={isSelectedAll.value}
+            onClick={(e: Event) => e.stopPropagation()}
+            onChange={handleSelectPageAll}
+          />
+          {t('构造的集群')}
+        </div>
+      ),
       field: 'prod_cluster',
       showOverflowTooltip: false,
       minWidth: 150,
@@ -401,14 +396,6 @@
       delete lastCheckMap[data.id];
     }
     checkedMap.value = lastCheckMap;
-  };
-
-  const handleRowClick = (key: number, data: RedisRollbackModel) => {
-    if (!data.isNotDestroyed) {
-      return;
-    }
-    const checked = checkedMap.value[data.id];
-    handleTableSelectOne(!checked, data);
   };
 
   // 获取有效的选中列表
