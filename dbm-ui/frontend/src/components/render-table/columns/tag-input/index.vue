@@ -180,8 +180,14 @@
   display: block;
 
   :deep(.bk-tag-input-trigger) {
+    padding-left: 16px;
+
     .tag-list {
       height: 40px;
+    }
+
+    .placeholder {
+      left: 16px;
     }
   }
 

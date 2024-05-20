@@ -14,55 +14,9 @@
 import TendbhaModel from '@services/model/mysql/tendbha';
 import RemotePairInstanceModel from '@services/model/mysql-cluster/remote-pair-instance';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/mysql/bizs/${currentBizId}/cluster`;
-
-/**
- * mysql 工具箱集群信息
- */
-interface MySQLClusterInfos {
-  alias: string,
-  bk_biz_id: number,
-  bk_cloud_id: number,
-  cluster_name: string,
-  cluster_type: string,
-  creator: string,
-  db_module_id: number,
-  db_module_name: string,
-  id: number,
-  instance_count: number,
-  major_version: string,
-  master_domain: string,
-  masters: {
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    bk_host_id: number,
-    bk_instance_id: number,
-    instance: string,
-    ip: string,
-    name: string,
-    phase: string,
-    port: number,
-    spec_config: {
-      id: number,
-    },
-    status: string,
-  }[],
-  name: string,
-  phase: string,
-  proxies: MySQLClusterInfos['masters'],
-  region: string,
-  repeaters: string[],
-  slaves: MySQLClusterInfos['masters'],
-  status: string,
-  time_zone: string,
-  updater: string
-}
+const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/cluster`;
 
 /**
  * 通过集群查询同机关联集群
@@ -73,9 +27,9 @@ export function findRelatedClustersByClusterIds(params: {
 }) {
   return http.post<Array<{
     cluster_id: number,
-    cluster_info: MySQLClusterInfos,
-    related_clusters: Array<MySQLClusterInfos>
-  }>>(`${path}/find_related_clusters_by_cluster_ids/`, params);
+    cluster_info: TendbhaModel,
+    related_clusters: Array<TendbhaModel>
+  }>>(`${getRootPath()}/find_related_clusters_by_cluster_ids/`, params);
 }
 
 /**
@@ -90,7 +44,7 @@ export function findRelatedClustersByInstances(params: {
   }>
   bk_biz_id: number
 }) {
-  return http.post(`${path}/find_related_clusters_by_instances/`, params);
+  return http.post(`${getRootPath()}/find_related_clusters_by_instances/`, params);
 }
 
 /**
@@ -105,7 +59,7 @@ export function getIntersectedSlaveMachinesFromClusters(params: {
     bk_cloud_id: number,
     bk_host_id: number,
     ip: string,
-  }>>(`${path}/get_intersected_slave_machines_from_clusters/`, params);
+  }>>(`${getRootPath()}/get_intersected_slave_machines_from_clusters/`, params);
 }
 
 /**
@@ -118,7 +72,7 @@ export function getRemoteMachineInstancePair(params: {
   return http.post<{
     instances: Record<string, RemotePairInstanceModel>,
     machines: Record<string, RemotePairInstanceModel>
-  }>(`${path}/get_remote_machine_instance_pair/`, params);
+  }>(`${getRootPath()}/get_remote_machine_instance_pair/`, params);
 }
 
 /**
@@ -133,7 +87,7 @@ export function getRemoteParis(params: {
       remote_db: RemotePairInstanceModel,
       remote_dr: RemotePairInstanceModel
     }[]
-  }>>(`${path}/get_remote_pairs/`, params)
+  }>>(`${getRootPath()}/get_remote_pairs/`, params)
     .then(data => data.map(item => ({
       cluster_id: item.cluster_id,
       remote_pairs: item.remote_pairs.map(remotePair => ({
@@ -155,12 +109,12 @@ export function queryClusters(params: {
   }>
   bk_biz_id: number
 }) {
-  return http.post<MySQLClusterInfos[]>(`${path}/query_clusters/`, params);
+  return http.post<TendbhaModel[]>(`${getRootPath()}/query_clusters/`, params);
 }
 
 /**
  * 通过集群域名获取集群详情
  */
 export function getClusterInfoByDomains(params: Record<'cluster_filters', Array<{ immute_domain: string }>> & { bizId: number }) {
-  return http.post<TendbhaModel[]>(`${path}/query_clusters/`, params);
+  return http.post<TendbhaModel[]>(`${getRootPath()}/query_clusters/`, params);
 }

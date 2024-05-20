@@ -41,6 +41,7 @@
   import MySQLChecksum from './mysql/Checksum.vue';
   import MySQLClone from './mysql/Clone.vue';
   import MySQLClusterOperation from './mysql/ClusterOperation.vue';
+  import MySQLDataMigrate from './mysql/DataMigrate.vue';
   import DetailsMySQL from './mysql/Details.vue';
   import DumperInstall from './mysql/DumperInstall.vue';
   import DumperNodeStatusUpdate from './mysql/DumperNodeStatusUpdate.vue';
@@ -252,6 +253,7 @@
     [TicketTypes.MYSQL_HA_FULL_BACKUP]: MySQLFullBackup,
     [TicketTypes.MYSQL_CHECKSUM]: MySQLChecksum,
     [TicketTypes.MYSQL_OPEN_AREA]: MysqlOpenArea,
+    [TicketTypes.MYSQL_DATA_MIGRATE]: MySQLDataMigrate,
     [TicketTypes.TBINLOGDUMPER_INSTALL]: DumperInstall,
     [TicketTypes.TBINLOGDUMPER_SWITCH_NODES]: DumperSwitchNode,
     [TicketTypes.PULSAR_APPLY]: DetailsPulsar,

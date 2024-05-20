@@ -147,8 +147,16 @@
 
   const handleCancel = () => {
     router.push({
-      name: 'mysqlOpenareaTemplate',
+      name: 'MySQLOpenareaTemplate',
     });
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MySQLOpenareaTemplate',
+      });
+    },
+  });
 </script>
 

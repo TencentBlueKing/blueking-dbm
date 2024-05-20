@@ -144,6 +144,11 @@ export default [
         id: 'MySQLChecksum',
         parentId: 'data',
       },
+      {
+        name: t('数据迁移'),
+        id: 'MySQLDataMigrate',
+        parentId: 'data',
+      },
     ],
   },
   {
@@ -153,7 +158,7 @@ export default [
     children: [
       {
         name: t('开区模版'),
-        id: 'mysqlOpenareaTemplate',
+        id: 'MySQLOpenareaTemplate',
         parentId: 'mysql_openarea',
       },
     ],
