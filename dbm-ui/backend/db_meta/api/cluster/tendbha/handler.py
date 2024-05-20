@@ -24,7 +24,10 @@ from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_proxy_real_version
+from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
+from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
+from backend.flow.utils.tbinlogdumper.tbinlogdumper_module_operate import TBinlogDumperCCTopoOperator
 
 from .others import add_slaves, delete_slaves
 
@@ -180,6 +183,7 @@ class TenDBHAClusterHandler(ClusterHandler):
         """
         master = self.cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
         new_dumper_instance_ids = []
+        new_tbinlogdumper = []
         for conf in add_confs:
             tbinlogdumper = ExtraProcessInstance(
                 bk_biz_id=self.cluster.bk_biz_id,
@@ -211,6 +215,10 @@ class TenDBHAClusterHandler(ClusterHandler):
             )
             tbinlogdumper.save()
             new_dumper_instance_ids.append(tbinlogdumper.id)
+            new_tbinlogdumper.append(tbinlogdumper)
+
+        # 添加服务实例
+        TBinlogDumperCCTopoOperator(cluster=self.cluster).create_tbinlogdumper_instances(new_tbinlogdumper)
 
         return new_dumper_instance_ids
 
@@ -221,8 +229,16 @@ class TenDBHAClusterHandler(ClusterHandler):
         """
         master = self.cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
         for inst in ExtraProcessInstance.objects.filter(id__in=switch_ids):
+            # 删除旧的服务实例
+            CcManage(bk_biz_id=inst.bk_biz_id, cluster_type=ClusterType.TenDBHA.value).delete_service_instance(
+                bk_instance_ids=[inst.bk_instance_id]
+            )
+
             inst.bk_cloud_id = master.machine.bk_cloud_id
             inst.ip = master.machine.ip
             inst.extra_config["source_data_ip"] = master.machine.ip
             inst.extra_config["source_data_port"] = master.port
             inst.save()
+
+            # 创建新的服务实例
+            CCTopoOperator(cluster=self.cluster).create_tbinlogdumper_instances(inst)

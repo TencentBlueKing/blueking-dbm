@@ -68,6 +68,10 @@ func (d *DeployTbinlogDumperAct) Init() (err error) {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
+	if err = d.DeserializeNonSensitivePayload(&d.Service.MySQLConfigParams); err != nil {
+		logger.Error("DeserializeNonSensitivePayload failed, %v", err)
+		return err
+	}
 	// 解析额外参数
 	if err = d.Deserialize(&d.Service.Configs); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
@@ -124,6 +128,10 @@ func (d *DeployTbinlogDumperAct) Run() (err error) {
 		{
 			FunName: "执行初始化系统基础权限、库表SQL",
 			Func:    d.Service.InitDefaultPrivAndSchemaWithResetMaster,
+		},
+		{
+			FunName: "生成exporter配置文件",
+			Func:    d.Service.CreateExporterCnf,
 		},
 	}
 

@@ -17,8 +17,16 @@ from django.db.models import QuerySet
 
 from backend.configuration.models import BizSettings
 from backend.constants import CommonInstanceLabels
-from backend.db_meta.enums import AccessLayer
-from backend.db_meta.models import AppCache, Cluster, ClusterMonitorTopo, ProxyInstance, StorageInstance
+from backend.db_meta.enums import AccessLayer, ClusterType
+from backend.db_meta.models import (
+    AppCache,
+    Cluster,
+    ClusterMonitorTopo,
+    ExtraProcessInstance,
+    Machine,
+    ProxyInstance,
+    StorageInstance,
+)
 from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS
 from backend.exceptions import ValidationError
 from backend.flow.utils.cc_manage import CcManage
@@ -229,3 +237,49 @@ class CCTopoOperator:
         # 保存到数据库
         ins.bk_instance_id = bk_instance_id
         ins.save(update_fields=["bk_instance_id"])
+
+    def create_tbinlogdumper_instances(self, instances: List[ExtraProcessInstance]):
+        """
+        tbinlogdumper专属，注册服务实例，自动下发exporter采集性能数据
+        @param instances: 待添加的tbinlogdumper实例
+        """
+        # 按照集群信息生成对应的模块
+        for cluster in self.clusters:
+            CcManage(bk_biz_id=cluster.bk_biz_id, cluster_type=cluster.cluster_type).get_or_create_set_module(
+                db_type=self.db_type,
+                cluster_type="tbinlogdumper",
+                bk_module_name=cluster.immute_domain,
+                cluster_id=cluster.id,
+                creator=cluster.creator,
+            )
+
+        inst_id_to_host_id_map = {}
+        inst_id_to_module_id_map = {}
+        for inst in instances:
+            inst_id_to_host_id_map[inst.id] = Machine.objects.get(ip=inst.ip, bk_cloud_id=inst.bk_cloud_id).bk_host_id
+            inst_id_to_module_id_map[inst.id] = ClusterMonitorTopo.objects.get(
+                cluster_id=inst.cluster_id, machine_type="tbinlogdumper"
+            ).bk_module_id
+
+        # 合并导入机器到对应模块下
+        cc_manage = CcManage(self.bk_biz_id, ClusterType.TenDBHA.value)
+        cc_manage.transfer_host_module(
+            bk_host_ids=list(filter(None, list(set(inst_id_to_host_id_map.values())))),
+            target_module_ids=list(filter(None, list(set(inst_id_to_module_id_map.values())))),
+            is_increment=True,
+        )
+
+        # 创建 CMDB 服务实例
+        for inst in instances:
+            # 写入服务实
+            bk_instance_id = cc_manage.add_service_instance(
+                bk_module_id=inst_id_to_module_id_map[inst.id],
+                bk_host_id=inst_id_to_host_id_map[inst.id],
+                listen_ip=inst.ip,
+                listen_port=inst.listen_port,
+                func_name=INSTANCE_MONITOR_PLUGINS[self.db_type]["tbinlogdumper"]["func_name"],
+                bk_process_name=f"{self.db_type}-{'tbinlogdumper'}",
+                labels_dict={"exporter_conf_path": f"exporter_{inst.listen_port}.cnf"},
+            )
+            inst.bk_instance_id = bk_instance_id
+            inst.save(update_fields=["bk_instance_id"])

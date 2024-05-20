@@ -66,6 +66,9 @@ class DBType(str, StructuredEnum):
     # 不属于DB类型，仅用于云区域组件的单据部署的分组
     Cloud = EnumField("cloud", _("Cloud"))
 
+    # 不属于DB类型，仅用于TBinlogDumper实例的管控
+    TBinlogDumper = EnumField("tbinlogdumper", _("TBinlogDumper"))
+
 
 class SystemSettingsEnum(str, StructuredEnum):
     """配置的枚举项，建议将系统配置都录入到这里方便统一管理"""

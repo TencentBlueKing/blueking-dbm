@@ -69,6 +69,7 @@ ClusterTypeMachineTypeDefine = {
     ClusterType.SqlserverSingle: [MachineType.SQLSERVER_SINGLE],
     ClusterType.SqlserverHA: [MachineType.SQLSERVER_HA],
     ClusterType.Doris: [MachineType.DORIS_BACKEND, MachineType.DORIS_FOLLOWER, MachineType.DORIS_OBSERVER],
+    "tbinlogdumper": ["tbinlogdumper"],  # 兼容tbinlogdumper注册服务实例，自定义处理
 }
 
 ClusterMachineAccessTypeDefine = {

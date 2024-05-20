@@ -114,14 +114,14 @@ func (i *InstallTbinlogDumperComp) InitDumperDefaultParam() error {
 
 	// 反序列化mycnf 配置
 	var mycnfs map[mysql.Port]json.RawMessage
-	if err := json.Unmarshal([]byte(i.Params.MyCnfConfigs), &mycnfs); err != nil {
-		logger.Error("反序列化配置失败:%s", err.Error())
+	if err := json.Unmarshal([]byte(i.MySQLConfigParams.MyCnfConfigs), &mycnfs); err != nil {
+		logger.Error("mycnf反序列化配置失败:%s", err.Error())
 		return err
 	}
 
 	var dumpercnfs map[mysql.Port]json.RawMessage
 	if err := json.Unmarshal([]byte(i.Configs.DumperConfigs), &dumpercnfs); err != nil {
-		logger.Error("反序列化配置失败:%s", err.Error())
+		logger.Error("dumpercnfs反序列化配置失败:%s", err.Error())
 		return err
 	}
 

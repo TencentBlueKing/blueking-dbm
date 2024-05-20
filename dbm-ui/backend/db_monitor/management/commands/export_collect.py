@@ -32,7 +32,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "db_type",
-            choices=["mysql", "redis", "es", "hdfs", "kafka", "pulsar", "influxdb", "sqlserver"],
+            choices=["mysql", "redis", "es", "hdfs", "kafka", "pulsar", "influxdb", "sqlserver", "tbinlogdumper"],
             type=str,
             help="db类型",
         )
