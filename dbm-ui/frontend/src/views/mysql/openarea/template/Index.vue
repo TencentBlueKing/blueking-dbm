@@ -78,7 +78,7 @@
           <router-link
             class="ml-16"
             to={{
-              name: 'mysqlOpenareaTemplateEdit',
+              name: 'MySQLOpenareaTemplateEdit',
               params: {
                 id: data.id,
               },
@@ -115,7 +115,7 @@
 
   const handleGoCreate = () => {
     router.push({
-      name: 'mysqlOpenareaTemplateCreate',
+      name: 'MySQLOpenareaTemplateCreate',
     });
   };
 

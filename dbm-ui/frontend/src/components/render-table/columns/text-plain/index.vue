@@ -21,15 +21,17 @@
       }"
       class="render-text-box"
       :class="{
-        'default-display': !data,
+        'default-display': showDefault,
         'is-error': Boolean(errorMessage),
       }">
       <span
-        v-if="!data"
+        v-if="showDefault"
         style="color: #c4c6cc;">
         {{ placeholder }}
       </span>
-      <span v-else>{{ data }}</span>
+      <span
+        v-else
+        v-bind="$attrs">{{ data }}</span>
       <div
         v-if="errorMessage"
         class="input-error">
@@ -61,6 +63,7 @@
   const textRef = ref();
 
   const renderData = computed(() => props.data);
+  const showDefault = computed(() => props.data === undefined || props.data === '');
 
   const { isOverflow } = useIsWidthOverflow(textRef, renderData);
 

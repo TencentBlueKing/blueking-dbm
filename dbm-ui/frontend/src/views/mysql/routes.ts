@@ -155,12 +155,20 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     component: () => import('@views/mysql/checksum/Index.vue'),
   },
   {
+    name: 'MySQLOpenareaTemplate',
     path: 'openarea-template',
-    name: 'mysqlOpenareaTemplate',
     meta: {
       navName: t('开区模版'),
     },
     component: () => import('@views/mysql/openarea/template/Index.vue'),
+  },
+  {
+    name: 'MySQLDataMigrate',
+    path: 'data-migrate/:page?',
+    meta: {
+      navName: t('数据迁移'),
+    },
+    component: () => import('@views/mysql/data-migrate/Index.vue'),
   },
 ];
 
@@ -264,7 +272,7 @@ const commonRouters: RouteRecordRaw[] = [
       },
       {
         path: 'openarea-template-create',
-        name: 'mysqlOpenareaTemplateCreate',
+        name: 'MySQLOpenareaTemplateCreate',
         meta: {
           navName: t('新建开区模板'),
         },
@@ -272,7 +280,7 @@ const commonRouters: RouteRecordRaw[] = [
       },
       {
         path: 'openarea-template-edit/:id',
-        name: 'mysqlOpenareaTemplateEdit',
+        name: 'MySQLOpenareaTemplateEdit',
         meta: {
           navName: t('编辑开区模板'),
         },
