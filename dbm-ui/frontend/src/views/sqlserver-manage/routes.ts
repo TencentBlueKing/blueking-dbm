@@ -69,7 +69,7 @@ const routes: RouteRecordRaw[] = [
 ];
 
 export default function getRoutes(funControllerData: FunctionControllModel) {
-  if (!funControllerData.sqlserver.is_enabled) {
+  if (funControllerData.sqlserver && !funControllerData.sqlserver.is_enabled) {
     return [];
   }
   return routes;
