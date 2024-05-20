@@ -19,7 +19,14 @@ from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.tendbha.handler import TenDBHAClusterHandler
 from backend.db_meta.api.cluster.tendbsingle.handler import TenDBSingleClusterHandler
-from backend.db_meta.enums import ClusterPhase, InstanceInnerRole, InstanceRole, InstanceStatus, MachineType
+from backend.db_meta.enums import (
+    ClusterPhase,
+    ClusterType,
+    InstanceInnerRole,
+    InstanceRole,
+    InstanceStatus,
+    MachineType,
+)
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
@@ -666,12 +673,12 @@ class MySQLDBMeta(object):
         """
         添加TBinlogDumper实例
         """
-        new_dumper_instance_ids = TenDBHAClusterHandler(
-            bk_biz_id=self.bk_biz_id, cluster_id=self.ticket_data["cluster_id"]
-        ).add_tbinlogdumper(add_confs=self.ticket_data["add_confs"])
-
-        # 将新增的dumper实例加入到dumper配置规则中
         with atomic():
+            new_dumper_instance_ids = TenDBHAClusterHandler(
+                bk_biz_id=self.bk_biz_id, cluster_id=self.ticket_data["cluster_id"]
+            ).add_tbinlogdumper(add_confs=self.ticket_data["add_confs"])
+
+            # 将新增的dumper实例加入到dumper配置规则中
             dumper_config = DumperSubscribeConfig.objects.select_for_update().get(
                 id=self.ticket_data["dumper_config_id"]
             )
@@ -684,7 +691,16 @@ class MySQLDBMeta(object):
         """
         reduce_ids = self.ticket_data["reduce_ids"]
         with atomic():
-            ExtraProcessInstance.objects.filter(id__in=reduce_ids).delete()
+            reduce_instances = ExtraProcessInstance.objects.filter(id__in=reduce_ids)
+            # 删除服务实例
+            for instance in reduce_instances:
+                CcManage(bk_biz_id=instance.bk_biz_id, cluster_type=ClusterType.TenDBHA.value).delete_service_instance(
+                    bk_instance_ids=[instance.bk_instance_id]
+                )
+
+            # 删除元信息
+            reduce_instances.delete()
+
             # 将删除的dumper process id从配置中剔除掉
             dumper_config = DumperSubscribeConfig.objects.select_for_update().get(
                 dumper_process_ids__contains=reduce_ids

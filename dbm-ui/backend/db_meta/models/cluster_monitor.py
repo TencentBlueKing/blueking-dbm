@@ -29,6 +29,11 @@ INSTANCE_MONITOR_PLUGINS = {
         MachineType.SPIDER: {"name": "spider", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
         MachineType.REMOTE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
         MachineType.SINGLE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
+        "tbinlogdumper": {
+            "name": "tbinlogdumper",
+            "plugin_id": "dbm_tbinlogdumper_exporter",
+            "func_name": "tbinlodumper",
+        },
     },
     DBType.Redis: {
         MachineType.TWEMPROXY: {"name": "twemproxy", "plugin_id": "dbm_twemproxy_exporter", "func_name": "nutcracker"},

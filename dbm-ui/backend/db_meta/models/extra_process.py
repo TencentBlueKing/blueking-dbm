@@ -32,6 +32,7 @@ class ExtraProcessInstance(AuditedModel):
     bk_biz_id = models.IntegerField(default=0, help_text=_("关联的业务id，对应cmdb"))
     cluster_id = models.IntegerField(default=0, help_text=_("关联的cluster_id"))
     bk_cloud_id = models.IntegerField(default=0, help_text=_("云区域 ID，对应cmdb"))
+    bk_instance_id = models.IntegerField(default=0, help_text=_("服务实例id，对应cmdb"))
     ip = models.GenericIPAddressField(default="", help_text=_("IP 地址"))
     proc_type = models.CharField(
         max_length=64, choices=ExtraProcessType.get_choices(), default="", help_text=_("进程类型")
