@@ -44,7 +44,7 @@ func NewRedisClient(addr, passwd string, db int, dbType string) (conn *RedisClie
 		DbType:       dbType,
 		nodesMu:      &sync.Mutex{},
 	}
-	err = conn.newConn()
+	err = conn.newConn(1 * time.Minute)
 	if err != nil {
 		return nil, err
 	}
@@ -62,14 +62,14 @@ func NewRedisClientWithTimeout(addr, passwd string, db int, dbType string, timeo
 		DbType:       dbType,
 		nodesMu:      &sync.Mutex{},
 	}
-	err = conn.newConn()
+	err = conn.newConn(timeout)
 	if err != nil {
 		return nil, err
 	}
 	return
 }
 
-func (db *RedisClient) newConn() (err error) {
+func (db *RedisClient) newConn(timeout time.Duration) (err error) {
 	// 执行命令失败重连,确保重连后,databases正确
 	var redisConnHook = func(ctx context.Context, cn *redis.Conn) error {
 		pipe01 := cn.Pipeline()
@@ -90,8 +90,8 @@ func (db *RedisClient) newConn() (err error) {
 	redisOpt := &redis.Options{
 		Addr:            db.Addr,
 		DB:              db.DB,
-		DialTimeout:     1 * time.Minute,
-		ReadTimeout:     1 * time.Minute,
+		DialTimeout:     timeout,
+		ReadTimeout:     timeout,
 		MaxConnAge:      24 * time.Hour,
 		MaxRetries:      db.MaxRetryTime, // 失败自动重试,重试次数
 		MinRetryBackoff: 1 * time.Second, // 重试间隔
@@ -101,8 +101,8 @@ func (db *RedisClient) newConn() (err error) {
 	}
 	clusterOpt := &redis.ClusterOptions{
 		Addrs:           []string{db.Addr},
-		DialTimeout:     1 * time.Minute,
-		ReadTimeout:     1 * time.Minute,
+		DialTimeout:     timeout,
+		ReadTimeout:     timeout,
 		MaxConnAge:      24 * time.Hour,
 		MaxRetries:      db.MaxRetryTime, // 失败自动重试,重试次数
 		MinRetryBackoff: 1 * time.Second, // 重试间隔
@@ -1402,28 +1402,30 @@ func (db *RedisClient) Shutdown() (err error) {
 		mylog.Logger.Error(err.Error())
 		return
 	}
-	redisCliBin := filepath.Join(consts.UsrLocal, "redis/bin/redis-cli")
-	if util.FileExists(redisCliBin) {
-		// 如果redis-cli存在,则优先使用redis-cli 执行shutdown
-		// db.InstanceClient.Shutdown() 会返回一些其他错误
-		var opt string
-		if util.IsCliSupportedNoAuthWarning(redisCliBin) {
-			opt = "--no-auth-warning"
-		}
-		l01 := strings.Split(db.Addr, ":")
-		cmd := fmt.Sprintf("%s -h %s -p %s -a %s %s shutdown",
-			redisCliBin, l01[0], l01[1], db.Password, opt)
-		logcmd := fmt.Sprintf("%s -h %s -p %s -a xxxx %s shutdown",
-			redisCliBin, l01[0], l01[1], opt)
-		mylog.Logger.Info(logcmd)
-		_, err = util.RunBashCmd(cmd, "", nil, 1*time.Minute)
-		if err != nil {
+	_, err = db.InstanceClient.Shutdown(context.TODO()).Result()
+	if err != nil {
+		redisCliBin := filepath.Join(consts.UsrLocal, "redis/bin/redis-cli")
+		if util.FileExists(redisCliBin) {
+			// 如果redis-cli存在,则优先使用redis-cli 执行shutdown
+			// db.InstanceClient.Shutdown() 会返回一些其他错误
+			var opt string
+			if util.IsCliSupportedNoAuthWarning(redisCliBin) {
+				opt = "--no-auth-warning"
+			}
+			l01 := strings.Split(db.Addr, ":")
+			cmd := fmt.Sprintf("%s -h %s -p %s -a %s %s shutdown",
+				redisCliBin, l01[0], l01[1], db.Password, opt)
+			logcmd := fmt.Sprintf("%s -h %s -p %s -a xxxx %s shutdown",
+				redisCliBin, l01[0], l01[1], opt)
+			mylog.Logger.Info(logcmd)
+			_, err = util.RunBashCmd(cmd, "", nil, 1*time.Minute)
+			if err != nil {
+				return
+			}
 			return
 		}
-		return
 	}
 
-	db.InstanceClient.Shutdown(context.TODO()).Result()
 	return nil
 }
 

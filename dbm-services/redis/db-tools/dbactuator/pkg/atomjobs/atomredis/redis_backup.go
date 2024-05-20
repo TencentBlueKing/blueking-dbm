@@ -502,7 +502,8 @@ func (task *BackupTask) GoFullBakcup() {
 }
 
 func (task *BackupTask) newConnect() {
-	task.Cli, task.Err = myredis.NewRedisClient(task.Addr(), task.Password, 0, consts.TendisTypeRedisInstance)
+	task.Cli, task.Err = myredis.NewRedisClientWithTimeout(task.Addr(), task.Password, 0, consts.TendisTypeRedisInstance,
+		2*time.Hour)
 	if task.Err != nil {
 		return
 	}
