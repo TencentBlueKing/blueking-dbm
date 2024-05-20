@@ -22,7 +22,6 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import DBA_SYSTEM_USER, TruncateDataTypeEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.build_database_table_filter_regex import (
     DatabaseTableFilterRegexBuilderComponent,
 )
@@ -39,9 +38,6 @@ from backend.flow.plugins.components.collections.mysql.truncate_data_create_stag
     TruncateDataCreateStageDatabaseComponent,
 )
 from backend.flow.plugins.components.collections.mysql.truncate_data_drop import TruncateDataDropComponent
-from backend.flow.plugins.components.collections.mysql.truncate_data_drop_stage_database import (
-    TruncateDataDropStageDatabaseComponent,
-)
 from backend.flow.plugins.components.collections.mysql.truncate_data_generate_stage_database_name import (
     TruncateDataGenerateStageDatabaseNameComponent,
 )
@@ -210,13 +206,13 @@ class MySQLTruncateFlow(object):
                         kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
                     )
 
-                instance_pipe.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
-
-                instance_pipe.add_act(
-                    act_name=_("删除备份库"),
-                    act_component_code=TruncateDataDropStageDatabaseComponent.code,
-                    kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
-                )
+                # instance_pipe.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+                #
+                # instance_pipe.add_act(
+                #     act_name=_("删除备份库"),
+                #     act_component_code=TruncateDataDropStageDatabaseComponent.code,
+                #     kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
+                # )
 
                 instance_pipes.append(
                     instance_pipe.build_sub_process(
