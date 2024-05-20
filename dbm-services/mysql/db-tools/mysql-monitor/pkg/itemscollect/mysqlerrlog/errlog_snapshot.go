@@ -170,8 +170,8 @@ func lastRoundOffset() (int64, error) {
 
 	r, err := strconv.ParseInt(string(content), 10, 64)
 	if err != nil {
-		slog.Error("parse last offset", slog.String("error", err.Error()))
-		return 0, err
+		slog.Warn("parse last offset", slog.String("error", err.Error()))
+		return 0, nil
 	}
 
 	return r, nil
