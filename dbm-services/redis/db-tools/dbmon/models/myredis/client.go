@@ -41,7 +41,7 @@ func NewRedisClient(addr, passwd string, db int, dbType string) (conn *RedisClie
 		DbType:       dbType,
 		nodesMu:      &sync.Mutex{},
 	}
-	err = conn.newConn()
+	err = conn.newConn(1 * time.Minute)
 	if err != nil {
 		return nil, err
 	}
@@ -59,14 +59,14 @@ func NewRedisClientWithTimeout(addr, passwd string, db int, dbType string, timeo
 		DbType:       dbType,
 		nodesMu:      &sync.Mutex{},
 	}
-	err = conn.newConn()
+	err = conn.newConn(timeout)
 	if err != nil {
 		return nil, err
 	}
 	return
 }
 
-func (db *RedisClient) newConn() (err error) {
+func (db *RedisClient) newConn(timeout time.Duration) (err error) {
 	// 执行命令失败重连,确保重连后,databases正确
 	var redisConnHook = func(ctx context.Context, cn *redis.Conn) error {
 		pipe01 := cn.Pipeline()
@@ -87,8 +87,8 @@ func (db *RedisClient) newConn() (err error) {
 	redisOpt := &redis.Options{
 		Addr:            db.Addr,
 		DB:              db.DB,
-		DialTimeout:     1 * time.Minute,
-		ReadTimeout:     1 * time.Minute,
+		DialTimeout:     timeout,
+		ReadTimeout:     timeout,
 		MaxConnAge:      24 * time.Hour,
 		MaxRetries:      db.MaxRetryTime, // 失败自动重试,重试次数
 		MinRetryBackoff: 1 * time.Second, // 重试间隔
@@ -98,8 +98,8 @@ func (db *RedisClient) newConn() (err error) {
 	}
 	clusterOpt := &redis.ClusterOptions{
 		Addrs:           []string{db.Addr},
-		DialTimeout:     1 * time.Minute,
-		ReadTimeout:     1 * time.Minute,
+		DialTimeout:     timeout,
+		ReadTimeout:     timeout,
 		MaxConnAge:      24 * time.Hour,
 		MaxRetries:      db.MaxRetryTime, // 失败自动重试,重试次数
 		MinRetryBackoff: 1 * time.Second, // 重试间隔
