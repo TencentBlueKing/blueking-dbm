@@ -111,6 +111,7 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
 
   // 统一错误处理逻辑
   interceptors.use(undefined, (error: RequestError) => {
+    const errorCode = error.response.data.code;
     switch (error.code) {
       // 未登陆
       case 401:
@@ -126,7 +127,11 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         messageError('请求超时');
         break;
       default:
-        if (error.response.data.code === 9900403) {
+        // po 环境静默此错误码
+        if (errorCode === 8718002) {
+          return;
+        }
+        if (errorCode === 9900403) {
           handlePermission(error);
         } else if (!error.response.config.payload.catchError) {
           messageError(error.message);
