@@ -144,6 +144,7 @@ export default class Redis {
     title: string;
   }[];
   permission: {
+    redis_access_entry_view: boolean;
     redis_backup: boolean;
     redis_destroy: boolean;
     redis_keys_delete: boolean;

@@ -808,9 +808,9 @@
                         data={data}
                         disabled={!data.isOffline}>
                           <auth-button
-                            action-id="access_entry_edit"
+                            action-id="redis_access_entry_view"
                             resource={data.id}
-                            permission={data.permission.access_entry_edit}
+                            permission={data.permission.redis_access_entry_view}
                             style="width: 100%;height: 32px;"
                             disabled={data.isOffline}
                             text

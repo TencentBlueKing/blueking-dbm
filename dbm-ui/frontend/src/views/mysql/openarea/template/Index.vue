@@ -96,20 +96,22 @@
             }}>
             { t('编辑') }
           </auth-router-link>
-          <db-popconfirm
-            title={t('确认删除该模板？')}
-            content={t('删除操作无法撤回，请谨慎操作！')}
-            confirmHandler={() => handleRemove(data)}>
-            <auth-button
+          <auth-template
               action-id="mysql_openarea_config_destroy"
               resource={data.id}
-              permission={data.permission.mysql_openarea_config_destroy}
-              class="ml-16"
-              text
-              theme="primary">
-              { t('删除') }
-            </auth-button>
-          </db-popconfirm>
+              permission={data.permission.mysql_openarea_config_destroy}>
+            <db-popconfirm
+              title={t('确认删除该模板？')}
+              content={t('删除操作无法撤回，请谨慎操作！')}
+              confirmHandler={() => handleRemove(data)}>
+              <auth-button
+                class="ml-16"
+                text
+                theme="primary">
+                { t('删除') }
+              </auth-button>
+            </db-popconfirm>
+          </auth-template>
         </>
       ),
     },

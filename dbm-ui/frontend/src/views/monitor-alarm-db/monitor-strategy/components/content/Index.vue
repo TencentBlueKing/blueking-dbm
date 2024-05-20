@@ -364,6 +364,7 @@
                       action-id="monitor_policy_delete"
                       results={data.permission.monitor_policy_delete}
                       permission={data.permission.monitor_policy_delete}
+                      resource={data.id}
                       onClick={() => handleClickDelete(data)}>
                         {t('删除')}
                       </auth-button>
