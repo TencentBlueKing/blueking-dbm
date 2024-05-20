@@ -169,7 +169,7 @@
               headerAlign: 'center',
               contentAlign: 'center',
               footerAlign: 'center',
-              onClosed: () => reject(),
+              onCancel: () => reject(),
               onConfirm: () => {
                 const nodeData = {};
                 if (ipSource.value === 'manual_input') {

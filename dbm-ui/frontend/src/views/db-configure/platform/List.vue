@@ -14,7 +14,7 @@
 <template>
   <div class="platform-db-configure-page">
     <TopTab @change="handleChangeTab" />
-    <ApplyPermissionCatch>
+    <ApplyPermissionCatch :key="state.clusterType">
       <div class="configure-content">
         <BkTab
           v-show="showTabs"

@@ -693,6 +693,7 @@
                 permission={data.permission.tendbcluster_node_rebalance}
                 v-db-console="tendbCluster.clusterManage.clusterCapacityChange"
                 disabled={data.operationDisabled}
+                resource={data.id}
                 onClick={() => handleShowCapacityChange(data)}>
                 { t('集群容量变更') }
               </auth-button>

@@ -191,13 +191,6 @@
       label: t('操作'),
       width: 180,
       render: ({ data }: TableRenderData) => {
-        const tipDisabled = !data.is_built_in;
-        const btnDisabled = data.is_built_in || data.used_count > 0;
-        const tips = {
-          disabled: tipDisabled,
-          content: t('内置告警不支持删除'),
-        };
-
         const editBtnPermissionInfo = {
           actionId: data.is_built_in ? 'global_notify_group_update' : 'notify_group_update',
           permission: data.is_built_in ? 'global_notify_group_update' : data.permission.global_notify_group_update
@@ -223,18 +216,19 @@
               onClick={ () => handleOpenDetail('copy', data) }>
               { t('克隆') }
             </auth-button>
-            <span v-bk-tooltips={ tips }>
-              <auth-button
-                action-id="notify_group_delete"
-                resource={data.id}
-                permission={data.permission.notify_group_delete}
-                text
-                disabled={ btnDisabled }
-                theme="primary"
-                onClick={ () => handleDelete(data.id) }>
-                { t('删除') }
-              </auth-button>
-            </span>
+            {
+              !data.is_built_in && (
+                <auth-button
+                  action-id="notify_group_delete"
+                  resource={data.id}
+                  permission={data.permission.notify_group_delete}
+                  text
+                  theme="primary"
+                  onClick={ () => handleDelete(data.id) }>
+                  { t('删除') }
+                </auth-button>
+              )
+            }
           </>
         );
       },

@@ -116,16 +116,16 @@ export function getRedisTableFields() {
  * 获取集群实例列表
  */
 export function getRedisInstances(params: {
-  limit?: number,
-  offset?: number,
-  instance_address?: string,
-  ip?: string,
-  port?: number,
-  domain?: string,
-  status?: string,
-  role?: string,
-  cluster_id?: number,
-  cluster_type?: string
+  limit?: number;
+  offset?: number;
+  instance_address?: string;
+  ip?: string;
+  port?: number;
+  domain?: string;
+  status?: string;
+  role?: string;
+  cluster_id?: number;
+  cluster_type?: string;
 }) {
   return http.get<ListBase<RedisInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
@@ -182,7 +182,7 @@ export function getRedisTopoGraph(params: { cluster_id: number }) {
  * 获取业务拓扑树
  */
 export function getRedisResourceTree(params: { cluster_type: string }) {
-  return http.get<BizConfTopoTreeModel[]>(`${getRootPath()}/resource_tree/`, params);
+  return http.get<BizConfTopoTreeModel[]>(`/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/resource_tree/`, params);
 }
 
 /**

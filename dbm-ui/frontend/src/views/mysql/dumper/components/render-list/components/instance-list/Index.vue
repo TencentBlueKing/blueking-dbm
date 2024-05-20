@@ -373,7 +373,7 @@
             <span>
               <auth-button
                 action-id="tbinlogdumper_enable_disable"
-                resource={data.source_cluster?.id}
+                resource={data.cluster_id}
                 permission={data.permission.tbinlogdumper_enable_disable}
                 text
                 disabled={data.isOperating}
@@ -391,7 +391,7 @@
               <span>
                 <auth-button
                   action-id="tbinlogdumper_reduce_nodes"
-                  resource={data.id}
+                  resource={data.cluster_id}
                   permission={data.permission.tbinlogdumper_reduce_nodes}
                   text
                   disabled={data.isOperating}
