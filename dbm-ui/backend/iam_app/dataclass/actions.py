@@ -866,6 +866,39 @@ class ActionEnum:
         is_ticket_action=True
     )
 
+    DORIS_VIEW = ActionMeta(
+        id="doris_view",
+        name=_("DORIS 集群详情查看"),
+        name_en="doris_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("DORIS"),
+        subgroup=_("集群管理"),
+    )
+
+    DORIS_ACCESS_ENTRY_VIEW = ActionMeta(
+        id="doris_access_entry_view",
+        name=_("DORIS 获取访问方式"),
+        name_en="doris_access_entry_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("DORIS"),
+        subgroup=_("集群管理"),
+    )
+
+    DORIS_ENABLE_DISABLE = ActionMeta(
+        id="doris_enable_disable",
+        name=_("DORIS 集群禁用启用"),
+        name_en="doris_enable_disable",
+        type="execute",
+        related_actions=[DORIS_VIEW.id],
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("DORIS"),
+        subgroup=_("集群管理"),
+    )
+
     KAFKA_VIEW = ActionMeta(
         id="kafka_view",
         name=_("Kafka 集群详情查看"),

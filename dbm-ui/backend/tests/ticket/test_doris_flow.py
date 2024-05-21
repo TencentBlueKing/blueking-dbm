@@ -20,6 +20,10 @@ from backend.db_meta.models import Cluster, Machine, Spec, StorageInstance
 from backend.db_meta.models.db_module import DBModule
 from backend.tests.mock_data.ticket.doris_flow import (
     DORIS_APPLY_TICKET_DATA,
+    DORIS_CLUSTER_DATA,
+    DORIS_DESTROY_TICKET_DATA,
+    DORIS_DISABLE_TICKET_DATA,
+    DORIS_ENABLE_TICKET_DATA,
     DORIS_SOURCE_APPLICATION_DATA,
     DORIS_SPEC_DATA,
 )
@@ -45,9 +49,21 @@ class TestDorisApplyFlow(TestFlowBase, TestCase):
     DORIS APPLY测试类。
     """
 
-    # DORIS single部署: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
+    # DORIS apply: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
     def test_doris_single_apply_flow(self):
         self.flow_test(client, DORIS_APPLY_TICKET_DATA)
+
+    # DORIS disable: start --> itsm --> PAUSE --> INNER_FLOW --> end
+    def test_doris_disable_flow(self):
+        self.flow_test(client, DORIS_DISABLE_TICKET_DATA)
+
+    # DORIS enable: start --> itsm --> PAUSE --> INNER_FLOW --> end
+    def test_doris_enable_flow(self):
+        self.flow_test(client, DORIS_ENABLE_TICKET_DATA)
+
+    # DORIS destroy: start --> itsm --> PAUSE --> INNER_FLOW --> end
+    def test_doris_destroy_flow(self):
+        self.flow_test(client, DORIS_DESTROY_TICKET_DATA)
 
     def apply_patches(self):
         # 扩展基类的apply_patches方法来包括新的patch
@@ -67,6 +83,7 @@ class TestDorisApplyFlow(TestFlowBase, TestCase):
         """
         Spec.objects.all().delete()
         Spec.objects.bulk_create([Spec(**data) for data in DORIS_SPEC_DATA])
+        Cluster.objects.bulk_create([Cluster(**data) for data in DORIS_CLUSTER_DATA])
         super().setup()
 
     def teardown(self):
