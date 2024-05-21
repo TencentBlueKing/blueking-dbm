@@ -260,7 +260,7 @@ export function queryTicketFlowDescribe(params: {
   // eslint-disable-next-line no-param-reassign
   delete params.bk_biz_id;
 
-  return http.get<{
+  return http.get<ListBase<{
     configs: Record<string, boolean>;
     creator: string;
     editable: boolean;
@@ -270,10 +270,7 @@ export function queryTicketFlowDescribe(params: {
     ticket_type_display: string;
     updater: string;
     update_at: string;
-  }[]>(`${path}/query_ticket_flow_describe/`, params).then(data => ({
-    count: data.length,
-    results: data,
-  }));
+  }[]>>(`${path}/query_ticket_flow_describe/`, params);
 }
 
 /**

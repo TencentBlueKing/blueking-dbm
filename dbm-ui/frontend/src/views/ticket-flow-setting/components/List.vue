@@ -286,6 +286,10 @@
     searchValue.value = [];
   };
 
+  onMounted(() => {
+    fetchHostNodes();
+  });
+
 </script>
 <style lang="less" scoped>
 .ticket-flow-list-content {

@@ -168,7 +168,7 @@
       <template v-if="content.flow_type === 'DESCRIBE_TASK'">
         <p>
           <span
-            v-if="content.status === 'SUCCEEDED'"
+            v-if="counts.fail === 0"
             style="color:#2DCB56">{{ t('执行成功') }}</span>
           <span
             v-else
@@ -262,8 +262,10 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TicketModel from '@services/model/ticket/ticket';
+  import { semanticCheckResultLogs } from '@services/source/sqlImport';
   import { batchFetchFile } from '@services/source/storage';
   import { processTicketTodo } from '@services/source/ticket';
   import type {
@@ -280,7 +282,6 @@
   import RenderFileList from '@views/tickets/common/components/demand-factory/mysql/import-sql-file/components/SqlFileList.vue';
   import SqlFileComponent from '@views/tickets/common/components/demand-factory/mysql/LogDetails.vue';
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
-  import useLogCounts from '@views/tickets/common/hooks/logCounts';
 
   import { getCostTimeDisplay, utcDisplayTime, utcTimeToSeconds } from '@utils';
 
@@ -297,10 +298,10 @@
     flows: () => [],
   });
   const emits = defineEmits<Emits>();
-  const { t } = useI18n();
 
-  const { counts, fetchVersion } = useLogCounts();
+  const { t } = useI18n();
   const menuStore = useMenu();
+
   const isShow = ref(false);
   const isShowCollapse = ref(false);
   const isShowSqlFile = ref(false);
@@ -308,6 +309,11 @@
 
   const fileContentMap = shallowRef<Record<string, string>>({});
   const uploadFileList = shallowRef<Array<string>>([]);
+
+  const counts = reactive({
+    success: 0,
+    fail: 0,
+  });
 
   const isShowMore = computed(() => props.ticketData.details.execute_sql_files.length > 6);
 
@@ -349,9 +355,27 @@
   const rootId = computed(() => props.ticketData.details.root_id);
   const nodeId = computed(() => props.ticketData.details.semantic_node_id);
 
+  const { run: fetchSemanticCheckResultLogs } = useRequest(semanticCheckResultLogs, {
+    manual: true,
+    onSuccess(logData) {
+      logData.forEach((item) => {
+        if (item.status === 'SUCCEEDED') {
+          counts.success += 1;
+        }
+        if (item.status === 'FAILED') {
+          counts.fail += 1;
+        }
+      });
+    },
+  });
+
   watch([rootId, nodeId], ([rootId, nodeId]) => {
     if (rootId && nodeId) {
-      fetchVersion(rootId, nodeId);
+      fetchSemanticCheckResultLogs({
+        cluster_type: 'tendbcluster',
+        root_id: rootId,
+        node_id: nodeId,
+      });
     }
   }, { immediate: true });
 
