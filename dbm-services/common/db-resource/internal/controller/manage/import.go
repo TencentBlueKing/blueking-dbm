@@ -13,6 +13,7 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -259,10 +260,10 @@ func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz, labe
 		CityID:          h.IdcCityId,
 		SubZone:         h.SZone,
 		SubZoneID:       h.SZoneID,
-		RackID:          h.Equipment,
+		RackID:          strings.TrimSpace(h.Equipment),
 		SvrTypeName:     h.SvrTypeName,
 		Status:          model.Unused,
-		NetDeviceID:     h.LinkNetdeviceId,
+		NetDeviceID:     strings.TrimSpace(h.LinkNetdeviceId),
 		StorageDevice:   []byte("{}"),
 		TotalStorageCap: h.BkDisk,
 		BkAgentId:       h.BkAgentId,
