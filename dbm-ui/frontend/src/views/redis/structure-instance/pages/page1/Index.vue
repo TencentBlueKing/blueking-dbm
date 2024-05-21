@@ -57,7 +57,6 @@
   import RedisRollbackModel from '@services/model/redis/redis-rollback';
   import { getRollbackList } from '@services/source/redisRollback';
   import { createTicket } from '@services/source/ticket';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useDefaultPagination, useTicketMessage } from '@hooks';
 
@@ -66,12 +65,6 @@
   import { LocalStorageKeys, TicketTypes } from '@common/const';
 
   import useResetTableHeight from '@views/redis/common/hooks/useResetTableHeight';
-
-  interface InfoItem {
-    related_rollback_bill_id: number;
-    prod_cluster: string;
-    bk_cloud_id: number;
-  }
 
   const { currentBizId } = useGlobalBizs();
   const handleDeleteSuccess = useTicketMessage();
@@ -409,10 +402,10 @@
     const dataArr = getCheckedValidList();
     if (!rowData) {
       const infos = dataArr.map((item) => {
-        const { related_rollback_bill_id, prod_cluster, bk_cloud_id } = item;
+        const { related_rollback_bill_id, bk_cloud_id } = item;
         const obj = {
           related_rollback_bill_id,
-          prod_cluster,
+          cluster_id: item.prod_cluster_id,
           bk_cloud_id,
         };
         return obj;
@@ -422,7 +415,7 @@
     return [
       {
         related_rollback_bill_id: rowData.related_rollback_bill_id,
-        prod_cluster: rowData.prod_cluster,
+        cluster_id: rowData.prod_cluster_id,
         bk_cloud_id: rowData.bk_cloud_id,
       },
     ];
@@ -434,7 +427,7 @@
   // 批量销毁
   const handleBatchDestruct = () => {
     const infos = generateRequestParam();
-    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+    const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE,
       details: {
@@ -477,7 +470,7 @@
       return;
     }
     const infos = generateRequestParam(data);
-    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+    const params= {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE,
       details: {
