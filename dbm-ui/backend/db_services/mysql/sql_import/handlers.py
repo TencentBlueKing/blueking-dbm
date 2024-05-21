@@ -325,27 +325,38 @@ class SQLHandler(object):
         current_sql_filename: str = ""
         current_sql_logs: List[Dict] = []
         parsed_sql_logs_results: List[Dict] = []
+
         # 解析sql语义执行日志
         for log in logs:
             message = log["message"]
+            is_start_match = start_patterns.match(message)
+            is_end_match = end_patterns.match(message)
             # 忽略结果日志之前的日志
-            if not current_sql_filename and not start_patterns.match(message):
+            if not current_sql_filename and not is_start_match:
                 continue
+            # 如果当前存在sql名，但匹配到了start，说明当前sql文件非预期结束
+            if current_sql_filename and is_start_match:
+                status = TicketFlowStatus.FAILED
+                parsed_sql_logs_results.append(
+                    {"filename": current_sql_filename, "match_logs": current_sql_logs, "status": status}
+                )
+                current_sql_filename, current_sql_logs = "", []
             # 获取当前的sql名
             if not current_sql_filename:
                 current_sql_filename = start_patterns.match(message).groups()[0]
             # 加入当前的匹配日志
             current_sql_logs.append(log)
-            if not end_patterns.match(message):
-                continue
             # 如果匹配到结束节点，则完成当前sql日志的结果匹配，生成一条匹配记录
-            end_filename = end_patterns.match(message).groups()[0]
-            status = TicketFlowStatus.SUCCEEDED if current_sql_filename == end_filename else TicketFlowStatus.FAILED
-            parsed_sql_logs_results.append(
-                {"filename": current_sql_filename, "match_logs": current_sql_logs, "status": status}
-            )
-            # 清空current_sql_filename, current_sql_logs
-            current_sql_filename, current_sql_logs = "", []
+            if is_end_match:
+                end_filename = end_patterns.match(message).groups()[0]
+                status = (
+                    TicketFlowStatus.SUCCEEDED if current_sql_filename == end_filename else TicketFlowStatus.FAILED
+                )
+                parsed_sql_logs_results.append(
+                    {"filename": current_sql_filename, "match_logs": current_sql_logs, "status": status}
+                )
+                # 清空current_sql_filename, current_sql_logs
+                current_sql_filename, current_sql_logs = "", []
 
         # 如果匹配完成后current_sql_filename仍然有值，说明解析未完成，要根据flow的状态进行判断
         if current_sql_filename:
