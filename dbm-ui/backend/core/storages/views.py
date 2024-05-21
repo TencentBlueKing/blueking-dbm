@@ -9,13 +9,19 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext as _
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.core.storages.handlers import StorageHandler
-from backend.core.storages.serializers import BatchDownloadFileSerializer, CreateTokenSerializer, FileSerializer
+from backend.core.storages.serializers import (
+    BatchDownloadFileSerializer,
+    CreateTokenSerializer,
+    CreateTokenSerializerResponseSerializer,
+    FileSerializer,
+)
 
 SWAGGER_TAG = "storage"
 
@@ -42,7 +48,10 @@ class StorageViewSet(viewsets.SystemViewSet):
         return Response(StorageHandler().delete_file(file_path=file_path))
 
     @common_swagger_auto_schema(
-        operation_summary=_("获取临时凭证"), request_body=CreateTokenSerializer(), tags=[SWAGGER_TAG]
+        operation_summary=_("获取临时凭证"),
+        request_body=CreateTokenSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: CreateTokenSerializerResponseSerializer()},
     )
     @action(methods=["POST"], detail=False, serializer_class=CreateTokenSerializer)
     def create_bkrepo_access_token(self, request):
