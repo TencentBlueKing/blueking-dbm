@@ -100,9 +100,9 @@ BAMBOO_STATE__TICKET_STATE_MAP = {
     # bamboo engine流程的撤销对应单据flow的终止
     StateType.REVOKED.value: TicketFlowStatus.TERMINATED.value,
     StateType.RUNNING.value: TicketFlowStatus.RUNNING.value,
-    # bamboo engine流程的创建/准备对应单据flow的准备
-    StateType.CREATED.value: TicketFlowStatus.PENDING.value,
-    StateType.READY.value: TicketFlowStatus.PENDING.value,
+    # bamboo engine流程的创建/准备对应单据flow的运行
+    StateType.CREATED.value: TicketFlowStatus.RUNNING.value,
+    StateType.READY.value: TicketFlowStatus.RUNNING.value,
 }
 
 EXCLUSIVE_TICKET_EXCEL_PATH = "backend/ticket/exclusive_ticket.xlsx"
