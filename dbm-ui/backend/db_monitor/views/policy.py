@@ -23,6 +23,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
 from backend.db_monitor import serializers
 
+from ... import env
 from ...configuration.constants import PLAT_BIZ_ID, DBType
 from ...db_meta.enums import ClusterType, InstanceRole
 from ...db_meta.models import Cluster, DBModule, StorageInstance
@@ -279,8 +280,12 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     )
     def callback(self, request, *args, **kwargs):
         # 监控回调需要使用 Bearer Token 进行验证
-        bearer_token = request.META.get("HTTP_AUTHORIZATION", "")
-        print(f"{bearer_token} bearer_token")
-        # if settings.SECRET_KEY not in bearer_token:
-        #     raise AuthenticationFailed(_('Bearer token is invalid'))
+        # 从请求头中获取 Authorization 头
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            raise PermissionError("Missing Authorization header")
+        # 提取 Bearer Token
+        token = auth_header.split(" ")[1]
+        if token != env.BKMONITOR_BEARER_TOKEN:
+            raise PermissionError("Bearer token is not valid")
         return Response(Ticket.create_ticket_from_bk_monitor(self.validated_data))

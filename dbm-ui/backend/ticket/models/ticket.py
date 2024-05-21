@@ -212,18 +212,18 @@ class Ticket(AuditedModel):
         """
         from backend.ticket.builders import BuilderFactory
 
-        ticket_type = callback_data["ticket_type"]
-        alarm_transform_serializer = BuilderFactory.get_builder_cls(ticket_type).alarm_transform_serializer
-        if alarm_transform_serializer is None:
-            raise AutofixException(_("不支持该类型的单据"))
-        ticket_details = alarm_transform_serializer().to_internal_value(callback_data)
-        cls.create_ticket(
-            ticket_type=ticket_type,
-            creator=callback_data["creator"],
-            bk_biz_id=callback_data["callback_message"]["event"]["dimensions"]["appid"],
-            remark=_("发起故障自愈，告警事件 ID：").format(callback_data["callback_message"]["event"]["id"]),
-            details=ticket_details,
-        )
+        for ticket_type in callback_data["ticket_types"]:
+            alarm_transform_serializer = BuilderFactory.get_builder_cls(ticket_type).alarm_transform_serializer
+            if alarm_transform_serializer is None:
+                raise AutofixException(_("不支持该类型的单据"))
+            ticket_details = alarm_transform_serializer().to_internal_value(callback_data)
+            cls.create_ticket(
+                ticket_type=ticket_type,
+                creator=callback_data["creator"],
+                bk_biz_id=callback_data["callback_message"]["event"]["dimensions"]["appid"],
+                remark=_("发起故障自愈，告警事件 ID：").format(callback_data["callback_message"]["event"]["id"]),
+                details=ticket_details,
+            )
 
 
 class TicketFlowConfig(AuditedModel):
