@@ -58,6 +58,7 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         TicketType.MYSQL_RESTORE_LOCAL_SLAVE.value,
         TicketType.MYSQL_RESTORE_SLAVE.value,
         TicketType.MYSQL_HA_TRUNCATE_DATA.value,
+        TicketType.MYSQL_PARTITION.value,
     ]
     MASTER_UNAVAILABLE_WHITELIST = [
         TicketType.MYSQL_MASTER_FAIL_OVER.value,
