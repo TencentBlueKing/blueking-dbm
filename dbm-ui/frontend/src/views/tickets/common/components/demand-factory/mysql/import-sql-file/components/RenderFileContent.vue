@@ -131,6 +131,10 @@
   let editor: monaco.editor.IStandaloneCodeEditor;
 
   watch(() => props.modelValue, () => {
+    if (!props.modelValue) {
+      return;
+    }
+
     handleGrammarCheck();
     setTimeout(() => {
       if (props.modelValue !== editor.getValue()) {
@@ -144,7 +148,6 @@
 
   watch(isMessageListFolded, () => {
     if (isMessageListFolded.value && messageList.value.length === 0) {
-      console.log('resizeLayoutInitialDivide.value>>>', resizeLayoutInitialDivide.value);
       resizeLayoutInitialDivide.value = 0;
       return;
     }

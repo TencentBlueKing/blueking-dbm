@@ -36,7 +36,7 @@
                 style="color:#3A84FF"
                 type="file" />
               <span>
-                <span style="color:#3A84FF">{{ fileName }}</span>，
+                <span style="color:#3A84FF">{{ fileName.replace(/[^_]+_/, '') }}</span>，
                 <span v-if="ticketData.details.grammar_check_info[fileName].highrisk_warnings?.length > 0">
                   <I18nT
                     keypath="含有n个高危语句"
@@ -69,7 +69,7 @@
       <template v-if="content.flow_type === 'DESCRIBE_TASK'">
         <p>
           <span
-            v-if="content.status === 'SUCCEEDED'"
+            v-if="counts.fail === 0"
             style="color:#2DCB56">{{ t('执行成功') }}</span>
           <span
             v-else
@@ -148,8 +148,10 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TicketModel from '@services/model/ticket/ticket';
+  import { semanticCheckResultLogs } from '@services/source/sqlImport';
   import { batchFetchFile } from '@services/source/storage';
   import type { FlowItem, MySQLImportSQLFileDetails } from '@services/types/ticket';
 
@@ -158,7 +160,6 @@
   import SqlFileComponent from '@views/tickets/common/components/demand-factory/mysql/LogDetails.vue';
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
-  import useLogCounts from '@views/tickets/common/hooks/logCounts';
 
   import { getCostTimeDisplay } from '@utils';
 
@@ -176,7 +177,6 @@
   });
   const emits = defineEmits<Emits>();
 
-  const { counts, fetchVersion } = useLogCounts();
   const { t } = useI18n();
 
   const isShow = ref(false);
@@ -186,6 +186,11 @@
 
   const fileContentMap = shallowRef<Record<string, string>>({});
   const uploadFileList = shallowRef<Array<string>>([]);
+
+  const counts = reactive({
+    success: 0,
+    fail: 0,
+  });
 
   const isShowMore = computed(() => props.ticketData.details.execute_sql_files.length > 6);
 
@@ -222,9 +227,27 @@
   const rootId = computed(() => props.ticketData.details.root_id);
   const nodeId = computed(() => props.ticketData.details.semantic_node_id);
 
+  const { run: fetchSemanticCheckResultLogs } = useRequest(semanticCheckResultLogs, {
+    manual: true,
+    onSuccess(logData) {
+      logData.forEach((item) => {
+        if (item.status === 'SUCCEEDED') {
+          counts.success += 1;
+        }
+        if (item.status === 'FAILED') {
+          counts.fail += 1;
+        }
+      });
+    },
+  });
+
   watch([rootId, nodeId], ([rootId, nodeId]) => {
     if (rootId && nodeId) {
-      fetchVersion(rootId, nodeId);
+      fetchSemanticCheckResultLogs({
+        cluster_type: 'mysql',
+        root_id: rootId,
+        node_id: nodeId,
+      });
     }
   }, { immediate: true });
 

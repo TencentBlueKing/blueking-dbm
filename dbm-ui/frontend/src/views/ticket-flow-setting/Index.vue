@@ -85,7 +85,7 @@
     },
   ];
 
-  const curTab = ref<string>((route.query.spec_cluster_type as string) || ClusterTypes.TENDBSINGLE);
+  const curTab = ref<string>((route.query.db_type as string) || ClusterTypes.TENDBSINGLE);
   const curChildTab = ref('');
 
   const renderTabs = computed(() => tabs.filter((item) => {
