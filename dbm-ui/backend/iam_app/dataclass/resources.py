@@ -303,6 +303,14 @@ class EsResourceMeta(ClusterResourceMeta):
 
 
 @dataclass
+class DorisResourceMeta(ClusterResourceMeta):
+    """doris集群resource 属性定义"""
+
+    id: str = "doris"
+    name: str = _("DORIS集群")
+
+
+@dataclass
 class KafkaResourceMeta(ClusterResourceMeta):
     """kafka集群resource 属性定义"""
 
@@ -642,6 +650,7 @@ class ResourceEnum:
     REDIS = RedisResourceMeta()
     INFLUXDB = InfluxDBResourceMeta()
     ES = EsResourceMeta()
+    DORIS = DorisResourceMeta()
     KAFKA = KafkaResourceMeta()
     HDFS = HdfsResourceMeta()
     PULSAR = PulsarResourceMeta()

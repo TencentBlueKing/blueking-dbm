@@ -8,30 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
-
-from blue_krill.data_types.enum import EnumField, StructuredEnum
-
-ES_DEFAULT_PORT = 9200
-
-# 用户指定访问HDFS的WEB端口，默认50070，禁用2181，8480，8485
-HDFS_DEFAULT_HTTP_PORT = 50070
-
-# 用户指定访问HDFS的RPC端口，默认9000，禁用2181，8480，8485，不能与http_port相同
-HDFS_DEFAULT_RPC_PORT = 9000
-
-KAFKA_DEFAULT_PORT = 9200
-
-DORIS_DEFAULT_HTTP_PORT = 8030
-DORIS_DEFAULT_QUERY_PORT = 9030
-
-
-IP_PORT_DIVIDER = ":"
-SPACE_DIVIDER = " "
-
-
-class IpSource(str, StructuredEnum):
-    """主机来源枚举"""
-
-    MANUAL_INPUT = EnumField("manual_input", _("手动录入"))
-    RESOURCE_POOL = EnumField("resource_pool", _("资源池"))

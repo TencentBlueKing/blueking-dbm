@@ -29,15 +29,19 @@ class DorisDnsManageService(BaseService):
     定义doris集群域名管理的活动节点,目前只支持添加域名、删除域名
     """
 
-    def __init__(self):
-        super(DorisDnsManageService, self).__init__()
+    def __init__(self, name=None):
+        super(DorisDnsManageService, self).__init__(name)
         self.order_list = [
             DorisRoleEnum.OBSERVER.value,
             DorisRoleEnum.FOLLOWER.value,
+            DorisRoleEnum.HOT.value,
+            DorisRoleEnum.COLD.value,
         ]
         self.es_role_to_instance_role_map = {
             DorisRoleEnum.OBSERVER.value: InstanceRole.DORIS_OBSERVER.value,
             DorisRoleEnum.FOLLOWER.value: InstanceRole.DORIS_FOLLOWER.value,
+            DorisRoleEnum.HOT.value: InstanceRole.DORIS_BACKEND_HOT.value,
+            DorisRoleEnum.COLD.value: InstanceRole.DORIS_BACKEND_COLD.value,
         }
 
     def __get_dns_exec_ips(self, global_data) -> list:
