@@ -231,6 +231,7 @@ class AlarmCallBackDataSerializer(serializers.Serializer):
 
     def to_internal_value(self, data):
         data = super().to_internal_value(data)
+        ticket_types = []
 
         # 取告警负责人作为单据创建人
         data["creator"] = data["appointees"].split(",")[0]
@@ -243,7 +244,8 @@ class AlarmCallBackDataSerializer(serializers.Serializer):
         # 取关联的的故障自愈处理单据
         for label in labels:
             if label in TicketType.get_values():
-                data["ticket_type"] = label
-        if data.get("ticket_type") is None:
-            raise AutofixException(_("未匹配到对应的故障自愈处理单据，请确认"))
+                ticket_types.append(label)
+        if not ticket_types:
+            raise AutofixException(_("未匹配到对应的故障自愈处理单据，请确认是否配置正确"))
+        data["ticket_types"] = ticket_types
         return data

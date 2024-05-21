@@ -129,6 +129,9 @@ GRAFANA_URL = get_type_env(key="GRAFANA_URL", _type=str, default="")
 # grafana监控数据源地址
 BKMONITOR_URL = get_type_env(key="BKMONITOR_URL", _type=str, default="")
 
+# 监控处理套餐 Bearer Token
+BKMONITOR_BEARER_TOKEN = get_type_env(key="BKMONITOR_BEARER_TOKEN", _type=str, default=SECRET_KEY[:16])
+
 # mysql-crond 相关
 MYSQL_CROND_BEAT_PATH = get_type_env(
     key="MYSQL_CROND_BEAT_PATH", _type=str, default="/usr/local/gse_bkte/plugins/bin/bkmonitorbeat"

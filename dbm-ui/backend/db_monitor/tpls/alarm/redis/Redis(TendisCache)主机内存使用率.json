@@ -259,7 +259,8 @@
     },
     "labels": [
       "DBM",
-      "DBM_REDIS"
+      "DBM_REDIS",
+      "REDIS_CLUSTER_MAXMEMORY_SET"
     ],
     "app": "",
     "path": "",
