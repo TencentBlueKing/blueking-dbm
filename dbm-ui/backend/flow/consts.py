@@ -138,6 +138,9 @@ AUTH_ADDRESS_DIVIDER = ":"
 # ES默认部署的实例数
 ES_DEFAULT_INSTANCE_NUM = 1
 
+# DORIS默认部署的实例数
+DORIS_DEFAULT_INSTANCE_NUM = 2
+
 # MySQL 系统内置账号列表
 MYSQL_SYS_USER = ["system user", "event_scheduler"]
 

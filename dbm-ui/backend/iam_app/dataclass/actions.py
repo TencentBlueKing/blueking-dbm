@@ -859,6 +859,13 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    DORIS_APPLY = ActionMeta(
+        id=TicketType.DORIS_APPLY.lower(),
+        related_resource_types=[ResourceEnum.BUSINESS],
+        subgroup=_("集群管理"),
+        is_ticket_action=True
+    )
+
     KAFKA_VIEW = ActionMeta(
         id="kafka_view",
         name=_("Kafka 集群详情查看"),

@@ -271,6 +271,10 @@ class BaseEsTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuil
     group = DBType.Es.value
 
 
+class BaseDorisTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.Doris.value
+
+
 class BaseHdfsTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Hdfs.value
 

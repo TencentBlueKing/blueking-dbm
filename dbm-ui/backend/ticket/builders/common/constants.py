@@ -15,6 +15,14 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 ES_MASTER_NEED = 3
 
+DORIS_PORT_START = 5000
+DORIS_PORT_END = 65536
+DORIS_INVALID_PORTS = [9020, 9010]
+DORIS_FOLLOWER_NEED = 3
+DORIS_OBSERVER_ZERO = 0
+DORIS_OBSERVER_MIN = 2
+DORIS_HOT_COLD_LIMIT = 2
+
 HDFS_DATANODE_MIN = 2
 HDFS_NAMENODE_NEED = 2
 HDFS_ZK_JN_NEED = 3
@@ -57,6 +65,12 @@ class BigDataRole(object):
         BOOKKEEPER = EnumField("bookkeeper", _("bookkeeper"))
         ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
         BROKER = EnumField("broker", _("broker"))
+
+    class Doris(str, StructuredEnum):
+        HOT = EnumField("hot", _("hot"))
+        COLD = EnumField("cold", _("cold"))
+        FOLLOWER = EnumField("follower", _("follower"))
+        OBSERVER = EnumField("observer", _("observer"))
 
 
 class RedisRole(str, StructuredEnum):
