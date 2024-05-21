@@ -64,7 +64,7 @@ class DorisEnableFlow(DorisBaseFlow):
         )
 
         all_ips = self.get_all_node_ips_in_dbmeta()
-        # act_kwargs.exec_ip = all_ips
+        act_kwargs.exec_ip = all_ips
         doris_pipeline.add_act(
             act_name=_("下发doris actuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )

@@ -38,6 +38,29 @@ DORIS_APPLY_TICKET_DATA = {
     },
 }
 
+# doris启用单据
+DORIS_ENABLE_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "remark": "测试启用doris集群",
+    "ticket_type": TicketType.DORIS_ENABLE,
+    "details": {"cluster_id": CLUSTER_ID + 1},
+}
+
+# doris禁用单据
+DORIS_DISABLE_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "remark": "测试禁用doris集群",
+    "ticket_type": TicketType.DORIS_DISABLE,
+    "details": {"cluster_id": CLUSTER_ID},
+}
+
+# doris下架单据
+DORIS_DESTROY_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "remark": "测试下架doris集群",
+    "ticket_type": TicketType.DORIS_DESTROY,
+    "details": {"cluster_id": CLUSTER_ID + 1},
+}
 
 # DORIS 资源申请
 DORIS_SOURCE_APPLICATION_DATA = [
@@ -161,5 +184,46 @@ DORIS_SPEC_DATA = [
         "device_class": [-1],
         "qps": {"max": 0, "min": 0},
         "enable": 1,
+    },
+]
+
+
+# 初始化doris集群
+DORIS_CLUSTER_DATA = [
+    {
+        "id": CLUSTER_ID,
+        "creator": BK_USERNAME,
+        "updater": BK_USERNAME,
+        "name": "doris-test1",
+        "alias": "doris-test1",
+        "bk_biz_id": BK_BIZ_ID,
+        "cluster_type": ClusterType.Doris,
+        "db_module_id": 0,
+        "immute_domain": "doris.doris01.dba.db",
+        "major_version": "2.0.4",
+        "phase": "online",
+        "status": "normal",
+        "bk_cloud_id": 0,
+        "region": "default",
+        "time_zone": "+08:00",
+        "disaster_tolerance_level": "NONE",
+    },
+    {
+        "id": CLUSTER_ID + 1,
+        "creator": BK_USERNAME,
+        "updater": BK_USERNAME,
+        "name": "doris-test2",
+        "alias": "doris-test2",
+        "bk_biz_id": BK_BIZ_ID,
+        "cluster_type": ClusterType.Doris,
+        "db_module_id": 0,
+        "immute_domain": "doris.doris02.dba.db",
+        "major_version": "2.0.4",
+        "phase": "offline",
+        "status": "normal",
+        "bk_cloud_id": 0,
+        "region": "default",
+        "time_zone": "+08:00",
+        "disaster_tolerance_level": "NONE",
     },
 ]
