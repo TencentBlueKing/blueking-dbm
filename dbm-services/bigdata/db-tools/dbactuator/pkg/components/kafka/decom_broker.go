@@ -2,7 +2,7 @@ package kafka
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -85,7 +85,7 @@ func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
 		// /data/kafkaenv/host.json
 		jsonFile := fmt.Sprintf("%s/%s.json", cst.DefaultKafkaEnv, broker)
 		logger.Info("jsonfile: %s", jsonFile)
-		if err = ioutil.WriteFile(jsonFile, []byte(topicJSON), 0644); err != nil {
+		if err = os.WriteFile(jsonFile, []byte(topicJSON), 0644); err != nil {
 			logger.Error("write %s failed, %v", jsonFile, err)
 			return err
 		}
@@ -120,43 +120,34 @@ func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
 	return nil
 }
 
-// DoDecomBrokers TODO
-/**
- *  @description:
- *  @return
- */
-func (d *DecomBrokerComp) DoDecomBrokers() error {
-
+// DoDecomBrokers 进行 Kafka broker 的缩容
+func (d *DecomBrokerComp) DoDecomBrokers() (err error) {
+	var id string
+	// 连接到 Zookeeper
 	zkHost := d.Params.ZookeeperIP + ":2181"
-	brokers := d.Params.ExcludeBrokers
-
-	// connect to zk
 	conn, _, err := zk.Connect([]string{zkHost}, 10*time.Second) // *10)
 	if err != nil {
 		logger.Error("Connect zk failed, %s", err)
 		return err
 	}
 	defer conn.Close()
-
-	/*
-		allIds, err := kafkautil.GetBrokerIds(zkHost)
-		if err != nil {
-			logger.Error("can't get broker ids", err)
-			return err
-		}
-	*/
+	// 获取要缩容的 broker 的 ID
 	var excludeIds []string
-	for _, broker := range brokers {
-
-		id, err := kafkautil.GetBrokerIDByHost(conn, broker)
+	for _, broker := range d.Params.ExcludeBrokers {
+		id, err = kafkautil.GetBrokerIDByHost(conn, broker)
 		if err != nil {
 			logger.Error("cant get %s broker id, %s", broker, err)
-			return err
+			continue
 		}
 		excludeIds = append(excludeIds, id)
 	}
+	// 假如缩容的host已经不在kafka集群,例如机器故障已经关机了,这种情况不生成执行计划
+	if len(excludeIds) == 0 {
+		logger.Info("缩容的broker不在集群里面.")
+		return nil
+	}
 	logger.Info("excludeIds: %v", excludeIds)
-	// Get topics
+	// 获取主题并写入 JSON 文件
 	b, err := kafkautil.WriteTopicJSON(zkHost)
 	if err != nil {
 		return err
@@ -165,14 +156,13 @@ func (d *DecomBrokerComp) DoDecomBrokers() error {
 		logger.Info("No need to do reassignment.")
 		return nil
 	}
-
 	logger.Info("Creating topic.json file")
 	topicJSONFile := fmt.Sprintf("%s/topic.json", cst.DefaultKafkaEnv)
-	if err := ioutil.WriteFile(topicJSONFile, b, 0644); err != nil {
+	if err = os.WriteFile(topicJSONFile, b, 0644); err != nil {
 		logger.Error("write %s failed, %s", topicJSONFile, err)
 		return err
 	}
-
+	// 生成分区副本重分配的计划并写入 JSON 文件
 	logger.Info("Creating plan.json file")
 	err = kafkautil.GenReassignmentJSON(conn, zkHost, excludeIds)
 	if err != nil {
@@ -180,8 +170,9 @@ func (d *DecomBrokerComp) DoDecomBrokers() error {
 		return err
 	}
 
+	// 执行分区副本重分配
 	logger.Info("Execute the plan")
-	planJSONFile := fmt.Sprintf("%s/plan.json", cst.DefaultKafkaEnv)
+	planJSONFile := cst.PlanJSONFile
 	err = kafkautil.DoReassignPartitions(zkHost, planJSONFile)
 	if err != nil {
 		logger.Error("Execute partitions reassignment failed %s", err)
@@ -191,46 +182,81 @@ func (d *DecomBrokerComp) DoDecomBrokers() error {
 	return nil
 }
 
-// DoPartitionCheck TODO
+// DoPartitionCheck 检查Kafka分区搬迁的状态。
+// 这个过程会重复检查搬迁状态，直到所有分区都成功搬迁或达到最大重试次数。
 func (d *DecomBrokerComp) DoPartitionCheck() (err error) {
-	const MaxRetry = 5
-	count := 0
-	zkHost := d.Params.ZookeeperIP + ":2181"
-	jsonFile := fmt.Sprintf("%s/plan.json", cst.DefaultKafkaEnv)
-	topicJSONFile := fmt.Sprintf("%s/topic.json", cst.DefaultKafkaEnv)
+	// 定义最大重试次数为288次
+	const MaxRetry = 288
+	count := 0                                                         // 初始化计数器
+	zkHost := d.Params.ZookeeperIP + ":2181"                           // 构建Zookeeper的连接字符串
+	jsonFile := cst.PlanJSONFile                                       // 搬迁计划文件
+	topicJSONFile := fmt.Sprintf("%s/topic.json", cst.DefaultKafkaEnv) // Kafka主题配置文件
 
+	// 循环检查搬迁状态
 	for {
-		count++
+		count++ // 增加重试计数
 		logger.Info("检查搬迁状态，次数[%d]", count)
 
+		// 如果topic.json文件不存在，表示没有需要检查的搬迁进度
 		if !osutil.FileExist(topicJSONFile) {
-			logger.Info("[%s] no exist, no need to check progress.")
-			break
+			logger.Info("[%s] no exist, no need to check progress.", topicJSONFile)
+			break // 退出循环
 		}
 
+		// 调用kafkautil.CheckReassignPartitions来检查搬迁进度
 		out, err := kafkautil.CheckReassignPartitions(zkHost, jsonFile)
 		if err != nil {
+			// 如果检查失败，记录错误并返回
 			logger.Error("检查partition搬迁进度失败 %v", err)
 			return err
 		}
+		// 记录当前搬迁进度
 		logger.Info("当前进度: [%s]", out)
+		// 如果输出为空，表示搬迁完成
 		if len(out) == 0 {
 			logger.Info("数据搬迁完成")
-			break
+			break // 退出循环
 		}
 
+		// 如果达到最大重试次数，记录错误并返回超时错误
 		if count == MaxRetry {
 			logger.Error("检查数据搬迁超时,可以选择重试")
 			return fmt.Errorf("检查扩容状态超时,可以选择重试")
 		}
-		time.Sleep(60 * time.Second)
+		// 等待5分钟后再次检查
+		time.Sleep(300 * time.Second)
 	}
 
+	// 搬迁完成后的日志信息
 	logger.Info("分区已搬空, 若有新增topic, 请检查分区分布")
 	logger.Info("清理计划文件")
-	extraCmd := fmt.Sprintf("rm -f %s %s", jsonFile, topicJSONFile)
+	// 构建清理计划文件的命令
+	extraCmd := fmt.Sprintf("rm -f %s %s %s", jsonFile, topicJSONFile, cst.RollbackFile)
 	logger.Info("cmd: [%s]", extraCmd)
+	// 执行清理命令
 	osutil.ExecShellCommandBd(false, extraCmd)
 
+	// 函数成功完成，返回nil
+	return nil
+}
+
+// DoEmptyCheck 检查broker数据目录为空
+func (d *DecomBrokerComp) DoEmptyCheck() (err error) {
+	// 从配置文件中读取数据目录
+	dataDirs, err := kafkautil.ReadDataDirs(cst.KafkaConfigFile)
+	if err != nil {
+		logger.Error("Error reading data directories from config file: %v", err)
+		return err
+	}
+	// 检查Broker是否为空
+	empty, err := kafkautil.IsBrokerEmpty(dataDirs)
+	if err != nil {
+		logger.Error("Error checking if the broker is empty: %v", err)
+		return err
+	}
+	if !empty {
+		errMsg := fmt.Errorf("The broker is not empty.")
+		return errMsg
+	}
 	return nil
 }
