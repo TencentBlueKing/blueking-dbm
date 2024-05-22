@@ -87,37 +87,37 @@
     {
       label: t('数据库管理'),
       value: menuEnum.databaseManage,
-      dbConsoleValue: 'databaseManage'
+      dbConsoleValue: 'databaseManage',
     },
     {
       label: t('可观测'),
       value: menuEnum.observableManage,
-      dbConsoleValue: 'observableManage'
+      dbConsoleValue: 'observableManage',
     },
     {
       label: t('业务配置'),
       value: menuEnum.configManage,
-      dbConsoleValue: 'bizConfigManage'
+      dbConsoleValue: 'bizConfigManage',
     },
     userProfile.rerourceManage && {
       label: t('资源管理'),
       value: menuEnum.resourceManage,
-      dbConsoleValue: 'resourceManage'
+      dbConsoleValue: 'resourceManage',
     },
     userProfile.globalManage && {
       label: t('全局配置'),
       value: menuEnum.platformManage,
-      dbConsoleValue: 'globalConfigManage'
+      dbConsoleValue: 'globalConfigManage',
     },
     {
       label: t('个人工作台'),
       value: menuEnum.personalWorkbench,
-      dbConsoleValue: 'personalWorkbench'
+      dbConsoleValue: 'personalWorkbench',
     },
   ].filter((item) => item) as {
     label: string;
-    value: string,
-    dbConsoleValue: string,
+    value: string;
+    dbConsoleValue: string;
   }[];
 
   const routeGroup = {
@@ -231,6 +231,7 @@
     }
 
     .navigation-nav {
+      z-index: 1001 !important;
       .split-line {
         margin: 0 20px 0 60px;
         border-bottom: solid #29344c 1px;
