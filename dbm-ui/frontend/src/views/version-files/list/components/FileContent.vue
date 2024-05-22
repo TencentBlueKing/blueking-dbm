@@ -105,15 +105,26 @@
             ref="uplodRef"
             v-bk-tooltips="fileTips"
             :accept="acceptInfo.accept"
+            :auto-upload="false"
             :disabled="!createFileState.formdata.version"
-            :form-data-attributes="uploadAttributes"
-            :header="{ name: 'X-CSRFToken', value: Cookies.get('dbm_csrftoken') }"
+            :header="[
+              {
+                name: 'X-CSRFToken',
+                value: Cookies.get('dbm_csrftoken'),
+              },
+              {
+                name: 'X-BKREPO-OVERWRITE',
+                value: true,
+              }
+            ]"
+            method="put"
             :multiple="false"
             name="file"
-            :size="1024"
+            :size="10240"
             :tip="acceptInfo.tips"
             :url="createFileState.uploadUrl"
             with-credentials
+            @change="handleSeleFileChange"
             @delete="handleDeleteFile"
             @success="handleUpdateSuccess" />
         </BkFormItem>
@@ -146,6 +157,7 @@
     createPackage,
     updatePackage,
   } from '@services/source/package';
+  import { createBkrepoAccessToken } from '@services/source/storage';
   import { getVersions } from '@services/source/version';
 
   import {
@@ -187,6 +199,9 @@
   const copy = useCopy();
   const tableMaxHeight = useTableMaxHeight(340);
 
+  const uplodRef = ref();
+  const versionFormRef = ref<InstanceType<typeof Form>>();
+
   const state = reactive<IState>({
     active: '',
     isLoading: false,
@@ -195,6 +210,17 @@
     data: [] as VersionFileModel[],
     search: '',
   });
+
+  /** 新增文件功能 */
+  const createFileState = reactive({
+    isShow: false,
+    isLoading: false,
+    isLoadVersions: false,
+    uploadUrl: '',
+    versions: [] as string[],
+    formdata: initCreateFormdata(),
+  });
+
   // 类型参数
   const typeParams = computed(() => ({
     db_type: props.info.name,
@@ -211,37 +237,11 @@
     disabled: !!createFileState.formdata.version,
   }));
 
-  /** 操作列表基础方法 */
-  const {
-    fetchPackages,
-    handleChangePage,
-    handeChangeLimit,
-    handleConfirmDelete,
-  } = useVersionFiles(state, typeParams);
-
-  /** 新增文件功能 */
-  const createFileState = reactive({
-    isShow: false,
-    isLoading: false,
-    isLoadVersions: false,
-    uploadUrl: `${window.location.origin}/apis/packages/upload/`,
-    versions: [] as string[],
-    formdata: initCreateFormdata(),
-  });
-
-  const versionFormRef = ref<InstanceType<typeof Form>>();
-  // 上传文件附带参数
-  const uploadAttributes = computed(() => ([
-    { name: 'version', value: createFileState.formdata.version },
-    { name: 'pkg_type', value: state.active },
-    { name: 'db_type', value: props.info.name },
-  ]));
-
   const acceptInfo = computed(() => {
     const limitTypes = ['mysql', 'mysql-proxy'];
     if (limitTypes.includes(state.active)) {
       return {
-        accept: 'tar.gz',
+        accept: '.tar.gz',
         tips: t('支持上传tar_gz压缩格式文件_文件大小不超过1GB'),
       };
     }
@@ -370,6 +370,14 @@
     }],
   };
 
+  /** 操作列表基础方法 */
+  const {
+    fetchPackages,
+    handleChangePage,
+    handeChangeLimit,
+    handleConfirmDelete,
+  } = useVersionFiles(state, typeParams);
+
   const { run: runUpdatePackage } = useRequest(updatePackage, {
     manual: true,
     onSuccess: () => {
@@ -377,6 +385,44 @@
       fetchPackages();
     },
   });
+
+  watch(() => state.active, (value, old) => {
+    if (value && value !== old) {
+      state.search = '';
+      handleChangePage(1);
+      // 大数据类型不需要拉取版本
+      if (!isInputType.value) {
+        fetchVersions();
+      }
+    }
+  }, { immediate: true });
+
+  // TODO:旧版本的组件库不支持 select-change属性，只能暂时用change事件来处理
+  const handleSeleFileChange = async (e: { target: HTMLInputElement }) => {
+    const dbType = props.info.name;
+    const pkgType = state.active;
+    const { version } = createFileState.formdata;
+    const fileObj = e.target.files![0];
+    const filename = fileObj.name;
+    const limitTypes = ['mysql', 'mysql-proxy'];
+    if (limitTypes.includes(state.active)) {
+      if (!filename.endsWith('tar.gz')) {
+        return;
+      }
+    }
+
+    const filePath = `/${dbType}/${pkgType}/${version}/${filename}`;
+    const tokenResult = await createBkrepoAccessToken({ file_path: filePath });
+    const uploadDomain = import.meta.env.MODE === 'production' ? tokenResult.url : '/bkrepo_upload';
+    createFileState.uploadUrl = `${uploadDomain}/generic/temporary/upload/${tokenResult.project}/${tokenResult.repo}${tokenResult.path}?token=${tokenResult.token}`;
+
+    // 等待url更新之后再触发上传
+    nextTick(() => {
+      uplodRef.value.handleRetry({
+        raw: fileObj,
+      });
+    });
+  };
 
   const handleSetDefaultVersion = (row: VersionFileModel) => {
     if (!row.enable) {
@@ -395,11 +441,10 @@
     });
   };
 
-  function handleClearSearch() {
+  const handleClearSearch = () => {
     state.search = '';
     handleChangePage(1);
-  }
-
+  };
 
   /**
    * 获取版本号列表
@@ -419,17 +464,6 @@
         createFileState.isLoadVersions = false;
       });
   };
-
-  watch(() => state.active, (value, old) => {
-    if (value && value !== old) {
-      state.search = '';
-      handleChangePage(1);
-      // 大数据类型不需要拉取版本
-      if (!isInputType.value) {
-        fetchVersions();
-      }
-    }
-  }, { immediate: true });
 
   /**
    * 新增版本
