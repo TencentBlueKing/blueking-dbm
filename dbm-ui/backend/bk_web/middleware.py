@@ -137,7 +137,10 @@ class ExternalProxyMiddleware(MiddlewareMixin):
         """校验当前动作的权限类是否为空，默认为空允许转发"""
         func = resolve(request.path).func
         action = func.actions.get(request.method.lower())
-        if func.cls().get_permission_class_with_action(action):
+
+        if hasattr(func.cls(), "get_permission_class_with_action") and func.cls().get_permission_class_with_action(
+            action
+        ):
             return False
         # 缓存到路由白名单中，不用下次校验。TODO: 缓存的数量级会过大吗？
         self.routing_patterns.append(request.path)
@@ -166,12 +169,6 @@ class ExternalProxyMiddleware(MiddlewareMixin):
         # home请求和版本请求非转发
         if func_path_splits[1] in ["homepage", "version_log", "contrib"]:
             return True
-        # grafana面板请求非转发
-        if func_path_splits[1] == "bk_dataview":
-            if func_path_splits[-1] in ["StaticView", "SwitchOrgView"]:
-                return True
-            if func_path_splits[-1] == "ProxyView" and request.path.split("/")[3] != "datasources":
-                return True
         return False
 
     def __parser_request_url(self, request):

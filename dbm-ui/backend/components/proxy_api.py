@@ -14,6 +14,7 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.components.base import DataAPI
 from backend.components.exception import DataAPIException
+from backend.components.utils.params import add_esb_info_before_request
 from backend.db_proxy.models import DBCloudProxy
 
 
@@ -67,18 +68,9 @@ class ExternalProxyAPI(DataAPI):
         # 添加自定义headers
         headers = headers or {}
         headers.update({"IS-EXTERNAL": "true"})
+        params = add_esb_info_before_request(params)
 
-        # 调用父类的call，请求接口
-        return super().__call__(
-            params=params,
-            data=data,
-            raw=raw,
-            timeout=timeout,
-            raise_exception=raise_exception,
-            use_admin=use_admin,
-            headers=headers,
-            current_retry_times=current_retry_times,
-        )
+        return self._send(params, headers, use_admin)
 
     def _set_session_cookies(self, session, cookies=None, use_admin=False):
         # 转发路由要设置session为空，否则网关会优先以session的用户认证，而忽略headers的bk_username
