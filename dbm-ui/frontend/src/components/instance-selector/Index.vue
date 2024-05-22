@@ -98,18 +98,21 @@
 
   export interface IValue {
     [key: string]: any;
-    bk_host_id: number;
     bk_cloud_id: number;
     bk_cloud_name: string;
+    bk_host_id: number;
+    cluster_id: number;
+    cluster_name: string;
+    cluster_type: string;
+    db_module_id: number;
+    db_module_name: string;
+    id: number;
     ip: string;
     port: number;
     instance_address: string;
-    cluster_id: number;
-    cluster_type: string;
     status?: string;
     host_info?: any;
-    id?: number;
-    master_domain?: string;
+    master_domain: string;
     related_instances?: {
       instance: string;
       status: string;
@@ -254,7 +257,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: Props['selected']): void;
+    (e: 'change', value: NonNullable<Props['selected']>): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {

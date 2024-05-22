@@ -12,25 +12,21 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <TableEditInput
-      ref="inputRef"
-      :model-value="clusterData?.cluster_name"
-      :placeholder="t('输入集群后自动生成')"
-      readonly />
-  </BkLoading>
+  <TableEditInput
+    ref="inputRef"
+    :model-value="source?.masterDomain"
+    :placeholder="t('输入集群后自动生成')"
+    readonly />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
-
-  import type SpiderModel from '@services/model/spider/spider';
-  import { getSpiderDetail } from '@services/source/spider';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
+  import type { IDataRow } from './Row.vue';
+
   interface Props {
-    clusterId: number;
+    source: IDataRow['source'];
   }
 
   interface Exposes {
@@ -43,42 +39,12 @@
 
   const inputRef = ref();
 
-  const clusterData = defineModel<SpiderModel>('clusterData');
-
-  const { loading: isLoading, run: fetchClusetrData } = useRequest(getSpiderDetail, {
-    manual: true,
-    onSuccess(data) {
-      clusterData.value = data;
-    },
-  });
-
-  watch(
-    () => props.clusterId,
-    () => {
-      if (props.clusterId) {
-        fetchClusetrData({
-          id: props.clusterId,
-        });
-      } else {
-        clusterData.value = undefined;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue().then(() => {
-        if (!clusterData.value) {
-          return Promise.reject();
-        }
-        return {
-          cluster_domain: clusterData.value.master_domain,
-          bk_cloud_id: clusterData.value.bk_cloud_id,
-        };
-      });
+      return inputRef.value.getValue().then(() => ({
+        cluster_domain: props.source!.masterDomain,
+        bk_cloud_id: props.source!.bkCloudId,
+      }));
     },
   });
 </script>

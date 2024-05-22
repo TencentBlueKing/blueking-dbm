@@ -31,7 +31,7 @@
     @closed="handleClose">
     <template #header>
       <span>
-        {{ t('选择集群目标方案_n', { n: clusterData?.master_domain }) }}
+        {{ t('选择集群目标方案_n', { n: clusterData?.masterDomain }) }}
         <BkTag theme="info">
           {{ t('存储层 RemoteDB/DR 同时变更') }}
         </BkTag>
@@ -43,12 +43,12 @@
       <div class="spec-box mb-24">
         <table>
           <tr>
-            <td>{{ t('当前规格') }}： {{ clusterData.cluster_spec.spec_name }}</td>
+            <td>{{ t('当前规格') }}： {{ clusterData.clusterSpec.spec_name }}</td>
             <td>{{ t('变更后规格') }}： {{ futureSpec.name }}</td>
           </tr>
           <tr>
             <td>
-              {{ t('当前容量') }}： <span class="text-bold">{{ clusterData.cluster_capacity }} G</span>
+              {{ t('当前容量') }}： <span class="text-bold">{{ clusterData.clusterCapacity }} G</span>
             </td>
             <td>
               {{ t('变更后容量') }}： <span class="text-bold">{{ futureSpec.futureCapacity }} G</span>
@@ -58,10 +58,10 @@
       </div>
       <BkForm form-type="vertical">
         <ClusterSpecPlanSelector
-          :cloud-id="clusterData.bk_cloud_id"
+          :cloud-id="clusterData.bkCloudId"
           cluster-type="tendbcluster"
           machine-type="remote"
-          :shard-num="clusterData.cluster_shard_num"
+          :shard-num="clusterData.clusterShardNum"
           @change="handlePlanChange" />
       </BkForm>
     </div>
@@ -82,15 +82,15 @@
   import { ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type SpiderModel from '@services/model/spider/spider';
-
   import { useBeforeClose } from '@hooks';
 
   import ClusterSpecPlanSelector, { type IRowData } from '@components/cluster-spec-plan-selector/Index.vue';
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
 
+  import type { IDataRow } from './Row.vue';
+
   interface Props {
-    clusterData?: SpiderModel;
+    clusterData?: IDataRow['clusterData'];
   }
   interface Exposes {
     getValue: () => Promise<any>;
@@ -175,7 +175,7 @@
           return Promise.reject();
         }
         return {
-          remote_shard_num: Math.ceil(props.clusterData.cluster_shard_num / localSpec.value.machine_pair),
+          remote_shard_num: Math.ceil(props.clusterData.clusterShardNum / localSpec.value.machine_pair),
           resource_spec: {
             backend_group: {
               spec_id: localSpec.value.spec_id,

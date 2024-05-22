@@ -114,12 +114,20 @@
   };
   // 批量选择
   const handelInstanceSelectorChange = (data: InstanceSelectorValues<IValue>) => {
+    console.log('asdasd = ', data);
     selectedIps.value = data;
     const newList = data.tendbcluster.reduce((result, item) => {
       const { instance_address: ip } = item;
       if (!ipMemo[ip]) {
         const row = createRowData({
-          source: item,
+          source: {
+            clusterId: item.cluster_id,
+            masterDomain: item.master_domain,
+            dbModuleId: item.db_module_id,
+            dbModuleName: item.db_module_name,
+            instanceAddress: item.instance_address,
+            bkCloudId: item.bk_cloud_id,
+          },
         });
         result.push(row);
         ipMemo[ip] = true;
@@ -144,7 +152,7 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const ip = dataList[index].source?.instance_address;
+    const ip = dataList[index].source?.instanceAddress;
     dataList.splice(index, 1);
     tableData.value = dataList;
     if (ip) {

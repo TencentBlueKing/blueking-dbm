@@ -17,15 +17,13 @@
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
+          v-model="localClusterData"
+          @id-change="handleClusterIdChange" />
       </td>
       <td style="padding: 0">
         <RenderNet
           ref="netRef"
-          :cluster-id="localClusterId"
-          @cluster-change="handleClusterDataChange" />
+          :cluster-data="localClusterData" />
       </td>
       <td style="padding: 0">
         <RenderHost
@@ -56,6 +54,8 @@
     clusterData?: {
       id: number;
       domain: string;
+      bkCloudId: number;
+      bkCloudName: string;
     };
     bkCloudId?: number;
     spiderIpList?: {
@@ -74,8 +74,6 @@
   });
 </script>
 <script setup lang="ts">
-  import type SpiderModel from '@services/model/spider/spider';
-
   import RenderCluster from './RenderCluster.vue';
   import RenderHost from './RenderHost.vue';
   import RenderNet from './RenderNet.vue';
@@ -103,14 +101,12 @@
   const proxyRef = ref();
 
   const localClusterId = ref(0);
-  const localClusterData = ref<SpiderModel>();
+  const localClusterData = ref<IDataRow['clusterData']>();
 
   watch(
     () => props.data,
     () => {
-      if (props.data.clusterData) {
-        localClusterId.value = props.data.clusterData.id;
-      }
+      localClusterData.value = props.data.clusterData;
     },
     {
       immediate: true,
@@ -118,22 +114,6 @@
   );
   const handleClusterIdChange = (id: number) => {
     localClusterId.value = id;
-  };
-  const handleClusterDataChange = (data: SpiderModel) => {
-    localClusterData.value = data;
-  };
-  const handleCreate = (list: Array<string>) => {
-    emits(
-      'add',
-      list.map((domain) =>
-        createRowData({
-          clusterData: {
-            id: 0,
-            domain,
-          },
-        }),
-      ),
-    );
   };
 
   const handleAppend = () => {

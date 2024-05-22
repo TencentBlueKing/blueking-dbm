@@ -22,6 +22,7 @@ export default class tendbhaInstance {
   cluster_type: string;
   create_at: string;
   db_module_id: number;
+  db_module_name: string;
   host_info: {
     alive: number;
     biz: {
@@ -94,6 +95,7 @@ export default class tendbhaInstance {
     this.cluster_type = payload.cluster_type || '';
     this.create_at = payload.create_at || '';
     this.db_module_id = payload.db_module_id || 0;
+    this.db_module_name = payload.db_module_name || '';
     this.host_info = payload.host_info || {};
     this.id = payload.id || 0;
     this.instance_address = payload.instance_address || '';

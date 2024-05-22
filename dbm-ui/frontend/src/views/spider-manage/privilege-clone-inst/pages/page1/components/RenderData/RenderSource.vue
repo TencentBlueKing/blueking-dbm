@@ -15,8 +15,7 @@
   <TableEditInput
     ref="editRef"
     v-model="localInstanceAddress"
-    multi-input
-    :placeholder="$t('请输入IP_Port_使用换行分割一次可输入多个')"
+    :placeholder="t('请输入IP_Port')"
     :rules="rules" />
 </template>
 <script lang="ts">
@@ -26,7 +25,8 @@
   import {
     onBeforeUnmount,
     ref,
-    watch  } from 'vue';
+    watch
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { checkMysqlInstances } from '@services/source/instances';
@@ -37,23 +37,11 @@
 
   import { random } from '@utils';
 
-  import type { IProxyData } from './Row.vue';
-
-  interface Props {
-    modelValue?: IProxyData,
-  }
-
-  interface Emits {
-    (e:'update:cluserId', value: number): void,
-    (e:'update:cloudId', value: number): void,
-  }
+  import type { IDataRow } from './Row.vue';
 
   interface Exposes {
     getValue: () => Array<number>
   }
-
-  const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
 
   const instanceKey = `render_source_${random()}`;
   instanceAddreddMemo[instanceKey] = {};
@@ -61,6 +49,7 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
+  const modelValue = defineModel<IDataRow['source']>();
   const editRef = ref();
 
   const localInstanceAddress = ref('');
@@ -82,8 +71,14 @@
 
         const [currentInstanceData] = data;
 
-        emits('update:cluserId', currentInstanceData.cluster_id);
-        emits('update:cloudId', currentInstanceData.bk_cloud_id);
+        modelValue.value = {
+          bkCloudId: currentInstanceData.bk_cloud_id,
+          clusterId: currentInstanceData.cluster_id,
+          dbModuleId: currentInstanceData.db_module_id,
+          dbModuleName: currentInstanceData.db_module_name,
+          instanceAddress: currentInstanceData.instance_address,
+          masterDomain: currentInstanceData.master_domain
+        };
         return true;
       }),
       message: t('源实例不存在'),
@@ -112,9 +107,9 @@
   ];
 
   // 同步外部值
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localInstanceAddress.value = props.modelValue.instance_address;
+  watch(modelValue, () => {
+    if (modelValue.value) {
+      localInstanceAddress.value = modelValue.value.instanceAddress;
 
       instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
     }

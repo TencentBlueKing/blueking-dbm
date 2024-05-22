@@ -25,6 +25,7 @@ export interface ResourceInstance {
   cluster_type: string;
   create_at: string;
   db_module_id: number;
+  db_module_name: string;
   host_info: HostDetails;
   id: number;
   instance_address: string;

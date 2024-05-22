@@ -29,7 +29,7 @@
         :pagination="pagination.count < 10 ? false : pagination"
         :remote-pagination="isRemotePagination"
         :settings="tableSetting"
-        style="margin-top: 12px;"
+        style="margin-top: 12px"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @page-limit-change="handeChangeLimit"
@@ -106,7 +106,9 @@
     cluster_type: data.cluster_type,
     id: data.id,
     master_domain: data.master_domain,
-    bk_cloud_name: data.bk_cloud_name
+    bk_cloud_name: data.bk_cloud_name,
+    db_module_id: data.db_module_id,
+    db_module_name: data.db_module_name,
   });
 
   const { t } = useI18n();
@@ -342,7 +344,6 @@
     checkedMap.value = lastCheckMap;
     triggerChange();
   };
-
 </script>
 
 <style lang="less">

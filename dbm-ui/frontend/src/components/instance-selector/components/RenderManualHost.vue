@@ -73,6 +73,8 @@
     bk_cloud_id: data.host_info.cloud_id,
     port: data.port,
     ip: data.ip,
+    db_module_id: data.db_module_id,
+    db_module_name: data.db_module_name,
   });
 
   const search = ref('');

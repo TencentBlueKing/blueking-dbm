@@ -14,11 +14,9 @@
 <template>
   <TableEditInput
     ref="editRef"
-    v-model="localDomain"
-    multi-input
-    :placeholder="t('请输入集群_使用换行分割一次可输入多个')"
-    :rules="rules"
-    @multi-input="handleMultiInput" />
+    :model-value="modelValue?.domain"
+    :placeholder="t('请输入集群')"
+    :rules="rules" />
 </template>
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
@@ -31,7 +29,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { queryClusters } from '@services/source/mysqlCluster';
+  import {filterClusters} from '@services/source/dbbase'
 
   import { useGlobalBizs } from '@stores';
 
@@ -41,21 +39,11 @@
 
   import type { IDataRow } from './Row.vue';
 
-  interface Props {
-    modelValue?: IDataRow['clusterData'],
-  }
-
-  interface Emits {
-    (e: 'inputCreate', value: Array<string>): void,
-    (e: 'idChange', value: number): void,
-  }
-
   interface Exposes {
     getValue: () => Array<number>
   }
 
-  const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
+  const modelValue = defineModel<IDataRow['clusterData']>()
 
   const instanceKey = `render_cluster_${random()}`;
   clusterIdMemo[instanceKey] = {};
@@ -65,32 +53,30 @@
 
   const editRef = ref();
 
-  const localClusterId = ref(0);
-  const localDomain = ref('');
-  const isShowEdit = ref(true);
-
   const rules = [
     {
       validator: (value: string) => {
         if (value) {
           return true;
         }
-        emits('idChange', 0);
+        modelValue.value = undefined
         return false;
       },
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) => queryClusters({
-        cluster_filters: [
-          {
-            immute_domain: value,
-          },
-        ],
+      validator: (value: string) => filterClusters({
+        exact_domain: value,
         bk_biz_id: currentBizId,
       }).then((data) => {
         if (data.length > 0) {
-          localClusterId.value = data[0].id;
+          const [clusterData] = data;
+          modelValue.value = {
+            id: clusterData.id,
+            domain: clusterData.master_domain,
+            bkCloudId: clusterData.bk_cloud_id,
+            bkCloudName: clusterData.bk_cloud_name,
+          }
           return true;
         }
         return false;
@@ -114,7 +100,6 @@
             return false;
           }
         }
-        emits('idChange', localClusterId.value);
         return true;
       },
       message: t('目标集群重复'),
@@ -122,31 +107,13 @@
   ];
 
   // 同步外部值
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localClusterId.value = props.modelValue.id;
-      localDomain.value = props.modelValue.domain;
-      isShowEdit.value = false;
-    } else {
-      isShowEdit.value = true;
+  watch(modelValue, () => {
+    if (modelValue.value) {
+      clusterIdMemo[instanceKey][modelValue.value.id] = true;
     }
   }, {
     immediate: true,
   });
-
-  // 获取关联集群
-  watch(localClusterId, () => {
-    if (!localClusterId.value) {
-      return;
-    }
-    clusterIdMemo[instanceKey][localClusterId.value] = true;
-  }, {
-    immediate: true,
-  });
-
-  const handleMultiInput = (list: Array<string>) => {
-    emits('inputCreate', list);
-  };
 
 
   onBeforeUnmount(() => {
@@ -158,7 +125,7 @@
       return editRef.value
         .getValue()
         .then(() => ({
-          cluster_id: localClusterId.value,
+          cluster_id: modelValue.value!.id,
         }));
     },
   });

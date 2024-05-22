@@ -107,7 +107,9 @@
     related_instances: (data.related_instances || []).map(instanceItem => ({
       instance: instanceItem.instance,
       status: instanceItem.status
-    }))
+    })),
+    db_module_id: data.db_module_id,
+    db_module_name: data.db_module_name,
   });
 
   const { t } = useI18n();

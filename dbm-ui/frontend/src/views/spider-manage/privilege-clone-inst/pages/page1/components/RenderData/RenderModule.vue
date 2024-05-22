@@ -14,7 +14,7 @@
 <template>
   <TableEditInput
     ref="inputRef"
-    :model-value="clusterData?.db_module_name"
+    :model-value="source?.dbModuleName"
     :placeholder="t('输入集群后自动生成')"
     readonly
     :rules="rules" />
@@ -22,16 +22,16 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type SpiderModel from '@services/model/spider/spider';
-
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
+  import type { IDataRow } from './Row.vue';
+
   interface Props {
-    clusterData?: SpiderModel;
+    source: IDataRow['source'];
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>;
+    getValue: () => Promise<Record<'module', number>>;
   }
 
   const props = defineProps<Props>();
@@ -49,14 +49,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue().then(() => {
-        if (!props.clusterData) {
-          return Promise.reject();
-        }
-        return {
-          module: props.clusterData.db_module_name,
-        };
-      });
+      return inputRef.value.getValue().then(() => ({
+        module: props.source!.dbModuleId,
+      }));
     },
   });
 </script>
