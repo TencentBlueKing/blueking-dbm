@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 from bamboo_engine import api, builder, states
 from bamboo_engine.api import EngineAPIResult
 from bamboo_engine.builder import Data
+from bamboo_engine.eri import NodeType
 from django.utils.translation import ugettext as _
 from pipeline.eri.models import State
 from pipeline.eri.runtime import BambooDjangoRuntime
@@ -188,7 +189,7 @@ class BambooEngine:
         for key, values in tree.items():
             if key in node_maps:
                 node = node_maps[key]
-                tree[key]["status"] = node.status
+                tree[key]["status"] = StateType.EXPIRED if node.is_expired else node.status
                 tree[key]["created_at"] = int(datetime2timestamp(node.created_at))
                 tree[key]["started_at"] = int(datetime2timestamp(node.started_at))
                 tree[key]["updated_at"] = int(datetime2timestamp(node.updated_at))
@@ -232,11 +233,35 @@ class BambooEngine:
         return tree
 
     def get_pipeline_tree(self) -> Optional[Dict]:
+        """获取流程树"""
         try:
             flow = FlowTree.objects.get(root_id=self.root_id)
             return flow.tree
         except FlowTree.DoesNotExist:
             return None
+
+    def get_pipeline_tree_nodes(self) -> List[str]:
+        """获取流程树节点(包括动作节点和gateway节点)"""
+        node_ids: List[str] = []
+
+        def recurse_pipeline_tree(pipeline_tree):
+            # 获取当前根节点
+            node_ids.append(pipeline_tree["id"])
+            # 获取start/end event节点
+            node_ids.extend([pipeline_tree["start_event"]["id"], pipeline_tree["end_event"]["id"]])
+            # 获取geteway节点
+            gateway_nodes = list(pipeline_tree.get("gateways", {}).keys())
+            node_ids.extend(gateway_nodes)
+            # 获取动作节点
+            for node_id, activity in pipeline_tree.get("activities", {}).items():
+                # 如果有子流程，递归检查子流程内的活动
+                if activity.get("type") == NodeType.SubProcess.value:
+                    recurse_pipeline_tree(activity["pipeline"])
+                if activity.get("type") == NodeType.ServiceActivity.value:
+                    node_ids.append(node_id)
+
+        recurse_pipeline_tree(self.get_pipeline_tree())
+        return node_ids
 
     def get_node_short_histories(self, node_id) -> List[Dict[str, Any]]:
         result = api.get_node_short_histories(runtime=BambooDjangoRuntime(), node_id=node_id)

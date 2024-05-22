@@ -113,6 +113,12 @@ SA_L5_AGENT_TEMPLATE_ID = get_type_env(key="SA_L5_AGENT_TEMPLATE_ID", _type=int)
 # 标准运维项目 ID
 BK_SOPS_PROJECT_ID = get_type_env(key="BK_SOPS_PROJECT_ID", _type=int, default=1)
 
+# Bamboo
+ENABLE_CLEAN_EXPIRED_BAMBOO_TASK = get_type_env(key="ENABLE_CLEAN_EXPIRED_BAMBOO_TASK", _type=bool, default=False)
+ENABLE_CLEAN_EXPIRED_FLOW_INSTANCE = get_type_env(key="ENABLE_CLEAN_EXPIRED_FLOW_INSTANCE", _type=bool, default=False)
+BAMBOO_TASK_VALIDITY_DAY = get_type_env(key="BAMBOO_TASK_VALIDITY_DAY", _type=int, default=360)
+
+
 # 是否在部署 MySQL 的时候安装 PERL
 YUM_INSTALL_PERL = get_type_env(key="YUM_INSTALL_PERL", _type=bool, default=False)
 
