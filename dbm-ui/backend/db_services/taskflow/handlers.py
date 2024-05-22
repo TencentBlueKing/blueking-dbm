@@ -119,7 +119,7 @@ class TaskFlowHandler:
 
     def get_failed_node_ids(self) -> List[str]:
         """
-        获取失败节点ID列表
+        获取失败叶子节点ID列表
         """
         node_ids = []
         tree_states = BambooEngine(root_id=self.root_id).get_pipeline_tree_states()

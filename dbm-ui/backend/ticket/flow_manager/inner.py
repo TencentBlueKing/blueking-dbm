@@ -56,7 +56,7 @@ class InnerFlow(BaseTicketFlow):
             return self._flow_tree
 
         try:
-            _flow_tree = FlowTree.objects.get(root_id=self.root_id)
+            _flow_tree = FlowTree.objects.get(root_id=self.root_id, is_expired=False)
         except FlowTree.DoesNotExist:
             _flow_tree = None
 
@@ -85,10 +85,9 @@ class InnerFlow(BaseTicketFlow):
 
     @property
     def _status(self) -> str:
-        # 如果当前还未创建出flow tree，则认为单据正在运行
+        # 如果未找到流程树，则直接取flow_obj的status
         if not self.flow_tree:
-            self.flow_obj.update_status(constants.TicketFlowStatus.RUNNING)
-            return constants.TicketStatus.RUNNING
+            return self.flow_obj.status
 
         status = BAMBOO_STATE__TICKET_STATE_MAP.get(self.flow_tree.status, constants.TicketStatus.RUNNING)
         self.flow_obj.update_status(status)
