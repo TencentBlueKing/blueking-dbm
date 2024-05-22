@@ -17,26 +17,23 @@
       <td style="padding: 0">
         <RenderSource
           ref="sourceRef"
-          v-model:cluser-id="localClusterId"
           :model-value="data.source" />
       </td>
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
-          v-model:clusterData="localClusterData"
-          :cluster-id="localClusterId" />
+          :source="localSource" />
       </td>
       <td style="padding: 0">
         <RenderModule
           ref="moduleRef"
-          :cluster-data="localClusterData" />
+          :source="localSource" />
       </td>
       <td style="padding: 0">
         <RenderTarget
           ref="targetRef"
-          :cloud-id="localClusterId"
-          :cluster-data="localClusterData"
-          :model-value="data.target" />
+          :model-value="data.target"
+          :source="localSource" />
       </td>
       <OperateColumn
         :removeable="removeable"
@@ -61,7 +58,14 @@
 
   export interface IDataRow {
     rowKey: string;
-    source?: IProxyData;
+    source?: {
+      bkCloudId: number;
+      clusterId: number;
+      dbModuleId: number;
+      dbModuleName: string;
+      instanceAddress: string;
+      masterDomain: string;
+    };
     target?: IProxyData;
   }
 
@@ -102,6 +106,7 @@
   const moduleRef = ref();
   const targetRef = ref();
 
+  const localSource = ref<IDataRow['source']>();
   const localClusterId = ref(0);
   const localClusterData = ref<SpiderModel>();
 
@@ -109,7 +114,7 @@
     () => props.data,
     () => {
       if (props.data.source) {
-        localClusterId.value = props.data.source.cluster_id;
+        localSource.value = props.data.source;
       }
     },
     {

@@ -155,8 +155,14 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
+            bkCloudId: item.bk_cloud_id,
+            clusterCapacity: item.cluster_capacity,
+            clusterShardNum: item.cluster_shard_num,
+            clusterSpec: item.cluster_spec,
+            dbModuleId: item.db_module_id,
             id: item.id,
-            domain: item.master_domain,
+            machinePairCnt: item.machine_pair_cnt,
+            masterDomain: item.master_domain,
           },
         });
         result.push(row);
@@ -181,13 +187,15 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const domain = dataList[index].clusterData?.domain;
+    const masterDomain = dataList[index].clusterData?.masterDomain;
     dataList.splice(index, 1);
     tableData.value = dataList;
-    if (domain) {
-      delete domainMemo[domain];
+    if (masterDomain) {
+      delete domainMemo[masterDomain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
-      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(
+        (item) => item.master_domain !== masterDomain,
+      );
     }
   };
 

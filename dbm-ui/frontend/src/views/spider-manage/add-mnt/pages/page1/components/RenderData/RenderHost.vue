@@ -71,7 +71,7 @@
   <IpSelector
     v-if="clusterData"
     v-model:show-dialog="isShowIpSelector"
-    :biz-id="clusterData.bk_biz_id"
+    :biz-id="bizId"
     button-text=""
     :cloud-info="{
       id: clusterData.bk_cloud_id,
@@ -85,7 +85,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type SpiderModel from '@services/model/spider/spider';
+  import TendbClusterModel from '@services/model/spider/tendbCluster';
   import type { HostDetails } from '@services/types';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -93,7 +93,7 @@
   import useValidtor from './useValidtor';
 
   interface Props {
-    clusterData?: SpiderModel;
+    clusterData?: TendbClusterModel;
   }
 
   interface Exposes {
@@ -109,6 +109,9 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const bizId = window.PROJECT_CONFIG.BIZ_ID;
+
   const contentRef = ref();
   const isShowIpSelector = ref(false);
   const showEditIcon = ref(false);

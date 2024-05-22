@@ -186,7 +186,6 @@
 
   const showDialog = defineModel<boolean>('showDialog', {
     default: false,
-    local: true,
   });
 
   const copy = useCopy();

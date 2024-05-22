@@ -104,6 +104,8 @@
     ip: data.ip || '',
     port: data.port,
     cluster_type: data.cluster_type,
+    db_module_id: data.db_module_id,
+    db_module_name: data.db_module_name,
   });
 
   const { t } = useI18n();
@@ -335,17 +337,16 @@
     checkedMap.value = lastCheckMap;
     triggerChange();
   };
-
 </script>
 
 <style lang="less">
-.instance-selector-render-topo-host {
-  padding: 0 24px;
+  .instance-selector-render-topo-host {
+    padding: 0 24px;
 
-  .bk-table-body {
-    tr {
-      cursor: pointer;
+    .bk-table-body {
+      tr {
+        cursor: pointer;
+      }
     }
   }
-}
 </style>

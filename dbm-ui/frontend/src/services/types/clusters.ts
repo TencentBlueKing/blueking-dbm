@@ -322,6 +322,8 @@ export interface InstanceInfos {
   cluster_type: string;
   cluster_domain: string;
   create_at: string;
+  db_module_id: number;
+  db_module_name: string;
   host_info: HostDetails;
   instance_address: string;
   ip: string;

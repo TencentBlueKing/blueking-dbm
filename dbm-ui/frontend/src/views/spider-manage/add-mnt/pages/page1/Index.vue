@@ -62,7 +62,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import SpiderModel from '@services/model/spider/spider';
+  import TendbClusterModel from '@services/model/spider/tendbCluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -82,7 +82,7 @@
   const isShowBatchSelector = ref(false);
   const isSubmitting = ref(false);
 
-  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbClusterModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
   // 集群域名是否已存在表格的映射表
@@ -103,7 +103,7 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: { [key: string]: Array<SpiderModel> }) => {
+  const handelClusterChange = (selected: { [key: string]: Array<TendbClusterModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
@@ -113,6 +113,8 @@
           clusterData: {
             id: item.id,
             domain: item.master_domain,
+            bkCloudId: item.bk_cloud_id,
+            bkCloudName: item.bk_cloud_name,
           },
         });
         result.push(row);

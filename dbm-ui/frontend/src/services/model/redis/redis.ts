@@ -144,15 +144,18 @@ export default class Redis {
     title: string;
   }[];
   permission: {
+    access_entry_edit: boolean;
     redis_access_entry_view: boolean;
     redis_backup: boolean;
     redis_destroy: boolean;
     redis_keys_delete: boolean;
     redis_keys_extract: boolean;
     redis_open_close: boolean;
+    redis_plugin_create_clb: boolean;
+    redis_plugin_create_polaris: boolean;
+    redis_plugin_dns_bind_clb: boolean;
     redis_purge: boolean;
     redis_view: boolean;
-    access_entry_edit: boolean;
   };
   phase: string;
   proxy: Node[];

@@ -15,7 +15,7 @@
   <div class="render-cluster-box">
     <TableEditInput
       ref="editRef"
-      v-model="localDomain"
+      :model-value="modelValue?.masterDomain"
       :placeholder="t('请输入或选择集群')"
       :rules="rules" />
   </div>
@@ -31,7 +31,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { queryClusters } from '@services/source/mysqlCluster';
+  import { filterClusters } from '@services/source/dbbase'
 
   import { useGlobalBizs } from '@stores';
 
@@ -41,21 +41,14 @@
 
   import type { IDataRow } from './Row.vue';
 
-  interface Props {
-    modelValue?: IDataRow['clusterData'],
-  }
-
-  interface Emits {
-    (e: 'inputCreate', value: Array<string>): void,
-    (e: 'idChange', value: number): void,
-  }
-
   interface Exposes {
-    getValue: () => Array<number>
+    getValue: () => Promise<{
+      cluster_id: number;
+      bk_cloud_id: number;
+      cluster_shard_num: number;
+      db_module_id: number;
+    }>
   }
-
-  const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -64,36 +57,35 @@
 
   const { currentBizId } = useGlobalBizs();
 
-  const editRef = ref();
+  const modelValue = defineModel<IDataRow['clusterData']>()
 
-  const localClusterId = ref(0);
-  const localDomain = ref('');
-  const isShowEdit = ref(true);
+  const editRef = ref<InstanceType<typeof TableEditInput>>();
 
   const rules = [
     {
-      validator: (value: string) => {
-        if (value) {
-          return true;
-        }
-        emits('idChange', 0);
-        return false;
-      },
+      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) => queryClusters({
-        cluster_filters: [
-          {
-            immute_domain: value,
-          },
-        ],
+      validator: (value: string) => filterClusters({
+        exact_domain: value,
         bk_biz_id: currentBizId,
       }).then((data) => {
         if (data.length > 0) {
-          localClusterId.value = data[0].id;
+          const [clusterData] = data;
+          modelValue.value = {
+            bkCloudId: clusterData.bk_cloud_id,
+            clusterCapacity: clusterData.cluster_capacity,
+            clusterShardNum: clusterData.cluster_shard_num,
+            clusterSpec: clusterData.cluster_spec,
+            dbModuleId: clusterData.db_module_id,
+            id: clusterData.id,
+            machinePairCnt: clusterData.machine_pair_cnt,
+            masterDomain: clusterData.master_domain,
+          }
           return true;
         }
+        modelValue.value = undefined
         return false;
       }),
       message: t('目标集群不存在'),
@@ -115,7 +107,6 @@
             return false;
           }
         }
-        emits('idChange', localClusterId.value);
         return true;
       },
       message: t('目标集群重复'),
@@ -123,28 +114,15 @@
   ];
 
   // 同步外部值
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localClusterId.value = props.modelValue.id;
-      localDomain.value = props.modelValue.domain;
-      isShowEdit.value = false;
+  watch(() => modelValue, () => {
+    if (modelValue.value) {
+      clusterIdMemo[instanceKey][modelValue.value.id] = true;
     } else {
-      isShowEdit.value = true;
+      delete clusterIdMemo[instanceKey];
     }
   }, {
     immediate: true,
   });
-
-  // 获取关联集群
-  watch(localClusterId, () => {
-    if (!localClusterId.value) {
-      return;
-    }
-    clusterIdMemo[instanceKey][localClusterId.value] = true;
-  }, {
-    immediate: true,
-  });
-
 
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];
@@ -152,10 +130,12 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
+      return editRef.value!.getValue()
         .then(() => ({
-          cluster_id: localClusterId.value,
+          cluster_id: modelValue.value!.id,
+          bk_cloud_id: modelValue.value!.bkCloudId,
+          cluster_shard_num: modelValue.value!.clusterShardNum,
+          db_module_id: modelValue.value!.dbModuleId,
         }));
     },
   });

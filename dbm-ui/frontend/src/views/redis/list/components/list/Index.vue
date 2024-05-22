@@ -45,7 +45,7 @@
             <BkDropdownMenu>
               <BkDropdownItem
                 v-db-console="'redis.clusterManage.extractKey'"
-                @click="handleShowExtract(state.selected)" >
+                @click="handleShowExtract(state.selected)">
                 {{ t('提取Key') }}
               </BkDropdownItem>
               <BkDropdownItem
@@ -791,7 +791,7 @@
         ]
         const isShowDropdown = dropdownDbConsoleValueList.every(value => !funControllerData[value as ExtractedControllerDataKeys]) ||
           dropdownDbConsoleValueList.some(value => funControllerData[value as ExtractedControllerDataKeys].is_enabled)
-        
+
         return (
             <div class="operations">
               {getOperations()}
@@ -824,39 +824,48 @@
                           <OperationBtnStatusTips
                             data={data}
                             disabled={!data.isOffline}>
-                            <bk-button
+                            <auth-button
+                              action-id="redis_plugin_create_clb"
+                              permission={data.permission.redis_plugin_create_clb}
+                              resource={data.id}
                               style="width: 100%;height: 32px;"
                               disabled={data.isOffline}
                               text
                               onClick={() => handleSwitchCLB(data)}>
                               { data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
-                            </bk-button>
+                            </auth-button>
                           </OperationBtnStatusTips>
                         </bk-dropdown-item>
                         <bk-dropdown-item v-db-console="redis.clusterManage.DNSDomainToCLB">
                           <OperationBtnStatusTips
                             data={data}
                             disabled={!data.isOffline}>
-                            <bk-button
+                            <auth-button
+                              action-id="redis_plugin_dns_bind_clb"
+                              permission={data.permission.redis_plugin_dns_bind_clb}
+                              resource={data.id}
                               style="width: 100%;height: 32px;"
                               disabled={data.isOffline}
                               text
                               onClick={() => handleSwitchDNSBindCLB(data)}>
                               { data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }
-                            </bk-button>
+                            </auth-button>
                           </OperationBtnStatusTips>
                         </bk-dropdown-item>
                         <bk-dropdown-item v-db-console="redis.clusterManage.enablePolaris">
                           <OperationBtnStatusTips
                             data={data}
                             disabled={!data.isOffline}>
-                            <bk-button
+                            <auth-button
+                              action-id="redis_plugin_create_polaris"
+                              permission={data.permission.redis_plugin_create_polaris}
+                              resource={data.id}
                               style="width: 100%;height: 32px;"
                               disabled={data.isOffline}
                               text
                               onClick={() => handleSwitchPolaris(data)}>
                               { data.isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
-                            </bk-button>
+                            </auth-button>
                           </OperationBtnStatusTips>
                         </bk-dropdown-item>
                       </fun-controller>

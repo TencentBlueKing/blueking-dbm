@@ -14,29 +14,20 @@
 <template>
   <RenderText
     ref="editRef"
-    :data="localValue"
-    :is-loading="isLoading || isClusterDataLoading"
+    :data="clusterData?.bkCloudName"
     :placeholder="t('请先输入集群')"
     :rules="rules" />
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
-  import { computed, ref, shallowRef, watch } from 'vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
-
-  import type SpiderModel from '@services/model/spider/spider';
-  import { getCloudList } from '@services/source/ipchooser';
-  import { getSpiderDetail } from '@services/source/spider';
 
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
-  interface Props {
-    clusterId: number;
-  }
+  import type { IDataRow } from './Row.vue';
 
-  interface Emits {
-    (e: 'clusterChange', value: SpiderModel): void;
+  interface Props {
+    clusterData: IDataRow['clusterData'];
   }
 
   interface Exposes {
@@ -44,62 +35,22 @@
   }
 
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const editRef = ref();
-  const bkNetList = shallowRef<{ bk_cloud_id: number; bk_cloud_name: string }[]>([]);
-  const localBkNetId = ref<number>();
-
-  const localValue = computed(() => {
-    const target = _.find(bkNetList.value, (item) => item.bk_cloud_id === localBkNetId.value);
-    if (target) {
-      return target.bk_cloud_name;
-    }
-    return '';
-  });
 
   const rules = [
     {
-      validator: () => Number(localBkNetId.value) > -1,
+      validator: (value: string) => Boolean(value),
       message: t('管控区域不能为空'),
     },
   ];
 
-  const { loading: isLoading } = useRequest(getCloudList, {
-    initialData: [],
-    onSuccess(data) {
-      bkNetList.value = data;
-    },
-  });
-
-  const { loading: isClusterDataLoading, run: fetchClusetrData } = useRequest(getSpiderDetail, {
-    manual: true,
-    onSuccess(data) {
-      localBkNetId.value = data.bk_cloud_id;
-      emits('clusterChange', data);
-    },
-  });
-
-  watch(
-    () => props.clusterId,
-    () => {
-      if (props.clusterId) {
-        fetchClusetrData({
-          id: props.clusterId,
-        });
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-
   defineExpose<Exposes>({
     getValue() {
       return editRef.value.getValue().then(() => ({
-        bk_cloud_id: localBkNetId.value,
+        bk_cloud_id: props.clusterData!.bkCloudId,
       }));
     },
   });

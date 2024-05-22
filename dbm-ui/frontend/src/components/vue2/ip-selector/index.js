@@ -15,6 +15,8 @@ import { h, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { Component, merge, Vue2 } from '@blueking/ip-selector/dist/vue2.6.x.esm';
 
+Component.props.mode.default = 'section';
+
 export default function (options) {
   merge(options);
 
@@ -25,7 +27,13 @@ export default function (options) {
     setup(props, context) {
       const rootRef = ref();
 
-      let app = new Vue2(Component);
+      let app = new Vue2({
+        render: (h) =>
+          h(Component, {
+            ref: 'componentRef',
+            props,
+          }),
+      });
 
       const syncProps = () => {
         Object.keys(props).forEach((propName) => {
@@ -39,13 +47,13 @@ export default function (options) {
               {},
             );
             // eslint-disable-next-line no-underscore-dangle
-            app._props[propName] = Object.freeze(v);
+            app.$refs.componentRef._props[propName] = Object.freeze(v);
           } else if (Object.prototype.toString.call(newValue) === '[object Array]') {
             // eslint-disable-next-line no-underscore-dangle
-            app._props[propName] = [...newValue];
+            app.$refs.componentRef._props[propName] = [...newValue];
           } else {
             // eslint-disable-next-line no-underscore-dangle
-            app._props[propName] = newValue;
+            app.$refs.componentRef._props[propName] = newValue;
           }
         });
       };
@@ -57,22 +65,17 @@ export default function (options) {
           () => {
             syncProps();
           },
-          {
-            immediate: true,
-          },
         );
         propWatchStack.push(unwatch);
       });
 
-      Component.emits.forEach((eventName) => {
-        app.$on(eventName, (...agrs) => {
-          context.emit(eventName, ...agrs);
-        });
-      });
-      syncProps();
-
       onMounted(() => {
         app.$mount();
+        Component.emits.forEach((eventName) => {
+          app.$refs.componentRef.$on(eventName, (...agrs) => {
+            context.emit(eventName, ...agrs);
+          });
+        });
         rootRef.value.appendChild(app.$el);
       });
 

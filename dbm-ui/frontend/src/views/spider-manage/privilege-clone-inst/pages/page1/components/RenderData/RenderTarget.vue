@@ -29,7 +29,6 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type SpiderModel from '@services/model/spider/spider';
   import { checkMysqlInstances } from '@services/source/instances';
   import type { InstanceInfos } from '@services/types/clusters';
 
@@ -39,11 +38,11 @@
 
   import { random } from '@utils';
 
-  import type { IProxyData } from './Row.vue';
+  import type { IDataRow, IProxyData  } from './Row.vue';
 
   interface Props {
     modelValue?: IProxyData,
-    clusterData?:SpiderModel
+    source: IDataRow['source'],
   }
 
   interface Exposes {
@@ -84,7 +83,7 @@
       message: t('新实例不存在'),
     },
     {
-      validator: () => !!props.clusterData && localInstanceData.bk_cloud_id === props.clusterData.bk_cloud_id,
+      validator: () => !!props.source && props.source.bkCloudId === localInstanceData.bk_cloud_id,
       message: t('新实例和源实例的管控区域不一致'),
     },
     {

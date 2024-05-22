@@ -82,6 +82,8 @@
     ip: data.ip || '',
     port: data.port,
     cluster_type: data.cluster_type,
+    db_module_id: data.db_module_id,
+    db_module_name: data.db_module_name,
   });
 
   const { t } = useI18n();
@@ -286,7 +288,6 @@
     checkedMap.value = lastCheckMap;
     triggerChange();
   };
-
 </script>
 
 <style lang="less">

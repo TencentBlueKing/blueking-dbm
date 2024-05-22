@@ -17,23 +17,27 @@
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange" />
+          v-model="localClusterData" />
       </td>
       <td style="padding: 0">
         <RenderResourceSpec
           ref="resourceSpecRef"
-          :cluster-id="localClusterId"
-          @cluster-change="handleClusterDataChange" />
+          :cluster-data="localClusterData" />
       </td>
       <td style="padding: 0">
-        <RenderShardNum :cluster-data="localClusterData" />
+        <RenderShardNum
+          ref="shardNumRef"
+          :cluster-data="localClusterData" />
       </td>
       <td style="padding: 0">
-        <RenderMachinePairCnt :cluster-data="localClusterData" />
+        <RenderMachinePairCnt
+          ref="machinePairCntRef"
+          :cluster-data="localClusterData" />
       </td>
       <td style="padding: 0">
-        <RenderCapacity :cluster-data="localClusterData" />
+        <RenderCapacity
+          ref="capacityRef"
+          :cluster-data="localClusterData" />
       </td>
       <td style="padding: 0">
         <RenderTargetResourceSpec
@@ -48,8 +52,6 @@
   </tbody>
 </template>
 <script lang="ts">
-  import SpiderModel from '@services/model/spider/spider';
-
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';
@@ -57,16 +59,21 @@
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
+      bkCloudId: number;
+      clusterCapacity: number;
+      clusterShardNum: number;
+      clusterSpec: {
+        spec_name: string;
+      };
+      dbModuleId: number;
       id: number;
-      domain: string;
+      machinePairCnt: number;
+      masterDomain: string;
     };
     resourceSpec?: {
       id: number;
       name: string;
     };
-    clusterShardNum?: number;
-    clusterCapacity?: string;
-    machinePairCnt?: number;
     resource_spec?: {
       backend_group: {
         spec_id: number;
@@ -81,9 +88,6 @@
     rowKey: random(),
     clusterData: data.clusterData,
     resourceSpec: data.resourceSpec,
-    clusterShardNum: data.clusterShardNum,
-    clusterCapacity: data.clusterCapacity,
-    machinePairCnt: data.machinePairCnt,
     resource_spec: data.resource_spec,
   });
 </script>
@@ -114,31 +118,26 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const resourceSpecRef = ref();
-  const targetResourceSpecRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
+  const shardNumRef = ref<InstanceType<typeof RenderShardNum>>();
+  const machinePairCntRef = ref<InstanceType<typeof RenderMachinePairCnt>>();
+  const capacityRef = ref<InstanceType<typeof RenderCapacity>>();
+  const resourceSpecRef = ref<InstanceType<typeof RenderResourceSpec>>();
+  const targetResourceSpecRef = ref<InstanceType<typeof RenderTargetResourceSpec>>();
 
-  const localClusterId = ref(0);
-  const localClusterData = ref<SpiderModel>();
+  const localClusterData = ref<IDataRow['clusterData']>();
 
   watch(
     () => props.data,
     () => {
       if (props.data.clusterData) {
-        localClusterId.value = props.data.clusterData.id;
+        localClusterData.value = props.data.clusterData;
       }
     },
     {
       immediate: true,
     },
   );
-
-  const handleClusterIdChange = (clusterId: number) => {
-    localClusterId.value = clusterId;
-  };
-  const handleClusterDataChange = (clusterData: SpiderModel) => {
-    localClusterData.value = clusterData;
-  };
 
   const handleAppend = () => {
     emits('add', [createRowData()]);
@@ -154,12 +153,14 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value.getValue(),
-        resourceSpecRef.value.getValue(),
-        targetResourceSpecRef.value.getValue(),
-      ]).then(([clusterData, resourceSpecData, targetResourceSpecData]) => ({
+        clusterRef.value!.getValue(),
+        targetResourceSpecRef.value!.getValue(),
+        shardNumRef.value!.getValue(),
+        machinePairCntRef.value!.getValue(),
+        capacityRef.value!.getValue(),
+        resourceSpecRef.value!.getValue(),
+      ]).then(([clusterData, targetResourceSpecData]) => ({
         ...clusterData,
-        ...resourceSpecData,
         ...targetResourceSpecData,
       }));
     },

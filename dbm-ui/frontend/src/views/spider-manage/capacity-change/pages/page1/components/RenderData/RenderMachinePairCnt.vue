@@ -14,32 +14,36 @@
 <template>
   <TableEditInput
     ref="inputRef"
-    :model-value="`${clusterData ? clusterData.machine_pair_cnt : ''}`"
+    :model-value="`${clusterData ? clusterData.machinePairCnt : ''}`"
     :placeholder="t('输入集群后自动生成')"
     readonly
     textarea />
 </template>
 <script setup lang="ts">
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-
-  import type SpiderModel from '@services/model/spider/spider';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
+  import type { IDataRow } from './Row.vue';
+
   interface Props {
-    clusterData?: SpiderModel;
+    clusterData: IDataRow['clusterData'];
   }
+
   interface Exposes {
-    getValue: () => Promise<any>;
+    getValue: () => Promise<string>;
   }
 
   defineProps<Props>();
 
   const { t } = useI18n();
 
+  const inputRef = ref<InstanceType<typeof TableEditInput>>();
+
   defineExpose<Exposes>({
     getValue() {
-      return Promise.resolve({});
+      return inputRef.value!.getValue();
     },
   });
 </script>
