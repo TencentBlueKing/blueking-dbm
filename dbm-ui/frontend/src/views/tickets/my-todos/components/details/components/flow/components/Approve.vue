@@ -34,7 +34,7 @@
                 text
                 theme="primary"
                 @click="handleToApply">
-                {{ $t('请前往补货') }}
+                {{ t('请前往补货') }}
               </BkButton>
             </template>
           </div>
@@ -70,7 +70,7 @@
                       :disabled="state.isApproveLoading"
                       size="small"
                       @click="handleConfirmToggle(false)">
-                      {{ $t('取消') }}
+                      {{ t('取消') }}
                     </BkButton>
                   </div>
                 </div>
@@ -86,12 +86,12 @@
                 :loading="state.isTerminateLoading"
                 theme="danger"
                 @click="handleCancelToggle(true)">
-                {{ $t('终止单据') }}
+                {{ t('终止单据') }}
               </BkButton>
               <template #content>
                 <div class="todos-tips-content">
                   <div class="todos-tips-content__desc">
-                    {{ $t('是否确认终止单据') }}
+                    {{ t('是否确认终止单据') }}
                   </div>
                   <div class="todos-tips-content__buttons">
                     <BkButton
@@ -99,13 +99,13 @@
                       size="small"
                       theme="danger"
                       @click="handleConfirm('TERMINATE', item)">
-                      {{ $t('终止单据') }}
+                      {{ t('终止单据') }}
                     </BkButton>
                     <BkButton
                       :disabled="state.isTerminateLoading"
                       size="small"
                       @click="handleCancelToggle(false)">
-                      {{ $t('取消') }}
+                      {{ t('取消') }}
                     </BkButton>
                   </div>
                 </div>
@@ -115,11 +115,11 @@
           <div
             v-else
             class="flow-todo__infos">
-            {{ item.done_by }} {{ $t('处理完成') }}，
-            {{ $t('操作') }}：<span :class="String(item.status).toLowerCase()">{{ getOperation(item) }}</span>，
-            {{ $t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
-            <template v-if="item.url">
-              ，<a :href="item.url">{{ $t('查看详情') }} &gt;</a>
+            {{ item.done_by }} {{ t('处理完成') }}，
+            {{ t('操作') }}：<span :class="String(item.status).toLowerCase()">{{ getOperation(item) }}</span>，
+            {{ t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
+            <template v-if="content.url">
+              ，<a :href="content.url">{{ t('查看详情') }} &gt;</a>
             </template>
             <p
               v-if="item.done_at"
@@ -172,6 +172,7 @@
   const props = withDefaults(defineProps<Props>(), {
     flows: () => [],
   });
+
   const emits = defineEmits<Emits>();
 
   const { username } = useUserProfile();
