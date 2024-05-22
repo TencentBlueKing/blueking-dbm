@@ -38,7 +38,7 @@ class MongoDBClearDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
 
 class MongoDBClearFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
-    controller = MongoDBController.fake_scene
+    controller = MongoDBController.mongo_remove_ns
 
     def format_ticket_data(self):
         self.ticket_data["infos"] = self.scatter_cluster_id_info(self.ticket_data["infos"])
