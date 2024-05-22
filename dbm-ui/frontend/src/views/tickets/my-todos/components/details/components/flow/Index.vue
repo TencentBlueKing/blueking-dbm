@@ -31,7 +31,7 @@
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  import ApproveFlows from './components/Approve.vue';
+  import ApproveFlows from './components/approve/Index.vue';
   import MySqlFlows from './components/MySqlFlows.vue';
   import RedisFlows from './components/RedisFlows.vue';
 
