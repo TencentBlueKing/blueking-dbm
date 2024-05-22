@@ -14,6 +14,7 @@ from typing import Any
 
 from django.utils.duration import duration_iso_string
 from django.utils.timezone import is_aware
+from requests import Response
 from rest_framework.renderers import JSONRenderer
 from rest_framework.utils.encoders import JSONEncoder
 
@@ -59,6 +60,8 @@ class BKAPIRenderer(JSONRenderer):
     SUCCESS_MESSAGE = "OK"
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
+        if isinstance(data, Response):
+            return data
         if isinstance(data, dict) and "code" in data:
             data["request_id"] = local.request_id
         else:

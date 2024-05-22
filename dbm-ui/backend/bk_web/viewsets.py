@@ -12,6 +12,7 @@ import copy
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from blueapps.account.decorators import login_exempt
+from django.http import HttpResponse
 from django.utils.decorators import classonlymethod
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.response import Response
@@ -178,9 +179,13 @@ class ExternalProxyViewSet(viewsets.ViewSet):
     def after_response(self, request, response, *args, **kwargs):
         # 请求内部的dashboard url，但是host要替换为当前dbm的
         if "/grafana/get_dashboard/" in request.path:
-            url = f"{env.BK_SAAS_HOST}/grafana/{response['url'].split('grafana/')[1]}"
-            response["url"] = response["urls"][0]["url"] = url
-        return Response(response)
+            data = response.json()["data"]
+            url = f"{env.BK_SAAS_HOST}/grafana/{data['url'].split('grafana/')[1]}"
+            data["url"] = data["urls"][0]["url"] = url
+            return Response(data)
+        if ".css" in request.path:
+            return HttpResponse(response, headers={"Content-Type": "text/css"})
+        return HttpResponse(response)
 
     def external_proxy(self, request, *args, **kwargs):
         params = dict(request.data or request.query_params)

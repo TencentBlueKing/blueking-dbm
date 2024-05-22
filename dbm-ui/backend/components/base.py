@@ -147,6 +147,9 @@ class DataAPI(object):
         self.default_timeout = default_timeout
         self.max_retry_times = max_retry_times
 
+        self.request_id = ""
+        self.timeout = self.default_timeout
+
     def __call__(
         self,
         params=None,
@@ -171,7 +174,6 @@ class DataAPI(object):
             headers = {}
         self.timeout = timeout or self.default_timeout
         self.request_id = None
-        self.data = data
 
         try:
             response = self._send_request(params, headers, use_admin=use_admin)
