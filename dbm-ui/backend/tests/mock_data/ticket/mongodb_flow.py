@@ -16,6 +16,51 @@ from backend.ticket.constants import TicketType
 BK_USERNAME = "admin"
 BK_BIZ_ID = 1
 CLUSTER_ID = 1
+NODE_ID = 1
+
+
+# Mongo执行脚本
+MONGODB_EXEC_SCRIPT_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "details": {
+        "cluster_ids": [CLUSTER_ID],
+        "scripts": [
+            {
+                "name": "",
+                "content": "var mongo = db;\r\n"
+                'var thisdb = mongo.getSisterDB("test_db");\r\n'
+                'thisdb.test_tb.insertOne({ name: "A", age: 1 });',
+            }
+        ],
+        "mode": "manual",
+    },
+    "ticket_type": TicketType.MONGODB_EXEC_SCRIPT_APPLY,
+}
+
+# Mongo清档单据
+MONGODB_REMOVE_NS_TICKET_DATA = {
+    "remark": "username",
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.MONGODB_REMOVE_NS,
+    "details": {
+        "is_safe": True,
+        "infos": [
+            {
+                "drop_index": True,
+                "drop_type": "drop_collection",
+                "cluster_ids": [CLUSTER_ID],
+                "cluster_type": ClusterType.MongoReplicaSet,
+                "ns_filter": {
+                    "db_patterns": ["test_db"],
+                    "ignore_dbs": [],
+                    "table_patterns": ["test_tb"],
+                    "ignore_tables": [],
+                },
+            }
+        ],
+    },
+}
+
 
 # mangos 扩容请求单据
 MANGODB_ADD_MANGOS_TICKET_DATA = {
