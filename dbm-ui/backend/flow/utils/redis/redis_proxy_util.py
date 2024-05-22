@@ -111,7 +111,7 @@ class PredixyInfoServer:
         return f"Server:{self.server} Role:{self.role} Group:{self.group} DC:{self.dc}"
 
 
-def decode_predixy_info_servers(info_str):
+def decode_predixy_info_servers(info_str) -> List[PredixyInfoServer]:
     """
     解析predixy info servers
     """
@@ -127,7 +127,7 @@ def decode_predixy_info_servers(info_str):
                 rets.append(item)
                 item = PredixyInfoServer()
             continue
-        list01 = info_item.split(":", 2)
+        list01 = info_item.split(":", 1)
         if len(list01) < 2:
             continue
         if list01[0] == "Server":
@@ -206,11 +206,12 @@ def check_cluster_proxy_backends_consistent(cluster_id: int):
             }
         )
         for ele in resp:
-            backends_ret = decode_predixy_info_servers(ele["result"])
-            sorted_backends = sorted(backends_ret, key=lambda x: x.server)
+            backends_ret: list[PredixyInfoServer] = decode_predixy_info_servers(ele["result"])
+            sorted_backends: list[PredixyInfoServer] = sorted(backends_ret, key=lambda x: x.server)
             sorted_str = ""
             for bck in sorted_backends:
-                sorted_str += bck.__str__() + "\n"
+                if bck.current_is_fail == 0:
+                    sorted_str += bck.__str__() + "\n"
             # 求sorted_str的md5值
             md5 = hashlib.md5(sorted_str.encode("utf-8")).hexdigest()
             proxys_backend_md5.append(
