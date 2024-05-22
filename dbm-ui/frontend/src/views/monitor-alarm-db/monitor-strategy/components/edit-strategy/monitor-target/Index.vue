@@ -316,12 +316,12 @@
         });
         return item;
       }
-      Object.assign(item, {
-        selectList: props.moduleList,
-        activeAdd: false,
-        activeMinus: true,
-      });
-      return item;
+      // Object.assign(item, {
+      //   selectList: props.moduleList,
+      //   activeAdd: false,
+      //   activeMinus: true,
+      // });
+      // return item;
     }
     Object.assign(item, {
       selectList: isMySql.value ? props.moduleList : props.clusterList,
