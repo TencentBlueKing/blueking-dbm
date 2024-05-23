@@ -45,6 +45,7 @@ from backend.ticket.serializers import (
     InstanceModifyOpSerializer,
     QueryTicketFlowDescribeSerializer,
     RetryFlowSLZ,
+    SensitiveTicketSerializer,
     TicketFlowDescribeSerializer,
     TicketFlowSerializer,
     TicketSerializer,
@@ -76,6 +77,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     }
 
     def _get_custom_permissions(self):
+        # TODO: 等1.4.0合入后，对create_sensitive_ticket进行校验。仅放行superuser和jwt verify
         if self.action == "create":
             return [TicketIAMPermission()]
 
@@ -204,6 +206,16 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         tags=[TICKET_TAG],
     )
     def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("创建单据(允许创建敏感单据)"),
+        request_body=SensitiveTicketSerializer(),
+        responses={status.HTTP_200_OK: SensitiveTicketSerializer(label=_("创建单据(允许创建敏感单据)"))},
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SensitiveTicketSerializer)
+    def create_sensitive_ticket(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
     @common_swagger_auto_schema(

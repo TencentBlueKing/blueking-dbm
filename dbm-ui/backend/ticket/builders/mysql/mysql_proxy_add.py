@@ -36,7 +36,7 @@ class MysqlProxyAddDetailSerializer(MySQLBaseOperateDetailSerializer):
     def validate(self, attrs):
         # 校验集群是否可用，集群类型为高可用
         super(MysqlProxyAddDetailSerializer, self).validate_cluster_can_access(attrs)
-        super(MysqlProxyAddDetailSerializer, self).validate_cluster_type(attrs, ClusterType.TenDBHA)
+        super(MysqlProxyAddDetailSerializer, self).validated_cluster_type(attrs, ClusterType.TenDBHA)
 
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             return attrs

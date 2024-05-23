@@ -431,6 +431,8 @@ class BuilderFactory:
     registry = {}
     # 部署类单据集合
     apply_ticket_type = []
+    # 敏感类单据集合
+    sensitive_ticket_type = []
     # 单据与集群状态的映射
     ticket_type__cluster_phase = {}
     # 单据和集群类型的映射
@@ -455,6 +457,8 @@ class BuilderFactory:
 
             if kwargs.get("is_apply") and kwargs.get("is_apply") not in cls.apply_ticket_type:
                 cls.apply_ticket_type.append(ticket_type)
+            if kwargs.get("is_sensitive") and kwargs.get("is_sensitive") not in cls.sensitive_ticket_type:
+                cls.sensitive_ticket_type.append(ticket_type)
             if kwargs.get("phase"):
                 cls.ticket_type__cluster_phase[ticket_type] = kwargs["phase"]
             if kwargs.get("cluster_type"):
