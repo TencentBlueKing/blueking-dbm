@@ -40,7 +40,7 @@
             name: data.bk_cloud_name
           }"
           :data="nodeInfoMap.hot"
-          :disable-host-method="hotDisableHostMethod"
+          :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'hot')"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
@@ -60,7 +60,7 @@
             name: data.bk_cloud_name
           }"
           :data="nodeInfoMap.cold"
-          :disable-host-method="coldDisableHostMethod"
+          :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'cold')"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
@@ -80,7 +80,27 @@
             name: data.bk_cloud_name
           }"
           :data="nodeInfoMap.client"
-          :disable-host-method="clientDisableHostMethod"
+          :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'client')"
+          :ip-source="ipSource"
+          @remove-node="handleRemoveNode" />
+      </div>
+      <div
+        v-show="nodeInfoMap.master.nodeList.length > 0"
+        class="item">
+        <div class="item-label">
+          Master
+        </div>
+        <HostReplace
+          ref="masterRef"
+          v-model:hostList="nodeInfoMap.master.hostList"
+          v-model:nodeList="nodeInfoMap.master.nodeList"
+          v-model:resourceSpec="nodeInfoMap.master.resourceSpec"
+          :cloud-info="{
+            id: data.bk_cloud_id,
+            name: data.bk_cloud_name
+          }"
+          :data="nodeInfoMap.master"
+          :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'master')"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
@@ -151,6 +171,7 @@
   const hotRef = ref();
   const coldRef = ref();
   const clientRef = ref();
+  const masterRef = ref();
 
   const ipSource = ref('resource_pool');
   const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
@@ -193,6 +214,19 @@
         instance_num: 1,
       },
     },
+    master: {
+      clusterId: props.data.id,
+      role: 'es_master',
+      nodeList: [],
+      hostList: [],
+      specClusterType: ClusterTypes.ES,
+      specMachineType: 'es_master',
+      resourceSpec: {
+        spec_id: 0,
+        count: 0,
+        instance_num: 1,
+      },
+    },
   });
 
   const isEmpty = computed(() => {
@@ -200,16 +234,26 @@
       hot,
       cold,
       client,
+      master,
     } = nodeInfoMap;
     return hot.nodeList.length < 1
       && cold.nodeList.length < 1
-      && client.nodeList.length < 1;
+      && client.nodeList.length < 1
+      && master.nodeList.length < 1;
   });
+
+  const disableTipsMap = {
+    cold: t('主机已被冷节点使用'),
+    client: t('主机已被 Client 节点使用'),
+    hot: t('主机已被热节点使用'),
+    master: t('主机已被 Master 节点使用'),
+  };
 
   watch(() => props.nodeList, () => {
     const hotList: TReplaceNode['nodeList'] = [];
     const coldList: TReplaceNode['nodeList'] = [];
     const clientList: TReplaceNode['nodeList'] = [];
+    const masterList: TReplaceNode['nodeList'] = [];
 
     props.nodeList.forEach((nodeItem) => {
       if (nodeItem.isHot) {
@@ -218,49 +262,29 @@
         coldList.push(nodeItem);
       } else if (nodeItem.isClient) {
         clientList.push(nodeItem);
+      } else if (nodeItem.isMaster) {
+        masterList.push(nodeItem);
       }
     });
 
     nodeInfoMap.hot.nodeList = hotList;
     nodeInfoMap.cold.nodeList = coldList;
     nodeInfoMap.client.nodeList = clientList;
+    nodeInfoMap.master.nodeList = masterList;
   }, {
     immediate: true,
   });
 
   // 节点主机互斥
-  const hotDisableHostMethod = (hostData: HostDetails) => {
-    const coldHostIdMap = makeMapByHostId(nodeInfoMap.cold.hostList);
-    if (coldHostIdMap[hostData.host_id]) {
-      return t('主机已被冷节点使用');
-    }
-    const clientHostIdMap = makeMapByHostId(nodeInfoMap.client.hostList);
-    if (clientHostIdMap[hostData.host_id]) {
-      return t('主机已被 Client 节点使用');
-    }
-    return false;
-  };
-  // 节点主机互斥
-  const coldDisableHostMethod = (hostData: HostDetails) => {
-    const hotHostIdMap = makeMapByHostId(nodeInfoMap.hot.hostList);
-    if (hotHostIdMap[hostData.host_id]) {
-      return t('主机已被热节点使用');
-    }
-    const clientHostIdMap = makeMapByHostId(nodeInfoMap.client.hostList);
-    if (clientHostIdMap[hostData.host_id]) {
-      return t('主机已被 Client 节点使用');
-    }
-    return false;
-  };
-  // 节点主机互斥
-  const clientDisableHostMethod = (hostData: HostDetails) => {
-    const hotHostIdMap = makeMapByHostId(nodeInfoMap.hot.hostList);
-    if (hotHostIdMap[hostData.host_id]) {
-      return t('主机已被热节点使用');
-    }
-    const coldHostIdMap = makeMapByHostId(nodeInfoMap.cold.hostList);
-    if (coldHostIdMap[hostData.host_id]) {
-      return t('主机已被冷节点使用');
+  const nodeDisableHostMethod = (hostData: HostDetails, type: keyof typeof disableTipsMap) => {
+    const types = Object.keys(disableTipsMap);
+    for (const key of types) {
+      if (key !== type) {
+        const hostIdMap = makeMapByHostId(nodeInfoMap[key].hostList);
+        if (hostIdMap[hostData.host_id]) {
+          return disableTipsMap[key as keyof typeof disableTipsMap];
+        }
+      }
     }
     return false;
   };
@@ -281,17 +305,20 @@
           hotRef.value.getValue(),
           coldRef.value.getValue(),
           clientRef.value.getValue(),
-        ]).then(([hotValue, coldValue, clientValue]) => {
+          masterRef.value.getValue(),
+        ]).then(([hotValue, coldValue, clientValue, masterValue]) => {
           const isEmptyValue = () => {
             if (ipSource.value === 'manual_input') {
               return hotValue.new_nodes.length
                 + coldValue.new_nodes.length
-                + clientValue.new_nodes.length < 1;
+                + clientValue.new_nodes.length
+                + masterValue.new_nodes.length < 1;
             }
 
             return !((hotValue.resource_spec.spec_id > 0 && hotValue.resource_spec.count > 0)
               || (coldValue.resource_spec.spec_id > 0 && coldValue.resource_spec.count > 0)
-              || (clientValue.resource_spec.spec_id > 0 && clientValue.resource_spec.count > 0));
+              || (clientValue.resource_spec.spec_id > 0 && clientValue.resource_spec.count > 0)
+              || (masterValue.resource_spec.spec_id > 0 && masterValue.resource_spec.count > 0));
           };
 
           if (isEmptyValue()) {
@@ -328,6 +355,7 @@
                     hot: hotValue.new_nodes,
                     cold: coldValue.new_nodes,
                     client: clientValue.new_nodes,
+                    master: masterValue.new_nodes,
                   },
                 });
               } else {
@@ -336,6 +364,7 @@
                     hot: hotValue.resource_spec,
                     cold: coldValue.resource_spec,
                     client: clientValue.resource_spec,
+                    master: masterValue.resource_spec,
                   },
                 });
               }
@@ -349,6 +378,7 @@
                     hot: hotValue.old_nodes,
                     cold: coldValue.old_nodes,
                     client: clientValue.old_nodes,
+                    master: masterValue.old_nodes,
                   },
                   ...nodeData,
                 },
