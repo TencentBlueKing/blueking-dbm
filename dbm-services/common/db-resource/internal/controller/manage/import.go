@@ -13,15 +13,16 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
-	"sync"
 	"time"
 
+	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/apply"
 	"dbm-services/common/db-resource/internal/svr/bk"
-	"dbm-services/common/db-resource/internal/svr/cloud"
 	"dbm-services/common/db-resource/internal/svr/task"
+	"dbm-services/common/db-resource/internal/svr/yunti"
 	"dbm-services/common/go-pubpkg/cc.v3"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
@@ -31,7 +32,7 @@ import (
 	"github.com/samber/lo"
 )
 
-// ImportMachParam TODO
+// ImportMachParam 资源导入请求参数
 type ImportMachParam struct {
 	// ForBizs 业务标签,表示这个资源将来给ForBizs这个业务使用
 	ForBizs []int             `json:"for_bizs"`
@@ -42,7 +43,7 @@ type ImportMachParam struct {
 	apply.ActionInfo
 }
 
-// HostBase TODO
+// HostBase 主机基本请求参数
 type HostBase struct {
 	Ip        string `json:"ip"  binding:"required,ip"`
 	HostId    int    `json:"host_id" binding:"required"`
@@ -65,6 +66,7 @@ func (p ImportMachParam) getOperationInfo(requestId string, hostIds json.RawMess
 	}
 }
 
+// getIps 从参数中获取ipList
 func (p ImportMachParam) getIps() []string {
 	return lo.FilterMap(p.Hosts, func(item HostBase, _ int) (string, bool) {
 		return item.Ip, lo.IsNotEmpty(item.Ip)
@@ -87,6 +89,7 @@ func (p ImportMachParam) getHostIds() []int {
 	})
 }
 
+// existCheck 导入前存在性检查
 func (p *ImportMachParam) existCheck() (err error) {
 	var alreadyExistRs []model.TbRpDetail
 	ipmap := p.getIpsByCloudId()
@@ -107,7 +110,7 @@ func (p *ImportMachParam) existCheck() (err error) {
 	return nil
 }
 
-// Import TODO
+// Import 导入主机资源
 func (c *MachineResourceHandler) Import(r *rf.Context) {
 	var input ImportMachParam
 	if err := c.Prepare(r, &input); err != nil {
@@ -132,7 +135,7 @@ func (c *MachineResourceHandler) Import(r *rf.Context) {
 	c.SendResponse(r, err, resp, requestId)
 }
 
-// ImportHostResp TODO
+// ImportHostResp 导入主机参数
 type ImportHostResp struct {
 	GetDiskInfoJobErrMsg string            `json:"get_disk_job_errmsg"`
 	SearchDiskErrInfo    map[string]string `json:"search_disk_err_info"`
@@ -174,7 +177,7 @@ func (p ImportMachParam) getJobIpList() (ipList []bk.IPList) {
 	})
 }
 
-// Doimport TODO
+// Doimport 导入主机获取主机信息
 func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	var ccHostsInfo []*cc.Host
 	var derr error
@@ -190,12 +193,11 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 		return resp, err
 	}
 	if len(notFoundHosts) >= len(param.Hosts) {
-		return resp, fmt.Errorf("all hosts cannot query any information in cmdb !!!")
+		return resp, fmt.Errorf("all hosts cannot query any information in cmdb~")
 	}
-	hostOsMap := make(map[string]string)
-	for _, h := range ccHostsInfo {
-		hostOsMap[h.InnerIP] = model.ConvertOsTypeToHuman(h.BkOsType)
-	}
+	hostOsMap := lo.SliceToMap(ccHostsInfo, func(item *cc.Host) (string, string) {
+		return item.InnerIP, model.ConvertOsTypeToHuman(item.BkOsType)
+	})
 	diskResp, err = bk.GetDiskInfo(param.getJobIpList(), param.BkBizId, hostOsMap)
 	if err != nil {
 		logger.Error("get disk info failed %s", err.Error())
@@ -203,21 +205,25 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	}
 	resp.SearchDiskErrInfo = diskResp.IpFailedLogMap
 	resp.NotFoundInCCHosts = notFoundHosts
-
 	lableJson, bizJson, rstypes, err := param.transParamToBytes()
 	if err != nil {
 		return resp, err
 	}
-	hostsMap := make(map[string]struct{})
-	for _, host := range targetHosts {
-		hostsMap[host] = struct{}{}
-	}
+	hostsMap := lo.SliceToMap(targetHosts, func(item string) (string, struct{}) { return item, struct{}{} })
 	for _, emptyhost := range notFoundHosts {
 		delete(hostsMap, emptyhost)
 	}
-	// further probe disk specific information
-	probeFromCloud(diskResp.IpLogContentMap)
-	logger.Info("more info %v", ccHostsInfo)
+	logger.Info("yunti config  %v", config.AppConfig.Yunti)
+	// if yunti config is not empty
+	var cvmInfoMap map[string]yunti.InstanceDetail
+	if config.AppConfig.Yunti.IsNotEmpty() {
+		logger.Info("try to get machine info from yunti")
+		var verr error
+		cvmInfoMap, verr = getCvmMachDetailInfo(getCvmMachList(ccHostsInfo))
+		if verr != nil {
+			logger.Warn("query cvm info failed %s", verr.Error())
+		}
+	}
 	for _, h := range ccHostsInfo {
 		delete(hostsMap, h.InnerIP)
 		el := transHostInfoToDbModule(h, h.BkCloudId, param.BkBizId, rstypes, bizJson, lableJson)
@@ -229,6 +235,9 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 		}
 		gseAgentIds = append(gseAgentIds, gseAgentId)
 		el.BkAgentId = gseAgentId
+		if v, ok := cvmInfoMap[h.InnerIP]; ok {
+			el.DramCap = v.Memory * 1000
+		}
 		elems = append(elems, el)
 	}
 	if err := model.DB.Self.Table(model.TbRpDetailName()).Create(elems).Error; err != nil {
@@ -239,6 +248,45 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	return resp, err
 }
 
+// getCvmMachDetailInfo 获取cvm的相关的信息
+func getCvmMachDetailInfo(ipList []string) (cvmInfoMap map[string]yunti.InstanceDetail, err error) {
+	cvmInfoMap = make(map[string]yunti.InstanceDetail)
+	if len(ipList) <= 0 {
+		return cvmInfoMap, nil
+	}
+	resp, err := config.AppConfig.Yunti.QueryCVMInstances(ipList)
+	if err != nil {
+		return cvmInfoMap, err
+	}
+
+	logger.Info("get total  %d machines by yunti", resp.Result.Total)
+	return lo.SliceToMap(resp.Result.Data, func(item yunti.InstanceDetail) (string, yunti.InstanceDetail) {
+		return item.LanIp, item
+	}), nil
+}
+
+func regularExpressionMatching(regular, s string) bool {
+	m, err := regexp.MatchString(regular, s)
+	if err != nil {
+		logger.Error("matching error: %s", err.Error())
+		return false
+	}
+	return m
+}
+
+// getCvmMachList 判断主机是否是cvm
+func getCvmMachList(hosts []*cc.Host) []string {
+	var machIpList []string
+	for _, host := range hosts {
+		if regularExpressionMatching(`^TC(\d*)\d$`, host.AssetID) || strings.Contains(strings.ToUpper(host.SvrTypeName),
+			"QC_CVM") {
+			machIpList = append(machIpList, host.InnerIP)
+		}
+	}
+	return machIpList
+}
+
+// transHostInfoToDbModule 获取的到的主机信息赋值给db model
 func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz, label []byte) model.TbRpDetail {
 	osType := h.BkOsType
 	if cmutil.IsEmpty(osType) {
@@ -275,39 +323,4 @@ func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz, labe
 		UpdateTime:      time.Now(),
 		CreateTime:      time.Now(),
 	}
-}
-
-// probeFromCloud Detect The Disk Type Again Through The Cloud Interface
-func probeFromCloud(diskMap map[string]*bk.ShellResCollection) {
-	var clouder cloud.Disker
-	var err error
-	if clouder, err = cloud.NewDisker(); err != nil {
-		return
-	}
-	ctr := make(chan struct{}, 5)
-	wg := sync.WaitGroup{}
-	for ip := range diskMap {
-		// if the disk id and region obtained by job are all empty skip the request for cloud api
-		ctr <- struct{}{}
-		wg.Add(1)
-		go func(ip string) {
-			defer func() { wg.Done(); <-ctr }()
-			dkinfo := diskMap[ip]
-			diskIds := bk.GetAllDiskIds(dkinfo.Disk)
-			if cmutil.IsEmpty(dkinfo.TxRegion) || len(diskIds) <= 0 {
-				return
-			}
-			cloudInfo, err := clouder.DescribeDisk(diskIds, dkinfo.TxRegion)
-			if err != nil {
-				logger.Error("call clouder describe disk info failed %s", err.Error())
-				return
-			}
-			for _, dk := range dkinfo.Disk {
-				if v, ok := cloudInfo[dk.DiskId]; ok {
-					dk.DiskType = v
-				}
-			}
-		}(ip)
-	}
-	wg.Wait()
 }

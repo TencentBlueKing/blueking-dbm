@@ -4,15 +4,16 @@ package config
 import (
 	"log"
 
+	"dbm-services/common/db-resource/internal/svr/yunti"
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/spf13/viper"
 )
 
-// AppConfig TODO
+// AppConfig static app config
 var AppConfig Config
 
-// Config TODO
+// Config config tpl
 type Config struct {
 	Gormlog       bool   `yaml:"gormlog"`
 	RunMode       string `yaml:"runMode"`
@@ -25,9 +26,10 @@ type Config struct {
 	BkSecretConfig   BkSecretConfig    `yaml:"bkSecretConfig"`
 	Redis            Redis             `yaml:"redis"`
 	CloudCertificate *CloudCertificate `yaml:"cloudCertificate"`
+	Yunti            yunti.YuntiConfig `yaml:"yunti"`
 }
 
-// Db TODO
+// Db config
 type Db struct {
 	Name     string `yaml:"name"`
 	Addr     string `yaml:"addr"`
@@ -51,7 +53,7 @@ type BkSecretConfig struct {
 	GseBaseUrl  string `yaml:"gse_base_url" mapstructure:"gse_base_url"`
 }
 
-// Redis TODO
+// Redis redis
 type Redis struct {
 	Addr     string `yaml:"addr"`
 	Password string `yaml:"password"`
