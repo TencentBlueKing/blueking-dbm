@@ -59,9 +59,9 @@ func (i *ServerObj) String() string {
 // 如果返回有错误，该实例不参与后续binlog处理。不返回错误 nil 时，ServerObj.rotate 对象有效
 func (i *ServerObj) Rotate() (lastFileBefore *models.BinlogFileModel, err error) {
 	maxKeepDuration := timeutil.ViperGetDuration("public.max_keep_duration")
-	if maxKeepDuration < cst.MaxKeepDurationMin {
-		logger.Warn("max_keep_duration=%s is too small, set to %s", maxKeepDuration, cst.MaxKeepDurationMin)
-		maxKeepDuration = cst.MaxKeepDurationMin
+	if maxKeepDuration < cst.MinKeepDuration {
+		logger.Warn("max_keep_duration=%s is too small, set to %s", maxKeepDuration, cst.MinKeepDuration)
+		maxKeepDuration = cst.MinKeepDuration
 	}
 
 	if i.dbWorker, err = i.instance.Conn(); err != nil {

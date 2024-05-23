@@ -225,7 +225,7 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 		}
 		diskPart, err := util.GetDiskPartitionWithDir(inst.binlogDir)
 		if err != nil {
-			logger.Warn("fail to get binlog_dir %s disk partition info", inst.binlogDir)
+			logger.Warn("fail to get binlog_dir %s disk partition info, err:%s", inst.binlogDir, err.Error())
 			continue
 		}
 		mkey := diskPart.Mountpoint

@@ -172,26 +172,30 @@ func (m *BinlogFileModel) BatchSave(models []*BinlogFileModel, db *sqlx.DB) erro
 	if len(models) == 0 {
 		return nil
 	}
-	sqlBuilder := sq.Replace("").Into(m.TableName()).
-		Columns(
-			"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
-			"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id",
-			"created_at", "updated_at",
-		)
+
+	//db.BeginTx
 	for _, o := range models {
+		sqlBuilder := sq.Replace("").Into(m.TableName()).
+			Columns(
+				"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
+				"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id",
+				"created_at", "updated_at",
+			)
+		//for _, o := range models {
 		o.autoTime()
 		sqlBuilder = sqlBuilder.Values(
 			o.BkBizId, o.ClusterId, o.ClusterDomain, o.DBRole, o.Host, o.Port, o.Filename,
 			o.Filesize, o.StartTime, o.StopTime, o.FileMtime, o.BackupStatus, o.BackupTaskid,
 			o.CreatedAt, o.UpdatedAt,
 		)
-	}
-	sqlStr, args, err := sqlBuilder.ToSql()
-	if err != nil {
-		return err
-	}
-	if _, err = db.Exec(sqlStr, args...); err != nil {
-		return err
+		//}
+		sqlStr, args, err := sqlBuilder.ToSql()
+		if err != nil {
+			return err
+		}
+		if _, err = db.Exec(sqlStr, args...); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -286,7 +290,7 @@ const (
 	IBStatusUploading = 3 // <= 3 备份上传中
 	// IBStatusSuccess TODO
 	IBStatusSuccess = 4
-	// IBStatusFileNotFound TODO
+	// IBStatusFileNotFound 源上找不到文件
 	IBStatusFileNotFound = 5
 	// IBStatusFail TODO
 	IBStatusFail = 6 // >= 6 fail

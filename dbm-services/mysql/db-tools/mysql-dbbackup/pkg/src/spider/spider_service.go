@@ -236,7 +236,7 @@ func (b GlobalBackupModel) handleQuitTasks(db *sqlx.DB) {
 // handleOldTask 移除太久远的任务
 func (b GlobalBackupModel) handleOldTask(db *sqlx.DB) error {
 	ctx := context.Background()
-	conn, err := db.DB.Conn(context.Background())
+	conn, err := db.DB.Conn(ctx)
 	defer conn.Close()
 	// 关闭 binlog 避免 slave 报错
 	if _, err = conn.ExecContext(ctx, "set session sql_log_bin=0"); err != nil {

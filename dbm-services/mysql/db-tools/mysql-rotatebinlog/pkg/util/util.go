@@ -35,7 +35,7 @@ func (d DiskDfResult) String() string {
 }
 
 func GetDiskPartitionWithDir(dirName string) (*cmutil.DiskPartInfo, error) {
-	return cmutil.GetDiskPartInfo(dirName, true)
+	return cmutil.GetDiskPartInfo(dirName, false)
 }
 
 // GetDiskPartitionWithDir2 TODO

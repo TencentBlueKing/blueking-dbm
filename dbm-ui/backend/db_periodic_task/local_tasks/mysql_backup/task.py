@@ -25,5 +25,5 @@ def mysql_backup_check_task():
     """
     mysql 备份巡检
     """
-    check_full_backup()
-    check_binlog_backup()
+    check_full_backup("")
+    check_binlog_backup("")

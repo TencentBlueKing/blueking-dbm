@@ -117,13 +117,13 @@ func (f *BackupIndexFile) ValidateFiles() error {
 
 	if len(f.splitParts) >= 2 { // 校验文件是否连续
 		fileSeqList := util.GetSuffixWithLenAndSep(f.splitParts, "_", 0)
-		if err := util.IsConsecutiveStrings(fileSeqList, true); err != nil {
+		if _, err := util.IsConsecutiveStrings(fileSeqList, true); err != nil {
 			return err
 		}
 	}
 	if len(tarPartsWithoutSuffix) >= 2 {
 		fileSeqList := util.GetSuffixWithLenAndSep(tarPartsWithoutSuffix, "_", 0)
-		if err := util.IsConsecutiveStrings(fileSeqList, true); err != nil {
+		if _, err := util.IsConsecutiveStrings(fileSeqList, true); err != nil {
 			return err
 		}
 	}

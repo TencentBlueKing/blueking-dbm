@@ -92,7 +92,7 @@ func (c *InstallMysqlRotateBinlogComp) DeployBinary() (err error) {
 		return err
 	}
 
-	chownCmd := fmt.Sprintf(`chown -R mysql %s && chmod +x %s`, c.installPath, c.binPath)
+	chownCmd := fmt.Sprintf(`chown -R mysql.mysql %s && chmod +x %s`, c.installPath, c.binPath)
 	_, err = osutil.ExecShellCommand(false, chownCmd)
 	if err != nil {
 		logger.Error("chown %s to mysql failed: %s", c.installPath, err.Error())
@@ -151,9 +151,9 @@ func (c *InstallMysqlRotateBinlogComp) InstallCrontab() (err error) {
 		logger.Error("remove old rotate_logbin crontab failed: %s", err.Error())
 		return err
 	}
-	scheduleCmd := fmt.Sprintf("%s -c %s --addSchedule 2>/dev/null && chown -R mysql %s",
+	scheduleCmd := fmt.Sprintf("%s -c %s --addSchedule 2>/dev/null && chown -R mysql.mysql %s",
 		c.binPath, c.configFile, c.installPath) // TODO REMOVE
-	scheduleCmd = fmt.Sprintf("%s -c %s crond --add 2>/dev/null && chown -R mysql %s",
+	scheduleCmd = fmt.Sprintf("%s -c %s crond --add 2>/dev/null && chown -R mysql.mysql %s",
 		c.binPath, c.configFile, c.installPath)
 	str, err := osutil.ExecShellCommand(false, scheduleCmd)
 	if err != nil {
@@ -169,7 +169,7 @@ func (c *InstallMysqlRotateBinlogComp) RunMigrateOld() (err error) {
 	cmdArgs := []string{"migrate-old", "-c", c.configFile}
 	_, stdErr, err := cmutil.ExecCommand(false, c.installPath, c.binPath, cmdArgs...)
 
-	chownCmd := fmt.Sprintf(`chown -R mysql %s ; mkdir -p %s ;chown -R mysql %s`, c.installPath,
+	chownCmd := fmt.Sprintf(`chown -R mysql.mysql %s ; mkdir -p %s ;chown -R mysql.mysql %s`, c.installPath,
 		cst.DBAReportBase, cst.DBAReportBase)
 	_, err = osutil.ExecShellCommand(false, chownCmd)
 
