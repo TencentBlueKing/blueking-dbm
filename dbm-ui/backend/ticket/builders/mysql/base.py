@@ -124,7 +124,7 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         if not CommonValidate.validate_instance_role(inst_list, role):
             raise serializers.ValidationError(_("请保证实例f{}的角色类型为{}").format(inst_list, role))
 
-    def validate_cluster_type(self, attrs, cluster_type: ClusterType):
+    def validated_cluster_type(self, attrs, cluster_type: ClusterType):
         """校验集群类型为高可用"""
         cluster_ids = fetch_cluster_ids(attrs)
         if not CommonValidate.validate_cluster_type(cluster_ids, cluster_type):

@@ -59,8 +59,9 @@ class SQLHandler(object):
         self.context = context
         self.cluster_type = cluster_type
 
+    @classmethod
     def _upload_sql_file(
-        self, sql_content: str = None, sql_file_list: List[InMemoryUploadedFile] = None
+        cls, sql_content: str = None, sql_file_list: List[InMemoryUploadedFile] = None
     ) -> List[Dict[str, Any]]:
         """
         - 将sql文本或者sql文件上传到制品库

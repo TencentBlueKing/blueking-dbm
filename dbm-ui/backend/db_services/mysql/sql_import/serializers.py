@@ -114,6 +114,26 @@ class SQLSemanticCheckResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.SQL_SEMANTIC_CHECK_RESPONSE_DATA}
 
 
+class ImportSQLForceSerializer(SQLSemanticCheckSerializer):
+    class ExecuteDBInfoSerializer(serializers.Serializer):
+        dbnames = serializers.ListField(help_text=_("目标变更DB"), child=serializers.CharField())
+        ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField())
+
+    class ExecuteSQLSerializer(ExecuteDBInfoSerializer):
+        sql_file = serializers.CharField(help_text=_("sql执行文件"))
+
+    ticket_type = serializers.ChoiceField(help_text=_("单据类型"), choices=TicketType.get_choices(), required=False)
+    execute_db_infos = serializers.ListSerializer(help_text=_("sql执行的DB信息"), child=ExecuteDBInfoSerializer())
+    execute_sql_content = serializers.CharField(help_text=_("sql执行内容"), required=False, default=None)
+    execute_sql_files = serializers.ListField(
+        help_text=_("sql执行文件"), child=serializers.FileField(), required=False, default=None
+    )
+
+    def validate(self, attrs):
+        if attrs["execute_sql_content"] and attrs["execute_sql_files"]:
+            raise serializers.ValidationError(_("请填写SQL执行的数据"))
+
+
 class SQLUserConfigSerializer(serializers.Serializer):
     root_id = serializers.CharField(help_text=_("流程id"))
     is_auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"))
