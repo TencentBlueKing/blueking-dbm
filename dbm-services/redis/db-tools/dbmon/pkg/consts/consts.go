@@ -113,10 +113,11 @@ const (
 
 // tool path
 const (
-	DbToolsPath             = "/home/mysql/dbtools"
-	RedisShakeBin           = "/home/mysql/dbtools/redis-shake"
-	RedisSafeDeleteToolBin  = "/home/mysql/dbtools/redisSafeDeleteTool"
-	LdbTendisplusBin        = "/home/mysql/dbtools/ldb_tendisplus"
+	DbToolsPath            = "/home/mysql/dbtools"
+	RedisShakeBin          = "/home/mysql/dbtools/redis-shake"
+	RedisSafeDeleteToolBin = "/home/mysql/dbtools/redisSafeDeleteTool"
+	// same with tendisplus package
+	LdbTendisplusBin        = "/usr/local/redis/bin/ldb_tendis"
 	TredisverifyBin         = "/home/mysql/dbtools/tredisverify"
 	TredisBinlogBin         = "/home/mysql/dbtools/tredisbinlog"
 	TredisDumpBin           = "/home/mysql/dbtools/tredisdump"
