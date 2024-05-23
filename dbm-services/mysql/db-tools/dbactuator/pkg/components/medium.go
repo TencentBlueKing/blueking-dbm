@@ -49,8 +49,21 @@ func (m *Medium) GePkgBaseName() string {
 	return regexp.MustCompile("(.tar.gz|.tgz|.tar.xz)$").ReplaceAllString(pkgFullName, "")
 }
 
+func (m *Medium) GetPkgVersion() string {
+	pkgName := strings.ReplaceAll(m.Pkg, "-txsql", "")
+	reMatch := regexp.MustCompile(`(mysql|mariadb)\-(\d+\.\d+\.\d+)\-.*`)
+	res := reMatch.FindStringSubmatch(pkgName)
+	if len(res) >= 3 {
+		return res[2]
+	}
+	return ""
+}
+
 // GetPkgTypeName 通过介质包文件名称获取对应的组件类型
 // 比如  mysql-5.7.20-linux-x86_64-tmysql-3.1.5-gcs.tar.gz 解析成 mysql
+//
+//	mysql-8.0.18-linux-x86_64-tmysql-4.1.2-gcs.tar.gz
+//
 // 比如  mariadb-10.3.7-linux-x86_64-tspider-3.7.8-gcs.tar.gz 解析成 mariadb
 // tdbctl mysql-5.7.20-linux-x86_64-tdbctl-2.4.2.tar.gz
 // 官方包名：mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz mysql-5.7.42-linux-glibc2.12-x86_64.tar.gz

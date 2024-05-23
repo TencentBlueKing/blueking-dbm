@@ -576,6 +576,7 @@ func (i *InstallMySQLComp) Install() (err error) {
 			"su - mysql -c \"cd /usr/local/mysql && ./scripts/mysql_install_db --defaults-file=%s --user=mysql --force &>%s\"",
 			myCnf, initialLogFile)
 
+		i.Params.MysqlVersion = i.Params.Medium.GetPkgVersion()
 		// mysql5.7.18以上的版本
 		if cmutil.MySQLVersionParse(i.Params.MysqlVersion) >= cmutil.MySQLVersionParse("5.7.18") &&
 			i.Params.Medium.GetPkgTypeName() == "mysql" {

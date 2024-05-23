@@ -154,12 +154,12 @@ func (i *ServerObj) flushLogs() error {
 }
 
 // RemoveMaxKeepDuration 超过最大保留时间的 binlogFiles 直接删除
-// 同时也会删除 sqlite 里面的元数据
+// 同时也会删除 sqlite 里面的元数据，每天凌晨 06 点清理
 func (i *ServerObj) RemoveMaxKeepDuration() error {
-	if i.rotate.maxKeepDuration == 0 {
+	nowTime := time.Now()
+	if i.rotate.maxKeepDuration == 0 || nowTime.Hour() != 6 {
 		return nil
 	}
-	nowTime := time.Now()
 	fileTimeExpire := nowTime.Add(-1 * i.rotate.maxKeepDuration)
 
 	num := len(i.binlogFiles)
@@ -171,7 +171,6 @@ func (i *ServerObj) RemoveMaxKeepDuration() error {
 			logger.Info("%s [%s]has exceed max_keep_duration=%s", f.Filename, f.Mtime, i.rotate.maxKeepDuration)
 			if num-j-cst.ReserveMinBinlogNum < 0 {
 				binlogFilesNew = append(binlogFilesNew, f)
-				// logger.Info("RemoveMaxKeepDuration keep ReserveMinBinlogNum=%d", ReserveMinBinlogNum)
 				continue
 			}
 			fileFullPath := filepath.Join(i.binlogDir, f.Filename)
@@ -183,10 +182,8 @@ func (i *ServerObj) RemoveMaxKeepDuration() error {
 			binlogFilesNew = append(binlogFilesNew, f)
 		}
 	}
-	if len(binlogFilesDel) > 0 {
-		if _, err := i.rotate.binlogInst.DeleteExpired(models.DB.Conn, fileTimeExpire); err != nil {
-			logger.Error("delete expired file from sqlite: %s", fileTimeExpire)
-		}
+	if _, err := i.rotate.binlogInst.DeleteExpired(models.DB.Conn, fileTimeExpire); err != nil {
+		logger.Error("delete expired file from sqlite: %s", fileTimeExpire)
 	}
 
 	i.binlogFiles = binlogFilesNew
@@ -225,21 +222,17 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 			j == fLen-1 { // 忽略最后一个binlog
 			continue
 		}
-
 		backupStatus := models.IBStatusNew
 		backupStatusInfo := ""
 		bp, _ := binlog_parser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1)
 		fileName := filepath.Join(i.binlogDir, fileObj.Filename)
 		events, err := bp.GetTime(fileName, true, true)
 		if err != nil {
-			logger.Warn("binlog %s GetTime failed: %s", fileName, err.Error())
-			events, err = bp.GetTime(fileName, true, false)
-			if err == nil {
-				logger.Warn("binlog stop_time use start_time, file% %s: %s", fileName, err.Error())
+			logger.Warn("binlog %s GetTime failed: %s,events:%+v. use stop_time use start_time",
+				fileName, err.Error(), events)
+			if len(events) > 0 {
 				events = append(events, events[0])
 			}
-			//backupStatus = models.IBStatusClientFail
-			//backupStatusInfo = err.Error()
 		}
 		if i.Tags.DBRole == models.RoleSlave { // slave 无需备份 binlog
 			backupStatus = models.FileStatusNoNeedUpload
@@ -324,14 +317,24 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 				if err != nil {
 					return err
 				}
-				if taskStatus == f.BackupStatus { // 上传状态没有进展
-					continue
-				} else {
+
+				if taskStatus == models.IBStatusSuccess {
 					f.BackupStatus = taskStatus
-					if taskStatus == models.IBStatusSuccess {
-						log.Reporter().Result.Println(f)
+					log.Reporter().Result.Println(f)
+				} else if taskStatus == f.BackupStatus { // 上传状态没有进展
+					continue
+				} else if taskStatus < models.IBStatusSuccess { // 未成功，且在上传中或者等待备份系统内部重试
+					f.BackupStatus = taskStatus
+				} else { // 状态有变化，但不是 success，下一轮再看
+					f.BackupStatus = taskStatus
+					//log.Reporter().Status.Println(f)
+					logger.Info("backup_client query file: %s, taskid:%d, status: %d",
+						f.Filename, f.BackupTaskid, f.BackupStatus)
+					if taskStatus == 12 || taskStatus == 2 || taskStatus == 0 {
+						f.BackupStatus = models.IBStatusWaiting
+						f.BackupStatusInfo = fmt.Sprintf("status=%d need check again", taskStatus)
 					}
-					log.Reporter().Status.Println(f)
+					continue
 				}
 			}
 		}

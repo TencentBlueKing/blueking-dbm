@@ -52,11 +52,16 @@ var MycnfCloneItemsDefault = []string{
 	"interactive_timeout",
 	"wait_timeout",
 	"relay_log_uncompress",
+	"table_open_cache",
+	"table_definition_cache",
+	"long_query_time",
+	"max_connections",
 
 	"slave_parallel_workers",
 	"slave_parallel_type",
 	"replica_parallel_workers",
 	"replica_parallel_type",
+	"slave_exec_mode",
 }
 
 // MycnfCloneParam godoc

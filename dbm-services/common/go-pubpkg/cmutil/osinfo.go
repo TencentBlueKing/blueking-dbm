@@ -85,6 +85,7 @@ func GetDiskPartInfo(path string, checkDevice bool) (*DiskPartInfo, error) {
 			}
 		}
 		if info.Device == "" {
+			//CentOS6.2 stat --format has no %m
 			return nil, errors.Errorf("fail to get device(mounted %s) for path %s", info.Mountpoint, info.Path)
 		}
 		if info.Mountpoint != info.Path {

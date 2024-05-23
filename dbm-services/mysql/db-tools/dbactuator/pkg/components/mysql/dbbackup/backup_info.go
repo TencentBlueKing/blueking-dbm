@@ -178,7 +178,7 @@ func (i *InfoFileDetail) ValidateFiles() error {
 		return fmt.Errorf("expect more than one full file but got %v", fullFileList)
 	} else if len(fullFileList) >= 2 { // 校验文件是否连续
 		fileSeqList := util.GetSuffixWithLenAndSep(fullFileList, ".", 0)
-		if err := util.IsConsecutiveStrings(fileSeqList, true); err != nil {
+		if _, err := util.IsConsecutiveStrings(fileSeqList, true); err != nil {
 			return err
 		}
 	}

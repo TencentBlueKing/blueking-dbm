@@ -63,7 +63,7 @@ func EnableBackup(cnf *config.Public) error {
 	}
 	err := DeleteOldBackup(cnf, 0)
 	if err != nil {
-		return err
+		logger.Log.Warn("failed to delete old backup again, err:", err)
 	}
 	return util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort)
 }

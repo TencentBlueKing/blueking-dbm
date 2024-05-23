@@ -18,40 +18,40 @@ from backend.db_report.enums import MysqlBackupCheckSubType
 from backend.db_report.models import MysqlBackupCheckReport
 
 from .bklog_query import ClusterBackup
-from .check_full_backup import get_last_date_time
+from .check_full_backup import get_query_date_time
 
 logger = logging.getLogger("root")
 
 
-def check_binlog_backup():
-    _check_tendbha_binlog_backup()
-    _check_tendbcluster_binlog_backup()
+def check_binlog_backup(date_str: str):
+    _check_tendbha_binlog_backup(date_str)
+    _check_tendbcluster_binlog_backup(date_str)
 
 
-def _check_tendbha_binlog_backup():
+def _check_tendbha_binlog_backup(date_str: str):
     """
     master 实例必须要有备份binlog
     且binlog序号要连续
     """
     logger.info("==== start check binlog for cluster type {} ====".format(ClusterType.TenDBHA))
-    return _check_binlog_backup(ClusterType.TenDBHA)
+    return _check_binlog_backup(ClusterType.TenDBHA, date_str)
 
 
-def _check_tendbcluster_binlog_backup():
+def _check_tendbcluster_binlog_backup(date_str: str):
     """
     master 实例必须要有备份binlog
     且binlog序号要连续
     """
     logger.info("==== start check binlog for cluster type {} ====".format(ClusterType.TenDBCluster))
-    return _check_binlog_backup(ClusterType.TenDBCluster)
+    return _check_binlog_backup(ClusterType.TenDBCluster, date_str)
 
 
-def _check_binlog_backup(cluster_type):
+def _check_binlog_backup(cluster_type, date_str):
     """
     master 实例必须要有备份binlog
     且binlog序号要连续
     """
-    start_time, end_time = get_last_date_time()
+    start_time, end_time = get_query_date_time(date_str)
     logger.info(
         "==== start check binlog for cluster type {}, time range[{},{}] ====".format(
             cluster_type, start_time, end_time
@@ -91,7 +91,7 @@ def _check_binlog_backup(cluster_type):
                 bk_biz_id=c.bk_biz_id,
                 bk_cloud_id=c.bk_cloud_id,
                 cluster=c.immute_domain,
-                cluster_type=ClusterType.TenDBCluster,
+                cluster_type=cluster_type,
                 status=False,
                 msg="binlog is not consecutive:{}".format(shard_binlog_stat),
                 subtype=MysqlBackupCheckSubType.BinlogSeq.value,

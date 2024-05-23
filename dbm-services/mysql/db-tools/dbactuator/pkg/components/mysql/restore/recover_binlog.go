@@ -5,11 +5,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"text/template"
 	"time"
+
+	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -556,8 +559,28 @@ func (r *RecoverBinlog) PreCheck() error {
 	// 检查 binlog 文件连续性
 	sort.Strings(r.BinlogFiles)
 	fileSeqList := util.GetSuffixWithLenAndSep(r.BinlogFiles, ".", 0)
-	if err = util.IsConsecutiveStrings(fileSeqList, true); err != nil {
-		return err
+	if leakInts, err := util.IsConsecutiveStrings(fileSeqList, true); err != nil {
+		logger.Warn("binlog leak number: %v", leakInts)
+		// 如果文件不连续，会尝试从本机器恢复目录下查找。用于手动补全了 binlog 的情况
+		var leakFiles []string
+		file0Arr := strings.Split(r.BinlogFiles[0], ".")
+		file0Arr1Len := cast.ToString(len(file0Arr[1]))
+		for _, intVal := range leakInts {
+			fileNameFmt := "%s." + "%0" + file0Arr1Len + "d"
+			binlogFileName := fmt.Sprintf(fileNameFmt, file0Arr[0], intVal)
+			leakFiles = append(leakFiles, binlogFileName)
+			logger.Warn("check leak binlog file exists: %s", filepath.Join(r.BinlogDir, binlogFileName))
+			if err := cmutil.FileExistsErr(filepath.Join(r.BinlogDir, binlogFileName)); err != nil {
+				binlogFilesErrs = append(binlogFilesErrs, err)
+			}
+		}
+		if len(binlogFilesErrs) > 0 {
+			return errors.WithMessage(err, util.SliceErrorsToError(binlogFilesErrs).Error())
+		} else {
+			r.BinlogFiles = append(r.BinlogFiles, leakFiles...)
+			slices.Sort(r.BinlogFiles)
+		}
+		//return err
 	}
 
 	// 指定了开始 binlog file 时，忽略 start_time

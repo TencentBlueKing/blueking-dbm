@@ -16,8 +16,8 @@ const (
 	ReserveMinBinlogNum = 10
 	// ReduceStepSizeMB 删除的最小单位
 	ReduceStepSizeMB = 5 * 1
-	// MaxKeepDurationMin 最少保留时间
-	MaxKeepDurationMin = 10 * time.Minute
+	// MinKeepDuration 最少保留时间
+	MinKeepDuration = 10 * time.Minute
 )
 
 const (

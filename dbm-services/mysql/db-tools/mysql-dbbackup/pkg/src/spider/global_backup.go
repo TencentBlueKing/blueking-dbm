@@ -136,7 +136,7 @@ func GetGlobalBackupSchema(tableEngine string, partValues []int) string {
 	// ShardValue 是为了路由到对应的分片
 	createTable := fmt.Sprintf(`
 CREATE TABLE IF NOT EXISTS %s.global_backup (
-  ServerName varchar(10) NOT NULL DEFAULT '',
+  ServerName varchar(20) NOT NULL DEFAULT '',
   Wrapper varchar(20) NOT NULL DEFAULT '',
   Host varchar(60) NOT NULL DEFAULT '',
   Port int(4) NOT NULL DEFAULT 0,

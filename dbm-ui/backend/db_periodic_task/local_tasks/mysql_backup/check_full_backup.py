@@ -24,17 +24,22 @@ from .bklog_query import ClusterBackup
 logger = logging.getLogger("root")
 
 
-def get_last_date_time():
-    now_time = datetime.now(timezone.utc)
-    yesterday = now_time - timedelta(days=1)
-    start_time = datetime(yesterday.year, yesterday.month, yesterday.day).astimezone(timezone.utc)
-    end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59).astimezone(timezone.utc)
+def get_query_date_time(date_str: str):
+    # date_str 为空时，取当前时间的前一天为查询区间，不为空时需要是 2024-05-20 这样的格式，指定查询这一天 00:00:01-23:59:59 的数据
+    # 指定时间，一般用于手动触发使用
+    date_object = datetime.utcnow() - timedelta(days=1)
+    if date_str != "":
+        date_object = datetime.strptime(date_str, "%Y-%m-%d").date()
+    start_time = datetime(date_object.year, date_object.month, date_object.day).astimezone(timezone.utc)
+    end_time = datetime(date_object.year, date_object.month, date_object.day, 23, 59, 59).astimezone(timezone.utc)
     return start_time, end_time
 
 
-def check_full_backup():
-    _check_tendbha_full_backup()
-    _check_tendbcluster_full_backup()
+def check_full_backup(date_str: str):
+    # tendbha 全备巡检
+    _check_tendbha_full_backup(date_str)
+    # tendbcluster 全备巡检
+    _check_tendbcluster_full_backup(date_str)
 
 
 class BackupFile:
@@ -85,11 +90,11 @@ def _build_backup_info_files(backups_info: []):
     return backups
 
 
-def _check_tendbha_full_backup():
+def _check_tendbha_full_backup(date_str: str):
     """
     tendbha 必须有一份完整的备份
     """
-    start_time, end_time = get_last_date_time()
+    start_time, end_time = get_query_date_time(date_str)
     logger.info(
         "====  start check full backup for cluster type {}, time range[{},{}] ====".format(
             ClusterType.TenDBHA, start_time, end_time
@@ -119,11 +124,11 @@ def _check_tendbha_full_backup():
             )
 
 
-def _check_tendbcluster_full_backup():
+def _check_tendbcluster_full_backup(date_str: str):
     """
     tendbcluster 集群必须有完整的备份
     """
-    start_time, end_time = get_last_date_time()
+    start_time, end_time = get_query_date_time(date_str)
     logger.info(
         "==== start check full backup for cluster type {}, time range[{},{}] ====".format(
             ClusterType.TenDBCluster, start_time, end_time
@@ -155,6 +160,7 @@ def _check_tendbcluster_full_backup():
                 message = "shard_id:{}".format(backup_id_stat[backup_id])
                 break
 
+        # 只记录失败的结果
         if not backup.success:
             MysqlBackupCheckReport.objects.create(
                 bk_biz_id=c.bk_biz_id,

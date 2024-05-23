@@ -339,7 +339,7 @@ func (i *InstallNewDbBackupComp) InitBackupDir() (err error) {
 			return fmt.Errorf("execute [%s] get an error:%s,%w", cmd, output, err)
 		}
 	}
-	cmd := fmt.Sprintf("chown -R mysql %s", backupdir)
+	cmd := fmt.Sprintf("chown -R mysql.mysql %s", backupdir)
 	output, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {
 		return fmt.Errorf("execute [%s] get an error:%s,%w", cmd, output, err)
@@ -353,7 +353,7 @@ func (i *InstallNewDbBackupComp) DecompressPkg() (err error) {
 		return err
 	}
 	cmd := fmt.Sprintf(
-		"tar zxf %s -C %s && mkdir -p %s &&  chown -R mysql %s", i.Params.Medium.GetAbsolutePath(),
+		"tar zxf %s -C %s && mkdir -p %s &&  chown -R mysql.mysql %s", i.Params.Medium.GetAbsolutePath(),
 		path.Dir(i.installPath), filepath.Join(i.installPath, "logs"), i.installPath,
 	)
 	output, err := osutil.ExecShellCommand(false, cmd)
@@ -500,7 +500,7 @@ func (i *InstallNewDbBackupComp) ChownGroup() (err error) {
 	logger.Info("run dbbackup migrateold success")
 
 	cmd := fmt.Sprintf(
-		" chown -R mysql %s ; chmod +x %s/*.sh ; chmod +x %s/dbbackup",
+		" chown -R mysql.mysql %s ; chmod +x %s/*.sh ; chmod +x %s/dbbackup",
 		path.Dir(i.installPath), i.installPath, i.installPath,
 	)
 	output, err := osutil.ExecShellCommand(false, cmd)
