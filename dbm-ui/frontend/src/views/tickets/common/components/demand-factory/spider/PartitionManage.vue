@@ -20,11 +20,10 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { SpiderPartitionManageDetails } from '@services/model/ticket/details/spider';
-  import TicketModel from '@services/model/ticket/ticket';
+  import type { SpiderPartitionManageDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketModel<SpiderPartitionManageDetails>
+    ticketDetails: TicketDetails<SpiderPartitionManageDetails>
   }
 
   interface RowData {

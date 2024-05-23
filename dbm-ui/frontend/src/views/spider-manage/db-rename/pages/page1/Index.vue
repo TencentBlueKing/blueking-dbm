@@ -20,7 +20,6 @@
         :title="t('DB 重命名：database 重命名')" />
       <RenderData
         class="mt16"
-        @batch-edit="handleBatchEditColumn"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -29,7 +28,6 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @copy="(payload: IDataRow) => handleCopy(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div class="bottom-opeartion">
@@ -45,7 +43,6 @@
           {{ t('忽略业务连接') }}
         </span>
       </div>
-      <TicketRemark v-model="formData.remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -81,21 +78,14 @@
   import SpiderModel from '@services/model/spider/spider';
   import { createTicket } from '@services/source/ticket';
 
-  import { useTicketCloneInfo } from '@hooks';
-
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
-  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, { createRowData, type IDataRow, type IDataRowBatchKey } from './components/RenderData/Row.vue';
-
-  const createDefaultData = () => ({
-    remark: '',
-  });
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -105,22 +95,8 @@
   const isShowBatchSelector = ref(false);
   const isSubmitting = ref(false);
   const isIgnore = ref(false);
-  const tableData = ref<Array<IDataRow>>([createRowData({})]);
 
-  // 单据克隆
-  useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
-    onSuccess(cloneData) {
-      const { tableDataList, force, remark } = cloneData;
-      tableData.value = tableDataList;
-      isIgnore.value = force;
-      formData.remark = remark;
-      window.changeConfirm = true;
-    },
-  });
-
-  const formData = reactive(createDefaultData());
-
+  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
@@ -166,17 +142,6 @@
     window.changeConfirm = true;
   };
 
-  const handleBatchEditColumn = (value: string, filed: IDataRowBatchKey) => {
-    if (!value || checkListEmpty(tableData.value)) {
-      return;
-    }
-    tableData.value.forEach((row) => {
-      Object.assign(row, {
-        [filed]: value,
-      });
-    });
-  };
-
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
@@ -197,32 +162,13 @@
     }
   };
 
-  // 复制行数据
-  const handleCopy = (index: number, sourceData: IDataRow) => {
-    const dataList = [...tableData.value];
-    dataList.splice(
-      index + 1,
-      0,
-      Object.assign(sourceData, {
-        clusterData: {
-          ...sourceData.clusterData,
-          domain: tableData.value[index].clusterData?.domain ?? '',
-        },
-      }),
-    );
-    tableData.value = dataList;
-    setTimeout(() => {
-      rowRefs.value[rowRefs.value.length - 1].getValue();
-    });
-  };
-
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) =>
         createTicket({
           ticket_type: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
-          remark: formData.remark,
+          remark: '',
           details: {
             force: isIgnore.value,
             infos: data,
@@ -248,7 +194,6 @@
   };
 
   const handleReset = () => {
-    Object.assign(formData, createDefaultData());
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
     domainMemo = {};

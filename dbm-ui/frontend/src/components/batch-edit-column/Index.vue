@@ -3,46 +3,25 @@
     :is-show="isShow"
     trigger="manual"
     width="395"
-    @cancel="() => (isShow = false)"
+    @cancel="() => isShow = false"
     @confirm="handleConfirm">
     <slot />
     <template #content>
       <div class="batch-edit-column-select">
-        <div class="main-title">{{ t('批量编辑') }}{{ title }}</div>
+        <div class="main-title">
+          {{ t('批量编辑') }}{{ title }}
+        </div>
         <div
           class="title-spot edit-title"
-          style="font-weight: normal">
+          style="font-weight: normal;">
           {{ title }} <span class="required" />
         </div>
         <BkSelect
           v-if="type === 'select'"
+          v-model="localValue"
           :clearable="false"
-          :disabled="disabled"
           filterable
-          :list="dataList"
-          :model-value="localValue"
-          @change="handleChange" />
-        <BkInput
-          v-else-if="type === 'input'"
-          :disabled="disabled"
-          :model-value="localValue as string"
-          @change="handleChange" />
-        <BkTagInput
-          v-else-if="type === 'taginput'"
-          allow-create
-          :disabled="disabled"
-          has-delete-icon
-          :model-value="localValue as string[]"
-          @change="handleChange" />
-        <BkDatePicker
-          v-else-if="type === 'datetime'"
-          :clearable="false"
-          :disabled="disabled"
-          :disabled-date="disableFn"
-          :model-value="localValue as string"
-          type="datetime"
-          @change="handleChange">
-        </BkDatePicker>
+          :list="dataList" />
       </div>
     </template>
   </BkPopConfirm>
@@ -54,21 +33,19 @@
   interface Props {
     title: string;
     dataList?: {
-      value: T;
-      label: string;
+      value: T,
+      label: string,
     }[];
-    type?: 'select' | 'input' | 'taginput' | 'datetime';
-    disableFn?: (date?: Date | number) => boolean;
+    type?: 'select'
   }
 
   interface Emits {
-    (e: 'change', value: string | string[]): void;
+    (e: 'change', value: string): void,
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    dataList: () => [],
+  withDefaults(defineProps<Props>(), {
+    dataList: () => ([]),
     type: 'select',
-    disableFn: () => false,
   });
 
   const emits = defineEmits<Emits>();
@@ -79,13 +56,7 @@
 
   const { t } = useI18n();
 
-  const localValue = ref<string | string[]>(props.type === 'taginput' ? [] : '');
-
-  const disabled = computed(() => props.disableFn());
-
-  const handleChange = (value: string | string[]) => {
-    localValue.value = value;
-  };
+  const localValue = ref('');
 
   const handleConfirm = () => {
     emits('change', localValue.value);
@@ -93,7 +64,7 @@
   };
 </script>
 
-<style lang="less">
+  <style lang="less">
   .batch-edit-column-select {
     margin-bottom: 30px;
 
@@ -115,4 +86,4 @@
       height: 32px;
     }
   }
-</style>
+  </style>

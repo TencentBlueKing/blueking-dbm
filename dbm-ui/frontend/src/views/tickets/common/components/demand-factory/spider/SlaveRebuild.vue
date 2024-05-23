@@ -21,13 +21,14 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { SpiderSlaveRebuid } from '@services/model/ticket/details/spider';
-  import TicketModel from '@services/model/ticket/ticket';
+  import type { TicketDetails } from '@services/types/ticket';
 
   import { TicketTypes } from '@common/const';
 
+  import type { SpiderSlaveRebuid } from '../common/types'
+
   interface Props {
-    ticketDetails: TicketModel<SpiderSlaveRebuid>
+    ticketDetails: TicketDetails<SpiderSlaveRebuid>
   }
 
   const props = defineProps<Props>();

@@ -31,13 +31,11 @@
         <RenderHost
           ref="proxyRef"
           :cluster-data="localClusterData"
-          :cluster-id="localClusterId"
-          :ip-list="data.spiderIpList" />
+          :cluster-id="localClusterId" />
       </td>
       <OperateColumn
         :removeable="removeable"
         @add="handleAppend"
-        @copy="handleCopy"
         @remove="handleRemove" />
     </tr>
   </tbody>
@@ -90,7 +88,6 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'copy', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -101,9 +98,9 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
-  const netRef = ref<InstanceType<typeof RenderNet>>();
-  const proxyRef = ref<InstanceType<typeof RenderHost>>();
+  const clusterRef = ref();
+  const netRef = ref();
+  const proxyRef = ref();
 
   const localClusterId = ref(0);
   const localClusterData = ref<SpiderModel>();
@@ -150,34 +147,15 @@
     emits('remove');
   };
 
-  const getRowData = () => [clusterRef.value!.getValue(), netRef.value!.getValue(), proxyRef.value!.getValue()];
-
-  const handleCopy = () => {
-    Promise.allSettled(getRowData()).then((rowData) => {
-      const [clusterData, netData, proxyData] = rowData.map((item) =>
-        item.status === 'fulfilled' ? item.value : item.reason,
-      );
-      emits(
-        'copy',
-        createRowData({
-          clusterData: {
-            id: clusterData.cluster_id,
-            domain: '',
-          },
-          bkCloudId: netData.bk_cloud_id,
-          spiderIpList: proxyData.spider_ip_list,
-        }),
-      );
-    });
-  };
-
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all(getRowData()).then(([clusterData, netData, proxyData]) => ({
-        ...clusterData,
-        ...netData,
-        ...proxyData,
-      }));
+      return Promise.all([clusterRef.value.getValue(), netRef.value.getValue(), proxyRef.value.getValue()]).then(
+        ([clusterData, netData, proxyData]) => ({
+          ...clusterData,
+          ...netData,
+          ...proxyData,
+        }),
+      );
     },
   });
 </script>

@@ -46,13 +46,11 @@
     <td style="padding: 0">
       <RenderNewInstace
         ref="instanceRef"
-        :cluster-data="data.clusterData"
-        :new-host-list="data.newHostList" />
+        :cluster-data="data.clusterData" />
     </td>
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
-      @copy="handleCopy"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -83,7 +81,6 @@
       hostId: number;
     };
     masterInstanceList: NonNullable<IValue['related_instances']>;
-    newHostList: string[];
   }
 
   // 创建表格数据
@@ -99,7 +96,6 @@
       hostId: 0,
     },
     masterInstanceList: [] as IDataRow['masterInstanceList'],
-    newHostList: [],
   });
 </script>
 
@@ -112,7 +108,6 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'copy', value: IDataRow): void;
     (e: 'hostInputFinish', value: string): void;
   }
 
@@ -163,33 +158,13 @@
     emits('remove');
   };
 
-  const getRowData = () => [hostRef.value!.getValue(), instanceRef.value!.getValue(), slavaRef.value!.getValue()];
-
-  const handleCopy = () => {
-    Promise.allSettled(getRowData()).then((rowData) => {
-      const [ip, newInstaceList, oldMaster] = rowData.map((item) =>
-        item.status === 'fulfilled' ? item.value : item.reason,
-      );
-      emits('copy', {
-        rowKey: random(),
-        isLoading: false,
-        clusterData: {
-          ip,
-          clusterId: 0,
-          domain: '',
-          cloudId: 0,
-          cloudName: '',
-          hostId: 0,
-        },
-        masterInstanceList: [],
-        newHostList: newInstaceList.map((item: { ip: string }) => item.ip),
-      });
-    });
-  };
-
   defineExpose<Exposes>({
     async getValue() {
-      return Promise.all(getRowData()).then((data) => {
+      return await Promise.all([
+        hostRef.value!.getValue(),
+        instanceRef.value!.getValue(),
+        slavaRef.value!.getValue(),
+      ]).then((data) => {
         const [ip, newInstaceList, oldMaster] = data;
         return {
           newInstaceList,

@@ -24,17 +24,16 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @copy="(payload: IDataRow) => handleCopy(index, payload)"
           @host-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
-          @remove="handleRemove(index)" />
+          @remove="handleRemove(index)"/>
       </RenderData>
       <BkForm
-        class="toolbox-form mt-24"
+        class="mt-24"
         form-type="vertical">
         <BkFormItem
           :label="t('备份源')"
           required>
-          <BkRadioGroup v-model="formData.backup_source">
+          <BkRadioGroup v-model="backupSource">
             <BkRadio label="local">
               {{ t('本地备份') }}
             </BkRadio>
@@ -44,7 +43,6 @@
           </BkRadioGroup>
         </BkFormItem>
       </BkForm>
-      <TicketRemark v-model="formData.remark" />
     </div>
     <template #action>
       <BkButton
@@ -76,11 +74,9 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
-  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getSpiderMachineList } from '@services/source/spider';
+  import { getSpiderMachineList } from '@services/source/spider'
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -90,28 +86,13 @@
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
-    type PanelListType,
+    type PanelListType
   } from '@components/instance-selector/Index.vue';
-  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import { random } from '@utils';
 
   import RenderData from './components/render-data/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/render-data/Row.vue';
-
-  interface Props {
-    ticketCloneData?: {
-      tableDataList: IDataRow[];
-      formData: UnwrapRef<typeof formData>;
-    };
-  }
-
-  const props = defineProps<Props>();
-
-  const createDefaultData = () => ({
-    backup_source: 'local',
-    remark: '',
-  });
 
   const { t } = useI18n();
   const router = useRouter();
@@ -119,10 +100,9 @@
 
   const isShowInstanceSelecotr = ref(false);
   const rowRefs = ref([] as InstanceType<typeof RenderDataRow>[]);
+  const backupSource = ref('local');
   const isSubmitting = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData()]);
-
-  const formData = reactive(createDefaultData());
 
   const selected = shallowRef({ ['TendbClusterHost']: [] } as InstanceSelectorValues<IValue>);
 
@@ -146,26 +126,13 @@
             role: 'remote_slave',
           },
         },
-      },
+      }
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
 
   let ipMemo = {} as Record<string, boolean>;
 
-  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.oldSlave?.ip)).length);
-
-  watch(
-    () => props.ticketCloneData,
-    () => {
-      if (props.ticketCloneData) {
-        tableData.value = props.ticketCloneData.tableDataList;
-        Object.assign(formData, props.ticketCloneData.formData);
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.oldSlave?.ip)).length);
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -190,13 +157,13 @@
       ip: item.ip,
       domian: item.master_domain || '',
       clusterId: item.cluster_id,
-      specConfig: item.spec_config || ({} as IDataRow['oldSlave']['specConfig']),
-      slaveInstanceList: item.related_instances || ([] as IDataRow['oldSlave']['slaveInstanceList']),
-    },
+      specConfig: item.spec_config || {} as IDataRow['oldSlave']['specConfig'],
+      slaveInstanceList: item.related_instances || [] as IDataRow['oldSlave']['slaveInstanceList']
+    }
   });
 
   const handleInstancesChange = (selectedValues: InstanceSelectorValues<IValue>) => {
-    selected.value = selectedValues;
+    selected.value = selectedValues
     const newList: IDataRow[] = [];
     selectedValues.TendbClusterHost.forEach((instanceData) => {
       const { ip } = instanceData;
@@ -219,13 +186,13 @@
     if (!ip) {
       const { ip } = tableData.value[index].oldSlave;
       ipMemo[ip] = false;
-      tableData.value[index] = createRowData();
+      tableData.value[index] = createRowData()
       return;
     }
     tableData.value[index].isLoading = true;
     const spiderMachineResult = await getSpiderMachineList({
       ip,
-      instance_role: 'remote_slave',
+      instance_role: 'remote_slave'
     }).finally(() => {
       tableData.value[index].isLoading = false;
     });
@@ -241,12 +208,12 @@
       clusterId: spiderMachineItem.related_clusters[0].id,
       domian: spiderMachineItem.related_clusters[0].immute_domain,
       specConfig: spiderMachineItem.spec_config,
-      slaveInstanceList: spiderMachineItem.related_instances.map((instanceItem) => ({
+      slaveInstanceList: spiderMachineItem.related_instances.map(instanceItem => ({
         status: instanceItem.status,
-        instance: instanceItem.instance,
-      })),
-    });
-    ipMemo[ip] = true;
+        instance: instanceItem.instance
+      }))
+    })
+    ipMemo[ip]  = true;
   };
 
   // 追加一个行
@@ -262,63 +229,46 @@
     if (ip) {
       delete ipMemo[ip];
       const clustersArr = selected.value.TendbClusterHost;
-      selected.value.TendbClusterHost = clustersArr.filter((item) => item.ip !== ip);
+      selected.value.TendbClusterHost = clustersArr.filter(item => item.ip !== ip);
     }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
     tableData.value = dataList;
   };
 
-  // 复制行数据
-  const handleCopy = (index: number, sourceData: IDataRow) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, sourceData);
-    tableData.value = dataList;
-    setTimeout(() => {
-      rowRefs.value[rowRefs.value.length - 1].getValue();
-    });
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     isSubmitting.value = true;
-    const infos = await Promise.all(rowRefs.value.map((item) => item.getValue()));
-    InfoBox({
-      title: t('确认原地重建n个从库?', { n: totalNum.value }),
-      width: 500,
-      onConfirm: () => {
-        isSubmitting.value = true;
+    Promise.all(rowRefs.value.map((item) => item.getValue()))
+      .then((data) =>
         createTicket({
           ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
-          remark: formData.remark,
+          remark: '',
           details: {
-            ip_source: 'resource_pool',
-            backup_source: formData.backup_source,
-            infos,
+            ip_source: "resource_pool",
+            backup_source: backupSource.value,
+            infos: data,
           },
           bk_biz_id: currentBizId,
-        })
-          .then((data) => {
-            window.changeConfirm = false;
+        }).then((data) => {
+          window.changeConfirm = false;
 
-            router.push({
-              name: 'spiderSlaveRebuild',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
+          router.push({
+            name: 'spiderSlaveRebuild',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
           });
-      },
-    });
+        }),
+      )
+      .finally(() => {
+        isSubmitting.value = false;
+      });
   };
 
   const handleReset = () => {
-    Object.assign(formData, createDefaultData());
     tableData.value = [createRowData()];
     ipMemo = {};
     selected.value.TendbClusterHost = [];

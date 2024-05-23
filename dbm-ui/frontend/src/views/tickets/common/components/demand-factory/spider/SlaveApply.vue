@@ -24,13 +24,12 @@
   import { useRequest } from 'vue-request';
 
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import type { SpiderSlaveApplyDetails } from '@services/model/ticket/details/spider';
-  import TicketModel from '@services/model/ticket/ticket';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getSpiderListByBizId } from '@services/source/spider';
+  import type { SpiderSlaveApplyDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketModel<SpiderSlaveApplyDetails>
+    ticketDetails: TicketDetails<SpiderSlaveApplyDetails>
   }
 
   interface RowData {

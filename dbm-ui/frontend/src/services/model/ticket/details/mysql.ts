@@ -26,15 +26,13 @@ export interface MysqlIpItem {
  * mysql-授权详情
  */
 export interface MysqlAuthorizationDetails {
-  authorize_uid: string;
-  authorize_data: AuthorizePreCheckData;
-  excel_url: string;
-  authorize_plugin_infos: Array<
-    AuthorizePreCheckData & {
+  authorize_uid: string,
+  authorize_data: AuthorizePreCheckData,
+    excel_url: string,
+    authorize_plugin_infos: Array<AuthorizePreCheckData & {
       bk_biz_id: number;
-    }
-  >;
-}
+    }>
+  }
 
 /**
  * MySQL SQL变更执行
@@ -110,7 +108,7 @@ export interface MySQLCloneDetails {
   clone_type: string;
   clone_uid: string;
   clone_data: {
-    bk_cloud_id: number;
+    bk_cloud_id: number,
     source: string;
     target: string[];
     module: string;
@@ -124,14 +122,15 @@ export interface MySQLInstanceCloneDetails {
   clone_type: string;
   clone_uid: string;
   clone_data: {
-    bk_cloud_id: number;
+    bk_cloud_id: number,
     source: string;
     target: string;
     module: string;
     cluster_domain: string;
-    cluster_id: number;
   }[];
 }
+
+
 
 /**
  * MySQL 启停删

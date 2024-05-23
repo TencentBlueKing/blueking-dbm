@@ -32,11 +32,9 @@
   interface Props {
     clusterId: number;
   }
-
   interface Emits {
     (e: 'cluster-change', value: SpiderModel): void;
   }
-
   interface Exposes {
     getValue: () => Promise<{
       bk_cloud_id: number;
@@ -79,30 +77,17 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value
-        .getValue()
-        .then(() => {
-          if (!localClusterData.value) {
-            return Promise.reject();
-          }
-          const clusterData = localClusterData.value;
-          return {
-            bk_cloud_id: clusterData.bk_cloud_id,
-            cluster_shard_num: clusterData.cluster_shard_num,
-            db_module_id: clusterData.db_module_id,
-          };
-        })
-        .catch(() => {
-          if (!localClusterData.value) {
-            return Promise.reject();
-          }
-          const clusterData = localClusterData.value;
-          return Promise.reject({
-            bk_cloud_id: clusterData.bk_cloud_id,
-            cluster_shard_num: clusterData.cluster_shard_num,
-            db_module_id: clusterData.db_module_id,
-          });
-        });
+      return inputRef.value.getValue().then(() => {
+        if (!localClusterData.value) {
+          return Promise.reject();
+        }
+        const clusterData = localClusterData.value;
+        return {
+          bk_cloud_id: clusterData.bk_cloud_id,
+          cluster_shard_num: clusterData.cluster_shard_num,
+          db_module_id: clusterData.db_module_id,
+        };
+      });
     },
   });
 </script>

@@ -54,7 +54,6 @@
         :account-id="createRuleAccountId"
         @success="getList" />
       <ClusterAuthorize
-        ref="clusterAuthorizeRef"
         v-model="authorizeShow"
         :access-dbs="authorizeDbs"
         :account-type="AccountTypes.TENDBCLUSTER"
@@ -72,13 +71,12 @@
   import { getPermissionRules } from '@services/permission';
   import type { PermissionRuleInfo } from '@services/types/permission';
 
-  import { useTableMaxHeight, useTicketCloneInfo, } from '@hooks';
+  import { useTableMaxHeight } from '@hooks';
 
   import {
     AccountTypes,
     ClusterTypes,
     OccupiedInnerHeight,
-    TicketTypes,
   } from '@common/const';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue'
@@ -99,34 +97,11 @@
 
   const { t } = useI18n();
 
-  useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
-    onSuccess(cloneData) {
-      const {
-        dbs,
-        user,
-        clusterType,
-        clusterList,
-        sourceIpList,
-      } = cloneData;
-      authorizeShow.value = true;
-      authorizeDbs.value = dbs;
-      authorizeUser.value = user;
-      clusterAuthorizeRef.value!.initSelectorData({
-        clusterType,
-        clusterList,
-        sourceIpList,
-      });
-      window.changeConfirm = true;
-    },
-  });
-
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
   const setRowClass = (row: PermissionTableRow) => (isNewUser(row) ? 'is-new' : '');
 
   const { deleteAccountReq } = useDeleteAccount();
 
-  const clusterAuthorizeRef = ref<InstanceType<typeof ClusterAuthorize>>();
   const tableIsAnomalies = ref(false);
   const tableSearch = ref([]);
 

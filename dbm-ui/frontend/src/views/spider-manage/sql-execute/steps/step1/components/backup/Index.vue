@@ -34,7 +34,6 @@
         :removeable="localValue.length < 2"
         @add="(value: IDataRow) => handleAppend(value, index)"
         @change="(data: IDataRow) => handleChange(data, index)"
-        @copy="(payload: IDataRow) => handleCopy(index, payload)"
         @remove="handleRemove(index)" />
     </RenderData>
   </BkFormItem>
@@ -105,15 +104,5 @@
     const result = [...props.modelValue];
     result.splice(index, 1);
     emit('update:modelValue', result);
-  };
-
-  // 复制行数据
-  const handleCopy = (index: number, sourceData: IDataRow) => {
-    const result = [...props.modelValue];
-    result.splice(index + 1, 0, sourceData);
-    emit('update:modelValue', result);
-    setTimeout(() => {
-      rowRef.value[rowRef.value.length - 1].getValue();
-    });
   };
 </script>

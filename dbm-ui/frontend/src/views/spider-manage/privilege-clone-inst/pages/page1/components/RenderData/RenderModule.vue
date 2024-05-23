@@ -49,17 +49,14 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value
-        .getValue()
-        .then(() => {
-          if (!props.clusterData) {
-            return Promise.reject();
-          }
-          return {
-            module: props.clusterData.db_module_name,
-          };
-        })
-        .catch(() => Promise.reject(props.clusterData?.db_module_name));
+      return inputRef.value.getValue().then(() => {
+        if (!props.clusterData) {
+          return Promise.reject();
+        }
+        return {
+          module: props.clusterData.db_module_name,
+        };
+      });
     },
   });
 </script>

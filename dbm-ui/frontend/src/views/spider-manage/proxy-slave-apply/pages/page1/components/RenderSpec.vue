@@ -72,10 +72,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value
-        .getValue()
-        .then(() => ({ spec_id: localValue.value }))
-        .catch(() => Promise.reject({ spec_id: localValue.value }));
+      return selectRef.value.getValue().then(() => ({ spec_id: localValue.value }));
     },
   });
 </script>

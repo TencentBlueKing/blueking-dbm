@@ -43,7 +43,7 @@
 
   import { useTimeZoneFormat } from '@hooks';
 
-  import TableEditDateTime from '@views/spider-manage/common/edit/DateTime.vue';
+  import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
 
   interface Props {
     startTime?: string;
@@ -97,16 +97,9 @@
           end_time: '',
         });
       }
-      return editRef.value
-        .getValue()
-        .then(() => ({
-          end_time: formatDateToUTC(modelValue.value!),
-        }))
-        .catch(() =>
-          Promise.reject({
-            end_time: modelValue.value ? formatDateToUTC(modelValue.value) : '',
-          }),
-        );
+      return editRef.value.getValue().then(() => ({
+        end_time: formatDateToUTC(modelValue.value!),
+      }));
     },
   });
 </script>

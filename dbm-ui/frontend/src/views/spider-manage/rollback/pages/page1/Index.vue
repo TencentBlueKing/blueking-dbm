@@ -17,16 +17,13 @@
       <BkAlert
         closable
         theme="info"
-        :title="
-          t(
-            '定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态',
-          )
-        " />
-      <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
-      <TimeZonePicker style="width: 450px" />
+        :title="t('定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')" />
+      <div class="title-spot mt-12 mb-10">
+        {{ t('时区') }}<span class="required" />
+      </div>
+      <TimeZonePicker style="width: 450px;" />
       <RenderData
         class="mt16"
-        @batch-edit="handleBatchEditColumn"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="item in tableData"
@@ -34,7 +31,6 @@
           ref="rowRefs"
           :data="item" />
       </RenderData>
-      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -73,42 +69,27 @@
   import SpiderModel from '@services/model/spider/spider';
   import { createTicket } from '@services/source/ticket';
 
-  import { useTicketCloneInfo } from '@hooks';
-
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
-  import TicketRemark from '@components/ticket-remark/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, { createRowData, type IDataRow, type IDataRowBatchKey } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  // 单据克隆
-  useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
-    onSuccess(cloneData) {
-      const { tableDataList } = cloneData;
-      tableData.value = tableDataList;
-      remark.value = cloneData.remark;
-      window.changeConfirm = true;
-    },
-  });
-
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
   const isShowBatchEntry = ref(false);
   const isSubmitting = ref(false);
-  const tableData = ref<Array<IDataRow>>([createRowData({})]);
-  const remark = ref('');
 
+  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
@@ -173,24 +154,13 @@
     window.changeConfirm = true;
   };
 
-  const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
-    if (!value || checkListEmpty(tableData.value)) {
-      return;
-    }
-    tableData.value.forEach((row) => {
-      Object.assign(row, {
-        [filed]: value,
-      });
-    });
-  };
-
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
-          remark: remark.value,
+          ticket_type: 'TENDBCLUSTER_ROLLBACK_CLUSTER',
+          remark: '',
           details: data[0],
           bk_biz_id: currentBizId,
         }).then((data) => {
@@ -212,7 +182,6 @@
   };
 
   const handleReset = () => {
-    remark.value = '';
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
     domainMemo = {};

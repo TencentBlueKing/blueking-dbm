@@ -37,7 +37,6 @@
       <OperateColumn
         :removeable="removeable"
         @add="handleAppend"
-        @copy="handleCopy"
         @remove="handleRemove" />
     </tr>
   </tbody>
@@ -78,7 +77,6 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'copy', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -118,36 +116,13 @@
     emits('remove');
   };
 
-  const getRowData = () => [
-    sourceRef.value.getValue('master_ip'),
-    moduleRef.value.getValue(),
-    targetRef.value.getValue(),
-  ];
-
-  const handleCopy = () => {
-    Promise.allSettled(getRowData()).then((rowData) => {
-      const [sourceData, moduleData, targetData] = rowData.map((item) =>
-        item.status === 'fulfilled' ? item.value : item.reason,
-      );
-      emits(
-        'copy',
-        createRowData({
-          source: sourceData
-            ? {
-                bk_cloud_id: sourceData.bk_cloud_id,
-                ip: sourceData.source,
-              }
-            : sourceData,
-          module: moduleData.module,
-          target: (targetData.target ?? []).split('\n'),
-        }),
-      );
-    });
-  };
-
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all(getRowData()).then(([sourceData, moduleData, targetData]) => ({
+      return Promise.all([
+        sourceRef.value.getValue('master_ip'),
+        moduleRef.value.getValue(),
+        targetRef.value.getValue(),
+      ]).then(([sourceData, moduleData, targetData]) => ({
         ...sourceData,
         ...moduleData,
         ...targetData,

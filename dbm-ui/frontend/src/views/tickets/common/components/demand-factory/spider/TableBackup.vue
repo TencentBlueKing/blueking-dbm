@@ -23,12 +23,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type { SpiderTableBackupDetails } from '@services/model/ticket/details/spider';
-  import TicketModel from '@services/model/ticket/ticket';
   import { getSpiderListByBizId } from '@services/source/spider';
+  import type { SpiderTableBackupDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketModel<SpiderTableBackupDetails>;
+    ticketDetails: TicketDetails<SpiderTableBackupDetails>;
   }
 
   interface RowData {

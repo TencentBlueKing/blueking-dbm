@@ -27,17 +27,27 @@
           :required="false"
           @change="handleIgnoreDbnamesChange" />
       </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @copy="handleCopy"
-        @remove="handleRemove" />
+      <td>
+        <div class="action-box">
+          <div
+            class="action-btn ml-2"
+            @click="handleAppend">
+            <DbIcon type="plus-fill" />
+          </div>
+          <div
+            class="action-btn"
+            :class="{
+              disabled: removeable,
+            }"
+            @click="handleRemove">
+            <DbIcon type="minus-fill" />
+          </div>
+        </div>
+      </td>
     </tr>
   </tbody>
 </template>
 <script lang="ts">
-  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
-
   import { random } from '@utils';
 
   export interface IDataRow {
@@ -65,8 +75,6 @@
   interface Emits {
     (e: 'add', params: IDataRow): void;
     (e: 'remove'): void;
-
-    (e: 'copy', value: IDataRow): void;
     (e: 'change', value: IDataRow): void;
   }
 
@@ -111,24 +119,9 @@
     emits('remove');
   };
 
-  const getRowData = () => [dbnamesRef.value.getValue(), ignoreDbnamesRef.value.getValue()];
-
-  const handleCopy = () => {
-    Promise.allSettled(getRowData()).then((rowData) => {
-      emits(
-        'copy',
-        createRowData({
-          rowKey: random(),
-          dbnames: dbnames.value,
-          ignore_dbnames: ignoreDbnames.value,
-        }),
-      );
-    });
-  };
-
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all(getRowData()).then(() => ({
+      return Promise.all([dbnamesRef.value.getValue(), ignoreDbnamesRef.value.getValue()]).then(() => ({
         rowKey: props.data.rowKey,
         dbnames: dbnames.value,
         ignore_dbnames: ignoreDbnames.value,

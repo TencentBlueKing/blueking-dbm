@@ -61,7 +61,6 @@
 
   interface Props {
     clusterId: number;
-    backupType?: string;
     rollbackTime?: string;
   }
 
@@ -151,16 +150,6 @@
       }
 
       fetchLogData();
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    () => props.backupType,
-    () => {
-      localBackupType.value = props.backupType || 'REMOTE_AND_BACKUPID';
     },
     {
       immediate: true,

@@ -56,7 +56,6 @@
       <OperateColumn
         :removeable="removeable"
         @add="handleAppend"
-        @copy="handleCopy"
         @remove="handleRemove" />
     </tr>
   </tbody>
@@ -78,8 +77,6 @@
     ignoreDbs?: string[];
     ignoreTables?: string[];
   }
-
-  export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData'>;
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
@@ -106,7 +103,6 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'copy', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -167,39 +163,16 @@
     emits('remove');
   };
 
-  const getRowData = () => [
-    clusterRef.value.getValue(),
-    truncateDataTypeRef.value.getValue(),
-    dbPatternsRef.value.getValue('db_patterns'),
-    tablePatternsRef.value.getValue('table_patterns'),
-    ignoreDbsRef.value.getValue('ignore_dbs'),
-    ignoreTablesRef.value.getValue('ignore_tables'),
-  ];
-
-  const handleCopy = () => {
-    Promise.allSettled(getRowData()).then((rowData) => {
-      const [clusterData, truncateDataTypeData, dbPatternsData, tablePatternsData, ignoreDbsData, ignoreTablesData] =
-        rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
-      emits(
-        'copy',
-        createRowData({
-          clusterData: {
-            id: clusterData.cluster_id,
-            domain: '',
-          },
-          truncateDataType: truncateDataTypeData.truncate_data_type,
-          dbPatterns: dbPatternsData.db_patterns,
-          tablePatterns: tablePatternsData.table_patterns,
-          ignoreDbs: ignoreDbsData.ignore_dbs,
-          ignoreTables: ignoreTablesData.ignore_tables,
-        }),
-      );
-    });
-  };
-
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all(getRowData()).then(
+      return Promise.all([
+        clusterRef.value.getValue(),
+        truncateDataTypeRef.value.getValue(),
+        dbPatternsRef.value.getValue('db_patterns'),
+        tablePatternsRef.value.getValue('table_patterns'),
+        ignoreDbsRef.value.getValue('ignore_dbs'),
+        ignoreTablesRef.value.getValue('ignore_tables'),
+      ]).then(
         ([clusterData, truncateDataTypeData, dbPatternsData, tablePatternsData, ignoreDbsData, ignoreTablesData]) => ({
           ...clusterData,
           ...truncateDataTypeData,

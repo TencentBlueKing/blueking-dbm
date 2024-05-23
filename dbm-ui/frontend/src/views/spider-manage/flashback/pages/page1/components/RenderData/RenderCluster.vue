@@ -161,10 +161,7 @@
         .getValue()
         .then(() => ({
           cluster_id: localClusterId.value,
-        }))
-        .catch(() => Promise.reject({
-          cluster_id: localClusterId.value,
-        }))
+        }));
     },
   });
 </script>

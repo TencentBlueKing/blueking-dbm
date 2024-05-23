@@ -24,17 +24,16 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @copy="(payload: IDataRow) => handleCopy(index, payload)"
           @host-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
           @remove="handleRemove(index)" />
       </RenderData>
       <BkForm
-        class="toolbox-form mt-24"
+        class="mt-24"
         form-type="vertical">
         <BkFormItem
           :label="t('备份源')"
           required>
-          <BkRadioGroup v-model="formData.backup_source">
+          <BkRadioGroup v-model="backupSource">
             <BkRadio label="local">
               {{ t('本地备份') }}
             </BkRadio>
@@ -44,7 +43,6 @@
           </BkRadioGroup>
         </BkFormItem>
       </BkForm>
-      <TicketRemark v-model="formData.remark" />
     </div>
     <template #action>
       <BkButton
@@ -77,7 +75,7 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import { ref, type UnwrapRef } from 'vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -93,26 +91,11 @@
     type IValue,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
-  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import { random } from '@utils';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
-
-  interface Props {
-    ticketCloneData?: {
-      tableDataList: IDataRow[];
-      formData: UnwrapRef<typeof formData>;
-    };
-  }
-
-  const props = defineProps<Props>();
-
-  const createDefaultData = () => ({
-    backup_source: 'local',
-    remark: '',
-  });
 
   const { t } = useI18n();
   const router = useRouter();
@@ -138,26 +121,12 @@
   const isShowInstanceSelecotr = ref(false);
   const rowRefs = ref([] as InstanceType<typeof RenderDataRow>[]);
   const isSubmitting = ref(false);
+  const backupSource = ref('local');
   const tableData = ref<Array<IDataRow>>([createRowData()]);
-
-  const formData = reactive(createDefaultData());
 
   const selectedIntances = shallowRef<InstanceSelectorValues<IValue>>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.slave)).length);
-
-  watch(
-    () => props.ticketCloneData,
-    () => {
-      if (props.ticketCloneData) {
-        tableData.value = props.ticketCloneData.tableDataList;
-        Object.assign(formData, props.ticketCloneData.formData);
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -258,57 +227,48 @@
     tableData.value = dataList;
   };
 
-  // 复制行数据
-  const handleCopy = (index: number, sourceData: IDataRow) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, sourceData);
-    tableData.value = dataList;
-    setTimeout(() => {
-      rowRefs.value[rowRefs.value.length - 1].getValue();
-    });
-  };
-
-  const handleSubmit = async () => {
-    await Promise.all(rowRefs.value.map((item) => item.getValue()));
+  const handleSubmit = () => {
     InfoBox({
       title: t('确认原地重建n个从库?', { n: totalNum.value }),
       width: 500,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket({
-          ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
-          remark: formData.remark,
-          details: {
-            backup_source: formData.backup_source,
-            infos: tableData.value.map((tableItem) => {
-              const { slave } = tableItem;
-              return {
-                cluster_id: slave.clusterId,
-                slave: {
-                  bk_biz_id: currentBizId,
-                  bk_cloud_id: slave.bkCloudId,
-                  bk_host_id: slave.bkHostId,
-                  ip: slave.ip,
-                  port: slave.port,
-                },
-              };
-            }),
-          },
-          bk_biz_id: currentBizId,
-        })
-          .then((data) => {
-            window.changeConfirm = false;
+        Promise.all(rowRefs.value.map((item) => item.getValue()))
+          .then(() =>
+            createTicket({
+              ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
+              remark: '',
+              details: {
+                backup_source: backupSource.value,
+                infos: tableData.value.map((tableItem) => {
+                  const { slave } = tableItem;
+                  return {
+                    cluster_id: slave.clusterId,
+                    slave: {
+                      bk_biz_id: currentBizId,
+                      bk_cloud_id: slave.bkCloudId,
+                      bk_host_id: slave.bkHostId,
+                      ip: slave.ip,
+                      port: slave.port,
+                    },
+                  };
+                }),
+              },
+              bk_biz_id: currentBizId,
+            }).then((data) => {
+              window.changeConfirm = false;
 
-            router.push({
-              name: 'spiderSlaveRebuild',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
+              router.push({
+                name: 'spiderSlaveRebuild',
+                params: {
+                  page: 'success',
+                },
+                query: {
+                  ticketId: data.id,
+                },
+              });
+            }),
+          )
           .finally(() => {
             isSubmitting.value = false;
           });
@@ -317,7 +277,6 @@
   };
 
   const handleReset = () => {
-    Object.assign(formData, createDefaultData());
     tableData.value = [createRowData()];
     instanceMemo = {};
     selectedIntances.value[ClusterTypes.TENDBCLUSTER] = [];

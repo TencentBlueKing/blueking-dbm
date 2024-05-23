@@ -68,10 +68,6 @@
         bk_cloud_id: machineInstancePair.bk_cloud_id,
         ip: machineInstancePair.ip,
       };
-      setTimeout(() => {
-        // 行复制后，查询到对应数据后消除验证失败的样式
-        inputRef.value.getValue();
-      });
     },
   });
 
@@ -91,16 +87,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value
-        .getValue()
-        .then(() => ({
-          slave: slaveHostData.value,
-        }))
-        .catch(() =>
-          Promise.resolve({
-            slave: slaveHostData.value,
-          }),
-        );
+      return inputRef.value.getValue().then(() => ({
+        slave: slaveHostData.value,
+      }));
     },
   });
 </script>
