@@ -70,23 +70,15 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value
-        .getValue()
-        .then(() => {
-          if (!clusterData.value) {
-            return Promise.reject();
-          }
-          return {
-            cluster_domain: clusterData.value.master_domain,
-            bk_cloud_id: clusterData.value.bk_cloud_id,
-          };
-        })
-        .catch(() =>
-          Promise.reject({
-            cluster_domain: clusterData.value?.master_domain,
-            bk_cloud_id: clusterData.value?.bk_cloud_id,
-          }),
-        );
+      return inputRef.value.getValue().then(() => {
+        if (!clusterData.value) {
+          return Promise.reject();
+        }
+        return {
+          cluster_domain: clusterData.value.master_domain,
+          bk_cloud_id: clusterData.value.bk_cloud_id,
+        };
+      });
     },
   });
 </script>

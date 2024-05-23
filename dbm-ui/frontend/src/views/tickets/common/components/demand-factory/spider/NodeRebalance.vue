@@ -56,15 +56,14 @@
   import { useRequest } from 'vue-request';
 
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import type { SpiderNodeRebalanceDetails } from '@services/model/ticket/details/spider';
-  import TicketModel from '@services/model/ticket/ticket';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getSpiderListByBizId } from '@services/source/spider';
+  import type { SpiderNodeRebalanceDetails, TicketDetails } from '@services/types/ticket';
 
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketDetails: TicketModel<SpiderNodeRebalanceDetails>
+    ticketDetails: TicketDetails<SpiderNodeRebalanceDetails>
   }
 
   interface RowData {

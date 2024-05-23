@@ -28,7 +28,6 @@
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
-      @copy="handleCopy"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -82,7 +81,6 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'copy', value: IDataRow): void;
     (e: 'hostInputFinish', value: string): void;
   }
 
@@ -133,29 +131,9 @@
     emits('remove');
   };
 
-  const handleCopy = () => {
-    Promise.allSettled([slaveRef.value!.getValue()]).then((rowData) => {
-      const [slaveData] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
-      const [ip, port] = slaveData.split(':');
-      emits('copy', {
-        rowKey: random(),
-        isLoading: false,
-        slave: {
-          bkCloudId: 0,
-          bkHostId: 0,
-          ip,
-          port: Number(port),
-          instanceAddress: '',
-          clusterId: 0,
-          domain: props.data.slave.domain,
-        },
-      });
-    });
-  };
-
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([slaveRef.value!.getValue()]).then(([slaveData]) => Promise.resolve(slaveData));
+      return slaveRef.value!.getValue();
     },
   });
 </script>

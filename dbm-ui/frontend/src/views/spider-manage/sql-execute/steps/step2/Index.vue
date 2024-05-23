@@ -126,7 +126,7 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  const { rootId, nodeId, remark } = route.query as { rootId: string; nodeId: string; remark: string };
+  const { rootId, nodeId } = route.query as { rootId: string; nodeId: string };
 
   const selectFileName = ref('');
   const fileImportMode = ref('');
@@ -234,7 +234,7 @@
       details: {
         root_id: rootId,
       },
-      remark,
+      remark: '',
       ticket_type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
     })
       .then((data) => {

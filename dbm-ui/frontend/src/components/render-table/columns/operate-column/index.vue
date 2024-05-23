@@ -29,44 +29,30 @@
         @click="handleRemove">
         <DbIcon type="minus-fill" />
       </div>
-      <div
-        v-if="showClone"
-        v-bk-tooltips="t('克隆')"
-        class="action-btn"
-        @click="handleCopy">
-        <DbIcon type="copy-2" />
-      </div>
     </div>
   </FixedColumn>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
 
   interface Props {
     showAdd?: boolean;
     showRemove?: boolean;
     removeable?: boolean;
-    showClone?: boolean;
   }
 
   interface Emits {
     (e: 'add'): void;
     (e: 'remove'): void;
-    (e: 'copy'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     showAdd: true,
     showRemove: true,
     removeable: true,
-    showClone: true,
   });
 
   const emits = defineEmits<Emits>();
-
-  const { t } = useI18n();
 
   const handleAppend = () => {
     emits('add');
@@ -77,10 +63,6 @@
       return;
     }
     emits('remove');
-  };
-
-  const handleCopy = () => {
-    emits('copy');
   };
 </script>
 <style lang="less" scoped>
@@ -107,7 +89,7 @@
       }
 
       & ~ .action-btn {
-        margin-left: 12px;
+        margin-left: 18px;
       }
     }
   }

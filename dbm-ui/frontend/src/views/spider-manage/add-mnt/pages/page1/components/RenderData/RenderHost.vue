@@ -86,7 +86,6 @@
   import { useI18n } from 'vue-i18n';
 
   import type SpiderModel from '@services/model/spider/spider';
-  import { checkHost } from '@services/source/ipchooser';
   import type { HostDetails } from '@services/types';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -95,11 +94,6 @@
 
   interface Props {
     clusterData?: SpiderModel;
-    ipList?: {
-      bk_host_id: number;
-      ip: string;
-      bk_cloud_id: number;
-    }[];
   }
 
   interface Exposes {
@@ -112,7 +106,7 @@
     }>;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
   const contentRef = ref();
@@ -132,29 +126,6 @@
   ];
 
   const { message: errorMessage, validator } = useValidtor(rules);
-
-  watch(
-    () => props?.ipList,
-    () => {
-      if (props?.ipList) {
-        checkHost({
-          ip_list: props.ipList.map((item) => item.ip),
-          mode: 'all',
-          scope_list: [
-            {
-              scope_type: 'biz',
-              scope_id: window.PROJECT_CONFIG.BIZ_ID,
-            },
-          ],
-        }).then((hostList) => {
-          localHostList.value = hostList;
-        });
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
 
   watch(
     localHostList,
@@ -193,17 +164,11 @@
           bk_cloud_id: item.cloud_area.id,
         }));
 
-      return validator(localHostList.value)
-        .then(() =>
-          Promise.resolve({
-            spider_ip_list: formatHost(localHostList.value),
-          }),
-        )
-        .catch(() =>
-          Promise.reject({
-            spider_ip_list: formatHost(localHostList.value),
-          }),
-        );
+      return validator(localHostList.value).then(() =>
+        Promise.resolve({
+          spider_ip_list: formatHost(localHostList.value),
+        }),
+      );
     },
   });
 </script>

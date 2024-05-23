@@ -28,10 +28,8 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @copy="(payload: IDataRow) => handleCopy(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
-      <TicketRemark v-model="remark" />
       <InstanceSelector
         v-model:is-show="isShowBatchInstanceSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -68,18 +66,15 @@
   import { precheckPermissionClone } from '@services/permission';
   import { createTicket } from '@services/source/ticket';
 
-  import { useTicketCloneInfo } from '@hooks';
-
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
-  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -88,21 +83,9 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  // 单据克隆
-  useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
-    onSuccess(cloneData) {
-      const { tableDataList } = cloneData;
-      tableData.value = tableDataList;
-      remark.value = cloneData.remark;
-      window.changeConfirm = true;
-    },
-  });
-
   const rowRefs = ref();
   const isShowBatchInstanceSelector = ref(false);
   const isSubmitting = ref(false);
-  const remark = ref('');
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedIps = shallowRef<InstanceSelectorValues<IValue>>({ tendbcluster: [] });
@@ -171,16 +154,6 @@
     }
   };
 
-  // 复制行数据
-  const handleCopy = (index: number, sourceData: IDataRow) => {
-    const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, sourceData);
-    tableData.value = dataList;
-    setTimeout(() => {
-      rowRefs.value[rowRefs.value.length - 1].getValue();
-    });
-  };
-
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
@@ -195,8 +168,8 @@
             return Promise.reject();
           }
           return createTicket({
-            ticket_type: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
-            remark: remark.value,
+            ticket_type: 'TENDBCLUSTER_INSTANCE_CLONE_RULES',
+            remark: '',
             details: {
               ...precheckResult,
               clone_type: 'instance',
@@ -223,7 +196,6 @@
   };
 
   const handleReset = () => {
-    remark.value = '';
     tableData.value = [createRowData()];
     ipMemo = {};
     selectedIps.value.tendbcluster = [];

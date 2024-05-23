@@ -32,14 +32,14 @@
           :width="170">
           <template #append>
             <BatchEditColumn
-              v-model="batchEditShow.backupLocal"
+              v-model="isShowBatchEdit"
               :data-list="selectList"
               :title="t('备份位置')"
-              @change="(value) => handleBatchEditChange(value, 'backupLocal')">
+              @change="handleBatchEdit">
               <span
                 v-bk-tooltips="t('批量编辑')"
                 class="batch-edit-btn"
-                @click="handleBatchEditShow('backupLocal')">
+                @click="handleShowBatchEdit">
                 <DbIcon type="bulk-edit" />
               </span>
             </BatchEditColumn>
@@ -49,79 +49,23 @@
         <RenderTableHeadColumn
           :min-width="90"
           :width="210">
-          <template #append>
-            <BatchEditColumn
-              v-model="batchEditShow.dbPatterns"
-              :title="t('备份DB名')"
-              type="taginput"
-              @change="(value) => handleBatchEditChange(value, 'dbPatterns')">
-              <span
-                v-bk-tooltips="t('批量编辑')"
-                class="batch-edit-btn"
-                @click="handleBatchEditShow('dbPatterns')">
-                <DbIcon type="bulk-edit" />
-              </span>
-            </BatchEditColumn>
-          </template>
           {{ t('备份DB名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="90"
           :width="210">
-          <template #append>
-            <BatchEditColumn
-              v-model="batchEditShow.tablePatterns"
-              :title="t('备份表名')"
-              type="taginput"
-              @change="(value) => handleBatchEditChange(value, 'tablePatterns')">
-              <span
-                v-bk-tooltips="t('批量编辑')"
-                class="batch-edit-btn"
-                @click="handleBatchEditShow('tablePatterns')">
-                <DbIcon type="bulk-edit" />
-              </span>
-            </BatchEditColumn>
-          </template>
           {{ t('备份表名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="90"
           :required="false"
           :width="210">
-          <template #append>
-            <BatchEditColumn
-              v-model="batchEditShow.ignoreDbs"
-              :title="t('忽略DB名')"
-              type="taginput"
-              @change="(value) => handleBatchEditChange(value, 'ignoreDbs')">
-              <span
-                v-bk-tooltips="t('批量编辑')"
-                class="batch-edit-btn"
-                @click="handleBatchEditShow('ignoreDbs')">
-                <DbIcon type="bulk-edit" />
-              </span>
-            </BatchEditColumn>
-          </template>
           {{ t('忽略DB名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="90"
           :required="false"
           :width="210">
-          <template #append>
-            <BatchEditColumn
-              v-model="batchEditShow.ignoreDbs"
-              :title="t('忽略表名')"
-              type="taginput"
-              @change="(value) => handleBatchEditChange(value, 'ignoreTables')">
-              <span
-                v-bk-tooltips="t('批量编辑')"
-                class="batch-edit-btn"
-                @click="handleBatchEditShow('ignoreTables')">
-                <DbIcon type="bulk-edit" />
-              </span>
-            </BatchEditColumn>
-          </template>
           {{ t('忽略表名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
@@ -145,24 +89,16 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  import type { IDataRowBatchKey } from './Row.vue';
-
-  interface Emits {
-    (e: 'batchSelectCluster'): void;
-    (e: 'batchEdit', value: string | string[], filed: IDataRowBatchKey): void;
+  interface Emits{
+    (e: 'batchSelectCluster'): void,
+    (e: 'batchEditBackupLocal', value: string): void,
   }
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const batchEditShow = reactive({
-    dbPatterns: false,
-    ignoreDbs: false,
-    tablePatterns: false,
-    ignoreTables: false,
-    backupLocal: false,
-  });
+  const isShowBatchEdit = ref(false);
 
   const selectList = [
     {
@@ -171,16 +107,16 @@
     },
   ];
 
-  const handleBatchEditShow = (key: IDataRowBatchKey) => {
-    batchEditShow[key] = !batchEditShow[key];
-  };
-
-  const handleBatchEditChange = (value: string | string[], filed: IDataRowBatchKey) => {
-    emits('batchEdit', value, filed);
-  };
-
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
+  };
+
+  const handleShowBatchEdit = () => {
+    isShowBatchEdit.value = !isShowBatchEdit.value;
+  };
+
+  const handleBatchEdit = (value: string) => {
+    emits('batchEditBackupLocal', value);
   };
 </script>
 <style lang="less">

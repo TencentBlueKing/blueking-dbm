@@ -75,13 +75,6 @@
 
   const { message: errorMessage, validator } = useValidtor(props.rules);
 
-  watch(
-    () => props.modelValue,
-    () => {
-      localValue.value = props.modelValue;
-    },
-  );
-
   const handleChange = (value: Required<Props>['modelValue']) => {
     localValue.value = value;
     validator(localValue.value).then(() => {

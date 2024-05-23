@@ -391,7 +391,7 @@
     isShowBatchEdit.value = !isShowBatchEdit.value;
   };
 
-  const handleBatchEditTruncateType = (value: string | string[]) => {
+  const handleBatchEditTruncateType = (value: string) => {
     if (!value) {
       return;
     }

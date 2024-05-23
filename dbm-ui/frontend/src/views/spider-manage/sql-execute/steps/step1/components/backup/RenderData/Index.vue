@@ -24,7 +24,7 @@
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
       :required="false"
-      :width="100">
+      :width="90">
       {{ t('操作') }}
     </RenderTableHeadColumn>
     <template #data>
@@ -35,8 +35,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
-  import RenderTable from '@components/render-table/Index.vue';
+  import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
+  import RenderTable from '@views/mysql/common/render-table/Index.vue';
 
   const { t } = useI18n();
 </script>

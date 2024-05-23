@@ -40,30 +40,6 @@ import {
   generateRedisRollbackDataCloneData,
   generateRedisScaleUpdownCloneData,
 } from './redis';
-import {
-  generateSpiderAddMntDataCloneData,
-  generateSpiderApplyCloneData,
-  generateSpiderAuthorizeRuleCloneData,
-  generateSpiderCapacityChangeCloneData,
-  generateSpiderChecksumCloneData,
-  generateSpiderDbBackupCloneData,
-  generateSpiderDbClearCloneData,
-  generateSpiderDbRenameCloneData,
-  generateSpiderDbTableBackupCloneData,
-  generateSpiderFlashbackCloneData,
-  generateSpiderMasterFailoverCloneData,
-  generateSpiderMasterSlaveCloneCloneData,
-  generateSpiderMasterSlaveSwapCloneData,
-  generateSpiderPrivilegeCloneClientCloneData,
-  generateSpiderPrivilegeCloneInstCloneData,
-  generateSpiderProxyScaleDownCloneData,
-  generateSpiderProxyScaleUpCloneData,
-  generateSpiderProxySlaveApplyCloneData,
-  generateSpiderRollbackCloneData,
-  generateSpiderSlaveRebuildLocalCloneData,
-  generateSpiderSlaveRebuildNewCloneData,
-  generateSpiderSqlExecuteCloneData,
-} from './spider';
 
 export const generateCloneDataHandlerMap = {
   [TicketTypes.REDIS_PROXY_SCALE_UP]: generateRedisProxyScaleUpCloneData, // Redis 接入层扩容
@@ -88,9 +64,9 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: generateMysqlClientCloneData, // Mysql 客户端权限克隆
   [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: generateMysqlInstanceCloneData, // Mysql DB实例权限克隆
   [TicketTypes.MYSQL_HA_APPLY]: generateMysqlHaApplyCloneData, // MySQL 高可用部署
-  [TicketTypes.MYSQL_SINGLE_APPLY]: generateMysqlSingleApplyCloneData, // MySQL 单节点部署
+  [TicketTypes.MYSQL_SINGLE_APPLY] : generateMysqlSingleApplyCloneData, // MySQL 单节点部署
   [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: generateMysqlDbTableBackupCloneData, // Mysql 库表备份
-  [TicketTypes.MYSQL_HA_RENAME_DATABASE]: generateMysqlDbRenameCloneData, // MySQL 高可用DB重命名
+  [TicketTypes.MYSQL_HA_RENAME_DATABASE]: generateMysqlDbRenameCloneData,// MySQL 高可用DB重命名
   [TicketTypes.MYSQL_HA_FULL_BACKUP]: generateMysqlDbBackupCloneData, // Mysql 全库备份
   [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: generateMysqlRollbackCloneData, // MySQL 定点构造
   [TicketTypes.MYSQL_FLASHBACK]: generateMysqlFlashbackCloneData, // MySQL 闪回
@@ -103,28 +79,6 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_PROXY_ADD]: generateMysqlProxyAddCloneData, // MySQL 添加Proxy
   [TicketTypes.MYSQL_MASTER_FAIL_OVER]: generateMysqlMasterFailoverCloneData, // MySQL 主库故障切换
   [TicketTypes.MYSQL_HA_TRUNCATE_DATA]: generateMysqlDbClearCloneData, // MySQL 高可用清档
-  [TicketTypes.TENDBCLUSTER_APPLY]: generateSpiderApplyCloneData, // spider 集群部署
-  [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: generateSpiderProxyScaleUpCloneData, // Spider扩容接入层
-  [TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES]: generateSpiderProxyScaleDownCloneData, // Spider缩容接入层
-  [TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY]: generateSpiderProxySlaveApplyCloneData, // Spider 部署只读接入层
-  [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: generateSpiderAddMntDataCloneData, // Spider 添加运维节点
-  [TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH]: generateSpiderMasterSlaveSwapCloneData, // Spider remote 主从切换
-  [TicketTypes.TENDBCLUSTER_RENAME_DATABASE]: generateSpiderDbRenameCloneData, // Spider Tendbcluster 重命名
-  [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: generateSpiderMasterFailoverCloneData, // Spider remote主故障切换
-  [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: generateSpiderDbTableBackupCloneData, // Spider TenDBCluster 库表备份
-  [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: generateSpiderDbBackupCloneData, // Spider TenDBCluster 全备单据
-  [TicketTypes.TENDBCLUSTER_NODE_REBALANCE]: generateSpiderCapacityChangeCloneData, // Spider 集群remote节点扩缩容
-  [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: generateSpiderRollbackCloneData, // Spider 定点回档
-  [TicketTypes.TENDBCLUSTER_FLASHBACK]: generateSpiderFlashbackCloneData, // Spider 闪回
-  [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: generateSpiderDbClearCloneData, // Spider tendbcluster 清档
-  [TicketTypes.TENDBCLUSTER_CHECKSUM]: generateSpiderChecksumCloneData, // Spider checksum
-  [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: generateSpiderPrivilegeCloneClientCloneData, // Spider 客户端权限克隆
-  [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: generateSpiderPrivilegeCloneInstCloneData, // Spider DB 实例权限克隆
-  [TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES]: generateSpiderAuthorizeRuleCloneData, // Spider 集群授权
-  [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: generateSpiderSqlExecuteCloneData, // Spider SQL变更执行
-  [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: generateSpiderMasterSlaveCloneCloneData, // spider 迁移主从
-  [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: generateSpiderSlaveRebuildLocalCloneData, // spider 重建从库-原地重建
-  [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: generateSpiderSlaveRebuildNewCloneData, // spider 重建从库-新机重建
 };
 
 export type CloneDataHandlerMap = typeof generateCloneDataHandlerMap;
@@ -132,5 +86,7 @@ export type CloneDataHandlerMap = typeof generateCloneDataHandlerMap;
 export type CloneDataHandlerMapKeys = keyof CloneDataHandlerMap;
 
 export async function generateCloneData<T extends CloneDataHandlerMapKeys>(ticketType: T, ticketData: TicketModel) {
-  return (await generateCloneDataHandlerMap[ticketType](ticketData)) as ServiceReturnType<CloneDataHandlerMap[T]>;
+  return (await generateCloneDataHandlerMap[ticketType](ticketData)) as ServiceReturnType<
+    CloneDataHandlerMap[T]
+  >;
 }

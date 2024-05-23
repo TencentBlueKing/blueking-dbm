@@ -36,9 +36,9 @@
     getValue: (field: string) => Promise<string>;
   }
 
-  const modelValue = defineModel<IDataRow['source']>();
-
   const { t } = useI18n();
+
+  const modelValue = defineModel<IDataRow['source']>();
 
   const editRef = ref();
   const localValue = ref('');
@@ -78,27 +78,15 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => {
-          if (!modelValue.value) {
-            return Promise.reject();
-          }
-          return {
-            source: modelValue.value.ip,
-            bk_cloud_id: modelValue.value.bk_cloud_id,
-          };
-        })
-        .catch(() =>
-          Promise.reject(
-            modelValue.value
-              ? {
-                  source: modelValue.value.ip,
-                  bk_cloud_id: modelValue.value.bk_cloud_id,
-                }
-              : undefined,
-          ),
-        );
+      return editRef.value.getValue().then(() => {
+        if (!modelValue.value) {
+          return Promise.reject();
+        }
+        return {
+          source: modelValue.value.ip,
+          bk_cloud_id: modelValue.value.bk_cloud_id,
+        };
+      });
     },
   });
 </script>

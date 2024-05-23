@@ -43,12 +43,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type { SpiderEnableDetails } from '@services/model/ticket/details/spider';
-  import TicketModel from '@services/model/ticket/ticket';
   import { getSpiderListByBizId } from '@services/source/spider';
+  import type { SpiderEnableDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketModel<SpiderEnableDetails>;
+    ticketDetails: TicketDetails<SpiderEnableDetails>;
   }
 
   interface RowData {

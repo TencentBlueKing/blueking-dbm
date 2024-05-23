@@ -70,10 +70,6 @@
       const [machineInstancePair] = Object.values(data.machines);
       slaveInfo.value = machineInstancePair;
       emits('change', machineInstancePair.ip);
-      setTimeout(() => {
-        // 行复制后，查询到对应数据后消除验证失败的样式
-        textRef.value.getValue();
-      });
     },
   });
 

@@ -33,7 +33,6 @@
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
-      @copy="handleCopy"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -78,7 +77,6 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'copy', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -120,30 +118,13 @@
     emits('remove');
   };
 
-  const getRowData = () => [masterHostRef.value.getValue(), slaveHostRef.value.getValue(), clusterRef.value.getValue()];
-
-  const handleCopy = () => {
-    Promise.allSettled(getRowData()).then((rowData) => {
-      const [masterHostData, slaveHostData, clusterData] = rowData.map((item) =>
-        item.status === 'fulfilled' ? item.value : item.reason,
-      );
-      emits(
-        'copy',
-        createRowData({
-          masterData: masterHostData.master,
-          slaveData: slaveHostData.slave,
-          clusterData: {
-            id: clusterData.cluster_id,
-            domain: '',
-          },
-        }),
-      );
-    });
-  };
-
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all(getRowData()).then(([masterHostData, slaveHostData, clusterData]) => ({
+      return Promise.all([
+        masterHostRef.value.getValue(),
+        slaveHostRef.value.getValue(),
+        clusterRef.value.getValue(),
+      ]).then(([masterHostData, slaveHostData, clusterData]) => ({
         ...clusterData,
         switch_tuples: [
           {

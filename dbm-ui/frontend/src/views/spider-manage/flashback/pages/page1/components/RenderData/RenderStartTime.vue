@@ -51,16 +51,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => ({
-          start_time: formatDateToUTC(modelValue.value!),
-        }))
-        .catch(() =>
-          Promise.reject({
-            start_time: modelValue.value ? formatDateToUTC(modelValue.value) : '',
-          }),
-        );
+      return editRef.value.getValue().then(() => ({
+        start_time: formatDateToUTC(modelValue.value!),
+      }));
     },
   });
 </script>
