@@ -60,6 +60,7 @@ const withBizActionList = [
   'group_manage',
   'access_entry_edit',
   'admin_pwd_view',
+  'riak_cluster_apply',
 ];
 
 export default function (props: Props) {

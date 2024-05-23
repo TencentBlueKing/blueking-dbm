@@ -143,13 +143,13 @@
     } = detailData.value;
     InfoBox({
       title: t('确定禁用该集群', { name: clusterName }),
-      subTitle: (
+      content: (
         <>
           <p>{ t('集群') }：<span class='info-box-cluster-name'>{ clusterName }</span></p>
           <p>{ t('被禁用后将无法访问，如需恢复访问，可以再次「启用」') }</p>
         </>
       ),
-      infoType: 'warning',
+      type: 'warning',
       confirmText: t('禁用'),
       cancelText: t('取消'),
       headerAlign: 'center',

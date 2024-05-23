@@ -64,6 +64,16 @@ export default class Riak {
     ticket_type: string;
     title: string;
   }>;
+  permission: {
+    riak_access_entry_view: boolean;
+    riak_destroy: boolean;
+    riak_enable_disable: boolean;
+    riak_reboot: boolean;
+    riak_replace: boolean;
+    riak_scale_up: boolean;
+    riak_shrink: boolean;
+    riak_view: boolean;
+  };
   riak_node: Array<{
     name: string;
     ip: string;
@@ -122,6 +132,7 @@ export default class Riak {
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.operations = payload.operations;
+    this.permission = payload.permission;
     this.riak_node = payload.riak_node;
     this.domain = payload.domain;
     this.creator = payload.creator;

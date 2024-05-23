@@ -25,7 +25,7 @@
         <BusinessItems
           v-model:app-abbr="formData.details.db_app_abbr"
           v-model:biz-id="formData.bk_biz_id"
-          perrmision-action-id="riak_apply"
+          perrmision-action-id="riak_cluster_apply"
           @change-biz="handleChangeBiz" />
         <BkFormItem
           ref="moduleRef"

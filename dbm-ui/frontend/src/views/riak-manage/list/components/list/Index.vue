@@ -14,11 +14,12 @@
 <template>
   <div class="riak-list-container">
     <div class="header-action">
-      <BkButton
+      <AuthButton
+        action-id="riak_cluster_apply"
         theme="primary"
         @click="toApply">
         {{ t('申请实例') }}
-      </BkButton>
+      </AuthButton>
       <DropdownExportExcel
         class="mr-8"
         :ids="selectedIds"
@@ -374,7 +375,10 @@
                 </bk-button>
               </OperationBtnStatusTips>
               <OperationBtnStatusTips data={data}>
-                <bk-button
+                <auth-button
+                  action-id="riak_destroy"
+                  permission={data.permission.riak_destroy}
+                  resource={data.id}
                   text
                   class="ml-16"
                   theme="primary"
@@ -382,10 +386,13 @@
                   onClick={() => handleDeleteNodes(data)}
                 >
                   { t('删除节点') }
-                </bk-button>
+                </auth-button>
               </OperationBtnStatusTips>
               <OperationBtnStatusTips data={data}>
-                <bk-button
+                <auth-button
+                  action-id="riak_enable_disable"
+                  permissionn={data.permission.riak_enable_disable}
+                  resource={data.id}
                   text
                   class="ml-16"
                   theme="primary"
@@ -393,19 +400,22 @@
                   onclick={() => handlDisabled(data)}
                 >
                   { t('禁用') }
-                </bk-button>
+                </auth-button>
               </OperationBtnStatusTips>
             </>
           : <>
               <OperationBtnStatusTips data={data}>
-                <bk-button
+                <auth-button
+                  action-id="riak_enable_disable"
+                  permissionn={data.permission.riak_enable_disable}
+                  resource={data.id}
                   text
                   theme="primary"
                   disabled={data.isStarting}
                   onclick={() => handleEnabled(data)}
                 >
                   { t('启用') }
-                </bk-button>
+                </auth-button>
               </OperationBtnStatusTips>
               <OperationBtnStatusTips data={data}>
                 <bk-button
