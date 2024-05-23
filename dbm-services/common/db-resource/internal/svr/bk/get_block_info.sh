@@ -80,7 +80,7 @@ do
         diskType="SSD"
     fi
     partitioned=false
-    parttions=($(lsblk |grep $dname|grep  part|awk -F"└─|-" '{print $2}'|awk '{print $1}'))
+    parttions=($(lsblk -l|grep $dname|grep  part|awk '{print $1}'))
     if [ ${#parttions[*]} -ge 1 ];then
         partitioned=true
     else
