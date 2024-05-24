@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.flow.consts import DnsOpType, ManagerOpType, ManagerServiceType
-from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import sa_init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import new_machine_common_sub_flow
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.common.bigdata_manager_service import (
     BigdataManagerComponent,
@@ -64,17 +64,11 @@ class HdfsOperationFlow(object):
         )
         # 增加机器初始化子流程
         all_new_ips = data["new_dn_ips"]
-        add_dn_sub_pipeline.add_sub_pipeline(
-            sub_flow=sa_init_machine_sub_flow(
-                uid=data["uid"],
-                root_id=self.root_id,
-                bk_cloud_id=data["bk_cloud_id"],
-                bk_biz_id=data["bk_biz_id"],
-                init_ips=all_new_ips,
-                idle_check_ips=all_new_ips,
-                set_dns_ips=[],
-            )
+        common_sub_flow = new_machine_common_sub_flow(
+            uid=data["uid"], root_id=self.root_id, bk_cloud_id=data["bk_cloud_id"], new_ips=all_new_ips
         )
+        if common_sub_flow:
+            add_dn_sub_pipeline.add_sub_pipeline(sub_flow=common_sub_flow)
 
         act_kwargs.exec_ip = data["new_dn_ips"]
         add_dn_sub_pipeline.add_act(

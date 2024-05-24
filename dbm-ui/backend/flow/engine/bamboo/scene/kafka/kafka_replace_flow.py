@@ -35,7 +35,7 @@ from backend.flow.consts import (
     MySQLPrivComponent,
     NameSpaceEnum,
 )
-from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import sa_init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import new_machine_common_sub_flow
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.bigdata_manager_service import (
@@ -213,17 +213,11 @@ class KafkaReplaceFlow(object):
         # 增加机器初始化子流程
         all_new_machines = self.__get_all_node_ips()
         all_new_ips = [node["ip"] for node in all_new_machines]
-        kafka_pipeline.add_sub_pipeline(
-            sub_flow=sa_init_machine_sub_flow(
-                uid=self.data["uid"],
-                root_id=self.root_id,
-                bk_cloud_id=self.data["bk_cloud_id"],
-                bk_biz_id=self.data["bk_biz_id"],
-                init_ips=all_new_ips,
-                idle_check_ips=all_new_ips,
-                set_dns_ips=[],
-            )
+        common_sub_flow = new_machine_common_sub_flow(
+            uid=self.data["uid"], root_id=self.root_id, bk_cloud_id=self.data["bk_cloud_id"], new_ips=all_new_ips
         )
+        if common_sub_flow:
+            kafka_pipeline.add_sub_pipeline(sub_flow=common_sub_flow)
 
         # 下发kafka介质
         act_kwargs.exec_ip = self.__get_all_node_ips()
