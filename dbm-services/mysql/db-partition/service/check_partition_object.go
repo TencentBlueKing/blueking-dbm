@@ -25,7 +25,14 @@ type Checker struct {
 // PartitionSqlSet 分区语句集合
 type PartitionSqlSet struct {
 	Mu            sync.RWMutex
-	PartitionSqls []PartitionSql
+	PartitionSqls []PartitionSql    `json:"partition_sqls"`
+	Configs       []PartitionConfig `json:"configs"`
+}
+
+// ConfigSet 配置集合
+type ConfigSet struct {
+	Mu      sync.RWMutex
+	Configs []PartitionConfig `json:"configs"`
 }
 
 // PartitionSql 实例ip:port上的分区语句
@@ -43,30 +50,23 @@ type PartitionSql struct {
 
 // PartitionCronLog 分区的定时任务日志表
 type PartitionCronLog struct {
-	Id           int    `json:"id" gorm:"column:id;primary_key;auto_increment"`
-	BkBizId      int    `json:"bk_biz_id" gorm:"column:bk_biz_id"`
-	ClusterId    int    `json:"cluster_id" gorm:"column:cluster_id"`
-	ConfigId     int    `json:"config_id" gorm:"column:config_id"`
-	TicketId     int    `json:"ticket_id" gorm:"column:ticket_id"`
-	ImmuteDomain string `json:"immute_domain" gorm:"column:immute_domain"`
-	Scheduler    string `json:"scheduler" gorm:"column:scheduler"`
-	BkCloudId    int    `json:"bk_cloud_id" gorm:"column:bk_cloud_id"`
-	TimeZone     string `json:"time_zone" gorm:"column:time_zone"`
-	CronDate     string `json:"cron_date" grom:"column:cron_date"`
-	CheckInfo    string `json:"check_info" gorm:"column:check_info"`
-	Status       string `json:"status" gorm:"column:status"`
+	Id        int    `json:"id" gorm:"column:id;primary_key;auto_increment"`
+	ConfigId  int    `json:"config_id" gorm:"column:config_id"`
+	Scheduler string `json:"scheduler" gorm:"column:scheduler"`
+	CronDate  string `json:"cron_date" grom:"column:cron_date"`
+	CheckInfo string `json:"check_info" gorm:"column:check_info"`
+	Status    string `json:"status" gorm:"column:status"`
 }
 
 // CreatePartitionCronLog 分区的定时任务日志表，区分集群类型
 type CreatePartitionCronLog struct {
-	PartitionCronLog
-	ClusterType string `json:"cluster_type"`
+	Logs        []PartitionCronLog `json:"logs"`
+	ClusterType string             `json:"cluster_type"`
 }
 
 // PartitionLog 分区日志
 type PartitionLog struct {
 	Id          int       `json:"id"`
-	TicketId    int       `json:"ticket_id" gorm:"column:ticket_id"`
 	ExecuteTime time.Time `json:"execute_time" gorm:"execute_time"`
 	CheckInfo   string    `json:"check_info" gorm:"check_info"`
 	Status      string    `json:"status" gorm:"status"`
@@ -89,4 +89,10 @@ type InitSql struct {
 type Messages struct {
 	mu   sync.RWMutex
 	list []string
+}
+
+type Host struct {
+	Ip        string `json:"ip"`
+	Port      int    `json:"port"`
+	BkCloudId int64  `json:"bk_cloud_id"`
 }

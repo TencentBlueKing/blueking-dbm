@@ -107,6 +107,7 @@ class PayloadHandler(object):
                     {"username": UserName.OS_MYSQL.value, "component": MySQLPrivComponent.MYSQL.value},
                     {"username": UserName.REPL.value, "component": MySQLPrivComponent.MYSQL.value},
                     {"username": UserName.YW.value, "component": MySQLPrivComponent.MYSQL.value},
+                    {"username": UserName.PARTITION_YW.value, "component": MySQLPrivComponent.MYSQL.value},
                 ],
             }
         )

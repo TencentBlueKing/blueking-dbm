@@ -30,11 +30,9 @@ const Tendbsingle string = "tendbsingle"
 // Tendbcluster TODO
 const Tendbcluster string = "tendbcluster"
 
-// CheckFailed TODO
-const CheckFailed string = "FAILED"
+const Fail string = "failed"
 
-// CheckSucceeded TODO
-const CheckSucceeded string = "SUCCEEDED"
+const Success string = "succeeded"
 
 // ExecuteAsynchronous TODO
 const ExecuteAsynchronous string = "UNKNOWN"
@@ -156,17 +154,38 @@ type DownloadPara struct {
 	CreatedBy  string   `json:"created_by"`
 }
 
+type DownloadPartitionPara struct {
+	TicketType string `json:"ticket_type"`
+	BkBizId    int64  `json:"bk_biz_id"`
+	Files      []Info `json:"files"`
+	CreatedBy  string `json:"created_by"`
+	Path       string `json:"path"`
+}
+
 // DownloadDbactor 下载dbactor
 func DownloadDbactor(bkCloudId int64, ips []string) error {
 	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
 	url := "/apis/v1/flow/scene/download_dbactor"
-
 	_, err := c.Do(http.MethodPost, url, DownloadPara{TicketType: "download_dbactor",
 		BkBizId:   viper.GetInt64("dba.bk_biz_id"),
 		BkCloudId: bkCloudId, DbType: "mysql", Ips: ips, CreatedBy: "admin"})
 	if err != nil {
 		slog.Error("msg", url, err)
 		return errno.DownloadDbactorFail.Add(err.Error())
+	}
+	return nil
+}
+
+func DownloadFiles(files []Info) error {
+	path := "mysql/partition"
+	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
+	url := "/apis/v1/flow/scene/download_file"
+	_, err := c.Do(http.MethodPost, url, DownloadPartitionPara{TicketType: "download_file",
+		BkBizId: viper.GetInt64("dba.bk_biz_id"),
+		Files:   files, CreatedBy: "admin", Path: path})
+	if err != nil {
+		slog.Error("msg", url, err)
+		return errno.DownloadFileFail.Add(err.Error())
 	}
 	return nil
 }

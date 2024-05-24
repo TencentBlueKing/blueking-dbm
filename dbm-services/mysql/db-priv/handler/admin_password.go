@@ -109,12 +109,10 @@ func (m *PrivService) GetMysqlAdminPassword(c *gin.Context) {
 	return
 }
 
-// ModifyMysqlAdminPassword 新增或者修改mysql实例中管理用户的密码，可用于随机化密码
+// ModifyAdminPassword 新增或者修改mysql实例中管理用户的密码，可用于随机化密码
 func (m *PrivService) ModifyAdminPassword(c *gin.Context) {
 	slog.Info("do ModifyAdminPassword!")
 	var input service.ModifyAdminUserPasswordPara
-	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
-
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		slog.Error("msg", err)
@@ -132,7 +130,7 @@ func (m *PrivService) ModifyAdminPassword(c *gin.Context) {
 		SendResponse(c, nil, nil)
 	}
 	// 前端页面调用等同步返回，返回修改成功的实例以及没有修改成功的实例
-	batch, err := input.ModifyAdminPassword(string(body), ticket)
+	batch, err := input.ModifyAdminPassword()
 	if input.Async == false {
 		SendResponse(c, err, batch)
 	}
