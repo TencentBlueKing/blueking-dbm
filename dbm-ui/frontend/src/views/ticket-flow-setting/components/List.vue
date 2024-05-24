@@ -84,7 +84,6 @@
 
   const tableRef = ref();
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
-  const currentFlow = ref('');
   const isShowBatchConfigDialog = ref(false);
 
   const ticketTypeList = shallowRef<{
@@ -286,7 +285,6 @@
   onMounted(() => {
     fetchHostNodes();
   });
-
 </script>
 <style lang="less" scoped>
   .ticket-flow-list-content {

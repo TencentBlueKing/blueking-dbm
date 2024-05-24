@@ -113,6 +113,7 @@
     {
       label: t('操作'),
       field: 'operation',
+      width: 80,
       render: ({ data }: { data: ConfigListItem[number] }) => (
         <div class="operation">
           <bk-button

@@ -19,7 +19,7 @@
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
-    :width="1300"
+    width="80%"
     @closed="handleClose">
     <BkResizeLayout
       :border="false"
@@ -579,7 +579,7 @@
   };
 
   const panelTabActive = ref<string>('');
-  const activePanelObj = ref<PanelListItem>();
+  const activePanelObj = shallowRef<PanelListItem>();
 
   const lastValues = reactive<NonNullable<Props['selected']>>({});
 

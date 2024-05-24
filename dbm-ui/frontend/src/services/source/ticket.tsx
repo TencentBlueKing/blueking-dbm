@@ -13,6 +13,7 @@
 import InfoBox from 'bkui-vue/lib/info-box';
 
 import TicketModel from '@services/model/ticket/ticket';
+import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
 
 import { getRouter } from '@router/index';
 
@@ -259,17 +260,13 @@ export function queryTicketFlowDescribe(params: {
   // eslint-disable-next-line no-param-reassign
   delete params.bk_biz_id;
 
-  return http.get<ListBase<{
-    configs: Record<string, boolean>;
-    creator: string;
-    editable: boolean;
-    flow_desc: string[];
-    group: string;
-    ticket_type: string;
-    ticket_type_display: string;
-    updater: string;
-    update_at: string;
-  }[]>>(`${path}/query_ticket_flow_describe/`, params);
+  return http.get<ListBase<TicketFlowDescribeModel[]>>(`${path}/query_ticket_flow_describe/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new TicketFlowDescribeModel(Object.assign(item, {
+        permission: data.permission
+      })))
+    }));
 }
 
 /**
