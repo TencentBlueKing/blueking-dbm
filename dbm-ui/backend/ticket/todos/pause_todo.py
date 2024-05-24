@@ -10,8 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 from dataclasses import dataclass
 
+from django.utils.translation import gettext as _
+
 from backend.ticket import todos
 from backend.ticket.constants import TicketFlowStatus, TodoType
+from backend.ticket.exceptions import TodoWrongOperatorException
 from backend.ticket.flow_manager import manager
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.todos import ActionType, BaseTodoContext
@@ -34,6 +37,8 @@ class PauseTodo(todos.TodoActor):
 
     def process(self, username, action, params):
         """确认/终止"""
+        if username not in self.todo.operators:
+            raise TodoWrongOperatorException(_("{}不在处理人: {}中，无法处理").format(username, self.todo.operators))
 
         if action == ActionType.TERMINATE:
             self.todo.set_terminated(username, action)
@@ -52,6 +57,8 @@ class ResourceReplenishTodo(todos.TodoActor):
 
     def process(self, username, action, params):
         """确认/终止"""
+        if username not in self.todo.operators:
+            raise TodoWrongOperatorException(_("{}不在处理人: {}中，无法处理").format(username, self.todo.operators))
 
         # 终止单据
         if action == ActionType.TERMINATE:

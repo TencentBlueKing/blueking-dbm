@@ -18,6 +18,8 @@ from ..domains import MYSQL_PRIV_MANAGER_APIGW_DOMAIN
 class _MySQLPrivManagerApi(BaseApi):
     MODULE = _("MySQL权限管理")
     BASE = MYSQL_PRIV_MANAGER_APIGW_DOMAIN
+    # 权限相关操作的默认超时时间，暂定3h
+    TIMEOUT = 3 * 60 * 60
 
     def __init__(self):
         # 账号规则相关
