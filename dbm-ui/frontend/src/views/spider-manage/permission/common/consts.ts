@@ -15,10 +15,12 @@
  * 操作类型
  */
 export const dbOperations = {
-  dml: ['select', 'insert', 'update', 'delete'],
-  ddl: ['create', 'alter', 'drop', 'index', 'execute', 'create view'],
-  glob: ['file', 'trigger', 'event', 'create routine', 'alter routine', 'replication client', 'replication slave', 'reload', 'process', 'show databases'],
+  dml: ['select', 'insert', 'update', 'delete', 'show view'],
+  ddl: ['create', 'alter', 'drop', 'index', 'create view', 'execute', 'trigger', 'event', 'create routine', 'alter routine', 'references', 'create temporary tables'],
+  glob: ['file', 'reload', 'show databases', 'process', 'replication slave', 'replication client'],
 };
+
+export const ddlSensitiveWords = ['trigger', 'event', 'create routine', 'alter routine', 'references', 'create temporary tables'];
 
 /**
  * 密码策略

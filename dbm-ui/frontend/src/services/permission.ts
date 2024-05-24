@@ -186,6 +186,24 @@ export const queryAccountRules = (params: {
 }) => http.post<ListBase<PermissionRule[]>>(`/apis/mysql/bizs/${params.bizId}/permission/account/query_account_rules/`, params);
 
 /**
+ * 添加账号规则前置检查
+ */
+export const preCheckAddAccountRule = (params: {
+  account_id: number | null,
+  access_db: string,
+  privilege: {
+    dml: string[],
+    ddl: string[],
+    glob: string[],
+  },
+  account_type?: AccountTypesValues
+}) => http.post<{
+  force_run: boolean,
+  warning: string | null,
+}>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/permission/account/pre_check_add_account_rule/`, params);
+
+
+/**
  * 权限克隆前置检查
  */
 export const precheckPermissionClone = (params: {

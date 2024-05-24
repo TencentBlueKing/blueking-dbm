@@ -116,13 +116,16 @@
                   :disabled="checkAllPrivileges"
                   :label="ddlItem">
                   {{ ddlItem }}
+                  <span
+                    v-if="ddlSensitiveWords.includes(ddlItem)"
+                    class="sensitive-tip">{{ t('敏感') }}</span>
                 </BkCheckbox>
               </BkCheckboxGroup>
             </div>
           </BkFormItem>
           <BkFormItem
             class="mb-0"
-            :label="t('非常规权限')">
+            :label="t('全局')">
             <div class="rule-form-row">
               <BkCheckbox
                 v-bk-tooltips="{
@@ -147,12 +150,15 @@
                     disabled: !checkAllPrivileges
                   }"
                   :disabled="checkAllPrivileges"
-                  :label="globItem" />
+                  :label="globItem">
+                  {{ globItem }}
+                  <span class="sensitive-tip">{{ t('敏感') }}</span>
+                </BkCheckbox>
               </BkCheckboxGroup>
             </div>
           </BkFormItem>
         </div>
-        <div
+        <!-- <div
           class="rule-setting-box"
           style="margin-top: 16px;">
           <BkFormItem
@@ -164,17 +170,26 @@
               all privileges（{{ t('包含所有权限，其他权限无需授予') }}）
             </BkCheckbox>
           </BkFormItem>
-        </div>
+        </div> -->
       </BkFormItem>
     </DbForm>
     <template #footer>
-      <BkButton
-        class="mr-8"
-        :loading="state.isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
+      <BkPopConfirm
+        :content="precheckWarnTip"
+        :is-show="showPopConfirm"
+        :title="t('确定提交？')"
+        trigger="manual"
+        width="400"
+        @cancel="handleVerifyCancel"
+        @confirm="handleVerifyConfirm">
+        <BkButton
+          class="mr-8"
+          :loading="state.isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('确定') }}
+        </BkButton>
+      </BkPopConfirm>
       <BkButton
         :disabled="state.isSubmitting"
         @click="handleClose">
@@ -184,17 +199,18 @@
   </BkSideslider>
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { Message } from 'bkui-vue';
   import _ from 'lodash';
+  import type { JSX } from 'vue/jsx-runtime';
   import { useI18n } from 'vue-i18n';
 
-  import { createAccountRule, getPermissionRules, queryAccountRules } from '@services/permission';
+  import { createAccountRule, getPermissionRules, preCheckAddAccountRule, queryAccountRules } from '@services/permission';
   import type { AccountRule, PermissionRuleAccount } from '@services/types/permission';
 
   import { useInfo, useStickyFooter  } from '@hooks';
 
-  import { dbOperations } from '../common/const';
+  import { dbOperations, ddlSensitiveWords } from '../common/const';
 
   type AuthItemKey = keyof typeof dbOperations;
 
@@ -209,19 +225,41 @@
   const props = withDefaults(defineProps<Props>(), {
     accountId: -1,
   });
+
   const emits = defineEmits<Emits>();
+
   const isShow = defineModel<boolean>({
     required: true,
     default: false,
   });
 
+  const initFormdata = (): AccountRule => ({
+    account_id: null,
+    access_db: '',
+    privilege: {
+      ddl: [],
+      dml: [],
+      glob: [],
+    },
+  });
+
+  const getTextareaHeight = () => {
+    textareaHeight.value = 0;
+
+    if (textareaRef.value) {
+      const el = textareaRef.value.$el as HTMLDivElement;
+      textareaHeight.value = el.firstElementChild?.scrollHeight ?? 0;
+    }
+  };
+
   const { t } = useI18n();
 
   const ruleRef = ref();
   const checkAllPrivileges = ref(false);
-
-  /** 设置底部按钮粘性布局 */
-  useStickyFooter(ruleRef);
+  const showPopConfirm = ref(false);
+  const precheckWarnTip = ref<JSX.Element>();
+  const textareaRef = ref();
+  const textareaHeight = ref(0);
 
   const state = reactive({
     formdata: initFormdata(),
@@ -230,7 +268,9 @@
     isSubmitting: false,
     existDBs: [] as string[],
   });
+
   const selectedUserInfo = computed(() => state.accounts.find(item => item.account_id === state.formdata.account_id));
+
   const rules = computed(() => ({
     auth: [
       {
@@ -257,14 +297,26 @@
     ],
   }));
 
-  const handleSelectAllPrivileges = (checked: boolean) => {
-    checkAllPrivileges.value = checked;
-    if (checked) {
-      state.formdata.privilege.ddl = [];
-      state.formdata.privilege.dml = [];
-      state.formdata.privilege.glob = [];
+  watch(isShow, (show) => {
+    if (show) {
+      state.formdata.account_id = props.accountId ?? -1;
+      getAccount();
     }
-  };
+  });
+
+  watch(() => state.formdata.access_db, getTextareaHeight);
+
+  /** 设置底部按钮粘性布局 */
+  useStickyFooter(ruleRef);
+
+  // const handleSelectAllPrivileges = (checked: boolean) => {
+  //   checkAllPrivileges.value = checked;
+  //   if (checked) {
+  //     state.formdata.privilege.ddl = [];
+  //     state.formdata.privilege.dml = [];
+  //     state.formdata.privilege.glob = [];
+  //   }
+  // };
 
   // 获取权限设置全选框状态
   const getAllCheckedboxValue = (key: AuthItemKey) => state.formdata.privilege[key].length === dbOperations[key].length;
@@ -281,47 +333,7 @@
     state.formdata.privilege[key] = [];
   };
 
-  /**
-   * 初始化表单数据
-   */
-  function initFormdata(): AccountRule {
-    return {
-      account_id: null,
-      access_db: '',
-      privilege: {
-        ddl: [],
-        dml: [],
-        glob: [],
-      },
-    };
-  }
-
-  /**
-   * 初始化
-   */
-  watch(isShow, (show) => {
-    if (show) {
-      state.formdata.account_id = props.accountId ?? -1;
-      getAccount();
-    }
-  });
-
-  /**
-   * get textarea height
-   */
-  const textareaRef = ref();
-  const textareaHeight = ref(0);
-  watch(() => state.formdata.access_db, getTextareaHeight);
-  function getTextareaHeight() {
-    textareaHeight.value = 0;
-
-    if (textareaRef.value) {
-      const el = textareaRef.value.$el as HTMLDivElement;
-      textareaHeight.value = el.firstElementChild?.scrollHeight ?? 0;
-    }
-  }
-
-  function verifyAccountRules() {
+  const verifyAccountRules = () => {
     const user = selectedUserInfo.value?.user;
     const dbs = state.formdata.access_db.replace(/\n|;/g, ',')
       .split(',')
@@ -339,12 +351,12 @@
         state.existDBs = rules.map(item => item.access_db);
         return rules.length === 0;
       });
-  }
+  };
 
   /**
    * 获取账号列表
    */
-  function getAccount() {
+  const getAccount = () => {
     state.isLoading = true;
     getPermissionRules({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -355,9 +367,9 @@
       .finally(() => {
         state.isLoading = false;
       });
-  }
+  };
 
-  function handleBeforeClose() {
+  const handleBeforeClose = () => {
     if (window.changeConfirm) {
       return new Promise((resolve) => {
         useInfo({
@@ -373,34 +385,24 @@
       });
     }
     return true;
-  }
+  };
 
-  async function handleClose() {
+  const handleClose = async () => {
     const result = await handleBeforeClose();
     if (!result) return;
     isShow.value = false;
     state.formdata = initFormdata();
-    checkAllPrivileges.value = false;
+    // checkAllPrivileges.value = false;
     state.existDBs = [];
     window.changeConfirm = false;
-  }
+  };
 
-  /**
-   * 提交功能
-   */
-  async function handleSubmit() {
-    await ruleRef.value.validate();
-    const formData = _.cloneDeep(state.formdata);
-    state.isSubmitting = true;
-    if (checkAllPrivileges.value) {
-      // 包含所有权限
-      formData.privilege.glob = ['all privileges'];
-    }
-    const params = {
-      ...formData,
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      access_db: formData.access_db.replace(/\n|;/g, ','), // 统一分隔符
-    };
+  const handleVerifyCancel = () => {
+    showPopConfirm.value = false;
+    state.isSubmitting = false;
+  };
+
+  const submitCreateAccountRule = (params: ServiceParameters<typeof createAccountRule>) => {
     createAccountRule(params)
       .then(() => {
         Message({
@@ -414,7 +416,47 @@
       .finally(() => {
         state.isSubmitting = false;
       });
-  }
+  };
+
+  const generateRequestParam = () => {
+    const formData = _.cloneDeep(state.formdata);
+    if (checkAllPrivileges.value) {
+      // 包含所有权限
+      formData.privilege.glob = ['all privileges'];
+    }
+
+    return ({
+      ...formData,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      access_db: formData.access_db.replace(/\n|;/g, ','), // 统一分隔符
+    });
+  };
+
+  const handleVerifyConfirm = () => {
+    showPopConfirm.value = false;
+    const params = generateRequestParam();
+    submitCreateAccountRule(params);
+  };
+
+
+  const handleSubmit = async () => {
+    await ruleRef.value.validate();
+    state.isSubmitting = true;
+    const params = generateRequestParam();
+    preCheckAddAccountRule(params)
+      .then((result) => {
+        if (result.warning) {
+          precheckWarnTip.value = (
+            <div class="pre-check-content">
+              {result.warning.split('\n').map(line => <div>{line}</div>)}
+            </div>
+          );
+          showPopConfirm.value = true;
+          return;
+        }
+        submitCreateAccountRule(params);
+      });
+  };
 
 </script>
 
@@ -423,7 +465,7 @@
   padding: 24px 40px 40px;
 
   .rule-setting-box {
-    padding: 16px;
+    padding: 16px 0 16px 16px;
     background: #F5F7FA;
     border-radius: 2px;
   }
@@ -466,9 +508,20 @@
       flex-wrap: wrap;
 
       .bk-checkbox {
-        margin-right: 35px;
+        min-width: 33.33%;
         margin-bottom: 16px;
         margin-left: 0;
+
+        .sensitive-tip {
+          background: #FFF3E1;
+          border-radius: 2px;
+          font-size: 10px;
+          color: #FE9C00;
+          height: 16px;
+          line-height: 16px;
+          text-align: center;
+          padding: 0 4px;
+        }
       }
     }
 
@@ -477,9 +530,9 @@
       width: 48px;
       margin-right: 48px;
 
-      :deep(.bk-checkbox-label) {
-        font-weight: bold;
-      }
+      // :deep(.bk-checkbox-label) {
+      //   font-weight: bold;
+      // }
 
       &::after {
         position: absolute;
@@ -493,5 +546,12 @@
       }
     }
   }
+}
+</style>
+<style lang="less">
+.pre-check-content {
+  width: 100%;
+  max-height: 500px;
+  overflow-y: auto;
 }
 </style>
