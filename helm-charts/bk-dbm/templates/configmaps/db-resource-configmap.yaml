@@ -36,3 +36,8 @@ data:
       cloud_vendor: "{{ index .Values "db-resource" "envs" "cloudVendor" }}"
       secret_id: "{{ index .Values "db-resource" "envs" "secretId" }}"
       secret_key: "{{ index .Values "db-resource" "envs" "secretKey" }}"
+    yunti:
+      addr:  "{{ index .Values "db-resource" "envs" "yuntiAddr" }}"
+      api_key_name:  "{{ index .Values "db-resource" "envs" "api_key_name" }}"
+      api_key_secret:  "{{ index .Values "db-resource" "envs" "api_key_secret" }}"
+      interface_name:  "{{ index .Values "db-resource" "envs" "interface_name" }}"
