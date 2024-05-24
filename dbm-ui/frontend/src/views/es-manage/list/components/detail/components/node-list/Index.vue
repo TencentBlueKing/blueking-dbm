@@ -298,6 +298,10 @@
     && Object.keys(checkedNodeMap.value).length >= tableData.value.length);
 
   const batchShrinkDisabledInfo = computed(() => {
+    // 缩容限制
+    // 1. 冷节点和热节点的总数至少为一台
+    // 2. client 缩容不限制
+    // 3.  master 不允许缩容
     const options = {
       disabled: false,
       tooltips: {
@@ -324,17 +328,12 @@
       return options;
     }
 
-    // 其它类型的节点数不能全部被缩容，至少保留一个
-    let clientNodeNumTotal = 0;
-    let clientNodeNum = 0;
     let hotNodeNumTotal = 0;
     let hotNodeNum = 0;
     let coldNodeNumTotal = 0;
     let coldNodeNum = 0;
     tableData.value.forEach((nodeItem) => {
-      if (nodeItem.isClient) {
-        clientNodeNumTotal = clientNodeNumTotal + 1;
-      } else if (nodeItem.isHot) {
+      if (nodeItem.isHot) {
         hotNodeNumTotal = hotNodeNumTotal + 1;
       } else if (nodeItem.isCold) {
         coldNodeNumTotal = coldNodeNumTotal + 1;
@@ -342,27 +341,17 @@
       if (checkedNodeMap.value[nodeItem.bk_host_id]) {
         return;
       }
-      if (nodeItem.isClient) {
-        clientNodeNum = clientNodeNum + 1;
-      } else if (nodeItem.isHot) {
+      if (nodeItem.isHot) {
         hotNodeNum = hotNodeNum + 1;
       } else if (nodeItem.isCold) {
         coldNodeNum = coldNodeNum + 1;
       }
     });
 
-    if (clientNodeNum < 1 && clientNodeNumTotal > 0) {
+    if (hotNodeNum + coldNodeNum < 1 && (hotNodeNumTotal > 0 || coldNodeNumTotal > 0)) {
       options.disabled = true;
       options.tooltips.disabled = false;
-      options.tooltips.content = t('Client类型节点至少保留一个');
-    } else if (hotNodeNum < 1 && hotNodeNumTotal > 0) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('热节点至少保留一个');
-    } else if (coldNodeNum < 1 && coldNodeNumTotal > 0) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('冷节点至少保留一个');
+      options.tooltips.content = t('冷节点和热节点的总数至少为一台');
     }
 
     return options;
