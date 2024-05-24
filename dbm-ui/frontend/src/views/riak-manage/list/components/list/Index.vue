@@ -365,19 +365,22 @@
         data.isOnline
           ? <>
               <OperationBtnStatusTips data={data}>
-                <bk-button
+                <auth-button
+                  action-id="riak_cluster_scale_in"
+                  permission={data.permission.riak_cluster_scale_in}
+                  resource={data.id}
                   text
                   theme="primary"
                   disabled={data.operationDisabled}
                   onClick={() => handleAddNodes(data)}
                 >
                   { t('添加节点') }
-                </bk-button>
+                </auth-button>
               </OperationBtnStatusTips>
               <OperationBtnStatusTips data={data}>
                 <auth-button
-                  action-id="riak_destroy"
-                  permission={data.permission.riak_destroy}
+                  action-id="riak_cluster_scale_out"
+                  permission={data.permission.riak_cluster_scale_out}
                   resource={data.id}
                   text
                   class="ml-16"
@@ -418,7 +421,10 @@
                 </auth-button>
               </OperationBtnStatusTips>
               <OperationBtnStatusTips data={data}>
-                <bk-button
+                <auth-button
+                  action-id="riak_cluster_destroy"
+                  permission={data.permission.riak_cluster_destroy}
+                  resource={data.id}
                   text
                   class="ml-16"
                   theme="primary"
@@ -426,7 +432,7 @@
                   onclick={() => handleDelete(data)}
                 >
                   { t('删除') }
-                </bk-button>
+                </auth-button>
               </OperationBtnStatusTips>
             </>
       ),

@@ -66,12 +66,12 @@ export default class Riak {
   }>;
   permission: {
     riak_access_entry_view: boolean;
-    riak_destroy: boolean;
+    riak_cluster_destroy: boolean;
+    riak_cluster_migrate: boolean;
+    riak_cluster_reboot: boolean;
+    riak_cluster_scale_in: boolean;
+    riak_cluster_scale_out: boolean;
     riak_enable_disable: boolean;
-    riak_reboot: boolean;
-    riak_replace: boolean;
-    riak_scale_up: boolean;
-    riak_shrink: boolean;
     riak_view: boolean;
   };
   riak_node: Array<{
