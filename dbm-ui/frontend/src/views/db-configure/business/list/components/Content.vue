@@ -62,7 +62,6 @@
                     theme="primary"
                     @click.stop="createModule">
                     <DbIcon type="add" />
-                  <!-- <i class="content-tree-add db-icon-add"/> -->
                   </BkButton>
                 </div>
               </template>
@@ -150,15 +149,22 @@
     return '';
   });
 
-  watch(() => route.query, () => {
-    if (!route.query.parentId && route.query.treeId && treeState.selected) {
-      treeState.activeNode = treeState.selected;
-    }
-  });
+  watch(
+    () => route.query,
+    () => {
+      if (!route.query.parentId && route.query.treeId && treeState.selected) {
+        treeState.activeNode = treeState.selected;
+      }
+    },
+  );
 
   const getIconText = (item: TreeData) => {
-    if (item.levelType === ConfLevels.APP) return '业';
-    if (item.levelType === ConfLevels.MODULE) return '模';
+    if (item.levelType === ConfLevels.APP) {
+      return '业';
+    }
+    if (item.levelType === ConfLevels.MODULE) {
+      return '模';
+    }
     return '集';
   };
 

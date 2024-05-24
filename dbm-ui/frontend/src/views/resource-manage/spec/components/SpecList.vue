@@ -165,6 +165,7 @@
     influxdb: 'influxdb',
     pulsar: 'pulsar',
     tendbcluster: 'tendbcluster',
+    riak: 'riak'
   };
 
   const databaseType = databaseTypeMap[props.clusterType];

@@ -46,8 +46,7 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import AppSelect from '@components/app-select/Index.vue';
-
+  import AppSelect from './AppSelect.vue';
   import { useActiveKey } from './hooks/useActiveKey';
   import { useMenuStyles } from './hooks/useMenuStyles';
 

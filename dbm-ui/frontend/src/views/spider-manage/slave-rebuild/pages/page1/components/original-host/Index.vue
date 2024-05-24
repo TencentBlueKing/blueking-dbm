@@ -134,7 +134,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.slave && !firstRow.slave;
+    return !firstRow.slave || !firstRow.slave.instanceAddress;
   };
 
   const handleShowIpSelector = () => {

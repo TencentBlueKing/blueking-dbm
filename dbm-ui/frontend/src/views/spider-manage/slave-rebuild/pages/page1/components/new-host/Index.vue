@@ -25,7 +25,7 @@
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @host-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
-          @remove="handleRemove(index)"/>
+          @remove="handleRemove(index)" />
       </RenderData>
       <BkForm
         class="mt-24"
@@ -76,7 +76,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getSpiderMachineList } from '@services/source/spider'
+  import { getSpiderMachineList } from '@services/source/spider';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -86,7 +86,7 @@
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
-    type PanelListType
+    type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
   import { random } from '@utils';
@@ -126,13 +126,13 @@
             role: 'remote_slave',
           },
         },
-      }
+      },
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
 
   let ipMemo = {} as Record<string, boolean>;
 
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.oldSlave?.ip)).length);
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.oldSlave?.ip)).length);
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -140,7 +140,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.oldSlave;
+    return !firstRow.oldSlave || !firstRow.oldSlave.ip;
   };
 
   const handleShowIpSelector = () => {
@@ -157,13 +157,13 @@
       ip: item.ip,
       domian: item.master_domain || '',
       clusterId: item.cluster_id,
-      specConfig: item.spec_config || {} as IDataRow['oldSlave']['specConfig'],
-      slaveInstanceList: item.related_instances || [] as IDataRow['oldSlave']['slaveInstanceList']
-    }
+      specConfig: item.spec_config || ({} as IDataRow['oldSlave']['specConfig']),
+      slaveInstanceList: item.related_instances || ([] as IDataRow['oldSlave']['slaveInstanceList']),
+    },
   });
 
   const handleInstancesChange = (selectedValues: InstanceSelectorValues<IValue>) => {
-    selected.value = selectedValues
+    selected.value = selectedValues;
     const newList: IDataRow[] = [];
     selectedValues.TendbClusterHost.forEach((instanceData) => {
       const { ip } = instanceData;
@@ -186,13 +186,13 @@
     if (!ip) {
       const { ip } = tableData.value[index].oldSlave;
       ipMemo[ip] = false;
-      tableData.value[index] = createRowData()
+      tableData.value[index] = createRowData();
       return;
     }
     tableData.value[index].isLoading = true;
     const spiderMachineResult = await getSpiderMachineList({
       ip,
-      instance_role: 'remote_slave'
+      instance_role: 'remote_slave',
     }).finally(() => {
       tableData.value[index].isLoading = false;
     });
@@ -208,12 +208,12 @@
       clusterId: spiderMachineItem.related_clusters[0].id,
       domian: spiderMachineItem.related_clusters[0].immute_domain,
       specConfig: spiderMachineItem.spec_config,
-      slaveInstanceList: spiderMachineItem.related_instances.map(instanceItem => ({
+      slaveInstanceList: spiderMachineItem.related_instances.map((instanceItem) => ({
         status: instanceItem.status,
-        instance: instanceItem.instance
-      }))
-    })
-    ipMemo[ip]  = true;
+        instance: instanceItem.instance,
+      })),
+    });
+    ipMemo[ip] = true;
   };
 
   // 追加一个行
@@ -229,7 +229,7 @@
     if (ip) {
       delete ipMemo[ip];
       const clustersArr = selected.value.TendbClusterHost;
-      selected.value.TendbClusterHost = clustersArr.filter(item => item.ip !== ip);
+      selected.value.TendbClusterHost = clustersArr.filter((item) => item.ip !== ip);
     }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
@@ -244,7 +244,7 @@
           ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
           remark: '',
           details: {
-            ip_source: "resource_pool",
+            ip_source: 'resource_pool',
             backup_source: backupSource.value,
             infos: data,
           },
