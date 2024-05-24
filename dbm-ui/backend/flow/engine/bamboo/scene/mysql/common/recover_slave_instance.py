@@ -28,9 +28,12 @@ from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile
     MySQLDownloadBackupfileComponent,
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadBackupFileKwargs, ExecActuatorKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import (
+    DownloadBackupFileKwargs,
+    DownloadMediaKwargs,
+    ExecActuatorKwargs,
+)
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.riak.riak_act_dataclass import DownloadMediaKwargs
 
 logger = logging.getLogger("flow")
 
@@ -109,6 +112,19 @@ def slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
         dest_dir=cluster["file_target_path"],
         reason="slave recover",
     )
+
+    sub_pipeline.add_act(
+        act_name=_("下发db-actor到节点{}".format(cluster["master_ip"])),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster["bk_cloud_id"],
+                exec_ip=[cluster["master_ip"], cluster["new_slave_ip"]],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
+    )
+
     sub_pipeline.add_act(
         act_name=_("下载全库备份介质到 {}".format(cluster["new_slave_ip"])),
         act_component_code=MySQLDownloadBackupfileComponent.code,

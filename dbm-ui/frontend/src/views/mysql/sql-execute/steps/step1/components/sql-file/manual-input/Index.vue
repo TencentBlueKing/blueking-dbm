@@ -13,13 +13,13 @@
 
 <template>
   <BkFormItem
-    :label="$t('SQL 内容')"
+    :label="t('SQL 内容')"
     property="execute_sql_files"
     required
     :rules="rules">
     <template #labelAppend>
-      <span style="font-size: 12px; font-weight: normal; color: #8a8f99">
-        （{{ $t('最终执行结果以 SQL 内容为准') }}）
+      <span style="font-size: 12px; font-weight: normal; color: #8a8f99;">
+        （{{ t('最终执行结果以 SQL 内容为准') }}）
       </span>
     </template>
     <div class="sql-execute-manual-input">
@@ -27,7 +27,7 @@
         <Editor
           v-model="content"
           :message-list="inputContentCheckResult.messageList"
-          :title="$t('SQL编辑器')"
+          :title="t('SQL编辑器')"
           @change="handleEditorChange" />
         <div
           v-if="!isSubmited"
@@ -38,7 +38,7 @@
             theme="primary"
             @click="handleGrammarCheck">
             <DbIcon type="right-shape" />
-            <span style="margin-left: 4px">{{ $t('语法检测') }}</span>
+            <span style="margin-left: 4px;">{{ t('语法检测') }}</span>
           </BkButton>
         </div>
         <template v-else>

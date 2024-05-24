@@ -11,13 +11,12 @@
 package service
 
 import (
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/db-partition/util"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
-
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/db-partition/util"
 
 	"github.com/spf13/viper"
 )
@@ -42,6 +41,9 @@ const ExecuteAsynchronous string = "UNKNOWN"
 
 // BackendMaster TODO
 const BackendMaster string = "backend_master"
+
+// RemoteMaster TODO
+const RemoteMaster string = "remote_master"
 
 // Orphan TODO
 const Orphan string = "orphan"
@@ -128,6 +130,7 @@ type Cluster struct {
 	Storages     []Storage `json:"storages"`
 	ClusterType  string    `json:"cluster_type"`
 	ImmuteDomain string    `json:"immute_domain"`
+	BkCloudId    int64     `json:"bk_cloud_id"`
 }
 
 // BkBizId 业务 id，QueryAccountRule、GetAllClustersInfo 函数的入参
@@ -142,6 +145,30 @@ type Biz struct {
 	Permission  struct {
 		DbManage bool `json:"db_manage"`
 	} `json:"permission"`
+}
+
+type DownloadPara struct {
+	TicketType string   `json:"ticket_type"`
+	BkBizId    int64    `json:"bk_biz_id"`
+	BkCloudId  int64    `json:"bk_cloud_id"`
+	DbType     string   `json:"db_type"`
+	Ips        []string `json:"ips"`
+	CreatedBy  string   `json:"created_by"`
+}
+
+// DownloadDbactor 下载dbactor
+func DownloadDbactor(bkCloudId int64, ips []string) error {
+	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
+	url := "/apis/v1/flow/scene/download_dbactor"
+
+	_, err := c.Do(http.MethodPost, url, DownloadPara{TicketType: "download_dbactor",
+		BkBizId:   viper.GetInt64("dba.bk_biz_id"),
+		BkCloudId: bkCloudId, DbType: "mysql", Ips: ips, CreatedBy: "admin"})
+	if err != nil {
+		slog.Error("msg", url, err)
+		return errno.DownloadDbactorFail.Add(err.Error())
+	}
+	return nil
 }
 
 // GetCluster 根据域名获取集群信息

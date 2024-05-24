@@ -2,20 +2,6 @@
   <FunController module-id="mysql">
     <BkMenuGroup name="MySQL">
       <FunController
-        controller-id="tendbsingle"
-        module-id="mysql">
-        <BkMenuItem key="DatabaseTendbsingle">
-          <template #icon>
-            <DbIcon type="node" />
-          </template>
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('单节点') }}
-          </span>
-        </BkMenuItem>
-      </FunController>
-      <FunController
         controller-id="tendbha"
         module-id="mysql">
         <BkSubmenu
@@ -42,9 +28,21 @@
           </BkMenuItem>
         </BkSubmenu>
       </FunController>
-      <BkMenuItem
-        key="mysqlPartitionManage"
-        v-db-console="'mysql.partitionManage'">
+      <FunController
+        controller-id="tendbsingle"
+        module-id="mysql">
+        <BkMenuItem key="DatabaseTendbsingle" v-db-console="'mysql.partitionManage'">
+          <template #icon>
+            <DbIcon type="node" />
+          </template>
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('单节点') }}
+          </span>
+        </BkMenuItem>
+      </FunController>
+      <BkMenuItem key="mysqlPartitionManage">
         <template #icon>
           <DbIcon type="mobanshili" />
         </template>

@@ -28,6 +28,7 @@ func init() {
 					"slave SQL thread was killed",
 					`\[Warning\]`,
 					"Failed to execute mysql_file_stat on file",
+					"DEPRECATED",
 				},
 				"|",
 			),

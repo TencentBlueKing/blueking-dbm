@@ -29,8 +29,3 @@ type TbRequestRecord struct {
 	UpdateTime time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`
 	CreateTime time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`
 }
-
-// GetTableName get sql table name.获取数据库名字
-func (obj *TbRequestRecord) GetTableName() string {
-	return "tb_request_record"
-}

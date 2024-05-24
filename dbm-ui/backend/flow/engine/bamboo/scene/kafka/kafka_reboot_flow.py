@@ -55,7 +55,7 @@ class KafkaRebootFlow(object):
         trans_files = GetFileList(db_type=DBType.Kafka)
         act_kwargs = ActKwargs(bk_cloud_id=self.data["bk_cloud_id"])
         act_kwargs.set_trans_data_dataclass = ApplyContext.__name__
-        act_kwargs.file_list = trans_files.reboot()
+        act_kwargs.file_list = trans_files.kafka_dbactuator()
         act_kwargs.exec_ip = self.__get_all_reboot_instances()
         kafka_pipeline.add_act(
             act_name=_("下发actuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)

@@ -23,11 +23,11 @@
     </div>
     <div class="main">
       <BaseInfo
-        v-show="curStep === 1"
+        v-if="curStep === 1"
         ref="contentRef"
         @change="handleChangeValue" />
       <DiffCompare
-        v-show="curStep === 2"
+        v-if="curStep === 2"
         :data="diffData.data.conf_items"
         :origin="diffData.origin" />
     </div>
@@ -218,7 +218,6 @@
         diffData.data = data;
       }
     }
-
     if (buttonInfo.value.isNext) {
       curStep.value += 1;
     } else {

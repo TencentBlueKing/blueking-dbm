@@ -14,8 +14,10 @@ def get_mysql_real_version(package_name: str) -> str:
     通过传入正确的mysql介质包名称获取到对应的真实版本名称：
     @param  package_name: 介质包名称 例子：mysql-5.7.8-linux-x86_64-tmysql-3.1-gcs.tar.gz
     获取到的真实版本为：5.7.8
+    兼容txsql介质包名称或者情况，例子： mysql-txsql-8.0.30-20221220-linux-x86_64.tar.gz
     """
-    return package_name.split("-")[1]
+    new_name = package_name.replace("-txsql", "")
+    return new_name.split("-")[1]
 
 
 def get_spider_real_version(package_name: str) -> str:

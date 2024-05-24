@@ -30,9 +30,17 @@
         <span class="ticket-details__item-label">{{ t('SQL执行内容') }}：</span>
         <BkButton
           text
-          theme="primary"
           @click="handleClickFile">
-          {{ t('点击查看') }}
+          <I18nT
+            keypath="共n个文件，含有m个高危语句"
+            tag="div">
+            <span
+              class="tip-number"
+              style="color:#3A84FF">{{ ticketDetails.details.execute_sql_files.length }}</span>
+            <span
+              class="tip-number"
+              style="color:#EA3636">{{ highRiskNum }}</span>
+          </I18nT>
         </BkButton>
       </div>
       <div class="ticket-details__item">
@@ -167,7 +175,9 @@
   };
 
   const { t } = useI18n();
+
   const selectFileName = ref('');
+
   const fileContentMap = shallowRef<Record<string, string>>({});
   const uploadFileList = shallowRef<Array<string>>([]);
   const isShow = ref(false);
@@ -205,6 +215,14 @@
     } as unknown as TablePropTypes,
   });
 
+  const highRiskNum = computed(() => Object.values(props.ticketDetails.details.grammar_check_info)
+    .reduce((results, item) => {
+      if (item.highrisk_warnings) {
+        return results + item.highrisk_warnings.length;
+      }
+      return results;
+    }, 0));
+
   const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
 
   const targetDB = [
@@ -213,25 +231,26 @@
       field: 'dbnames',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.map(item => <bk-tag>{item}</bk-tag>)}
-      </div>
-    ),
+        <div class="text-overflow" v-overflow-tips={{
+            content: cell,
+          }}>
+          {cell.map(item => <bk-tag>{item}</bk-tag>)}
+        </div>
+      ),
     },
     {
       label: t('忽略的DB'),
       field: 'ignore_dbnames',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-      </div>
-    ),
-    }];
+        <div class="text-overflow" v-overflow-tips={{
+            content: cell,
+          }}>
+          {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
+        </div>
+      ),
+    },
+  ];
 
   const backupConfig = [
     {
@@ -297,12 +316,15 @@
   // 目标DB
   const dataList = computed(() => {
     const list: targetDBItem[] = [];
-    const dbList = props.ticketDetails?.details?.execute_objects || [];
+    const dbList = props.ticketDetails.details.execute_objects || [];
+    const checkDbsMap: Record<string, boolean> = {};
     dbList.forEach((item) => {
-      list.push(Object.assign({
-        dbnames: item.dbnames,
-        ignore_dbnames: item.ignore_dbnames,
-      }));
+      const key = `${item.dbnames.join('-')}_${item.ignore_dbnames.join('-')}`;
+      if (checkDbsMap[key]) {
+        return;
+      }
+      checkDbsMap[key] = true;
+      list.push(item);
     });
     return list;
   });
@@ -322,7 +344,7 @@
   });
 
   // 查看日志详情
-  function handleClickFile() {
+  const handleClickFile = () => {
     isShow.value = true;
 
     const uploadSQLFileList = props.ticketDetails?.details?.execute_objects.map(item => item.sql_file);
@@ -345,11 +367,11 @@
 
       [selectFileName.value] = uploadSQLFileList;
     });
-  }
+  };
 
-  function handleClose() {
+  const handleClose = () => {
     isShow.value = false;
-  }
+  };
 
   const handleFileSortChange = (list: string[]) => {
     uploadFileList.value = list;
@@ -439,4 +461,10 @@
       }
     }
   }
+
+  .tip-number {
+    font-weight: 700;
+    display: inline-block;
+  }
+
 </style>

@@ -360,19 +360,6 @@ class TenDBRemoteRebalanceFlow(object):
             machines = cluster_info["masters"] + cluster_info["slaves"]
             for ip in machines:
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                ins_cluster = {"uninstall_ip": ip, "cluster_id": cluster_info["cluster_id"]}
-                uninstall_svr_sub_pipeline.add_act(
-                    act_name=_("整机卸载成功后删除元数据"),
-                    act_component_code=SpiderDBMetaComponent.code,
-                    kwargs=asdict(
-                        DBMetaOPKwargs(
-                            db_meta_class_func=SpiderDBMeta.remotedb_migrate_remove_storage.__name__,
-                            cluster=ins_cluster,
-                            is_update_trans_data=True,
-                        )
-                    ),
-                )
-
                 uninstall_svr_sub_pipeline.add_act(
                     act_name=_("下发db-actor到节点{}".format(ip)),
                     act_component_code=TransFileComponent.code,
@@ -381,6 +368,18 @@ class TenDBRemoteRebalanceFlow(object):
                             bk_cloud_id=cluster_class.bk_cloud_id,
                             exec_ip=[ip],
                             file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                        )
+                    ),
+                )
+                ins_cluster = {"uninstall_ip": ip, "cluster_id": cluster_info["cluster_id"]}
+                uninstall_svr_sub_pipeline.add_act(
+                    act_name=_("整机卸载前删除元数据"),
+                    act_component_code=SpiderDBMetaComponent.code,
+                    kwargs=asdict(
+                        DBMetaOPKwargs(
+                            db_meta_class_func=SpiderDBMeta.remotedb_migrate_remove_storage.__name__,
+                            cluster=ins_cluster,
+                            is_update_trans_data=True,
                         )
                     ),
                 )

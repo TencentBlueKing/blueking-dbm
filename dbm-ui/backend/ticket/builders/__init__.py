@@ -21,11 +21,11 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.constants import FlowRetryType, FlowType
-from backend.ticket.models import Flow, Ticket, TicketFlowConfig
+from backend.ticket.models import Flow, Ticket, TicketFlowsConfig
 
 logger = logging.getLogger("root")
 
@@ -132,6 +132,7 @@ class ItsmParamBuilder(CallBackBuilderMixin):
         self.details.pop("clusters", None)
         service_id = SystemSettings.get_setting_value(SystemSettingsEnum.BK_ITSM_SERVICE_ID.value)
         title = self.ticket.get_ticket_type_display()
+        app = AppCache.objects.get(bk_biz_id=self.ticket.bk_biz_id)
         params = {
             "service_id": service_id,
             "creator": self.ticket.creator,
@@ -154,6 +155,11 @@ class ItsmParamBuilder(CallBackBuilderMixin):
                     "name": _("需求信息"),
                     "type": "LINK",
                     "value": f"{self.ticket.url}&isFullscreen=true",
+                },
+                {
+                    "name": _("业务名"),
+                    "type": "STRING",
+                    "value": f"{app.bk_biz_name}(#{app.bk_biz_id}, {app.db_app_abbr})",
                 },
             ],
             "meta": {
@@ -301,13 +307,15 @@ class TicketFlowBuilder:
     def need_itsm(self):
         """是否需要itsm审批节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
         assert self.ticket_type is not None, "Please make sure FlowBuilder set the ticket type! "
-        return TicketFlowConfig.objects.get(ticket_type=self.ticket_type).configs["need_itsm"]
+        config = TicketFlowsConfig.get_config(ticket_type=self.ticket_type, bk_biz_id=self.ticket.bk_biz_id)
+        return config["need_itsm"]
 
     @property
     def need_manual_confirm(self):
         """是否需要人工确认节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
         assert self.ticket_type is not None, "Please make sure FlowBuilder set the ticket type! "
-        return TicketFlowConfig.objects.get(ticket_type=self.ticket_type).configs["need_manual_confirm"]
+        config = TicketFlowsConfig.get_config(ticket_type=self.ticket_type, bk_biz_id=self.ticket.bk_biz_id)
+        return config["need_manual_confirm"]
 
     @property
     def need_resource_pool(self):

@@ -25,7 +25,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Response TODO
+// Response respone data define
 type Response struct {
 	Data      interface{} `json:"data"`
 	RequestId string      `json:"request_id"`
@@ -33,13 +33,13 @@ type Response struct {
 	Code      int         `json:"code"`
 }
 
-// CreateClusterParam TODO
+// CreateClusterParam 创建临时的spider的集群参数
 type CreateClusterParam struct {
 	Pwd     string `json:"pwd"`
 	PodName string `json:"podname"`
 }
 
-// CreateTmpSpiderPodCluster TODO
+// CreateTmpSpiderPodCluster 创建临时的spider的集群,多用于测试，debug
 func CreateTmpSpiderPodCluster(r *gin.Context) {
 	var param CreateClusterParam
 	if err := r.ShouldBindJSON(&param); err != nil {
@@ -64,7 +64,7 @@ func CreateTmpSpiderPodCluster(r *gin.Context) {
 	SendResponse(r, nil, "ok", "")
 }
 
-// SpiderClusterSimulation TODO
+// SpiderClusterSimulation TendbCluster 模拟执行
 func SpiderClusterSimulation(r *gin.Context) {
 	var param service.SpiderSimulationExecParam
 	requestId := r.GetString("request_id")
@@ -109,7 +109,7 @@ func SpiderClusterSimulation(r *gin.Context) {
 	SendResponse(r, nil, "request successful", requestId)
 }
 
-// Dbsimulation TODO
+// Dbsimulation 发起Tendb模拟执行
 func Dbsimulation(r *gin.Context) {
 	var param service.BaseParam
 	requestId := r.GetString("request_id")
@@ -155,12 +155,12 @@ func replaceUnderSource(str string) string {
 	return strings.ReplaceAll(str, "_", "-")
 }
 
-// T TODO
+// T 请求查询模拟执行整体任务的执行状态参数
 type T struct {
 	TaskId string `json:"task_id"`
 }
 
-// QueryTask TODO
+// QueryTask 查询模拟执行整体任务的执行状态
 func QueryTask(c *gin.Context) {
 	var param T
 	if err := c.ShouldBindJSON(&param); err != nil {
@@ -198,7 +198,31 @@ func QueryTask(c *gin.Context) {
 	}
 }
 
-// SendResponse TODO
+// FT  请求查询SQL文件模拟执行的参数
+type FT struct {
+	TaskId        string   `json:"task_id" binding:"required"`
+	FileNameHashs []string `json:"file_name_hashs"  binding:"gt=0,dive,required"`
+}
+
+// QueryFileTask 查询SQL文件模拟执行的结果
+func QueryFileTask(c *gin.Context) {
+	var param FT
+	if err := c.ShouldBindJSON(&param); err != nil {
+		logger.Error("ShouldBind failed %s", err)
+		SendResponse(c, err, "failed to deserialize parameters", "")
+		return
+	}
+	var fss []model.TbSqlFileSimulationInfo
+	if err := model.DB.Where("task_id = ? and file_name_hash in (?)", param.TaskId, param.FileNameHashs).Find(&fss).
+		Error; err != nil {
+		logger.Error("query task failed %s", err.Error())
+		SendResponse(c, err, "query task failed", "")
+		return
+	}
+	SendResponse(c, nil, fss, "")
+}
+
+// SendResponse return respone data to http client
 func SendResponse(r *gin.Context, err error, data interface{}, requestid string) {
 	if err != nil {
 		r.JSON(http.StatusOK, Response{

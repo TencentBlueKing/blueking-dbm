@@ -8,12 +8,28 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 import logging
+from datetime import datetime, timedelta
 from typing import Any, Union
 
 from bamboo_engine.api import EngineAPIResult
 from celery import shared_task
+from django.conf import settings
+from django.db import transaction
 from django.utils.translation import ugettext as _
+from pipeline.eri.models import (
+    CallbackData,
+    ContextOutputs,
+    ContextValue,
+    Data,
+    ExecutionData,
+    ExecutionHistory,
+    Node,
+    Process,
+    Schedule,
+    State,
+)
 from pipeline.eri.signals import post_set_state
 
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
@@ -22,7 +38,7 @@ from backend.db_services.taskflow.constants import MAX_AUTO_RETRY_TIMES, RETRY_I
 from backend.db_services.taskflow.exceptions import RetryNodeException
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
-from backend.flow.models import FlowNode
+from backend.flow.models import FlowNode, FlowTree
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import FlowRetryType
@@ -88,3 +104,76 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
 
     service.log_info(_("重试成功"))
     return result
+
+
+def clean_bamboo_engine_expired_data():
+    """定时清理流程引擎的过期任务"""
+
+    def get_clean_pipeline_instance_data(pipeline_ids):
+        """
+        根据 pipeline_instance_id 列表清除对应任务执行数据
+        :param pipeline_ids: 需要清理的 pipeline_instance_id 列表
+        :return: Dict[str, QuerySet]
+        """
+        # dbm的流程树和流程节点
+        flow_trees = FlowTree.objects.filter(root_id__in=pipeline_ids)
+        flow_nodes = FlowNode.objects.filter(root_id__in=pipeline_ids)
+
+        # bamboo流程相关数据
+        context_value = ContextValue.objects.filter(pipeline_id__in=pipeline_ids)
+        context_outputs = ContextOutputs.objects.filter(pipeline_id__in=pipeline_ids)
+        process = Process.objects.filter(root_pipeline_id__in=pipeline_ids)
+        states = State.objects.filter(root_id__in=pipeline_ids)
+
+        # bamboo流程节点相关数据
+        node_ids = [BambooEngine(pipeline_id).get_pipeline_tree_nodes() for pipeline_id in pipeline_ids]
+        node_ids = list(itertools.chain(*node_ids))
+        nodes = Node.objects.filter(node_id__in=node_ids)
+        data = Data.objects.filter(node_id__in=node_ids)
+        execution_history = ExecutionHistory.objects.filter(node_id__in=node_ids)
+        execution_data = ExecutionData.objects.filter(node_id__in=node_ids)
+        callback_data = CallbackData.objects.filter(node_id__in=node_ids)
+        schedules = Schedule.objects.filter(node_id__in=node_ids)
+
+        return {
+            "context_value": context_value,
+            "context_outputs": context_outputs,
+            "process": process,
+            "node": nodes,
+            "data": data,
+            "state": states,
+            "execution_history": execution_history,
+            "execution_data": execution_data,
+            "callback_data": callback_data,
+            "schedules": schedules,
+            "flow_nodes": flow_nodes,
+            "flow_trees": flow_trees,
+        }
+
+    if not settings.ENABLE_CLEAN_EXPIRED_BAMBOO_TASK:
+        logger.info(_("未开启bamboo数据清理，跳过..."))
+        return
+
+    expire_time = datetime.now() - timedelta(days=settings.BAMBOO_TASK_VALIDITY_DAY)
+    one_batch_num = settings.BAMBOO_TASK_EXPIRE_ONE_BATCH_NUM
+
+    logger.info(_("开始清理时间{}前的bamboo数据").format(expire_time))
+
+    try:
+        tree_qs = FlowTree.objects.filter(created_at__lt=expire_time, is_expired=False).order_by("created_at")
+        root_ids = list(tree_qs.values_list("root_id", flat=True)[:one_batch_num])
+        if not root_ids:
+            logger.info(_("没有需要清理的bamboo数据，跳过..."))
+
+        data_to_clean = get_clean_pipeline_instance_data(list(root_ids))
+        # 按model清理bamboo数据，如果开启了flow实例清理，则删除流程树和流程节点。否则仅标记为expire
+        with transaction.atomic():
+            for field, qs in data_to_clean.items():
+                logger.info(_("{}数据清理...").format(field))
+                if field not in ["flow_nodes", "flow_trees"] or settings.ENABLE_CLEAN_EXPIRED_FLOW_INSTANCE:
+                    qs.delete()
+                else:
+                    qs.update(is_expired=True)
+        logger.info(_("bamboo数据清理成功").format(expire_time))
+    except Exception as e:
+        logger.exception(_("bamboo数据清理失败，错误原因: {}").format(e))

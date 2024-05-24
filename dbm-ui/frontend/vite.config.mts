@@ -115,6 +115,13 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       host: '127.0.0.1',
       port: 8088,
+      proxy: {
+        '/bkrepo_upload': {
+          target: '', // 见获取bkrepo上传凭证接口
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/bkrepo_upload/, ''),
+        },
+      },
     },
   };
 });

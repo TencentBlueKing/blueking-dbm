@@ -1,11 +1,48 @@
 package checker
 
 import (
+	"context"
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/reporter"
 	"fmt"
 	"log/slog"
-
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/reporter"
+	"strconv"
 )
+
+func (r *Checker) masterHosts() (ip string, port int, err error) {
+	rows, err := r.db.Queryx(`SHOW SLAVE STATUS`)
+	if err != nil {
+		slog.Error("querying master hosts: ", slog.String("error", err.Error()))
+		return "", 0, err
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	slaveStatus := make(map[string]interface{})
+	for rows.Next() {
+		err := rows.MapScan(slaveStatus)
+		if err != nil {
+			slog.Error("scan slave status", slog.String("error", err.Error()))
+			return "", 0, err
+		}
+		break
+	}
+
+	for k, v := range slaveStatus {
+		if value, ok := v.([]byte); ok {
+			slaveStatus[k] = string(value)
+		}
+	}
+	slog.Debug("query master hosts", slog.Any("result map", slaveStatus))
+	ip = slaveStatus["Master_Host"].(string)
+	port, err = strconv.Atoi(slaveStatus["Master_Port"].(string))
+
+	if err != nil {
+		slog.Error("parse master port error", slog.String("error", err.Error()))
+		return "", 0, err
+	}
+	return
+}
 
 // Report 只在 repeater, slave 的例行校验做上报
 func (r *Checker) Report() error {
@@ -14,40 +51,35 @@ func (r *Checker) Report() error {
 		return nil
 	}
 
-	// initReporter(path.Join(r.Config.ReportPath, "checksum_report.log"))
-
-	// ToDo 清理太老的历史记录
-
-	rows, err := r.db.Queryx(
-		fmt.Sprintf(
-			`SELECT `+
-				`master_ip, master_port, db, tbl, `+
-				`chunk, chunk_time, chunk_index, lower_boundary, upper_boundary, `+
-				`this_crc, this_cnt, master_crc, master_cnt, ts `+
-				`FROM %s WHERE CONCAT(master_ip, ":", master_port) <> ? AND reported = 0`,
-			r.resultHistoryTable,
-		),
-		fmt.Sprintf("%s:%d", r.Config.Ip, r.Config.Port),
-	)
-
+	masterIP, masterPort, err := r.masterHosts()
 	if err != nil {
-		slog.Error("query unreported result", slog.String("error", err.Error()))
+		slog.Error("get master hosts: ", slog.String("error", err.Error()))
 		return err
 	}
+	slog.Info("query master info",
+		slog.String("master ip", masterIP), slog.Int("master port", masterPort))
 
-	// Todo 这里其实有个风险, 单独在 slave 上修改数据了
-	// 为了兼容 flashback, 这里拼上库前缀
-	stmt, err := r.db.Preparex(
-		fmt.Sprintf(
-			`UPDATE %s.%s `+
-				`SET reported = 1 `+
-				`WHERE master_ip = ? AND master_port = ? AND db = ? AND tbl = ? AND chunk = ? AND ts = ?`,
-			r.resultDB,
-			r.resultHistoryTable,
-		),
+	rows, err := r.db.Queryx(
+		fmt.Sprintf(`SELECT master_ip, master_port,
+									db, tbl,
+									chunk, chunk_time, chunk_index,
+									lower_boundary, upper_boundary,
+									this_crc, this_cnt, master_crc, master_cnt, ts
+							FROM %s WHERE master_ip = ? AND master_port = ? AND reported = 0
+										AND (this_crc <> master_crc or this_cnt <> master_cnt)
+							UNION
+							SELECT master_ip, master_port,
+							       db, tbl,
+							       chunk, chunk_time, chunk_index,
+							       lower_boundary, upper_boundary,
+							       this_crc, this_cnt, master_crc, master_cnt, ts
+							FROM %s WHERE master_ip = ? AND master_port = ? AND reported = 0
+										AND (db = ? OR db = ?)`, r.resultHistoryTable, r.resultHistoryTable),
+		masterIP, masterPort, masterIP, masterPort,
+		dailyStr, roundStartStr,
 	)
 	if err != nil {
-		slog.Error("prepare update statement", slog.String("error", err.Error()))
+		slog.Error("query unreported result", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -61,58 +93,22 @@ func (r *Checker) Report() error {
 
 		slog.Debug("scan checksum history", slog.Any("checksum result", cs))
 
-		// err = writeReportRecord(
-		//	ReportRecord{
-		//		ChecksumResult: cs,
-		//		Ip:             r.Config.Ip,
-		//		Port:           r.Config.Port,
-		//		BKBizId:        r.Config.BkBizId,
-		//		ImmuteDomain:   r.Config.Cluster.ImmuteDomain,
-		//		ClusterId:      r.Config.Cluster.Id,
-		//		InnerRole:      string(r.Config.InnerRole),
-		//	},
-		// )
-
 		err = r.reporter.Report(&cs)
 		if err != nil {
 			return err
 		}
-
-		_, err = stmt.Exec(
-			cs.MasterIp,
-			cs.MasterPort,
-			cs.Db,
-			cs.Tbl,
-			cs.Chunk,
-			cs.Ts,
-		)
-
-		if err != nil {
-			slog.Error("update reported", slog.String("error", err.Error()))
-			return err
-		}
 	}
+
+	_, err = r.conn.ExecContext(
+		context.Background(),
+		fmt.Sprintf(`UPDATE %s.%s SET reported = 1
+								WHERE master_ip = ? AND master_port = ? AND reported = 0`,
+			r.resultDB, r.resultHistoryTable), masterIP, masterPort)
+	if err != nil {
+		slog.Error("update reported", slog.String("error", err.Error()))
+		return err
+	}
+	slog.Info("update reported")
+
 	return nil
 }
-
-// /*
-// json 序列化时间的时候用了默认的 format
-// 上报的时间格式和 db 中的看起来不太一样
-// */
-// func writeReportRecord(record ReportRecord) error {
-//	row, err := json.Marshal(record)
-//	if err != nil {
-//		slog.Error("marshal report", err)
-//		return err
-//	}
-//
-//	slog.Debug("write report record", slog.String("record", string(row)))
-//	row = append(row, []byte("\n")...)
-//
-//	_, err = reporter.Write(row)
-//	if err != nil {
-//		slog.Error("write report record", err)
-//	}
-//
-//	return nil
-// }

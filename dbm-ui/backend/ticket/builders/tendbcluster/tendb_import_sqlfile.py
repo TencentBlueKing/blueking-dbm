@@ -78,11 +78,19 @@ class TenDBClusterSqlImportFlowBuilder(BaseTendbTicketFlowBuilder):
         """
 
         flows = [
+            # SQL语法检测这个节点仅作占位描述节点
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.DELIVERY.value,
+                details={},
+                flow_alias=_("语法检测"),
+            ),
+            # SQL模拟执行仅做描述模拟执行状态的节点
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.DESCRIBE_TASK.value,
                 details=TenDBClusterSqlImportFlowParamBuilder(self.ticket).get_params(),
-                flow_alias=_("SQL模拟执行状态查询"),
+                flow_alias=_("模拟执行"),
             ),
             Flow(
                 ticket=self.ticket,

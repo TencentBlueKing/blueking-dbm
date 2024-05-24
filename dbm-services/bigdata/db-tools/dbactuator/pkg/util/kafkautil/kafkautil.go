@@ -2,11 +2,14 @@
 package kafkautil
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,27 +31,50 @@ type TPs struct {
 	Version int  `json:"version"`
 }
 
-// GetHostByID TODO
+// GetHostByID ZooKeeper中获取特定ID的broker信息
 func GetHostByID(conn *zk.Conn, id string) (string, error) {
-	data, _, err := conn.Get(fmt.Sprintf("/brokers/ids/%s", id))
+	// 构造ZooKeeper中broker信息的路径
+	path := fmt.Sprintf("/brokers/ids/%s", id)
+
+	// 从ZooKeeper获取broker信息
+	data, _, err := conn.Get(path)
 	if err != nil {
-		logger.Error("get /brokers/ids/%s failed: %s", id, err)
-		return "", err
-	}
-	result := make(map[string]interface{})
-	if err = json.Unmarshal(data, &result); err != nil {
-		logger.Error("Parse json failed, %s", err)
-		return "", err
+		logger.Error("get %s failed: %s", path, err)
+		return "", err // 返回错误信息
 	}
 
-	ep := result["endpoints"].([]interface{})[0].(string)
-	// brokerhost:9092
+	// 解析JSON数据
+	var result map[string]interface{}
+	if err = json.Unmarshal(data, &result); err != nil {
+		logger.Error("Parse json failed, %s", err)
+		return "", err // JSON解析失败，返回错误
+	}
+
+	// 确保endpoints字段存在且为非空数组
+	endpoints, ok := result["endpoints"].([]interface{})
+	if !ok || len(endpoints) == 0 {
+		return "", fmt.Errorf("endpoints not found or empty in broker %s data", id)
+	}
+
+	// 假设第一个endpoint是我们需要的host信息
+	ep, ok := endpoints[0].(string)
+	if !ok {
+		return "", fmt.Errorf("endpoint format is invalid for broker %s", id)
+	}
+
+	// 使用正则表达式去除协议部分（如"http://"或"kafka://"）
 	m1 := regexp.MustCompile(`.*://`)
 	hostPort := m1.ReplaceAllString(ep, "")
-	// brokerhost
-	brokerHost := strings.Split(hostPort, ":")[0]
+
+	// 分割字符串以获取host部分
+	hostParts := strings.Split(hostPort, ":")
+	if len(hostParts) == 0 {
+		return "", fmt.Errorf("invalid hostport format for broker %s", id)
+	}
+	brokerHost := hostParts[0] // 取出host部分
+
 	logger.Info("brokerHost:[%s]", brokerHost)
-	return brokerHost, nil
+	return brokerHost, nil // 返回broker的host
 }
 
 // GetBrokerIds TODO
@@ -65,24 +91,39 @@ func GetBrokerIds(conn *zk.Conn) ([]string, error) {
 	return ids, nil
 }
 
-// GetBrokerIDByHost  brokerhost -> 0
+// GetBrokerIDByHost 根据host返回brokerid, brokerhost -> 0
 func GetBrokerIDByHost(conn *zk.Conn, host string) (string, error) {
-	var brokerID string
 	logger.Info("Getting broker id of host ...")
-	ids, _ := GetBrokerIds(conn)
+
+	// Retrieve all broker IDs from ZooKeeper.
+	ids, err := GetBrokerIds(conn)
+	if err != nil {
+		logger.Error("Can't get broker ids, %s", err)
+		return "", err // Return the error if we can't get the broker IDs.
+	}
+
+	// Check if the list of broker IDs is empty.
+	if len(ids) == 0 {
+		return "", fmt.Errorf("no broker ids found")
+	}
+
+	// Iterate over the broker IDs to find a matching host.
 	for _, kfid := range ids {
 		kfHost, err := GetHostByID(conn, kfid)
 		if err != nil {
-			logger.Error("Cant get host by id, %s", err)
-			return "", err
+			// Log the error and continue checking the next ID.
+			logger.Error("Can't get host by id, %s", err)
+			continue
 		}
+		// Check if the retrieved host matches the given host.
 		if kfHost == host {
 			logger.Info("host:[%s] id is [%s]", kfHost, kfid)
-			brokerID = kfid
-			break
+			return kfid, nil
 		}
 	}
-	return brokerID, nil
+
+	// If we reach this point, it means no matching host was found
+	return "", fmt.Errorf("broker id for host %s not found", host)
 }
 
 // PickRandom TODO
@@ -107,20 +148,14 @@ func GenReassignmentJSON(conn *zk.Conn, zk string, xBrokerIds []string) error {
 	// 获取brokerid, eg: 1,2,3
 	tempIds := strings.Join(tempArr[:], ",")
 
-	planJSONFile := fmt.Sprintf("%s/plan.json", cst.DefaultKafkaEnv)
+	planJSONFile := cst.PlanJSONFile
 	extraCmd := fmt.Sprintf("%s --topics-to-move-json-file %s/topic.json --generate --zookeeper %s --broker-list %s >%s",
 		cst.DefaultReassignPartitionsBin, cst.DefaultKafkaEnv, zk, tempIds, planJSONFile)
 
 	logger.Info("extraCmd, %s", extraCmd)
 	output, _ := osutil.ExecShellCommand(false, extraCmd)
 	logger.Info("output: %s", output)
-	/*
-		if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
-			logger.Error("Gen plan json failed, %s, %s", output, err)
-			return err
-		}
-	*/
-	b, err := ioutil.ReadFile(planJSONFile)
+	b, err := os.ReadFile(planJSONFile)
 	if err != nil {
 		logger.Error("Cant read plan.json, %s", err)
 		return err
@@ -133,11 +168,41 @@ func GenReassignmentJSON(conn *zk.Conn, zk string, xBrokerIds []string) error {
 		return fmt.Errorf(s)
 	}
 
-	// Delete Current part
-	extraCmd = fmt.Sprintf("sed -i '1,4d'  %s", planJSONFile)
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	// 生成rollback.json
+	rollbackFile := cst.RollbackFile
+	// sed -n '2p' plan.json  >rollback.json
+	extraCmd = fmt.Sprintf("sed -n '2p' %s  > %s", planJSONFile, rollbackFile)
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("sed plan.json failed, %s", err)
 		return err
+	}
+
+	// Delete Current part
+	extraCmd = fmt.Sprintf("sed -i '1,4d'  %s", planJSONFile)
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("sed plan.json failed, %s", err)
+		return err
+	}
+	// 判断缩容的host是否还有partiton,对应已经提前均衡的情况，执行也不应该跑执行计划
+	jsonFile, err := os.Open(rollbackFile)
+	if err != nil {
+		logger.Error("Error opening JSON file[%s]: %s", rollbackFile, err)
+		return err
+	}
+	defer jsonFile.Close()
+	byteValue, err := io.ReadAll(jsonFile)
+	if err != nil {
+		logger.Error("Error reading JSON file: %s", err)
+		return err
+	}
+	var config KafkaConfig
+	if err = json.Unmarshal(byteValue, &config); err != nil {
+		logger.Error("Error unmarshalling JSON: %s", err)
+		return err
+	}
+	if notPresent := CheckReplicas(config, xBrokerIds); notPresent {
+		logger.Info("缩容的broker没有topic.将rollback.json做为执行计划")
+		_ = RollbackPlan()
 	}
 	logger.Info("Generate plan.json done")
 	return nil
@@ -225,12 +290,6 @@ func GetTopics(zk string) (topicList []string, err error) {
 	if output == "" {
 		return topicList, nil
 	}
-	/*
-		if err != nil {
-			logger.Error("获取kafka topic列表失败 %v", err)
-			return topicList, err
-		}
-	*/
 	topicList = strings.Split(strings.TrimSuffix(output, "\n"), "\n")
 	return topicList, nil
 }
@@ -279,7 +338,7 @@ func GenerateReassginFile(zk, topic, idStrs, host string) error {
 		]
 	}`, topic)
 	topicFile := "/tmp/topic.json"
-	if err := ioutil.WriteFile(topicFile, []byte(topicJSON), 0644); err != nil {
+	if err := os.WriteFile(topicFile, []byte(topicJSON), 0644); err != nil {
 		logger.Error("write %s failed, %v", topicFile, err)
 		return err
 	}
@@ -307,7 +366,7 @@ func GenerateReassginFile(zk, topic, idStrs, host string) error {
 	}
 
 	planJSONFile := fmt.Sprintf("%s/%s.json", jsonDir, topic)
-	if err := ioutil.WriteFile(planJSONFile, []byte(output), 0644); err != nil {
+	if err := os.WriteFile(planJSONFile, []byte(output), 0644); err != nil {
 		logger.Error("write %s failed, %v", planJSONFile, err)
 		return err
 	}
@@ -361,4 +420,117 @@ func ExporterParam(noSecurity int, username, password, version string) error {
 	_, _ = osutil.ExecShellCommand(false, extraCmd)
 
 	return nil
+}
+
+// KafkaConfig matches the JSON structure for easy unmarshalling.
+type KafkaConfig struct {
+	Version    int `json:"version"`
+	Partitions []struct {
+		Replicas []int `json:"replicas"`
+	} `json:"partitions"`
+}
+
+// CheckReplicas checks if the given numbers are not present in any replicas list.
+func CheckReplicas(config KafkaConfig, numbersToCheck []string) bool {
+	// Create a map to store the presence of numbers in replicas
+	replicaMap := make(map[int]bool)
+
+	// Populate the map with numbers from replicas
+	for _, partition := range config.Partitions {
+		for _, replica := range partition.Replicas {
+			replicaMap[replica] = true
+		}
+	}
+
+	// Check if any of the numbers to check are in the map
+	for _, str := range numbersToCheck {
+		num, _ := strconv.Atoi(str)
+		if replicaMap[num] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// RollbackPlan 将rollback.json重命名为plan.json
+func RollbackPlan() error {
+	// 获取当前时间戳
+	currentTime := time.Now().Unix()
+
+	// 构建新的文件名，附加时间戳
+	newPlanFileName := fmt.Sprintf("%s.%d", cst.PlanJSONFile, currentTime)
+
+	// 重命名 plan.json 为 plan.json.当前时间戳
+	if err := os.Rename(cst.PlanJSONFile, newPlanFileName); err != nil {
+		return fmt.Errorf("failed to rename plan.json to %s: %v", newPlanFileName, err)
+	}
+
+	// 重命名 rollback.json 为 plan.json
+	if err := os.Rename(cst.RollbackFile, cst.PlanJSONFile); err != nil {
+		return fmt.Errorf("failed to rename rollback.json to plan.json: %v", err)
+	}
+
+	return nil
+}
+
+// IsBrokerEmpty TODO
+func IsBrokerEmpty(dataDirs []string) (bool, error) {
+	// 定义Broker为空时应该包含的文件名
+	emptyBrokerFiles := map[string]struct{}{
+		"meta.properties":                  {},
+		"recovery-point-offset-checkpoint": {},
+		"log-start-offset-checkpoint":      {},
+		"replication-offset-checkpoint":    {},
+		"cleaner-offset-checkpoint":        {},
+	}
+
+	// 遍历所有数据目录
+	for _, dataDir := range dataDirs {
+		// 读取目录中的文件和子目录
+		files, err := os.ReadDir(dataDir)
+		if err != nil {
+			return false, fmt.Errorf("failed to read data directory '%s': %v", dataDir, err)
+		}
+
+		// 检查目录中的文件是否只是Broker为空时应该包含的文件
+		for _, file := range files {
+			if file.IsDir() {
+				// 如果存在子目录，则Broker不为空
+				return false, nil
+			}
+			// 如果文件不在预期的文件列表中，则Broker不为空
+			if _, ok := emptyBrokerFiles[file.Name()]; !ok {
+				return false, nil
+			}
+		}
+	}
+
+	// 如果所有检查都通过，则Broker为空
+	return true, nil
+}
+
+// ReadDataDirs 从Kafka配置文件中读取数据目录。
+func ReadDataDirs(configFilePath string) ([]string, error) {
+	file, err := os.Open(configFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open config file: %v", err)
+	}
+	defer file.Close()
+
+	var dataDirs []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "log.dirs=") {
+			dataDirs = strings.Split(strings.TrimPrefix(line, "log.dirs="), ",")
+			break
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read config file: %v", err)
+	}
+
+	return dataDirs, nil
 }

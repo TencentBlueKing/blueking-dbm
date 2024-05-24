@@ -42,32 +42,32 @@ func (r *Checker) moveResult() error {
 	}
 	slog.Info("move result validate history table again success")
 
-	conn, err := r.db.Conn(context.Background())
-	if err != nil {
-		slog.Error("get connect", slog.String("error", err.Error()))
-		return err
-	}
-	defer func() {
-		_ = conn.Close()
-	}()
-
-	_, err = conn.ExecContext(context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`)
-	if err != nil {
-		slog.Error("set iso level", slog.String("error", err.Error()))
-		return err
-	}
-
-	_, err = conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
-	if err != nil {
-		slog.Error("set binlog_format = 'statement'", slog.String("error", err.Error()))
-		return err
-	}
+	//conn, err := r.db.Conn(context.Background())
+	//if err != nil {
+	//	slog.Error("get connect", slog.String("error", err.Error()))
+	//	return err
+	//}
+	//defer func() {
+	//	_ = conn.Close()
+	//}()
+	//
+	//_, err = conn.ExecContext(context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`)
+	//if err != nil {
+	//	slog.Error("set iso level", slog.String("error", err.Error()))
+	//	return err
+	//}
+	//
+	//_, err = conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
+	//if err != nil {
+	//	slog.Error("set binlog_format = 'statement'", slog.String("error", err.Error()))
+	//	return err
+	//}
 
 	slog.Info("move result", slog.Time("from", r.startTS))
 
 	columnsStr := strings.Join(columns, ",")
 	// 为了兼容 flashback, 这里拼上库前缀
-	_, err = conn.ExecContext(
+	_, err = r.conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf(
 			`REPLACE INTO %s.%s (%s) SELECT %s FROM %s.%s WHERE ts >= ?`,

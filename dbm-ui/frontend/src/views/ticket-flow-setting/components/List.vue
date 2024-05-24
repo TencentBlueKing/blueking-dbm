@@ -84,7 +84,6 @@
 
   const tableRef = ref();
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
-  const currentChoosedRow = ref<RowData>();
   const currentFlow = ref('');
   const isShowBatchConfigDialog = ref(false);
 
@@ -252,7 +251,6 @@
   watch(() => props.activeDbType, (type) => {
     if (type) {
       searchValue.value = [];
-      fetchHostNodes();
     }
   });
 
@@ -284,6 +282,11 @@
   const handleClearSearch = () => {
     searchValue.value = [];
   };
+
+  onMounted(() => {
+    fetchHostNodes();
+  });
+
 </script>
 <style lang="less" scoped>
   .ticket-flow-list-content {

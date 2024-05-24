@@ -195,7 +195,7 @@
           placeholder={t('请输入正则表达式_多个换行分割')}
           display-height="auto"
           v-model={data.white_regex}
-          max-height={100}
+          max-height={400}
           teleport-to-body={false} />
       </bk-form-item>
     ),
@@ -226,7 +226,7 @@
           placeholder={t('请输入正则表达式_多个换行分割')}
           display-height="auto"
           v-model={data.black_regex}
-          max-height={100}
+          max-height={400}
           teleport-to-body={false} />
       </bk-form-item>
     ),
@@ -467,6 +467,11 @@
 
       :deep(.regex-input) {
         margin: 8px 0;
+        resize: none;
+
+        textarea {
+          height: 100%;
+        }
       }
     }
   }

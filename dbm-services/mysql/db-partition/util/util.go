@@ -2,15 +2,10 @@
 package util
 
 import (
-	"bytes"
-	"fmt"
 	"log/slog"
-	"os/exec"
 	"reflect"
 	"regexp"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // HasElem 元素是否在数组中存在
@@ -60,25 +55,23 @@ func SplitName(input string) ([]string, error) {
 	return result, nil
 }
 
-// ExecShellCommand 执行 shell 命令
-// 如果有 err, 返回 stderr; 如果没有 err 返回的是 stdout
-func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
-	if isSudo {
-		param = "sudo " + param
+// SplitArray 切分数组为指定长度的子数组集合
+func SplitArray(arr []string, length int) [][]string {
+	var tmp [][]string
+	mod := len(arr) % length
+	k := len(arr) / length
+	var round int
+	if mod == 0 {
+		round = k
+	} else {
+		round = k + 1
 	}
-	cmd := exec.Command("bash", "-c", param)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-	if err != nil {
-		return stderr.String(), errors.WithMessage(err, stderr.String())
+	for i := 0; i < round; i++ {
+		if i != k {
+			tmp = append(tmp, arr[i*length:(i+1)*length])
+		} else {
+			tmp = append(tmp, arr[i*length:])
+		}
 	}
-
-	if len(stderr.String()) > 0 {
-		err = fmt.Errorf("execute shell command(%s) error:%s", param, stderr.String())
-		return stderr.String(), err
-	}
-
-	return stdout.String(), nil
+	return tmp
 }

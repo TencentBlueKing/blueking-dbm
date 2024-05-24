@@ -31,15 +31,46 @@
           @click="handleFullScreen" />
       </div>
     </div>
-    <div
-      ref="editorRef"
-      style="height: calc(100% - 40px)" />
+    <BkResizeLayout
+      :border="false"
+      class="resize-wrapper"
+      :class="{
+        'resize-disabled': isMessageListFolded
+      }"
+      :disabled="isMessageListFolded"
+      :initial-divide="resizeLayoutInitialDivide"
+      :max="300"
+      :min="0"
+      placement="bottom">
+      <template #main>
+        <div
+          ref="editorRef"
+          style="height: 100%" />
+      </template>
+      <template #aside>
+        <SyntaxChecking
+          v-if="isChecking"
+          class="syntax-checking" />
+        <RenderMessageList
+          v-else
+          v-model="isMessageListFolded"
+          class="editor-error"
+          :data="messageList" />
+      </template>
+    </BkResizeLayout>
   </div>
 </template>
 <script setup lang="ts">
   import * as monaco from 'monaco-editor';
   import screenfull from 'screenfull';
   import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+
+  import { grammarCheck } from '@services/source/sqlImport';
+
+  import RenderMessageList, {
+    type IMessageList,
+  } from '@views/mysql/sql-execute/steps/step1/components/sql-file/editor/MessageList.vue';
+  import SyntaxChecking from '@views/mysql/sql-execute/steps/step1/components/sql-file/manual-input/components/SyntaxChecking.vue';
 
   import { getSQLFilename } from '@utils';
 
@@ -59,27 +90,66 @@
     messageList: () => [],
     syntaxChecking: false,
   });
+
   const emits = defineEmits<Emits>();
+
+  const handleGrammarCheck = () => {
+    isChecking.value = true;
+    const params = new FormData();
+    params.append('sql_content', props.modelValue);
+    grammarCheck(params)
+      .then((data) => {
+        const grammarCheckData = data;
+        if (!grammarCheckData) {
+          return;
+        }
+
+        const [checkResult] = Object.values(grammarCheckData);
+        messageList.value = checkResult.messageList;
+        if (checkResult.messageList.length > 0) {
+          isMessageListFolded.value = false;
+        }
+      })
+      .finally(() => {
+        isChecking.value = false;
+      });
+  };
 
   const rootRef = ref();
   const editorRef = ref();
   const isFullscreen = ref(false);
+  const isMessageListFolded = ref(true);
+  const isChecking = ref(true);
+  const resizeLayoutInitialDivide = ref(0);
+  const messageList = ref<IMessageList>([]);
 
   let editor: monaco.editor.IStandaloneCodeEditor;
 
-  watch(
-    () => props.modelValue,
-    () => {
-      setTimeout(() => {
-        if (props.modelValue !== editor.getValue()) {
-          editor.setValue(props.modelValue);
-        }
-      });
-    },
-    {
-      immediate: true,
-    },
-  );
+  watch(() => props.modelValue, () => {
+    if (!props.modelValue) {
+      return;
+    }
+
+    handleGrammarCheck();
+    setTimeout(() => {
+      if (props.modelValue !== editor.getValue()) {
+        editor.setValue(props.modelValue);
+        isMessageListFolded.value = true;
+      }
+    });
+  }, {
+    immediate: true,
+  });
+
+  watch(isMessageListFolded, () => {
+    if (isMessageListFolded.value && messageList.value.length === 0) {
+      resizeLayoutInitialDivide.value = 0;
+      return;
+    }
+    resizeLayoutInitialDivide.value = Math.min(24 + messageList.value.length * 24, 200);
+  }, {
+    immediate: true,
+  });
 
   const handleToggleScreenfull = () => {
     if (screenfull.isFullscreen) {
@@ -169,6 +239,31 @@
           cursor: pointer;
         }
       }
+    }
+
+    .resize-wrapper {
+      height: calc(100% - 40px);
+      background: #212121;
+
+      &.resize-disabled {
+        :deep(.bk-resize-layout-aside) {
+          &::after {
+            display: none;
+          }
+        }
+      }
+    }
+
+    .editor-error {
+      position: absolute;
+      inset: 0;
+    }
+
+    .syntax-checking {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
     }
   }
 </style>

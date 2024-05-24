@@ -154,6 +154,7 @@ class StateType(str, StructuredEnum):
     FINISHED = EnumField("FINISHED", _("完成态"))
     FAILED = EnumField("FAILED", _("失败态"))
     REVOKED = EnumField("REVOKED", _("取消态"))
+    EXPIRED = EnumField("EXPIRED", _("已过期"))
 
 
 FAILED_STATES = [StateType.FAILED.value, StateType.REVOKED.value]

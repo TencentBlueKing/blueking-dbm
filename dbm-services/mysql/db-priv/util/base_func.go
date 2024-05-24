@@ -111,3 +111,14 @@ func JsonToMap(jsonStr string) (map[string]int64, error) {
 	}
 	return m, nil
 }
+
+// StringsRemove remove value form a string slice
+func StringsRemove(ss []string, s string) []string {
+	var ns []string
+	for _, v := range ss {
+		if v != s {
+			ns = append(ns, v)
+		}
+	}
+	return ns
+}

@@ -449,14 +449,8 @@
 
   defineExpose({
     routerBack() {
-      if (!route.query.from) {
-        router.push({
-          name: 'serviceApply',
-        });
-        return;
-      }
       router.push({
-        name: route.query.from as string,
+        name: 'DbConfigureList',
       });
     },
   });

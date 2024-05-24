@@ -38,3 +38,16 @@ export function getFileContent(params: { file_path: string }) {
     url: string;
   }>(`${path}/fetch_file_content/`, params);
 }
+
+/**
+ * 获取临时凭证
+ */
+export function createBkrepoAccessToken(params: { file_path: string }) {
+  return http.post<{
+    path: string,
+    project: string,
+    repo: string,
+    token: string,
+    url: string,
+  }>(`${path}/create_bkrepo_access_token/`, params);
+}

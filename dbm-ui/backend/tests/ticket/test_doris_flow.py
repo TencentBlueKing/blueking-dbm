@@ -16,8 +16,9 @@ import pytest
 from django.conf import settings
 from rest_framework.test import APIClient
 
-from backend.db_meta.models import Cluster, Machine, Spec, StorageInstance
+from backend.db_meta.models import AppCache, Cluster, Machine, Spec, StorageInstance
 from backend.db_meta.models.db_module import DBModule
+from backend.tests.mock_data import constant
 from backend.tests.mock_data.ticket.doris_flow import (
     DORIS_APPLY_TICKET_DATA,
     DORIS_SOURCE_APPLICATION_DATA,
@@ -65,6 +66,7 @@ class TestDorisApplyFlow(TestFlowBase, TestCase):
         """
         测试的初始设置。
         """
+        AppCache.objects.create(bk_biz_id=constant.BK_BIZ_ID, db_app_abbr="DBA", bk_biz_name="dba")
         Spec.objects.all().delete()
         Spec.objects.bulk_create([Spec(**data) for data in DORIS_SPEC_DATA])
         super().setup()

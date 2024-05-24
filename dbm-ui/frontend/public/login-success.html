@@ -6,7 +6,8 @@
     </head>
     <script>
         window.name = 'dbm';
-        window.parent.location.reload();
+        window.opener && window.opener.location.reload()
+        window.close()
     </script>
 
     <body style="font-family: Microsoft Yahei;"></body>

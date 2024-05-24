@@ -19,6 +19,7 @@ type Checker struct {
 	ImmuteDomain string `json:"immute_domain"`
 	Port         int    `json:"port"`
 	BkCloudId    *int   `json:"bk_cloud_id"`
+	FromCron     bool   `json:"from_cron"` // 由定时任务发起
 }
 
 // PartitionSqlSet 分区语句集合

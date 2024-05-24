@@ -13,7 +13,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
 from backend.ticket.constants import TicketType
 
-BK_BIZ_ID = 1
+BK_BIZ_ID = 2005000002
 DB_MODULE_ID = 1
 CLUSTER_ID = 1
 BK_USERNAME = "admin"

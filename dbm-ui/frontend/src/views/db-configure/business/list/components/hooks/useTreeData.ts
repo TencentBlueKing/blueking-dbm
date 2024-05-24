@@ -81,6 +81,8 @@ export const useTreeData = (treeState: TreeState) => {
   ) => {
     // eslint-disable-next-line no-param-reassign
     treeState.activeNode = node;
+    // eslint-disable-next-line no-param-reassign
+    treeState.selected = node;
     if (!isOpen && !isSelected) {
       treeRef.value.setNodeOpened(node, true);
       treeRef.value.setSelect(node, true);

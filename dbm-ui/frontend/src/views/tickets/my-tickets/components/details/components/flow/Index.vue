@@ -57,7 +57,7 @@
     if ([TicketTypes.REDIS_KEYS_DELETE, TicketTypes.REDIS_KEYS_EXTRACT].includes(props.data.ticket_type)) {
       return RedisFlows;
     }
-    if ([TicketTypes.MYSQL_IMPORT_SQLFILE].includes(props.data.ticket_type)) {
+    if ([TicketTypes.MYSQL_IMPORT_SQLFILE, TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE].includes(props.data.ticket_type)) {
       return MySqlFlows;
     }
     return CommonFlows;

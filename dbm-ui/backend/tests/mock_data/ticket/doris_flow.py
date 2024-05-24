@@ -11,9 +11,10 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
+from backend.tests.mock_data import constant
 from backend.ticket.constants import TicketType
 
-BK_BIZ_ID = 1
+BK_BIZ_ID = constant.BK_BIZ_ID
 DB_MODULE_ID = 1
 CLUSTER_ID = 1
 BK_USERNAME = "admin"

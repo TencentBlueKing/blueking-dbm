@@ -12,6 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.core.storages import mock_data
+
 
 class BatchDownloadFileSerializer(serializers.Serializer):
     file_path_list = serializers.ListField(help_text=_("文件路径列表"), child=serializers.CharField(), min_length=1)
@@ -23,3 +25,11 @@ class FileSerializer(serializers.Serializer):
 
 class CreateTokenSerializer(serializers.Serializer):
     file_path = serializers.CharField(help_text=_("文件路径"))
+
+    class Meta:
+        swagger_schema_fields = {"example": {"file_path": mock_data.CREATE_TOKEN_DATA["path"]}}
+
+
+class CreateTokenSerializerResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.CREATE_TOKEN_DATA}

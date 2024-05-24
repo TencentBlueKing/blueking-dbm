@@ -14,6 +14,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.handlers.dba import DBAdministratorHandler
 from backend.configuration.models.dba import DBAdministrator
 from backend.configuration.serializers import ListDBAdminSerializer, UpsertDBAdminSerializer
 from backend.iam_app.dataclass import ResourceEnum
@@ -48,4 +49,4 @@ class DBAdminViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         bk_biz_id = validated_data["bk_biz_id"]
         db_admins = validated_data["db_admins"]
-        return Response(DBAdministrator.upsert_biz_admins(bk_biz_id, db_admins))
+        return Response(DBAdministratorHandler.upsert_biz_admins(bk_biz_id, db_admins))

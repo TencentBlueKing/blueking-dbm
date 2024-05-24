@@ -3,20 +3,39 @@
     :data="withFavorBizList"
     :generate-key="(item: IAppItem) => item.bk_biz_id"
     :generate-name="(item: IAppItem) => item.display_name"
+    render-popover-directive="if"
+    :search-extension-method="searchExtensionMethod"
     style="margin: 0 12px"
     theme="dark"
     :value="currentBiz"
     @change="handleAppChange">
+    <template #value="{data}">
+      <div>{{ data.name }} (#{{ data.bk_biz_id }}, {{ data.english_name }})</div>
+    </template>
     <template #default="{ data }">
       <AuthTemplate
         action-id="db_manage"
         :permission="data.permission.db_manage"
-        :resource="data.bk_biz_id"
-        style="flex: 1">
-        <template #default="{ permission }">
-          <div
-            class="db-app-select-item"
-            :class="{ 'not-permission': !permission }">
+        :resource-id="data.bk_biz_id"
+        resource-type="biz">
+        <div class="db-app-select-item">
+          <RenderItem :data="data" />
+          <div style="margin-left: auto;">
+            <DbIcon
+              v-if="favorBizIdMap[data.bk_biz_id]"
+              class="unfavor-btn"
+              style="color: #ffb848;"
+              type="star-fill"
+              @click.stop="handleUnfavor(data.bk_biz_id)" />
+            <DbIcon
+              v-else
+              class="favor-btn"
+              type="star"
+              @click.stop="handleFavor(data.bk_biz_id)" />
+          </div>
+        </div>
+        <template #forbid>
+          <div class="db-app-select-item no-permission">
             <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
             <div style="margin-left: auto">
               <DbIcon
@@ -57,9 +76,11 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import { makeMap } from '@utils';
+  import { encodeRegexp, makeMap } from '@utils';
 
   import AppSelect from '@blueking/app-select';
+
+  import RenderItem from './RendeItem.vue';
 
   import '@blueking/app-select/dist/style.css';
 
@@ -77,6 +98,12 @@
 
   const currentBiz = computed(() => _.find(bizList, item => item.bk_biz_id === window.PROJECT_CONFIG.BIZ_ID));
   const withFavorBizList = computed(() => _.sortBy(bizList, item => favorBizIdMap.value[item.bk_biz_id]));
+
+  const searchExtensionMethod = (data: IAppItem, keyword: string) => {
+    const rule = new RegExp(encodeRegexp(keyword), 'i');
+
+    return rule.test(data.english_name);
+  };
 
   const handleAppChange = (appInfo: IAppItem) => {
     const {
@@ -163,10 +190,11 @@
   };
 </script>
 <style lang="less">
-  .db-app-select-item {
-    display: flex;
-    align-items: center;
-    width: 100%;
+.db-app-select-item{
+  display: flex;
+  align-items: center;
+  width: 100%;
+  user-select: none;
 
     &:hover {
       .favor-btn {
@@ -184,10 +212,42 @@
       opacity: 0%;
       transition: all 0.1s;
     }
-  }
 
-  .tippy-box[data-theme='bk-app-select-menu'] {
-    border: none !important;
-    box-shadow: 0 2px 3px 0 rgb(0 0 0 / 10%) !important;
+  .db-app-select-text{
+    display: flex;
+    flex: 1;
+    padding-right: 12px;
+    overflow: hidden;
   }
+  .db-app-select-name{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #C4C6CC;
+  }
+  .db-app-select-desc{
+    display: flex;
+    white-space: nowrap;
+    color: #979BA5;
+    overflow: hidden;
+  }
+  .db-app-select-en-name{
+    flex: 0 1 auto;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .favor-btn{
+    opacity: 0%;
+    transition: all .1s;
+  }
+}
+.db-app-select-tooltips{
+  white-space: nowrap;
+  z-index: 1000000 !important;
+}
+
+.tippy-box[data-theme="bk-app-select-menu"]{
+  border: none !important;
+  box-shadow: 0 2px 3px 0 rgb(0 0 0 / 10%) !important;
+}
 </style>

@@ -2,6 +2,7 @@
 package checker
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -102,7 +103,31 @@ func (r *Checker) connect() (err error) {
 			time.Local.String(),
 		),
 	)
-	return err
+	if err != nil {
+		slog.Error("connect host", slog.String("error", err.Error()))
+		return err
+	}
+
+	r.conn, err = r.db.Connx(context.Background())
+	if err != nil {
+		slog.Error("get conn from sqlx.db", slog.String("error", err.Error()))
+		return err
+	}
+	_, err = r.conn.ExecContext(
+		context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`)
+	if err != nil {
+		slog.Error("set transaction isolation level", slog.String("error", err.Error()))
+		return err
+	}
+
+	_, err = r.conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
+	if err != nil {
+		slog.Error(
+			"set binlog format to statement before insert fake result", slog.String("error", err.Error()))
+		return err
+	}
+
+	return nil
 }
 
 func (r *Checker) validateSlaves() error {
@@ -183,7 +208,8 @@ func (r *Checker) prepareDsnsTable() error {
 	}
 
 	for _, slave := range r.Config.Slaves {
-		_, err := r.db.Exec(
+		_, err := r.conn.ExecContext(
+			context.Background(),
 			`INSERT INTO dsns (dsn) VALUES (?)`,
 			fmt.Sprintf(`h=%s,u=%s,p=%s,P=%d`, slave.Ip, slave.User, slave.Password, slave.Port),
 		)

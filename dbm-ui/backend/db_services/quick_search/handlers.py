@@ -8,7 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.db.models import F, Q
+from django.db.models import CharField, F, Q, Value
+from django.db.models.functions import Concat
 from django.forms import model_to_dict
 
 from backend.components.dbresource.client import DBResourceApi
@@ -89,13 +90,15 @@ class QSearchHandler(object):
 
             ip_filter_key = filter_key
             port_filter_key = "port"
-            if self.filter_type == FilterType.CONTAINS.value:
-                ip_filter_key += "__contains"
-                port_filter_key += "__contains"
-
             if port:
                 qs |= Q(**{ip_filter_key: ip, port_filter_key: port})
+                if self.filter_type == FilterType.CONTAINS.value:
+                    qs |= Q(**{"ip_port__contains": keyword})
+                else:
+                    qs |= Q(**{ip_filter_key: ip, port_filter_key: port})
             else:
+                if self.filter_type == FilterType.CONTAINS.value:
+                    ip_filter_key += "__contains"
                 qs |= Q(**{ip_filter_key: ip})
         return qs
 
@@ -147,17 +150,18 @@ class QSearchHandler(object):
             "bk_cloud_id": F("machine__bk_cloud_id"),
             "bk_idc_area": F("machine__bk_idc_area"),
             "bk_idc_name": F("machine__bk_idc_name"),
+            "ip_port": Concat("machine__ip", Value(":"), "port", output_field=CharField()),
         }
 
         storage_objs = (
             StorageInstance.objects.prefetch_related("cluster", "machine")
-            .filter(qs)
             .annotate(role=F("instance_role"), **common_fields)
+            .filter(qs)
         )
         proxy_objs = (
             ProxyInstance.objects.prefetch_related("cluster", "machine")
-            .filter(qs)
             .annotate(role=F("access_layer"), **common_fields)
+            .filter(qs)
         )
         fields = [
             "id",
