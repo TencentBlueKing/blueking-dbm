@@ -16,7 +16,7 @@
     v-if="content?.todos?.length > 0 && content.flow_type === 'INNER_FLOW' && isTodos === false"
     :content="content"
     @fetch-data="handleEmitFetchData" /> -->
-  <template v-if="content.todos?.length > 0 && content.status === 'RUNNING'">
+  <template v-if="content.todos?.length > 0 && content.flow_type === 'INNER_FLOW' && content.status === 'RUNNING'">
     <ManualConfirm
       v-for="item in content.todos"
       :key="item.id"
@@ -25,7 +25,7 @@
       @processed="handleEmitFetchData" />
   </template>
   <template
-    v-if="content?.todos?.length > 0 && ['TERMINATED', 'SUCCEEDED'].includes(content.status) && isTodos === false">
+    v-else-if="content?.todos?.length > 0 && ['TERMINATED', 'SUCCEEDED'].includes(content.status) && isTodos === false">
     <FlowContentTodo
       v-for="item of content.todos"
       :key="item.id"
@@ -34,13 +34,13 @@
   </template>
   <!-- 人工确认 -->
   <template
-    v-if="content.status === 'PENDING' && content.flow_type === 'PAUSE'">
+    v-else-if="content.status === 'PENDING' && content.flow_type === 'PAUSE'">
     <I18nT keypath="等待C确认是否执行T">
       <span>{{ ticketData.creator }}</span>
       <span>{{ manualNexFlowDisaply }}</span>
     </I18nT>
   </template>
-  <template v-if="isPause && isTodos === false">
+  <template v-else-if="isPause && isTodos === false">
     <div
       v-for="(todosItem, index) in content.todos"
       :key="index">
