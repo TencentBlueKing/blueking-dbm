@@ -29,39 +29,43 @@
   <SmartAction
     v-else
     class="slave-add">
-    <BkAlert
-      closable
-      :title="t('添加从库_同机的所有集群会统一新增从库_但新机器不添加到域名解析中去')" />
-    <BkButton
-      class="slave-add-batch"
-      @click="() => (isShowBatchInput = true)">
-      <i class="db-icon-add" />
-      {{ t('批量录入') }}
-    </BkButton>
-    <ToolboxTable
-      ref="toolboxTableRef"
-      class="mb-32"
-      :columns="columns"
-      :data="tableData"
-      :max-height="tableMaxHeight"
-      @add="handleAddItem"
-      @remove="handleRemoveItem" />
-    <BkForm
-      class="mb-20"
-      form-type="vertical">
-      <BkFormItem
-        :label="t('备份源')"
-        required>
-        <BkRadioGroup v-model="backupSource">
-          <BkRadio label="local">
-            {{ t('本地备份') }}
-          </BkRadio>
-          <BkRadio label="remote">
-            {{ t('远程备份') }}
-          </BkRadio>
-        </BkRadioGroup>
-      </BkFormItem>
-    </BkForm>
+    <div class="pb-20">
+      <BkAlert
+        closable
+        :title="t('添加从库_同机的所有集群会统一新增从库_但新机器不添加到域名解析中去')" />
+      <BkButton
+        class="slave-add-batch"
+        @click="() => (isShowBatchInput = true)">
+        <i class="db-icon-add" />
+        {{ t('批量录入') }}
+      </BkButton>
+      <ToolboxTable
+        ref="toolboxTableRef"
+        class="mb-32"
+        :columns="columns"
+        :data="tableData"
+        :max-height="tableMaxHeight"
+        @add="handleAddItem"
+        @clone="handleCloneItem"
+        @remove="handleRemoveItem" />
+      <BkForm
+        class="toolbox-form mb-20"
+        form-type="vertical">
+        <BkFormItem
+          :label="t('备份源')"
+          required>
+          <BkRadioGroup v-model="backupSource">
+            <BkRadio label="local">
+              {{ t('本地备份') }}
+            </BkRadio>
+            <BkRadio label="remote">
+              {{ t('远程备份') }}
+            </BkRadio>
+          </BkRadioGroup>
+        </BkFormItem>
+      </BkForm>
+      <TicketRemark v-model="remark" />
+    </div>
     <template #action>
       <BkButton
         class="mr-8 w-88"
@@ -111,6 +115,7 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import { generateId } from '@utils';
 
@@ -144,6 +149,7 @@
     type: TicketTypes.MYSQL_ADD_SLAVE,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark;
       fetchClusterInfoByDomains();
       window.changeConfirm = true;
     },
@@ -158,6 +164,7 @@
   const hostInfoMap: Map<string, ServiceReturnType<typeof checkHost>[number]> = reactive(new Map());
   const tableData = ref<Array<TableItem>>([getTableItem()]);
   const backupSource = ref('local');
+  const remark = ref('')
 
   const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
 
@@ -490,6 +497,13 @@
     tableData.value.splice(index, 1);
   };
 
+  const handleCloneItem = (index: number) => {
+    tableData.value.splice(index + 1, 0, _.cloneDeep(tableData.value[index]));
+    setTimeout(() => {
+      toolboxTableRef.value.validate();
+    })
+  }
+
   const handleReset = () => {
     InfoBox({
       title: t('确认重置表单内容'),
@@ -497,6 +511,7 @@
       cancelText : t('取消'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
+        remark.value = ''
         selectedClusters.value[ClusterTypes.TENDBHA] = [];
         domainMemo = {};
         window.changeConfirm = false;
@@ -512,6 +527,7 @@
         const params = {
           ticket_type: TicketTypes.MYSQL_ADD_SLAVE,
           bk_biz_id: globalBizsStore.currentBizId,
+          remark: remark.value,
           details: {
             infos: tableData.value.map((item) => {
               const hostInfo = getHostInfo(item.cluster_domain, item.new_slave_ip);
@@ -552,11 +568,6 @@
   .slave-add {
     height: 100%;
     overflow: hidden;
-
-    :deep(.bk-form-label) {
-      font-weight: bold;
-      color: #313238;
-    }
 
     .slave-add-batch {
       margin: 16px 0;

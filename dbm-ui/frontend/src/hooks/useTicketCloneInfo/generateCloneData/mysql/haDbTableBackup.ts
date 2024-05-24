@@ -17,8 +17,8 @@ import { random } from '@utils';
 
 // Mysql 库表备份
 export function generateMysqlDbTableBackupCloneData(ticketData: TicketModel<MySQLTableBackupDetails>) {
-  const { clusters, infos} = ticketData.details;
-  const tableDataList = infos.map(item => ({
+  const { clusters, infos } = ticketData.details;
+  const tableDataList = infos.map((item) => ({
     rowKey: random(),
     clusterData: {
       id: item.cluster_id,
@@ -28,6 +28,9 @@ export function generateMysqlDbTableBackupCloneData(ticketData: TicketModel<MySQ
     tablePatterns: item.table_patterns,
     ignoreDbs: item.ignore_dbs,
     ignoreTables: item.ignore_tables,
-  }))
-  return Promise.resolve({ tableDataList });
+  }));
+  return Promise.resolve({
+    tableDataList,
+    remark: ticketData.remark,
+  });
 }

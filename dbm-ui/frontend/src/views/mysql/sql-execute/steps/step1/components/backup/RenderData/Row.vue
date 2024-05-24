@@ -34,27 +34,17 @@
           :model-value="data.table_patterns"
           @change="handleTablePatternsChange" />
       </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @clone="handleClone"
+        @remove="handleRemove" />
     </tr>
   </tbody>
 </template>
 <script lang="ts">
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
   import { random } from '@utils';
 
   export interface IDataRow {
@@ -88,6 +78,7 @@
   interface Emits {
     (e: 'add', params: IDataRow): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'change', value: IDataRow): void;
   }
 
@@ -140,13 +131,30 @@
     emits('remove');
   };
 
+  const getRowData = () => [
+    dbPatternsRef.value.getValue('db_patterns'),
+    backupOnRef.value.getValue('backup_on'),
+    tablePatternsRef.value.getValue('table_patterns'),
+  ];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [dbPatternsData, backupOnData, tablePatternsData] = rowData.map((item) =>
+        item.status === 'fulfilled' ? item.value : item.reason,
+      );
+      emits('clone', {
+        ...props.data,
+        rowKey: random(),
+        db_patterns: dbPatternsData.db_patterns,
+        backup_on: backupOnData.backup_on,
+        table_patterns: tablePatternsData.table_patterns,
+      });
+    });
+  };
+
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        dbPatternsRef.value.getValue('db_patterns'),
-        backupOnRef.value.getValue('backup_on'),
-        tablePatternsRef.value.getValue('table_patterns'),
-      ]);
+      return Promise.all(getRowData());
     },
   });
 </script>

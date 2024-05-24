@@ -18,10 +18,11 @@ import { random } from '@utils';
 // Mysql DB实例权限克隆
 export function generateMysqlInstanceCloneData(ticketData: TicketModel<MySQLInstanceCloneDetails>) {
   return Promise.resolve({
-    tableDataList: ticketData.details.clone_data.map(item => ({
+    tableDataList: ticketData.details.clone_data.map((item) => ({
       ...item,
       source: `${item.bk_cloud_id}:${item.source}`,
       uniqueId: random(),
-    }))
+    })),
+    remark: ticketData.remark,
   });
 }

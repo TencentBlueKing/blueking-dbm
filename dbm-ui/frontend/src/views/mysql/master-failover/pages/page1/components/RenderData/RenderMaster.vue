@@ -123,16 +123,19 @@
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue.ip;
-      localProxyData = props.modelValue;
-      oldLocalProxyData = props.modelValue;
-    }
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localValue.value = props.modelValue.ip;
+        localProxyData = props.modelValue;
+        oldLocalProxyData = props.modelValue;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
@@ -142,9 +145,16 @@
         ip: item.ip,
         bk_cloud_id: item.bk_cloud_id,
       });
-      return editRef.value.getValue().then(() => ({
-        master_ip: formatHost(localProxyData),
-      }));
+      return editRef.value
+        .getValue()
+        .then(() => ({
+          master_ip: formatHost(localProxyData),
+        }))
+        .catch(() =>
+          Promise.resolve({
+            master_ip: formatHost(localProxyData),
+          }),
+        );
     },
   });
 </script>

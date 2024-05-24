@@ -20,6 +20,8 @@
         :title="t('版本升级：将集群的接入层或存储层，更新到指定版本')" />
       <RenderData
         class="mt16"
+        :version-list-params="patchEditVersionListParams"
+        @batch-edit="handleBatchEditColumn"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -29,10 +31,12 @@
           :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @cluster-input-finish="(rowInfo: RedisModel) => handleChangeCluster(index, rowInfo)"
           @node-type-change="(type: string) => handleNodeTypeChange(index, type)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowClusterSelector"
         :cluster-types="[ClusterTypes.REDIS]"
@@ -75,12 +79,14 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
-    type InfoItem,
+    type IDataRowBatchKey,
+    type InfoItem
   } from './components/Row.vue';
 
   const { currentBizId } = useGlobalBizs();
@@ -91,11 +97,42 @@
   const isShowClusterSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
+  const remark = ref('')
 
   const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
 
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
   const inputedClusters = computed(() => tableData.value.map(item => item.cluster));
+
+  const patchEditVersionListParams = computed(() => {
+    const tableDataList = tableData.value
+    const params = {
+      nodeType: '',
+      clusterType: '',
+    }
+    if (tableDataList.length > 0) {
+      const clusterTypeList = []
+      for(let i = 0; i < tableDataList.length; i++) {
+        const dataItem = tableDataList[i]
+        if (!dataItem.clusterType) {
+          continue
+        }
+        clusterTypeList.push(dataItem.clusterType)
+        if (clusterTypeList.length > 1) {
+          return params
+        }
+      }
+      if (clusterTypeList.length === 1) {
+        const {clusterType, nodeType} = tableDataList[0]
+        return {
+          nodeType,
+          clusterType,
+        }
+      }
+      return params
+    }
+    return params
+  })
 
   // 集群域名是否已存在表格的映射表
   let domainMemo:Record<string, boolean> = {};
@@ -179,6 +216,27 @@
     selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== cluster);
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
+  const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        [filed]: value,
+      });
+    });
+  };
+
   // 点击提交按钮
   const handleSubmit = async () => {
     const infos = await Promise.all(rowRefs.value.map((item: {
@@ -188,6 +246,7 @@
     const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_VERSION_UPDATE_ONLINE,
+      remark: remark.value,
       details: {
         infos,
       },
@@ -218,6 +277,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = ''
     selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
     window.changeConfirm = false;

@@ -34,6 +34,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div class="item-block">
@@ -51,6 +52,7 @@
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </div>
+      <TicketRemark v-model="formData.remark" />
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.TENDBHA]"
@@ -101,6 +103,7 @@
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
@@ -123,20 +126,15 @@
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_MASTER_FAIL_OVER,
     onSuccess(cloneData) {
-      const {
-        isCheckDelay,
-        isCheckProcess,
-        isVerifyChecksum,
-        tableDataList,
-      } = cloneData;
+      const { isCheckDelay, isCheckProcess, isVerifyChecksum, tableDataList } = cloneData;
       tableData.value = tableDataList;
       formData.is_check_process = isCheckProcess;
       formData.is_verify_checksum = isVerifyChecksum;
       formData.is_check_delay = isCheckDelay;
+      formData.remark = cloneData.remark;
       window.changeConfirm = true;
     },
   });
-
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
@@ -150,6 +148,7 @@
     is_check_process: false,
     is_verify_checksum: false,
     is_check_delay: false,
+    remark: '',
   });
 
   const tabListConfig = {
@@ -184,7 +183,7 @@
   // Master 批量选择
   const handelMasterProxyChange = (data: InstanceSelectorValues<TendbhaInstanceModel>) => {
     selectedIps.value = data;
-    const newList = [] as IDataRow [];
+    const newList = [] as IDataRow[];
     data.tendbha.forEach((proxyData) => {
       const { bk_host_id, bk_cloud_id, instance_address: instanceAddress } = proxyData;
       const [ip] = instanceAddress.split(':');
@@ -220,11 +219,21 @@
     if (ip) {
       delete ipMemo[ip];
       const clustersArr = selectedIps.value[ClusterTypes.TENDBHA];
-      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.ip !== ip);
+      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.ip !== ip);
     }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
     tableData.value = dataList;
+  };
+
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
   };
 
   const handleSubmit = () => {
@@ -233,7 +242,7 @@
       .then((data) =>
         createTicket({
           ticket_type: 'MYSQL_MASTER_FAIL_OVER',
-          remark: '',
+          remark: formData.remark,
           details: {
             ...formData,
             infos: data,

@@ -206,7 +206,12 @@
         Promise.resolve({
           new_master: formatHost(masterHostMemo),
           new_slave: formatHost(slaveHostMemo),
-        }),
+        }).catch(() =>
+          Promise.reject({
+            new_master: formatHost(masterHostMemo),
+            new_slave: formatHost(slaveHostMemo),
+          }),
+        ),
       );
     },
   });

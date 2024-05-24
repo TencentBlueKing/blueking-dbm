@@ -18,7 +18,7 @@ import { random } from '@utils';
 // MySQL 重建从库-原地重建
 export function generateMysqlRestoreLocalSlaveCloneData(ticketData: TicketModel<MySQLRestoreLocalSlaveDetails>) {
   const { infos } = ticketData.details;
-  const tableDataList = infos.map(item => ({
+  const tableDataList = infos.map((item) => ({
     rowKey: random(),
     slave: {
       bkCloudId: item.slave.bk_cloud_id,
@@ -28,9 +28,10 @@ export function generateMysqlRestoreLocalSlaveCloneData(ticketData: TicketModel<
       instanceAddress: `${item.slave.ip}:${item.slave.port}`,
       clusterId: item.cluster_id,
     },
-  }))
+  }));
   return Promise.resolve({
     backupType: ticketData.details.backup_source,
     tableDataList,
+    remark: ticketData.remark,
   });
 }

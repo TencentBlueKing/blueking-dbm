@@ -33,6 +33,7 @@
   interface Emits {
     (e: 'add', value: number): void,
     (e: 'remove', value: number): void,
+    (e: 'clone', value: number): void,
   }
 
   interface Props {
@@ -68,6 +69,12 @@
             disabled={props.data.length === 1}
             onClick={() => emits('remove', index)}>
             <db-icon type="minus-fill" />
+          </bk-button>
+          <bk-button
+            text
+            v-bk-tooltips={t('克隆')}
+            onClick={() => emits('clone', index)}>
+            <db-icon type="copy-2" />
           </bk-button>
         </div>
       ),

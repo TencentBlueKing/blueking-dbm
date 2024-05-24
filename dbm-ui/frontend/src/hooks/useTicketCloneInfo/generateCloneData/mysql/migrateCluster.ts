@@ -19,18 +19,25 @@ import { random } from '@utils';
 
 // MySQL 迁移(克隆)主从
 export function generateMysqlMigrateClusterCloneData(ticketData: TicketModel<MySQLMigrateDetails>) {
-  const { clusters, infos} = ticketData.details;
-  const tableDataList = _.flatMap(infos.map(item => item.cluster_ids.map(clusterId => ({
-    rowKey: random(),
-    clusterData: {
-      id: clusterId,
-      domain: clusters[clusterId].immute_domain,
-      cloudId: clusters[clusterId].bk_cloud_id,
-    },
-    masterHostData: item.new_master,
-    slaveHostData: item.new_slave,
-    backup_source: ticketData.details.backup_source,
-  }))));
-  
-  return Promise.resolve({ tableDataList });
+  const { clusters, infos } = ticketData.details;
+  const tableDataList = _.flatMap(
+    infos.map((item) =>
+      item.cluster_ids.map((clusterId) => ({
+        rowKey: random(),
+        clusterData: {
+          id: clusterId,
+          domain: clusters[clusterId].immute_domain,
+          cloudId: clusters[clusterId].bk_cloud_id,
+        },
+        masterHostData: item.new_master,
+        slaveHostData: item.new_slave,
+        backup_source: ticketData.details.backup_source,
+      })),
+    ),
+  );
+
+  return Promise.resolve({
+    tableDataList,
+    remark: ticketData.remark,
+  });
 }

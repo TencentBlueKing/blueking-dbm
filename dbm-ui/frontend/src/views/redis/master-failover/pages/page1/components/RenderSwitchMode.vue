@@ -52,7 +52,7 @@
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref(props.data);
+  const localValue = ref();
 
   const selectList = [
     {
@@ -72,13 +72,26 @@
     },
   ];
 
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleChange = (value: string) => {
     localValue.value = value as OnlineSwitchType;
   };
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value.getValue().then(() => localValue.value);
+      return selectRef.value
+        .getValue()
+        .then(() => localValue.value)
+        .catch(() => Promise.reject(localValue.value));
     },
   });
 </script>

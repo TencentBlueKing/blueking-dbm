@@ -37,7 +37,7 @@
               :title="t('校验范围')"
               @change="(value) => handleBatchEditChange(value, 'scope')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('scope')">
                 <DbIcon type="bulk-edit" />
@@ -68,7 +68,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'dbPatterns')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('dbPatterns')">
                 <DbIcon type="bulk-edit" />
@@ -88,7 +88,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'ignoreDbs')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('ignoreDbs')">
                 <DbIcon type="bulk-edit" />
@@ -107,7 +107,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'tablePatterns')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('tablePatterns')">
                 <DbIcon type="bulk-edit" />
@@ -127,7 +127,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'ignoreTables')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('ignoreTables')">
                 <DbIcon type="bulk-edit" />

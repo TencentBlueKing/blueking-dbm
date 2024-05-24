@@ -29,5 +29,6 @@ export function generateMysqlDbRenameCloneData(ticketData: TicketModel<MySQLRena
   return Promise.resolve({
     tableDataList,
     force,
+    remark: ticketData.remark,
   });
 }

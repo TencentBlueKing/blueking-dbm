@@ -50,6 +50,7 @@
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -81,10 +82,10 @@
     clusterData: clusterData
       ? clusterData
       : {
-        id: 0,
-        domain: '',
-        type: '',
-      },
+          id: 0,
+          domain: '',
+          type: '',
+        },
   });
 </script>
 <script setup lang="ts">
@@ -99,9 +100,11 @@
     data: IDataRow;
     removeable: boolean;
   }
+
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'clusterInputFinish', value: string): void;
   }
 
@@ -139,8 +142,23 @@
     },
   );
 
+  watch(
+    () => [props.data?.dbPatterns, props.data?.ignoreDbs],
+    ([dbPatterns, ignoreDbs]) => {
+      if (dbPatterns) {
+        rowInfo.dbs = dbPatterns;
+      }
+      if (ignoreDbs) {
+        rowInfo.ignoreDbs = ignoreDbs;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleTargetClusterChange = (list: { id: number }[]) => {
-    rowInfo.targetClusters = list.map(item => item.id);
+    rowInfo.targetClusters = list.map((item) => item.id);
   };
 
   const handleInputFinish = (value: string) => {
@@ -171,6 +189,24 @@
     rowInfo.ignoreDbs = dbs.ignoreDbs;
   };
 
+  const getRowData = () => [
+    sourceClusterRef.value!.getValue(),
+    targetClustersRef.value!.getValue(),
+    dbPatternsRef.value!.getValue('db_patterns'),
+    ignoreDbsRef.value!.getValue('ignore_dbs'),
+  ];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits('clone', {
+        ...createRowData(props.data.clusterData),
+        dbPatterns: rowInfo[2].db_patterns,
+        ignoreDbs: rowInfo[3].ignore_dbs,
+      });
+    });
+  };
+
   defineExpose<Exposes>({
     async getValue() {
       await Promise.all([
@@ -179,7 +215,7 @@
         dbPatternsRef.value!.getValue('db_patterns'),
         ignoreDbsRef.value!.getValue('ignore_dbs'),
       ]);
-      return targetDbsRef.value!.getValue().then(dbList => ({
+      return targetDbsRef.value!.getValue().then((dbList) => ({
         source_cluster: rowInfo.sourceClusterId,
         target_clusters: rowInfo.targetClusters,
         db_list: dbList,

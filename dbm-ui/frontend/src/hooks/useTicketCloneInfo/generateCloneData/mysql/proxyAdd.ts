@@ -19,18 +19,22 @@ import { random } from '@utils';
 
 // MySQL 添加Proxy
 export function generateMysqlProxyAddCloneData(ticketData: TicketModel<MySQLProxyAddDetails>) {
-  const {
-    clusters,
-    infos,
-  } = ticketData.details;
-  const tableDataList = _.flatMap(infos.map(item => item.cluster_ids.map(clusterId => ({
-    rowKey: random(),
-    clusterData: {
-      id: clusterId,
-      domain: clusters[clusterId].immute_domain,
-      cloudId: clusters[clusterId].bk_cloud_id,
-    },
-    proxyIp: item.new_proxy
-  }))));
-  return Promise.resolve({ tableDataList });
+  const { clusters, infos } = ticketData.details;
+  const tableDataList = _.flatMap(
+    infos.map((item) =>
+      item.cluster_ids.map((clusterId) => ({
+        rowKey: random(),
+        clusterData: {
+          id: clusterId,
+          domain: clusters[clusterId].immute_domain,
+          cloudId: clusters[clusterId].bk_cloud_id,
+        },
+        proxyIp: item.new_proxy,
+      })),
+    ),
+  );
+  return Promise.resolve({
+    tableDataList,
+    remark: ticketData.remark,
+  });
 }
