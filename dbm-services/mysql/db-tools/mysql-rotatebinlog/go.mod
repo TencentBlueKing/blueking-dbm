@@ -17,6 +17,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	modernc.org/sqlite v1.25.0
 )
 
