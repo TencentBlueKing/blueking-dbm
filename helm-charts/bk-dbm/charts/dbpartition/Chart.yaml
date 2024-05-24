@@ -1,6 +1,6 @@
 apiVersion: v2
-appVersion: 0.0.1-alpha.182
+appVersion: 0.0.1-alpha.209
 name: dbpartition
 description: A Helm chart for db partition service
 type: application
-version: 0.1.11
+version: 0.1.13

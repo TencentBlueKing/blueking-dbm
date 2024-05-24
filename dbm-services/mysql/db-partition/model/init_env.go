@@ -22,6 +22,8 @@ func InitEnv() {
 	viper.BindEnv("listen_address", "LISTEN_ADDRESS")
 	viper.BindEnv("cron.timing_hour", "CRON_TIMING_HOUR")
 	viper.BindEnv("cron.retry_hour", "CRON_RETRY_HOUR")
+	viper.BindEnv("alarm.timezone", "ALARM_TIMEZONE")
+	viper.BindEnv("alarm.hour", "ALARM_HOUR")
 
 	viper.BindEnv("db_remote_service", "DB_REMOTE_SERVICE")
 	viper.BindEnv("db_meta_service", "DB_META_SERVICE")
@@ -44,6 +46,13 @@ func InitEnv() {
 	viper.BindEnv("log.max_size", "LOG_MAX_SIZE")
 	viper.BindEnv("log.max_age", "LOG_MAX_AGE")
 	viper.BindEnv("log.max_backups", "LOG_MAX_BACKUPS")
+
+	// bkrepo
+	viper.BindEnv("bkrepo.project", "BKREPO_PROJECT")
+	viper.BindEnv("bkrepo.public_bucket", "BKREPO_PUBLIC_BUCKET")
+	viper.BindEnv("bkrepo.username", "BKREPO_USERNAME")
+	viper.BindEnv("bkrepo.password", "BKREPO_PASSWORD")
+	viper.BindEnv("bkrepo.endpoint_url", "BKREPO_ENDPOINT_URL")
 
 	flag.Bool("migrate", false,
 		"run migrate to databases, not exit.")

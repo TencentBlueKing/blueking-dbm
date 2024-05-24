@@ -14,10 +14,10 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
-from backend.ticket.builders.mysql.mysql_partition import PartitionObjectSerializer
 
 from ...ticket.builders.common.field import DBTimezoneField
 from ...ticket.builders.mysql.base import DBTableField
+from ...ticket.builders.mysql.mysql_partition import PartitionObjectSerializer
 from . import mock
 
 

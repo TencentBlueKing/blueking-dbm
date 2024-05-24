@@ -14,9 +14,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// PartitionEvent TODO
-const PartitionEvent = "partition"
-
 // PartitionDeveloperEvent TODO
 const PartitionDeveloperEvent = "partition_dev"
 
@@ -24,7 +21,7 @@ const PartitionDeveloperEvent = "partition_dev"
 const PartitionCron = "partition_cron"
 
 // SendEvent 发送自定义监控事件
-func SendEvent(eventName string, dimension map[string]interface{}, content string, serverIp string) {
+func SendEvent(dimension map[string]interface{}, content string, serverIp string) {
 	l, _ := time.LoadLocation("Local")
 	body := eventBody{
 		commonBody: commonBody{
@@ -33,7 +30,7 @@ func SendEvent(eventName string, dimension map[string]interface{}, content strin
 		},
 		Data: []eventData{
 			{
-				EventName: eventName,
+				EventName: PartitionDeveloperEvent,
 				Event: map[string]interface{}{
 					"content": content,
 				},
@@ -57,32 +54,20 @@ func SendEvent(eventName string, dimension map[string]interface{}, content strin
 }
 
 // NewDeveloperEventDimension 构建自定监控事件的维度，发送给平台管理员
-func NewDeveloperEventDimension(serverIp string) map[string]interface{} {
+func NewDeveloperEventDimension(serverIp string, domain string) map[string]interface{} {
 	dimension := make(map[string]interface{})
 	dimension["appid"] = viper.GetString("dba.bk_biz_id")
 	dimension["bk_biz_id"] = viper.GetString("dba.bk_biz_id")
 	dimension["bk_cloud_id"] = 0
-	dimension["cluster_domain"] = PartitionCron
-	dimension["server_ip"] = serverIp
-	dimension["machine_type"] = PartitionCron
-	return dimension
-}
-
-// NewPartitionEventDimension 构建自定监控事件的维度，发送给业务的dba
-func NewPartitionEventDimension(bkBizId int, dbAppAbbr string, bkBizName string, bkCloudId int, domain string) map[string]interface{} {
-	dimension := make(map[string]interface{})
-	dimension["appid"] = bkBizId
-	dimension["bk_biz_id"] = bkBizId
-	dimension["db_app_abbr"] = dbAppAbbr
-	dimension["bk_biz_name"] = bkBizName
-	dimension["bk_cloud_id"] = bkCloudId
 	dimension["cluster_domain"] = domain
+	dimension["machine_type"] = domain
+	dimension["server_ip"] = serverIp
 	return dimension
 }
 
 // TestSendEvent 测试监控上报链路
 func TestSendEvent(dataId int, token string, serviceHost string) error {
-	dimension := NewDeveloperEventDimension("127.0.0.1")
+	dimension := NewDeveloperEventDimension("127.0.0.1", PartitionCron)
 	l, _ := time.LoadLocation("Local")
 
 	body := eventBody{

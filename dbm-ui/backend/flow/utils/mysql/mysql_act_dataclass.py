@@ -428,3 +428,12 @@ class InitCheckForResourceKwargs:
 
     ips: list
     bk_biz_id: int = env.DBA_APP_BK_BIZ_ID
+
+
+@dataclass()
+class IpKwargs:
+    """
+    制定ip 专属变量的dataclass
+    """
+
+    ip: str

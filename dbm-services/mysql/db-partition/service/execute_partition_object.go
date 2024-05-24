@@ -42,11 +42,8 @@ type PartitionConfigWithLog struct {
 	PartitionConfig
 	// 这里故意设置为string而不是time.Time，因为当值为null会被转换为1-01-01 08:00:00
 	ExecuteTime string `json:"execute_time" gorm:"execute_time"`
-	TicketId    int    `json:"ticket_id" gorm:"ticket_id"`
 	// 分区任务的状态
 	Status string `json:"status" gorm:"status"`
-	// 分区单据的状态
-	TicketStatus string `json:"ticket_status" gorm:"ticket_status"`
 	// 分区检查的结果
 	CheckInfo string `json:"check_info" gorm:"check_info"`
 }
@@ -64,18 +61,30 @@ type ConfigDetail struct {
 // Ticket 分区单据
 type Ticket struct {
 	BkBizId           int    `json:"bk_biz_id"`
-	DbAppAbbr         string `json:"db_app_abbr"`
-	BkBizName         string `json:"bk_biz_name"`
 	TicketType        string `json:"ticket_type"`
 	Remark            string `json:"remark"`
 	IgnoreDuplication bool   `json:"ignore_duplication"`
 	Details           Detail `json:"details"`
+	ImmuteDomain      string `json:"immute_domain"`
+	CronDate          string `json:"cron_date"`
 }
 
 // Details 单据参数
 type Details struct {
 	Infos    []Info           `json:"infos"`
 	Clusters ClustersResponse `json:"clusters"`
+}
+
+// Detail 用于创建单据
+type Detail struct {
+	Infos []Info `json:"infos"`
+}
+
+// Info 用于创建单据
+type Info struct {
+	BkCloudId int64  `json:"bk_cloud_id"`
+	Ip        string `json:"ip"`
+	FileName  string `json:"file_name"`
 }
 
 // ClustersResponse 用于创建单据
@@ -101,20 +110,6 @@ type ClusterResponse struct {
 	Region          string `json:"region"`
 	TimeZone        string `json:"time_zone"`
 	ClusterTypeName string `json:"cluster_type_name"`
-}
-
-// Detail 用于创建单据
-type Detail struct {
-	Infos []Info `json:"infos"`
-}
-
-// Info 用于创建单据
-type Info struct {
-	ConfigId         int               `json:"config_id"`
-	ClusterId        int               `json:"cluster_id"`
-	ImmuteDomain     string            `json:"immute_domain"`
-	BkCloudId        int               `json:"bk_cloud_id"`
-	PartitionObjects []PartitionObject `json:"partition_objects"`
 }
 
 // PartitionObject 待执行的分区语句集合

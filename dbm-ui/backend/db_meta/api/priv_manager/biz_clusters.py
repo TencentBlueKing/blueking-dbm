@@ -31,6 +31,7 @@ def biz_clusters(bk_biz_id: int, immute_domains: Optional[List[str]]):
     for cluster in qs:
         res.append(
             {
+                "id": cluster.id,
                 "immute_domain": cluster.immute_domain,
                 "cluster_type": cluster.cluster_type,
                 "bk_biz_id": bk_biz_id,

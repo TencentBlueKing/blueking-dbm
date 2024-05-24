@@ -7,7 +7,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import json
 from collections import defaultdict
 from typing import Any, Dict, List, Union
 
@@ -20,7 +19,11 @@ from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.partition.constants import QUERY_DATABASE_FIELD_TYPE, QUERY_UNIQUE_FIELDS_SQL
-from backend.db_services.partition.exceptions import DBPartitionCreateException, DBPartitionInvalidFieldException
+from backend.db_services.partition.exceptions import (
+    DBPartitionCreateException,
+    DBPartitionInternalServerError,
+    DBPartitionInvalidFieldException,
+)
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -143,19 +146,6 @@ class PartitionHandler(object):
                 auto_execute=True,
             )
             ticket_list.append(model_to_dict(ticket))
-            # 创建分区日志
-            partition_log_data = {
-                "cluster_type": cluster.cluster_type,
-                "config_id": int(partition_data["config_id"]),
-                "bk_biz_id": cluster.bk_biz_id,
-                "cluster_id": cluster.id,
-                "bk_cloud_id": cluster.bk_cloud_id,
-                "ticket_id": ticket.id,
-                "immute_domain": cluster.immute_domain,
-                "time_zone": cluster.time_zone,
-                "ticket_detail": json.dumps(ticket.details),
-            }
-            DBPartitionApi.create_log(partition_log_data)
 
         return ticket_list
 
@@ -205,6 +195,9 @@ class PartitionHandler(object):
         rpc_results = DRSApi.rpc(
             {"bk_cloud_id": cluster.bk_cloud_id, "addresses": [address], "cmds": [unique_fields_sql, fields_type_sql]}
         )
+        if rpc_results[0]["cmd_results"] is None:
+            raise DBPartitionInternalServerError(_("字段信息查询错误：{}").format(rpc_results[0]["error_msg"]))
+
         cmd__data = {res["cmd"]: res["table_data"] for res in rpc_results[0]["cmd_results"]}
         index_data, field_type_data = cmd__data[unique_fields_sql], cmd__data[fields_type_sql]
 

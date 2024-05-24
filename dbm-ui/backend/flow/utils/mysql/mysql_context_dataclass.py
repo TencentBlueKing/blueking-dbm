@@ -193,7 +193,7 @@ class MysqlPartitionContext:
     定义checksum的上下文dataclass
     """
 
-    execute_objects: dict = None
+    partition_report: dict = None
 
 
 @dataclass()

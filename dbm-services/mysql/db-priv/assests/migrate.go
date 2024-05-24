@@ -116,7 +116,7 @@ func DoMigratePlatformPassword() error {
 	// 平台密码初始化，不存在新增
 	var users []ComponentPlatformUser
 	users = append(users, ComponentPlatformUser{Component: "mysql", Usernames: []string{
-		"dba_bak_all_sel", "MONITOR", "MONITOR_ALL", "mysql", "repl", "yw"}})
+		"dba_bak_all_sel", "MONITOR", "MONITOR_ALL", "mysql", "repl", "yw", "partition_yw"}})
 	users = append(users, ComponentPlatformUser{Component: "proxy", Usernames: []string{"proxy"}})
 	users = append(users, ComponentPlatformUser{Component: "tbinlogdumper", Usernames: []string{"ADMIN"}})
 

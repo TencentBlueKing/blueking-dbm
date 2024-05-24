@@ -29,5 +29,6 @@ var (
 	DomainNotExists           = Errno{Code: 52030, Message: "domain not exists", CNMessage: "域名不存在"}
 	NotSupportedPartitionType = Errno{Code: 52031, Message: "not supported partition type", CNMessage: "不支持的分区类型"}
 	WrongPartitionNameFormat  = Errno{Code: 52032, Message: "wrong partition name format ", CNMessage: "分区名格式错误"}
-	DownloadDbactorFail       = Errno{Code: 52030, Message: "download dbactor fail", CNMessage: "下载dbactor失败"}
+	DownloadDbactorFail       = Errno{Code: 52033, Message: "download dbactor fail", CNMessage: "下载dbactor失败"}
+	DownloadFileFail          = Errno{Code: 52034, Message: "download file fail", CNMessage: "下载文件失败"}
 )
