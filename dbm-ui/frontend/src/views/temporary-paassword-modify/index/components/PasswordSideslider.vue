@@ -48,6 +48,7 @@
         :pagination-extra="{
           small: true
         }"
+        primary-key="uniqueKey"
         row-class="password-sideslider-table-row"
         selectable
         show-overflow-tooltip
@@ -61,6 +62,7 @@
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
+  import MysqlAdminPasswordModel from '@services/model/admin-password/mysql-admin-password';
   import { queryMysqlAdminPassword } from '@services/permission';
 
   import {
@@ -74,8 +76,6 @@
 
   import { getSearchSelectorParams } from '@utils';
 
-  type MysqlAdminPassword = ServiceReturnType<typeof queryMysqlAdminPassword>['results'][number]
-
   const isShow = defineModel<boolean>({
     required: true,
     default: false,
@@ -87,9 +87,8 @@
 
   const searchSelectData = [
     {
-      name: t('实例'),
+      name: t('IP 或 IP:Port'),
       id: 'instances',
-      placeholder: `${t('请输入实例搜索')}(eg: 0:127.0.0.1:8000)`,
     },
   ];
 
@@ -103,7 +102,7 @@
       label: t('实例'),
       field: 'instance',
       width: 150,
-      render: ({ row }: { row: MysqlAdminPassword }) => {
+      render: ({ row }: { row: MysqlAdminPasswordModel }) => {
         const instance = `${row.ip}:${row.port}`;
         return (
           <TextOverflowLayout>
@@ -138,7 +137,7 @@
       field: 'password',
       width: 200,
       showOverflowTooltip: true,
-      render: ({ row }: { row: MysqlAdminPassword }) => (
+      render: ({ row }: { row: MysqlAdminPasswordModel }) => (
         <TextOverflowLayout key={Number(passwordShow.value)}>
           {{
             default: () => (
@@ -168,7 +167,7 @@
       label: t('DB类型'),
       field: 'component',
       width: 100,
-      render: ({ row }: { row: MysqlAdminPassword }) => (
+      render: ({ row }: { row: MysqlAdminPasswordModel }) => (
         <>
           <db-icon type="mysql row-type"/>
           <span class='ml-4'>{ row.component }</span>
@@ -181,8 +180,8 @@
       minWidth: 240,
       sort: true,
       showOverflowTooltip: true,
-      render: ({ row }: { row: MysqlAdminPassword }) => {
-        const { lock_until: lockUntil } = row;
+      render: ({ row }: { row: MysqlAdminPasswordModel }) => {
+        const { lock_until: lockUntil, lockUntilDisplay } = row;
         const lockUntilDate = dayjs(lockUntil).format('YYYY-MM-DD');
         const currentDate = dayjs().format('YYYY-MM-DD');
         const diffDay = dayjs(lockUntilDate).diff(currentDate, 'day');
@@ -190,9 +189,9 @@
         return diffDay <= 7
           ? <span
               class='expired-time'>
-              { lockUntil }（{ t('n天后过期', [Math.ceil(diffDay)]) }）
+              { lockUntilDisplay }（{ t('n天后过期', [Math.ceil(diffDay)]) }）
             </span>
-          : <span>{ lockUntil }</span>;
+          : <span>{ lockUntilDisplay }</span>;
       },
     },
     {
@@ -202,7 +201,7 @@
     },
     {
       label: t('修改时间'),
-      field: 'update_time',
+      field: 'updateTimeDisplay',
       width: 160,
       sort: true,
     },
@@ -210,7 +209,7 @@
 
   const tableRef = ref();
   const passwordShow = ref(false);
-  const selected = shallowRef<MysqlAdminPassword[]>([]);
+  const selected = shallowRef<MysqlAdminPasswordModel[]>([]);
 
   const searchParams = reactive({
     time: ['', ''] as [string, string],
@@ -249,7 +248,7 @@
     tableRef.value?.fetchData({}, params);
   };
 
-  const handleSelection = (data: MysqlAdminPassword, list: MysqlAdminPassword[]) => {
+  const handleSelection = (data: MysqlAdminPasswordModel, list: MysqlAdminPasswordModel[]) => {
     selected.value = list;
   };
 
