@@ -69,7 +69,9 @@ class CloneRules(BaseService):
                     params.update({"source_ip": clone_data["source"], "target_ip": clone_data["target"]})
                     if "user" in clone_data and "target_instances" in clone_data:
                         params.update({"user": clone_data["user"], "target_instances": clone_data["target_instances"]})
-                    resp = MySQLPrivManagerApi.clone_client(params=params, raw=True)
+                    resp = MySQLPrivManagerApi.clone_client(
+                        params=params, raw=True, timeout=MySQLPrivManagerApi.TIMEOUT
+                    )
                 else:
                     params.update(
                         {
@@ -83,7 +85,9 @@ class CloneRules(BaseService):
                             },
                         }
                     )
-                    resp = MySQLPrivManagerApi.clone_instance(params=params, raw=True)
+                    resp = MySQLPrivManagerApi.clone_instance(
+                        params=params, raw=True, timeout=MySQLPrivManagerApi.TIMEOUT
+                    )
 
                 # 填充克隆的结果和信息
                 record.status = int(resp["code"]) == 0

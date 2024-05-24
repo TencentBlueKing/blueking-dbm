@@ -75,7 +75,9 @@ class AuthorizeRules(BaseService):
 
             # 进行授权，无论授权是否成功，都需要将message存入record中
             try:
-                resp = MySQLPrivManagerApi.authorize_rules(params=authorize_data, raw=True)
+                resp = MySQLPrivManagerApi.authorize_rules(
+                    params=authorize_data, raw=True, timeout=MySQLPrivManagerApi.TIMEOUT
+                )
                 record.status = int(resp["code"]) == 0
                 authorize_success_count += record.status
                 record.error = resp["message"]
