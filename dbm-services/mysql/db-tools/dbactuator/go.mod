@@ -1,6 +1,8 @@
 module dbm-services/mysql/db-tools/dbactuator
 
-go 1.21
+go 1.21.0
+
+toolchain go1.21.11
 
 require (
 	ariga.io/atlas v0.14.0

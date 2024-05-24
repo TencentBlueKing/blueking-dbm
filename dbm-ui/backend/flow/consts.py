@@ -1070,6 +1070,7 @@ class UserName(str, StructuredEnum):
     PROXY = EnumField("proxy", _("PROXY实例账号"))
     REDIS_DEFAULT = EnumField("default", _("REDIS默认账号"))
     HDFS_DEFAULT = EnumField("root", _("HDFS默认账号"))
+    PARTITION_YW = EnumField("partition_yw", _("分区实例账号"))
 
 
 class MySQLPrivComponent(str, StructuredEnum):

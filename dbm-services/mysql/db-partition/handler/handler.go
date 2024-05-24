@@ -2,18 +2,14 @@
 package handler
 
 import (
+	"dbm-services/mysql/db-partition/model"
+	"dbm-services/mysql/db-partition/monitor"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	_ "runtime/debug" // debug TODO
-	"strconv"
-	"strings"
 	"time"
-
-	"dbm-services/mysql/db-partition/monitor"
-
-	"dbm-services/mysql/db-partition/cron"
 
 	cron_pkg "github.com/robfig/cron/v3"
 
@@ -261,7 +257,7 @@ func UpdatePartitionsConfig(r *gin.Context) {
 	return
 }
 
-// CreatePartitionLog 用于创建分区后马上执行分区规则，将执行单据的信息记录到日志表中
+// CreatePartitionLog 单据callback，信息记录到日志表中
 func CreatePartitionLog(r *gin.Context) {
 	var input service.CreatePartitionCronLog
 	err := r.ShouldBind(&input)
@@ -271,22 +267,30 @@ func CreatePartitionLog(r *gin.Context) {
 		SendResponse(r, err, nil)
 		return
 	}
-	// 计算单据处于集群时区的日期
-	offsetStr := strings.Split(input.TimeZone, ":")[0]
-	offset, _ := strconv.Atoi(offsetStr)
-	offetSeconds := offset * 60 * 60
-	name := fmt.Sprintf("UTC%s", offsetStr)
-	zone := time.FixedZone(name, offetSeconds)
-	date := time.Now().In(zone).Format("20060102")
-	err = service.AddLog(input.ConfigId, input.BkBizId, input.ClusterId, input.BkCloudId, input.TicketId,
-		input.ImmuteDomain, input.TimeZone, date, "from_ticket", "",
-		service.ExecuteAsynchronous, input.ClusterType)
-	if err != nil {
-		slog.Error(err.Error())
-		SendResponse(r, err, nil)
-		return
+	tx := model.DB.Self.Begin()
+	tb := service.MysqlPartitionCronLogTable
+	if input.ClusterType == service.Tendbcluster {
+		tb = service.SpiderPartitionCronLogTable
 	}
-	SendResponse(r, nil, "插入分区日志成功")
+	today := time.Now().Format("20060102")
+	for _, l := range input.Logs {
+		var vdate string
+		if l.CronDate == "" {
+			vdate = today
+		} else {
+			vdate = l.CronDate
+		}
+		log := &service.PartitionCronLog{ConfigId: l.ConfigId, CronDate: vdate,
+			Scheduler: l.Scheduler, CheckInfo: l.CheckInfo, Status: l.Status}
+		err = tx.Debug().Table(tb).Create(log).Error
+		if err != nil {
+			tx.Rollback()
+			slog.Error("msg", "add cron log failed", err)
+			break
+		}
+	}
+	tx.Commit()
+	SendResponse(r, err, nil)
 	return
 }
 
@@ -321,7 +325,7 @@ func MigrateConfig(r *gin.Context) {
 // CronEntries 查询定时任务
 func CronEntries(r *gin.Context) {
 	var entries []cron_pkg.Entry
-	for _, v := range cron.CronList {
+	for _, v := range service.CronList {
 		entries = append(entries, v.Entries()...)
 	}
 	slog.Info("msg", "entries", entries)
@@ -331,7 +335,7 @@ func CronEntries(r *gin.Context) {
 
 // CronStop 关闭分区定时任务
 func CronStop(r *gin.Context) {
-	for _, v := range cron.CronList {
+	for _, v := range service.CronList {
 		v.Stop()
 	}
 	SendResponse(r, nil, "关闭分区定时任务成功")
@@ -340,7 +344,7 @@ func CronStop(r *gin.Context) {
 
 // CronStart 开启分区定时任务
 func CronStart(r *gin.Context) {
-	for _, v := range cron.CronList {
+	for _, v := range service.CronList {
 		v.Start()
 	}
 	SendResponse(r, nil, "开启分区定时任务成功")
@@ -349,7 +353,7 @@ func CronStart(r *gin.Context) {
 
 // RunOnce 调度执行一次
 func RunOnce(r *gin.Context) {
-	var input cron.PartitionJob
+	var input service.PartitionJob
 	err := r.ShouldBind(&input)
 	if err != nil {
 		err = errno.ErrReadEntity.Add(err.Error())
@@ -357,8 +361,12 @@ func RunOnce(r *gin.Context) {
 		SendResponse(r, err, nil)
 		return
 	}
-	input.ExecutePartitionOneTime(input.ClusterType)
-	SendResponse(r, nil, "调度一次成功")
+	if input.ClusterType == service.Tendbha {
+		input.ExecuteTendbhaPartition()
+	} else if input.ClusterType == service.Tendbcluster {
+		input.ExecuteTendbclusterPartition()
+	}
+	SendResponse(r, nil, "异步执行，执行结果请看日志")
 	return
 }
 

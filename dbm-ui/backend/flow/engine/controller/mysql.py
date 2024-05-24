@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
+from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRules
 from backend.flow.engine.bamboo.scene.mysql.mysql_checksum import MysqlChecksumFlow
@@ -34,6 +35,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_flow import My
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpenAreaFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_partition_cron import MysqlPartitionCronFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQLProxyClusterAddFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_upgrade import MySQLProxyLocalUpgradeFlow
@@ -335,6 +337,13 @@ class MySQLController(BaseController):
         flow = MysqlPartitionFlow(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_partition_flow()
 
+    def mysql_partition_cron(self):
+        """
+        mysql 表分区
+        """
+        flow = MysqlPartitionCronFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.mysql_partition_cron_flow()
+
     def mysql_fake_sql_semantic_check_scene(self):
         """
         测试专用，模拟SQL语义检查场景
@@ -626,3 +635,10 @@ class MySQLController(BaseController):
         """
         flow = DbConsoleDumpSqlFlow(root_id=self.root_id, data=self.ticket_data)
         flow.dump_flow()
+
+    def download_file_scene(self):
+        """
+        下载文件
+        """
+        flow = DownloadFileFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.download_file_flow()

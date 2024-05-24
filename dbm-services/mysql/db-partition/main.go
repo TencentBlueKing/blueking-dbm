@@ -1,6 +1,7 @@
 package main
 
 import (
+	"dbm-services/mysql/db-partition/service"
 	"net/http"
 	"os"
 
@@ -14,7 +15,6 @@ import (
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 	"dbm-services/mysql/db-partition/assests"
-	"dbm-services/mysql/db-partition/cron"
 	"dbm-services/mysql/db-partition/model"
 	"dbm-services/mysql/db-partition/monitor"
 	"dbm-services/mysql/db-partition/router"
@@ -37,7 +37,7 @@ func main() {
 	monitor.InitMonitor()
 
 	// 注册定时任务
-	cronList, err := cron.RegisterCron()
+	cronList, err := service.RegisterCron()
 	if err != nil {
 		os.Exit(0)
 	}
@@ -76,4 +76,5 @@ func init() {
 	model.InitLog()
 	model.DB.Init()
 	model.InitClient()
+	model.InitBkRepo()
 }

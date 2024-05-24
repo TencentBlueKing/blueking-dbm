@@ -268,7 +268,7 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 }
 
 // ModifyAdminPassword 修改mysql实例中用户的密码，可用于随机化密码
-func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword(jsonPara string, ticket string) (BatchResult, error) {
+func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword() (BatchResult, error) {
 	var errMsg Err
 	var success Resource
 	var fail Resource

@@ -42,7 +42,6 @@ from ...iam_app.dataclass.actions import ActionEnum
 from ...iam_app.handlers.drf_perm.cluster import PartitionManagePermission
 from ...iam_app.handlers.permission import Permission
 from ...ticket.constants import TicketStatus
-from ...ticket.models import Ticket
 from .constants import SWAGGER_TAG
 from .handlers import PartitionHandler
 
@@ -57,12 +56,9 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     @staticmethod
     def _update_log_status(log_list):
         # 更新分区日志的状态
-        ticket_ids = [info["ticket_id"] for info in log_list if info["ticket_id"]]
-        ticket_id__ticket_map = {ticket.id: ticket for ticket in Ticket.objects.filter(id__in=ticket_ids)}
         for info in log_list:
-            ticket = ticket_id__ticket_map.get(info["ticket_id"], None)
-            info["status"] = ticket.status if ticket else (info["status"] or TicketStatus.PENDING)
-
+            info["status"] = info["status"].upper()
+            info["status"] = info["status"] if info["status"] in TicketStatus.get_values() else TicketStatus.PENDING
         return log_list
 
     @common_swagger_auto_schema(
