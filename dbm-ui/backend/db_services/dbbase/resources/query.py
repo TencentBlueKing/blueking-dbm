@@ -14,11 +14,10 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 import attr
 from django.db.models import F, Prefetch, Q, QuerySet
 from django.http import HttpResponse
-from django.utils.http import urlquote
 from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterEntryType, ClusterType
+from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import AppCache, Cluster, ClusterEntry, DBModule, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
@@ -91,6 +90,7 @@ class CommonQueryResourceMixin(abc.ABC):
             {"id": "region", "name": _("地域")},
             {"id": "disaster_tolerance_level", "name": _("容灾级别")},
         ]
+        role_header_ids = set()
 
         def fill_instances_to_cluster_info(
             _cluster_info: Dict, instances: List[Union[StorageInstance, ProxyInstance]]
@@ -106,9 +106,7 @@ class CommonQueryResourceMixin(abc.ABC):
                 if role in cluster_info:
                     cluster_info[role] += f"\n{ins.machine.ip}#{ins.port}"
                 else:
-                    role_header = {"id": role, "name": role}
-                    if role_header not in headers:
-                        headers.append(role_header)
+                    role_header_ids.add(role)
                     cluster_info[role] = f"{ins.machine.ip}#{ins.port}"
 
         # 遍历所有的集群对象
@@ -126,11 +124,15 @@ class CommonQueryResourceMixin(abc.ABC):
                 "region": cluster.region,
                 "disaster_tolerance_level": cluster.get_disaster_tolerance_level_display(),
             }
-            fill_instances_to_cluster_info(cluster_info, cluster.storageinstance_set.all())
             fill_instances_to_cluster_info(cluster_info, cluster.proxyinstance_set.all())
+            fill_instances_to_cluster_info(cluster_info, cluster.storageinstance_set.all())
 
             # 将当前集群的信息追加到data_list列表中
             data_list.append(cluster_info)
+
+        for ins_role in InstanceRole.get_values():
+            if ins_role in role_header_ids:
+                headers.append({"id": ins_role, "name": InstanceRole.get_choice_label(ins_role)})
 
         return headers, data_list
 
@@ -195,9 +197,7 @@ class CommonQueryResourceMixin(abc.ABC):
         db_type = ClusterType.cluster_type_to_db_type(cls.cluster_types[0])
         wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
 
-        return ExcelHandler.response(
-            wb, urlquote(_("{export_prefix}集群列表.xlsx").format(export_prefix=f"{biz_name}[{bk_biz_id}]{db_type}"))
-        )
+        return ExcelHandler.response(wb, f"{biz_name}({bk_biz_id}){db_type}_cluster.xlsx")
 
     @classmethod
     def export_instance(cls, bk_biz_id: int, bk_host_ids: list) -> HttpResponse:
@@ -208,9 +208,7 @@ class CommonQueryResourceMixin(abc.ABC):
         db_type = ClusterType.cluster_type_to_db_type(cls.cluster_types[0])
         wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
 
-        return ExcelHandler.response(
-            wb, urlquote(_("{export_prefix}实例列表.xlsx").format(export_prefix=f"{biz_name}[{bk_biz_id}]{db_type}"))
-        )
+        return ExcelHandler.response(wb, f"{biz_name}({bk_biz_id}){db_type}_instances.xlsx")
 
     @classmethod
     def get_temporary_cluster_info(cls, cluster, ticket_type):

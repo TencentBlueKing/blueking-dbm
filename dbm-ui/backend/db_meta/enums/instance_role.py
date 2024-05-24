@@ -19,44 +19,51 @@ class InstanceRole(str, StructuredEnum):
     ORPHAN = EnumField("orphan", _("orphan"))
 
     # 主备
-    BACKEND_MASTER = EnumField("backend_master", _("backend_master"))
-    BACKEND_REPEATER = EnumField("backend_repeater", _("backend_repeater"))
-    BACKEND_SLAVE = EnumField("backend_slave", _("backend_slave"))
+    BACKEND_MASTER = EnumField("backend_master", _("Master"))
+    BACKEND_REPEATER = EnumField("backend_repeater", _("Repeater"))
+    BACKEND_SLAVE = EnumField("backend_slave", _("Slave"))
 
     # tendbcluster 集群
-    REMOTE_MASTER = EnumField("remote_master", _("remote_master"))
-    REMOTE_REPEATER = EnumField("remote_repeater", _("remote_repeater"))
-    REMOTE_SLAVE = EnumField("remote_slave", _("remote_slave"))
+    REMOTE_MASTER = EnumField("remote_master", _("Remote Master"))
+    REMOTE_REPEATER = EnumField("remote_repeater", _("Remote Repeater"))
+    REMOTE_SLAVE = EnumField("remote_slave", _("Remote Slave"))
 
-    REDIS_PROXY = EnumField("proxy", _("redis_proxy"))
-    REDIS_MASTER = EnumField("redis_master", _("redis_master"))
-    REDIS_SLAVE = EnumField("redis_slave", _("redis_slave"))
+    # Redis
+    REDIS_PROXY = EnumField("proxy", _("Proxy"))
+    REDIS_MASTER = EnumField("redis_master", _("Master"))
+    REDIS_SLAVE = EnumField("redis_slave", _("Slave"))
 
-    ES_DATANODE_HOT = EnumField("es_datanode_hot", _("es_datanode_hot"))
-    ES_DATANODE_COLD = EnumField("es_datanode_cold", _("es_datanode_cold"))
-    ES_MASTER = EnumField("es_master", _("es_master"))
-    ES_CLIENT = EnumField("es_client", _("es_client"))
+    # ES
+    ES_DATANODE_HOT = EnumField("es_datanode_hot", _("热节点"))
+    ES_DATANODE_COLD = EnumField("es_datanode_cold", _("冷节点"))
+    ES_MASTER = EnumField("es_master", _("Master 节点"))
+    ES_CLIENT = EnumField("es_client", _("Client 节点"))
 
-    # kafka
-    BROKER = EnumField("broker", _("broker"))
-    ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
+    # Kafka
+    BROKER = EnumField("broker", _("Broker"))
+    ZOOKEEPER = EnumField("zookeeper", _("Zookeeper"))
 
-    HDFS_NAME_NODE = EnumField("hdfs_namenode", _("hdfs_namenode"))
-    HDFS_ZOOKEEPER = EnumField("hdfs_zookeeper", _("hdfs_zookeeper"))
-    HDFS_JOURNAL_NODE = EnumField("hdfs_journalnode", _("hdfs_journalnode"))
-    HDFS_DATA_NODE = EnumField("hdfs_datanode", _("hdfs_datanode"))
+    # HDFS
+    HDFS_NAME_NODE = EnumField("hdfs_namenode", _("NameNode"))
+    HDFS_ZOOKEEPER = EnumField("hdfs_zookeeper", _("Zookeeper"))
+    HDFS_JOURNAL_NODE = EnumField("hdfs_journalnode", _("Journalnode"))
+    HDFS_DATA_NODE = EnumField("hdfs_datanode", _("DataNode"))
 
+    # InfluxDB
     INFLUXDB = EnumField("influxdb", _("influxdb"))
 
-    PULSAR_BOOKKEEPER = EnumField("pulsar_bookkeeper", _("pulsar_bookkeeper"))
-    PULSAR_ZOOKEEPER = EnumField("pulsar_zookeeper", _("pulsar_zookeeper"))
-    PULSAR_BROKER = EnumField("pulsar_broker", _("pulsar_broker"))
+    # Pulsar
+    PULSAR_BOOKKEEPER = EnumField("pulsar_bookkeeper", _("Bookkeeper"))
+    PULSAR_ZOOKEEPER = EnumField("pulsar_zookeeper", _("Zookeeper"))
+    PULSAR_BROKER = EnumField("pulsar_broker", _("Broker"))
 
-    DORIS_BACKEND_HOT = EnumField("doris_backend_hot", _("doris_backend_hot"))
-    DORIS_BACKEND_COLD = EnumField("doris_backend_cold", _("doris_backend_cold"))
-    DORIS_FOLLOWER = EnumField("doris_follower", _("doris_follower"))
-    DORIS_OBSERVER = EnumField("doris_observer", _("doris_observer"))
+    # Doris
+    DORIS_BACKEND_HOT = EnumField("doris_backend_hot", _("热节点"))
+    DORIS_BACKEND_COLD = EnumField("doris_backend_cold", _("冷节点"))
+    DORIS_FOLLOWER = EnumField("doris_follower", _("Follower"))
+    DORIS_OBSERVER = EnumField("doris_observer", _("Observer"))
 
+    # MongoDB
     MONGO_M1 = EnumField("mongo_m1", _("mongo_m1"))
     MONGO_M2 = EnumField("mongo_m2", _("mongo_m2"))
     MONGO_M3 = EnumField("mongo_m3", _("mongo_m3"))
@@ -69,7 +76,8 @@ class InstanceRole(str, StructuredEnum):
     MONGO_M10 = EnumField("mongo_m10", _("mongo_m10"))
     MONGO_BACKUP = EnumField("mongo_backup", _("mongo_backup"))
 
-    RIAK_NODE = EnumField("riak_node", _("riak_node"))
+    # Riak
+    RIAK_NODE = EnumField("riak_node", _("Riak"))
 
 
 class TenDBClusterSpiderRole(str, StructuredEnum):
