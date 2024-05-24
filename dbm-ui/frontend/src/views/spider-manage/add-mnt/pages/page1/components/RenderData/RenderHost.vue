@@ -140,9 +140,9 @@
   const { message: errorMessage, validator } = useValidtor(rules);
 
   watch(
-    () => props?.ipList,
+    () => props.ipList,
     () => {
-      if (props?.ipList?.length) {
+      if (props.ipList?.length) {
         checkHost({
           ip_list: props.ipList.map((item) => item.ip),
           mode: 'all',

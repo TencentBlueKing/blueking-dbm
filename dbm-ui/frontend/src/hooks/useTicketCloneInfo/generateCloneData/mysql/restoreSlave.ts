@@ -20,25 +20,32 @@ import { random } from '@utils';
 // MySQL 重建从库-新机重建
 export function generateMysqlRestoreSlaveCloneData(ticketData: TicketModel<MySQLRestoreSlaveDetails>) {
   const { infos } = ticketData.details;
-  const tableDataList = _.flatMap(infos.map(item => item.cluster_ids.map(clusterId => ({
-    rowKey: random(),
-    oldSlave: {
-      bkCloudId: item.old_slave.bk_cloud_id,
-      bkCloudName: '',
-      bkHostId: item.old_slave.bk_host_id,
-      ip: item.old_slave.ip,
-      port: item.old_slave.port,
-      instanceAddress: `${item.old_slave.ip}:${item.old_slave.port}`,
-      clusterId,
-    },
-    newSlave: {
-      bkBizId: item.new_slave.bk_biz_id,
-      bkCloudId: item.new_slave.bk_cloud_id,
-      bkHostId: item.new_slave.bk_host_id,
-      ip: item.new_slave.ip,
-      port: item.new_slave.port,
-    }
-  }))));
+  const tableDataList = _.flatMap(
+    infos.map((item) =>
+      item.cluster_ids.map((clusterId) => ({
+        rowKey: random(),
+        oldSlave: {
+          bkCloudId: item.old_slave.bk_cloud_id,
+          bkCloudName: '',
+          bkHostId: item.old_slave.bk_host_id,
+          ip: item.old_slave.ip,
+          port: item.old_slave.port,
+          instanceAddress: `${item.old_slave.ip}:${item.old_slave.port}`,
+          clusterId,
+        },
+        newSlave: {
+          bkBizId: item.new_slave.bk_biz_id,
+          bkCloudId: item.new_slave.bk_cloud_id,
+          bkHostId: item.new_slave.bk_host_id,
+          ip: item.new_slave.ip,
+          port: item.new_slave.port,
+        },
+      })),
+    ),
+  );
 
-  return Promise.resolve({ tableDataList });
+  return Promise.resolve({
+    tableDataList,
+    remark: ticketData.remark,
+  });
 }

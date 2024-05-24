@@ -52,23 +52,11 @@
           :model-value="data.ignoreTables"
           :required="false" />
       </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn ml-2"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @clone="handleClone"
+        @remove="handleRemove" />
     </tr>
   </tbody>
 </template>
@@ -88,6 +76,8 @@
     ignoreTables?: string[];
   }
 
+  export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData'>;
+
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
     rowKey: random(),
@@ -102,6 +92,8 @@
 <script setup lang="ts">
   import { ref, watch } from 'vue';
 
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
 
@@ -114,6 +106,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -174,16 +167,35 @@
     emits('remove');
   };
 
+  const getRowData = () => [
+    clusterRef.value.getValue(),
+    // backupSourceRef.value.getValue('backup_on'),
+    dbPatternsRef.value.getValue('db_patterns'),
+    tablePatternsRef.value.getValue('table_patterns'),
+    ignoreDbsRef.value.getValue('ignore_dbs'),
+    ignoreTablesRef.value.getValue('ignore_tables'),
+  ];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          rowKey: random(),
+          clusterData: props.data.clusterData,
+          dbPatterns: rowInfo[1].db_patterns,
+          tablePatterns: rowInfo[2].table_patterns,
+          ignoreDbs: rowInfo[3].ignore_dbs,
+          ignoreTables: rowInfo[4].ignore_tables,
+        }),
+      );
+    });
+  };
+
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        clusterRef.value.getValue(),
-        // backupSourceRef.value.getValue('backup_on'),
-        dbPatternsRef.value.getValue('db_patterns'),
-        tablePatternsRef.value.getValue('table_patterns'),
-        ignoreDbsRef.value.getValue('ignore_dbs'),
-        ignoreTablesRef.value.getValue('ignore_tables'),
-      ]).then(
+      return Promise.all(getRowData()).then(
         ([
           clusterData,
           // hostData,

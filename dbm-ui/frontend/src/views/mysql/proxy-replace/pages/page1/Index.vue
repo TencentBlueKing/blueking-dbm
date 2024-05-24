@@ -34,6 +34,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @origin-proxy-input-finish="(value: IProxyData) => handleOriginProxyInputFinish(index, value)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -46,6 +47,7 @@
           <span class="safe-action-text">{{ t('忽略业务连接') }}</span>
         </BkCheckbox>
       </div>
+      <TicketRemark v-model="remark" />
       <InstanceSelector
         v-model:is-show="isShowBatchProxySelector"
         :cluster-types="[ClusterTypes.TENDBHA]"
@@ -96,35 +98,29 @@
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
-  import { messageError } from '@utils';
-
-  import BatchEntry, {
-    type IValue as IBatchEntryValue,
-  } from './components/BatchEntry.vue';
+  // import { messageError } from '@utils';
+  import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type IProxyData,
-  } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type IProxyData } from './components/RenderData/Row.vue';
 
-  interface InfoItem {
-    cluster_ids: string[],
-    origin_proxy: {
-      bk_biz_id: number,
-      bk_cloud_id: number,
-      bk_host_id: number,
-      ip: string,
-      port: number,
-    },
-    target_proxy: {
-      bk_biz_id: number,
-      bk_cloud_id: number,
-      bk_host_id: number,
-      ip: string,
-    }
-  }
+  // interface InfoItem {
+  //   cluster_ids: string[];
+  //   origin_proxy: {
+  //     bk_biz_id: number;
+  //     bk_cloud_id: number;
+  //     bk_host_id: number;
+  //     ip: string;
+  //     port: number;
+  //   };
+  //   target_proxy: {
+  //     bk_biz_id: number;
+  //     bk_cloud_id: number;
+  //     bk_host_id: number;
+  //     ip: string;
+  //   };
+  // }
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -143,12 +139,10 @@
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_PROXY_SWITCH,
     onSuccess(cloneData) {
-      const {
-        force,
-        tableDataList,
-      } = cloneData;
+      const { force, tableDataList } = cloneData;
       tableData.value = tableDataList;
       isSafe.value = force ? 1 : 0;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -156,8 +150,9 @@
   const rowRefs = ref();
   const isShowBatchProxySelector = ref(false);
   const isShowBatchEntry = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const isSafe = ref(1);
+  const remark = ref('');
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
   const selectedIntances = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
@@ -209,22 +204,12 @@
   // 批量选择
   const handelProxySelectorChange = (data: InstanceSelectorValues<TendbhaInstanceModel>) => {
     selectedIntances.value = data;
-    const newList = data.tendbha.reduce((results, item) => {
-      const instance = item.instance_address;
-      if (!instanceMemo[instance]) {
-        const row = createRowData({
-          originProxyIp: item,
-        });
-        results.push(row);
-        instanceMemo[instance] = true;
-      }
-      return results;
-    }, [] as IDataRow[]);
-    if (checkListEmpty(tableData.value)) {
-      tableData.value = newList;
-    } else {
-      tableData.value = [...tableData.value, ...newList];
-    }
+    const newList = data.tendbha.map((item) =>
+      createRowData({
+        originProxyIp: item,
+      }),
+    );
+    tableData.value = newList;
     window.changeConfirm = true;
   };
 
@@ -248,86 +233,54 @@
     if (instanceAddress) {
       delete instanceMemo[instanceAddress];
       const clustersArr = selectedIntances.value[ClusterTypes.TENDBHA];
-      selectedIntances.value[ClusterTypes.TENDBHA] = clustersArr
-        .filter(item => item.instance_address !== instanceAddress);
+      // eslint-disable-next-line max-len
+      selectedIntances.value[ClusterTypes.TENDBHA] = clustersArr.filter(
+        (item) => item.instance_address !== instanceAddress,
+      );
     }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
     tableData.value = dataList;
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((params: InfoItem[]) => {
-        const targetIpMap: Record<string, string[]> = {};
-        const infos: InfoItem[] = [];
-        const sourceIpMap: Record<string, InfoItem> = {};
-        let isMultipleSourceToSingleTarget = false;
-        for (const rowInfo of params) {
-          const targetProxyIp = rowInfo.target_proxy.ip;
-          const originProxyIp = rowInfo.origin_proxy.ip;
-          if (!sourceIpMap[originProxyIp]) {
-            sourceIpMap[originProxyIp] = rowInfo;
-            infos.push(rowInfo);
-          } else {
-            // 多个同IP不同Port的源Proxy与同一个目标Proxy IP进行合并
-            if (sourceIpMap[originProxyIp].target_proxy.ip !== targetProxyIp) {
-              infos.push(rowInfo);
-            } else {
-              // 集群ID去重合并
-              const targetInfo = infos.find(item => item.origin_proxy.ip === originProxyIp)!;
-              const newClusterIds = Array.from(new Set([...targetInfo.cluster_ids, ...rowInfo.cluster_ids]));
-              targetInfo.cluster_ids = newClusterIds;
-            }
-          }
-          if (!targetIpMap[targetProxyIp]) {
-            targetIpMap[targetProxyIp] = [originProxyIp];
-          } else {
-            if (!targetIpMap[targetProxyIp].includes(originProxyIp)) {
-              isMultipleSourceToSingleTarget = true;
-              targetIpMap[targetProxyIp].push(originProxyIp);
-            }
-          }
-        }
-        // 多个不同的源IP对应同一个目标IP，不允许提单
-        if (isMultipleSourceToSingleTarget) {
-          let tipStr = '';
-          Object.entries(targetIpMap).forEach(([targetIp, sourceIpList]) => {
-            if (sourceIpList.length > 1) {
-              tipStr += `[${sourceIpList.join(',')}] -> ${targetIp}`;
-            }
-          });
-          messageError(t('不允许多台目标Proxy主机对应同一台新Proxy主机：x', { x: tipStr }), 5000);
-          isSubmitting.value = false;
-          return;
-        }
-
+      .then((data) =>
         createTicket({
           ticket_type: 'MYSQL_PROXY_SWITCH',
-          remark: '',
+          remark: remark.value,
           details: {
-            infos,
+            infos: data,
             is_safe: Boolean(isSafe.value),
           },
           bk_biz_id: currentBizId,
-        })
-          .then((data) => {
-            window.changeConfirm = false;
+        }).then((data) => {
+          window.changeConfirm = false;
 
-            router.push({
-              name: 'MySQLProxyReplace',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
+          router.push({
+            name: 'MySQLProxyReplace',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
           });
+        }),
+      )
+      .finally(() => {
+        isSubmitting.value = false;
       })
       .catch(() => {
         isSubmitting.value = false;
@@ -336,6 +289,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     instanceMemo = {};
     selectedIntances.value[ClusterTypes.TENDBHA] = [];
     window.changeConfirm = false;

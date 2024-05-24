@@ -24,9 +24,10 @@ export function generateMysqlImportSqlFileCloneData(ticketData: TicketModel<MySQ
     ticket_mode: details.ticket_mode,
     import_mode: details.import_mode,
     cluster_ids: details.cluster_ids,
-    execute_db_infos: details.execute_objects.map(item => ({
+    execute_db_infos: details.execute_objects.map((item) => ({
       ...item,
       rowKey: random(),
     })),
+    remark: ticketData.remark,
   });
 }

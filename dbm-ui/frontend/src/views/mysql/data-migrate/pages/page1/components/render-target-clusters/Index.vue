@@ -97,18 +97,18 @@
 
   const rules = [
     {
-      validator: (value: string) => value.split(',').every(domain => Boolean(domain)),
+      validator: (value: string) => value.split(',').every((domain) => Boolean(domain)),
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) => value.split(',').every(domain => domainRegex.test(domain)),
+      validator: (value: string) => value.split(',').every((domain) => domainRegex.test(domain)),
       message: t('目标集群输入格式有误'),
     },
     {
       validator: async (value: string) => {
         const list = value.split(batchSplitRegex);
         return await queryClusters({
-          cluster_filters: list.map(item => ({
+          cluster_filters: list.map((item) => ({
             immute_domain: item,
           })),
           bk_biz_id: currentBizId,
@@ -141,7 +141,7 @@
   const handelClusterChange = (selected: { [key: string]: TendbhaModel[] }) => {
     selectedClusters.value = selected;
     const list = Object.keys(selected).reduce((list: TendbhaModel[], key) => list.concat(...selected[key]), []);
-    localValue.value = list.map(item => item.master_domain).join(',');
+    localValue.value = list.map((item) => item.master_domain).join(',');
     emits('change', list);
     window.changeConfirm = true;
     setTimeout(() => {

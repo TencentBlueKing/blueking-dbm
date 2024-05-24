@@ -71,9 +71,19 @@
 
   const attrs = useAttrs();
 
-  const localValue = ref(props.modelValue);
+  const localValue = ref();
 
   const { message: errorMessage, validator } = useValidtor(props.rules);
+
+  watch(
+    () => props.modelValue,
+    () => {
+      localValue.value = props.modelValue;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: Required<Props>['modelValue']) => {
     localValue.value = value;

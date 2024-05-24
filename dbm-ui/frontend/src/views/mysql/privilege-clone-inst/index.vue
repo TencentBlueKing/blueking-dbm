@@ -29,23 +29,27 @@
   <SmartAction
     v-else
     class="clone-instance">
-    <BkAlert
-      closable
-      :title="$t('DB权限克隆_DB实例IP替换时_克隆原实例的所有权限到新实例中')" />
-    <BkButton
-      class="clone-instance-batch"
-      @click="() => (isShowBatchInput = true)">
-      <i class="db-icon-add" />
-      {{ $t('批量录入') }}
-    </BkButton>
-    <ToolboxTable
-      ref="toolboxTableRef"
-      class="mb-32"
-      :columns="columns"
-      :data="tableData"
-      :max-height="tableMaxHeight"
-      @add="handleAddItem"
-      @remove="handleRemoveItem" />
+    <div class="mb-20">
+      <BkAlert
+        closable
+        :title="$t('DB权限克隆_DB实例IP替换时_克隆原实例的所有权限到新实例中')" />
+      <BkButton
+        class="clone-instance-batch"
+        @click="() => (isShowBatchInput = true)">
+        <i class="db-icon-add" />
+        {{ $t('批量录入') }}
+      </BkButton>
+      <ToolboxTable
+        ref="toolboxTableRef"
+        class="mb-32"
+        :columns="columns"
+        :data="tableData"
+        :max-height="tableMaxHeight"
+        @add="handleAddItem"
+        @clone="handleCloneItem"
+        @remove="handleRemoveItem" />
+      <TicketRemark v-model="remark" />
+    </div>
     <template #action>
       <BkButton
         class="mr-8 w-88"
@@ -93,6 +97,7 @@
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import { generateId, messageError } from '@utils';
 
@@ -123,6 +128,7 @@
     type: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark
       fetchInstanceInfos(cloneData.tableDataList.map(item => item.source));
       window.changeConfirm = true;
     },
@@ -135,6 +141,7 @@
   const isShowInstanceSelecotr = ref(false);
   const instanceMap: Map<string, InstanceInfos> = reactive(new Map());
   const tableData = ref<Array<TableItem>>([getTableItem()]);
+  const remark = ref('')
   const originInstanceRules = [
     {
       validator: (inst: string) => {
@@ -421,6 +428,13 @@
     tableData.value.splice(index, 1);
   }
 
+  const handleCloneItem = (index: number) => {
+    tableData.value.splice(index + 1, 0, _.cloneDeep(tableData.value[index]));
+    setTimeout(() => {
+      toolboxTableRef.value.validate();
+    })
+  }
+
   function handleReset() {
     InfoBox({
       title: t('确认重置表单内容'),
@@ -428,6 +442,7 @@
       cancelText: t('取消'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
+        remark.value = ''
         instanceMemo = {};
         selectedIntances.value[ClusterTypes.TENDBHA] = [];
         nextTick(() => {
@@ -487,6 +502,7 @@
               createTicket({
                 ticket_type: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
                 bk_biz_id: globalBizsStore.currentBizId,
+                remark: remark.value,
                 details: {
                   ...res,
                   clone_type: 'instance',

@@ -52,6 +52,7 @@
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -109,6 +110,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'onIpInputFinish', value: string): void;
   }
 
@@ -152,14 +154,31 @@
     emits('remove');
   };
 
+  const getRowData = () => [
+    [
+      hostRef.value.getValue(),
+      clusterRef.value.getValue(),
+      instanceRef.value.getValue(),
+      slaveRef.value.getValue(),
+      switchModeRef.value.getValue(),
+    ],
+  ];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits('clone', {
+        ...props.data,
+        rowKey: random(),
+        isLoading: false,
+        switchMode: rowInfo[4],
+      });
+    });
+  };
+
   defineExpose<Exposes>({
     getValue: async () => {
-      await Promise.all([
-        hostRef.value.getValue(),
-        clusterRef.value.getValue(),
-        instanceRef.value.getValue(),
-        slaveRef.value.getValue(),
-      ]);
+      await Promise.all(getRowData());
       const switchType = await switchModeRef.value.getValue();
       return {
         cluster_id: props.data.clusterId,

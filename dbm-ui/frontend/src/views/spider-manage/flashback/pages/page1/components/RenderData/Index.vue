@@ -36,9 +36,9 @@
               :disable-fn="disabledStartTime"
               :title="t('回档时间')"
               type="datetime"
-              @change="(value) => handleBatchEditChange(value as string, 'startTime')">
+              @change="(value) => handleBatchEditChange(value, 'startTime')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('startTime')">
                 <DbIcon type="bulk-edit" />
@@ -56,9 +56,9 @@
               :disable-fn="disabledEndTime"
               :title="t('截止时间')"
               type="datetime"
-              @change="(value) => handleBatchEditChange(value as string, 'endTime')">
+              @change="(value) => handleBatchEditChange(value, 'endTime')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('endTime')">
                 <DbIcon type="bulk-edit" />
@@ -77,7 +77,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'databases')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('databases')">
                 <DbIcon type="bulk-edit" />
@@ -96,7 +96,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'tables')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('tables')">
                 <DbIcon type="bulk-edit" />
@@ -116,7 +116,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'databasesIgnore')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('databasesIgnore')">
                 <DbIcon type="bulk-edit" />
@@ -136,7 +136,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'tablesIgnore')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('tablesIgnore')">
                 <DbIcon type="bulk-edit" />

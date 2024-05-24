@@ -28,11 +28,15 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['nodeType']
+    data?: IDataRow['nodeType'];
   }
 
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: string): void;
+  }
+
+  interface Exposes {
+    getValue: () => Promise<string>;
   }
 
   const props = defineProps<Props>();
@@ -41,7 +45,7 @@
   const { t } = useI18n();
 
   const selectRef = ref<InstanceType<typeof TableEditSelect>>();
-  const localValue = ref(props.data ? props.data : 'Proxy');
+  const localValue = ref();
 
   const selectList = [
     {
@@ -61,7 +65,26 @@
     },
   ];
 
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data ? props.data : 'Proxy';
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleChange = (value: string) => {
     emits('change', value);
   };
+
+  defineExpose<Exposes>({
+    getValue() {
+      return selectRef
+        .value!.getValue()
+        .then(() => localValue.value)
+        .catch(() => Promise.reject(localValue.value));
+    },
+  });
 </script>

@@ -37,7 +37,7 @@
               :title="t('回档类型')"
               @change="(value) => handleBatchEditChange(value, 'rollbackupType')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('rollbackupType')">
                 <DbIcon type="bulk-edit" />
@@ -56,7 +56,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'databases')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('databases')">
                 <DbIcon type="bulk-edit" />
@@ -76,7 +76,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'databasesIgnore')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('databasesIgnore')">
                 <DbIcon type="bulk-edit" />
@@ -95,7 +95,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'tables')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('tables')">
                 <DbIcon type="bulk-edit" />
@@ -115,7 +115,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'tablesIgnore')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('tablesIgnore')">
                 <DbIcon type="bulk-edit" />

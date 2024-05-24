@@ -29,23 +29,27 @@
   <SmartAction
     v-else
     class="clone-client">
-    <BkAlert
-      closable
-      :title="$t('客户端权限克隆_访问DB来源IP替换时做的权限克隆')" />
-    <BkButton
-      class="clone-client-batch"
-      @click="() => (isShowBatchInput = true)">
-      <i class="db-icon-add" />
-      {{ $t('批量录入') }}
-    </BkButton>
-    <ToolboxTable
-      ref="toolboxTableRef"
-      class="mb-32"
-      :columns="columns"
-      :data="tableData"
-      :max-height="tableMaxHeight"
-      @add="handleAddItem"
-      @remove="handleRemoveItem" />
+    <div class="mb-20">
+      <BkAlert
+        closable
+        :title="$t('客户端权限克隆_访问DB来源IP替换时做的权限克隆')" />
+      <BkButton
+        class="clone-client-batch"
+        @click="() => (isShowBatchInput = true)">
+        <i class="db-icon-add" />
+        {{ $t('批量录入') }}
+      </BkButton>
+      <ToolboxTable
+        ref="toolboxTableRef"
+        class="mb-32"
+        :columns="columns"
+        :data="tableData"
+        :max-height="tableMaxHeight"
+        @add="handleAddItem"
+        @clone="handleCloneItem"
+        @remove="handleRemoveItem" />
+      <TicketRemark v-model="remark" />
+    </div>
     <template #action>
       <BkButton
         class="mr-8 w-88"
@@ -94,6 +98,7 @@
   import { ipv4 } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import { generateId, messageError } from '@utils';
 
@@ -127,6 +132,7 @@
     onSuccess(cloneData) {
       const { tableDataList } = cloneData;
       tableData.value = tableDataList;
+      remark.value = cloneData.remark;
       fetchHostTopoInfos(tableDataList.map(item => item.source));
       window.changeConfirm = true;
     },
@@ -156,6 +162,7 @@
   const isSubmitting = ref(false);
   const isShowIpSelector = ref(false);
   const tableData = ref<Array<TableItem>>([getTableItem()]);
+  const remark = ref('')
 
   const formItemRefs = reactive({
     target: [] as FormItemInstance[],
@@ -421,6 +428,13 @@
     tableData.value.splice(index, 1);
   };
 
+  const handleCloneItem = (index: number) => {
+    tableData.value.splice(index + 1, 0, _.cloneDeep(tableData.value[index]));
+    setTimeout(() => {
+      toolboxTableRef.value.validate();
+    })
+  }
+
   const handleReset = () => {
     InfoBox({
       title: t('确认重置表单内容'),
@@ -428,6 +442,7 @@
       cancelText: t('取消'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
+        remark.value = ''
         nextTick(() => {
           window.changeConfirm = false;
         });
@@ -476,6 +491,7 @@
               createTicket({
                 ticket_type: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
                 bk_biz_id: globalBizsStore.currentBizId,
+                remark: remark.value,
                 details: {
                   ...res,
                   clone_type: 'client',

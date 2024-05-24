@@ -50,25 +50,28 @@ export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketMo
     {} as Record<string, any>,
   );
 
-  return ips.map((ip) => ({
-    rowKey: random(),
-    isLoading: false,
-    ip,
-    clusterId: IpInfoMap[ip].cluster_id,
-    bkCloudId: IpInfoMap[ip].bk_cloud_id,
-    bkHostId: IpInfoMap[ip].bk_host_id,
-    slaveNum: infoMap[ip].cluster.redis_slave_count,
-    cluster: {
-      domain: infoMap[ip].cluster.immute_domain,
-      isStart: false,
-      isGeneral: true,
-      rowSpan: 1,
-    },
-    spec: infoMap[ip].spec_config,
-    targetNum: 1,
-    slaveHost: {
-      faults: infoMap[ip].unavailable_slave,
-      total: infoMap[ip].total_slave,
-    },
-  }));
+  return {
+    tableDataList: ips.map((ip) => ({
+      rowKey: random(),
+      isLoading: false,
+      ip,
+      clusterId: IpInfoMap[ip].cluster_id,
+      bkCloudId: IpInfoMap[ip].bk_cloud_id,
+      bkHostId: IpInfoMap[ip].bk_host_id,
+      slaveNum: infoMap[ip].cluster.redis_slave_count,
+      cluster: {
+        domain: infoMap[ip].cluster.immute_domain,
+        isStart: false,
+        isGeneral: true,
+        rowSpan: 1,
+      },
+      spec: infoMap[ip].spec_config,
+      targetNum: 1,
+      slaveHost: {
+        faults: infoMap[ip].unavailable_slave,
+        total: infoMap[ip].total_slave,
+      },
+    })),
+    remark: ticketData.remark,
+  };
 }

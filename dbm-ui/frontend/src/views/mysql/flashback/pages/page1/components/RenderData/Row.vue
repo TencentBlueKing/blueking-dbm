@@ -23,13 +23,13 @@
     <td style="padding: 0">
       <RenderStartTime
         ref="startTimeRef"
-        v-model="localStartTime" />
+        :model-value="data.startTime" />
     </td>
     <td style="padding: 0">
       <RenderEndTime
         ref="endTimeRef"
-        v-model="localEndTime"
-        :start-time="localStartTime" />
+        :model-value="data.endTime"
+        :start-time="data.startTime" />
     </td>
     <td style="padding: 0">
       <RenderDbName
@@ -57,23 +57,11 @@
         :model-value="data.tablesIgnore"
         :required="false" />
     </td>
-    <td>
-      <div class="action-box">
-        <div
-          class="action-btn"
-          @click="handleAppend">
-          <DbIcon type="plus-fill" />
-        </div>
-        <div
-          class="action-btn"
-          :class="{
-            disabled: removeable,
-          }"
-          @click="handleRemove">
-          <DbIcon type="minus-fill" />
-        </div>
-      </div>
-    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @clone="handleClone"
+      @remove="handleRemove" />
   </tr>
 </template>
 <script lang="ts">
@@ -93,6 +81,8 @@
     tablesIgnore?: string[];
   }
 
+  export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData'>;
+
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
@@ -108,6 +98,8 @@
 <script setup lang="ts">
   import { ref, watch } from 'vue';
 
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
 
@@ -122,6 +114,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -140,16 +133,12 @@
   const tablesIgnoreRef = ref();
 
   const localClusterId = ref(0);
-  const localStartTime = ref<string>();
-  const localEndTime = ref<string>();
 
   watch(
     () => props.data,
     () => {
       if (props.data.clusterData) {
         localClusterId.value = props.data.clusterData.id;
-        localStartTime.value = props.data.startTime;
-        localEndTime.value = props.data.endTime;
       }
     },
     {
@@ -183,6 +172,32 @@
       return;
     }
     emits('remove');
+  };
+
+  const getRowData = () => [
+    clusterRef.value.getValue(),
+    startTimeRef.value.getValue(),
+    endTimeRef.value.getValue(),
+    databasesRef.value.getValue('databases'),
+    tablesRef.value.getValue('tables'),
+    databasesIgnoreRef.value.getValue('databases_ignore'),
+    tablesIgnoreRef.value.getValue('tables_ignore'),
+  ];
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits('clone', {
+        ...props.data,
+        rowKey: random(),
+        clusterData: props.data.clusterData,
+        startTime: rowInfo[1].start_time,
+        endTime: rowInfo[2].end_time,
+        databases: rowInfo[3].databases,
+        tables: rowInfo[4].tables,
+        databasesIgnore: rowInfo[5].databases_ignore,
+        tablesIgnore: rowInfo[6].tables_ignore,
+      });
+    });
   };
 
   defineExpose<Exposes>({

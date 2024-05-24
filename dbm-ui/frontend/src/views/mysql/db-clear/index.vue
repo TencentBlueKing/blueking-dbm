@@ -29,37 +29,40 @@
   <SmartAction
     v-else
     class="db-clear">
-    <BkAlert
-      closable
-      :title="t('清档_删除目标数据库数据_数据会暂存在不可见的备份库中_只有在执行删除备份库后_才会真正的删除数据')" />
-    <div class="db-clear-operations">
-      <BkButton
-        class="db-clear-batch"
-        @click="() => (isShowBatchInput = true)">
-        <i class="db-icon-add" />
-        {{ t('批量录入') }}
-      </BkButton>
+    <div class="pb-20">
+      <BkAlert
+        closable
+        :title="t('清档_删除目标数据库数据_数据会暂存在不可见的备份库中_只有在执行删除备份库后_才会真正的删除数据')" />
+      <div class="db-clear-operations">
+        <BkButton
+          class="db-clear-batch"
+          @click="() => (isShowBatchInput = true)">
+          <i class="db-icon-add" />
+          {{ t('批量录入') }}
+        </BkButton>
+      </div>
+      <ToolboxTable
+        ref="toolboxTableRef"
+        class="mb-20"
+        :columns="columns"
+        :data="tableData"
+        :max-height="tableMaxHeight"
+        @add="handleAddItem"
+        @clone="handleCloneItem"
+        @remove="handleRemoveItem" />
+      <BkCheckbox
+        v-model="isForce"
+        v-bk-tooltips="t('安全模式下_存在业务连接时需要人工确认')"
+        :false-label="1"
+        :true-label="0">
+        <span
+          class="inline-block"
+          style="margin-top: -2px; border-bottom: 1px dashed #979ba5">
+          {{ t('安全模式') }}
+        </span>
+      </BkCheckbox>
+      <TicketRemark v-model="remark" />
     </div>
-    <ToolboxTable
-      ref="toolboxTableRef"
-      class="mb-20"
-      :columns="columns"
-      :data="tableData"
-      :max-height="tableMaxHeight"
-      @add="handleAddItem"
-      @remove="handleRemoveItem" />
-    <BkCheckbox
-      v-model="isForce"
-      v-bk-tooltips="t('安全模式下_存在业务连接时需要人工确认')"
-      class="mb-20"
-      :false-label="1"
-      :true-label="0">
-      <span
-        class="inline-block"
-        style="margin-top: -2px; border-bottom: 1px dashed #979ba5">
-        {{ t('安全模式') }}
-      </span>
-    </BkCheckbox>
     <template #action>
       <BkButton
         class="mr-8 w-88"
@@ -124,6 +127,7 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import { generateId, messageError } from '@utils';
 
@@ -147,6 +151,8 @@
     uniqueId: string
   }
 
+  type IDataRowBatchKey = keyof Omit<TableItem, 'cluster_domain' | 'cluster_id' | 'cluster_type' | 'uniqueId'>
+
   interface TableColumnData {
     index: number,
     data: TableItem
@@ -164,6 +170,7 @@
         tableDataList,
       } = cloneData;
       tableData.value = tableDataList;
+      remark.value = cloneData.remark
       window.changeConfirm = true;
     },
   });
@@ -179,11 +186,19 @@
   const popRef = ref<HTMLDivElement>();
   const isShowInputTips = ref(false);
   const tableData = ref<Array<TableItem>>([getTableItem()]);
-  const isShowBatchEdit = ref(false);
+  const remark = ref('')
 
   const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({
     [ClusterTypes.TENDBHA]: [],
     [ClusterTypes.TENDBSINGLE]: [],
+  });
+
+  const batchEditShow = reactive({
+    db_patterns: false,
+    ignore_dbs: false,
+    table_patterns: false,
+    ignore_tables: false,
+    truncate_data_type: false,
   });
 
   const clusterInfoMap: Map<string, TendbhaModel> = reactive(new Map());
@@ -241,17 +256,17 @@
     {
       label: () => (
         <span>
-          {t('清档类型')}
+          { t('清档类型') }
           <BatchEditColumn
-            model-value={isShowBatchEdit.value}
+            model-value={batchEditShow.truncate_data_type}
+            title={t('清档类型')}
             data-list={truncateDataTypes}
-            title={t('备份源')}
-            onChange={handleBatchEditTruncateType}>
+            onChange={(value) => handleBatchEditChange(value, 'truncate_data_type')}>
             <span
-              v-bk-tooltips={t('批量编辑')}
+              v-bk-tooltips={t('统一设置：将该列统一设置为相同的值')}
               class="ml-4"
               style="color: #3A84FF"
-              onClick={handleShowBatchEdit}>
+              onClick={() => handleBatchEditShow('truncate_data_type')}>
               <db-icon type="bulk-edit" />
             </span>
           </BatchEditColumn>
@@ -276,8 +291,21 @@
     },
     {
       label: () => (
-        <span class="column-required">
-          {t('目标DB名')}
+        <span>
+          { t('目标DB名') }
+          <BatchEditColumn
+            model-value={batchEditShow.db_patterns}
+            title={t('目标DB名')}
+            type='taginput'
+            onChange={(value) => handleBatchEditChange(value, 'db_patterns')}>
+            <span
+              v-bk-tooltips={t('统一设置：将该列统一设置为相同的值')}
+              class="ml-4"
+              style="color: #3A84FF"
+              onClick={() => handleBatchEditShow('db_patterns')}>
+              <db-icon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
         </span>
       ),
       field: 'db_patterns',
@@ -304,8 +332,21 @@
     },
     {
       label: () => (
-        <span class="column-required">
-          {t('目标表名')}
+        <span>
+          { t('目标表名') }
+          <BatchEditColumn
+            model-value={batchEditShow.table_patterns}
+            title={t('目标表名')}
+            type='taginput'
+            onChange={(value) => handleBatchEditChange(value, 'table_patterns')}>
+            <span
+              v-bk-tooltips={t('统一设置：将该列统一设置为相同的值')}
+              class="ml-4"
+              style="color: #3A84FF"
+              onClick={() => handleBatchEditShow('table_patterns')}>
+              <db-icon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
         </span>
       ),
       field: 'table_patterns',
@@ -333,7 +374,24 @@
       ),
     },
     {
-      label: t('忽略DB名'),
+      label: () => (
+        <span>
+          { t('忽略DB名') }
+          <BatchEditColumn
+            model-value={batchEditShow.ignore_dbs}
+            title={t('忽略DB名')}
+            type='taginput'
+            onChange={(value) => handleBatchEditChange(value, 'ignore_dbs')}>
+            <span
+              v-bk-tooltips={t('统一设置：将该列统一设置为相同的值')}
+              class="ml-4"
+              style="color: #3A84FF"
+              onClick={() => handleBatchEditShow('ignore_dbs')}>
+              <db-icon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </span>
+      ),
       field: 'ignore_dbs',
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
@@ -356,7 +414,24 @@
       ),
     },
     {
-      label: t('忽略表名'),
+      label: () => (
+        <span>
+          { t('忽略表名') }
+          <BatchEditColumn
+            model-value={batchEditShow.ignore_tables}
+            title={t('忽略表名')}
+            type='taginput'
+            onChange={(value) => handleBatchEditChange(value, 'ignore_tables')}>
+            <span
+              v-bk-tooltips={t('统一设置：将该列统一设置为相同的值')}
+              class="ml-4"
+              style="color: #3A84FF"
+              onClick={() => handleBatchEditShow('ignore_tables')}>
+              <db-icon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </span>
+      ),
       field: 'ignore_tables',
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
@@ -386,22 +461,6 @@
   let domainMemo: Record<string, boolean> = {};
 
   const tagInputPasteFn = (value: string) => value.split('\n').map(item => ({ id: item }));
-
-  const handleShowBatchEdit = () => {
-    isShowBatchEdit.value = !isShowBatchEdit.value;
-  };
-
-  const handleBatchEditTruncateType = (value: string | string[]) => {
-    if (!value) {
-      return;
-    }
-
-    tableData.value.forEach((row) => {
-      Object.assign(row, {
-        truncate_data_type: value,
-      });
-    });
-  };
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<TableItem>) => {
@@ -781,6 +840,21 @@
     }
   }
 
+  const handleBatchEditShow = (key: IDataRowBatchKey) => {
+    batchEditShow[key] = !batchEditShow[key];
+  };
+
+  const handleBatchEditChange = (value: string | string[], filed: IDataRowBatchKey) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        [filed]: value,
+      });
+    });
+  };
+
   /**
    * 批量录入
    */
@@ -824,6 +898,13 @@
     tableData.value.splice(index, 1);
   }
 
+  const handleCloneItem = (index: number) => {
+    tableData.value.splice(index + 1, 0, _.cloneDeep(tableData.value[index]));
+    setTimeout(() => {
+      toolboxTableRef.value.validate();
+    })
+  }
+
   function handleReset() {
     InfoBox({
       title: t('确认重置表单内容'),
@@ -831,6 +912,7 @@
       cancelText: t('取消'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
+        remark.value = ''
         selectedClusters.value[ClusterTypes.TENDBHA] = [];
         selectedClusters.value[ClusterTypes.TENDBSINGLE] = [];
         clusterInfoMap.clear();
@@ -859,6 +941,7 @@
           ticket_type: clusterTypes[0] === ClusterTypes.TENDBHA
             ? TicketTypes.MYSQL_HA_TRUNCATE_DATA : TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
           bk_biz_id: globalBizsStore.currentBizId,
+          remark: remark.value,
           details: {
             infos: tableData.value.map(item => ({
               cluster_id: item.cluster_id,

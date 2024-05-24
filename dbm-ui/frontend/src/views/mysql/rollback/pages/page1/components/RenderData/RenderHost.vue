@@ -123,9 +123,16 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue().then(() => ({
-        rollback_host: rollbackHost,
-      }));
+      return inputRef.value
+        .getValue()
+        .then(() => ({
+          rollback_host: rollbackHost,
+        }))
+        .catch(() =>
+          Promise.reject({
+            rollback_host: rollbackHost,
+          }),
+        );
     },
   });
 </script>

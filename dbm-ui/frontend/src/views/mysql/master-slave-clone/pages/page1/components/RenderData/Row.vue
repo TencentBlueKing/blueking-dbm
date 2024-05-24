@@ -29,26 +29,16 @@
         :master-host="data.masterHostData"
         :slave-host="data.slaveHostData" />
     </td>
-    <td>
-      <div class="action-box">
-        <div
-          class="action-btn"
-          @click="handleAppend">
-          <DbIcon type="plus-fill" />
-        </div>
-        <div
-          class="action-btn"
-          :class="{
-            disabled: removeable,
-          }"
-          @click="handleRemove">
-          <DbIcon type="minus-fill" />
-        </div>
-      </div>
-    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @clone="handleClone"
+      @remove="handleRemove" />
   </tr>
 </template>
 <script lang="ts">
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
   import { random } from '@utils';
 
   export interface IHostData {
@@ -92,6 +82,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -151,9 +142,25 @@
     emits('remove');
   };
 
+  const getRowData = () => [clusterRef.value.getValue(), hostRef.value.getValue()];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          clusterData: props.data.clusterData,
+          masterHostData: rowInfo[1].new_master,
+          slaveHostData: rowInfo[1].new_slave,
+        }),
+      );
+    });
+  };
+
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([clusterRef.value.getValue(), hostRef.value.getValue()]).then(([clusterData, hostData]) => ({
+      return Promise.all(getRowData()).then(([clusterData, hostData]) => ({
         ...clusterData,
         ...hostData,
       }));

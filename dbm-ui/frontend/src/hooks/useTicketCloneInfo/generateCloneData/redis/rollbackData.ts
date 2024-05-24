@@ -32,5 +32,6 @@ export function generateRedisRollbackDataCloneData(ticketData: TicketModel<Redis
   return Promise.resolve({
     tableList,
     writeMode: ticketData.details.write_mode,
+    remark: ticketData.remark,
   });
 }

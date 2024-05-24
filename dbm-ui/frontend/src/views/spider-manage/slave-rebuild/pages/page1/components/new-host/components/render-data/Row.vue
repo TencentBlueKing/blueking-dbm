@@ -145,9 +145,6 @@
 
   const handleClone = () => {
     Promise.allSettled(getRowData()).then((rowData) => {
-      const [oldSlaveValue, newSlaveData] = rowData.map((item) =>
-        item.status === 'fulfilled' ? item.value : item.reason,
-      );
       emits('clone', {
         rowKey: random(),
         isLoading: false,
