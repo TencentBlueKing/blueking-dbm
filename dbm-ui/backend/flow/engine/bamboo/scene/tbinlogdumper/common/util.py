@@ -15,8 +15,10 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.db_meta.models.extra_process import ExtraProcessInstance
+from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 from backend.flow.consts import TBINLOGDUMPER_PORT
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.exceptions import NormalTBinlogDumperFlowException
+from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
 
 def get_tbinlogdumper_install_port(machine: Machine, install_num: int) -> list:
@@ -106,3 +108,20 @@ def get_tbinlogdumper_server_id(master: StorageInstance, tbinlogdumper_port: int
 
     master_server_id = res[0]["cmd_results"][0]["table_data"][0]["id"]
     return int(master_server_id) + tbinlogdumper_port
+
+
+def import_nodes(infos: list):
+    """
+    构建  tbinlogdumper节点导入dbm系统的标准化
+    """
+    for info in infos:
+        # 根据source_ip和source_port 获取到对应的集群id
+        cluster = StorageInstance.objects.get(
+            machine__ip=info["sync_ip"], port=info["sync_port"], machine__bk_cloud_id=0
+        ).cluster
+        dumper_config = DumperSubscribeConfig.objects.get(id=info["dumper_config_id"])
+
+        # 导入源信息
+        info["cluster_id"] = cluster.get().id
+        info["repl_tables"] = dumper_config.get_subscribe_info()
+        MySQLDBMeta(ticket_data=info, cluster={}).add_tbinlogdumper()
