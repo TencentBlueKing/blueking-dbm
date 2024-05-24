@@ -57,6 +57,7 @@
   import MySQLChecksum from './mysql/Checksum.vue';
   import MySQLClone from './mysql/Clone.vue';
   import MySQLClusterOperation from './mysql/ClusterOperation.vue';
+  import MySQLDataMigrate from './mysql/DataMigrate.vue';
   import DetailsMySQL from './mysql/Details.vue';
   import DumperInstall from './mysql/DumperInstall.vue';
   import DumperNodeStatusUpdate from './mysql/DumperNodeStatusUpdate.vue';
@@ -69,6 +70,7 @@
   import MySQLMasterSlaveSwitch from './mysql/MasterSlaveSwitch.vue';
   import MySQLMigrateCluster from './mysql/MigrateCluster.vue';
   import MysqlOpenArea from './mysql/OpenArea.vue';
+  import MysqlParition from './mysql/Partition.vue';
   import MySQLProxyAdd from './mysql/ProxyAdd.vue';
   import MySQLProxySwitch from './mysql/ProxySwitch.vue';
   import MySQLRename from './mysql/Rename.vue';
@@ -110,7 +112,6 @@
   import SpiderMNTApply from './spider/MNTApply.vue';
   import SpiderMNTDestroy from './spider/MNTDestroy.vue';
   import SpiderNodeRebalance from './spider/NodeRebalance.vue';
-  import SpiderPartitionManage from './spider/PartitionManage.vue';
   import SpiderReduceNodes from './spider/ReduceNodes.vue';
   import SpiderRenameDatabase from './spider/RenameDatabase.vue';
   import SpiderRollback from './spider/Rollback.vue';
@@ -301,6 +302,7 @@
     [TicketTypes.MYSQL_CHECKSUM]: MySQLChecksum,
     [TicketTypes.MYSQL_OPEN_AREA]: MysqlOpenArea,
     [TicketTypes.MYSQL_ADD_SLAVE]: MySQLAddSlave,
+    [TicketTypes.MYSQL_DATA_MIGRATE]: MySQLDataMigrate,
     [TicketTypes.TBINLOGDUMPER_INSTALL]: DumperInstall,
     [TicketTypes.TBINLOGDUMPER_SWITCH_NODES]: DumperSwitchNode,
     [TicketTypes.PULSAR_APPLY]: DetailsPulsar,
@@ -337,7 +339,6 @@
     [TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY]: SpiderSlaveDestroy,
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: SpiderTableBackup,
     [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: SpiderTruncateDatabase,
-    [TicketTypes.TENDBCLUSTER_PARTITION]: SpiderPartitionManage,
     [TicketTypes.RIAK_CLUSTER_APPLY]: DetailRiak,
     [TicketTypes.RIAK_CLUSTER_REBOOT]: RiakReboot,
     [TicketTypes.MONGODB_SHARD_APPLY]: DetailsMongoDBSharedCluster,
@@ -459,6 +460,9 @@
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];
+    }
+    if ([TicketTypes.MYSQL_PARTITION, TicketTypes.TENDBCLUSTER_PARTITION].includes(ticketType)) {
+      return MysqlParition;
     }
     return DetailsMySQL;
   });

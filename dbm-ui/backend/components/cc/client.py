@@ -23,6 +23,7 @@ class _CCApi(BaseApi):
         HOST_NOT_BELONG_BIZ = 1113002
         HOST_NOT_BELONG_MODULE = 1110056
         CUSTOM_FIELD_ALREADY_EXISTS = 1101107
+        TASK_ALREADY_EXISTS = 1199087
 
     def __init__(self):
         self.list_hosts_without_biz = self.generate_data_api(
@@ -31,9 +32,7 @@ class _CCApi(BaseApi):
             description=_("没有业务信息的主机查询"),
         )
         self.search_business = self.generate_data_api(
-            method="POST",
-            url="search_business/",
-            description=_("查询业务"),
+            method="POST", url="search_business/", description=_("查询业务"), cache_time=300
         )
         self.search_module = self.generate_data_api(
             method="POST",
@@ -81,9 +80,7 @@ class _CCApi(BaseApi):
             description=_("创建自定义字段"),
         )
         self.search_object_attribute = self.generate_data_api(
-            method="POST",
-            url="search_object_attribute/",
-            description=_("获取模型属性"),
+            method="POST", url="search_object_attribute/", description=_("获取模型属性"), cache_time=60
         )
         self.create_object_attribute = self.generate_data_api(
             method="POST",
@@ -101,9 +98,7 @@ class _CCApi(BaseApi):
             description=_("主机移动到待回收模块"),
         )
         self.search_biz_inst_topo = self.generate_data_api(
-            method="GET",
-            url="search_biz_inst_topo/",
-            description=_("查询业务实例拓扑"),
+            method="GET", url="search_biz_inst_topo/", description=_("查询业务实例拓扑"), cache_time=60
         )
         self.list_biz_hosts = self.generate_data_api(
             method="POST",
@@ -116,9 +111,7 @@ class _CCApi(BaseApi):
             description=_("查询业务下的主机和拓扑信息"),
         )
         self.get_biz_internal_module = self.generate_data_api(
-            method="GET",
-            url="get_biz_internal_module/",
-            description=_("查询业务的空闲机/故障机/待回收模块"),
+            method="GET", url="get_biz_internal_module/", description=_("查询业务的空闲机/故障机/待回收模块"), cache_time=60 * 60
         )
         self.find_host_topo_relation = self.generate_data_api(
             method="POST",
@@ -210,11 +203,6 @@ class _CCApi(BaseApi):
             method="POST",
             url="find_host_biz_relations/",
             description=_("查询主机业务关系信息"),
-        )
-        self.search_object_attribute = self.generate_data_api(
-            method="POST",
-            url="search_object_attribute/",
-            description=_("查询对象属性"),
         )
 
 

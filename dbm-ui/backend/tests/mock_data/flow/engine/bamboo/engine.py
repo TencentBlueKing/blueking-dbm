@@ -9,7 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+# -*- coding: utf-8 -*-
+
 import collections
+
+from bamboo_engine.eri import State
 
 from backend.tests.mock_data.ticket.ticket_flow import SQL_IMPORT_DATA, SQL_IMPORT_NODE_ID
 
@@ -19,6 +23,22 @@ NodeInput = collections.namedtuple(
         "data",
     ],
 )
+
+STATE_DATA = {
+    "node_id": "efb0152xxxxxx6c5",
+    "root_id": "2024051737b98b",
+    "parent_id": "2024051737b98b",
+    "name": "FINISHED",
+    "version": "v3b180815xxxxxx4b992c",
+    "loop": 1,
+    "inner_loop": 1,
+    "retry": 0,
+    "skip": False,
+    "error_ignored": False,
+    "created_time": "",
+    "started_time": "",
+    "archived_time": "",
+}
 
 
 class BambooEngineMock(object):
@@ -34,3 +54,6 @@ class BambooEngineMock(object):
             node_input.data["global_data"] = SQL_IMPORT_DATA["details"]
 
         return node_input
+
+    def get_node_state(self, node_id):
+        return State(**STATE_DATA)

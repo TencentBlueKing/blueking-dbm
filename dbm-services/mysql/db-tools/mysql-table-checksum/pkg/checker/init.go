@@ -69,7 +69,7 @@ func init() {
 		{
 			Name: "chunk-size-limit",
 			Value: func(checker *Checker) interface{} {
-				return 5
+				return 2
 			},
 			Enable: true,
 		},
@@ -84,6 +84,13 @@ func init() {
 			Name: "progress",
 			Value: func(checker *Checker) interface{} {
 				return "time,864000"
+			},
+			Enable: true,
+		},
+		{
+			Name: "chunk-size",
+			Value: func(checker *Checker) interface{} {
+				return "10M"
 			},
 			Enable: true,
 		},

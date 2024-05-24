@@ -27,11 +27,11 @@ class TicketFlowAdmin(admin.ModelAdmin):
     list_filter = ("flow_type", "flow_alias", "status", "update_at")
 
 
-@admin.register(models.TicketFlowConfig)
+@admin.register(models.TicketFlowsConfig)
 class TicketFlowConfigAdmin(admin.ModelAdmin):
-    list_display = ("ticket_type", "group", "editable")
-    search_fields = ("ticket_type", "group", "editable")
-    list_filter = ("group",)
+    list_display = ("bk_biz_id", "ticket_type", "group", "editable", "configs")
+    search_fields = ("bk_biz_id", "ticket_type", "group")
+    list_filter = ("group", "bk_biz_id")
 
 
 @admin.register(models.Todo)

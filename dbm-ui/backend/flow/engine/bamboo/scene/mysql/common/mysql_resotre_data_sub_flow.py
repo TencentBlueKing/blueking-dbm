@@ -29,9 +29,13 @@ from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent as MySQLTransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadBackupFileKwargs, ExecActuatorKwargs, P2PFileKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import (
+    DownloadBackupFileKwargs,
+    DownloadMediaKwargs,
+    ExecActuatorKwargs,
+    P2PFileKwargs,
+)
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.riak.riak_act_dataclass import DownloadMediaKwargs
 from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
@@ -94,6 +98,18 @@ def mysql_restore_data_sub_flow(
                 file_target_path=cluster["file_target_path"],
                 source_ip_list=[backup_info["instance_ip"]],
                 exec_ip=cluster["new_slave_ip"],
+            )
+        ),
+    )
+
+    sub_pipeline.add_act(
+        act_name=_("下发db-actor到节点{}".format(cluster["master_ip"])),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster_model.bk_cloud_id,
+                exec_ip=[cluster["master_ip"], cluster["new_slave_ip"]],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
             )
         ),
     )

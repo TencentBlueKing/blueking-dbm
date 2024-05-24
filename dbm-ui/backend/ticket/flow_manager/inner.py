@@ -10,8 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import importlib
 import logging
-import uuid
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any, Dict, Union
 
 from django.utils.translation import gettext as _
@@ -27,6 +26,7 @@ from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow
+from backend.utils.basic import generate_root_id
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
@@ -56,7 +56,7 @@ class InnerFlow(BaseTicketFlow):
             return self._flow_tree
 
         try:
-            _flow_tree = FlowTree.objects.get(root_id=self.root_id)
+            _flow_tree = FlowTree.objects.get(root_id=self.root_id, is_expired=False)
         except FlowTree.DoesNotExist:
             _flow_tree = None
 
@@ -85,10 +85,9 @@ class InnerFlow(BaseTicketFlow):
 
     @property
     def _status(self) -> str:
-        # 如果当前还未创建出flow tree，则认为单据正在运行
+        # 如果未找到流程树，则直接取flow_obj的status
         if not self.flow_tree:
-            self.flow_obj.update_status(constants.TicketFlowStatus.RUNNING)
-            return constants.TicketStatus.RUNNING
+            return self.flow_obj.status
 
         status = BAMBOO_STATE__TICKET_STATE_MAP.get(self.flow_tree.status, constants.TicketStatus.RUNNING)
         self.flow_obj.update_status(status)
@@ -130,7 +129,7 @@ class InnerFlow(BaseTicketFlow):
     def run(self) -> None:
         """inner flow执行流程"""
         # 获取or生成inner flow的root id
-        root_id = self.flow_obj.flow_obj_id or f"{date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
+        root_id = self.flow_obj.flow_obj_id or generate_root_id()
         try:
             # 由于 _run 执行后可能会触发信号，导致 current_flow 的误判，因此需提前写入 flow_obj_id
             self.run_status_handler(root_id)

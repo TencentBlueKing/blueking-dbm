@@ -86,3 +86,17 @@ class CheckFlashbackInfoSerializer(serializers.Serializer):
 class CheckFlashbackInfoResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": FLASHBACK_CHECK_DATA}
+
+
+class ShowDBWithPatternsSerializer(serializers.Serializer):
+    class DBPatternsSerializer(serializers.Serializer):
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        dbs = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
+        ignore_dbs = serializers.ListField(help_text=_("忽略库列表"), child=DBTableField(db_field=True))
+
+    infos = serializers.ListSerializer(help_text=_("正则库信息"), child=DBPatternsSerializer())
+
+
+class ShowDBWithPatternsResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": SHOW_DATABASES_RESPONSE_DATA}

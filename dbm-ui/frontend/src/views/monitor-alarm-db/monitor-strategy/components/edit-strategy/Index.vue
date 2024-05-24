@@ -345,6 +345,9 @@
   });
 
   watch(formModel, (data) => {
+    if (isReadonlyPage.value) {
+      return;
+    }
     if (rawFormData === '' && data.notifyRules !== undefined) {
       rawFormData = JSON.stringify(data);
       return;

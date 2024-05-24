@@ -1,0 +1,1709 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "bklog"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "",
+            "conditions": [
+              [
+                {
+                  "key": "gjwmwtvrmx",
+                  "list": [
+                    {
+                      "id": "__ext.app",
+                      "name": "__ext.app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.app"
+                },
+                {
+                  "key": "pdsfpb6cb8",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "lab3662usi",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "dj6pbi2ros",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "9yf3mkfotd",
+                  "list": [
+                    {
+                      "id": "__ext.cluster_domain",
+                      "name": "__ext.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.cluster_domain"
+                },
+                {
+                  "key": "9g387l3vkz",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "wl763hj5mr",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "__ext.instance_host",
+              "__ext.instance_port",
+              "__ext.instance_role"
+            ],
+            "index": {
+              "id": [
+                "host_process",
+                5913
+              ],
+              "labels": [
+                "进程",
+                "[采集项]mysql_slowlog"
+              ]
+            },
+            "method": "value_count",
+            "metric": "bk_host_id",
+            "period": 60,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1
+            },
+            "queryString": "$query_string AND NOT \"# TIME\"",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "bklog"
+          },
+          "datasourceId": "bk_log_datasource",
+          "name": "BlueKing Log TimeSeries",
+          "refId": "A"
+        }
+      ],
+      "title": "慢查询数量",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "bklog"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "",
+            "conditions": [
+              [
+                {
+                  "key": "mi91nl8jg6",
+                  "list": [
+                    {
+                      "id": "__ext.app",
+                      "name": "__ext.app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.app"
+                },
+                {
+                  "key": "me8l2ech9x",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "t6va132nvj",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "19smufj0cw",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "cs2kfob4jx",
+                  "list": [
+                    {
+                      "id": "__ext.cluster_domain",
+                      "name": "__ext.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.cluster_domain"
+                },
+                {
+                  "key": "t17dfs5q7u",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "6uo1hi1o6g",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [],
+            "index": {
+              "id": [
+                "host_process",
+                5913
+              ],
+              "labels": [
+                "进程",
+                "[采集项]mysql_slowlog"
+              ]
+            },
+            "method": "max",
+            "metric": "query_time",
+            "period": 60,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1
+            },
+            "queryString": "",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "bklog"
+          },
+          "datasourceId": "bk_log_datasource",
+          "name": "BlueKing Log TimeSeries",
+          "refId": "A"
+        }
+      ],
+      "title": "慢查询最大耗时",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "bklog"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "",
+            "conditions": [
+              [
+                {
+                  "key": "mi91nl8jg6",
+                  "list": [
+                    {
+                      "id": "__ext.app",
+                      "name": "__ext.app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.app"
+                },
+                {
+                  "key": "me8l2ech9x",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "t6va132nvj",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "19smufj0cw",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "cs2kfob4jx",
+                  "list": [
+                    {
+                      "id": "__ext.cluster_domain",
+                      "name": "__ext.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.cluster_domain"
+                },
+                {
+                  "key": "t17dfs5q7u",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "6uo1hi1o6g",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [],
+            "index": {
+              "id": [
+                "host_process",
+                5913
+              ],
+              "labels": [
+                "进程",
+                "[采集项]mysql_slowlog"
+              ]
+            },
+            "method": "avg",
+            "metric": "query_time",
+            "period": 60,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1
+            },
+            "queryString": "",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "bklog"
+          },
+          "datasourceId": "bk_log_datasource",
+          "name": "BlueKing Log TimeSeries",
+          "refId": "A"
+        }
+      ],
+      "title": "慢查询平均耗时",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "bklog"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 13,
+        "w": 12,
+        "x": 0,
+        "y": 11
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "",
+            "conditions": [
+              [
+                {
+                  "key": "cd62omqqjg",
+                  "list": [
+                    {
+                      "id": "__ext.app",
+                      "name": "__ext.app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.app"
+                },
+                {
+                  "key": "5a54d4ddtb",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "bfwsce6lak",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "fsk3zn8o6c",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "5w1pk5lg3f",
+                  "list": [
+                    {
+                      "id": "__ext.cluster_domain",
+                      "name": "__ext.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.cluster_domain"
+                },
+                {
+                  "key": "83yxhj8nw3",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "xaj59hptrb",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "slow_query.query_digest_text",
+              "slow_query.query_digest_md5"
+            ],
+            "index": {
+              "id": [
+                "host_process",
+                5913
+              ],
+              "labels": [
+                "进程",
+                "[采集项]mysql_slowlog"
+              ]
+            },
+            "method": "value_count",
+            "metric": "bk_host_id",
+            "period": 86400,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1440
+            },
+            "queryString": "$query_string AND NOT \"# TIME\"",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "bklog"
+          },
+          "datasourceId": "bk_log_datasource",
+          "name": "BlueKing Log TimeSeries",
+          "refId": "A"
+        }
+      ],
+      "title": "慢查询模式分布",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "bklog"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 13,
+        "w": 12,
+        "x": 12,
+        "y": 11
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "data": {
+            "alias": "",
+            "conditions": [
+              [
+                {
+                  "key": "cd62omqqjg",
+                  "list": [
+                    {
+                      "id": "__ext.app",
+                      "name": "__ext.app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.app"
+                },
+                {
+                  "key": "5a54d4ddtb",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "bfwsce6lak",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "fsk3zn8o6c",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "5w1pk5lg3f",
+                  "list": [
+                    {
+                      "id": "__ext.cluster_domain",
+                      "name": "__ext.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.cluster_domain"
+                },
+                {
+                  "key": "83yxhj8nw3",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "xaj59hptrb",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "db_name",
+              "slow_query.table_name"
+            ],
+            "index": {
+              "id": [
+                "host_process",
+                5913
+              ],
+              "labels": [
+                "进程",
+                "[采集项]mysql_slowlog"
+              ]
+            },
+            "method": "value_count",
+            "metric": "bk_host_id",
+            "period": 86400,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1440
+            },
+            "queryString": "$query_string AND NOT \"# TIME\"",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "bklog"
+          },
+          "datasourceId": "bk_log_datasource",
+          "name": "BlueKing Log TimeSeries",
+          "refId": "A"
+        }
+      ],
+      "title": "慢查询库表分布",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "bklog"
+      },
+      "description": "慢查询列表",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "id": 4,
+      "options": {
+        "footer": {
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "data": {
+            "alias": "",
+            "conditions": [
+              [
+                {
+                  "key": "2mxv8t9k0m",
+                  "list": [
+                    {
+                      "id": "__ext.app",
+                      "name": "__ext.app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.app"
+                },
+                {
+                  "key": "zgl5rrl1sh",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "6bodoruhm3",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "d1nhrnsuiu",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "rjp12xuc3g",
+                  "list": [
+                    {
+                      "id": "__ext.cluster_domain",
+                      "name": "__ext.cluster_domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.cluster_domain"
+                },
+                {
+                  "key": "054r8ctv0t",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "cugj8vah9y",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [],
+            "index": {
+              "id": [
+                "host_process",
+                5913
+              ],
+              "labels": [
+                "进程",
+                "[采集项]mysql_slowlog"
+              ]
+            },
+            "method": "logs",
+            "metric": "bk_host_id",
+            "period": 60,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1
+            },
+            "queryString": "$query_string AND NOT \"# TIME\"",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "bklog"
+          },
+          "datasourceId": "bk_log_datasource",
+          "name": "BlueKing Log TimeSeries",
+          "refId": "A"
+        }
+      ],
+      "title": "慢查询列表",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "__ext.app": true,
+              "__ext.app_id": true,
+              "__ext.bk_cloud_id": true,
+              "__ext.bk_collect_config_id": true,
+              "__ext.cluster_domain": true,
+              "__ext.cluster_name": true,
+              "__ext.cluster_type": true,
+              "__ipv6__": true,
+              "__module__": true,
+              "__set__": true,
+              "access_source_host": true,
+              "bk_host_id": true,
+              "cloudId": true,
+              "dtEventTimeStamp": true,
+              "gseIndex": true,
+              "index": true,
+              "iterationIndex": true,
+              "log": true,
+              "path": true,
+              "serverIp": true,
+              "slow_query.db_name": true
+            },
+            "indexByName": {
+              "__ext.app": 16,
+              "__ext.app_id": 8,
+              "__ext.bk_cloud_id": 12,
+              "__ext.bk_collect_config_id": 14,
+              "__ext.cluster_domain": 17,
+              "__ext.cluster_name": 10,
+              "__ext.cluster_type": 11,
+              "__ext.instance_host": 9,
+              "__ext.instance_port": 15,
+              "__ext.instance_role": 13,
+              "__ipv6__": 37,
+              "__module__": 35,
+              "__set__": 36,
+              "access_source_host": 20,
+              "bk_host_id": 18,
+              "cloudId": 30,
+              "db_name": 22,
+              "dtEventTimeStamp": 5,
+              "gseIndex": 29,
+              "index": 38,
+              "iterationIndex": 7,
+              "lock_time": 31,
+              "log": 6,
+              "path": 19,
+              "query_time": 1,
+              "rows_examined": 2,
+              "rows_sent": 3,
+              "serverIp": 34,
+              "slow_query.command": 25,
+              "slow_query.db_name": 28,
+              "slow_query.query_digest_md5": 27,
+              "slow_query.query_digest_text": 26,
+              "slow_query.query_length": 24,
+              "slow_query.query_string": 4,
+              "slow_query.table_name": 23,
+              "sql_text": 32,
+              "sql_timestamp": 33,
+              "time": 0,
+              "user": 21
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "query_time"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 37,
+  "style": "dark",
+  "tags": [
+    "tendbsingle",
+    "tendbha",
+    "tendbcluster",
+    "慢查询"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+        },
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "app",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "exporter_dbm_mysqld_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "app",
+            "metric_field": "mysql_up",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "result_table_label": "component",
+            "where": []
+          },
+          "queryType": "dimension",
+          "variables": ""
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+        },
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 2,
+        "includeAll": false,
+        "multi": false,
+        "name": "cluster_domain",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "exporter_dbm_mysqld_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "cluster_domain",
+            "metric_field": "mysql_up",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "result_table_label": "component",
+            "where": [
+              {
+                "key": "app",
+                "method": "eq",
+                "value": [
+                  "$app"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "$app"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "*",
+          "value": "*"
+        },
+        "hide": 0,
+        "name": "query_string",
+        "options": [
+          {
+            "selected": true,
+            "text": "*",
+            "value": "*"
+          }
+        ],
+        "query": "*",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "default",
+  "title": "MySQL慢查询",
+  "uid": "T03zLYLSz",
+  "version": 23,
+  "weekStart": ""
+}

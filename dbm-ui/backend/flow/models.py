@@ -27,6 +27,7 @@ class FlowTree(models.Model):
     created_by = models.CharField(_("流程创建人"), max_length=20, null=True)
     created_at = models.DateTimeField(_("启动时间"), auto_now_add=True, blank=True)
     updated_at = models.DateTimeField(_("流程结束时间"), auto_now=True, blank=True)
+    is_expired = models.BooleanField(_("是否已经过期"), default=False, help_text=_("运行时被定期清理即为过期"))
 
     class Meta:
         db_table = "flow_tree"
@@ -45,6 +46,7 @@ class FlowNode(models.Model):
     created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, blank=True)
     started_at = models.DateTimeField(_("开始执行时间"), blank=True, null=True)
     updated_at = models.DateTimeField(_("更新时间"), auto_now=True, blank=True)
+    is_expired = models.BooleanField(_("是否已经过期"), default=False, help_text=_("运行时被定期清理即为过期"))
 
     class Meta:
         unique_together = ["root_id", "node_id", "version_id"]

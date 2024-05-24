@@ -226,7 +226,7 @@ class Services:
             return
 
         # 已经存在，忽略即可
-        if resp.get("code") == CCApi.ErrorCode.CUSTOM_FIELD_ALREADY_EXISTS:
+        if resp.get("code") in [CCApi.ErrorCode.CUSTOM_FIELD_ALREADY_EXISTS, CCApi.ErrorCode.TASK_ALREADY_EXISTS]:
             logger.warning(f"create_biz_custom_field({CC_HOST_DBM_ATTR}), resp:{resp}")
         else:
             raise ApiError(f"create_biz_custom_field({CC_HOST_DBM_ATTR}) error, resp:{resp}")

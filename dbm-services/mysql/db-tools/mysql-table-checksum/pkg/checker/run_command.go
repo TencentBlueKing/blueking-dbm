@@ -17,6 +17,7 @@ import (
 )
 
 var roundStartStr = "_dba_fake_round_start"
+var dailyStr = "_dba_fake_daily"
 
 func (r *Checker) Run() error {
 	stackDepth := 0
@@ -37,6 +38,22 @@ RunCheckLabel:
 
 	if r.Mode == config.GeneralMode {
 		slog.Info("run in general mode")
+
+		// 清理太老的 history
+		_, err := r.conn.ExecContext(
+			context.Background(),
+			fmt.Sprintf(`DELETE FROM %s WHERE ts < NOW() - INTERVAL 10 DAY`, r.resultHistoryTable))
+		if err != nil {
+			slog.Error("run in general mode delete 10 days ago history", slog.String("error", err.Error()))
+		}
+		slog.Info("run in general mode delete 10 days ago history")
+
+		err = r.writeFakeResult(dailyStr, dailyStr)
+		if err != nil {
+			slog.Error("write daily fake", slog.String("error", err.Error()))
+			return err
+		}
+		slog.Info("write daily fake success")
 
 		isEmptyResultTbl, err := r.isEmptyResultTbl()
 		if err != nil {
@@ -110,7 +127,11 @@ RunCheckLabel:
 
 func (r *Checker) isEmptyResultTbl() (bool, error) {
 	var resultCnt int
-	err := r.db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s.%s", r.resultDB, r.resultTbl)).Scan(&resultCnt)
+	err := r.db.QueryRow(
+		fmt.Sprintf(
+			"SELECT COUNT(*) FROM %s.%s WHERE master_ip = ? AND master_port = ?",
+			r.resultDB, r.resultTbl),
+		r.Config.Ip, r.Config.Port).Scan(&resultCnt)
 	if err != nil {
 		slog.Error("check result table is empty", slog.String("error", err.Error()))
 		return false, err
@@ -120,32 +141,9 @@ func (r *Checker) isEmptyResultTbl() (bool, error) {
 }
 
 func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string) error {
-	conn, err := r.db.Connx(context.Background())
-	if err != nil {
-		slog.Error("get conn from sqlx.db", slog.String("error", err.Error()))
-		return err
-	}
-	defer func() {
-		_ = conn.Close()
-	}()
-
-	_, err = conn.ExecContext(context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`)
-	if err != nil {
-		slog.Error("set iso level", slog.String("error", err.Error()))
-		return err
-	}
-
-	//防止 row 格式的 replace 阻塞 slave 同步
-	_, err = conn.ExecContext(context.Background(), `set binlog_format='statement'`)
-	if err != nil {
-		slog.Error(
-			"set binlog format to statement before insert fake result", slog.String("error", err.Error()))
-		return err
-	}
-
 	// 为了兼容 flashback, 这里拼上库前缀
 	ts := time.Now()
-	_, err = conn.ExecContext(
+	_, err := r.conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf("REPLACE INTO %s.%s("+
 			"master_ip, master_port, "+
@@ -175,9 +173,7 @@ func (r *Checker) run() (output *Output, err error, pterr error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
 
-	// stderr.Reset()
 	extLibDir := filepath.Join(filepath.Dir(r.Config.PtChecksum.Path), "lib")
-	//command := exec.CommandContext(ctx,"perl", r.Config.PtChecksum.Path, r.args...)
 	command := exec.CommandContext(ctx, "perl", append(
 		[]string{
 			fmt.Sprintf("-I%s", extLibDir),

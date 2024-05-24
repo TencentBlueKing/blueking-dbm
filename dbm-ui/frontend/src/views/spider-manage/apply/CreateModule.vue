@@ -152,6 +152,7 @@
   const { t } = useI18n();
 
   const route = useRoute();
+  const router = useRouter();
   const globalBizsStore = useGlobalBizs();
 
   const mysqlTableRef = ref();
@@ -305,6 +306,18 @@
         theme: 'success',
       });
       window.changeConfirm = false;
+
+      // 跳转到数据库配置并选中当前模块
+      router.push({
+        name: 'DbConfigureList',
+        params: {
+          clusterType: 'tendbcluster',
+        },
+        query: {
+          treeId: moduleId.value ? `module-${moduleId.value}` : '',
+          parentId: `app-${bizId.value}`,
+        },
+      });
     } catch (e) {
       console.log(e);
     }
@@ -330,6 +343,14 @@
       },
     });
   }
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'DbConfigureList',
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

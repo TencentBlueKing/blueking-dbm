@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,13 +7,25 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.core.management.base import BaseCommand
+import logging
 
-from backend.db_periodic_task.local_tasks import update_host_dbmeta
+from rest_framework.response import Response
+
+from backend.flow.engine.controller.mysql import MySQLController
+from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
+
+logger = logging.getLogger("root")
 
 
-class Command(BaseCommand):
-    help = "update host db meta"
+class DownloadDbactorApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/download_dbactor
+    params:
+    """
 
-    def handle(self, *args, **options):
-        update_host_dbmeta()
+    def post(self, request):
+        root_id = generate_root_id()
+        flow = MySQLController(root_id=root_id, ticket_data=request.data)
+        flow.download_dbactor_scene()
+        return Response({"root_id": root_id})

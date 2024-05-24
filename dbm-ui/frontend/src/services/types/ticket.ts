@@ -369,23 +369,258 @@ export interface BigDataRebootDetails {
  */
 export interface clustersItems {
   [key: number]: {
-    alias: string;
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    cluster_type: string;
-    cluster_type_name: string;
-    creator: string;
-    db_module_id: number;
-    id: number;
-    immute_domain: string;
-    major_version: string;
-    name: string;
-    phase: string;
-    region: string;
-    status: string;
-    time_zone: string;
-    updater: string;
-  };
+    alias: string,
+    bk_biz_id: number,
+    bk_cloud_id: number,
+    cluster_type: string,
+    cluster_type_name: string,
+    creator: string,
+    db_module_id: number,
+    id: number,
+    immute_domain: string,
+    major_version: string,
+    name: string,
+    phase: string,
+    region: string,
+    status: string,
+    time_zone: string,
+    updater: string,
+  },
+}
+
+/**
+ * MySQL 库表备份
+ */
+export interface MySQLTableBackupDetails {
+  clusters: clustersItems,
+  infos: {
+    backup_on: string,
+    cluster_id: number,
+    db_patterns: [],
+    ignore_dbs: [],
+    ignore_tables: [],
+    table_patterns: [],
+    force: boolean,
+  }[],
+}
+
+/**
+ * MySQL 主从清档
+ */
+export interface MySQLHATruncateDetails {
+  clusters: clustersItems,
+  infos: {
+    cluster_id: number,
+    db_patterns: [],
+    ignore_dbs: [],
+    ignore_tables: [],
+    table_patterns: [],
+    force: boolean,
+    truncate_data_type: string,
+  }[],
+}
+
+export interface MysqlIpItem {
+  bk_biz_id: number,
+  bk_cloud_id: number,
+  bk_host_id: number,
+  ip: string,
+  port?: number,
+}
+
+/**
+ * MySQL 克隆主从
+ */
+export interface MySQLMigrateDetails {
+  clusters: clustersItems,
+  infos: {
+    cluster_ids: number[],
+    new_master: MysqlIpItem,
+    new_slave: MysqlIpItem,
+  }[],
+}
+
+/**
+ * MySQL 主从互换
+ */
+export interface MySQLMasterSlaveDetails {
+  clusters: clustersItems,
+  infos: {
+    cluster_ids: number[],
+    master_ip: MysqlIpItem,
+    slave_ip: MysqlIpItem,
+  }[],
+}
+
+/**
+ * MySQL 新增 Proxy
+ */
+export interface MySQLProxyAddDetails {
+  clusters: clustersItems,
+  infos: {
+    cluster_ids: number[],
+    new_proxy: MysqlIpItem,
+  }[],
+}
+
+/**
+ * MySQL 主故障切换
+ */
+export interface MySQLMasterFailDetails {
+  clusters: clustersItems,
+  infos: {
+    cluster_ids: number[],
+    master_ip: MysqlIpItem,
+    slave_ip: MysqlIpItem,
+  }[],
+}
+
+/**
+ * MySQL SQL变更执行
+ */
+export interface MySQLImportSQLFileDetails {
+  uid: string,
+  path: string,
+  backup: {
+    backup_on: string,
+    db_patterns: string[],
+    table_patterns: string[],
+  }[],
+  charset: string,
+  root_id: string,
+  bk_biz_id: number,
+  created_by: string,
+  cluster_ids: number[],
+  clusters: clustersItems,
+  ticket_mode: {
+    mode: string,
+    trigger_time: string,
+  },
+  ticket_type: string,
+  execute_objects: {
+    dbnames: string[],
+    sql_file: string,
+    ignore_dbnames: string[]
+  }[],
+  execute_db_infos: {
+    dbnames: string[],
+    ignore_dbnames: string[]
+  }[],
+  execute_sql_files: string[],
+  grammar_check_info: Record<string, {
+    highrisk_warnings: {
+      command_type: string,
+      line: number,
+      sqltext: string,
+      warn_info: string,
+    }[]
+  }>
+  import_mode: string,
+  semantic_node_id: string,
+}
+
+/**
+ * MySQL 闪回
+ */
+export interface MySQLFlashback {
+  infos: {
+    cluster_id: number,
+    databases: [],
+    databases_ignore: [],
+    end_time: string,
+    mysqlbinlog_rollback: string,
+    recored_file: string,
+    start_time: string,
+    tables: [],
+    tables_ignore: []
+  }[],
+}
+
+/**
+ * MySql 定点回档
+ */
+export interface MySQLRollbackDetails {
+  infos: {
+    backup_source: string,
+    backupid: string,
+    cluster_id: number,
+    databases: string[],
+    databases_ignore: string[],
+    rollback_ip: string,
+    rollback_time: string,
+    tables: string[],
+    tables_ignore: string[],
+    backupinfo: {
+      backup_id: string,
+      mysql_host: string,
+      mysql_port: number,
+      mysql_role: string,
+      backup_time: string,
+      backup_type: string,
+      master_host: string,
+      master_port: number
+    },
+  }[],
+}
+
+/**
+ * MySQL SLAVE重建
+ */
+export interface MySQLRestoreSlaveDetails {
+  clusters: clustersItems,
+  infos: {
+    backup_source: string,
+    cluster_ids: number[],
+    new_slave: MysqlIpItem,
+    old_slave: MysqlIpItem,
+  }[],
+}
+
+/**
+ * MySQL 全库备份
+ */
+export interface MySQLFullBackupDetails {
+  clusters: clustersItems,
+  infos: {
+    backup_type: string,
+    clusters: {
+      backup_local: string,
+      cluster_id: number,
+    }[],
+    file_tag: string,
+    online: boolean,
+  }
+}
+
+/**
+ * MySQL 校验
+ */
+export interface MySQLChecksumDetails {
+  clusters: clustersItems,
+  data_repair: {
+    is_repair: boolean,
+    mode: string,
+  }
+  infos: {
+    cluster_id: number,
+    db_patterns: string[],
+    ignore_dbs: string[],
+    ignore_tables: string[],
+    master: {
+      id: number,
+      ip: string,
+      port: number,
+    },
+    slaves: {
+      id: number,
+      ip: string,
+      port: number,
+    }[],
+    table_patterns: string[],
+  }[],
+  is_sync_non_innodb: boolean,
+  runtime_hour: number,
+  timing: string,
 }
 
 /**
@@ -773,5 +1008,57 @@ export interface SpiderPartitionManageDetails {
 
 
 
+export interface MysqlOpenAreaDetails {
+  cluster_id: number;
+  clusters: {
+    [key: string]: {
+      alias: string;
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      cluster_type: string;
+      cluster_type_name: string;
+      creator: string;
+      db_module_id: number;
+      disaster_tolerance_level: string;
+      id: number;
+      immute_domain: string;
+      major_version: string;
+      name: string;
+      phase: string;
+      region: string;
+      status: string;
+      tag: string[];
+      time_zone: string;
+      updater: string;
+    };
+  };
+  config_data: {
+    cluster_id: number;
+    execute_objects: {
+      data_tblist: string[];
+      schema_tblist: string[];
+      source_db: string;
+      target_db: string;
+    }[];
+  }[];
+  force: boolean;
+  rules_set: {
+    account_rules: {
+      bk_biz_id: number;
+      dbname: string;
+    }[];
+    cluster_type: string;
+    source_ips: string[];
+    target_instances: string[];
+    user: string;
+  }[];
+}
 
-
+export interface MysqlDataMigrateDetails {
+  clusters: clustersItems;
+  infos: {
+    db_list: string;
+    source_cluster: number;
+    target_clusters: number[];
+  }[]
+}

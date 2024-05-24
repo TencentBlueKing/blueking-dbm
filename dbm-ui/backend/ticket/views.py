@@ -40,7 +40,7 @@ from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowConfig, Todo
+from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.serializers import (
     ClusterModifyOpSerializer,
     CountTicketSLZ,
@@ -520,9 +520,14 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         data = self.params_validate(self.get_serializer_class())
         limit, offset = data["limit"], data["offset"]
 
-        ticket_flow_configs = TicketFlowConfig.objects.filter(group=data["db_type"], editable=True)
+        # 根据条件过滤单据配置
+        config_filter = Q(bk_biz_id=data["bk_biz_id"], group=data["db_type"], editable=True)
         if data.get("ticket_types"):
-            ticket_flow_configs = ticket_flow_configs.filter(ticket_type__in=data["ticket_types"])
+            config_filter &= Q(ticket_type__in=data["ticket_types"])
+
+        ticket_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
+        ticket_flow_config_count = ticket_flow_configs.count()
+        ticket_flow_configs = ticket_flow_configs[offset : offset + limit]
 
         ticket_flow_config_count = ticket_flow_configs.count()
         ticket_flow_configs = ticket_flow_configs[offset : offset + limit]
@@ -531,11 +536,12 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
         # 获取单据流程配置信息
         flow_desc_list: List[Dict] = []
+        # 获取单据流程配置信息
         for flow_config in ticket_flow_configs:
             flow_config_info = model_to_dict(flow_config)
             flow_config_info["ticket_type_display"] = flow_config.get_ticket_type_display()
             flow_config_info["update_at"] = flow_config.update_at
-            # 获取当前单据的执行流程
+            # 获取当前单据的执行流程描述
             flow_desc = BuilderFactory.registry[flow_config.ticket_type].describe_ticket_flows(flow_config_map)
             flow_config_info["flow_desc"] = flow_desc
             flow_desc_list.append(flow_config_info)
@@ -550,7 +556,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=UpdateTicketFlowConfigSerializer)
     def update_ticket_flow_config(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        TicketFlowConfig.objects.filter(ticket_type__in=data["ticket_types"]).update(configs=data["configs"])
+        TicketFlowsConfig.objects.filter(bk_biz_id=data["bk_biz_id"], ticket_type__in=data["ticket_types"]).update(
+            configs=data["configs"]
+        )
         return Response()
 
     @common_swagger_auto_schema(

@@ -44,7 +44,7 @@ const routes: RouteRecordRaw[] = [
         path: 'edit/:clusterType/:version/:confType',
         meta: {
           navName: t('编辑平台配置'),
-          fullscreen: true,
+          // fullscreen: true,
         },
         component: () => import('@views/db-configure/platform/Edit.vue'),
       },

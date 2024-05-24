@@ -21,11 +21,11 @@ from rest_framework.test import APIClient
 
 from backend.db_meta.models.db_module import DBModule
 from backend.flow.models import FlowNode, FlowTree
-from backend.tests.mock_data.components.bamboo_engine import BambooEngineMock
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
 from backend.tests.mock_data.components.itsm import ItsmApiMock
 from backend.tests.mock_data.components.sql_import import SQLSimulationApiMock
+from backend.tests.mock_data.flow.engine.bamboo.engine import BambooEngineMock
 from backend.tests.mock_data.iam_app.permission import PermissionMock
 from backend.tests.mock_data.ticket.ticket_flow import (
     APPLY_RESOURCE_RETURN_DATA,
@@ -120,7 +120,9 @@ class TestTicketFlow:
     @patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条MySQL 高可用部署待办需要您处理")
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
     @patch("backend.ticket.builders.mysql.mysql_single_apply.DBConfigApi", DBConfigApiMock)
-    def test_mysql_single_apply_flow(self, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db):
+    def test_mysql_single_apply_flow(
+        self, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db, init_app
+    ):
         # 测试流程单据: start --> itsm --> PAUSE --> end
         mocked_status.return_value = TicketStatus.SUCCEEDED
         mocked__run.return_value = ROOT_ID
@@ -148,7 +150,7 @@ class TestTicketFlow:
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
     @patch("backend.ticket.builders.mysql.mysql_import_sqlfile.SQLSimulationApi", SQLSimulationApiMock)
-    def test_sql_import_flow(self, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db):
+    def test_sql_import_flow(self, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db, init_app):
         # 测试流程：start --> itsm --> inner --> end
         mocked_status.return_value = TicketStatus.SUCCEEDED
         mocked__run.return_value = ROOT_ID
@@ -156,16 +158,14 @@ class TestTicketFlow:
 
         client.login(username="admin")
 
-        # 语义检查流程 & itsm
         sql_import_data = copy.deepcopy(SQL_IMPORT_TICKET_DATA)
-        client.post("/apis/tickets/", data=sql_import_data)
-        current_flow = Flow.objects.exclude(flow_obj_id="").last()
-        assert current_flow.flow_type == FlowType.BK_ITSM
+        ticket = client.post("/apis/tickets/", data=sql_import_data).data
+        flows = Flow.objects.filter(ticket_id=ticket["id"])
 
-        # inner流程
-        client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
-        current_flow = Flow.objects.exclude(flow_obj_id="").last()
-        assert current_flow.flow_type == FlowType.INNER_FLOW
+        assert flows[0].flow_type == FlowType.DELIVERY
+        assert flows[1].flow_type == FlowType.DESCRIBE_TASK
+        assert flows[2].flow_type == FlowType.BK_ITSM
+        assert flows[3].flow_type == FlowType.INNER_FLOW
 
     @patch.object(TicketViewSet, "permission_classes")
     @patch.object(InnerFlow, "_run")
@@ -185,7 +185,7 @@ class TestTicketFlow:
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
     @patch("backend.ticket.builders.mysql.mysql_ha_apply.DBConfigApi", DBConfigApiMock)
     def test_mysql_HA_apply_flow(
-        self, mock_pause_status, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db
+        self, mock_pause_status, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db, init_app
     ):
         # MySQL 高可用部署: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
         mocked_status.return_value = TicketStatus.SUCCEEDED
@@ -205,6 +205,7 @@ class TestTicketFlow:
         client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
         current_flow = Flow.objects.exclude(flow_obj_id="").last()
         assert current_flow.flow_type == FlowType.PAUSE
+
         # RESOURCE_APPLY -> INNER_FLOW
         client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
         current_flow = Flow.objects.exclude(flow_obj_id="").last()

@@ -231,6 +231,7 @@ class MySQLRestoreSlaveFlow(object):
                         )
                     ),
                 )
+
                 sync_data_sub_pipeline_list.append(sync_data_sub_pipeline.build_sub_process(sub_name=_("恢复实例数据")))
 
             switch_sub_pipeline_list = []
@@ -302,7 +303,7 @@ class MySQLRestoreSlaveFlow(object):
                     kwargs=asdict(
                         ClearMachineKwargs(
                             exec_ip=self.data["old_slave_ip"],
-                            bk_cloud_id=self.data["bk_cloud_id"],
+                            bk_cloud_id=cluster_class.bk_cloud_id,
                         )
                     ),
                 )

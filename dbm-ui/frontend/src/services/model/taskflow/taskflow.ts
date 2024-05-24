@@ -14,16 +14,18 @@ import type { TicketTypesStrings } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 
+import { t } from '@locales/index';
+
 export default class TaskFlow {
   static STATUS_TEXT_MAP: Record<string, string> = {
-    CREATED: '等待执行',
-    READY: '等待执行',
-    RUNNING: '执行中',
-    SUSPENDED: '执行中',
-    BLOCKED: '执行中',
-    FINISHED: '执行成功',
-    FAILED: '执行失败',
-    REVOKED: '已终止',
+    // CREATED: t('等待执行'),
+    READY: t('等待执行'),
+    RUNNING: t('执行中'),
+    // SUSPENDED: t('执行中'),
+    // BLOCKED: t('执行中'),
+    FINISHED: t('执行成功'),
+    FAILED: t('执行失败'),
+    REVOKED: t('已终止'),
   };
 
   static STATUS_THEME_MAP: Record<string, string> = {

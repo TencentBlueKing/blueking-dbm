@@ -12,11 +12,20 @@
 -->
 
 <template>
-  <FlowContentInnerFlow
+  <!-- <FlowContentInnerFlow
     v-if="content?.todos?.length > 0 && content.flow_type === 'INNER_FLOW' && isTodos === false"
     :content="content"
-    @fetch-data="handleEmitFetchData" />
-  <template v-else-if="content?.todos?.length > 0 && content.status === 'SUCCEEDED' && isTodos === false">
+    @fetch-data="handleEmitFetchData" /> -->
+  <template v-if="content.todos?.length > 0 && content.flow_type === 'INNER_FLOW' && content.status === 'RUNNING'">
+    <ManualConfirm
+      v-for="item in content.todos"
+      :key="item.id"
+      :content="content"
+      :data="item"
+      @processed="handleEmitFetchData" />
+  </template>
+  <template
+    v-else-if="content?.todos?.length > 0 && ['TERMINATED', 'SUCCEEDED'].includes(content.status) && isTodos === false">
     <FlowContentTodo
       v-for="item of content.todos"
       :key="item.id"
@@ -74,7 +83,7 @@
       </div>
     </div>
   </template>
-  <template v-else>
+  <template v-if="content.flow_type !== 'PAUSE'">
     <div>
       <template
         v-if="
@@ -203,9 +212,11 @@
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
+  import ManualConfirm from '@views/tickets/my-todos/components/details/components/flow/components/approve/ManualConfirm.vue';
+
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
-  import FlowContentInnerFlow from './components/ContentInnerFlow.vue';
+  // import FlowContentInnerFlow from './components/ContentInnerFlow.vue';
   import FlowContentTodo from './components/ContentTodo.vue';
 
 
@@ -285,10 +296,30 @@
   }
 </script>
 
-<style scoped>
-  .resource-apply-exclamation-fill {
-    margin-right: 4px;
-    font-size: 14px;
-    color: #ff9c01;
+<style lang="less" scoped>
+.resource-apply-exclamation-fill {
+  margin-right: 4px;
+  font-size: 14px;
+  color: #ff9c01;
+}
+</style>
+
+<style lang="less">
+.todos-tips-content {
+  .todos-tips-content__desc {
+    padding: 8px 0 24px;
+    font-size: @font-size-mini;
+    color: @title-color;
   }
+
+  .todos-tips-content__buttons {
+    text-align: right;
+
+    .bk-button {
+      min-width: 62px;
+      margin-left: 8px;
+      font-size: @font-size-mini;
+    }
+  }
+}
 </style>

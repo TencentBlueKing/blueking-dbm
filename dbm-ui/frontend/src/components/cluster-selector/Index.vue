@@ -338,7 +338,6 @@
             ...props.tabListConfig[type],
             disabledRowConfig: disabledRowConfigList,
           };
-          console.log('tabListMap[type]>>>', tabListMap[type]);
         }
       });
     }

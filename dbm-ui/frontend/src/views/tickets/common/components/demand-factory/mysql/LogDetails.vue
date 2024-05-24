@@ -26,25 +26,28 @@
       class="layout-right"
       style="width: 928px">
       <div class="log-header">
-        <div>{{ $t('执行日志') }}</div>
-        <div
-          v-if="currentSelectFileData?.isSuccessed"
-          class="log-status">
+        <div>{{ t('执行日志') }}</div>
+        <div class="log-status">
           <DbIcon
+            v-if="currentSelectFileData?.isSuccessed"
+            style="color: #2dcb56;"
+            type="check-circle-fill" />
+          <DbIcon
+            v-else-if="currentSelectFileData?.isPending"
+            svg
+            type="sync-pending" />
+          <DbIcon
+            v-else-if="currentSelectFileData?.isWaiting"
             class="rotate-loading"
             style="color: #2dcb56"
             svg
             type="check-circle-fill" />
-          <span style="padding-left: 4px; font-size: 12px">{{ $t('执行成功') }}</span>
-        </div>
-        <div
-          v-else
-          class="log-status">
           <DbIcon
-            style="color: #ea3636"
+            v-else
+            style="color: #ea3636;"
             svg
             type="delete-fill" />
-          <span style="padding-left: 4px; font-size: 12px">{{ $t('执行失败') }}</span>
+          <span style="padding-left: 4px; font-size: 12px;">{{ executedStatusDisplayText }}</span>
         </div>
       </div>
       <div style="height: calc(100% - 40px)">
@@ -55,7 +58,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { ref, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { querySemanticData } from '@services/source/sqlImport';
 
@@ -79,6 +82,8 @@
   });
 
   const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
+
   const selectFileName = ref('');
   const fileImportMode = ref('');
   const fileList = ref<string[]>([]);
@@ -87,29 +92,33 @@
   // 执行状态
   const { flowStatus } = useFlowStatus(props.rootId);
   // 执行日志
-  const {
-    // isLoading,
-    wholeLogList,
-    fileLogMap,
-  } = useLog(props.rootId, props.nodeId);
+  const { fileLogMap } = useLog(props.rootId, props.nodeId);
 
-  const fileDataList = computed<IFileItem[]>(() => {
-    const lastLogFileIndex = Math.max(Object.keys(fileLogMap.value).length - 1, 0);
-    return fileList.value.map((name, index) => ({
-      name,
-      isPending: index === lastLogFileIndex && flowStatus.value === 'pending',
-      isSuccessed: index < lastLogFileIndex || (index === lastLogFileIndex && flowStatus.value === 'successed'),
-      isFailed: index === lastLogFileIndex && flowStatus.value === 'failed',
-      isWaiting: index > lastLogFileIndex,
-    }));
-  });
+  const fileDataList = computed<IFileItem[]>(() => fileList.value.map(name => ({
+    name,
+    isPending: fileLogMap.value[name]?.status === 'RUNNING',
+    isSuccessed: fileLogMap.value[name]?.status === 'SUCCEEDED',
+    isFailed: fileLogMap.value[name]?.status === 'FAILED',
+    isWaiting: fileLogMap.value[name]?.status === 'PENDING',
+  })));
 
   const currentSelectFileData = computed(() =>
     _.find(fileDataList.value, (item) => item.name === selectFileName.value),
   );
 
+  const executedStatusDisplayText = computed(() => {
+    if (currentSelectFileData.value?.isSuccessed) {
+      return t('执行成功');
+    } if (currentSelectFileData.value?.isPending) {
+      return t('执行中');
+    } if (currentSelectFileData.value?.isWaiting) {
+      return t('待执行');
+    }
+    return t('执行失败');
+  });
+
   watch([fileImportMode, selectFileName, fileLogMap], () => {
-    renderLog.value = wholeLogList.value;
+    renderLog.value = fileLogMap.value[selectFileName.value]?.match_logs ?? [];
   });
 
   onMounted(() => {

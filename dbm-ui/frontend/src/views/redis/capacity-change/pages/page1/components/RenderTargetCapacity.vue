@@ -55,7 +55,7 @@
   </BkLoading>
   <ChooseClusterTargetPlan
     :data="activeRowData"
-    is-same-shard-num
+    hide-shard-column
     :is-show="showChooseClusterTargetPlan"
     :title="t('选择集群容量变更部署方案')"
     @click-cancel="() => (showChooseClusterTargetPlan = false)"

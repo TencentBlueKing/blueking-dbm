@@ -19,13 +19,20 @@ from backend.components.sql_import.client import SQLSimulationApi
 from backend.configuration.constants import DBType
 from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.db_services.mysql.sql_import.handlers import SQLHandler
+from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.models import FlowNode, FlowTree
 from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
+from backend.ticket.constants import (
+    BAMBOO_STATE__TICKET_STATE_MAP,
+    FlowRetryType,
+    FlowType,
+    TicketFlowStatus,
+    TicketType,
+)
 from backend.ticket.exceptions import TicketBaseException
 from backend.ticket.models import Flow
 
@@ -57,6 +64,26 @@ class MysqlSqlImportItsmParamBuilder(builders.ItsmParamBuilder):
         root_id = self.ticket.details["root_id"]
         semantic_url = f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/task-history/detail/{root_id}"
         params["dynamic_fields"].append({"name": _("模拟执行链接"), "type": "LINK", "value": semantic_url})
+
+        # 获取模拟执行结果 -- 这里获取语义执行结果节点的状态
+        flow_tree = FlowTree.objects.get(root_id=root_id)
+        semantic_node = TaskFlowHandler.get_node_id_by_component(flow_tree.tree, SemanticCheckComponent.code)
+        semantic_state = BambooEngine(root_id).get_node_state(semantic_node).name
+        # 模拟执行结果与单据结果映射，并加入itsm的动态字段中
+        exec_status = BAMBOO_STATE__TICKET_STATE_MAP.get(semantic_state, TicketFlowStatus.PENDING.value)
+        exec_status_display = str(TicketFlowStatus.get_choice_label(exec_status))
+        params["dynamic_fields"].append({"name": _("模拟执行结果"), "type": "STRING", "value": exec_status_display})
+
+        # 获取执行的高危语句
+        highrisk_sql_list = []
+        for check_info in self.ticket.details["grammar_check_info"].values():
+            highrisk_warnings = check_info["highrisk_warnings"] or []
+            highrisk_sql_list.extend([item["sqltext"] for item in highrisk_warnings])
+        # 默认限制100字符，防止itsm渲染过多
+        highrisk_sql_list = highrisk_sql_list or [_("无")]
+        highrisk_sql_contents = "".join(highrisk_sql_list)[:100]
+        if highrisk_sql_contents:
+            params["dynamic_fields"].append({"name": _("SQL高危语句"), "type": "STRING", "value": highrisk_sql_contents})
 
         return params
 
@@ -110,7 +137,7 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
             [details.pop(field, None) for field in pop_fields]
 
         # 补充集群信息和node_id
-        semantic_node_id = handler.get_node_id_by_component(flow_tree.tree, SemanticCheckComponent.code)
+        semantic_node_id = TaskFlowHandler.get_node_id_by_component(flow_tree.tree, SemanticCheckComponent.code)
         details.update(semantic_node_id=semantic_node_id)
         ticket.details.update(details)
 
@@ -136,6 +163,14 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
         """
 
         flows = [
+            # SQL语法检测这个节点仅作占位描述节点
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.DELIVERY.value,
+                details={"grammar_check_info": self.ticket.details["grammar_check_info"]},
+                flow_alias=_("SQL语法检查查询"),
+            ),
+            # SQL模拟执行仅做描述模拟执行状态的节点
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.DESCRIBE_TASK.value,

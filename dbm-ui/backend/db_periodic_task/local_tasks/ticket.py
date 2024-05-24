@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks import register_periodic_task
+from backend.db_services.taskflow import task as TaskFlow
 from backend.ticket.tasks.ticket_tasks import TicketTask
 
 
@@ -22,3 +23,8 @@ def auto_retry_exclusive_inner_flow():
 @register_periodic_task(run_every=crontab(minute=3, hour=2))
 def auto_create_data_repair_ticket():
     TicketTask.auto_create_data_repair_ticket()
+
+
+@register_periodic_task(run_every=crontab(minute="*/1"))
+def clean_bamboo_engine_expired_data():
+    TaskFlow.clean_bamboo_engine_expired_data()

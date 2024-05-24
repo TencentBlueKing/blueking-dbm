@@ -130,6 +130,7 @@ class ResourceQueryHelper:
             func=CCApi.find_host_topo_relation,
             params={"bk_biz_id": bk_biz_id, "no_request": True},
             get_data=lambda x: x["data"],
+            use_admin=True,
         )
         return host_topo_relations
 

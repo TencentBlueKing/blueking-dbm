@@ -57,7 +57,7 @@ func summary(stdout string) (summaries []ChecksumSummary, err error) {
 			cs.Errors, _ = strconv.Atoi(splitRow[1])
 			cs.Diffs, _ = strconv.Atoi(splitRow[2])
 			cs.Rows, _ = strconv.Atoi(splitRow[3])
-			cs.DiffRows = 0 //strconv.Atoi(splitRow[4])
+			cs.DiffRows = 0
 			cs.Chunks, _ = strconv.Atoi(splitRow[4])
 			cs.Skipped, _ = strconv.Atoi(splitRow[5])
 			cs.Time, _ = strconv.Atoi(splitRow[6])

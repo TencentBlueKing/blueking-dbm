@@ -18,7 +18,7 @@ from rest_framework import serializers
 from backend.bk_web.constants import LEN_MIDDLE
 from backend.bk_web.serializers import AuditedSerializer, TranslationSerializerMixin
 from backend.components import CmsiApi
-from backend.configuration.constants import DBType
+from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.ticket import mock_data
@@ -269,8 +269,12 @@ class InstanceModifyOpSerializer(serializers.Serializer):
 
 
 class QueryTicketFlowDescribeSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False, default=PLAT_BIZ_ID)
     db_type = serializers.ChoiceField(help_text=_("单据分组类型"), choices=DBType.get_choices())
-    ticket_types = serializers.CharField(help_text=_("单据类型"), default=False)
+    ticket_types = serializers.CharField(help_text=_("单据类型"), default="")
+
+    limit = serializers.IntegerField(help_text=_("每页限制"), required=False, default=10)
+    offset = serializers.IntegerField(help_text=_("起始"), required=False, default=0)
 
     limit = serializers.IntegerField(help_text=_("每页限制"), required=False, default=10)
     offset = serializers.IntegerField(help_text=_("起始"), required=False, default=0)
@@ -282,6 +286,7 @@ class QueryTicketFlowDescribeSerializer(serializers.Serializer):
 
 
 class UpdateTicketFlowConfigSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False, default=PLAT_BIZ_ID)
     ticket_types = serializers.ListField(
         help_text=_("单据类型"), child=serializers.ChoiceField(choices=TicketType.get_choices())
     )

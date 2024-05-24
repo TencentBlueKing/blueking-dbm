@@ -27,11 +27,6 @@ type TbContainerRecord struct {
 	CreateTime    time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`
 }
 
-// GetTableName get sql table name.获取数据库名字
-func (obj *TbContainerRecord) GetTableName() string {
-	return "tb_container_record"
-}
-
 // UpdateTbContainerRecord TODO
 func UpdateTbContainerRecord(container string) {
 	err := DB.Model(TbContainerRecord{}).Where("container = ?", container).Updates(

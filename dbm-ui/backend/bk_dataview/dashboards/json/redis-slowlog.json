@@ -21,7 +21,7 @@
       }
     ]
   },
-  "editable": true,
+  "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
@@ -350,7 +350,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "",
+            "queryString": "$query_string",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -783,7 +783,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "",
+            "queryString": "$query_string",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -860,6 +860,7 @@
   "schemaVersion": 37,
   "style": "dark",
   "tags": [
+    "Redis",
     "TwemproxyRedisInstance",
     "PredixyTendisplusCluster",
     "TwemproxyTendisSSDInstance",

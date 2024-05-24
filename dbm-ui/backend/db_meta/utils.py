@@ -29,7 +29,6 @@ from backend.db_meta.models import (
     StorageInstanceTuple,
     TenDBClusterSpiderExt,
 )
-from backend.db_periodic_task.local_tasks import update_host_dbmeta
 from backend.db_services.ipchooser.constants import DB_MANAGE_SET
 from backend.db_services.ipchooser.query import resource
 from backend.flow.utils.cc_manage import CcManage
@@ -90,7 +89,6 @@ def remove_cluster(cluster_id, job_clean=True, cc_clean=True):
         except Exception as e:  # pylint: disable=broad-except
             logger.error("drop_cluster cc_clean exception: cluster_id=%s, %s", cluster_id, e)
 
-        update_host_dbmeta(cluster_id=cluster.id, dbm_meta=[])
         cc_manage.delete_cluster_modules(db_type, cluster)
 
     cluster.nosqlstoragesetdtl_set.all().delete()
@@ -161,7 +159,7 @@ def remove_cluster_ips(bk_host_ids, job_clean=True, cc_clean=True):
         except Exception as e:  # pylint: disable=broad-except
             logger.error("remove_bk_host_ids cc_clean exception: bk_host_ids=%s, %s", bk_host_ids, e)
 
-        update_host_dbmeta(bk_host_ids=bk_host_ids, dbm_meta=[])
+        CcManage(env.DBA_APP_BK_BIZ_ID, "").update_host_properties(bk_host_ids=bk_host_ids)
 
     storage_instances.delete()
     TenDBClusterSpiderExt.objects.filter(instance__machine__bk_host_id__in=bk_host_ids).delete()

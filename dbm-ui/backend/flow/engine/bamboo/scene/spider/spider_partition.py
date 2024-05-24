@@ -87,19 +87,6 @@ class SpiderPartitionFlow(object):
             sub_data.pop("infos")
             sub_pipeline = SubBuilder(root_id=self.root_id, data={**sub_data, **info})
             bk_cloud_id = info["bk_cloud_id"]
-
-            sub_pipeline.add_act(
-                act_name=_("下发actuator介质"),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        exec_ip=list(set([partition_object["ip"] for partition_object in info["partition_objects"]])),
-                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                    )
-                ),
-            )
-
             upload_sql_file_list = []
             download_sql_file_list = []
             actuator_exec_list = []

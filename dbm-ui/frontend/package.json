@@ -16,13 +16,14 @@
     "prettier": "prettier --write ./src"
   },
   "dependencies": {
-    "@blueking/app-select": "0.0.1-beta.8",
+    "@blueking/app-select": "0.0.1-beta.12",
     "@blueking/bk-weweb": "0.0.24",
     "@blueking/bkflow.js": "0.1.10",
     "@blueking/date-picker": "0.0.72",
     "@blueking/ip-selector": "0.3.0-beta.23",
     "@blueking/notice-component": "2.0.4",
     "@blueking/sub-saas": "^0.0.0-beta.6",
+    "@blueking/login-modal": "^1.0.3",
     "@icon-cool/bk-icon-bk-biz-components": "0.0.4",
     "@vueuse/core": "10.9.0",
     "axios": "1.6.8",

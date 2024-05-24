@@ -816,6 +816,14 @@ func compareDbVariables(referVars, compareVars map[string]string, checkVars []st
 		if !(r_ok && c_ok) {
 			continue
 		}
+
+		if (strings.HasPrefix(referV, "utf8_") && strings.HasPrefix(compareV, "utf8mb3_")) ||
+			(strings.HasPrefix(referV, "utf8mb3_") && strings.HasPrefix(compareV, "utf8_")) ||
+			(referV == "utf8" && compareV == "utf8mb3") ||
+			(referV == "utf8mb3" && compareV == "utf8") {
+			continue
+		}
+
 		if strings.Compare(referV, compareV) != 0 {
 			errs = append(errs, fmt.Errorf("存在差异： 变量名:%s Master:%s,Slave:%s", varName, referV, compareV))
 		}

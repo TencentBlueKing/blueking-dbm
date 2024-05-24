@@ -253,8 +253,13 @@ export function queryTicketFlowDescribe(params: {
   ticket_types?: string,
   limit?: number,
   offset?: number,
+  bk_biz_id?: number,
 }) {
-  return http.get<{
+  // 组件 db-table 传值问题，临时解决 bk_biz_id 多余传值
+  // eslint-disable-next-line no-param-reassign
+  delete params.bk_biz_id;
+
+  return http.get<ListBase<{
     configs: Record<string, boolean>;
     creator: string;
     editable: boolean;
@@ -264,10 +269,7 @@ export function queryTicketFlowDescribe(params: {
     ticket_type_display: string;
     updater: string;
     update_at: string;
-  }[]>(`${path}/query_ticket_flow_describe/`, params).then(data => ({
-    count: data.length,
-    results: data,
-  }));
+  }[]>>(`${path}/query_ticket_flow_describe/`, params);
 }
 
 /**

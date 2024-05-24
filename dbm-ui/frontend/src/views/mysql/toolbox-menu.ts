@@ -163,6 +163,11 @@ export default [
         parentId: 'data',
         dbConsoleValue: 'mysql.toolbox.checksum'
       },
+      {
+        name: t('数据迁移'),
+        id: 'MySQLDataMigrate',
+        parentId: 'data',
+      },
     ],
   },
   {

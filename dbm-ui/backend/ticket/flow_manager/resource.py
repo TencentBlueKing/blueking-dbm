@@ -11,9 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import importlib
 import logging
-import uuid
 from collections import defaultdict
-from datetime import date
 from typing import Any, Dict, List, Optional, Union
 
 from django.core.cache import cache
@@ -32,6 +30,7 @@ from backend.ticket.constants import FlowCallbackType, FlowType, ResourceApplyEr
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.flow_manager.delivery import DeliveryFlow
 from backend.ticket.models import Flow, Todo
+from backend.utils.basic import generate_root_id
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
@@ -108,7 +107,7 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     def run(self):
         """执行流程并记录流程对象ID"""
-        resource_flow_id = f"{date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
+        resource_flow_id = generate_root_id()
         self.run_status_handler(resource_flow_id)
 
         try:
@@ -285,7 +284,7 @@ class ResourceApplyFlow(BaseTicketFlow):
             raise ResourceApplyException(_("资源申请下一个节点不为部署节点，请重新编排"))
 
         # 提前为inner flow生成root id，要写入操作记录中
-        next_flow.flow_obj_id = f"{date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
+        next_flow.flow_obj_id = generate_root_id()
         next_flow.save()
 
         # 资源申请

@@ -305,23 +305,6 @@ def rollback_local_and_backupid(root_id: str, ticket_data: dict, cluster_info: d
         ),
     )
 
-    # exec_act_kwargs.exec_ip = cluster_info["rollback_ip"]
-    # exec_act_kwargs.cluster = cluster_info
-    # sub_pipeline.add_act(
-    #     act_name=_("传输文件{}").format(cluster_info["rollback_ip"]),
-    #     act_component_code=RollBackLocalTransFileComponent.code,
-    #     kwargs=asdict(
-    #         RollBackTransFileKwargs(
-    #             bk_cloud_id=cluster_info["bk_cloud_id"],
-    #             file_list=[],
-    #             file_target_path=cluster_info["file_target_path"],
-    #             source_ip_list=[],
-    #             exec_ip=cluster_info["rollback_ip"],
-    #             cluster=cluster_info,
-    #         )
-    #     ),
-    # )
-
     exec_act_kwargs.exec_ip = cluster_info["rollback_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_rollback_data_restore_payload.__name__
     sub_pipeline.add_act(

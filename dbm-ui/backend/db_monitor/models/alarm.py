@@ -121,7 +121,7 @@ class NoticeGroup(AuditedModel):
             if self.monitor_duty_rule_id:
                 save_duty_rule_params["id"] = self.monitor_duty_rule_id
             else:
-                rules = BKMonitorV3Api.search_duty_rule({"bk_biz_ids": [env.DBA_APP_BK_BIZ_ID], "name": rule_name})
+                rules = BKMonitorV3Api.search_duty_rules({"bk_biz_ids": [env.DBA_APP_BK_BIZ_ID], "name": rule_name})
                 for rule in rules:
                     if rule["name"] == rule_name:
                         save_duty_rule_params["id"] = rule["id"]

@@ -102,6 +102,9 @@ BAMBOO_STATE__TICKET_STATE_MAP = {
     # bamboo engine流程的撤销对应单据flow的终止
     StateType.REVOKED.value: TicketFlowStatus.TERMINATED.value,
     StateType.RUNNING.value: TicketFlowStatus.RUNNING.value,
+    # bamboo engine流程的创建/准备对应单据flow的运行
+    StateType.CREATED.value: TicketFlowStatus.RUNNING.value,
+    StateType.READY.value: TicketFlowStatus.RUNNING.value,
 }
 
 EXCLUSIVE_TICKET_EXCEL_PATH = "backend/ticket/exclusive_ticket.xlsx"
@@ -183,11 +186,12 @@ class TicketType(str, StructuredEnum):
     MYSQL_FLASHBACK = TicketEnumField("MYSQL_FLASHBACK", _("MySQL 闪回"), _("回档"))
     MYSQL_ROLLBACK_CLUSTER = TicketEnumField("MYSQL_ROLLBACK_CLUSTER", _("MySQL 定点构造"), _("回档"))
     MYSQL_HA_FULL_BACKUP = TicketEnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 高可用全库备份"), _("备份"))
-    MYSQL_SINGLE_TRUNCATE_DATA = TicketEnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"), register_iam=False)
-    MYSQL_SINGLE_RENAME_DATABASE = TicketEnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"), register_iam=False)  # noqa
+    MYSQL_SINGLE_TRUNCATE_DATA = TicketEnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"))
+    MYSQL_SINGLE_RENAME_DATABASE = TicketEnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"))  # noqa
     MYSQL_HA_STANDARDIZE = TicketEnumField("MYSQL_HA_STANDARDIZE", _("TendbHA 标准化"), register_iam=False)
     MYSQL_HA_METADATA_IMPORT = TicketEnumField("MYSQL_HA_METADATA_IMPORT", _("TendbHA 元数据导入"), register_iam=False)
     MYSQL_OPEN_AREA = TicketEnumField("MYSQL_OPEN_AREA", _("MySQL 开区"), _("克隆开区"), register_iam=False)
+    MYSQL_DATA_MIGRATE = TicketEnumField("MYSQL_DATA_MIGRATE", _("MySQL 数据迁移"), _("数据处理"))
 
     # SPIDER(TenDB Cluster)
     TENDBCLUSTER_OPEN_AREA = TicketEnumField("TENDBCLUSTER_OPEN_AREA", _("TenDB Cluster 开区"), _("克隆开区"), register_iam=False)  # noqa
@@ -228,6 +232,7 @@ class TicketType(str, StructuredEnum):
     TENDBCLUSTER_APPEND_DEPLOY_CTL = TicketEnumField("TENDBCLUSTER_APPEND_DEPLOY_CTL", _("TenDB Cluster 追加部署中控"), register_iam=False)  # noqa
     TENDBSINGLE_METADATA_IMPORT = TicketEnumField("TENDBSINGLE_METADATA_IMPORT", _("TenDB Single 元数据导入"), register_iam=False)  # noqa
     TENDBSINGLE_STANDARDIZE = TicketEnumField("TENDBSINGLE_STANDARDIZE", _("TenDB Single 集群标准化"), register_iam=False)  # noqa
+    TENDBCLUSTER_DATA_MIGRATE = TicketEnumField("TENDBCLUSTER_DATA_MIGRATE", _("TenDB Cluster 数据迁移"), _("数据处理"))
 
     # Tbinlogdumper
     TBINLOGDUMPER_INSTALL = TicketEnumField("TBINLOGDUMPER_INSTALL", _("TBINLOGDUMPER 上架"), register_iam=False)

@@ -136,7 +136,7 @@ dbm:
 
   ingressPublic:
     # 在跨云管控场景下，需要配置公网 clb 进行访问
-    enabled: false
+    enabled: true
     className: ""
     hostname: "bkdbm-public.example.com"
     paths:
@@ -319,6 +319,10 @@ db-resource:
     cloudVendor: ""
     secretId: ""
     secretKey: ""
+    yuntiAddr: ""
+    api_key_name: ""
+    api_key_secret: ""
+    interface_name: ""
     # apm
     TRACE_SERVICE_NAME: db-resource
     TRACE_ENABLE: false

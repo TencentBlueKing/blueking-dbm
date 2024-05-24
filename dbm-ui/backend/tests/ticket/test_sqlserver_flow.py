@@ -17,8 +17,9 @@ from django.conf import settings
 from rest_framework.test import APIClient
 
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Cluster, Machine, Spec, StorageInstance
+from backend.db_meta.models import AppCache, Cluster, Machine, Spec, StorageInstance
 from backend.db_meta.models.db_module import DBModule
+from backend.tests.mock_data import constant
 from backend.tests.mock_data.components.drs import DRSApiMock
 from backend.tests.mock_data.ticket.sqlserver_flow import (
     DB_MODULE_DATA,
@@ -178,6 +179,7 @@ class TestSqlServerApplyFlow(TestFlowBase, TestCase):
         """
         测试的初始设置。
         """
+        AppCache.objects.create(bk_biz_id=constant.BK_BIZ_ID, db_app_abbr="DBA", bk_biz_name="dba")
         DBModule.objects.bulk_create([DBModule(**data) for data in DB_MODULE_DATA])
         Spec.objects.bulk_create([Spec(**data) for data in SQLSERVER_SPEC_DATA])
         Machine.objects.bulk_create([Machine(**data) for data in SQLSERVER_MACHINE_DATA])

@@ -15,7 +15,9 @@ from typing import Any, Dict, List, Optional
 from bamboo_engine import api, builder, states
 from bamboo_engine.api import EngineAPIResult
 from bamboo_engine.builder import Data
+from bamboo_engine.eri import NodeType
 from django.utils.translation import ugettext as _
+from pipeline.eri.models import State
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from backend.flow.engine.bamboo.builder import Builder
@@ -100,6 +102,10 @@ class BambooEngine:
         result = api.get_node_histories(runtime=BambooDjangoRuntime(), node_id=node_id)
         return result
 
+    def get_node_state(self, node_id: str) -> State:
+        result = self.runtime.get_state_or_none(node_id)
+        return result
+
     def get_pipeline_states(self) -> EngineAPIResult:
         result = api.get_pipeline_states(runtime=BambooDjangoRuntime(), root_id=self.root_id)
         self.format_bamboo_engine_status(result.data)
@@ -151,59 +157,58 @@ class BambooEngine:
 
     def recursion_subprocess_status(self, activities: Dict, node_maps: Dict):
         """为子流程添加状态"""
-        raw_data = copy.deepcopy(activities)
-        for node_id, activity in raw_data.items():
-            for key, value in activity.items():
-                if value == "SubProcess":
-                    children_status_list = []
-                    children_states = self.get_children_states(node_id=node_id).data
-                    try:
-                        children = children_states[node_id]["children"]
-                        self.get_subprocess_state(children, children_status_list)
-                        status = children_states[node_id]["state"]
-                        if status == states.RUNNING and states.FAILED in children_status_list:
-                            status = states.FAILED
-                        elif status == states.RUNNING and states.REVOKED in children_status_list:
-                            status = states.REVOKED
-                    except KeyError:
-                        status = states.CREATED
+        for node_id, activity in activities.items():
+            if activity.get("pipeline"):
+                self.recursion_subprocess_status(activities[node_id]["pipeline"]["activities"], node_maps)
 
-                    act_status = []
-                    self.recursion_subprocess_activity_status(
-                        self.root_id, activity["pipeline"]["activities"], act_status, node_maps
-                    )
-                    if states.FAILED in act_status:
+            if activity.get("type") == "SubProcess":
+                children_status_list = []
+                children_states = self.get_children_states(node_id=node_id).data
+                try:
+                    children = children_states[node_id]["children"]
+                    self.get_subprocess_state(children, children_status_list)
+                    status = children_states[node_id]["state"]
+                    if status == states.RUNNING and states.FAILED in children_status_list:
                         status = states.FAILED
-                    elif states.REVOKED in act_status:
+                    elif status == states.RUNNING and states.REVOKED in children_status_list:
                         status = states.REVOKED
+                except KeyError:
+                    status = states.CREATED
 
-                    activities[node_id]["status"] = status
-                elif key == "pipeline":
-                    self.recursion_subprocess_status(activities[node_id]["pipeline"]["activities"], node_maps)
+                act_status = []
+                self.recursion_subprocess_act_status(
+                    self.root_id, activity["pipeline"]["activities"], act_status, node_maps
+                )
+                if states.FAILED in act_status:
+                    status = states.FAILED
+                elif states.REVOKED in act_status:
+                    status = states.REVOKED
+                activities[node_id]["status"] = status
 
-    def recursion_nodes_status(self, node: FlowNode, status: str, raw_data: Dict):
-        for key, values in raw_data.items():
-            if key == node.node_id:
-                raw_data[key]["status"] = status
-                raw_data[key]["created_at"] = int(datetime2timestamp(node.created_at))
-                raw_data[key]["started_at"] = int(datetime2timestamp(node.started_at))
-                raw_data[key]["updated_at"] = int(datetime2timestamp(node.updated_at))
-                raw_data[key]["hosts"] = node.hosts
+    def recursion_nodes_status(self, tree: Dict, node_maps: Dict):
+        for key, values in tree.items():
+            if key in node_maps:
+                node = node_maps[key]
+                tree[key]["status"] = StateType.EXPIRED if node.is_expired else node.status
+                tree[key]["created_at"] = int(datetime2timestamp(node.created_at))
+                tree[key]["started_at"] = int(datetime2timestamp(node.started_at))
+                tree[key]["updated_at"] = int(datetime2timestamp(node.updated_at))
+                tree[key]["hosts"] = node.hosts
                 continue
 
             if isinstance(values, dict):
-                self.recursion_nodes_status(node, status, values)
+                self.recursion_nodes_status(values, node_maps)
 
-    def recursion_subprocess_activity_status(self, root_id: str, activities: Dict, act_status: List, node_maps: Dict):
+    def recursion_subprocess_act_status(self, root_id: str, activities: Dict, act_status: List, node_maps: Dict):
         for node_id, activity in activities.items():
-            for key, value in activity.items():
-                if key == "type" and value == "SubProcess":
-                    self.recursion_subprocess_activity_status(
-                        root_id, activity["pipeline"]["activities"], act_status, node_maps
-                    )
-                elif key == "type" and value == "ServiceActivity":
-                    status = node_maps[node_id]
-                    act_status.append(status)
+            activity_type = activity.get("type")
+            if activity_type == "SubProcess":
+                self.recursion_subprocess_act_status(
+                    root_id, activity["pipeline"]["activities"], act_status, node_maps
+                )
+            elif activity_type == "ServiceActivity":
+                status = node_maps[node_id].status
+                act_status.append(status)
 
     def recursion_translate_activity(self, activities: Dict):
         """递归翻译节点名称"""
@@ -221,19 +226,42 @@ class BambooEngine:
         node_maps = {}
         nodes = FlowNode.objects.filter(root_id=self.root_id)
         for node in nodes:
-            node_maps[node.node_id] = node.status
+            node_maps[node.node_id] = node
         self.recursion_subprocess_status(activities, node_maps)
         self.recursion_translate_activity(activities)
-        for node in nodes:
-            self.recursion_nodes_status(node, node.status, tree)
+        self.recursion_nodes_status(tree, node_maps)
         return tree
 
     def get_pipeline_tree(self) -> Optional[Dict]:
+        """获取流程树"""
         try:
             flow = FlowTree.objects.get(root_id=self.root_id)
             return flow.tree
         except FlowTree.DoesNotExist:
             return None
+
+    def get_pipeline_tree_nodes(self) -> List[str]:
+        """获取流程树节点(包括动作节点和gateway节点)"""
+        node_ids: List[str] = []
+
+        def recurse_pipeline_tree(pipeline_tree):
+            # 获取当前根节点
+            node_ids.append(pipeline_tree["id"])
+            # 获取start/end event节点
+            node_ids.extend([pipeline_tree["start_event"]["id"], pipeline_tree["end_event"]["id"]])
+            # 获取geteway节点
+            gateway_nodes = list(pipeline_tree.get("gateways", {}).keys())
+            node_ids.extend(gateway_nodes)
+            # 获取动作节点
+            for node_id, activity in pipeline_tree.get("activities", {}).items():
+                # 如果有子流程，递归检查子流程内的活动
+                if activity.get("type") == NodeType.SubProcess.value:
+                    recurse_pipeline_tree(activity["pipeline"])
+                if activity.get("type") == NodeType.ServiceActivity.value:
+                    node_ids.append(node_id)
+
+        recurse_pipeline_tree(self.get_pipeline_tree())
+        return node_ids
 
     def get_node_short_histories(self, node_id) -> List[Dict[str, Any]]:
         result = api.get_node_short_histories(runtime=BambooDjangoRuntime(), node_id=node_id)

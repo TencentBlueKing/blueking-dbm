@@ -31,7 +31,7 @@
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  import ApproveFlows from './components/Approve.vue';
+  import ApproveFlows from './components/approve/Index.vue';
   import MySqlFlows from './components/MySqlFlows.vue';
   import RedisFlows from './components/RedisFlows.vue';
 
@@ -57,7 +57,7 @@
     if ([TicketTypes.REDIS_KEYS_DELETE, TicketTypes.REDIS_KEYS_EXTRACT].includes(props.data.ticket_type)) {
       return RedisFlows;
     }
-    if ([TicketTypes.MYSQL_IMPORT_SQLFILE].includes(props.data.ticket_type)) {
+    if ([TicketTypes.MYSQL_IMPORT_SQLFILE, TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE].includes(props.data.ticket_type)) {
       return MySqlFlows;
     }
     return ApproveFlows;

@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import uuid
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.models import StateType
 from backend.tests.mock_data import constant
@@ -21,7 +22,7 @@ SQL_IMPORT_NODE_ID = "a651615616516dwqd156dq6616516qd"
 SQL_IMPORT_VERSION_ID = "d516156156qwd161651665161656"
 BK_USERNAME = "admin"
 SN = "NO2019090519542603"
-BK_BIZ_ID = 1
+BK_BIZ_ID = constant.BK_BIZ_ID
 
 MYSQL_AUTHORIZE_TICKET_DATA = {
     "bk_biz_id": constant.BK_BIZ_ID,
@@ -86,6 +87,14 @@ MYSQL_AUTHORIZE_CLONE_CLIENT_TICKET_DATA = {
     },
     "remark": "",
     "ticket_type": "MYSQL_CLIENT_CLONE_RULES",
+}
+
+MYSQL_CLONE_CLIENT_TICKET_CONFIG = {
+    "bk_biz_id": constant.BK_BIZ_ID,
+    "ticket_type": TicketType.MYSQL_CLIENT_CLONE_RULES,
+    "configs": {"need_itsm": True, "need_manual_confirm": True},
+    "editable": 1,
+    "group": DBType.MySQL,
 }
 
 MYSQL_SINGLE_APPLY_TICKET_DATA = {
@@ -204,7 +213,7 @@ SQL_IMPORT_DATA = {
     "ticket_type": "MYSQL_IMPORT_SQLFILE",
 }
 SQL_IMPORT_TICKET_DATA = {
-    "bk_biz_id": 2005000194,
+    "bk_biz_id": constant.BK_BIZ_ID,
     "details": {"root_id": ROOT_ID},
     "remark": "",
     "ticket_type": "MYSQL_IMPORT_SQLFILE",

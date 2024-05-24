@@ -49,7 +49,10 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
 
     #  实例不可用时，还能正常提单类型的白名单
     # spider 接入层异常, 只允许修复接入层异常的单据 1. 踢出故障 spider 2. 上架 (扩容) 新的 spider
-    SPIDER_UNAVAILABLE_WHITELIST = []
+    # slave或者 spider 不可用不影响分区单据
+    SPIDER_UNAVAILABLE_WHITELIST = [
+        TicketType.TENDBCLUSTER_PARTITION.value,
+    ]
     # 存储层 master 异常 (dbha 因为某些问题未正常介入),只有切换单据可用
     REMOTE_MASTER_UNAVAILABLE_WHITELIST = [
         TicketType.TENDBCLUSTER_MASTER_SLAVE_SWITCH,

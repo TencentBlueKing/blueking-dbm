@@ -1,6 +1,7 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/util"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -148,6 +149,10 @@ func DoAddAccountRule(rule *PrivModule, apps map[string]int64, clusterType strin
 	}
 	rulePara := AccountRulePara{BkBizId: apps[rule.App], ClusterType: &clusterType, AccountId: items[0].Id,
 		Dbname: rule.Dbname, Priv: priv, Operator: "migrate"}
+	if rule.Dbname == "*" {
+		rulePara = AccountRulePara{BkBizId: apps[rule.App], ClusterType: &clusterType, AccountId: items[0].Id,
+			Dbname: "%", Priv: priv, Operator: "migrate"}
+	}
 	log, _ := json.Marshal(rulePara)
 	// 添加帐号规则
 	err = rulePara.AddAccountRule(string(log), "add_account_rule")
@@ -158,15 +163,16 @@ func DoAddAccountRule(rule *PrivModule, apps map[string]int64, clusterType strin
 }
 
 // CheckAndGetPassword 检查以及获取密码
-func CheckAndGetPassword(key, appWhere string, exclude *[]AppUser) ([]PrivModule, []string) {
+func CheckAndGetPassword(key, appWhere, sap string, exclude *[]AppUser) ([]PrivModule, []string) {
 	users := make([]*PrivModule, 0)
 	var errMsg []string
 	var migrateUsers []PrivModule
+	sapEnc := "*E6EC681C29D5631966E8A7796D727618F7BE0C04"
 	type Psw struct {
 		Psw string `gorm:"column:psw;not_null" json:"psw"`
 	}
 	vsql := fmt.Sprintf("select app,user,AES_DECRYPT(psw,'%s') as psw"+
-		" from tb_app_priv_module where app in (%s)", key, appWhere)
+		" from tb_app_priv_module where app in (%s) ", key, appWhere)
 	if len(*exclude) > 0 {
 		var where string
 		for _, ex := range *exclude {
@@ -183,6 +189,7 @@ func CheckAndGetPassword(key, appWhere string, exclude *[]AppUser) ([]PrivModule
 	var emptyList []AppUser
 	var oldPasswordList []AppUser
 	var diffentPassword []AppUser
+	var wrongSapPassword []AppUser
 	tmp := make(map[string][]string)
 	for _, user := range users {
 		userPsw := fmt.Sprintf("%s|||%s", user.App, user.User)
@@ -200,6 +207,14 @@ func CheckAndGetPassword(key, appWhere string, exclude *[]AppUser) ([]PrivModule
 		vlist := strings.Split(k, "|||")
 		a := vlist[0]
 		u := vlist[1]
+		if u == "sap" {
+			if util.HasElem(sap, v) || util.HasElem(sapEnc, v) {
+				migrateUsers = append(migrateUsers, PrivModule{App: a, User: u, Psw: sap})
+			} else {
+				wrongSapPassword = append(wrongSapPassword, AppUser{a, u})
+			}
+			continue
+		}
 		empty := false
 		oldPassword := false
 		var passwordFuncList []string
@@ -265,6 +280,10 @@ func CheckAndGetPassword(key, appWhere string, exclude *[]AppUser) ([]PrivModule
 	if len(diffentPassword) > 0 {
 		errMsg = append(errMsg, fmt.Sprintf("同账号存在不同的密码不可迁移:%v", diffentPassword))
 		*exclude = append(*exclude, diffentPassword...)
+	}
+	if len(wrongSapPassword) > 0 {
+		errMsg = append(errMsg, fmt.Sprintf("sap账号密码错误:%v", diffentPassword))
+		*exclude = append(*exclude, wrongSapPassword...)
 	}
 	return migrateUsers, errMsg
 }
