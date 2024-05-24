@@ -33,22 +33,25 @@ export async function generateRedisProxyScaleDownCloneData(ticketData: TicketMod
     {} as Record<number, RedisModel>,
   );
 
-  return infos.map((item) => {
-    const clusterId = item.cluster_id;
-    return {
-      rowKey: random(),
-      isLoading: false,
-      cluster: clusters[clusterId].immute_domain,
-      clusterId,
-      bkCloudId: clusterListMap[clusterId].bk_cloud_id,
-      nodeType: 'Proxy',
-      spec: {
-        ...clusterListMap[clusterId].proxy[0].spec_config,
-        name: clusterListMap[clusterId].cluster_spec.spec_name,
-        id: clusterListMap[clusterId].cluster_spec.spec_id,
-        count: clusterListMap[clusterId].proxy.length,
-      },
-      targetNum: `${clusterListMap[clusterId].proxy.length}`,
-    };
-  });
+  return {
+    tableDataList: infos.map((item) => {
+      const clusterId = item.cluster_id;
+      return {
+        rowKey: random(),
+        isLoading: false,
+        cluster: clusters[clusterId].immute_domain,
+        clusterId,
+        bkCloudId: clusterListMap[clusterId].bk_cloud_id,
+        nodeType: 'Proxy',
+        spec: {
+          ...clusterListMap[clusterId].proxy[0].spec_config,
+          name: clusterListMap[clusterId].cluster_spec.spec_name,
+          id: clusterListMap[clusterId].cluster_spec.spec_id,
+          count: clusterListMap[clusterId].proxy.length,
+        },
+        targetNum: `${clusterListMap[clusterId].proxy.length}`,
+      };
+    }),
+    remark: ticketData.remark,
+  };
 }

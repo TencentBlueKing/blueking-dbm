@@ -71,6 +71,7 @@
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -93,6 +94,8 @@
     tables?: string[];
     tablesIgnore?: string[];
   }
+
+  export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData' | 'rollbackIp' | 'rollbackTime'>;
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
@@ -128,6 +131,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -201,18 +205,49 @@
     emits('remove');
   };
 
+  const getRowData = () => [
+    clusterRef.value.getValue(),
+    hostRef.value.getValue(),
+    backupSourceRef.value.getValue(),
+    modeRef.value.getValue(),
+    databasesRef.value.getValue('databases'),
+    tablesRef.value.getValue('tables'),
+    databasesIgnoreRef.value.getValue('databases_ignore'),
+    tablesIgnoreRef.value.getValue('tables_ignore'),
+  ];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [
+        clusterData,
+        hostData,
+        backupSourceData,
+        modeData,
+        databasesData,
+        tablesData,
+        databasesIgnoreData,
+        tablesIgnoreData,
+      ] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          clusterData: props.data.clusterData,
+          rollbackIp: hostData.rollback_host.ip,
+          backupSource: backupSourceData.backup_source,
+          backupid: modeData?.backupinfo?.backup_id,
+          rollbackTime: modeData?.rollback_time || '',
+          databases: databasesData.databases,
+          databasesIgnore: databasesIgnoreData.databases_ignore,
+          tables: tablesData.tables,
+          tablesIgnore: tablesIgnoreData.tables_ignore,
+        }),
+      );
+    });
+  };
+
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        clusterRef.value.getValue(),
-        hostRef.value.getValue(),
-        backupSourceRef.value.getValue(),
-        modeRef.value.getValue(),
-        databasesRef.value.getValue('databases'),
-        tablesRef.value.getValue('tables'),
-        databasesIgnoreRef.value.getValue('databases_ignore'),
-        tablesIgnoreRef.value.getValue('tables_ignore'),
-      ]).then(
+      return Promise.all(getRowData()).then(
         ([
           clusterData,
           hostData,

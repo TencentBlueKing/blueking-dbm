@@ -46,6 +46,7 @@
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -99,6 +100,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'clusterInputFinish', value: string): void;
   }
 
@@ -131,10 +133,25 @@
     emits('remove');
   };
 
+  const getRowData = () => [includeKeyRef.value.getValue(), excludeKeyRef.value.getValue()];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [includeKey, excludeKey] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits('clone', {
+        ...props.data,
+        rowKey: random(),
+        isLoading: false,
+        includeKey,
+        excludeKey,
+      });
+    });
+  };
+
   defineExpose<Exposes>({
     async getValue() {
       await clusterRef.value.getValue();
-      return await Promise.all([includeKeyRef.value.getValue(), excludeKeyRef.value.getValue()]).then((data) => {
+      return await Promise.all(getRowData()).then((data) => {
         const [includeKey, excludeKey] = data;
         return {
           src_cluster: props.data.srcCluster,

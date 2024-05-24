@@ -26,12 +26,11 @@
           {{ t('批量录入') }}
         </BkButton>
       </div>
-      <div class="title-spot mt-12 mb-10">
-        {{ t('时区') }}<span class="required" />
-      </div>
-      <TimeZonePicker style="width: 450px;" />
+      <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
+      <TimeZonePicker style="width: 450px" />
       <RenderData
         class="mt16"
+        @batch-edit="handleBatchEditColumn"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -40,8 +39,10 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :cluster-types="[ClusterTypes.TENDBHA]"
@@ -87,11 +88,12 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type IDataRowBatchKey } from './components/RenderData/Row.vue';
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -113,6 +115,7 @@
     type: TicketTypes.MYSQL_FLASHBACK,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -121,9 +124,10 @@
   const isShowBatchSelector = ref(false);
   const isShowBatchEntry = ref(false);
   const isSubmitting = ref(false);
+  const tableData = ref<Array<IDataRow>>([createRowData({})]);
+  const remark = ref('');
 
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -146,6 +150,18 @@
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
+  };
+
+  // 批量选择
+  const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        [filed]: value,
+      });
+    });
   };
 
   // 批量选择
@@ -186,10 +202,20 @@
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
-      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.master_domain !== domain);
     }
     dataList.splice(index, 1);
     tableData.value = dataList;
+  };
+
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
   };
 
   const handleSubmit = () => {
@@ -198,7 +224,7 @@
       .then((data) =>
         createTicket({
           ticket_type: 'MYSQL_FLASHBACK',
-          remark: '',
+          remark: remark.value,
           details: {
             infos: data,
           },
@@ -223,6 +249,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     selectedClusters.value[ClusterTypes.TENDBHA] = [];
     domainMemo = {};
     window.changeConfirm = false;

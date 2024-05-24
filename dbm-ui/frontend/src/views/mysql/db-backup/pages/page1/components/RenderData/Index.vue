@@ -37,7 +37,7 @@
               :title="t('备份位置')"
               @change="handleBatchEdit">
               <span
-                v-bk-tooltips="t('批量编辑')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleShowBatchEdit">
                 <DbIcon type="bulk-edit" />

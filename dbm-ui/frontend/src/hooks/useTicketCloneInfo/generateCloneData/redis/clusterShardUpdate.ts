@@ -20,7 +20,9 @@ import { random } from '@utils';
 import { t } from '@locales/index';
 
 // Redis 集群分片数变更
-export async function generateRedisClusterShardUpdateCloneData(ticketData: TicketModel<RedisClusterShardUpdateDetails>) {
+export async function generateRedisClusterShardUpdateCloneData(
+  ticketData: TicketModel<RedisClusterShardUpdateDetails>,
+) {
   const { clusters, infos } = ticketData.details;
   const clusterListResult = await getRedisList({
     cluster_ids: infos.map((item) => item.src_cluster).join(','),
@@ -69,5 +71,6 @@ export async function generateRedisClusterShardUpdateCloneData(ticketData: Ticke
     tableList: tableData,
     type: ticketData.details.data_check_repair_setting.type,
     frequency: ticketData.details.data_check_repair_setting.execution_frequency,
+    remark: ticketData.remark,
   };
 }

@@ -116,12 +116,19 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => {
-        const slaveHostData = _.find(allSlaveHostList, (item) => genHostKey(item) === localValue.value);
-        return {
-          slave_ip: slaveHostData,
-        };
-      });
+      return editRef.value
+        .getValue()
+        .then(() => {
+          const slaveHostData = _.find(allSlaveHostList, (item) => genHostKey(item) === localValue.value);
+          return {
+            slave_ip: slaveHostData,
+          };
+        })
+        .catch(() =>
+          Promise.reject({
+            slave_ip: undefined,
+          }),
+        );
     },
   });
 </script>

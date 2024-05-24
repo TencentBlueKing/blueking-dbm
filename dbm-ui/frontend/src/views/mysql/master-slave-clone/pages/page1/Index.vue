@@ -17,7 +17,9 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('迁移主从：集群主从实例将成对迁移至新机器。默认迁移同机所有关联集群，也可迁移部分集群，迁移会下架旧实例')" />
+        :title="
+          t('迁移主从：集群主从实例将成对迁移至新机器。默认迁移同机所有关联集群，也可迁移部分集群，迁移会下架旧实例')
+        " />
       <div
         class="mt16"
         style="display: flex">
@@ -36,10 +38,11 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
       <BkForm
-        class="mt-24"
+        class="toolbox-form mt-24"
         form-type="vertical">
         <BkFormItem
           :label="t('备份源')"
@@ -54,6 +57,7 @@
           </BkRadioGroup>
         </BkFormItem>
       </BkForm>
+      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :cluster-types="[ClusterTypes.TENDBHA]"
@@ -99,6 +103,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
@@ -124,6 +129,7 @@
       const { tableDataList } = cloneData;
       tableData.value = tableDataList;
       backupSource.value = tableDataList[0].backup_source;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -133,9 +139,10 @@
   const isShowBatchEntry = ref(false);
   const isSubmitting = ref(false);
   const backupSource = ref('local');
+  const remark = ref('');
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -199,10 +206,20 @@
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
-      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.master_domain !== domain);
     }
     dataList.splice(index, 1);
     tableData.value = dataList;
+  };
+
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
   };
 
   const handleSubmit = () => {
@@ -211,7 +228,7 @@
       .then((data) =>
         createTicket({
           ticket_type: 'MYSQL_MIGRATE_CLUSTER',
-          remark: '',
+          remark: remark.value,
           details: {
             infos: data,
             backup_source: backupSource.value,
@@ -238,6 +255,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     selectedClusters.value[ClusterTypes.TENDBHA] = [];
     domainMemo = {};
     window.changeConfirm = false;

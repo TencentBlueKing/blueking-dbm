@@ -111,21 +111,39 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return (editRef.value as InstanceType<typeof TableEditInput>).getValue().then(() => {
-        if (!modelValue.value) {
-          return Promise.reject();
-        }
-        return {
-          old_slave: {
-            bk_biz_id: currentBizId,
-            bk_cloud_id: modelValue.value.bkCloudId,
-            ip: modelValue.value.ip,
-            bk_host_id: modelValue.value.bkHostId,
-            port: modelValue.value.port,
-            instance_address: modelValue.value.instanceAddress,
-          },
-        };
-      });
+      return (editRef.value as InstanceType<typeof TableEditInput>)
+        .getValue()
+        .then(() => {
+          if (!modelValue.value) {
+            return Promise.reject();
+          }
+          return {
+            old_slave: {
+              bk_biz_id: currentBizId,
+              bk_cloud_id: modelValue.value.bkCloudId,
+              ip: modelValue.value.ip,
+              bk_host_id: modelValue.value.bkHostId,
+              port: modelValue.value.port,
+              instance_address: modelValue.value.instanceAddress,
+            },
+          };
+        })
+        .catch(() =>
+          Promise.reject(
+            modelValue.value
+              ? {
+                  old_slave: {
+                    bk_biz_id: currentBizId,
+                    bk_cloud_id: modelValue.value.bkCloudId,
+                    ip: modelValue.value.ip,
+                    bk_host_id: modelValue.value.bkHostId,
+                    port: modelValue.value.port,
+                    instance_address: modelValue.value.instanceAddress,
+                  },
+                }
+              : undefined,
+          ),
+        );
     },
   });
 </script>

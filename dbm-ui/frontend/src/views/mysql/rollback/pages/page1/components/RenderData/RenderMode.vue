@@ -170,16 +170,31 @@
   defineExpose<Exposes>({
     getValue() {
       if (localBackupType.value === 'record') {
-        return localBackupidRef.value.getValue().then(() => {
-          const backupInfo = _.find(logRecordListMemo, (item) => item.backup_id === localBackupid.value);
-          return {
-            backupinfo: backupInfo,
-          };
-        });
+        return localBackupidRef.value
+          .getValue()
+          .then(() => {
+            const backupInfo = _.find(logRecordListMemo, (item) => item.backup_id === localBackupid.value);
+            return {
+              backupinfo: backupInfo,
+            };
+          })
+          .catch(() => {
+            const backupInfo = _.find(logRecordListMemo, (item) => item.backup_id === localBackupid.value);
+            return Promise.reject({
+              backupinfo: backupInfo,
+            });
+          });
       }
-      return localRollbackTimeRef.value.getValue().then(() => ({
-        rollback_time: formatDateToUTC(localRollbackTime.value),
-      }));
+      return localRollbackTimeRef.value
+        .getValue()
+        .then(() => ({
+          rollback_time: formatDateToUTC(localRollbackTime.value),
+        }))
+        .catch(() =>
+          Promise.reject({
+            rollback_time: formatDateToUTC(localRollbackTime.value),
+          }),
+        );
     },
   });
 </script>

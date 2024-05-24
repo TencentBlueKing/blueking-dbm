@@ -75,7 +75,10 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => Number(localValue.value));
+      return editRef.value
+        .getValue()
+        .then(() => Number(localValue.value))
+        .catch(() => Promise.reject(localValue.value));
     },
   });
 </script>

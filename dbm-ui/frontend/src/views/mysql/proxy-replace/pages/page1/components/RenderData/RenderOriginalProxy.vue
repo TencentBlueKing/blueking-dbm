@@ -168,7 +168,7 @@
         },
       };
 
-      return editRef.value.getValue().then(() => result);
+      return editRef.value.getValue().then(() => result).catch(() => Promise.reject(result));
     },
   });
 </script>

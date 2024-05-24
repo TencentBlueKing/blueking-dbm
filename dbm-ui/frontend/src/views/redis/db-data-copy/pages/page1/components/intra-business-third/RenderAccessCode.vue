@@ -43,6 +43,7 @@
   import { encodeMult } from '@utils';
 
   interface Props {
+    data: string
     srcCluster: string;
     dstCluster: string;
   }
@@ -91,6 +92,15 @@
     validator,
   } = useValidtor(rules);
 
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data ? props.data : '';
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 响应输入
   const handleInput = (value: string) => {
@@ -132,7 +142,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localValue.value).then(() => localValue.value);
+      return validator(localValue.value)
+        .then(() => localValue.value)
+        .catch(() => Promise.reject(localValue.value));;
     },
   });
 </script>
