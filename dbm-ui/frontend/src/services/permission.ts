@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import dayjs from 'dayjs';
+import MysqlAdminPasswordModel from '@services/model/admin-password/mysql-admin-password';
 
 import type {
   AccountTypesValues,
@@ -43,21 +43,6 @@ interface RamdomCycle {
     day_of_week: string
     day_of_month: string
   }
-}
-
-// mysql生效实例密码(admin)
-interface MysqlAdminPassword {
-  bk_cloud_id: number,
-  bk_cloud_name: string,
-  component: string,
-  id: number,
-  ip: string,
-  lock_until: string,  // 带有时区
-  operator: string,
-  password: string,
-  port: number,
-  update_time: string, // 带有时区
-  username: string
 }
 
 interface MysqlAdminPasswordResultItem {
@@ -128,14 +113,10 @@ export const queryMysqlAdminPassword = (params: {
   begin_time?: string
   end_time?: string
   instances?: string
-}) => http.get<ListBase<MysqlAdminPassword[]>>('/apis/conf/password_policy/query_mysql_admin_password/', params)
+}) => http.get<ListBase<MysqlAdminPasswordModel[]>>('/apis/conf/password_policy/query_mysql_admin_password/', params)
   .then(res => ({
     ...res,
-    results: res.results.map(item => ({
-      ...item,
-      lock_until: dayjs(item.lock_until).format('YYYY-MM-DD HH:mm:ss'),
-      update_time: dayjs(item.update_time).format('YYYY-MM-DD HH:mm:ss'),
-    })),
+    results: res.results.map(item => new MysqlAdminPasswordModel(item)),
   }));
 
 /**
