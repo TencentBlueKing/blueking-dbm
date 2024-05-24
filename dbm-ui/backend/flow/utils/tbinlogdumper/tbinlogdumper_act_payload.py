@@ -74,7 +74,7 @@ class TBinlogDumperActPayload(object):
         for conf in self.ticket_data["add_conf_list"]:
             mycnf_configs[conf["port"]] = self.get_tbinlogdumper_config()
             dumper_configs[conf["port"]] = {
-                "dumper_id": str(conf["area_name"]),
+                "dumper_id": str(conf["dumper_id"]),
                 "area_name": str(conf["area_name"]),
                 "server_id": conf["server_id"],
                 "protocol_type": conf["protocol_type"],
