@@ -7,7 +7,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.flow.consts import DnsOpType, ManagerOpType, ManagerServiceType, MediumFileTypeEnum, PulsarRoleEnum
-from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import sa_init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import new_machine_common_sub_flow
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.pulsar.pulsar_base_flow import get_all_node_ips_in_ticket
@@ -84,17 +84,14 @@ class PulsarReplaceFlow(PulsarOperationFlow):
             replace_zk_sub_pipeline = SubBuilder(root_id=self.root_id, data=replace_zk_data)
             act_kwargs.exec_ip = self.base_flow_data["new_zk_ips"]
 
-            replace_zk_sub_pipeline.add_sub_pipeline(
-                sub_flow=sa_init_machine_sub_flow(
-                    uid=self.uid,
-                    root_id=self.root_id,
-                    bk_cloud_id=self.bk_cloud_id,
-                    bk_biz_id=self.bk_biz_id,
-                    init_ips=self.base_flow_data["new_zk_ips"],
-                    idle_check_ips=self.base_flow_data["new_zk_ips"],
-                    set_dns_ips=[],
-                )
+            common_sub_flow = new_machine_common_sub_flow(
+                uid=self.uid,
+                root_id=self.root_id,
+                bk_cloud_id=self.bk_cloud_id,
+                new_ips=self.base_flow_data["new_zk_ips"],
             )
+            if common_sub_flow:
+                replace_zk_sub_pipeline.add_sub_pipeline(sub_flow=common_sub_flow)
 
             replace_zk_sub_pipeline.add_act(
                 act_name=_("下发pulsar介质"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
@@ -155,17 +152,11 @@ class PulsarReplaceFlow(PulsarOperationFlow):
             scale_up_data = self.update_nodes_replace(self.data, TicketType.PULSAR_SCALE_UP)
             scale_up_sub_pipeline = SubBuilder(root_id=self.root_id, data=scale_up_data)
             new_ips = get_all_node_ips_in_ticket(data=scale_up_data)
-            scale_up_sub_pipeline.add_sub_pipeline(
-                sub_flow=sa_init_machine_sub_flow(
-                    uid=self.uid,
-                    root_id=self.root_id,
-                    bk_cloud_id=self.bk_cloud_id,
-                    bk_biz_id=self.bk_biz_id,
-                    init_ips=new_ips,
-                    idle_check_ips=new_ips,
-                    set_dns_ips=[],
-                )
+            common_sub_flow = new_machine_common_sub_flow(
+                uid=self.uid, root_id=self.root_id, bk_cloud_id=self.bk_cloud_id, new_ips=new_ips
             )
+            if common_sub_flow:
+                scale_up_sub_pipeline.add_sub_pipeline(sub_flow=common_sub_flow)
 
             act_kwargs.exec_ip = get_all_node_ips_in_ticket(data=scale_up_data)
             scale_up_sub_pipeline.add_act(
