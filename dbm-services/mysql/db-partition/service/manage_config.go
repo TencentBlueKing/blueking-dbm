@@ -96,7 +96,7 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 		三、ticket_id是NULL，status是NULL，分区规则还没有执行过
 	*/
 	vsql = fmt.Sprintf("SELECT config.*, logs.create_time as execute_time, "+
-		"logs.ticket_id as ticket_id, logs.check_info as check_info, "+
+		"logs.check_info as check_info, "+
 		"logs.status as status FROM "+
 		"(select * from %s where %s ) AS config LEFT JOIN "+
 		"(SELECT log.* FROM %s AS log, "+
@@ -143,7 +143,7 @@ func (m *QueryLogInput) GetPartitionLog() ([]*PartitionLog, int64, error) {
 		return nil, 0, err
 	}
 
-	vsql = fmt.Sprintf("select id, ticket_id, create_time as execute_time, "+
+	vsql = fmt.Sprintf("select id, create_time as execute_time, "+
 		"check_info, status from %s where %s order by execute_time desc %s",
 		logTb, where, limitCondition)
 	err = model.DB.Self.Raw(vsql).Scan(&allResults).Error
@@ -307,7 +307,7 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() (error, []int) {
 	if err != nil {
 		return err, []int{}
 	}
-	warnings2, err := m.compareWithExistDB(tbName)
+	warnings2, err := m.CompareWithExistDB(tbName)
 	if err != nil {
 		return err, []int{}
 	}
@@ -633,8 +633,8 @@ func (m *CreatePartitionsInput) compareWithSameArray() (warnings []string, err e
 	return warnings, nil
 }
 
-// compareWithExistDB 检查重复库表
-func (m *CreatePartitionsInput) compareWithExistDB(tbName string) (warnings []string, err error) {
+// CompareWithExistDB 检查重复库表
+func (m *CreatePartitionsInput) CompareWithExistDB(tbName string) (warnings []string, err error) {
 	l := len(m.DbLikes)
 	for i := 0; i < l; i++ {
 		db := m.DbLikes[i]

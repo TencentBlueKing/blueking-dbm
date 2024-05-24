@@ -2,6 +2,7 @@ import copy
 import json
 import logging
 import os
+import time
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -9,13 +10,11 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.core.consts import BK_PKG_INSTALL_PATH
-from backend.db_meta.enums import InstanceRole
-from backend.db_meta.exceptions import ClusterNotExistException, MasterInstanceNotExistException
-from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.consts import DBA_ROOT_USER, LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_partition_report import MysqlPartitionReportComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.upload_file import UploadFileServiceComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs, UploadFile
@@ -74,25 +73,21 @@ class MysqlPartitionFlow(object):
 
     def mysql_partition_flow(self):
         """
-        增加单据临时ADMIN账号的添加和删除逻辑
         每个分区配置一个子流程：
         （1）检查表结构
         （2）获取分区变更的sql
         （3）dbactor执行分区指令
         """
-        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
-        mysql_partition_pipeline = Builder(
-            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
-        )
+        mysql_partition_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
+        cron_date = {"cron_date": time.strftime("%Y%m%d", time.localtime())}
         for info in self.data["infos"]:
             sub_data = copy.deepcopy(self.data)
             sub_data.pop("infos")
-            sub_pipeline = SubBuilder(root_id=self.root_id, data={**sub_data, **info})
+            sub_pipeline = SubBuilder(root_id=self.root_id, data={**sub_data, **info, **cron_date})
             bk_cloud_id = info["bk_cloud_id"]
-            ip, port = _get_master_instance(info["cluster_id"], self.data["bk_biz_id"])
-            partition_object = info["partition_objects"][0]
-            filename = "partition_sql_file_{}_{}_{}.txt".format(ip, port, self.data["uid"])
+            ip, port = info["partition_objects"][0]["ip"], info["partition_objects"][0]["port"]
+            filename = "partition_sql_file_{}_{}_{}.json".format(ip, port, self.data["uid"])
 
             sub_pipeline.add_act(
                 act_name=_("上传sql文件"),
@@ -100,7 +95,7 @@ class MysqlPartitionFlow(object):
                 kwargs=asdict(
                     UploadFile(
                         path=os.path.join(BKREPO_PARTITION_PATH, filename),
-                        content=json.dumps(partition_object["execute_objects"]),
+                        content=json.dumps(info["partition_objects"]),
                     )
                 ),
             )
@@ -119,9 +114,19 @@ class MysqlPartitionFlow(object):
                     )
                 ),
             )
+            sub_pipeline.add_act(
+                act_name=_("下发actuator介质"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        exec_ip=ip,
+                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+            )
 
-            cluster = {"ip": ip, "port": port, "file_path": os.path.join(BK_PKG_INSTALL_PATH, "partition", filename)}
-
+            cluster = {"ip": ip, "file_path": filename}
             sub_pipeline.add_act(
                 act_name=_("actuator执行partition"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -135,28 +140,18 @@ class MysqlPartitionFlow(object):
                         cluster=cluster,
                     )
                 ),
+                write_payload_var="partition_report",
             )
+
+            sub_pipeline.add_act(
+                act_name=_("生成分区执行报告"),
+                act_component_code=MysqlPartitionReportComponent.code,
+                kwargs={},
+            )
+
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("cluster[{}]的分区任务").format(info["immute_domain"]))
             )
         mysql_partition_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         logger.info(_("构建mysql partition流程成功"))
-        mysql_partition_pipeline.run_pipeline(init_trans_data_class=MysqlPartitionContext(), is_drop_random_user=True)
-
-
-def _get_master_instance(cluster_id, bk_biz_id):
-    try:
-        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
-    except Cluster.DoesNotExist:
-        logger.error("cluster 「 bk_biz_id = {}, cluster_id = {} 」 not exists".format(bk_biz_id, cluster_id))
-        raise ClusterNotExistException(cluster_id=cluster_id)
-    try:
-        master = cluster.storageinstance_set.filter(
-            instance_role__in=[InstanceRole.BACKEND_MASTER, InstanceRole.ORPHAN],
-        ).first()
-    except StorageInstance.DoesNotExist:
-        logger.error(
-            "master or orphan instance「 bk_biz_id = {}, cluster_id = {} 」 not exists".format(bk_biz_id, cluster_id)
-        )
-        raise MasterInstanceNotExistException(cluster_type=cluster.cluster_type, cluster_id=cluster_id)
-    return master.machine.ip, master.port
+        mysql_partition_pipeline.run_pipeline(init_trans_data_class=MysqlPartitionContext())

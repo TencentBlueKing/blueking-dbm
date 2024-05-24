@@ -22,6 +22,8 @@ data:
   DB_REMOTE_SERVICE: "{{ .Values.dbpartition.envs.DB_REMOTE_SERVICE }}"
   CRON_RETRY_HOUR: "{{ .Values.dbpartition.envs.CRON_RETRY_HOUR }}"
   CRON_TIMING_HOUR: "{{ .Values.dbpartition.envs.CRON_TIMING_HOUR }}"
+  ALARM_TIMEZONE: "{{ .Values.dbpartition.envs.ALARM_TIMEZONE }}"
+  ALARM_HOUR: "{{ .Values.dbpartition.envs.ALARM_HOUR }}"
   DBM_TICKET_SERVICE: "{{ .Values.dbpartition.envs.DBM_TICKET_SERVICE }}"
   LISTEN_ADDRESS: "{{ .Values.dbpartition.envs.LISTEN_ADDRESS }}"
   DB_META_SERVICE: "{{ .Values.dbpartition.envs.DB_META_SERVICE }}"
@@ -36,4 +38,10 @@ data:
   REDIS_HOST: "{{ .Values.externalRedis.host }}"
   REDIS_PORT: "{{ .Values.externalRedis.port }}"
   REDIS_PASSWORD: "{{ .Values.externalRedis.password }}"
+  # BKREPO
+  BKREPO_PROJECT: "{{ .Values.bk.bkRepoProject }}"
+  BKREPO_PUBLIC_BUCKET: "{{ .Values.bk.bkRepoPublicBucket }}"
+  BKREPO_USERNAME: "{{ .Values.bk.bkRepoUsername }}"
+  BKREPO_PASSWORD: "{{ .Values.bk.bkRepoPassword }}"
+  BKREPO_ENDPOINT_URL: "{{ .Values.bk.bkRepoUrl }}"
   {{- end }}

@@ -229,6 +229,8 @@ dbpartition:
     DB_REMOTE_SERVICE: "http://bk-dbm/apis/proxypass/drs/"
     CRON_RETRY_HOUR: "9,15"
     CRON_TIMING_HOUR: "3"
+    ALARM_TIMEZONE: "UTC+8"
+    ALARM_HOUR: "11"
     DBM_TICKET_SERVICE: "http://bk-dbm/apis/"
     LISTEN_ADDRESS: "0.0.0.0:80"
     DB_META_SERVICE: "http://bk-dbm"

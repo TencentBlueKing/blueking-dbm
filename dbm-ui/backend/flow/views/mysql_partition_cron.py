@@ -8,19 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .default import *  # pylint: disable=wildcard-import
+from rest_framework.response import Response
 
-DEBUG = False
-
-LOGGING = get_logging_config(os.path.join(BK_LOG_DIR, APP_CODE), "INFO")
-
-
-# allow all hosts
-CORS_ORIGIN_ALLOW_ALL = True
+from backend.flow.engine.controller.mysql import MySQLController
+from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
 
 
-MIDDLEWARE = (
-    "corsheaders.middleware.CorsMiddleware",
-    "backend.bk_web.middleware.DisableCSRFCheckMiddleware",
-    "pyinstrument.middleware.ProfilerMiddleware",
-) + MIDDLEWARE[1:]
+class MysqlPartitionCronSceneApiView(FlowTestView):
+    def post(self, request):
+        root_id = generate_root_id()
+        flow = MySQLController(root_id=root_id, ticket_data=request.data)
+        flow.mysql_partition_cron()
+        return Response({"root_id": root_id})

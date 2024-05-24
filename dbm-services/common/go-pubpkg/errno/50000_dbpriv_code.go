@@ -69,7 +69,7 @@ var (
 		CNMessage: "要求包含的字符类型大于字符串长度"}
 	TryTooManyTimes = Errno{Code: 51024, Message: "try too many times", CNMessage: "尝试太多次"}
 	RuleIdNull      = Errno{Code: 51025, Message: "Rule ID should not be empty",
-		CNMessage: "安全规则的id不能为空"}
+		CNMessage: "规则的id不能为空"}
 	RuleNameNull = Errno{Code: 51026, Message: "Rule name should not be empty",
 		CNMessage: "安全规则的名称不能为空"}
 	RuleExisted       = Errno{Code: 51027, Message: "Rule already existed ", CNMessage: "规则已存在"}
