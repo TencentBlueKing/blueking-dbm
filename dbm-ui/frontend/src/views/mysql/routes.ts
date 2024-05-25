@@ -9,11 +9,12 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { RouteRecordRaw } from 'vue-router';
 
 import type { MySQLFunctions } from '@services/model/function-controller/functionController';
+import FunctionControllModel from '@services/model/function-controller/functionController';
 
 import { t } from '@locales/index';
 
@@ -218,7 +219,6 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
     meta: {
       navName: t('工具箱'),
       fullscreen: true,
-
     },
     component: () => import('@views/mysql/toolbox/index.vue'),
     children: mysqlToolboxChildrenRouters,
@@ -298,13 +298,14 @@ const commonRouters: RouteRecordRaw[] = [
   },
 ];
 
-export default function getRoutes(controller: Record<MySQLFunctions | 'mysql', boolean>) {
+export default function getRoutes(funControllerData: FunctionControllModel) {
+  const controller = funControllerData.getFlatData<MySQLFunctions, 'mysql'>('mysql');
   // 关闭 mysql 功能
   if (controller.mysql !== true) {
     return [];
   }
 
-  const renderRoutes = commonRouters.find(item => item.name === 'MysqlManage');
+  const renderRoutes = commonRouters.find((item) => item.name === 'MysqlManage');
 
   if (!renderRoutes) {
     return commonRouters;

@@ -40,8 +40,8 @@ interface RamdomCycle {
 }
 
 interface MysqlAdminPasswordResultItem {
-  bk_cloud_id: number
-  cluster_type: ClusterTypes
+  bk_cloud_id: number;
+  cluster_type: ClusterTypes;
   instances: {
     role: string;
     addresses: {
@@ -106,16 +106,18 @@ export const modifyMysqlAdminPassword = (params: {
  * 查询mysql生效实例密码(admin)
  */
 export const queryMysqlAdminPassword = (params: {
-  limit?: number
-  offset?: number
-  begin_time?: string
-  end_time?: string
-  instances?: string
-}) => http.get<ListBase<MysqlAdminPasswordModel[]>>('/apis/conf/password_policy/query_mysql_admin_password/', params)
-  .then(res => ({
-    ...res,
-    results: res.results.map(item => new MysqlAdminPasswordModel(item)),
-  }));
+  limit?: number;
+  offset?: number;
+  begin_time?: string;
+  end_time?: string;
+  instances?: string;
+}) =>
+  http
+    .get<ListBase<MysqlAdminPasswordModel[]>>('/apis/conf/password_policy/query_mysql_admin_password/', params)
+    .then((res) => ({
+      ...res,
+      results: res.results.map((item) => new MysqlAdminPasswordModel(item)),
+    }));
 
 /**
  * 获取公钥列表
@@ -206,6 +208,24 @@ export const queryAccountRules = (params: {
     `/apis/mysql/bizs/${params.bizId}/permission/account/query_account_rules/`,
     params,
   );
+
+/**
+ * 添加账号规则前置检查
+ */
+export const preCheckAddAccountRule = (params: {
+  account_id: number | null;
+  access_db: string;
+  privilege: {
+    dml: string[];
+    ddl: string[];
+    glob: string[];
+  };
+  account_type?: AccountTypesValues;
+}) =>
+  http.post<{
+    force_run: boolean;
+    warning: string | null;
+  }>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/permission/account/pre_check_add_account_rule/`, params);
 
 /**
  * 权限克隆前置检查
