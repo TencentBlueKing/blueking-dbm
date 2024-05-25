@@ -55,8 +55,7 @@
       <BkFormItem
         class="form-item privilege"
         :label="t('权限设置')"
-        property="auth"
-        :required="false">
+        property="auth">
         <div class="rule-setting-box">
           <BkFormItem
             label="DML"
@@ -120,12 +119,17 @@
                   :disabled="checkAllPrivileges"
                   :label="option">
                   {{ option }}
+                  <span
+                    v-if="ddlSensitiveWords.includes(option)"
+                    class="sensitive-tip"
+                    >{{ t('敏感') }}</span
+                  >
                 </BkCheckbox>
               </BkCheckboxGroup>
             </div>
           </BkFormItem>
           <BkFormItem
-            :label="t('非常规权限')"
+            :label="t('全局')"
             required>
             <div class="rule-form-row">
               <BkCheckbox
@@ -153,12 +157,13 @@
                   :disabled="checkAllPrivileges"
                   :label="option">
                   {{ option }}
+                  <span class="sensitive-tip">{{ t('敏感') }}</span>
                 </BkCheckbox>
               </BkCheckboxGroup>
             </div>
           </BkFormItem>
         </div>
-        <div
+        <!-- <div
           class="rule-setting-box"
           style="margin-top: 16px">
           <BkFormItem
@@ -170,17 +175,26 @@
               all privileges（{{ t('包含所有权限，其他权限无需授予') }}）
             </BkCheckbox>
           </BkFormItem>
-        </div>
+        </div> -->
       </BkFormItem>
     </DbForm>
     <template #footer>
-      <BkButton
-        class="mr-8"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
+      <BkPopConfirm
+        :content="precheckWarnTip"
+        :is-show="showPopConfirm"
+        :title="t('确定提交？')"
+        trigger="manual"
+        width="400"
+        @cancel="handleVerifyCancel"
+        @confirm="handleVerifyConfirm">
+        <BkButton
+          class="mr-8"
+          :loading="isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('确定') }}
+        </BkButton>
+      </BkPopConfirm>
       <BkButton
         :disabled="isSubmitting"
         @click="handleClose">
@@ -190,20 +204,29 @@
   </BkSideslider>
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { Message } from 'bkui-vue';
   import _ from 'lodash';
+  import type { JSX } from 'vue/jsx-runtime';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { createAccountRule, getPermissionRules, queryAccountRules } from '@services/permission';
-  import type { AccountRule, PermissionRuleAccount } from '@services/types/permission';
+  import {
+    createAccountRule,
+    getPermissionRules,
+    preCheckAddAccountRule,
+    queryAccountRules,
+  } from '@services/permission';
+  import type {
+    AccountRule,
+    PermissionRuleAccount,
+  } from '@services/types/permission';
 
   import { useBeforeClose } from '@hooks';
 
   import { AccountTypes } from '@common/const';
 
-  import { dbOperations } from '../common/consts';
+  import { dbOperations, ddlSensitiveWords } from '../common/consts';
 
   type AuthItemKey = keyof typeof dbOperations;
 
@@ -218,6 +241,7 @@
   const props = withDefaults(defineProps<Props>(), {
     accountId: -1,
   });
+
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>({
     required: true,
@@ -226,21 +250,9 @@
 
   const replaceReg = /[,;\r\n]/g;
 
-  const { t } = useI18n();
-  const handleBeforeClose = useBeforeClose();
   const { TENDBCLUSTER } = AccountTypes;
 
-  const ruleRef = ref();
-  const checkAllPrivileges = ref(false);
-
-  watch(isShow, (show) => {
-    if (show) {
-      formdata.value.account_id = props.accountId ?? -1;
-      getAccount();
-    }
-  });
-
-  const initFormdata = (): AccountRule => ({
+  const initFormdata = (): AccountRule =>  ({
     account_id: null,
     access_db: '',
     privilege: {
@@ -249,11 +261,6 @@
       glob: [],
     },
   });
-
-  // const verifyAccountRuleFormat = () => formdata.access_db
-  //   .replace(replaceReg, ',')
-  //   .split(',')
-  //   .every(db => /^[a-zA-Z]*%?$/g.test(db));
 
   const verifyAccountRulesExits = () => {
     existDBs.value = [];
@@ -281,13 +288,21 @@
     });
   };
 
+  const { t } = useI18n();
+  const handleBeforeClose = useBeforeClose();
+
+  const ruleRef = ref();
+  const checkAllPrivileges = ref(false);
+  const showPopConfirm = ref(false);
+  const precheckWarnTip = ref<JSX.Element>();
   const formdata = ref(initFormdata());
   const accounts = ref<PermissionRuleAccount[]>([]);
   const isLoading = ref(false);
   const existDBs = ref<string[]>([]);
 
-  const selectedUserInfo = computed(() => accounts.value.find((item) => item.account_id === formdata.value.account_id));
-  const rules = {
+  const selectedUserInfo = computed(() => accounts.value.find(item => item.account_id === formdata.value.account_id));
+
+  const rules = computed(() => ({
     auth: [
       {
         trigger: 'change',
@@ -316,16 +331,44 @@
         validator: verifyAccountRulesExits,
       },
     ],
-  };
+  }));
 
-  const handleSelectAllPrivileges = (checked: boolean) => {
-    checkAllPrivileges.value = checked;
-    if (checked) {
-      formdata.value.privilege.ddl = [];
-      formdata.value.privilege.dml = [];
-      formdata.value.privilege.glob = [];
+  const {
+    loading: isSubmitting,
+    run: createAccountRuleRun,
+  } = useRequest(createAccountRule, {
+    manual: true,
+    onSuccess() {
+      Message({
+        message: t('成功添加授权规则'),
+        theme: 'success',
+      });
+      emits('success');
+      window.changeConfirm = false;
+      handleClose();
+    },
+  });
+
+  watch(isShow, (show) => {
+    if (show) {
+      formdata.value.account_id = props.accountId ?? -1;
+      getAccount();
     }
-  };
+  });
+
+  // const verifyAccountRuleFormat = () => formdata.access_db
+  //   .replace(replaceReg, ',')
+  //   .split(',')
+  //   .every(db => /^[a-zA-Z]*%?$/g.test(db));
+
+  // const handleSelectAllPrivileges = (checked: boolean) => {
+  //   checkAllPrivileges.value = checked;
+  //   if (checked) {
+  //     formdata.value.privilege.ddl = [];
+  //     formdata.value.privilege.dml = [];
+  //     formdata.value.privilege.glob = [];
+  //   }
+  // };
 
   const getAccount = () => {
     isLoading.value = true;
@@ -369,34 +412,50 @@
     window.changeConfirm = false;
   };
 
-  const { loading: isSubmitting, run: createAccountRuleRun } = useRequest(createAccountRule, {
-    manual: true,
-    onSuccess() {
-      Message({
-        message: t('成功添加授权规则'),
-        theme: 'success',
-      });
-      emits('success');
-      window.changeConfirm = false;
-      handleClose();
-    },
-  });
+  const handleVerifyCancel = () => {
+    showPopConfirm.value = false;
+    isSubmitting.value = false;
+  };
 
-  async function handleSubmit() {
-    await ruleRef.value.validate();
+  const generateRequestParam = () => {
     const formDataClone = _.cloneDeep(formdata.value);
     if (checkAllPrivileges.value) {
       // 包含所有权限
       formDataClone.privilege.glob = ['all privileges'];
     }
-    const params = {
+
+    return ({
       ...formDataClone,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       access_db: formdata.value.access_db.replace(replaceReg, ','), // 统一分隔符
       account_type: TENDBCLUSTER,
-    };
+    });
+  };
+
+  const handleVerifyConfirm = () => {
+    showPopConfirm.value = false;
+    const params = generateRequestParam();
     createAccountRuleRun(params);
-  }
+  };
+
+  const handleSubmit = async () => {
+    await ruleRef.value.validate();
+    isSubmitting.value = true;
+    const params = generateRequestParam();
+    preCheckAddAccountRule(params)
+      .then((result) => {
+        if (result.warning) {
+          precheckWarnTip.value = (
+            <div class="pre-check-content">
+              {result.warning.split('\n').map(line => <div>{line}</div>)}
+            </div>
+          );
+          showPopConfirm.value = true;
+          return;
+        }
+        createAccountRuleRun(params);
+      });
+  };
 </script>
 
 <style lang="less" scoped>
@@ -404,7 +463,7 @@
     padding: 24px;
 
     .rule-setting-box {
-      padding: 16px;
+      padding: 16px 0 16px 16px;
       background: #f5f7fa;
       border-radius: 2px;
     }
@@ -421,15 +480,30 @@
       width: 100%;
       align-items: flex-start;
 
+      :deep(.bk-checkbox-label) {
+        font-size: 12px;
+      }
+
       .checkbox-group {
         display: flex;
         flex: 1;
         flex-wrap: wrap;
 
         .bk-checkbox {
-          margin-right: 35px;
+          min-width: 33.33%;
           margin-bottom: 16px;
           margin-left: 0;
+
+          .sensitive-tip {
+            background: #fff3e1;
+            border-radius: 2px;
+            font-size: 10px;
+            color: #fe9c00;
+            height: 16px;
+            line-height: 16px;
+            text-align: center;
+            padding: 0 4px;
+          }
         }
       }
 
@@ -438,20 +512,19 @@
         width: 48px;
         margin-right: 48px;
 
-        :deep(.bk-checkbox-label) {
-          font-weight: bold;
+        // :deep(.bk-checkbox-label) {
+        //   font-weight: bold;
+        // }
+        &::after {
+          position: absolute;
+          top: 50%;
+          right: -24px;
+          width: 1px;
+          height: 14px;
+          background-color: #c4c6cc;
+          content: '';
+          transform: translateY(-50%);
         }
-      }
-
-      .check-all::after {
-        position: absolute;
-        top: 50%;
-        right: -24px;
-        width: 1px;
-        height: 14px;
-        background-color: #c4c6cc;
-        content: '';
-        transform: translateY(-50%);
       }
     }
 
@@ -467,5 +540,12 @@
     :deep(.privilege .is-required .bk-form-label::after) {
       display: none;
     }
+  }
+</style>
+<style lang="less">
+  .pre-check-content {
+    width: 100%;
+    max-height: 500px;
+    overflow-y: auto;
   }
 </style>
