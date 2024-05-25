@@ -34,6 +34,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @origin-proxy-input-finish="(value: IProxyData) => handleOriginProxyInputFinish(index, value)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div class="safe-action">
@@ -96,9 +97,34 @@
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
-  import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
+  import { messageError } from '@utils';
+
+  import BatchEntry, {
+    type IValue as IBatchEntryValue,
+  } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
+  import RenderDataRow, {
+    createRowData,
+    type IDataRow,
+    type IProxyData,
+  } from './components/RenderData/Row.vue';
+
+  interface InfoItem {
+    cluster_ids: string[],
+    origin_proxy: {
+      bk_biz_id: number,
+      bk_cloud_id: number,
+      bk_host_id: number,
+      ip: string,
+      port: number,
+    },
+    target_proxy: {
+      bk_biz_id: number,
+      bk_cloud_id: number,
+      bk_host_id: number,
+      ip: string,
+    }
+  }
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -106,7 +132,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.originProxyIp && !firstRow.targetProxyIp;
+    return !firstRow.originProxyIp?.instance_address;
   };
 
   const router = useRouter();
@@ -133,7 +159,7 @@
   const isSubmitting  = ref(false);
   const isSafe = ref(1);
 
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const tableData = ref<Array<IDataRow>>([createRowData({})]);
   const selectedIntances = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
 
   const tabListConfig = {
@@ -151,10 +177,17 @@
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
 
-  // 批量录入
+  // 实例是否已存在表格的映射表
+  let instanceMemo: Record<string, boolean> = {};
+
+  const handleOriginProxyInputFinish = (index: number, value: IProxyData) => {
+    tableData.value[index].originProxyIp = value;
+  };
+
   const handleShowBatchEntry = () => {
     isShowBatchEntry.value = true;
   };
+
   // 批量录入
   const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
     if (list.length === 0) {
@@ -168,17 +201,30 @@
       tableData.value = [...tableData.value, ...newList];
     }
   };
-  // 批量选择
+
   const handleShowBatchSelector = () => {
     isShowBatchProxySelector.value = true;
   };
+
   // 批量选择
   const handelProxySelectorChange = (data: InstanceSelectorValues<TendbhaInstanceModel>) => {
     selectedIntances.value = data;
-    const newList = data.tendbha.map(item => createRowData({
-      originProxyIp: item,
-    }));
-    tableData.value = newList;
+    const newList = data.tendbha.reduce((results, item) => {
+      const instance = item.instance_address;
+      if (!instanceMemo[instance]) {
+        const row = createRowData({
+          originProxyIp: item,
+        });
+        results.push(row);
+        instanceMemo[instance] = true;
+      }
+      return results;
+    }, [] as IDataRow[]);
+    if (checkListEmpty(tableData.value)) {
+      tableData.value = newList;
+    } else {
+      tableData.value = [...tableData.value, ...newList];
+    }
     window.changeConfirm = true;
   };
 
@@ -187,14 +233,23 @@
     const dataList = [...tableData.value];
     dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
+
+    // 多行输入，新增行需要触发校验取到源Proxy信息后下发给目标Proxy
+    setTimeout(() => {
+      for (let i = index + 1; i <= appendList.length + index; i++) {
+        rowRefs.value[i].getValue();
+      }
+    });
   };
+
   // 删除一个集群
   const handleRemove = (index: number) => {
     const instanceAddress = tableData.value[index].originProxyIp?.instance_address;
     if (instanceAddress) {
+      delete instanceMemo[instanceAddress];
       const clustersArr = selectedIntances.value[ClusterTypes.TENDBHA];
-      // eslint-disable-next-line max-len
-      selectedIntances.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.instance_address !== instanceAddress);
+      selectedIntances.value[ClusterTypes.TENDBHA] = clustersArr
+        .filter(item => item.instance_address !== instanceAddress);
     }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
@@ -204,35 +259,81 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'MYSQL_PROXY_SWITCH',
-        remark: '',
-        details: {
-          infos: data,
-          is_safe: Boolean(isSafe.value),
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
+      .then((params: InfoItem[]) => {
+        const targetIpMap: Record<string, string[]> = {};
+        const infos: InfoItem[] = [];
+        const sourceIpMap: Record<string, InfoItem> = {};
+        let isMultipleSourceToSingleTarget = false;
+        for (const rowInfo of params) {
+          const targetProxyIp = rowInfo.target_proxy.ip;
+          const originProxyIp = rowInfo.origin_proxy.ip;
+          if (!sourceIpMap[originProxyIp]) {
+            sourceIpMap[originProxyIp] = rowInfo;
+            infos.push(rowInfo);
+          } else {
+            // 多个同IP不同Port的源Proxy与同一个目标Proxy IP进行合并
+            if (sourceIpMap[originProxyIp].target_proxy.ip !== targetProxyIp) {
+              infos.push(rowInfo);
+            } else {
+              // 集群ID去重合并
+              const targetInfo = infos.find(item => item.origin_proxy.ip === originProxyIp)!;
+              const newClusterIds = Array.from(new Set([...targetInfo.cluster_ids, ...rowInfo.cluster_ids]));
+              targetInfo.cluster_ids = newClusterIds;
+            }
+          }
+          if (!targetIpMap[targetProxyIp]) {
+            targetIpMap[targetProxyIp] = [originProxyIp];
+          } else {
+            if (!targetIpMap[targetProxyIp].includes(originProxyIp)) {
+              isMultipleSourceToSingleTarget = true;
+              targetIpMap[targetProxyIp].push(originProxyIp);
+            }
+          }
+        }
+        // 多个不同的源IP对应同一个目标IP，不允许提单
+        if (isMultipleSourceToSingleTarget) {
+          let tipStr = '';
+          Object.entries(targetIpMap).forEach(([targetIp, sourceIpList]) => {
+            if (sourceIpList.length > 1) {
+              tipStr += `[${sourceIpList.join(',')}] -> ${targetIp}`;
+            }
+          });
+          messageError(t('不允许多台目标Proxy主机对应同一台新Proxy主机：x', { x: tipStr }), 5000);
+          isSubmitting.value = false;
+          return;
+        }
 
-        router.push({
-          name: 'MySQLProxyReplace',
-          params: {
-            page: 'success',
+        createTicket({
+          ticket_type: 'MYSQL_PROXY_SWITCH',
+          remark: '',
+          details: {
+            infos,
+            is_safe: Boolean(isSafe.value),
           },
-          query: {
-            ticketId: data.id,
-          },
-        });
-      }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+          bk_biz_id: currentBizId,
+        })
+          .then((data) => {
+            window.changeConfirm = false;
+
+            router.push({
+              name: 'MySQLProxyReplace',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
+          .finally(() => {
+            isSubmitting.value = false;
+          });
       });
   };
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    instanceMemo = {};
     selectedIntances.value[ClusterTypes.TENDBHA] = [];
     window.changeConfirm = false;
   };

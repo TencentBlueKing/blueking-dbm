@@ -17,13 +17,14 @@
       <RenderOriginalProxy
         ref="targetRef"
         :model-value="data.originProxyIp"
-        @input-create="handleCreate" />
+        @input-create="handleCreate"
+        @input-finish="handleOriginProxyInputFinish" />
     </td>
     <td style="padding: 0">
       <RenderTargetProxyIp
         ref="originRef"
         :cloud-id="data.originProxyIp?.bk_cloud_id ?? null"
-        :disabled="!data.originProxyIp?.bk_host_id"
+        :disabled="!data.originProxyIp?.instance_address"
         :model-value="data.targetProxyIp"
         :target-ip="data.originProxyIp?.ip" />
     </td>
@@ -42,6 +43,14 @@
           @click="handleRemove">
           <DbIcon type="minus-fill" />
         </div>
+      </div>
+      <div
+        class="action-btn"
+        :class="{
+          disabled: removeable,
+        }"
+        @click="handleRemove">
+        <DbIcon type="minus-fill" />
       </div>
     </td>
   </tr>
@@ -73,8 +82,8 @@
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
-    originProxyIp: data.originProxyIp,
-    targetProxyIp: data.targetProxyIp,
+    originProxyIp: data.originProxyIp ?? ({} as IDataRow['originProxyIp']),
+    targetProxyIp: data.targetProxyIp ?? ({} as IDataRow['targetProxyIp']),
   });
 </script>
 <script setup lang="ts">
@@ -90,6 +99,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'originProxyInputFinish', value: IProxyData): void;
   }
 
   interface Exposes {
@@ -102,6 +112,10 @@
 
   const targetRef = ref();
   const originRef = ref();
+
+  const handleOriginProxyInputFinish = (value: IProxyData) => {
+    emits('originProxyInputFinish', value);
+  };
 
   const handleCreate = (list: Array<string>) => {
     emits(
