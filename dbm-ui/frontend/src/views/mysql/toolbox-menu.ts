@@ -145,7 +145,7 @@ export default [
         parentId: 'data',
       },
       {
-        name: t('数据迁移'),
+        name: t('DB克隆'),
         id: 'MySQLDataMigrate',
         parentId: 'data',
       },

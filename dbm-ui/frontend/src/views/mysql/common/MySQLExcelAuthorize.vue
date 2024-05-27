@@ -30,6 +30,12 @@
         accept=".xlsx,.xls"
         :form-data-attributes="[{ name: 'cluster_type', value: clusterType }]"
         :handle-res-code="handleUploadResponse"
+        :header="[
+          {
+            name: 'X-CSRFToken',
+            value: Cookies.get('dbm_csrftoken'),
+          }
+        ]"
         :limit="1"
         :multiple="false"
         name="authorize_file"
@@ -108,6 +114,7 @@
 
 <script setup lang="ts">
   import type { UploadFile } from 'bkui-vue/lib/upload/upload.type';
+  import Cookies from 'js-cookie';
   import { useI18n } from 'vue-i18n';
 
   import { createTicket } from '@services/source/ticket';
