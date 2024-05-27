@@ -284,7 +284,6 @@ func (c *ImportSchemaFromLocalSpiderComp) dumpSchema() (err error) {
 	dumpOption := mysqlutil.MySQLDumpOption{
 		NoData:       true,
 		AddDropTable: c.Params.DropBefore,
-		NeedUseDb:    true,
 		DumpRoutine:  true,
 		DumpTrigger:  true,
 		DumpEvent:    true,

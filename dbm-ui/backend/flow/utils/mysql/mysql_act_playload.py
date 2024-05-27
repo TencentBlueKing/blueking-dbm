@@ -29,7 +29,7 @@ from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.db_proxy.models import DBCloudProxy
-from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
+from backend.db_services.mysql.sql_import.constants import BKREPO_DBCONSOLE_DUMPFILE_PATH, BKREPO_SQLFILE_PATH
 from backend.flow.consts import (
     CHECKSUM_DB,
     SYSTEM_DBS,
@@ -2123,6 +2123,55 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "bk_cloud_id": self.bk_cloud_id,
                     "dump_dir_name": f"{self.cluster['root_id']}_migrate",
                     "open_area_param": self.cluster["open_area_param"],
+                },
+            },
+        }
+
+    def get_dbconsole_schema_payload(self, **kwargs):
+        """
+        获取dbconsole备份payload
+        """
+        # 获取db_cloud_token
+        bk_cloud_id = self.bk_cloud_id
+        db_cloud_token = AsymmetricHandler.encrypt(
+            name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{bk_cloud_id}_dbactuator_token"
+        )
+
+        # 获取url
+        nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last().internal_address
+        bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if bk_cloud_id else settings.BKREPO_ENDPOINT_URL
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.MysqlDumpData.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "charset": self.ticket_data["charset"],
+                    "dump_detail": {
+                        "databases": self.ticket_data["databases"],
+                        "tables": self.ticket_data.get("tables"),
+                        "tables_ignore": self.ticket_data.get("tables_ignore"),
+                        "where": self.ticket_data.get("where"),
+                        "dump_data": self.ticket_data["dump_data"],
+                    },
+                    "zip_file_name": f"{self.cluster['dbconsole_dump_file_name']}.zip",
+                    "one_db_one_file": False,
+                    "upload_detail": {
+                        "bk_cloud_id": bk_cloud_id,
+                        "db_cloud_token": db_cloud_token,
+                        "backup_file_name": f"{self.cluster['dbconsole_dump_file_name']}",
+                        "backup_dir": BK_PKG_INSTALL_PATH,
+                        "fileserver": {
+                            "url": bkrepo_url,
+                            "bucket": settings.BKREPO_BUCKET,
+                            "username": settings.BKREPO_USERNAME,
+                            "password": settings.BKREPO_PASSWORD,
+                            "project": settings.BKREPO_PROJECT,
+                            "upload_path": BKREPO_DBCONSOLE_DUMPFILE_PATH,
+                        },
+                    },
                 },
             },
         }

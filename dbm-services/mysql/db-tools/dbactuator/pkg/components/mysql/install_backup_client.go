@@ -92,6 +92,7 @@ func (c *InstallBackupClientComp) GenerateBinaryConfig() (err error) {
 	return nil
 }
 
+// GenerateBucketConfig TODO
 func (c *InstallBackupClientComp) GenerateBucketConfig() (err error) {
 	mysqlUser, err := user.Lookup("mysql")
 	if err != nil {

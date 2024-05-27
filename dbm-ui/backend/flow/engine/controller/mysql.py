@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
+from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRules
 from backend.flow.engine.bamboo.scene.mysql.mysql_checksum import MysqlChecksumFlow
@@ -618,3 +619,10 @@ class MySQLController(BaseController):
         """
         flow = DownloadDbactorFlow(root_id=self.root_id, data=self.ticket_data)
         flow.download_dbactor_flow()
+
+    def dbconsole_dump_scene(self):
+        """
+        dbconsole dump sql
+        """
+        flow = DbConsoleDumpSqlFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.dump_flow()

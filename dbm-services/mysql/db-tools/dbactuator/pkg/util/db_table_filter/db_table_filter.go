@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 // Package db_table_filter 库表过滤
 package db_table_filter
 
@@ -199,6 +209,13 @@ func (c *DbTableFilter) getDbsByRegexp(ip string, port int, user string, passwor
 		return nil, err
 	}
 
+	// close connect
+	defer func() {
+		if dbh != nil {
+			dbh.Close()
+		}
+	}()
+
 	rows, err := dbh.Queryx(`SHOW DATABASES`)
 	if err != nil {
 		return nil, err
@@ -241,6 +258,13 @@ func (c *DbTableFilter) getTablesByRegexp(ip string, port int, user string, pass
 	if err != nil {
 		return nil, err
 	}
+
+	// close connect
+	defer func() {
+		if dbh != nil {
+			dbh.Close()
+		}
+	}()
 
 	rows, err := dbh.Queryx(
 		`SELECT CONCAT(table_schema, ".", table_name) AS fullname` +

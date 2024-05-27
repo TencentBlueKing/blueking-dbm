@@ -233,7 +233,6 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 				MySQLDumpOption: mysqlutil.MySQLDumpOption{
 					NoData:        false,
 					AddDropTable:  false,
-					NeedUseDb:     false,
 					NoCreateTb:    true,
 					DumpRoutine:   false,
 					GtidPurgedOff: c.GtidPurgedOff,
@@ -273,7 +272,6 @@ func (c *OpenAreaDumpSchemaComp) MysqlDataMigrate() (err error) {
 						DumpRoutine:   true,
 						DumpTrigger:   true,
 						DumpEvent:     true,
-						NeedUseDb:     true,
 						GtidPurgedOff: c.GtidPurgedOff,
 					},
 				},
