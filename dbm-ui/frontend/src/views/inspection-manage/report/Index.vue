@@ -81,6 +81,7 @@
     flex-direction: column;
 
     .list-type-box {
+      padding: 0 24px;
       background-color: #fff;
 
       .bk-tab-content {

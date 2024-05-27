@@ -57,9 +57,9 @@
   const { t } = useI18n();
 
   const { clusterType, confType, version } = route.params as {
-    clusterType: string,
-    confType: string,
-    version: string,
+    clusterType: string;
+    confType: string;
+    version: string;
   };
 
   const state = reactive({
@@ -132,6 +132,7 @@
   .configure-details-page {
     .top-tabs {
       background: #fff;
+      padding: 0 24px;
       box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
       .bk-tab-content {

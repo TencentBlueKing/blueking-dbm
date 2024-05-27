@@ -76,7 +76,8 @@ export const useVersionFiles = (state: IState, typeParams: Ref<TypeParams>) => {
       title: t('确认删除'),
       content: t('确认删除xx', [data.name]),
       cancelText: t('取消'),
-      confirmText: t('确认'),
+      confirmText: t('删除'),
+      theme: 'danger',
       onConfirm: () =>
         deletePackage({ id: data.id })
           .then(() => {

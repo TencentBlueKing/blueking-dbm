@@ -281,6 +281,7 @@
     margin: -24px;
 
     .header-tab {
+      padding: 0 24px;
       z-index: 99;
       background: #fff;
 
