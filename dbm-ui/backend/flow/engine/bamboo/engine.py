@@ -10,7 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
-from typing import Any, Dict, List, Optional
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Union
 
 from bamboo_engine import api, builder, states
 from bamboo_engine.api import EngineAPIResult
@@ -150,45 +151,39 @@ class BambooEngine:
                 self.hide_sensitive_data(value)
         return copy_data
 
-    def get_subprocess_state(self, children: Dict, children_status: List):
-        """获取指定子流程结点状态"""
-        for key, __ in children.items():
-            children_status.append(children[key]["state"])
-
-    def recursion_subprocess_status(self, activities: Dict, node_maps: Dict):
+    def recursion_subprocess_status(
+        self, activities: Dict, flow_node_maps: Dict, node_children_status: Dict[str, Dict[str, Union[str, List]]]
+    ):
         """为子流程添加状态"""
         for node_id, activity in activities.items():
             if activity.get("pipeline"):
-                self.recursion_subprocess_status(activities[node_id]["pipeline"]["activities"], node_maps)
+                self.recursion_subprocess_status(
+                    activities[node_id]["pipeline"]["activities"], flow_node_maps, node_children_status
+                )
 
             if activity.get("type") == "SubProcess":
-                children_status_list = []
-                children_states = self.get_children_states(node_id=node_id).data
-                try:
-                    children = children_states[node_id]["children"]
-                    self.get_subprocess_state(children, children_status_list)
-                    status = children_states[node_id]["state"]
-                    if status == states.RUNNING and states.FAILED in children_status_list:
-                        status = states.FAILED
-                    elif status == states.RUNNING and states.REVOKED in children_status_list:
-                        status = states.REVOKED
-                except KeyError:
-                    status = states.CREATED
+                status = node_children_status[node_id]["status"]
+                children_status_list = node_children_status.get(node_id, {}).get("children_states", [])
+                if status == states.RUNNING and states.FAILED in children_status_list:
+                    status = states.FAILED
+                elif status == states.RUNNING and states.REVOKED in children_status_list:
+                    status = states.REVOKED
 
                 act_status = []
-                self.recursion_subprocess_act_status(
-                    self.root_id, activity["pipeline"]["activities"], act_status, node_maps
-                )
+                if activity.get("pipeline"):
+                    self.recursion_subprocess_act_status(
+                        self.root_id, activity["pipeline"]["activities"], act_status, flow_node_maps
+                    )
                 if states.FAILED in act_status:
                     status = states.FAILED
                 elif states.REVOKED in act_status:
                     status = states.REVOKED
                 activities[node_id]["status"] = status
 
-    def recursion_nodes_status(self, tree: Dict, node_maps: Dict):
+    def recursion_nodes_status(self, tree: Dict, flow_node_maps: Dict):
         for key, values in tree.items():
-            if key in node_maps:
-                node = node_maps[key]
+            if key in flow_node_maps:
+                node = flow_node_maps[key]
                 tree[key]["status"] = StateType.EXPIRED if node.is_expired else node.status
                 tree[key]["created_at"] = int(datetime2timestamp(node.created_at))
                 tree[key]["started_at"] = int(datetime2timestamp(node.started_at))
@@ -197,17 +192,17 @@ class BambooEngine:
                 continue
 
             if isinstance(values, dict):
-                self.recursion_nodes_status(values, node_maps)
+                self.recursion_nodes_status(values, flow_node_maps)
 
-    def recursion_subprocess_act_status(self, root_id: str, activities: Dict, act_status: List, node_maps: Dict):
+    def recursion_subprocess_act_status(self, root_id: str, activities: Dict, act_status: List, flow_node_maps: Dict):
         for node_id, activity in activities.items():
             activity_type = activity.get("type")
             if activity_type == "SubProcess":
                 self.recursion_subprocess_act_status(
-                    root_id, activity["pipeline"]["activities"], act_status, node_maps
+                    root_id, activity["pipeline"]["activities"], act_status, flow_node_maps
                 )
             elif activity_type == "ServiceActivity":
-                status = node_maps[node_id].status
+                status = flow_node_maps[node_id].status
                 act_status.append(status)
 
     def recursion_translate_activity(self, activities: Dict):
@@ -223,13 +218,16 @@ class BambooEngine:
         if not tree:
             return None
         activities = tree["activities"]
-        node_maps = {}
-        nodes = FlowNode.objects.filter(root_id=self.root_id)
-        for node in nodes:
-            node_maps[node.node_id] = node
-        self.recursion_subprocess_status(activities, node_maps)
+        flow_node_maps = {node.node_id: node for node in FlowNode.objects.filter(root_id=self.root_id)}
+        # pipeline 节点状态，根据父亲节点分组
+        node_children_status = defaultdict(lambda: {"status": "", "children_states": []})
+        for node in BambooDjangoRuntime().get_state_by_root(self.root_id):
+            node_children_status[node.node_id]["status"] = node.name
+            node_children_status[node.parent_id]["children_states"].append(node.name)
+
+        self.recursion_subprocess_status(activities, flow_node_maps, node_children_status)
         self.recursion_translate_activity(activities)
-        self.recursion_nodes_status(tree, node_maps)
+        self.recursion_nodes_status(tree, flow_node_maps)
         return tree
 
     def get_pipeline_tree(self) -> Optional[Dict]:
