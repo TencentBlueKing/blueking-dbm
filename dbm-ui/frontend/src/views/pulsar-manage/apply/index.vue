@@ -83,6 +83,7 @@
                   :data="formdata.details.nodes.bookkeeper"
                   :disable-dialog-submit-method="ipSelectorDisabledSubmitMethods.bookkeeper"
                   :disable-host-method="bookkeeperDisableHostMethod"
+                  :os-types="[OSTypes.Linux]"
                   required
                   style="display: inline-block"
                   @change="handleBookkeeperIpListChange">
@@ -111,6 +112,7 @@
                 :data="formdata.details.nodes.zookeeper"
                 :disable-dialog-submit-method="ipSelectorDisabledSubmitMethods.zookeeper"
                 :disable-host-method="zookeeperDisableHostMethod"
+                :os-types="[OSTypes.Linux]"
                 required
                 @change="handleZookeeperIpListChange">
                 <template #submitTips="{ hostList }">
@@ -137,6 +139,7 @@
                 :data="formdata.details.nodes.broker"
                 :disable-dialog-submit-method="ipSelectorDisabledSubmitMethods.broker"
                 :disable-host-method="brokerDisableHostMethod"
+                :os-types="[OSTypes.Linux]"
                 required
                 @change="handleBrokerIpListChange">
                 <template #submitTips="{ hostList }">
@@ -362,6 +365,8 @@
   import type { BizItem, HostDetails } from '@services/types';
 
   import { useApplyBase } from '@hooks';
+
+  import { OSTypes } from '@common/const';
 
   // import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';

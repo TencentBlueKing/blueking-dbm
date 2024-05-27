@@ -88,6 +88,7 @@
                   :data="nodeAndZookerperMergeList"
                   :disable-dialog-submit-method="nameAndZookeeperMergeHostDisableDialogSubmitMethod"
                   :disable-host-method="disableHostMethod"
+                  :os-types="[OSTypes.Linux]"
                   required
                   :show-view="false"
                   style="display: inline-block"
@@ -123,6 +124,7 @@
                   :data="formData.details.nodes.datanode"
                   :disable-dialog-submit-method="dataNodeDisableDialogSubmitMethod"
                   :disable-host-method="datanodeDisableHostMethod"
+                  :os-types="[OSTypes.Linux]"
                   required
                   :show-view="false"
                   style="display: inline-block"
@@ -340,6 +342,8 @@
   import type { BizItem, HostDetails } from '@services/types';
 
   import { useApplyBase } from '@hooks';
+
+  import { OSTypes } from '@common/const';
 
   // import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';

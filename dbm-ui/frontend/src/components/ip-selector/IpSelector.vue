@@ -120,6 +120,8 @@
 
   import { useCopy, useFormItem } from '@hooks';
 
+  import { OSTypes } from '@common/const';
+
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import DbStatus from '@components/db-status/index.vue';
 
@@ -157,7 +159,8 @@
     serviceMode?: 'all' | 'idle_only',
     panelList?: Array<'staticTopo' | 'manualInput' | 'dbmWhitelist'>,
     disableTips?: string,
-    singleHostSelect?: boolean
+    singleHostSelect?: boolean,
+    osTypes?: OSTypes[]
   }
 
   interface Emits {
@@ -181,6 +184,7 @@
     panelList: () => ['staticTopo', 'manualInput'],
     disableTips: '',
     singleHostSelect: false,
+    osTypes: () => []
   });
   const emits = defineEmits<Emits>();
 
@@ -283,6 +287,9 @@
   const disableHostMethodHandler = (data: any, selected: any[]) => {
     if (data.alive === 0) {
       return t('Agent异常无法使用');
+    }
+    if (props.osTypes.length > 0 && !props.osTypes.includes(Number(data.os_type))) {
+      return t('xx机器无法使用', [OSTypes[Number(data.os_type)]])
     }
     return props.disableHostMethod(data, selected);
   };

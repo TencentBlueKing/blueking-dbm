@@ -9,7 +9,7 @@
         ref="passwordRef"
         v-model="modelValue"
         class="password-input"
-        style="width: 376px"
+        style="width: 350px"
         type="password"
         @blur="handlePasswordBlur"
         @focus="handlePasswordFocus" />
