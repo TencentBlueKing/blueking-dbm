@@ -166,7 +166,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     name: 'MySQLDataMigrate',
     path: 'data-migrate/:page?',
     meta: {
-      navName: t('数据迁移'),
+      navName: t('DB克隆'),
     },
     component: () => import('@views/mysql/data-migrate/Index.vue'),
   },
