@@ -384,7 +384,6 @@ class Permission(object):
         :param resources_list: 资源列表
         :param system_id: 系统ID
         """
-
         application = self.make_application(action_ids, resources_list, system_id)
         ok, message, url = self._iam.get_apply_url(application, self.bk_token, self.username)
         if not ok:

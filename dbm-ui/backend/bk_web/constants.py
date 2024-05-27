@@ -59,6 +59,8 @@ ROUTING_WHITELIST_PATTERNS = [
 NON_EXTERNAL_PROXY_ROUTING = [
     # 功能控制器
     "/apis/conf/function_controller/",
+    # 环境变量
+    "/apis/conf/system_settings/environ/",
 ]
 
 

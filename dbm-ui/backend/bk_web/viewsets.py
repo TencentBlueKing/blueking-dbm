@@ -20,6 +20,7 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from backend import env
 from backend.components.dbconsole.client import DBConsoleApi
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
 
 
@@ -180,11 +181,23 @@ class ExternalProxyViewSet(viewsets.ViewSet):
         # 请求内部的dashboard url，但是host要替换为当前dbm的
         if "/grafana/get_dashboard/" in request.path:
             data = response.json()["data"]
-            url = f"{env.BK_SAAS_HOST}/grafana/{data['url'].split('grafana/')[1]}"
-            data["url"] = data["urls"][0]["url"] = url
+            data["url"] = f"{env.BK_SAAS_HOST}/grafana/{data['url'].split('grafana/')[1]}"
+            for url_info in data["urls"]:
+                url_info["url"] = f"{env.BK_SAAS_HOST}/grafana/{url_info['url'].split('grafana/')[1]}"
             return Response(data)
         if ".css" in request.path:
             return HttpResponse(response, headers={"Content-Type": "text/css"})
+        # 屏蔽iam申请的内部路由
+        if "/iam/get_apply_data/" in request.path or "/iam/simple_get_apply_data/" in request.path:
+            data = response.json()["data"]
+            data["apply_url"] = env.IAM_APP_URL
+            return Response(data)
+        # 业务列表只展示有权限
+        if "/cmdb/list_bizs/" in request.path:
+            data = response.json()["data"]
+            biz_list = [d for d in data if d["permission"][ActionEnum.DB_MANAGE.id]]
+            return Response(biz_list)
+
         return HttpResponse(response)
 
     def external_proxy(self, request, *args, **kwargs):
