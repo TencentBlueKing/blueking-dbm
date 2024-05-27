@@ -148,6 +148,8 @@
     {
       label: t('目标集群'),
       field: 'target_instances',
+      width: 300,
+      minWidth: 250,
       render: ({ data }: { data: AccessDetails }) => (
         isApiBatchTicket.value
           ? <span>{data.target_instances.join(',')}</span>
@@ -160,7 +162,7 @@
       ),
     },
     {
-      label: t('访问 DB'),
+      label: t('访问DB'),
       field: 'access_db',
       render: ({ data }: { data: AccessDetails }) => <bk-tag>{ data.access_db }</bk-tag>,
     },
