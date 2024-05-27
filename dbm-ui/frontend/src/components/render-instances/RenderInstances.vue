@@ -21,30 +21,33 @@
       <TextOverflowLayout>
         <span
           class="pr-4"
-          :style="{ color: highlightIps.includes(inst.ip)
-            || highlightIps.includes(`${inst.ip}:${inst.port}`) ? 'rgb(255 130 4)' : '#63656e' }">
-          <slot :data="inst">
-            {{ inst.ip }}:{{ inst.port }}
-          </slot>
+          :style="{
+            color:
+              highlightIps.includes(inst.ip) || highlightIps.includes(`${inst.ip}:${inst.port}`)
+                ? 'rgb(255 130 4)'
+                : '#63656e',
+          }">
+          <slot :data="inst"> {{ inst.ip }}:{{ inst.port }} </slot>
         </span>
         <template #append>
-          <BkTag v-if="inst.status === 'unavailable'">
-            {{ $t('不可用') }}
+          <BkTag
+            v-if="inst.status === 'unavailable'"
+            size="small">
+            {{ t('不可用') }}
           </BkTag>
           <template v-if="index === 0">
             <BkPopover
               ext-cls="copy-popover"
               placement="top"
               theme="light">
-              <DbIcon
-                type="copy" />
+              <DbIcon type="copy" />
               <template #content>
                 <BkButton
                   class="copy-trigger"
                   text
                   theme="primary"
                   @click="handleCopyIps">
-                  {{ $t('复制IP') }}
+                  {{ t('复制IP') }}
                 </BkButton>
                 <span class="copy-trigger-split" />
                 <BkButton
@@ -52,7 +55,7 @@
                   text
                   theme="primary"
                   @click="handleCopyInstances">
-                  {{ $t('复制实例') }}
+                  {{ t('复制实例') }}
                 </BkButton>
               </template>
             </BkPopover>
