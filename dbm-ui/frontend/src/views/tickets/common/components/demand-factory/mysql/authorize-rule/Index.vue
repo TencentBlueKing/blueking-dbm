@@ -146,6 +146,8 @@
     {
       label: t('目标集群'),
       field: 'target_instances',
+      width: 300,
+      minWidth: 250,
       render: ({ data }: { data: AccessDetails }) => (
         isApiBatchTicket.value
           ? <span>{data.target_instances.join(',')}</span>
