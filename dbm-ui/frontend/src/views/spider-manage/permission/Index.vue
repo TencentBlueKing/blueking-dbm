@@ -109,7 +109,9 @@
     run: getPermissionRulesRun,
     loading: tableIsLoading,
     data: tableList,
-  } = useRequest(getPermissionRules, {
+  } = useRequest((params: ServiceParameters<typeof getPermissionRules>) => getPermissionRules(params, {
+    permission: 'page'
+  }), {
     manual: false,
     onSuccess() {
       tableIsAnomalies.value = false;
@@ -130,8 +132,6 @@
       ...getSearchSelectorParams(tableSearch.value),
       account_type: AccountTypes.TENDBCLUSTER,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-    }, {
-      permission: 'catch'
     });
   };
 
