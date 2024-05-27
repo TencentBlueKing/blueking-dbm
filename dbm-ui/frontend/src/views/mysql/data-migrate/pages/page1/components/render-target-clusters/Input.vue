@@ -53,15 +53,8 @@
         v-bk-tooltips="errorMessage"
         type="exclamation-fill" />
     </div>
-    <div
-      v-if="isFocused"
-      class="down-icon-main">
-      <DbIcon
-        class="down-icon"
-        type="down-big" />
-    </div>
     <BkPopover
-      v-else
+      v-if="!isFocused"
       :content="t('选择集群')"
       placement="top"
       :popover-delay="0">
