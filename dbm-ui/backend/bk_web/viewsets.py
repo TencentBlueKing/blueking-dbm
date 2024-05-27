@@ -185,6 +185,12 @@ class ExternalProxyViewSet(viewsets.ViewSet):
             return Response(data)
         if ".css" in request.path:
             return HttpResponse(response, headers={"Content-Type": "text/css"})
+        # 屏蔽iam申请的内部路由
+        if "/iam/get_apply_data/" in request.path or "/iam/simple_get_apply_data/" in request.path:
+            data = response.json()["data"]
+            data["apply_url"] = env.IAM_APP_URL
+            return Response(data)
+
         return HttpResponse(response)
 
     def external_proxy(self, request, *args, **kwargs):
