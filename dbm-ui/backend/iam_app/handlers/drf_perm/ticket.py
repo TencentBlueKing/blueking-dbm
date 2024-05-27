@@ -43,10 +43,11 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
         # 只考虑关联一种资源
         resource_meta = action.related_resource_types[0] if action else None
 
-        if resource_meta == ResourceEnum.INFLUXDB:
-            # 对于influxdb没有集群概念，特殊考虑
-            instance_ids_getter = self.instance_influxdb_ids_getter
-        elif resource_meta == ResourceEnum.BUSINESS:
+        # TODO: 暂时屏蔽对influxdb的鉴权
+        # if resource_meta == ResourceEnum.INFLUXDB:
+        #     # 对于influxdb没有集群概念，特殊考虑
+        #     instance_ids_getter = self.instance_influxdb_ids_getter
+        if resource_meta == ResourceEnum.BUSINESS:
             instance_ids_getter = self.instance_biz_ids_getter
         elif action in ActionEnum.get_match_actions("tbinlogdumper"):
             # 对应dumper相关操作，需要根据dumper的实例ID反查出相关的集群
