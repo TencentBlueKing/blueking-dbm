@@ -38,9 +38,9 @@
 
   const columns = [
     {
-      label: t('集群ID'),
-      field: 'cluster_id',
-      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+      label: t('集群名称'),
+      field: 'cluster_name',
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     },
     {
       label: t('开始时间'),
@@ -104,7 +104,13 @@
     },
   ];
 
-  const dataList = computed(() => props.ticketDetails?.details?.infos || []);
+  const dataList = computed(() => {
+    const { clusters, infos } = props.ticketDetails.details;
+    return infos.map(item => ({
+      ...item,
+      cluster_name: clusters[item.cluster_id].immute_domain,
+    }));
+  });
 </script>
 
 <style lang="less" scoped>

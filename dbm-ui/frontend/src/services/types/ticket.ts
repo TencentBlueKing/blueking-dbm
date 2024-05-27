@@ -617,6 +617,7 @@ export interface MySQLImportSQLFileDetails {
  * MySQL 闪回
  */
 export interface MySQLFlashback {
+  clusters: clustersItems,
   infos: {
     cluster_id: number,
     databases: [],
@@ -634,6 +635,7 @@ export interface MySQLFlashback {
  * MySql 定点回档
  */
 export interface MySQLRollbackDetails {
+  clusters: clustersItems,
   infos: {
     backup_source: string,
     backupid: string,
