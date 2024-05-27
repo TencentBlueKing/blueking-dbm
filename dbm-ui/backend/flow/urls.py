@@ -20,6 +20,7 @@ from backend.flow.views.cloud_redis_dts_server_apply import (
     CloudRedisDTSServerApplySceneApiView,
     CloudRedisDTSServerReduceSceneApiView,
 )
+from backend.flow.views.dbconsole import DbConsoleDumpApiView
 from backend.flow.views.doris_apply import InstallDorisSceneApiView
 from backend.flow.views.doris_destroy import DestroyDorisSceneApiView
 from backend.flow.views.doris_disable import DisableDorisSceneApiView
@@ -321,13 +322,13 @@ urlpatterns = [
     url(r"^scene/upgrade_mysql_proxy$", UpgradeMySQLProxySceneApiView.as_view()),
     url(r"^scene/upgrade_mysql$", UpgradeMySQLSceneApiView.as_view()),
     # mysql
+    url(r"^scene/dbconsole_dump$", DbConsoleDumpApiView.as_view()),
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),
     url(r"^scene/install_mysql_ha_apply$", InstallMySQLHASceneApiView.as_view()),
     url(r"^scene/destroy_mysql_ha$", DestroyMySQLHASceneApiView.as_view()),
     url(r"^scene/destroy_mysql_single$", DestroyMySQLSingleSceneApiView.as_view()),
     url(r"^scene/disable_mysql_single$", DisableMySQLSingleSceneApiView.as_view()),
     url(r"^scene/enable_mysql_single$", EnableMySQLSingleSceneApiView.as_view()),
-    # url(r'^scene/reduce_mysql_proxy$', ReduceMySQLProxySceneApiView.as_view()),
     url(r"^scene/mysql_checksum$", MysqlChecksumSceneApiView.as_view()),
     url(r"^scene/mysql_partition$", MysqlPartitionSceneApiView.as_view()),
     url(r"^scene/spider_partition$", SpiderPartitionSceneApiView.as_view()),

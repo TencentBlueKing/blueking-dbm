@@ -151,9 +151,9 @@ func (c *DumpSchemaComp) DumpSchema() (err error) {
 			MySQLDumpOption: mysqlutil.MySQLDumpOption{
 				NoData:       true,
 				AddDropTable: true,
-				NeedUseDb:    true,
-				DumpRoutine:  true,
-				DumpTrigger:  false,
+				// NeedUseDb:    true,
+				DumpRoutine: true,
+				DumpTrigger: false,
 			},
 		},
 		OutputfileName: c.BackupFileName,

@@ -139,7 +139,6 @@ func (c *BackupTruncateDatabaseComp) DumpSchema() error {
 					DumpTrigger:  true,
 					DumpRoutine:  true,
 					DumpEvent:    true,
-					NeedUseDb:    false,
 					AddDropTable: false,
 				},
 			},

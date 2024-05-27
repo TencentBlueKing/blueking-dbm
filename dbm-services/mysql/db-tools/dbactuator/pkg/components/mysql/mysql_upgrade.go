@@ -563,7 +563,7 @@ func (m MysqlUpgradeComp) mysqlUpgrade(conn *native.DbWorker, port int) (err err
 		}
 		alreadyUpgradeNum = len(l)
 		if alreadyUpgradeNum <= 0 {
-			return fmt.Errorf("failed to mysqlupgrade,please refer to the log for details %s,err is %s", upgradelog, err.Error())
+			return fmt.Errorf("failed to mysqlupgrade,please refer to the log for details %s,err is %w", upgradelog, err)
 		}
 	}
 	logger.Info("run mysql upgrade shell success")

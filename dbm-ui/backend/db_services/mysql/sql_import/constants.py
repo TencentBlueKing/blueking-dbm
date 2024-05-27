@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 BKREPO_SQLFILE_PATH = "mysql/sqlfile"
+BKREPO_DBCONSOLE_DUMPFILE_PATH = "dbconsole/dump"
 
 CACHE_SEMANTIC_TASK_FIELD = "{user}_{cluster_type}_semantic_check_task"
 SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME = 7 * 24 * 60 * 60

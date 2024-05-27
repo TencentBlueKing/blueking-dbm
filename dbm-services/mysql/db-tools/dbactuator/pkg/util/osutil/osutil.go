@@ -24,7 +24,6 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -43,26 +42,6 @@ func Ucfirst(str string) string {
 		return string(unicode.ToUpper(v)) + str[i+1:]
 	}
 	return ""
-}
-
-// HasElem TODO
-func HasElem(elem interface{}, slice interface{}) bool {
-	defer func() {
-		if err := recover(); err != nil {
-			logger.Error("HasElem error %s", err)
-		}
-	}()
-	arrV := reflect.ValueOf(slice)
-	if arrV.Kind() == reflect.Slice || arrV.Kind() == reflect.Array {
-		for i := 0; i < arrV.Len(); i++ {
-			// XXX - panics if slice element points to an unexported struct field
-			// see https://golang.org/pkg/reflect/#Value.Interface
-			if reflect.DeepEqual(arrV.Index(i).Interface(), elem) {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // 描述：

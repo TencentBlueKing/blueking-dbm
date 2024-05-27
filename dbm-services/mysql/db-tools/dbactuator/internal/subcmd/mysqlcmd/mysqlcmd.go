@@ -69,6 +69,7 @@ func NewMysqlCommand() *cobra.Command {
 				NewStandardizeProxyCommand(),
 				NewMysqlDataMigrateDumpCommand(),
 				NewMysqlDataMigrateImportCommand(),
+				NewDbConsoleDumpCommand(),
 			},
 		},
 		{

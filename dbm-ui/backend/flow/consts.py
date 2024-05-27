@@ -367,6 +367,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
     SemanticCheck = EnumField("semantic-check", _("semantic-check"))
     SemanticDumpSchema = EnumField("semantic-dumpschema", _("semantic-dumpschema"))
+    MysqlDumpData = EnumField("dump", _("dump"))
     TruncateDataBackupNaTable = EnumField("backup-truncate-database", _("backup-truncate-database"))
     RestartProxy = EnumField("restart", _("restart"))
     CleanMysql = EnumField("clean-mysql", _("clean-mysql"))

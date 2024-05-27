@@ -39,9 +39,15 @@ type SemanticDumpSchemaComp struct {
 
 // DumpSchemaParam TODO
 type DumpSchemaParam struct {
-	Host           string     `json:"host"  validate:"required,ip"`                // 当前实例的主机地址
-	Port           int        `json:"port"  validate:"required,lt=65536,gte=3306"` // 当前实例的端口
-	CharSet        string     `json:"charset" validate:"required,checkCharset"`    // 字符集参数
+	Host            string `json:"host"  validate:"required,ip"`                // 当前实例的主机地址
+	Port            int    `json:"port"  validate:"required,lt=65536,gte=3306"` // 当前实例的端口
+	CharSet         string `json:"charset" validate:"required,checkCharset"`    // 字符集参数
+	CompressPkgName string `json:"com"`
+	UploadBkRepoParam
+}
+
+// UploadBkRepoParam upload to bk repo param
+type UploadBkRepoParam struct {
 	BackupFileName string     `json:"backup_file_name"`
 	BackupDir      string     `json:"backup_dir"`
 	BkCloudId      int        `json:"bk_cloud_id"`    // 所在的云区域
@@ -71,11 +77,10 @@ type DumpSchemaRunTimeCtx struct {
 func (c *SemanticDumpSchemaComp) Example() interface{} {
 	comp := SemanticDumpSchemaComp{
 		Params: DumpSchemaParam{
-			Host:           "1.1.1.1",
-			Port:           3306,
-			CharSet:        "default",
-			BackupFileName: "xx_schema.sql",
-			BackupDir:      "/data/path1/path2",
+			Host:              "1.1.1.1",
+			Port:              3306,
+			CharSet:           "default",
+			UploadBkRepoParam: UploadBkRepoParam{},
 		},
 	}
 	return comp
@@ -92,7 +97,11 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 		User: c.GeneralParam.RuntimeAccountParam.AdminUser,
 		Pwd:  c.GeneralParam.RuntimeAccountParam.AdminPwd,
 	}.Conn()
-	defer conn.Close()
+	defer func() {
+		if conn != nil {
+			conn.Close()
+		}
+	}()
 	if err != nil {
 		logger.Error("Connect %d failed:%s", c.Params.Port, err.Error())
 		return err
@@ -109,6 +118,12 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 		return err
 	}
 	c.isSpider = strings.Contains(version, "tdbctl")
+	c.dumpCmd = path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
+	// to export the table structure from the central control
+	// you need to use the mysqldump that comes with the central control
+	if c.isSpider {
+		c.dumpCmd = path.Join(cst.TdbctlInstallPath, "bin", "mysqldump")
+	}
 	finaldbs := []string{}
 	reg := regexp.MustCompile(`^bak_cbs`)
 	for _, db := range util.FilterOutStringSlice(alldbs, computil.GetGcsSystemDatabasesIgnoreTest(version)) {
@@ -136,12 +151,6 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 //	@receiver c
 //	@return err
 func (c *SemanticDumpSchemaComp) Precheck() (err error) {
-	c.dumpCmd = path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
-	// to export the table structure from the central control
-	// you need to use the mysqldump that comes with the central control
-	if c.isSpider {
-		c.dumpCmd = path.Join(cst.TdbctlInstallPath, "bin", "mysqldump")
-	}
 	if !osutil.FileExist(c.dumpCmd) {
 		return fmt.Errorf("dumpCmd: %s文件不存在", c.dumpCmd)
 	}
@@ -160,7 +169,6 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 	dumpOption := mysqlutil.MySQLDumpOption{
 		NoData:       true,
 		AddDropTable: true,
-		NeedUseDb:    true,
 		DumpRoutine:  true,
 		DumpTrigger:  true,
 		DumpEvent:    true,
@@ -189,24 +197,29 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 	return nil
 }
 
-// Upload TODO
+// Upload do upload
 func (c *SemanticDumpSchemaComp) Upload() (err error) {
-	if reflect.DeepEqual(c.Params.FileServer, FileServer{}) {
+	return c.Params.Upload()
+}
+
+// Upload do upload comp
+func (c UploadBkRepoParam) Upload() (err error) {
+	if reflect.DeepEqual(c.FileServer, FileServer{}) {
 		logger.Info("the fileserver parameter is empty no upload is required ~")
 		return nil
 	}
-	schemafile := path.Join(c.Params.BackupDir, c.Params.BackupFileName)
-	r := path.Join("generic", c.Params.FileServer.Project, c.Params.FileServer.Bucket, c.Params.FileServer.UploadPath)
-	uploadUrl, err := url.JoinPath(c.Params.FileServer.URL, r, "/")
+	schemafile := path.Join(c.BackupDir, c.BackupFileName)
+	r := path.Join("generic", c.FileServer.Project, c.FileServer.Bucket, c.FileServer.UploadPath)
+	uploadUrl, err := url.JoinPath(c.FileServer.URL, r, "/")
 	if err != nil {
 		logger.Error("call url joinPath failed %s ", err.Error())
 		return err
 	}
-	if c.Params.BkCloudId == 0 {
+	if c.BkCloudId == 0 {
 		uploadUrl, err = url.JoinPath(
-			c.Params.FileServer.URL, path.Join(
-				"/generic", c.Params.FileServer.Project,
-				c.Params.FileServer.Bucket, c.Params.FileServer.UploadPath, c.Params.BackupFileName,
+			c.FileServer.URL, path.Join(
+				"/generic", c.FileServer.Project,
+				c.FileServer.Bucket, c.FileServer.UploadPath, c.BackupFileName,
 			),
 		)
 		if err != nil {
@@ -214,10 +227,10 @@ func (c *SemanticDumpSchemaComp) Upload() (err error) {
 			return err
 		}
 	}
-	logger.Info("bk_cloud_id:%d,upload url:%s", c.Params.BkCloudId, uploadUrl)
+	logger.Info("bk_cloud_id:%d,upload url:%s", c.BkCloudId, uploadUrl)
 	resp, err := bkrepo.UploadFile(
-		schemafile, uploadUrl, c.Params.FileServer.Username, c.Params.FileServer.Password,
-		c.Params.BkCloudId, c.Params.DBCloudToken,
+		schemafile, uploadUrl, c.FileServer.Username, c.FileServer.Password,
+		c.BkCloudId, c.DBCloudToken,
 	)
 	if err != nil {
 		logger.Error("upload sqlfile error %s", err.Error())
