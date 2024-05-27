@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import MongodbPermissonAccountModel from '@services/model/mongodb-permission/mongodb-permission-account';
 
@@ -17,7 +17,7 @@ import { useGlobalBizs } from '@stores';
 
 import type { AccountTypesValues } from '@common/const';
 
-import http from '../http';
+import http, { type IRequestPayload } from '../http';
 import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
@@ -28,13 +28,13 @@ const path = `/apis/mongodb/bizs/${currentBizId}/permission/account`;
  * 添加账号规则
  */
 export function addMongodbAccountRule(params: {
-  access_db: string,
+  access_db: string;
   privilege: {
-    mongo_user: string[],
-    mongo_manager: string[]
-  },
-  account_id: number | null,
-  account_type: AccountTypesValues
+    mongo_user: string[];
+    mongo_manager: string[];
+  };
+  account_id: number | null;
+  account_type: AccountTypesValues;
 }) {
   return http.post<null>(`${path}/add_account_rule/`, params);
 }
@@ -42,40 +42,36 @@ export function addMongodbAccountRule(params: {
 /**
  * 创建账号
  */
-export function createMongodbAccount(params: {
-  user: string,
-  password: string,
-  account_type?: AccountTypesValues
-}) {
+export function createMongodbAccount(params: { user: string; password: string; account_type?: AccountTypesValues }) {
   return http.post<null>(`${path}/create_account/`, params);
 }
 
 /**
  * 删除账号
  */
-export function deleteMongodbAccount(params: {
-  bizId: number,
-  account_id: number,
-  account_type?: AccountTypesValues
-}) {
+export function deleteMongodbAccount(params: { bizId: number; account_id: number; account_type?: AccountTypesValues }) {
   return http.delete<null>(`${path}/delete_account/`, params);
 }
 
 /**
  * 查询账号规则列表
  */
-export function getMongodbPermissionRules(params: {
-  limit?: number,
-  offset?: number,
-  user?: string,
-  access_db?: string,
-  privilege?: string,
-  account_type?: AccountTypesValues
-}) {
-  return http.get<ListBase<MongodbPermissonAccountModel[]>>(`${path}/list_account_rules/`, params)
-    .then(res => ({
+export function getMongodbPermissionRules(
+  params: {
+    limit?: number;
+    offset?: number;
+    user?: string;
+    access_db?: string;
+    privilege?: string;
+    account_type?: AccountTypesValues;
+  },
+  payload = {} as IRequestPayload,
+) {
+  return http
+    .get<ListBase<MongodbPermissonAccountModel[]>>(`${path}/list_account_rules/`, params, payload)
+    .then((res) => ({
       ...res,
-      results: res.results.map(item => new MongodbPermissonAccountModel(item)),
+      results: res.results.map((item) => new MongodbPermissonAccountModel(item)),
     }));
 }
 
@@ -83,13 +79,12 @@ export function getMongodbPermissionRules(params: {
  * 查询账号规则
  */
 export function queryMongodbAccountRules(params: {
-  user: string,
-  access_dbs: string[],
-  account_type?: AccountTypesValues
+  user: string;
+  access_dbs: string[];
+  account_type?: AccountTypesValues;
 }) {
-  return http.post<ListBase<MongodbPermissonAccountModel[]>>(`${path}/query_account_rules/`, params)
-    .then(res => ({
-      ...res,
-      results: res.results.map(item => new MongodbPermissonAccountModel(item)),
-    }));
+  return http.post<ListBase<MongodbPermissonAccountModel[]>>(`${path}/query_account_rules/`, params).then((res) => ({
+    ...res,
+    results: res.results.map((item) => new MongodbPermissonAccountModel(item)),
+  }));
 }

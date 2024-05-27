@@ -23,7 +23,7 @@
         v-model="tableSearch"
         :data="filters"
         :placeholder="t('请输入账号名称/DB名称/权限名称')"
-        style="width: 500px;"
+        style="width: 500px"
         unique-select
         @change="getList" />
     </div>
@@ -31,7 +31,7 @@
       ref="tableRef"
       class="mongo-permission-table"
       :columns="columns"
-      :data="(ruleList?.results || [])"
+      :data="ruleList?.results || []"
       :row-class="setRowClass"
       row-hover="auto"
       @clear-search="handleClearSearch" />
@@ -256,7 +256,9 @@
   const {
     data: ruleList,
     run: getMongodbPermissionRulesRun,
-  } = useRequest(getMongodbPermissionRules, {
+  } = useRequest((params: ServiceParameters<typeof getMongodbPermissionRules>) => getMongodbPermissionRules(params, {
+    permission: 'page'
+  }), {
     manual: true,
     onSuccess() {
       expandMap.value = {};
@@ -326,84 +328,83 @@
 </script>
 
 <style lang="less" scoped>
-.mongo-permission {
-  .mongo-permission-operations {
-    display: flex;
-    padding-bottom: 16px;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  :deep(.mongo-permission-cell) {
-    position: relative;
-    padding: 0 15px;
-    overflow: hidden;
-    line-height: calc(var(--row-height) - 1px);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    border-bottom: 1px solid @border-disable;
-  }
-
-  :deep(.mongo-permission-cell:last-child) {
-    border-bottom: 0;
-  }
-
-  :deep(.user-icon) {
-    position: absolute;
-    top: 50%;
-    left: 15px;
-    transform: translateY(-50%) rotate(-90deg);
-    transition: all 0.2s;
-  }
-
-  :deep(.user-icon-expand) {
-    transform: translateY(-50%) rotate(0);
-  }
-
-  :deep(.user-name) {
-    display: flex;
-    height: 100%;
-    padding-left: 24px;
-    cursor: pointer;
-    align-items: center;
-
-    .add-rule-button {
-      display: none;
-    }
-  }
-
-  :deep(.user-name-text) {
-    font-weight: bold;
-  }
-}
-
-:deep(.mongo-permission-table) {
-  transition: all 0.5s;
-
-  tr:hover {
-    .add-rule-button {
+  .mongo-permission {
+    .mongo-permission-operations {
       display: flex;
+      padding-bottom: 16px;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    :deep(.mongo-permission-cell) {
+      position: relative;
+      padding: 0 15px;
+      overflow: hidden;
+      line-height: calc(var(--row-height) - 1px);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-bottom: 1px solid @border-disable;
+    }
+
+    :deep(.mongo-permission-cell:last-child) {
+      border-bottom: 0;
+    }
+
+    :deep(.user-icon) {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      transform: translateY(-50%) rotate(-90deg);
+      transition: all 0.2s;
+    }
+
+    :deep(.user-icon-expand) {
+      transform: translateY(-50%) rotate(0);
+    }
+
+    :deep(.user-name) {
+      display: flex;
+      height: 100%;
+      padding-left: 24px;
+      cursor: pointer;
+      align-items: center;
+
+      .add-rule-button {
+        display: none;
+      }
+    }
+
+    :deep(.user-name-text) {
+      font-weight: bold;
     }
   }
 
-  .is-new {
+  :deep(.mongo-permission-table) {
+    transition: all 0.5s;
+
+    tr:hover {
+      .add-rule-button {
+        display: flex;
+      }
+    }
+
+    .is-new {
+      td {
+        background-color: #f3fcf5 !important;
+      }
+    }
+
     td {
-      background-color: #f3fcf5 !important;
-    }
-  }
-
-  td {
-    .cell {
-      padding: 0 !important;
+      .cell {
+        padding: 0 !important;
+      }
     }
 
-  }
-
-  td:first-child {
-    .cell,
-    .mongo-permission-cell {
-      height: 100% !important;
+    td:first-child {
+      .cell,
+      .mongo-permission-cell {
+        height: 100% !important;
+      }
     }
   }
-}
 </style>

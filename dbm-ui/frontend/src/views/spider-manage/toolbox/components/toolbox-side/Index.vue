@@ -35,12 +35,13 @@
             v-model="allRenderMenuGroupList"
             item-key="id"
             @end="handleDragEnd">
-            <template #item="{element}">
+            <template #item="{ element }">
               <RenderMenuGroup
                 :id="element.id"
                 v-model:favor-map="favorRouteNameMap"
                 :active-view-name="activeViewName"
-                :draggable="!Boolean(serachKey)" />
+                :draggable="!Boolean(serachKey)"
+                :serach-key="serachKey" />
             </template>
           </Vuedraggable>
         </BkCollapse>
@@ -51,6 +52,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import Vuedraggable from 'vuedraggable';
+
+  import { useDebouncedRef } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
@@ -69,7 +72,7 @@
   const activeViewName = ref('');
   const menuGroupIdList = menusConfig.map((item) => item.id);
 
-  const serachKey = ref('');
+  const serachKey = useDebouncedRef('');
   const activeCollapses = ref([...menuGroupIdList]);
   const allRenderMenuGroupList = ref<Record<'id' | 'name', string>[]>([]);
   const favorRouteNameMap = ref<Record<string, boolean>>({});

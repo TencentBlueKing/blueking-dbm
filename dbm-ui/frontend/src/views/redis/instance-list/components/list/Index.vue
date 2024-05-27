@@ -269,26 +269,6 @@
           </TextOverflowLayout>
         ),
       },
-      // {
-      //   label: t('从访问入口'),
-      //   field: 'slave_domain',
-      //   minWidth: 200,
-      //   showOverflowTooltip: false,
-      //   render: ({ data }: { data: RedisInstanceModel }) => (
-      //     <TextOverflowLayout>
-      //       {{
-      //         default: () => data.slave_domain,
-      //         append: () => (
-      //           <db-icon
-      //             v-bk-tooltips={t('复制主访问入口')}
-      //             type="copy"
-      //             class="copy-btn"
-      //             onClick={() => copy(data.slave_domain)} />
-      //         ),
-      //       }}
-      //     </TextOverflowLayout>
-      //   ),
-      // },
       {
         label: t('部署角色'),
         field: 'role',
@@ -300,7 +280,7 @@
       {
         label: t('部署时间'),
         field: 'create_at',
-        width: 160,
+        width: 240,
         sort: true,
         render: ({ data }: { data: RedisInstanceModel }) => data.createAtDisplay || '--',
       },

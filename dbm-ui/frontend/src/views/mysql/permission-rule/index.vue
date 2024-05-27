@@ -404,7 +404,7 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       account_type: 'mysql',
     }, {
-      permission: 'catch'
+      permission: 'page'
     })
       .then((res) => {
         state.data = res.results.map(item => Object.assign({ isExpand: true }, item));

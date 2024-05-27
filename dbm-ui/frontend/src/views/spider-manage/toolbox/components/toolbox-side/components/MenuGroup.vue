@@ -23,6 +23,7 @@
           v-for="item of currentConfig.children"
           :key="item.id">
           <div
+            v-show="calcRender(item)"
             v-db-console="item.dbConsoleValue"
             class="toolbox-side-item"
             :class="{
@@ -63,7 +64,7 @@
 
   import MenuConfig from '@views/spider-manage/toolbox-menu';
 
-  import { messageSuccess } from '@utils';
+  import { encodeRegexp, messageSuccess } from '@utils';
 
   import TaskCount from './TaskCount.vue';
 
@@ -71,6 +72,7 @@
     id: string;
     draggable: boolean;
     activeViewName: string;
+    serachKey: string;
   }
 
   const props = defineProps<Props>();
@@ -85,6 +87,14 @@
   });
 
   const currentConfig = _.find(MenuConfig, (item) => item.id === props.id) as (typeof MenuConfig)[number];
+
+  const calcRender = (payload: (typeof MenuConfig)[number]['children'][number]) => {
+    if (!props.serachKey) {
+      return true;
+    }
+    const reg = new RegExp(encodeRegexp(props.serachKey), 'i');
+    return reg.test(payload.name);
+  };
 
   const handleRouterChange = (routerName: string) => {
     router.push({

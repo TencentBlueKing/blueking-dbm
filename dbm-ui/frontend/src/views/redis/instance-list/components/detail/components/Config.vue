@@ -53,6 +53,7 @@
     description: '',
     conf_items: [],
   } as ServiceReturnType<typeof getLevelConfig>);
+
   const columns = [
     {
       label: t('参数项'),
@@ -77,16 +78,6 @@
     // }
   ];
 
-  watch(() => props.queryInfos, (infos) => {
-    const { version, clusterId } = infos;
-    if (version && clusterId) {
-      fetchClusterConfig();
-    }
-  }, {
-    immediate: true,
-    deep: true,
-  });
-
   /**
    * 获取集群配置
    */
@@ -110,6 +101,16 @@
         isLoading.value = false;
       });
   }
+
+  watch(() => props.queryInfos, (infos) => {
+    const { version, clusterId } = infos;
+    if (version && clusterId) {
+      fetchClusterConfig();
+    }
+  }, {
+    immediate: true,
+    deep: true,
+  });
 </script>
 
 <style lang="less" scoped>

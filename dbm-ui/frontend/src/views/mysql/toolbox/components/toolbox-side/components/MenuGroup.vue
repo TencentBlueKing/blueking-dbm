@@ -1,16 +1,16 @@
 <template>
-  <BkCollapsePanel :name="currentConfig.id">
+  <BkCollapsePanel :name="currentConfig!.id">
     <div class="toolbox-side-header">
       <DbIcon
         class="toolbox-side-status"
         type="down-shape" />
       <i
         class="toolbox-side-icon"
-        :class="currentConfig.icon" />
+        :class="currentConfig!.icon" />
       <span
         v-overflow-tips
         class="toolbox-side-title text-overflow">
-        {{ currentConfig.name }}
+        {{ currentConfig!.name }}
       </span>
       <span
         v-if="draggable"
@@ -20,9 +20,10 @@
     <template #content>
       <div class="toolbox-side-content">
         <template
-          v-for="item of currentConfig.children"
+          v-for="item of currentConfig!.children"
           :key="item.id">
           <div
+            v-show="calcRender(item)"
             v-db-console="item.dbConsoleValue"
             class="toolbox-side-item"
             :class="{
@@ -63,7 +64,7 @@
 
   import MenuConfig from '@views/mysql/toolbox-menu';
 
-  import { messageSuccess } from '@utils';
+  import { encodeRegexp, messageSuccess } from '@utils';
 
   import TaskCount from './TaskCount.vue';
 
@@ -71,6 +72,7 @@
     id: string;
     draggable: boolean;
     activeViewName: string;
+    serachKey: string;
   }
 
   const props = defineProps<Props>();
@@ -84,7 +86,15 @@
     required: true,
   });
 
-  const currentConfig = _.find(MenuConfig, (item) => item.id === props.id) as (typeof MenuConfig)[number];
+  const currentConfig = _.find(MenuConfig, (item) => item.id === props.id);
+
+  const calcRender = (payload: (typeof MenuConfig)[number]['children'][number]) => {
+    if (!props.serachKey) {
+      return true;
+    }
+    const reg = new RegExp(encodeRegexp(props.serachKey), 'i');
+    return reg.test(payload.name);
+  };
 
   const handleRouterChange = (routerName: string) => {
     router.push({
