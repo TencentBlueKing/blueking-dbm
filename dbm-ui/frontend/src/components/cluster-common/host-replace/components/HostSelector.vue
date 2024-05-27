@@ -26,6 +26,7 @@
         :cloud-info="cloudInfo"
         :disable-dialog-submit-method="disableDialogSubmitMethod"
         :disable-host-method="disableHostMethod"
+        :os-types="[OSTypes.Linux]"
         :show-view="false"
         @change="handleHostChange">
         <template #submitTips="{ hostList: resultHostList }">
@@ -71,6 +72,8 @@
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 
   import { useGlobalBizs } from '@stores';
+
+  import { OSTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 

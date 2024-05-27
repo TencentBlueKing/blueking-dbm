@@ -74,6 +74,7 @@
       id: oldSlave.bkCloudId,
       name: oldSlave.bkCloudName,
     }"
+    :os-types="[OSTypes.Linux]"
     service-mode="all"
     :show-view="false"
     single-host-select
@@ -85,6 +86,8 @@
   import type { HostDetails } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
+
+  import { OSTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -129,20 +132,24 @@
 
   const { message: errorMessage, validator } = useValidtor(rules);
 
-  watch(() => props.newSlave, () => {
-    if (props.newSlave) {
-      localHostData.value = {
-        biz: {
-          id: props.newSlave.bkBizId,
-        },
-        cloud_id: props.newSlave.bkCloudId,
-        host_id: props.newSlave.bkHostId,
-        ip: props.newSlave.ip,
-      } as HostDetails
-    }
-  }, {
-    immediate: true,
-  })
+  watch(
+    () => props.newSlave,
+    () => {
+      if (props.newSlave) {
+        localHostData.value = {
+          biz: {
+            id: props.newSlave.bkBizId,
+          },
+          cloud_id: props.newSlave.bkCloudId,
+          host_id: props.newSlave.bkHostId,
+          ip: props.newSlave.ip,
+        } as HostDetails;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(
     localHostData,

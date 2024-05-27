@@ -31,6 +31,7 @@
         :cloud-info="cloudInfo"
         :disable-dialog-submit-method="disableDialogSubmitMethod"
         :disable-host-method="disableHostMethod"
+        :os-types="[OSTypes.Linux]"
         :show-view="false"
         @change="handleHostChange">
         <template #submitTips="{ hostList: resultHostList }">
@@ -69,6 +70,8 @@
   import type { HostDetails } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
+
+  import { OSTypes } from '@common/const';
 
   import EditHostInstance from '@components/cluster-common/big-data-host-table/es-host-table/components/EditHostInstance.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
