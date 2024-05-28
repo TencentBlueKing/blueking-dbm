@@ -70,7 +70,6 @@
   import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
   import { getClusterTypeToVersions } from '@services/source/version';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
@@ -213,7 +212,7 @@
     const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
       getValue: () => Promise<InfoItem>
     }) => item.getValue()));
-    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+    const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_SCALE_UPDOWN,
       details: {
