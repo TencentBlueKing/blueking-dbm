@@ -42,10 +42,10 @@ const redirectLogin = (loginUrl: string) => {
 
   if (hasLogined) {
     showLoginModal({
-      loginUrl: `${domain}?c_url=${decodeURIComponent(`${window.location.origin}${window.PROJECT_ENV.VITE_PUBLIC_PATH}login-success.html`)}`,
+      loginUrl: `${domain}?is_from_logout=1&c_url=${decodeURIComponent(`${window.location.origin}${window.PROJECT_ENV.VITE_PUBLIC_PATH}login-success.html`)}`,
     });
   } else {
-    window.location.href = `${domain}?c_url=${decodeURIComponent(window.location.href)}`;
+    window.location.href = `${domain}?is_from_logout=1&c_url=${decodeURIComponent(window.location.href)}`;
   }
 };
 
