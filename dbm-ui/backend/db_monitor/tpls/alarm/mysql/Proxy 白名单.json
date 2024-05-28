@@ -69,7 +69,7 @@
         "level": 1,
         "expression": "",
         "trigger_config": {
-          "count": 1,
+          "count": 8,
           "uptime": {
             "calendars": [],
             "time_ranges": [
@@ -79,7 +79,7 @@
               }
             ]
           },
-          "check_window": 5
+          "check_window": 10
         },
         "recovery_config": {
           "check_window": 5,
@@ -242,7 +242,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(proxy-user-list)",
-  "version": 22,
+  "version": 23,
   "alert_source": "event",
   "custom_conditions": []
 }
