@@ -55,7 +55,8 @@
       <BkFormItem
         class="form-item privilege"
         :label="t('权限设置')"
-        property="auth">
+        property="auth"
+        :required="false">
         <div class="rule-setting-box">
           <BkFormItem
             label="DML"
@@ -64,7 +65,7 @@
               <BkCheckbox
                 v-bk-tooltips="{
                   content: t('你已选择所有权限'),
-                  disabled: !checkAllPrivileges,
+                  disabled: !checkAllPrivileges
                 }"
                 class="check-all"
                 :disabled="checkAllPrivileges"
@@ -81,7 +82,7 @@
                   :key="option"
                   v-bk-tooltips="{
                     content: t('你已选择所有权限'),
-                    disabled: !checkAllPrivileges,
+                    disabled: !checkAllPrivileges
                   }"
                   :disabled="checkAllPrivileges"
                   :label="option">
@@ -97,7 +98,7 @@
               <BkCheckbox
                 v-bk-tooltips="{
                   content: t('你已选择所有权限'),
-                  disabled: !checkAllPrivileges,
+                  disabled: !checkAllPrivileges
                 }"
                 class="check-all"
                 :disabled="checkAllPrivileges"
@@ -114,16 +115,14 @@
                   :key="option"
                   v-bk-tooltips="{
                     content: t('你已选择所有权限'),
-                    disabled: !checkAllPrivileges,
+                    disabled: !checkAllPrivileges
                   }"
                   :disabled="checkAllPrivileges"
                   :label="option">
                   {{ option }}
                   <span
                     v-if="ddlSensitiveWords.includes(option)"
-                    class="sensitive-tip"
-                    >{{ t('敏感') }}</span
-                  >
+                    class="sensitive-tip">{{ t('敏感') }}</span>
                 </BkCheckbox>
               </BkCheckboxGroup>
             </div>
@@ -135,7 +134,7 @@
               <BkCheckbox
                 v-bk-tooltips="{
                   content: t('你已选择所有权限'),
-                  disabled: !checkAllPrivileges,
+                  disabled: !checkAllPrivileges
                 }"
                 class="check-all"
                 :disabled="checkAllPrivileges"
@@ -152,7 +151,7 @@
                   :key="option"
                   v-bk-tooltips="{
                     content: t('你已选择所有权限'),
-                    disabled: !checkAllPrivileges,
+                    disabled: !checkAllPrivileges
                   }"
                   :disabled="checkAllPrivileges"
                   :label="option">
@@ -165,7 +164,7 @@
         </div>
         <!-- <div
           class="rule-setting-box"
-          style="margin-top: 16px">
+          style="margin-top: 16px;">
           <BkFormItem
             class="mb-0"
             :label="t('所有权限')">
@@ -231,11 +230,11 @@
   type AuthItemKey = keyof typeof dbOperations;
 
   interface Props {
-    accountId: number;
+    accountId: number,
   }
 
   interface Emits {
-    (e: 'success'): void;
+    (e: 'success'): void,
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -266,26 +265,24 @@
     existDBs.value = [];
 
     const user = selectedUserInfo.value?.user;
-    const dbs = formdata.value.access_db
-      .replace(replaceReg, ',')
+    const dbs = formdata.value.access_db.replace(replaceReg, ',')
       .split(',')
-      .filter((db) => db !== '');
+      .filter(db => db !== '');
 
-    if (!user || dbs.length === 0) {
-      return false;
-    }
+    if (!user || dbs.length === 0) return false;
 
     return queryAccountRules({
       bizId: window.PROJECT_CONFIG.BIZ_ID,
       user,
       access_dbs: dbs,
       account_type: TENDBCLUSTER,
-    }).then((res) => {
-      const rules = res.results[0]?.rules || [];
-      existDBs.value = rules.map((item) => item.access_db);
+    })
+      .then((res) => {
+        const rules = res.results[0]?.rules || [];
+        existDBs.value = rules.map(item => item.access_db);
 
-      return rules.length === 0;
-    });
+        return rules.length === 0;
+      });
   };
 
   const { t } = useI18n();
@@ -377,7 +374,7 @@
       account_type: TENDBCLUSTER,
     })
       .then((res) => {
-        accounts.value = res.results.map((item) => item.account);
+        accounts.value = res.results.map(item => item.account);
       })
       .finally(() => {
         isLoading.value = false;
@@ -386,8 +383,10 @@
 
   const getAllCheckedboxValue = (key: AuthItemKey) => formdata.value.privilege[key].length === dbOperations[key].length;
 
-  const getAllCheckedboxIndeterminate = (key: AuthItemKey) =>
-    formdata.value.privilege[key].length > 0 && formdata.value.privilege[key].length !== dbOperations[key].length;
+  const getAllCheckedboxIndeterminate = (key: AuthItemKey) => (
+    formdata.value.privilege[key].length > 0
+    && formdata.value.privilege[key].length !== dbOperations[key].length
+  );
 
   const handleSelectedAll = (key: AuthItemKey, value: boolean) => {
     if (value) {
@@ -401,9 +400,7 @@
   const handleClose = async () => {
     const result = await handleBeforeClose();
 
-    if (!result) {
-      return;
-    }
+    if (!result) return;
 
     isShow.value = false;
     formdata.value = initFormdata();
@@ -456,15 +453,16 @@
         createAccountRuleRun(params);
       });
   };
+
 </script>
 
 <style lang="less" scoped>
   .rule-form {
-    padding: 24px;
+    padding: 24px 40px 40px;
 
     .rule-setting-box {
       padding: 16px 0 16px 16px;
-      background: #f5f7fa;
+      background: #F5F7FA;
       border-radius: 2px;
     }
 
@@ -480,10 +478,6 @@
       width: 100%;
       align-items: flex-start;
 
-      :deep(.bk-checkbox-label) {
-        font-size: 12px;
-      }
-
       .checkbox-group {
         display: flex;
         flex: 1;
@@ -495,10 +489,10 @@
           margin-left: 0;
 
           .sensitive-tip {
-            background: #fff3e1;
+            background: #FFF3E1;
             border-radius: 2px;
             font-size: 10px;
-            color: #fe9c00;
+            color: #FE9C00;
             height: 16px;
             line-height: 16px;
             text-align: center;
@@ -515,17 +509,19 @@
         // :deep(.bk-checkbox-label) {
         //   font-weight: bold;
         // }
-        &::after {
-          position: absolute;
-          top: 50%;
-          right: -24px;
-          width: 1px;
-          height: 14px;
-          background-color: #c4c6cc;
-          content: '';
-          transform: translateY(-50%);
-        }
       }
+
+      .check-all::after {
+        position: absolute;
+        top: 50%;
+        right: -24px;
+        width: 1px;
+        height: 14px;
+        background-color: #c4c6cc;
+        content: "";
+        transform: translateY(-50%);
+      }
+
     }
 
     :deep(.privilege .bk-form-label::after) {
@@ -534,18 +530,19 @@
       width: 14px;
       color: @danger-color;
       text-align: center;
-      content: '*';
+      content: "*";
     }
 
     :deep(.privilege .is-required .bk-form-label::after) {
       display: none;
     }
   }
+
 </style>
 <style lang="less">
-  .pre-check-content {
-    width: 100%;
-    max-height: 500px;
-    overflow-y: auto;
-  }
+.pre-check-content {
+  width: 100%;
+  max-height: 500px;
+  overflow-y: auto;
+}
 </style>

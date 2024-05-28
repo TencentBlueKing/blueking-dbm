@@ -85,14 +85,15 @@ func FormatPriv(source string) (map[string]string, error) {
 		p = strings.TrimPrefix(p, " ")
 		p = strings.TrimSuffix(p, " ")
 		// dml权限
-		if p == "select" || p == "insert" || p == "update" || p == "delete" {
+		if p == "select" || p == "insert" || p == "update" || p == "delete" || p == "show view" {
 			dml = append(dml, p)
 			// ddl权限
-		} else if p == "create" || p == "alter" || p == "drop" || p == "index" || p == "execute" || p == "create view" {
+		} else if p == "create" || p == "alter" || p == "drop" || p == "index" || p == "execute" || p == "create view" ||
+			p == "trigger" || p == "event" || p == "create routine" || p == "alter routine" || p == "references" ||
+			p == "create temporary tables" {
 			ddl = append(ddl, p)
 			// global 权限
-		} else if p == "file" || p == "trigger" || p == "event" || p == "create routine" || p == "alter routine" ||
-			p == "replication client" || p == "replication slave" || p == "reload" ||
+		} else if p == "file" || p == "replication client" || p == "replication slave" || p == "reload" ||
 			p == "process" || p == "show databases" {
 			global = append(global, p)
 			// global 权限

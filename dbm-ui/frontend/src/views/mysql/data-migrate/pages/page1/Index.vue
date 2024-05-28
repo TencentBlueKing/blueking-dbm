@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('数据迁移：数据同步复制到新集群，迁移后将会对原库进行')" />
+        :title="t('DB 克隆：将源集群的指定database表结构和数据完整克隆到新集群中， database名不变')" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">

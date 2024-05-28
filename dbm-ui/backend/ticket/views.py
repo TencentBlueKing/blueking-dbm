@@ -51,6 +51,7 @@ from backend.ticket.serializers import (
     ListTicketStatusSerializer,
     QueryTicketFlowDescribeSerializer,
     RetryFlowSLZ,
+    SensitiveTicketSerializer,
     TicketFlowDescribeSerializer,
     TicketFlowSerializer,
     TicketSerializer,
@@ -85,6 +86,10 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         # 创建单据，关联单据类型的动作
         if self.action == "create":
             return create_ticket_permission(self.request.data["ticket_type"])
+        # 创建敏感单据，只允许通过jwt校验的用户访问
+        if self.action == "create_sensitive_ticket":
+            permission_class = [] if self.request.jwt.is_valid else [RejectPermission()]
+            return permission_class
         # 查看集群/实例变更条件，关联集群详情
         elif self.action == "get_cluster_operate_records":
             return [ClusterDetailPermission()]
@@ -262,6 +267,16 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         tags=[TICKET_TAG],
     )
     def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("创建单据(允许创建敏感单据)"),
+        request_body=SensitiveTicketSerializer(),
+        responses={status.HTTP_200_OK: SensitiveTicketSerializer(label=_("创建单据(允许创建敏感单据)"))},
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SensitiveTicketSerializer)
+    def create_sensitive_ticket(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
     @common_swagger_auto_schema(

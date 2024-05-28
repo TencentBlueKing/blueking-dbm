@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 import logging
 from collections import defaultdict
 from typing import Any, Dict, List
@@ -20,13 +21,16 @@ from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_dirty.models import DirtyMachine
+from backend.db_meta.models import AppCache
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.consts import FAILED_STATES
 from backend.flow.utils.cc_manage import CcManage
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.models import Flow, Ticket
 from backend.utils.basic import get_target_items_from_details
+from backend.utils.batch_request import request_multi_thread
 
 logger = logging.getLogger("root")
 
@@ -54,6 +58,108 @@ class DBDirtyMachineHandler(object):
         # 删除污点池记录，并从资源池移除(忽略删除错误，因为机器可能不来自资源池)
         dirty_machines.delete()
         DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids}, raise_exception=False)
+
+    @classmethod
+    def query_dirty_machine_records(cls, bk_host_ids: List[int]):
+        """
+        查询污点池主机信息
+        @param bk_host_ids: 主机列表
+        """
+
+        def get_module_data(data):
+            params, res = data
+            params = params["params"]
+            return [{"bk_biz_id": params["bk_biz_id"], **d} for d in res]
+
+        if not bk_host_ids:
+            return []
+
+        # 如果传入的列表已经是DirtyMachine，则直接用
+        if not isinstance(bk_host_ids[0], DirtyMachine):
+            dirty_machines = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
+        else:
+            dirty_machines = bk_host_ids
+            bk_host_ids = [dirty.bk_host_id for dirty in dirty_machines]
+
+        # 缓存云区域和业务信息
+        bk_biz_ids = [dirty_machine.bk_biz_id for dirty_machine in dirty_machines]
+        for_biz_infos = AppCache.batch_get_app_attr(bk_biz_ids=bk_biz_ids, attr_name="bk_biz_name")
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+
+        # 查询污点主机当前所处的模块
+        host_topo_infos = CCApi.find_host_biz_relations(params={"bk_host_id": bk_host_ids})
+        host__topo_info_map: Dict[int, List] = defaultdict(list)
+        biz__modules_map: Dict[int, List] = defaultdict(list)
+        for topo in host_topo_infos:
+            host__topo_info_map[topo["bk_host_id"]].append(topo)
+            biz__modules_map[topo["bk_biz_id"]].append(topo["bk_module_id"])
+        # 批量获取业务下模块信息
+        module_infos = request_multi_thread(
+            func=CCApi.find_module_batch,
+            params_list=[
+                {
+                    "params": {"bk_biz_id": biz, "bk_ids": modules, "fields": ["bk_module_id", "bk_module_name"]},
+                    "use_admin": True,
+                }
+                for biz, modules in biz__modules_map.items()
+            ],
+            get_data=get_module_data,
+            in_order=True,
+        )
+        module_infos = list(itertools.chain(*module_infos))
+        biz__module__module_name: Dict[int, Dict[int, str]] = defaultdict(dict)
+        for info in module_infos:
+            biz__module__module_name[info["bk_biz_id"]][info["bk_module_id"]] = info["bk_module_name"]
+
+        # 获取污点池模块
+        system_manage_topo = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)
+        dirty_module = system_manage_topo["dirty_module_id"]
+
+        # 获取污点池列表信息
+        dirty_machine_list: List[Dict] = []
+        for dirty in dirty_machines:
+            # 填充污点池主机基础信息
+            dirty_machine_info = {
+                "ip": dirty.ip,
+                "bk_host_id": dirty.bk_host_id,
+                "bk_cloud_name": cloud_info[str(dirty.bk_cloud_id)]["bk_cloud_name"],
+                "bk_cloud_id": dirty.bk_cloud_id,
+                "bk_biz_name": for_biz_infos[int(dirty.bk_biz_id)],
+                "bk_biz_id": dirty.bk_biz_id,
+                "ticket_type": dirty.ticket.ticket_type,
+                "ticket_id": dirty.ticket.id,
+                "ticket_type_display": dirty.ticket.get_ticket_type_display(),
+                "task_id": dirty.flow.flow_obj_id,
+                "operator": dirty.ticket.creator,
+                "is_dirty": True,
+            }
+
+            # 如果主机已经不存在于cc，则仅能删除记录
+            if dirty.bk_host_id not in host__topo_info_map:
+                dirty_machine_list.append(dirty_machine_info)
+                continue
+
+            # 补充主机所在的模块信息
+            host_in_module = [
+                {
+                    "bk_module_id": h["bk_module_id"],
+                    "bk_module_name": biz__module__module_name[dirty.bk_biz_id].get(h["bk_module_id"], ""),
+                }
+                for h in host__topo_info_map[dirty.bk_host_id]
+            ]
+            dirty_machine_info.update(bk_module_infos=host_in_module)
+
+            # 当前主机业务和转移时的业务不同时，不允许转移
+            if dirty.bk_biz_id != host__topo_info_map[dirty.bk_host_id][0]["bk_biz_id"]:
+                dirty_machine_info.update(is_dirty=False)
+            # 当主机并不仅处于污点池中，则主机此时不能移入待回收
+            if len(host_in_module) != 1 or host_in_module[0]["bk_module_id"] != dirty_module:
+                dirty_machine_info.update(is_dirty=False)
+
+            dirty_machine_list.append(dirty_machine_info)
+
+        dirty_machine_list.sort(key=lambda x: x["ticket_id"], reverse=True)
+        return dirty_machine_list
 
     @classmethod
     def insert_dirty_machines(cls, bk_biz_id: int, bk_host_ids: List[Dict[str, Any]], ticket: Ticket, flow: Flow):

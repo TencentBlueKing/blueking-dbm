@@ -18,11 +18,10 @@ from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.builders.tendbcluster.base import TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class MysqlRestoreLocalSlaveDetailSerializer(TendbBaseOperateDetailSerializer, MySQLBaseOperateDetailSerializer):
+class MysqlRestoreLocalSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     class SlaveInfoSerializer(serializers.Serializer):
         slave = InstanceInfoSerializer(help_text=_("从库实例信息"))
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
@@ -33,8 +32,8 @@ class MysqlRestoreLocalSlaveDetailSerializer(TendbBaseOperateDetailSerializer, M
 
     def validate(self, attrs):
         # 校验集群是否可用，集群类型为高可用
-        super(TendbBaseOperateDetailSerializer, self).validate_cluster_can_access(attrs)
-        super(MysqlRestoreLocalSlaveDetailSerializer, self).validate_cluster_type(attrs, ClusterType.TenDBHA)
+        super(MysqlRestoreLocalSlaveDetailSerializer, self).validate_cluster_can_access(attrs)
+        super(MysqlRestoreLocalSlaveDetailSerializer, self).validated_cluster_type(attrs, ClusterType.TenDBHA)
 
         # 校验实例的角色为slave
         super(MysqlRestoreLocalSlaveDetailSerializer, self).validate_instance_role(

@@ -34,7 +34,12 @@
         <RenderTableHeadColumn
           :min-width="100"
           :width="190">
-          {{ t('生成目标 DB 范式') }}
+          <BkPopover
+            :content="t('支持使用 { } 占位，如db_{id} , id在执行开区时传入')"
+            placement="top"
+            theme="dark">
+            <span style="border-bottom: 1px dashed #979BA5;">{{ t('生成的目标DB名') }}</span>
+          </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"

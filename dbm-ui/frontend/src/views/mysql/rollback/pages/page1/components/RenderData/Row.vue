@@ -99,7 +99,7 @@
     rowKey: random(),
     clusterData: data.clusterData,
     rollbackIp: data.rollbackIp,
-    backupSource: data.backupSource || 'local',
+    backupSource: data.backupSource || 'remote',
     backupid: data.backupid,
     rollbackTime: data.rollbackTime || '',
     databases: data.databases,

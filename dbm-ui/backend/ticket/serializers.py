@@ -105,6 +105,11 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
         read_only_fields = ("id",) + model.AUDITED_FIELDS
         swagger_schema_fields = {"example": mock_data.CREATE_TENDBHA_TICKET_DATA}
 
+    def validate_ticket_type(self, value):
+        if value in BuilderFactory.sensitive_ticket_type:
+            raise serializers.ValidationError(_("不允许提交敏感单据类型{}").format(value))
+        return value
+
     def get_ticket_type_display(self, obj):
         return obj.get_ticket_type_display()
 
@@ -190,6 +195,14 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
     class Meta:
         model = Flow
         fields = "__all__"
+
+
+class SensitiveTicketSerializer(TicketSerializer):
+    """敏感单据序列化器"""
+
+    def validate_ticket_type(self, value):
+        # 允许所有单据类型
+        return value
 
 
 class TodoSerializer(serializers.ModelSerializer):

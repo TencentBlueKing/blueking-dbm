@@ -75,4 +75,7 @@ class TopoCacheManager:
             )
 
         # 直接展示空闲机模块
+        if not idle_topo["child"]:
+            return None
+
         return idle_topo["child"][0]

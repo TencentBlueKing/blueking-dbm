@@ -67,4 +67,6 @@ class TopoTool:
     def get_idle_topo_tree_with_count(cls, bk_biz_id: int, bk_cloud_id: int = None):
         """获取业务空闲机拓扑"""
         topo_tree = TopoCacheManager.get_cached_topo(bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id)
-        return [topo_tree]
+        # 如果不存在则返回空list
+        topo_tree = [topo_tree] if topo_tree else []
+        return topo_tree
