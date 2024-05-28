@@ -157,7 +157,7 @@ class DBPasswordHandler(object):
             "security_rule_name": DBM_PASSWORD_SECURITY_NAME,
             "async": False,
         }
-        data = MySQLPrivManagerApi.modify_mysql_admin_password(params=modify_password_params, raw=True)["data"]
+        data = MySQLPrivManagerApi.modify_admin_password(params=modify_password_params, raw=True)["data"]
         return data
 
     @classmethod

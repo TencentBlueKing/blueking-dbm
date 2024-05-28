@@ -34,7 +34,7 @@ def randomize_admin_password(if_async: bool, range_type: str):
     for cluster_id in cluster_ids:
         clusters.append(get_mysql_instance(cluster_id))
     try:
-        MySQLPrivManagerApi.modify_mysql_admin_password(
+        MySQLPrivManagerApi.modify_admin_password(
             params={  # 管理用户
                 "component": "mysql",
                 "username": DBM_MYSQL_ADMIN_USER,  # 管理用户
