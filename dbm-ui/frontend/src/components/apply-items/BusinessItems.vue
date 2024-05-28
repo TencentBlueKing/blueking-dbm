@@ -19,38 +19,12 @@
     <BkLoading
       :loading="isBizLoading"
       style="width: 435px">
-      <AppSelect
-        :data="withFavorBizList"
-        :generate-key="(item: IAppItem) => item.bk_biz_id"
-        :generate-name="(item: IAppItem) => item.display_name"
-        :value="currentBiz"
+      <DbAppSelect
+        :list="bizList"
+        :model-value="currentBiz"
+        :permission-action-id="perrmisionActionId"
         @change="handleAppChange">
-        <template #default="{ data }">
-          <AuthTemplate
-            :action-id="perrmisionActionId"
-            :biz-id="data.bk_biz_id"
-            :permission="data.permission[perrmisionActionId]"
-            :resource="data.bk_biz_id"
-            style="width: 100%">
-            <div class="db-app-select-item">
-              <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
-              <div style="margin-left: auto">
-                <DbIcon
-                  v-if="favorBizIdMap[data.bk_biz_id]"
-                  class="unfavor-btn"
-                  style="color: #ffb848"
-                  type="star-fill"
-                  @click.stop="handleUnfavor(data.bk_biz_id)" />
-                <DbIcon
-                  v-else
-                  class="favor-btn"
-                  type="star"
-                  @click.stop="handleFavor(data.bk_biz_id)" />
-              </div>
-            </div>
-          </AuthTemplate>
-        </template>
-      </AppSelect>
+      </DbAppSelect>
     </BkLoading>
   </BkFormItem>
   <BkFormItem
@@ -83,14 +57,9 @@
   import { getBizs } from '@services/source/cmdb';
   import type { BizItem } from '@services/types';
 
-  import { useUserProfile } from '@stores';
-
-  import { UserPersonalSettings } from '@common/const';
   import { nameRegx } from '@common/regex';
 
-  import { makeMap } from '@utils';
-
-  import AppSelect from '@blueking/app-select';
+  import DbAppSelect from '@components/db-app-select/Index.vue';
 
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
@@ -117,17 +86,25 @@
   const { t } = useI18n();
 
   const route = useRoute();
-  const userProfile = useUserProfile();
 
-  const bizList = shallowRef<IAppItem[]>([]);
   const currentBiz = shallowRef<IAppItem>();
-  const favorBizIdMap = shallowRef(makeMap(userProfile.profile[UserPersonalSettings.APP_FAVOR] || []));
+  const bizList = shallowRef<IAppItem[]>([]);
   const hasEnglishName = ref(false);
   const appAbbrRef = ref();
 
-  const withFavorBizList = computed(() => _.sortBy(bizList.value, (item) => favorBizIdMap.value[item.bk_biz_id]));
-
   const dbAppAbbrPlaceholder = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
+
+  const { loading: isBizLoading } = useRequest(getBizs, {
+    defaultParams: [
+      {
+        action: props.perrmisionActionId,
+      },
+    ],
+    onSuccess(data) {
+      console.log('asdasdasd = ', data);
+      bizList.value = data;
+    },
+  });
 
   const bkAppAbbrRuels = [
     {
@@ -140,23 +117,12 @@
         if (hasEnglishName.value) {
           return true;
         }
-        return !bizList.value.find((item) => item.english_name === val);
+        return !bizList.value!.find((item) => item.english_name === val);
       },
       message: t('业务code不允许重复'),
       trigger: 'blur',
     },
   ];
-
-  const { loading: isBizLoading } = useRequest(getBizs, {
-    defaultParams: [
-      {
-        action: props.perrmisionActionId,
-      },
-    ],
-    onSuccess(result) {
-      bizList.value = result;
-    },
-  });
 
   watch(
     route,
@@ -196,27 +162,5 @@
 
     bizId.value = appInfo.bk_biz_id;
     emits('changeBiz', { ...appInfo });
-  };
-
-  const handleUnfavor = (bizId: number) => {
-    const lastFavorBizIdMap = { ...favorBizIdMap.value };
-    delete lastFavorBizIdMap[bizId];
-    favorBizIdMap.value = lastFavorBizIdMap;
-
-    userProfile.updateProfile({
-      label: UserPersonalSettings.APP_FAVOR,
-      values: Object.keys(lastFavorBizIdMap),
-    });
-  };
-
-  const handleFavor = (bizId: number) => {
-    favorBizIdMap.value = {
-      ...favorBizIdMap.value,
-      [bizId]: true,
-    };
-    userProfile.updateProfile({
-      label: UserPersonalSettings.APP_FAVOR,
-      values: Object.keys(favorBizIdMap.value),
-    });
   };
 </script>

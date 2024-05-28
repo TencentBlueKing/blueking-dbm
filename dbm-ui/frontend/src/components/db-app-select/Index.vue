@@ -1,29 +1,31 @@
 <template>
   <AppSelect
-    v-model="modelValue"
     :data="withFavorBizList"
     :generate-key="(item: IAppItem) => item.bk_biz_id"
     :generate-name="(item: IAppItem) => item.display_name"
     :search-extension-method="searchExtensionMethod"
     :theme="theme"
+    :value="modelValue"
     @change="handleAppChange">
     <template #value="{ data }">
       <div>
-        {{ data.name }} (#{{ data.bk_biz_id }}
+        <span>{{ data.name }}</span>
+        <span> (#{{ data.bk_biz_id }}</span>
         <template v-if="data.english_name">, {{ data.english_name }}</template>
-        )
+        <span>)</span>
       </div>
     </template>
     <template #default="{ data }">
       <AuthTemplate
-        action-id="db_manage"
-        :permission="data.permission.db_manage"
+        :action-id="permissionActionId"
+        :permission="data.permission[permissionActionId]"
         :resource="data.bk_biz_id"
         style="flex: 1">
         <template #default="{ permission }">
           <div
             class="db-app-select-item"
-            :class="{ 'not-permission': !permission }">
+            :class="{ 'not-permission': !permission }"
+            :data-id="permissionActionId">
             <RenderItem :data="data" />
             <div style="margin-left: auto">
               <DbIcon
@@ -50,7 +52,7 @@
 
   import { getBizs } from '@services/source/cmdb';
 
-  import { useGlobalBizs, useUserProfile } from '@stores';
+  import { useUserProfile } from '@stores';
 
   import { UserPersonalSettings } from '@common/const';
 
@@ -65,13 +67,18 @@
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   interface Props {
-    theme: string;
+    theme?: string;
+    permissionActionId?: string;
+    list: IAppItem[];
   }
   interface Emits {
     (e: 'change', value: IAppItem): void;
   }
 
-  defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    theme: 'light',
+    permissionActionId: 'db_manage',
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -79,11 +86,9 @@
 
   const userProfile = useUserProfile();
 
-  const { bizs: bizList } = useGlobalBizs();
-
   const favorBizIdMap = shallowRef(makeMap(userProfile.profile[UserPersonalSettings.APP_FAVOR] || []));
 
-  const withFavorBizList = computed(() => _.sortBy(bizList, (item) => favorBizIdMap.value[item.bk_biz_id]));
+  const withFavorBizList = computed(() => _.sortBy(props.list, (item) => favorBizIdMap.value[item.bk_biz_id]));
 
   const searchExtensionMethod = (data: IAppItem, keyword: string) => {
     const rule = new RegExp(encodeRegexp(keyword), 'i');
@@ -92,6 +97,7 @@
   };
 
   const handleAppChange = (appInfo: IAppItem) => {
+    modelValue.value = appInfo;
     emits('change', appInfo);
   };
 
@@ -118,6 +124,13 @@
   };
 </script>
 <style lang="less">
+  .bk-app-select-menu[data-theme='dark'] {
+    .not-permission {
+      * {
+        color: #70737a !important;
+      }
+    }
+  }
   .db-app-select-item {
     display: flex;
     align-items: center;
@@ -127,12 +140,6 @@
     &:hover {
       .favor-btn {
         opacity: 100%;
-      }
-    }
-
-    &.not-permission {
-      * {
-        color: #70737a !important;
       }
     }
 
