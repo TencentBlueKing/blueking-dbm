@@ -38,6 +38,9 @@ type Database struct {
 // DB TODO
 var DB *Database
 
+// TbRpOperationInfoColumns tb_rp_operation_info all columns
+var TbRpOperationInfoColumns []string
+
 func init() {
 	createSysDb()
 	orm_db := initSelfDB()
@@ -52,6 +55,15 @@ func init() {
 	}
 	migration()
 	initarchive()
+	TbRpOperationInfoColumns = []string{}
+	TbRpOperationInfoColumns, err = getTbRpOperationInfoColumns()
+	if err != nil {
+		logger.Error("get table tb_rp_operation_info  columns failed  %v", err)
+	}
+	if len(TbRpOperationInfoColumns) <= 1 {
+		TbRpOperationInfoColumns = []string{"create_time", "-create_time"}
+	}
+	logger.Info("tb_rp_operation_info columns %v", TbRpOperationInfoColumns)
 }
 
 func createSysDb() {

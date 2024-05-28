@@ -16,13 +16,13 @@ import (
 )
 
 const (
-	// Consumed TODO
+	// Consumed 消费主机
 	Consumed = "consumed"
-	// Imported TODO
+	// Imported 导入主机
 	Imported = "imported"
 )
 
-// TbRpOperationInfo TODO
+// TbRpOperationInfo 资源池操作记录表
 type TbRpOperationInfo struct {
 	ID            int             `gorm:"primaryKey;auto_increment;not null" json:"-"`
 	RequestID     string          `gorm:"index:idx_request_id;column:request_id;type:varchar(64);not null" json:"request_id"`
@@ -35,17 +35,34 @@ type TbRpOperationInfo struct {
 	TaskId        string          `gorm:"column:task_id;type:varchar(128);not null;comment:'task Id'" json:"task_id"`
 	BillId        string          `gorm:"column:bill_id;type:varchar(128);not null;comment:'bill Id'" json:"bill_id"`
 	BillType      string          `gorm:"column:bill_type;type:varchar(128);not null;comment:'bill type'" json:"bill_type"`
-	Desc          string          `gorm:"column:desc;type:varchar(256);not null;comment:'desc'" json:"desc"`
+	Description   string          `gorm:"column:description;type:varchar(256);not null;comment:'description'" json:"description"`
 	UpdateTime    time.Time       `gorm:"column:update_time;type:timestamp" json:"update_time"` // 最后修改时间
 	CreateTime    time.Time       `gorm:"column:create_time;type:datetime" json:"create_time"`  // 创建时间
 }
 
-// TableName TODO
+// TableName table name
 func (TbRpOperationInfo) TableName() string {
 	return TbRpOperationInfoTableName()
 }
 
-// TbRpOperationInfoTableName TODO
+// TbRpOperationInfoTableName table name
 func TbRpOperationInfoTableName() string {
 	return "tb_rp_operation_info"
+}
+
+// getTbRpOperationInfoColumns 获取tb_rp_operation_info的字段名称
+func getTbRpOperationInfoColumns() ([]string, error) {
+	result, err := DB.Self.Migrator().ColumnTypes(&TbRpOperationInfo{})
+	if err != nil {
+		return []string{}, err
+	}
+	columns := []string{}
+	for _, v := range result {
+		columns = append(columns, v.Name())
+	}
+	// add Reverse sorting colums
+	for _, v := range result {
+		columns = append(columns, "-"+v.Name())
+	}
+	return columns, nil
 }
