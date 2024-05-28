@@ -41,19 +41,22 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 				fileName := filepath.Join(cnf.BackupDir, fi.Name())
 				if fi.Size() > 4*1024*1024*1024 {
 					logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, 500)
-					if err = cmutil.TruncateFile(fileName, 500); err != nil {
-						return err
+					if err2 := cmutil.TruncateFile(fileName, 500); err2 != nil {
+						// 尽可能清理，记录最后一个错误
+						err = err2
+						continue
 					}
 				} else {
 					logger.Log.Info("remove old backup file ", fileName)
-					if err = os.RemoveAll(fileName); err != nil {
-						return err
+					if err2 := os.RemoveAll(fileName); err2 != nil {
+						err = err2
+						continue
 					}
 				}
 			}
 		}
 	}
-	return nil
+	return err
 }
 
 // EnableBackup Check whether backup is allowed
@@ -63,6 +66,7 @@ func EnableBackup(cnf *config.Public) error {
 	}
 	err := DeleteOldBackup(cnf, 0)
 	if err != nil {
+		// 文件清理错误，只当做 warning
 		logger.Log.Warn("failed to delete old backup again, err:", err)
 	}
 	return util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort)

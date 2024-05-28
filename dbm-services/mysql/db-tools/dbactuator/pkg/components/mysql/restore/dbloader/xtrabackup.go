@@ -218,7 +218,7 @@ func (x *Xtrabackup) DecompressMetaFile() error {
 		if _, err := os.Stat(compressedFile); os.IsNotExist(err) {
 			continue
 		}
-		script := fmt.Sprintf(`%s -do %s.qp > %s`, x.QpressTool, compressedFile, filepath.Join(x.LoaderDir, file))
+		script := fmt.Sprintf(`%s -do %s > %s`, x.QpressTool, compressedFile, filepath.Join(x.LoaderDir, file))
 		stdErr, err := cmutil.ExecShellCommand(false, script)
 		if err != nil {
 			return errors.Wrapf(err, "decompress file %s failed, error:%s, stderr:%s",

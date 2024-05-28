@@ -135,7 +135,8 @@ func (c *CleanMysqlComp) Start() error {
 
 	// 计划删除的 databases 列表
 	inStr, _ := mysqlutil.UnsafeBuilderStringIn(native.DBSys, "'")
-	dbsSql := fmt.Sprintf("select SCHEMA_NAME from information_schema.SCHEMATA where SCHEMA_NAME not in (%s)", inStr)
+	dbsSql := fmt.Sprintf("select SCHEMA_NAME from information_schema.SCHEMATA where SCHEMA_NAME not in (%s)"+
+		" and SCHEMA_NAME != '__cdb_recycle_bin__'", inStr)
 
 	if databases, err := c.dbworker.Query(dbsSql); err != nil {
 		if c.dbworker.IsNotRowFound(err) {

@@ -569,7 +569,8 @@ func (h *DbWorker) ShowDatabases() (databases []string, err error) {
 // SelectDatabases 查询 databases
 func (h *DbWorker) SelectDatabases(dbNameLike string) (databases []string, err error) {
 	inStr, _ := mysqlutil.UnsafeBuilderStringIn(DBSys, "'")
-	dbsSql := fmt.Sprintf("select SCHEMA_NAME from information_schema.SCHEMATA where SCHEMA_NAME not in (%s) ", inStr)
+	dbsSql := fmt.Sprintf("select SCHEMA_NAME from information_schema.SCHEMATA where SCHEMA_NAME not in (%s) "+
+		" and SCHEMA_NAME != '__cdb_recycle_bin__'", inStr)
 	if dbNameLike != "" {
 		dbsSql += fmt.Sprintf(" and SCHEMA_NAME like '%s'", dbNameLike)
 	}

@@ -62,6 +62,7 @@ var MycnfCloneItemsDefault = []string{
 	"replica_parallel_workers",
 	"replica_parallel_type",
 	"slave_exec_mode",
+	"sql_mode",
 }
 
 // MycnfCloneParam godoc

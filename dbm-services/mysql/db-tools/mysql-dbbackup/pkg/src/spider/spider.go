@@ -243,12 +243,6 @@ func printBackup(tasks []*GlobalBackupModel, format string) {
 func runBackup(tasks []InstBackupTask) error {
 	var errList []error
 	for _, t := range tasks {
-		_ = GlobalBackupModel{
-			Host:     t.instObj.Host,
-			Port:     t.instObj.Port,
-			BackupId: t.earliestBackupTask.BackupId,
-			// ShardValue: t.shardValue,
-		}
 		var globalBackup = GlobalBackup{
 			GlobalBackupModel: t.earliestBackupTask,
 			localLog:          logger.Log.WithField("Port", t.instObj.Port),
@@ -340,7 +334,9 @@ func (g GlobalBackup) runBackup(task InstBackupTask) error {
 			g.localLog.Warn(err, "update error:%s", stderr.String(), err2.Error())
 		}
 	}
-	_ = g.handleOldTask(dbw.Db)
+	if g.Wrapper != cst.WrapperSpider {
+		_ = g.handleOldTask(dbw.Db)
+	}
 	return nil
 }
 
