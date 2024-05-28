@@ -118,9 +118,9 @@ class _MySQLPrivManagerApi(BaseApi):
             url="/priv/add_priv_without_account_rule",
             description=_("mysql实例创建临时账号(切换专属接口)"),
         )
-        self.modify_mysql_admin_password = self.generate_data_api(
+        self.modify_admin_password = self.generate_data_api(
             method="POST",
-            url="/priv/modify_mysql_admin_password",
+            url="/priv/modify_admin_password",
             description=_("新增或者修改mysql实例中管理用户的密码"),
         )
         self.get_password = self.generate_data_api(

@@ -36,7 +36,7 @@ class RandomizeAdminPasswordService(BaseService):
             }
         ]
         try:
-            MySQLPrivManagerApi.modify_mysql_admin_password(
+            MySQLPrivManagerApi.modify_admin_password(
                 params={
                     "username": "ADMIN",  # 管理用户
                     "operator": "init",
