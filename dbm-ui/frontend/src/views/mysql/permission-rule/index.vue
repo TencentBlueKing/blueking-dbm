@@ -99,6 +99,7 @@
             <AuthButton
               action-id="mysql_account_delete"
               hover-theme="danger"
+              :resource-id="accountDetailDialog.rowData?.account.account_id"
               @click="handleDeleteAccount(accountDetailDialog.rowData)">
               {{ t('删除账号') }}
             </AuthButton>

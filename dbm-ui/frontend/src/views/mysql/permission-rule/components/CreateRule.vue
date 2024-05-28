@@ -348,6 +348,7 @@
       bizId: window.PROJECT_CONFIG.BIZ_ID,
       user,
       access_dbs: dbs,
+      account_type: 'mysql',
     })
       .then((res) => {
         const rules = res.results[0]?.rules || [];

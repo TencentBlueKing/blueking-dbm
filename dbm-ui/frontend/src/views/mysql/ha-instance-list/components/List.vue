@@ -15,7 +15,7 @@
   <div class="mysql-ha-instance-list-page">
     <div class="operation-box">
       <AuthButton
-        action-id="resource_manage"
+        action-id="mysql_apply"
         class="mb-16"
         theme="primary"
         @click="handleApply">

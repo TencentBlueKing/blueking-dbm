@@ -23,11 +23,14 @@
           class="details-item">
           <span class="details-label" />
           <span class="details-value">
-            <BkButton
+            <AuthButton
+              action-id="tendbcluster_account_delete"
               hover-theme="danger"
+              :permission="props.info.permission.tendbcluster_account_delete"
+              :resource="props.info.account.account_id"
               @click="handleDeleteAccount()">
               {{ t('删除账号') }}
-            </BkButton>
+            </AuthButton>
           </span>
         </div>
       </div>
