@@ -122,9 +122,9 @@
                   {{ option }}
                   <span
                     v-if="ddlSensitiveWords.includes(option)"
-                    class="sensitive-tip"
-                    >{{ t('敏感') }}</span
-                  >
+                    class="sensitive-tip">
+                    {{ t('敏感') }}
+                  </span>
                 </BkCheckbox>
               </BkCheckboxGroup>
             </div>
