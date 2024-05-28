@@ -286,8 +286,8 @@ func CalculateInterval(firstName, secondName string, interval int) (bool, error)
 // GetDropPartitionSql 生成删除分区的sql
 func (m *ConfigDetail) GetDropPartitionSql(host Host) (string, error) {
 	var sql, dropSql, fx string
-	reserve := m.ReservedPartition * m.PartitionTimeInterval
-	address := fmt.Sprintf("%s:%d", host.Ip, host.Port)
+	reserve := m.ReservedPartition*m.PartitionTimeInterval + 1
+	address := fmt.Sprintf("%s:%d", m.ImmuteDomain, m.Port)
 	base0 := fmt.Sprintf(`select PARTITION_NAME as PARTITION_NAME from INFORMATION_SCHEMA.PARTITIONS `+
 		`where TABLE_SCHEMA='%s' and TABLE_NAME='%s' and PARTITION_DESCRIPTION<`, m.DbName, m.TbName)
 	base1 := "order by PARTITION_DESCRIPTION asc;"
@@ -516,7 +516,8 @@ func (m *ConfigDetail) GetAddPartitionSql(host Host) (string, error) {
 	}
 	need := m.ExtraPartition - cnt
 	// 先获取当前最大的分区PARTITION_DESCRIPTION和PARTITION_NAME
-	vsql = fmt.Sprintf(`select %s %s from INFORMATION_SCHEMA.PARTITIONS where TABLE_SCHEMA ='%s' and TABLE_NAME='%s' `+
+	vsql = fmt.Sprintf(`select %s %s ,PARTITION_NAME as PARTITION_NAME from INFORMATION_SCHEMA.PARTITIONS `+
+		`where TABLE_SCHEMA ='%s' and TABLE_NAME='%s' `+
 		`and partition_description >= %s `+
 		`order by PARTITION_DESCRIPTION desc limit 1;`, wantedDesc, wantedName, m.DbName, m.TbName, fx)
 	queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{vsql}, Force: true, QueryTimeout: 30,
@@ -540,6 +541,18 @@ func (m *ConfigDetail) GetAddPartitionSql(host Host) (string, error) {
 			m.TbName))
 	}
 	name = output.CmdResults[0].TableData[0]["WANTED_NAME"].(string)
+	if len(output.CmdResults[0].TableData) != 0 {
+		current := strings.TrimPrefix(output.CmdResults[0].TableData[0]["PARTITION_NAME"].(string), "p")
+		formatDate, err := time.Parse("20060102", name)
+		if err != nil {
+			return addSql, err
+		}
+		name = formatDate.AddDate(0, 0, 1).Format("20060102")
+		// drs访问db无法保证时区与db时区一致，如果计算出希望创建的分区名比当前分区的名称还要小1天，如果分区间隔又只有1天，分区名会重复
+		if name == current {
+			name = current
+		}
+	}
 	switch m.PartitionType {
 	case 0, 1, 5:
 		desc, _ = strconv.Atoi(output.CmdResults[0].TableData[0]["WANTED_DESC"].(string))
