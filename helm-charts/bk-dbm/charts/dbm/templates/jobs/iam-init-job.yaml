@@ -1,4 +1,4 @@
-{{- if .Values.serviceInit.sslEnabled -}}
+{{- if .Values.serviceInit.iamEnabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:

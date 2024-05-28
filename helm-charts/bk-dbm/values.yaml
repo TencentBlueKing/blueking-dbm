@@ -44,6 +44,7 @@ bk:
   bkIamSkipMigrate: false
   bkIamUrl: "https://bkiam.example.com"
   bkIamApiUrl: "https://bkiam-api.example.com"
+  bkIamResourceApiHost: "https://bkdbm.example.com"
   # 蓝鲸监控平台
   grafanaUrl: "http://bk-dbm-grafana:3000"
   bkMonitorUrl: "https://bk_monitor.example.com"
@@ -67,6 +68,7 @@ dbm:
   enabled: true
   serviceInit:
     itsmEnabled: true
+    iamEnabled: true
     apigwEnabled: true
     bklogEnabled: true
     bkccEnabled: true

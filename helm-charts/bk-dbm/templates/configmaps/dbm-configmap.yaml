@@ -62,6 +62,7 @@ data:
   BK_IAM_SKIP: "{{ .Values.bk.bkIamSkipMigrate }}"
   IAM_APP_URL: "{{ .Values.bk.bkIamUrl }}"
   BK_IAM_APIGATEWAY: "{{ .Values.bk.bkIamApiUrl }}"
+  BK_IAM_RESOURCE_API_HOST: "{{ .Values.bk.bkIamResourceApiHost }}"
   # 蓝鲸监控平台
   GRAFANA_URL: "{{ .Values.bk.grafanaUrl }}"
   BKMONITOR_URL: "{{ .Values.bk.bkMonitorUrl }}"
