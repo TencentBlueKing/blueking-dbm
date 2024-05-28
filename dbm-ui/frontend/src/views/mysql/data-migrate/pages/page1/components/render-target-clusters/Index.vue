@@ -144,6 +144,9 @@
     localValue.value = list.map(item => item.master_domain).join(',');
     emits('change', list);
     window.changeConfirm = true;
+    setTimeout(() => {
+      editRef.value.getValue();
+    });
   };
 
   defineExpose<Exposes>({

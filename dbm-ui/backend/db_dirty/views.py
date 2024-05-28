@@ -28,8 +28,6 @@ from backend.db_dirty.serializers import (
     QueryDirtyMachineSerializer,
     TransferDirtyMachineSerializer,
 )
-from backend.db_meta.models import AppCache
-from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
@@ -78,30 +76,8 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
     def query_operation_list(self, request):
         dirty_machines = self.filter_queryset(self.get_queryset()).order_by("-ticket_id")
         page_dirty_machines = self.paginate_queryset(dirty_machines)
-
-        # 提前缓存云区域和业务信息
-        bk_biz_ids = [dirty_machine.bk_biz_id for dirty_machine in page_dirty_machines]
-        for_biz_infos = AppCache.batch_get_app_attr(bk_biz_ids=bk_biz_ids, attr_name="bk_biz_name")
-        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
-
-        # 获取污点池列表
-        page_dirty_machine_list = [
-            {
-                "ip": dirty.ip,
-                "bk_host_id": dirty.bk_host_id,
-                "bk_cloud_name": cloud_info[str(dirty.bk_cloud_id)]["bk_cloud_name"],
-                "bk_cloud_id": dirty.bk_cloud_id,
-                "bk_biz_name": for_biz_infos[int(dirty.bk_biz_id)],
-                "bk_biz_id": dirty.bk_biz_id,
-                "ticket_type": dirty.ticket.ticket_type,
-                "ticket_id": dirty.ticket.id,
-                "ticket_type_display": dirty.ticket.get_ticket_type_display(),
-                "task_id": dirty.flow.flow_obj_id,
-                "operator": dirty.ticket.creator,
-            }
-            for dirty in page_dirty_machines
-        ]
-        return self.paginator.get_paginated_response(data=page_dirty_machine_list)
+        dirty_machine_list = DBDirtyMachineHandler.query_dirty_machine_records(page_dirty_machines)
+        return self.paginator.get_paginated_response(data=dirty_machine_list)
 
     @common_swagger_auto_schema(
         operation_summary=_("将污点池主机转移至待回收模块"),

@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4/database"
@@ -57,16 +59,24 @@ func DoMigrateFromEmbed() error {
 		err = mig.Up()
 		if err == nil {
 			slog.Info("migrate source from embed success")
-			return nil
 		} else if err == migrate.ErrNoChange {
 			slog.Info("migrate source from embed success with", "msg", err.Error())
-			return nil
 		} else {
 			slog.Error("migrate source from embed failed", err)
 			return err
 		}
+		// 版本4添加了字段，需要在migrate后填充字段值
+		version, dirty, errInner := mig.Version()
+		if errInner == nil && version == 10 && dirty == false {
+			err = ModifyPrivsGlobalToGlobalNon()
+			if err != nil {
+				return fmt.Errorf("modify some priv from global to non-global error after migration version 10")
+			}
+		}
+		return nil
 	}
 }
+
 func DoMigratePlatformPassword() error {
 	// 初始化安全规则
 	// 通用的安全规则
@@ -81,15 +91,19 @@ func DoMigratePlatformPassword() error {
 		}
 	}
 
+	// 不需要符号、固定长度的安全规则
+	NoSymbols := []string{"mongo_password", "redis_password", "simple_password"}
 	// mongodb专用的安全规则
-	passwordSecurityRule = &service.SecurityRulePara{Name: "mongo_password",
-		Rule: "{\"max_length\":16,\"min_length\":16,\"include_rule\":{\"numbers\":true,\"symbols\":false,\"lowercase\":true,\"uppercase\":true},\"exclude_continuous_rule\":{\"limit\":4,\"letters\":false,\"numbers\":false,\"symbols\":false,\"keyboards\":false,\"repeats\":false}}", Operator: "admin"}
-	b, _ = json.Marshal(passwordSecurityRule)
-	errOuter = passwordSecurityRule.AddSecurityRule(string(b), "add_security_rule")
-	if errOuter != nil {
-		no, _ := errno.DecodeErr(errOuter)
-		if no != errno.RuleExisted.Code {
-			return errOuter
+	for _, name := range NoSymbols {
+		passwordSecurityRule = &service.SecurityRulePara{Name: name,
+			Rule: "{\"max_length\":16,\"min_length\":16,\"include_rule\":{\"numbers\":true,\"symbols\":false,\"lowercase\":true,\"uppercase\":true},\"exclude_continuous_rule\":{\"limit\":4,\"letters\":false,\"numbers\":false,\"symbols\":false,\"keyboards\":false,\"repeats\":false}}", Operator: "admin"}
+		b, _ = json.Marshal(passwordSecurityRule)
+		errOuter = passwordSecurityRule.AddSecurityRule(string(b), "add_security_rule")
+		if errOuter != nil {
+			no, _ := errno.DecodeErr(errOuter)
+			if no != errno.RuleExisted.Code {
+				return errOuter
+			}
 		}
 	}
 
@@ -125,6 +139,41 @@ func DoMigratePlatformPassword() error {
 				if err != nil {
 					return fmt.Errorf("%s error: %s", "init platform password, modify password", err.Error())
 				}
+			}
+		}
+	}
+	return nil
+}
+
+func ModifyPrivsGlobalToGlobalNon() error {
+	var rules []*service.TbAccountRules
+	err := service.DB.Self.Model(&service.TbAccountRules{}).Scan(&rules).Error
+	if err != nil {
+		slog.Error("msg", "ModifySomePrivsFromGlobalToNonGlobal select rules error", err)
+		return err
+	}
+	pattern := regexp.MustCompile(`,+`)
+	// 对于已存在的权限规，trigger、event、create routine、alter routine 调整授权范围从global到database
+	privs := []string{"trigger", "event", "create routine", "alter routine"}
+	for _, rule := range rules {
+		var updateFlag bool
+		for _, priv := range privs {
+			if strings.Contains(rule.GlobalPriv, priv) {
+				updateFlag = true
+				rule.GlobalPriv = strings.Replace(rule.GlobalPriv, priv, "", -1)
+				rule.DmlDdlPriv = fmt.Sprintf("%s,%s", rule.DmlDdlPriv, priv)
+			}
+		}
+		if updateFlag {
+			rule.GlobalPriv = pattern.ReplaceAllString(rule.GlobalPriv, ",")
+			rule.GlobalPriv = strings.Trim(rule.GlobalPriv, ",")
+			priv := map[string]string{"dml": rule.DmlDdlPriv, "global": rule.GlobalPriv}
+			para := service.AccountRulePara{BkBizId: rule.BkBizId, ClusterType: &rule.ClusterType, Id: rule.Id,
+				AccountId: rule.AccountId, Dbname: rule.Dbname, Priv: priv, Operator: rule.Operator}
+			log, _ := json.Marshal(para)
+			errInner := (&para).ModifyAccountRule(string(log), "modify_account_rule")
+			if errInner != nil {
+				return errInner
 			}
 		}
 	}

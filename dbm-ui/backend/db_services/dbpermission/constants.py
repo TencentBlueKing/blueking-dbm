@@ -25,6 +25,7 @@ class PrivilegeType:
             INSERT = EnumField("insert", _("插入"))
             UPDATE = EnumField("update", _("更新"))
             DELETE = EnumField("delete", _("删除"))
+            SHOW_VIEW = EnumField("show view", _("查看视图"))
 
         class DDL(str, StructuredEnum):
             """DDL权限类型"""
@@ -33,23 +34,24 @@ class PrivilegeType:
             ALTER = EnumField("alter", _("修改表"))
             DROP = EnumField("drop", _("删除表"))
             INDEX = EnumField("index", _("索引"))
-            EXECUTE = EnumField("execute", _("执行"))
             CREATE_VIEW = EnumField("create view", _("创建视图"))
+            EXECUTE = EnumField("execute", _("执行"))
+            TRIGGER = EnumField("trigger", _("触发器"))
+            EVENT = EnumField("event", _("事件"))
+            CREATE_ROUTING = EnumField("create routine", _("create routine"))
+            ALTER_ROUTING = EnumField("alter routine", _("alter routine"))
+            REFERENCES = EnumField("references", _("references"))
+            CREATE_TEMPORARY_TABLES = EnumField("create temporary tables", _("create temporary tables"))
 
         class GLOBAL(str, StructuredEnum):
             """GLOBAL权限类型"""
 
-            REPLICATION_CLIENT = EnumField("replication client", _("replication client"))
-            REPLICATION_SLAVE = EnumField("replication slave", _("replication slave"))
             FILE = EnumField("file", _("file"))
-            TRIGGER = EnumField("trigger", _("trigger"))
-            EVENT = EnumField("event", _("event"))
-            CREATE_ROUTING = EnumField("create routine", _("create routine"))
-            ALTER_ROUTING = EnumField("alter routine", _("alter routine"))
-            ALL_PRIVILEGES = EnumField("all privileges", _("all privileges"))
             RELOAD = EnumField("reload", _("reload"))
-            PROCESS = EnumField("process", _("process"))
             SHOW_DATABASES = EnumField("show databases", _("show databases"))
+            PROCESS = EnumField("process", _("process"))
+            REPLICATION_SLAVE = EnumField("replication slave", _("replication slave"))
+            REPLICATION_CLIENT = EnumField("replication client", _("replication client"))
 
     class MongoDB:
         class USER(str, StructuredEnum):

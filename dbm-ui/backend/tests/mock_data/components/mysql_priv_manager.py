@@ -21,6 +21,7 @@ class DBPrivManagerApiMock(object):
     """dbpriv相关接口的mock"""
 
     base_data = {"code": 0, "message": "ok", "data": None}
+    TIMEOUT = 3 * 60 * 60
 
     @classmethod
     @raw_response

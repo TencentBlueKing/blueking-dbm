@@ -147,8 +147,7 @@
                 @clear-search="handleClearSearch"
                 @page-limit-change="handleTableLimitChange"
                 @page-value-change="handleTablePageChange"
-                @refresh="fetchResources"
-                @row-click.stop.prevent="handleRowClick" />
+                @refresh="fetchResources" />
             </BkLoading>
           </div>
         </div>
@@ -263,9 +262,11 @@
   const searchSelectData = computed(() => [{
     name: t('主访问入口'),
     id: 'domain',
+    multiple: true,
   }, {
     name: t('模块'),
     id: 'db_module_id',
+    multiple: true,
     children: state.dbModuleList,
   }]);
   // 选中域名列表
@@ -458,12 +459,6 @@
     }
 
     state.isSelectedAll = isSelectedAll();
-  }
-
-  function handleRowClick(_:any, data: ResourceItem) {
-    const index = selectedDomains.value.findIndex(val => val === data.master_domain);
-    const checked = index > -1;
-    handleSelected(data, !checked);
   }
 
   /**

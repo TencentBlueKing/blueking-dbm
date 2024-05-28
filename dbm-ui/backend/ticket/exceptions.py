@@ -52,3 +52,9 @@ class TicketTaskTriggerException(TicketBaseException):
     ERROR_CODE = "006"
     MESSAGE = _("单据任务定时触发异常")
     MESSAGE_TPL = _("单据任务{ticket_type}定时触发异常")
+
+
+class TodoWrongOperatorException(TicketBaseException):
+    ERROR_CODE = "007"
+    MESSAGE = _("错误的todo处理人")
+    MESSAGE_TPL = _("错误的todo处理人{username}")

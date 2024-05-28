@@ -46,7 +46,7 @@
         <RenderTableHeadColumn
           :min-width="90"
           :width="210">
-          {{ t('最终DB名') }}
+          {{ t('最终DB') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"

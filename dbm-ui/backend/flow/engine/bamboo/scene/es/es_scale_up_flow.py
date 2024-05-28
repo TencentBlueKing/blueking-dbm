@@ -16,7 +16,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM, DnsOpType
-from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import sa_init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import new_machine_common_sub_flow
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.es.es_flow import EsFlow, get_all_node_ips_in_ticket
@@ -79,17 +79,11 @@ class EsScaleUpFlow(EsFlow):
         )
         # 增加机器初始化子流程
         all_new_ips = get_all_node_ips_in_ticket(data=scale_up_data)
-        es_pipeline.add_sub_pipeline(
-            sub_flow=sa_init_machine_sub_flow(
-                uid=self.uid,
-                root_id=self.root_id,
-                bk_cloud_id=self.bk_cloud_id,
-                bk_biz_id=self.bk_biz_id,
-                init_ips=all_new_ips,
-                idle_check_ips=all_new_ips,
-                set_dns_ips=[],
-            )
+        common_sub_flow = new_machine_common_sub_flow(
+            uid=self.uid, root_id=self.root_id, bk_cloud_id=self.bk_cloud_id, new_ips=all_new_ips
         )
+        if common_sub_flow:
+            es_pipeline.add_sub_pipeline(sub_flow=common_sub_flow)
 
         act_kwargs.exec_ip = get_all_node_ips_in_ticket(data=scale_up_data)
         es_pipeline.add_act(

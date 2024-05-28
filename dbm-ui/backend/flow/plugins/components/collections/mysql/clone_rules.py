@@ -69,7 +69,7 @@ class CloneRules(BaseService):
                     params.update({"source_ip": clone_data["source"], "target_ip": clone_data["target"]})
                     if "user" in clone_data and "target_instances" in clone_data:
                         params.update({"user": clone_data["user"], "target_instances": clone_data["target_instances"]})
-                    resp = DBPrivManagerApi.clone_client(params=params, raw=True)
+                    resp = DBPrivManagerApi.clone_client(params=params, raw=True, timeout=DBPrivManagerApi.TIMEOUT)
                 else:
                     params.update(
                         {
@@ -83,7 +83,7 @@ class CloneRules(BaseService):
                             },
                         }
                     )
-                    resp = DBPrivManagerApi.clone_instance(params=params, raw=True)
+                    resp = DBPrivManagerApi.clone_instance(params=params, raw=True, timeout=DBPrivManagerApi.TIMEOUT)
 
                 # 填充克隆的结果和信息
                 record.status = int(resp["code"]) == 0

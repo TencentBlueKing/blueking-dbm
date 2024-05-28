@@ -16,10 +16,10 @@ from rest_framework import serializers
 class NodeListSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    ip = serializers.CharField(max_length=255, help_text=_("ip"), required=False)
-    node_type = serializers.CharField(max_length=255, help_text=_("实例角色"), required=False)
-    agent_status = serializers.CharField(max_length=255, help_text=_("Agent状态"), required=False)
-    ordering = serializers.CharField(max_length=255, help_text=_("排序字段"), default="create_at")
+    ip = serializers.CharField(help_text=_("ip"), required=False)
+    node_type = serializers.CharField(help_text=_("实例角色"), required=False)
+    agent_status = serializers.CharField(help_text=_("Agent状态"), required=False)
+    ordering = serializers.CharField(help_text=_("排序字段"), default="create_at")
 
     def validate_ordering(self, value):
         """验证排序字段是否合法。"""

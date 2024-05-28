@@ -35,7 +35,12 @@ export const dbOperations = {
     'dbOwner',
     'root',
   ],
+  dml: ['select', 'insert', 'update', 'delete', 'show view'],
+  ddl: ['create', 'alter', 'drop', 'index', 'create view', 'execute', 'trigger', 'event', 'create routine', 'alter routine', 'references', 'create temporary tables'],
+  glob: ['file', 'reload', 'show databases', 'process', 'replication slave', 'replication client'],
 };
+
+export const ddlSensitiveWords = ['trigger', 'event', 'create routine', 'alter routine', 'references', 'create temporary tables'];
 
 /**
  * 密码策略

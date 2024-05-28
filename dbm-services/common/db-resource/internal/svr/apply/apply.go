@@ -164,9 +164,12 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 	o.MatchLables(db)
 	o.MatchLocationSpec(db)
 	o.MatchStorage(db)
+	switch o.Affinity {
 	// 如果需要存在跨园区检查则需要判断是否存在网卡id,机架id等
-	if o.Affinity == SAME_SUBZONE_CROSS_SWTICH {
+	case SAME_SUBZONE_CROSS_SWTICH:
 		o.UseNetDeviceIsNotEmpty(db)
+	case CROSS_RACK:
+		o.RackIdIsNotEmpty(db)
 	}
 }
 
@@ -308,6 +311,9 @@ func (o *ApplyObjectDetail) PickInstanceBase(picker *PickerObject, items []model
 	case SAME_SUBZONE_CROSS_SWTICH:
 		picker.PickeElements = AnalysisResource(items, false)
 		picker.PickerSameSubZone(true)
+	case CROSS_RACK:
+		picker.PickeElements = AnalysisResource(items, true)
+		picker.PickerSameSubZone(true)
 	}
 }
 
@@ -374,5 +380,10 @@ func (o *SearchContext) MatchDeviceClass(db *gorm.DB) {
 
 // UseNetDeviceIsNotEmpty TODO
 func (o *SearchContext) UseNetDeviceIsNotEmpty(db *gorm.DB) {
-	db.Where("(net_device_id  is not null or  net_device_id != '') and (rack_id is not null or rack_id != '')")
+	db.Where("(net_device_id  is not null and net_device_id != '') and (rack_id is not null and rack_id != '')")
+}
+
+// RackIdIsNotEmpty TODO
+func (o *SearchContext) RackIdIsNotEmpty(db *gorm.DB) {
+	db.Where("rack_id is not null and rack_id != ''")
 }

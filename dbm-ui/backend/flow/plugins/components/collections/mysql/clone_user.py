@@ -64,7 +64,7 @@ class CloneUserService(BaseService):
                         "bk_cloud_id": clone_data["bk_cloud_id"],
                     }
                 )
-                DBPrivManagerApi.clone_instance(params=params)
+                DBPrivManagerApi.clone_instance(params=params, timeout=DBPrivManagerApi.TIMEOUT)
             return True
         except Exception as e:  # pylint: disable=broad-except
             if isinstance(e, ApiResultError):

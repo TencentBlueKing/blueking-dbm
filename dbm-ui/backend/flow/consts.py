@@ -21,6 +21,8 @@ MASTER_HOST = "master_host"
 REPL_HOST = "repl_host"
 BACKEND_HOST = "backend_host"
 DEPENDENCIES_PLUGINS = ["bkmonitorbeat", "bkunifylogbeat"]
+BIGDATA_DEPEND_PLUGINS = ["bkmonitorbeat"]
+
 
 # 默认flow缓存数据过期时间：7天
 DEFAULT_FLOW_CACHE_EXPIRE_TIME = 7 * 24 * 60 * 60
