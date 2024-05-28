@@ -1,8 +1,9 @@
 <template>
   <DbAppSelect
+    :list="bizList"
+    :model-value="currentBiz"
     style="margin: 0 12px"
     theme="dark"
-    :value="currentBiz"
     @change="handleAppChange">
   </DbAppSelect>
 </template>

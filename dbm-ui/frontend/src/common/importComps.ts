@@ -12,9 +12,7 @@
  */
 
 import type { App } from 'vue';
-import { Translation } from 'vue-i18n';
 
-import AuthComponent from '@components/auth/AuthComponent';
 import AuthButton from '@components/auth-component/button.vue';
 import AuthTemplate from '@components/auth-component/component.vue';
 import AuthOption from '@components/auth-component/option.vue';
@@ -54,8 +52,6 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('DbOriginalTable', DbOriginalTable);
   app.component('SmartAction', SmartAction);
   app.component('BkIpSelector', ipSelector);
-  app.component('AuthComponent', AuthComponent);
-  app.component('I18nT', Translation);
   app.component('FunController', FunController);
   app.component('MoreActionExtend', MoreActionExtend);
   app.component('UserSelector', UserSelector);

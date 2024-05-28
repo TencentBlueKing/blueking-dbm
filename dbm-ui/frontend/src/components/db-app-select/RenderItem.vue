@@ -17,13 +17,13 @@
       {{ data.name }}
     </div>
     <div class="db-app-select-desc">
-      (#{{ data.bk_biz_id }}
+      <div>(#{{ data.bk_biz_id }}</div>
       <div
         v-if="data.english_name"
         class="db-app-select-en-name">
         , {{ data.english_name }}
       </div>
-      )
+      <div>)</div>
     </div>
   </div>
 </template>
