@@ -30,6 +30,7 @@ class AffinityEnum(str, StructuredEnum):
     SAME_SUBZONE_CROSS_SWTICH = EnumField("SAME_SUBZONE_CROSS_SWTICH", _("同城同subzone跨交换机跨机架"))
     SAME_SUBZONE = EnumField("SAME_SUBZONE", _("同城同subzone"))
     CROS_SUBZONE = EnumField("CROS_SUBZONE", _("CROS_SUBZONE"))
+    CROSS_RACK = EnumField("CROSS_RACK", _("跨机架"))
     NONE = EnumField("NONE", _("NONE"))
     MAX_EACH_ZONE_EQUAL = EnumField("MAX_EACH_ZONE_EQUAL", _("每个subzone尽量均匀分布"))
 
