@@ -133,8 +133,6 @@
     getSearchSelectorParams,
   } from '@utils';
 
-  import { useTimeoutPoll } from '@vueuse/core';
-
   import ManagerPassword from './components/ManagerPassword.vue';
 
   import type {
@@ -537,10 +535,12 @@
     {
       name: t('IP 或 IP:Port'),
       id: 'instance',
+      multiple: true,
     },
     {
       name: t('访问入口'),
       id: 'domain',
+      multiple: true,
     },
     {
       name: t('集群名称'),

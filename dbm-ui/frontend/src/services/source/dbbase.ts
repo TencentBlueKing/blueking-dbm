@@ -50,3 +50,22 @@ export function queryBizClusterAttrs(params: {
     >
   >(`${path}/query_biz_cluster_attrs/`, params);
 }
+
+/**
+ * 查询资源池,污点主机管理表头筛选数据
+ */
+export function queryResourceAdministrationAttrs(params: {
+  resource_type: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return http.get<
+    Record<
+      string,
+      {
+        value: string;
+        text: string;
+      }[]
+    >
+  >(`${path}/query_resource_administration_attrs/`, params);
+}

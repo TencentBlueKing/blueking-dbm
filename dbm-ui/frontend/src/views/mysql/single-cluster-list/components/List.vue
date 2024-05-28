@@ -204,10 +204,12 @@
     {
       name: t('IP 或 IP:Port'),
       id: 'instance',
+      multiple: true,
     },
     {
       name: t('访问入口'),
       id: 'domain',
+      multiple: true,
     },
     {
       name: 'ID',
