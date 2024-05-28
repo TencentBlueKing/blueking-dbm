@@ -297,7 +297,7 @@ class BaseInterfaceResourceProvider(BaseResourceProvider):
         # 填充分页参数
         condition.update(limit=page.limit, offset=page.offset)
         # 查询数据
-        data = data_source(params=condition)["results"]
+        data = data_source(params=condition)["results"] or []
         results = [
             {"id": str(item[value_list[0]]), "display_name": ":".join([str(item[value]) for value in value_list[1:]])}
             for item in list(data)

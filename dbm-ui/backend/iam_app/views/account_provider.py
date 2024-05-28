@@ -33,6 +33,8 @@ class AccountResourceProvider(BaseInterfaceResourceProvider):
     def convert_condition_field(condition):
         # 账号的业务参数要是整型
         condition["bk_biz_id"] = int(condition["bk_biz_id"])
+        if "id" in condition:
+            condition["id"] = int(condition["id"])
         return condition
 
     def list_instance(self, filter, page, **options):
