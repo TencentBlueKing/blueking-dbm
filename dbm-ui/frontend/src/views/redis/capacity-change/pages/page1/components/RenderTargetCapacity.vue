@@ -163,7 +163,7 @@
           .then(() => true);
       }
       return Promise.resolve({
-        shard_num: localValue.value.cluster_shard_num,
+        shard_num: props.rowData!.shardNum, // localValue.value.cluster_shard_num,
         group_num: localValue.value.machine_pair,
         capacity: capacityObj.value?.current ?? 1,
         future_capacity: capacityObj.value?.future ?? 1,
