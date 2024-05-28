@@ -13,6 +13,8 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"dbm-services/common/db-resource/internal/model"
@@ -95,10 +97,14 @@ func (p GetOperationInfoParam) query(db *gorm.DB) {
 	if cmutil.IsNotEmpty(p.BeginTime) {
 		db.Where("create_time >= ? ", p.BeginTime)
 	}
-	if lo.IsEmpty(p.Orderby) {
+	orderby := p.Orderby
+	if !slices.Contains(model.TbRpOperationInfoColumns, orderby) {
+		orderby = ""
+	}
+	if lo.IsEmpty(strings.TrimSpace(orderby)) {
 		db.Order("create_time desc")
 	} else {
-		db.Order(p.Orderby)
+		db.Order(orderby)
 	}
 }
 

@@ -56,10 +56,12 @@ func CycleApply(param ApplyRequestInputParam) (pickers []*PickerObject, err erro
 		if config.AppConfig.RunMode == "dev" {
 			idcCitys = []string{}
 		} else {
-			idcCitys, err = meta.GetIdcCityByLogicCity(v.LocationSpec.City)
-			if err != nil {
-				logger.Error("request real citys by logic city %s from bkdbm api failed:%v", v.LocationSpec.City, err)
-				return pickers, err
+			if cmutil.ElementNotInArry(v.Affinity, []string{CROSS_RACK, NONE}) {
+				idcCitys, err = meta.GetIdcCityByLogicCity(v.LocationSpec.City)
+				if err != nil {
+					logger.Error("request real citys by logic city %s from bkdbm api failed:%v", v.LocationSpec.City, err)
+					return pickers, err
+				}
 			}
 		}
 		s := &SearchContext{

@@ -120,7 +120,7 @@ func (c ApplyRequestInputParam) GetOperationInfo(requestId, mode string,
 		Status:        mode,
 		CreateTime:    time.Now(),
 		UpdateTime:    time.Now(),
-		Desc:          desc,
+		Description:   desc,
 	}
 }
 
@@ -170,7 +170,7 @@ type ApplyObjectDetail struct {
 	Count   int      `json:"count" binding:"required,min=1"` // 申请数量
 }
 
-// GetDiskMatchInfo TODO
+// GetDiskMatchInfo get request disk message
 func (a *ApplyObjectDetail) GetDiskMatchInfo() (message string) {
 	if len(a.StorageSpecs) > 0 {
 		for _, d := range a.StorageSpecs {
@@ -194,7 +194,7 @@ func (a *ApplyObjectDetail) GetDiskMatchInfo() (message string) {
 	return
 }
 
-// GetMessage TODO
+// GetMessage return apply failed message
 func (a *ApplyObjectDetail) GetMessage() (message string) {
 	message += fmt.Sprintf("group: %s\n\r", a.GroupMark)
 	if len(a.DeviceClass) > 0 {
@@ -233,7 +233,7 @@ func (a *ApplyObjectDetail) GetMessage() (message string) {
 	return message
 }
 
-// GetEmptyDiskSpec TODO
+// GetEmptyDiskSpec  get empty disk spec info
 func GetEmptyDiskSpec(ds []DiskSpec) (dms []DiskSpec) {
 	for _, v := range ds {
 		if v.MountPointIsEmpty() {
@@ -243,7 +243,7 @@ func GetEmptyDiskSpec(ds []DiskSpec) (dms []DiskSpec) {
 	return
 }
 
-// GetDiskSpecMountPoints TODO
+// GetDiskSpecMountPoints get disk mount point
 func GetDiskSpecMountPoints(ds []DiskSpec) (mountPoints []string) {
 	for _, v := range ds {
 		logger.Info("disk info %v", v)
@@ -255,29 +255,29 @@ func GetDiskSpecMountPoints(ds []DiskSpec) (mountPoints []string) {
 	return
 }
 
-// Spec TODO
+// Spec cpu memory spec param
 type Spec struct {
 	Cpu MeasureRange `json:"cpu"` // cpu range
 	Mem MeasureRange `json:"ram"`
 }
 
-// IsEmpty TODO
+// IsEmpty judge spec is empty
 func (s Spec) IsEmpty() bool {
 	return s.Cpu.IsEmpty() && s.Mem.IsEmpty()
 }
 
-// NotEmpty TODO
+// NotEmpty  judge spec is not empty
 func (s Spec) NotEmpty() bool {
 	return s.Cpu.IsNotEmpty() || s.Mem.IsNotEmpty()
 }
 
-// MeasureRange TODO
+// MeasureRange cpu spec range
 type MeasureRange struct {
 	Min int `json:"min"`
 	Max int `json:"max"`
 }
 
-// Iegal TODO
+// Iegal determine whether the parameter is legal
 func (m MeasureRange) Iegal() bool {
 	if m.IsNotEmpty() {
 		return m.Max >= m.Min
@@ -285,22 +285,22 @@ func (m MeasureRange) Iegal() bool {
 	return true
 }
 
-// MatchTotalStorageSize TODO
+// MatchTotalStorageSize match total disk capacity
 func (disk *MeasureRange) MatchTotalStorageSize(db *gorm.DB) {
 	disk.MatchRange(db, "total_storage_cap")
 }
 
-// MatchMem TODO
+// MatchMem match memory size range
 func (mem *MeasureRange) MatchMem(db *gorm.DB) {
 	mem.MatchRange(db, "dram_cap")
 }
 
-// MatchCpu TODO
+// MatchCpu match cpu core number range
 func (cpu *MeasureRange) MatchCpu(db *gorm.DB) {
 	cpu.MatchRange(db, "cpu_num")
 }
 
-// MatchRange TODO
+// MatchRange universal range matching
 func (m *MeasureRange) MatchRange(db *gorm.DB, col string) {
 	switch {
 	case m.Min > 0 && m.Max > 0:
@@ -322,13 +322,13 @@ func (m *MeasureRange) MatchMemBuilder() *MeasureRangeBuilder {
 	return &MeasureRangeBuilder{Col: "dram_cap", MeasureRange: m}
 }
 
-// MeasureRangeBuilder TODO
+// MeasureRangeBuilder build range sql
 type MeasureRangeBuilder struct {
 	Col string
 	*MeasureRange
 }
 
-// Build TODO
+// Build build orm query sql
 func (m *MeasureRangeBuilder) Build(builder clause.Builder) {
 	switch {
 	case m.Min > 0 && m.Max > 0:
@@ -345,17 +345,17 @@ func (m *MeasureRangeBuilder) Build(builder clause.Builder) {
 	}
 }
 
-// IsNotEmpty TODO
+// IsNotEmpty is not empty
 func (m MeasureRange) IsNotEmpty() bool {
 	return m.Max > 0 && m.Min > 0
 }
 
-// IsEmpty TODO
+// IsEmpty is empty
 func (m MeasureRange) IsEmpty() bool {
 	return m.Min == 0 && m.Max == 0
 }
 
-// DiskSpec TODO
+// DiskSpec disk spec param
 type DiskSpec struct {
 	DiskType   string `json:"disk_type"`
 	MinSize    int    `json:"min"`
@@ -363,24 +363,24 @@ type DiskSpec struct {
 	MountPoint string `json:"mount_point"`
 }
 
-// LocationSpec TODO
+// MountPointIsEmpty determine whether the disk parameter is empty
+func (d DiskSpec) MountPointIsEmpty() bool {
+	return cmutil.IsEmpty(d.MountPoint)
+}
+
+// LocationSpec location spec param
 type LocationSpec struct {
 	City             string   `json:"city" validate:"required"` // 所属城市获取地域
 	SubZoneIds       []string `json:"sub_zone_ids"`
 	IncludeOrExclude bool     `json:"include_or_exclue"`
 }
 
-// MountPointIsEmpty TODO
-func (d DiskSpec) MountPointIsEmpty() bool {
-	return cmutil.IsEmpty(d.MountPoint)
-}
-
-// IsEmpty TODO
+// IsEmpty whether the address location parameter is blank
 func (l LocationSpec) IsEmpty() bool {
 	return cmutil.IsEmpty(l.City)
 }
 
-// SubZoneIsEmpty TODO
+// SubZoneIsEmpty determine whether subzone is empty
 func (l LocationSpec) SubZoneIsEmpty() bool {
 	return l.IsEmpty() || len(l.SubZoneIds) == 0
 }
