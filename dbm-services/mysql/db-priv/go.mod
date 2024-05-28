@@ -14,6 +14,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.16.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.46.1
+	golang.org/x/time v0.1.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
