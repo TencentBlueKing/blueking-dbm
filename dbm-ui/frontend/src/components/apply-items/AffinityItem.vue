@@ -20,7 +20,7 @@
       v-model="localValue"
       @change="handleRadioChange">
       <BkRadio
-        v-for="item in affinityList"
+        v-for="item in regionList"
         :key="item.value"
         :label="item.value">
         {{ item.label }}
@@ -34,7 +34,7 @@
   import { useSystemEnviron } from '@stores';
 
   interface Props {
-    defaultValue?: string
+    cityCode?: string;
   }
 
   const props = defineProps<Props>();
@@ -46,20 +46,40 @@
   const { AFFINITY: affinityList } = useSystemEnviron().urls;
 
   const localValue = ref('');
+  const regionList = ref<{
+    label: string;
+    value: string;
+  }[]>([]);
 
   watch(modelValue, (value) => {
     localValue.value = value;
   });
 
-  watch(() => affinityList, (list) => {
-    if (list && list.length > 0) {
-      if (props.defaultValue) {
-        const index = list.findIndex(affinityItem => affinityItem.value === props.defaultValue);
-        modelValue.value = index > -1 ? props.defaultValue : list[0].value;
-      } else {
-        modelValue.value = list[0].value;
+  watch(() => [affinityList, props.cityCode], () => {
+    if (props.cityCode !== 'default') {
+      if (affinityList && affinityList.length > 0) {
+        regionList.value = affinityList;
+        if (modelValue.value) {
+          const index = affinityList.findIndex(affinityItem => affinityItem.value === modelValue.value);
+          modelValue.value = index > -1 ? modelValue.value : affinityList[0].value;
+        } else {
+          modelValue.value = affinityList[0].value;
+        }
       }
+    } else {
+      regionList.value = [
+        {
+          label: t('无容灾要求'),
+          value: 'NONE',
+        },
+        {
+          label: t('跨机架部署'),
+          value: 'CROSS_RACK',
+        }
+      ];
+      modelValue.value = 'NONE';
     }
+
   }, {
     immediate: true,
   });

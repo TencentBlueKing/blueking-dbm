@@ -36,7 +36,9 @@
           ref="regionItemRef"
           v-model="formdata.details.city_code" />
         <DbCard :title="t('数据库部署信息')">
-          <AffinityItem v-model="formdata.details.resource_spec.backend_group.affinity" />
+          <AffinityItem
+            v-model="formdata.details.resource_spec.backend_group.affinity"
+            :city-code="formdata.details.city_code" />
         </DbCard>
         <DbCard :title="t('部署需求')">
           <ModuleItem
