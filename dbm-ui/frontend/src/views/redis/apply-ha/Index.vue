@@ -36,7 +36,7 @@
           <AffinityItem
             v-if="!isAppend"
             v-model="formData.details.disaster_tolerance_level"
-            default-value="SAME_SUBZONE_CROSS_SWTICH" />
+            :city-code="formData.details.city_code" />
           <BkFormItem
             :label="t('部署方式')"
             property="details.appendApply"
@@ -242,7 +242,7 @@
       cluster_count: 1,
       group_count: 1,
       city_code: '', // 追加就非必填
-      disaster_tolerance_level: 'NONE',
+      disaster_tolerance_level: 'SAME_SUBZONE_CROSS_SWTICH',
       appendApply: 'new', // 是否是追加部署
       ip_source: 'resource_pool',
       resource_spec: {

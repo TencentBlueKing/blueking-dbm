@@ -34,9 +34,7 @@
           ref="regionItemRef"
           v-model="formData.details.city_code" />
         <DbCard :title="t('数据库部署信息')">
-          <AffinityItem
-            v-model="formData.details.disaster_tolerance_level"
-            default-value="SAME_SUBZONE_CROSS_SWTICH" />
+          <AffinityItem v-model="formData.details.disaster_tolerance_level" />
           <BkFormItem
             :label="t('MongoDB版本')"
             property="details.db_version"
@@ -246,7 +244,7 @@
       node_replica_count: 1,
       oplog_percent: 10,
       city_code: '',
-      disaster_tolerance_level: 'NONE',
+      disaster_tolerance_level: 'SAME_SUBZONE_CROSS_SWTICH',
       ip_source: 'resource_pool',
       resource_spec: {
         spec_id: '',

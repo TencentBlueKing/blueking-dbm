@@ -121,7 +121,8 @@
         <DbCard :title="t('数据库部署信息')">
           <AffinityItem
             v-if="!isSingleType"
-            v-model="formdata.details.resource_spec.backend.affinity" />
+            v-model="formdata.details.resource_spec.backend.affinity"
+            :city-code="formdata.details.city_code" />
           <BkFormItem
             v-if="!isSingleType"
             :label="t('Proxy起始端口')"
