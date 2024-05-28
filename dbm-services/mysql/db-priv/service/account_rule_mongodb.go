@@ -32,7 +32,7 @@ func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string, ticket string) 
 		return err
 	}
 
-	err = AccountRuleExistedPreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, false)
+	_, err = AccountRulePreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, false)
 	if err != nil {
 		return err
 	}

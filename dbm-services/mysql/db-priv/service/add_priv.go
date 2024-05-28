@@ -1,12 +1,15 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/time/rate"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/util"
@@ -64,8 +67,10 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 		return outerErr
 	}
 	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
-	tokenBucket := make(chan int, 10)
 	client := util.NewClientByHosts(viper.GetString("dbmeta"))
+	limit := rate.Every(time.Millisecond * 200) // QPS：5
+	burst := 10                                 // 桶容量 10
+	limiter := rate.NewLimiter(limit, burst)
 	for _, rule := range m.AccoutRules { // 添加权限,for acccountRuleList;for instanceList; do create a routine
 		account, accountRule, outerErr := GetAccountRuleInfo(m.BkBizId, m.ClusterType, m.User, rule.Dbname)
 		if outerErr != nil {
@@ -74,10 +79,8 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 		}
 		for _, dns := range m.TargetInstances {
 			wg.Add(1)
-			tokenBucket <- 0
 			go func(dns string) {
 				defer func() {
-					<-tokenBucket
 					wg.Done()
 				}()
 				var (
@@ -93,6 +96,12 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 					account.User, accountRule.Dbname, ips, account.User, dns, accountRule.Dbname)
 				successInfo = fmt.Sprintf(`%s，授权成功。`, baseInfo)
 				failInfo = fmt.Sprintf(`%s，授权失败：`, baseInfo)
+
+				err = limiter.Wait(context.Background())
+				if err != nil {
+					AddErrorOnly(&errMsg, errors.New(failInfo+sep+err.Error()))
+					return
+				}
 
 				instance, err = GetCluster(client, m.ClusterType, Domain{EntryName: dns})
 				if err != nil {
@@ -174,7 +183,6 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 		}
 	}
 	wg.Wait() // 一个协程失败，其报错信息添加到errMsg.errs。主协程wg.Wait()，等待所有协程执行完成才会返回。
-	close(tokenBucket)
 	return AddPrivResult(errMsg, successMsg)
 }
 

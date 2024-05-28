@@ -1,10 +1,13 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/time/rate"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/util"
@@ -48,7 +51,9 @@ func (m *CloneClientPrivParaList) CloneClientPrivDryRun() error {
 func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) error {
 	var errMsg Err
 	wg := sync.WaitGroup{}
-	tokenBucket := make(chan int, 10)
+	limit := rate.Every(time.Millisecond * 200) // QPS：5
+	burst := 10                                 // 桶容量 10
+	limiter := rate.NewLimiter(limit, burst)
 
 	if m.BkBizId == 0 {
 		return errno.BkBizIdIsEmpty
@@ -116,12 +121,16 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) er
 	// 每个集群一个协程
 	for _, item := range clusters {
 		wg.Add(1)
-		tokenBucket <- 0
 		go func(item Cluster) {
 			defer func() {
-				<-tokenBucket
 				wg.Done()
 			}()
+
+			err := limiter.Wait(context.Background())
+			if err != nil {
+				AddError(&errMsg, item.ImmuteDomain, err)
+				return
+			}
 
 			if item.ClusterType == tendbha || item.ClusterType == tendbsingle {
 				for _, storage := range item.Storages {
@@ -171,7 +180,6 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) er
 		}(item)
 	}
 	wg.Wait()
-	close(tokenBucket)
 	if len(errMsg.errs) > 0 {
 		return errno.ClonePrivilegesFail.Add("\n" + strings.Join(errMsg.errs, "\n"))
 	}

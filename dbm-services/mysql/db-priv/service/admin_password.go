@@ -287,10 +287,6 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword(jsonPara string, ticke
 	// 后台定时任务，1、randmize_daily比如每天执行一次，随机化没有被锁住的实例 2、randmize_expired比如每分钟执行一次随机化锁定过期的实例
 	// 前台页面，单据已提示实例密码被锁定是否修改，用户确认修改，因此不检查是否锁定
 
-	// 调用频繁，不重要，不记录日志
-	if m.Range != "randmize_expired" {
-		AddPrivLog(PrivLog{BkBizId: 0, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
-	}
 	if m.Async && m.Range == "randmize_expired" {
 		// 过滤出需要随机化的实例
 		errCheck = m.NeedToBeRandomized()
