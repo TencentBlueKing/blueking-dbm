@@ -1297,7 +1297,7 @@ class ActionEnum:
         type="view",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("平台管理"),
+        group=_("可观测"),
     )
 
     DBHA_SWITCH_EVENT_VIEW = ActionMeta(
@@ -1307,7 +1307,7 @@ class ActionEnum:
         type="view",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("平台管理"),
+        group=_("可观测"),
     )
 
     NOTIFY_GROUP_LIST = ActionMeta(
