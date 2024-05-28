@@ -15,8 +15,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"strings"
-	"sync"
 	"time"
 
 	"dbm-services/common/db-resource/internal/config"
