@@ -16,7 +16,7 @@
     :before-close="handleBeforeClose"
     :is-show="isShow"
     :title="t('添加授权规则')"
-    :width="640"
+    :width="840"
     @closed="handleClose">
     <DbForm
       ref="ruleRef"
@@ -63,7 +63,7 @@
               <BkCheckbox
                 v-bk-tooltips="{
                   content: t('你已选择所有权限'),
-                  disabled: !checkAllPrivileges
+                  disabled: !checkAllPrivileges,
                 }"
                 class="check-all"
                 :disabled="checkAllPrivileges"
@@ -80,7 +80,7 @@
                   :key="dmlItem"
                   v-bk-tooltips="{
                     content: t('你已选择所有权限'),
-                    disabled: !checkAllPrivileges
+                    disabled: !checkAllPrivileges,
                   }"
                   :disabled="checkAllPrivileges"
                   :label="dmlItem">
@@ -94,7 +94,7 @@
               <BkCheckbox
                 v-bk-tooltips="{
                   content: t('你已选择所有权限'),
-                  disabled: !checkAllPrivileges
+                  disabled: !checkAllPrivileges,
                 }"
                 class="check-all"
                 :disabled="checkAllPrivileges"
@@ -111,14 +111,16 @@
                   :key="ddlItem"
                   v-bk-tooltips="{
                     content: t('你已选择所有权限'),
-                    disabled: !checkAllPrivileges
+                    disabled: !checkAllPrivileges,
                   }"
                   :disabled="checkAllPrivileges"
                   :label="ddlItem">
                   {{ ddlItem }}
                   <span
                     v-if="ddlSensitiveWords.includes(ddlItem)"
-                    class="sensitive-tip">{{ t('敏感') }}</span>
+                    class="sensitive-tip">
+                    {{ t('敏感') }}
+                  </span>
                 </BkCheckbox>
               </BkCheckboxGroup>
             </div>
@@ -130,7 +132,7 @@
               <BkCheckbox
                 v-bk-tooltips="{
                   content: t('你已选择所有权限'),
-                  disabled: !checkAllPrivileges
+                  disabled: !checkAllPrivileges,
                 }"
                 class="check-all"
                 :disabled="checkAllPrivileges"
@@ -147,7 +149,7 @@
                   :key="globItem"
                   v-bk-tooltips="{
                     content: t('你已选择所有权限'),
-                    disabled: !checkAllPrivileges
+                    disabled: !checkAllPrivileges,
                   }"
                   :disabled="checkAllPrivileges"
                   :label="globItem">
@@ -361,6 +363,7 @@
     state.isLoading = true;
     getPermissionRules({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      account_type: 'mysql',
     })
       .then((res) => {
         state.accounts = res.results.map(item => item.account);
@@ -459,101 +462,100 @@
         submitCreateAccountRule(params);
       });
   };
-
 </script>
 
 <style lang="less" scoped>
-.rule-form {
-  padding: 24px 40px 40px;
+  .rule-form {
+    padding: 24px 40px 40px;
 
-  .rule-setting-box {
-    padding: 16px 0 16px 16px;
-    background: #F5F7FA;
-    border-radius: 2px;
-  }
-
-  &__textarea {
-    height: var(--height);
-    max-height: 160px;
-    min-height: 32px;
-
-    :deep(textarea) {
-      line-height: 1.8;
+    .rule-setting-box {
+      padding: 16px 0 16px 16px;
+      background: #f5f7fa;
+      border-radius: 2px;
     }
-  }
 
-  &__item {
-    :deep(.bk-form-label) {
-      font-weight: bold;
-      color: @title-color;
+    &__textarea {
+      height: var(--height);
+      max-height: 160px;
+      min-height: 32px;
 
-      &::after {
-        position: absolute;
-        top: 0;
-        width: 14px;
-        line-height: 24px;
-        color: @danger-color;
-        text-align: center;
-        content: "*";
+      :deep(textarea) {
+        line-height: 1.8;
       }
     }
-  }
 
-  .rule-form-row {
-    display: flex;
-    width: 100%;
-    align-items: flex-start;
+    &__item {
+      :deep(.bk-form-label) {
+        font-weight: bold;
+        color: @title-color;
 
-    .rule-form-checkbox-group {
-      display: flex;
-      flex: 1;
-      flex-wrap: wrap;
-
-      .bk-checkbox {
-        min-width: 33.33%;
-        margin-bottom: 16px;
-        margin-left: 0;
-
-        .sensitive-tip {
-          background: #FFF3E1;
-          border-radius: 2px;
-          font-size: 10px;
-          color: #FE9C00;
-          height: 16px;
-          line-height: 16px;
+        &::after {
+          position: absolute;
+          top: 0;
+          width: 14px;
+          line-height: 24px;
+          color: @danger-color;
           text-align: center;
-          padding: 0 4px;
+          content: '*';
         }
       }
     }
 
-    .check-all {
-      position: relative;
-      width: 48px;
-      margin-right: 48px;
+    .rule-form-row {
+      display: flex;
+      width: 100%;
+      align-items: flex-start;
 
-      // :deep(.bk-checkbox-label) {
-      //   font-weight: bold;
-      // }
+      .rule-form-checkbox-group {
+        display: flex;
+        flex: 1;
+        flex-wrap: wrap;
 
-      &::after {
-        position: absolute;
-        top: 50%;
-        right: -24px;
-        width: 1px;
-        height: 14px;
-        background-color: #c4c6cc;
-        content: "";
-        transform: translateY(-50%);
+        .bk-checkbox {
+          min-width: 33.33%;
+          margin-bottom: 16px;
+          margin-left: 0;
+
+          .sensitive-tip {
+            background: #fff3e1;
+            border-radius: 2px;
+            font-size: 10px;
+            color: #fe9c00;
+            height: 16px;
+            line-height: 16px;
+            text-align: center;
+            padding: 0 4px;
+          }
+        }
+      }
+
+      .check-all {
+        position: relative;
+        width: 48px;
+        margin-right: 48px;
+
+        :deep(.bk-checkbox-label) {
+          word-break: keep-all;
+        }
+
+        &::after {
+          position: absolute;
+          top: 50%;
+          right: -24px;
+          width: 1px;
+          height: 14px;
+          background-color: #c4c6cc;
+          content: '';
+          transform: translateY(-50%);
+        }
       }
     }
   }
-}
 </style>
 <style lang="less">
-.pre-check-content {
-  width: 100%;
-  max-height: 500px;
-  overflow-y: auto;
-}
+  .pre-check-content {
+    width: 100%;
+    max-height: 500px;
+    overflow-y: auto;
+  }
 </style>

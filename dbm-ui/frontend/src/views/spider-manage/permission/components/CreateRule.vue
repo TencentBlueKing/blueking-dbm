@@ -15,7 +15,7 @@
   <BkSideslider
     :is-show="isShow"
     :title="t('添加授权规则')"
-    :width="640"
+    :width="840"
     @closed="handleClose">
     <DbForm
       ref="ruleRef"
@@ -65,7 +65,7 @@
               <BkCheckbox
                 v-bk-tooltips="{
                   content: t('你已选择所有权限'),
-                  disabled: !checkAllPrivileges
+                  disabled: !checkAllPrivileges,
                 }"
                 class="check-all"
                 :disabled="checkAllPrivileges"
@@ -82,7 +82,7 @@
                   :key="option"
                   v-bk-tooltips="{
                     content: t('你已选择所有权限'),
-                    disabled: !checkAllPrivileges
+                    disabled: !checkAllPrivileges,
                   }"
                   :disabled="checkAllPrivileges"
                   :label="option">
@@ -98,7 +98,7 @@
               <BkCheckbox
                 v-bk-tooltips="{
                   content: t('你已选择所有权限'),
-                  disabled: !checkAllPrivileges
+                  disabled: !checkAllPrivileges,
                 }"
                 class="check-all"
                 :disabled="checkAllPrivileges"
@@ -115,14 +115,16 @@
                   :key="option"
                   v-bk-tooltips="{
                     content: t('你已选择所有权限'),
-                    disabled: !checkAllPrivileges
+                    disabled: !checkAllPrivileges,
                   }"
                   :disabled="checkAllPrivileges"
                   :label="option">
                   {{ option }}
                   <span
                     v-if="ddlSensitiveWords.includes(option)"
-                    class="sensitive-tip">{{ t('敏感') }}</span>
+                    class="sensitive-tip"
+                    >{{ t('敏感') }}</span
+                  >
                 </BkCheckbox>
               </BkCheckboxGroup>
             </div>
@@ -134,7 +136,7 @@
               <BkCheckbox
                 v-bk-tooltips="{
                   content: t('你已选择所有权限'),
-                  disabled: !checkAllPrivileges
+                  disabled: !checkAllPrivileges,
                 }"
                 class="check-all"
                 :disabled="checkAllPrivileges"
@@ -151,7 +153,7 @@
                   :key="option"
                   v-bk-tooltips="{
                     content: t('你已选择所有权限'),
-                    disabled: !checkAllPrivileges
+                    disabled: !checkAllPrivileges,
                   }"
                   :disabled="checkAllPrivileges"
                   :label="option">
@@ -453,7 +455,6 @@
         createAccountRuleRun(params);
       });
   };
-
 </script>
 
 <style lang="less" scoped>
@@ -462,7 +463,7 @@
 
     .rule-setting-box {
       padding: 16px 0 16px 16px;
-      background: #F5F7FA;
+      background: #f5f7fa;
       border-radius: 2px;
     }
 
@@ -489,10 +490,10 @@
           margin-left: 0;
 
           .sensitive-tip {
-            background: #FFF3E1;
+            background: #fff3e1;
             border-radius: 2px;
             font-size: 10px;
-            color: #FE9C00;
+            color: #fe9c00;
             height: 16px;
             line-height: 16px;
             text-align: center;
@@ -506,9 +507,9 @@
         width: 48px;
         margin-right: 48px;
 
-        // :deep(.bk-checkbox-label) {
-        //   font-weight: bold;
-        // }
+        :deep(.bk-checkbox-label) {
+          word-break: keep-all;
+        }
       }
 
       .check-all::after {
@@ -518,10 +519,9 @@
         width: 1px;
         height: 14px;
         background-color: #c4c6cc;
-        content: "";
+        content: '';
         transform: translateY(-50%);
       }
-
     }
 
     :deep(.privilege .bk-form-label::after) {
@@ -530,19 +530,18 @@
       width: 14px;
       color: @danger-color;
       text-align: center;
-      content: "*";
+      content: '*';
     }
 
     :deep(.privilege .is-required .bk-form-label::after) {
       display: none;
     }
   }
-
 </style>
 <style lang="less">
-.pre-check-content {
-  width: 100%;
-  max-height: 500px;
-  overflow-y: auto;
-}
+  .pre-check-content {
+    width: 100%;
+    max-height: 500px;
+    overflow-y: auto;
+  }
 </style>

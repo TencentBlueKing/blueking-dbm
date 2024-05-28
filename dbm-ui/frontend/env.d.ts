@@ -9,19 +9,19 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 // / <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_AJAX_URL_PREFIX: string
-  readonly DEV_DOMAIN: string
-  readonly MODE: string
+  readonly VITE_AJAX_URL_PREFIX: string;
+  readonly DEV_DOMAIN: string;
+  readonly MODE: string;
 }
 
 interface ImportMeta {
-  readonly env: ImportMetaEnv
-  readonly hot: any
+  readonly env: ImportMetaEnv;
+  readonly hot: any;
 }
 
 declare module '*.png' {
@@ -42,22 +42,25 @@ declare module '*.css' {
 declare interface Window {
   changeConfirm: boolean | 'popover';
   clipboardData: {
-    getData: (params: string) => string
-  },
+    getData: (params: string) => string;
+  };
   PROJECT_ENV: {
-    VITE_PUBLIC_PATH: string,
-    VITE_AJAX_URL_PREFIX: string,
-    VITE_ROUTER_PERFIX: string,
-  },
+    VITE_PUBLIC_PATH: string;
+    VITE_AJAX_URL_PREFIX: string;
+    VITE_ROUTER_PERFIX: string;
+  };
   PROJECT_CONFIG: {
-    BIZ_ID: number
-  },
-  BKApp: App<Element>
+    BIZ_ID: number;
+  };
+  BKApp: App<Element>;
 }
 
-declare module 'js-cookie'
-declare module '@blueking/app-select'
-declare module '@blueking/notice-component'
+declare module 'js-cookie';
+declare module '@blueking/app-select';
+declare module '@blueking/notice-component';
+declare module '@blueking/login-modal' {
+  export function showLoginModal(params: { loginUrl: string }): void;
+}
 
 interface URLSearchParams {
   keys(): string[];
@@ -66,13 +69,15 @@ interface URLSearchParams {
 type ValueOf<T> = T[keyof T];
 
 type ServiceReturnType<T extends (...args: any) => Promise<any>> = T extends (...args: any) => Promise<infer R>
-? R : any
+  ? R
+  : any;
 
 type ServiceParameters<T extends (params: any) => Promise<any>> = Parameters<T>[length] extends 0
-? never : Parameters<T>[0]
+  ? never
+  : Parameters<T>[0];
 
 type KeyExpand<T> = {
   [K in keyof T]: T[K];
 };
 
-type LeftIsExtendsRightReturnValue<L, R, V> = L extends R ? never : V
+type LeftIsExtendsRightReturnValue<L, R, V> = L extends R ? never : V;

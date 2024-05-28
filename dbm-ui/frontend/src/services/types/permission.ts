@@ -78,7 +78,6 @@ export interface PermissionRuleAccount {
   user: string;
   creator: string;
   create_time: string;
-  password: string;
 }
 
 /**
