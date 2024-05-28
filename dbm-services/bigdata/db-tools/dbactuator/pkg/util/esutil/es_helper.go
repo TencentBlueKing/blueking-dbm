@@ -195,11 +195,18 @@ func (o EsInsObject) CheckNodes(nodes []Node) (ok bool, err error) {
 	// 实际扩容的节点数
 	sum := 0
 	for _, r := range catList {
-		// 获取第一列
-		ip := strings.Fields(r)[0]
-		if containStr(ips, ip) {
-			nodeCounters[ip]++
-			sum++
+		// 跳过空行
+		if strings.TrimSpace(r) == "" {
+			continue
+		}
+		fields := strings.Fields(r)
+		// 确保fields切片至少有一个元素
+		if len(fields) > 0 {
+			ip := fields[0]
+			if containStr(ips, ip) {
+				nodeCounters[ip]++
+				sum++
+			}
 		}
 	}
 	logger.Info("实际扩容结果: %v", nodeCounters)
