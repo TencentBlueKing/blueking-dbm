@@ -233,7 +233,7 @@ func (b GlobalBackupModel) handleQuitTasks(db *sqlx.DB) {
 	}
 }
 
-// handleOldTask 移除太久远的任务
+// handleOldTask 移除太久远的任务, 不能在 spider node 节点执行
 func (b GlobalBackupModel) handleOldTask(db *sqlx.DB) error {
 	ctx := context.Background()
 	conn, err := db.DB.Conn(ctx)
@@ -254,13 +254,6 @@ func (b GlobalBackupModel) updateBackupTask(backupStatus string, taskPid int, db
 		b.BackupId, b.Port, backupStatus, taskPid)
 
 	sqlBuilder := sq.Update(b.TableName()).Where("BackupId=? and Host=? and Port=?", b.BackupId, b.Host, b.Port)
-	/*
-		whereMap := map[string]interface{}{
-			"BackupStatus": backupStatus,
-			"TaskPid":      taskPid,
-		}
-		sqlBuilder = sqlBuilder.SetMap(whereMap)
-	*/
 	sqlBuilder = sqlBuilder.Set("BackupStatus", backupStatus)
 	if taskPid != 0 {
 		sqlBuilder = sqlBuilder.Set("TaskPid", taskPid)

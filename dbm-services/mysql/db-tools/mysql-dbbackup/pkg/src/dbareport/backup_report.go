@@ -321,8 +321,8 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 			return errors.Wrap(err, "write local_backup_report again")
 		}
 	}
-	// archive old items
-	_, _ = conn.ExecContext(ctx, "set session sql_log_bin=0;") // 关闭 binlog
+	// archive old items // 关闭 binlog. 注意关闭 binlog在 spider节点执行是无效的，并且可能还是会在 remote 上产生 binlog
+	_, _ = conn.ExecContext(ctx, "set session sql_log_bin=0;")
 	// 也不记录 binlog
 	sqlStr = fmt.Sprintf("DELETE FROM %s WHERE backup_begin_time < DATE_SUB(now(), INTERVAL %d DAY) ",
 		localBackupReport, cst.SpiderRemoveOldTaskBeforeDays)
