@@ -382,7 +382,7 @@
     {
       label: t('状态'),
       field: 'status',
-      minWidth: 100,
+      width: 100,
       filter: {
         list: [
           {
@@ -452,13 +452,13 @@
     {
       label: t('创建人'),
       field: 'creator',
-      width: 140,
+      width: 120,
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
     {
       label: t('部署时间'),
       field: 'create_at',
-      width: 160,
+      width: 250,
       sort: true,
       render: ({ data }: ColumnData) => <span>{data.createAtDisplay || '--'}</span>,
     },

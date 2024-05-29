@@ -119,10 +119,14 @@
     {
       label: t('业务'),
       field: 'bk_biz_name',
+      minWidth: 100,
+      fixed: 'left',
     },
     {
       label: t('集群域名'),
       field: 'cluster',
+      minWidth: 300,
+      fixed: 'left',
       render: ({ data }: { data: TableItem }) => (
         <bk-button
           text
@@ -161,11 +165,13 @@
     {
       label: t('开始时间'),
       field: 'switch_start_time',
+      width: 250,
       render: ({ cell }: { cell: string }) => utcDisplayTime(cell) || '--',
     },
     {
       label: t('结束时间'),
       field: 'switch_finished_time',
+      width: 250,
       render: ({ cell }: { cell: string }) => utcDisplayTime(cell) || '--',
     },
     {
@@ -191,22 +197,18 @@
     {
       label: t('切换原因'),
       field: 'confirm_result',
-      showOverflowTooltip: false,
-      render: ({ cell }: { cell: string }) => (
-        <div
-          class="text-overflow"
-          v-overflow-tips={{
-            content: cell,
-            maxWidth: 400,
-          }}>
-          {cell || '--'}
-        </div>
-      ),
+      minWidth: 200,
+      showOverflowTooltip: {
+        popoverOption: {
+          maxWidth: 300,
+        }
+      },
     },
     {
       label: t('操作'),
       field: '',
       width: 100,
+      fixed: 'right',
       render: ({ data }: { data: TableItem }) => (
         <bk-button
           text

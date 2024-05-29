@@ -63,6 +63,7 @@
         </template>
       </TextOverflowLayout>
     </p>
+    <template v-if="renderData.length < 1"> -- </template>
     <template v-if="hasMore">
       <BkButton
         class="cluster-instances__more"

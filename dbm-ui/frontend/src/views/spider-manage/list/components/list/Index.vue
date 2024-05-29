@@ -493,7 +493,7 @@
     {
       label: t('状态'),
       field: 'status',
-      minWidth: 100,
+      width: 100,
       filter: {
         list: [
           {
@@ -515,8 +515,8 @@
     {
       label: 'Spider Master',
       field: 'spider_master',
-      width: 180,
-      minWidth: 180,
+      width: 200,
+      minWidth: 200,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => {
         if (data.spider_master.length === 0) return '--';
@@ -537,8 +537,8 @@
     {
       label: 'Spider Slave',
       field: 'spider_slave',
-      width: 180,
-      minWidth: 180,
+      width: 200,
+      minWidth: 200,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => {
         if (data.spider_slave.length === 0) return '--';
@@ -559,8 +559,8 @@
     {
       label: t('运维节点'),
       field: 'spider_mnt',
-      width: 180,
-      minWidth: 180,
+      width: 200,
+      minWidth: 200,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => {
         if (data.spider_mnt.length === 0) return '--';
@@ -581,8 +581,8 @@
     {
       label: 'RemoteDB',
       field: 'remote_db',
-      width: 180,
-      minWidth: 180,
+      width: 250,
+      minWidth: 250,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => {
         if (data.remote_db.length === 0) return '--';
@@ -609,7 +609,8 @@
     {
       label: 'RemoteDR',
       field: 'remote_dr',
-      minWidth: 220,
+      width: 250,
+      minWidth: 250,
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => {
         if (data.remote_dr.length === 0) return '--';
@@ -663,7 +664,7 @@
       label: t('部署时间'),
       field: 'create_at',
       sort: true,
-      width: 160,
+      width: 250,
       render: ({ data }: IColumn) => <span>{data.createAtDisplay || '--'}</span>,
     },
     {

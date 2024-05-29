@@ -296,6 +296,7 @@
       {
         label: t('是否启用'),
         field: 'enable',
+        width: 120,
         render: ({ data }: { data: ResourceSpecModel }) => (
           <bk-pop-confirm
             title={data.enable ? t('确认停用该规格？') : t('确认启用该规格？')}
@@ -321,13 +322,14 @@
         label: t('更新时间'),
         field: 'update_at',
         sort: true,
-        width: 180,
-        render: ({ data }: { data: ResourceSpecModel }) => <span>{data.updateAtDisplay}</span>,
+        width: 250,
+        render: ({ data }: { data: ResourceSpecModel }) => data.updateAtDisplay,
       },
       {
         label: t('更新人'),
         field: 'updater',
         width: 120,
+        render: ({ data }: { data: ResourceSpecModel }) => data.updater || '--',
       },
       {
         label: t('操作'),
@@ -499,7 +501,7 @@
 
   const handleDelete = (list: ResourceSpecModel[], isBatch = true) => {
     InfoBox({
-      type: 'warnning',
+      type: 'warning',
       title: t('确认删除以下规格'),
       content: () => (
         <>

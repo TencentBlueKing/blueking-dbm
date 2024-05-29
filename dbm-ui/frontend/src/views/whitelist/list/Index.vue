@@ -145,12 +145,12 @@
     {
       label: t('更新人'),
       field: 'updater',
-      width: 180,
+      width: 120,
     },
     {
       label: t('更新时间'),
       field: 'update_at',
-      width: 180,
+      width: 250,
       render: ({ data }: TableRenderData) => data.updateAtDisplay || '--',
     },
     {

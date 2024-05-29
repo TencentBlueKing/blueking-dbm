@@ -104,10 +104,12 @@
     {
       label: t('更新时间'),
       field: 'updated_at',
+      width: 250,
     },
     {
       label: t('更新人'),
       field: 'updated_by',
+      width: 120,
       render: ({ cell }: { cell: string }) => cell || '--',
     },
     {

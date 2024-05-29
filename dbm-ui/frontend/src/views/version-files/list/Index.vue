@@ -317,7 +317,7 @@
     const { moduleId, id } = item.controller;
     const data = funControllerStore.funControllerData[moduleId];
     // 整个模块没有开启
-    if (data.is_enabled !== true) {
+    if (!data || data.is_enabled !== true) {
       return false;
     }
     const children = data.children as Record<FunctionKeys, ControllerBaseInfo>;
@@ -346,12 +346,7 @@
   const packageTypeMap = ref<Record<string, string[]>>({});
   const activeTabInfo = computed(() => {
     const tabList = renderTabs.find((item) => item.name === tabActive.value);
-    return tabList
-      ? tabList
-      : {
-          label: '',
-          name: '',
-        };
+    return tabList ? tabList : { label: '', name: '' };
   });
 
   const pkgList = computed(() => packageTypeMap.value![tabActive.value] ?? []);

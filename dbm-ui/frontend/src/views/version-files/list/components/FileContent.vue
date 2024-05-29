@@ -114,7 +114,7 @@
               {
                 name: 'X-BKREPO-OVERWRITE',
                 value: true,
-              }
+              },
             ]"
             method="put"
             :multiple="false"
@@ -301,11 +301,13 @@
       {
         label: t('更新人'),
         field: 'updater',
+        width: 120,
         render: ({ data }: { data: VersionFileModel }) => data.updater || '--',
       },
       {
         label: t('更新时间'),
         field: 'update_at',
+        width: 250,
         render: ({ data }: { data: VersionFileModel }) => data.updateAtDisplay || '--',
       },
       {
@@ -329,6 +331,7 @@
       const switchColumn = {
         label: t('是否启用'),
         field: 'enable',
+        width: 120,
         render: ({ data }: { data: VersionFileModel }) => (
           <bk-pop-confirm
             title={data.enable ? t('确认停用该版本？') : t('确认启用该版本？')}

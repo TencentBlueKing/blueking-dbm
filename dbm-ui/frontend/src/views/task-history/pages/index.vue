@@ -19,13 +19,13 @@
         :get-menu-list="getMenuList"
         :model-value="searchValue"
         :placeholder="t('ID_任务类型_状态_关联单据')"
-        style="width: 500px;"
+        style="width: 500px"
         @change="handleSearchValueChange" />
       <BkDatePicker
         v-model="state.filter.daterange"
         class="ml-8"
         :placeholder="t('选择日期范围')"
-        style="width: 300px;"
+        style="width: 300px"
         type="daterange"
         @change="fetchTableData" />
     </div>
@@ -148,8 +148,6 @@
       label: 'ID',
       field: 'root_id',
       fixed: 'left',
-      width: 240,
-      showOverflowTooltip: false,
       render: ({ cell, data }: TableColumnRender) => (
         <auth-router-link
           action-id="flow_detail"
@@ -188,6 +186,7 @@
         })),
         checked: columnCheckedMap.value.status,
       },
+      width: 160,
       render: ({ data }: { data: TaskFlowModel }) => (
         <DbStatus
           type="linear"
@@ -199,6 +198,7 @@
     {
       label: t('关联单据'),
       field: 'uid',
+      width: 100,
       render: ({ data }: { data: TaskFlowModel }) => (
         data.uid ? <auth-router-link
           action-id="ticket_view"
@@ -218,22 +218,24 @@
     {
       label: t('执行人'),
       field: 'created_by',
+      width: 120,
     },
     {
       label: t('执行时间'),
       field: 'created_at',
+      width: 250,
       render: ({ data }: { data: TaskFlowModel }) => data.createAtDisplay,
     },
     {
       label: t('耗时'),
       field: 'cost_time',
+      width: 150,
       render: ({ cell }: { cell: number }) => getCostTimeDisplay(cell),
     },
     {
       label: t('操作'),
-      field: 'operation',
       fixed: 'right',
-      minWidth: 210,
+      width: 120,
       render: ({ data }: { data: TaskFlowModel }) => (
         <div class="table-operations">
           <auth-router-link
