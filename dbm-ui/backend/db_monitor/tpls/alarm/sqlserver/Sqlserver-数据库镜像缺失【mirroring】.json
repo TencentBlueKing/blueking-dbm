@@ -235,7 +235,8 @@
     },
     "labels": [
       "DBM",
-      "DBM_SQLSERVER"
+      "DBM_SQLSERVER",
+      "SQLSERVER_BUILD_DB_SYNC"
     ],
     "app": "",
     "path": "",
