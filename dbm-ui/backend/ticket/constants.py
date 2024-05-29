@@ -143,7 +143,7 @@ class TicketType(str, StructuredEnum):
         return ticket_types
 
     @classmethod
-    def get_db_type_by_ticket(cls, ticket_type):
+    def get_db_type_by_ticket(cls, ticket_type, raise_exception=False):
         """根据单据类型找到组件类型"""
         db_type = ticket_type.upper().split("_")[0].lower()
         if db_type == "TBINLOGDUMPER".lower():
@@ -151,6 +151,8 @@ class TicketType(str, StructuredEnum):
         if db_type in DBType.get_values():
             return db_type
         else:
+            if not raise_exception:
+                return ""
             raise TicketBaseException(_("无法找到{}关联的组件类型").format(ticket_type))
 
     # fmt: off
@@ -193,7 +195,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_HA_STANDARDIZE = TicketEnumField("MYSQL_HA_STANDARDIZE", _("TendbHA 标准化"), register_iam=False)
     MYSQL_HA_METADATA_IMPORT = TicketEnumField("MYSQL_HA_METADATA_IMPORT", _("TendbHA 元数据导入"), register_iam=False)
     MYSQL_OPEN_AREA = TicketEnumField("MYSQL_OPEN_AREA", _("MySQL 开区"), _("克隆开区"), register_iam=False)
-    MYSQL_DATA_MIGRATE = TicketEnumField("MYSQL_DATA_MIGRATE", _("MySQL 数据迁移"), _("数据处理"))
+    MYSQL_DATA_MIGRATE = TicketEnumField("MYSQL_DATA_MIGRATE", _("MySQL DB克隆"), _("数据处理"))
 
     # SPIDER(TenDB Cluster)
     TENDBCLUSTER_OPEN_AREA = TicketEnumField("TENDBCLUSTER_OPEN_AREA", _("TenDB Cluster 开区"), _("克隆开区"), register_iam=False)  # noqa

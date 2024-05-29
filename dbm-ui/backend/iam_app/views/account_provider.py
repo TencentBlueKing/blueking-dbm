@@ -49,6 +49,7 @@ class AccountResourceProvider(BaseInterfaceResourceProvider):
 
     def fetch_instance_info(self, filter, **options):
         filter.data_source = self.api
+        filter.ids = list(map(int, filter.ids))
         return super().fetch_instance_info(filter, **options)
 
     def list_instance_by_policy(self, filter, page, **options):

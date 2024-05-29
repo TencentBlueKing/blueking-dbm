@@ -91,6 +91,6 @@ class TestMonitorPolicyViewSet:
     @patch.object(MonitorPolicyViewSet, "get_permissions", lambda x: [])
     @patch("backend.db_monitor.models.alarm.BKMonitorV3Api", BKMonitorV3MockApi)
     def test_db_module_list(self):
-        url = "/apis/monitor/policy/db_module_list/?dbtype=mysql"
+        url = "/apis/monitor/policy/db_module_list/?dbtype=mysql&bk_biz_id=0"
         response = client.get(url)
         assert response.status_code == 200

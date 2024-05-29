@@ -18,7 +18,8 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
 
 from backend.components.sql_import.client import SQLSimulationApi
-from backend.configuration.constants import PLAT_BIZ_ID, DBType
+from backend.configuration.constants import PLAT_BIZ_ID, BizSettingsEnum, DBType
+from backend.configuration.models import BizSettings
 from backend.core.storages.storage import get_storage
 from backend.db_services.mysql.sql_import.constants import (
     BKREPO_SQLFILE_PATH,
@@ -121,6 +122,8 @@ class SQLHandler(object):
         )
 
         # 填充sql内容。
+        # TODO: 业务配置忽略语法检查，暂时加到BizSettings，后续删除该逻辑
+        skip_check = BizSettings.get_setting_value(self.bk_biz_id, BizSettingsEnum.SKIP_GRAMMAR_CHECK, default=False)
         for sql_file_info in sql_file_info_list:
             sql_path = sql_file_info["sql_path"]
             file_name = os.path.split(sql_path)[1]
@@ -128,6 +131,7 @@ class SQLHandler(object):
                 content=sql_file_info.get("sql_content"),
                 sql_path=sql_path,
                 raw_file_name=sql_file_info.get("raw_file_name"),
+                skip_check=skip_check,
             )
 
         return check_info

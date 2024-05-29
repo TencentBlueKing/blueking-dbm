@@ -8,9 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from django.db.models import Case, Value, When
 from django.utils.translation import gettext_lazy as _
 
+from backend.db_meta.enums import ClusterType
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
@@ -88,3 +89,11 @@ class TenDBClusterSpiderRole(str, StructuredEnum):
     # 运维节点
     SPIDER_MNT = EnumField("spider_mnt", _("spider_mnt"))
     SPIDER_SLAVE_MNT = EnumField("spider_slave_mnt", _("spider_slave_mnt"))
+    # 管理节点
+    SPIDER_CTL = EnumField("spider_ctl", _("spider_ctl"))
+
+
+# 集群类型与其对应的proxy管理端角色
+CLUSTER_TYPE_ADMIN_ROLE = {ClusterType.TenDBCluster: TenDBClusterSpiderRole.SPIDER_CTL}
+# 转换成django查询语句
+ADMIN_ROLE_CASE = Case(*[When(cluster_type=key, then=Value(val)) for key, val in CLUSTER_TYPE_ADMIN_ROLE.items()])

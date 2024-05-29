@@ -16,7 +16,7 @@ from rest_framework import serializers
 from backend.bk_web.constants import LEN_NORMAL, LEN_SHORT
 from backend.bk_web.serializers import AuditedSerializer
 from backend.configuration import mock_data
-from backend.configuration.constants import DBType
+from backend.configuration.constants import DBPrivSecurityType, DBType
 from backend.configuration.mock_data import BIZ_SETTINGS_DATA, PASSWORD_POLICY, VERIFY_PASSWORD_DATA
 from backend.configuration.models.function_controller import FunctionController
 from backend.configuration.models.ip_whitelist import IPWhitelist
@@ -166,6 +166,15 @@ class PasswordPolicySerializer(serializers.Serializer):
             raise serializers.ValidationError(_("请确保密码长度范围为整型"))
 
         return attrs
+
+
+class GetRandomPasswordSerializer(serializers.Serializer):
+    security_type = serializers.ChoiceField(
+        help_text=_("密码类型"),
+        required=False,
+        choices=DBPrivSecurityType.get_choices(),
+        default=DBPrivSecurityType.PASSWORD.value,
+    )
 
 
 class VerifyPasswordSerializer(serializers.Serializer):

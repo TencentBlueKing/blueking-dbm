@@ -36,13 +36,13 @@ class ClusterEntryViewSet(viewsets.SystemViewSet):
     @staticmethod
     def instance_biz_getter(request, view):
         cluster_id = get_request_key_id(request, key="cluster_id")
-        bk_biz_id = Cluster.objects.get(cluster_id=cluster_id).bk_biz_id
+        bk_biz_id = Cluster.objects.get(id=cluster_id).bk_biz_id
         return [bk_biz_id]
 
     @staticmethod
     def instance_dbtype_getter(request, view):
         cluster_id = get_request_key_id(request, key="cluster_id")
-        dbtype = ClusterType.cluster_type_to_db_type(Cluster.objects.get(cluster_id=cluster_id).cluster_type)
+        dbtype = ClusterType.cluster_type_to_db_type(Cluster.objects.get(id=cluster_id).cluster_type)
         return [dbtype]
 
     def get_action_permission_map(self) -> dict:

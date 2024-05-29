@@ -56,7 +56,7 @@ class CommonProviderMixin(object):
         for item in resources:
             item["id"] = item.pop(resource_meta.lookup_field)
             if "display_name" in value_list:
-                display_name_list = [str(item.pop(field, "")) for field in resource_meta.display_fields]
+                display_name_list = [str(item.get(field, "")) for field in resource_meta.display_fields]
                 item["display_name"] = ":".join(display_name_list) or item["id"]
             if "_bk_iam_path_" in value_list:
                 item["_bk_iam_path_"] = id__bk_iam_path[item["id"]]
@@ -192,9 +192,8 @@ class BaseModelResourceProvider(BaseResourceProvider):
     resource_meta: ResourceMeta = None
     model: models.Model = None
 
-    def get_model_bk_iam_path(self, model, instance_ids, *args, **kwargs) -> Dict:
+    def get_model_bk_iam_path(self, model, instances, *args, **kwargs) -> Dict:
         """获取带有模型实例的bk_iam_path"""
-        instances = model.objects.filter(pk__in=instance_ids)
         # 默认考虑一层父类
         id__bk_iam_path = {
             instance.id: "/{},{}/".format(
@@ -206,7 +205,13 @@ class BaseModelResourceProvider(BaseResourceProvider):
         return id__bk_iam_path
 
     def get_bk_iam_path(self, instance_ids, *args, **kwargs) -> Dict:
-        return self.get_model_bk_iam_path(self.model, instance_ids, *args, **kwargs)
+        instances = self.model.objects.filter(pk__in=instance_ids)
+        # 如果资源定义了bk_iam_path，则优先以此为准
+        if hasattr(self.resource_meta, "get_bk_iam_path"):
+            id__bk_iam_path = {instance.id: self.resource_meta.get_bk_iam_path(instance) for instance in instances}
+            return id__bk_iam_path
+        # 默认就以一层父类考虑
+        return self.get_model_bk_iam_path(self.model, instances, *args, **kwargs)
 
     def _search_instance(self, data_source: models.Model, condition: Dict, value_list: List[str], page):
         return self._list_instance(data_source, condition, value_list, page)
@@ -307,7 +312,7 @@ class BaseInterfaceResourceProvider(BaseResourceProvider):
     def _fetch_instance_info(
         self, data_source: DataAPI, resource_meta: ResourceMeta, value_list: List[str], filter: FancyDict
     ):
-        # 查询关联字段的queryset
+        # 查询关联字段的数据集
         field_list = [field for field in value_list if field not in ["_bk_iam_path_", "display_name"]]
         field_list.extend([resource_meta.lookup_field, *resource_meta.display_fields])
         data = [{field: d[field] for field in field_list} for d in data_source(params={"ids": filter.ids})["results"]]

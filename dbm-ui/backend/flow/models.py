@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from backend.configuration.constants import DBType
 from backend.flow.consts import StateType
 from backend.ticket.constants import TicketType
 
@@ -18,6 +19,7 @@ from backend.ticket.constants import TicketType
 class FlowTree(models.Model):
     bk_biz_id = models.IntegerField(_("业务ID"))
     uid = models.CharField(_("单据ID"), max_length=127, db_index=True, blank=True, null=True)
+    db_type = models.CharField(_("组件类型"), choices=DBType.get_choices(), max_length=64, default="")
     ticket_type = models.CharField(_("单据类型"), choices=TicketType.get_choices(), max_length=64)
     root_id = models.CharField(_("流程ID"), max_length=33, primary_key=True)
     tree = models.JSONField(_("流程树"), null=True, blank=True)
@@ -32,6 +34,7 @@ class FlowTree(models.Model):
     class Meta:
         db_table = "flow_tree"
         ordering = ("-created_at",)
+        index_together = [("bk_biz_id", "db_type")]
 
 
 class FlowNode(models.Model):

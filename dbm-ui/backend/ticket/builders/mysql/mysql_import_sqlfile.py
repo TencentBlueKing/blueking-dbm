@@ -68,7 +68,8 @@ class MysqlSqlImportItsmParamBuilder(builders.ItsmParamBuilder):
         # 获取模拟执行结果 -- 这里获取语义执行结果节点的状态
         flow_tree = FlowTree.objects.get(root_id=root_id)
         semantic_node = TaskFlowHandler.get_node_id_by_component(flow_tree.tree, SemanticCheckComponent.code)
-        semantic_state = BambooEngine(root_id).get_node_state(semantic_node).name
+        semantic_state = BambooEngine(root_id).get_node_state(semantic_node)
+        semantic_state = semantic_state.name if semantic_state else ""
         # 模拟执行结果与单据结果映射，并加入itsm的动态字段中
         exec_status = BAMBOO_STATE__TICKET_STATE_MAP.get(semantic_state, TicketFlowStatus.PENDING.value)
         exec_status_display = str(TicketFlowStatus.get_choice_label(exec_status))

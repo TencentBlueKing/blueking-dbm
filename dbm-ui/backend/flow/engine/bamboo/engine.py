@@ -24,6 +24,7 @@ from pipeline.eri.runtime import BambooDjangoRuntime
 from backend.flow.engine.bamboo.builder import Builder
 from backend.flow.engine.exceptions import PipelineError
 from backend.flow.models import FlowNode, FlowTree, StateType
+from backend.ticket.constants import TicketType
 from backend.utils.string import i18n_str
 from backend.utils.time import datetime2timestamp
 
@@ -59,6 +60,7 @@ class BambooEngine:
             bk_biz_id=self.data["bk_biz_id"],
             status=StateType.CREATED,
             created_by=self.data["created_by"],
+            db_type=TicketType.get_db_type_by_ticket(self.data["ticket_type"]),
         )
         tree.save()
         result = api.run_pipeline(runtime=self.runtime, pipeline=pipeline)

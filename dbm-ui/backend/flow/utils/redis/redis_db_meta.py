@@ -799,7 +799,7 @@ class RedisDBMeta(object):
         """
         # 获取cluster
         cluster_id = self.cluster["cluster_id"]
-        cluster = Cluster.objects.get(cluster_id=cluster_id)
+        cluster = Cluster.objects.get(id=cluster_id)
 
         cc_manage = CcManage(self.cluster["bk_biz_id"], cluster.cluster_type)
         with atomic():

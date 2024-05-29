@@ -185,6 +185,7 @@ class ResourceUpdateSerializer(serializers.Serializer):
     set_empty_biz = serializers.BooleanField(help_text=_("是否无专用业务"), required=False, default=False)
     set_empty_resource_type = serializers.BooleanField(help_text=_("是否无专用资源类型"), required=False, default=False)
     storage_device = serializers.JSONField(help_text=_("磁盘挂载点信息"), required=False)
+    rack_id = serializers.CharField(help_text=_("机架ID"), required=False)
 
     class Meta:
         swagger_schema_fields = {"example": RESOURCE_UPDATE_PARAMS}

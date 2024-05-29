@@ -32,6 +32,7 @@ from pipeline.eri.runtime import BambooDjangoRuntime
 from backend.flow.models import FlowNode, FlowTree, StateType
 from backend.flow.plugins.components.collections.common.create_random_job_user import AddTempUserForClusterComponent
 from backend.flow.plugins.components.collections.common.drop_random_job_user import DropTempUserForClusterComponent
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("json")
 
@@ -230,6 +231,7 @@ class Builder(object):
             bk_biz_id=self.data["bk_biz_id"],
             status=StateType.CREATED,
             created_by=self.data["created_by"],
+            db_type=TicketType.get_db_type_by_ticket(self.data["ticket_type"]),
         )
 
         if not api.run_pipeline(runtime=BambooDjangoRuntime(), pipeline=pipeline).result:

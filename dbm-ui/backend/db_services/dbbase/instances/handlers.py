@@ -8,14 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import importlib
 from dataclasses import asdict
 from typing import Any, Dict, List, Union
 
 from django.db.models import F, Q
+from django.db.models.functions import Coalesce
 
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums.instance_role import ADMIN_ROLE_CASE
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
+from backend.db_services.dbbase.cluster.handlers import get_cluster_service_handler
 from backend.db_services.dbbase.dataclass import DBInstance
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -44,43 +46,55 @@ class InstanceHandler:
         if isinstance(query_instances[0], Dict):
             storages_proxies_instances = query_instances
         else:
-            query_conditions = Q()
+            query_filter = Q()
             for address in query_instances:
-                split_len = len(address.split(IP_PORT_DIVIDER))
-                if split_len == 1:
-                    # 只输入 IP
-                    query_conditions |= Q(machine__ip=address)
-                elif split_len == 2:
-                    # IP:PORT
-                    ip, port = address.split(IP_PORT_DIVIDER)
-                    query_conditions |= Q(machine__ip=ip, port=port)
+                spilt_addr = address.split(IP_PORT_DIVIDER)
+                # 兼容ip, ip:port和cloud:ip:port三种格式
+                if len(spilt_addr) == 1:
+                    query_filter |= Q(machine__ip=spilt_addr[0])
+                elif len(spilt_addr) == 2:
+                    query_filter |= Q(machine__ip=spilt_addr[0], inst_port=spilt_addr[1])
                 else:
-                    # Cloud:IP:PORT
-                    bk_cloud_id, ip, port = address.split(IP_PORT_DIVIDER)
-                    query_conditions |= Q(machine__ip=ip, port=port, cluster__bk_cloud_id=bk_cloud_id)
+                    query_filter |= Q(
+                        machine__ip=spilt_addr[0], cluster__bk_cloud_id=spilt_addr[1], inst_port=spilt_addr[2]
+                    )
 
+            query_filter &= Q(bk_biz_id=self.bk_biz_id)
             if cluster_ids:
-                query_conditions &= Q(cluster__id__in=cluster_ids)
+                query_filter &= Q(cluster__id__in=cluster_ids)
 
             # 由于不知道输入的是什么实例，因此把存储实例和 proxy 实例同时查询出来
             storages = (
-                StorageInstance.objects.annotate(role=F("instance_inner_role"))
-                .select_related("machine")
+                StorageInstance.objects.select_related("machine")
                 .prefetch_related("cluster")
-                .filter(Q(bk_biz_id=self.bk_biz_id) & query_conditions)
+                .annotate(role=F("instance_inner_role"), inst_port=F("port"))
+                .filter(query_filter)
             )
             proxies = (
-                ProxyInstance.objects.annotate(role=F("access_layer"))
-                .select_related("machine")
+                # 优先以spider角色为准
+                ProxyInstance.objects.select_related("machine")
                 .prefetch_related("cluster")
-                .filter(Q(bk_biz_id=self.bk_biz_id) & query_conditions)
+                .annotate(
+                    role=Coalesce(F("tendbclusterspiderext__spider_role"), F("access_layer")), inst_port=F("port")
+                )
+                .filter(query_filter)
+            )
+            admin_proxies = (
+                ProxyInstance.objects.select_related("machine")
+                .prefetch_related("cluster")
+                .annotate(role=ADMIN_ROLE_CASE, inst_port=F("admin_port"))
+                .filter(query_filter)
+                .exclude(role=None)
             )
 
-            # 如果无法查询实例，则直接返回
-            if not storages and not proxies:
-                return []
+            storages_proxies_instances = [*storages, *proxies, *admin_proxies]
 
-            storages_proxies_instances = [*storages, *proxies]
+            # 如果无法查询实例，则直接返回
+            if not storages_proxies_instances:
+                return []
+            # 把inst_port替换成port
+            for inst in storages_proxies_instances:
+                inst.port = inst.inst_port
 
         bk_host_ids: List[int] = []
         db_instances: List[DBInstance] = []
@@ -88,25 +102,18 @@ class InstanceHandler:
 
         # 应该根据db_type来选择handler更合理，如果没传默认为dbbase
         db_type = db_type or "dbbase"
-        handler_import_path = f"backend.db_services.{db_type}.cluster.handlers"
-        try:
-            handler_class = getattr(importlib.import_module(handler_import_path), "ClusterServiceHandler")
-            handler = handler_class(self.bk_biz_id)
-        except (ModuleNotFoundError, AttributeError):
-            from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
-
-            handler = ClusterServiceHandler(self.bk_biz_id)
+        cluster_handler = get_cluster_service_handler(self.bk_biz_id, db_type)
 
         # 查询实例关联的集群信息
-        instance_related_clusters: List[Dict[str, Any]] = handler.find_related_clusters_by_instances(
+        instance_related_clusters: List[Dict[str, Any]] = cluster_handler.find_related_clusters_by_instances(
             instances=[DBInstance.from_inst_obj(inst) for inst in storages_proxies_instances]
         )
         inst_address__related_clusters_map: Dict[str, Dict[str, Any]] = {
             info["instance_address"]: info for info in instance_related_clusters
         }
 
-        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         # 补充实例的基本信息，关联集群信息和主机信息
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         for inst in storages_proxies_instances:
             db_inst = DBInstance.from_inst_obj(inst)
             db_inst_address = f"{db_inst.ip}:{db_inst.port}"
@@ -118,16 +125,16 @@ class InstanceHandler:
                 "cluster_id": db_inst_related_cluster["cluster_info"]["id"],
                 "cluster_name": db_inst_related_cluster["cluster_info"]["cluster_name"],
                 "master_domain": db_inst_related_cluster["cluster_info"]["master_domain"],
-                # 目前的设计，instance_role 才能更好区分不通集群类型中机器的角色
-                "create_at": inst["create_at"] if isinstance(inst, Dict) else inst.create_at,
-                "role": inst["role"] if isinstance(inst, Dict) else inst.role,
-                "status": inst["status"] if isinstance(inst, Dict) else inst.status,
                 "cluster_type": db_inst_related_cluster["cluster_info"]["cluster_type"],
                 # 实例的关联集群把本身集群和集群的关联集群合并到一起
                 "related_clusters": [
                     *db_inst_related_cluster["related_clusters"],
                     db_inst_related_cluster["cluster_info"],
                 ],
+                # 目前的设计，instance_role 才能更好区分不通集群类型中机器的角色
+                "create_at": inst["create_at"] if isinstance(inst, Dict) else inst.create_at,
+                "role": inst["role"] if isinstance(inst, Dict) else inst.role,
+                "status": inst["status"] if isinstance(inst, Dict) else inst.status,
             }
             bk_host_ids.append(inst["bk_host_id"] if isinstance(inst, Dict) else inst.machine.bk_host_id)
             db_instances.append(db_inst)
@@ -135,10 +142,11 @@ class InstanceHandler:
         # 查询补充主机信息
         host_infos = HostHandler.check(scope_list=[], ip_list=[], ipv6_list=[], key_list=bk_host_ids)
         host_id_info_map = {host_info["host_id"]: host_info for host_info in host_infos}
-        return [
+        instance_infos = [
             {**host_id_instance_map[str(db_inst)], **{"host_info": host_id_info_map.get(db_inst.bk_host_id, {})}}
             for db_inst in db_instances
         ]
+        return instance_infos
 
     def get_machine_by_instances(self, query_instances: List[str]) -> Dict[str, Machine]:
         """根据ip:port查询实例的机器信息"""

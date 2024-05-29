@@ -10,13 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-from typing import Dict
 
 from django.db import models
 
 from backend.db_monitor.models import MonitorPolicy
 from backend.iam_app.dataclass.resources import MonitorPolicyResourceMeta, ResourceEnum
-from backend.iam_app.handlers.converter import MonitorDjangoQuerySetConverter
+from backend.iam_app.handlers.converter import MoreLevelIamPathConverter
 from backend.iam_app.views.iam_provider import BaseModelResourceProvider
 
 logger = logging.getLogger("root")
@@ -44,12 +43,6 @@ class MonitorPolicyResourceProvider(BaseModelResourceProvider):
                 "db_type": iam_path.split("/")[2].split(",")[-1],
             }
 
-    def get_bk_iam_path(self, instance_ids, *args, **kwargs) -> Dict:
-        """获取带有模型实例的bk_iam_path"""
-        instances = self.model.objects.filter(pk__in=instance_ids)
-        id__bk_iam_path = {instance.id: self.resource_meta.get_bk_iam_path(instance) for instance in instances}
-        return id__bk_iam_path
-
     def list_instance(self, filter, page, **options):
         logger.info("list_instance params: %s, %s, %s", filter, page, options)
         filter.data_source = self.model
@@ -71,7 +64,7 @@ class MonitorPolicyResourceProvider(BaseModelResourceProvider):
             f"{self.resource_meta.id}._bk_iam_path_": "bk_biz_id,db_type",
         }
         value_hooks = {"bk_biz_id,db_type": self.parse_iam_path}
-        converter_class = options.get("converter_class", MonitorDjangoQuerySetConverter)
+        converter_class = options.get("converter_class", MoreLevelIamPathConverter)
         return self._list_instance_by_policy(
             data_source=self.model,
             value_list=["id", "name"],

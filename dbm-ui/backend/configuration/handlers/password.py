@@ -39,11 +39,11 @@ class DBPasswordHandler(object):
     """密码策略相关处理"""
 
     @classmethod
-    def get_random_password(cls):
+    def get_random_password(cls, security_type: str = DBM_PASSWORD_SECURITY_NAME):
         """
         获取符合密码强度的字符串
         """
-        random_password = DBPrivManagerApi.get_random_string({"security_rule_name": DBM_PASSWORD_SECURITY_NAME})
+        random_password = DBPrivManagerApi.get_random_string({"security_rule_name": security_type})
         random_password = base64_decode(random_password)
         return random_password
 

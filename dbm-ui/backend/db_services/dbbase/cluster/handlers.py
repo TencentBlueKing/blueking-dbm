@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import importlib
 from collections import defaultdict
 from typing import Any, Dict, List, Set
 
@@ -216,3 +216,14 @@ class ClusterServiceHandler:
             ),
         ]
         return instance_objs
+
+
+def get_cluster_service_handler(bk_biz_id: int, db_type: str = "dbbase"):
+    handler_import_path = f"backend.db_services.{db_type}.cluster.handlers"
+    try:
+        handler_class = getattr(importlib.import_module(handler_import_path), "ClusterServiceHandler")
+        handler = handler_class(bk_biz_id)
+    except (ModuleNotFoundError, AttributeError):
+        handler = ClusterServiceHandler(bk_biz_id)
+
+    return handler
