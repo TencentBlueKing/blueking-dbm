@@ -45,3 +45,10 @@ export function getDirtyMachines(params: { limit: number; offset: number }) {
 export function transferDirtyMachines(params: { bk_host_ids: number[] }) {
   return http.post(`${path}/transfer_dirty_machines/`, params);
 }
+
+/**
+ * 删除污点池记录
+ */
+export function deleteDirtyRecords(params: { bk_host_ids: number[] }) {
+  return http.delete(`${path}/delete_dirty_records/`, params);
+}

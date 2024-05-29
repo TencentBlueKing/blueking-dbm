@@ -7,29 +7,47 @@
       :title="t('集群部署等操作新主机的任务，如任务执行失败，相应的主机将会被挪到这里，等待人工确认')" />
     <div class="header-action mb-16">
       <span
-        v-bk-tooltips="{ content: $t('请选择主机'), disabled: selectedHosts.length > 0 }"
+        v-bk-tooltips="{
+          content: t('只能选择“移入待回收的主机”'),
+          disabled: enableWaitForRecycle,
+        }"
         class="inline-block">
         <BkButton
-          :disabled="selectedHosts.length === 0"
-          @click="transferHosts(selectedHosts)">
-          {{ $t('移入待回收') }}
+          :disabled="!enableWaitForRecycle"
+          @click="batchTransferHosts">
+          {{ t('移入待回收') }}
         </BkButton>
       </span>
       <span
-        v-bk-tooltips="{ content: $t('请选择主机'), disabled: selectedHosts.length > 0 }"
+        v-bk-tooltips="{
+          content: enableMarkProcess ? t('标记为已处理的 IP，将会删除记录') : t('只能选择“标记为处理的主机”'),
+        }"
+        class="inline-block">
+        <BkButton
+          class="ml-8"
+          :disabled="!enableMarkProcess"
+          @click="batchMarkProcessHosts">
+          {{ t('标记为已处理') }}
+        </BkButton>
+      </span>
+      <span
+        v-bk-tooltips="{
+          content: t('请选择主机'),
+          disabled: selectedHosts.length > 0,
+        }"
         class="inline-block">
         <BkButton
           class="ml-8"
           :disabled="selectedHosts.length === 0"
           @click="handleCopySelected">
-          {{ $t('复制已选IP') }}
+          {{ t('复制已选IP') }}
         </BkButton>
       </span>
       <DbSearchSelect
         v-model="searchValues"
         class="ml-8"
         :data="serachData"
-        :placeholder="$t('请输入操作人或选择条件搜索')"
+        :placeholder="t('请输入操作人或选择条件搜索')"
         style="width: 500px"
         unique-select
         :validate-values="serachValidateValues"
@@ -58,16 +76,19 @@
 
   import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
   import {
+    deleteDirtyRecords,
     getDirtyMachines,
     transferDirtyMachines,
   } from '@services/source/dbdirty';
   import { getTicketTypes } from '@services/source/ticket';
 
-  import {
-    useCopy,
-  } from '@hooks';
+  import { useCopy } from '@hooks';
+
+  import { useGlobalBizs } from '@stores';
 
   import { ipv4 } from '@common/regex';
+
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
     getSearchSelectorParams,
@@ -77,6 +98,7 @@
   const router = useRouter();
   const copy = useCopy();
   const { t } = useI18n();
+  const useGlobalBizsStore = useGlobalBizs();
 
   const dataSource = getDirtyMachines;
 
@@ -85,6 +107,9 @@
   const ticketTypes = ref<Array<{id: string, name: string}>>([]);
   const selectedTransferHostMap = shallowRef<Record<number, DirtyMachinesModel>>({});
   const selectedHosts = computed(() => Object.values(selectedTransferHostMap.value));
+
+  const enableWaitForRecycle = computed(() => selectedHosts.value.length > 0 && selectedHosts.value.every(item => item.is_dirty));
+  const enableMarkProcess = computed(() => selectedHosts.value.length > 0 && selectedHosts.value.every(item => !item.is_dirty));
 
   const serachData = computed(() => [
     {
@@ -111,6 +136,8 @@
     },
   ]);
 
+  const bizName = useGlobalBizsStore.currentBizInfo?.name;
+
   const tableColumn = [
     {
       type: 'selection',
@@ -122,6 +149,19 @@
       label: 'IP',
       field: 'ip',
       fixed: true,
+      render: ({ data }: {data: DirtyMachinesModel}) => (
+        <TextOverflowLayout>
+          {{
+            default: () => data.ip,
+            append: () => !data.is_dirty && (
+              <db-icon
+                type="attention"
+                class="mark-tip-icon"
+                v-bk-tooltips={t('主机已经被移动至 “x模块”，可以标记为已处理', { x: data.bk_module_infos.map(item => item.bk_module_name).join(' , ')})} />
+            )
+          }}
+        </TextOverflowLayout>
+      )
     },
     {
       label: t('管控区域'),
@@ -177,14 +217,46 @@
       width: 150,
       flexd: 'right',
       render: ({ data }: {data: DirtyMachinesModel}) => (
-          <auth-button
-            action-id="dirty_pool_manage"
-            permission={data.permission.dirty_pool_manage}
-            theme="primary"
-            text
-            onClick={() => transferHosts([data])}>
-            {t('移入待回收')}
-          </auth-button>
+        data.is_dirty ?
+          <bk-pop-confirm
+            title={t('确认移入待回收机池？')}
+            content={
+              <span>
+                <div>{data.ip}</div>
+                <div>{t('主机将移入“x业务下的空闲机池”', { x: bizName})}</div>
+              </span>
+            }
+            width={280}
+            trigger="click"
+            onConfirm={() => transferHosts(data)}>
+            <auth-button
+              action-id="dirty_pool_manage"
+              permission={data.permission.dirty_pool_manage}
+              theme="primary"
+              text>
+              {t('移入待回收')}
+            </auth-button>
+          </bk-pop-confirm>
+          :
+          <bk-pop-confirm
+            title={t('确认标记为已经处理？')}
+            content={
+              <span>
+                <div>{data.ip}</div>
+                <div>{t('将会删除该条主机记录')}</div>
+              </span>
+            }
+            width={280}
+            trigger="click"
+            onConfirm={() => markProcessHosts(data)}>
+            <auth-button
+              action-id="dirty_pool_manage"
+              permission={data.permission.dirty_pool_manage}
+              theme="primary"
+              text>
+              {t('标记为已处理')}
+            </auth-button>
+          </bk-pop-confirm>
       ),
     },
   ];
@@ -260,20 +332,34 @@
     copy(selectedHosts.value.map(item => item.ip).join(','));
   };
 
-  const transferHosts = (data: DirtyMachinesModel[] = []) => {
-    if (data.length === 0) return;
+  // 转移单台主机
+  const transferHosts = (data: DirtyMachinesModel) => {
+    transferDirtyMachines({
+      bk_host_ids: [data.bk_host_id],
+    })
+      .then(() => {
+        messageSuccess(t('转移成功'));
+        fetchData();
+        selectedTransferHostMap.value = {};
+      })
+  };
 
+  // 批量转移主机
+  const batchTransferHosts = () => {
     InfoBox({
-      width: 480,
-      type: 'warning',
-      title: t('确认将以下主机转移至待回收模块'),
+      width: 400,
+      title: t('确认将n台主机移入待回收机池？', { n: selectedHosts.value.length }),
+      cancelText: t('取消'),
       content: () => (
-        <div style="word-break: all;">
-          {data.map(item => <p>{item.ip}</p>)}
+        <div class="dirty-machine-operation-infobox">
+          <div class="tip-title">{t('主机将移入“x业务下的空闲机池”', { x: bizName})}</div>
+          <div class="ip-list">
+            {selectedHosts.value.map(item => <p>{item.ip}</p>)}
+          </div>
         </div>
       ),
       onConfirm: () => transferDirtyMachines({
-        bk_host_ids: data.map(item => item.bk_host_id),
+        bk_host_ids: selectedHosts.value.map(item => item.bk_host_id),
       })
         .then(() => {
           messageSuccess(t('转移成功'));
@@ -281,7 +367,44 @@
           selectedTransferHostMap.value = {};
           return true;
         })
-        .catch(() => false),
+    });
+  };
+
+  // 标记单台为已处理
+  const markProcessHosts = (data: DirtyMachinesModel) => {
+    deleteDirtyRecords({
+      bk_host_ids: [data.bk_host_id],
+    })
+      .then(() => {
+        messageSuccess(t('标记成功'));
+        fetchData();
+        selectedTransferHostMap.value = {};
+      })
+  };
+
+  // 批量标记单台为已处理
+  const batchMarkProcessHosts = () => {
+    InfoBox({
+      width: 400,
+      title: t('确认将n台主机标记为已处理？', { n: selectedHosts.value.length }),
+      cancelText: t('取消'),
+      content: () => (
+        <div class="dirty-machine-operation-infobox">
+          <div class="tip-title">{t('将会删除n条主机记录', { n: selectedHosts.value.length })}</div>
+          <div class="ip-list">
+            {selectedHosts.value.map(item => <p>{item.ip}</p>)}
+          </div>
+        </div>
+      ),
+      onConfirm: () => deleteDirtyRecords({
+        bk_host_ids: selectedHosts.value.map(item => item.bk_host_id),
+      })
+        .then(() => {
+          messageSuccess(t('标记成功'));
+          fetchData();
+          selectedTransferHostMap.value = {};
+          return true;
+        })
     });
   };
 
@@ -315,5 +438,39 @@
     .header-action {
       display: flex;
     }
+  }
+</style>
+
+<style lang="less">
+  .dirty-machine-operation-infobox {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    .tip-title {
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .ip-list {
+      padding: 12px 16px;
+      background: #f5f7fa;
+      display: flex;
+      flex-wrap: wrap;
+
+      p {
+        width: 33.33%;
+        line-height: 20px;
+      }
+    }
+  }
+
+  .mark-tip-icon {
+    display: inline-block;
+    font-size: 14px;
+    color: #ff9c01;
+    margin-left: 6px;
+    cursor: pointer;
   }
 </style>
