@@ -93,6 +93,7 @@
   import useValidtor, { type Rules } from './useValidtor';
 
   interface Props {
+    data?: IDataRow['authorizeIps'];
     clusterData?: IDataRow['clusterData'];
   }
 
@@ -102,7 +103,10 @@
     }>;
   }
 
-  defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => [],
+    clusterData: undefined,
+  });
 
   const { t } = useI18n();
 
@@ -123,6 +127,18 @@
   ] as Rules;
 
   const { message: errorMessage, validator } = useValidtor(rules);
+
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.length) {
+        localHostList.value = props.data.map((ip) => ({ ip })) as HostDetails[];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(
     localHostList,

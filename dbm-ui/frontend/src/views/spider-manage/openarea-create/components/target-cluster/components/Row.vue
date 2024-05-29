@@ -12,29 +12,29 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <ColumnCluster
-          ref="clusterRef"
-          :model-value="localClusterData" />
-      </td>
-      <ColumnVariable
-        v-for="variableName in variableList"
-        :key="variableName"
-        ref="variableRefs"
-        :name="variableName" />
-      <td style="padding: 0">
-        <ColumnHost
-          ref="hostRef"
-          :cluster-data="localClusterData" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <ColumnCluster
+        ref="clusterRef"
+        :model-value="localClusterData" />
+    </td>
+    <ColumnVariable
+      v-for="variableName in variableList"
+      :key="variableName"
+      ref="variableRefs"
+      :data="data.vars[variableName]"
+      :name="variableName" />
+    <td style="padding: 0">
+      <ColumnHost
+        ref="hostRef"
+        :cluster-data="localClusterData"
+        :data="data.authorizeIps" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
@@ -45,7 +45,7 @@
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
     clusterData: data.clusterData,
-    vars: data.vars,
+    vars: data.vars ?? {},
     authorizeIps: data.authorizeIps,
   });
 </script>
@@ -64,7 +64,7 @@
       bk_cloud_id: number;
       bk_cloud_name: string;
     };
-    vars?: Record<string, string>;
+    vars: Record<string, string>;
     authorizeIps?: string[];
   }
 

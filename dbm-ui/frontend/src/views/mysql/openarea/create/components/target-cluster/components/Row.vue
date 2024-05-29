@@ -24,12 +24,14 @@
       style="padding: 0">
       <ColumnVariable
         ref="variableRefs"
+        :data="data.vars[variableName]"
         :name="variableName" />
     </td>
     <td style="padding: 0">
       <ColumnHost
         ref="hostRef"
-        :cluster-data="localClusterData" />
+        :cluster-data="localClusterData"
+        :data="data.authorizeIps" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -46,7 +48,7 @@
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
     clusterData: data.clusterData,
-    vars: data.vars,
+    vars: data.vars ?? {},
     authorizeIps: data.authorizeIps,
   });
 </script>
@@ -65,7 +67,7 @@
       bk_cloud_id: number;
       bk_cloud_name: string;
     };
-    vars?: Record<string, string>;
+    vars: Record<string, string>;
     authorizeIps?: string[];
   }
 

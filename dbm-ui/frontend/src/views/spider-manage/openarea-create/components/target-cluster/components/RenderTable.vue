@@ -33,6 +33,21 @@
           :min-width="170"
           :width="180">
           {{ variableName }}
+          <template #append>
+            <BatchEditColumn
+              v-model="showBatchEdit[variableName]"
+              :placeholder="t('只能包含英文字母、数字，多个换行分隔')"
+              :title="variableName"
+              type="textarea"
+              @change="(value: string) => handleBatchEdit(value, variableName)">
+              <span
+                v-bk-tooltips="t('批量编辑：通过换行分隔，快速批量录入多个值')"
+                class="batch-edit-btn"
+                @click="() => handleShowBatchEdit(variableName)">
+                <DbIcon type="piliangluru" />
+              </span>
+            </BatchEditColumn>
+          </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
@@ -57,6 +72,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
@@ -66,12 +82,33 @@
 
   interface Emits {
     (e: 'batchSelectCluster'): void;
+    (e: 'batchEdit', varName: string, value: string[]): void;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const initShowBatchEdit = () =>
+    props.variableList.reduce(
+      (results, varName) => {
+        Object.assign(results, { [varName]: false });
+        return results;
+      },
+      {} as Record<string, boolean>,
+    );
+
   const { t } = useI18n();
+
+  const showBatchEdit = reactive(initShowBatchEdit());
+
+  const handleShowBatchEdit = (key: string) => {
+    showBatchEdit[key] = !showBatchEdit[key];
+  };
+
+  const handleBatchEdit = (value: string, varName: string) => {
+    const list = value.trim().split('\n');
+    emits('batchEdit', varName, list);
+  };
 
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');

@@ -602,3 +602,15 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-kejian:before {
 	content: "\e1ec";
 }
+.db-icon-doris:before {
+	content: "\e1ee";
+}
+.db-icon-daochu-2:before {
+	content: "\e1f0";
+}
+.db-icon-daoru:before {
+	content: "\e1ef";
+}
+.db-icon-piliangluru:before {
+	content: "\e1f1";
+}
