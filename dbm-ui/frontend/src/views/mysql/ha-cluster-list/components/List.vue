@@ -332,8 +332,7 @@
       label: t('主访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      width: 200,
-      minWidth: 200,
+      minWidth: 300,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <TextOverflowLayout>
@@ -482,8 +481,8 @@
     {
       label: 'Proxy',
       field: 'proxies',
-      width: 180,
-      minWidth: 180,
+      width: 200,
+      minWidth: 200,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <RenderInstances
@@ -499,8 +498,8 @@
     {
       label: 'Master',
       field: 'masters',
-      width: 180,
-      minWidth: 180,
+      width: 200,
+      minWidth: 200,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <RenderInstances
@@ -516,8 +515,8 @@
     {
       label: 'Slave',
       field: 'slaves',
-      width: 180,
-      minWidth: 180,
+      width: 200,
+      minWidth: 200,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <RenderInstances

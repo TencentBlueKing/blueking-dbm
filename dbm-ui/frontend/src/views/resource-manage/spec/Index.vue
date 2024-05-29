@@ -336,6 +336,10 @@
   const renderTabs = computed(() =>
     tabs.filter((item) => {
       const data = funControllerStore.funControllerData[item.moduleId];
+      if (!data) {
+        return false;
+      }
+
       const childItem = (data.children as Record<TabItem['name'], ControllerBaseInfo>)[item.name];
 
       // 若有对应的模块子功能，判断是否开启
@@ -359,7 +363,7 @@
     }
   };
 
-  onBeforeMount(() => {
+  onMounted(() => {
     const { spec_cluster_type: clusterType } = route.query;
     if (clusterType) {
       curTab.value = clusterType as string;

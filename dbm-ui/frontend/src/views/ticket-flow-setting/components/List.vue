@@ -205,11 +205,12 @@
       label: t('更新人'),
       field: 'updater',
       showOverflowTooltip: true,
-      width: 180,
+      width: 120,
     },
     {
       label: t('更新时间'),
       field: 'update_at',
+      width: 250,
       showOverflowTooltip: true,
       sort: true,
       render: ({ data }: { data: TicketFlowDescribeModel }) => data.updateAtDisplay,

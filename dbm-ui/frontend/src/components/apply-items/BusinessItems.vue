@@ -101,7 +101,6 @@
       },
     ],
     onSuccess(data) {
-      console.log('asdasdasd = ', data);
       bizList.value = data;
     },
   });

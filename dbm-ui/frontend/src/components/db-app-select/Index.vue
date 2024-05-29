@@ -18,6 +18,7 @@
     <template #default="{ data }">
       <AuthTemplate
         :action-id="permissionActionId"
+        :biz-id="data.bk_biz_id"
         :permission="data.permission[permissionActionId]"
         :resource="data.bk_biz_id"
         style="flex: 1">

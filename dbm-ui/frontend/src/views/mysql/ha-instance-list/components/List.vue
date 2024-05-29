@@ -287,6 +287,7 @@
       {
         label: t('部署角色'),
         field: 'role',
+        width: 100,
         filter: {
           list: columnAttrs.value.role,
           checked: columnCheckedMap.value.role,
@@ -295,14 +296,14 @@
       {
         label: t('部署时间'),
         field: 'create_at',
-        width: 160,
+        width: 250,
         sort: true,
         render: ({ data }: { data: TendbhaInstanceModel }) => data.createAtDisplay || '--',
       },
       {
         label: t('操作'),
         fixed: 'right',
-        width: 140,
+        width: 100,
         render: ({ data }: { data: TendbhaInstanceModel }) => (
           <auth-button
             action-id="mysql_view"

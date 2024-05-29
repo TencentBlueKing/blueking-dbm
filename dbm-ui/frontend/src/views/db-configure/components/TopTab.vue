@@ -25,6 +25,7 @@
   </BkTab>
 </template>
 <script setup lang="ts">
+  import { onMounted } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type {
@@ -50,6 +51,7 @@
   const emit = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const route = useRoute();
 
   const funControllerStore = useFunController();
 
@@ -131,11 +133,15 @@
     },
   ];
 
-  const route = useRoute();
-  const clusterType = computed(() => route.params.clusterType as string);
+  const active = ref('');
+
   const renderTabs = computed(() =>
     tabs.filter((item) => {
       const data = funControllerStore.funControllerData[item.moduleId];
+      if (!data) {
+        return false;
+      }
+
       const childItem = (data.children as Record<TabItem['id'], ControllerBaseInfo>)[item.id];
 
       // 若有对应的模块子功能，判断是否开启
@@ -147,14 +153,15 @@
       return data && data.is_enabled;
     }),
   );
-  const initActive = clusterType.value ?? renderTabs.value[0].id;
-  const active = ref(initActive);
 
-  handleChange(initActive);
-
-  function handleChange(value: string) {
+  const handleChange = (value: string) => {
     emit('change', value);
-  }
+  };
+
+  onMounted(() => {
+    active.value = (route.params.clusterType as string) ?? renderTabs.value[0].id;
+    handleChange(active.value);
+  });
 </script>
 <style lang="less">
   .db-configur-type-tab {
