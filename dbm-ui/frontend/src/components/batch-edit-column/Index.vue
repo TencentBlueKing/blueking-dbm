@@ -3,17 +3,15 @@
     :is-show="isShow"
     trigger="manual"
     width="395"
-    @cancel="() => isShow = false"
+    @cancel="() => (isShow = false)"
     @confirm="handleConfirm">
     <slot />
     <template #content>
       <div class="batch-edit-column-select">
-        <div class="main-title">
-          {{ t('批量编辑') }}{{ title }}
-        </div>
+        <div class="main-title">{{ t('批量编辑') }}{{ title }}</div>
         <div
           class="title-spot edit-title"
-          style="font-weight: normal;">
+          style="font-weight: normal">
           {{ title }} <span class="required" />
         </div>
         <BkSelect
@@ -22,6 +20,12 @@
           :clearable="false"
           filterable
           :list="dataList" />
+        <BkInput
+          v-else-if="type === 'textarea'"
+          v-model="localValue"
+          :placeholder="placeholder"
+          :rows="5"
+          type="textarea" />
       </div>
     </template>
   </BkPopConfirm>
@@ -33,19 +37,21 @@
   interface Props {
     title: string;
     dataList?: {
-      value: T,
-      label: string,
+      value: T;
+      label: string;
     }[];
-    type?: 'select'
+    type?: 'select' | 'textarea';
+    placeholder?: string;
   }
 
   interface Emits {
-    (e: 'change', value: string): void,
+    (e: 'change', value: string): void;
   }
 
   withDefaults(defineProps<Props>(), {
-    dataList: () => ([]),
+    dataList: () => [],
     type: 'select',
+    placeholder: '',
   });
 
   const emits = defineEmits<Emits>();
@@ -64,7 +70,7 @@
   };
 </script>
 
-  <style lang="less">
+<style lang="less">
   .batch-edit-column-select {
     margin-bottom: 30px;
 
@@ -85,5 +91,9 @@
     .input-box {
       height: 32px;
     }
+
+    .bk-textarea {
+      resize: none;
+    }
   }
-  </style>
+</style>

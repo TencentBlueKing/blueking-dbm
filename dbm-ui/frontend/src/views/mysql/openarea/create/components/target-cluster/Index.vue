@@ -1,8 +1,15 @@
 <template>
   <div>
+    <BkButton
+      class="db-clear-batch"
+      @click="() => (isShowBatchInput = true)">
+      <DbIcon type="add" />
+      {{ t('批量录入') }}
+    </BkButton>
     <RenderTable
       class="mt16"
       :variable-list="variableList"
+      @batch-edit="handleBatchEdit"
       @batch-select-cluster="handleShowBatchSelector">
       <RenderDataRow
         v-for="(item, index) in tableData"
@@ -14,6 +21,10 @@
         @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
         @remove="handleRemove(index)" />
     </RenderTable>
+    <BatchInput
+      v-model="isShowBatchInput"
+      :variable-list="variableList"
+      @change="handleBatchInput" />
     <ClusterSelector
       v-model:is-show="isShowBatchSelector"
       :cluster-types="[ClusterTypes.TENDBHA]"
@@ -22,14 +33,17 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import TendbhaModel from '@services/model/mysql/tendbha';
 
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
+  import BatchInput from './components/BatchInput.vue';
   import RenderTable from './components/RenderTable.vue';
-  import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IData, type IDataRow } from './components/Row.vue';
 
   interface Props {
     variableList: string[];
@@ -39,6 +53,8 @@
   }
 
   defineProps<Props>();
+
+  const { t } = useI18n();
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -51,18 +67,40 @@
 
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>([]);
   const isShowBatchSelector = ref(false);
+  const isShowBatchInput = ref(false);
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({
     [ClusterTypes.TENDBHA]: [],
   });
 
-  const tableData = shallowRef<IDataRow[]>([createRowData()]);
+  const tableData = ref<IDataRow[]>([createRowData()]);
 
   // 集群域名是否已存在表格的映射表
   const domainMemo: Record<string, boolean> = {};
 
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
+  };
+
+  const handleBatchEdit = (varName: string, list: string[]) => {
+    list.forEach((value, index) => {
+      if (tableData.value[index]) {
+        tableData.value[index].vars = {
+          [varName]: value,
+        };
+        return;
+      }
+      tableData.value[index] = createRowData({
+        vars: {
+          [varName]: value,
+        },
+      });
+    });
+  };
+
+  // 批量输入
+  const handleBatchInput = (rowInfos: IData[]) => {
+    tableData.value = rowInfos.map((item) => createRowData(item));
   };
 
   // 批量选择
@@ -109,7 +147,7 @@
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
-      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.master_domain !== domain);
     }
     dataList.splice(index, 1);
     tableData.value = dataList;

@@ -27,16 +27,19 @@
 
   interface Props {
     name: string;
+    data?: string;
   }
   interface Exposes {
     getValue: () => Promise<Record<string, string>>;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    data: '',
+  });
 
   const { t } = useI18n();
 
-  const localValue = ref('');
+  const localValue = ref(props.data);
   const editRef = ref();
 
   const rules = [
@@ -45,6 +48,16 @@
       message: t('变量名name不能为空', { name: props.name }),
     },
   ];
+
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {

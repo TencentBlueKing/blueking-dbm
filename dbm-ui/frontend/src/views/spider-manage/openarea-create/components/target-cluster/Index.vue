@@ -1,8 +1,15 @@
 <template>
   <div>
+    <BkButton
+      class="db-clear-batch"
+      @click="() => (isShowBatchInput = true)">
+      <DbIcon type="add" />
+      {{ t('批量录入') }}
+    </BkButton>
     <RenderTable
       class="mt16"
       :variable-list="variableList"
+      @batch-edit="handleBatchEdit"
       @batch-select-cluster="handleShowBatchSelector">
       <RenderDataRow
         v-for="(item, index) in tableData"
@@ -14,6 +21,10 @@
         @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
         @remove="handleRemove(index)" />
     </RenderTable>
+    <BatchInput
+      v-model="isShowBatchInput"
+      :variable-list="variableList"
+      @change="handleBatchInput" />
     <ClusterSelector
       v-model:is-show="isShowBatchSelector"
       :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -23,6 +34,7 @@
 </template>
 <script setup lang="ts">
   import { shallowRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import SpiderModel from '@services/model/spider/spider';
 
@@ -30,8 +42,9 @@
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
+  import BatchInput from './components/BatchInput.vue';
   import RenderTable from './components/RenderTable.vue';
-  import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IData, type IDataRow } from './components/Row.vue';
 
   interface Props {
     variableList: string[];
@@ -41,6 +54,8 @@
   }
 
   defineProps<Props>();
+
+  const { t } = useI18n();
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -53,14 +68,35 @@
 
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>([]);
   const isShowBatchSelector = ref(false);
+  const isShowBatchInput = ref(false);
+
   const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({
     [ClusterTypes.TENDBCLUSTER]: [],
   });
 
-  const tableData = shallowRef<IDataRow[]>([createRowData()]);
+  const tableData = ref<IDataRow[]>([createRowData()]);
 
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
+  };
+
+  // 批量输入
+  const handleBatchInput = (rowInfos: IData[]) => {
+    tableData.value = rowInfos.map((item) => createRowData(item));
+  };
+
+  const handleBatchEdit = (varName: string, list: string[]) => {
+    list.forEach((value, index) => {
+      if (tableData.value[index]) {
+        tableData.value[index].vars[varName] = value;
+        return;
+      }
+      tableData.value[index] = createRowData({
+        vars: {
+          [varName]: value,
+        },
+      });
+    });
   };
 
   // 批量选择
