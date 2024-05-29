@@ -85,7 +85,9 @@
 
   const { t } = useI18n();
 
-  const dataSource = (params: ServiceParameters<typeof queryDutyRuleList>) => queryDutyRuleList(params, {
+  const dataSource = (params: ServiceParameters<typeof queryDutyRuleList>) => queryDutyRuleList(Object.assign(params, {
+    db_type: props.activeDbType
+  }), {
     permission: 'catch'
   })
 
@@ -410,16 +412,6 @@
       }
       sortedPriority.value = list;
     },
-  });
-
-  watch(() => props.activeDbType, (type) => {
-    if (type) {
-      setTimeout(() => {
-        fetchHostNodes();
-      });
-    }
-  }, {
-    immediate: true,
   });
 
   const updateRowClass = (row: DutyRuleModel) => (row.isNewCreated ? 'is-new' : '');

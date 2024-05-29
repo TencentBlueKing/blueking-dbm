@@ -93,8 +93,10 @@
   const { currentBizId, bizs } = useGlobalBizs();
   const { notifyGroupId } = useRoute().query as { notifyGroupId: string };
 
-  const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) => queryMonitorPolicyList(params, {
-    permission: 'catch'
+  const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) => queryMonitorPolicyList(Object.assign(params, {
+    db_type: props.activeDbType
+  }), {
+    permission: 'catch',
   })
 
   const tableRef = ref();
@@ -475,13 +477,11 @@
       fetchData();
     })
   }, {
-    immediate: true,
     deep: true,
   });
 
   watch(() => props.activeDbType, (type) => {
     if (type) {
-
       fetchClusers({
         dbtype: type,
         bk_biz_id: currentBizId,
