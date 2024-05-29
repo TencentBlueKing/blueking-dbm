@@ -24,6 +24,7 @@ from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.serializers import (
     GetMySQLAdminPasswordResponseSerializer,
     GetMySQLAdminPasswordSerializer,
+    GetRandomPasswordSerializer,
     ModifyAdminPasswordSerializer,
     ModifyMySQLPasswordRandomCycleSerializer,
     PasswordPolicySerializer,
@@ -85,12 +86,14 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("获取符合密码强度的字符串"),
+        query_serializer=GetRandomPasswordSerializer(),
         responses={status.HTTP_200_OK: VerifyPasswordSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False)
+    @action(methods=["GET"], detail=False, serializer_class=GetRandomPasswordSerializer)
     def get_random_password(self, request, *args, **kwargs):
-        random_password = DBPasswordHandler.get_random_password()
+        security_type = self.validated_data["security_type"]
+        random_password = DBPasswordHandler.get_random_password(security_type)
         return Response({"password": random_password})
 
     @common_swagger_auto_schema(

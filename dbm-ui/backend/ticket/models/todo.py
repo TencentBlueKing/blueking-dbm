@@ -77,7 +77,7 @@ class Todo(AuditedModel):
 
     @property
     def url(self):
-        return f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/my-todos?id={self.id}"
+        return f"{env.BK_SAAS_HOST}/my-todos?id={self.ticket.id}"
 
     def set_status(self, username, status):
         self.status = status

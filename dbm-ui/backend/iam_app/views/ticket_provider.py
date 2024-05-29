@@ -14,6 +14,7 @@ import logging
 from django.db import models
 
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
+from backend.iam_app.handlers.converter import MoreLevelIamPathConverter
 from backend.iam_app.views.iam_provider import BaseModelResourceProvider
 from backend.ticket.models import Ticket
 
@@ -28,11 +29,26 @@ class TicketResourceProvider(BaseModelResourceProvider):
     model: models.Model = Ticket
     resource_meta: ResourceMeta = ResourceEnum.TICKET
 
+    @staticmethod
+    def parse_iam_path(iam_path):
+        return {
+            "bk_biz_id": iam_path.split("/")[1].split(",")[-1],
+            "db_type": iam_path.split("/")[2].split(",")[-1],
+        }
+
     def list_instance(self, filter, page, **options):
         filter.data_source = self.model
         filter.value_list = [self.resource_meta.lookup_field, *self.resource_meta.display_fields]
         filter.keyword_field = "id__icontains"
         return super().list_instance(filter, page, **options)
+
+    def _list_instance(self, data_source: models.Model, condition, value_list, page):
+        # ticket的db_type字段是group
+        if "db_type" in condition:
+            if condition["db_type"] == "other":
+                condition["db_type"] = ""
+            condition["group"] = condition.pop("db_type")
+        return super()._list_instance(data_source, condition, value_list, page)
 
     def search_instance(self, filter, page, **options):
         return self.list_instance(filter, page, **options)
@@ -47,13 +63,15 @@ class TicketResourceProvider(BaseModelResourceProvider):
             f"{self.resource_meta.id}.creator": "creator",
             f"{self.resource_meta.id}._bk_iam_path_": "bk_biz_id",
         }
-        values_hook = {"bk_biz_id": lambda value: value[1:-1].split(",")[1]}
+        value_hooks = {"bk_biz_id,db_type": self.parse_iam_path}
+        converter_class = options.get("converter_class", MoreLevelIamPathConverter)
         return self._list_instance_by_policy(
             data_source=self.model,
             # id作为id，id+ticket_type作为display name
             value_list=["id", "id"],
             key_mapping=key_mapping,
-            value_hooks=values_hook,
+            value_hooks=value_hooks,
             filter=filter,
             page=page,
+            converter_class=converter_class,
         )

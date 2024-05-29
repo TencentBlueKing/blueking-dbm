@@ -39,6 +39,7 @@ from backend.iam_app.views.flow_provider import FlowResourceProvider
 from backend.iam_app.views.monitor_policy_provider import MonitorPolicyResourceProvider
 from backend.iam_app.views.notify_group_provider import NotifyGroupResourceProvider
 from backend.iam_app.views.openarea_config_provider import OpenareaConfigResourceProvider
+from backend.iam_app.views.ticket_group_provider import TicketGroupResourceProvider
 from backend.iam_app.views.ticket_provider import TicketResourceProvider
 from backend.iam_app.views.views import IAMViewSet
 
@@ -62,6 +63,7 @@ dispatcher.register(r"hdfs", HdfsClusterResourceProvider())
 dispatcher.register(r"kafka", KafkaClusterResourceProvider())
 dispatcher.register(r"pulsar", PulsarClusterResourceProvider())
 dispatcher.register(r"dbtype", DBTypeResourceProvider())
+dispatcher.register(r"ticket_group", TicketGroupResourceProvider())
 dispatcher.register(r"mongodb", MongoDBClusterResourceProvider())
 dispatcher.register(r"sqlserver", SQLServerClusterResourceProvider())
 

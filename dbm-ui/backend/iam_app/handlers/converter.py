@@ -21,9 +21,7 @@ from iam.eval.expression import field_value_convert
 logger = logging.getLogger("root")
 
 
-class MonitorDjangoQuerySetConverter(DjangoQuerySetConverter):
-    """监控策略的策略转换器"""
-
+class MoreLevelIamPathConverter(DjangoQuerySetConverter):
     def _iam_path_(self, left, right):
         return reduce(operator.and_, [Q(**{field: right[field]}) for field in left.split(",")])
 
@@ -32,7 +30,7 @@ class MonitorDjangoQuerySetConverter(DjangoQuerySetConverter):
             return self._iam_path_
 
 
-class NotifyGroupDjangoQuerySetConverter(MonitorDjangoQuerySetConverter):
+class NotifyGroupDjangoQuerySetConverter(MoreLevelIamPathConverter):
     """告警组的策略转换器"""
 
     def _iam_path_(self, left, right):

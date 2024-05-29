@@ -127,6 +127,26 @@ class ResourceMeta(metaclass=abc.ABCMeta):
         return instance_tuple_list
 
     @classmethod
+    def batch_create_with_iam_path(
+        cls, model: models.Model, instance_ids: list, instance_queryset: models.QuerySet = None, attr: dict = None
+    ) -> List[Tuple[Resource, models.Model]]:
+        """
+        批量创建模型实例，带有自定义iam_path
+        :param model: django模型
+        :param instance_ids: 实例ID列表
+        :param instance_queryset: 实例查询集
+        :param attr: 实例属性
+        """
+        if not hasattr(cls, "get_bk_iam_path"):
+            raise NotImplementedError
+        tuples = cls.batch_create_model_instances(model, instance_ids, instance_queryset, attr)
+        resources_tuple_list = []
+        for resource, instance in tuples:
+            resource.attribute.update(_bk_iam_path_=cls.get_bk_iam_path(instance))
+            resources_tuple_list.append((resource, instance))
+        return resources_tuple_list
+
+    @classmethod
     def to_json(cls) -> Dict:
         resource_json = {
             "id": cls.id,
@@ -181,6 +201,22 @@ class DBTypeResourceMeta(ResourceMeta):
 
 
 @dataclass
+class TicketGroupResourceMeta(DBTypeResourceMeta):
+    """单据分类的resource 属性定义，与dbtype的唯一区别是多了个'其他'分类"""
+
+    id: str = "ticket_group"
+    name: str = _("单据分类")
+
+    @classmethod
+    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+        resource = cls._create_simple_instance(instance_id, attr)
+        resource.attribute = {"id": str(instance_id), "name": DBType.get_choice_label(instance_id)}
+        if instance_id == "other":
+            resource.attribute["name"] = _("其他")
+        return resource
+
+
+@dataclass
 class TaskFlowResourceMeta(ResourceMeta):
     """任务流程resource 属性定义"""
 
@@ -199,15 +235,31 @@ class TaskFlowResourceMeta(ResourceMeta):
     def create_instance(cls, instance_id: str, attr=None) -> Resource:
         from backend.flow.models import FlowTree
 
-        resource, __ = cls.create_model_instance(FlowTree, instance_id, attr)
+        resource, instance = cls.create_model_instance(FlowTree, instance_id, attr)
+        resource.attribute.update(_bk_iam_path_=cls.get_bk_iam_path(instance))
         return resource
 
     @classmethod
     def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
         from backend.flow.models import FlowTree
 
-        resources = [item[0] for item in cls.batch_create_model_instances(FlowTree, instance_ids, attr=attr)]
+        resources = [item[0] for item in cls.batch_create_with_iam_path(FlowTree, instance_ids, attr=attr)]
         return resources
+
+    @classmethod
+    def get_bk_iam_path(cls, instance):
+        biz_topo = "/{},{}".format(BusinessResourceMeta.id, instance.bk_biz_id)
+        group_topo = "/{},{}".format(TicketGroupResourceMeta.id, instance.db_type or "other")
+        slash = "/"
+        return biz_topo + group_topo + slash
+
+    @classmethod
+    def resource_type_chain(cls):
+        return [
+            {"system_id": BusinessResourceMeta.system_id, "id": BusinessResourceMeta.id},
+            {"system_id": TicketGroupResourceMeta.system_id, "id": TicketGroupResourceMeta.id},
+            {"system_id": cls.system_id, "id": cls.id},
+        ]
 
 
 @dataclass
@@ -229,15 +281,31 @@ class TicketResourceMeta(ResourceMeta):
     def create_instance(cls, instance_id: str, attr=None) -> Resource:
         from backend.ticket.models import Ticket
 
-        resource, __ = cls.create_model_instance(Ticket, instance_id, attr)
+        resource, instance = cls.create_model_instance(Ticket, instance_id, attr)
+        resource.attribute.update(_bk_iam_path_=cls.get_bk_iam_path(instance))
         return resource
 
     @classmethod
     def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
         from backend.ticket.models import Ticket
 
-        resources = [item[0] for item in cls.batch_create_model_instances(Ticket, instance_ids, attr=attr)]
+        resources = [item[0] for item in cls.batch_create_with_iam_path(Ticket, instance_ids, attr=attr)]
         return resources
+
+    @classmethod
+    def get_bk_iam_path(cls, instance):
+        biz_topo = "/{},{}".format(BusinessResourceMeta.id, instance.bk_biz_id)
+        group_topo = "/{},{}".format(TicketGroupResourceMeta.id, instance.group or "other")
+        slash = "/"
+        return biz_topo + group_topo + slash
+
+    @classmethod
+    def resource_type_chain(cls):
+        return [
+            {"system_id": BusinessResourceMeta.system_id, "id": BusinessResourceMeta.id},
+            {"system_id": TicketGroupResourceMeta.system_id, "id": TicketGroupResourceMeta.id},
+            {"system_id": cls.system_id, "id": cls.id},
+        ]
 
 
 @dataclass
@@ -378,13 +446,7 @@ class InstanceResourceMeta(ClusterResourceMeta):
     def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
         from backend.db_meta.models.instance import StorageInstance
 
-        instance_queryset = StorageInstance.objects.select_related("machine").filter(pk__in=instance_ids)
-        resources = [
-            item[0]
-            for item in cls.batch_create_model_instances(
-                StorageInstance, instance_ids, attr=attr, instance_queryset=instance_queryset
-            )
-        ]
+        resources = [item[0] for item in cls.batch_create_model_instances(StorageInstance, instance_ids, attr=attr)]
         return resources
 
 
@@ -503,9 +565,15 @@ class MonitorPolicyResourceMeta(ResourceMeta):
         from backend.db_monitor.models.alarm import MonitorPolicy
 
         resource, instance = cls.create_model_instance(MonitorPolicy, instance_id, attr)
-        resource.attribute = {"id": str(instance_id), "name": instance.name, "creator": instance.creator}
         resource.attribute.update(_bk_iam_path_=cls.get_bk_iam_path(instance))
         return resource
+
+    @classmethod
+    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+        from backend.db_monitor.models.alarm import MonitorPolicy
+
+        resources = [item[0] for item in cls.batch_create_with_iam_path(MonitorPolicy, instance_ids, attr=attr)]
+        return resources
 
     @classmethod
     def resource_type_chain(cls):
@@ -658,6 +726,7 @@ class ResourceEnum:
     MONGODB = MongoDBResourceMeta()
     SQLSERVER = SQLServerResourceMeta()
     DBTYPE = DBTypeResourceMeta()
+    TICKET_GROUP = TicketGroupResourceMeta()
     MONITOR_POLICY = MonitorPolicyResourceMeta()
     GLOBAL_MONITOR_POLICY = GlobalMonitorPolicyResourceMeta()
     NOTIFY_GROUP = NotifyGroupResourceMeta()

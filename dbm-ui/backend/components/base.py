@@ -347,6 +347,7 @@ class DataAPI(object):
                 "module": self.module,
                 "method": self.method,
                 "method_override": self.method_override,
+                "headers": headers,
                 "query_params": params,
                 "response_result": response_result,
                 "response_code": response_code,

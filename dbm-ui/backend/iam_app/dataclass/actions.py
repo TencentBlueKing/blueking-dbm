@@ -107,12 +107,12 @@ class ActionEnum:
 
     GLOBAL_MANAGE = ActionMeta(
         id="global_manage",
-        name=_("平台管理访问"),
+        name=_("全局设置访问"),
         name_en="Global Manage",
         type="manage",
         related_actions=[],
         related_resource_types=[],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_(""),
     )
 
@@ -134,7 +134,7 @@ class ActionEnum:
         type="edit",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
     )
 
     RESOURCE_MANAGE = ActionMeta(
@@ -188,7 +188,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("数据库配置"),
     )
 
@@ -199,7 +199,7 @@ class ActionEnum:
         type="create",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("数据库配置"),
     )
 
@@ -210,7 +210,7 @@ class ActionEnum:
         type="delete",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("数据库配置"),
     )
 
@@ -1295,7 +1295,7 @@ class ActionEnum:
         name=_("健康报告查看"),
         name_en="health_report_view",
         type="view",
-        related_actions=[GLOBAL_MANAGE.id],
+        related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("可观测"),
     )
@@ -1305,7 +1305,7 @@ class ActionEnum:
         name=_("DBHA切换事件查看"),
         name_en="dbha_switch_event_view",
         type="view",
-        related_actions=[GLOBAL_MANAGE.id],
+        related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("可观测"),
     )
@@ -1361,7 +1361,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.GLOBAL_NOTIFY_GROUP],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("告警组"),
     )
 
@@ -1383,7 +1383,7 @@ class ActionEnum:
         type="view",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("监控策略"),
     )
 
@@ -1405,7 +1405,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("监控策略"),
     )
 
@@ -1438,7 +1438,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("监控策略"),
     )
 
@@ -1471,7 +1471,7 @@ class ActionEnum:
         type="create",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("监控策略"),
     )
 
@@ -1482,7 +1482,7 @@ class ActionEnum:
         type="view",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("数据库配置"),
     )
 
@@ -1492,7 +1492,7 @@ class ActionEnum:
         name_en="dba_administrator_edit",
         type="manage",
         related_actions=[],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务配置"),
         subgroup=_(""),
     )
@@ -1503,8 +1503,8 @@ class ActionEnum:
         name_en="global_dba_administrator_edit",
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
-        related_resource_types=[],
-        group=_("平台管理"),
+        related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("全局设置"),
         subgroup=_(""),
     )
 
@@ -1515,7 +1515,7 @@ class ActionEnum:
         type="view",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("版本文件"),
     )
 
@@ -1526,7 +1526,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("版本文件"),
     )
 
@@ -1537,7 +1537,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_(""),
     )
 
@@ -1581,7 +1581,7 @@ class ActionEnum:
         type="view",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("轮值策略"),
     )
 
@@ -1592,7 +1592,7 @@ class ActionEnum:
         type="create",
         related_actions=[GLOBAL_MANAGE.id, DUTY_RULE_LIST.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("轮值策略"),
     )
 
@@ -1603,7 +1603,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id, DUTY_RULE_LIST.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("轮值策略"),
     )
 
@@ -1614,7 +1614,7 @@ class ActionEnum:
         type="delete",
         related_actions=[GLOBAL_MANAGE.id, DUTY_RULE_LIST.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("轮值策略"),
     )
 
@@ -1636,7 +1636,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_(""),
     )
 
@@ -1647,7 +1647,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup=_("轮值策略"),
     )
 

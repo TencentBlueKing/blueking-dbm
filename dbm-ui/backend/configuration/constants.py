@@ -26,6 +26,11 @@ MYSQL_USUAL_JOB_TIME = 7200
 MYSQL8_VER_PARSE_NUM = 86400
 
 
+class DBPrivSecurityType(str, StructuredEnum):
+    PASSWORD = EnumField("password", _("默认密码策略"))
+    REDIS_PASSWORD = EnumField("redis_password", _("redis密码策略"))
+
+
 class AdminPasswordRole(str, StructuredEnum):
     """
     定义每个集群中每个node的内置账号名称
@@ -97,6 +102,8 @@ class BizSettingsEnum(str, StructuredEnum):
 
     OPEN_AREA_VARS = EnumField("OPEN_AREA_VARS", _("开区模板的渲染变量"))
     INDEPENDENT_HOSTING_DB_TYPES = EnumField("INDEPENDENT_HOSTING_DB_TYPES", _("独立托管机器的数据库类型"))
+    # TODO: 后续待删除
+    SKIP_GRAMMAR_CHECK = EnumField("SKIP_GRAMMAR_CHECK", _("是否跳过语义检查"))
 
 
 DEFAULT_DB_ADMINISTRATORS = ["admin"]
