@@ -21,7 +21,7 @@ from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import sync_dbs_
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import CreateRandomJobUserKwargs, DropRandomJobUserKwargs
-from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid
+from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid, get_no_sync_dbs
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("flow")
@@ -69,6 +69,15 @@ class SqlserverBuildDBSyncFlow(BaseFlow):
             )
 
             # 数据同步子流程
+            if len(info["sync_dbs"]) == 0:
+                # 如果没有传入待同步DB列表，则自动查询没有同步DB的列表
+                sync_dbs = get_no_sync_dbs(cluster_id=cluster.id)
+                if len(sync_dbs) == 0:
+                    logger.warning(f"no sync db in cluster [{cluster.name}]")
+                    continue
+                else:
+                    info["sync_dbs"] = sync_dbs
+
             sub_pipeline.add_sub_pipeline(
                 sub_flow=sync_dbs_for_cluster_sub_flow(
                     uid=self.data["uid"],
@@ -88,5 +97,6 @@ class SqlserverBuildDBSyncFlow(BaseFlow):
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}集群建立数据库同步".format(cluster.name))))
 
+        # 内部检测sub_pipelines是否为空
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         main_pipeline.run_pipeline()

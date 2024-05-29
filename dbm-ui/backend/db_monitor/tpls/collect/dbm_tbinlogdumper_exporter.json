@@ -1,8 +1,8 @@
 {
   "bk_biz_id": 0,
-  "name": "dbn_tbinlogdumper_exporter",
+  "name": "dbm_tbinlogdumper_exporter",
   "details": {
-    "name": "dbn_tbinlogdumper_exporter",
+    "name": "dbm_tbinlogdumper_exporter",
     "collect_type": "Exporter",
     "label": "component",
     "target_object_type": "SERVICE",
