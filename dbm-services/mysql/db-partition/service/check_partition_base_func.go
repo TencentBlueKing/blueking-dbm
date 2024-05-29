@@ -286,6 +286,7 @@ func CalculateInterval(firstName, secondName string, interval int) (bool, error)
 // GetDropPartitionSql 生成删除分区的sql
 func (m *ConfigDetail) GetDropPartitionSql(host Host) (string, error) {
 	var sql, dropSql, fx string
+	// 保留时间+1天，考虑时区差异引起的时间计算不稳定
 	reserve := m.ReservedPartition*m.PartitionTimeInterval + 1
 	address := fmt.Sprintf("%s:%d", m.ImmuteDomain, m.Port)
 	base0 := fmt.Sprintf(`select PARTITION_NAME as PARTITION_NAME from INFORMATION_SCHEMA.PARTITIONS `+
@@ -547,9 +548,8 @@ func (m *ConfigDetail) GetAddPartitionSql(host Host) (string, error) {
 		if err != nil {
 			return addSql, err
 		}
-		name = formatDate.AddDate(0, 0, 1).Format("20060102")
 		// drs访问db无法保证时区与db时区一致，如果计算出希望创建的分区名比当前分区的名称还要小1天，如果分区间隔又只有1天，分区名会重复
-		if name == current {
+		if formatDate.AddDate(0, 0, 1).Format("20060102") == current {
 			name = current
 		}
 	}
