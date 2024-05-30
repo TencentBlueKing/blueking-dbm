@@ -17,7 +17,7 @@
     class="config-info">
     <DbOriginalTable
       :columns="columns"
-      :data="data.conf_items"
+      :data="data?.conf_items"
       height="100%"
       :show-overflow-tooltip="false" />
   </div>
@@ -25,92 +25,64 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { getLevelConfig } from '@services/source/configs';
-
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes } from '@common/const';
+  import { retrieveRedisInstance } from '@services/source/redis';
 
   import type { TableColumnRender } from '@/types/bkui-vue';
 
   interface Props {
-    queryInfos: {
-      version: string,
-      clusterId: number
-    }
+    instanceData: ServiceReturnType<typeof retrieveRedisInstance>;
   }
 
   const props = defineProps<Props>();
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
-
-  const isLoading = ref(false);
-  const data = shallowRef({
-    name: '',
-    version: '',
-    description: '',
-    conf_items: [],
-  } as ServiceReturnType<typeof getLevelConfig>);
 
   const columns = [
     {
       label: t('参数项'),
       field: 'conf_name',
-      render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell}</div>,
     },
     {
       label: t('参数值'),
       field: 'conf_value',
-      render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell}</div>,
     },
     {
       label: t('描述'),
       field: 'description',
-      render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell || '--'}</div>,
+      render: ({ cell }: TableColumnRender) => cell || '--',
     },
-    // {
-    //   label: t('重启实例生效'),
-    //   field: 'need_restart',
-    //   width: 200,
-    //   render: ({ cell }: {cell: number}) => (cell === 1 ? t('是') : t('否')),
-    // }
   ];
 
-  /**
-   * 获取集群配置
-   */
-  const fetchClusterConfig = () => {
-    isLoading.value = true;
-    getLevelConfig({
-      bk_biz_id: currentBizId,
-      level_value: props.queryInfos.clusterId,
-      meta_cluster_type: ClusterTypes.REDIS,
-      level_name: 'cluster',
-      conf_type: 'dbconf',
-      version: props.queryInfos.version,
-      // level_info: {
-      //   module: String(props.queryInfos.dbModuleId),
-      // },
-    })
-      .then((res) => {
-        data.value = res;
-      })
-      .finally(() => {
-        isLoading.value = false;
-      });
-  }
-
-  watch(() => props.queryInfos, (infos) => {
-    const { version, clusterId } = infos;
-    if (version && clusterId) {
-      fetchClusterConfig();
-    }
-  }, {
-    immediate: true,
-    deep: true,
+  const {
+    loading: isLoading,
+    data,
+    run: fetchLevelConfig,
+  } = useRequest(getLevelConfig, {
+    manual: true,
   });
+
+  watch(
+    () => props.instanceData,
+    () => {
+      if (props.instanceData) {
+        fetchLevelConfig({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          level_value: props.instanceData.cluster_id,
+          meta_cluster_type: props.instanceData.cluster_type,
+          level_name: 'cluster',
+          conf_type: 'dbconf',
+          version: props.instanceData.version,
+        });
+      }
+    },
+    {
+      immediate: true,
+      deep: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>

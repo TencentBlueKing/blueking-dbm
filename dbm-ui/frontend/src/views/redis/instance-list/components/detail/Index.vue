@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <div
-    v-bkloading="{ loading: isLoading }"
-    class="instance-details">
+  <div class="instance-details">
     <BkTab
       v-model:active="activePanel"
       class="content-tabs"
@@ -26,14 +24,18 @@
         :label="t('参数配置')"
         name="config" />
     </BkTab>
-    <div class="content-wrapper">
-      <BaseInfo
-        v-if="activePanel === 'info' && data"
-        :data="data" />
-      <Config
-        v-if="activePanel === 'config'"
-        :query-infos="queryConfigInfos" />
-    </div>
+    <BkLoading :loading="isLoading">
+      <div
+        v-if="data"
+        class="content-wrapper">
+        <BaseInfo
+          v-if="activePanel === 'info'"
+          :data="data" />
+        <Config
+          v-if="activePanel === 'config'"
+          :instance-data="data" />
+      </div>
+    </BkLoading>
   </div>
 </template>
 
@@ -42,10 +44,6 @@
   import { useRequest } from 'vue-request';
 
   import { retrieveRedisInstance } from '@services/source/redis';
-
-  import { useGlobalBizs } from '@stores';
-
-  import { DBTypes } from '@common/const';
 
   import BaseInfo from './components/BaseInfo.vue';
   import Config from './components/Config.vue';
@@ -60,15 +58,9 @@
 
   const props = defineProps<Props>();
 
-  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
 
   const activePanel = ref('info');
-
-  const queryConfigInfos = computed(() => ({
-    clusterId: props.instanceData ? props.instanceData.clusterId : 0,
-    version: data.value?.db_version ?? '',
-  }));
 
   const {
     data,
@@ -83,8 +75,7 @@
     () => {
       if (props.instanceData) {
         fetchInstDetails({
-          dbType: DBTypes.REDIS,
-          bk_biz_id: globalBizsStore.currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           type: props.instanceData.clusterType,
           instance_address: props.instanceData.instanceAddress,
           cluster_id: props.instanceData.clusterId,

@@ -177,27 +177,35 @@
     {
       label: t('分区字段'),
       field: 'partition_columns',
+      width: 100,
+      minWidth: 100,
       render: ({ data }: {data: PartitionModel}) => data.partition_columns || '--',
     },
     {
       label: t('分区字段类型'),
       field: 'partition_column_type',
+      width: 150,
+      minWidth: 150,
       render: ({ data }: {data: PartitionModel}) => data.partition_column_type || '--',
     },
     {
       label: t('分区间隔（天）'),
       field: 'partition_time_interval',
+      width: 150,
+      minWidth: 150,
       render: ({ data }: {data: PartitionModel}) => data.partition_time_interval || '--',
     },
     {
       label: t('数据过期时间（天）'),
       field: 'expire_time',
+      width: 150,
       minWidth: 150,
       render: ({ data }: {data: PartitionModel}) => data.expire_time || '--',
     },
     {
       label: t('最近一次执行状态'),
       field: 'status',
+      width: 150,
       minWidth: 150,
       render: ({ data }: {data: PartitionModel}) => (
         <div>
@@ -213,7 +221,7 @@
     {
       label: t('最近一次执行时间'),
       field: 'execute_time',
-      minWidth: 180,
+      width: 250,
       render: ({ data }: {data: PartitionModel}) => data.executeTimeDisplay || '--',
     },
     {

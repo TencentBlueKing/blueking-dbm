@@ -200,7 +200,7 @@ const redisInstanceListRoute = {
 
 const redisHaInstanceListRoute = {
   name: 'DatabaseRedisHaInstanceList',
-  path: 'ha-instance-list',
+  path: 'instance-list-ha',
   meta: {
     navName: t('Redis 主从实例视图'),
     fullscreen: true,
@@ -220,14 +220,6 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/redis/Index.vue'),
     children: [
-      // {
-      //   name: 'SelfServiceApplyRedis',
-      //   path: 'apply',
-      //   meta: {
-      //     navName: t('申请Redis集群部署'),
-      //   },
-      //   component: () => import('@views/redis/apply/ApplyRedis.vue'),
-      // },
       {
         name: 'DatabaseRedisList',
         path: 'list',
