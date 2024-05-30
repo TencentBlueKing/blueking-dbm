@@ -92,22 +92,6 @@ export function getConfigVersionDetails(params: ConfigVersionParams) {
 }
 
 /**
- * 获取查询层级（业务、模块、集群）配置详情参数
- */
-interface GetLevelConfigParams {
-  conf_type: string;
-  meta_cluster_type: string;
-  version?: string;
-  bk_biz_id?: number;
-  level_name?: string;
-  level_value?: number;
-  level_info?: {
-    module?: string;
-    app?: string;
-  };
-}
-
-/**
  * 配置基础信息
  */
 interface ConfigBaseDetails {
@@ -122,7 +106,21 @@ interface ConfigBaseDetails {
 /**
  * 获取查询层级（业务、模块、集群）配置详情
  */
-export function getLevelConfig(params: GetLevelConfigParams, payload = {} as IRequestPayload) {
+export function getLevelConfig(
+  params: {
+    conf_type: string;
+    meta_cluster_type: string;
+    version?: string;
+    bk_biz_id?: number;
+    level_name?: string;
+    level_value?: number;
+    level_info?: {
+      module?: string;
+      app?: string;
+    };
+  },
+  payload = {} as IRequestPayload,
+) {
   return http.post<ConfigBaseDetails>(`${path}/get_level_config/`, params, payload);
 }
 /**

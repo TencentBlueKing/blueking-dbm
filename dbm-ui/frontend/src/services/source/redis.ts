@@ -141,7 +141,6 @@ export function retrieveRedisInstance(params: {
   type: string;
   instance_address: string;
   cluster_id?: number;
-  dbType: string;
 }) {
   return http.get<InstanceDetails>(`${getRootPath()}/retrieve_instance/`, params);
 }
