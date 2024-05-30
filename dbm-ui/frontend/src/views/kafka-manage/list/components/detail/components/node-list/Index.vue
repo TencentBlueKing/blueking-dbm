@@ -14,7 +14,9 @@
 <template>
   <div class="kafka-detail-node-list">
     <div class="action-box">
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'kafka.nodeList.scaleUp'"
+        :data="operationData">
         <AuthButton
           action-id="kafka_scale_up"
           :disabled="operationData?.operationDisabled"
@@ -24,7 +26,9 @@
           {{ t('扩容') }}
         </AuthButton>
       </OperationBtnStatusTips>
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'kafka.nodeList.scaleDown'"
+        :data="operationData">
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
             action-id="kafka_shrink"
@@ -36,7 +40,9 @@
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'kafka.nodeList.replace'"
+        :data="operationData">
         <span
           v-bk-tooltips="{
             content: t('请先选中节点'),
@@ -45,12 +51,10 @@
           <AuthButton
             action-id="kafka_replace"
             class="ml8"
+            :disabled="isBatchReplaceDisabeld || operationData?.operationDisabled"
             :resource="clusterId"
-            :disabled="
-              isBatchReplaceDisabeld || operationData?.operationDisabled
-            "
             @click="handleShowReplace">
-            {{ $t("替换") }}
+            {{ $t('替换') }}
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
@@ -70,13 +74,13 @@
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll">
-              {{ $t("复制全部IP") }}
+              {{ $t('复制全部IP') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeFailed">
-              {{ $t("复制异常IP") }}
+              {{ $t('复制异常IP') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeActive">
-              {{ $t("复制已选IP") }}
+              {{ $t('复制已选IP') }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
@@ -85,7 +89,7 @@
         :data="searchSelectData"
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        style="max-width: 360px; margin-left: 8px; flex: 1;"
+        style="max-width: 360px; margin-left: 8px; flex: 1"
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
@@ -342,7 +346,6 @@
     {
       label: t('节点IP'),
       field: 'ip',
-      width: 140,
       showOverflowTooltip: false,
       render: ({ data }: { data: KafkaNodeModel }) => (
       <div style="display: flex; align-items: center;">
@@ -392,7 +395,6 @@
       label: t('部署时间'),
       field: 'create_at',
       sort: true,
-      width: 180,
       render: ({ data }: {data: KafkaNodeModel}) => <span>{data.createAtDisplay}</span>,
     },
     {
@@ -403,7 +405,9 @@
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
         <>
-          <OperationBtnStatusTips data={operationData.value}>
+          <OperationBtnStatusTips
+            v-db-console="kafka.nodeList.scaleDown"
+            data={operationData.value}>
             <span v-bk-tooltips={shrinkDisableTooltips.tooltips} class="ml8">
               <auth-button
                 theme="primary"
@@ -417,7 +421,9 @@
               </auth-button>
             </span>
           </OperationBtnStatusTips>
-          <OperationBtnStatusTips data={operationData.value}>
+          <OperationBtnStatusTips
+            v-db-console="kafka.nodeList.replace"
+            data={operationData.value}>
             <auth-button
               class="ml8"
               theme="primary"
@@ -431,7 +437,9 @@
               {t('替换')}
             </auth-button>
           </OperationBtnStatusTips>
-          <OperationBtnStatusTips data={operationData.value}>
+          <OperationBtnStatusTips
+            v-db-console="kafka.nodeList.restartInstance"
+            data={operationData.value}>
             <auth-button
               class="ml8"
               theme="primary"
@@ -636,23 +644,23 @@
   };
 </script>
 <style lang="less">
-.kafka-detail-node-list {
-  padding: 24px 0;
+  .kafka-detail-node-list {
+    padding: 24px 0;
 
-  .action-box {
-    display: flex;
-    margin-bottom: 16px;
-  }
+    .action-box {
+      display: flex;
+      margin-bottom: 16px;
+    }
 
-  .action-copy-icon {
-    margin-left: 6px;
-    color: #979ba5;
-    transform: rotateZ(180deg);
-    transition: all 0.2s;
+    .action-copy-icon {
+      margin-left: 6px;
+      color: #979ba5;
+      transform: rotateZ(180deg);
+      transition: all 0.2s;
 
-    &--avtive {
-      transform: rotateZ(0);
+      &--avtive {
+        transform: rotateZ(0);
+      }
     }
   }
-}
 </style>

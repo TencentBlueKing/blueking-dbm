@@ -14,7 +14,9 @@
 <template>
   <div class="hdfs-detail-node-list">
     <div class="action-box">
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'hdfs.nodeList.scaleUp'"
+        :data="operationData">
         <AuthButton
           action-id="hdfs_scale_up"
           :disabled="operationData?.operationDisabled"
@@ -24,7 +26,9 @@
           {{ t('扩容') }}
         </AuthButton>
       </OperationBtnStatusTips>
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'hdfs.nodeList.scaleDown'"
+        :data="operationData">
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
             action-id="hdfs_shrink"
@@ -36,7 +40,9 @@
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'hdfs.nodeList.replace'"
+        :data="operationData">
         <span v-bk-tooltips="batchReplaceDisableInfo.tooltips">
           <AuthButton
             action-id="hdfs_replace"
@@ -79,7 +85,7 @@
         :data="searchSelectData"
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        style="max-width: 360px; margin-left: 8px; flex: 1;"
+        style="max-width: 360px; margin-left: 8px; flex: 1"
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
@@ -356,7 +362,6 @@
     {
       label: t('节点IP'),
       field: 'ip',
-      width: 140,
       showOverflowTooltip: false,
       render: ({ data }: { data: HdfsNodeModel }) => (
       <div style="display: flex; align-items: center;">
@@ -414,7 +419,6 @@
       label: t('部署时间'),
       field: 'create_at',
       sort: true,
-      width: 180,
       render: ({ data }: {data: HdfsNodeModel}) => <span>{data.createAtDisplay}</span>,
     },
     {
@@ -425,7 +429,9 @@
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
           <>
-            <OperationBtnStatusTips data={operationData.value}>
+            <OperationBtnStatusTips
+              v-db-console="hdfs.nodeList.scaleDown"
+              data={operationData.value}>
               <span v-bk-tooltips={shrinkDisableTooltips.tooltips}>
                 <auth-button
                   text
@@ -439,7 +445,9 @@
                 </auth-button>
               </span>
             </OperationBtnStatusTips>
-            <OperationBtnStatusTips data={operationData.value}>
+            <OperationBtnStatusTips
+              v-db-console="hdfs.nodeList.replace"
+              data={operationData.value}>
               <span v-bk-tooltips={{
                   content: t('节点类型不支持替换'),
                   disabled: data.isDataNode,
@@ -458,7 +466,9 @@
               </auth-button>
             </span>
           </OperationBtnStatusTips>
-          <OperationBtnStatusTips data={operationData.value}>
+          <OperationBtnStatusTips
+            v-db-console="hdfs.nodeList.restartInstance"
+            data={operationData.value}>
             <auth-button
               text
               theme="primary"
@@ -665,23 +675,23 @@
   };
 </script>
 <style lang="less">
-.hdfs-detail-node-list {
-  padding: 24px 0;
+  .hdfs-detail-node-list {
+    padding: 24px 0;
 
-  .action-box {
-    display: flex;
-    margin-bottom: 16px;
-  }
+    .action-box {
+      display: flex;
+      margin-bottom: 16px;
+    }
 
-  .action-copy-icon {
-    margin-left: 6px;
-    color: #979ba5;
-    transform: rotateZ(180deg);
-    transition: all 0.2s;
+    .action-copy-icon {
+      margin-left: 6px;
+      color: #979ba5;
+      transform: rotateZ(180deg);
+      transition: all 0.2s;
 
-    &--avtive {
-      transform: rotateZ(0);
+      &--avtive {
+        transform: rotateZ(0);
+      }
     }
   }
-}
 </style>

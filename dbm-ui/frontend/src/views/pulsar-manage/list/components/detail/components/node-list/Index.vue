@@ -14,7 +14,9 @@
 <template>
   <div class="pulsar-detail-node-list">
     <div class="action-box">
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'pulsar.nodeList.scaleUp'"
+        :data="operationData">
         <AuthButton
           action-id="pulsar_scale_up"
           :disabled="operationData?.operationDisabled"
@@ -24,7 +26,9 @@
           {{ t('扩容') }}
         </AuthButton>
       </OperationBtnStatusTips>
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'pulsar.nodeList.scaleDown'"
+        :data="operationData">
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
             action-id="pulsar_shrink"
@@ -36,7 +40,9 @@
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'pulsar.nodeList.replace'"
+        :data="operationData">
         <span
           v-bk-tooltips="{
             content: t('请先选中节点'),
@@ -83,7 +89,7 @@
         :data="searchSelectData"
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        style="max-width: 360px; margin-left: 8px; flex: 1;"
+        style="max-width: 360px; margin-left: 8px; flex: 1"
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
@@ -354,7 +360,6 @@
     {
       label: t('节点IP'),
       field: 'ip',
-      width: 140,
       render: ({ data }: {data: PulsarNodeModel}) => (
         <>
           <span>{data.ip}</span>
@@ -403,7 +408,6 @@
       label: t('部署时间'),
       field: 'create_at',
       sort: true,
-      width: 180,
       render: ({ data }: {data: PulsarNodeModel}) => <span>{data.createAtDisplay}</span>,
     },
     {
@@ -414,7 +418,9 @@
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
           <>
-            <OperationBtnStatusTips data={operationData.value}>
+            <OperationBtnStatusTips
+              v-db-console="pulsar.nodeList.scaleDown"
+              data={operationData.value}>
               <span v-bk-tooltips={shrinkDisableTooltips.tooltips}>
                 <auth-button
                   text
@@ -428,10 +434,13 @@
                 </auth-button>
               </span>
             </OperationBtnStatusTips>
-            <OperationBtnStatusTips data={operationData.value}>
+            <OperationBtnStatusTips
+              v-db-console="pulsar.nodeList.replace"
+              data={operationData.value}>
               <auth-button
                 text
                 theme="primary"
+                class="ml8"
                 action-id="pulsar_replace"
                 permission={data.permission.pulsar_replace}
                 resource={props.clusterId}
@@ -440,7 +449,9 @@
                 { t('替换') }
               </auth-button>
             </OperationBtnStatusTips>
-            <OperationBtnStatusTips data={operationData.value}>
+            <OperationBtnStatusTips
+              v-db-console="pulsar.nodeList.restartInstance"
+              data={operationData.value}>
               <auth-button
                 text
                 theme="primary"
@@ -644,8 +655,8 @@
   };
 </script>
 <style lang="less">
-.pulsar-detail-node-list {
-  padding: 24px 0;
+  .pulsar-detail-node-list {
+    padding: 24px 0;
 
     .bk-table {
       .bk-checkbox {
