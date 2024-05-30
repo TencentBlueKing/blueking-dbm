@@ -361,13 +361,13 @@
         },
         broker: {
           spec_id: '',
-          count: 1,
+          count: 2,
         },
       },
-      port: 5000,
+      port: 9092,
       partition_num: 1,
-      retention_hours: 1,
-      replication_num: 1,
+      retention_hours: 4,
+      replication_num: 2,
       no_security: 0,
     },
   });
