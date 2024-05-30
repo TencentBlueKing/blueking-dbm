@@ -10,11 +10,16 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import FunctionControllModel, { type ExtractedControllerDataKeys } from '@services/model/function-controller/functionController';
+import FunctionControllModel, {
+  type ExtractedControllerDataKeys,
+} from '@services/model/function-controller/functionController';
+
+import { useSystemEnviron } from '@stores';
 
 /**
  * 检查 dbconsole 开关
  */
 export function checkDbConsole(funControllerData: FunctionControllModel, key: ExtractedControllerDataKeys) {
-  return !funControllerData[key] || funControllerData[key].is_enabled
+  const { ENABLE_EXTERNAL_PROXY } = useSystemEnviron().urls;
+  return !ENABLE_EXTERNAL_PROXY || funControllerData.getFlatData(key)[key];
 }

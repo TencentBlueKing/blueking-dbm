@@ -14,7 +14,9 @@
 <template>
   <div class="es-detail-node-list">
     <div class="action-box">
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'es.nodeList.scaleUp'"
+        :data="operationData">
         <AuthButton
           action-id="es_scale_up"
           :disabled="operationData?.operationDisabled"
@@ -24,20 +26,24 @@
           {{ t('扩容') }}
         </AuthButton>
       </OperationBtnStatusTips>
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'es.nodeList.scaleDown'"
+        :data="operationData">
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
             action-id="es_shrink"
             class="ml8"
             :disabled="batchShrinkDisabledInfo.disabled || operationData?.operationDisabled"
-            :resource="clusterId"
             :permission="operationData?.permission.es_shrink"
+            :resource="clusterId"
             @click="handleShowShrink">
             {{ t('缩容') }}
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
-      <OperationBtnStatusTips :data="operationData">
+      <OperationBtnStatusTips
+        v-db-console="'es.nodeList.replace'"
+        :data="operationData">
         <span
           v-bk-tooltips="{
             content: t('请先选中节点'),
@@ -84,7 +90,7 @@
         :data="searchSelectData"
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
-        style="max-width: 360px; margin-left: 8px; flex: 1;"
+        style="max-width: 360px; margin-left: 8px; flex: 1"
         unique-select
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
@@ -374,7 +380,6 @@
     {
       label: t('节点IP'),
       field: 'ip',
-      width: 140,
       showOverflowTooltip: false,
       render: ({ data }: { data: EsNodeModel }) => (
       <div style="display: flex; align-items: center;">
@@ -432,7 +437,6 @@
       label: t('部署时间'),
       field: 'create_at',
       sort: true,
-      width: 180,
       render: ({ data }: {data: EsNodeModel}) => <span>{data.createAtDisplay}</span>,
     },
     {
@@ -443,7 +447,9 @@
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
           <>
-            <OperationBtnStatusTips data={operationData.value}>
+            <OperationBtnStatusTips
+              v-db-console="es.nodeList.scaleDown"
+              data={operationData.value}>
               <span v-bk-tooltips={shrinkDisableTooltips.tooltips}>
                 <auth-button
                   text
@@ -457,10 +463,13 @@
                 </auth-button>
               </span>
             </OperationBtnStatusTips>
-            <OperationBtnStatusTips data={operationData.value}>
+            <OperationBtnStatusTips
+              v-db-console="es.nodeList.replace"
+              data={operationData.value}>
               <auth-button
                 text
                 theme="primary"
+                class="ml8"
                 action-id="es_replace"
                 permission={data.permission.es_replace}
                 resource={props.clusterId}
@@ -469,7 +478,9 @@
                 { t('替换') }
               </auth-button>
             </OperationBtnStatusTips>
-            <OperationBtnStatusTips data={operationData.value}>
+            <OperationBtnStatusTips
+              v-db-console="es.nodeList.restartInstance"
+              data={operationData.value}>
               <auth-button
                 text
                 theme="primary"
@@ -675,23 +686,23 @@
   };
 </script>
 <style lang="less">
-.es-detail-node-list {
-  padding: 24px 0;
+  .es-detail-node-list {
+    padding: 24px 0;
 
-  .action-box {
-    display: flex;
-    margin-bottom: 16px;
-  }
+    .action-box {
+      display: flex;
+      margin-bottom: 16px;
+    }
 
-  .action-copy-icon {
-    margin-left: 6px;
-    color: #979ba5;
-    transform: rotateZ(180deg);
-    transition: all 0.2s;
+    .action-copy-icon {
+      margin-left: 6px;
+      color: #979ba5;
+      transform: rotateZ(180deg);
+      transition: all 0.2s;
 
-    &--avtive {
-      transform: rotateZ(0);
+      &--avtive {
+        transform: rotateZ(0);
+      }
     }
   }
-}
 </style>

@@ -15,7 +15,9 @@
           v-for="item in renderModuleList"
           :key="item"
           :name="item" />
-        <ModuleConfig v-model="renderModuleList" />
+        <span v-db-console="'databaseManage.addDatabaseComponents'">
+          <ModuleConfig v-model="renderModuleList" />
+        </span>
         <BkMenuGroup
           v-db-console="'databaseManage.temporaryPaasswordModify'"
           :name="t('安全')">
