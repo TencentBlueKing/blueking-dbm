@@ -177,7 +177,6 @@ class MySQLDBMeta(object):
                 cluster_ids=self.cluster["cluster_ids"],
                 target_proxy_ip=self.cluster["target_proxy_ip"]["ip"],
                 origin_proxy_ip=self.cluster["origin_proxy_ip"]["ip"],
-                bk_cloud_id=self.cluster["target_proxy_ip"]["bk_cloud_id"],
             )
 
         return True
