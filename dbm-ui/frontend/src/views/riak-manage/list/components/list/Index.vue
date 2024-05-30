@@ -163,6 +163,7 @@
     {
       name: t('IP 或 IP:Port'),
       id: 'instance',
+      multiple: true,
     },
     {
       name: t('集群名称'),

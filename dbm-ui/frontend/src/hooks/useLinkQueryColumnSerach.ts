@@ -14,7 +14,7 @@ import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import _ from 'lodash';
 import { useI18n } from 'vue-i18n';
 
-import { queryBizClusterAttrs } from '@services/source/dbbase';
+import { queryBizClusterAttrs, queryResourceAdministrationAttrs } from '@services/source/dbbase';
 
 import { useGlobalBizs } from '@stores';
 
@@ -37,7 +37,7 @@ export type SearchAttrs = Record<string, {
 type ColumnCheckedMap = Record<string, string[]>;
 
 export const useLinkQueryColumnSerach = (
-  clusterType: ClusterTypes,
+  searchType: string,
   attrs: string[],
   fetchDataFn = () => {},
   isCluster = true,
@@ -60,23 +60,34 @@ export const useLinkQueryColumnSerach = (
     return [];
   });
 
+  const resourceTypes = ['spotty_host', 'resource_record'];
+
   const sortValue: {
     ordering?: string,
   } = {};
 
   if (isQueryAttrs) {
-    const attrsObj = isCluster ? {
-      cluster_attrs: attrs.join(','),
-    } : {
-      instances_attrs: attrs.join(','),
-    };
+    let requestHandler;
+    if (resourceTypes.includes(searchType)) {
+      requestHandler = queryResourceAdministrationAttrs({
+        resource_type: searchType,
+      });
+    } else {
+      const attrsObj = isCluster ? {
+        cluster_attrs: attrs.join(','),
+      } : {
+        instances_attrs: attrs.join(','),
+      };
 
-    // 查询表头筛选列表
-    queryBizClusterAttrs({
-      bk_biz_id: currentBizId,
-      cluster_type: clusterType,
-      ...attrsObj,
-    }).then((resultObj) => {
+      // 查询表头筛选列表
+      requestHandler = queryBizClusterAttrs({
+        bk_biz_id: currentBizId,
+        cluster_type: searchType as ClusterTypes,
+        ...attrsObj,
+      });
+    }
+
+    requestHandler.then((resultObj) => {
       columnAttrs.value = resultObj;
       searchAttrs.value = Object.entries(resultObj).reduce((results, item) => {
         Object.assign(results, {
@@ -202,8 +213,8 @@ export const useLinkQueryColumnSerach = (
         return;
       }
       const values = item.values ? item.values.reduce((results, value) => {
-        const idList = _.uniq(`${value.id}`.split(batchSplitRegex));
-        const nameList = _.uniq(`${value.name}`.split(batchSplitRegex));
+        const idList = _.uniq(`${value.id.trim()}`.split(batchSplitRegex));
+        const nameList = _.uniq(`${value.name.trim()}`.split(batchSplitRegex));
         results.push(...idList.map((id, index) => ({
           id,
           name: nameList[index],
