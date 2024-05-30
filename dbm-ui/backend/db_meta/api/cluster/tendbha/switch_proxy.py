@@ -21,7 +21,7 @@ logger = logging.getLogger("root")
 
 
 @transaction.atomic
-def switch_proxy(cluster_ids: list, target_proxy_ip: str, origin_proxy_ip: str, bk_cloud_id: int):
+def switch_proxy(cluster_ids: list, target_proxy_ip: str, origin_proxy_ip: str):
     """
     集群替换proxy场景元数据注册方式
     """
@@ -60,12 +60,9 @@ def switch_proxy(cluster_ids: list, target_proxy_ip: str, origin_proxy_ip: str, 
 
     # 回收proxy实例
     for cluster in clusters:
-        cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
         for proxy in ProxyInstance.objects.filter(cluster=cluster, machine__ip=origin_proxy_ip).all():
             proxy.delete(keep_parents=True)
             if not proxy.machine.proxyinstance_set.exists():
+                cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
                 cc_manage.recycle_host([proxy.machine.bk_host_id])
                 proxy.machine.delete(keep_parents=True)
-            else:
-                # 删除服务实例
-                cc_manage.delete_service_instance(bk_instance_ids=[proxy.bk_instance_id])

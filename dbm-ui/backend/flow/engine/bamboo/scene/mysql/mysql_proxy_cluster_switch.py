@@ -21,6 +21,7 @@ from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
+from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
@@ -30,6 +31,7 @@ from backend.flow.plugins.components.collections.mysql.trans_flies import TransF
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
     DBMetaOPKwargs,
+    DelServiceInstKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     RecycleDnsRecordKwargs,
@@ -280,6 +282,7 @@ class MySQLProxyClusterSwitchFlow(object):
                 cluster = Cluster.objects.get(id=cluster_id)
                 reduce_proxy_sub_list.append(
                     self.proxy_reduce_sub_flow(
+                        cluster_id=cluster.id,
                         bk_cloud_id=cluster.bk_cloud_id,
                         origin_proxy_ip=info["origin_proxy_ip"]["ip"],
                         origin_proxy_port=ProxyInstance.objects.filter(cluster=cluster).all()[0].port,
@@ -321,11 +324,12 @@ class MySQLProxyClusterSwitchFlow(object):
         mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         mysql_proxy_cluster_add_pipeline.run_pipeline(is_drop_random_user=True)
 
-    def proxy_reduce_sub_flow(self, bk_cloud_id: int, origin_proxy_ip: str, origin_proxy_port: int):
+    def proxy_reduce_sub_flow(self, cluster_id: int, bk_cloud_id: int, origin_proxy_ip: str, origin_proxy_port: int):
         """
         回收proxy实例的子流程
         支持proxy多实例回收场景
         支持跨云操作
+        @param cluster_id: 集群id
         @param bk_cloud_id: 集群所在的云区域
         @param origin_proxy_ip: 回收proxy ip 信息
         @param origin_proxy_port: 回收proxy ip 信息
@@ -342,6 +346,18 @@ class MySQLProxyClusterSwitchFlow(object):
 
         # 针对集群维度声明替换子流程
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(flow_context))
+
+        # 清理对应的服务实例
+        sub_pipeline.add_act(
+            act_name=_("删除注册CC系统的服务实例"),
+            act_component_code=DelCCServiceInstComponent.code,
+            kwargs=asdict(
+                DelServiceInstKwargs(
+                    cluster_id=cluster_id,
+                    del_instance_list=[{"ip": origin_proxy_ip, "port": origin_proxy_port}],
+                )
+            ),
+        )
 
         # 阶段4 下架旧的proxy实例
         sub_pipeline.add_act(
