@@ -27,19 +27,21 @@
       <RenderResult :data="renderPermissionResult" />
     </BkLoading>
     <template #footer>
-      <BkButton
-        v-if="!isApplyed"
-        :disabled="renderPermissionResult.hasPermission"
-        theme="primary"
-        @click="handleGoApply">
-        {{ t('去申请') }}
-      </BkButton>
-      <BkButton
-        v-else
-        theme="primary"
-        @click="handleApplyed">
-        {{ t('已申请') }}
-      </BkButton>
+      <template v-if="!urls.ENABLE_EXTERNAL_PROXY">
+        <BkButton
+          v-if="!isApplyed"
+          :disabled="renderPermissionResult.hasPermission"
+          theme="primary"
+          @click="handleGoApply">
+          {{ t('去申请') }}
+        </BkButton>
+        <BkButton
+          v-else
+          theme="primary"
+          @click="handleApplyed">
+          {{ t('已申请') }}
+        </BkButton>
+      </template>
       <BkButton
         class="ml8"
         @click="handleCancel">
@@ -57,6 +59,8 @@
   import ApplyDataModel from '@services/model/iam/apply-data';
   import { simpleGetApplyData } from '@services/source/iam';
 
+  import { useSystemEnviron } from '@stores';
+
   import RenderResult from './render-result.vue';
 
   export type CheckParams = ServiceParameters<typeof simpleGetApplyData>;
@@ -72,6 +76,8 @@
   const emit = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const { urls } = useSystemEnviron();
+
   const isShow = ref(false);
   const isApplyed = ref(false);
 

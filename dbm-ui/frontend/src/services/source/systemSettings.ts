@@ -19,5 +19,26 @@ const path = '/apis/conf/system_settings';
  * 查询环境变量
  */
 export function getSystemEnviron() {
-  return http.get<Record<string, string>>(`${path}/environ/`);
+  return http.get<{
+    AFFINITY: {
+      label: string;
+      value: string;
+    }[];
+    BK_CMDB_URL: string;
+    BK_COMPONENT_API_URL: string;
+    BK_DBM_URL: string;
+    BK_DOMAIN: string;
+    BK_HELPER_URL: string;
+    BK_NODEMAN_URL: string;
+    BK_SCR_URL: string;
+    CC_IDLE_MODULE_ID: string;
+    CC_MANAGE_TOPO: {
+      dirty_module_id: number;
+      resource_module_id: number;
+      set_id: number;
+    };
+    DBA_APP_BK_BIZ_ID: number;
+    DBA_APP_BK_BIZ_NAME: number;
+    ENABLE_EXTERNAL_PROXY: boolean;
+  }>(`${path}/environ/`);
 }
