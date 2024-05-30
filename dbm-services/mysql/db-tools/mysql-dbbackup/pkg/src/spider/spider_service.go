@@ -243,8 +243,8 @@ func (b GlobalBackupModel) handleOldTask(db *sqlx.DB) error {
 		return err
 	}
 
-	sqlStr := fmt.Sprintf("DELETE FROM %s WHERE CreatedAt < DATE_SUB(now(), INTERVAL %d DAY)",
-		b.TableName(), cst.SpiderRemoveOldTaskBeforeDays)
+	sqlStr := fmt.Sprintf("DELETE FROM %s WHERE CreatedAt < DATE_SUB(now(), INTERVAL %d DAY) "+
+		" AND version() NOT LIKE '%%tspider%%'", b.TableName(), cst.SpiderRemoveOldTaskBeforeDays)
 	_, _ = conn.ExecContext(ctx, sqlStr)
 	return nil
 }

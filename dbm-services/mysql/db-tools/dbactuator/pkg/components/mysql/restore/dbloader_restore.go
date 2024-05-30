@@ -214,7 +214,8 @@ func (m *DBLoader) getChangeMasterPos(masterInst native.Instance) (*mysqlutil.Ch
 		return cm, nil
 	} else if slaveInfo == nil || slaveInfo.BinlogFile == "" {
 		// 说明是在 Master 的备份，如果发生互切/迁移，这个备份会是无效的
-		return nil, errors.New("this backup is illegal because I cannot find the binlog pos for current master")
+		return nil, errors.Errorf("this backup is illegal because I cannot find the binlog pos for current master "+
+			"%s:%d", masterInst.Host, masterInst.Port)
 	}
 	// 用的是 slave 的备份，change master to it's master
 	if slaveInfo.MasterHost != "" && slaveInfo.MasterHost != masterInst.Host {
