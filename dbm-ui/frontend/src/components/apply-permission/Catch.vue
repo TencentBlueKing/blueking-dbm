@@ -17,7 +17,9 @@
     class="dbm-perimission-section">
     <div class="perimission-section-container">
       <RenderResult :data="permissionResult" />
-      <div class="perimission-section-footer">
+      <div
+        v-if="!urls.ENABLE_EXTERNAL_PROXY"
+        class="perimission-section-footer">
         <BkButton
           v-if="!isApplyed"
           :disabled="permissionResult.hasPermission"
@@ -45,12 +47,16 @@
 
   import { useEventBus } from '@hooks';
 
+  import { useSystemEnviron } from '@stores';
+
   import RenderResult from './render-result.vue';
 
   const isApplyed = ref(false);
 
   const { on } = useEventBus();
   const { t } = useI18n();
+
+  const { urls } = useSystemEnviron();
 
   const permissionResult = ref(new ApplyDataModel());
   const needApplyPermission = ref(false);

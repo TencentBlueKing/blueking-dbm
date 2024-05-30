@@ -15,16 +15,14 @@ import { defineStore } from 'pinia';
 
 import { getSystemEnviron } from '@services/source/systemSettings';
 
-interface Urls {
-  [key: string]: string;
-}
+type Urls = ServiceReturnType<typeof getSystemEnviron>;
 
 /**
  * 获取关联系统 url
  */
 export const useSystemEnviron = defineStore('SystemEnviron', {
-  state: (): { urls: Urls & { AFFINITY?: { label: string; value: string }[] } } => ({
-    urls: {},
+  state: (): { urls: Urls } => ({
+    urls: {} as Urls,
   }),
   actions: {
     /**

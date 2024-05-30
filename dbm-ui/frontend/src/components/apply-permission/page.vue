@@ -15,7 +15,9 @@
   <div class="dbm-perimission-page">
     <div class="perimission-page-container">
       <RenderResult :data="data" />
-      <div class="perimission-page-footer">
+      <div
+        v-if="!urls.ENABLE_EXTERNAL_PROXY"
+        class="perimission-page-footer">
         <BkButton
           v-if="!isApplyed"
           :disabled="data.hasPermission"
@@ -40,6 +42,8 @@
 
   import type ApplyDataModel from '@services/model/iam/apply-data';
 
+  import { useSystemEnviron } from '@stores';
+
   import RenderResult from './render-result.vue';
 
   interface Props {
@@ -47,7 +51,9 @@
   }
 
   const props = defineProps<Props>();
+
   const { t } = useI18n();
+  const { urls } = useSystemEnviron();
 
   const isApplyed = ref(false);
 
