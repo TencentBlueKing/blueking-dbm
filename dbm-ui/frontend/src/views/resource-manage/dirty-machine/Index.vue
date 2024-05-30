@@ -44,29 +44,29 @@
         </BkButton>
       </span>
       <DbSearchSelect
-        v-model="searchValues"
         class="ml-8"
-        :data="serachData"
-        :placeholder="t('请输入操作人或选择条件搜索')"
+        :data="searchSelectData"
+        :get-menu-list="getMenuList"
+        :model-value="searchValue"
+        :placeholder="t('请输入或选择条件搜索')"
         style="width: 500px"
         unique-select
-        :validate-values="serachValidateValues"
-        value-split-code=","
-        @change="handleSearch" />
+        :validate-values="validateSearchValues"
+        @change="handleSearchValueChange" />
     </div>
     <DbTable
       ref="tableRef"
       :columns="tableColumn"
       :data-source="dataSource"
-      releate-url-query
-      @clear-search="handleClearSearch"
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
       @select="handleSelect"
       @select-all="handleSelectAll" />
   </div>
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import _ from 'lodash';
   import {
     onMounted,
     ref,
@@ -81,40 +81,77 @@
     transferDirtyMachines,
   } from '@services/source/dbdirty';
   import { getTicketTypes } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
 
-  import { useCopy } from '@hooks';
+  import {
+    useCopy,
+    useLinkQueryColumnSerach,
+  } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
-
-  import { ipv4 } from '@common/regex';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
+    getMenuListSearch,
     getSearchSelectorParams,
     messageSuccess,
   } from '@utils';
+
+  import type { SearchSelectItem } from '@/types/bkui-vue';
 
   const router = useRouter();
   const copy = useCopy();
   const { t } = useI18n();
   const useGlobalBizsStore = useGlobalBizs();
 
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    columnCheckedMap,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+    validateSearchValues,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach('spotty_host', [], () => fetchData());
+
   const dataSource = getDirtyMachines;
 
   const tableRef = ref();
-  const searchValues = ref([]);
   const ticketTypes = ref<Array<{id: string, name: string}>>([]);
+
   const selectedTransferHostMap = shallowRef<Record<number, DirtyMachinesModel>>({});
+
   const selectedHosts = computed(() => Object.values(selectedTransferHostMap.value));
 
   const enableWaitForRecycle = computed(() => selectedHosts.value.length > 0 && selectedHosts.value.every(item => item.is_dirty));
   const enableMarkProcess = computed(() => selectedHosts.value.length > 0 && selectedHosts.value.every(item => !item.is_dirty));
 
-  const serachData = computed(() => [
+  const searchSelectData = computed(() => [
     {
       name: 'IP',
-      id: 'ip_list',
+      id: 'ip',
+      multiple: true,
+    },
+    {
+      name: t('管控区域'),
+      id: 'bk_cloud_id',
+      multiple: true,
+      children: searchAttrs.value.bk_cloud_id,
+    },
+    {
+      name: t('业务'),
+      id: 'bk_cloud_id',
+      multiple: true,
+      children: searchAttrs.value.bk_biz_ids,
+    },
+    {
+      name: t('单据类型'),
+      id: 'ticket_types',
+      multiple: true,
+      children: searchAttrs.value.ticket_types,
     },
     {
       name: t('关联单据'),
@@ -125,12 +162,6 @@
       id: 'task_ids',
     },
     {
-      name: t('单据类型'),
-      id: 'ticket_types',
-      multiple: true,
-      children: ticketTypes.value,
-    },
-    {
       name: t('操作人'),
       id: 'operator',
     },
@@ -138,7 +169,7 @@
 
   const bizName = useGlobalBizsStore.currentBizInfo?.name;
 
-  const tableColumn = [
+  const tableColumn = computed(() => [
     {
       type: 'selection',
       width: 48,
@@ -165,15 +196,30 @@
     },
     {
       label: t('管控区域'),
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: {data: DirtyMachinesModel}) => <span>{data.bk_cloud_name || '--'}</span>,
     },
     {
       label: t('业务'),
-      field: 'bk_biz_name',
+      field: 'bk_biz_id',
+      filter: {
+        list: columnAttrs.value.bk_biz_ids,
+        checked: columnCheckedMap.value.bk_biz_id,
+      },
+      render: ({ data }: {data: DirtyMachinesModel}) => <span>{data.bk_biz_name || '--'}</span>,
     },
     {
       label: t('单据类型'),
-      field: 'ticket_type_display',
+      field: 'ticket_types',
+      filter: {
+        list: columnAttrs.value.ticket_types,
+        checked: columnCheckedMap.value.ticket_types,
+      },
+      render: ({ data }: {data: DirtyMachinesModel}) => <span>{data.ticket_type_display || '--'}</span>,
     },
     {
       label: t('关联单据'),
@@ -259,25 +305,54 @@
           </bk-pop-confirm>
       ),
     },
-  ];
+  ]);
 
-  const serachValidateValues = (
-    payload: Record<'id'|'name', string>,
-    values: Array<Record<'id'|'name', string>>,
-  ) => {
-    if (payload.id === 'ip_list') {
-      const [{ id }] = values;
-      return Promise.resolve(_.every(id.split(','), item => ipv4.test(item)));
-    }
-    return Promise.resolve(true);
-  };
+  // const serachValidateValues = (
+  //   payload: Record<'id'|'name', string>,
+  //   values: Array<Record<'id'|'name', string>>,
+  // ) => {
+  //   if (payload.id === 'ip_list') {
+  //     const [{ id }] = values;
+  //     return Promise.resolve(_.every(id.split(','), item => ipv4.test(item)));
+  //   }
+  //   return Promise.resolve(true);
+  // };
 
   // 获取数据
   const fetchData = () => {
-    const searchParams = getSearchSelectorParams(searchValues.value);
+    const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value.fetchData({
       ...searchParams,
     });
+  };
+
+  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+    if (item?.id !== 'operator' && keyword) {
+      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map(value => value.id);
+      return searchSelectData.value.filter(item => !selected.includes(item.id));
+    }
+
+    // 远程加载执行人
+    if (item.id === 'operator') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then(res => res.results.map(item => ({
+        id: item.username,
+        name: item.username,
+      })));
+    }
+
+    // 不需要远层加载
+    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
   };
 
   // 获取单据类型
@@ -288,19 +363,7 @@
       id: item.key,
       name: item.value,
     }));
-    return ticketTypes.value;
   });
-
-  // 搜索
-  const handleSearch = () => {
-    fetchData();
-  };
-
-  // 清空搜索条件
-  const handleClearSearch = () => {
-    searchValues.value = [];
-    fetchData();
-  };
 
   // 选择单台
   const handleSelect = (data: { checked: boolean, row: DirtyMachinesModel }) => {

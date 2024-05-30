@@ -9,44 +9,59 @@
         type="datetimerange"
         @change="handleDateChange" />
       <DbSearchSelect
-        v-model="searchValues"
         class="ml-8"
-        :data="serachData"
-        :placeholder="$t('请输入操作人或选择条件搜索')"
+        :data="searchSelectData"
+        :get-menu-list="getMenuList"
+        :model-value="searchValue"
+        :placeholder="t('请输入或选择条件搜索')"
         style="width: 500px"
         unique-select
-        :validate-values="serachValidateValues"
-        @change="handleSearch" />
+        :validate-values="validateSearchValues"
+        @change="handleSearchValueChange" />
     </div>
     <DbTable
       ref="tableRef"
       :columns="tableColumn"
       :data-source="dataSource"
       releate-url-query
-      @clear-search="handleClearSearch" />
+      @clear-search="handleClearSearch"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange" />
   </div>
 </template>
 <script setup lang="tsx">
   import dayjs from 'dayjs';
-  import _ from 'lodash';
-  import {
-    ref,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRoute , useRouter } from 'vue-router';
+  import { useRequest } from 'vue-request';
+  import { useRoute } from 'vue-router';
 
   import OperationModel from '@services/model/db-resource/Operation';
   import { fetchOperationList } from '@services/source/dbresourceResource';
+  import { getTicketTypes } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
 
-  import { ipv4 } from '@common/regex';
+  import { useLinkQueryColumnSerach } from '@hooks';
 
-  import { getSearchSelectorParams } from '@utils';
+  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   import HostDetail from './components/HostDetail.vue';
 
-  const router = useRouter();
+  // const router = useRouter();
+  import type { SearchSelectItem } from '@/types/bkui-vue';
+
   const route = useRoute();
   const { t } = useI18n();
+
+  const {
+    searchValue,
+    sortValue,
+    columnCheckedMap,
+    columnFilterChange,
+    columnSortChange,
+    clearSearchValue,
+    validateSearchValues,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach('resource_record', [], () => fetchData());
 
   const dataSource = fetchOperationList;
 
@@ -56,13 +71,9 @@
       .format('YYYY-MM-DD HH:mm:ss'),
     dayjs().format('YYYY-MM-DD HH:mm:ss'),
   ]);
-  const searchValues = ref([]);
+  const ticketTypes = ref<Array<{id: string, name: string}>>([]);
 
-  const serachData = [
-    {
-      name: 'IP',
-      id: 'ip_list',
-    },
+  const searchSelectData = computed(() => [
     {
       name: t('操作类型'),
       id: 'operation_type',
@@ -77,6 +88,12 @@
           name: t('消费主机'),
         },
       ],
+    },
+    {
+      name: t('单据类型'),
+      id: 'ticket_types',
+      multiple: true,
+      children: ticketTypes.value,
     },
     {
       name: t('关联单据'),
@@ -120,9 +137,9 @@
       name: t('操作人'),
       id: 'operator',
     },
-  ];
+  ]);
 
-  const tableColumn = [
+  const tableColumn = computed(() => [
     {
       label: t('操作时间'),
       field: 'update_time',
@@ -134,18 +151,39 @@
     {
       label: t('操作主机明细（台）'),
       field: 'total_count',
+      sort: true,
       render: ({ data }: {data: OperationModel}) => (
         <HostDetail data={data} />
       ),
     },
     {
       label: t('操作类型'),
-      field: 'operationTypeText',
+      field: 'operation_type',
+      filter: {
+        list: [
+          {
+            value: [OperationModel.OPERATIN_TYPE_IMPORTED],
+            text: t('导入主机'),
+          },
+          {
+            value: [OperationModel.OPERATIN_TYPE_CONSUMED],
+            text: t('消费主机'),
+          },
+        ],
+        checked: columnCheckedMap.value.operation_type,
+      },
       render: ({ data }: {data: OperationModel}) => data.operationTypeText,
     },
     {
       label: t('单据类型'),
-      field: 'ticket_type_display',
+      field: 'ticket_types',
+      filter: {
+        list: ticketTypes.value.map(item => ({
+          value: item.id,
+          text: item.name,
+        })),
+        checked: columnCheckedMap.value.ticket_types,
+      },
       render: ({ data }: {data: OperationModel}) => data.ticket_type_display || '--',
     },
     {
@@ -198,6 +236,35 @@
       label: t('操作结果'),
       field: 'status',
       width: 150,
+      filter: {
+        list: [
+          {
+            value: [OperationModel.STATUS_PENDING],
+            text: t('等待执行'),
+
+          },
+          {
+            value: [OperationModel.STATUS_RUNNING],
+            text: t('执行中'),
+
+          },
+          {
+            value: [OperationModel.STATUS_SUCCEEDED],
+            text: t('执行成功'),
+
+          },
+          {
+            value: [OperationModel.STATUS_FAILED],
+            text: t('执行失败'),
+
+          },
+          {
+            value: [OperationModel.STATUS_REVOKED],
+            text: t('执行失败'),
+          },
+        ],
+        checked: columnCheckedMap.value.status,
+      },
       render: ({ data }: {data: OperationModel}) => (
         <div style="display: flex; align-items: center;">
           <db-icon
@@ -214,32 +281,74 @@
         </div>
       ),
     },
-  ];
+  ]);
 
-  const serachValidateValues = (
-    payload: Record<'id'|'name', string>,
-    values: Array<Record<'id'|'name', string>>,
-  ) => {
-    if (payload.id === 'ticket_ids') {
-      const [{ id }] = values;
-      return Promise.resolve(_.every(id.split(','), item => /^\d+?/.test(item)));
+  useRequest(getTicketTypes, {
+    defaultParams: [{
+      is_apply: 1,
+    }],
+    onSuccess(data) {
+      ticketTypes.value = data.map(item => ({
+        id: item.key,
+        name: item.value,
+      }));
+    },
+  });
+
+  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+    if (item?.id !== 'operator' && keyword) {
+      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
     }
-    if (payload.id === 'ip_list') {
-      const [{ id }] = values;
-      return Promise.resolve(_.every(id.split(','), item => ipv4.test(item)));
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map(value => value.id);
+      return searchSelectData.value.filter(item => !selected.includes(item.id));
     }
-    return Promise.resolve(true);
+
+    // 远程加载执行人
+    if (item.id === 'operator') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then(res => res.results.map(item => ({
+        id: item.username,
+        name: item.username,
+      })));
+    }
+
+    // 不需要远层加载
+    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
   };
+
+  // const serachValidateValues = (
+  //   payload: Record<'id'|'name', string>,
+  //   values: Array<Record<'id'|'name', string>>,
+  // ) => {
+  //   if (payload.id === 'ticket_ids') {
+  //     const [{ id }] = values;
+  //     return Promise.resolve(_.every(id.split(','), item => /^\d+?/.test(item)));
+  //   }
+  //   if (payload.id === 'ip_list') {
+  //     const [{ id }] = values;
+  //     return Promise.resolve(_.every(id.split(','), item => ipv4.test(item)));
+  //   }
+  //   return Promise.resolve(true);
+  // };
 
   // 获取数据
   const fetchData = () => {
-    const searchParams = getSearchSelectorParams(searchValues.value);
+    const searchParams = getSearchSelectorParams(searchValue.value);
     const [
       beginTime,
       endTime,
     ] = operationDateTime.value;
     tableRef.value.fetchData({
       ...searchParams,
+      ...sortValue,
       begin_time: beginTime ? dayjs(beginTime).format('YYYY-MM-DD HH:mm:ss') : '',
       end_time: endTime ? dayjs(endTime).format('YYYY-MM-DD HH:mm:ss') : '',
     });
@@ -249,26 +358,22 @@
   const handleDateChange = () => {
     fetchData();
   };
-  // 搜索
-  const handleSearch = () => {
-    fetchData();
-  };
+
   // 清空搜索条件
   const handleClearSearch = () => {
     operationDateTime.value = ['', ''];
-    searchValues.value = [];
-    fetchData();
+    clearSearchValue();
   };
 
-  const handleGoTicketDetail = (data: OperationModel) => {
-    const { href } = router.resolve({
-      name: 'bizTicketManage',
-      query: {
-        id: data.ticket_id,
-      },
-    });
-    window.open(href.replace(/(\d)+/, `${data.bk_biz_id}`));
-  };
+  // const handleGoTicketDetail = (data: OperationModel) => {
+  //   const { href } = router.resolve({
+  //     name: 'bizTicketManage',
+  //     query: {
+  //       id: data.ticket_id,
+  //     },
+  //   });
+  //   window.open(href.replace(/(\d)+/, `${data.bk_biz_id}`));
+  // };
 </script>
 
 <style lang="less">
