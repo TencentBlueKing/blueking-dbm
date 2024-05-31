@@ -85,7 +85,7 @@ class MySQLRollbackDataFlow(object):
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["cluster_type"] = cluster_class.cluster_type
             self.data["uid"] = self.ticket_data["uid"]
-            self.data["city"] = info["city"]
+            self.data["city"] = cluster_class.region
             self.data["package"] = Package.get_latest_package(
                 version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
             ).name
