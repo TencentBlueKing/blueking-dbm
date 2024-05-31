@@ -54,20 +54,9 @@ def list_modules_by_biz(bk_biz_id: int, cluster_type: str) -> List[ModuleModel]:
     return [ModuleModel(m.bk_biz_id, m.db_module_id, m.db_module_name) for m in modules]
 
 
-def set_db_app_abbr(bk_biz_id: int, db_app_abbr: str, raise_exception: bool = False):
+def set_db_app_abbr(bk_biz_id: int, db_app_abbr: str):
     # 此处使用管理员账户请求(use_admin=True)，不校验用户对CMDB是否有查询/修改权限，在view层校验用户是否有修改英文缩写权限即可
     # 检查英文缩写是否已存在
-    abbr = get_db_app_abbr(bk_biz_id)
-    if not abbr:
-        CCApi.update_business({"bk_biz_id": bk_biz_id, "data": {CC_APP_ABBR_ATTR: db_app_abbr}}, use_admin=True)
-        AppCache.objects.update_or_create(defaults={"db_app_abbr": db_app_abbr}, bk_biz_id=bk_biz_id)
-        return
-    if raise_exception:
-        raise BkAppAttrAlreadyExistException()
-
-
-def get_db_app_abbr(bk_biz_id: int) -> str:
-    # 查询 CC 的业务对象属性（英文缩写）"""
     abbr = CCApi.search_business(
         params={
             "fields": ["bk_biz_id", CC_APP_ABBR_ATTR],
@@ -78,7 +67,11 @@ def get_db_app_abbr(bk_biz_id: int) -> str:
         },
         use_admin=True,
     )["info"][0].get(CC_APP_ABBR_ATTR, "")
-    return abbr
+    if not abbr:
+        CCApi.update_business({"bk_biz_id": bk_biz_id, "data": {CC_APP_ABBR_ATTR: db_app_abbr}}, use_admin=True)
+        AppCache.objects.update_or_create(defaults={"db_app_abbr": db_app_abbr}, bk_biz_id=bk_biz_id)
+        return
+    logger.warning(BkAppAttrAlreadyExistException().message)
 
 
 def list_cc_obj_user(bk_biz_id: int) -> list:

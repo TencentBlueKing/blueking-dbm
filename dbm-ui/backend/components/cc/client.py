@@ -32,7 +32,7 @@ class _CCApi(BaseApi):
             description=_("没有业务信息的主机查询"),
         )
         self.search_business = self.generate_data_api(
-            method="POST", url="search_business/", description=_("查询业务"), cache_time=300
+            method="POST", url="search_business/", description=_("查询业务"), cache_time=30
         )
         self.search_module = self.generate_data_api(
             method="POST",
@@ -120,8 +120,8 @@ class _CCApi(BaseApi):
         )
         self.search_cloud_area = self.generate_data_api(
             method="POST",
-            url="search_cloud_area/",  # 默认缓存1h
-            cache_time=60 * 60,
+            url="search_cloud_area/",
+            cache_time=60,
             description=_("查询云区域"),
         )
         self.list_host_total_mainline_topo = self.generate_data_api(

@@ -20,8 +20,7 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import DBModule
-from backend.db_services.cmdb.biz import get_db_app_abbr
+from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mysql.constants import DEFAULT_ORIGIN_MYSQL_PORT, SERVER_PORT_LIMIT_MAX, SERVER_PORT_LIMIT_MIN
 from backend.exceptions import ValidationError
@@ -142,7 +141,7 @@ class MysqlSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
 
     def format_cluster_domains(self) -> List[Dict[str, str]]:
         db_module_name = DBModule.objects.get(db_module_id=self.ticket_data["db_module_id"]).db_module_name
-        db_app_abbr = get_db_app_abbr(self.ticket_data["bk_biz_id"])
+        db_app_abbr = AppCache.get_app_attr(self.ticket_data["bk_biz_id"])
         return [
             {
                 "name": domain["key"],

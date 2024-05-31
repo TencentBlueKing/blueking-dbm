@@ -92,7 +92,7 @@ class CMDBViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=True, serializer_class=serializers.SetBkAppAbbrSLZ)
     def set_db_app_abbr(self, request, bk_biz_id):
         validated_data = self.params_validate(self.get_serializer_class())
-        biz.set_db_app_abbr(bk_biz_id, validated_data["db_app_abbr"], raise_exception=True)
+        biz.set_db_app_abbr(bk_biz_id, validated_data["db_app_abbr"])
         return Response()
 
     @common_swagger_auto_schema(operation_summary=_("查询 CC 角色对象"), tags=[SWAGGER_TAG])

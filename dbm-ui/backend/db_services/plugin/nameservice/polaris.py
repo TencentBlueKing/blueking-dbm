@@ -17,8 +17,7 @@ from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterEntryType
-from backend.db_meta.models import Cluster
-from backend.db_services.cmdb import biz
+from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.plugin.nameservice.clb import response_fail, response_ok
 from backend.env import NAMESERVICE_POLARIS_DEPARTMENT
 
@@ -62,7 +61,7 @@ def create_service_alias_bind_targets(cluster_id: int) -> Dict[str, Any]:
     owners = ";".join(users)
 
     # 获取业务名称
-    business = biz.get_db_app_abbr(bk_biz_id)
+    business = AppCache.get_app_attr(bk_biz_id)
     comment = users[0]
 
     # 进行请求，得到返回结果
