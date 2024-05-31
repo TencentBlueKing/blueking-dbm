@@ -47,6 +47,12 @@ class DBAdministratorHandler(object):
             dba_obj, created = DBAdministrator.objects.update_or_create(
                 bk_biz_id=bk_biz_id, db_type=db_type, defaults={"users": new_dba}
             )
+            # 更新告警组
+            update_dba_notice_group.apply_async(kwargs={"dba_id": dba_obj.id})
+
+            if not biz_dba:
+                continue
+
             # 更新主机主备负责人
             operator = biz_dba[0]
             bk_bak_operator = biz_dba[1] if len(biz_dba) > 1 else operator
@@ -69,6 +75,3 @@ class DBAdministratorHandler(object):
                     ],
                     need_monitor=True,
                 )
-
-            # 更新告警组
-            update_dba_notice_group.apply_async(kwargs={"dba_id": dba_obj.id})
