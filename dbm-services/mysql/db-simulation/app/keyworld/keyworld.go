@@ -8,20 +8,36 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package keyworld TODO
+// Package keyworld mysql keyword
 package keyworld
 
 import (
 	"dbm-services/common/go-pubpkg/cmutil"
 )
 
-// ALL_KEYWORD TODO
+// ALL_KEYWORD keywords for all versions
 var ALL_KEYWORD []string
 
 func init() {
-	ALL_KEYWORD = append(ALL_KEYWORD, MySQL55_KEYWORD...)
-	ALL_KEYWORD = append(ALL_KEYWORD, MySQL56_KEYWORD...)
-	ALL_KEYWORD = append(ALL_KEYWORD, MySQL57_KEYWORD...)
-	ALL_KEYWORD = append(ALL_KEYWORD, MySQL80_KEYWORD...)
+	ALL_KEYWORD = GetReservedKeyWords(Keywords56)
+	ALL_KEYWORD = append(ALL_KEYWORD, GetReservedKeyWords(Keywords57)...)
+	ALL_KEYWORD = append(ALL_KEYWORD, GetReservedKeyWords(Keywords80)...)
 	ALL_KEYWORD = cmutil.RemoveDuplicate(ALL_KEYWORD)
+}
+
+// Keyword  keywords
+type Keyword struct {
+	Keyword  string
+	Reserved bool
+}
+
+// GetReservedKeyWords get reserved keywords to check
+func GetReservedKeyWords(ks []Keyword) []string {
+	kks := []string{}
+	for _, kd := range ks {
+		if kd.Reserved {
+			kks = append(kks, kd.Keyword)
+		}
+	}
+	return kks
 }

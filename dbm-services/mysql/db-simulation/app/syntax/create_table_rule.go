@@ -18,7 +18,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// Checker TODO
+// Checker type create table checker
 func (c CreateTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r = &CheckerResult{}
 	r.Parse(R.CreateTableRule.SuggestEngine, c.GetEngine(), "")
@@ -36,8 +36,7 @@ func (c CreateTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	return
 }
 
-// BlobColumCount TODO
-// ExceedMaxBlobColum 检查创建表时blob/text字段最大数，是否超过
+// BlobColumCount ExceedMaxBlobColum 检查创建表时blob/text字段最大数，是否超过
 func (c CreateTableResult) BlobColumCount() (blobColumCount int) {
 	for _, v := range c.CreateDefinitions.ColDefs {
 		if v.Type == "blob" {
@@ -48,7 +47,7 @@ func (c CreateTableResult) BlobColumCount() (blobColumCount int) {
 	return
 }
 
-// GetValFromTbOptions TODO
+// GetValFromTbOptions  get table option
 func (c CreateTableResult) GetValFromTbOptions(key string) (val string) {
 	for _, tableOption := range c.TableOptions {
 		if tableOption.Key == key {
@@ -59,7 +58,7 @@ func (c CreateTableResult) GetValFromTbOptions(key string) (val string) {
 	return val
 }
 
-// GetEngine TODO
+// GetEngine get engine
 func (c CreateTableResult) GetEngine() (engine string) {
 	if v, ok := c.TableOptionMap["engine"]; ok {
 		return v.(string)
@@ -67,8 +66,7 @@ func (c CreateTableResult) GetEngine() (engine string) {
 	return ""
 }
 
-// GetComment TODO
-// comment
+// GetComment get sql comment
 func (c CreateTableResult) GetComment() (engine string) {
 	if v, ok := c.TableOptionMap["comment"]; ok {
 		return v.(string)
@@ -76,8 +74,7 @@ func (c CreateTableResult) GetComment() (engine string) {
 	return ""
 }
 
-// GetTableCharset TODO
-// character_set
+// GetTableCharset get character_set
 func (c CreateTableResult) GetTableCharset() (engine string) {
 	if v, ok := c.TableOptionMap["character_set"]; ok {
 		return v.(string)
@@ -85,7 +82,7 @@ func (c CreateTableResult) GetTableCharset() (engine string) {
 	return ""
 }
 
-// GetAllColCharsets TODO
+// GetAllColCharsets get columns define charset
 func (c CreateTableResult) GetAllColCharsets() (charsets []string) {
 	for _, colDef := range c.CreateDefinitions.ColDefs {
 		if !cmutil.IsEmpty(colDef.CharacterSet) {

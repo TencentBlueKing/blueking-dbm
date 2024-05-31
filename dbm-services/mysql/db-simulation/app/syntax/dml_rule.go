@@ -1,13 +1,23 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package syntax
 
-// Checker TODO
+// Checker  whether the delete statement has a where condition
 func (c DeleteResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r = &CheckerResult{}
 	r.Parse(R.DmlRule.DmlNotHasWhere, c.HasWhere || c.Limit > 0, "")
 	return
 }
 
-// Checker TODO
+// Checker  whether the update statement has a where condition
 func (c UpdateResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r = &CheckerResult{}
 	r.Parse(R.DmlRule.DmlNotHasWhere, c.HasWhere || c.Limit > 0, "")

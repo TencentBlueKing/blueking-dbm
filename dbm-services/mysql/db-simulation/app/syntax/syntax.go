@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package syntax TODO
+// Package syntax sql syntax
 package syntax
 
 import (
@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,7 +35,7 @@ import (
 	"dbm-services/mysql/db-simulation/app/config"
 )
 
-// CheckSyntax TODO
+// CheckSyntax 语法检查
 type CheckSyntax interface {
 	Do() (result map[string]*CheckInfo, err error)
 }
@@ -42,13 +43,13 @@ type CheckSyntax interface {
 type inputFileName = string
 type outputFileName = string
 
-// TmysqlParseSQL TODO
+// TmysqlParseSQL execution parsing sql
 type TmysqlParseSQL struct {
 	TmysqlParse
 	Sqls []string `json:"sqls"` // SQL文件名称
 }
 
-// TmysqlParseFile TODO
+// TmysqlParseFile execution parsing sql file
 type TmysqlParseFile struct {
 	TmysqlParse
 	Param       CheckSqlFileParam
@@ -58,7 +59,6 @@ type TmysqlParseFile struct {
 // CheckSqlFileParam TODO
 type CheckSqlFileParam struct {
 	BkRepoBasePath string   `json:"bkrepo_base_path"`
-	MysqlVersion   string   `json:"mysql_version"`
 	FileNames      []string `json:"file_names"`
 }
 
@@ -76,14 +76,14 @@ type runtimeCtx struct {
 	tmpWorkdir string
 }
 
-// CheckInfo TODO
+// CheckInfo 语法检查结果信息汇总
 type CheckInfo struct {
 	SyntaxFailInfos []FailedInfo `json:"syntax_fails"`
 	RiskWarnings    []RiskInfo   `json:"highrisk_warnings"`
 	BanWarnings     []RiskInfo   `json:"bancommand_warnings"`
 }
 
-// FailedInfo TODO
+// FailedInfo 语法错误结果
 type FailedInfo struct {
 	Sqltext   string `json:"sqltext"`
 	ErrorMsg  string `json:"error_msg"`
@@ -91,7 +91,7 @@ type FailedInfo struct {
 	ErrorCode int64  `json:"error_code"`
 }
 
-// RiskInfo TODO
+// RiskInfo 高危语句结果
 type RiskInfo struct {
 	CommandType string `json:"command_type"`
 	Sqltext     string `json:"sqltext"`
@@ -99,7 +99,7 @@ type RiskInfo struct {
 	Line        int64  `json:"line"`
 }
 
-// DDLMAP_FILE_SUFFIX TODO
+// DDLMAP_FILE_SUFFIX execution parsing sql provisional results document
 const DDLMAP_FILE_SUFFIX = ".tbl.map"
 
 // Do  运行语法检查 For SQL 文件
@@ -107,11 +107,12 @@ const DDLMAP_FILE_SUFFIX = ".tbl.map"
 //	@receiver tf
 //	@return result
 //	@return err
-func (tf *TmysqlParseFile) Do(dbtype string) (result map[string]*CheckInfo, err error) {
+func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[string]*CheckInfo, err error) {
 	logger.Info("doing....")
 	tf.fileMap = make(map[inputFileName]outputFileName)
 	tf.result = make(map[string]*CheckInfo)
 	tf.tmpWorkdir = tf.BaseWorkdir
+
 	if !tf.IsLocalFile {
 		if err = tf.Init(); err != nil {
 			logger.Error("Do init failed %s", err.Error())
@@ -124,46 +125,52 @@ func (tf *TmysqlParseFile) Do(dbtype string) (result map[string]*CheckInfo, err 
 	}
 	// 最后删除临时目录,不会返回错误
 	// 暂时屏蔽 观察过程文件
-	// defer tf.delTempDir()
+	defer tf.delTempDir()
+
+	for _, version := range versions {
+		if err = tf.doSingleVersion(dbtype, version); err != nil {
+			return tf.result, err
+		}
+	}
+
+	return tf.result, nil
+}
+
+func (tf *TmysqlParseFile) doSingleVersion(dbtype string, mysqlVersion string) (err error) {
 	errChan := make(chan error)
 	resultfileChan := make(chan string, 10)
 	signalChan := make(chan struct{})
+
 	go func() {
-		if err = tf.Execute(resultfileChan); err != nil {
+		if err = tf.Execute(resultfileChan, mysqlVersion); err != nil {
 			logger.Error("failed to execute tmysqlparse: %s", err.Error())
 			errChan <- err
-			//	return nil, err
 		}
 		close(resultfileChan)
 	}()
 
 	// 对tmysqlparse的处理结果进行分析，为json文件，后面用到了rule
-	mysqlVersion := tf.Param.MysqlVersion
-
 	go func() {
 		logger.Info("start to analyze the parsing result")
+
 		if err = tf.AnalyzeParseResult(resultfileChan, mysqlVersion, dbtype); err != nil {
 			logger.Error("failed to analyze the parsing result:%s", err.Error())
 			errChan <- err
-			//	return tf.result, err
 		}
 		signalChan <- struct{}{}
 	}()
-	// 在一定程度上会增加语法检查的耗时、后续先观察一下
-	// if dbtype == app.Spider {
-	// 	 tf.UploadDdlTblMapFile()
-	// }
+
 	select {
 	case err := <-errChan:
-		return tf.result, err
+		return err
 	case <-signalChan:
 		logger.Info("analyze the parsing result done")
 		break
 	}
-	return tf.result, nil
+	return nil
 }
 
-// CreateAndUploadDDLTblFile TODO
+// CreateAndUploadDDLTblFile CreateAndUploadDDLTblFile
 func (tf *TmysqlParseFile) CreateAndUploadDDLTblFile() (err error) {
 	logger.Info("start to create and upload ddl table file")
 	logger.Info("doing....")
@@ -182,7 +189,7 @@ func (tf *TmysqlParseFile) CreateAndUploadDDLTblFile() (err error) {
 	errChan := make(chan error)
 	resultfileChan := make(chan string, 10)
 	go func() {
-		if err = tf.Execute(resultfileChan); err != nil {
+		if err = tf.Execute(resultfileChan, ""); err != nil {
 			logger.Error("failed to execute tmysqlparse: %s", err.Error())
 			errChan <- err
 			//	return nil, err
@@ -223,7 +230,7 @@ func getbkrepoClient() *bkrepo.BkRepoClient {
 	return bkrepoClient
 }
 
-// Init TODO
+// Init init env
 func (t *TmysqlParse) Init() (err error) {
 	tmpDir := fmt.Sprintf("tmysqlparse_%s_%s", time.Now().Format("20060102150405"), strconv.Itoa(rand.Intn(10000)))
 	t.tmpWorkdir = path.Join(t.BaseWorkdir, tmpDir)
@@ -243,18 +250,23 @@ func (t *TmysqlParse) delTempDir() {
 	}
 }
 
-func (t *TmysqlParse) getCommand(filename string) (cmd string) {
+func (t *TmysqlParse) getCommand(filename, version string) (cmd string) {
 	var in, out string
 	in = path.Join(t.tmpWorkdir, filename)
 	if outputFileName, ok := t.fileMap[filename]; ok {
 		out = path.Join(t.tmpWorkdir, outputFileName)
 	}
-	bin := t.TmysqlParseBinPath
-	return fmt.Sprintf(`%s --sql-file=%s --output-path=%s --print-query-mode=2 --output-format='JSON_LINE_PER_OBJECT'`,
-		bin, in, out)
+
+	cmd = fmt.Sprintf(`%s --sql-file=%s --output-path=%s --print-query-mode=2 --output-format='JSON_LINE_PER_OBJECT'`,
+		t.TmysqlParseBinPath, in, out)
+
+	if strings.TrimSpace(version) != "" {
+		cmd += fmt.Sprintf(" --mysql-version=%s ", version)
+	}
+	return
 }
 
-// Downloadfile TODO
+// Downloadfile download sqlfile
 func (tf *TmysqlParseFile) Downloadfile() (err error) {
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, 10)
@@ -283,7 +295,7 @@ func (tf *TmysqlParseFile) Downloadfile() (err error) {
 	return errors.Join(errs...)
 }
 
-// UploadDdlTblMapFile TODO
+// UploadDdlTblMapFile upload analysize ddl tables
 func (tf *TmysqlParseFile) UploadDdlTblMapFile() (err error) {
 	for _, fileName := range tf.Param.FileNames {
 		ddlTblFile := fileName + DDLMAP_FILE_SUFFIX
@@ -304,35 +316,41 @@ func (tf *TmysqlParseFile) UploadDdlTblMapFile() (err error) {
 //
 //	@receiver tf
 //	@return err
-func (tf *TmysqlParseFile) Execute(resultFile chan string) (err error) {
+func (tf *TmysqlParseFile) Execute(resultFile chan string, version string) (err error) {
 	var wg sync.WaitGroup
 	var errs []error
 	c := make(chan struct{}, 10)
 	errChan := make(chan error, 5)
+
 	for _, fileName := range tf.Param.FileNames {
 		wg.Add(1)
-		tf.fileMap[fileName] = fileName + ".json"
 		c <- struct{}{}
-		go func(sqlfile string) {
-			command := exec.Command("/bin/bash", "-c", tf.getCommand(sqlfile))
+		tf.fileMap[fileName] = version + "-" + fileName + ".json"
+		go func(sqlfile, ver string) {
+			command := exec.Command("/bin/bash", "-c", tf.getCommand(sqlfile, ver))
 			logger.Info("command is %s", command)
+
 			output, err := command.CombinedOutput()
 			if err != nil {
 				errChan <- fmt.Errorf("tmysqlparse.sh command run failed. error info:" + err.Error() + "," + string(output))
 			} else {
 				resultFile <- sqlfile
 			}
+
 			<-c
 			wg.Done()
-		}(fileName)
+		}(fileName, version)
 	}
+
 	go func() {
 		wg.Wait()
 		close(errChan)
 	}()
+
 	for err := range errChan {
 		errs = append(errs, err)
 	}
+
 	return errors.Join(errs...)
 }
 
@@ -341,17 +359,13 @@ func (tf *TmysqlParse) getAbsoutputfilePath(inputFileName string) string {
 	return fileAbPath
 }
 
-// AnalyzeParseResult TODO
+// AnalyzeParseResult 分析tmysqlparse 解析的结果
 func (t *TmysqlParse) AnalyzeParseResult(resultFile chan string, mysqlVersion string, dbtype string) (err error) {
 	var errs []error
 	c := make(chan struct{}, 10)
 	errChan := make(chan error, 5)
 	wg := &sync.WaitGroup{}
-	go func() {
-		for err := range errChan {
-			errs = append(errs, err)
-		}
-	}()
+
 	for inputFileName := range resultFile {
 		wg.Add(1)
 		c <- struct{}{}
@@ -364,14 +378,20 @@ func (t *TmysqlParse) AnalyzeParseResult(resultFile chan string, mysqlVersion st
 			<-c
 		}(inputFileName)
 	}
-	wg.Wait()
-	close(errChan)
-	logger.Info("end to analyze %d files", len(t.fileMap))
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	for err := range errChan {
+		errs = append(errs, err)
+	}
+
 	return errors.Join(errs...)
 }
 
-// ParseResult TODO
-func (c *CheckInfo) ParseResult(rule *RuleItem, res ParseLineQueryBase) {
+func (c *CheckInfo) parseResult(rule *RuleItem, res ParseLineQueryBase, ver string) {
 	matched, err := rule.CheckItem(res.Command)
 	if matched {
 		if rule.Ban {
@@ -379,20 +399,20 @@ func (c *CheckInfo) ParseResult(rule *RuleItem, res ParseLineQueryBase) {
 				Line:        int64(res.QueryId),
 				Sqltext:     res.QueryString,
 				CommandType: res.Command,
-				WarnInfo:    err.Error(),
+				WarnInfo:    fmt.Sprintf("[%s]: %s", ver, err.Error()),
 			})
 		} else {
 			c.RiskWarnings = append(c.RiskWarnings, RiskInfo{
 				Line:        int64(res.QueryId),
 				Sqltext:     res.QueryString,
 				CommandType: res.Command,
-				WarnInfo:    err.Error(),
+				WarnInfo:    fmt.Sprintf("[%s]: %s", ver, err.Error()),
 			})
 		}
 	}
 }
 
-// analyzeDDLTbls TODO
+// analyzeDDLTbls 分析DDL语句
 func (tf *TmysqlParse) analyzeDDLTbls(inputfileName string) (err error) {
 	ddlTbls := make(map[string][]string)
 	defer func() {
@@ -460,12 +480,13 @@ func (tf *TmysqlParse) analyzeDDLTbls(inputfileName string) (err error) {
 	return nil
 }
 
-// AnalyzeOne TODO
+// AnalyzeOne 分析单个文件
 func (tf *TmysqlParse) AnalyzeOne(inputfileName string, mysqlVersion string, dbtype string) (err error) {
 	var idx int
 	var syntaxFailInfos []FailedInfo
 	var buf []byte
 	ddlTbls := make(map[string][]string)
+
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Error("panic error:%v,stack:%s", r, string(debug.Stack()))
@@ -473,14 +494,18 @@ func (tf *TmysqlParse) AnalyzeOne(inputfileName string, mysqlVersion string, dbt
 			err = fmt.Errorf("line:%d,err:%v", idx, r)
 		}
 	}()
+
 	tf.result[inputfileName] = &CheckInfo{}
 	f, err := os.Open(tf.getAbsoutputfilePath(inputfileName))
 	if err != nil {
 		logger.Error("open file failed %s", err.Error())
 		return err
 	}
+
 	defer f.Close()
+
 	reader := bufio.NewReader(f)
+
 	for {
 		idx++
 		line, isPrefix, err_r := reader.ReadLine()
@@ -505,51 +530,38 @@ func (tf *TmysqlParse) AnalyzeOne(inputfileName string, mysqlVersion string, dbt
 			logger.Info("blank line skip")
 			continue
 		}
+
 		if err = json.Unmarshal(bs, &res); err != nil {
 			logger.Error("json unmasrshal line:%s failed %s", string(bs), err.Error())
 			return err
 		}
+
 		// 判断是否有语法错误
 		if res.ErrorCode != 0 {
+			vl := strings.Split(mysqlVersion, ".")
 			syntaxFailInfos = append(syntaxFailInfos, FailedInfo{
 				Line:      int64(res.QueryId),
 				Sqltext:   res.QueryString,
 				ErrorCode: int64(res.ErrorCode),
-				ErrorMsg:  res.ErrorMsg,
+				ErrorMsg:  fmt.Sprintf("[%s]: %s", fmt.Sprintf("MySQL-%s.%s", vl[0], vl[1]), res.ErrorMsg),
 			})
 			continue
 		}
+
 		switch dbtype {
 		case app.MySQL:
 			// tmysqlparse检查结果全部正确，开始判断语句是否符合定义的规则（即虽然语法正确，但语句可能是高危语句或禁用的命令）
-			tf.result[inputfileName].ParseResult(R.CommandRule.HighRiskCommandRule, res)
-			tf.result[inputfileName].ParseResult(R.CommandRule.BanCommandRule, res)
+			tf.result[inputfileName].parseResult(R.CommandRule.HighRiskCommandRule, res, mysqlVersion)
+			tf.result[inputfileName].parseResult(R.CommandRule.BanCommandRule, res, mysqlVersion)
 			tf.result[inputfileName].runcheck(res, bs, mysqlVersion)
 		case app.Spider:
 			// tmysqlparse检查结果全部正确，开始判断语句是否符合定义的规则（即虽然语法正确，但语句可能是高危语句或禁用的命令）
-			tf.result[inputfileName].ParseResult(SR.CommandRule.HighRiskCommandRule, res)
-			tf.result[inputfileName].ParseResult(SR.CommandRule.BanCommandRule, res)
+			tf.result[inputfileName].parseResult(SR.CommandRule.HighRiskCommandRule, res, mysqlVersion)
+			tf.result[inputfileName].parseResult(SR.CommandRule.BanCommandRule, res, mysqlVersion)
 			tf.result[inputfileName].runSpidercheck(ddlTbls, res, bs, mysqlVersion)
 		}
 	}
-	// if dbtype == app.Spider {
-	// 	fd, err := os.Create(path.Join(tf.tmpWorkdir, inputfileName+DDLMAP_FILE_SUFFIX))
-	// 	if err != nil {
-	// 		logger.Error("create file failed %s", err.Error())
-	// 		return err
-	// 	}
-	// 	defer fd.Close()
-	// 	b, err := json.Marshal(ddlTbls)
-	// 	if err != nil {
-	// 		logger.Error("json marshal failed %s", err.Error())
-	// 		return err
-	// 	}
-	// 	_, err = fd.Write(b)
-	// 	if err != nil {
-	// 		logger.Error("write file failed %s", err.Error())
-	// 		return err
-	// 	}
-	// }
+
 	tf.result[inputfileName].SyntaxFailInfos = syntaxFailInfos
 	return nil
 }

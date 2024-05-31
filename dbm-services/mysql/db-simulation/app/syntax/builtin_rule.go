@@ -19,19 +19,13 @@ import (
 )
 
 const (
-
-	// SpecialCharRegex = `[￥$!@#%^&*()+={}\[\];:'"<>,.?/\\| ]`
-
-	// AllowWordRegex TODO
+	// AllowWordRegex 允许库表名正则
 	AllowWordRegex = `^[a-zA-Z0-9]([a-zA-Z0-9_-])*[a-zA-Z0-9]$`
-	// SysReservesPrefixName TODO
-
 )
 
 var reAllowWord *regexp.Regexp
 var reAllowOneWord *regexp.Regexp
 
-// var mysql55WordMap  map[string]struct{}
 var mysql56WordMap map[string]struct{}
 var mysql57WordMap map[string]struct{}
 var mysql80WordMap map[string]struct{}
@@ -42,13 +36,13 @@ func init() {
 	sysReservesPrefixNames = []string{"stage_truncate"}
 	reAllowWord = regexp.MustCompile(AllowWordRegex)
 	reAllowOneWord = regexp.MustCompile(`^[a-zA-Z0-9]$`)
-	mysql56WordMap = sliceToMap(keyworld.MySQL56_KEYWORD)
-	mysql57WordMap = sliceToMap(keyworld.MySQL57_KEYWORD)
-	mysql80WordMap = sliceToMap(keyworld.MySQL80_KEYWORD)
+	mysql56WordMap = sliceToMap(keyworld.GetReservedKeyWords(keyworld.Keywords56))
+	mysql57WordMap = sliceToMap(keyworld.GetReservedKeyWords(keyworld.Keywords57))
+	mysql80WordMap = sliceToMap(keyworld.GetReservedKeyWords(keyworld.Keywords80))
 	defaultWordMap = sliceToMap(keyworld.ALL_KEYWORD)
 }
 
-// KeyWordValidator TODO
+// KeyWordValidator keyword check
 func KeyWordValidator(ver, name string) (matched bool, msg string) {
 	var kwmap map[string]struct{}
 	switch ver {
@@ -67,7 +61,7 @@ func KeyWordValidator(ver, name string) (matched bool, msg string) {
 	return
 }
 
-// SpecialCharValidator TODO
+// SpecialCharValidator special string check
 func SpecialCharValidator(name string) (matched bool, msg string) {
 	if reAllowOneWord.MatchString(name) {
 		return false, ""
