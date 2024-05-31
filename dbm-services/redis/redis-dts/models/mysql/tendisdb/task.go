@@ -84,9 +84,9 @@ func (t *TbTendisDTSTask) ToString() string {
 
 // TaskLockKey keyname
 func (t *TbTendisDTSTask) TaskLockKey() string {
-	return fmt.Sprintf("TendisDTS_task_lock_%d_%s_%s_%s_%d",
+	return fmt.Sprintf("TendisDTS_task_lock_%d_%s_%s_%s_%d_%d",
 		t.BillID, t.SrcCluster, t.DstCluster,
-		t.SrcIP, t.SrcPort)
+		t.SrcIP, t.SrcPort, t.SrcKvStoreID)
 }
 
 // IsAllDtsTasksToForceKill 是否全部tasks都等待被force kill

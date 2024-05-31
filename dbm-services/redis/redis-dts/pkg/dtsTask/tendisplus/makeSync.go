@@ -13,7 +13,6 @@ import (
 	"dbm-services/redis/redis-dts/models/mysql/tendisdb"
 	"dbm-services/redis/redis-dts/pkg/constvar"
 	"dbm-services/redis/redis-dts/pkg/dtsTask"
-	"dbm-services/redis/redis-dts/tclog"
 	"dbm-services/redis/redis-dts/util"
 
 	"github.com/jinzhu/gorm"
@@ -283,7 +282,9 @@ func (task *MakeSyncTask) TendisplusMasterSlaveConfigSet() {
 func (task *MakeSyncTask) getMySyncPort(initSyncPort int) {
 	taskTypes := []string{}
 	var syncerPort int
-	taskTypes = append(taskTypes, constvar.MakeSyncTaskType)
+	taskTypes = append(taskTypes, constvar.TendisplusMakeSyncTaskType)
+	taskTypes = append(taskTypes, constvar.TendisplusSendBulkTaskType)
+	taskTypes = append(taskTypes, constvar.TendisplusSendIncrTaskType)
 	if initSyncPort <= 0 {
 		initSyncPort = 40000
 		dtsSvrMaxSyncPortTask, err := tendisdb.GetDtsSvrMaxSyncPort(task.RowData.BkCloudID, task.RowData.DtsServer,
@@ -508,7 +509,7 @@ func (task *MakeSyncTask) RedisSyncInfo(section string) (infoRets map[string]str
 func (task *MakeSyncTask) IsSyncAlive() (isAlive bool, err error) {
 	isSyncAliaveCmd := fmt.Sprintf("ps -ef|grep 'taskid%d-'|grep 'kvstore-%d-'|grep -v grep|grep sync|grep conf || true",
 		task.RowData.ID, task.RowData.SrcKvStoreID)
-	tclog.Logger.Info("", zap.String("isSyncAliaveCmd", isSyncAliaveCmd))
+	task.Logger.Info("", zap.String("isSyncAliaveCmd", isSyncAliaveCmd))
 	ret, err := util.RunLocalCmd("bash", []string{"-c", isSyncAliaveCmd}, "", nil, 1*time.Minute, task.Logger)
 	if err != nil {
 		return false, err
@@ -578,11 +579,11 @@ func (task *MakeSyncTask) IsSyncStateOK() (ok bool) {
 func (task *MakeSyncTask) RedisSyncStop() {
 	isAlive, err := task.IsSyncAlive()
 	if !isAlive {
-		tclog.Logger.Info(fmt.Sprintf("RedisSyncStop srcRedis:%s kvStore:%d sync is not alive",
+		task.Logger.Info(fmt.Sprintf("RedisSyncStop srcRedis:%s kvStore:%d sync is not alive",
 			task.GetSrcRedisAddr(), task.RowData.SrcKvStoreID))
 		return
 	}
-	tclog.Logger.Info(fmt.Sprintf("RedisSyncStop srcRedis:%s kvStore:%d sync is alive",
+	task.Logger.Info(fmt.Sprintf("RedisSyncStop srcRedis:%s kvStore:%d sync is alive",
 		task.GetSrcRedisAddr(), task.RowData.SrcKvStoreID))
 
 	opts := []string{"SYNCADMIN", "stop"}
@@ -629,9 +630,9 @@ func (task *MakeSyncTask) RedisSyncStop() {
 
 // RedisSyncStart 启动redis-sync
 func (task *MakeSyncTask) RedisSyncStart(reacquirePort bool) {
-	tclog.Logger.Info(fmt.Sprintf("redis-sync start srcRedisAddr:%s kvStoreId:%d dstCluster:%s ...",
+	task.Logger.Info(fmt.Sprintf("redis-sync start srcRedisAddr:%s kvStoreId:%d dstCluster:%s ...",
 		task.GetSrcRedisAddr(), task.RowData.SrcKvStoreID, task.GetDstRedisAddr()))
-	defer tclog.Logger.Info("end redis-sync start")
+	defer task.Logger.Info("end redis-sync start")
 
 	if reacquirePort {
 		task.getMySyncPort(0)
@@ -699,7 +700,7 @@ func (task *MakeSyncTask) RedisSyncStart(reacquirePort bool) {
 	if task.Err != nil {
 		return
 	}
-	tclog.Logger.Info("redis-sync 'syncadmin start' success", zap.String("cmdRet", ret02))
+	task.Logger.Info("redis-sync 'syncadmin start' success", zap.String("cmdRet", ret02))
 
 	task.UpdateDbAndLogLocal("redis-sync %d start success", task.RowData.SyncerPort)
 	return
@@ -838,6 +839,7 @@ func (task *MakeSyncTask) WatchSync() {
 			task.SetTaskType(constvar.TendisplusSendBulkTaskType)
 			task.UpdateDbAndLogLocal("全量迁移中,binlog_pos:%d,lag:%d", myRockSlave.BinlogPos, myRockSlave.Lag)
 		} else {
+			task.SetTendisBinlogLag(myRockSlave.Lag)
 			task.SetTaskType(constvar.TendisplusSendIncrTaskType)
 			task.UpdateDbAndLogLocal("增量同步中,binlog_pos:%d,lag:%d", myRockSlave.BinlogPos, myRockSlave.Lag)
 		}

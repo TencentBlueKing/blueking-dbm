@@ -669,7 +669,7 @@ class RedisDtsExecuteService(BaseService):
         if kwargs["cluster"]["dts_copy_type"] == DtsCopyType.USER_BUILT_TO_DBM:
             return 5
         if max_datasize_instance["db_type"] == ClusterType.TendisTendisplusInsance:
-            return 10
+            return 5
 
         if max_datasize_instance["data_size"] == 0:
             return 5

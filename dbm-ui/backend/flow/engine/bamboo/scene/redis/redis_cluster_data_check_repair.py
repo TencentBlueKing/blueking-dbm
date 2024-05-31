@@ -67,7 +67,9 @@ class RedisClusterDataCheckRepairFlow(object):
             act_kwargs.cluster = self.__get_dts_job_data(info)
 
             sub_pipeline.add_act(
-                act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
+                act_name=_("初始化配置"),
+                act_component_code=GetRedisActPayloadComponent.code,
+                kwargs=asdict(act_kwargs),
             )
 
             exec_ips = set()
@@ -167,19 +169,22 @@ class RedisClusterDataCheckRepairFlow(object):
 
         ret["dts_copy_type"] = job_row.dts_copy_type
         src_ips_set = set()
+        src_ip_port_set = set()
         if len(info["src_instances"]) == 1 and info["src_instances"][0].upper() == "ALL":
             for row in TbTendisDtsTask.objects.filter(where).all():
                 if first_task is None:
                     first_task = row
                 src_ips_set.add(row.src_ip)
-                if row.src_ip in ret:
-                    ret[row.src_ip].append(
-                        {"port": row.src_port, "segment_start": row.src_seg_start, "segment_end": row.src_seg_end}
-                    )
-                else:
+                ip_port = f"{row.src_ip}:{row.src_port}"
+                if row.src_ip not in ret:
                     ret[row.src_ip] = [
                         {"port": row.src_port, "segment_start": row.src_seg_start, "segment_end": row.src_seg_end}
                     ]
+                elif ip_port not in src_ip_port_set:
+                    ret[row.src_ip].append(
+                        {"port": row.src_port, "segment_start": row.src_seg_start, "segment_end": row.src_seg_end}
+                    )
+                src_ip_port_set.add(ip_port)
         else:
             for src_inst in info["src_instances"]:
                 src_ip, src_port = src_inst.split(":")
@@ -187,14 +192,17 @@ class RedisClusterDataCheckRepairFlow(object):
                     if first_task is None:
                         first_task = row
                     src_ips_set.add(row.src_ip)
-                    if row.src_ip in ret:
-                        ret[row.src_ip].append(
-                            {"port": row.src_port, "segment_start": row.src_seg_start, "segment_end": row.src_seg_end}
-                        )
-                    else:
+                    ip_port = f"{row.src_ip}:{row.src_port}"
+                    if row.src_ip not in ret:
                         ret[row.src_ip] = [
                             {"port": row.src_port, "segment_start": row.src_seg_start, "segment_end": row.src_seg_end}
                         ]
+                    elif ip_port not in src_ip_port_set:
+                        ret[row.src_ip].append(
+                            {"port": row.src_port, "segment_start": row.src_seg_start, "segment_end": row.src_seg_end}
+                        )
+                    src_ip_port_set.add(ip_port)
+
         if first_task is None:
             logger.error(
                 "get dts task not found,bill_id:{} src_cluster:{} dst_cluster:{} src_instances:{}".format(
