@@ -38,7 +38,12 @@ class DBAdministrator(models.Model):
         for biz_dba in cls.objects.filter(bk_biz_id=bk_biz_id, db_type__in=valid_db_types):
             db_type_users_map[biz_dba.db_type] = biz_dba.users
         db_admins = [
-            {"db_type": db_type, "db_type_display": DBType.get_choice_label(db_type), "users": users, "is_show": True}
+            {
+                "db_type": db_type,
+                "db_type_display": DBType.get_choice_label(db_type),
+                "users": users or ["admin"],
+                "is_show": True,
+            }
             for db_type, users in db_type_users_map.items()
         ]
 
