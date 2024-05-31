@@ -151,8 +151,15 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
             return [MonitorPolicyPermission(view_action=self.action)]
         elif self.action in ["disable", "enable"]:
             return [MonitorPolicyPermission(view_action="enable_disable")]
+        elif self.action in ["callback"]:
+            return []
 
         return [DBManagePermission()]
+
+    @classmethod
+    def _get_login_exempt_view_func(cls):
+        # 需要豁免的接口方法与名字
+        return {"post": [cls.callback.__name__], "put": [], "get": [], "delete": []}
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -273,11 +280,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         tags=[constants.SWAGGER_TAG],
         request_body=serializers.AlarmCallBackDataSerializer,
     )
-    @action(
-        methods=["POST"],
-        detail=False,
-        serializer_class=serializers.AlarmCallBackDataSerializer,
-    )
+    @action(methods=["POST"], detail=False, serializer_class=serializers.AlarmCallBackDataSerializer)
     def callback(self, request, *args, **kwargs):
         # 监控回调需要使用 Bearer Token 进行验证
         # 从请求头中获取 Authorization 头
