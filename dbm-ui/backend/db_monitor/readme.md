@@ -63,15 +63,15 @@ python manage.py export_alarm tbinlogdumper 46679 46680
 prod 策略:
 ```
 source prod.local.env
-python manage.py export_alarm mysql
-python manage.py export_alarm redis 
+python manage.py export_alarm mysql 98056 98061 98058
+python manage.py export_alarm redis 106455 106497
 python manage.py export_alarm es 98003 98004 98005 98006 98007 98008 98009 98010 
 python manage.py export_alarm kafka 98027 -d -c consumergroup topic
 python manage.py export_alarm pulsar 98065 98063
 python manage.py export_alarm hdfs 
 python manage.py export_alarm influxdb 
 python manage.py export_alarm riak 
-python manage.py export_alarm cloud 
+python manage.py export_alarm cloud 100371 100372 100373 113059 100368 100369 117596 114983
 ```
 
 
