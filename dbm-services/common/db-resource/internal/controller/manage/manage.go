@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package manage TODO
+// Package manage resource manage
 package manage
 
 import (
@@ -25,7 +25,7 @@ import (
 	rf "github.com/gin-gonic/gin"
 )
 
-// MachineResourceHandler TODO
+// MachineResourceHandler 主机处理handler
 type MachineResourceHandler struct {
 	controller.BaseHandler
 }
@@ -36,7 +36,7 @@ func init() {
 	middleware.RequestLoggerFilter.Add("/resource/delete")
 }
 
-// RegisterRouter TODO
+// RegisterRouter 注册路由信息
 func (c *MachineResourceHandler) RegisterRouter(engine *rf.Engine) {
 	r := engine.Group("resource")
 	{
@@ -56,7 +56,12 @@ func (c *MachineResourceHandler) RegisterRouter(engine *rf.Engine) {
 	}
 }
 
-// Delete TODO
+// MachineDeleteInputParam 删除主机参数
+type MachineDeleteInputParam struct {
+	BkHostIds []int `json:"bk_host_ids"  binding:"required"`
+}
+
+// Delete 删除主机
 func (c *MachineResourceHandler) Delete(r *rf.Context) {
 	var input MachineDeleteInputParam
 	if err := c.Prepare(r, &input); err != nil {
@@ -77,25 +82,29 @@ func (c *MachineResourceHandler) Delete(r *rf.Context) {
 	c.SendResponse(r, nil, requestId, "Delete Success")
 }
 
-// BatchUpdateMachineInput TODO
+// BatchUpdateMachineInput 批量编辑主机信息请求参数
 type BatchUpdateMachineInput struct {
 	BkHostIds      []int                    `json:"bk_host_ids"  binding:"required,dive,gt=0" `
 	ForBizs        []int                    `json:"for_bizs"`
 	RsTypes        []string                 `json:"resource_types"`
+	RackId         string                   `json:"rack_id"`
 	SetBizEmpty    bool                     `json:"set_empty_biz"`
 	SetRsTypeEmpty bool                     `json:"set_empty_resource_type"`
 	StorageDevice  map[string]bk.DiskDetail `json:"storage_device"`
 }
 
-// BatchUpdate TODO
+// BatchUpdate 批量编辑主机信息
 func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 	var input BatchUpdateMachineInput
 	requestId := r.GetString("request_id")
+	updateMap := make(map[string]interface{})
+
 	if err := c.Prepare(r, &input); err != nil {
 		logger.Error("Preare Error %s", err.Error())
 		return
 	}
-	updateMap := make(map[string]interface{})
+
+	// update for biz
 	if len(input.ForBizs) > 0 {
 		bizJson, err := json.Marshal(cmutil.IntSliceToStrSlice(input.ForBizs))
 		if err != nil {
@@ -109,6 +118,7 @@ func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 		updateMap["dedicated_bizs"] = "[]"
 	}
 
+	// update resource type
 	if len(input.RsTypes) > 0 {
 		rstypes, err := json.Marshal(input.RsTypes)
 		if err != nil {
@@ -118,11 +128,11 @@ func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 		}
 		updateMap["rs_types"] = rstypes
 	}
-
 	if input.SetRsTypeEmpty {
 		updateMap["rs_types"] = "[]"
 	}
 
+	// update disk
 	if len(input.StorageDevice) > 0 {
 		storageJson, err := json.Marshal(input.StorageDevice)
 		if err != nil {
@@ -132,16 +142,39 @@ func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 		}
 		updateMap["storage_device"] = storageJson
 	}
-	err := model.DB.Self.Table(model.TbRpDetailName()).Select("dedicated_bizs", "rs_types", "storage_device").
+
+	// update rack id
+	if cmutil.IsNotEmpty(input.RackId) {
+		updateMap["rack_id"] = input.RackId
+	}
+
+	// do update
+	err := model.DB.Self.Table(model.TbRpDetailName()).Select("dedicated_bizs", "rs_types", "storage_device", "rack_id").
 		Where("bk_host_id in (?)", input.BkHostIds).Updates(updateMap).Error
 	if err != nil {
 		c.SendResponse(r, err, requestId, err.Error())
 		return
 	}
+
+	// return respone
 	c.SendResponse(r, nil, "ok", requestId)
 }
 
-// Update TODO
+// MachineResourceInputParam 多个不同的主句的编辑的不同的参数
+type MachineResourceInputParam struct {
+	Data []MachineResource `json:"data" binding:"required,dive,gt=0"`
+}
+
+// MachineResource 主机参数
+type MachineResource struct {
+	BkHostID      int                      `json:"bk_host_id" binding:"required"`
+	Labels        map[string]string        `json:"labels"`
+	ForBizs       []int                    `json:"for_bizs"`
+	RsTypes       []string                 `json:"resource_types"`
+	StorageDevice map[string]bk.DiskDetail `json:"storage_device"`
+}
+
+// Update 编辑主机信息
 func (c *MachineResourceHandler) Update(r *rf.Context) {
 	var input MachineResourceInputParam
 	requestId := r.GetString("request_id")
@@ -203,26 +236,7 @@ func (c *MachineResourceHandler) Update(r *rf.Context) {
 	c.SendResponse(r, nil, requestId, "Save Success")
 }
 
-// MachineDeleteInputParam TODO
-type MachineDeleteInputParam struct {
-	BkHostIds []int `json:"bk_host_ids"  binding:"required"`
-}
-
-// MachineResourceInputParam TODO
-type MachineResourceInputParam struct {
-	Data []MachineResource `json:"data" binding:"required,dive,gt=0"`
-}
-
-// MachineResource TODO
-type MachineResource struct {
-	BkHostID      int                      `json:"bk_host_id" binding:"required"`
-	Labels        map[string]string        `json:"labels"`
-	ForBizs       []int                    `json:"for_bizs"`
-	RsTypes       []string                 `json:"resource_types"`
-	StorageDevice map[string]bk.DiskDetail `json:"storage_device"`
-}
-
-// GetMountPoints TODO
+// GetMountPoints get disk mount points
 func (c MachineResourceHandler) GetMountPoints(r *rf.Context) {
 	db := model.DB.Self.Table(model.TbRpDetailName())
 	var rs []json.RawMessage
@@ -246,7 +260,7 @@ func (c MachineResourceHandler) GetMountPoints(r *rf.Context) {
 	c.SendResponse(r, nil, cmutil.RemoveDuplicate(mountpoints), r.GetString("request_id"))
 }
 
-// GetDiskTypes TODO
+// GetDiskTypes get disk types
 func (c MachineResourceHandler) GetDiskTypes(r *rf.Context) {
 	db := model.DB.Self.Table(model.TbRpDetailName())
 	var rs []json.RawMessage
@@ -272,12 +286,12 @@ func (c MachineResourceHandler) GetDiskTypes(r *rf.Context) {
 	c.SendResponse(r, nil, cmutil.RemoveDuplicate(diskTypes), r.GetString("request_id"))
 }
 
-// GetSubZoneParam TODO
+// GetSubZoneParam get subzones param
 type GetSubZoneParam struct {
 	LogicCitys []string `json:"citys"`
 }
 
-// GetSubZones TODO
+// GetSubZones get subzones
 func (c MachineResourceHandler) GetSubZones(r *rf.Context) {
 	var input GetSubZoneParam
 	if c.Prepare(r, &input) != nil {
@@ -293,7 +307,7 @@ func (c MachineResourceHandler) GetSubZones(r *rf.Context) {
 	c.SendResponse(r, nil, subZones, r.GetString("request_id"))
 }
 
-// GetDeviceClass TODO
+// GetDeviceClass 获取机型
 func (c MachineResourceHandler) GetDeviceClass(r *rf.Context) {
 	var class []string
 	db := model.DB.Self.Table(model.TbRpDetailName())
