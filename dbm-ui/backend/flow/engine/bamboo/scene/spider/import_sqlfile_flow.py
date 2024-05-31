@@ -57,6 +57,10 @@ class ImportSQLFlow(object):
         # 定义好每次语义检测的库表备份文件名称
         self.semantic_dump_schema_file_name = f"{self.root_id}_semantic_dump_schema.sql"
 
+        # 定义SQL文件的下发位置
+        self.sql_path = os.path.join(consts.BK_PKG_INSTALL_PATH, f"sqlfile_{self.uid}") + "/"
+        self.data["sql_path"] = self.sql_path
+
     def import_sqlfile_flow(self):
         """
         执行SQL文件的流程编排定义
@@ -69,63 +73,72 @@ class ImportSQLFlow(object):
         base_path = self.data["path"]
         sql_files = self.__get_sql_file_name_list()
 
-        for cluster_id in self.data["cluster_ids"]:
-            cluster = self.__get_master_ctl_info(cluster_id)
-            ctl_ip = cluster["master_ctl_ip"]
-            bk_cloud_id = cluster["bk_cloud_id"]
-            port = cluster["port"]
+        clusters = Cluster.objects.filter(id__in=self.data["cluster_ids"])
 
-            sqlpath = os.path.join(consts.BK_PKG_INSTALL_PATH, f"sqlfile_{self.uid}_{cluster_id}_{port}") + "/"
-            sub_pipeline = SubBuilder(self.root_id, self.data)
-
-            sub_pipeline.add_parallel_acts(
-                acts_list=[
-                    (
-                        {
-                            "act_name": _("下发db-actuator介质"),
-                            "act_component_code": TransFileComponent.code,
-                            "kwargs": asdict(
-                                DownloadMediaKwargs(
-                                    bk_cloud_id=bk_cloud_id,
-                                    exec_ip=ctl_ip,
-                                    file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                                )
-                            ),
-                        }
-                    ),
-                    (
-                        {
-                            "act_name": _("下发SQL文件"),
-                            "act_component_code": TransFileComponent.code,
-                            "kwargs": asdict(
-                                DownloadMediaKwargs(
-                                    bk_cloud_id=bk_cloud_id,
-                                    exec_ip=ctl_ip,
-                                    file_target_path=sqlpath,
-                                    file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
-                                        path=base_path, filelist=sql_files
-                                    ),
-                                )
-                            ),
-                        }
-                    ),
-                ]
+        # 合并下发需要变更的文件，不同的bk_cloud_id需要分组处理
+        act_lists = []
+        cluster_bk_cloud_id_map_list = {}
+        for cluster in clusters:
+            master_ctl_addr = cluster.tendbcluster_ctl_primary_address()
+            cluster_bk_cloud_id_map_list.setdefault(cluster.bk_cloud_id, []).append(
+                master_ctl_addr.split(IP_PORT_DIVIDER)[0]
             )
 
+        for bk_cloud_id, ip_list in cluster_bk_cloud_id_map_list.items():
+            act_lists.append(
+                {
+                    "act_name": _("下发db-actuator介质[云区域ID:{}]".format(bk_cloud_id)),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=bk_cloud_id,
+                            exec_ip=list(filter(None, list(set(ip_list)))),
+                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                        )
+                    ),
+                }
+            )
+            act_lists.append(
+                {
+                    "act_name": _("下发SQL文件[云区域ID:{}]".format(bk_cloud_id)),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=bk_cloud_id,
+                            exec_ip=list(filter(None, list(set(ip_list)))),
+                            file_target_path=self.sql_path,
+                            file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
+                                path=base_path, filelist=sql_files
+                            ),
+                        )
+                    ),
+                }
+            )
+
+        p.add_parallel_acts(acts_list=act_lists)
+
+        for cluster_id in self.data["cluster_ids"]:
+            # 这样获取顺便可以验证是否传入非法的集群id
+            cluster = clusters.get(id=cluster_id)
+            master_ctl_addr = cluster.tendbcluster_ctl_primary_address()
+
+            sub_pipeline = SubBuilder(self.root_id, self.data)
             sub_pipeline.add_act(
                 act_name=_("执行SQL导入"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
                         job_timeout=LONG_JOB_TIMEOUT,
-                        exec_ip=ctl_ip,
-                        bk_cloud_id=bk_cloud_id,
-                        cluster=cluster,
+                        exec_ip=master_ctl_addr.split(IP_PORT_DIVIDER)[0],
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        cluster={"port": int(master_ctl_addr.split(IP_PORT_DIVIDER)[1])},
                         get_mysql_payload_func=MysqlActPayload.get_import_sqlfile_payload.__name__,
                     )
                 ),
             )
-            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]执行SQL变更".format(cluster["name"]))))
+            sub_pipelines.append(
+                sub_pipeline.build_sub_process(sub_name=_("[{}]执行SQL变更".format(cluster.immute_domain)))
+            )
 
         p.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         p.run_pipeline(is_drop_random_user=True)

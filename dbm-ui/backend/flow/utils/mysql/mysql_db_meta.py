@@ -118,67 +118,41 @@ class MySQLDBMeta(object):
         添加proxy节点，添加相关元信息
         """
 
-        machines = [
-            {
-                "ip": self.cluster["proxy_ip"]["ip"],
-                "bk_biz_id": int(self.bk_biz_id),
-                "machine_type": MachineType.PROXY.value,
-            },
-        ]
-
-        proxies = []
-        for proxy_port in self.ticket_data["proxy_ports"]:
-            proxies.append({"ip": self.cluster["proxy_ip"]["ip"], "port": proxy_port})
-
-        with atomic():
-            # 绑定事务更新cmdb
-            # TODO 统一到CLusterHandler处理
-            api.machine.create(
-                machines=machines,
-                creator=self.ticket_data["created_by"],
-                bk_cloud_id=self.cluster["proxy_ip"]["bk_cloud_id"],
-            )
-            api.proxy_instance.create(proxies=proxies, creator=self.ticket_data["created_by"])
-            api.cluster.tendbha.add_proxy(
-                cluster_ids=self.cluster["cluster_ids"],
-                proxy_ip=self.cluster["proxy_ip"]["ip"],
-                bk_cloud_id=self.cluster["proxy_ip"]["bk_cloud_id"],
-            )
-
+        TenDBHAClusterHandler.mysql_proxy_add(
+            bk_biz_id=int(self.bk_biz_id),
+            bk_cloud_id=self.cluster["proxy_ip"]["bk_cloud_id"],
+            proxy_ip=self.cluster["proxy_ip"]["ip"],
+            proxy_ports=self.ticket_data["proxy_ports"],
+            cluster_ids=self.cluster["cluster_ids"],
+            created_by=self.ticket_data["created_by"],
+        )
         return True
 
-    def mysql_proxy_switch(self):
+    def mysql_proxy_add_for_switch(self) -> bool:
         """
-        替换proxy节点，处理相关元信息
+        添加proxy节点，添加相关元信息(替换专属)
         """
 
-        machines = [
-            {
-                "ip": self.cluster["target_proxy_ip"]["ip"],
-                "bk_biz_id": int(self.bk_biz_id),
-                "machine_type": MachineType.PROXY.value,
-            },
-        ]
+        TenDBHAClusterHandler.mysql_proxy_add(
+            bk_biz_id=int(self.bk_biz_id),
+            bk_cloud_id=self.cluster["target_proxy_ip"]["bk_cloud_id"],
+            proxy_ip=self.cluster["target_proxy_ip"]["ip"],
+            proxy_ports=self.ticket_data["proxy_ports"],
+            cluster_ids=self.cluster["cluster_ids"],
+            created_by=self.ticket_data["created_by"],
+            template_proxy_ip=self.cluster["origin_proxy_ip"]["ip"],
+        )
+        return True
 
-        proxies = []
-        for proxy_port in self.ticket_data["proxy_ports"]:
-            proxies.append({"ip": self.cluster["target_proxy_ip"]["ip"], "port": proxy_port})
+    def mysql_proxy_reduce(self) -> bool:
+        """
+        删除proxy节点
+        """
 
-        with atomic():
-            # 绑定事务更新cmdb
-            # TODO 统一到ClusterHandler处理
-            api.machine.create(
-                machines=machines,
-                creator=self.ticket_data["created_by"],
-                bk_cloud_id=self.cluster["target_proxy_ip"]["bk_cloud_id"],
-            )
-            api.proxy_instance.create(proxies=proxies, creator=self.ticket_data["created_by"])
-            api.cluster.tendbha.switch_proxy(
-                cluster_ids=self.cluster["cluster_ids"],
-                target_proxy_ip=self.cluster["target_proxy_ip"]["ip"],
-                origin_proxy_ip=self.cluster["origin_proxy_ip"]["ip"],
-            )
-
+        TenDBHAClusterHandler.mysql_proxy_reduce(
+            cluster_ids=self.cluster["cluster_ids"],
+            origin_proxy_ip=self.cluster["origin_proxy_ip"]["ip"],
+        )
         return True
 
     def mysql_restore_slave_add_instance(self):

@@ -273,6 +273,18 @@ class MySQLProxyClusterSwitchFlow(object):
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_proxy_sub_list)
 
+            # 先把新的节点数据写入
+            sub_pipeline.add_act(
+                act_name=_("新proxy记录元数据"),
+                act_component_code=MySQLDBMetaComponent.code,
+                kwargs=asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=MySQLDBMeta.mysql_proxy_add_for_switch.__name__,
+                        cluster=info,
+                    )
+                ),
+            )
+
             # 阶段3 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架旧实例操作
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
@@ -292,11 +304,11 @@ class MySQLProxyClusterSwitchFlow(object):
 
             # 阶段5 按照机器维度变更db-meta数据
             sub_pipeline.add_act(
-                act_name=_("变更db_meta元信息"),
+                act_name=_("回收旧proxy机器的元数据信息"),
                 act_component_code=MySQLDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
-                        db_meta_class_func=MySQLDBMeta.mysql_proxy_switch.__name__,
+                        db_meta_class_func=MySQLDBMeta.mysql_proxy_reduce.__name__,
                         cluster=info,
                     )
                 ),

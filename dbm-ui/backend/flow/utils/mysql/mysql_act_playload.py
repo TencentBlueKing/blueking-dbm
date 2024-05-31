@@ -20,7 +20,6 @@ from backend import env
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.configuration.models import SystemSettings
-from backend.core import consts
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
@@ -602,10 +601,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         return import sqlfile payload
         """
-        port = self.cluster["port"]
-        cluster_id = self.cluster["id"]
-        uid = self.ticket_data["uid"]
-        filepath = os.path.join(consts.BK_PKG_INSTALL_PATH, f"sqlfile_{uid}_{cluster_id}_{port}") + "/"
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.ImportSQLFile.value,
@@ -613,8 +608,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "general": {"runtime_account": self.account},
                 "extend": {
                     "host": kwargs["ip"],
-                    "ports": [port],
-                    "file_path": filepath,
+                    "ports": [self.cluster["port"]],
+                    "file_path": self.ticket_data["sql_path"],
                     "charset": self.ticket_data["charset"],
                     "execute_objects": self.ticket_data["execute_objects"],
                 },
