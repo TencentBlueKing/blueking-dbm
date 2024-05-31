@@ -108,6 +108,7 @@ DEFAULT_REDIS_SYSTEM_CMDS = [
     "info",
     "PSYNC",
     "twemproxy_mon",
+    "readonly",
 ]
 
 # twemproxy seg总数
@@ -424,6 +425,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     Close = EnumField("close", _("close"))
     Operate = EnumField("operate", _("operate"))
     Capturer = EnumField("capturer", _("capturer"))
+    ChangePwd = EnumField("change_password", _("change_password"))
     KillConn = EnumField("kill_conn", _("kill_conn"))
     SyncParam = EnumField("param_sync", _("param_sync"))
     CheckSync = EnumField("sync_check", _("sync_check"))

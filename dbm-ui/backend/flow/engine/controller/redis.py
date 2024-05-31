@@ -25,7 +25,6 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_load import (
     RedisInsMigrateLoadFlow,
 )
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_precheck import RedisClusterMigratePrecheckFlow
-from backend.flow.engine.bamboo.scene.redis.redis_cluster_open_close import RedisClusterOpenCloseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_proxy_version_upgrade import (
     RedisProxyVersionUpgradeSceneFlow,
 )
@@ -39,9 +38,11 @@ from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDat
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_dbmon import RedisDbmonSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDataFlow
+from backend.flow.engine.bamboo.scene.redis.redis_ins_shutdown import RedisInsShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.redis_instance_apply_flow import RedisInstanceApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_delete import RedisKeysDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_extract import RedisKeysExtractFlow
+from backend.flow.engine.bamboo.scene.redis.redis_open_close import RedisClusterOpenCloseFlow, RedisInsOpenCloseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_predixy_cluster_apply_flow import TendisPlusApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_predixy_config_servers_rewrite import (
     RedisPredixyConfigServersRewriteFlow,
@@ -54,7 +55,6 @@ from backend.flow.engine.bamboo.scene.redis.redis_storages_client_conns_kill imp
     RedisStoragesClientConnsKillSceneFlow,
 )
 from backend.flow.engine.bamboo.scene.redis.redis_twemproxy_cluster_apply_flow import RedisClusterApplyFlow
-from backend.flow.engine.bamboo.scene.redis.singele_redis_shutdown import SingleRedisShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.single_proxy_shutdown import SingleProxyShutdownFlow
 from backend.flow.engine.controller.base import BaseController
 
@@ -113,6 +113,13 @@ class RedisController(BaseController):
         flow = RedisClusterOpenCloseFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_cluster_open_close_flow()
 
+    def redis_ins_open_close_scene(self):
+        """
+        redis主从启停
+        """
+        flow = RedisInsOpenCloseFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_ins_open_close_flow()
+
     def redis_cluster_shutdown(self):
         """
         redis集群下架
@@ -120,12 +127,12 @@ class RedisController(BaseController):
         flow = RedisClusterShutdownFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_cluster_shutdown_flow()
 
-    def single_redis_shutdown(self):
+    def redis_ins_shutdown(self):
         """
-        孤立redis节点下架
+        redis主从下架
         """
-        flow = SingleRedisShutdownFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.single_redis_shutdown_flow()
+        flow = RedisInsShutdownFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_ins_shutdown_flow()
 
     def single_proxy_shutdown(self):
         """

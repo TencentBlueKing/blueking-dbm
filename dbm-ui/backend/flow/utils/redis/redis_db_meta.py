@@ -207,7 +207,10 @@ class RedisDBMeta(object):
 
     def cluster_status_update(self) -> bool:
         cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
-        if self.ticket_data["ticket_type"] == TicketType.REDIS_PROXY_CLOSE:
+        if (
+            self.ticket_data["ticket_type"] == TicketType.REDIS_PROXY_CLOSE
+            or self.ticket_data["ticket_type"] == TicketType.REDIS_INSTANCE_CLOSE
+        ):
             cluster.phase = ClusterPhase.OFFLINE.value
         else:
             cluster.phase = ClusterPhase.ONLINE.value
@@ -572,6 +575,12 @@ class RedisDBMeta(object):
             RedisClusterHandler(
                 bk_biz_id=self.ticket_data["bk_biz_id"], cluster_id=self.ticket_data["cluster_id"]
             ).decommission()
+        elif self.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+            if "cluster_id" in self.cluster:
+                cluster_id = self.cluster["cluster_id"]
+            else:
+                cluster_id = self.ticket_data["cluster_id"]
+            TendisSingleHandler(bk_biz_id=self.ticket_data["bk_biz_id"], cluster_id=cluster_id).decommission()
 
         return True
 

@@ -14,6 +14,7 @@ from rest_framework.response import Response
 
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.views.base import FlowTestView
+from backend.ticket.constants import TicketType
 from backend.utils.basic import generate_root_id
 
 logger = logging.getLogger("root")
@@ -130,7 +131,15 @@ class RedisClusterOpenCloseSceneApiView(FlowTestView):
     @staticmethod
     def post(request):
         root_id = generate_root_id()
-        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_open_close_scene()
+        if request.data["ticket_type"] in [TicketType.REDIS_PROXY_OPEN.value, TicketType.REDIS_PROXY_CLOSE.value]:
+            # 集群启停
+            RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_open_close_scene()
+        elif request.data["ticket_type"] in [
+            TicketType.REDIS_INSTANCE_OPEN.value,
+            TicketType.REDIS_INSTANCE_CLOSE.value,
+        ]:
+            # 主从启停
+            RedisController(root_id=root_id, ticket_data=request.data).redis_ins_open_close_scene()
         return Response({"root_id": root_id})
 
 
@@ -154,23 +163,23 @@ class RedisClusterShutdownSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
-class SingleRedisShutdownSceneApiView(FlowTestView):
+class RedisInsShutdownSceneApiView(FlowTestView):
     """
-     api: /apis/v1/flow/scene/single_redis_shutdown
+     api: /apis/v1/flow/scene/redis_ins_shutdown
     params:
      {
         "uid":"2022051612120001",
         "created_by":"xxxx",
-        "bk_biz_id":2005000002,
-        "ticket_type":"SINGLE_REDIS_SHUTDOWN",
-        "instance_list": [152,153,154]
+        "bk_biz_id": 2005000194,
+        "ticket_type": "REDIS_Ins_SHUTDOWN",
+        "cluster_id": [123,234,345]
     }
     """
 
     @staticmethod
     def post(request):
         root_id = generate_root_id()
-        RedisController(root_id=root_id, ticket_data=request.data).single_redis_shutdown()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_ins_shutdown()
         return Response({"root_id": root_id})
 
 
