@@ -13,17 +13,10 @@
 
 import 'vue-router';
 
-export interface RouteMeteTag {
-  theme: string;
-  text: string;
-}
 declare module 'vue-router' {
   interface RouteMeta {
     navName?: string; // 用于设置面包屑 name
-    tags?: Tag[]; // 用于设置面包屑 tags
     fullscreen?: boolean; // 用于判断是否满屏幕
-    group?: string; // 用于设置顶部导航分组
-    skeleton?: string;
   }
 }
 

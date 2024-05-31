@@ -11,17 +11,14 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-// / <reference types="vite/client" />
-
+// eslint-disable-next-line spaced-comment
+/// <reference types="vite/client" />
 interface ImportMetaEnv {
-  readonly VITE_AJAX_URL_PREFIX: string;
-  readonly DEV_DOMAIN: string;
   readonly MODE: string;
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
-  readonly hot: any;
 }
 
 declare module '*.png' {
@@ -60,6 +57,11 @@ declare module '@blueking/app-select';
 declare module '@blueking/notice-component';
 declare module '@blueking/login-modal' {
   export function showLoginModal(params: { loginUrl: string }): void;
+}
+
+declare module '@blueking/sub-saas' {
+  export function connectToMain(router: Router): any;
+  export const rootPath: string;
 }
 
 interface URLSearchParams {

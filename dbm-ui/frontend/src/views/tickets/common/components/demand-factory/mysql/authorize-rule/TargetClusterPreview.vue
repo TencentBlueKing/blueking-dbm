@@ -16,6 +16,7 @@
     class="cluster-preview-dialog"
     :is-show="isShow"
     :title="title || t('目标集群预览')"
+    width="80%"
     @closed="handleClose">
     <div class="cluster-preview-content">
       <DbSearchSelect

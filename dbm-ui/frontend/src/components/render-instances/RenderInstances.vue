@@ -77,8 +77,8 @@
   <BkDialog
     v-model:is-show="dialogState.isShow"
     class="cluster-instances-dialog"
-    :height="660"
-    :title="title">
+    :title="title"
+    :width="1100">
     <div class="cluster-instances-content">
       <div class="cluster-instances-content__operations mb-16">
         <BkButton

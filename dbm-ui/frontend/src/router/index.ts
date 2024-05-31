@@ -30,6 +30,7 @@ import {
 
 import BizPermission from '@views/BizPermission.vue';
 import getDbConfRoutes from '@views/db-configure/routes';
+// import getDbManageRoutes from '@views/db-manage/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
 import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes'
 import getESRoutes from '@views/es-manage/routes';
@@ -79,6 +80,7 @@ const renderPageWithComponent = (route: RouteRecordRaw, component: typeof BizPer
   }
 };
 
+
 export default () => {
   // 解析业务id
   // 1,url中包含业务id
@@ -115,6 +117,8 @@ export default () => {
   const { funControllerData } = useFunController();
   const bigdataController = funControllerData.getFlatData<BigdataFunctions, 'bigdata'>('bigdata');
   const mongdbController = funControllerData.getFlatData<MongoFunctions, 'mongodb'>('mongodb');
+
+  // getDbManageRoutes();
 
   const routes = [
     {

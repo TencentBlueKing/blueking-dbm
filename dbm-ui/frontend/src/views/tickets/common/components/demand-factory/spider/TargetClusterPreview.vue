@@ -16,6 +16,7 @@
     class="cluster-preview-dialog"
     :is-show="isShow"
     :title="title"
+    width="80%"
     @closed="handleClose">
     <div class="cluster-preview-content">
       <DbSearchSelect
@@ -154,12 +155,6 @@
 
 <style lang="less" scoped>
   @import '@styles/mixins.less';
-
-  .cluster-preview-dialog {
-    width: 80%;
-    max-width: 1600px;
-    min-width: 1200px;
-  }
 
   .cluster-preview-content {
     padding-bottom: 24px;

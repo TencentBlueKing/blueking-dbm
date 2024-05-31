@@ -358,7 +358,6 @@
   <BkDialog
     v-model:is-show="isShowPreview"
     header-align="left"
-    :height="624"
     :width="1180">
     <template #header>
       {{ t('实例预览') }}

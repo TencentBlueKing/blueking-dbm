@@ -16,7 +16,7 @@
     :is-show="isShow"
     :quick-close="false"
     :title="t('修改入口配置')"
-    width="640"
+    :width="640"
     @closed="handleClose">
     <BkLoading :loading="isLoading">
       <BkTable
