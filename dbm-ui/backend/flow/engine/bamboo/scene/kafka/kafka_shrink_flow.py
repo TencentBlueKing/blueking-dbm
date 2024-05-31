@@ -8,12 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
 import logging
 from dataclasses import asdict
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
@@ -23,6 +25,8 @@ from backend.flow.consts import (
     ManagerDefaultPort,
     ManagerOpType,
     ManagerServiceType,
+    MySQLPrivComponent,
+    NameSpaceEnum,
 )
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -67,6 +71,24 @@ class KafkaShrinkFlow(object):
         broker_list = cluster.storageinstance_set.filter(instance_role=InstanceRole.BROKER)
         broker_ips = [broker.machine.ip for broker in broker_list]
         self.data["broker_ips"] = broker_ips
+
+        # get username
+        query_params = {
+            "instances": [{"ip": str(self.data["domain"]), "port": 0, "bk_cloud_id": self.data["bk_cloud_id"]}],
+            "users": [{"username": MySQLPrivComponent.KAFKA_FAKE_USER.value, "component": NameSpaceEnum.Kafka}],
+        }
+        ret = DBPrivManagerApi.get_password(query_params)
+        username = base64.b64decode(ret["items"][0]["password"]).decode("utf-8")
+
+        # get password
+        query_params = {
+            "instances": [{"ip": str(self.data["domain"]), "port": 0, "bk_cloud_id": self.data["bk_cloud_id"]}],
+            "users": [{"username": username, "component": NameSpaceEnum.Kafka}],
+        }
+        ret = DBPrivManagerApi.get_password(query_params)
+        password = base64.b64decode(ret["items"][0]["password"]).decode("utf-8")
+        self.data["username"] = username
+        self.data["password"] = password
 
     def __get_node_ips_by_role(self, role: str) -> list:
         if role not in self.data["nodes"]:
