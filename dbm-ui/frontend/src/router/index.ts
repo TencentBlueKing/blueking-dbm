@@ -29,6 +29,7 @@ import {
 } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
+import getClusterStandardRoutes from '@views/cluster-standardize/routes';
 import getDbConfRoutes from '@views/db-configure/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
 import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes'
@@ -113,6 +114,7 @@ export default () => {
   }
 
   const { funControllerData } = useFunController();
+  
   const bigdataController = funControllerData.getFlatData<BigdataFunctions, 'bigdata'>('bigdata');
   const mongdbController = funControllerData.getFlatData<MongoFunctions, 'mongodb'>('mongodb');
 
@@ -131,7 +133,8 @@ export default () => {
         ...getServiceApplyRoutes(funControllerData),
         ...getQuickSearchRoutes(),
         ...getTicketsRoutes(funControllerData),
-        ...getDutyRuleManageRoutes(funControllerData)
+        ...getDutyRuleManageRoutes(funControllerData),
+        ...getClusterStandardRoutes(funControllerData)
       ],
     },
     {

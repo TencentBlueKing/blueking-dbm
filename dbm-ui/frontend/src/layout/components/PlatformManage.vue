@@ -105,6 +105,20 @@
           </BkMenuGroup>
         </FunController>
         <BkMenuGroup
+          v-db-console="'globalConfigManage.clusterStandardize'"
+          :name="t('全局工具箱')">
+          <BkMenuItem key="PlatformClusterStandardize">
+            <template #icon>
+              <DbIcon type="bk-dbm-icon db-icon-cluster-standardize" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('集群标准化') }}
+            </span>
+          </BkMenuItem>
+        </BkMenuGroup>
+        <BkMenuGroup
           v-db-console="'globalConfigManage.passwordSafe'"
           :name="t('密码安全')">
           <BkMenuItem key="PlatformPasswordRandomization">

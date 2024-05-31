@@ -66,6 +66,7 @@ interface ControllerData {
   'globalConfigManage.versionFile': ControllerItem<string>;
   'globalConfigManage.monitorStrategy': ControllerItem<string>;
   'globalConfigManage.rotationManage': ControllerItem<string>;
+  'globalConfigManage.clusterStandardize': ControllerItem<string>;
   'globalConfigManage.passwordSafe': ControllerItem<string>;
   'globalConfigManage.staffManage': ControllerItem<string>;
   'globalConfigManage.ticketFlowSetting': ControllerItem<string>;
@@ -159,7 +160,6 @@ interface ControllerData {
   'redis.toolbox.recoverFromInstance': ControllerItem<string>;
   'redis.toolbox.dataCopy': ControllerItem<string>;
   'redis.toolbox.dataCopyRecord': ControllerItem<string>;
-
 }
 
 export type ExtractedControllerDataKeys = Extract<keyof ControllerData, string>;
@@ -187,6 +187,7 @@ export default class FunctionController {
   'globalConfigManage.versionFile': ControllerItem<string>;
   'globalConfigManage.monitorStrategy': ControllerItem<string>;
   'globalConfigManage.rotationManage': ControllerItem<string>;
+  'globalConfigManage.clusterStandardize': ControllerItem<string>;
   'globalConfigManage.passwordSafe': ControllerItem<string>;
   'globalConfigManage.staffManage': ControllerItem<string>;
   'globalConfigManage.ticketFlowSetting': ControllerItem<string>;

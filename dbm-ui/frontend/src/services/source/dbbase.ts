@@ -36,6 +36,8 @@ export function filterClusters(params: { bk_biz_id: number; exact_domain: string
       bk_cloud_name: string;
       cluster_capacity: number;
       cluster_shard_num: number;
+      cluster_type: string;
+      cluster_type_name: string;
       cluster_spec: {
         cpu: {
           max: number;
@@ -55,6 +57,7 @@ export function filterClusters(params: { bk_biz_id: number; exact_domain: string
       id: number;
       machine_pair_cnt: number;
       master_domain: string;
+      status: string;
     }[]
   >(`${path}/filter_clusters/`, params);
 }

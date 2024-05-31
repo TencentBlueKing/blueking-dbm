@@ -29,6 +29,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-exclamation-fill:before {
 	content: "\e173";
 }
+.db-icon-help:before {
+	content: "\e1f5";
+}
 .db-icon-auth:before {
 	content: "\e152";
 }
@@ -106,6 +109,12 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-code:before {
 	content: "\e139";
+}
+.db-icon-download-line:before {
+	content: "\e1f2";
+}
+.db-icon-variable-manage:before {
+	content: "\e1f7";
 }
 .db-icon-visible1:before {
 	content: "\e1c5";
@@ -419,6 +428,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-rollback:before {
 	content: "\e185";
 }
+.db-icon-aa:before {
+	content: "\e1f6";
+}
 .db-icon-data:before {
 	content: "\e186";
 }
@@ -533,6 +545,12 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-dirty-host:before {
 	content: "\e1ca";
 }
+.db-icon-saoba:before {
+	content: "\e1f4";
+}
+.db-icon-dongzuo-xiazai:before {
+	content: "\e1f3";
+}
 .db-icon-entry:before {
 	content: "\e1d0";
 }
@@ -613,4 +631,7 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-piliangluru:before {
 	content: "\e1f1";
+}
+.db-icon-cluster-standardize:before {
+	content: "\e1f9";
 }
