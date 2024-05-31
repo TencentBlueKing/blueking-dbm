@@ -16,6 +16,7 @@
     class="host-preview-dialog"
     :is-show="isShow"
     :title="title || $t('主机预览')"
+    :width="1100"
     @closed="handleClose">
     <div class="host-preview-content">
       <div class="host-preview-content__operations mb-16">

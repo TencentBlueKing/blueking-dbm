@@ -16,6 +16,7 @@
     class="cluster-preview-dialog"
     :is-show="isShow"
     :title="title"
+    width="80%"
     @closed="handleClose">
     <div class="cluster-preview-content">
       <DbSearchSelect

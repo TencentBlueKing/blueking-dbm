@@ -16,7 +16,6 @@
     class="account-rules-selector"
     :draggable="false"
     :esc-close="false"
-    :height="700"
     :is-show="isShow"
     :quick-close="false"
     :title="t('选择账号权限')"

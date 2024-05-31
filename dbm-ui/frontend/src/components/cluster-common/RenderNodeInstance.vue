@@ -21,8 +21,12 @@
           'is-unavailable': item.status === 'unavailable',
         }">
         <span
-          :style="{ color: highlightIps.includes(item.ip)
-            || highlightIps.includes(`${item.ip}:${item.port}`) ? 'rgb(255 130 4)' : '#63656e' }">
+          :style="{
+            color:
+              highlightIps.includes(item.ip) || highlightIps.includes(`${item.ip}:${item.port}`)
+                ? 'rgb(255 130 4)'
+                : '#63656e',
+          }">
           {{ item.ip }}:{{ item.port }}
         </span>
         <span
@@ -68,7 +72,7 @@
       class="cluster-node-instance-dialog"
       :is-show="isShowMore"
       :title="t('xx预览', { name: title })"
-      width="1000"
+      :width="1000"
       @closed="handleHideMore">
       <div class="action-box">
         <BkButton

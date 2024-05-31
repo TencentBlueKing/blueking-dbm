@@ -19,6 +19,7 @@
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
+    width="80%"
     @closed="handleClose">
     <BkResizeLayout
       :border="false"

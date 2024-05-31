@@ -67,7 +67,7 @@ export function getMongoList(params: {
   version?: string;
   region?: string;
   db_module_id?: number;
-  cluster_ids?: string;
+  cluster_ids?: string[];
   domains?: string;
   limit?: number;
   offset?: number;

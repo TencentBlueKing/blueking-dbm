@@ -75,7 +75,8 @@
     </DbSideslider>
     <BkDialog
       v-model:is-show="isShowPassword"
-      :title="t('获取访问方式')">
+      :title="t('获取访问方式')"
+      :width="500">
       <RenderPassword
         v-if="operationData"
         :cluster-id="operationData.id" />
