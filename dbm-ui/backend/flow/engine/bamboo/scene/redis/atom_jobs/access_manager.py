@@ -260,4 +260,4 @@ def AccessManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dic
 
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_builder_list)
-    return sub_pipeline.build_sub_process(sub_name=_("dns/clb 接入层子任务"))
+    return sub_pipeline.build_sub_process(sub_name=_("{}-{}-dns/clb 接入层子任务".format(cluster_id, param["op_type"])))

@@ -160,6 +160,7 @@ class RedisClusterShutdownFlow(object):
         # 卸载dbmon前置
         acts_list = []
         for ip in proxy_ips + redis_ips:
+            act_kwargs.exec_ip = ip
             act_kwargs.cluster = {
                 "servers": [
                     {

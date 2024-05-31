@@ -472,6 +472,15 @@ class RedisActPayload(object):
 
         return data["content"]
 
+    def update_cluster_password(self, cluster_map: dict) -> Any:
+        # 密码随机化
+        PayloadHandler.redis_save_password_by_domain(
+            immute_domain=cluster_map["domain_name"],
+            redis_password=cluster_map["pwd_conf"]["redis_pwd"],
+            redis_proxy_password=cluster_map["pwd_conf"]["proxy_pwd"],
+            redis_proxy_admin_password=cluster_map["pwd_conf"]["proxy_admin_pwd"],
+        )
+
     def set_proxy_config(self, cluster_map: dict) -> Any:
         """
         集群初始化的时候twemproxy没做变动，直接写入集群就OK
@@ -1014,6 +1023,18 @@ class RedisActPayload(object):
             },
         }
 
+    def change_pwd(self, **kwargs) -> dict:
+        """
+        修改密码
+        """
+        ip = kwargs["ip"]
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": RedisActuatorActionEnum.ChangePwd.value,
+            "payload": {"ip": ip, "role": params["role"], "ins_param": params["ins_param"]},
+        }
+
     def redis_capturer(self, **kwargs) -> dict:
         """
         调用redis_capturer工具统计请求
@@ -1204,7 +1225,11 @@ class RedisActPayload(object):
             except Cluster.DoesNotExist:
                 raise Exception("redis cluster {} does not exist".format(c["cluster"]))
             servers.append(RedisActPayload.get_bkdbmon_servers_params(cluster, ip))
-        payload = self.get_bkdbmon_payload_header(str(cluster.bk_biz_id))
+        # 单实例下架的时候，如果全下架完了的话，这个地方的cluster是没有了的
+        if cluster is None:
+            payload = self.get_bkdbmon_payload_header(kwargs["params"]["bk_biz_id"])
+        else:
+            payload = self.get_bkdbmon_payload_header(str(cluster.bk_biz_id))
         payload["servers"] = servers
         return {
             "db_type": DBActuatorTypeEnum.Bkdbmon.value,

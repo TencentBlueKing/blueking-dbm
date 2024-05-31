@@ -138,12 +138,13 @@ def decommission_cluster(cluster: Cluster):
     logger.info("user request decmmission cluster {}".format(cluster.immute_domain))
 
     try:
-        if cluster.cluster_type not in (ClusterType.MongoReplicaSet.value):
+        if cluster.cluster_type not in (ClusterType.TendisRedisInstance.value):
             proxies = [
                 {"ip": proxy_obj.machine.ip, "port": proxy_obj.port} for proxy_obj in cluster.proxyinstance_set.all()
             ]
             decommission_proxies(cluster, proxies, True)
 
+        machines = set([storage_obj.machine.ip for storage_obj in cluster.storageinstance_set.all()])
         storages = [
             {"ip": storage_obj.machine.ip, "port": storage_obj.port}
             for storage_obj in cluster.storageinstance_set.all()
@@ -162,7 +163,15 @@ def decommission_cluster(cluster: Cluster):
 
         logger.info("cluster {}".format(cluster.__dict__))
         db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
-        CcManage(cluster.bk_biz_id, cluster.cluster_type).delete_cluster_modules(db_type=db_type, cluster=cluster)
+        # 主从实例下架，需要检查机器上是否还有其他实例，如果有，则不允许挪模块
+        move_cc_flag = True
+        for machine_ip in machines:
+            if StorageInstance.objects.filter(machine__ip=machine_ip).exists():
+                logger.info("ignore move cc. {} have other ins".format(machine_ip))
+                move_cc_flag = False
+                break
+        if move_cc_flag:
+            CcManage(cluster.bk_biz_id, cluster.cluster_type).delete_cluster_modules(db_type=db_type, cluster=cluster)
         cluster.delete()
 
     except Exception as e:
