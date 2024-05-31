@@ -8,11 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .add_proxy import add_proxy
 from .create_cluster import cluster_add_storage, cluster_remove_storage, create, create_precheck
 from .decommission import decommission, decommission_precheck
 from .detail import scan_cluster
 from .storage_tuple import add_storage_tuple, remove_storage_tuple
-from .switch_proxy import switch_proxy
+from .switch_proxy import add_proxy, reduce_proxy
 from .switch_slave import add_slave, remove_slave, switch_slave
 from .switch_storage import change_proxy_storage_entry, change_storage_cluster_entry, switch_storage

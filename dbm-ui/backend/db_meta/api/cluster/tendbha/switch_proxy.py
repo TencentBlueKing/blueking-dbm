@@ -12,7 +12,7 @@ import logging
 
 from django.db import transaction
 
-from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
+from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
@@ -21,7 +21,7 @@ logger = logging.getLogger("root")
 
 
 @transaction.atomic
-def switch_proxy(cluster_ids: list, target_proxy_ip: str, origin_proxy_ip: str):
+def add_proxy(cluster_ids: list, proxy_ip: str, template_proxy_ip: str = None):
     """
     集群替换proxy场景元数据注册方式
     """
@@ -29,14 +29,20 @@ def switch_proxy(cluster_ids: list, target_proxy_ip: str, origin_proxy_ip: str):
     new_proxy_objs = []
     for cluster in clusters:
         cluster_proxy_port = ProxyInstance.objects.filter(cluster=cluster).all()[0].port
-        proxy_objs = ProxyInstance.objects.filter(machine__ip=target_proxy_ip, port=cluster_proxy_port)
+        proxy_objs = ProxyInstance.objects.filter(machine__ip=proxy_ip, port=cluster_proxy_port)
         master_storage_obj = StorageInstance.objects.get(cluster=cluster, instance_inner_role=InstanceInnerRole.MASTER)
 
         # 设置接入层后端
         master_storage_obj.proxyinstance_set.add(*proxy_objs)
 
         # 关联对应的域名信息
-        template_proxy = ProxyInstance.objects.filter(cluster=cluster, machine__ip=origin_proxy_ip).all()[0]
+        if template_proxy_ip:
+            template_proxy = ProxyInstance.objects.get(cluster=cluster, machine__ip=template_proxy_ip)
+        else:
+            template_proxy = ProxyInstance.objects.filter(cluster=cluster, status=InstanceStatus.RUNNING.value).all()[
+                0
+            ]
+
         entry_list = template_proxy.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS).all()
         for bind_entry in entry_list:
             bind_entry.proxyinstance_set.add(*proxy_objs)
@@ -58,11 +64,20 @@ def switch_proxy(cluster_ids: list, target_proxy_ip: str, origin_proxy_ip: str):
     # proxy主机转移模块、添加对应的服务实例
     MysqlCCTopoOperator(clusters).transfer_instances_to_cluster_module(new_proxy_objs)
 
-    # 回收proxy实例
+
+@transaction.atomic
+def reduce_proxy(cluster_ids: list, origin_proxy_ip: str):
+    """
+    回收旧proxy实例信息
+    """
+    clusters = Cluster.objects.filter(id__in=cluster_ids)
     for cluster in clusters:
-        for proxy in ProxyInstance.objects.filter(cluster=cluster, machine__ip=origin_proxy_ip).all():
-            proxy.delete(keep_parents=True)
-            if not proxy.machine.proxyinstance_set.exists():
-                cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
-                cc_manage.recycle_host([proxy.machine.bk_host_id])
-                proxy.machine.delete(keep_parents=True)
+        proxy = cluster.proxyinstance_set.get(machine__ip=origin_proxy_ip)
+        # 删除实例元数据
+        proxy.delete(keep_parents=True)
+
+        # 检查同机是否存在别的实例，如果没有删除机器信息，移除到待回收模块
+        if not proxy.machine.proxyinstance_set.exists():
+            cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
+            cc_manage.recycle_host([proxy.machine.bk_host_id])
+            proxy.machine.delete(keep_parents=True)

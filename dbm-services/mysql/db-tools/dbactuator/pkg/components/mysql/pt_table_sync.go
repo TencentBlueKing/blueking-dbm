@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 // 通过工具pt-table-sync 工具对主从数据做数据修复
 // 修复前会做一系列的前置检查行为，尽量保证数据能修复正常
 // 原子任务需要兼容两个触发场景：手动检验而发起修复场景、例行检验而发起修复场景。两种场景因为处理逻辑稍微不同，需要部分区别对待
@@ -18,6 +28,8 @@ import (
 )
 
 const checkSumDB = native.INFODBA_SCHEMA
+const checkSumTable = "checksum"
+const checkSumHistoryTable = "checksum_history"
 const slaveBehindMasterLimit = 1800 // slave不能落后master 半小时以上
 const chunkSize = "10000"           // pt-table-sync每次修复的chunk单位,检验时候会用到
 // Charset TODO
@@ -34,7 +46,7 @@ type PtTableSyncComp struct {
 }
 
 // PtTableSyncParam TODO
-// 2023/0203 增加例行校验发起修复所需要的参数：start_time、end_time、is_routine_trigger
+// 增加例行校验发起修复所需要的参数：start_time、end_time、is_routine_trigger
 type PtTableSyncParam struct {
 	Host                string `json:"host" validate:"required,ip"`
 	Port                int    `json:"port" validate:"required,lt=65536,gte=3306"`
@@ -134,7 +146,7 @@ func (c *PtTableSyncComp) Precheck() (err error) {
 
 	// 判断传入过来的checksum表是否存在
 	if !c.isExistCheckSumTable() {
-		return fmt.Errorf("The checksum table [%s.%s] maybe not exit ", checkSumDB, c.Params.CheckSumTable)
+		return fmt.Errorf("the checksum table [%s.%s] maybe not exit ", checkSumDB, c.Params.CheckSumTable)
 	}
 
 	slaveStatus, err := c.dbConn.ShowSlaveStatus()
@@ -167,7 +179,7 @@ func (c *PtTableSyncComp) Precheck() (err error) {
 	}
 	// 判断最终待修复的表信息列表是否为空,后续引入忽略表的参数，最终可能会为空
 	if len(c.tableSyncMap) == 0 {
-		return fmt.Errorf("Check that the list to be fixed is empty ")
+		return fmt.Errorf("check that the list to be fixed is empty ")
 	}
 	// 加载pt-table-sync 工具路径
 	c.tools, err = tools.NewToolSetWithPick(tools.ToolPtTableSync)
@@ -238,6 +250,12 @@ func (c *PtTableSyncComp) ExecPtTableSync() (err error) {
 		if err != nil && !strings.Contains(err.Error(), SyncExitStatus2) {
 			// 如果修复某张表时候进程查询异常，不中断，记录异常信息，执行下张表的修复
 			logger.Error("exec cmd get an error:%s,%s", output, err.Error())
+			errTableCount++
+			continue
+		}
+		// 更新历史记录
+		if err := c.UpdateOldRecords(syncTable.DbName, syncTable.TableName); err != nil {
+			logger.Error(err.Error())
 			errTableCount++
 			continue
 		}
@@ -353,13 +371,13 @@ func (c *PtTableSyncComp) CopyTableCheckSumReport(DBName string, tableName strin
 	// 校验必要参数的逻辑
 	if !(c.Params.IsRoutineTrigger && len(c.Params.StartTime) != 0 && len(c.Params.EndTime) != 0) {
 		logger.Error(
-			"The required parameter is unreasonable,if is_routine_trigger is true, start_time and end_time is not null ",
+			"the required parameter is unreasonable,if is_routine_trigger is true, start_time and end_time is not null ",
 		)
 		return false
 	}
 
-	// 在master创建临时checksum临时表
-	if _, err := c.masterDbConn.Exec(
+	// 在本地创建临时checksum临时表
+	if _, err := c.dbConn.Exec(
 		fmt.Sprintf(
 			"create table if not exists %s.%s like %s.%s ;",
 			checkSumDB, tempCheckSumTableName, checkSumDB, c.Params.CheckSumTable,
@@ -388,7 +406,7 @@ func (c *PtTableSyncComp) CopyTableCheckSumReport(DBName string, tableName strin
 	)
 	copySQLs = append(copySQLs, "set binlog_format = 'ROW' ;")
 
-	if _, err := c.masterDbConn.ExecMore(copySQLs); err != nil {
+	if _, err := c.dbConn.ExecMore(copySQLs); err != nil {
 		logger.Error("create table %s failed:[%s]", tempCheckSumTableName, err.Error())
 		return false
 	}
@@ -399,14 +417,14 @@ func (c *PtTableSyncComp) CopyTableCheckSumReport(DBName string, tableName strin
 // DropTempTable 删除临时表
 func (c *PtTableSyncComp) DropTempTable() (err error) {
 
-	if len(c.PtTableSyncCtx.tempCheckSumTableName) == 0 {
-		// 判断临时表是否为空，为空则跳过
+	if !c.Params.IsRoutineTrigger {
+		// 判断临时表没有创建过，则主动跳过
 		logger.Info("temp-table is null, skip")
 		return nil
 	}
 
 	logger.Info(fmt.Sprintf("droping Temp table :%s ....", c.PtTableSyncCtx.tempCheckSumTableName))
-	if _, err := c.masterDbConn.Exec(
+	if _, err := c.dbConn.Exec(
 		fmt.Sprintf(
 			"drop table if exists %s.%s;",
 			checkSumDB,
@@ -417,5 +435,29 @@ func (c *PtTableSyncComp) DropTempTable() (err error) {
 		return err
 	}
 	logger.Info("drop-temp-table has been executed successfully")
+	return nil
+}
+
+// UpdateOldRecords 删除对应修复不一致表的记录，在本地执行，不打开binlog
+func (c *PtTableSyncComp) UpdateOldRecords(dbName string, tableName string) (err error) {
+	updateChecksumSql := fmt.Sprintf(
+		`update %s.%s set this_crc=master_crc, this_cnt=master_cnt where db='%s' and tbl='%s';`,
+		checkSumDB, checkSumTable, dbName, tableName,
+	)
+	updateChecksumHistorySql := fmt.Sprintf(
+		`update %s.%s set this_crc=master_crc, this_cnt=master_cnt where db='%s' and tbl='%s';`,
+		checkSumDB, checkSumHistoryTable, dbName, tableName,
+	)
+	sqls := []string{
+		"set session sql_log_bin = 0 ;",
+		updateChecksumSql,
+		updateChecksumHistorySql,
+		"set session sql_log_bin = 1 ;",
+	}
+
+	if _, err := c.dbConn.ExecMore(sqls); err != nil {
+		return fmt.Errorf("update-old-records %s.%s failed:[%s]", dbName, tableName, err.Error())
+	}
+	logger.Info("update-old-records [%s.%s] has been executed successfully", dbName, tableName)
 	return nil
 }

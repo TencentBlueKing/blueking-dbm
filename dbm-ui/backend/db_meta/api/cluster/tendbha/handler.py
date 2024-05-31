@@ -242,3 +242,55 @@ class TenDBHAClusterHandler(ClusterHandler):
 
             # 创建新的服务实例
             CCTopoOperator(cluster=self.cluster).create_tbinlogdumper_instances(inst)
+
+    @classmethod
+    @transaction.atomic()
+    def mysql_proxy_add(
+        cls,
+        bk_biz_id: int,
+        bk_cloud_id: int,
+        proxy_ip: str,
+        proxy_ports: list,
+        cluster_ids: list,
+        created_by: str,
+        template_proxy_ip: str = None,
+    ):
+        """
+        添加proxy节点，添加相关元信息
+        @param bk_biz_id: 业务id
+        @param bk_cloud_id: 云区域id
+        @param proxy_ip: 新proxy机器ip
+        @param template_proxy_ip: 模板机器ip
+        @param proxy_ports: 待关联的proxy端口
+        @param cluster_ids: 待关联的集群id列表
+        @param created_by: 操作者
+        """
+
+        machines = [{"ip": proxy_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.PROXY.value}]
+        proxies = [{"ip": proxy_ip, "port": proxy_port} for proxy_port in proxy_ports]
+
+        # 初始化machine表
+        api.machine.create(machines=machines, creator=created_by, bk_cloud_id=bk_cloud_id)
+
+        # 初始化instance表
+        api.proxy_instance.create(proxies=proxies, creator=created_by)
+
+        # 关联相关信息
+        api.cluster.tendbha.add_proxy(cluster_ids=cluster_ids, proxy_ip=proxy_ip, template_proxy_ip=template_proxy_ip)
+
+    @classmethod
+    @transaction.atomic()
+    def mysql_proxy_reduce(
+        cls,
+        cluster_ids: list,
+        origin_proxy_ip: str,
+    ):
+        """
+        回收proxy节点的相关元信息
+        @param origin_proxy_ip: 新proxy机器ip
+        @param cluster_ids: 待关联的集群id列表
+
+        """
+
+        # 删除相关信息
+        api.cluster.tendbha.reduce_proxy(cluster_ids=cluster_ids, origin_proxy_ip=origin_proxy_ip)
