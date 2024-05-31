@@ -121,9 +121,9 @@ func (job *TendisplusDtsJob) TryAcceptTasks(taskRows []*tendisdb.TbTendisDTSTask
 	job.logger.Info(fmt.Sprintf("myself:%s get task dts lock ok,key:%s", job.ServerIP, taskRows[0].TaskLockKey()))
 	// 尝试认领task成功
 	job.logger.Info(fmt.Sprintf(
-		`myself:%s 认领task,下一步开始迁移,billID:%d srcCluster:%s dstCluster:%s srcRedis:%s#%d`,
+		`myself:%s 认领task,下一步开始迁移,billID:%d srcCluster:%s dstCluster:%s srcRedis:%s#%d kvStoreID:%d`,
 		job.ServerIP, taskRows[0].BillID, taskRows[0].SrcCluster,
-		taskRows[0].DstCluster, taskRows[0].SrcIP, taskRows[0].SrcPort))
+		taskRows[0].DstCluster, taskRows[0].SrcIP, taskRows[0].SrcPort, taskRows[0].SrcKvStoreID))
 	taskIDs := make([]int64, 0, len(taskRows))
 	for _, tmpTask := range taskRows {
 		task := tmpTask
@@ -165,7 +165,7 @@ func (job *TendisplusDtsJob) ClaimDtsJobs() (err error) {
 	var memOK bool
 	var availMemSizeMigration int64
 	var toScheduleTasks []*tendisdb.TbTendisDTSTask
-	var slaveAddrToTasks map[string][]*tendisdb.TbTendisDTSTask
+	// var slaveAddrToTasks map[string][]*tendisdb.TbTendisDTSTask
 	var srcSlaveConcurrOK bool
 	var acceptOk bool
 	// 在迁移tendisplus时,其本身数据量不影响,所以用MAX_INT64值
@@ -217,11 +217,14 @@ func (job *TendisplusDtsJob) ClaimDtsJobs() (err error) {
 			if len(toScheduleTasks) == 0 {
 				continue
 			}
-			slaveAddrToTasks, err = job.TasksGroupBySlaveAddr(toScheduleTasks)
-			if err != nil {
-				continue
-			}
-			for _, taskRows := range slaveAddrToTasks {
+			// slaveAddrToTasks, err = job.TasksGroupBySlaveAddr(toScheduleTasks)
+			// if err != nil {
+			// 	continue
+			// }
+			// for _, taskRows := range slaveAddrToTasks {
+			for _, tmpTask := range toScheduleTasks {
+				taskItem := tmpTask
+				taskRows := []*tendisdb.TbTendisDTSTask{taskItem}
 				if availMemSizeMigration < 1*constvar.GiByte {
 					// 如果可用内存小于1GB,则不再继续
 					break
