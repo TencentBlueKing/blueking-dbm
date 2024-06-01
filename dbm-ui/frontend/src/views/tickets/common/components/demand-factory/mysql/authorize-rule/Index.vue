@@ -44,7 +44,7 @@
     :title="previewTargetCluster.title" />
 </template>
 
-  <script setup lang="tsx">
+<script setup lang="tsx">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -182,6 +182,7 @@
             bizId: info.bk_biz_id,
             user: info.user,
             access_dbs: info.access_dbs,
+            account_type: AccountTypes.MYSQL,
           };
           const ruleResult = await queryAccountRules(params);
 
@@ -230,24 +231,23 @@
   const handleTargetCluster = () => {
     previewTargetCluster.isShow = true;
   };
+</script>
 
-  </script>
+<style lang="less" scoped>
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
-  <style lang="less" scoped>
-    @import "@views/tickets/common/styles/ticketDetails.less";
+  .mysql-table {
+    display: flex;
 
-    .mysql-table {
-      display: flex;
-
-      span {
-        display: inline;
-        width: 160px;
-        text-align: right;
-      }
+    span {
+      display: inline;
+      width: 160px;
+      text-align: right;
     }
+  }
 
-    .db-icon-excel {
-      margin-right: 5px;
-      color: #2dcb56;
-    }
-  </style>
+  .db-icon-excel {
+    margin-right: 5px;
+    color: #2dcb56;
+  }
+</style>

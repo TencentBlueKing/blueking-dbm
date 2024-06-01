@@ -202,7 +202,7 @@ export const queryAccountRules = (params: {
   bizId: number;
   user: string;
   access_dbs: string[];
-  account_type?: AccountTypesValues;
+  account_type: AccountTypesValues;
 }) =>
   http.post<ListBase<PermissionRule[]>>(
     `/apis/mysql/bizs/${params.bizId}/permission/account/query_account_rules/`,
@@ -220,7 +220,7 @@ export const preCheckAddAccountRule = (params: {
     ddl: string[];
     glob: string[];
   };
-  account_type?: AccountTypesValues;
+  account_type: AccountTypesValues;
 }) =>
   http.post<{
     force_run: boolean;
