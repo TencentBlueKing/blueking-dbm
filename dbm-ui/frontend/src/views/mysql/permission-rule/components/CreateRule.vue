@@ -213,6 +213,8 @@
 
   import { useStickyFooter  } from '@hooks';
 
+  import { AccountTypes } from '@common/const';
+
   import { dbOperations, ddlSensitiveWords } from '../common/const';
 
   type AuthItemKey = keyof typeof dbOperations;
@@ -435,6 +437,7 @@
       ...formData,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       access_db: formData.access_db.replace(/\n|;/g, ','), // 统一分隔符
+      account_type: AccountTypes.MYSQL,
     });
   };
 
