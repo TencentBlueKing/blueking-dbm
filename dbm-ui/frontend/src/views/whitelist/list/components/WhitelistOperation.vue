@@ -86,7 +86,7 @@
           class="inline-block"
           style="transform: scale(0.8)">
           ｜
-          </span>
+        </span>
         <BkButton
           text
           theme="primary"
@@ -173,7 +173,7 @@
         // 不包含 % ~ 字符
         .map(text => text.trim())
         .filter(text => text && !text.includes('%') && !text.includes('~'))
-        .every(ip => ipv4.test(ip)),
+        .every(ip => ipv4.test(ip) || ip === 'localhost'),
       message: t('ip中存在格式错误'),
       trigger: 'blur',
     },
