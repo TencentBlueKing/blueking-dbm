@@ -63,6 +63,7 @@ class ClusterInfoContext:
     show_master_status_info: dict = field(default_factory=dict)
     max_open_file: dict = field(default_factory=dict)
     system_info: dict = field(default_factory=dict)
+    time_zone_info: dict = field(default_factory=dict)
 
     @staticmethod
     def get_sync_info_var_name() -> str:
