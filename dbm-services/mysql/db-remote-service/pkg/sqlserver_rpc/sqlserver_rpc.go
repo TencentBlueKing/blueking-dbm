@@ -49,7 +49,7 @@ func (c *SqlserverRPCEmbed) ParseCommand(command string) (*parser.ParseQueryBase
 }
 
 // MakeConnection sqlserver 建立连接
-func (c *SqlserverRPCEmbed) MakeConnection(address string, user string, password string, timeout int) (*sqlx.DB, error) {
+func (c *SqlserverRPCEmbed) MakeConnection(address string, user string, password string, timeout int, timezone string) (*sqlx.DB, error) {
 	host := strings.Split(address, ":")[0]
 	port := strings.Split(address, ":")[1]
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))

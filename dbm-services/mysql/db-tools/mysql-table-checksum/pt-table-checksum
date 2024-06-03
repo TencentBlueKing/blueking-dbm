@@ -10452,7 +10452,7 @@ sub main {
    my $checksum_dml = "REPLACE INTO $repl_table "
                     . "(master_ip, master_port, db, tbl, chunk, chunk_index,"
                     . " lower_boundary, upper_boundary, this_cnt, this_crc) "
-                    . "SELECT"
+                    . "SELECT "
                     . ($cluster->is_cluster_node($master_cxn) ? ' /*!99997*/' : '')
                     . "?, ?, ?, ?, ?, ?, ?, ?,";
    my $past_cols    = " COUNT(*), '0'";
@@ -11361,7 +11361,9 @@ sub exec_nibble {
 		 push @$boundary_list,@{$boundary->{lower}};
 		 push @$boundary_list,@{$boundary->{upper}};
 		 foreach my $ele(@$boundary_list[0..@$boundary_list-1]){
-		 $statement=~ s#\?#'$ele'#;
+		    if (defined $ele) {
+		        $statement=~ s#\?#'$ele'#;
+		    }
 		 }
 
 		 $cxn->dbh()->clone()->do("KILL QUERY ".$cxn->dbh()->{"mysql_thread_id"});

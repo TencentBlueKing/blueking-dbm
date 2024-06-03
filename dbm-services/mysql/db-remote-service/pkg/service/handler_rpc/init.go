@@ -1,6 +1,8 @@
 package handler_rpc
 
-import "strings"
+import (
+	"strings"
+)
 
 type queryRequest struct {
 	Addresses      []string `form:"addresses" json:"addresses" binding:"required"`
@@ -8,6 +10,7 @@ type queryRequest struct {
 	Force          bool     `form:"force" json:"force"`
 	ConnectTimeout int      `form:"connect_timeout" json:"connect_timeout"`
 	QueryTimeout   int      `form:"query_timeout" json:"query_timeout"`
+	Timezone       string   `form:"time_zone" json:"time_zone"`
 }
 
 // TrimSpace delete space around address

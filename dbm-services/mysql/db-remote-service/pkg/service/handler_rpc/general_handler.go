@@ -1,6 +1,7 @@
 package handler_rpc
 
 import (
+	"dbm-services/mysql/db-remote-service/pkg/config"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -15,8 +16,9 @@ func generalHandler(rpcEmbed rpc_core.RPCEmbedInterface) func(*gin.Context) {
 	return func(c *gin.Context) {
 		req := queryRequest{
 			ConnectTimeout: 2,
-			QueryTimeout:   30,
+			QueryTimeout:   300,
 			Force:          false,
+			Timezone:       config.RuntimeConfig.Timezone,
 		}
 
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -55,7 +57,7 @@ func generalHandler(rpcEmbed rpc_core.RPCEmbedInterface) func(*gin.Context) {
 		rpcWrapper := rpc_core.NewRPCWrapper(
 			req.Addresses, req.Cmds,
 			rpcEmbed.User(), rpcEmbed.Password(),
-			req.ConnectTimeout, req.QueryTimeout, req.Force,
+			req.ConnectTimeout, req.QueryTimeout, req.Timezone, req.Force,
 			rpcEmbed,
 		)
 

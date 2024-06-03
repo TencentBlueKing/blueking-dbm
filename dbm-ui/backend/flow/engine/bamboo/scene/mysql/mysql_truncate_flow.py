@@ -30,6 +30,9 @@ from backend.flow.plugins.components.collections.mysql.filter_database_table_fro
     FilterDatabaseTableFromRegexComponent,
 )
 from backend.flow.plugins.components.collections.mysql.general_check_db_in_using import GeneralCheckDBInUsingComponent
+from backend.flow.plugins.components.collections.mysql.generate_drop_stage_db_sql import (
+    GenerateDropStageDBSqlComponent,
+)
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.truncate_data_confirm_empty import (
     TruncateDataConfirmEmptyComponent,
@@ -206,13 +209,15 @@ class MySQLTruncateFlow(object):
                         kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
                     )
 
-                # instance_pipe.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
-                #
-                # instance_pipe.add_act(
-                #     act_name=_("删除备份库"),
-                #     act_component_code=TruncateDataDropStageDatabaseComponent.code,
-                #     kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
-                # )
+                instance_pipe.add_act(
+                    act_name=_("生成删除备份库sql"),
+                    act_component_code=GenerateDropStageDBSqlComponent.code,
+                    kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
+                )
+
+                # ToDo kio 在这后面根据上下文中的 trans_data.drop_stage_db_cmds 生成一个 sql 执行单据
+                # drop_stage_db_cmds 是一个字符串数组
+                # ["drop database if exists STAGEDB1", "drop database if exists STAGEDB1", ..]
 
                 instance_pipes.append(
                     instance_pipe.build_sub_process(
