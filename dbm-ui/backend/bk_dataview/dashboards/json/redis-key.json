@@ -540,7 +540,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$domain"
+                    "$cluster_domain"
                   ]
                 }
               ]
@@ -1082,7 +1082,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$domain"
+                    "$cluster_domain"
                   ]
                 }
               ],
@@ -1701,7 +1701,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$domain"
+                    "$cluster_domain"
                   ]
                 }
               ],
@@ -2045,7 +2045,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$domain"
+                    "$cluster_domain"
                   ]
                 }
               ]
@@ -2783,7 +2783,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$domain"
+                    "$cluster_domain"
                   ]
                 }
               ]
@@ -2945,7 +2945,7 @@
         "hide": 2,
         "includeAll": false,
         "multi": false,
-        "name": "domain",
+        "name": "cluster_domain",
         "options": [],
         "query": {
           "metricConfig": {
