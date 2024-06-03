@@ -348,7 +348,7 @@
   import { getCapSpecs } from '@services/source/infras';
   import type { BizItem, HostDetails } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketCloneInfo } from '@hooks';
 
   import { useFunController } from '@stores';
 
@@ -387,6 +387,14 @@
   const route = useRoute();
   const router = useRouter();
 
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_CLUSTER_APPLY,
+    onSuccess(formdata) {
+      state.formdata = formdata;
+    },
+  });
+
   const renderRedisClusterTypes = computed(() => {
     const values = Object.values(redisClusterTypes);
     const redisController = funControllerStore.funControllerData.redis;
@@ -419,7 +427,7 @@
       },
       resource_spec: {
         proxy: {
-          spec_id: '',
+          spec_id: 0,
           count: 2,
         },
         backend_group: {
@@ -430,7 +438,7 @@
           affinity: 'NONE',
           location_spec: {
             city: '',
-            sub_zone_ids: [],
+            sub_zone_ids: [] as number[],
           },
         },
       },
@@ -582,7 +590,7 @@
 
   const handleChangeClusterType = () => {
     state.formdata.details.db_version = '';
-    state.formdata.details.resource_spec.proxy.spec_id = '';
+    state.formdata.details.resource_spec.proxy.spec_id = 0;
     state.formdata.details.resource_spec.backend_group = {
       ...state.formdata.details.resource_spec.backend_group,
       count: 0,

@@ -26,6 +26,7 @@ import {
   generateMysqlSlaveAddCloneData,
 } from './mysql';
 import {
+  generateRedisApplyCloneData,
   generateRedisClusterAddSlaveCloneData,
   generateRedisClusterCutoffCloneData,
   generateRedisClusterShardUpdateCloneData,
@@ -42,6 +43,7 @@ import {
 } from './redis';
 
 export const generateCloneDataHandlerMap = {
+  [TicketTypes.REDIS_CLUSTER_APPLY]: generateRedisApplyCloneData,
   [TicketTypes.REDIS_PROXY_SCALE_UP]: generateRedisProxyScaleUpCloneData, // Redis 接入层扩容
   [TicketTypes.REDIS_PROXY_SCALE_DOWN]: generateRedisProxyScaleDownCloneData, // Redis 接入层缩容
   [TicketTypes.REDIS_SCALE_UPDOWN]: generateRedisScaleUpdownCloneData, // Redis 集群容量变更
@@ -64,9 +66,9 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: generateMysqlClientCloneData, // Mysql 客户端权限克隆
   [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: generateMysqlInstanceCloneData, // Mysql DB实例权限克隆
   [TicketTypes.MYSQL_HA_APPLY]: generateMysqlHaApplyCloneData, // MySQL 高可用部署
-  [TicketTypes.MYSQL_SINGLE_APPLY] : generateMysqlSingleApplyCloneData, // MySQL 单节点部署
+  [TicketTypes.MYSQL_SINGLE_APPLY]: generateMysqlSingleApplyCloneData, // MySQL 单节点部署
   [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: generateMysqlDbTableBackupCloneData, // Mysql 库表备份
-  [TicketTypes.MYSQL_HA_RENAME_DATABASE]: generateMysqlDbRenameCloneData,// MySQL 高可用DB重命名
+  [TicketTypes.MYSQL_HA_RENAME_DATABASE]: generateMysqlDbRenameCloneData, // MySQL 高可用DB重命名
   [TicketTypes.MYSQL_HA_FULL_BACKUP]: generateMysqlDbBackupCloneData, // Mysql 全库备份
   [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: generateMysqlRollbackCloneData, // MySQL 定点构造
   [TicketTypes.MYSQL_FLASHBACK]: generateMysqlFlashbackCloneData, // MySQL 闪回
@@ -86,7 +88,5 @@ export type CloneDataHandlerMap = typeof generateCloneDataHandlerMap;
 export type CloneDataHandlerMapKeys = keyof CloneDataHandlerMap;
 
 export async function generateCloneData<T extends CloneDataHandlerMapKeys>(ticketType: T, ticketData: TicketModel) {
-  return (await generateCloneDataHandlerMap[ticketType](ticketData)) as ServiceReturnType<
-    CloneDataHandlerMap[T]
-  >;
+  return (await generateCloneDataHandlerMap[ticketType](ticketData)) as ServiceReturnType<CloneDataHandlerMap[T]>;
 }

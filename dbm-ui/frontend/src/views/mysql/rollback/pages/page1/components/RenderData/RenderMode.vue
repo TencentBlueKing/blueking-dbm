@@ -47,6 +47,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import _ from 'lodash';
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -57,6 +58,8 @@
 
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+
+  import { utcDisplayTime } from '@utils';
 
   interface Props {
     clusterId: number;
@@ -125,7 +128,7 @@
     }).then((dataList) => {
       logRecordList.value = dataList.map((item) => ({
         id: item.backup_id,
-        name: `${item.mysql_role} ${item.backup_time}`,
+        name: `${item.mysql_role} ${utcDisplayTime(dayjs(item.backup_time).tz(dayjs.tz.guess()).toString())}`,
       }));
       logRecordListMemo = dataList;
     });

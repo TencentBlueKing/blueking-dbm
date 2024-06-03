@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 // eslint-disable-next-line simple-import-sort/imports
 import { createApp } from 'vue';
@@ -18,7 +18,6 @@ import dayjs from 'dayjs';
 import tz from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import { createPinia } from 'pinia';
-
 
 import { useFunController, useGlobalBizs, useSystemEnviron } from '@stores';
 

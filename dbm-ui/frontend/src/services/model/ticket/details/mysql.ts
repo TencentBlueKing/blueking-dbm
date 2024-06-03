@@ -26,13 +26,15 @@ export interface MysqlIpItem {
  * mysql-授权详情
  */
 export interface MysqlAuthorizationDetails {
-  authorize_uid: string,
-  authorize_data: AuthorizePreCheckData,
-    excel_url: string,
-    authorize_plugin_infos: Array<AuthorizePreCheckData & {
+  authorize_uid: string;
+  authorize_data: AuthorizePreCheckData;
+  excel_url: string;
+  authorize_plugin_infos: Array<
+    AuthorizePreCheckData & {
       bk_biz_id: number;
-    }>
-  }
+    }
+  >;
+}
 
 /**
  * MySQL SQL变更执行
@@ -108,7 +110,7 @@ export interface MySQLCloneDetails {
   clone_type: string;
   clone_uid: string;
   clone_data: {
-    bk_cloud_id: number,
+    bk_cloud_id: number;
     source: string;
     target: string[];
     module: string;
@@ -122,15 +124,13 @@ export interface MySQLInstanceCloneDetails {
   clone_type: string;
   clone_uid: string;
   clone_data: {
-    bk_cloud_id: number,
+    bk_cloud_id: number;
     source: string;
     target: string;
     module: string;
     cluster_domain: string;
   }[];
 }
-
-
 
 /**
  * MySQL 启停删
@@ -439,7 +439,12 @@ export interface MySQLRollbackDetails {
     cluster_id: number;
     databases: string[];
     databases_ignore: string[];
-    rollback_ip: string;
+    rollback_host: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    };
     rollback_time: string;
     tables: string[];
     tables_ignore: string[];

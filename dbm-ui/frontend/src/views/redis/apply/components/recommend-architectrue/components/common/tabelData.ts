@@ -132,7 +132,7 @@ export const tableData: RowData[] = [
       },
       [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
         text: t(
-          'a. 数据量很大,且大部分是 set/get/hset/hget 等 O(1) 请求场景;\nb. hgetall、smembers 等 O(n) 请求性能较差,推荐使用 hscan、sscan 等命令代替;\nc. zset类型性能支持很差，不推荐使用;\nd. 同等数据规模,成本低;\ne. 需要精确恢复数据;\nf. 版本已经不迭代, 只做紧急 Bug 修复;\ng.未来将关闭申请入口;',
+          'a. 数据量很大,且大部分是 set/get/hset/hget等 O(1) 请求场景;\nb. hgetall、smembers 等 O(n) 请求性能较差,推荐使用 hscan、sscan 等命令代替;\nc. zset类型性能支持很差，不推荐使用;\nd. 同等数据规模,成本低;\ne. 需要精确恢复数据;\nf. 版本已经不迭代, 只做紧急 Bug 修复;\ng.未来将关闭申请入口',
         ),
         type: 'disadvantage',
       },
@@ -154,7 +154,7 @@ export const tableData: RowData[] = [
     value: {
       [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
         text: t(
-          '集群部署后，可在线切换为其他集群类型，注意事项:\na. 切换过程中存量 Server 连接会断开，需要程序需重连重试,持续时间1分钟内;\nb. 新集群类型 支持 老集群类型 相关特性;\nc. 如 TendisSSD 集群可在线切换为 TendisCache 集群和 Tendisplus 集群，但 TendisCache 集群不一定能切换为 TendisSSD 集群;			',
+          '集群部署后，可在线切换为其他集群类型，注意事项:\n1. 切换过程中存量server连接会断开，需要程序需重连重试,持续时间1分钟内;\n2. 新集群类型 支持 老集群类型 相关特性;\n3. 如 TendisSSD 集群可在线切换为 TendisCache 集群和 Tendisplus 集群，但 TendisCache 集群不一定能切换为 TendisSSD 集群',
         ),
         type: 'advantage',
       },

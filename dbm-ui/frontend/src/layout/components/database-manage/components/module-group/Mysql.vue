@@ -31,7 +31,9 @@
       <FunController
         controller-id="tendbsingle"
         module-id="mysql">
-        <BkMenuItem key="DatabaseTendbsingle" v-db-console="'mysql.partitionManage'">
+        <BkMenuItem
+          key="DatabaseTendbsingle"
+          v-db-console="'mysql.partitionManage'">
           <template #icon>
             <DbIcon type="node" />
           </template>
@@ -75,7 +77,7 @@
         </BkMenuItem>
       </BkSubmenu>
       <FunController
-        controller-id="toolbox"
+        :controller-id="dumperControlId"
         module-id="mysql">
         <BkMenuItem
           key="DumperDataSubscription"
@@ -101,7 +103,7 @@
         :favor-map="favorMeunMap"
         :toolbox-menu-config="toolboxMenuConfig" />
       <FunController
-        :controller-id="dumperControlId"
+        controller-id="toolbox"
         module-id="mysql">
         <BkMenuItem
           key="MySQLToolbox"

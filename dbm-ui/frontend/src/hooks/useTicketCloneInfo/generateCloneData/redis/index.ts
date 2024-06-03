@@ -1,3 +1,4 @@
+export * from './apply';
 export * from './clusterAddSlave';
 export * from './clusterCutoff';
 export * from './clusterShardUpdate';

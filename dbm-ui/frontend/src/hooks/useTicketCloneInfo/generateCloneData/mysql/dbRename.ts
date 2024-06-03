@@ -17,16 +17,17 @@ import { random } from '@utils';
 
 // MySQL 高可用DB重命名
 export function generateMysqlDbRenameCloneData(ticketData: TicketModel<MySQLRenameDetails>) {
-  const { clusters, force, infos} = ticketData.details;
-  const tableDataList = infos.map(item => ({
+  const { clusters, force, infos } = ticketData.details;
+  const tableDataList = infos.map((item) => ({
     cluster_id: item.cluster_id,
     cluster_domain: clusters[item.cluster_id].immute_domain,
+    cluster_type: clusters[item.cluster_id].cluster_type,
     from_database: item.from_database,
     to_database: item.to_database,
     uniqueId: random(),
-  }))
+  }));
   return Promise.resolve({
     tableDataList,
-    force
-   });
+    force,
+  });
 }

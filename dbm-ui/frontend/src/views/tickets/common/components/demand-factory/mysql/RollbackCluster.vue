@@ -117,6 +117,7 @@
     const { clusters, infos } = props.ticketDetails.details;
     return infos.map(item => ({
       ...item,
+      rollback_ip: item.rollback_host.ip,
       cluster_name: clusters[item.cluster_id].immute_domain,
     }));
   });

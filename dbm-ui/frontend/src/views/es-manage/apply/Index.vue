@@ -429,13 +429,20 @@
   const isClickSubmit = ref(false);
 
   const tipTheme = computed(() => {
-    if (isClickSubmit.value === false) return 'info';
+    if (isClickSubmit.value === false) {
+      return 'info';
+    };
 
     const {
       hot,
       cold,
     } = formData.details.resource_spec;
-    const isPass = Boolean(hot.spec_id && hot.count) || Boolean(cold.spec_id && cold.count);
+
+    const {
+      hot: hotNodes,
+      cold: coldNodes,
+    } = formData.details.nodes;
+    const isPass = Boolean(hot.spec_id && hot.count) || Boolean(cold.spec_id && cold.count) || hotNodes.length > 0 || coldNodes.length > 0;
     return (isPass ? 'info' : 'danger');
   });
 
