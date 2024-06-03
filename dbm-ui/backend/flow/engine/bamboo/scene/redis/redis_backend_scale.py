@@ -63,8 +63,9 @@ class RedisBackendScaleFlow(object):
             raise Exception("machine len != group_num.")
         if old_shard_num != new_shard_num:
             raise Exception("old_shard_num {} != new_shard_num {}.".format(old_shard_num, new_shard_num))
-        if new_shard_num % group_num != 0:
-            raise Exception("shard_num ({}) % group_num ({}) != 0.".format(new_shard_num, group_num))
+        # 2024-05 要求可以不用整除，允许机器上的实例有多有少
+        # if new_shard_num % group_num != 0:
+        #     raise Exception("shard_num ({}) % group_num ({}) != 0.".format(new_shard_num, group_num))
         m = Machine.objects.filter(ip__in=ips).values("ip")
         if len(m) != 0:
             raise Exception("[{}] is used.".format(m))
@@ -110,6 +111,9 @@ class RedisBackendScaleFlow(object):
             "master_slave_map": dict(master_slave_map),
             "db_version": version or cluster.major_version,
             "origin_db_version": cluster.major_version,
+            "cluster_shard_num": len(
+                cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+            ),
         }
 
     def __init_builder(self, operate_name: str, info: dict):
@@ -140,15 +144,16 @@ class RedisBackendScaleFlow(object):
         )
         return sub_pipeline, act_kwargs
 
-    def generate_sync_relation(self, act_kwargs, master_ips, slave_ips, ins_num) -> list:
+    def generate_sync_relation(self, act_kwargs, master_ips, slave_ips, ins_num, superfluous_ins_num) -> list:
         """
-        TODO 需要重点验证这里的算法，机器分别变多变少时，得到的结果是否满足预期
         计算新老实例对应关系
         可能一对多，也可能多对一
         """
         sync_relations = []
         new_port_offset = 0
         new_host_index = 0
+        # 当前新机器需要安装的实例数
+        current_ins_num = ins_num + 1 if new_host_index < superfluous_ins_num else ins_num
         sync_type = act_kwargs.cluster["sync_type"]
         for old_master, old_master_ports in act_kwargs.cluster["master_ip_ports_map"].items():
             # old_master 或者 new_master变化了就需要append后初始化
@@ -178,7 +183,7 @@ class RedisBackendScaleFlow(object):
                     raise Exception("origin cluster shard_num > new cluster shard_num. pleace use dts")
 
                 # 如果达到了新机器需要部署的实例个数，下一个就要用新机器了。这个地方初始化一些参数
-                if new_port_offset >= ins_num:
+                if new_port_offset >= current_ins_num:
                     new_master = master_ips[new_host_index]
                     new_slave = slave_ips[new_host_index]
                     sync_relations.append(
@@ -195,6 +200,7 @@ class RedisBackendScaleFlow(object):
                     ins_link = []
                     new_port_offset = 0
                     new_host_index += 1
+                    current_ins_num = ins_num + 1 if new_host_index < superfluous_ins_num else ins_num
 
             # 遍历完老机器上的端口，如果ins_link里有数据，此时需要先处理一下
             if ins_link:
@@ -255,8 +261,12 @@ class RedisBackendScaleFlow(object):
         sub_pipelines = []
         for info in self.data["infos"]:
             sub_pipeline, act_kwargs = self.__init_builder(_("Redis集群扩缩容"), info)
+            # 容量变更流程，分片数不变。这个地方不管前端传什么值，直接覆盖！！
+            info["shard_num"] = act_kwargs.cluster["cluster_shard_num"]
             # 初始化计算一些常用参数
             ins_num = int(info["shard_num"] / info["group_num"])
+            # 2024-05-30 实例允许有多有少。 这个地方利用取余计算出多余的redis实例数
+            superfluous_ins_num = info["shard_num"] % info["group_num"]
             new_master_ips = []
             new_slave_ips = []
             new_ports = []
@@ -265,7 +275,6 @@ class RedisBackendScaleFlow(object):
                 new_slave_ips.append(group_info["slave"]["ip"])
             for i in range(0, ins_num):
                 new_ports.append(DEFAULT_REDIS_START_PORT + i)
-
             self.__pre_check(
                 self.data["bk_biz_id"],
                 info["cluster_id"],
@@ -279,13 +288,20 @@ class RedisBackendScaleFlow(object):
             params = {
                 "meta_role": InstanceRole.REDIS_MASTER.value,
                 "start_port": DEFAULT_REDIS_START_PORT,
-                "ports": new_ports,
-                "instance_numb": ins_num,
                 "spec_id": info["resource_spec"]["master"]["id"],
                 "spec_config": info["resource_spec"]["master"],
             }
+            # 靠前机器中，每个安装一个多余的实例
+            cursor = superfluous_ins_num
             for ip in new_master_ips:
                 params["ip"] = ip
+                if cursor > 0:
+                    cursor = cursor - 1
+                    params["ports"] = new_ports + [DEFAULT_REDIS_START_PORT + ins_num]
+                    params["instance_numb"] = ins_num + 1
+                else:
+                    params["ports"] = new_ports
+                    params["instance_numb"] = ins_num
                 redis_install_sub_pipelines.append(
                     RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
                 )
@@ -293,13 +309,19 @@ class RedisBackendScaleFlow(object):
             params = {
                 "meta_role": InstanceRole.REDIS_SLAVE.value,
                 "start_port": DEFAULT_REDIS_START_PORT,
-                "ports": new_ports,
-                "instance_numb": ins_num,
                 "spec_id": info["resource_spec"]["slave"]["id"],
                 "spec_config": info["resource_spec"]["slave"],
             }
+            cursor = superfluous_ins_num
             for ip in new_slave_ips:
                 params["ip"] = ip
+                if cursor > 0:
+                    cursor = cursor - 1
+                    params["ports"] = new_ports + [DEFAULT_REDIS_START_PORT + ins_num]
+                    params["instance_numb"] = ins_num + 1
+                else:
+                    params["ports"] = new_ports
+                    params["instance_numb"] = ins_num
                 redis_install_sub_pipelines.append(
                     RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
                 )
@@ -307,7 +329,11 @@ class RedisBackendScaleFlow(object):
 
             # 计算同步参数
             sync_relations = self.generate_sync_relation(
-                act_kwargs=act_kwargs, master_ips=new_master_ips, slave_ips=new_slave_ips, ins_num=ins_num
+                act_kwargs=act_kwargs,
+                master_ips=new_master_ips,
+                slave_ips=new_slave_ips,
+                ins_num=ins_num,
+                superfluous_ins_num=superfluous_ins_num,
             )
 
             redis_sync_sub_pipelines = []
