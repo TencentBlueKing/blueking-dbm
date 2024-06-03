@@ -119,7 +119,7 @@
     if (props.ticketDetails?.details?.infos?.backup_type === 'logical') {
       return t('逻辑备份');
     }
-    return '--';
+    return t('物理备份');
   });
 
   // 备份保存时间

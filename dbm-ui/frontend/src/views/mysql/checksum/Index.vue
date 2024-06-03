@@ -179,7 +179,7 @@
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
-  import { generateId } from '@utils';
+  import { generateId, messageError } from '@utils';
 
   import type { InputItem } from './common/types';
   import BatchInput from './components/BatchInput.vue';
@@ -1045,6 +1045,9 @@
             nextTick(() => {
               window.changeConfirm = false;
             });
+          })
+          .catch(e => {
+            messageError(e.message);
           })
           .finally(() => {
             isSubmitting.value = false;

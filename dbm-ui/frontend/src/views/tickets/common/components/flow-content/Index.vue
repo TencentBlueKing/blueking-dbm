@@ -33,8 +33,7 @@
       :href-target="getHrefTarget(content)" />
   </template>
   <!-- 人工确认 -->
-  <template
-    v-else-if="content.status === 'PENDING' && content.flow_type === 'PAUSE'">
+  <template v-else-if="content.status === 'PENDING' && content.flow_type === 'PAUSE'">
     <I18nT keypath="等待C确认是否执行T">
       <span>{{ ticketData.creator }}</span>
       <span>{{ manualNexFlowDisaply }}</span>
@@ -114,12 +113,12 @@
       </template>
       <template v-else-if="isPause && isTodos === false">
         <span>{{ t('处理人') }}: </span>
-        <span>{{ _.uniq(_.flatten(content.todos.map(item => item.operators))).join(',') }}</span>
+        <span>{{ _.uniq(_.flatten(content.todos.map((item) => item.operators))).join(',') }}</span>
       </template>
       <template v-else>
         <span
           :style="{
-            color: content.status === 'TERMINATED' ? '#ea3636' : '#63656e'
+            color: content.status === 'TERMINATED' ? '#ea3636' : '#63656e',
           }">
           {{ content.summary }}
         </span>
@@ -134,7 +133,9 @@
       <template v-if="content.url">
         ，<a
           :href="content.url"
-          :target="getHrefTarget(content)">{{ t('查看详情') }} &gt;</a>
+          :target="getHrefTarget(content)"
+          >{{ t('查看详情') }} &gt;</a
+        >
       </template>
       <slot name="extra-text" />
     </div>
@@ -143,7 +144,7 @@
       class="flow-time">
       {{ utcDisplayTime(content.end_time) }}
     </div>
-    <BkPopover
+    <!-- <BkPopover
       v-if="content.err_code === 2"
       v-model:is-show="state.confirmTips"
       theme="light"
@@ -181,7 +182,7 @@
           </div>
         </div>
       </template>
-    </BkPopover>
+    </BkPopover> -->
     <div class="mt-8">
       <BkPopConfirm
         v-if="content.err_code === 2"
@@ -237,15 +238,15 @@
   });
   const emits = defineEmits<Emits>();
 
-  const router = useRouter();
+  // const router = useRouter();
   const { t } = useI18n();
   // const { username } = useUserProfile();
 
-  const retryButtonRef = ref();
-  const state = reactive({
-    confirmTips: false,
-    isLoading: false,
-  });
+  // const retryButtonRef = ref();
+  // const state = reactive({
+  //   confirmTips: false,
+  //   isLoading: false,
+  // });
   const { username } = useUserProfile();
 
   const manualNexFlowDisaply = computed(() => {
@@ -287,39 +288,39 @@
     emits('fetch-data');
   };
 
-  function handleConfirmToggle() {
-    state.confirmTips = !state.confirmTips;
-  }
+  // function handleConfirmToggle() {
+  //   state.confirmTips = !state.confirmTips;
+  // }
 
-  function handleConfirmCancel() {
-    state.confirmTips = false;
-  }
+  // function handleConfirmCancel() {
+  //   state.confirmTips = false;
+  // }
 </script>
 
 <style lang="less" scoped>
-.resource-apply-exclamation-fill {
-  margin-right: 4px;
-  font-size: 14px;
-  color: #ff9c01;
-}
+  .resource-apply-exclamation-fill {
+    margin-right: 4px;
+    font-size: 14px;
+    color: #ff9c01;
+  }
 </style>
 
 <style lang="less">
-.todos-tips-content {
-  .todos-tips-content__desc {
-    padding: 8px 0 24px;
-    font-size: @font-size-mini;
-    color: @title-color;
-  }
-
-  .todos-tips-content__buttons {
-    text-align: right;
-
-    .bk-button {
-      min-width: 62px;
-      margin-left: 8px;
+  .todos-tips-content {
+    .todos-tips-content__desc {
+      padding: 8px 0 24px;
       font-size: @font-size-mini;
+      color: @title-color;
+    }
+
+    .todos-tips-content__buttons {
+      text-align: right;
+
+      .bk-button {
+        min-width: 62px;
+        margin-left: 8px;
+        font-size: @font-size-mini;
+      }
     }
   }
-}
 </style>
