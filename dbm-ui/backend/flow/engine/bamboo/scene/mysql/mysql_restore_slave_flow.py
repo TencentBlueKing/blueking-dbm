@@ -43,11 +43,11 @@ from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     ClearMachineKwargs,
-    CreateDnsKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     InstanceUserCloneKwargs,
+    UpdateDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
@@ -516,11 +516,11 @@ class MySQLRestoreSlaveFlow(object):
                         "act_name": _("添加从库域名{}:{}").format(target_slave.machine.ip, domain),
                         "act_component_code": MySQLDnsManageComponent.code,
                         "kwargs": asdict(
-                            CreateDnsKwargs(
+                            UpdateDnsRecordKwargs(
                                 bk_cloud_id=cluster_model.bk_cloud_id,
-                                dns_op_exec_port=master.port,
-                                exec_ip=target_slave.machine.ip,
-                                add_domain_name=domain,
+                                old_instance="{}{}{}".format(target_slave.machine.ip, IP_PORT_DIVIDER, master.port),
+                                new_instance="{}{}{}".format(target_slave.machine.ip, IP_PORT_DIVIDER, master.port),
+                                update_domain_name=domain,
                             )
                         ),
                     }
