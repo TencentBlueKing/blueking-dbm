@@ -76,7 +76,6 @@ SQLSERVER_SINGLE_APPLY_TICKET_DATA = {
         "cluster_count": 1,
         "inst_num": 1,
         "ip_source": "resource_pool",
-        "nodes": {"backend": []},
         "resource_spec": {
             "sqlserver_single": {
                 "spec_id": 101,
@@ -91,6 +90,32 @@ SQLSERVER_SINGLE_APPLY_TICKET_DATA = {
                 "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
             }
         },
+        "domains": [
+            {
+                "key": "sqlserverha01",
+                "master": "sqlserver-hadb.sqlserverha01.dba-test.db",
+                "slave": "sqlserver-hadr.sqlserverha01.dba-test.db",
+            }
+        ],
+        "db_version": "MSSQL_Enterprise_2016",
+        "db_module_name": "test-sqlserver01",
+        "start_mssql_port": 20000,
+    },
+}
+
+# sqlserver 单节点部署手动输入单据
+SQLSERVER_SINGLE_MANUAL_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "remark": "",
+    "ticket_type": TicketType.SQLSERVER_SINGLE_APPLY.value,
+    "details": {
+        "bk_cloud_id": 0,
+        "city_code": "深圳",
+        "db_module_id": DB_MODULE_ID,
+        "cluster_count": 1,
+        "inst_num": 1,
+        "ip_source": "manual_input",
+        "nodes": {"sqlserver_single": [{"ip": "127.0.0.4", "bk_cloud_id": 0}]},
         "domains": [
             {
                 "key": "sqlserverha01",
@@ -130,6 +155,42 @@ SQLSERVER_HA_APPLY_TICKET_DATA = {
                 "mem": {"max": 8, "min": 4},
                 "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
             }
+        },
+        "domains": [
+            {
+                "key": "testaa",
+                "master": "sqlserver-hadb.testaa.dba-test.db",
+                "slave": "sqlserver-hadr.testaa.dba-test.db",
+            }
+        ],
+        "charset": "Chinese_PRC_CI_AS",
+        "db_version": "MSSQL_Enterprise_2016",
+        "db_module_name": "sqlserver-ha",
+        "city_name": "无地域",
+        "spec_display": "",
+        "start_mysql_port": 20000,
+        "disaster_tolerance_level": "SAME_SUBZONE_CROSS_SWTICH",
+        "start_mssql_port": 48322,
+    },
+}
+
+# sqlserver 主从节点手动部署单据
+SQLSERVER_HA_MANUAL_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "remark": "",
+    "ticket_type": TicketType.SQLSERVER_HA_APPLY.value,
+    "details": {
+        "bk_cloud_id": 0,
+        "city_code": "深圳",
+        "db_module_id": DB_MODULE_ID + 1,
+        "cluster_count": 1,
+        "inst_num": 1,
+        "ip_source": "manual_input",
+        "nodes": {
+            "sqlserver_ha": [
+                {"ip": "1.1.1.7", "bk_cloud_id": 0, "bk_host_id": 7},
+                {"ip": "1.1.1.8", "bk_cloud_id": 0, "bk_host_id": 8},
+            ]
         },
         "domains": [
             {

@@ -33,6 +33,7 @@ from backend.tests.mock_data.ticket.sqlserver_flow import (
     SQLSERVER_DISABLE_TICKET_DATA,
     SQLSERVER_ENABLE_TICKET_DATA,
     SQLSERVER_HA_APPLY_TICKET_DATA,
+    SQLSERVER_HA_MANUAL_DATA,
     SQLSERVER_IMPORT_SQLFILE_TICKET_DATA,
     SQLSERVER_MACHINE_DATA,
     SQLSERVER_MASTER_FAIL_OVER_TICKET_DATA,
@@ -43,6 +44,7 @@ from backend.tests.mock_data.ticket.sqlserver_flow import (
     SQLSERVER_RESTORE_SLAVE_TICKET_DATA,
     SQLSERVER_ROLLBACK_TICKET_DATA,
     SQLSERVER_SINGLE_APPLY_TICKET_DATA,
+    SQLSERVER_SINGLE_MANUAL_DATA,
     SQLSERVER_SLAVE_SOURCE_APPLICATION_DATA,
     SQLSERVER_SOURCE_APPLICATION_DATA,
     SQLSERVER_SPEC_DATA,
@@ -80,9 +82,17 @@ class TestSqlServerApplyFlow(TestFlowBase, TestCase):
     def test_sqlserver_single_apply_flow(self):
         self.flow_test(client, SQLSERVER_SINGLE_APPLY_TICKET_DATA)
 
+    # SQLSERVER single手动输入部署: start --> itsm --> PAUSE --> INNER_FLOW --> end
+    def test_single_manual_apply_flow(self):
+        self.flow_test(client, SQLSERVER_SINGLE_MANUAL_DATA)
+
     # SQLSERVER ha部署: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
     def test_sqlserver_ha_apply_flow(self):
         self.flow_test(client, SQLSERVER_HA_APPLY_TICKET_DATA)
+
+    # SQLSERVER ha手动部署: start --> itsm --> PAUSE --> INNER_FLOW --> end
+    def test_ha_manual_apply_flow(self):
+        self.flow_test(client, SQLSERVER_HA_MANUAL_DATA)
 
     # SQLSERVER disable: start --> itsm --> PAUSE --> INNER_FLOW --> end
     def test_sqlserver_disable_flow(self):
