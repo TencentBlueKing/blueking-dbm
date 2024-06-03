@@ -169,6 +169,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ports": self.ticket_data.get("mysql_ports", []),
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": copy.deepcopy(mysql_config),
                 },
             },
@@ -215,6 +217,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ports": self.ticket_data["spider_ports"],
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": copy.deepcopy(spider_config),
                     "spider_auto_incr_mode_map": spider_auto_incr_mode_map,
                 },
@@ -257,6 +261,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ports": [self.cluster["ctl_port"]],
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": {
                         self.cluster["ctl_port"]: self.__get_mysql_config(
                             immutable_domain=self.cluster["immutable_domain"], db_version="Tdbctl"
@@ -309,6 +315,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ports": [self.ticket_data["ctl_port"]],
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": {
                         self.ticket_data["ctl_port"]: self.__get_mysql_config(
                             immutable_domain=self.cluster["immutable_domain"], db_version="Tdbctl"
@@ -2062,6 +2070,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "mysql_version": self.cluster["version"],
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
                 },
             },
         }

@@ -234,7 +234,8 @@ func (r *Checker) run() (output *Output, err error, pterr error) {
 		这些 flag 咋办
 		是当作错误抛出还是当作正常的执行结果返回给调用方, 让调用方自己去处理?
 
-		1, 2, 4 肯定要当错误, 其他的先扔回去?
+		1 不能当做错误, 表分块超时也会返回这个值
+		2, 4 肯定要当错误, 其他的先扔回去?
 	*/
 	var eLines []string
 	if stderr.Len() > 0 {
@@ -271,7 +272,7 @@ func (r *Checker) run() (output *Output, err error, pterr error) {
 		PtExitFlags: ptFlags,
 	}
 
-	if ptErr != nil && (ptErr.ExitCode()&1 != 0 || ptErr.ExitCode()&2 != 0 || ptErr.ExitCode()&4 != 0) {
+	if ptErr != nil && (ptErr.ExitCode()&2 != 0 || ptErr.ExitCode()&4 != 0) {
 		pterr = errors.New(output.String())
 		if len(eLines) > 0 {
 			slog.Error(

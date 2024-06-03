@@ -63,7 +63,7 @@ type InstallMySQLParams struct {
 	components.Medium
 	// map[port]my.cnf
 	MyCnfConfigs json.RawMessage
-	// MySQLVerion 只需5.6 5.7 这样的大版本号
+	// MySQLVersion 只需5.6 5.7 这样的大版本号
 	MysqlVersion string `json:"mysql_version"  validate:"required"`
 	// 字符集参数
 	CharSet string `json:"charset" validate:"required,checkCharset"`
@@ -74,6 +74,8 @@ type InstallMySQLParams struct {
 	Host                     string            `json:"host" validate:"required,ip" `
 	SuperAccount             AdditionalAccount `json:"super_account"`
 	DBHAAccount              AdditionalAccount `json:"dbha_account"`
+	WEBCONSOLERSAccount      AdditionalAccount `json:"webconsolers_account"`
+	PartitionYWAccount       AdditionalAccount `json:"partition_yw_account"`
 	SpiderAutoIncrModeMap    json.RawMessage   `json:"spider_auto_incr_mode_map"`
 	AllowDiskFileSystemTypes []string
 }
@@ -218,7 +220,7 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	}
 	// 反序列化mycnf 配置
 	var mycnfs map[Port]json.RawMessage
-	if err = json.Unmarshal([]byte(i.Params.MyCnfConfigs), &mycnfs); err != nil {
+	if err = json.Unmarshal(i.Params.MyCnfConfigs, &mycnfs); err != nil {
 		logger.Error("反序列化配置失败:%s", err.Error())
 		return err
 	}
@@ -245,7 +247,7 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	// 如果SpiderAutoIncrModeMap有传入，则渲染
 	if i.Params.SpiderAutoIncrModeMap != nil {
 		i.SpiderAutoIncrModeMap = make(map[int]SpiderAutoIncrModeValue)
-		if err = json.Unmarshal([]byte(i.Params.SpiderAutoIncrModeMap), &i.SpiderAutoIncrModeMap); err != nil {
+		if err = json.Unmarshal(i.Params.SpiderAutoIncrModeMap, &i.SpiderAutoIncrModeMap); err != nil {
 			logger.Error("反序列化配置失败:%s", err.Error())
 			return err
 		}
@@ -262,10 +264,14 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	i.Checkfunc = append(i.Checkfunc, i.Params.Medium.Check)
 	// spider && tdbctl 不一定有挂载磁盘点，忽略检查
 	// 本身也不存储实际数据
+	if i.Params.GetPkgTypeName() == cst.PkgTypeMysql {
+		i.Checkfunc = append(i.Checkfunc, i.precheckFilesystemType)
+	}
 
-	// if i.Params.GetPkgTypeName() == cst.PkgTypeMysql {
-	// 	i.Checkfunc = append(i.Checkfunc, i.precheckFilesystemType)
-	// }
+	i.Params.PartitionYWAccount.AccessHosts = []string{
+		i.Params.Host,
+		"localhost",
+	}
 	return nil
 }
 
@@ -311,10 +317,10 @@ func (i *InstallMySQLComp) precheckFilesystemType() (err error) {
 		if v, exist := mountInfo[key]; exist {
 			logger.Info("%s : %s", key, v.FileSystemType)
 			if !util.StringsHas(i.Params.AllowDiskFileSystemTypes, v.FileSystemType) {
-				return fmt.Errorf("The %s,Filesystem is %s,is not allowed", key, v.FileSystemType)
+				return fmt.Errorf("the %s,Filesystem is %s,is not allowed", key, v.FileSystemType)
 			}
 		} else {
-			return fmt.Errorf("The %s Not Found Filesystem Type", key)
+			return fmt.Errorf("the %s Not Found Filesystem Type", key)
 		}
 	}
 	return nil
@@ -460,34 +466,47 @@ func (i *InstallMySQLComp) GenerateMycnf() (err error) {
 	// 2. 替换数据目录、日志目录生产实际配置文件
 	for _, port := range i.InsPorts {
 		i.MyCnfTpls[port].FileName = tmplFileName
-		if err = i.MyCnfTpls[port].SafeSaveFile(false); err != nil {
-			logger.Error("保存模版文件失败:%s", err.Error())
-			return err
-		}
-		// 防止过快读取到的是空文件
-		if err = util.Retry(util.RetryConfig{Times: 3, DelayTime: 100 * time.Millisecond}, func() error {
-			return util.FileIsEmpty(tmplFileName)
-		}); err != nil {
-			return err
-		}
-		tmpl, err := template.ParseFiles(tmplFileName)
+		err := i.generateMycnfOnePort(port, tmplFileName)
 		if err != nil {
-			return fmt.Errorf("template ParseFiles failed, err: %w", err)
-		}
-		cnf := util.GetMyCnfFileName(port)
-		f, err := os.Create(cnf)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		if err := tmpl.Execute(f, i.RenderConfigs[port]); err != nil {
-			return err
-		}
-		if _, err = osutil.ExecShellCommand(false, fmt.Sprintf("chown -R mysql %s", cnf)); err != nil {
-			logger.Error("chown -R mysql %s %s", cnf, err.Error())
 			return err
 		}
 	}
+	return nil
+}
+
+func (i *InstallMySQLComp) generateMycnfOnePort(port Port, tmplFileName string) error {
+	i.MyCnfTpls[port].FileName = tmplFileName
+	if err := i.MyCnfTpls[port].SafeSaveFile(false); err != nil {
+		logger.Error("保存模版文件失败:%s", err.Error())
+		return err
+	}
+	// 防止过快读取到的是空文件
+	if err := util.Retry(util.RetryConfig{Times: 3, DelayTime: 100 * time.Millisecond}, func() error {
+		return util.FileIsEmpty(tmplFileName)
+	}); err != nil {
+		return err
+	}
+	tmpl, err := template.ParseFiles(tmplFileName)
+	if err != nil {
+		return fmt.Errorf("template ParseFiles failed, err: %w", err)
+	}
+	cnf := util.GetMyCnfFileName(port)
+	f, err := os.Create(cnf)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	if err := tmpl.Execute(f, i.RenderConfigs[port]); err != nil {
+		return err
+	}
+	if _, err = osutil.ExecShellCommand(false, fmt.Sprintf("chown -R mysql %s", cnf)); err != nil {
+		logger.Error("chown -R mysql %s %s", cnf, err.Error())
+		return err
+	}
+
 	return nil
 }
 
@@ -644,7 +663,7 @@ func (i *InstallMySQLComp) Startup() (err error) {
 		}
 		pid, err := s.StartMysqlInstance()
 		if err != nil {
-			logger.Error("start %d faild err: %s", port, err.Error())
+			logger.Error("start %d failed err: %s", port, err.Error())
 			return err
 		}
 		i.RollBackContext.AddKillProcess(pid)
@@ -659,12 +678,13 @@ func (i *InstallMySQLComp) Startup() (err error) {
  * @return {*}
  */
 func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (initAccountsql []string) {
-
-	initAccountsql = append(i.Params.SuperAccount.GetSuperUserAccount(realVersion), i.Params.DBHAAccount.GetDBHAAccount(
-		realVersion)...)
+	initAccountsql = append(initAccountsql, i.Params.SuperAccount.GetSuperUserAccount(realVersion)...)
+	initAccountsql = append(initAccountsql, i.Params.DBHAAccount.GetDBHAAccount(realVersion)...)
+	initAccountsql = append(initAccountsql, i.Params.WEBCONSOLERSAccount.GetWEBCONSOLERSAccount(realVersion)...)
+	initAccountsql = append(initAccountsql, i.Params.PartitionYWAccount.GetPartitionYWAccount(realVersion)...)
 
 	runp := i.GeneralParam.RuntimeAccountParam
-	privParis := []components.MySQLAccountPrivs{}
+	var privParis []components.MySQLAccountPrivs
 	privParis = append(privParis, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
 	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
 	if runp.AdminUser != "ADMIN" {
@@ -717,6 +737,68 @@ func (a *AdditionalAccount) GetSuperUserAccount(realVersion string) (initAccount
 		} else {
 			initAccountsql = append(initAccountsql,
 				fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
+					a.User, host, a.Pwd))
+		}
+	}
+	return
+}
+
+func (a *AdditionalAccount) GetPartitionYWAccount(realVersion string) (initAccountsql []string) {
+	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
+		if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
+			initAccountsql = append(
+				initAccountsql,
+				fmt.Sprintf(
+					`CREATE USER IF NOT EXISTS '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s';`,
+					a.User, host, a.Pwd,
+				),
+			)
+			initAccountsql = append(
+				initAccountsql,
+				fmt.Sprintf(
+					`GRANT SELECT, INSERT, UPDATE, DELETE, 
+								CREATE, DROP, ALTER, TRIGGER, 
+								PROCESS, SUPER, REPLICATION SLAVE ON *.* TO '%s'@'%s';`,
+					a.User, host,
+				),
+			)
+		} else {
+			initAccountsql = append(
+				initAccountsql,
+				fmt.Sprintf(
+					`GRANT SELECT, INSERT, UPDATE, DELETE, 
+								CREATE, DROP, ALTER, TRIGGER, 
+								PROCESS, SUPER, REPLICATION SLAVE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s';`,
+					a.User, host, a.Pwd,
+				),
+			)
+		}
+	}
+	return
+}
+
+func (a *AdditionalAccount) GetWEBCONSOLERSAccount(realVersion string) (initAccountsql []string) {
+	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
+		if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
+			initAccountsql = append(
+				initAccountsql,
+				fmt.Sprintf(
+					`CREATE USER IF NOT EXISTS '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s';`,
+					a.User, host, a.Pwd,
+				),
+			)
+			initAccountsql = append(
+				initAccountsql,
+				fmt.Sprintf(
+					`GRANT SELECT, RELOAD, PROCESS, SHOW DATABASES ON *.* TO '%s'@'%s';`,
+					a.User, host,
+				),
+			)
+		} else {
+			initAccountsql = append(
+				initAccountsql,
+				fmt.Sprintf(
+					`GRANT SELECT, RELOAD, PROCESS, SHOW DATABASES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s';`,
 					a.User, host, a.Pwd))
 		}
 	}
@@ -780,7 +862,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 			initSQLs = append(initSQLs, value)
 		}
 	}
-	// 剔除最后一个空字符，spilts 会多分割出一个空字符
+	// 剔除最后一个空字符，splits 会多分割出一个空字符
 	if len(initSQLs) < 2 {
 		return fmt.Errorf("初始化sql为空%v", initSQLs)
 	}
@@ -799,7 +881,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 		var dbWork *native.DbWorker
 		if dbWork, err = native.NewDbWorker(
 			native.DsnBySocket(i.InsSockets[port] /*"root", ""*/, i.WorkUser, i.WorkPassword)); err != nil {
-			logger.Error("connenct by %s failed,err:%s", port, err.Error())
+			logger.Error("connect by %s failed,err:%s", port, err.Error())
 			return err
 		}
 
@@ -819,7 +901,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 		switch {
 		case strings.Contains(version, "tspider"):
 			// 对spider 初始化授权
-			if err := i.create_spider_table(i.InsSockets[port]); err != nil {
+			if err := i.createSpiderTable(i.InsSockets[port]); err != nil {
 				return err
 			}
 			initAccountSqls = i.generateDefaultSpiderAccount(version)
@@ -880,7 +962,7 @@ func (i *InstallMySQLComp) CheckTimeZoneSetting() (err error) {
 		// 如果系统和实例配置不一致,且mysql实例设置不是SYSTEM，则退出
 		if i.TimeZone != instanceTimeZone && instanceTimeZone != "SYSTEM" {
 			return fmt.Errorf(
-				"The time zone is inconsistent with the configuration of the operating system and mysqld[%d], check", port)
+				"the time zone is inconsistent with the configuration of the operating system and mysqld[%d], check", port)
 		}
 	}
 	return nil
@@ -906,7 +988,7 @@ func (i *InstallMySQLComp) InstallRplSemiSyncPlugin() (err error) {
 			return err
 		}
 		if _, err := dbConn.ExecMore(execSQLs); err != nil {
-			logger.Error("isntall plugin failed:[%s]", err.Error())
+			logger.Error("install plugin failed:[%s]", err.Error())
 			return err
 		}
 	}
@@ -982,7 +1064,7 @@ func (i *InstallMySQLComp) TdbctlStartup() (err error) {
 		}
 		pid, err := s.StartMysqlInstance()
 		if err != nil {
-			logger.Error("start %d faild err: %s", port, err.Error())
+			logger.Error("start %d failed err: %s", port, err.Error())
 			return err
 		}
 		i.RollBackContext.AddKillProcess(pid)
@@ -999,7 +1081,7 @@ func (i *InstallMySQLComp) TdbctlStartup() (err error) {
 func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (initAccountsql []string) {
 	initAccountsql = i.getSuperUserAccountForSpider()
 	runp := i.GeneralParam.RuntimeAccountParam
-	privParis := []components.MySQLAccountPrivs{}
+	var privParis []components.MySQLAccountPrivs
 	privParis = append(privParis, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
 	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
 	if runp.AdminUser != "ADMIN" {
@@ -1035,27 +1117,43 @@ func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (ini
 func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []string) {
 	for _, host := range i.Params.SuperAccount.AccessHosts {
 		initAccountsql = append(initAccountsql,
-			fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
+			fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION;",
 				i.Params.SuperAccount.User, host, i.Params.SuperAccount.Pwd))
 	}
 	for _, host := range i.Params.DBHAAccount.AccessHosts {
 		initAccountsql = append(initAccountsql,
 			fmt.Sprintf(
 				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
-					"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
+					"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION;",
 				i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
 		initAccountsql = append(initAccountsql,
 			fmt.Sprintf(
 				"GRANT SELECT ON mysql.servers TO '%s'@'%s' ;", i.Params.DBHAAccount.User, host))
 		initAccountsql = append(initAccountsql,
 			fmt.Sprintf(
-				" GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%s' ;",
+				" GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%s';",
 				i.Params.DBHAAccount.User, host))
 	}
+	for _, host := range i.Params.WEBCONSOLERSAccount.AccessHosts {
+		initAccountsql = append(initAccountsql,
+			fmt.Sprintf(`GRANT SELECT, RELOAD, PROCESS, SHOW DATABASES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s';`,
+				i.Params.WEBCONSOLERSAccount.User, host, i.Params.WEBCONSOLERSAccount.Pwd))
+	}
+	for _, host := range i.Params.PartitionYWAccount.AccessHosts {
+		initAccountsql = append(initAccountsql,
+			fmt.Sprintf(
+				`GRANT SELECT, INSERT, UPDATE, DELETE, 
+								CREATE, DROP, ALTER, TRIGGER, 
+								PROCESS, SUPER, REPLICATION SLAVE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s';`,
+				i.Params.PartitionYWAccount.User, host, i.Params.PartitionYWAccount.Pwd,
+			),
+		)
+	}
+
 	return
 }
 
-func (i *InstallMySQLComp) create_spider_table(socket string) (err error) {
+func (i *InstallMySQLComp) createSpiderTable(socket string) (err error) {
 	return mysqlutil.ExecuteSqlAtLocal{
 		User:     i.WorkUser,     // "root",
 		Password: i.WorkPassword, // "",

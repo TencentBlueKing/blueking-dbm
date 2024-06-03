@@ -8,6 +8,7 @@ type RPCWrapper struct {
 	password       string
 	connectTimeout int
 	queryTimeout   int
+	timezone       string
 	force          bool
 	RPCEmbedInterface
 }
@@ -20,6 +21,7 @@ func NewRPCWrapper(
 	password string,
 	connectTimeout int,
 	queryTimeout int,
+	timezone string,
 	force bool,
 	em RPCEmbedInterface,
 ) *RPCWrapper {
@@ -30,6 +32,7 @@ func NewRPCWrapper(
 		password:          password,
 		connectTimeout:    connectTimeout,
 		queryTimeout:      queryTimeout,
+		timezone:          timezone,
 		force:             force,
 		RPCEmbedInterface: em,
 	}
