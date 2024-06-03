@@ -56,6 +56,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			config.MonitorConfig.Port,
 			config.MonitorConfig.Auth.Mysql,
 			true,
+			false,
 		)
 		if err != nil {
 			slog.Error(
@@ -72,6 +73,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			config.MonitorConfig.Ip,
 			config.MonitorConfig.Port,
 			config.MonitorConfig.Auth.Proxy,
+			false,
 			false,
 		)
 		if err != nil {
@@ -90,6 +92,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			adminPort,
 			config.MonitorConfig.Auth.ProxyAdmin,
 			false,
+			true,
 		)
 		if err != nil {
 			var merr *mysql.MySQLError
@@ -115,6 +118,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			config.MonitorConfig.Port,
 			config.MonitorConfig.Auth.Mysql,
 			true,
+			false,
 		)
 		if err != nil {
 			slog.Error(
@@ -136,6 +140,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 				ctlPort,
 				config.MonitorConfig.Auth.Mysql,
 				true,
+				false,
 			)
 			if err != nil {
 				slog.Error(
@@ -159,7 +164,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 	}
 }
 
-func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool) (db *sqlx.DB, err error) {
+func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool, isProxyAdmin bool) (db *sqlx.DB, err error) {
 	if withPing {
 		db, err = sqlx.Connect(
 			"mysql", fmt.Sprintf(
@@ -188,6 +193,19 @@ func connectDB(ip string, port int, ca *config.ConnectAuth, withPing bool) (db *
 			slog.Error("connect db without ping", err)
 			return nil, err
 		}
+		// 没有 ping 可能返回的是一个无效连接
+		// proxy admin 端口 用 select version
+		// proxy 数据端口用 select 1
+		if isProxyAdmin {
+			_, err = db.Queryx(`SELECT VERSION`)
+		} else {
+			_, err = db.Queryx(`SELECT 1`)
+		}
+		if err != nil {
+			slog.Error("ping proxy failed", err)
+			return nil, err
+		}
+		slog.Info("ping proxy success")
 	}
 
 	return db, nil

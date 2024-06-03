@@ -3,6 +3,7 @@ package rpc_core
 import (
 	"context"
 	"time"
+	"log/slog"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -44,8 +45,15 @@ func queryCmd(conn *sqlx.Conn, cmd string, timeout time.Duration) (tableDataType
 		if err != nil {
 			return nil, err
 		}
+
+		slog.Debug("scan row map", slog.Any("map", data))
 		for k, v := range data {
 			if value, ok := v.([]byte); ok {
+				slog.Debug(
+					"reflect result",
+					slog.Any("before", v),
+					slog.Any("after", value),
+				)
 				data[k] = string(value)
 			}
 		}
