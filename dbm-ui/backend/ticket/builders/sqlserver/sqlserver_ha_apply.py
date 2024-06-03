@@ -48,7 +48,7 @@ class SQLServerHAApplyDetailSerializer(SQLServerSingleApplyDetailSerializer):
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             machine_count = attrs["resource_spec"][MachineType.SQLSERVER_HA.value]["count"]
         else:
-            machine_count = len(attrs["nodes"]["backend"])
+            machine_count = len(attrs["nodes"][MachineType.SQLSERVER_HA.value])
         if machine_count != expected_count:
             raise serializers.ValidationError(_("机器输入数量{}有误，预期数量{}").format(expected_count, machine_count))
 
@@ -89,10 +89,7 @@ class SQLServerHAApplyFlowParamBuilder(SQLServerSingleApplyFlowParamBuilder):
 
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, infos: List[Dict]):
-        if ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
-            backend_nodes = ticket_data["nodes"][MachineType.SQLSERVER_HA.value]
-        else:
-            backend_nodes = ticket_data["nodes"]["backend"]
+        backend_nodes = ticket_data["nodes"][MachineType.SQLSERVER_HA.value]
         for index, apply_info in enumerate(infos):
             # 每组集群需要两个后端 IP 和两个 Proxy IP
             start, end = index * 2, (index + 1) * 2
