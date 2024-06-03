@@ -244,6 +244,8 @@ func (c *PtTableSyncComp) ExecPtTableSync() (err error) {
 			syncTable.TableName, Charset, c.Params.Host, c.Params.Port, c.Params.SyncUser, c.Params.SyncPass,
 		)
 
+		logger.Info(syncCmd)
+
 		// logger.Info("executing %s", syncCmd)
 		output, err := osutil.ExecShellCommand(false, syncCmd)
 

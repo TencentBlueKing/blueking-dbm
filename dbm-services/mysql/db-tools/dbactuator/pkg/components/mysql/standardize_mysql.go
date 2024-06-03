@@ -20,24 +20,32 @@ type StandardizeMySQLComp struct {
 
 type StandardizeMySQLParams struct {
 	components.Medium
-	IP           string            `json:"ip" validate:"required"`
-	Ports        []int             `json:"ports" validate:"required"`
-	SuperAccount AdditionalAccount `json:"super_account"`
-	DBHAAccount  AdditionalAccount `json:"dbha_account"`
+	IP                  string            `json:"ip" validate:"required"`
+	Ports               []int             `json:"ports" validate:"required"`
+	SuperAccount        AdditionalAccount `json:"super_account"`
+	DBHAAccount         AdditionalAccount `json:"dbha_account"`
+	WEBCONSOLERSAccount AdditionalAccount `json:"webconsolers_account"`
+	PartitionYWAccount  AdditionalAccount `json:"partition_yw_account"`
 }
 
 func (c *StandardizeMySQLComp) Init() error {
 	c.inner = &InstallMySQLComp{
 		GeneralParam: c.GeneralParam,
 		Params: &InstallMySQLParams{
-			MyCnfConfigs:             nil,
-			MysqlVersion:             "",
-			CharSet:                  "",
-			Ports:                    c.Params.Ports,
-			InstMem:                  0,
-			Host:                     "",
-			SuperAccount:             c.Params.SuperAccount,
-			DBHAAccount:              c.Params.DBHAAccount,
+			MyCnfConfigs:        nil,
+			MysqlVersion:        "",
+			CharSet:             "",
+			Ports:               c.Params.Ports,
+			InstMem:             0,
+			Host:                "",
+			SuperAccount:        c.Params.SuperAccount,
+			DBHAAccount:         c.Params.DBHAAccount,
+			WEBCONSOLERSAccount: c.Params.WEBCONSOLERSAccount,
+			PartitionYWAccount: AdditionalAccount{
+				User:        c.Params.PartitionYWAccount.User,
+				Pwd:         c.Params.PartitionYWAccount.Pwd,
+				AccessHosts: []string{c.Params.IP, "localhost"},
+			},
 			SpiderAutoIncrModeMap:    nil,
 			AllowDiskFileSystemTypes: nil,
 		},

@@ -44,7 +44,7 @@ func init() {
 		有很多和安全相关的参数这里没有出现, 不代表那些参数没有用, 而是默认值刚好非常合适
 	*/
 	commonForceSwitchStrategies = []switchStrategy{
-		{Name: "check-binlog-format", Value: false, HasOpposite: true},
+		{Name: "check-binlog-format", Value: true, HasOpposite: true},
 		{Name: "check-replication-filters", Value: false, HasOpposite: true},
 		{Name: "quiet", Value: false, HasOpposite: false},
 		{Name: "binary-index", Value: true, HasOpposite: false},
@@ -69,7 +69,7 @@ func init() {
 		{
 			Name: "chunk-size-limit",
 			Value: func(checker *Checker) interface{} {
-				return 2
+				return 5
 			},
 			Enable: true,
 		},
@@ -87,13 +87,13 @@ func init() {
 			},
 			Enable: true,
 		},
-		{
-			Name: "chunk-size",
-			Value: func(checker *Checker) interface{} {
-				return "10M"
-			},
-			Enable: true,
-		},
+		//{
+		//	Name: "chunk-size",
+		//	Value: func(checker *Checker) interface{} {
+		//		return "10M"
+		//	},
+		//	Enable: true,
+		//},
 	}
 
 	/*

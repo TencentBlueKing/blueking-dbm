@@ -2,6 +2,7 @@ package rpc_core
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -9,9 +10,6 @@ import (
 // executeCmd TODO
 // func executeCmd(db *sqlx.DB, cmd string, timeout int) (int64, error) {
 func executeCmd(conn *sqlx.Conn, cmd string, ctx context.Context) (int64, error) {
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
-	// defer cancel()
-
 	result, err := conn.ExecContext(ctx, cmd)
 	if err != nil {
 		return 0, err
@@ -23,9 +21,6 @@ func executeCmd(conn *sqlx.Conn, cmd string, ctx context.Context) (int64, error)
 // queryCmd TODO
 // func queryCmd(db *sqlx.DB, cmd string, timeout int) (tableDataType, error) {
 func queryCmd(conn *sqlx.Conn, cmd string, ctx context.Context) (tableDataType, error) {
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
-	// defer cancel()
-
 	rows, err := conn.QueryxContext(ctx, cmd)
 	if err != nil {
 		return nil, err
@@ -43,8 +38,15 @@ func queryCmd(conn *sqlx.Conn, cmd string, ctx context.Context) (tableDataType, 
 		if err != nil {
 			return nil, err
 		}
+
+		slog.Debug("scan row map", slog.Any("map", data))
 		for k, v := range data {
 			if value, ok := v.([]byte); ok {
+				slog.Debug(
+					"reflect result",
+					slog.Any("before", v),
+					slog.Any("after", value),
+				)
 				data[k] = string(value)
 			}
 		}

@@ -20,6 +20,7 @@ type runtimeConfig struct {
 	MySQLAdminPassword     string
 	ProxyAdminUser         string
 	ProxyAdminPassword     string
+	Timezone               string
 	SqlserverAdminUser     string
 	SqlserverAdminPassword string
 	Port                   int
@@ -46,6 +47,7 @@ func InitConfig() {
 		MySQLAdminPassword:     viper.GetString("mysql_admin_password"),
 		ProxyAdminUser:         viper.GetString("proxy_admin_user"),
 		ProxyAdminPassword:     viper.GetString("proxy_admin_password"),
+		Timezone:               viper.GetString("time_zone"),
 		SqlserverAdminUser:     viper.GetString("sqlserver_admin_user"),
 		SqlserverAdminPassword: viper.GetString("sqlserver_admin_password"),
 		Port:                   viper.GetInt("port"),

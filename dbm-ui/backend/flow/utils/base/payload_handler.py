@@ -178,6 +178,60 @@ class PayloadHandler(object):
 
         return drs_account_data, dbha_account_data
 
+    def get_webconsolers_account(self):
+        """
+        获得mysql webconsole account
+        """
+        if env.WEBCONSOLERS_USERNAME:
+            return self.__get_webconsolers_account_bypass()
+
+        bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(self.bk_cloud_id)
+        wrs = DBExtension.get_latest_extension(bk_cloud_id=self.bk_cloud_id, extension_type=ExtensionType.WEBCONSOLERS)
+        wrs_account_data = {
+            "access_hosts": DBExtension.get_extension_access_hosts(
+                bk_cloud_id=self.bk_cloud_id, extension_type=ExtensionType.WEBCONSOLERS
+            ),
+            "pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=wrs.details["pwd"]),
+            "user": AsymmetricHandler.decrypt(name=bk_cloud_name, content=wrs.details["user"]),
+        }
+
+        return wrs_account_data
+
+    @staticmethod
+    def __get_webconsolers_account_bypass():
+        """
+        旁路逻辑: 获取环境变量中的用户名和密码
+        """
+        access_hosts = env.TEST_ACCESS_HOSTS or re.compile(IP_RE_PATTERN).findall(env.WEBCONSOLERS_APIGW_DOMAIN)
+        wrs_account_data = {
+            "access_hosts": access_hosts,
+            "user": env.WEBCONSOLERS_USERNAME,
+            "pwd": env.WEBCONSOLERS_PASSWORD,
+        }
+
+        return wrs_account_data
+
+    def get_partition_yw_account(self):
+        if env.PARTITION_YW_USERNAME:
+            return self.__get_partition_yw_account_bypass()
+
+        bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(self.bk_cloud_id)
+        rs = DBExtension.get_latest_extension(bk_cloud_id=self.bk_cloud_id, extension_type=ExtensionType.PARTITION_YW)
+
+        return {
+            "access_hosts": [],
+            "pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=rs.details["pwd"]),
+            "user": AsymmetricHandler.decrypt(name=bk_cloud_name, content=rs.details["user"]),
+        }
+
+    @staticmethod
+    def __get_partition_yw_account_bypass():
+        return {
+            "access_hosts": [],
+            "user": env.PARTITION_YW_USERNAME,
+            "pwd": env.PARTITION_YW_PASSWORD,
+        }
+
     @staticmethod
     def redis_get_cluster_pass_from_dbconfig(cluster: Cluster):
         proxy_conf = DBConfigApi.query_conf_item(

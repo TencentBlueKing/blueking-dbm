@@ -11,6 +11,8 @@ func init() {
 	rootCmd.PersistentFlags().String("proxy_admin_password", "123", "proxy password")
 	rootCmd.PersistentFlags().String("proxy_admin_user", "root", "proxy user")
 
+	rootCmd.PersistentFlags().String("time_zone", "+00:00", "time zone")
+
 	rootCmd.PersistentFlags().String("sqlserver_admin_password", "123", "sqlserver password")
 	rootCmd.PersistentFlags().String("sqlserver_admin_user", "root", "sqlserver user")
 
@@ -37,6 +39,9 @@ func init() {
 	_ = viper.BindEnv("mysql_admin_password", "MYSQL_ADMIN_PASSWORD")
 	_ = viper.BindEnv("proxy_admin_user", "PROXY_ADMIN_USER")
 	_ = viper.BindEnv("proxy_admin_password", "PROXY_ADMIN_PASSWORD")
+
+	_ = viper.BindEnv("time_zone", "TIME_ZONE")
+
 	_ = viper.BindEnv("sqlserver_admin_user", "SQLSERVER_ADMIN_USER")
 	_ = viper.BindEnv("sqlserver_admin_password", "SQLSERVER_ADMIN_PASSWORD")
 	_ = viper.BindEnv("concurrent", "CONCURRENT")
