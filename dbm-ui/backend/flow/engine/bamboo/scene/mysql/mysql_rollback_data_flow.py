@@ -107,8 +107,6 @@ class MySQLRollbackDataFlow(object):
             install_ticket["start_mysql_port"] = master.port
             install_ticket["inst_num"] = 1
             install_ticket["ticket_type"] = TicketType.MYSQL_SINGLE_APPLY.value
-            install_ticket["resource_spec"] = {}
-            # install_ticket["resource_spec"] = {"single": {id: 2, "xxx": "xxx"}}
             install_ticket["apply_infos"] = [
                 {"new_ip": self.data["bk_rollback"], "clusters": [{"name": cluster_name, "master": master_domain}]}
             ]
