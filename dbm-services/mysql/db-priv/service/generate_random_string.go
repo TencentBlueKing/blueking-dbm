@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"log/slog"
-	"math"
 	"math/rand"
 	"strings"
 	"time"
@@ -41,26 +40,27 @@ func GenerateRandomString(security SecurityRule) (string, error) {
 		length = rand.Intn(security.MaxLength-security.MinLength) + security.MinLength
 	}
 	var str []byte
-	// 字母与数字占比90%，符号占比10%
-	alphabetNumberStr := fmt.Sprintf("%s%s%s", lowercase, uppercase, number)
-	alphabetNumberPercent := 0.9
+	var vrange string
 	rand.Seed(time.Now().UnixNano())
-	// 必须包含的字符，至少有一个
 	if security.IncludeRule.Lowercase {
 		index := rand.Intn(len(lowercase))
 		str = append(str, lowercase[index])
+		vrange = fmt.Sprintf("%s%s", vrange, lowercase)
 	}
 	if security.IncludeRule.Uppercase {
 		index := rand.Intn(len(uppercase))
 		str = append(str, uppercase[index])
+		vrange = fmt.Sprintf("%s%s", vrange, uppercase)
 	}
 	if security.IncludeRule.Symbols {
 		index := rand.Intn(len(symbol))
 		str = append(str, symbol[index])
+		vrange = fmt.Sprintf("%s%s", vrange, symbol)
 	}
 	if security.IncludeRule.Numbers {
 		index := rand.Intn(len(number))
 		str = append(str, number[index])
+		vrange = fmt.Sprintf("%s%s", vrange, number)
 	}
 	if len(str) > security.MinLength {
 		return string(str), errno.IncludeCharTypesLargerThanLength
@@ -69,16 +69,11 @@ func GenerateRandomString(security SecurityRule) (string, error) {
 	if remain <= 0 {
 		return string(str), nil
 	}
-	alphabetNumberCnt := int(math.Ceil(alphabetNumberPercent * float64(remain)))
-	symbolCnt := remain - alphabetNumberCnt
+
 	//遍历，生成一个随机index索引
-	for i := 0; i < alphabetNumberCnt; i++ {
-		index := rand.Intn(len(alphabetNumberStr))
-		str = append(str, alphabetNumberStr[index])
-	}
-	for i := 0; i < symbolCnt; i++ {
-		index := rand.Intn(len(symbol))
-		str = append(str, symbol[index])
+	for i := 0; i < remain; i++ {
+		index := rand.Intn(len(vrange))
+		str = append(str, vrange[index])
 	}
 	for i := 0; i < 10; i++ {
 		RandShuffle(&str)
