@@ -266,6 +266,8 @@ class Cluster(AuditedModel):
                 return self.proxyinstance_set.filter(machine_type=MachineType.MONGOS).first().port
             elif self.cluster_type == ClusterType.MongoReplicaSet:
                 return self.storageinstance_set.filter(machine_type=MachineType.MONGODB).first().port
+            elif self.cluster_type == ClusterType.Doris:
+                return self.storageinstance_set.filter(instance_role=InstanceRole.DORIS_FOLLOWER).first().port
         except AttributeError:
             logger.warning(_("无法访问集群[]的访问端口，请检查实例信息").format(self.name))
             return 0

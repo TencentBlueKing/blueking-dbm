@@ -45,4 +45,5 @@ INSTALL_PACKAGE_LIST = {
         PackageType.Predixy,
     ],
     DBType.Sqlserver: [PackageType.Sqlserver],
+    DBType.Doris: [PackageType.Doris],
 }

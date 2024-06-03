@@ -12,6 +12,7 @@ from django.urls import include, path
 
 urlpatterns = [
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.bigdata.resources.urls")),
+    path("bizs/<int:bk_biz_id>/doris/", include("backend.db_services.bigdata.doris.urls")),
     path("bizs/<int:bk_biz_id>/es/", include("backend.db_services.bigdata.es.urls")),
     path("bizs/<int:bk_biz_id>/hdfs/", include("backend.db_services.bigdata.hdfs.urls")),
     path("bizs/<int:bk_biz_id>/kafka/", include("backend.db_services.bigdata.kafka.urls")),
