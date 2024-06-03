@@ -69,6 +69,10 @@ func GenerateRandomString(security SecurityRule) (string, error) {
 	if remain <= 0 {
 		return string(str), nil
 	}
+	// 不要求包含任何字符
+	if len(vrange) == 0 {
+		vrange = fmt.Sprintf("%s%s%s%s", lowercase, uppercase, symbol, number)
+	}
 
 	//遍历，生成一个随机index索引
 	for i := 0; i < remain; i++ {
