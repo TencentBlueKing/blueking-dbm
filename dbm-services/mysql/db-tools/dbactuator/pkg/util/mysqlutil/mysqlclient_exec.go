@@ -23,6 +23,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
@@ -159,34 +161,21 @@ func (e ExecuteSqlAtLocal) ExcutePartitionByMySQLClient(
 	logger.Info("The partitionsql is %s", ClearSensitiveInformation(partitionsql))
 	err = util.Retry(
 		util.RetryConfig{Times: 2, DelayTime: 2 * time.Second}, func() error {
-			db, err := dbw.Conn(context.Background())
-			if err != nil {
-				return err
+			var myerr error
+			// context.Background()被用作dbw.Conn方法的参数，这个数据库连接不会被自动取消，也没有截止日期。
+			db, myerr := dbw.Conn(context.Background())
+			if myerr != nil {
+				return myerr
 			}
 			partitionsqls := strings.Split(partitionsql, ";;;")
 			for _, psql := range partitionsqls {
-				_, err = db.ExecContext(context.Background(), psql)
+				_, myerr = db.ExecContext(context.Background(), psql)
 			}
-			return err
+			return myerr
 		},
 	)
 	if err != nil {
 		logger.Error("分区执行失败！%s", err)
-		lock.Lock()
-		errFile := path.Join(e.WorkDir, e.ErrFile)
-		ef, errO := os.OpenFile(errFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-		defer lock.Unlock()
-		defer ef.Close()
-		if errO != nil {
-			logger.Warn("打开日志时失败! %s", errO.Error())
-			return
-		}
-		if err != nil {
-			_, errW := ef.Write([]byte(fmt.Sprintf("%s\n", err.Error())))
-			if errW != nil {
-				logger.Warn("写错误日志时失败! %s", err.Error())
-			}
-		}
 		return err
 	}
 	return nil
@@ -194,10 +183,43 @@ func (e ExecuteSqlAtLocal) ExcutePartitionByMySQLClient(
 
 // ExcuteInitPartition TODO
 func (e ExecuteSqlAtLocal) ExcuteInitPartition(command string) (err error) {
-	e.ErrFile = path.Join(e.WorkDir, e.ErrFile)
-	err = e.ExcuteCommand(command)
+	// e.ErrFile = path.Join(e.WorkDir, e.ErrFile)
+	err = e.MyExcuteCommand(command)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// MyExcuteCommand TODO
+func (e ExecuteSqlAtLocal) MyExcuteCommand(command string) (err error) {
+	var stderrBuf bytes.Buffer
+	// var errStdout, errStderr error
+	logger.Info("The Command Is %s", ClearSensitiveInformation(command))
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
+	defer cancel()
+	//command = fmt.Sprintf("sleep 3 && %s", command)
+	cmd := exec.CommandContext(ctx, "/bin/bash", "-c", command)
+
+	// 启动指定命令
+	if err = cmd.Start(); err != nil {
+		logger.Error("start command failed:%s", err.Error())
+		return
+	}
+
+	if ctx.Err() == context.DeadlineExceeded {
+		errmsg := fmt.Sprintf("执行已超过1小时，初始化分区失败！")
+		logger.Error(errmsg)
+		return errors.New(errmsg)
+	}
+
+	// 会阻塞 直到命令执行完
+	err = cmd.Wait()
+	if err != nil {
+		errStr := string(stderrBuf.Bytes())
+		logger.Error("exec failed:%s,stderr: %s", err.Error(), errStr)
+		return
+	}
+
 	return nil
 }
