@@ -1135,7 +1135,7 @@
   "新建白名单": "New whitelist",
   "白名单": "whitelist",
   "白名单删除后_不会影响现已授权实例_新增授权时将无法再选择_请谨慎操作": "After the whitelist is deleted, it will not affect the existing granted instances, and you will no longer be able to choose when grant new. Please operate with caution!",
-  "白名单输入框编辑提示": "Please enter IP or IP%, such as: 127.0.0.1 or 192.28%\nSeparate multiples with commas, semicolons, or newlines",
+  "白名单输入框编辑提示": "Please enter IP or IP%, such as: 127.0.0.1 or 192.28.%\nSeparate multiples with commas, semicolons, or newlines",
   "确认删除该组白名单": "Confirm to delete this {0} whitelist",
   "编辑白名单": "Edit whitelist",
   "请添加IP的简要说明_如IP用途等": "Please add a brief description of the IP, such as the purpose of the IP, etc.",

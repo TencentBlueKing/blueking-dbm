@@ -32,7 +32,7 @@
         <BkInput
           v-model="formdata.ips"
           :placeholder="placeholder"
-          style="height: 134px"
+          :rows="8"
           type="textarea"
           @input="debounceInput" />
       </BkFormItem>
@@ -136,8 +136,6 @@
 
   const { t } = useI18n();
 
-  const ipSegmentMax = 255;
-  const ipSegmentMin = 0;
   const placeholder = t('白名单输入框编辑提示');
   const formRef = ref();
   const mergeTipsRef = ref();
@@ -154,66 +152,18 @@
     ignoreValues: [] as string[],
   });
 
-  // 判断是否为合法的 ip 段，即 nnn.nnn.nnn.nnn 中 0 <= nnn <= 255
-  const isLegalSegment = (segment: string) => {
-    const seg = Number(segment);
-
-    // 存在非数字
-    if (!Number.isFinite(seg)) return false;
-    // 存在 001 类似情况
-    if (segment.length !== String(seg).length) return false;
-
-    return seg >= ipSegmentMin && seg <= ipSegmentMax;
-  };
-
   const ipRules = [
     {
-      validator: (value: string) => value
-        .split('\n')
-        // 不包含 % ~ 字符
-        .map(text => text.trim())
-        .filter(text => text && !text.includes('%') && !text.includes('~'))
-        .every(ip => ipv4.test(ip) || ip === 'localhost'),
+      validator: (value: string) => _.every(value.split('\n'), item => {
+        const text = _.trim(item);
+        if (!text) {
+          return true
+        }
+        return ipv4.test(text)
+          || text === 'localhost'
+          || /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){0,2}(\.%)$/.test(text)
+      }),
       message: t('ip中存在格式错误'),
-      trigger: 'blur',
-    },
-    // {
-    //   validator: (value: string) => value
-    //     .split('\n')
-    //     // 包含 ~ 字符
-    //     .filter(text => text.includes('~'))
-    //     .map(text => text.trim())
-    //     .every((text) => {
-    //       const [ip, end] = text.split('~');
-    //       const lastSegment = ip.split('.').pop() || '';
-
-    //       return ipv4.test(ip) && isLegalSegment(lastSegment) && isLegalSegment(end);
-    //     }),
-    //   message: 'ip 范围段(~)中存在格式错误',
-    //   trigger: 'blur',
-    // },
-    {
-      validator: (value: string) => value
-        .split('\n')
-        // 包含 % 字符
-        .filter(text => text.includes('%'))
-        .map(text => text.trim())
-        .every((text) => {
-          // 允许直接填写单个 %
-          if (text === '%') return true;
-          // % 符号必须放最后
-          if (!text.endsWith('%')) return false;
-
-          const segments = text.slice(0, -1).split('.');
-          const lastSegment = segments.slice(-1)[0];
-          // ip 分段最多4个
-          if (segments.length > 4) return false;
-
-          // 最后分段为空也允许
-          return segments.slice(0, -1).every(segment => isLegalSegment(segment))
-            && (lastSegment === '' || isLegalSegment(lastSegment));
-        }),
-      message: t('ip匹配_中存在格式错误'),
       trigger: 'blur',
     },
   ];
