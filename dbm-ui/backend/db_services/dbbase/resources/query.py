@@ -434,7 +434,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             cluster_queryset = cluster_queryset.order_by(query_params.get("ordering"))
 
         cluster_infos = cls._filter_cluster_hook(
-            bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset, **kwargs
+            bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset
         )
         return cluster_infos
 
@@ -501,6 +501,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 cluster_operate_records_map=cluster_operate_records_map,
                 cloud_info=cloud_info,
                 biz_info=biz_info,
+                cluster_stats_map=Cluster.get_cluster_stats(cls.cluster_types),
                 **kwargs,
             )
             clusters.append(cluster_info)
@@ -514,6 +515,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         db_module_names_map: Dict[int, str],
         cluster_entry_map: Dict[int, Dict[str, str]],
         cluster_operate_records_map: Dict[int, List],
+        cloud_info: Dict[str, Any],
+        biz_info: AppCache,
+        cluster_stats_map: Dict[str, Dict[str, int]],
         **kwargs,
     ) -> Dict[str, Any]:
         """
@@ -524,7 +528,6 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param cluster_operate_records_map: key 是 cluster.id, value 是当前集群对应的 操作记录 映射
         """
         cluster_entry = cluster_entry_map.get(cluster.id, {})
-        cloud_info, biz_info = kwargs["cloud_info"], kwargs["biz_info"]
         bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
         return {
             "id": cluster.id,
@@ -536,6 +539,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "cluster_name": cluster.name,
             "cluster_alias": cluster.alias,
             "cluster_access_port": cluster.access_port,
+            "cluster_stats": cluster_stats_map.get(cluster.immute_domain, {}),
             "cluster_type": cluster.cluster_type,
             "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
             "master_domain": cluster_entry.get("master_domain", ""),

@@ -15,6 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.api.cluster.sqlserversingle.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.register import register_resource_decorator
@@ -47,7 +48,10 @@ class ListRetrieveResource(query.ListRetrieveResource):
         db_module_names_map: Dict[int, str],
         cluster_entry_map: Dict[int, Dict[str, str]],
         cluster_operate_records_map: Dict[int, List],
-        **kwargs,
+        cloud_info: Dict[str, Any],
+        biz_info: AppCache,
+        cluster_stats_map: Dict[str, Dict[str, int]],
+        **kwargs
     ) -> Dict[str, Any]:
         """将集群对象转为可序列化的 dict 结构"""
         storages = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.ORPHAN]

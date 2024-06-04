@@ -45,7 +45,6 @@ class ResourceFilter(filters.FilterSet):
         super().__init__(*args, **kwargs)
 
 
-# TODO: 这个方法有在使用吗？
 class BaseListResourceViewSet(AuditedModelViewSet):
     """提供资源(集群)通用属性的查询. 这些属性与集群类型无关, 如集群名, 集群创建者等"""
 

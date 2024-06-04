@@ -20,7 +20,7 @@ from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import Machine, Spec
+from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
@@ -73,6 +73,9 @@ class ListRetrieveResource(query.ListRetrieveResource):
         db_module_names_map: Dict[int, str],
         cluster_entry_map: Dict[int, Dict[str, str]],
         cluster_operate_records_map: Dict[int, List],
+        cloud_info: Dict[str, Any],
+        biz_info: AppCache,
+        cluster_stats_map: Dict[str, Dict[str, int]],
         **kwargs,
     ) -> Dict[str, Any]:
         """将集群对象转为可序列化的 dict 结构"""
@@ -121,7 +124,14 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "temporary_info": cls.get_temporary_cluster_info(cluster, TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER),
         }
         cluster_info = super()._to_cluster_representation(
-            cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map, **kwargs
+            cluster,
+            db_module_names_map,
+            cluster_entry_map,
+            cluster_operate_records_map,
+            cloud_info,
+            biz_info,
+            cluster_stats_map,
+            **kwargs,
         )
         cluster_info.update(cluster_extra_info)
         return cluster_info
