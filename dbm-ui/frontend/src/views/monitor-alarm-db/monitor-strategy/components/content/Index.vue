@@ -21,7 +21,7 @@
         :placeholder="t('请选择条件搜索')"
         unique-select
         value-split-code="+"
-        @search="fetchHostNodes" />
+        @search="fetchData" />
       <DbTable
         ref="tableRef"
         class="table-box"
@@ -110,7 +110,7 @@
   const showTipMap = ref<Record<string, boolean>>({});
   const defaultNotifyId = ref(0);
 
-  async function fetchHostNodes() {
+  async function fetchData() {
     isTableLoading.value = true;
     try {
       await tableRef.value.fetchData({ ...reqParams.value }, {
@@ -277,6 +277,15 @@
       minWidth: 60,
       render: ({ data }: {data: MonitorPolicyModel}) => {
         const isInner = data.bk_biz_id === 0;
+        if (isInner) {
+          return (
+            <bk-switcher
+              size="small"
+              disabled={true}
+              model-value={data.is_enabled}
+              theme="primary"/>
+          )
+        }
         return (
           <bk-pop-confirm
             title={t('确认停用该策略？')}
@@ -338,8 +347,8 @@
           )}
           <auth-button
             action-id="monitor_policy_clone"
-            resource={data.id}
             permission={data.permission.monitor_policy_clone}
+            resource={props.activeDbType}
             text
             theme="primary"
             onClick={() => handleOpenSlider(data, 'clone')}>
@@ -434,7 +443,7 @@
     onSuccess: (isEnabled) => {
       if (isEnabled) {
         messageSuccess(t('启用成功'));
-        fetchHostNodes();
+        fetchData();
       }
     },
   });
@@ -445,7 +454,7 @@
       if (!isEnabled) {
         // 停用成功
         messageSuccess(t('停用成功'));
-        fetchHostNodes();
+        fetchData();
       }
     },
   });
@@ -456,15 +465,15 @@
       if (isDeleted === null) {
         // 停用成功
         messageSuccess(t('删除成功'));
-        fetchHostNodes();
+        fetchData();
       }
     },
   });
 
   watch(reqParams, () => {
     setTimeout(() => {
-      fetchHostNodes();
-    });
+      fetchData();
+    })
   }, {
     immediate: true,
     deep: true,
@@ -472,20 +481,18 @@
 
   watch(() => props.activeDbType, (type) => {
     if (type) {
-      setTimeout(() => {
-        fetchHostNodes();
-        fetchClusers({
-          dbtype: type,
-          bk_biz_id: currentBizId,
-        });
-        fetchAlarmGroupList({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          db_type: type,
-        });
-        fetchDbModuleList({
-          dbtype: type,
-          bk_biz_id: currentBizId,
-        });
+
+      fetchClusers({
+        dbtype: type,
+        bk_biz_id: currentBizId,
+      });
+      fetchAlarmGroupList({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        db_type: type,
+      });
+      fetchDbModuleList({
+        dbtype: type,
+        bk_biz_id: currentBizId,
       });
     }
   }, {
@@ -546,7 +553,7 @@
   };
 
   const handleUpdatePolicySuccess = () => {
-    fetchHostNodes();
+    fetchData();
   };
 </script>
 <style lang="less" scoped>

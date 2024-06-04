@@ -61,6 +61,7 @@ const withBizActionList = [
   'access_entry_edit',
   'admin_pwd_view',
   'riak_cluster_apply',
+  'monitor_policy_clone',
 ];
 
 export default function (props: Props) {

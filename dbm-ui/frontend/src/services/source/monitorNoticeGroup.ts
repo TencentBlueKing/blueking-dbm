@@ -47,10 +47,10 @@ export function getAlarmGroupList(
  * 新建告警组
  */
 export function insertAlarmGroup(params: {
-  bk_biz_id: number
-  name: string,
-  receivers: NoticGroupModel['receivers'][],
-  details: NoticGroupModel['details']
+  bk_biz_id: number;
+  name: string;
+  receivers: NoticGroupModel['receivers'][];
+  details: NoticGroupModel['details'];
 }) {
   return http.post(`${path}/`, params);
 }
@@ -59,10 +59,10 @@ export function insertAlarmGroup(params: {
  * 编辑告警组
  */
 export function updateAlarmGroup(params: {
-  name: string,
-  receivers: NoticGroupModel['receivers'][],
-  details: NoticGroupModel['details']
-  id: number
+  name: string;
+  receivers: NoticGroupModel['receivers'][];
+  details: NoticGroupModel['details'];
+  id: number;
 }) {
   return http.put(`${path}/${params.id}/`, params);
 }

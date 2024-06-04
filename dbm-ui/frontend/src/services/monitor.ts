@@ -136,7 +136,14 @@ export const queryMonitorPolicyList = (
 ) =>
   http.get<ListBase<MonitorPolicyModel[]>>('/apis/monitor/policy/', params, payload).then((data) => ({
     ...data,
-    results: data.results.map((item) => new MonitorPolicyModel(item)),
+    results: data.results.map(
+      (item) =>
+        new MonitorPolicyModel(
+          Object.assign(item, {
+            permission: Object.assign(item.permission, data.permission),
+          }),
+        ),
+    ),
   }));
 
 // 更新策略
@@ -178,10 +185,13 @@ export const getClusterList = (params: { dbtype: string; bk_biz_id: number }) =>
   http.get<string[]>('/apis/monitor/policy/cluster_list/', params);
 
 // 根据db类型查询模块列表
-export const getDbModuleList = (params: { dbtype: string, bk_biz_id: number }) => http.get<{
-  db_module_id: number,
-  db_module_name: string,
-}[]>('/apis/monitor/policy/db_module_list/', params);
+export const getDbModuleList = (params: { dbtype: string; bk_biz_id: number }) =>
+  http.get<
+    {
+      db_module_id: number;
+      db_module_name: string;
+    }[]
+  >('/apis/monitor/policy/db_module_list/', params);
 
 /**
  * 获取告警组列表
