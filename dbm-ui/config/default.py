@@ -164,6 +164,8 @@ AUTHENTICATION_BACKENDS = [
     'apigw_manager.apigw.authentication.UserModelBackend',
 ]
 
+RIO_TOKEN = env.RIO_TOKEN
+
 ROOT_URLCONF = "backend.urls"
 
 TEMPLATES = [

@@ -24,6 +24,7 @@ DEFAULT_USERNAME = get_type_env(key="DEFAULT_USERNAME", default="admin", _type=s
 CORS_ALLOWED_ORIGINS = get_type_env(key="CORS_ALLOWED_ORIGINS", default=[], _type=list)
 
 RUN_VER = get_type_env(key="RUN_VER", default="open", _type=str)
+RIO_TOKEN = get_type_env(key="RIO_TOKEN", default="", _type=str)
 
 # Redis 配置
 REDIS_HOST = get_type_env(key="REDIS_HOST", _type=str, default="localhost")
