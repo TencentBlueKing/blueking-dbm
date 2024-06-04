@@ -62,6 +62,7 @@ declare module '@blueking/login-modal' {
 declare module '@blueking/sub-saas' {
   export function connectToMain(router: Router): any;
   export const rootPath: string;
+  export const subEnv: boolean;
 }
 
 interface URLSearchParams {

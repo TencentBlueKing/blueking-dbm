@@ -107,6 +107,7 @@
       title: t('确认退出登录'),
       onConfirm: () =>
         getLogout().then(() => {
+          window.changeConfirm = false;
           window.location.reload();
           return true;
         }),
