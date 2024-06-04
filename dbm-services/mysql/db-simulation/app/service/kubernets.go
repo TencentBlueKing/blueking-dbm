@@ -307,7 +307,7 @@ func (k *DbPodSets) gettdbctlResourceLimit() v1.ResourceRequirements {
 	return v1.ResourceRequirements{}
 }
 
-// CreateMySQLPod TODO
+// CreateMySQLPod create mysql pod
 func (k *DbPodSets) CreateMySQLPod() (err error) {
 	c := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -332,7 +332,7 @@ func (k *DbPodSets) CreateMySQLPod() (err error) {
 				},
 				ImagePullPolicy: v1.PullIfNotPresent,
 				Image:           k.DbImage,
-				Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--log-bin-trust-function-creators",
+				Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--log-bin-trust-function-creators", "--skip-log-bin",
 					fmt.Sprintf("--character-set-server=%s",
 						k.BaseInfo.Charset),
 					"--user=mysql"},

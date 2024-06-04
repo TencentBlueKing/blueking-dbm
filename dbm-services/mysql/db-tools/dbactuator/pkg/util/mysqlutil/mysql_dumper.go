@@ -48,6 +48,7 @@ type MySQLDumpOption struct {
 	DumpTrigger   bool // 默认 false 代表添加不导出触发器
 	DumpEvent     bool // 默认 false 导出 event
 	GtidPurgedOff bool // --set-gtid-purged=OFF
+	Quick         bool
 }
 
 type runtimectx struct {
@@ -250,6 +251,9 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 	if m.GtidPurgedOff {
 		dumpOption += " --set-gtid-purged=OFF"
 	}
+	if m.Quick {
+		dumpOption += " --quick "
+	}
 	dumpCmd = fmt.Sprintf(
 		`%s 
 		-h%s 
@@ -301,6 +305,7 @@ func (m *MySQLDumper) getTMySQLDumpOption() (dumpOption string) {
 		`
 	--ignore-show-create-table-error
 	--skip-foreign-key-check
+	--flush-wait-timeout=0
 	--max-concurrency=%d 
 	--max-resource-use-percent=%d
 	`, m.maxConcurrency, m.maxResourceUsePercent,
