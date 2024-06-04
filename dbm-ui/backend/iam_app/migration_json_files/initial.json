@@ -2044,7 +2044,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_view",
-                "name": "TendbCluster 集群查看",
+                "name": "TenDB Cluster 集群查看",
                 "name_en": "tendbcluster_view",
                 "type": "view",
                 "related_resource_types": [
@@ -2064,9 +2064,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群管理",
-                "description": "TendbCluster 集群查看",
+                "description": "TenDB Cluster 集群查看",
                 "description_en": "tendbcluster_view"
             }
         },
@@ -2074,7 +2074,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_admin_pwd_modify",
-                "name": "TendbCluster 临时密码修改",
+                "name": "TenDB Cluster 临时密码修改",
                 "name_en": "tendbcluster_admin_pwd_modify",
                 "type": "execute",
                 "related_resource_types": [
@@ -2094,9 +2094,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群管理",
-                "description": "TendbCluster 临时密码修改",
+                "description": "TenDB Cluster 临时密码修改",
                 "description_en": "tendbcluster_admin_pwd_modify"
             }
         },
@@ -2104,7 +2104,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_account_create",
-                "name": "TendbCluster 账号创建",
+                "name": "TenDB Cluster 账号创建",
                 "name_en": "tendbcluster_account_create",
                 "type": "create",
                 "related_resource_types": [
@@ -2124,9 +2124,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "权限管理",
-                "description": "TendbCluster 账号创建",
+                "description": "TenDB Cluster 账号创建",
                 "description_en": "tendbcluster_account_create"
             }
         },
@@ -2134,7 +2134,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_account_delete",
-                "name": "TendbCluster 账号删除",
+                "name": "TenDB Cluster 账号删除",
                 "name_en": "tendbcluster_account_delete",
                 "type": "delete",
                 "related_resource_types": [
@@ -2154,9 +2154,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "权限管理",
-                "description": "TendbCluster 账号删除",
+                "description": "TenDB Cluster 账号删除",
                 "description_en": "tendbcluster_account_delete"
             }
         },
@@ -2164,7 +2164,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_add_account_rule",
-                "name": "TendbCluster 账号规则创建",
+                "name": "TenDB Cluster 账号规则创建",
                 "name_en": "tendbcluster_add_account_rule",
                 "type": "create",
                 "related_resource_types": [
@@ -2184,9 +2184,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "权限管理",
-                "description": "TendbCluster 账号规则创建",
+                "description": "TenDB Cluster 账号规则创建",
                 "description_en": "tendbcluster_add_account_rule"
             }
         },
@@ -2194,7 +2194,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_account_rules_view",
-                "name": "TendbCluster 账号规则查看",
+                "name": "TenDB Cluster 账号规则查看",
                 "name_en": "tendbcluster_account_rules_view",
                 "type": "view",
                 "related_resource_types": [
@@ -2214,9 +2214,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "权限管理",
-                "description": "TendbCluster 账号规则查看",
+                "description": "TenDB Cluster 账号规则查看",
                 "description_en": "tendbcluster_account_rules_view"
             }
         },
@@ -2224,7 +2224,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_authorize_rules",
-                "name": "TendbCluster 授权",
+                "name": "TenDB Cluster 授权",
                 "name_en": "tendbcluster_authorize_rules",
                 "type": "execute",
                 "related_resource_types": [
@@ -2255,9 +2255,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "权限管理",
-                "description": "TendbCluster 授权",
+                "description": "TenDB Cluster 授权",
                 "description_en": "tendbcluster_authorize_rules"
             }
         },
@@ -2265,7 +2265,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendb_excel_authorize_rules",
-                "name": "TendbCluster Excel授权",
+                "name": "TenDB Cluster Excel授权",
                 "name_en": "tendb_excel_authorize_rules",
                 "type": "execute",
                 "related_resource_types": [
@@ -2283,9 +2283,9 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "权限管理",
-                "description": "TendbCluster Excel授权",
+                "description": "TenDB Cluster Excel授权",
                 "description_en": "tendb_excel_authorize_rules"
             }
         },
@@ -2293,7 +2293,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendb_cluster_client_clone_rules",
-                "name": "TendbCluster 客户端克隆权限",
+                "name": "TenDB Cluster 客户端克隆权限",
                 "name_en": "tendb_cluster_client_clone_rules",
                 "type": "execute",
                 "related_resource_types": [
@@ -2311,9 +2311,9 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "权限管理",
-                "description": "TendbCluster 客户端克隆权限",
+                "description": "TenDB Cluster 客户端克隆权限",
                 "description_en": "tendb_cluster_client_clone_rules"
             }
         },
@@ -2321,7 +2321,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendb_instance_clone_rules",
-                "name": "TendbCluster DB实例权限克隆",
+                "name": "TenDB Cluster DB实例权限克隆",
                 "name_en": "tendb_instance_clone_rules",
                 "type": "execute",
                 "related_resource_types": [
@@ -2341,9 +2341,9 @@
                     "tendbcluster_view"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "权限克隆",
-                "description": "TendbCluster DB实例权限克隆",
+                "description": "TenDB Cluster DB实例权限克隆",
                 "description_en": "tendb_instance_clone_rules"
             }
         },
@@ -2351,7 +2351,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_open_area",
-                "name": "TendbCluster 开区执行",
+                "name": "TenDB Cluster 开区执行",
                 "name_en": "tendbcluster_open_area",
                 "type": "execute",
                 "related_resource_types": [
@@ -2382,9 +2382,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "克隆开区",
-                "description": "TendbCluster 开区执行",
+                "description": "TenDB Cluster 开区执行",
                 "description_en": "tendbcluster_open_area"
             }
         },
@@ -2392,7 +2392,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendb_openarea_config_create",
-                "name": "TendbCluster 开区模板创建",
+                "name": "TenDB Cluster 开区模板创建",
                 "name_en": "tendbcluster_openarea_config_create",
                 "type": "create",
                 "related_resource_types": [
@@ -2412,9 +2412,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "克隆开区",
-                "description": "TendbCluster 开区模板创建",
+                "description": "TenDB Cluster 开区模板创建",
                 "description_en": "tendbcluster_openarea_config_create"
             }
         },
@@ -2422,7 +2422,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendb_openarea_config_update",
-                "name": "TendbCluster 开区模板编辑",
+                "name": "TenDB Cluster 开区模板编辑",
                 "name_en": "tendbcluster_openarea_config_edit",
                 "type": "edit",
                 "related_resource_types": [
@@ -2440,9 +2440,9 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "克隆开区",
-                "description": "TendbCluster 开区模板编辑",
+                "description": "TenDB Cluster 开区模板编辑",
                 "description_en": "tendbcluster_openarea_config_edit"
             }
         },
@@ -2450,7 +2450,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendb_openarea_config_destroy",
-                "name": "TendbCluster 开区模板删除",
+                "name": "TenDB Cluster 开区模板删除",
                 "name_en": "tendbcluster_openarea_config_delete",
                 "type": "delete",
                 "related_resource_types": [
@@ -2468,9 +2468,9 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "克隆开区",
-                "description": "TendbCluster 开区模板删除",
+                "description": "TenDB Cluster 开区模板删除",
                 "description_en": "tendbcluster_openarea_config_delete"
             }
         },
@@ -2478,7 +2478,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_partition_create",
-                "name": "TendbCLuster 分区管理创建",
+                "name": "TenDB Cluster 分区管理创建",
                 "name_en": "tendbcluster_partition_create",
                 "type": "create",
                 "related_resource_types": [
@@ -2498,9 +2498,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "分区管理",
-                "description": "TendbCLuster 分区管理创建",
+                "description": "TenDB Cluster 分区管理创建",
                 "description_en": "tendbcluster_partition_create"
             }
         },
@@ -2508,7 +2508,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_partition_update",
-                "name": "TendbCluster 分区管理更新",
+                "name": "TenDB Cluster 分区管理更新",
                 "name_en": "tendbcluster_partition_update",
                 "type": "manage",
                 "related_resource_types": [
@@ -2528,9 +2528,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "分区管理",
-                "description": "TendbCluster 分区管理更新",
+                "description": "TenDB Cluster 分区管理更新",
                 "description_en": "tendbcluster_partition_update"
             }
         },
@@ -2538,7 +2538,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_partition_delete",
-                "name": "TendbCluster 分区管理删除",
+                "name": "TenDB Cluster 分区管理删除",
                 "name_en": "tendbcluster_partition_delete",
                 "type": "delete",
                 "related_resource_types": [
@@ -2558,9 +2558,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "分区管理",
-                "description": "TendbCluster 分区管理删除",
+                "description": "TenDB Cluster 分区管理删除",
                 "description_en": "tendbcluster_partition_delete"
             }
         },
@@ -2568,7 +2568,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendb_partition_enable_disable",
-                "name": "TendbCluster 分区管理禁用启用",
+                "name": "TenDB Cluster 分区管理禁用启用",
                 "name_en": "tendb_partition_enable_disable",
                 "type": "manage",
                 "related_resource_types": [
@@ -2588,9 +2588,9 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "分区管理",
-                "description": "TendbCluster 分区管理禁用启用",
+                "description": "TenDB Cluster 分区管理禁用启用",
                 "description_en": "tendb_partition_enable_disable"
             }
         },
@@ -2619,7 +2619,7 @@
                     "dbconfig_view"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群管理",
                 "description": "TenDB Cluster 集群部署",
                 "description_en": "TENDBCLUSTER_APPLY"
@@ -2629,7 +2629,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_enable_disable",
-                "name": "TendbCluster 集群禁用启用",
+                "name": "TenDB Cluster 集群禁用启用",
                 "name_en": "tendbcluster_enable_disable",
                 "type": "execute",
                 "related_resource_types": [
@@ -2649,9 +2649,9 @@
                     "tendbcluster_view"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群管理",
-                "description": "TendbCluster 集群禁用启用",
+                "description": "TenDB Cluster 集群禁用启用",
                 "description_en": "tendbcluster_enable_disable"
             }
         },
@@ -2659,7 +2659,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendb_spider_slave_destroy",
-                "name": "TendbCluster 下架只读接入层",
+                "name": "TenDB Cluster 下架只读接入层",
                 "name_en": "tendb_spider_slave_destroy",
                 "type": "execute",
                 "related_resource_types": [
@@ -2679,9 +2679,9 @@
                     "tendbcluster_view"
                 ],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "访问入口",
-                "description": "TendbCluster 下架只读接入层",
+                "description": "TenDB Cluster 下架只读接入层",
                 "description_en": "tendb_spider_slave_destroy"
             }
         },
@@ -4585,49 +4585,30 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "monitor_policy_alarm_view",
-                "name": "监控告警查看",
-                "name_en": "monitor_policy_alarm_view",
-                "type": "view",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "monitor_policy",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "monitor_policy_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [
-                    "db_manage"
-                ],
-                "version": 1,
-                "group": "业务配置",
-                "subgroup": "监控策略",
-                "description": "监控告警查看",
-                "description_en": "monitor_policy_alarm_view"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
                 "id": "monitor_policy_clone",
                 "name": "监控策略克隆",
                 "name_en": "monitor_policy_clone",
                 "type": "create",
                 "related_resource_types": [
                     {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    },
+                    {
                         "system_id": "bk_dbm",
-                        "id": "monitor_policy",
-                        "selection_mode": "all",
+                        "id": "dbtype",
+                        "selection_mode": "instance",
                         "related_instance_selections": [
                             {
                                 "system_id": "bk_dbm",
-                                "id": "monitor_policy_list"
+                                "id": "dbtype_list"
                             }
                         ]
                     }
@@ -4640,36 +4621,6 @@
                 "subgroup": "监控策略",
                 "description": "监控策略克隆",
                 "description_en": "monitor_policy_clone"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "global_monitor_policy_clone",
-                "name": "全局监控策略克隆",
-                "name_en": "global_monitor_policy_clone",
-                "type": "create",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "monitor_policy",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "global_monitor_policy_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [
-                    "global_manage"
-                ],
-                "version": 1,
-                "group": "全局设置",
-                "subgroup": "监控策略",
-                "description": "全局监控策略克隆",
-                "description_en": "global_monitor_policy_clone"
             }
         },
         {
@@ -5818,7 +5769,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "数据处理",
                 "description": "TenDB Cluster 数据校验修复",
                 "description_en": "TENDBCLUSTER_CHECKSUM"
@@ -5846,7 +5797,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "分区管理",
                 "description": "TenDB Cluster 分区管理",
                 "description_en": "TENDBCLUSTER_PARTITION"
@@ -5874,7 +5825,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "备份",
                 "description": "TenDB Cluster 库表备份",
                 "description_en": "TENDBCLUSTER_DB_TABLE_BACKUP"
@@ -5902,7 +5853,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "SQL 任务",
                 "description": "TenDB Cluster 数据库重命名",
                 "description_en": "TENDBCLUSTER_RENAME_DATABASE"
@@ -5930,7 +5881,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "数据处理",
                 "description": "TenDB Cluster 清档",
                 "description_en": "TENDBCLUSTER_TRUNCATE_DATABASE"
@@ -5958,7 +5909,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群维护",
                 "description": "TenDB Cluster 主库故障切换",
                 "description_en": "TENDBCLUSTER_MASTER_FAIL_OVER"
@@ -5986,7 +5937,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群维护",
                 "description": "TenDB Cluster 主从互切",
                 "description_en": "TENDBCLUSTER_MASTER_SLAVE_SWITCH"
@@ -6014,7 +5965,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "SQL 任务",
                 "description": "TenDB Cluster 变更SQL执行",
                 "description_en": "TENDBCLUSTER_IMPORT_SQLFILE"
@@ -6042,7 +5993,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群维护",
                 "description": "TenDB Cluster 扩容接入层",
                 "description_en": "TENDBCLUSTER_SPIDER_ADD_NODES"
@@ -6070,7 +6021,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群维护",
                 "description": "TenDB Cluster 缩容接入层",
                 "description_en": "TENDBCLUSTER_SPIDER_REDUCE_NODES"
@@ -6098,7 +6049,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "运维 Spider 管理",
                 "description": "TenDB Cluster 添加运维节点",
                 "description_en": "TENDBCLUSTER_SPIDER_MNT_APPLY"
@@ -6126,7 +6077,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "运维 Spider 管理",
                 "description": "TenDB Cluster 下架运维节点",
                 "description_en": "TENDBCLUSTER_SPIDER_MNT_DESTROY"
@@ -6154,7 +6105,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "访问入口",
                 "description": "TenDB Cluster 部署只读接入层",
                 "description_en": "TENDBCLUSTER_SPIDER_SLAVE_APPLY"
@@ -6182,7 +6133,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群维护",
                 "description": "TenDB Cluster Slave重建",
                 "description_en": "TENDBCLUSTER_RESTORE_SLAVE"
@@ -6210,7 +6161,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群维护",
                 "description": "TenDB Cluster Slave原地重建",
                 "description_en": "TENDBCLUSTER_RESTORE_LOCAL_SLAVE"
@@ -6238,7 +6189,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群维护",
                 "description": "TenDB Cluster 主从迁移",
                 "description_en": "TENDBCLUSTER_MIGRATE_CLUSTER"
@@ -6266,7 +6217,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群管理",
                 "description": "TenDB Cluster 集群销毁",
                 "description_en": "TENDBCLUSTER_DESTROY"
@@ -6294,7 +6245,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群管理",
                 "description": "TenDB Cluster 临时集群销毁",
                 "description_en": "TENDBCLUSTER_TEMPORARY_DESTROY"
@@ -6322,7 +6273,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "集群维护",
                 "description": "TenDB Cluster 集群容量变更",
                 "description_en": "TENDBCLUSTER_NODE_REBALANCE"
@@ -6350,7 +6301,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "备份",
                 "description": "TenDB Cluster 全库备份",
                 "description_en": "TENDBCLUSTER_FULL_BACKUP"
@@ -6378,7 +6329,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "回档",
                 "description": "TenDB Cluster 定点构造",
                 "description_en": "TENDBCLUSTER_ROLLBACK_CLUSTER"
@@ -6406,7 +6357,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "回档",
                 "description": "TenDB Cluster 闪回",
                 "description_en": "TENDBCLUSTER_FLASHBACK"
@@ -6434,7 +6385,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "group": "TendbCluster",
+                "group": "TenDBCluster",
                 "subgroup": "数据处理",
                 "description": "TenDB Cluster 数据迁移",
                 "description_en": "TENDBCLUSTER_DATA_MIGRATE"
@@ -8912,9 +8863,6 @@
                                 },
                                 {
                                     "id": "global_monitor_policy_start_stop"
-                                },
-                                {
-                                    "id": "global_monitor_policy_clone"
                                 }
                             ]
                         },
@@ -9057,9 +9005,6 @@
                                 },
                                 {
                                     "id": "monitor_policy_start_stop"
-                                },
-                                {
-                                    "id": "monitor_policy_alarm_view"
                                 },
                                 {
                                     "id": "monitor_policy_clone"
@@ -9286,8 +9231,8 @@
                     ]
                 },
                 {
-                    "name": "TendbCluster",
-                    "name_en": "TendbCluster",
+                    "name": "TenDBCluster",
+                    "name_en": "TenDBCluster",
                     "actions": [],
                     "sub_groups": [
                         {
@@ -10116,6 +10061,764 @@
                                     "id": "es_destroy"
                                 }
                             ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "operation": "upsert_common_actions",
+            "data": [
+                {
+                    "name": "业务只读",
+                    "name_en": "biz_read_only",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        }
+                    ]
+                },
+                {
+                    "name": "业务运维",
+                    "name_en": "biz_maintain",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        },
+                        {
+                            "id": "ticket_view"
+                        },
+                        {
+                            "id": "flow_detail"
+                        },
+                        {
+                            "id": "dbconfig_view"
+                        },
+                        {
+                            "id": "dbconfig_edit"
+                        },
+                        {
+                            "id": "mysql_apply"
+                        },
+                        {
+                            "id": "mysql_view"
+                        },
+                        {
+                            "id": "mysql_enable_disable"
+                        },
+                        {
+                            "id": "mysql_client_clone_rules"
+                        },
+                        {
+                            "id": "mysql_destroy"
+                        },
+                        {
+                            "id": "mysql_account_create"
+                        },
+                        {
+                            "id": "mysql_account_delete"
+                        },
+                        {
+                            "id": "mysql_add_account_rule"
+                        },
+                        {
+                            "id": "mysql_account_rules_view"
+                        },
+                        {
+                            "id": "mysql_authorize_rules"
+                        },
+                        {
+                            "id": "mysql_excel_authorize_rules"
+                        },
+                        {
+                            "id": "mysql_excel_authorize_rules"
+                        },
+                        {
+                            "id": "mysql_partition_create"
+                        },
+                        {
+                            "id": "mysql_partition_update"
+                        },
+                        {
+                            "id": "mysql_partition_delete"
+                        },
+                        {
+                            "id": "mysql_partition_enable_disable"
+                        },
+                        {
+                            "id": "mysql_open_area"
+                        },
+                        {
+                            "id": "mysql_openarea_config_create"
+                        },
+                        {
+                            "id": "mysql_openarea_config_update"
+                        },
+                        {
+                            "id": "mysql_openarea_config_destroy"
+                        },
+                        {
+                            "id": "dumper_config_view"
+                        },
+                        {
+                            "id": "dumper_config_update"
+                        },
+                        {
+                            "id": "dumper_config_destroy"
+                        },
+                        {
+                            "id": "tbinlogdumper_install"
+                        },
+                        {
+                            "id": "tbinlogdumper_enable_disable"
+                        },
+                        {
+                            "id": "tbinlogdumper_switch_nodes"
+                        },
+                        {
+                            "id": "tbinlogdumper_reduce_nodes"
+                        },
+                        {
+                            "id": "tendbcluster_view"
+                        },
+                        {
+                            "id": "tendbcluster_account_create"
+                        },
+                        {
+                            "id": "tendbcluster_account_delete"
+                        },
+                        {
+                            "id": "tendbcluster_add_account_rule"
+                        },
+                        {
+                            "id": "tendbcluster_account_rules_view"
+                        },
+                        {
+                            "id": "tendbcluster_authorize_rules"
+                        },
+                        {
+                            "id": "tendb_excel_authorize_rules"
+                        },
+                        {
+                            "id": "tendb_cluster_client_clone_rules"
+                        },
+                        {
+                            "id": "tendb_instance_clone_rules"
+                        },
+                        {
+                            "id": "tendbcluster_open_area"
+                        },
+                        {
+                            "id": "tendb_openarea_config_create"
+                        },
+                        {
+                            "id": "tendb_openarea_config_update"
+                        },
+                        {
+                            "id": "tendb_openarea_config_destroy"
+                        },
+                        {
+                            "id": "tendbcluster_partition_create"
+                        },
+                        {
+                            "id": "tendbcluster_partition_update"
+                        },
+                        {
+                            "id": "tendbcluster_partition_delete"
+                        },
+                        {
+                            "id": "tendb_partition_enable_disable"
+                        },
+                        {
+                            "id": "tendbcluster_apply"
+                        },
+                        {
+                            "id": "tendbcluster_apply"
+                        },
+                        {
+                            "id": "tendbcluster_enable_disable"
+                        },
+                        {
+                            "id": "tendb_spider_slave_destroy"
+                        },
+                        {
+                            "id": "redis_view"
+                        },
+                        {
+                            "id": "redis_access_entry_view"
+                        },
+                        {
+                            "id": "redis_cluster_apply"
+                        },
+                        {
+                            "id": "redis_cluster_apply"
+                        },
+                        {
+                            "id": "redis_open_close"
+                        },
+                        {
+                            "id": "es_apply"
+                        },
+                        {
+                            "id": "es_view"
+                        },
+                        {
+                            "id": "es_access_entry_view"
+                        },
+                        {
+                            "id": "es_enable_disable"
+                        },
+                        {
+                            "id": "doris_apply"
+                        },
+                        {
+                            "id": "doris_apply"
+                        },
+                        {
+                            "id": "doris_view"
+                        },
+                        {
+                            "id": "doris_access_entry_view"
+                        },
+                        {
+                            "id": "doris_enable_disable"
+                        },
+                        {
+                            "id": "kafka_view"
+                        },
+                        {
+                            "id": "kafka_access_entry_view"
+                        },
+                        {
+                            "id": "kafka_apply"
+                        },
+                        {
+                            "id": "kafka_apply"
+                        },
+                        {
+                            "id": "kafka_enable_disable"
+                        },
+                        {
+                            "id": "hdfs_apply"
+                        },
+                        {
+                            "id": "hdfs_apply"
+                        },
+                        {
+                            "id": "hdfs_view"
+                        },
+                        {
+                            "id": "hdfs_access_entry_view"
+                        },
+                        {
+                            "id": "hdfs_enable_disable"
+                        },
+                        {
+                            "id": "pulsar_apply"
+                        },
+                        {
+                            "id": "pulsar_apply"
+                        },
+                        {
+                            "id": "pulsar_view"
+                        },
+                        {
+                            "id": "pulsar_access_entry_view"
+                        },
+                        {
+                            "id": "pulsar_enable_disable"
+                        },
+                        {
+                            "id": "riak_cluster_apply"
+                        },
+                        {
+                            "id": "riak_cluster_apply"
+                        },
+                        {
+                            "id": "riak_view"
+                        },
+                        {
+                            "id": "riak_access_entry_view"
+                        },
+                        {
+                            "id": "riak_enable_disable"
+                        },
+                        {
+                            "id": "mongodb_view"
+                        },
+                        {
+                            "id": "mongodb_apply"
+                        },
+                        {
+                            "id": "mongodb_enable_disable"
+                        },
+                        {
+                            "id": "mongodb_account_create"
+                        },
+                        {
+                            "id": "mongodb_account_delete"
+                        },
+                        {
+                            "id": "mongodb_add_account_rule"
+                        },
+                        {
+                            "id": "mongodb_account_rules_view"
+                        },
+                        {
+                            "id": "mongodb_authorize_rules"
+                        },
+                        {
+                            "id": "mongo_excel_authorize_rules"
+                        },
+                        {
+                            "id": "sqlserver_view"
+                        },
+                        {
+                            "id": "sqlserver_apply"
+                        },
+                        {
+                            "id": "sqlserver_account_create"
+                        },
+                        {
+                            "id": "sqlserver_account_delete"
+                        },
+                        {
+                            "id": "sqlserver_add_account_rule"
+                        },
+                        {
+                            "id": "sqlserver_account_rules_view"
+                        },
+                        {
+                            "id": "sqlserver_authorize_rules"
+                        },
+                        {
+                            "id": "sqlserver_excel_authorize_rules"
+                        },
+                        {
+                            "id": "sqlserver_enable_disable"
+                        },
+                        {
+                            "id": "health_report_view"
+                        },
+                        {
+                            "id": "dbha_switch_event_view"
+                        },
+                        {
+                            "id": "notify_group_list"
+                        },
+                        {
+                            "id": "notify_group_create"
+                        },
+                        {
+                            "id": "notify_group_update"
+                        },
+                        {
+                            "id": "notify_group_delete"
+                        },
+                        {
+                            "id": "monitor_policy_view"
+                        },
+                        {
+                            "id": "monitor_policy_edit"
+                        },
+                        {
+                            "id": "monitor_policy_delete"
+                        },
+                        {
+                            "id": "monitor_policy_start_stop"
+                        },
+                        {
+                            "id": "monitor_policy_clone"
+                        },
+                        {
+                            "id": "ip_whitelist_manage"
+                        },
+                        {
+                            "id": "mysql_add_slave"
+                        },
+                        {
+                            "id": "mysql_restore_slave"
+                        },
+                        {
+                            "id": "mysql_restore_local_slave"
+                        },
+                        {
+                            "id": "mysql_migrate_cluster"
+                        },
+                        {
+                            "id": "mysql_master_slave_switch"
+                        },
+                        {
+                            "id": "mysql_master_fail_over"
+                        },
+                        {
+                            "id": "mysql_import_sqlfile"
+                        },
+                        {
+                            "id": "mysql_proxy_add"
+                        },
+                        {
+                            "id": "mysql_proxy_switch"
+                        },
+                        {
+                            "id": "mysql_instance_clone_rules"
+                        },
+                        {
+                            "id": "mysql_ha_rename_database"
+                        },
+                        {
+                            "id": "mysql_ha_truncate_data"
+                        },
+                        {
+                            "id": "mysql_ha_db_table_backup"
+                        },
+                        {
+                            "id": "mysql_checksum"
+                        },
+                        {
+                            "id": "mysql_partition"
+                        },
+                        {
+                            "id": "mysql_flashback"
+                        },
+                        {
+                            "id": "mysql_rollback_cluster"
+                        },
+                        {
+                            "id": "mysql_ha_full_backup"
+                        },
+                        {
+                            "id": "mysql_single_truncate_data"
+                        },
+                        {
+                            "id": "mysql_single_rename_database"
+                        },
+                        {
+                            "id": "mysql_data_migrate"
+                        },
+                        {
+                            "id": "tendbcluster_checksum"
+                        },
+                        {
+                            "id": "tendbcluster_partition"
+                        },
+                        {
+                            "id": "tendbcluster_db_table_backup"
+                        },
+                        {
+                            "id": "tendbcluster_rename_database"
+                        },
+                        {
+                            "id": "tendbcluster_truncate_database"
+                        },
+                        {
+                            "id": "tendbcluster_master_fail_over"
+                        },
+                        {
+                            "id": "tendbcluster_master_slave_switch"
+                        },
+                        {
+                            "id": "tendbcluster_import_sqlfile"
+                        },
+                        {
+                            "id": "tendbcluster_spider_add_nodes"
+                        },
+                        {
+                            "id": "tendbcluster_spider_reduce_nodes"
+                        },
+                        {
+                            "id": "tendbcluster_spider_mnt_apply"
+                        },
+                        {
+                            "id": "tendbcluster_spider_mnt_destroy"
+                        },
+                        {
+                            "id": "tendbcluster_spider_slave_apply"
+                        },
+                        {
+                            "id": "tendbcluster_restore_slave"
+                        },
+                        {
+                            "id": "tendbcluster_restore_local_slave"
+                        },
+                        {
+                            "id": "tendbcluster_migrate_cluster"
+                        },
+                        {
+                            "id": "tendbcluster_destroy"
+                        },
+                        {
+                            "id": "tendbcluster_temporary_destroy"
+                        },
+                        {
+                            "id": "tendbcluster_node_rebalance"
+                        },
+                        {
+                            "id": "tendbcluster_full_backup"
+                        },
+                        {
+                            "id": "tendbcluster_rollback_cluster"
+                        },
+                        {
+                            "id": "tendbcluster_flashback"
+                        },
+                        {
+                            "id": "tendbcluster_data_migrate"
+                        },
+                        {
+                            "id": "sqlserver_import_sqlfile"
+                        },
+                        {
+                            "id": "sqlserver_backup_dbs"
+                        },
+                        {
+                            "id": "sqlserver_clear_dbs"
+                        },
+                        {
+                            "id": "sqlserver_destroy"
+                        },
+                        {
+                            "id": "sqlserver_dbrename"
+                        },
+                        {
+                            "id": "sqlserver_master_slave_switch"
+                        },
+                        {
+                            "id": "sqlserver_master_fail_over"
+                        },
+                        {
+                            "id": "sqlserver_restore_local_slave"
+                        },
+                        {
+                            "id": "sqlserver_restore_slave"
+                        },
+                        {
+                            "id": "sqlserver_add_slave"
+                        },
+                        {
+                            "id": "sqlserver_reset"
+                        },
+                        {
+                            "id": "sqlserver_data_migrate"
+                        },
+                        {
+                            "id": "sqlserver_rollback"
+                        },
+                        {
+                            "id": "redis_plugin_create_clb"
+                        },
+                        {
+                            "id": "redis_plugin_delete_clb"
+                        },
+                        {
+                            "id": "redis_plugin_dns_bind_clb"
+                        },
+                        {
+                            "id": "redis_plugin_dns_unbind_clb"
+                        },
+                        {
+                            "id": "redis_plugin_create_polaris"
+                        },
+                        {
+                            "id": "redis_plugin_delete_polaris"
+                        },
+                        {
+                            "id": "redis_keys_extract"
+                        },
+                        {
+                            "id": "redis_keys_delete"
+                        },
+                        {
+                            "id": "redis_backup"
+                        },
+                        {
+                            "id": "redis_destroy"
+                        },
+                        {
+                            "id": "redis_instance_destroy"
+                        },
+                        {
+                            "id": "redis_purge"
+                        },
+                        {
+                            "id": "redis_scale_updown"
+                        },
+                        {
+                            "id": "redis_cluster_cutoff"
+                        },
+                        {
+                            "id": "redis_cluster_autofix"
+                        },
+                        {
+                            "id": "redis_cluster_instance_shutdown"
+                        },
+                        {
+                            "id": "redis_master_slave_switch"
+                        },
+                        {
+                            "id": "redis_proxy_scale_up"
+                        },
+                        {
+                            "id": "redis_proxy_scale_down"
+                        },
+                        {
+                            "id": "redis_data_structure"
+                        },
+                        {
+                            "id": "redis_data_structure_task_delete"
+                        },
+                        {
+                            "id": "redis_cluster_shard_num_update"
+                        },
+                        {
+                            "id": "redis_cluster_type_update"
+                        },
+                        {
+                            "id": "redis_cluster_data_copy"
+                        },
+                        {
+                            "id": "redis_cluster_rollback_data_copy"
+                        },
+                        {
+                            "id": "redis_datacopy_check_repair"
+                        },
+                        {
+                            "id": "redis_cluster_add_slave"
+                        },
+                        {
+                            "id": "kafka_scale_up"
+                        },
+                        {
+                            "id": "kafka_shrink"
+                        },
+                        {
+                            "id": "kafka_reboot"
+                        },
+                        {
+                            "id": "kafka_replace"
+                        },
+                        {
+                            "id": "kafka_destroy"
+                        },
+                        {
+                            "id": "hdfs_scale_up"
+                        },
+                        {
+                            "id": "hdfs_shrink"
+                        },
+                        {
+                            "id": "hdfs_reboot"
+                        },
+                        {
+                            "id": "hdfs_replace"
+                        },
+                        {
+                            "id": "hdfs_destroy"
+                        },
+                        {
+                            "id": "es_scale_up"
+                        },
+                        {
+                            "id": "es_shrink"
+                        },
+                        {
+                            "id": "es_reboot"
+                        },
+                        {
+                            "id": "es_replace"
+                        },
+                        {
+                            "id": "es_destroy"
+                        },
+                        {
+                            "id": "pulsar_scale_up"
+                        },
+                        {
+                            "id": "pulsar_shrink"
+                        },
+                        {
+                            "id": "pulsar_reboot"
+                        },
+                        {
+                            "id": "pulsar_replace"
+                        },
+                        {
+                            "id": "pulsar_destroy"
+                        },
+                        {
+                            "id": "doris_scale_up"
+                        },
+                        {
+                            "id": "doris_shrink"
+                        },
+                        {
+                            "id": "doris_reboot"
+                        },
+                        {
+                            "id": "doris_replace"
+                        },
+                        {
+                            "id": "doris_destroy"
+                        },
+                        {
+                            "id": "riak_cluster_scale_out"
+                        },
+                        {
+                            "id": "riak_cluster_scale_in"
+                        },
+                        {
+                            "id": "riak_cluster_destroy"
+                        },
+                        {
+                            "id": "riak_cluster_reboot"
+                        },
+                        {
+                            "id": "riak_cluster_migrate"
+                        },
+                        {
+                            "id": "mongodb_exec_script_apply"
+                        },
+                        {
+                            "id": "mongodb_remove_ns"
+                        },
+                        {
+                            "id": "mongodb_full_backup"
+                        },
+                        {
+                            "id": "mongodb_backup"
+                        },
+                        {
+                            "id": "mongodb_add_mongos"
+                        },
+                        {
+                            "id": "mongodb_reduce_mongos"
+                        },
+                        {
+                            "id": "mongodb_add_shard_nodes"
+                        },
+                        {
+                            "id": "mongodb_reduce_shard_nodes"
+                        },
+                        {
+                            "id": "mongodb_scale_updown"
+                        },
+                        {
+                            "id": "mongodb_instance_reload"
+                        },
+                        {
+                            "id": "mongodb_destroy"
+                        },
+                        {
+                            "id": "mongodb_cutoff"
+                        },
+                        {
+                            "id": "mongodb_restore"
+                        },
+                        {
+                            "id": "mongodb_temporary_destroy"
+                        },
+                        {
+                            "id": "mongodb_install_dbmon"
                         }
                     ]
                 }
@@ -11022,18 +11725,6 @@
                             },
                             {
                                 "id": "global_monitor_policy_start_stop",
-                                "required": true
-                            },
-                            {
-                                "id": "monitor_policy_alarm_view",
-                                "required": true
-                            },
-                            {
-                                "id": "monitor_policy_clone",
-                                "required": true
-                            },
-                            {
-                                "id": "global_monitor_policy_clone",
                                 "required": true
                             }
                         ]

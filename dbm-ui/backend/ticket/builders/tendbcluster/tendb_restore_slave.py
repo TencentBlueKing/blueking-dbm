@@ -39,7 +39,7 @@ class TendbClusterRestoreSlaveDetailSerializer(MysqlRestoreSlaveDetailSerializer
     def validate(self, attrs):
         # 校验集群是否可用，集群类型为tendbcluster
         super(MysqlRestoreSlaveDetailSerializer, self).validate_cluster_can_access(attrs)
-        super(MysqlRestoreSlaveDetailSerializer, self).validate_cluster_type(attrs, ClusterType.TenDBCluster)
+        super(MysqlRestoreSlaveDetailSerializer, self).validated_cluster_type(attrs, ClusterType.TenDBCluster)
         # 校验新机器的云区域与集群一致
         if attrs["ip_source"] == IpSource.MANUAL_INPUT:
             super(MysqlRestoreSlaveDetailSerializer, self).validate_hosts_clusters_in_same_cloud_area(

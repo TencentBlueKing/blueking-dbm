@@ -59,7 +59,7 @@ class TestMonitorPolicyViewSet:
     @patch.object(MonitorPolicyViewSet, "get_permissions", lambda x: [])
     @patch("backend.iam_app.handlers.permission.Permission", PermissionMock)
     def test_list_policies(self, add_policy):
-        url = "/apis/monitor/policy/?bk_biz_id=0"
+        url = "/apis/monitor/policy/?bk_biz_id=0&db_type=mysql"
         response = client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["message"] == "OK"

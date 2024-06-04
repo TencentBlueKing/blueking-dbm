@@ -127,7 +127,7 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
     def validated_cluster_type(self, attrs, cluster_type: ClusterType):
         """校验集群类型为高可用"""
         cluster_ids = fetch_cluster_ids(attrs)
-        CommonValidate.validate_cluster_type(cluster_ids, cluster_type)
+        CommonValidate.validated_cluster_type(cluster_ids, cluster_type)
 
     def validate_instance_related_clusters(
         self, attrs, instance_key: List[str], cluster_key: List[str], role: Union[AccessLayer, InstanceInnerRole]

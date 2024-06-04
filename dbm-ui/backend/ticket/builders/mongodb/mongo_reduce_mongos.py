@@ -41,7 +41,7 @@ class MongoDBReduceMongosDetailSerializer(BaseMongoDBOperateDetailSerializer):
         }
 
         # 校验集群类型合法性
-        CommonValidate.validate_cluster_type(cluster_ids, ClusterType.MongoShardedCluster)
+        CommonValidate.validated_cluster_type(cluster_ids, ClusterType.MongoShardedCluster)
 
         for info in attrs["infos"]:
             cluster = id__cluster[info["cluster_id"]]

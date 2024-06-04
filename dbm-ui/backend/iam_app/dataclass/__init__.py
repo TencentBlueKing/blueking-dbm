@@ -17,6 +17,7 @@ from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from ...env import BK_IAM_SYSTEM_ID
+from ..constans import CommonActionLabel
 from .actions import _all_actions
 from .resources import ResourceEnum, _all_resources, _extra_instance_selections
 
@@ -42,6 +43,7 @@ def generate_iam_migration_json(json_name: str = ""):
     iam_resources: List[Dict] = []
     iam_instance_selection: List[Dict] = []
     action_group_content: Dict[str, Any] = defaultdict(lambda: defaultdict(list))
+    common_actions_content: Dict[str, List] = defaultdict(list)
     resource_creator_actions: Dict[str, List] = defaultdict(list)
 
     # 获取资源的json内容
@@ -80,6 +82,9 @@ def generate_iam_migration_json(json_name: str = ""):
             action_group_content[action.group][action.subgroup].append(action.id)
         elif action.group:
             action_group_content[action.group]["actions"].append(action.id)
+        # 顺便获取常用操作分类信息
+        for label in action.common_labels:
+            common_actions_content[label].append(action.id)
         # 顺便获取资源关联操作，用于创建自动授权。目前仅支持动作关联一种资源
         if len(action.related_resource_types) != 1:
             continue
@@ -106,6 +111,16 @@ def generate_iam_migration_json(json_name: str = ""):
         }
         iam_action_group.append(group_info)
 
+    # 获取常用动作的json内容
+    iam_common_actions = []
+    for label, common_actions in common_actions_content.items():
+        common_info = {
+            "name": CommonActionLabel.get_choice_label(label),
+            "name_en": label,
+            "actions": [{"id": id} for id in common_actions],
+        }
+        iam_common_actions.append(common_info)
+
     # 获取关联配置
     iam_resource_creator_actions = {
         "config": [
@@ -127,7 +142,9 @@ def generate_iam_migration_json(json_name: str = ""):
     # 导出 动作定义
     iam_json_content.extend([{"operation": "upsert_action", "data": data} for data in iam_actions])
     # 导出 动作管理组定义
-    iam_json_content.append({"operation": "upsert_action_groups", "data": [data for data in iam_action_group]})
+    iam_json_content.append({"operation": "upsert_action_groups", "data": iam_action_group})
+    # 导出 常用操作配置定义
+    iam_json_content.append({"operation": "upsert_common_actions", "data": iam_common_actions})
     # 导出 资源创建联动动作定义
     iam_json_content.append({"operation": "upsert_resource_creator_actions", "data": iam_resource_creator_actions})
 

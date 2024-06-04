@@ -40,7 +40,7 @@ class MongoDBAddMongosDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
     def validate(self, attrs):
         cluster_ids = [info["cluster_id"] for info in attrs["infos"]]
-        CommonValidate.validate_cluster_type(cluster_ids, ClusterType.MongoShardedCluster)
+        CommonValidate.validated_cluster_type(cluster_ids, ClusterType.MongoShardedCluster)
         return attrs
 
 

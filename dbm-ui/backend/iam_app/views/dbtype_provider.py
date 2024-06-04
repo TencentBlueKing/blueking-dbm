@@ -29,7 +29,7 @@ class DBTypeResourceProvider(ResourceProvider):
         return ListResult(results=[], count=0)
 
     def list_instance(self, filter, page, **options):
-        db_types = [{"id": db.value, "display_name": db.name} for db in DBType]
+        db_types = [{"id": db.value, "display_name": DBType.get_choice_label(db.value)} for db in DBType]
         return ListResult(results=db_types, count=len(db_types))
 
     def search_instance(self, filter, page, **options):
