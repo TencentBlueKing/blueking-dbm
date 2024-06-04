@@ -33,6 +33,7 @@ type RuntimeAccountParam struct {
 	ProxyAccountParam
 	TdbctlAccoutParam
 	TBinlogDumperAccoutParam
+	PartitionAccoutParam
 }
 
 // GetAllSysAccount TODO
