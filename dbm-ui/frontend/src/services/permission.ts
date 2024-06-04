@@ -78,10 +78,10 @@ export const modifyRandomCycle = (params: RamdomCycle) =>
 /**
  * 获取符合密码强度的字符串
  */
-export const getRandomPassword = () =>
+export const getRandomPassword = (params?: { security_type: 'password' | 'redis_password' }) =>
   http.get<{
     password: string;
-  }>('/apis/conf/password_policy/get_random_password/');
+  }>('/apis/conf/password_policy/get_random_password/', params);
 
 /**
  * 修改实例密码(admin)
