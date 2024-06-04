@@ -34,10 +34,11 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import 
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
+from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
-from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, ExecActuatorKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, ExecActuatorKwargs, RecycleDnsRecordKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
@@ -202,6 +203,18 @@ class MySQLRollbackDataFlow(object):
 
             # 设置暂停。接下来卸载数据库的流程
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
+            sub_pipeline.add_act(
+                act_name=_("删除回档机器域名{}").format(self.data["rollback_ip"]),
+                act_component_code=MySQLDnsManageComponent.code,
+                kwargs=asdict(
+                    RecycleDnsRecordKwargs(
+                        dns_op_exec_port=master.port,
+                        exec_ip=self.data["rollback_ip"],
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                    )
+                ),
+            )
 
             cluster = {
                 "cluster_id": cluster_class.id,
