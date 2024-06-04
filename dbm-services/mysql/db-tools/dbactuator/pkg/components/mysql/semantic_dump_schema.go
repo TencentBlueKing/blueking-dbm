@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"dbm-services/common/go-pubpkg/bkrepo"
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
@@ -67,10 +68,11 @@ type FileServer struct {
 
 // DumpSchemaRunTimeCtx TODO
 type DumpSchemaRunTimeCtx struct {
-	dbs      []string // 需要备份的表结构的数据库名称集合
-	charset  string   // 当前实例的字符集
-	dumpCmd  string
-	isSpider bool // 是否spider中控
+	dbs           []string // 需要备份的表结构的数据库名称集合
+	charset       string   // 当前实例的字符集
+	dumpCmd       string
+	useTmysqldump bool // 使用自研的mysqldump 并发导出
+	isSpider      bool // 是否spider中控
 }
 
 // Example godoc
@@ -118,7 +120,13 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 		return err
 	}
 	c.isSpider = strings.Contains(version, "tdbctl")
-	c.dumpCmd = path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
+	// 临时方案
+	if cmutil.FileExists("/home/mysql/dbbackup/mysqldump_x86_64") {
+		c.dumpCmd = "/home/mysql/dbbackup/mysqldump_x86_64"
+		c.useTmysqldump = true
+	} else {
+		c.dumpCmd = path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
+	}
 	// to export the table structure from the central control
 	// you need to use the mysqldump that comes with the central control
 	if c.isSpider {
@@ -161,17 +169,19 @@ func (c *SemanticDumpSchemaComp) Precheck() (err error) {
 }
 
 // DumpSchema 运行备份表结构
-//
-//	@receiver c
-//	@return err
+
+// DumpSchema TODO
+// @receiver c
+// @return err
 func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 	var dumper mysqlutil.Dumper
 	dumpOption := mysqlutil.MySQLDumpOption{
 		NoData:       true,
 		AddDropTable: true,
 		DumpRoutine:  true,
-		DumpTrigger:  true,
+		DumpTrigger:  false,
 		DumpEvent:    true,
+		Quick:        true,
 	}
 	if c.isSpider {
 		dumpOption.GtidPurgedOff = true
@@ -188,6 +198,7 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 			Charset:         c.charset,
 			MySQLDumpOption: dumpOption,
 		},
+		UseTMySQLDump:  c.useTmysqldump,
 		OutputfileName: c.Params.BackupFileName,
 	}
 	if err := dumper.Dump(); err != nil {

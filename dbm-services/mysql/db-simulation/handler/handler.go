@@ -144,7 +144,7 @@ func Dbsimulation(r *gin.Context) {
 			replaceUnderSource(param.TaskId)),
 		Lables: map[string]string{"task_id": replaceUnderSource(param.TaskId),
 			"request_id": requestId},
-		RootPwd: cmutil.RandStr(10),
+		RootPwd: param.TaskId,
 		Charset: param.MySQLCharSet,
 	}
 	service.TaskChan <- tsk
