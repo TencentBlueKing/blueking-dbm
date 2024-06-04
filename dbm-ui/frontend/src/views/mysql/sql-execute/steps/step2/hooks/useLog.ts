@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { semanticCheckResultLogs } from '@services/source/sqlImport';
 
 export type IFileLogItem = ServiceReturnType<typeof semanticCheckResultLogs>[number];
@@ -26,35 +26,22 @@ export default function (rootId: string, nodeId: string) {
       cluster_type: 'mysql',
       root_id: rootId,
       node_id: nodeId,
-    }).then((logData) => {
-      const wholeist: ILogItem[] = [];
-      const fileMap: Record<string, IFileLogItem> = {};
-      logData.forEach((logItem) => {
-        wholeist.push(...logItem.match_logs);
-        const filename = logItem.filename.replace(/[^_]+_/, '');
-        fileMap[filename] = logItem;
-      });
-
-      wholeLogList.value = wholeist;
-      fileLogMap.value = fileMap;
-
-      logTimer = setTimeout(() => {
-        fetchLog();
-      }, 5000);
     })
       .then((logData) => {
-        if (lastLogLength !== logData.length) {
-          wholeLogList.value = logData as ILogItem[];
-          fileLogMap.value = parseLog(logData);
-        }
-        lastLogLength = logData.length;
+        const wholeist: ILogItem[] = [];
+        const fileMap: Record<string, IFileLogItem> = {};
+        logData.forEach((logItem) => {
+          wholeist.push(...logItem.match_logs);
+          const filename = logItem.filename.replace(/[^_]+_/, '');
+          fileMap[filename] = logItem;
+        });
 
-        if (logTimer < 0) {
-          return;
-        }
+        wholeLogList.value = wholeist;
+        fileLogMap.value = fileMap;
+
         logTimer = setTimeout(() => {
           fetchLog();
-        }, 2000);
+        }, 5000);
       })
       .finally(() => {
         isLoading.value = false;
