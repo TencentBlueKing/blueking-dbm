@@ -110,11 +110,7 @@
 
   const { run: runUpdateClusterEntryConfig } = useRequest(updateClusterEntryConfig, {
     manual: true,
-    onSuccess: (result) => {
-      if (result.cluster_id) {
-        messageError(t('修改失败'));
-        return;
-      }
+    onSuccess: () => {
       messageSuccess(t('修改成功'));
       emits('success');
       handleClose();

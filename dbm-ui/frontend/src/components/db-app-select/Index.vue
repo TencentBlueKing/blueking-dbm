@@ -130,6 +130,9 @@
       * {
         color: #70737a !important;
       }
+      .db-app-select-name {
+        color: #c4c6cc;
+      }
     }
   }
   .db-app-select-item {
@@ -159,7 +162,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      color: #c4c6cc;
     }
     .db-app-select-desc {
       display: flex;

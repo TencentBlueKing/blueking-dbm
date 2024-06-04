@@ -37,14 +37,13 @@
       </DbForm>
       <template #action>
         <div class="setting-footer">
-          <AuthButton
-            :action-id="isPlatform ? 'global_dba_administrator_edit' : 'dba_administrator_edit'"
+          <BkButton
             class="mr-8 w-88"
             :loading="isSubmitting"
             theme="primary"
             @click="handleSubmit">
             {{ t('保存') }}
-          </AuthButton>
+          </BkButton>
           <BkButton
             v-if="!isPlatform"
             class="w-88"

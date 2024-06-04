@@ -60,7 +60,7 @@ export const useApplyBase = () => {
    * 取消申请
    */
   function handleCancel() {
-    router.push({ name: 'SelfServiceApply' });
+    router.push({ name: 'serviceApply' });
   }
 
   /**
