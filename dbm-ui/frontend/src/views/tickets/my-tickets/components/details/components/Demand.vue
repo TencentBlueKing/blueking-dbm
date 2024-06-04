@@ -23,7 +23,7 @@
   import DemandFactory from '@views/tickets/common/components/demand-factory/Index.vue';
 
   interface Props {
-    data: TicketModel;
+    data: TicketModel<unknown>;
     isLoading: boolean;
   }
 

@@ -113,10 +113,8 @@
   });
 
   const { t } = useI18n();
-  // const route = useRoute();
   const handleBeforeClose = useBeforeClose();
 
-  // const isPlatform = route.matched[0]?.name === 'Platform';
   const titleMap: Record<string, string> = {
     add: t('新建告警组'),
     edit: t('编辑告警组'),
@@ -246,7 +244,7 @@
   }
 
   .detail-form {
-    padding: 24px 40px 40px;
+    padding: 24px 20px 0;
   }
 
   :deep(.bk-tab-header-nav::-webkit-scrollbar) {

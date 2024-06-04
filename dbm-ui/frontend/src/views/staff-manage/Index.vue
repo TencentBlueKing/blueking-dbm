@@ -31,7 +31,14 @@
             :property="`${index}.users`"
             required
             :rules="rules">
-            <DbMemberSelector v-model="item.users" />
+            <AuthTemplate
+              :action-id="editPermissionActionId"
+              :resource="item.db_type">
+              <DbMemberSelector
+                v-model="item.users"
+                style="width: 520px"
+                @change="handleChange(item.db_type)" />
+            </AuthTemplate>
           </BkFormItem>
         </DbCard>
       </DbForm>
@@ -60,11 +67,11 @@
   import { Message } from 'bkui-vue';
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getAdmins, updateAdmins } from '@services/source/dbadmin';
-  import type { AdminItem } from '@services/types/staffSetting';
 
   import DbMemberSelector from '@components/db-member-selector/index.vue';
 
@@ -76,10 +83,14 @@
   const isPlatform = route.name === 'PlatformStaffManage';
   const bizId = isPlatform ? 0 : window.PROJECT_CONFIG.BIZ_ID;
 
-  const staffFormRef = ref();
-  const adminList = ref<AdminItem[]>([]);
+  const editPermissionActionId = isPlatform ? 'global_dba_administrator_edit' : 'dba_administrator_edit';
 
-  let adminListMemo: AdminItem[] = [];
+  const staffFormRef = ref();
+  const adminList = ref<ServiceReturnType<typeof getAdmins>>([]);
+
+  let adminListMemo: UnwrapRef<typeof adminList> = [];
+
+  const updateDbTypeMap: Record<string, boolean> = {};
 
   const rules = [
     {
@@ -115,22 +126,28 @@
     },
   });
 
+  const handleChange = (type: string) => {
+    updateDbTypeMap[type] = true;
+  };
+
   /**
    * 编辑人员列表
    */
-
-  const handleSubmit = async () => {
-    const validate = await staffFormRef.value
-      .validate()
-      .then(() => true)
-      .catch(() => false);
-    if (!validate) {
+  const handleSubmit = () => {
+    const lastValue = _.filter(adminList.value, (item) => updateDbTypeMap[item.db_type] === true);
+    if (lastValue.length < 1) {
+      Message({
+        message: t('保存成功'),
+        theme: 'success',
+      });
       return;
     }
 
-    updateAdminsMethod({
-      bk_biz_id: bizId,
-      db_admins: adminList.value,
+    staffFormRef.value.validate().then(() => {
+      updateAdminsMethod({
+        bk_biz_id: bizId,
+        db_admins: lastValue,
+      });
     });
   };
 

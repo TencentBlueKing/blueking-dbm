@@ -15,25 +15,30 @@ import http from '../http';
 
 const path = '/apis/conf/db_admin';
 
-interface UpdateAdminsParams {
+/**
+ * 查询 DBA 人员列表
+ */
+export function getAdmins(params: { bk_biz_id: number }) {
+  return http.get<
+    {
+      db_type: string;
+      db_type_display: string;
+      is_show: boolean;
+      users: string[];
+    }[]
+  >(`${path}/list_admins/`, params);
+}
+
+/**
+ * 更新 DBA 人员列表
+ */
+export function updateAdmins(params: {
   bk_biz_id: number;
   db_admins: {
     db_type: string;
     users: string[];
     db_type_display: string;
   }[];
-}
-
-/**
- * 查询 DBA 人员列表
- */
-export function getAdmins(params: { bk_biz_id: number }) {
-  return http.get<UpdateAdminsParams['db_admins']>(`${path}/list_admins/`, params);
-}
-
-/**
- * 更新 DBA 人员列表
- */
-export function updateAdmins(params: UpdateAdminsParams) {
-  return http.post<UpdateAdminsParams>(`${path}/upsert_admins/`, params);
+}) {
+  return http.post(`${path}/upsert_admins/`, params);
 }

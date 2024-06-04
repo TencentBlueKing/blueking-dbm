@@ -131,11 +131,12 @@
           :value="content.cost_time" />
       </template>
       <template v-if="content.url">
-        ，<a
+        ，
+        <a
           :href="content.url"
-          :target="getHrefTarget(content)"
-          >{{ t('查看详情') }} &gt;</a
-        >
+          :target="getHrefTarget(content)">
+          {{ t('查看详情') }} &gt;
+        </a>
       </template>
       <slot name="extra-text" />
     </div>
@@ -226,7 +227,7 @@
   }
 
   interface Props {
-    ticketData: TicketModel,
+    ticketData: TicketModel<unknown>,
     content: FlowItem,
     flows?: FlowItem[],
     isTodos?: boolean
@@ -238,7 +239,6 @@
   });
   const emits = defineEmits<Emits>();
 
-  // const router = useRouter();
   const { t } = useI18n();
   // const { username } = useUserProfile();
 

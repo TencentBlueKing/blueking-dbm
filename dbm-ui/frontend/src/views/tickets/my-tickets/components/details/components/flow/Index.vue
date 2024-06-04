@@ -36,7 +36,7 @@
   import RedisFlows from './components/RedisFlows.vue';
 
   interface Props {
-    data: TicketModel;
+    data: TicketModel<unknown>;
   }
 
   interface Emits {

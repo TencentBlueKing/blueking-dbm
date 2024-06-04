@@ -98,17 +98,26 @@
       label: t('告警组名称'),
       field: 'name',
       width: 240,
+      fixed: 'right',
       render: ({ data }: TableRenderData) => (
         <TextOverflowLayout>
           {{
-            default: () => (
-              <bk-button
-                text
-                theme="primary"
-                onClick={ () => handleOpenDetail('edit', data) }>
-                {data.name}
-              </bk-button>
-            ),
+            default: () => {
+              const editBtnPermissionInfo = {
+                actionId: data.is_built_in ? 'global_notify_group_update' : 'notify_group_update',
+                permission: data.is_built_in ? 'global_notify_group_update' : data.permission.global_notify_group_update
+              }
+              return (
+                <auth-button
+                  {...editBtnPermissionInfo }
+                  resource={data.id}
+                  text
+                  theme="primary"
+                  onClick={ () => handleOpenDetail('edit', data) }>
+                  {data.name}
+                </auth-button>
+              )
+            },
             append: () => (
               <>
                 {
@@ -177,7 +186,7 @@
     {
       label: t('更新时间'),
       field: 'update_at',
-      width: 160,
+      width: 250,
       sort: true,
       render: ({ data }: TableRenderData) => (<span>{ data.updateAtDisplay || '--' }</span>),
     },
@@ -292,14 +301,9 @@
       title: t('确认删除该告警组'),
       content: t('删除后将无法恢复'),
       onConfirm: async () => {
-        try {
-          await deleteAlarmGroup({ id });
-          messageSuccess(t('删除成功'));
-          fetchTableData();
-          return true;
-        } catch (_) {
-          return false;
-        }
+        await deleteAlarmGroup({ id });
+        messageSuccess(t('删除成功'));
+        fetchTableData();
       },
     });
   };

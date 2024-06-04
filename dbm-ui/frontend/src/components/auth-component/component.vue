@@ -25,13 +25,13 @@
   /* eslint-disable vue/no-unused-properties */
   interface Props {
     actionId: string;
-    permission: string | boolean;
+    permission?: boolean | string;
     resource?: string | number;
     bizId?: string | number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    permission: 'default',
+    permission: 'normal',
     resource: '',
     bizId: undefined,
   });

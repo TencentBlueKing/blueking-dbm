@@ -46,7 +46,7 @@
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
 
   interface Props {
-    ticketData: TicketModel,
+    ticketData: TicketModel<unknown>,
     flows?: FlowItem[]
   }
 
