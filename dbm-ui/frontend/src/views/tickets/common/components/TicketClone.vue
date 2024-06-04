@@ -22,9 +22,7 @@
       @click="handleCancelTicket">
       {{ t('撤销单据') }}
     </BkButton>
-    <BkButton
-      :disabled="!isShowResubmitTicketBtn"
-      @click="handleResubmitTicket">
+    <BkButton @click="handleResubmitTicket">
       {{ t('再次提单') }}
     </BkButton>
   </div>
@@ -38,7 +36,7 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    data: TicketModel;
+    data: TicketModel<unknown>;
   }
 
   const props = defineProps<Props>();
@@ -106,7 +104,6 @@
   };
 
   const isShowTicketClone = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);
-  const isShowResubmitTicketBtn = computed(() => Object.keys(props.data.details).length > 0);
 
   const handleResubmitTicket = async () => {
     const name = ticketTypeRouteNameMap[props.data.ticket_type];

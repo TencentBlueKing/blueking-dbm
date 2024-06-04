@@ -321,13 +321,13 @@
         trigger: 'blur',
       },
       {
-        validator: (value: string) => !value.startsWith('stage_truncate'),
+        validator: (value: string) => !/^stage_truncate/.test(value),
         message: t('不可以stage_truncate开头'),
         trigger: 'blur',
       },
       {
-        validator: (value: string) => !value.endsWith('dba_rollback'),
-        message: t('不可以dba_rollback结尾'),
+        validator: (value: string) => !/rollback$/.test(value),
+        message: t('不可以rollback结尾'),
         trigger: 'blur',
       },
       {

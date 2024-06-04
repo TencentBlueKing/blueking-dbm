@@ -316,12 +316,6 @@
         });
         return item;
       }
-      // Object.assign(item, {
-      //   selectList: props.moduleList,
-      //   activeAdd: false,
-      //   activeMinus: true,
-      // });
-      // return item;
     }
     Object.assign(item, {
       selectList: isMySql.value ? props.moduleList : props.clusterList,
@@ -342,8 +336,7 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const isPlatform = computed(() => props.targets.filter(item => item.level === TargetType.PLATFORM).length
-    > 0);
+  const isPlatform = computed(() => props.targets.filter(item => item.level === TargetType.PLATFORM).length  > 0);
 
   const isMySql = computed(() => props.dbType === 'mysql');
 
@@ -576,6 +569,40 @@
         }
       }
 
+      .left-bar {
+        position: absolute;
+        top: 15px;
+        left: -40px;
+        width: 40px;
+        height: 0;
+        border-bottom: 1px solid #c4c6cc;
+      }
+
+      .title-box {
+        display: flex;
+        width: 80px;
+        height: 32px;
+        background: #fafbfd;
+        align-items: center;
+        justify-content: space-between;
+
+        .title-select {
+          width: 100%;
+
+          :deep(.bk-input) {
+            border-left-width: 0;
+            border-bottom-left-radius: 0;
+            border-top-left-radius: 0;
+          }
+        }
+      }
+
+      .item-box {
+        position: relative;
+        display: flex;
+        width: 100%;
+        height: 32px;
+
         .left-bar {
           position: absolute;
           top: 15px;
@@ -597,108 +624,42 @@
             width: 100%;
 
             :deep(.bk-input) {
-              border-left-width: 0;
-              border-bottom-left-radius: 0;
-              border-top-left-radius: 0;
+              border-radius: 2px 0 0 2px;
             }
           }
         }
 
-        .item-box {
-          position: relative;
-          display: flex;
-          width: 100%;
-          height: 32px;
-
-          .left-bar {
-            position: absolute;
-            top: 15px;
-            left: -40px;
-            width: 40px;
-            height: 0;
-            border-bottom: 1px solid #c4c6cc;
-          }
-
-          .title-box {
-            display: flex;
-            width: 80px;
-            height: 32px;
-            background: #fafbfd;
-            align-items: center;
-            justify-content: space-between;
-
-            .title-select {
-              width: 100%;
-
-              :deep(.bk-input) {
-                border-radius: 2px 0 0 2px;
-              }
-            }
-          }
-
-          .content {
-            flex: 1;
-
-            .is-focus {
-              :deep(.bk-select-tag) {
-                border-left-color: #3a84ff;
-
-                &:hover {
-                  border-left-color: #3a84ff;
-                }
-              }
-            }
-
-            :deep(.bk-input) {
-              outline: none;
-            }
-          }
-
-          :deep(.bk-select-tag-wrapper) {
-            gap: 4px;
-          }
+        .content {
+          flex: 1;
 
           .is-focus {
             :deep(.bk-select-tag) {
-              width: 100%;
-              min-height: 32px;
-              overflow: hidden;
-              border-left-color: transparent;
-              border-bottom-left-radius: 0;
-              border-top-left-radius: 0;
+              border-left-color: #3a84ff;
 
               &:hover {
-                border-left-color: #a4a2a2;
-              }
-
-              .bk-select-tag-wrapper {
-                height: auto;
-                max-height: 100px;
-                overflow-y: auto;
+                border-left-color: #3a84ff;
               }
             }
-
-            .content-custom {
-              display: flex;
-              width: 100%;
           }
 
-              .condition {
-                width: 60px;
-                height: 32px;
-                line-height: 32px;
-                text-align: center;
-                border: 1px solid #c4c6cc;
-                border-right: none;
-              }
+          :deep(.bk-input) {
+            outline: none;
+          }
+        }
 
-              .bk-tag-input {
-                flex: 1;
+        :deep(.bk-select-tag-wrapper) {
+          gap: 4px;
+        }
 
-                :deep(.bk-tag-input-trigger) {
-                  border-radius: 0;
-                }
-              }
+        .is-focus {
+          :deep(.bk-select-tag) {
+            width: 100%;
+            min-height: 32px;
+            overflow: hidden;
+            border-left-color: transparent;
+            border-bottom-left-radius: 0;
+            border-top-left-radius: 0;
+
             &:hover {
               border-left-color: #a4a2a2;
             }
@@ -707,18 +668,50 @@
               height: auto;
               max-height: 100px;
               overflow-y: auto;
-              gap: 4px;
             }
           }
 
-          .operate-box {
+          .content-custom {
             display: flex;
-            width: 85px;
-            align-items: center;
-            padding-left: 12px;
+            width: 100%;
+          }
 
-            .plus {
-              margin-right: 12px;
+          .condition {
+            width: 60px;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            border: 1px solid #c4c6cc;
+            border-right: none;
+          }
+
+          .bk-tag-input {
+            flex: 1;
+
+            :deep(.bk-tag-input-trigger) {
+              border-radius: 0;
+            }
+          }
+          &:hover {
+            border-left-color: #a4a2a2;
+          }
+
+          .bk-select-tag-wrapper {
+            height: auto;
+            max-height: 100px;
+            overflow-y: auto;
+            gap: 4px;
+          }
+        }
+
+        .operate-box {
+          display: flex;
+          width: 85px;
+          align-items: center;
+          padding-left: 12px;
+
+          .plus {
+            margin-right: 12px;
             .condition {
               width: 60px;
               height: 32px;
@@ -772,21 +765,21 @@
           }
         }
 
-      .custom {
-        .title-box {
-          width: auto;
-          min-width: 80px;
-          padding: 0 8px;
-          background: #f5f7fa;
-          border: none;
-          justify-content: center;
+        .custom {
+          .title-box {
+            width: auto;
+            min-width: 80px;
+            padding: 0 8px;
+            background: #f5f7fa;
+            border: none;
+            justify-content: center;
 
-          span {
-            font-size: 12px;
+            span {
+              font-size: 12px;
+            }
           }
         }
       }
     }
   }
-}
 </style>

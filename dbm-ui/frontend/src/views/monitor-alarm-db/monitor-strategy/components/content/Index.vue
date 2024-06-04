@@ -42,12 +42,11 @@
       :existed-names="existedNames"
       :module-list="moduleList"
       :page-status="sliderPageType"
-      @cancel="handleUpdatePolicyCancel"
       @success="handleUpdatePolicySuccess" />
   </ApplyPermissionCatch>
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { Button,InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
@@ -66,6 +65,7 @@
   import { useGlobalBizs } from '@stores';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue'
+  import AuthButton from '@components/auth-component/button.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -178,12 +178,13 @@
         const isInner = data.bk_biz_id === 0;
         const isDanger = data.event_count > 0;
         const pageType = isInner ? 'read' : 'edit';
+        const ButtonCom = isInner ? Button : AuthButton
         return (
           <TextOverflowLayout>
             {{
               default: () => (
-                <auth-button
-                  action-id="monitor_policy_edit"
+                <ButtonCom
+                  actionId="monitor_policy_edit"
                   resource={data.id}
                   permission={data.permission.monitor_policy_edit}
                   text
@@ -191,7 +192,7 @@
                   disabled={!data.is_enabled}
                   onClick={() => handleOpenSlider(data, pageType)}>
                   {data.name}
-                </auth-button>
+                </ButtonCom>
               ),
               append: () => (
                 <>
@@ -389,10 +390,6 @@
           value: item.id,
         });
         alarmGroupNameMap[item.id] = item.name;
-        // todo
-        // if (item.db_type === props.activeDbType) {
-        //   defaultNotifyId.value = item.id;
-        // }
       });
       alarmGroupList.value = groupList;
       if (notifyGroupId !== undefined) {
@@ -550,12 +547,6 @@
 
   const handleUpdatePolicySuccess = () => {
     fetchHostNodes();
-    window.changeConfirm = false;
-  };
-
-  const handleUpdatePolicyCancel = () => {
-    currentChoosedRow.value = {} as MonitorPolicyModel;
-    window.changeConfirm = false;
   };
 </script>
 <style lang="less" scoped>

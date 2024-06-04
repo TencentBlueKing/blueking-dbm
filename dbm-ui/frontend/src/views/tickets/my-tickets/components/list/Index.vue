@@ -139,7 +139,7 @@
     list: TicketModel[];
     isLoading: boolean;
     isAnomalies: boolean;
-    activeTicket: TicketModel | null;
+    activeTicket: TicketModel<unknown> | null;
     isInit: boolean;
     ticketTypes: Array<SearchFilterItem>;
     filters: {
@@ -182,7 +182,7 @@
   import { useTimeoutPoll } from '@vueuse/core';
 
   interface Emits {
-    (e: 'change', value: TicketModel | null): void
+    (e: 'change', value: TicketModel<unknown>): void
   }
 
   const emits = defineEmits<Emits>();
@@ -319,8 +319,6 @@
               }
             }
           });
-        } else {
-          state.activeTicket = null;
         }
         state.isAnomalies = false;
       })
@@ -341,10 +339,6 @@
         name: item.value,
       }));
     });
-
-  watch(() => state.activeTicket, () => {
-    emits('change', state.activeTicket);
-  });
 
   watch(selfManage, () => {
     fetchTickets();
@@ -433,7 +427,7 @@
   /**
    * 选中单据
    */
-  const handleSelected = (data: TicketModel) => {
+  const handleSelected = (data: TicketModel<unknown>) => {
     state.activeTicket = data;
     router.replace({
       query: {
@@ -444,6 +438,7 @@
         self_manage: selfManage.value,
       },
     });
+    emits('change', state.activeTicket);
   };
 
   /**

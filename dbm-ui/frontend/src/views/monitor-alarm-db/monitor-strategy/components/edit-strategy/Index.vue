@@ -12,9 +12,9 @@
 -->
 
 <template>
-  <BkSideslider
-    :before-close="handleClose"
+  <DbSideslider
     :is-show="isShow"
+    :show-footer="!isReadonlyPage"
     :width="960"
     @closed="handleClose">
     <template #header>
@@ -147,21 +147,17 @@
     <template #footer>
       <BkButton
         class="mr-8"
-        :disabled="isReadonlyPage"
         theme="primary"
         @click="handleConfirm">
         {{ t('确定') }}
       </BkButton>
       <BkPopConfirm
         :content="t('将会覆盖当前填写的内容，并恢复默认')"
-        :disabled="isReadonlyPage"
         placement="top"
         trigger="click"
         width="280"
         @confirm="handleClickConfirmRecoverDefault">
-        <BkButton
-          class="mr-8"
-          :disabled="isReadonlyPage">
+        <BkButton class="mr-8">
           {{ t('恢复默认') }}
         </BkButton>
       </BkPopConfirm>
@@ -169,7 +165,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">
@@ -183,8 +179,6 @@
     clonePolicy,
     updatePolicy,
   } from '@services/monitor';
-
-  import { useBeforeClose } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -221,20 +215,12 @@
 
   let rawFormData = '';
 
-  function generateRule(data: MonitorPolicyModel, level: number) {
+  const generateRule = (data: MonitorPolicyModel, level: number) => {
     const arr = data.test_rules.filter(item => item.level === level);
     return arr.length > 0 ? arr[0] : undefined;
   }
 
-  function initFormData() {
-    formModel.strategyName = '';
-    formModel.notifyRules = [] as string[];
-    formModel.notifyTarget = [] as number[];
-    rawFormData = '';
-  }
-
   const { t } = useI18n();
-  const handleBeforeClose = useBeforeClose();
   const { currentBizId } = useGlobalBizs();
 
   const monitorTargetRef = ref();
@@ -325,7 +311,6 @@
     onSuccess: (cloneResponse) => {
       if (cloneResponse.bkm_id) {
         messageSuccess(t('克隆成功'));
-        initFormData();
         emits('success');
         isShow.value = false;
       }
@@ -337,7 +322,6 @@
     onSuccess: (updateResponse) => {
       if (updateResponse.bkm_id) {
         messageSuccess(t('保存成功'));
-        initFormData();
         emits('success');
         isShow.value = false;
       }
@@ -423,11 +407,7 @@
     runUpdatePolicy(props.data.id, reqParams);
   };
 
-  async function handleClose() {
-    const result = await handleBeforeClose();
-    if (!result) return;
-    window.changeConfirm = false;
-    initFormData();
+  const handleClose = () => {
     emits('cancel');
     isShow.value = false;
   }

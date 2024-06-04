@@ -55,12 +55,12 @@
       message: t('DB名不能为空'),
     },
     {
-      validator: (value: string) => !value.startsWith('stage_truncate'),
+      validator: (value: string) => !/^stage_truncate/.test(value),
       message: t('不可以stage_truncate开头'),
     },
     {
-      validator: (value: string) => !value.endsWith('dba_rollback'),
-      message: t('不可以dba_rollback结尾'),
+      validator: (value: string) => !/rollback$/.test(value),
+      message: t('不可以rollback结尾'),
     },
     {
       validator: (value: string) => /^[a-zA-z][a-zA-Z0-9_-]{1,39}$/.test(value),

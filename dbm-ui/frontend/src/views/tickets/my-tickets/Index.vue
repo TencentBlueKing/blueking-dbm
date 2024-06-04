@@ -15,7 +15,7 @@
   <div class="my-tickets-page">
     <List @change="handleChangeTicket" />
     <div
-      v-if="activeTicket?.id"
+      v-if="activeTicket"
       class="ticket-detail-wrapper">
       <Details
         :data="activeTicket"
@@ -27,15 +27,14 @@
 <script setup lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
 
-  // import TicketClone from '../common/components/TicketClone.vue';
   import Details from './components/details/Index.vue';
   import List from './components/list/Index.vue';
 
-  const activeTicket = ref<TicketModel | null>(null);
+  const activeTicket = ref<TicketModel<unknown>>();
 
-  function handleChangeTicket(data: TicketModel | null) {
+  const handleChangeTicket = (data: TicketModel<unknown>) => {
     activeTicket.value = data;
-  }
+  };
 </script>
 <style lang="less">
   .my-tickets-page {

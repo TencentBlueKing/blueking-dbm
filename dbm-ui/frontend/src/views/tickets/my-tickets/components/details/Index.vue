@@ -15,7 +15,7 @@
   <BkLoading
     :loading="state.isLoading"
     style="min-height: calc(100vh - 120px)">
-    <PermissionCatch>
+    <PermissionCatch :key="data.id">
       <SmartAction :offset-target="getOffsetTarget">
         <div class="ticket-details-page">
           <template v-if="state.ticketData">
@@ -79,7 +79,7 @@
   import FlowInfo from './components/flow/Index.vue';
 
   interface Props {
-    data: TicketModel,
+    data: TicketModel<unknown>,
   }
 
   interface Emits {

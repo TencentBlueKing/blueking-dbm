@@ -127,25 +127,16 @@
   import SqlserverDetails from './sqlserver/Details.vue';
 
   interface Props {
-    data: TicketModel;
+    data: TicketModel<unknown>;
   }
 
   const props = defineProps<Props>();
 
-  const mysqlTicketType = [
-    TicketTypes.MYSQL_AUTHORIZE_RULES,
-    TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES,
-  ];
+  const mysqlTicketType = [TicketTypes.MYSQL_AUTHORIZE_RULES, TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES];
 
-  const mysqlTruncateDataTypes = [
-    TicketTypes.MYSQL_HA_TRUNCATE_DATA,
-    TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
-  ];
+  const mysqlTruncateDataTypes = [TicketTypes.MYSQL_HA_TRUNCATE_DATA, TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA];
 
-  const mysqlRenameTypes = [
-    TicketTypes.MYSQL_HA_RENAME_DATABASE,
-    TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
-  ];
+  const mysqlRenameTypes = [TicketTypes.MYSQL_HA_RENAME_DATABASE, TicketTypes.MYSQL_SINGLE_RENAME_DATABASE];
 
   const mysqlClusterTicketType = [
     TicketTypes.MYSQL_HA_DISABLE,
@@ -156,10 +147,7 @@
     TicketTypes.MYSQL_SINGLE_DESTROY,
   ];
 
-  const dumperNodeStatusUpdateType = [
-    TicketTypes.TBINLOGDUMPER_DISABLE_NODES,
-    TicketTypes.TBINLOGDUMPER_ENABLE_NODES,
-  ];
+  const dumperNodeStatusUpdateType = [TicketTypes.TBINLOGDUMPER_DISABLE_NODES, TicketTypes.TBINLOGDUMPER_ENABLE_NODES];
 
   const redisKeysType = [
     TicketTypes.REDIS_KEYS_EXTRACT,
