@@ -26,6 +26,7 @@ export default class GrammarCheck {
     warn_info: string;
   }>;
   raw_file_name: string;
+  skip_check: boolean;
   sql_path: string;
   syntax_fails: Array<{
     error_code: number;
@@ -38,12 +39,17 @@ export default class GrammarCheck {
     this.bancommand_warnings = payload.bancommand_warnings || [];
     this.content = payload.content;
     this.highrisk_warnings = payload.highrisk_warnings || [];
+    this.skip_check = payload.skip_check;
     this.raw_file_name = payload.raw_file_name;
     this.sql_path = payload.sql_path;
     this.syntax_fails = payload.syntax_fails || [];
   }
 
   get isError() {
+    if (this.skip_check) {
+      return false;
+    }
+
     return this.syntax_fails.length > 0 || this.bancommand_warnings.length > 0;
   }
 
