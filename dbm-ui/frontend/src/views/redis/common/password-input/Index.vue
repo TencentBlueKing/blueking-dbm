@@ -229,7 +229,9 @@
   });
 
   const randomlyGenerate = () => {
-    getRandomPasswordRun();
+    getRandomPasswordRun({
+      security_type: 'redis_password'
+    });
   };
 
   const handlePasswordFocus = () => {
