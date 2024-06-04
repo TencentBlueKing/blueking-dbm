@@ -473,8 +473,8 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         "kwargs": asdict(
                             UpdateDnsRecordKwargs(
                                 bk_cloud_id=cluster_model.bk_cloud_id,
-                                old_instance="{}{}{}".format(target_slave.machine.ip, IP_PORT_DIVIDER, master.port),
-                                new_instance="{}{}{}".format(target_slave.machine.ip, IP_PORT_DIVIDER, master.port),
+                                old_instance="{}#{}".format(target_slave.machine.ip, master.port),
+                                new_instance="{}#{}".format(target_slave.machine.ip, master.port),
                                 update_domain_name=domain,
                             )
                         ),
