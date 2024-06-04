@@ -15,6 +15,7 @@ from django.db.models.functions import Concat
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
@@ -62,6 +63,9 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
         db_module_names_map: Dict[int, str],
         cluster_entry_map: Dict[int, Dict[str, str]],
         cluster_operate_records_map: Dict[int, List],
+        cloud_info: Dict[str, Any],
+        biz_info: AppCache,
+        cluster_stats_map: Dict[str, Dict[str, int]],
         **kwargs,
     ) -> Dict[str, Any]:
         """将集群对象转为可序列化的 dict 结构"""
@@ -117,7 +121,14 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             "disaster_tolerance_level": cluster.disaster_tolerance_level,
         }
         cluster_info = super()._to_cluster_representation(
-            cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map, **kwargs
+            cluster,
+            db_module_names_map,
+            cluster_entry_map,
+            cluster_operate_records_map,
+            cloud_info,
+            biz_info,
+            cluster_stats_map,
+            **kwargs,
         )
         cluster_info.update(cluster_extra_info)
         return cluster_info

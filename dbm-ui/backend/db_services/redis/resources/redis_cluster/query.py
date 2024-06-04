@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, List
 
-from django.db.models import QuerySet
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
@@ -21,7 +20,7 @@ from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClus
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
 from backend.db_meta.enums import ClusterEntryType, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Machine, Spec
+from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -87,51 +86,27 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         return ResourceQueryHelper.search_cc_hosts(role_host_ids, keyword)
 
     @classmethod
-    def _filter_cluster_hook(
-        cls,
-        bk_biz_id,
-        cluster_queryset: QuerySet,
-        proxy_queryset: QuerySet,
-        storage_queryset: QuerySet,
-        limit: int,
-        offset: int,
-        **kwargs,
-    ) -> query.ResourceList:
-        """为查询的集群填充额外信息"""
-        cluster_stats_map = Cluster.get_cluster_stats(cls.cluster_types)
-        return super()._filter_cluster_hook(
-            bk_biz_id,
-            cluster_queryset,
-            proxy_queryset,
-            storage_queryset,
-            limit,
-            offset,
-            cluster_stats_map=cluster_stats_map,
-            **kwargs,
-        )
-
-    @classmethod
     def _to_cluster_representation(
         cls,
         cluster: Cluster,
         db_module_names_map: Dict[int, str],
         cluster_entry_map: Dict[int, Dict[str, str]],
         cluster_operate_records_map: Dict[int, List],
+        cloud_info: Dict[str, Any],
+        biz_info: AppCache,
+        cluster_stats_map: Dict[str, Dict[str, int]],
         **kwargs,
     ) -> Dict[str, Any]:
         """集群序列化"""
-        cluster_stats_map = kwargs["cluster_stats_map"]
         redis_master = [m.simple_desc for m in cluster.storages if m.instance_role == InstanceRole.REDIS_MASTER]
         redis_slave = [m.simple_desc for m in cluster.storages if m.instance_role == InstanceRole.REDIS_SLAVE]
         machine_list = list(set([inst["bk_host_id"] for inst in [*redis_master, *redis_slave]]))
         machine_pair_cnt = len(machine_list) / 2
 
         # 补充集群的规格和容量信息
-        spec_id = Machine.objects.get(bk_host_id=machine_list[0]).spec_id
-        if not spec_id:
-            # TODO: 暂时兼容手动部署的情况，后续会删除该逻辑
-            cluster_spec = cluster_capacity = ""
-        else:
+        cluster_spec = cluster_capacity = ""
+        if machine_list:
+            spec_id = Machine.objects.get(bk_host_id=machine_list[0]).spec_id
             spec = Spec.objects.get(spec_id=spec_id)
             cluster_spec = model_to_dict(spec)
             cluster_capacity = spec.capacity * machine_pair_cnt
@@ -146,7 +121,6 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         # 集群额外信息
         cluster_extra_info = {
             "cluster_spec": cluster_spec,
-            "cluster_stats": cluster_stats_map.get(cluster.immute_domain, {}),
             "cluster_capacity": cluster_capacity,
             "cluster_entry": list(cluster.clusterentry_set.values("cluster_entry_type", "entry")),
             "dns_to_clb": dns_to_clb,
@@ -157,7 +131,13 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             "machine_pair_cnt": machine_pair_cnt,
         }
         cluster_info = super()._to_cluster_representation(
-            cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map, **kwargs
+            cluster,
+            db_module_names_map,
+            cluster_entry_map,
+            cluster_operate_records_map,
+            cloud_info,
+            biz_info,
+            cluster_stats_map,
         )
         cluster_info.update(cluster_extra_info)
         return cluster_info
