@@ -95,4 +95,7 @@ class SpiderViewSet(viewsets.ResourceViewSet):
 
     @staticmethod
     def _external_perm_param_field(kwargs):
-        return {ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"], ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type}
+        return {
+            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
+            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
+        }

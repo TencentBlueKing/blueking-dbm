@@ -135,25 +135,32 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     def _get_custom_permissions(self):
         if self.action == "list":
             if not int(self.request.query_params["bk_biz_id"]):
-                list_permission = ResourceActionPermission(
+                permission = ResourceActionPermission(
                     [ActionEnum.GLOBAL_MONITOR_POLICY_LIST],
                     ResourceEnum.DBTYPE,
                     instance_ids_getter=self.instance_getter("db_type"),
                 )
             else:
-                list_permission = BizDBTypeResourceActionPermission(
+                permission = BizDBTypeResourceActionPermission(
                     [ActionEnum.MONITOR_POLICY_LIST],
                     instance_biz_getter=self.instance_getter("bk_biz_id"),
                     instance_dbtype_getter=self.instance_getter("db_type"),
                 )
-            return [list_permission]
-        elif self.action in ["update_strategy", "destroy", "clone_strategy"]:
+            return [permission]
+        elif self.action == "clone_strategy":
+            policy = MonitorPolicy.objects.get(id=self.request.data["parent_id"])
+            permission = BizDBTypeResourceActionPermission(
+                [ActionEnum.MONITOR_POLICY_CLONE_STRATEGY],
+                instance_biz_getter=self.instance_getter("bk_biz_id"),
+                instance_dbtype_getter=lambda request, view: [policy.db_type],
+            )
+            return [permission]
+        elif self.action in ["update_strategy", "destroy"]:
             return [MonitorPolicyPermission(view_action=self.action)]
         elif self.action in ["disable", "enable"]:
             return [MonitorPolicyPermission(view_action="enable_disable")]
         elif self.action in ["callback"]:
             return []
-
         return [DBManagePermission()]
 
     @classmethod
@@ -171,6 +178,11 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         context["events"] = json.loads(cache.get(constants.MONITOR_EVENTS, "{}"))
         return context
 
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: {ResourceEnum.DBTYPE.id: d["db_type"], ResourceEnum.BUSINESS.id: d["bk_biz_id"]},
+        actions=[ActionEnum.MONITOR_POLICY_CLONE_STRATEGY],
+        resource_meta=[ResourceEnum.DBTYPE, ResourceEnum.BUSINESS],
+    )
     @Permission.decorator_permission_field(
         id_field=lambda d: d["id"],
         data_field=lambda d: d["results"],

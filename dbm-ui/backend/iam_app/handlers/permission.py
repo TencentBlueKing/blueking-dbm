@@ -32,6 +32,7 @@ from iam.meta import setup_action, setup_resource, setup_system
 from iam.utils import gen_perms_apply_data
 
 from backend import env
+from backend.env import BK_IAM_SYSTEM_ID
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta, _all_actions
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta, _all_resources
 from backend.iam_app.exceptions import ActionNotExistError, GetSystemInfoError, PermissionDeniedError
@@ -118,6 +119,14 @@ class Permission(object):
         """
         resource_meta = ResourceEnum.get_resource_by_id(resource_type)
         return resource_meta.create_instance(instance_id)
+
+    @classmethod
+    def check_resource_is_local(cls, resources: List[Resource]) -> bool:
+        """
+        判断资源是否属于本系统
+        """
+        check_list = [resource.system == BK_IAM_SYSTEM_ID for resource in resources]
+        return set(check_list) == {True}
 
     @classmethod
     def batch_make_resource_instance(cls, resources: List[Dict]):
@@ -239,7 +248,14 @@ class Permission(object):
         multi_request = self.make_multi_request(actions)
         batch_permission = {}
         try:
-            batch_permission = self._iam.batch_resource_multi_actions_allowed(multi_request, resources_list)
+            if self.check_resource_is_local(resources_list[0]):
+                batch_permission = self._iam.batch_resource_multi_actions_allowed(multi_request, resources_list)
+            # 如果资源不属于本系统，则只能单次调用allowed
+            else:
+                batch_permission = {
+                    str(index + 1): self.multi_actions_is_allowed(actions, resources)
+                    for index, resources in enumerate(resources_list)
+                }
         except Exception as e:  # pylint: disable=broad-except
             logger.exception(f"IAM AuthAPIError: {e}")
             for index in range(len(resources_list)):

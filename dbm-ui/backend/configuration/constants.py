@@ -57,7 +57,7 @@ class AffinityEnum(str, StructuredEnum):
 
 class DBType(str, StructuredEnum):
     MySQL = EnumField("mysql", _("MySQL"))
-    TenDBCluster = EnumField("tendbcluster", _("TendbCluster"))
+    TenDBCluster = EnumField("tendbcluster", _("TenDBCluster"))
     Redis = EnumField("redis", _("Redis"))
     MongoDB = EnumField("mongodb", _("MongoDB"))
     Kafka = EnumField("kafka", _("Kafka"))

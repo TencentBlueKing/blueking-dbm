@@ -165,7 +165,7 @@ class CommonValidate(object):
         return True
 
     @classmethod
-    def validate_cluster_type(cls, cluster_ids: List[int], cluster_type: ClusterType):
+    def validated_cluster_type(cls, cluster_ids: List[int], cluster_type: ClusterType):
         """校验集群的类型"""
 
         check_cluster_type = list(Cluster.objects.filter(id__in=cluster_ids).values_list("cluster_type", flat=True))

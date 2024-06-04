@@ -17,6 +17,7 @@ from iam import Action
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.iam_app.constans import CommonActionLabel
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ActionNotExistError
 from backend.ticket.constants import TicketEnumField, TicketType
@@ -35,6 +36,7 @@ class ActionMeta(Action):
     version: str = "1"  # 版本
     group: str = ""  # 动作隶属组
     subgroup: str = ""  # 动作隶属子组
+    common_labels: List[str] = None  # 动作隶属常用操作配置组
 
     is_ticket_action: bool = False  # 表示该动作是单据工具箱
 
@@ -42,6 +44,7 @@ class ActionMeta(Action):
         super(ActionMeta, self).__init__(id=self.id)
         self.related_actions = self.related_actions or []
         self.related_resource_types = self.related_resource_types or []
+        self.common_labels = self.common_labels or []
         # 单据工具箱初始化
         if self.is_ticket_action:
             self.__ticket_tool_action_init__()
@@ -50,18 +53,22 @@ class ActionMeta(Action):
         """单据工具箱action的初始化"""
         ticket_type = self.id.upper()
         group = TicketType.get_db_type_by_ticket(ticket_type)
-
+        # 单据动作基础定义
         self.name = str(TicketType.get_choice_label(ticket_type))
         self.name_en = ticket_type
         self.type = "execute"
+        # 单据动作关联资源默认是group资源
         self.related_resource_types = self.related_resource_types or [getattr(ResourceEnum, group.upper())]
         self.related_actions = self.related_actions or []
+        # 添加单据动作所属组和常用操作
         self.group = DBType.get_choice_label(group)
         self.subgroup = str(self.subgroup or _("工具箱"))
+        self.common_labels.append(CommonActionLabel.BIZ_MAINTAIN)
 
     def to_json(self):
         content = asdict(self)
         content.pop("is_ticket_action")
+        content.pop("common_labels")
         content.update(
             {
                 "description": self.name,
@@ -103,6 +110,7 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("业务"),
+        common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_MANAGE = ActionMeta(
@@ -125,6 +133,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.TICKET],
         group=_("业务"),
         subgroup=_("单据"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TICKET_CONFIG_SET = ActionMeta(
@@ -157,6 +166,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.TASKFLOW],
         group=_("业务"),
         subgroup=_("单据"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DBCONFIG_VIEW = ActionMeta(
@@ -168,6 +178,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务配置"),
         subgroup=_("数据库配置"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DBCONFIG_EDIT = ActionMeta(
@@ -179,6 +190,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务配置"),
         subgroup=_("数据库配置"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_DBCONFIG_EDIT = ActionMeta(
@@ -223,6 +235,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MySQL"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_VIEW = ActionMeta(
@@ -234,6 +247,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_ADMIN_PWD_MODIFY = ActionMeta(
@@ -256,6 +270,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_CLIENT_CLONE_RULES = ActionMeta(
@@ -267,6 +282,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MySQL"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_DESTROY = ActionMeta(
@@ -278,6 +294,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_CREATE_ACCOUNT = ActionMeta(
@@ -289,6 +306,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MySQL"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_DELETE_ACCOUNT = ActionMeta(
@@ -300,6 +318,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL_ACCOUNT],
         group=_("MySQL"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_ADD_ACCOUNT_RULE = ActionMeta(
@@ -311,6 +330,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL_ACCOUNT],
         group=_("MySQL"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_ACCOUNT_RULES_VIEW = ActionMeta(
@@ -322,6 +342,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MySQL"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_AUTHORIZE_RULES = ActionMeta(
@@ -333,13 +354,15 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL_ACCOUNT, ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_EXCEL_AUTHORIZE_RULES = ActionMeta(
         id=TicketType.MYSQL_EXCEL_AUTHORIZE_RULES.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("权限管理"),
-        is_ticket_action=True
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_PARTITION_CREATE = ActionMeta(
@@ -351,6 +374,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MySQL"),
         subgroup=_("分区管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_PARTITION_UPDATE = ActionMeta(
@@ -362,6 +386,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("分区管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_PARTITION_DELETE = ActionMeta(
@@ -373,6 +398,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("分区管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_PARTITION_ENABLE_DISABLE = ActionMeta(
@@ -384,6 +410,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("分区管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_OPEN_AREA = ActionMeta(
@@ -395,6 +422,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("克隆开区"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_OPENAREA_CONFIG_CREATE = ActionMeta(
@@ -406,6 +434,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MySQL"),
         subgroup=_("克隆开区"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_OPENAREA_CONFIG_UPDATE = ActionMeta(
@@ -417,6 +446,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG],
         group=_("MySQL"),
         subgroup=_("克隆开区"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_OPENAREA_CONFIG_DESTROY = ActionMeta(
@@ -428,6 +458,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG],
         group=_("MySQL"),
         subgroup=_("克隆开区"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DUMPER_CONFIG_VIEW = ActionMeta(
@@ -439,6 +470,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DUMPER_SUBSCRIBE_CONFIG],
         group=_("MySQL"),
         subgroup=_("Dumper管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DUMPER_CONFIG_UPDATE = ActionMeta(
@@ -450,6 +482,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DUMPER_SUBSCRIBE_CONFIG],
         group=_("MySQL"),
         subgroup=_("Dumper管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DUMPER_CONFIG_DESTROY = ActionMeta(
@@ -461,6 +494,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DUMPER_SUBSCRIBE_CONFIG],
         group=_("MySQL"),
         subgroup=_("Dumper管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TBINLOGDUMPER_INSTALL = ActionMeta(
@@ -472,6 +506,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("Dumper管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TBINLOGDUMPER_ENABLE_DISABLE = ActionMeta(
@@ -483,6 +518,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("Dumper管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TBINLOGDUMPER_SWITCH_NODES = ActionMeta(
@@ -494,6 +530,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("Dumper管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TBINLOGDUMPER_REDUCE_NODES = ActionMeta(
@@ -505,200 +542,218 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("Dumper管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_VIEW = ActionMeta(
         id="tendbcluster_view",
-        name=_("TendbCluster 集群查看"),
+        name=_("TenDB Cluster 集群查看"),
         name_en="tendbcluster_view",
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_ADMIN_PWD_MODIFY = ActionMeta(
         id="tendbcluster_admin_pwd_modify",
-        name=_("TendbCluster 临时密码修改"),
+        name=_("TenDB Cluster 临时密码修改"),
         name_en="tendbcluster_admin_pwd_modify",
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("集群管理"),
     )
 
     TENDBCLUSTER_CREATE_ACCOUNT = ActionMeta(
         id="tendbcluster_account_create",
-        name=_("TendbCluster 账号创建"),
+        name=_("TenDB Cluster 账号创建"),
         name_en="tendbcluster_account_create",
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_DELETE_ACCOUNT = ActionMeta(
         id="tendbcluster_account_delete",
-        name=_("TendbCluster 账号删除"),
+        name=_("TenDB Cluster 账号删除"),
         name_en="tendbcluster_account_delete",
         type="delete",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER_ACCOUNT],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_ADD_ACCOUNT_RULE = ActionMeta(
         id="tendbcluster_add_account_rule",
-        name=_("TendbCluster 账号规则创建"),
+        name=_("TenDB Cluster 账号规则创建"),
         name_en="tendbcluster_add_account_rule",
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER_ACCOUNT],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_ACCOUNT_RULES_VIEW = ActionMeta(
         id="tendbcluster_account_rules_view",
-        name=_("TendbCluster 账号规则查看"),
+        name=_("TenDB Cluster 账号规则查看"),
         name_en="tendbcluster_account_rules_view",
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_AUTHORIZE_RULES = ActionMeta(
         id="tendbcluster_authorize_rules",
-        name=_("TendbCluster 授权"),
+        name=_("TenDB Cluster 授权"),
         name_en="tendbcluster_authorize_rules",
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER_ACCOUNT, ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = ActionMeta(
         id="tendb_excel_authorize_rules",
-        name=_("TendbCluster Excel授权"),
+        name=_("TenDB Cluster Excel授权"),
         name_en="tendb_excel_authorize_rules",
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_CLIENT_CLONE_RULES = ActionMeta(
         id="tendb_cluster_client_clone_rules",
-        name=_("TendbCluster 客户端克隆权限"),
+        name=_("TenDB Cluster 客户端克隆权限"),
         name_en="tendb_cluster_client_clone_rules",
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_INSTANCE_CLONE_RULES = ActionMeta(
         id="tendb_instance_clone_rules",
-        name=_("TendbCluster DB实例权限克隆"),
+        name=_("TenDB Cluster DB实例权限克隆"),
         name_en="tendb_instance_clone_rules",
         type="execute",
         related_actions=[TENDBCLUSTER_VIEW.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("权限克隆"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_OPEN_AREA = ActionMeta(
         id="tendbcluster_open_area",
-        name=_("TendbCluster 开区执行"),
+        name=_("TenDB Cluster 开区执行"),
         name_en="tendbcluster_open_area",
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("克隆开区"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_OPENAREA_CONFIG_CREATE = ActionMeta(
         id="tendb_openarea_config_create",
-        name=_("TendbCluster 开区模板创建"),
+        name=_("TenDB Cluster 开区模板创建"),
         name_en="tendbcluster_openarea_config_create",
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("克隆开区"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_OPENAREA_CONFIG_UPDATE = ActionMeta(
         id="tendb_openarea_config_update",
-        name=_("TendbCluster 开区模板编辑"),
+        name=_("TenDB Cluster 开区模板编辑"),
         name_en="tendbcluster_openarea_config_edit",
         type="edit",
         related_actions=[],
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("克隆开区"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_OPENAREA_CONFIG_DESTROY = ActionMeta(
         id="tendb_openarea_config_destroy",
-        name=_("TendbCluster 开区模板删除"),
+        name=_("TenDB Cluster 开区模板删除"),
         name_en="tendbcluster_openarea_config_delete",
         type="delete",
         related_actions=[],
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("克隆开区"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_PARTITION_CREATE = ActionMeta(
         id="tendbcluster_partition_create",
-        name=_("TendbCLuster 分区管理创建"),
+        name=_("TenDB Cluster 分区管理创建"),
         name_en="tendbcluster_partition_create",
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("分区管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_PARTITION_UPDATE = ActionMeta(
         id="tendbcluster_partition_update",
-        name=_("TendbCluster 分区管理更新"),
+        name=_("TenDB Cluster 分区管理更新"),
         name_en="tendbcluster_partition_update",
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("分区管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_PARTITION_DELETE = ActionMeta(
         id="tendbcluster_partition_delete",
-        name=_("TendbCluster 分区管理删除"),
+        name=_("TenDB Cluster 分区管理删除"),
         name_en="tendbcluster_partition_delete",
         type="delete",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("分区管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_PARTITION_ENABLE_DISABLE = ActionMeta(
         id="tendb_partition_enable_disable",
-        name=_("TendbCluster 分区管理禁用启用"),
+        name=_("TenDB Cluster 分区管理禁用启用"),
         name_en="tendb_partition_enable_disable",
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("分区管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_APPLY = ActionMeta(
@@ -706,29 +761,33 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
-        is_ticket_action=True
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_ENABLE_DISABLE = ActionMeta(
         id="tendbcluster_enable_disable",
-        name=_("TendbCluster 集群禁用启用"),
+        name=_("TenDB Cluster 集群禁用启用"),
         name_en="tendbcluster_enable_disable",
         type="execute",
         related_actions=[TENDBCLUSTER_VIEW.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+
     )
 
     TENDBCLUSTER_SPIDER_SLAVE_DESTROY = ActionMeta(
         id="tendb_spider_slave_destroy",
-        name=_("TendbCluster 下架只读接入层"),
+        name=_("TenDB Cluster 下架只读接入层"),
         name_en="tendb_spider_slave_destroy",
         type="execute",
         related_actions=[TENDBCLUSTER_VIEW.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TendbCluster"),
+        group=_("TenDBCluster"),
         subgroup=_("访问入口"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_VIEW = ActionMeta(
@@ -740,6 +799,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.REDIS],
         group=_("Redis"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_ACCESS_ENTRY_VIEW = ActionMeta(
@@ -751,6 +811,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.REDIS],
         group=_("Redis"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_CLUSTER_APPLY = ActionMeta(
@@ -758,7 +819,8 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
-        is_ticket_action=True
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_OPEN_CLOSE = ActionMeta(
@@ -770,6 +832,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.REDIS],
         group=_("Redis"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     # TODO: 暂时屏蔽对influxdb的鉴权
@@ -817,6 +880,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("ES"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ES_VIEW = ActionMeta(
@@ -828,6 +892,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.ES],
         group=_("ES"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ES_ACCESS_ENTRY_VIEW = ActionMeta(
@@ -839,6 +904,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.ES],
         group=_("ES"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ES_ENABLE_DISABLE = ActionMeta(
@@ -850,13 +916,15 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.ES],
         group=_("ES"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DORIS_APPLY = ActionMeta(
         id=TicketType.DORIS_APPLY.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
-        is_ticket_action=True
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DORIS_VIEW = ActionMeta(
@@ -868,6 +936,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DORIS],
         group=_("Doris"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DORIS_ACCESS_ENTRY_VIEW = ActionMeta(
@@ -879,6 +948,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DORIS],
         group=_("Doris"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DORIS_ENABLE_DISABLE = ActionMeta(
@@ -890,6 +960,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DORIS],
         group=_("Doris"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     KAFKA_VIEW = ActionMeta(
@@ -901,6 +972,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.KAFKA],
         group=_("Kafka"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     KAFKA_ACCESS_ENTRY_VIEW = ActionMeta(
@@ -912,13 +984,15 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.KAFKA],
         group=_("Kafka"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     KAFKA_APPLY = ActionMeta(
         id=TicketType.KAFKA_APPLY.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
-        is_ticket_action=True
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     KAFKA_ENABLE_DISABLE = ActionMeta(
@@ -930,13 +1004,15 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.KAFKA],
         group=_("Kafka"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     HDFS_APPLY = ActionMeta(
         id=TicketType.HDFS_APPLY.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
-        is_ticket_action=True
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     HDFS_VIEW = ActionMeta(
@@ -948,6 +1024,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.HDFS],
         group=_("HDFS"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     HDFS_ACCESS_ENTRY_VIEW = ActionMeta(
@@ -959,6 +1036,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.HDFS],
         group=_("HDFS"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     HDFS_ENABLE_DISABLE = ActionMeta(
@@ -970,13 +1048,15 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.HDFS],
         group=_("HDFS"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     PULSAR_APPLY = ActionMeta(
         id=TicketType.PULSAR_APPLY.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
-        is_ticket_action=True
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     PULSAR_VIEW = ActionMeta(
@@ -988,6 +1068,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.PULSAR],
         group=_("Pulsar"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     PULSAR_ACCESS_ENTRY_VIEW = ActionMeta(
@@ -999,6 +1080,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.PULSAR],
         group=_("Pulsar"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     PULSAR_ENABLE_DISABLE = ActionMeta(
@@ -1010,6 +1092,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.PULSAR],
         group=_("Pulsar"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     RIAK_CLUSTER_APPLY = ActionMeta(
@@ -1017,7 +1100,8 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
-        is_ticket_action=True
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     RIAK_VIEW = ActionMeta(
@@ -1029,6 +1113,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.RIAK],
         group=_("Riak"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     RIAK_ACCESS_ENTRY_VIEW = ActionMeta(
@@ -1040,6 +1125,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.RIAK],
         group=_("Riak"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     RIAK_ENABLE_DISABLE = ActionMeta(
@@ -1051,6 +1137,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.RIAK],
         group=_("Riak"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_VIEW = ActionMeta(
@@ -1062,6 +1149,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_APPLY = ActionMeta(
@@ -1073,6 +1161,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MongoDB"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_ENABLE_DISABLE = ActionMeta(
@@ -1084,6 +1173,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_CREATE_ACCOUNT = ActionMeta(
@@ -1094,6 +1184,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MongoDB"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_DELETE_ACCOUNT = ActionMeta(
@@ -1104,6 +1195,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB_ACCOUNT],
         group=_("MongoDB"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_ADD_ACCOUNT_RULE = ActionMeta(
@@ -1115,6 +1207,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB_ACCOUNT],
         group=_("MongoDB"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_ACCOUNT_RULES_VIEW = ActionMeta(
@@ -1126,6 +1219,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MongoDB"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_AUTHORIZE_RULES = ActionMeta(
@@ -1137,6 +1231,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB_ACCOUNT, ResourceEnum.MONGODB],
         group=_("MongoDB"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_EXCEL_AUTHORIZE_RULES = ActionMeta(
@@ -1148,6 +1243,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MongoDB"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_VIEW = ActionMeta(
@@ -1158,6 +1254,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_ADMIN_PWD_MODIFY = ActionMeta(
@@ -1180,6 +1277,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_CREATE_ACCOUNT = ActionMeta(
@@ -1190,6 +1288,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_DELETE_ACCOUNT = ActionMeta(
@@ -1200,6 +1299,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_ADD_ACCOUNT_RULE = ActionMeta(
@@ -1211,6 +1311,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_ACCOUNT_RULES_VIEW = ActionMeta(
@@ -1222,6 +1323,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_AUTHORIZE_RULES = ActionMeta(
@@ -1233,6 +1335,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT, ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_EXCEL_AUTHORIZE_RULES = ActionMeta(
@@ -1244,6 +1347,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_ENABLE_DISABLE = ActionMeta(
@@ -1255,6 +1359,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     RESOURCE_POLL_MANAGE = ActionMeta(
@@ -1298,6 +1403,7 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("可观测"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DBHA_SWITCH_EVENT_VIEW = ActionMeta(
@@ -1308,6 +1414,7 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("可观测"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     NOTIFY_GROUP_LIST = ActionMeta(
@@ -1319,6 +1426,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("业务配置"),
         subgroup=_("告警组"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     NOTIFY_GROUP_CREATE = ActionMeta(
@@ -1330,6 +1438,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("业务配置"),
         subgroup=_("告警组"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     NOTIFY_GROUP_UPDATE = ActionMeta(
@@ -1341,6 +1450,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.NOTIFY_GROUP],
         group=_("业务配置"),
         subgroup=_("告警组"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     NOTIFY_GROUP_DESTROY = ActionMeta(
@@ -1352,6 +1462,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.NOTIFY_GROUP],
         group=_("业务配置"),
         subgroup=_("告警组"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_NOTIFY_GROUP_UPDATE = ActionMeta(
@@ -1374,6 +1485,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务配置"),
         subgroup=_("监控策略"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_MONITOR_POLICY_LIST = ActionMeta(
@@ -1396,6 +1508,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
         group=_("业务配置"),
         subgroup=_("监控策略"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_MONITOR_POLICY_UPDATE_STRATEGY = ActionMeta(
@@ -1418,6 +1531,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
         group=_("业务配置"),
         subgroup=_("监控策略"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONITOR_POLICY_ENABLE_DISABLE = ActionMeta(
@@ -1429,6 +1543,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
         group=_("业务配置"),
         subgroup=_("监控策略"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_MONITOR_POLICY_ENABLE_DISABLE = ActionMeta(
@@ -1442,37 +1557,16 @@ class ActionEnum:
         subgroup=_("监控策略"),
     )
 
-    MONITOR_POLICY_ALARM_VIEW = ActionMeta(
-        id="monitor_policy_alarm_view",
-        name=_("监控告警查看"),
-        name_en="monitor_policy_alarm_view",
-        type="view",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.MONITOR_POLICY],
-        group=_("业务配置"),
-        subgroup=_("监控策略"),
-    )
-
     MONITOR_POLICY_CLONE_STRATEGY = ActionMeta(
         id="monitor_policy_clone",
         name=_("监控策略克隆"),
         name_en="monitor_policy_clone",
         type="create",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.MONITOR_POLICY],
+        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务配置"),
         subgroup=_("监控策略"),
-    )
-
-    GLOBAL_MONITOR_POLICY_CLONE_STRATEGY = ActionMeta(
-        id="global_monitor_policy_clone",
-        name=_("全局监控策略克隆"),
-        name_en="global_monitor_policy_clone",
-        type="create",
-        related_actions=[GLOBAL_MANAGE.id],
-        related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
-        group=_("全局设置"),
-        subgroup=_("监控策略"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_DBCONFIG_VIEW = ActionMeta(
@@ -1627,6 +1721,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("业务配置"),
         subgroup=_(""),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_IP_WHITELIST_MANAGE = ActionMeta(

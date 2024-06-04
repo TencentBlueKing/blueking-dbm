@@ -117,7 +117,10 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
 
     @staticmethod
     def _external_perm_param_field(kwargs):
-        return {ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"], ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type}
+        return {
+            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
+            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
+        }
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)
     def get_nodes(self, request, bk_biz_id: int, cluster_id: int):
