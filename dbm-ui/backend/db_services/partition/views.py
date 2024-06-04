@@ -114,7 +114,7 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionCreateSerializer)
-        return Response(PartitionHandler.create_and_dry_run_partition(validated_data))
+        return Response(PartitionHandler.create_and_dry_run_partition(request.user.username, validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("批量删除分区策略"),
@@ -186,10 +186,6 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=PartitionRunSerializer)
     def execute_partition(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionRunSerializer, representation=True)
-        cluster = Cluster.objects.get(id=validated_data["cluster_id"])
-        validated_data.update(
-            immute_domain=cluster.immute_domain, bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=cluster.bk_biz_id
-        )
         return Response(PartitionHandler.execute_partition(user=request.user.username, **validated_data))
 
     @common_swagger_auto_schema(

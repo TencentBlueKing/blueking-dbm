@@ -62,9 +62,10 @@ class PartitionHandler(object):
             return {config_id: cls.format_err_execute_objects(config_data, res["message"])}
 
     @classmethod
-    def create_and_dry_run_partition(cls, create_data: Dict):
+    def create_and_dry_run_partition(cls, user: str, create_data: Dict):
         """
         创建预执行分区策略
+        @param user: 操作者
         @param create_data: 分区策略数据
         """
 
@@ -90,30 +91,24 @@ class PartitionHandler(object):
             get_data=cls.get_dry_run_data,
             in_order=True,
         )
-
         config__id_result: Dict[str, Union[List, str]] = {}
         for res in results:
             config__id_result.update(res)
 
-        return config__id_result
+        # 如果不需要创建分区单据，则返回分区执行数据
+        if not create_data["auto_commit"]:
+            return config__id_result
+
+        # 创建分区初始化单据(可能创建多个单据，一个单据对应一个分区策略)
+        ticket_list = cls.execute_partition(user, create_data["cluster_id"], config__id_result)
+        return ticket_list
 
     @classmethod
-    def execute_partition(
-        cls,
-        user: str,
-        bk_biz_id: int,
-        bk_cloud_id: int,
-        cluster_id: int,
-        immute_domain: str,
-        partition_objects: Dict[str, Any],
-    ):
+    def execute_partition(cls, user: str, cluster_id: int, partition_objects: Dict[str, Any]):
         """
         执行分区策略
         @param user: 创建者
-        @param bk_biz_id: 业务ID
-        @param bk_cloud_id: 云区域ID
         @param cluster_id: 集群ID
-        @param immute_domain: 集群域名
         @param partition_objects: 分区执行数据
         """
         # 获取分区单据的类型
@@ -128,8 +123,8 @@ class PartitionHandler(object):
             {
                 "config_id": config_id,
                 "cluster_id": cluster_id,
-                "bk_cloud_id": bk_cloud_id,
-                "immute_domain": immute_domain,
+                "bk_cloud_id": cluster.bk_cloud_id,
+                "immute_domain": cluster.immute_domain,
                 "partition_objects": partition_object,
             }
             for config_id, partition_object in partition_objects.items()
@@ -142,7 +137,7 @@ class PartitionHandler(object):
             ticket = Ticket.create_ticket(
                 ticket_type=partition_ticket_type,
                 creator=user,
-                bk_biz_id=bk_biz_id,
+                bk_biz_id=cluster.bk_biz_id,
                 remark=_("分区单据执行"),
                 details={"infos": [partition_data]},
                 auto_execute=True,
@@ -152,9 +147,9 @@ class PartitionHandler(object):
             partition_log_data = {
                 "cluster_type": cluster.cluster_type,
                 "config_id": int(partition_data["config_id"]),
-                "bk_biz_id": bk_biz_id,
+                "bk_biz_id": cluster.bk_biz_id,
                 "cluster_id": cluster.id,
-                "bk_cloud_id": bk_cloud_id,
+                "bk_cloud_id": cluster.bk_cloud_id,
                 "ticket_id": ticket.id,
                 "immute_domain": cluster.immute_domain,
                 "time_zone": cluster.time_zone,

@@ -54,8 +54,13 @@ class PartitionCreateSerializer(serializers.Serializer):
     expire_time = serializers.IntegerField(help_text=_("过期时间"))
     partition_time_interval = serializers.IntegerField(help_text=_("分区间隔"))
     need_dry_run = serializers.BooleanField(help_text=_("是否需要获取分区执行数据"), required=False, default=True)
+    auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"), required=False, default=False)
 
     def validate(self, attrs):
+        # 如果自动创建单据，则必须要获取执行数据
+        if attrs["auto_commit"] and not attrs["need_dry_run"]:
+            raise serializers.ValidationError(_("在自动创建单据的条件下，请保证need_dry_run选项为真"))
+
         # 表不支持通配
         for tb in attrs["tblikes"]:
             if "%" in tb or "*" in tb:
