@@ -122,7 +122,6 @@
             :size="10240"
             :tip="acceptInfo.tips"
             :url="createFileState.uploadUrl"
-            with-credentials
             @change="handleSeleFileChange"
             @delete="handleDeleteFile"
             @success="handleUpdateSuccess" />

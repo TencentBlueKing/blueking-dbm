@@ -56,10 +56,10 @@
 
   import { useTimeZoneFormat } from '@hooks';
 
+  import { useTimeZone } from '@stores';
+
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
-
-  import { utcDisplayTime } from '@utils';
 
   interface Props {
     clusterId: number;
@@ -81,6 +81,7 @@
 
   const { t } = useI18n();
   const formatDateToUTC = useTimeZoneFormat();
+  const timeZoneStore = useTimeZone();
 
   const timerRules = [
     {
@@ -128,14 +129,14 @@
     }).then((dataList) => {
       logRecordList.value = dataList.map((item) => ({
         id: item.backup_id,
-        name: `${item.mysql_role} ${utcDisplayTime(dayjs(item.backup_time).tz(dayjs.tz.guess()).toString())}`,
+        name: `${item.mysql_role} ${dayjs(item.backup_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
       }));
       logRecordListMemo = dataList;
     });
   };
 
   watch(
-    () => [props.backupSource, props.clusterId],
+    () => [props.backupSource, props.clusterId, timeZoneStore.label],
     () => {
       localBackupid.value = 0;
       localRollbackTime.value = '';
