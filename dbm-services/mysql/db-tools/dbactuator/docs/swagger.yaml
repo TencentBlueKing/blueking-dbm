@@ -90,6 +90,10 @@ definitions:
       monitor_user:
         description: mysql monitor 账户，环境变量 GENERAL_ACCOUNT_monitor_user
         type: string
+      partition_yw_pwd:
+        type: string
+      partition_yw_user:
+        type: string
       proxy_admin_pwd:
         description: proxy admin pwd
         type: string
@@ -886,9 +890,10 @@ definitions:
         description: 当前实例的主机地址
         type: string
       options:
-        allOf:
-        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BackupOptions'
+        additionalProperties:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BackupOptions'
         description: 选项参数配置
+        type: object
       pkg:
         description: 安装包名
         type: string
