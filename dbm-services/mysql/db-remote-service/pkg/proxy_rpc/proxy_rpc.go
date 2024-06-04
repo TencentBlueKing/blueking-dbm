@@ -39,7 +39,7 @@ func (c *ProxyRPCEmbed) ParseCommand(command string) (*parser.ParseQueryBase, er
 func (c *ProxyRPCEmbed) MakeConnection(address string, user string, password string, timeout int) (*sqlx.DB, error) {
 	// TODO 如果连接的是业务端口（非 admin 端口），也应该设置时区？
 	// tz := "loc=Local&time_zone=%27%2B08%3A00%27"
-	connectParam := fmt.Sprintf("timeout=%d", timeout)
+	connectParam := fmt.Sprintf("timeout=%ds", timeout)
 	db, err := sqlx.Open(
 		"mysql",
 		fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, connectParam),
