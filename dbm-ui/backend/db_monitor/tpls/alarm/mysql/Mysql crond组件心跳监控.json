@@ -6,7 +6,7 @@
     "bk_biz_id": "",
     "name": "Mysql crond组件心跳监控",
     "source": "dbm",
-    "scenario": "component",
+    "scenario": "os",
     "type": "monitor",
     "items": [
       {
