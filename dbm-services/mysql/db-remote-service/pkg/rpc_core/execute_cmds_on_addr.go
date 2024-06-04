@@ -40,7 +40,7 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []cmdResult, err error)
 		}
 
 		if c.IsQueryCommand(pc) {
-			tableData, err := queryCmd(conn, command, ctx)
+			tableData, err := queryCmd(conn, command, time.Second*time.Duration(c.queryTimeout))
 			if err != nil {
 				slog.Error(
 					"query command",
@@ -69,7 +69,7 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []cmdResult, err error)
 				},
 			)
 		} else if c.IsExecuteCommand(pc) {
-			rowsAffected, err := executeCmd(conn, command, ctx)
+			rowsAffected, err := executeCmd(conn, command, time.Second*time.Duration(c.queryTimeout))
 			if err != nil {
 				slog.Error(
 					"execute command",
