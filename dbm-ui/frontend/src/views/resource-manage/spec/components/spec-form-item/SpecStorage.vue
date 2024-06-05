@@ -25,7 +25,7 @@
         v-if="tableData.length === 0"
         @click="handleAddFirstRow">
         <DbIcon type="add" />
-        <span style="font-size:12px">{{ t('添加') }}</span>
+        <span style="font-size: 12px">{{ t('添加') }}</span>
       </BkButton>
       <DbOriginalTable
         v-else
@@ -232,12 +232,18 @@
             onClick={() => handleAdd(index)}>
             <db-icon type="plus-fill" />
           </bk-button>
-          <bk-button
-            text
-            disabled={props.isEdit}
-            onClick={() => handleRemove(index)}>
-            <db-icon type="minus-fill" />
-          </bk-button>
+          <span
+            v-bk-tooltips={{
+              content: t('C,D 盘无法删除'),
+              disabled: !data.isSystemDrive,
+            }}>
+            <bk-button
+              text
+              disabled={tableData.value.length === 1 || props.isEdit || data.isSystemDrive}
+              onClick={() => handleRemove(index)}>
+              <db-icon type="minus-fill" />
+            </bk-button>
+          </span>
         </div>
       ),
     },

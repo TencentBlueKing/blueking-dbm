@@ -227,7 +227,7 @@
         max: '' as string | number,
         min: '' as string | number,
       },
-      storage_spec: genStorageSpec(),
+      storage_spec: isSqlserver ? genSystemDriveStorageSpec() : genStorageSpec(),
       device_class: '-1' as string[] | string,
       desc: '',
       enable: true,
