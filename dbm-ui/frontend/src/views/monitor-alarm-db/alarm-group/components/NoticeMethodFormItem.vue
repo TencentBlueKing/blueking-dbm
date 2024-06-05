@@ -50,11 +50,12 @@
               }
             "
             append-to-body
+            :disabled="disabled"
             format="HH:mm"
             :open="item.open"
             type="timerange"
             :value="item.timeRange"
-            @change="(date: string[]) => handleTimeChange(date, index)">
+            @change="(date) => handleTimeChange(date, index)">
             <template #trigger>
               <BkButton
                 text
@@ -115,7 +116,9 @@
                   v-for="(checkboxItem, checkboxIndex) in dataItem.checkboxArr"
                   :key="checkboxIndex"
                   class="table-row-item">
-                  <BkCheckbox v-model="checkboxItem.checked" />
+                  <BkCheckbox
+                    v-model="checkboxItem.checked"
+                    :disabled="disabled" />
                 </div>
                 <div
                   v-for="(inputItem, inputIndex) in dataItem.inputArr"
@@ -124,6 +127,7 @@
                   <BkInput
                     v-model="inputItem.value"
                     class="mb10"
+                    :disabled="disabled"
                     :placeholder="t('请输入群ID')" />
                 </div>
               </div>
@@ -154,7 +158,8 @@
 
   interface Props {
     type: 'add' | 'edit' | 'copy' | '',
-    details: AlarmGroupDetail
+    details: AlarmGroupDetail,
+    disabled: boolean,
   }
 
   interface Exposes {
@@ -249,13 +254,13 @@
 
   const timePickerRefs: Record<number, TimePickerRef> = {};
   let currentPanelIndex = -1;
-  let currentPanelTimeRange:string[] = [];
+  let currentPanelTimeRange:[string, string] = ['', ''];
 
   const active = ref('');
   const panelList = ref<{
     name: string,
     open: boolean,
-    timeRange: string[],
+    timeRange: [string, string],
     dataList:({
       checkboxArr: PanelCheckbox[],
       inputArr: PanelInput[]
@@ -364,7 +369,7 @@
     return `${hoursStr}:${minuteStr}`;
   };
 
-  const findFirstAvailableTimeSlot = () => {
+  const findFirstAvailableTimeSlot = (): [string, string] => {
     const timeRanges = panelList.value.map(item => item.timeRange);
     const fullDayInMinutes = 24 * 60;
 
@@ -483,7 +488,7 @@
           return {
             name,
             open: false,
-            timeRange: item.time_range.split('--'),
+            timeRange: item.time_range.split('--') as [string, string],
             dataList,
           };
         });
@@ -517,7 +522,7 @@
     return false; // 时间段不重叠
   };
 
-  const handleTimeChange = (date: string[], index: number) => {
+  const handleTimeChange = (date: [string, string], index: number) => {
     panelList.value[index].timeRange = date;
   };
 
@@ -582,7 +587,7 @@
 
     panelItem.open = false;
     currentPanelIndex = -1;
-    currentPanelTimeRange = [];
+    currentPanelTimeRange = ['', ''];
   };
 
   defineExpose<Exposes>({
