@@ -79,6 +79,7 @@ export default class Mongodb {
   cluster_access_port: number;
   cluster_alias: string;
   cluster_name: string;
+  cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_type: string;
   create_at: string;
   creator: string;
@@ -129,6 +130,7 @@ export default class Mongodb {
     this.cluster_alias = payload.cluster_alias;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.cluster_name = payload.cluster_name;
+    this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.creator = payload.creator;

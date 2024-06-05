@@ -169,6 +169,7 @@
     UserPersonalSettings,
   } from '@common/const';
 
+  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
@@ -564,6 +565,13 @@
           </DbStatus>
         );
       },
+    },
+    {
+      label: t('容量使用率'),
+      field: 'cluster_stats',
+      width: 240,
+      showOverflowTooltip: false,
+      render: ({ data }: ColumnRenderData) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
     },
     {
       label: 'Proxy',

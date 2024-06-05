@@ -53,6 +53,7 @@ export default class Riak {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_type: string;
   cluster_type_name: string;
   operations: Array<{
@@ -129,6 +130,7 @@ export default class Riak {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.operations = payload.operations;

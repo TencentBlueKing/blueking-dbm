@@ -93,6 +93,7 @@
     UserPersonalSettings,
   } from '@common/const';
 
+  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import DbStatus from '@components/db-status/index.vue';
@@ -367,6 +368,13 @@
       },
     },
     {
+      label: t('容量使用率'),
+      field: 'cluster_stats',
+      width: 240,
+      showOverflowTooltip: false,
+      render: ({ data }: { data: RedisModel }) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
+    },
+    {
       label: 'Master',
       field: ClusterNodeKeys.REDIS_MASTER,
       width: 180,
@@ -467,7 +475,7 @@
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: { data: RedisModel }) => (
-        data.isOnline ? (
+        !data.isOnline ? (
             <OperationBtnStatusTips
               data={data}
               v-db-console="redis.haClusterManage.disable">
@@ -684,8 +692,8 @@
     InfoBox({
       type: 'warning',
       title: t('确定删除该集群'),
-      confirmTxt: t('删除'),
-      confirmTheme: 'danger',
+      confirmText: t('删除'),
+      confirmButtonTheme: 'danger',
       content: () => (
         <div style="word-break: all; text-align: left; padding-left: 16px;">
           <p>{t('集群【name】被删除后_将进行以下操作', { name })}</p>

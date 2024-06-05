@@ -46,6 +46,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   cluster_alias: string;
   cluster_name: string;
   cluster_time_zone: string;
+  cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_type: string;
   cluster_type_name: string;
   creator: string;
@@ -94,6 +95,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
     this.cluster_alias = payload.cluster_alias;
     this.cluster_name = payload.cluster_name;
     this.cluster_time_zone = payload.cluster_time_zone;
+    this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.creator = payload.creator;

@@ -67,6 +67,7 @@ export default class Kafka {
   cap_usage: number;
   cluster_alias: string;
   cluster_name: string;
+  cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_type: string;
   cluster_type_name: string;
   cluster_time_zone: string;
@@ -133,6 +134,7 @@ export default class Kafka {
     this.cluster_name = payload.cluster_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_entry_details = payload.cluster_entry_details;
+    this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.create_at = payload.create_at;

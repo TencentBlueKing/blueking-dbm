@@ -136,13 +136,13 @@
     UserPersonalSettings,
   } from '@common/const';
 
+  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
-  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterExpansion from '@views/hdfs-manage/common/expansion/Index.vue';
@@ -421,6 +421,13 @@
         checked: columnCheckedMap.value.status,
       },
       render: ({ data }: {data: HdfsModel}) => <RenderClusterStatus data={data.status} />,
+    },
+    {
+      label: t('容量使用率'),
+      field: 'cluster_stats',
+      width: 240,
+      showOverflowTooltip: false,
+      render: ({ data }: {data: HdfsModel}) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
     },
     {
       label: t('版本'),

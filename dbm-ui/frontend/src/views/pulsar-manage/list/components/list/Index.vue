@@ -119,6 +119,7 @@
 
   import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
+  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
@@ -342,6 +343,13 @@
         checked: columnCheckedMap.value.status,
       },
       render: ({ data }: {data: PulsarModel}) => <RenderClusterStatus data={data.status} />,
+    },
+    {
+      label: t('容量使用率'),
+      field: 'cluster_stats',
+      width: 240,
+      showOverflowTooltip: false,
+      render: ({ data }: {data: PulsarModel}) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
     },
     {
       label: 'Bookkeeper',

@@ -66,6 +66,7 @@ export default class Es {
   cap_usage: number;
   cluster_alias: string;
   cluster_name: string;
+  cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_type: string;
   cluster_type_name: string;
   cluster_time_zone: string;
@@ -132,6 +133,7 @@ export default class Es {
     this.cap_usage = payload.cap_usage;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_name = payload.cluster_name;
+    this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.cluster_time_zone = payload.cluster_time_zone;

@@ -167,6 +167,7 @@
   } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
+  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
@@ -342,6 +343,13 @@
       render: ({ data }: { data: SqlServerHaClusterModel }) => <RenderClusterStatus data={data.status} />,
     },
     {
+      label: t('容量使用率'),
+      field: 'cluster_stats',
+      width: 240,
+      showOverflowTooltip: false,
+      render: ({ data }: { data: SqlServerHaClusterModel }) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
+    },
+    {
       label: 'Master',
       field: 'Master',
       width: 180,
@@ -381,6 +389,7 @@
     },
     {
       label: t('操作'),
+      field: '',
       width: tableOperationWidth.value,
       fixed: 'right',
       render: ({ data }: { data: SqlServerHaClusterModel }) => (
@@ -456,6 +465,7 @@
     })),
     checked: columns.map(item => item.field).filter(key => !!key && key !== 'id'),
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
 
   const {
@@ -532,7 +542,7 @@
     InfoBox({
       type: 'warning',
       title: t('确定删除该集群'),
-      confirmTxt: t('删除'),
+      confirmText: t('删除'),
       confirmButtonTheme: 'danger',
       content: () => (
         <div style="word-break: all; text-align: left; padding-left: 16px;">
