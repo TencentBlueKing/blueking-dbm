@@ -16,7 +16,7 @@ from backend.db_meta.exceptions import ClusterEntryNotExistException
 from backend.db_meta.models import ClusterEntry
 
 
-def cluster_instances(entry_name: str):
+def tendbsingle(entry_name: str):
     try:
         input_entry = ClusterEntry.objects.get(entry=entry_name, cluster__cluster_type=ClusterType.TenDBSingle.value)
         cluster = input_entry.cluster
@@ -25,11 +25,12 @@ def cluster_instances(entry_name: str):
         return {
             "bind_to": AccessLayer.STORAGE.value,
             "entry_role": input_entry.role,
-            "cluster_type": cluster.cluster_type,
+            "cluster_type": ClusterType.TenDBSingle.value,
             "bk_biz_id": cluster.bk_biz_id,
             "db_module_id": cluster.db_module_id,
             "bk_cloud_id": cluster.bk_cloud_id,
             "immute_domain": cluster.immute_domain,
+            "padding_proxy": False,
             "storages": [
                 {
                     "ip": storage_instance.machine.ip,

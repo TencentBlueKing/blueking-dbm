@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from django.core.exceptions import ObjectDoesNotExist
 
 from backend.db_meta.enums import AccessLayer, ClusterType, TenDBClusterSpiderRole
@@ -16,7 +15,7 @@ from backend.db_meta.exceptions import ClusterEntryNotExistException
 from backend.db_meta.models import ClusterEntry
 
 
-def cluster_instances(entry_name: str):
+def tendbcluster(entry_name: str):
     """
     TenDBCluster 的授权只需要和 spider 交互, 所以这个 api 不需要返回存储层的信息
     授权系统设计权限申请会同时在主备开通, 所以所有的 spider 都需要返回
@@ -32,29 +31,51 @@ def cluster_instances(entry_name: str):
         return {
             "bind_to": AccessLayer.PROXY.value,
             "entry_role": input_entry.role,
-            "cluster_type": cluster.cluster_type,
+            "cluster_type": ClusterType.TenDBCluster.value,
             "bk_biz_id": cluster.bk_biz_id,
             "db_module_id": cluster.db_module_id,
             "bk_cloud_id": cluster.bk_cloud_id,
             "immute_domain": cluster.immute_domain,
+            "padding_proxy": False,
             "spider_master": [
-                {"ip": ele.machine.ip, "port": ele.port}
+                {
+                    "ip": ele.machine.ip,
+                    "port": ele.port,
+                    "admin_port": ele.admin_port,
+                    "bk_cloud_id": ele.machine.bk_cloud_id,
+                    "status": ele.status,
+                    "bk_instance_id": ele.bk_instance_id,
+                }
                 for ele in cluster.proxyinstance_set.filter(
                     tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value
                 )
             ],
             "spider_slave": [
-                {"ip": ele.machine.ip, "port": ele.port}
+                {
+                    "ip": ele.machine.ip,
+                    "port": ele.port,
+                    "admin_port": ele.admin_port,
+                    "bk_cloud_id": ele.machine.bk_cloud_id,
+                    "status": ele.status,
+                    "bk_instance_id": ele.bk_instance_id,
+                }
                 for ele in cluster.proxyinstance_set.filter(
                     tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value
                 )
             ],
-            # "spider_mnt": [
-            #     {"ip": ele.machine.ip, "port": ele.port}
-            #     for ele in cluster.proxyinstance_set.filter(
-            #         tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MNT.value
-            #     )
-            # ],
+            "spider_mnt": [
+                {
+                    "ip": ele.machine.ip,
+                    "port": ele.port,
+                    "admin_port": ele.admin_port,
+                    "bk_cloud_id": ele.machine.bk_cloud_id,
+                    "status": ele.status,
+                    "bk_instance_id": ele.bk_instance_id,
+                }
+                for ele in cluster.proxyinstance_set.filter(
+                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MNT.value
+                )
+            ],
         }
     except ObjectDoesNotExist:
         raise ClusterEntryNotExistException(entry=entry_name)
