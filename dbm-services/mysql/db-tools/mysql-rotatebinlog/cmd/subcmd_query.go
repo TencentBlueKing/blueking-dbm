@@ -55,7 +55,7 @@ var queryCmd = &cobra.Command{
 			sqlBuilder = sqlBuilder.Limit(uint64(limitNum))
 		}
 
-		sqlBuilder = sqlBuilder.OrderBy("filename desc")
+		sqlBuilder = sqlBuilder.OrderBy("file_mtime desc")
 		files, err := binlogInst.QueryWithBuildWhere(models.DB.Conn, &sqlBuilder)
 		if err != nil {
 			return err
