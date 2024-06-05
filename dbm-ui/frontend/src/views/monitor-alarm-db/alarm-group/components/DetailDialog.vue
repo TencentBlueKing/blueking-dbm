@@ -12,8 +12,9 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     :is-show="isShow"
+    :show-footer="!editDisabled"
     :width="960"
     @closed="handleClose">
     <template #header>
@@ -53,17 +54,19 @@
           ref="receiversSelectorRef"
           v-model="formData.receivers"
           :biz-id="bizId"
+          :disabled="editDisabled"
           :is-built-in="detailData.is_built_in"
           :type="type" />
       </BkFormItem>
       <NoticeMethodFormItem
         ref="noticeMethodRef"
         :details="detailData.details"
+        :disabled="editDisabled"
         :type="type" />
     </DbForm>
     <template #footer>
       <BkButton
-        class="mr-8"
+        class="w-88 mr-8"
         :loading="loading"
         theme="primary"
         @click="handleSubmit">
@@ -75,7 +78,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="ts">
@@ -148,6 +151,7 @@
 
   const loading = computed(() => insertLoading.value || updateLoading.value);
   const editDisabled = computed(() => props.type === 'edit' && props.detailData.is_built_in);
+
   const sidesliderTitle = computed(() => `${titleMap[props.type]}`);
 
   const {

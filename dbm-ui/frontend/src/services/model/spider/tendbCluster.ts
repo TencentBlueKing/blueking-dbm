@@ -13,7 +13,7 @@
 
 import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
-import { utcDisplayTime } from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -229,6 +229,10 @@ export default class TendbCluster {
       return true;
     }
     return false;
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24 * 3);
   }
 
   get isOnline() {

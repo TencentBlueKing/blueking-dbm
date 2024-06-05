@@ -103,13 +103,21 @@
         <TextOverflowLayout>
           {{
             default: () => {
-              const editBtnPermissionInfo = {
-                actionId: data.is_built_in ? 'global_notify_group_update' : 'notify_group_update',
-                permission: data.is_built_in ? 'global_notify_group_update' : data.permission.global_notify_group_update
+
+              if (data.is_built_in){
+                return (
+                  <bk-button
+                    text
+                    theme="primary"
+                    onClick={ () => handleOpenDetail('edit', data) }>
+                    {data.name}
+                  </bk-button>
+                )
               }
               return (
                 <auth-button
-                  {...editBtnPermissionInfo }
+                  actionId="notify_group_update"
+                  permission={data.permission.notify_group_update}
                   resource={data.id}
                   text
                   theme="primary"
@@ -199,25 +207,10 @@
     {
       label: t('操作'),
       width: 180,
-      render: ({ data }: TableRenderData) => {
-        const editBtnPermissionInfo = {
-          actionId: data.is_built_in ? 'global_notify_group_update' : 'notify_group_update',
-          permission: data.is_built_in ? 'global_notify_group_update' : data.permission.global_notify_group_update
-        }
-
-        return (
+      render: ({ data }: TableRenderData) => (
           <>
             <auth-button
-              {...editBtnPermissionInfo }
-              resource={data.id}
-              class="mr-24"
-              text
-              theme="primary"
-              onClick={ () => handleOpenDetail('edit', data) }>
-              { t('编辑') }
-            </auth-button>
-            <auth-button
-              action-id="notify_group_create"
+              actionId="notify_group_create"
               permission={data.permission.notify_group_create}
               class="mr-24"
               text
@@ -225,6 +218,20 @@
               onClick={ () => handleOpenDetail('copy', data) }>
               { t('克隆') }
             </auth-button>
+            {
+              !data.is_built_in && (
+                <auth-button
+                  actionId="notify_group_update"
+                  permission={data.permission.notify_group_update}
+                  resource={data.id}
+                  class="mr-24"
+                  text
+                  theme="primary"
+                  onClick={ () => handleOpenDetail('edit', data) }>
+                  { t('编辑') }
+                </auth-button>
+              )
+            }
             {
               !data.is_built_in && (
                 <auth-button
@@ -239,8 +246,7 @@
               )
             }
           </>
-        );
-      },
+        ),
     },
   ];
 

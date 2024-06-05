@@ -238,7 +238,6 @@
       }
 
       .nav-slider {
-        background-color: #1f2533 !important;
         border: none !important;
       }
 
