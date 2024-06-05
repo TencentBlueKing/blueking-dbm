@@ -214,6 +214,12 @@ class Permission(object):
         :param resources: 待鉴权的资源列表, 格式为[resource1]
         :param is_raise_exception: 鉴权失败时是否抛出异常
         """
+
+        # 如果是超级管理员 则检查通过
+        if self.is_superuser:
+            permission_list = {action.id: True for action in actions}
+            return permission_list
+
         multi_request = self.make_multi_request(actions, resources)
         try:
             permission_list = self._iam.resource_multi_actions_allowed(multi_request)
@@ -245,6 +251,14 @@ class Permission(object):
         :param is_raise_exception: 鉴权失败时是否抛出异常
         """
 
+        # 如果是超级管理员 则检查通过
+        if self.is_superuser:
+            permission_list = {}
+            for index, resources in enumerate(resources_list):
+                key = index if len(resources) > 1 else resources[0].id
+                permission_list[key] = {action.id: True for action in actions}
+            return permission_list
+
         multi_request = self.make_multi_request(actions)
         batch_permission = {}
         try:
@@ -252,10 +266,10 @@ class Permission(object):
                 batch_permission = self._iam.batch_resource_multi_actions_allowed(multi_request, resources_list)
             # 如果资源不属于本系统，则只能单次调用allowed
             else:
-                batch_permission = {
-                    str(index + 1): self.multi_actions_is_allowed(actions, resources)
-                    for index, resources in enumerate(resources_list)
-                }
+                batch_permission = {}
+                for index, resources in enumerate(resources_list):
+                    key = index if len(resources) > 1 else resources[0].id
+                    batch_permission[key] = self.multi_actions_is_allowed(actions, resources)
         except Exception as e:  # pylint: disable=broad-except
             logger.exception(f"IAM AuthAPIError: {e}")
             for index in range(len(resources_list)):
