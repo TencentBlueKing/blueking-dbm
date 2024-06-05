@@ -19,6 +19,7 @@
       v-model="modelValue"
       class="receivers-selector"
       :default-alternate="defaultAlternate"
+      :disabled="disabled"
       :fuzzy-search-method="fuzzySearchMethod"
       :render-list="renderList"
       :render-tag="renderTag"
@@ -61,6 +62,7 @@
     type: 'add' | 'edit' | 'copy' | '';
     isBuiltIn: boolean;
     bizId: number;
+    disabled: boolean;
   }
 
   interface Exposes {
@@ -148,7 +150,6 @@
   });
 
   const isClosable = (id: string) => {
-    // if (isPlatform || props.type !== 'edit') {
     if (props.type !== 'edit') {
       return true;
     }

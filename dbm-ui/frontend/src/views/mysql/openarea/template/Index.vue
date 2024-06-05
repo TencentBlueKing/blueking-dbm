@@ -104,12 +104,12 @@
               title={t('确认删除该模板？')}
               content={t('删除操作无法撤回，请谨慎操作！')}
               confirmHandler={() => handleRemove(data)}>
-              <auth-button
+              <bk-button
                 class="ml-16"
                 text
                 theme="primary">
                 { t('删除') }
-              </auth-button>
+              </bk-button>
             </db-popconfirm>
           </auth-template>
         </>
