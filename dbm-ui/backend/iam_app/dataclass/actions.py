@@ -34,6 +34,7 @@ class ActionMeta(Action):
     related_resource_types: List[ResourceMeta] = None  # 关联资源类型
     related_actions: List = None  # 关联动作
     version: str = "1"  # 版本
+    hidden: bool = False  # 是否隐藏(隐藏后不允许在iam页面申请该动作)
     group: str = ""  # 动作隶属组
     subgroup: str = ""  # 动作隶属子组
     common_labels: List[str] = None  # 动作隶属常用操作配置组
@@ -122,6 +123,7 @@ class ActionEnum:
         related_resource_types=[],
         group=_("全局设置"),
         subgroup=_(""),
+        hidden=True,
     )
 
     TICKET_VIEW = ActionMeta(
@@ -144,6 +146,7 @@ class ActionEnum:
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
+        hidden=True,
     )
 
     RESOURCE_MANAGE = ActionMeta(
@@ -155,6 +158,7 @@ class ActionEnum:
         related_resource_types=[],
         group=_("资源管理"),
         subgroup=_(""),
+        hidden=True,
     )
 
     FLOW_DETAIL = ActionMeta(
@@ -202,6 +206,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("数据库配置"),
+        hidden=True,
     )
 
     GLOBAL_DBCONFIG_CREATE = ActionMeta(
@@ -213,6 +218,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("数据库配置"),
+        hidden=True,
     )
 
     GLOBAL_DBCONFIG_DESTROY = ActionMeta(
@@ -224,6 +230,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("数据库配置"),
+        hidden=True,
     )
 
     MYSQL_APPLY = ActionMeta(
@@ -259,6 +266,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("集群管理"),
+        hidden=True,
     )
 
     MYSQL_ENABLE_DISABLE = ActionMeta(
@@ -566,6 +574,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TenDBCluster"),
         subgroup=_("集群管理"),
+        hidden=True,
     )
 
     TENDBCLUSTER_CREATE_ACCOUNT = ActionMeta(
@@ -1266,6 +1275,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
+        hidden=True,
     )
 
     SQLSERVER_APPLY = ActionMeta(
@@ -1371,6 +1381,7 @@ class ActionEnum:
         related_resource_types=[],
         group=_("资源管理"),
         subgroup=_("资源池"),
+        hidden=True,
     )
 
     RESOURCE_OPERATION_VIEW = ActionMeta(
@@ -1382,6 +1393,7 @@ class ActionEnum:
         related_resource_types=[],
         group=_("资源管理"),
         subgroup=_("资源池"),
+        hidden=True,
     )
 
     DIRTY_POLL_MANAGE = ActionMeta(
@@ -1393,6 +1405,7 @@ class ActionEnum:
         related_resource_types=[],
         group=_("资源管理"),
         subgroup=_("污点池"),
+        hidden=True,
     )
 
     HEALTHY_REPORT_VIEW = ActionMeta(
@@ -1474,6 +1487,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.GLOBAL_NOTIFY_GROUP],
         group=_("全局设置"),
         subgroup=_("告警组"),
+        hidden=True,
     )
 
     MONITOR_POLICY_LIST = ActionMeta(
@@ -1497,6 +1511,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("监控策略"),
+        hidden=True,
     )
 
     MONITOR_POLICY_UPDATE_STRATEGY = ActionMeta(
@@ -1520,6 +1535,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
         group=_("全局设置"),
         subgroup=_("监控策略"),
+        hidden=True,
     )
 
     MONITOR_POLICY_DESTROY = ActionMeta(
@@ -1555,6 +1571,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
         group=_("全局设置"),
         subgroup=_("监控策略"),
+        hidden=True,
     )
 
     MONITOR_POLICY_CLONE_STRATEGY = ActionMeta(
@@ -1578,6 +1595,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("数据库配置"),
+        hidden=True,
     )
 
     DBA_ADMINISTRATOR_EDIT = ActionMeta(
@@ -1589,6 +1607,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务配置"),
         subgroup=_(""),
+        hidden=True,
     )
 
     GLOBAL_DBA_ADMINISTRATOR_EDIT = ActionMeta(
@@ -1600,6 +1619,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_(""),
+        hidden=True,
     )
 
     PACKAGE_VIEW = ActionMeta(
@@ -1611,6 +1631,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("版本文件"),
+        hidden=True,
     )
 
     PACKAGE_MANAGE = ActionMeta(
@@ -1622,6 +1643,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("版本文件"),
+        hidden=True,
     )
 
     PASSWORD_POLICY_SET = ActionMeta(
@@ -1633,6 +1655,7 @@ class ActionEnum:
         related_resource_types=[],
         group=_("全局设置"),
         subgroup=_(""),
+        hidden=True,
     )
 
     SPEC_CREATE = ActionMeta(
@@ -1644,6 +1667,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("资源管理"),
         subgroup=_("资源规格"),
+        hidden=True,
     )
 
     SPEC_UPDATE = ActionMeta(
@@ -1655,6 +1679,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("资源管理"),
         subgroup=_("资源规格"),
+        hidden=True,
     )
 
     SPEC_DESTROY = ActionMeta(
@@ -1666,6 +1691,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("资源管理"),
         subgroup=_("资源规格"),
+        hidden=True,
     )
 
     DUTY_RULE_LIST = ActionMeta(
@@ -1677,6 +1703,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("轮值策略"),
+        hidden=True,
     )
 
     DUTY_RULE_CREATE = ActionMeta(
@@ -1688,6 +1715,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("轮值策略"),
+        hidden=True,
     )
 
     DUTY_RULE_UPDATE = ActionMeta(
@@ -1699,6 +1727,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("轮值策略"),
+        hidden=True,
     )
 
     DUTY_RULE_DESTROY = ActionMeta(
@@ -1710,6 +1739,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("轮值策略"),
+        hidden=True,
     )
 
     IP_WHITELIST_MANAGE = ActionMeta(
@@ -1733,6 +1763,7 @@ class ActionEnum:
         related_resource_types=[],
         group=_("全局设置"),
         subgroup=_(""),
+        hidden=True,
     )
 
     UPDATE_DUTY_NOTICE_CONFIG = ActionMeta(
@@ -1744,6 +1775,7 @@ class ActionEnum:
         related_resource_types=[],
         group=_("全局设置"),
         subgroup=_("轮值策略"),
+        hidden=True,
     )
 
     ACCESS_ENTRY_EDIT = ActionMeta(
@@ -1754,6 +1786,7 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务"),
+        hidden=True,
     )
 
     ADMIN_PWD_VIEW = ActionMeta(
@@ -1763,7 +1796,8 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("业务")
+        group=_("业务"),
+        hidden=True,
     )
 
     @classmethod
