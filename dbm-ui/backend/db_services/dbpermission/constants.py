@@ -17,6 +17,14 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 class PrivilegeType:
     """规则类型枚举"""
 
+    @classmethod
+    def get_enum_class_name(cls, enum_value, enum_class):
+        for member in dir(enum_class):
+            _cls = getattr(enum_class, member)
+            if isinstance(_cls, type) and issubclass(_cls, StructuredEnum):
+                if enum_value in _cls.get_values():
+                    return member
+
     class MySQL:
         class DML(str, StructuredEnum):
             """DML权限类型"""

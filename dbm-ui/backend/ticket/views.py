@@ -578,7 +578,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("快速部署云区域组件"),
-        query_serializer=FastCreateCloudComponentSerializer(),
+        request_body=FastCreateCloudComponentSerializer(),
         tags=[TICKET_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=FastCreateCloudComponentSerializer)

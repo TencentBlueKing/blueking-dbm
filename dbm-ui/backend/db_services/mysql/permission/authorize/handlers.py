@@ -138,6 +138,9 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
         module_name_list: str = "",
         type: str = "",
         call_from: str = "",
+        privileges: str = "",
+        client_version: str = "",
+        password: str = "",
         operator: str = "",
     ):
         """直接授权，兼容gcs老的授权方式"""
@@ -195,7 +198,23 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
                 remark=_("第三方请求授权"),
                 details=authorize_info_slz.validated_data,
             )
-            return {"task_id": str(ticket.id), "platform": "dbm"}
+            task_id = str(ticket.id)
+            return {"task_id": task_id, "platform": "dbm", "job_id": task_id}
+        elif privileges:
+            # 调用老接口进行授权
+            data = GcsApi.blueking_grant(
+                {
+                    "client_hosts": source_ips,
+                    "client_version": client_version,
+                    "db_hosts": target_instance,
+                    "db_name": access_db,
+                    "user_name": user,
+                    "password": password,
+                    "privileges": privileges,
+                }
+            )
+            task_id = data["job_id"]
+            return {"task_id": task_id, "platform": "gcs", "job_id": task_id}
         else:
             params = {
                 "app": app,
@@ -220,7 +239,8 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
                 params["module_name_list"] = module_name_list
 
             data = GcsApi.cloud_privileges_asyn_bydbname(params)
-            return {"task_id": str(data["job_id"]), "platform": "gcs"}
+            task_id = str(data["job_id"])
+            return {"task_id": task_id, "platform": "gcs", "job_id": task_id}
 
     def query_authorize_apply_result(self, task_id, platform):
         """查询第三方授权的执行结果"""
