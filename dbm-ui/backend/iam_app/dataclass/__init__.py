@@ -19,7 +19,7 @@ from django.utils.translation import ugettext as _
 from ...env import BK_IAM_SYSTEM_ID
 from ..constans import CommonActionLabel
 from .actions import _all_actions
-from .resources import ResourceEnum, _all_resources, _extra_instance_selections
+from .resources import ResourceEnum, ResourceMeta, _all_resources, _extra_instance_selections
 
 IAM_SYSTEM_DEFINITION = {
     "operation": "upsert_system",
@@ -155,3 +155,46 @@ def generate_iam_migration_json(json_name: str = ""):
     iam_migrate_json_path = os.path.join(settings.BASE_DIR, f"backend/iam_app/migration_json_files/{json_name}")
     with open(iam_migrate_json_path, "w+") as f:
         f.write(json.dumps(dbm_iam_json, ensure_ascii=False, indent=4))
+
+
+def generate_iam_biz_maintain_json(json_name: str = ""):
+    """
+    根据dataclass的定义自动生成业务运维的用户组迁移json
+    """
+
+    def get_resource_path_info(resource: ResourceMeta):
+        if ResourceEnum.BUSINESS not in [resource, resource.parent]:
+            paths = []
+        else:
+            paths = [[{"system": "bk_cmdb", "type": "biz", "id": "{{biz_id}}", "name": "{{biz_name}}"}]]
+        return {"system": resource.system_id, "type": resource.id, "paths": paths}
+
+    resources__actions_map: Dict[str, List[str]] = defaultdict(list)
+    biz_maintain_migrate_content: List[Dict[str, Any]] = []
+
+    # 聚合相同资源的动作
+    for action in _all_actions.values():
+        if CommonActionLabel.BIZ_MAINTAIN not in action.common_labels:
+            continue
+        resource_ids = ",".join(sorted([resource.id for resource in action.related_resource_types]))
+        resources__actions_map[resource_ids].append(action.id)
+
+    # 对每种聚合的资源生成迁移json，其中resource的path规则:
+    # 1. 资源本身或者父类包含biz，则path固定为:
+    # [{"system": "bk_cmdb", "type": "biz", "id": "{{biz_id}}", "name": "{{biz_name}}"}] --> 业务顶层
+    # 2. 资源不包含父类，则固定为[] --> 即无限制
+    for resource_ids, action_ids in resources__actions_map.items():
+        # 生成resource的迁移信息
+        resource_metas = [ResourceEnum.get_resource_by_id(id) for id in resource_ids.split(",")]
+        resource_infos = [get_resource_path_info(resource) for resource in resource_metas]
+        # 生成action的迁移信息
+        action_infos = [{"id": id} for id in action_ids]
+        biz_maintain_migrate_content.append(
+            {"system": BK_IAM_SYSTEM_ID, "actions": action_infos, "resources": resource_infos}
+        )
+
+    # 生成json文件
+    json_name = json_name or "biz_maintain_migrate.json"
+    migrate_json_path = os.path.join(settings.BASE_DIR, f"backend/iam_app/migration_json_files/{json_name}")
+    with open(migrate_json_path, "w+") as f:
+        f.write(json.dumps(biz_maintain_migrate_content, ensure_ascii=False, indent=4))

@@ -11,8 +11,6 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_services.dbpermission.constants import AccountType
-from backend.db_services.mysql.permission.db_account.handlers import MySQLAccountHandler
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_authorize_rules import (
     MySQLAuthorizeRulesFlowBuilder,
@@ -33,11 +31,7 @@ class TendbClusterAuthorizeRulesFlowBuilder(BaseTendbTicketFlowBuilder, MySQLAut
 
     @property
     def need_itsm(self):
-        if not self.ticket.details.get("need_itsm"):
-            return False
-        handler = MySQLAccountHandler(bk_biz_id=self.ticket.bk_biz_id, account_type=AccountType.TENDBCLUSTER)
-        high_risk = handler.has_high_risk_privileges(self.ticket.details["rules_set"])
-        return high_risk
+        return False
 
     @property
     def need_manual_confirm(self):

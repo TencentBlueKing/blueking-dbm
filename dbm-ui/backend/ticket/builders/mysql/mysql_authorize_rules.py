@@ -15,9 +15,7 @@ from rest_framework import serializers
 
 from backend import env
 from backend.db_meta.enums import ClusterType
-from backend.db_services.dbpermission.constants import AccountType
 from backend.db_services.dbpermission.db_authorize.serializers import PreCheckAuthorizeRulesSerializer
-from backend.db_services.mysql.permission.db_account.handlers import MySQLAccountHandler
 from backend.db_services.mysql.permission.exceptions import AuthorizeDataHasExpiredException
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -93,14 +91,12 @@ class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
 
     @property
     def need_itsm(self):
-        if not self.ticket.details.get("need_itsm"):
-            return False
-        handler = MySQLAccountHandler(bk_biz_id=self.ticket.bk_biz_id, account_type=AccountType.MYSQL)
-        high_risk = handler.has_high_risk_privileges(self.ticket.details["rules_set"])
-        return high_risk
+        # 授权无需审批
+        return False
 
     @property
     def need_manual_confirm(self):
+        # 授权无需人工确认
         return False
 
     def patch_ticket_detail(self):
