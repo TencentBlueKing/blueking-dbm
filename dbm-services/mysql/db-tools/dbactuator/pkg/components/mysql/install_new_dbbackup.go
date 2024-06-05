@@ -329,8 +329,11 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 
 // InitBackupDir 判断备份目录是否存在,不存在的话则创建
 func (i *InstallNewDbBackupComp) InitBackupDir() (err error) {
+	if i.Params.UntarOnly {
+		logger.Info("untar_only=true do not need InitBackupDir")
+		return nil
+	}
 	backupdir := i.Params.Configs["Public"]["BackupDir"]
-
 	if _, err := os.Stat(backupdir); os.IsNotExist(err) {
 		logger.Warn("backup dir %s is not exist. will make it", backupdir)
 		cmd := fmt.Sprintf("mkdir -p %s", backupdir)
@@ -487,17 +490,17 @@ func (i *InstallNewDbBackupComp) writeCnf(port int, tpl *template.Template) (cnf
 
 // ChownGroup 更改安装目录的所属组
 func (i *InstallNewDbBackupComp) ChownGroup() (err error) {
-	//migrateOldCmd := []string{filepath.Join(i.installPath, "dbbackup"), "migrateold"}
 	// run dbbackup migrateold
-	_, _, err = cmutil.ExecCommandReturnBytes(false,
+	_, errStr, err := cmutil.ExecCommandReturnBytes(false,
 		i.installPath,
 		filepath.Join(i.installPath, "dbbackup"),
 		"migrateold")
-	//_, err = osutil.ExecShellCommand(false, "cd /home/mysql/dbbackup-go && " + strings.Join(migrateOldCmd, " "))
 	if err != nil {
-		return err
+		logger.Info("run dbbackup migrateold failed: %s", errStr)
+		//we ignore this error
+	} else {
+		logger.Info("run dbbackup migrateold success")
 	}
-	logger.Info("run dbbackup migrateold success")
 
 	cmd := fmt.Sprintf(
 		" chown -R mysql.mysql %s ; chmod +x %s/*.sh ; chmod +x %s/dbbackup",

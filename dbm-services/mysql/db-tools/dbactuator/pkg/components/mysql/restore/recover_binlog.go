@@ -138,9 +138,9 @@ type MySQLBinlogUtil struct {
 	// 导入时是否记录 binlog, mysql sql_log_bin=0 or mysqlbinlog --disable-log-bin. true表示不写
 	NotWriteBinlog bool `json:"not_write_binlog"`
 
-	// row event 解析指定 databases
+	// row event 解析指定 databases。必须是精确，不能是通配
 	Databases []string `json:"databases,omitempty"`
-	// row event 解析指定 tables
+	// row event 解析指定 tables。必须是精确，不能是通配
 	Tables []string `json:"tables,omitempty"`
 	// row event 解析指定 忽略 databases
 	DatabasesIgnore []string `json:"databases_ignore,omitempty"`
@@ -172,7 +172,7 @@ type MySQLBinlogUtil struct {
 func (r *RecoverBinlog) parse(f string) error {
 	parsedName := fmt.Sprintf(`%s/%s.sql`, dirBinlogParsed, f)
 	cmd := fmt.Sprintf("cd %s && %s %s/%s  >%s", r.taskDir, r.binlogCli, r.BinlogDir, f, parsedName)
-	logger.Info("run: %s", cmd)
+	//logger.Info("run: %s", cmd)
 	if outStr, err := osutil.ExecShellCommand(false, cmd); err != nil {
 		return errors.Wrapf(err, "fail to parse %s: %s, cmd: %s", f, outStr, cmd)
 	}
@@ -194,8 +194,8 @@ func (r *RecoverBinlog) ParseBinlogFiles() error {
 		for _, f := range r.BinlogFiles {
 			tokenBulkChan <- struct{}{}
 			go func(binlogFilePath string) {
+				logger.Info("parse %s", binlogFilePath)
 				err := r.parse(binlogFilePath)
-				logger.Info("parse %s returned", binlogFilePath)
 
 				<-tokenBulkChan
 
@@ -204,7 +204,6 @@ func (r *RecoverBinlog) ParseBinlogFiles() error {
 				}
 				errChan <- err
 				wg.Done()
-				logger.Info("parse %s done", binlogFilePath)
 			}(f)
 		}
 		wg.Wait()
@@ -460,7 +459,7 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 		logger.Warn("idempotent=false and quick_mode=true may lead binlog-recover fail")
 	}
 	r.binlogCli += fmt.Sprintf("%s %s", binlogTool, r.RecoverOpt.options)
-
+	logger.Info("mysqlbinlog parse cmd:%s", r.binlogCli)
 	return nil
 }
 
@@ -507,7 +506,15 @@ func (r *RecoverBinlog) buildFilterOpts() error {
 	}
 	r.filterOpts += fmt.Sprintf(" --query-event-handler=%s", b.QueryEventHandler)
 	// 正向解析，不设置 --filter-statement-match-error
-	r.filterOpts += fmt.Sprintf(" --filter-statement-match-ignore-force='%s'", native.INFODBA_SCHEMA)
+	if b.Flashback {
+		if len(b.Tables) > 0 {
+			r.filterOpts += fmt.Sprintf(" --filter-statement-match-error=\"%s\"", strings.Join(b.Tables, ","))
+		} else {
+			r.filterOpts += fmt.Sprintf(" --filter-statement-match-error=\"%s\"", strings.Join(b.Databases, ","))
+		}
+		r.filterOpts += fmt.Sprintf(" --filter-statement-match-ignore=\"flush ,FLUSH ,create table,CREATE TABLE\"")
+	}
+	r.filterOpts += fmt.Sprintf(" --filter-statement-match-ignore-force=\"%s\"", native.INFODBA_SCHEMA)
 	b.options += " " + r.filterOpts
 	return nil
 }

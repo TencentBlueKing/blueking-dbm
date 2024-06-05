@@ -207,6 +207,11 @@ type BinlogEventHeaderWrapper struct {
 	EventSize uint32 `json:"event_size"`
 }
 
+func (w *BinlogEventHeaderWrapper) String() string {
+	return fmt.Sprintf("{EventType:%s, EventTime:%s, ServerID:%d, EventSize:%d}",
+		w.EventType, w.EventTime, w.ServerID, w.EventSize)
+}
+
 // NewBinlogEventHeaderWrapper 封装EventHeader用于输出
 func (b *BinlogParse) NewBinlogEventHeaderWrapper(evh *replication.EventHeader) BinlogEventHeaderWrapper {
 	w := BinlogEventHeaderWrapper{

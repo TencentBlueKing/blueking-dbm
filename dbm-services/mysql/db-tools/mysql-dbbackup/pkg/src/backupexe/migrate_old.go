@@ -362,7 +362,6 @@ type InfoFileDetail struct {
 // ParseBackupInfoFile 读取 .info 文件
 // infoFile 输入完整路径
 func ParseBackupInfoFile(infoFilePath string, infoObj *InfoFileDetail) error {
-	// func (i *InfoFileDetail) Load(infoFile string) error {
 	fileDir, fileName := filepath.Split(infoFilePath)
 	f, err := os.Open(infoFilePath)
 	if err != nil {
@@ -430,7 +429,6 @@ func ParseBackupInfoFile(infoFilePath string, infoObj *InfoFileDetail) error {
 	}
 	infoObj.backupBasename = strings.TrimSuffix(fileName, ".info")
 	infoObj.backupDir = fileDir
-	// infoObj.targetDir = filepath.Join(fileDir, infoObj.backupIndexBasename)
 	return nil
 }
 
@@ -453,21 +451,7 @@ func (i *InfoFileDetail) parseBackupInstance() error {
 	if len(m) != 4 {
 		return fmt.Errorf("failed to get host:port from %s", i.infoFilePath)
 	}
-	/*
-		if i.BackupType == TypeGZTAB {
-			// --gztab=/data1/dbbak/DBHA_host-1_127.0.0.1_20000_20220831_200425
-			reg = regexp.MustCompile(`gztab=.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+).*`)
-		} else if i.BackupType == TypeXTRA {
-			// --target-dir=/data1/dbbak/DBHA_host-1_127.0.0.1_20000_20220907_040332_xtra
-			reg = regexp.MustCompile(`target-dir=.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+).*`)
-		} else {
-			return fmt.Errorf("uknown backup type %s", i.BackupType)
-		}
-		m := reg.FindStringSubmatch(i.Cmd)
-		if len(m) != 4 {
-			return fmt.Errorf("failed to get host:port from %s", i.Cmd)
-		}
-	*/
+
 	i.BackupHost = m[1]
 	i.BackupPort, _ = strconv.Atoi(m[2])
 	timeLayout := `20060102_150405`

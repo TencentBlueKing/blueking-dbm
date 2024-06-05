@@ -122,8 +122,8 @@ func migrateOld(cmd *cobra.Command, args []string) (errs error) {
 				continue
 			}
 			if indexFilePath, indexContent, err := backupexe.MigrateInstanceBackupInfo(infoFilePath, &cnf); err != nil {
-				errMsg := fmt.Sprintf("failed migrate backup info port %d\n: %s", cnf.Public.MysqlPort, err.Error())
-				errs = errors2.Join(errs, errors.New(errMsg))
+				//errMsg := fmt.Sprintf("failed migrate backup info port %d\n: %s", cnf.Public.MysqlPort, err.Error())
+				//errs = errors2.Join(errs, errors.New(errMsg))
 				continue
 			} else {
 				fmt.Println("migrate infoFile", infoFilePath)

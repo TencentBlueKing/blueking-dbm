@@ -72,7 +72,7 @@ func (f *Flashback) Init() error {
 				BinaryMode:       true,
 				MaxAllowedPacket: 1073741824,
 			},
-			QueryEventHandler: "error",
+			QueryEventHandler: "ignore",
 			Flashback:         true, // --flashback 模式
 			NotWriteBinlog:    false,
 			IdempotentMode:    true,
