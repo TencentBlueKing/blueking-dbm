@@ -37,6 +37,14 @@ class StorageViewSet(viewsets.SystemViewSet):
         file_path_list = self.params_validate(self.get_serializer_class())["file_path_list"]
         return Response(StorageHandler().batch_fetch_file_content(file_path_list=file_path_list))
 
+    @common_swagger_auto_schema(
+        operation_summary=_("批量下载文件"), request_body=BatchDownloadFileSerializer(), tags=[SWAGGER_TAG]
+    )
+    @action(methods=["POST"], detail=False, serializer_class=BatchDownloadFileSerializer)
+    def batch_download(self, request):
+        file_path_list = self.params_validate(self.get_serializer_class())["file_path_list"]
+        return StorageHandler().batch_download(file_path_list)
+
     @common_swagger_auto_schema(operation_summary=_("获取文件内容"), query_serializer=FileSerializer(), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False, serializer_class=FileSerializer)
     def fetch_file_content(self, request):

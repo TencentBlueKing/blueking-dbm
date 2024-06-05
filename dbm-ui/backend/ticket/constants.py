@@ -196,6 +196,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_HA_METADATA_IMPORT = TicketEnumField("MYSQL_HA_METADATA_IMPORT", _("TendbHA 元数据导入"), register_iam=False)
     MYSQL_OPEN_AREA = TicketEnumField("MYSQL_OPEN_AREA", _("MySQL 开区"), _("克隆开区"), register_iam=False)
     MYSQL_DATA_MIGRATE = TicketEnumField("MYSQL_DATA_MIGRATE", _("MySQL DB克隆"), _("数据处理"))
+    MYSQL_DUMP_DATA = TicketEnumField("MYSQL_DUMP_DATA", _("MySQL 数据导出"))
 
     # SPIDER(TenDB Cluster)
     TENDBCLUSTER_OPEN_AREA = TicketEnumField("TENDBCLUSTER_OPEN_AREA", _("TenDB Cluster 开区"), _("克隆开区"), register_iam=False)  # noqa
@@ -239,6 +240,7 @@ class TicketType(str, StructuredEnum):
     TENDBSINGLE_METADATA_IMPORT = TicketEnumField("TENDBSINGLE_METADATA_IMPORT", _("TenDB Single 元数据导入"), register_iam=False)  # noqa
     TENDBSINGLE_STANDARDIZE = TicketEnumField("TENDBSINGLE_STANDARDIZE", _("TenDB Single 集群标准化"), register_iam=False)  # noqa
     TENDBCLUSTER_DATA_MIGRATE = TicketEnumField("TENDBCLUSTER_DATA_MIGRATE", _("TenDB Cluster 数据迁移"), _("数据处理"))
+    TENDBCLUSTER_DUMP_DATA = TicketEnumField("TENDBCLUSTER_DUMP_DATA", _("TenDB Cluster 数据导出"))
 
     # Tbinlogdumper
     TBINLOGDUMPER_INSTALL = TicketEnumField("TBINLOGDUMPER_INSTALL", _("TBINLOGDUMPER 上架"), register_iam=False)

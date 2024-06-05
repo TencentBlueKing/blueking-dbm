@@ -14,6 +14,7 @@ import zipfile
 from typing import Any, Dict, List
 
 from bkstorages.exceptions import RequestError as BKStorageError
+from django.http import StreamingHttpResponse
 from rest_framework.status import HTTP_200_OK
 
 from backend import env
@@ -67,6 +68,19 @@ class StorageHandler(object):
             )
 
         return file_content_list
+
+    def batch_download(self, file_path_list: List[str]) -> StreamingHttpResponse:
+        """
+        批量下载文件
+        :param file_path_list: 文件列表
+        """
+        resp = self.storage.batch_download(file_path_list)
+        resp = StreamingHttpResponse(
+            resp.iter_content(),
+            content_type="application/octet‑stream",
+            headers={"Content-Disposition": 'attachment; filename="dump.tar.gz"'},
+        )
+        return resp
 
     def delete_file(self, file_path) -> bool:
         """

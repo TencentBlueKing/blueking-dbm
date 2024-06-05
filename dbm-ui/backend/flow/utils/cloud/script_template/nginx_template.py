@@ -85,7 +85,11 @@ http {
             proxy_ssl_certificate /etc/nginx/client.crt;
             proxy_ssl_certificate_key /etc/nginx/client.key;
             proxy_pass https://drs_server/$request_uri;
-            proxy_connect_timeout 10s;
+            # 连接建立时间60s
+            proxy_connect_timeout 60s;
+            # 请求与响应控制时间为1h
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
         }
     }
 

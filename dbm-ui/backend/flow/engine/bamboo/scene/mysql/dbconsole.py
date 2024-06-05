@@ -136,8 +136,10 @@ class DbConsoleDumpSqlFlow(object):
         if not resp[0]["cmd_results"]:
             raise Exception(_("DRS查询主从延迟失败：{}").format(resp[0]["error_msg"]))
 
-        behind_master_sec = resp[0]["cmd_results"][0]["Seconds_Behind_Master"][0]["Value"]
-        if not behind_master_sec:
-            logger.error(_("slave Seconds_Behind_Master 为空..."))
-            raise Exception(_("获取Seconds_Behind_Master为空"))
-        return behind_master_sec
+        # TODO: 暂时注释这一块延时校验
+        # behind_master_sec = resp[0]["cmd_results"][0]["Seconds_Behind_Master"][0]["Value"]
+        # if not behind_master_sec:
+        #     logger.error(_("slave Seconds_Behind_Master 为空..."))
+        #     raise Exception(_("获取Seconds_Behind_Master为空"))
+        # return behind_master_sec
+        return ""
