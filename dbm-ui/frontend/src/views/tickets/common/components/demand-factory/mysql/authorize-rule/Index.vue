@@ -18,8 +18,7 @@
     <div class="mysql-table">
       <DbOriginalTable
         :columns="columns"
-        :data="state.accessData"
-        style="width: 800px" />
+        :data="state.accessData" />
     </div>
   </div>
   <div
@@ -127,11 +126,14 @@
     {
       label: t('账号'),
       field: 'user',
+      showOverflowTooltip: true,
+      width: 150,
       render: ({ data }: { data: AccessDetails }) => <span>{data.user || '--'}</span>,
     },
     {
       label: t('访问源'),
       field: 'source_ips',
+      width: 120,
       render: ({ data }: { data: AccessDetails }) => (
         isApiBatchTicket.value
           ? <span>{data.source_ips.join(',')}</span>
@@ -146,8 +148,7 @@
     {
       label: t('目标集群'),
       field: 'target_instances',
-      width: 300,
-      minWidth: 250,
+      width: 180,
       render: ({ data }: { data: AccessDetails }) => (
         isApiBatchTicket.value
           ? <span>{data.target_instances.join(',')}</span>

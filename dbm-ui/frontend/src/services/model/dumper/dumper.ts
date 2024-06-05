@@ -21,10 +21,10 @@ export default class Dumper {
   static TBINLOGDUMPER_DISABLE_NODES = 'TBINLOGDUMPER_DISABLE_NODES'; // 禁用
 
   static operationIconMap = {
-    [Dumper.TBINLOGDUMPER_REDUCE_NODES]: 'shanchuzhong',
-    [Dumper.TBINLOGDUMPER_SWITCH_NODES]: 'qianyizhong',
-    [Dumper.TBINLOGDUMPER_ENABLE_NODES]: 'qiyongzhong',
-    [Dumper.TBINLOGDUMPER_DISABLE_NODES]: 'jinyongzhong',
+    [Dumper.TBINLOGDUMPER_REDUCE_NODES]: t('删除中'),
+    [Dumper.TBINLOGDUMPER_SWITCH_NODES]: t('迁移中'),
+    [Dumper.TBINLOGDUMPER_ENABLE_NODES]: t('启用中'),
+    [Dumper.TBINLOGDUMPER_DISABLE_NODES]: t('禁用中'),
   };
 
   static operationTextMap = {

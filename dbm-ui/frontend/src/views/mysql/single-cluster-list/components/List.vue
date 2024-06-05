@@ -688,6 +688,7 @@
           await createTicket(params)
             .then((res) => {
               ticketMessage(res.id);
+              fetchData();
             });
           return true;
         } catch (_) {
@@ -727,6 +728,7 @@
           await createTicket(params)
             .then((res) => {
               ticketMessage(res.id);
+              fetchData();
             });
           return true;
         } catch (_) {
