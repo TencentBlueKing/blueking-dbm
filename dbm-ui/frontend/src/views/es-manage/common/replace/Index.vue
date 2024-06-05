@@ -18,10 +18,10 @@
         v-model="ipSource"
         class="ip-srouce-box">
         <BkRadioButton label="resource_pool">
-          {{ $t('资源池自动匹配') }}
+          {{ t('资源池自动匹配') }}
         </BkRadioButton>
         <BkRadioButton label="manual_input">
-          {{ $t('手动选择') }}
+          {{ t('手动选择') }}
         </BkRadioButton>
       </BkRadioGroup>
       <div
@@ -37,7 +37,7 @@
           v-model:resourceSpec="nodeInfoMap.hot.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
-            name: data.bk_cloud_name
+            name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.hot"
           :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'hot')"
@@ -57,7 +57,7 @@
           v-model:resourceSpec="nodeInfoMap.cold.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
-            name: data.bk_cloud_name
+            name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.cold"
           :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'cold')"
@@ -77,7 +77,7 @@
           v-model:resourceSpec="nodeInfoMap.client.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
-            name: data.bk_cloud_name
+            name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.client"
           :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'client')"
@@ -87,9 +87,7 @@
       <div
         v-show="nodeInfoMap.master.nodeList.length > 0"
         class="item">
-        <div class="item-label">
-          Master
-        </div>
+        <div class="item-label">Master</div>
         <HostReplace
           ref="masterRef"
           v-model:hostList="nodeInfoMap.master.hostList"
@@ -97,7 +95,7 @@
           v-model:resourceSpec="nodeInfoMap.master.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
-            name: data.bk_cloud_name
+            name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.master"
           :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'master')"
@@ -407,11 +405,11 @@
     line-height: 20px;
     color: #63656e;
 
-    .ip-srouce-box{
+    .ip-srouce-box {
       display: flex;
       margin-bottom: 16px;
 
-      .bk-radio-button{
+      .bk-radio-button {
         flex: 1;
         background: #fff;
       }

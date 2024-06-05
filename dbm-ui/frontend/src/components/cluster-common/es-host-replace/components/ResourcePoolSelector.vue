@@ -127,7 +127,7 @@
     modelValue.value = {
       spec_id: value,
       count: props.data.nodeList.length,
-      instance_num: 1,
+      instance_num: resourceSpecList.value?.results.find((item) => item.spec_id === value)?.instance_num ?? 1,
     };
   };
 </script>
