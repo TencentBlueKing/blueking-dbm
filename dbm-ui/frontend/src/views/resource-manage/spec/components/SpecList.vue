@@ -90,6 +90,7 @@
       </BkTag>
     </template>
     <SpecCreate
+      :key="specOperationState.data?.spec_id"
       :cluster-type="clusterType"
       :data="specOperationState.data"
       :has-instance="hasInstance"
