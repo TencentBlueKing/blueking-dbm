@@ -191,6 +191,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.BIZ_CONFIG, "dict", BIZ_CONFIG_INFO, _("默认的全业务配置信息")],
     [SystemSettingsEnum.AFFINITY, "list", [], _("环境的容灾要求")],
     [SystemSettingsEnum.SYSTEM_MSG_TYPE, "list", ["weixin", "mail"], _("系统消息通知方式")],
+    [SystemSettingsEnum.PADDING_PROXY_CLUSTER_LIST, "list", [], _("补全proxy的集群域名列表")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
