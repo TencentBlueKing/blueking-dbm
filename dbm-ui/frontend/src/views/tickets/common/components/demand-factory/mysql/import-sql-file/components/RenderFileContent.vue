@@ -217,8 +217,7 @@
   .ticket-import-sql-file-render {
     position: relative;
     z-index: 0;
-    flex: 1;
-    height: 100%;
+    height: calc(100vh - 80px);
 
     .editor-layout-header {
       display: flex;

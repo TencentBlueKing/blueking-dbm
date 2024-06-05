@@ -14,7 +14,8 @@
 <template>
   <div
     ref="rootRef"
-    class="sql-execute-editor">
+    class="sql-execute-editor"
+    :class="{'is-full-screen': isFullscreen}">
     <div class="editor-layout-header">
       <span>{{ title }}</span>
       <div class="editro-action-box">
@@ -174,8 +175,17 @@
   .sql-execute-editor {
     position: relative;
     z-index: 0;
-    flex: 1;
     height: 500px;
+
+    &.is-full-screen {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+
+      .resize-wrapper {
+        flex: 1;
+      }
+    }
 
     .editor-layout-header {
       display: flex;

@@ -163,7 +163,7 @@
     mode: string;
     isEdit: boolean;
     hasInstance: boolean;
-    data: ResourceSpecModel | null;
+    data: Data | null;
   }
 
   const props = defineProps<Props>();
