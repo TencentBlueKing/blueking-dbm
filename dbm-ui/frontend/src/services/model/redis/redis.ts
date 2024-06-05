@@ -124,7 +124,7 @@ export default class Redis {
       min: number;
     };
   };
-  cluster_stats: Record<string, any>;
+  cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_type: string;
   cluster_type_name: string;
   create_at: string;
@@ -179,6 +179,7 @@ export default class Redis {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.cluster_alias = payload.cluster_alias;
     this.db_module_id = payload.db_module_id;
+    this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.cluster_time_zone = payload.cluster_time_zone;
@@ -207,7 +208,6 @@ export default class Redis {
     this.redis_slave = payload.redis_slave;
     this.cluster_shard_num = payload.cluster_shard_num;
     this.machine_pair_cnt = payload.machine_pair_cnt;
-    this.cluster_stats = payload.cluster_stats || {};
     this.count = this.storageCount + this.proxyCount;
   }
 

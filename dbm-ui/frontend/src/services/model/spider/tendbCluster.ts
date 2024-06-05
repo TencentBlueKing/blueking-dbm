@@ -91,6 +91,7 @@ export default class TendbCluster {
   cluster_name: string;
   cluster_shard_num: number;
   cluster_spec: ResourceSpecModel;
+  cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_type: string;
   cluster_time_zone: string;
   create_at: string;
@@ -149,6 +150,7 @@ export default class TendbCluster {
     this.cluster_name = payload.cluster_name;
     this.cluster_shard_num = payload.cluster_shard_num;
     this.cluster_spec = payload.cluster_spec;
+    this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
@@ -172,6 +174,7 @@ export default class TendbCluster {
     this.spider_ctl_primary = payload.spider_ctl_primary;
     this.status = payload.status;
     this.temporary_info = payload.temporary_info;
+
     this.operations = this.initOperations(payload.operations);
   }
 

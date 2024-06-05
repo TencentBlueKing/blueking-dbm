@@ -45,6 +45,7 @@ export default class Tendbha {
   bk_cloud_id: number;
   bk_cloud_name: string;
   cluster_name: string;
+  cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_type: string;
   cluster_time_zone: string;
   create_at: string;
@@ -97,6 +98,7 @@ export default class Tendbha {
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
     this.cluster_name = payload.cluster_name || '';
+    this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type || '';
     this.cluster_time_zone = payload.cluster_time_zone || '';
     this.create_at = payload.create_at || '';

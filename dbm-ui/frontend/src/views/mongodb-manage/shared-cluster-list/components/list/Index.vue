@@ -122,6 +122,7 @@
   } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
+  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
@@ -251,6 +252,13 @@
       field: 'status',
       width: 100,
       render: ({ data }: { data: MongodbModel }) => <RenderClusterStatus data={data.status} />,
+    },
+    {
+      label: t('容量使用率'),
+      field: 'cluster_stats',
+      width: 240,
+      showOverflowTooltip: false,
+      render: ({ data }: { data: MongodbModel }) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
     },
     {
       label: t('MongoDB版本'),
@@ -390,6 +398,7 @@
       'mongodb',
     ],
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
 
   const {

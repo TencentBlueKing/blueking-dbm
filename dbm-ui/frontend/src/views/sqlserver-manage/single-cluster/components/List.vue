@@ -166,6 +166,7 @@
   } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
+  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
@@ -324,6 +325,13 @@
       render: ({ data }: { data: SqlServerSingleClusterModel }) => <RenderClusterStatus data={data.status} />,
     },
     {
+      label: t('容量使用率'),
+      field: 'cluster_stats',
+      width: 240,
+      showOverflowTooltip: false,
+      render: ({ data }: { data: SqlServerSingleClusterModel }) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
+    },
+    {
       label: t('实例'),
       field: 'storages',
       render: ({ data }: { data: SqlServerSingleClusterModel }) => (
@@ -350,6 +358,7 @@
     },
     {
       label: t('操作'),
+      field: '',
       width: tableOperationWidth.value,
       fixed: 'right',
       render: ({ data }: { data: SqlServerSingleClusterModel }) => (
@@ -424,6 +433,7 @@
     })),
     checked: columns.map(item => item.field).filter(key => !!key && key !== 'id'),
     showLineHeight: false,
+    trigger: 'manual' as const,
   };
 
   const {
