@@ -40,11 +40,14 @@ var nameSpiderErrNotice = "spider-err-notice"
 var nameSpiderErrWarn = "spider-err-warn"
 var nameSpiderErrCritical = "spider-err-critical"
 
+var nameMySQLDRestart = "mysqld-restarted"
+
 var mysqlNoticePattern *regexp2.Regexp
 var mysqlCriticalExcludePattern *regexp2.Regexp
 var spiderNoticePattern *regexp2.Regexp
 var spiderWarnPattern *regexp2.Regexp
 var spiderCriticalPattern *regexp2.Regexp
+var mysqldRestartPattern *regexp2.Regexp
 
 var once sync.Once
 var snapShotErr error
@@ -189,6 +192,14 @@ func NewSpiderErrCritical(cc *monitoriteminterface.ConnectionCollect) monitorite
 	}
 }
 
+func NewMySQLDRestartWarn(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
+	return &Checker{
+		db:   cc.MySqlDB,
+		name: nameMySQLDRestart,
+		f:    mysqldRestart,
+	}
+}
+
 // RegisterMySQLErrNotice TODO
 func RegisterMySQLErrNotice() (string, monitoriteminterface.MonitorItemConstructorFuncType) {
 	return nameMySQLErrNotice, NewMySQLErrNotice
@@ -212,4 +223,8 @@ func RegisterSpiderErrWarn() (string, monitoriteminterface.MonitorItemConstructo
 // RegisterSpiderErrCritical TODO
 func RegisterSpiderErrCritical() (string, monitoriteminterface.MonitorItemConstructorFuncType) {
 	return nameSpiderErrCritical, NewSpiderErrCritical
+}
+
+func RegisterMySQLDRestartWarn() (string, monitoriteminterface.MonitorItemConstructorFuncType) {
+	return nameMySQLDRestart, NewMySQLDRestartWarn
 }
