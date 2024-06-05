@@ -30,5 +30,11 @@ class _GcsApi(BaseApi):
             description=_("查询gcs作业执行状态"),
         )
 
+        self.blueking_grant = self.generate_data_api(
+            method="POST",
+            url="blueking_grant/",
+            description=_("直接授权接口"),
+        )
+
 
 GcsApi = _GcsApi()
