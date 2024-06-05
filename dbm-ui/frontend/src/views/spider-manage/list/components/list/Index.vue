@@ -388,58 +388,67 @@
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => (
-        <div class="cluster-name-container">
-          <div
-            class="cluster-name text-overflow"
-            v-overflow-tips>
-            <span>
-              {data.cluster_name}
-            </span>
-          </div>
-          {data.temporary_info?.source_cluster && <bk-popover theme="light" placement="top" width={280}>
-            {{
-              default: () => <db-icon type="clone" style="color: #1CAB88;margin-left: 5px;cursor: pointer;"/>,
-              content: (
-                <div class="struct-cluster-source-popover">
-                  <div class="title">{t('构造集群')}</div>
-                  <div class="item-row">
-                    <div class="label">{t('构造源集群')}：</div>
-                    <div class="content">
-                      <bk-overflow-title type="tips">{data.temporary_info?.source_cluster}</bk-overflow-title>
-                      </div>
-                  </div>
-                  <div class="item-row">
-                    <div class="label">{t('关联单据')}：</div>
-                    <div class="content" style="color: #3A84FF;" onClick={() => handleClickRelatedTicket(data.temporary_info.ticket_id)}>{data.temporary_info.ticket_id}</div>
-                  </div>
-                </div>
-              ),
-            }}
-          </bk-popover>}
-          <div class="cluster-tags">
-            {
-              data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-            }
-            {
-              data.isOffline && !data.isStarting && (
+        <TextOverflowLayout>
+          {{
+            default: () => data.cluster_name,
+            append: () => (
+              <>
+                {
+                  data.temporary_info?.source_cluster && (
+                    <bk-popover theme="light" placement="top">
+                      {{
+                        default: () => (
+                          <db-icon
+                            type="clone"
+                            style="color: #1CAB88;margin-left: 5px;cursor: pointer;"/>
+                        ),
+                        content: (
+                          <div class="struct-cluster-source-popover">
+                            <div class="title">{t('构造集群')}</div>
+                            <div class="item-row">
+                              <div class="label">{t('构造源集群')}：</div>
+                              <div class="content">{data.temporary_info?.source_cluster}</div>
+                            </div>
+                            <div class="item-row">
+                              <div class="label">{t('关联单据')}：</div>
+                              <div
+                                class="content"
+                                style="color: #3A84FF;"
+                                onClick={() => handleClickRelatedTicket(data.temporary_info.ticket_id)}>
+                                {data.temporary_info.ticket_id}
+                              </div>
+                            </div>
+                          </div>
+                        ),
+                      }}
+                    </bk-popover>
+                  )
+                }
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <db-icon
+                    svg
+                    type="yijinyong"
+                    class="cluster-tag"
+                    style="width: 38px; height: 16px;" />
+                  )
+                }
+                {
+                  data.isNew && (
+                    <span class="glob-new-tag cluster-tag" data-text="NEW" />
+                  )
+                }
                 <db-icon
-                svg
-                type="yijinyong"
-                class="cluster-tag"
-                style="width: 38px; height: 16px;" />
-               )
-            }
-            {
-              isRecentDays(data.create_at, 24 * 3)
-                ? <span class="glob-new-tag cluster-tag" data-text="NEW" />
-                : null
-            }
-          </div>
-          <db-icon
-            type="copy"
-            v-bk-tooltips={t('复制集群名称')}
-            onClick={() => copy(data.cluster_name)} />
-        </div>
+                  type="copy"
+                  v-bk-tooltips={t('复制集群名称')}
+                  onClick={() => copy(data.cluster_name)} />
+              </>
+            )
+          }}
+        </TextOverflowLayout>
       ),
     },
     {
