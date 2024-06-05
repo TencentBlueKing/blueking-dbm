@@ -15,11 +15,12 @@
   <div
     v-if="isRender"
     class="render-cluster-opration-tag">
-    <span
-      ref="rootRef"
-      class="tag-placeholder default-icon"
-      :style="iconStyle">
-      <span class="icon-text">{{ data.icon }}</span>
+    <span ref="rootRef">
+      <BkTag
+        size="small"
+        :style="iconStyle">
+        {{ data.icon }}
+      </BkTag>
     </span>
     <I18nT
       ref="popRef"
@@ -61,8 +62,24 @@
 
   const iconMap: Record<string, Record<string, string>> = {
     [t('销毁中')]: {
-      color: ' #EA3536',
+      color: '#EA3536',
       background: '#FEEBEA',
+    },
+    [t('迁移中')]: {
+      color: '#8E3AFF',
+      background: '#F2EDFF',
+    },
+    [t('删除中')]: {
+      color: '#EA3536',
+      background: '#FEEBEA',
+    },
+    [t('启用中')]: {
+      color: '#74BC09',
+      background: '#EDFFD3',
+    },
+    [t('禁用中')]: {
+      color: '#FE9C00',
+      background: '#FFF1DB',
     },
   };
 

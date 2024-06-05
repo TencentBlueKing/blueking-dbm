@@ -158,7 +158,7 @@
     ipv4,
   } from '@common/regex';
 
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTagNew from '@components/cluster-common/RenderOperationTagNew.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -298,7 +298,7 @@
                     }}
                   </bk-popover>
                 )}
-                <RenderOperationTag data={data.operationTagTip} />
+                <RenderOperationTagNew data={data.operationTagTip} />
                 {!data.isOnline && !data.isStarting && <MiniTag content={t('已禁用')} extCls='stoped-icon'/>}
                 {data.isNew && <MiniTag theme='success' content="NEW" extCls='success-icon' />}
               </>
