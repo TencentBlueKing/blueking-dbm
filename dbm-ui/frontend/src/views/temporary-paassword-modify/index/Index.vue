@@ -12,115 +12,119 @@
 -->
 
 <template>
-  <div class="password-temporary-modify">
-    <div
-      v-if="submitting"
-      class="submitting-mask">
-      <DbIcon
-        class="submitting-icon"
-        svg
-        type="sync-pending" />
-      <p class="submitting-text">
-        {{ t('密码正在修改中，请稍等') }}
-      </p>
-    </div>
-    <UpdateResult
-      v-else-if="submitted"
-      :submit-length="submitLength"
-      :submit-res="submitRes"
-      :submit-role-map="submitRoleMap"
-      @refresh="handleRefresh"
-      @retry="handleSubmit" />
-    <DbForm
-      v-else
-      ref="formRef"
-      class="password-form"
-      :label-width="200"
-      :model="formData">
-      <BkFormItem
-        class="pr-32"
-        :label="t('需要修改的实例')"
-        property="instanceList"
-        required>
-        <BkButton
-          class="mb-16"
-          @click="handleAddInstance">
-          <DbIcon
-            class="mr-8"
-            type="add" />
-          {{ t('添加实例') }}
-        </BkButton>
-        <DbOriginalTable
-          :columns="columns"
-          :data="formData.instanceList"
-          show-overflow-tooltip />
-      </BkFormItem>
-      <BkFormItem
-        ref="passwordItemRef"
-        :label="t('统一临时密码')"
-        property="password"
-        required
-        :rules="passwordRules">
-        <BkComposeFormItem>
-          <BkInput
-            ref="passwordRef"
-            v-model="formData.password"
-            class="form-item-input password-input"
-            type="password"
-            @blur="handlePasswordBlur"
-            @focus="handlePasswordFocus" />
-          <BkButton
-            class="form-item-suffix"
-            outline
-            theme="primary"
-            @click="randomlyGenerate">
-            {{ t('随机生成') }}
-          </BkButton>
-        </BkComposeFormItem>
-      </BkFormItem>
-      <BkFormItem
-        :label="t('有效时长')"
-        property="validDuration"
-        required>
-        <BkComposeFormItem>
-          <BkInput
-            v-model="formData.validDuration"
-            class="form-item-input"
-            :clearable="false"
-            :min="1"
-            :precision="0"
-            type="number" />
-          <BkSelect
-            v-model="formData.validDurationType"
-            class="form-item-suffix"
-            :clearable="false">
-            <BkOption
-              v-for="item in VALID_DURATION_OPTIONS"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value" />
-          </BkSelect>
-        </BkComposeFormItem>
-        <div class="anticipated-effective-time">{{ t('预计失效时间') }}：{{ anticipatedEffectiveTime }}</div>
-      </BkFormItem>
-      <div class="btn-area">
-        <BkButton
-          class="w-88"
-          theme="primary"
-          @click="submitValidator">
-          {{ t('提交') }}
-        </BkButton>
-        <DbPopconfirm
-          :confirm-handler="handleReset"
-          :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
-          :title="t('确认重置页面')">
-          <BkButton class="ml8 w-88">
-            {{ t('重置') }}
-          </BkButton>
-        </DbPopconfirm>
+  <SmartAction :offset-target="getSmartActionOffsetTarget">
+    <div class="password-temporary-modify">
+      <div
+        v-if="submitting"
+        class="submitting-mask">
+        <DbIcon
+          class="submitting-icon"
+          svg
+          type="sync-pending" />
+        <p class="submitting-text">
+          {{ t('密码正在修改中，请稍等') }}
+        </p>
       </div>
-    </DbForm>
-  </div>
+      <UpdateResult
+        v-else-if="submitted"
+        :submit-length="submitLength"
+        :submit-res="submitRes"
+        :submit-role-map="submitRoleMap"
+        @refresh="handleRefresh"
+        @retry="handleSubmit" />
+      <DbForm
+        v-else
+        ref="formRef"
+        class="password-form"
+        :label-width="200"
+        :model="formData">
+        <BkFormItem
+          class="pr-32"
+          :label="t('需要修改的实例')"
+          property="instanceList"
+          required>
+          <BkButton
+            class="mb-16"
+            @click="handleAddInstance">
+            <DbIcon
+              class="mr-8"
+              type="add" />
+            {{ t('添加实例') }}
+          </BkButton>
+          <DbOriginalTable
+            :columns="columns"
+            :data="formData.instanceList"
+            show-overflow-tooltip />
+        </BkFormItem>
+        <BkFormItem
+          ref="passwordItemRef"
+          :label="t('统一临时密码')"
+          property="password"
+          required
+          :rules="passwordRules">
+          <BkComposeFormItem>
+            <BkInput
+              ref="passwordRef"
+              v-model="formData.password"
+              class="form-item-input password-input"
+              type="password"
+              @blur="handlePasswordBlur"
+              @focus="handlePasswordFocus" />
+            <BkButton
+              class="form-item-suffix"
+              outline
+              theme="primary"
+              @click="randomlyGenerate">
+              {{ t('随机生成') }}
+            </BkButton>
+          </BkComposeFormItem>
+        </BkFormItem>
+        <BkFormItem
+          :label="t('有效时长')"
+          property="validDuration"
+          required>
+          <BkComposeFormItem>
+            <BkInput
+              v-model="formData.validDuration"
+              class="form-item-input"
+              :clearable="false"
+              :min="1"
+              :precision="0"
+              type="number" />
+            <BkSelect
+              v-model="formData.validDurationType"
+              class="form-item-suffix"
+              :clearable="false">
+              <BkOption
+                v-for="item in VALID_DURATION_OPTIONS"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value" />
+            </BkSelect>
+          </BkComposeFormItem>
+          <div class="anticipated-effective-time">{{ t('预计失效时间') }}：{{ anticipatedEffectiveTime }}</div>
+        </BkFormItem>
+      </DbForm>
+    </div>
+    <template
+      v-if="!submitting && !submitted"
+      #action>
+      <BkButton
+        class="w-88"
+        theme="primary"
+        @click="submitValidator">
+        {{ t('提交') }}
+      </BkButton>
+      <DbPopconfirm
+        :confirm-handler="handleReset"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
+        <BkButton class="ml8 w-88">
+          {{ t('重置') }}
+        </BkButton>
+      </DbPopconfirm>
+    </template>
+  </SmartAction>
   <InstanceSelector
     v-model="instanceSelectorShow"
     @change="handleInstanceChange" />
@@ -506,6 +510,8 @@
     }
   });
 
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+
   const handleAddInstance = () => {
     instanceSelectorShow.value = true;
   };
@@ -639,6 +645,7 @@
   .password-temporary-modify {
     background-color: #fff;
     border-radius: 2px;
+    margin-bottom: 32px;
 
     .submitting-mask {
       padding: 90px 0 138px;
@@ -668,17 +675,19 @@
     }
 
     .password-form {
-      padding-top: 32px;
+      padding: 32px 0 24px;
+      box-shadow: 0 3px 4px 0 #0000000a;
+      border-radius: 2px;
 
       :deep(.password-form-instance) {
         display: flex;
         align-items: center;
       }
+    }
 
-      .btn-area {
-        padding: 24px 0 24px 200px;
-        background-color: #f5f7fa;
-      }
+    .btn-area {
+      padding: 24px 0 24px 200px;
+      background-color: #f5f7fa;
     }
 
     :deep(.instance-tip) {
