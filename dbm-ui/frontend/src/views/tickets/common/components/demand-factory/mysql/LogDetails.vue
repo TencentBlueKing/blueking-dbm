@@ -30,7 +30,7 @@
         <div class="log-status">
           <DbIcon
             v-if="currentSelectFileData?.isSuccessed"
-            style="color: #2dcb56;"
+            style="color: #2dcb56"
             type="check-circle-fill" />
           <DbIcon
             v-else-if="currentSelectFileData?.isPending"
@@ -44,10 +44,10 @@
             type="check-circle-fill" />
           <DbIcon
             v-else
-            style="color: #ea3636;"
+            style="color: #ea3636"
             svg
             type="delete-fill" />
-          <span style="padding-left: 4px; font-size: 12px;">{{ executedStatusDisplayText }}</span>
+          <span style="padding-left: 4px; font-size: 12px">{{ executedStatusDisplayText }}</span>
         </div>
       </div>
       <div style="height: calc(100% - 40px)">
@@ -94,13 +94,15 @@
   // 执行日志
   const { fileLogMap } = useLog(props.rootId, props.nodeId);
 
-  const fileDataList = computed<IFileItem[]>(() => fileList.value.map(name => ({
-    name,
-    isPending: fileLogMap.value[name]?.status === 'RUNNING',
-    isSuccessed: fileLogMap.value[name]?.status === 'SUCCEEDED',
-    isFailed: fileLogMap.value[name]?.status === 'FAILED',
-    isWaiting: fileLogMap.value[name]?.status === 'PENDING',
-  })));
+  const fileDataList = computed<IFileItem[]>(() =>
+    fileList.value.map((name) => ({
+      name,
+      isPending: fileLogMap.value[name]?.status === 'RUNNING',
+      isSuccessed: fileLogMap.value[name]?.status === 'SUCCEEDED',
+      isFailed: fileLogMap.value[name]?.status === 'FAILED',
+      isWaiting: fileLogMap.value[name]?.status === 'PENDING',
+    })),
+  );
 
   const currentSelectFileData = computed(() =>
     _.find(fileDataList.value, (item) => item.name === selectFileName.value),
@@ -109,9 +111,11 @@
   const executedStatusDisplayText = computed(() => {
     if (currentSelectFileData.value?.isSuccessed) {
       return t('执行成功');
-    } if (currentSelectFileData.value?.isPending) {
+    }
+    if (currentSelectFileData.value?.isPending) {
       return t('执行中');
-    } if (currentSelectFileData.value?.isWaiting) {
+    }
+    if (currentSelectFileData.value?.isWaiting) {
       return t('待执行');
     }
     return t('执行失败');
@@ -137,7 +141,7 @@
   .log-layout {
     display: flex;
     width: 928px;
-    height: 100%;
+    height: (calc(100vh - 80px));
     margin: 0 auto;
     overflow: hidden;
     border-radius: 2px;
