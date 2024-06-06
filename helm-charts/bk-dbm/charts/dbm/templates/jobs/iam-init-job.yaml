@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "dbm.sslInitJobName" . }}
+  name: {{ include "dbm.iamInitJobName" . }}
   labels:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:
