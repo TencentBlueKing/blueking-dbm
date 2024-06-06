@@ -4,7 +4,6 @@
 ```json
 ./dbactuator_redis  --uid={{uid}} --root_id={{root_id}} --node_id={{node_id}} --version_id={{version_id}} --atom-job-list="init_replicaset"  --payload='{{payload_base64}}'
 ```
---data_dir、--backup_dir 可以留空. --user启动进程用户名，--group启动进程用户名的属组，如果为空默认都为mysql。
 
 原始payload
 
@@ -12,8 +11,6 @@
 {
   "ip":"1.1.1.1",
   "port":27001,
-  "app":"test",
-  "areaId":"test1",
   "setId":"s1",
   "configSvr":false,
   "ips":[

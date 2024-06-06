@@ -18,18 +18,15 @@ import (
 
 // AddUserConfParams 参数
 type AddUserConfParams struct {
-	IP            string `json:"ip" validate:"required"`
-	Port          int    `json:"port" validate:"required"`
-	InstanceType  string `json:"instanceType" validate:"required"`
-	Username      string `json:"username" validate:"required"`
-	Password      string `json:"password" validate:"required"`
-	AdminUsername string `json:"adminUsername"`
-	AdminPassword string `json:"adminPassword"`
-	AuthDb        string `json:"authDb"` // 为方便管理用户，验证库默认为admin库
-	DbsPrivileges []struct {
-		Db         string   `json:"db"`
-		Privileges []string `json:"privileges"`
-	} `json:"dbsPrivileges"` // 业务库 以及权限 [{"db":xxx,"privileges":[xxx,xxx]}]
+	IP            string              `json:"ip" validate:"required"`
+	Port          int                 `json:"port" validate:"required"`
+	InstanceType  string              `json:"instanceType" validate:"required"`
+	Username      string              `json:"username" validate:"required"`
+	Password      string              `json:"password" validate:"required"`
+	AdminUsername string              `json:"adminUsername"`
+	AdminPassword string              `json:"adminPassword"`
+	AuthDb        string              `json:"authDb"`        // 为方便管理用户，验证库默认为admin库
+	DbsPrivileges []common.Privileges `json:"dbsPrivileges"` // 业务库 以及权限 [{"db":xxx,"privileges":[xxx,xxx]}]
 }
 
 // AddUser 添加分片到集群
@@ -143,31 +140,6 @@ func (u *AddUser) checkParams() error {
 // makeScriptContent 生成user配置内容
 func (u *AddUser) makeScriptContent() error {
 	u.runtime.Logger.Info("start to make script content")
-	user := common.NewMongoUser()
-	user.User = u.ConfParams.Username
-	user.Pwd = u.ConfParams.Password
-
-	// 判断验证db
-	if u.ConfParams.AuthDb == "" {
-		u.ConfParams.AuthDb = "admin"
-	}
-
-	for _, dbPrivileges := range u.ConfParams.DbsPrivileges {
-		for _, privilege := range dbPrivileges.Privileges {
-			role := common.NewMongoRole()
-			role.Role = privilege
-			role.Db = dbPrivileges.Db
-			user.Roles = append(user.Roles, role)
-		}
-	}
-
-	content, err := user.GetContent()
-	if err != nil {
-		u.runtime.Logger.Error(fmt.Sprintf("make config content of addUser fail, error:%s", err))
-		return fmt.Errorf("make config content of addUser fail, error:%s", err)
-	}
-	// content = strings.Replace(content, "\"", "\\\"", -1)
-
 	// 获取mongo版本
 	mongoName := "mongod"
 	if u.ConfParams.InstanceType == "mongos" {
@@ -178,8 +150,21 @@ func (u *AddUser) makeScriptContent() error {
 		u.runtime.Logger.Error(fmt.Sprintf("check mongo version fail, error:%s", err))
 		return fmt.Errorf("check mongo version fail, error:%s", err)
 	}
-	mainVersion, _ := strconv.Atoi(strings.Split(version, ".")[0])
-	if mainVersion >= 3 {
+	mainVersion, _ := strconv.ParseFloat(strings.Join(strings.Split(version, ".")[0:2], "."), 64)
+	user := common.NewMongoUser(mainVersion)
+	// 判断验证db
+	if u.ConfParams.AuthDb == "" {
+		u.ConfParams.AuthDb = "admin"
+	}
+	// 进行初始化
+	user.Init(u.ConfParams.Username, u.ConfParams.Password, u.ConfParams.DbsPrivileges)
+	// 获取创建用户内容
+	content, err := user.GetContent()
+	if err != nil {
+		u.runtime.Logger.Error(fmt.Sprintf("make config content of addUser fail, error:%s", err))
+		return fmt.Errorf("make config content of addUser fail, error:%s", err)
+	}
+	if mainVersion >= 2.6 {
 		u.ScriptContent = strings.Join([]string{"db",
 			fmt.Sprintf("createUser(%s)", content)}, ".")
 		u.runtime.Logger.Info("make script content successfully")

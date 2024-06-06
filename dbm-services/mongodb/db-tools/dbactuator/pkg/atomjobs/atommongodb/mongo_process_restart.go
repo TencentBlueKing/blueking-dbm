@@ -19,17 +19,16 @@ import (
 
 // RestartConfParams 重启进程参数
 type RestartConfParams struct {
-	IP                       string `json:"ip" validate:"required"`
-	Port                     int    `json:"port" validate:"required"`
-	InstanceType             string `json:"instanceType" validate:"required"` // mongos mongod
-	SingleNodeInstallRestart bool   `json:"singleNodeInstallRestart"`         // mongod替换节点安装后重启
-	Auth                     bool   `json:"auth"`                             // true->auth false->noauth
-	CacheSizeGB              int    `json:"cacheSizeGB"`                      // 可选，重启mongod的参数
-	MongoSConfDbOld          string `json:"mongoSConfDbOld"`                  // 可选，ip:port
-	MongoSConfDbNew          string `json:"mongoSConfDbNew"`                  // 可选，ip:port
-	AdminUsername            string `json:"adminUsername"`
-	AdminPassword            string `json:"adminPassword"`
-	OnlyChangeParam          bool   `json:"onlyChangeParam"` // 是否只改变db相关参数，不重启进程
+	IP              string `json:"ip" validate:"required"`
+	Port            int    `json:"port" validate:"required"`
+	InstanceType    string `json:"instanceType" validate:"required"` // mongos mongod
+	Auth            bool   `json:"auth"`                             // true->auth false->noauth
+	CacheSizeGB     int    `json:"cacheSizeGB"`                      // 可选，重启mongod的参数
+	MongoSConfDbOld string `json:"mongoSConfDbOld"`                  // 可选，ip:port
+	MongoSConfDbNew string `json:"mongoSConfDbNew"`                  // 可选，ip:port
+	AdminUsername   string `json:"adminUsername"`
+	AdminPassword   string `json:"adminPassword"`
+	OnlyChangeParam bool   `json:"onlyChangeParam"` // 是否只改变db相关参数，不重启进程
 }
 
 // MongoRestart 重启mongo进程
@@ -312,9 +311,6 @@ func (r *MongoRestart) checkPrimary() (bool, error) {
 // RsStepDown  主备切换
 func (r *MongoRestart) RsStepDown() error {
 	if r.ConfParams.InstanceType != "mongos" {
-		if r.ConfParams.SingleNodeInstallRestart == true {
-			return nil
-		}
 		r.runtime.Logger.Info("start to check mongod service before rsStepDown")
 		flag, _, err := common.CheckMongoService(r.ConfParams.Port)
 		if err != nil {
