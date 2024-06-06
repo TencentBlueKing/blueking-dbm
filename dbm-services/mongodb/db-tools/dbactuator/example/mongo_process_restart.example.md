@@ -14,29 +14,33 @@
   "ip":"1.1.1.1",
   "port":27001,
   "instanceType":"mongod",
-  "singleNodeInstallRestart":false,  
   "auth":true,
-  "cacheSizeGB": null,
+  "cacheSizeGB": 0,
   "mongoSConfDbOld":"",
   "MongoSConfDbNew":"",
-  "adminUsername":"",
-  "adminPassword":""
+  "adminUsername":"xxx",
+  "adminPassword":"xxx",
+  "onlyChangeParam": false
 }
 ```
-"singleNodeInstallRestart"字段表示安装替换节点时mongod单节点重启  true：替换节点单节点重启 false：复制集节点重启
-"adminUsername"和"adminPassword"字段为空时表示安装时最后一步重启进程，不为空时表示提供服务期间重启
+"cacheSizeGB" 为0，不改变大小
+
+"onlyChangeParam" 为true，不重启mongod，仅修改配置文件；为false，既要修改配置文件，也要重启mongod
+
 ## mongos
 ```json
 {
   "ip":"1.1.1.1",
   "port":27021,
   "instanceType":"mongos",
-  "singleNodeInstallRestart":false,
   "auth":true,
-  "cacheSizeGB": null,
+  "cacheSizeGB": 0,
   "mongoSConfDbOld":"1.1.1.2:27001",
   "MongoSConfDbNew":"1.1.1.2:27004",
   "adminUsername":"",
-  "adminPassword":""
+  "adminPassword":"",
+  "onlyChangeParam": true
 }
 ```
+
+"onlyChangeParam" 为true，不重启mongos，仅修改配置文件；为false，既要修改配置文件，也要重启mongos

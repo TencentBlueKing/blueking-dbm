@@ -65,42 +65,39 @@ if (v.match(/^3\\./)) {
 mongo_extra_manager_user_create_js_script = """
 db = db.getSiblingDB('admin');
 var v = db.version();
-var main = v.slice(0,1);
-var int_main = Number(main);
+var main = v.slice(0,3);
+var float_main = parseFloat(main);
 var num = db.system.users.count({'_id' : 'admin.appdba'});
 if (num == 0) {
-    if (int_main >= 3) {
+    if (float_main >= 2.6) {
         db.createUser({user:'appdba',pwd:'{{appdba_pwd}}',
         roles:[{role:'userAdminAnyDatabase',db:'admin'},{role:'dbAdminAnyDatabase',db:'admin'},
         {role:'readWriteAnyDatabase',db:'admin'},{role:'clusterAdmin',db:'admin'}]});
     } else {
         db.addUser({user:'appdba',pwd:'{{appdba_pwd}}',
-        roles:[{role:'userAdminAnyDatabase',db:'admin'},{role:'dbAdminAnyDatabase',db:'admin'},
-        {role:'readWriteAnyDatabase',db:'admin'},{role:'clusterAdmin',db:'admin'}]});
+        roles:['userAdminAnyDatabase','dbAdminAnyDatabase','readWriteAnyDatabase','clusterAdmin']});
     }
 }
 var num =  db.system.users.count({'_id' : 'admin.monitor'});
 if (num == 0) {
-    if (int_main >= 3) {
+    if (float_main >= 2.6) {
         db.createUser({user:'monitor',pwd:'{{monitor_pwd}}',
         roles:[{role:'backup',db:'admin'},{role:'clusterMonitor',db:'admin'},
         {role:'readAnyDatabase',db:'admin'},{role:'hostManager',db:'admin'}]});
     } else {
         db.addUser({user:'monitor',pwd:'{{monitor_pwd}}',
-        roles:[{role:'backup',db:'admin'},{role:'clusterMonitor',db:'admin'},
-        {role:'readAnyDatabase',db:'admin'},{role:'hostManager',db:'admin'}]});
+        roles:['clusterAdmin','readAnyDatabase','dbAdminAnyDatabase','userAdminAnyDatabase']});
     }
 }
 var num =  db.system.users.count({'_id' : 'admin.appmonitor'});
 if (num == 0) {
-    if (int_main >= 3) {
+    if (float_main >= 2.6) {
         db.createUser({user:'appmonitor',pwd:'{{appmonitor_pwd}}',
         roles:[{role:'backup',db:'admin'},{role:'clusterMonitor',db:'admin'},
         {role:'readAnyDatabase',db:'admin'},{role:'hostManager',db:'admin'}]});
     } else {
         db.addUser({user:'appmonitor',pwd:'{{appmonitor_pwd}}',
-        roles:[{role:'backup',db:'admin'},{role:'clusterMonitor',db:'admin'},
-        {role:'readAnyDatabase',db:'admin'},{role:'hostManager',db:'admin'}]});
+        roles:['clusterAdmin', 'readAnyDatabase', 'dbAdminAnyDatabase', 'userAdminAnyDatabase']});
     }
 }
 """
