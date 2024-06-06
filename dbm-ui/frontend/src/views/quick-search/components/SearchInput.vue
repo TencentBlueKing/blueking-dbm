@@ -21,6 +21,7 @@
       autosize
       class="search-input-textarea"
       clearable
+      :placeholder="t('请输入关键字， Shift + Enter 换行')"
       :resize="false"
       type="textarea"
       @blur="handleBlur"
@@ -133,7 +134,7 @@
     const { width } = rootRef.value!.getBoundingClientRect();
     if (tippyIns) {
       popContentStyle.value = {
-        width: `${Math.max(width, 600)}px`,
+        width: `${Math.max(width - 91, 600)}px`,
       };
       tippyIns.show();
     }
@@ -176,7 +177,7 @@
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
       content: popRef.value,
-      placement: 'bottom-end',
+      placement: 'bottom-start',
       appendTo: () => document.body,
       theme: 'light system-search-popover-theme',
       maxWidth: 'none',
@@ -216,11 +217,12 @@
     .search-input-textarea {
       position: absolute;
       z-index: 4;
+      width: 810px;
 
       :deep(textarea) {
         max-height: 400px;
         min-height: 40px !important;
-        padding: 12px 120px 12px 10px;
+        padding: 12px 30px 12px 10px;
       }
     }
 

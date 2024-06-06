@@ -332,7 +332,7 @@
         getRenderList(data).map((rule) => {
           const { privilege } = rule;
           return (
-            <div class="cell-row" v-overflow-tips>
+            <div class="cell-row pr-12" v-overflow-tips>
               {
                 !privilege ? '--' : privilege.replace(/,/g, '，')
               }
@@ -547,6 +547,9 @@
     }
 
     .cell-row {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       & ~ .cell-row {
         border-top: 1px solid #dcdee5;
       }
