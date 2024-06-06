@@ -13,7 +13,7 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.targetCluster"
@@ -160,10 +160,10 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const versionRef = ref();
-  const switchModeRef = ref();
-  const targetCapacityRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const versionRef = ref<InstanceType<typeof RenderSpecifyVersion>>();
+  const switchModeRef = ref<InstanceType<typeof RenderSwitchMode>>();
+  const targetCapacityRef = ref<InstanceType<typeof RenderTargetCapacity>>();
 
   const versionList = computed(() => {
     if (Object.keys(props.versionsMap).length > 0 && props.data.clusterType) {
@@ -189,11 +189,11 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await clusterRef.value.getValue();
+      await clusterRef.value!.getValue(true);
       return Promise.all([
-        versionRef.value.getValue(),
-        switchModeRef.value.getValue(),
-        targetCapacityRef.value.getValue(),
+        versionRef.value!.getValue(),
+        switchModeRef.value!.getValue(),
+        targetCapacityRef.value!.getValue(),
       ]).then((data) => {
         const [version, switchMode, targetCapacity] = data;
         return {

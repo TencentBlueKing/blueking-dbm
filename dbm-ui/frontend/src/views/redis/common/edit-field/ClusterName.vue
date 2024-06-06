@@ -39,7 +39,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>;
+    getValue: (isSubmit?: boolean) => Promise<string>;
   }
 
   type RedisModel = ServiceReturnType<typeof getRedisList>['results'][number];
@@ -55,6 +55,8 @@
   const localValue = ref(props.data);
   const editRef = ref();
 
+  let isSkipInputFinish = false;
+
   const rules = [
     {
       validator: (value: string) => Boolean(value),
@@ -67,7 +69,7 @@
     {
       validator: async (value: string) => {
         const listResult = await getRedisList({ exact_domain: value });
-        if (listResult.results.length) {
+        if (listResult.results.length && !isSkipInputFinish) {
           emits('inputFinish', listResult.results[0]);
         }
         return listResult.results.length > 0;
@@ -91,7 +93,8 @@
   );
 
   defineExpose<Exposes>({
-    getValue() {
+    getValue(isSubmit = false) {
+      isSkipInputFinish = isSubmit;
       return editRef.value.getValue().then(() => localValue.value);
     },
   });
@@ -101,7 +104,7 @@
   .cluster-name-box {
     position: relative;
 
-    .edit-btn{
+    .edit-btn {
       position: absolute;
       top: 0;
       right: 5px;

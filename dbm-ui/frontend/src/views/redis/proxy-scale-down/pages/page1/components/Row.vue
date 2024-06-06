@@ -117,9 +117,9 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const switchRef = ref();
-  const editRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const switchRef = ref<InstanceType<typeof RenderSwitchMode>>();
+  const editRef = ref<InstanceType<typeof RenderTargetNumber>>();
 
   const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
@@ -138,8 +138,8 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await clusterRef.value.getValue();
-      return await Promise.all([editRef.value.getValue(), switchRef.value.getValue()]).then((data) => {
+      await clusterRef.value!.getValue(true);
+      return await Promise.all([editRef.value!.getValue(), switchRef.value!.getValue()]).then((data) => {
         const [targetNum, switchMode] = data;
         return {
           cluster_id: props.data.clusterId,

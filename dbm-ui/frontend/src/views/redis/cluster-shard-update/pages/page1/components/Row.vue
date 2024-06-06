@@ -193,9 +193,9 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const versionRef = ref();
-  const deployPlanRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const versionRef = ref<InstanceType<typeof RenderTargetClusterVersion>>();
+  const deployPlanRef = ref<InstanceType<typeof RenderDeployPlan>>();
 
   const versionList = computed(() => {
     if (props.clusterTypesMap && props.data.clusterType in props.clusterTypesMap) {
@@ -224,8 +224,8 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await clusterRef.value.getValue();
-      return await Promise.all([versionRef.value.getValue(), deployPlanRef.value.getValue()]).then(
+      await clusterRef.value!.getValue(true);
+      return await Promise.all([versionRef.value!.getValue(), deployPlanRef.value!.getValue()]).then(
         (data: [string, ExposeValue]) => {
           const [version, deployData] = data;
           return {
