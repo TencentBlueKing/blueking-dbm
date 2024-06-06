@@ -69,6 +69,7 @@ type TmysqlParse struct {
 	bkRepoClient       *bkrepo.BkRepoClient
 	TmysqlParseBinPath string
 	BaseWorkdir        string
+	mu                 sync.Mutex
 }
 
 type runtimeCtx struct {
@@ -112,6 +113,7 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 	tf.fileMap = make(map[inputFileName]outputFileName)
 	tf.result = make(map[string]*CheckInfo)
 	tf.tmpWorkdir = tf.BaseWorkdir
+	tf.mu = sync.Mutex{}
 
 	if !tf.IsLocalFile {
 		if err = tf.Init(); err != nil {
@@ -481,7 +483,7 @@ func (tf *TmysqlParse) analyzeDDLTbls(inputfileName string) (err error) {
 }
 
 // AnalyzeOne 分析单个文件
-func (tf *TmysqlParse) AnalyzeOne(inputfileName string, mysqlVersion string, dbtype string) (err error) {
+func (tf *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (err error) {
 	var idx int
 	var syntaxFailInfos []FailedInfo
 	var buf []byte
@@ -495,7 +497,7 @@ func (tf *TmysqlParse) AnalyzeOne(inputfileName string, mysqlVersion string, dbt
 		}
 	}()
 
-	tf.result[inputfileName] = &CheckInfo{}
+	checkResult := &CheckInfo{}
 	f, err := os.Open(tf.getAbsoutputfilePath(inputfileName))
 	if err != nil {
 		logger.Error("open file failed %s", err.Error())
@@ -551,18 +553,20 @@ func (tf *TmysqlParse) AnalyzeOne(inputfileName string, mysqlVersion string, dbt
 		switch dbtype {
 		case app.MySQL:
 			// tmysqlparse检查结果全部正确，开始判断语句是否符合定义的规则（即虽然语法正确，但语句可能是高危语句或禁用的命令）
-			tf.result[inputfileName].parseResult(R.CommandRule.HighRiskCommandRule, res, mysqlVersion)
-			tf.result[inputfileName].parseResult(R.CommandRule.BanCommandRule, res, mysqlVersion)
-			tf.result[inputfileName].runcheck(res, bs, mysqlVersion)
+			checkResult.parseResult(R.CommandRule.HighRiskCommandRule, res, mysqlVersion)
+			checkResult.parseResult(R.CommandRule.BanCommandRule, res, mysqlVersion)
+			checkResult.runcheck(res, bs, mysqlVersion)
 		case app.Spider:
 			// tmysqlparse检查结果全部正确，开始判断语句是否符合定义的规则（即虽然语法正确，但语句可能是高危语句或禁用的命令）
-			tf.result[inputfileName].parseResult(SR.CommandRule.HighRiskCommandRule, res, mysqlVersion)
-			tf.result[inputfileName].parseResult(SR.CommandRule.BanCommandRule, res, mysqlVersion)
-			tf.result[inputfileName].runSpidercheck(ddlTbls, res, bs, mysqlVersion)
+			checkResult.parseResult(SR.CommandRule.HighRiskCommandRule, res, mysqlVersion)
+			checkResult.parseResult(SR.CommandRule.BanCommandRule, res, mysqlVersion)
+			checkResult.runSpidercheck(ddlTbls, res, bs, mysqlVersion)
 		}
 	}
-
+	tf.mu.Lock()
+	tf.result[inputfileName] = checkResult
 	tf.result[inputfileName].SyntaxFailInfos = syntaxFailInfos
+	tf.mu.Unlock()
 	return nil
 }
 
