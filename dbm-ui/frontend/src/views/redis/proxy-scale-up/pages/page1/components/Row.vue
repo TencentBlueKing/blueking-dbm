@@ -164,9 +164,9 @@
   const { t } = useI18n();
 
   const specList = ref<IListItem[]>([]);
-  const clusterRef = ref();
-  const sepcRef = ref();
-  const numRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const sepcRef = ref<InstanceType<typeof RenderSpec>>();
+  const numRef = ref<InstanceType<typeof RenderTargetNumber>>();
 
   watch(
     () => props.data.rowModelData,
@@ -198,8 +198,8 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await clusterRef.value.getValue();
-      return await Promise.all([sepcRef.value.getValue(), numRef.value.getValue()]).then((data) => {
+      await clusterRef.value!.getValue(true);
+      return await Promise.all([sepcRef.value!.getValue(), numRef.value!.getValue()]).then((data) => {
         const [specId, targetNum] = data;
         return {
           cluster_id: props.data.clusterId,

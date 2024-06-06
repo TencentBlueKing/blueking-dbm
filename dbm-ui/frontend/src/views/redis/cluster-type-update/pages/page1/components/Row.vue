@@ -215,10 +215,10 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const deployPlanRef = ref();
-  const targetClusterTypeRef = ref();
-  const versionRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const deployPlanRef = ref<InstanceType<typeof RenderDeployPlan>>();
+  const targetClusterTypeRef = ref<InstanceType<typeof RenderTargetClusterType>>();
+  const versionRef = ref<InstanceType<typeof RenderTargetClusterVersion>>();
   const selectClusterType = ref('');
 
   const versionList = computed(() => {
@@ -252,11 +252,11 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await clusterRef.value.getValue();
+      await clusterRef.value!.getValue(true);
       return await Promise.all([
-        targetClusterTypeRef.value.getValue(),
-        versionRef.value.getValue(),
-        deployPlanRef.value.getValue(),
+        targetClusterTypeRef.value!.getValue(),
+        versionRef.value!.getValue(),
+        deployPlanRef.value!.getValue(),
       ]).then((data: [string, string, ExposeValue]) => {
         const [targetClusterType, version, deployData] = data;
         return {

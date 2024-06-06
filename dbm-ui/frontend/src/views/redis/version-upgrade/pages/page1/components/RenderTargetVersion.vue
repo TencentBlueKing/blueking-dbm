@@ -12,38 +12,65 @@
 -->
 
 <template>
-  <TableEditSelect
-    ref="selectRef"
-    v-model="localValue"
-    :list="list"
-    :placeholder="t('请选择')"
-    :rules="rules" />
+  <BkLoading :loading="loading">
+    <TableEditSelect
+      ref="selectRef"
+      v-model="localValue"
+      :list="targetVersionList"
+      :placeholder="t('请选择')"
+      :rules="rules" />
+  </BkLoading>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getClusterVersions } from '@services/source/redisToolbox';
 
   import TableEditSelect, { type IListItem } from '@views/redis/common/edit/Select.vue';
 
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['targetVersion'],
-    list?: IListItem[],
+    data: IDataRow;
+    currentList?: string[];
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: '',
-    list: () => ([]),
+    currentList: () => [],
   });
 
   const { t } = useI18n();
 
   const selectRef = ref<InstanceType<typeof TableEditSelect>>();
-  const localValue = ref(props.data ? props.data : '');
+  const localValue = ref(props.data?.targetVersion ? props.data?.targetVersion : '');
+  const targetVersionList = ref<IListItem[]>([]);
+
+  const currentVersionsMap = computed(() =>
+    props.currentList.reduce(
+      (results, item) => {
+        Object.assign(results, {
+          [item]: true,
+        });
+        return results;
+      },
+      {} as Record<string, boolean>,
+    ),
+  );
+
+  const { loading, run: fetchTargetClusterVersions } = useRequest(getClusterVersions, {
+    manual: true,
+    onSuccess(versions) {
+      targetVersionList.value = versions.map((item) => ({
+        label: item,
+        value: item,
+      }));
+    },
+  });
 
   const rules = [
     {
@@ -52,16 +79,50 @@
     },
   ];
 
-  watch(() => props.list, () => {
-    localValue.value = '';
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => [props.data.clusterType, props.data.nodeType],
+    () => {
+      if (props.data.clusterType) {
+        fetchTargetClusterVersions({
+          node_type: props.data.nodeType,
+          cluster_type: props.data.clusterType,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => props.currentList,
+    () => {
+      if (props.currentList.length > 0) {
+        targetVersionList.value = targetVersionList.value.map((item) => ({
+          label: item.label,
+          value: item.value,
+          disabled: currentVersionsMap.value[item.value as string],
+        }));
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    targetVersionList,
+    () => {
+      localValue.value = '';
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
       return selectRef.value!.getValue().then(() => localValue.value);
     },
   });
-
 </script>

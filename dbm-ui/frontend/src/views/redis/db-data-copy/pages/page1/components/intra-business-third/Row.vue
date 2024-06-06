@@ -111,11 +111,11 @@
 
   const emits = defineEmits<Emits>();
 
-  const sourceClusterRef = ref();
-  const targetClusterRef = ref();
-  const sccessCodeRef = ref();
-  const includeKeyRef = ref();
-  const excludeKeyRef = ref();
+  const sourceClusterRef = ref<InstanceType<typeof RenderSourceCluster>>();
+  const targetClusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const sccessCodeRef = ref<InstanceType<typeof RenderAccessCode>>();
+  const includeKeyRef = ref<InstanceType<typeof RenderKeyRelated>>();
+  const excludeKeyRef = ref<InstanceType<typeof RenderKeyRelated>>();
   const targetCluster = ref('');
 
   const handleInputTargetCluster = (value: string) => {
@@ -139,13 +139,13 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await sourceClusterRef.value.getValue();
+      await sourceClusterRef.value!.getValue(true);
       return await Promise.all([
         props.data.srcClusterId,
-        targetClusterRef.value.getValue(),
-        sccessCodeRef.value.getValue(),
-        includeKeyRef.value.getValue(),
-        excludeKeyRef.value.getValue(),
+        targetClusterRef.value!.getValue(),
+        sccessCodeRef.value!.getValue(),
+        includeKeyRef.value!.getValue(),
+        excludeKeyRef.value!.getValue(),
       ]).then((data) => {
         const [srcClusterId, targetCluster, password, includeKey, excludeKey] = data;
         return {

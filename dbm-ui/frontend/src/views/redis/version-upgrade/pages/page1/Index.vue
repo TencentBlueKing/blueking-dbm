@@ -29,7 +29,8 @@
           :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(rowInfo: RedisModel) => handleChangeCluster(index, rowInfo)"
+          @node-type-change="(type: string) => handleNodeTypeChange(index, type)"
           @remove="handleRemove(index)" />
       </RenderData>
       <ClusterSelector
@@ -67,7 +68,6 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel from '@services/model/redis/redis';
-  import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -114,6 +114,10 @@
     isShowClusterSelector.value = true;
   };
 
+  const handleNodeTypeChange = (index: number, type: string) => {
+    tableData.value[index].nodeType = type;
+  }
+
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (item: RedisModel) => ({
     rowKey: item.master_domain,
@@ -146,29 +150,19 @@
   };
 
   // 输入集群后查询集群信息并填充到table
-  const handleChangeCluster = async (index: number, domain: string) => {
+  const handleChangeCluster = (index: number, rowInfo: RedisModel) => {
+    const domain = rowInfo.master_domain;
     if (!domain) {
       const { cluster } = tableData.value[index];
       domainMemo[cluster] = false;
       tableData.value[index].cluster = '';
       return;
     }
-    tableData.value[index].isLoading = true;
-    const result = await getRedisList({ exact_domain: domain }).finally(() => {
-      tableData.value[index].isLoading = false;
-    });
-    if (result.results.length < 1) {
-      return;
-    }
-    const list = result.results.filter(item => item.master_domain === domain);
-    if (list.length === 0) {
-      return;
-    }
-    const item = list[0];
-    const row = generateRowDateFromRequest(item);
+
+    const row = generateRowDateFromRequest(rowInfo);
     tableData.value[index] = row;
     domainMemo[domain] = true;
-    selectedClusters.value[ClusterTypes.REDIS].push(item);
+    selectedClusters.value[ClusterTypes.REDIS].push(rowInfo);
   };
 
   // 追加一个集群

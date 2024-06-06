@@ -85,7 +85,19 @@
 
 
   interface Exposes {
-    getValue: () => Promise<boolean>
+    getValue: () => Promise<{
+      shard_num: number,
+      group_num: number,
+      capacity: number,
+      future_capacity: number,
+      resource_spec: {
+        backend_group: {
+          spec_id: number,
+          count: number,
+          affinity: AffinityType,
+        },
+      },
+    }>
   }
 
   const props = defineProps<Props>();

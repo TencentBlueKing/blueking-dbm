@@ -127,10 +127,10 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const instanceRef = ref();
-  const hostNumRef = ref();
-  const timeRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const instanceRef = ref<InstanceType<typeof RenderInstance>>();
+  const hostNumRef = ref<InstanceType<typeof RenderTargetHostNumber>>();
+  const timeRef = ref<InstanceType<typeof RenderTargetDateTime>>();
   const targetMax = ref(0);
 
   const handleChoosedListChange = (arr: string[]) => {
@@ -154,8 +154,8 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await clusterRef.value.getValue();
-      return Promise.all([instanceRef.value.getValue(), hostNumRef.value.getValue(), timeRef.value.getValue()]).then(
+      await clusterRef.value!.getValue(true);
+      return Promise.all([instanceRef.value!.getValue(), hostNumRef.value!.getValue(), timeRef.value!.getValue()]).then(
         (data) => {
           const [instances, hostNum, targetDateTime] = data;
           return {

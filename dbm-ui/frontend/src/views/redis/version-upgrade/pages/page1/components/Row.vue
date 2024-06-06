@@ -13,34 +13,34 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetCluster
         ref="clusterRef"
         :data="data.cluster"
         :inputed="inputedClusters"
         @input-finish="handleInputFinish" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderText
         :data="data.clusterType"
         :is-loading="data.isLoading"
         :placeholder="t('输入集群后自动生成')" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderNodeType
         :data="data.nodeType"
         @change="handleNodeTypeChange" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderCurrentVersion
-        :is-loading="data.isLoading"
-        :list="currentVersionList" />
+        :data="data"
+        @list-change="handleCurrentListChange" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderTargetVersion
         ref="targetVersionRef"
-        :is-loading="data.isLoading"
-        :list="targetVersionList" />
+        :current-list="currentVersionList"
+        :data="data" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -51,12 +51,11 @@
 <script lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getClusterVersions } from '@services/source/redisToolbox';
+  import RedisModel from '@services/model/redis/redis';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
-  import type { IListItem } from '@views/redis/common/edit/Select.vue';
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
 
   import { random } from '@utils';
@@ -75,11 +74,11 @@
     targetVersion?: string;
   }
 
-  export  interface InfoItem {
-    cluster_id: number,
-    node_type: string,
-    current_versions: string[],
-    target_version: string,
+  export interface InfoItem {
+    cluster_id: number;
+    node_type: string;
+    current_versions: string[];
+    target_version: string;
   }
 
   // 创建表格数据
@@ -88,29 +87,29 @@
     isLoading: false,
     cluster: '',
     clusterId: 0,
-    nodeType: '',
+    nodeType: 'Proxy',
   });
-
 </script>
 <script setup lang="ts">
   interface Props {
-    data: IDataRow,
-    removeable: boolean,
-    inputedClusters?: string[],
+    data: IDataRow;
+    removeable: boolean;
+    inputedClusters?: string[];
   }
 
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void,
-    (e: 'remove'): void,
-    (e: 'clusterInputFinish', value: string): void
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
+    (e: 'nodeTypeChange', value: string): void;
+    (e: 'clusterInputFinish', value: RedisModel): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<InfoItem>
+    getValue: () => Promise<InfoItem>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    inputedClusters: () => ([]),
+    inputedClusters: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -120,50 +119,16 @@
   const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
   const targetVersionRef = ref<InstanceType<typeof RenderTargetVersion>>();
   const currentVersionList = ref<string[]>([]);
-  const nodeType = ref<string>('Proxy');
-  const targetVersionList = ref<IListItem[]>([]);
 
-  watch(() => [props.data.clusterId, nodeType.value] as [number, string], async ([clusterId, nodeType]) => {
-    if (clusterId) {
-      const versions = await getClusterVersions({
-        node_type: nodeType,
-        cluster_id: clusterId,
-      });
-      currentVersionList.value = versions;
-    }
-  }, {
-    immediate: true,
-  });
-
-  watch(() => [
-    props.data.clusterType,
-    nodeType.value,
-    currentVersionList.value,
-  ] as [string, string, string[]], async ([
-    clusterType,
-    nodeType,
-    versionList,
-  ]) => {
-    if (clusterType) {
-      const versions = await getClusterVersions({
-        node_type: nodeType,
-        cluster_type: clusterType,
-      });
-      targetVersionList.value = versions.map(item => ({
-        label: item,
-        value: item,
-        disabled: versionList.includes(item),
-      }));
-    }
-  }, {
-    immediate: true,
-  });
-
-  const handleNodeTypeChange = (value: string) => {
-    nodeType.value = value;
+  const handleCurrentListChange = (versions: string[]) => {
+    currentVersionList.value = versions;
   };
 
-  const handleInputFinish = (value: string) => {
+  const handleNodeTypeChange = (value: string) => {
+    emits('nodeTypeChange', value);
+  };
+
+  const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
   };
 
@@ -180,14 +145,13 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await clusterRef.value!.getValue();
-      return await targetVersionRef.value!.getValue().then(targetVersion => ({
+      await clusterRef.value!.getValue(true);
+      return await targetVersionRef.value!.getValue().then((targetVersion) => ({
         cluster_id: props.data.clusterId,
-        node_type: nodeType.value,
+        node_type: props.data.nodeType,
         current_versions: currentVersionList.value,
         target_version: targetVersion,
       }));
     },
   });
-
 </script>

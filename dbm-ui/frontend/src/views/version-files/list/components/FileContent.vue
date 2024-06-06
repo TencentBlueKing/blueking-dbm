@@ -119,10 +119,10 @@
             method="put"
             :multiple="false"
             name="file"
+            :select-change="handleSelectFileChange"
             :size="10240"
             :tip="acceptInfo.tips"
             :url="createFileState.uploadUrl"
-            @change="handleSeleFileChange"
             @delete="handleDeleteFile"
             @success="handleUpdateSuccess" />
         </BkFormItem>
@@ -398,8 +398,11 @@
     }
   }, { immediate: true });
 
-  // TODO:旧版本的组件库不支持 select-change属性，只能暂时用change事件来处理
-  const handleSeleFileChange = async (e: { target: HTMLInputElement }) => {
+  const handleSelectFileChange = async (e: { target: HTMLInputElement }) => {
+    if (!e.target.files) {
+      return false;
+    }
+
     const dbType = props.info.name;
     const pkgType = state.active;
     const { version } = createFileState.formdata;
@@ -423,7 +426,9 @@
         raw: fileObj,
       });
     });
-  };
+
+    return true;
+  }
 
   const handleSetDefaultVersion = (row: VersionFileModel) => {
     if (!row.enable) {

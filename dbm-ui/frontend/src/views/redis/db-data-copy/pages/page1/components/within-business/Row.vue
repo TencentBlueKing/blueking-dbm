@@ -103,10 +103,10 @@
 
   const emits = defineEmits<Emits>();
 
-  const sourceClusterRef = ref();
-  const targetClusterRef = ref();
-  const includeKeyRef = ref();
-  const excludeKeyRef = ref();
+  const sourceClusterRef = ref<InstanceType<typeof RenderSourceCluster>>();
+  const targetClusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const includeKeyRef = ref<InstanceType<typeof RenderKeyRelated>>();
+  const excludeKeyRef = ref<InstanceType<typeof RenderKeyRelated>>();
   const selectClusterList = ref<SelectItem[]>([]);
 
   watch(
@@ -138,12 +138,12 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await sourceClusterRef.value.getValue();
+      await sourceClusterRef.value!.getValue(true);
       return await Promise.all([
         props.data.srcClusterId,
-        targetClusterRef.value.getValue(),
-        includeKeyRef.value.getValue(),
-        excludeKeyRef.value.getValue(),
+        targetClusterRef.value!.getValue(),
+        includeKeyRef.value!.getValue(),
+        excludeKeyRef.value!.getValue(),
       ]).then((data) => {
         const [srcClusterId, targetClusterId, includeKey, excludeKey] = data;
         return {

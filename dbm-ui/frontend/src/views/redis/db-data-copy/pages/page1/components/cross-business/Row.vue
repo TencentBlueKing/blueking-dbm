@@ -114,11 +114,11 @@
 
   const emits = defineEmits<Emits>();
 
-  const sourceClusterRef = ref();
-  const targetBusinessRef = ref();
-  const targetClusterRef = ref();
-  const includeKeyRef = ref();
-  const excludeKeyRef = ref();
+  const sourceClusterRef = ref<InstanceType<typeof RenderSourceCluster>>();
+  const targetBusinessRef = ref<InstanceType<typeof RenderTargetBusiness>>();
+  const targetClusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const includeKeyRef = ref<InstanceType<typeof RenderKeyRelated>>();
+  const excludeKeyRef = ref<InstanceType<typeof RenderKeyRelated>>();
   const clusterList = ref<SelectItem[]>([]);
 
   // 目标业务变动后，集群列表更新
@@ -157,13 +157,13 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await sourceClusterRef.value.getValue();
+      await sourceClusterRef.value!.getValue(true);
       return await Promise.all([
         props.data.srcClusterId,
-        targetBusinessRef.value.getValue(),
-        targetClusterRef.value.getValue(),
-        includeKeyRef.value.getValue(),
-        excludeKeyRef.value.getValue(),
+        targetBusinessRef.value!.getValue(),
+        targetClusterRef.value!.getValue(),
+        includeKeyRef.value!.getValue(),
+        excludeKeyRef.value!.getValue(),
       ]).then((data) => {
         const [srcClusterId, targetBusines, targetClusterId, includeKey, excludeKey] = data;
         return {
