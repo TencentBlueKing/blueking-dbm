@@ -75,6 +75,8 @@ class MysqlOpenAreaFlow(object):
                 ip_port = cluster.tendbcluster_ctl_primary_address()
         elif cluster.cluster_type == ClusterType.TenDBHA.value:
             ip_port = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER).ip_port
+        elif cluster.cluster_type == ClusterType.TenDBSingle.value:
+            ip_port = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.ORPHAN).ip_port
         else:
             raise DBMetaException(message=_("集群实例类型不适用于开区"))
 
