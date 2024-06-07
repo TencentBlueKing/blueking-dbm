@@ -175,7 +175,7 @@ func DownloadDbactor(bkCloudId int64, ips []string) error {
 func GetCluster(dns Domain, ClusterType string) (Instance, error) {
 	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
 	var resp Instance
-	url := fmt.Sprintf("/apis/proxypass/dbmeta/priv_manager/%s/cluster_instances/", ClusterType)
+	url := fmt.Sprintf("/apis/proxypass/dbmeta/priv_manager/mysql/%s/cluster_instances/", ClusterType)
 	result, err := c.Do(http.MethodPost, url, dns)
 	if err != nil {
 		slog.Error("msg", url, err)

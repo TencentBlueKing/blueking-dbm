@@ -46,6 +46,7 @@ type Instance struct {
 	EntryRole    string    `json:"entry_role"`
 	BkCloudId    int64     `json:"bk_cloud_id"`
 	ImmuteDomain string    `json:"immute_domain"`
+	PaddingProxy bool      `json:"padding_proxy"`
 }
 
 // Cluster GetAllClustersInfo 函数返回 Cluster 数组
