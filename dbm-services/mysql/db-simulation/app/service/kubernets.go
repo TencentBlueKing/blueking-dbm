@@ -131,6 +131,8 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 			Labels:    k.BaseInfo.Lables,
 		},
 		Spec: v1.PodSpec{
+			NodeSelector: config.GAppConfig.SimulationNodeLables,
+			Tolerations:  k.getToleration(),
 			Containers: []v1.Container{
 				{
 					Name: "backend",
@@ -219,7 +221,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 	return nil
 }
 
-// createpod TODO
+// createpod create pod
 func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 	podc, err := k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
@@ -275,6 +277,18 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 	return err
 }
 
+// getToleration special  node
+func (k *DbPodSets) getToleration() []v1.Toleration {
+	ts := []v1.Toleration{}
+	for key, _ := range config.GAppConfig.SimulationNodeLables {
+		ts = append(ts, v1.Toleration{
+			Key:      key,
+			Operator: v1.TolerationOpExists,
+		})
+	}
+	return ts
+}
+
 func (k *DbPodSets) getResourceLimit() v1.ResourceRequirements {
 	if !config.IsEmptyMySQLPodResourceConfig() {
 		return v1.ResourceRequirements{
@@ -320,6 +334,8 @@ func (k *DbPodSets) CreateMySQLPod() (err error) {
 			Labels:    k.BaseInfo.Lables,
 		},
 		Spec: v1.PodSpec{
+			NodeSelector: config.GAppConfig.SimulationNodeLables,
+			Tolerations:  k.getToleration(),
 			Containers: []v1.Container{{
 				Resources: k.getResourceLimit(),
 				Name:      app.MySQL,
