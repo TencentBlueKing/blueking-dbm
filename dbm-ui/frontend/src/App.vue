@@ -1,8 +1,6 @@
 <template>
-  <NoticeComponent
-    :api-url="noticeApi"
-    @show-alert-change="showAlertChange" />
-  <Layout :style="{ height: isShowSystemAlert ? 'calc(100% - 40px)' : '100%' }">
+  <NoticeComponent :api-url="noticeApi" />
+  <Layout>
     <template #navigationHeaderRight>
       <SystemSearch
         class="mr-8"
@@ -91,7 +89,6 @@
   const isShowHelp = ref(false);
   const isShowLogout = ref(false);
   const isShowSystemVersionLog = ref(false);
-  const isShowSystemAlert = ref(false);
 
   watch(
     locale,
@@ -103,10 +100,6 @@
 
   const handleShowSystemVersionLog = () => {
     isShowSystemVersionLog.value = true;
-  };
-
-  const showAlertChange = (isShow: boolean) => {
-    isShowSystemAlert.value = isShow;
   };
 
   const handleSignOut = () => {
