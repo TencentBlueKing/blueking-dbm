@@ -19,5 +19,8 @@ def extract_condition_from_promql(promql):
         expr = ast.lhs.expr
     else:
         expr = ast.expr
-    matches = list(expr.args[0].vector_selector.label_matchers)
+    if hasattr(expr, "label_matchers"):
+        matches = list(expr.label_matchers)
+    else:
+        matches = list(expr.args[0].vector_selector.label_matchers)
     return {match.name: match.value for match in matches}
