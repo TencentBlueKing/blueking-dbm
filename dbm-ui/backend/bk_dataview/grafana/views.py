@@ -385,20 +385,22 @@ class ProxyBaseView(View):
 
     def _auth(self, request):
         url = self.get_request_url(request)
-        request_data = json.loads(request.body.decode())
         if url.endswith("/timeseries/time_series/unify_query/"):
             # 这里仅针对 DBM 场景处理，基本都是简单的一级查询，暂不考虑复杂情况
-            condition = {match["key"]: match["value"][0] for match in request_data["query_configs"][0]["where"]}
+            condition = {
+                match["key"]: match["value"][0]
+                for match in json.loads(request.body.decode())["query_configs"][0]["where"]
+            }
         elif url.endswith("/timeseries/graph_promql_query/"):
             # promql 查询
-            condition = extract_condition_from_promql(request_data["promql"])
+            condition = extract_condition_from_promql(json.loads(request.body.decode())["promql"])
         elif url.endswith("/timeseries/grafana/query/") or url.endswith("/timeseries/grafana/query_log/"):
             # 日志仪表盘查询
             condition = {
                 "cluster_domain"
                 if match["key"] in ["domain", "__ext.cluster_domain"]
                 else match["key"]: match["value"][0]
-                for match in request_data["where"]
+                for match in json.loads(request.body.decode())["where"]
             }
         else:
             return True
