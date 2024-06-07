@@ -12,104 +12,107 @@
 -->
 
 <template>
-  <DbForm
-    ref="formRef"
-    class="create-module db-scroll-y"
-    :label-width="168"
-    :model="formdata">
-    <DbCard
-      class="mb-16"
-      :title="t('模块信息')">
-      <BkFormItem
-        :label="t('模块名称')"
-        property="module_name"
-        required
-        :rules="rules.module_name">
-        <BkInput
-          v-model="formdata.module_name"
-          :placeholder="t('由英文字母_数字_连字符_组成')"
-          :readonly="isReadonly" />
-        <span class="belong-business">{{ t('所属业务') }} : {{ bizInfo.name }}</span>
-      </BkFormItem>
-    </DbCard>
-    <DbCard
-      class="mb-16"
-      :title="t('绑定数据库配置')">
-      <BkFormItem
-        :label="t('数据库类型')"
-        required>
-        <BkTag
-          class="mysql-type-item"
-          theme="info"
-          type="stroke">
-          <template #icon>
-            <i class="db-icon-mysql mr-5" />
-          </template>
-          TenDBCluster
-        </BkTag>
-      </BkFormItem>
-      <BkFormItem
-        :label="t('数据库版本')"
-        property="version"
-        required>
-        <DeployVersion
-          v-model="formdata.version"
-          db-type="mysql"
-          :placeholder="t('请选择数据库版本')"
-          query-key="mysql" />
-      </BkFormItem>
-      <BkFormItem
-        :label="t('Spider版本')"
-        property="spider_version"
-        required>
-        <DeployVersion
-          v-model="formdata.spider_version"
-          db-type="mysql"
-          :placeholder="t('请选择xx', [t('Spider版本')])"
-          query-key="spider" />
-      </BkFormItem>
-      <BkFormItem
-        :label="t('字符集')"
-        property="character_set"
-        required>
-        <BkSelect
-          v-model="formdata.character_set"
-          :clearable="false"
-          :disabled="isBindSuccessfully"
-          filterable
-          :list="characterSets"
-          :placeholder="t('请选择字符集')" />
-      </BkFormItem>
-    </DbCard>
-    <DbCard :title="t('参数配置')">
-      <BkRadioGroup
-        v-model="clusterType"
-        class="mb-12"
-        type="capsule">
-        <BkRadioButton
-          label="tendbcluster"
-          style="width: 200px">
-          {{ t('MySQL参数配置') }}
-        </BkRadioButton>
-        <BkRadioButton
-          label="spider"
-          style="width: 200px">
-          {{ t('Spider参数配置') }}
-        </BkRadioButton>
-      </BkRadioGroup>
-      <ModuleParameterTable
-        v-show="clusterType === 'tendbcluster'"
-        ref="mysqlTableRef"
-        :biz-id="bizId"
-        :version="formdata.version" />
-      <ModuleParameterTable
-        v-show="clusterType === 'spider'"
-        ref="spiderTableRef"
-        :biz-id="bizId"
-        :version="formdata.spider_version" />
-    </DbCard>
-    <div class="absolute-footer">
+  <SmartAction :offset-target="getSmartActionOffsetTarget">
+    <DbForm
+      ref="formRef"
+      class="create-module db-scroll-y"
+      :label-width="168"
+      :model="formdata">
+      <DbCard
+        class="mb-16"
+        :title="t('模块信息')">
+        <BkFormItem
+          :label="t('模块名称')"
+          property="module_name"
+          required
+          :rules="rules.module_name">
+          <BkInput
+            v-model="formdata.module_name"
+            :placeholder="t('由英文字母_数字_连字符_组成')"
+            :readonly="isReadonly" />
+          <span class="belong-business">{{ t('所属业务') }} : {{ bizInfo.name }}</span>
+        </BkFormItem>
+      </DbCard>
+      <DbCard
+        class="mb-16"
+        :title="t('绑定数据库配置')">
+        <BkFormItem
+          :label="t('数据库类型')"
+          required>
+          <BkTag
+            class="mysql-type-item"
+            theme="info"
+            type="stroke">
+            <template #icon>
+              <i class="db-icon-mysql mr-5" />
+            </template>
+            TenDBCluster
+          </BkTag>
+        </BkFormItem>
+        <BkFormItem
+          :label="t('数据库版本')"
+          property="version"
+          required>
+          <DeployVersion
+            v-model="formdata.version"
+            db-type="mysql"
+            :placeholder="t('请选择数据库版本')"
+            query-key="mysql" />
+        </BkFormItem>
+        <BkFormItem
+          :label="t('Spider版本')"
+          property="spider_version"
+          required>
+          <DeployVersion
+            v-model="formdata.spider_version"
+            db-type="mysql"
+            :placeholder="t('请选择xx', [t('Spider版本')])"
+            query-key="spider" />
+        </BkFormItem>
+        <BkFormItem
+          :label="t('字符集')"
+          property="character_set"
+          required>
+          <BkSelect
+            v-model="formdata.character_set"
+            :clearable="false"
+            :disabled="isBindSuccessfully"
+            filterable
+            :list="characterSets"
+            :placeholder="t('请选择字符集')" />
+        </BkFormItem>
+      </DbCard>
+      <DbCard :title="t('参数配置')">
+        <BkRadioGroup
+          v-model="clusterType"
+          class="mb-12"
+          type="capsule">
+          <BkRadioButton
+            label="tendbcluster"
+            style="width: 200px">
+            {{ t('MySQL参数配置') }}
+          </BkRadioButton>
+          <BkRadioButton
+            label="spider"
+            style="width: 200px">
+            {{ t('Spider参数配置') }}
+          </BkRadioButton>
+        </BkRadioGroup>
+        <ModuleParameterTable
+          v-show="clusterType === 'tendbcluster'"
+          ref="mysqlTableRef"
+          :biz-id="bizId"
+          :version="formdata.version" />
+        <ModuleParameterTable
+          v-show="clusterType === 'spider'"
+          ref="spiderTableRef"
+          :biz-id="bizId"
+          :version="formdata.spider_version" />
+      </DbCard>
+    </DbForm>
+    <template #action>
       <BkButton
+        class="w-88"
         :disabled="disabledSubmit"
         :loading="isSubmintting"
         theme="primary"
@@ -117,12 +120,13 @@
         {{ t('保存') }}
       </BkButton>
       <BkButton
+        class="w-88 ml-8"
         :disabled="isSubmintting"
         @click="handleReset()">
         {{ t('重置') }}
       </BkButton>
-    </div>
-  </DbForm>
+    </template>
+  </SmartAction>
 </template>
 
 <script setup lang="ts">
@@ -217,6 +221,8 @@
       },
     ],
   };
+
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   // 创建模块
   const newModule = () => {
