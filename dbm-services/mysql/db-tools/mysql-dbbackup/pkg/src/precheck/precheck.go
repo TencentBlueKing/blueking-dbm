@@ -14,7 +14,7 @@ func BeforeDump(cnfPublic *config.Public) error {
 		return err
 	}
 
-	// check disk space
+	// 例行删除旧备份
 	if err := DeleteOldBackup(cnfPublic, cnfPublic.OldFileLeftDay); err != nil {
 		logger.Log.Warn("failed to delete old backup, err:", err)
 	}
