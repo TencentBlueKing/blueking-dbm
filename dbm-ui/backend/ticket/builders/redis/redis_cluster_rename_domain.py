@@ -24,7 +24,7 @@ logger = logging.getLogger("flow")
 
 
 class RedisClusterRenameDomainSerializer(SkipToRepresentationMixin, serializers.Serializer):
-    """集群maxmemory设置"""
+    """集群重命名域名设置"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
