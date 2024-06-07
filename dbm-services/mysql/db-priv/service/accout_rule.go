@@ -407,8 +407,7 @@ func CrossCheckBetweenDbList(newDbs []string, exist []string) string {
 			if CrossCheck(newDb, existDb) {
 				// （已授权的数据库+准备授权的数据库）和准备授权的数据库有包含关系
 				msg := fmt.Sprintf("新增规则中的数据库[`%s`]与已存在的规则中的数据库[`%s`]存在交集，授权时可能冲突",
-					strings.Replace(newDb, "%", "%%", -1),
-					strings.Replace(existDb, "%", "%%", -1))
+					newDb, existDb)
 				errMsg = append(errMsg, msg)
 				continue
 			}
@@ -433,8 +432,7 @@ func CrossCheckBetweenDbList(newDbs []string, exist []string) string {
 	for db := range UniqMap {
 		d := strings.Split(db, "|")
 		msg := fmt.Sprintf("新增规则中的数据库[`%s`]与新增规则中的数据库[`%s`]存在交集，授权时可能冲突",
-			strings.Replace(d[0], "%", "%%", -1),
-			strings.Replace(d[1], "%", "%%", -1))
+			d[0], d[1])
 		errMsg = append(errMsg, msg)
 	}
 	if len(errMsg) > 0 {
