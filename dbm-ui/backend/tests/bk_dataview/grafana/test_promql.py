@@ -32,6 +32,14 @@ class TestGrafanaPromql:
         assert result["instance_role"] == "backend_master"
 
     @staticmethod
+    def test_redis():
+        result = extract_condition_from_promql(
+            "max by(version) (bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_version"
+            '{cluster_domain="example.domain.db"})'
+        )
+        assert result["cluster_domain"] == "example.domain.db"
+
+    @staticmethod
     def test_pulsar():
         result = extract_condition_from_promql(
             "sum by (topic) (sum_over_time(bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:"
@@ -42,3 +50,23 @@ class TestGrafanaPromql:
         assert result["app"] == "test_app"
         assert result["topic"] == "test_topic"
         assert result["namespace"] == "test_namespace"
+
+    @staticmethod
+    def test_kafka_count():
+        result = extract_condition_from_promql(
+            'count(bkmonitor:dbm_system:cpu_summary:usage{app="es",'
+            'cluster_domain="example.domain.db",instance_role="broker"})'
+        )
+        assert result["cluster_domain"] == "example.domain.db"
+        assert result["app"] == "es"
+        assert result["instance_role"] == "broker"
+
+    def test_kafka_avg(self):
+        result = extract_condition_from_promql(
+            'avg(bkmonitor:pushgateway_dbm_kafka_bkpull:kafka_network_requestmetrics_remotetimems{app="es",'
+            'cluster_domain="example.domain.db",quantile="0.95",request="Produce"})'
+        )
+        assert result["cluster_domain"] == "example.domain.db"
+        assert result["app"] == "es"
+        assert result["quantile"] == "0.95"
+        assert result["request"] == "Produce"
