@@ -118,5 +118,27 @@ FOUND=$(grep -i 'net.ipv4.ip_local_reserved_ports=30000-31000,40000-41000,50000-
 if [ -z "$FOUND" ]; then
         echo "net.ipv4.ip_local_reserved_ports=30000-31000,40000-41000,50000-52000" >>/etc/sysctl.conf
 fi
+# 生成 core 文件相关配置
+if [[ ! -d /data/corefile ]]; then
+        mkdir -p /data/corefile
+        chmod  777 /data/corefile
+fi
+FOUND=$(grep -i 'soft core unlimited' /etc/security/limits.conf)
+if [ -z "$FOUND" ]; then
+        echo "* soft core unlimited" >>/etc/security/limits.conf
+fi
+FOUND=$(grep -i 'soft hard unlimited' /etc/security/limits.conf)
+if [ -z "$FOUND" ]; then
+        echo "* soft hard unlimited" >>/etc/security/limits.conf
+fi
+FOUND=$(grep -i 'kernel.core_uses_pid = 0' /etc/sysctl.conf)
+if [ -z "$FOUND" ]; then
+        echo "kernel.core_uses_pid = 0" >>/etc/sysctl.conf
+fi
+FOUND=$(grep -i 'kernel.core_pattern= /data/corefile/core_%e_%t' /etc/sysctl.conf)
+if [ -z "$FOUND" ]; then
+        echo "kernel.core_pattern= /data/corefile/core_%e_%t" >>/etc/sysctl.conf
+fi
+
 /sbin/sysctl -p
 _exit
