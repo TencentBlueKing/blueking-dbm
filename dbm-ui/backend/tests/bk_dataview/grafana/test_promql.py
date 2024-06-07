@@ -70,3 +70,23 @@ class TestGrafanaPromql:
         assert result["app"] == "es"
         assert result["quantile"] == "0.95"
         assert result["request"] == "Produce"
+
+    def test_kafka_count_topic(self):
+        result = extract_condition_from_promql(
+            "count(count by (topic) (bkmonitor:pushgateway_dbm_kafka_bkpull:kafka_cluster_partition_replicascount"
+            '{app="es",cluster_domain="example.domain.db",partition="0"}))'
+        )
+        assert result["cluster_domain"] == "example.domain.db"
+        assert result["app"] == "es"
+        assert result["partition"] == "0"
+
+    def test_redis_cpu(self):
+        result = extract_condition_from_promql(
+            "max(max by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:"
+            'redis_cpu_user_seconds_total{cluster_domain="example.domain.db",'
+            'instance_role="redis_master"}[2m]) + irate(bkmonitor:exporter_dbm_redis_exporter:'
+            '__default__:redis_cpu_sys_seconds_total{cluster_domain="example.domain.db",'
+            'instance_role="redis_master"}[2m])))'
+        )
+        assert result["cluster_domain"] == "example.domain.db"
+        assert result["instance_role"] == "redis_master"
