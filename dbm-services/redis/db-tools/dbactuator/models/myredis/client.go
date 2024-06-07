@@ -36,6 +36,9 @@ type RedisClient struct {
 
 // NewRedisClient 建redis客户端
 func NewRedisClient(addr, passwd string, db int, dbType string) (conn *RedisClient, err error) {
+	// 统一不使用智能client,一个连接固定到某个实例上
+	// 智能client连接redis cluster,容易在执行命令时,漂移到cluster的不同实例上
+	dbType = consts.TendisTypeRedisInstance
 	conn = &RedisClient{
 		Addr:         addr,
 		Password:     passwd,
@@ -54,6 +57,9 @@ func NewRedisClient(addr, passwd string, db int, dbType string) (conn *RedisClie
 // NewRedisClientWithTimeout 建redis客户端,可指定超时时间
 func NewRedisClientWithTimeout(addr, passwd string, db int, dbType string, timeout time.Duration) (
 	conn *RedisClient, err error) {
+	// 统一不使用智能client,一个连接固定到某个实例上
+	// 智能client连接redis cluster,容易在执行命令时,漂移到cluster的不同实例上
+	dbType = consts.TendisTypeRedisInstance
 	conn = &RedisClient{
 		Addr:         addr,
 		Password:     passwd,

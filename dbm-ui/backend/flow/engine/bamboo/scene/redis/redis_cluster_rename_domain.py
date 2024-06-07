@@ -94,11 +94,12 @@ class RedisClusterRenameDomainFlow(object):
 
         sub_pipelines = []
         for info in self.data["infos"]:
+            cluster = Cluster.objects.get(id=info["cluster_id"])
             act_kwargs = ActKwargs()
             act_kwargs.set_trans_data_dataclass = CommonContext.__name__
             act_kwargs.file_list = trans_files.redis_base()
             act_kwargs.is_update_trans_data = True
-            act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
+            act_kwargs.bk_cloud_id = cluster.bk_cloud_id
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
 
@@ -108,7 +109,6 @@ class RedisClusterRenameDomainFlow(object):
                 kwargs=asdict(act_kwargs),
             )
 
-            cluster = Cluster.objects.get(id=info["cluster_id"])
             cluster_all_ips = set()
             meta_proxy_ips = []
             for inst in cluster.proxyinstance_set.all():
