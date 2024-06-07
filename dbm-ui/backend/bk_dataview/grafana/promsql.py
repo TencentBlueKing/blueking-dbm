@@ -12,15 +12,23 @@ specific language governing permissions and limitations under the License.
 import promql_parser
 
 
+def extract_label_matchers(expr):
+    if isinstance(expr, promql_parser.VectorSelector):
+        return list(expr.label_matchers)
+    if isinstance(expr, promql_parser.AggregateExpr):
+        return extract_label_matchers(expr.expr)
+    if isinstance(expr, promql_parser.Call):
+        for arg in expr.args:
+            return extract_label_matchers(arg)
+    if isinstance(expr, promql_parser.MatrixSelector):
+        return extract_label_matchers(expr.vector_selector)
+    if isinstance(expr, promql_parser.BinaryExpr):
+        return extract_label_matchers(expr.lhs)
+    return []
+
+
 def extract_condition_from_promql(promql):
-    """从 promql 中提取 cluster_domain，目前仪表盘的设计"""
+    """从 promql 中提取 cluster_domain，目前仪表盘的设计都包含 cluster_domain"""
     ast = promql_parser.parse(promql)
-    if hasattr(ast, "lhs"):
-        expr = ast.lhs.expr
-    else:
-        expr = ast.expr
-    if hasattr(expr, "label_matchers"):
-        matches = list(expr.label_matchers)
-    else:
-        matches = list(expr.args[0].vector_selector.label_matchers)
-    return {match.name: match.value for match in matches}
+    label_matchers = extract_label_matchers(ast)
+    return {match.name: match.value for match in label_matchers}
