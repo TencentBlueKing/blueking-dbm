@@ -17,7 +17,6 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/report"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 
-	"github.com/flosch/pongo2/v6"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -413,12 +412,6 @@ func (job *RedisInstall) GenerateConfigFile(port int) error {
 		return err
 	}
 
-	tpl, err := pongo2.FromString(job.RedisConfTemplate)
-	if err != nil {
-		err = fmt.Errorf("pongo2.FromString fail,err:%v,RedisConfTemplate:%s", err, job.RedisConfTemplate)
-		job.runtime.Logger.Error(err.Error())
-		return err
-	}
 	clusterEnabled := "no"
 	if consts.IsClusterDbType(job.params.DbType) {
 		clusterEnabled = "yes"
@@ -435,24 +428,17 @@ func (job *RedisInstall) GenerateConfigFile(port int) error {
 		job.runtime.Logger.Error(err.Error())
 		return err
 	}
-	pctx01 := pongo2.Context{
-		"address":                 job.params.IP,
-		"port":                    strconv.Itoa(port),
-		"password":                job.params.Password,
-		"redis_data_dir":          instDir,
-		"databases":               strconv.Itoa(job.params.Databases),
-		"cluster_enabled":         clusterEnabled,
-		"maxmemory":               strconv.FormatUint(job.params.MaxMemory, 10),
-		"rocks_blockcachemb":      strconv.FormatUint(instBlockcache, 10),
-		"rocks_write_buffer_size": strconv.FormatUint(writeBufferSize, 10),
-	}
-	confData, err := tpl.Execute(pctx01)
-	if err != nil {
-		job.runtime.Logger.Error(
-			"tpl.Execute failed,err:%v,address:%s,port:%d,password:%s,redis_data_dir:%s,databases:%d,cluster_enabled:%s",
-			err, job.params.IP, port, job.params.Password, instDir, job.params.Databases, clusterEnabled)
-		return err
-	}
+	confData := job.RedisConfTemplate
+	confData = strings.ReplaceAll(confData, "{{address}}", job.params.IP)
+	confData = strings.ReplaceAll(confData, "{{port}}", strconv.Itoa(port))
+	confData = strings.ReplaceAll(confData, "{{password}}", job.params.Password)
+	confData = strings.ReplaceAll(confData, "{{redis_data_dir}}", instDir)
+	confData = strings.ReplaceAll(confData, "{{databases}}", strconv.Itoa(job.params.Databases))
+	confData = strings.ReplaceAll(confData, "{{cluster_enabled}}", clusterEnabled)
+	confData = strings.ReplaceAll(confData, "{{maxmemory}}", strconv.FormatUint(job.params.MaxMemory, 10))
+	confData = strings.ReplaceAll(confData, "{{rocks_blockcachemb}}", strconv.FormatUint(instBlockcache, 10))
+	confData = strings.ReplaceAll(confData, "{{rocks_write_buffer_size}}",
+		strconv.FormatUint(writeBufferSize, 10))
 	err = ioutil.WriteFile(instConfFile, []byte(confData), os.ModePerm)
 	if err != nil {
 		job.runtime.Logger.Error("ioutil.WriteFile failed,err:%v,config_file:%s,confData:%s", err, instConfFile, confData)

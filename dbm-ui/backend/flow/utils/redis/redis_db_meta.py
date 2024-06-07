@@ -1199,7 +1199,7 @@ class RedisDBMeta(object):
                 # 该集群不应该存在 nodes域名映射关系
                 # 删除
                 exists_insts = []
-                for row in dns_manage.get_domain(domain_name=cluster_entry.entry):
+                for row in dns_manage.get_domain(domain_name=nodes_domain):
                     exists_insts.append("{}#{}".format(row["ip"], row["port"]))
                 if exists_insts:
                     dns_manage.recycle_domain_record(del_instance_list=exists_insts)
