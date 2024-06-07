@@ -12,8 +12,9 @@ import logging
 
 from django.db import transaction
 
-from backend.db_meta.enums import InstanceRoleInstanceInnerRoleMap, InstanceStatus
+from backend.db_meta.enums import InstanceRole, InstanceRoleInstanceInnerRoleMap, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -40,6 +41,13 @@ def switch_storage(cluster_id: int, target_storage_ip: str, origin_storage_ip: s
     # target实例需要继承source实例的is_standby特性
     target_storage.is_stand_by = origin_storage.is_stand_by
     target_storage.save()
+    if target_storage.instance_role == InstanceRole.BACKEND_REPEATER:
+        cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
+        cc_manage.add_label_for_service_instance(
+            bk_instance_ids=[target_storage.bk_instance_id],
+            labels_dict={"instance_role": InstanceRole.BACKEND_MASTER.value},
+        )
+
     # 这两行目前看来有点多余, 而且似乎不做更好
     # origin_storage.is_stand_by = False
     # origin_storage.save()
