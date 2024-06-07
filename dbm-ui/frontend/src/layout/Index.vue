@@ -247,6 +247,10 @@
       }
     }
 
+    .navigation-container {
+      max-width: none !important;
+    }
+
     .bk-navigation-header {
       background: #0e1525;
     }

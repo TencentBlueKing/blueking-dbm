@@ -146,6 +146,7 @@
   .cluster-details {
     height: 100%;
     background: #fff;
+    z-index: 99;
 
     .content-tabs {
       :deep(.bk-tab-content) {
