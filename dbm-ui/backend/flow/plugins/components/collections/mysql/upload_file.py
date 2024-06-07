@@ -33,6 +33,7 @@ class UploadFileService(BaseService):
         if content:
             sql_file = tempfile.NamedTemporaryFile(suffix=".sql")
             sql_file.write(str.encode(content, encoding="utf-8"))
+            sql_file.seek(0)
         else:
             self.log_error(_("分区sql为空无需上传"))
             return False
