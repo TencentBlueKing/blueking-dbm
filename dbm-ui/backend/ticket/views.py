@@ -86,9 +86,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         # 创建单据，关联单据类型的动作
         if self.action == "create":
             return create_ticket_permission(self.request.data["ticket_type"])
-        # 创建敏感单据，只允许通过jwt校验的用户访问
+        # 创建敏感单据，只允许通过jwt校验的用户访问(warning: 这个网关接口授权需谨慎)
         if self.action == "create_sensitive_ticket":
-            permission_class = [] if self.request.jwt.is_valid else [RejectPermission()]
+            permission_class = [] if self.request.is_bk_jwt() else [RejectPermission()]
             return permission_class
         # 查看集群/实例变更条件，关联集群详情
         elif self.action == "get_cluster_operate_records":
