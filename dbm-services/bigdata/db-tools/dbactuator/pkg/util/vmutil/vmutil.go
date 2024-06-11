@@ -99,13 +99,6 @@ type AuthConfig struct {
 }
 
 // GenerateAuthYAML 生成auth.config
-/*
-unauthorized_user:
-  url_prefix:
-  - ip1:8481
-  - ip2:8481
-  - ip3:8481
-*/
 func GenerateAuthYAML(input string) ([]byte, error) {
 	// Split the input string by comma
 	rawURLs := strings.Split(input, ",")
