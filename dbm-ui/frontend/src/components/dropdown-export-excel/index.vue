@@ -33,6 +33,10 @@
   import { useI18n } from 'vue-i18n';
 
   import {
+    exportDorisClusterToExcel,
+    exportDorisInstanceToExcel,
+  } from '@services/source/doris';
+  import {
     exportEsClusterToExcel,
     exportEsInstanceToExcel,
   } from '@services/source/es';
@@ -83,7 +87,7 @@
   } from '@services/source/tendbsingle';
 
   interface Props {
-    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'riak' | 'mongodb' | 'sqlserver_ha' | 'sqlserver_single';
+    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'riak' | 'mongodb' | 'sqlserver_ha' | 'sqlserver_single' | 'doris';
     ids?: number[];
     exportType?: 'cluster' | 'instance';
   }
@@ -152,6 +156,10 @@
     },
     sqlserver_single: {
       cluster: exportSqlServerSingleClusterToExcel,
+    },
+    doris: {
+      cluster: exportDorisClusterToExcel,
+      instance: exportDorisInstanceToExcel,
     },
   };
 

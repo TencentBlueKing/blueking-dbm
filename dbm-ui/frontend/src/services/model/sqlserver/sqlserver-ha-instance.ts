@@ -30,6 +30,7 @@ export default class SqlServerHaInstance {
   id: number;
   instance_address: string;
   ip: string;
+  machine_type: string;
   master_domain: string;
   permission: {
     sqlserver_view: boolean;
@@ -56,6 +57,26 @@ export default class SqlServerHaInstance {
   slave_domain: string;
   spec_config: {
     id: number;
+    cpu: {
+      max: number;
+      min: number;
+    };
+    mem: {
+      max: number;
+      min: number;
+    };
+    qps: {
+      max: number;
+      min: number;
+    };
+    name: string;
+    count: number;
+    device_class: string[];
+    storage_spec: {
+      size: number;
+      type: string;
+      mount_point: string;
+    }[];
   };
   status: ClusterInstStatusKeys;
   version: string;
@@ -73,6 +94,7 @@ export default class SqlServerHaInstance {
     this.id = payload.id;
     this.instance_address = payload.instance_address;
     this.ip = payload.ip;
+    this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
     this.permission = payload.permission;
     this.port = payload.port;

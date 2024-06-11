@@ -167,7 +167,8 @@
     influxdb: 'influxdb',
     pulsar: 'pulsar',
     tendbcluster: 'tendbcluster',
-    riak: 'riak'
+    riak: 'riak',
+    doris: 'doris'
   };
 
   const databaseType = databaseTypeMap[props.clusterType];
@@ -412,6 +413,7 @@
       disabled: ['spec_name', 'model'].includes(item.field as string),
     })),
     checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
+    trigger: 'manual' as const,
   };
 
   const {
