@@ -13,7 +13,7 @@ from typing import Dict
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
-from backend.configuration.constants import AffinityEnum
+from backend.configuration.constants import AffinityEnum, DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
@@ -77,7 +77,9 @@ class RedisInstanceApplyFlowParamBuilder(builders.FlowParamBuilder):
         """补充部署redis主从集群通用信息"""
         for info in self.ticket_data["infos"]:
             # 生成随机密码，密码强度符合平台密码策略
-            redis_pwd = self.ticket_data.get("redis_pwd") or DBPasswordHandler.get_random_password()
+            redis_pwd = self.ticket_data.get("redis_pwd") or DBPasswordHandler.get_random_password(
+                security_type=DBPrivSecurityType.REDIS_PASSWORD
+            )
             # 域名生成规则：ins.{cluster_name}.{db_app_abbr}.db
             domain_name = "ins.{}.{}.db".format(info["cluster_name"], self.ticket_data["db_app_abbr"])
             # 校验域名是否合法

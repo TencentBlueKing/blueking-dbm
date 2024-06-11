@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
-from backend.configuration.constants import AffinityEnum
+from backend.configuration.constants import AffinityEnum, DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
@@ -180,10 +180,12 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
         }
         """
         # 生成随机密码，密码强度符合平台密码策略
-        proxy_admin_pwd = DBPasswordHandler.get_random_password()
-        redis_pwd = DBPasswordHandler.get_random_password()
+        proxy_admin_pwd = DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.REDIS_PASSWORD)
+        redis_pwd = DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.REDIS_PASSWORD)
         # proxy访问密码优先以用户为准
-        proxy_pwd = self.ticket_data.get("proxy_pwd") or DBPasswordHandler.get_random_password()
+        proxy_pwd = self.ticket_data.get("proxy_pwd") or DBPasswordHandler.get_random_password(
+            security_type=DBPrivSecurityType.REDIS_PASSWORD
+        )
         ticket_type = self.ticket_data["cluster_type"]
 
         # 默认db数量
