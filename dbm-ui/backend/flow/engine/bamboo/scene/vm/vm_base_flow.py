@@ -67,7 +67,7 @@ class VmBaseFlow(object):
             self.vminsert_port = data.get("vminsert_port")
             self.vmselect_port = data.get("vmselect_port")
             self.bk_cloud_id = data.get("bk_cloud_id")
-            self.auth = data.get("auth")
+            self.auth = data.get("auth", 0)
             self.retention_period = data.get("retention_period")
             self.replication_factor = data.get("replication_factor")
             self.username = data.get("username")
@@ -245,7 +245,7 @@ class VmBaseFlow(object):
             # 使用 getattr 来获取实际的函数对象的名字
             act_kwargs.get_vm_payload_func = getattr(VmActPayload, get_payload_func_name).__name__
             vm_act = {
-                "act_name": _(f"安装{role}-{vm_ip}"),
+                "act_name": _(f"PreInstall {role}-{vm_ip}"),
                 "act_component_code": ExecuteVmActuatorScriptComponent.code,
                 "kwargs": asdict(act_kwargs),
             }
