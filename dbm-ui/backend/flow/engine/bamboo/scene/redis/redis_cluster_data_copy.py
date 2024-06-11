@@ -54,7 +54,13 @@ from backend.db_services.redis.util import (
     is_tendisssd_instance_type,
     is_twemproxy_proxy_type,
 )
-from backend.flow.consts import ConfigFileEnum, StateType, WriteContextOpType
+from backend.flow.consts import (
+    DEFAULT_REDIS_CLUSTER_DATABASES,
+    DEFAULT_REDIS_INSTANCE_DATABASES,
+    ConfigFileEnum,
+    StateType,
+    WriteContextOpType,
+)
 from backend.flow.engine.bamboo.scene.common.atom_jobs.set_dns_sub_job import set_dns_atom_job
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -136,7 +142,9 @@ class RedisClusterDataCopyFlow(object):
 
             # 获取云区域的dns nameserver
             sub_pipeline.add_act(
-                act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
+                act_name=_("初始化配置"),
+                act_component_code=GetRedisActPayloadComponent.code,
+                kwargs=asdict(act_kwargs),
             )
 
             if (
@@ -338,7 +346,12 @@ class RedisClusterDataCopyFlow(object):
         install_param["cluster_password"] = src_cluster_info["cluster_password"]
         install_param["redis_password"] = src_cluster_info["redis_password"]
         install_param["redis_proxy_admin_password"] = src_cluster_info.get("redis_proxy_admin_password", "")
-        install_param["redis_databases"] = src_cluster_info["redis_databases"]
+        if is_twemproxy_proxy_type(info.get("target_cluster_type", src_cluster_info["cluster_type"])):
+            install_param["redis_databases"] = DEFAULT_REDIS_INSTANCE_DATABASES
+        elif is_redis_cluster_protocal(info.get("target_cluster_type", src_cluster_info["cluster_type"])):
+            install_param["redis_databases"] = DEFAULT_REDIS_CLUSTER_DATABASES
+        else:
+            install_param["redis_databases"] = src_cluster_info["redis_databases"]
         install_param["max_disk"] = info["max_disk"]
         install_param["maxmemory"] = info["maxmemory"]
         install_param["region"] = src_cluster_info["region"]
@@ -503,7 +516,9 @@ class RedisClusterDataCopyFlow(object):
             )
 
             redis_pipeline.add_act(
-                act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
+                act_name=_("初始化配置"),
+                act_component_code=GetRedisActPayloadComponent.code,
+                kwargs=asdict(act_kwargs),
             )
 
             dst_cluster_installed = self.is_dst_cluster_installed(info, dst_install_param)
@@ -722,7 +737,9 @@ class RedisClusterDataCopyFlow(object):
             act_kwargs.cluster = {}
 
             redis_pipeline.add_act(
-                act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
+                act_name=_("初始化配置"),
+                act_component_code=GetRedisActPayloadComponent.code,
+                kwargs=asdict(act_kwargs),
             )
 
             acts_list = []
@@ -767,7 +784,9 @@ class RedisClusterDataCopyFlow(object):
 
             # 再次初始化 redis_act_payload,以便actuator中能获取前面 前置检查结果
             redis_pipeline.add_act(
-                act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
+                act_name=_("初始化配置"),
+                act_component_code=GetRedisActPayloadComponent.code,
+                kwargs=asdict(act_kwargs),
             )
 
             # 下发 proxy 安装介质,actuator介质
