@@ -172,6 +172,11 @@
         value: 'hdfs',
         icon: 'hdfs',
       },
+      {
+        name: 'Doris',
+        value: 'doris',
+        icon: 'doris',
+      },
     ],
   };
 

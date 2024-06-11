@@ -42,13 +42,13 @@ export default class Es {
   static ES_REBOOT = 'ES_REBOOT';
 
   static operationIconMap = {
-    [Es.ES_SCALE_UP]: 'kuorongzhong',
-    [Es.ES_SHRINK]: 'suorongzhong',
-    [Es.ES_REPLACE]: 'tihuanzong',
-    [Es.ES_ENABLE]: 'qiyongzhong',
-    [Es.ES_DISABLE]: 'jinyongzhong',
-    [Es.ES_DESTROY]: 'shanchuzhong',
-    [Es.ES_REBOOT]: 'zhongqizhong',
+    [Es.ES_SCALE_UP]: t('扩容中'),
+    [Es.ES_SHRINK]: t('缩容中'),
+    [Es.ES_REPLACE]: t('替换中'),
+    [Es.ES_ENABLE]: t('启用中'),
+    [Es.ES_DISABLE]: t('禁用中'),
+    [Es.ES_DESTROY]: t('删除中'),
+    [Es.ES_REBOOT]: t('重启中'),
   };
 
   static operationTextMap = {

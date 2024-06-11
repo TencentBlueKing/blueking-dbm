@@ -17,7 +17,7 @@ export default class KafkaInstance {
   static KAFKA_REBOOT = 'KAFKA_REBOOT';
 
   static operationIconMap = {
-    [KafkaInstance.KAFKA_REBOOT]: 'zhongqizhong',
+    [KafkaInstance.KAFKA_REBOOT]: t('重启中'),
   };
 
   static operationTextMap = {

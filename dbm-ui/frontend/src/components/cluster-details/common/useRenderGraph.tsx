@@ -9,12 +9,14 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import _ from 'lodash';
 import type { Instance } from 'tippy.js';
 import type { VNode } from 'vue';
+import type { JSX } from 'vue/jsx-runtime';
 
+import { retrieveDorisInstance } from '@services/source/doris';
 import { retrieveEsInstance } from '@services/source/es';
 import { retrieveHdfsInstance } from '@services/source/hdfs';
 import { retrieveKafkaInstance } from '@services/source/kafka';
@@ -52,68 +54,80 @@ import {
 import { checkOverflow } from '@/directives/overflowTips';
 
 interface ClusterTopoProps {
-  dbType: string,
-  clusterType: string,
-  id: number
+  dbType: string;
+  clusterType: string;
+  id: number;
 }
 
-type ResourceTopoNode = ResourceTopo['nodes'][number]
+type ResourceTopoNode = ResourceTopo['nodes'][number];
 type DetailColumnsRenderFunc<T> = (value: T) => JSX.Element;
 
 type DetailColumns<T> = {
-  label: string
-  key: keyof InstanceDetails
-  render?: DetailColumnsRenderFunc<T>
-}[]
+  label: string;
+  key: keyof InstanceDetails;
+  render?: DetailColumnsRenderFunc<T>;
+}[];
 
 // 实例信息
-export const detailColumns: DetailColumns<any> = [{
-  label: t('部署角色'),
-  key: 'role',
-}, {
-  label: t('版本'),
-  key: 'db_version',
-}, {
-  label: t('状态'),
-  key: 'status',
-  render: (status: 'running' | 'unavailable') => {
-    if (!status) return <span>--</span>;
-
-    const statusMap = {
-      running: {
-        theme: 'success',
-        text: t('运行中'),
-      },
-      unavailable: {
-        theme: 'danger',
-        text: t('异常'),
-      },
-    };
-    const info = statusMap[status] || statusMap.unavailable;
-    return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+export const detailColumns: DetailColumns<any> = [
+  {
+    label: t('部署角色'),
+    key: 'role',
   },
-}, {
-  label: t('主机IP'),
-  key: 'bk_host_innerip',
-}, {
-  label: t('所在机房'),
-  key: 'bk_idc_name',
-}, {
-  label: t('所在城市'),
-  key: 'idc_city_name',
-}, {
-  label: 'CPU',
-  key: 'bk_cpu',
-  render: (value: number) => <span>{Number.isFinite(value) ? `${value}${t('核')}` : '--'}</span>,
-}, {
-  label: t('内存'),
-  key: 'bk_mem',
-  render: (value: number) => <span>{Number.isFinite(value) ? `${value}MB` : '--'}</span>,
-}, {
-  label: t('硬盘'),
-  key: 'bk_disk',
-  render: (value: number) => <span>{Number.isFinite(value) ? `${value}GB` : '--'}</span>,
-}];
+  {
+    label: t('版本'),
+    key: 'db_version',
+  },
+  {
+    label: t('状态'),
+    key: 'status',
+    render: (status: 'running' | 'unavailable') => {
+      if (!status) {
+        return <span>--</span>;
+      }
+
+      const statusMap = {
+        running: {
+          theme: 'success',
+          text: t('运行中'),
+        },
+        unavailable: {
+          theme: 'danger',
+          text: t('异常'),
+        },
+      };
+      const info = statusMap[status] || statusMap.unavailable;
+      return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+    },
+  },
+  {
+    label: t('主机IP'),
+    key: 'bk_host_innerip',
+  },
+  {
+    label: t('所在机房'),
+    key: 'bk_idc_name',
+  },
+  {
+    label: t('所在城市'),
+    key: 'idc_city_name',
+  },
+  {
+    label: 'CPU',
+    key: 'bk_cpu',
+    render: (value: number) => <span>{Number.isFinite(value) ? `${value}${t('核')}` : '--'}</span>,
+  },
+  {
+    label: t('内存'),
+    key: 'bk_mem',
+    render: (value: number) => <span>{Number.isFinite(value) ? `${value}MB` : '--'}</span>,
+  },
+  {
+    label: t('硬盘'),
+    key: 'bk_disk',
+    render: (value: number) => <span>{Number.isFinite(value) ? `${value}GB` : '--'}</span>,
+  },
+];
 
 const apiMap: Record<string, (params: any) => Promise<any>> = {
   es: retrieveEsInstance,
@@ -125,6 +139,7 @@ const apiMap: Record<string, (params: any) => Promise<any>> = {
   tendbha: retrieveTendbhaInstance,
   tendbcluster: retrieveSpiderInstance,
   riak: retrieveRiakInstance,
+  doris: retrieveDorisInstance,
 };
 
 const entryTagMap: Record<string, string> = {
@@ -163,7 +178,11 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
       onNodeRender: getNodeRender,
     })
       .on('nodeMouseEnter', async (node: GraphNode, e: MouseEvent) => {
-        if (node.type === GroupTypes.GROUP) return;
+        if (node.type === GroupTypes.GROUP) {
+          return;
+        }
+
+        // 设置激活节点 z-index
 
         // 设置激活节点 z-index
         if (e.target) {
@@ -218,7 +237,9 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
         }
       })
       .on('nodeMouseLeave', (node: GraphNode, e: MouseEvent) => {
-        if (node.type === GroupTypes.GROUP) return;
+        if (node.type === GroupTypes.GROUP) {
+          return;
+        }
 
         const tippy = tippyInstances.get(node.id);
         tippy?.destroy();
@@ -257,10 +278,10 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
 
   const globalBizsStore = useGlobalBizs();
   const instState = reactive<{
-    activeId: string,
-    isLoading: boolean,
-    detailsCaches: Map<string, InstanceDetails>,
-    nodeData: ResourceTopoNode | null
+    activeId: string;
+    isLoading: boolean;
+    detailsCaches: Map<string, InstanceDetails>;
+    nodeData: ResourceTopoNode | null;
   }>({
     activeId: '',
     isLoading: false,
@@ -298,16 +319,15 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
     let vNode: VNode | string = '';
 
     if (props.dbType === DBTypes.RIAK) {
-      const {
-        url,
-        status,
-      } = node.data as ResourceTopoNode;
+      const { url, status } = node.data as ResourceTopoNode;
       vNode = (
-        <div class={['cluster-node', 'riak-node', { 'has-link': url }]} id={node.id}>
-          <svg class="db-svg-icon">
-            <use xlinkHref={ `#db-icon-${status === 'running' ? 'sync-success' : 'sync-failed'}`} />
+        <div
+          class={['cluster-node', 'riak-node', { 'has-link': url }]}
+          id={node.id}>
+          <svg class='db-svg-icon'>
+            <use xlinkHref={`#db-icon-${status === 'running' ? 'sync-success' : 'sync-failed'}`} />
           </svg>
-          <div class="cluster-node__content riak-node-content text-overflow ml-4">{node.id}</div>
+          <div class='cluster-node__content riak-node-content text-overflow ml-4'>{node.id}</div>
         </div>
       );
     } else {
@@ -317,10 +337,10 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
 
       if (isGroup) {
         vNode = (
-          <div class="cluster-group">
-            <div class="cluster-group__title">
+          <div class='cluster-group'>
+            <div class='cluster-group__title'>
               <span class={['cluster-group__icon', iconType]}>{node.label.charAt(0).toUpperCase()}</span>
-              <h5 class="cluster-group__label">{node.label}</h5>
+              <h5 class='cluster-group__label'>{node.label}</h5>
             </div>
           </div>
         );
@@ -328,25 +348,24 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
         const { node_type: nodeType, url } = node.data as ResourceTopoNode;
         const isEntryExternalLinks = nodeType.startsWith('entry_') && /^https?:\/\//.test(url);
         vNode = (
-          <div class={['cluster-node', { 'has-link': url }]} id={node.id}>
-            {
-              isEntryExternalLinks
-                ? (
-                  <a
-                    style="display: flex; align-items: center; color: #63656E;"
-                    href={url}
-                    target="__blank">
-                    <span class="cluster-node__content text-overflow">{node.id}</span>
-                    {
-                      entryTagMap[nodeType]
-                        ? <span class="cluster-node__tag">{entryTagMap[nodeType]}</span>
-                        : null
-                    }
-                    <i class="db-icon-link cluster-node__link" style="flex-shrink: 0; color: #3a84ff;" />
-                  </a>
-                )
-                : <div class="cluster-node__content text-overflow">{node.id}</div>
-            }
+          <div
+            class={['cluster-node', { 'has-link': url }]}
+            id={node.id}>
+            {isEntryExternalLinks ? (
+              <a
+                style='display: flex; align-items: center; color: #63656E;'
+                href={url}
+                target='__blank'>
+                <span class='cluster-node__content text-overflow'>{node.id}</span>
+                {entryTagMap[nodeType] ? <span class='cluster-node__tag'>{entryTagMap[nodeType]}</span> : null}
+                <i
+                  class='db-icon-link cluster-node__link'
+                  style='flex-shrink: 0; color: #3a84ff;'
+                />
+              </a>
+            ) : (
+              <div class='cluster-node__content text-overflow'>{node.id}</div>
+            )}
           </div>
         );
       }
@@ -379,7 +398,8 @@ function renderLineLabels(
   nodes: GraphNode[],
   nodeConfig: NodeConfig = {},
 ) {
-  if (graphInstance?._diagramInstance?._canvas) { // eslint-disable-line no-underscore-dangle
+  if (graphInstance?._diagramInstance?._canvas) {
+    // eslint-disable-line no-underscore-dangle
     // eslint-disable-next-line no-underscore-dangle
     graphInstance._diagramInstance._canvas
       .insert('div', ':first-child')
@@ -393,7 +413,7 @@ function renderLineLabels(
       .style('position', 'absolute')
       .style('left', (line: GraphLine) => {
         const { source, target } = line;
-        const targetNode = nodes.find(node => node.id === target.id);
+        const targetNode = nodes.find((node) => node.id === target.id);
         const offsetX = nodeConfig.offsetX === undefined ? 0 : nodeConfig.offsetX;
         const width = targetNode ? targetNode.width : 0;
         const targetNodeOffset = (width + offsetX) / 2;
@@ -407,8 +427,8 @@ function renderLineLabels(
       })
       .style('top', (line: GraphLine) => {
         const { source, target } = line;
-        const sourceNode = nodes.find(node => node.id === source.id);
-        const targetNode = nodes.find(node => node.id === target.id);
+        const sourceNode = nodes.find((node) => node.id === source.id);
+        const targetNode = nodes.find((node) => node.id === target.id);
         const sHeight = sourceNode ? sourceNode.height : 0;
         const sourceEndY = source.y + sHeight / 2;
         const tHeight = targetNode ? targetNode.height : 0;

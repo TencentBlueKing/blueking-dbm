@@ -158,11 +158,11 @@
       <div class="cluster-name-box">
           <div class="cluster-name">{data.master_domain}</div>
           {data.phase === 'offline' && (
-            <db-icon
-              svg
-              type="yijinyong"
-              class="mr-8"
-              style="width: 38px; height: 16px;" />
+            <bk-tag
+              class="ml-8"
+              size="small">
+              {t('已禁用')}
+            </bk-tag>
           )}
           {data.operations && data.operations.length > 0 && (
             <bk-popover

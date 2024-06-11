@@ -42,13 +42,13 @@ export default class Hdfs {
   static HDFS_REBOOT = 'HDFS_REBOOT';
 
   static operationIconMap = {
-    [Hdfs.HDFS_SCALE_UP]: 'kuorongzhong',
-    [Hdfs.HDFS_SHRINK]: 'suorongzhong',
-    [Hdfs.HDFS_REPLACE]: 'tihuanzong',
-    [Hdfs.HDFS_ENABLE]: 'qiyongzhong',
-    [Hdfs.HDFS_DISABLE]: 'jinyongzhong',
-    [Hdfs.HDFS_DESTROY]: 'shanchuzhong',
-    [Hdfs.HDFS_REBOOT]: 'zhongqizhong',
+    [Hdfs.HDFS_SCALE_UP]: t('扩容中'),
+    [Hdfs.HDFS_SHRINK]: t('缩容中'),
+    [Hdfs.HDFS_REPLACE]: t('替换中'),
+    [Hdfs.HDFS_ENABLE]: t('启用中'),
+    [Hdfs.HDFS_DISABLE]: t('禁用中'),
+    [Hdfs.HDFS_DESTROY]: t('删除中'),
+    [Hdfs.HDFS_REBOOT]: t('重启中'),
   };
 
   static operationTextMap = {

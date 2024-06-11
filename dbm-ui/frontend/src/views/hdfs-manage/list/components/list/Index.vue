@@ -57,8 +57,8 @@
     </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
+      background-color="#F5F7FA"
       class="hdfs-manage-sideslider"
-      backgroundColor="#F5F7FA"
       quick-close
       :title="t('xx扩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
       :width="960">
@@ -69,6 +69,8 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
+      background-color="#F5F7FA"
+      class="hdfs-manage-sideslider"
       quick-close
       :title="t('xx缩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
       :width="960">
@@ -144,7 +146,7 @@
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
@@ -440,11 +442,15 @@
           {
             data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
           }
-          <db-icon
-            v-show={!data.isOnline}
-            svg
-            type="yijinyong"
-            style="width: 38px; height: 16px; margin-left: 4px;" />
+          {
+            data.isOffline && (
+              <bk-tag
+                class="ml-4"
+                size="small">
+                {t('已禁用')}
+              </bk-tag>
+            )
+          }
           {
             isRecentDays(data.create_at, 24 * 3)
             && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />

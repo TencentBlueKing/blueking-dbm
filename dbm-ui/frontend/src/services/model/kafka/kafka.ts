@@ -42,13 +42,13 @@ export default class Kafka {
   static KAFKA_REBOOT = 'KAFKA_REBOOT';
 
   static operationIconMap = {
-    [Kafka.KAFKA_SCALE_UP]: 'kuorongzhong',
-    [Kafka.KAFKA_SHRINK]: 'suorongzhong',
-    [Kafka.KAFKA_REPLACE]: 'tihuanzong',
-    [Kafka.KAFKA_ENABLE]: 'qiyongzhong',
-    [Kafka.KAFKA_DISABLE]: 'jinyongzhong',
-    [Kafka.KAFKA_DESTROY]: 'shanchuzhong',
-    [Kafka.KAFKA_REBOOT]: 'zhongqizhong',
+    [Kafka.KAFKA_SCALE_UP]: t('扩容中'),
+    [Kafka.KAFKA_SHRINK]: t('缩容中'),
+    [Kafka.KAFKA_REPLACE]: t('替换中'),
+    [Kafka.KAFKA_ENABLE]: t('启用中'),
+    [Kafka.KAFKA_DISABLE]: t('禁用中'),
+    [Kafka.KAFKA_DESTROY]: t('删除中'),
+    [Kafka.KAFKA_REBOOT]: t('重启中'),
   };
 
   static operationTextMap = {

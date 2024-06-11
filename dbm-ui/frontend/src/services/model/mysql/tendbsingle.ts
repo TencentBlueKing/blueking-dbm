@@ -40,12 +40,12 @@ export default class Tendbsingle {
   static MYSQL_SINGLE_ENABLE = 'MYSQL_SINGLE_ENABLE';
 
   static operationIconMap = {
-    [Tendbsingle.MYSQL_HA_ENABLE]: 'qiyongzhong',
-    [Tendbsingle.MYSQL_HA_DISABLE]: 'jinyongzhong',
-    [Tendbsingle.MYSQL_HA_DESTROY]: 'shanchuzhong',
-    [Tendbsingle.MYSQL_SINGLE_ENABLE]: 'qiyongzhong',
-    [Tendbsingle.MYSQL_SINGLE_DISABLE]: 'jinyongzhong',
-    [Tendbsingle.MYSQL_SINGLE_DESTROY]: 'shanchuzhong',
+    [Tendbsingle.MYSQL_HA_ENABLE]: t('启用中'),
+    [Tendbsingle.MYSQL_HA_DISABLE]: t('禁用中'),
+    [Tendbsingle.MYSQL_HA_DESTROY]: t('删除中'),
+    [Tendbsingle.MYSQL_SINGLE_ENABLE]: t('启用中'),
+    [Tendbsingle.MYSQL_SINGLE_DISABLE]: t('禁用中'),
+    [Tendbsingle.MYSQL_SINGLE_DESTROY]: t('删除中'),
   };
 
   static operationTextMap = {

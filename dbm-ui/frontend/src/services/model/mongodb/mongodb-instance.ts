@@ -11,10 +11,10 @@ export default class MongodbInstance {
   static MONGODB_DESTROY = 'MONGODB_DESTROY';
 
   static operationIconMap = {
-    [MongodbInstance.MONGODB_DISABLE]: 'jinyongzhong',
-    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: 'zhongqizhong',
-    [MongodbInstance.MONGODB_ENABLE]: 'qiyongzhong',
-    [MongodbInstance.MONGODB_DESTROY]: 'shanchuzhong',
+    [MongodbInstance.MONGODB_DISABLE]: t('禁用中'),
+    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: t('重启中'),
+    [MongodbInstance.MONGODB_ENABLE]: t('启用中'),
+    [MongodbInstance.MONGODB_DESTROY]: t('删除中'),
   };
 
   static operationTextMap = {
@@ -220,6 +220,14 @@ export default class MongodbInstance {
       return true;
     }
     return false;
+  }
+
+  get operationTagTips() {
+    return this.operations.map((item) => ({
+      icon: MongodbInstance.operationIconMap[item.ticket_type],
+      tip: MongodbInstance.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
   }
 
   get createAtDisplay() {

@@ -26,12 +26,12 @@ export default class Riak {
   static RIAK_CLUSTER_REBOOT = 'RIAK_CLUSTER_REBOOT';
 
   static operationIconMap: Record<string, string> = {
-    [Riak.RIAK_CLUSTER_SCALE_OUT]: 'kuorongzhong',
-    [Riak.RIAK_CLUSTER_SCALE_IN]: 'suorongzhong',
-    [Riak.RIAK_CLUSTER_ENABLE]: 'qiyongzhong',
-    [Riak.RIAK_CLUSTER_DISABLE]: 'jinyongzhong',
-    [Riak.RIAK_CLUSTER_DESTROY]: 'shanchuzhong',
-    [Riak.RIAK_CLUSTER_REBOOT]: 'zhongqizhong',
+    [Riak.RIAK_CLUSTER_SCALE_OUT]: t('扩容中'),
+    [Riak.RIAK_CLUSTER_SCALE_IN]: t('缩容中'),
+    [Riak.RIAK_CLUSTER_ENABLE]: t('启用中'),
+    [Riak.RIAK_CLUSTER_DISABLE]: t('禁用中'),
+    [Riak.RIAK_CLUSTER_DESTROY]: t('删除中'),
+    [Riak.RIAK_CLUSTER_REBOOT]: t('重启中'),
   };
 
   static operationTextMap: Record<string, string> = {

@@ -111,7 +111,7 @@ const bigdata: InfoType = {
   },
   [ClusterTypes.DORIS]: {
     id: ClusterTypes.DORIS,
-    name: 'Dodis',
+    name: 'Doris',
     dbType: DBTypes.DORIS,
     moduleId: 'bigdata',
   },

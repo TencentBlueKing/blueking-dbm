@@ -32,58 +32,40 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import {
-    exportEsClusterToExcel,
-    exportEsInstanceToExcel,
-  } from '@services/source/es';
-  import {
-    exportHdfsClusterToExcel,
-    exportHdfsInstanceToExcel,
-  } from '@services/source/hdfs';
-  import {
-    exportInfluxdbClusterToExcel,
-    exportInfluxdbInstanceToExcel,
-  } from '@services/source/influxdb';
-  import {
-    exportKafkaClusterToExcel,
-    exportKafkaInstanceToExcel,
-  } from '@services/source/kafka';
-  import {
-    exportMongodbClusterToExcel,
-    exportMongodbInstanceToExcel,
-  } from '@services/source/mongodb';
-  import {
-    exportPulsarClusterToExcel,
-    exportPulsarInstanceToExcel,
-  } from '@services/source/pulsar';
-  import {
-    exportRedisClusterToExcel,
-    exportRedisInstanceToExcel,
-  } from '@services/source/redis';
-  import {
-    exportRiakClusterToExcel,
-    exportRiakInstanceToExcel,
-  } from '@services/source/riak';
-  import {
-    exportSpiderClusterToExcel,
-    exportSpiderInstanceToExcel,
-  } from '@services/source/spider';
+  import { exportDorisClusterToExcel, exportDorisInstanceToExcel } from '@services/source/doris';
+  import { exportEsClusterToExcel, exportEsInstanceToExcel } from '@services/source/es';
+  import { exportHdfsClusterToExcel, exportHdfsInstanceToExcel } from '@services/source/hdfs';
+  import { exportInfluxdbClusterToExcel, exportInfluxdbInstanceToExcel } from '@services/source/influxdb';
+  import { exportKafkaClusterToExcel, exportKafkaInstanceToExcel } from '@services/source/kafka';
+  import { exportMongodbClusterToExcel, exportMongodbInstanceToExcel } from '@services/source/mongodb';
+  import { exportPulsarClusterToExcel, exportPulsarInstanceToExcel } from '@services/source/pulsar';
+  import { exportRedisClusterToExcel, exportRedisInstanceToExcel } from '@services/source/redis';
+  import { exportRiakClusterToExcel, exportRiakInstanceToExcel } from '@services/source/riak';
+  import { exportSpiderClusterToExcel, exportSpiderInstanceToExcel } from '@services/source/spider';
   import {
     exportSqlServerHaClusterToExcel,
     exportSqlServerHaInstanceToExcel,
   } from '@services/source/sqlserveHaCluster';
   import { exportSqlServerSingleClusterToExcel } from '@services/source/sqlserverSingleCluster';
-  import {
-    exportTendbhaClusterToExcel,
-    exportTendbhaInstanceToExcel,
-  } from '@services/source/tendbha';
-  import {
-    exportTendbsingleClusterToExcel,
-    exportTendbsingleInstanceToExcel,
-  } from '@services/source/tendbsingle';
+  import { exportTendbhaClusterToExcel, exportTendbhaInstanceToExcel } from '@services/source/tendbha';
+  import { exportTendbsingleClusterToExcel, exportTendbsingleInstanceToExcel } from '@services/source/tendbsingle';
 
   interface Props {
-    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'riak' | 'mongodb' | 'sqlserver_ha' | 'sqlserver_single';
+    type:
+      | 'tendbsingle'
+      | 'tendbha'
+      | 'spider'
+      | 'redis'
+      | 'pulsar'
+      | 'kafka'
+      | 'influxdb'
+      | 'hdfs'
+      | 'es'
+      | 'riak'
+      | 'mongodb'
+      | 'sqlserver_ha'
+      | 'sqlserver_single'
+      | 'doris';
     ids?: number[];
     exportType?: 'cluster' | 'instance';
   }
@@ -152,6 +134,10 @@
     },
     sqlserver_single: {
       cluster: exportSqlServerSingleClusterToExcel,
+    },
+    doris: {
+      cluster: exportDorisClusterToExcel,
+      instance: exportDorisInstanceToExcel,
     },
   };
 
