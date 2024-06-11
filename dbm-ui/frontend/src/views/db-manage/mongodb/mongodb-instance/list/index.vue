@@ -86,6 +86,7 @@
 
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
@@ -213,13 +214,11 @@
               </bk-button>
             </div>
             {
-              data.isRebooting && (
-                <db-icon
-                    svg
-                    type="zhongqizhong"
-                    class="cluster-tag ml-8"
-                    style="width: 38px; height: 16px;" />
-              )
+              data.operationTagTips.map(item => (
+                <RenderOperationTag
+                  class="cluster-tag ml-4"
+                  data={item} />
+              ))
             }
           </div>
       ),

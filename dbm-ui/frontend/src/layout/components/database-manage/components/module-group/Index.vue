@@ -4,6 +4,7 @@
 <script setup lang="ts">
   import { computed } from 'vue';
 
+  import Doris from './Doris.vue';
   import Es from './Es.vue';
   import Hdfs from './Hdfs.vue';
   import Influxdb from './Influxdb.vue';
@@ -34,6 +35,7 @@
     riak: Riak,
     mongodb: MongoDB,
     sqlserver: SqlServer,
+    doris: Doris,
   };
 
   const renderCom = computed(() => comMap[props.name as keyof typeof comMap]);

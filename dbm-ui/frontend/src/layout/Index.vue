@@ -130,6 +130,7 @@
       'RiakManage',
       'MongoDBManage',
       'SqlServerManage',
+      'DorisManage',
       'taskHistory',
       'DatabaseWhitelist',
       'ticketManage',

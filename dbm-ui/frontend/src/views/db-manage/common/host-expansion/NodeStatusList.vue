@@ -24,10 +24,26 @@
       </div>
       <template v-if="validateStatusMemo[nodeItem.key]">
         <div
-          v-if="nodeInfo[nodeItem.key].expansionDisk"
+          v-if="
+            nodeItem.key === 'observer' &&
+            nodeInfo[nodeItem.key].resourceSpec.count - nodeInfo[nodeItem.key].originalHostList.length > 0
+          "
+          class="disk-tips">
+          <span class="number">{{
+            nodeInfo[nodeItem.key].resourceSpec.count - nodeInfo[nodeItem.key].originalHostList.length
+          }}</span>
+          <span>{{ t('台') }}</span>
+        </div>
+        <div
+          v-else-if="nodeInfo[nodeItem.key].expansionDisk"
           class="disk-tips">
           <span class="number">{{ nodeInfo[nodeItem.key].expansionDisk }}</span>
           <span>G</span>
+        </div>
+        <div
+          v-else-if="nodeInfo[nodeItem.key].targetDisk"
+          class="unfinished-tips">
+          <span>{{ t('未完善') }}</span>
         </div>
         <div
           v-else
@@ -41,6 +57,8 @@
 <script setup lang="ts">
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import DorisNodeModel from '@services/model/doris/doris-node';
 
   import type { TExpansionNode } from './Index.vue';
 
@@ -83,7 +101,7 @@
     validate() {
       Object.keys(validateStatusMemo).forEach((key) => (validateStatusMemo[key] = true));
       return Object.values(props.nodeInfo).some((nodeData) => {
-        if (!nodeData.targetDisk) {
+        if (!nodeData.targetDisk && nodeData.role !== DorisNodeModel.ROLE_OBSERVER) {
           return false;
         }
         if (props.ipSource === 'manual_input') {
@@ -138,6 +156,13 @@
       margin-left: auto;
       font-weight: normal;
       color: #c4c6cc;
+      flex: 0 0 auto;
+    }
+
+    .unfinished-tips {
+      margin-left: auto;
+      font-weight: normal;
+      color: #ea3636;
       flex: 0 0 auto;
     }
 
