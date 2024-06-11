@@ -208,11 +208,11 @@
               }
               {
                 data.isOffline && (
-                  <db-icon
-                    svg
-                    type="yijinyong"
-                    class="cluster-tag ml-4"
-                    style="width: 38px; height: 16px;" />
+                  <bk-tag
+                    class="ml-8"
+                    size="small">
+                    {t('已禁用')}
+                  </bk-tag>
                 )
               }
             </>,

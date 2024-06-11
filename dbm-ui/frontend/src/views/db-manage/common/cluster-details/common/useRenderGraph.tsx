@@ -14,7 +14,9 @@
 import _ from 'lodash';
 import type { Instance } from 'tippy.js';
 import type { VNode } from 'vue';
+import type { JSX } from 'vue/jsx-runtime';
 
+import { retrieveDorisInstance } from '@services/source/doris';
 import { retrieveEsInstance } from '@services/source/es';
 import { retrieveHdfsInstance } from '@services/source/hdfs';
 import { retrieveKafkaInstance } from '@services/source/kafka';
@@ -167,6 +169,7 @@ const apiMap: Record<string, (params: any) => Promise<any>> = {
   tendbha: retrieveTendbhaInstance,
   tendbcluster: getTendbclusterInstanceDetail,
   riak: retrieveRiakInstance,
+  doris: retrieveDorisInstance,
 };
 
 const entryTagMap: Record<string, string> = {

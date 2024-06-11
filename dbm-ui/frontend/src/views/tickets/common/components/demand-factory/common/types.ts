@@ -14,6 +14,8 @@ import type { SpecInfo } from '@services/model/ticket/details/common';
 
 import { ClusterTypes } from '@common/const';
 
+import type { IHostTableData } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
+
 // MongoDB 副本集群
 export interface DetailsMongoDBReplicaSet {
   bk_cloud_name: string;
@@ -158,9 +160,35 @@ export interface RedisHaApply {
   };
 }
 
+// Doris 集群
+export interface DorisCluster {
+  db_app_abbr: string;
+  city_code: string;
+  cluster_alias: string;
+  cluster_name: string;
+  db_version: string;
+  disaster_tolerance_level: string;
+  http_port: number;
+  ip_source: string;
+  nodes?: {
+    follower: IHostTableData[];
+    observer: IHostTableData[];
+    hot: IHostTableData[];
+    cold: IHostTableData[];
+  };
+  query_port: number;
+  resource_spec?: {
+    follower: SpecInfo;
+    observer: SpecInfo;
+    hot: SpecInfo;
+    cold: SpecInfo;
+  };
+}
+
 export type TicketDetailTypes =
   | DetailsMongoDBReplicaSet
   | DetailsMongoDBSharedCluster
   | MongoDBAuthorizeRules
   | DetailsSqlserver
-  | RedisHaApply;
+  | RedisHaApply
+  | DorisCluster;

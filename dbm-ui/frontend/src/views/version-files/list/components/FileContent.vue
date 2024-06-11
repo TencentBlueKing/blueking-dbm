@@ -232,7 +232,7 @@
   const tabs = computed(() => props.info.children || []);
   // 版本是否为输入框
   const isInputType = computed(() => {
-    const bigData: string[] = [DBTypes.KAFKA, DBTypes.ES, DBTypes.HDFS, DBTypes.PULSAR, DBTypes.INFLUXDB];
+    const bigData: string[] = [DBTypes.KAFKA, DBTypes.ES, DBTypes.HDFS, DBTypes.PULSAR, DBTypes.INFLUXDB, DBTypes.DORIS];
     return (bigData.includes(props.info.name) && state.active !== 'actuator' || props.info.name === DBTypes.MONGODB);
   });
   const fileTips = computed(() => ({
