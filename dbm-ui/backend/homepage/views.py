@@ -11,7 +11,9 @@ specific language governing permissions and limitations under the License.
 import json
 import logging
 
+from blueapps.account.conf import ConfFixture
 from blueapps.account.decorators import login_exempt
+from blueapps.account.handlers.response import ResponseHandler
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
@@ -77,7 +79,12 @@ class LoginSuccessView(APIView):
 class LogOutView(APIView):
     def get(self, request):
         auth.logout(request)
-        response = Response("User Logged out successfully")
+        # 屏蔽200的logout
+        # response = Response("User Logged out successfully")
+        # 走401的logout，让前端拿到登录url
+        handler = ResponseHandler(ConfFixture, settings)
+        response = handler.build_401_response(request)
+        # 删除cookie
         cookie_keys = ["bk_ticket", "bk_token", "bk_uid"]
         host = "".join(request.headers["Host"].split(":")[:1])
         domain = f'.{".".join(host.split(".")[1:])}'
