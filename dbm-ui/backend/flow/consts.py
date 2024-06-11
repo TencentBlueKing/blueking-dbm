@@ -195,6 +195,7 @@ class NameSpaceEnum(str, StructuredEnum):
     Riak = EnumField("riak", _("Riak"))
     MongoDBCommon = EnumField("mongodbcommon", _("mongodbcommon"))
     Doris = EnumField("doris", _("Doris"))
+    Vm = EnumField("vm", _("Vm"))
 
 
 class ConfigTypeEnum(str, StructuredEnum):
@@ -277,6 +278,7 @@ class MediumEnum(str, StructuredEnum):
     Sqlserver = EnumField("sqlserver", _("sqlserver实例"))
     MongoDB = EnumField("mongodb", _("mongodb"))
     Doris = EnumField("doris", _("doris"))
+    Vm = EnumField("vm", _("vm"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -347,6 +349,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Sqlserver = EnumField("sqlserver", _("sqlserer"))
     Sqlserver_check = EnumField("check", _("sqlserer_check"))
     Doris = EnumField("doris", _("doris"))
+    Vm = EnumField("vm", _("vm"))
 
 
 class DBActuatorActionEnum(str, StructuredEnum):
@@ -1085,6 +1088,7 @@ class MySQLPrivComponent(str, StructuredEnum):
     HDFS_FAKE_USER = EnumField("hdfs_user", _("hdfs_user"))
     PULSAR_FAKE_USER = EnumField("pulsar_user", _("pulsar_user"))
     DORIS_FAKE_USER = EnumField("doris_user", _("doris_user"))
+    VM_FAKE_USER = EnumField("vm_user", _("vm_user"))
 
 
 class RequestResultCode(int, StructuredEnum):
@@ -1413,3 +1417,34 @@ class SqlserverBackupFileTagEnum(str, StructuredEnum):
     MSSQL_FULL_BACKUP = EnumField("MSSQL_FULL_BACKUP", _("全备-保留30天"))
     LONGDAY_DBFILE_3Y = EnumField("LONGDAY_DBFILE_3Y", _("长久存储-保留三年"))
     INCREMENT_BACKUP = EnumField("INCREMENT_BACKUP", _("增量备份-保留15天"))
+
+
+class VmActuatorActionEnum(str, StructuredEnum):
+    """
+    定义vm dbactuator
+    """
+
+    Init = EnumField("init", _("init"))
+    DecompressPkg = EnumField("decompress_pkg", _("decompress_pkg"))
+    InstallSupervisor = EnumField("install_supervisor", _("install_supervisor"))
+    InstallVmStorage = EnumField("install_vmstorage", _("install_vmstorage"))
+    InstallVmInsert = EnumField("install_vminsert", _("install_vminsert"))
+    InstallVmSelect = EnumField("install_vmselect", _("install_vmselect"))
+    InstallVmAuth = EnumField("install_vmauth", _("install_vmauth"))
+    StartProcess = EnumField("start_process", _("start_process"))
+    StopProcess = EnumField("stop_process", _("stop_process"))
+    RestartProcess = EnumField("restart_process", _("restart_process"))
+    CleanData = EnumField("clean_data", _("clean_data"))
+    ReloadVmSelect = EnumField("reload_vmselect", _("reload_vmselect"))
+    ReloadVmInsert = EnumField("reload_vminsert", _("reload_vminsert"))
+
+
+class VmRoleEnum(str, StructuredEnum):
+    """
+    定义vm角色
+    """
+
+    VMAUTH = EnumField("vmauth", _("vmauth"))
+    VMINSERT = EnumField("vminsert", _("vminsert"))
+    VMSELECT = EnumField("vmselect", _("vmselect"))
+    VMSTORAGE = EnumField("vmstorage", _("vmstorage"))

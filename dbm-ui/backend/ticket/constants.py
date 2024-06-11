@@ -435,6 +435,16 @@ class TicketType(str, StructuredEnum):
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("资源池导入"))
     # fmt: on
 
+    # VM
+    VM_APPLY = TicketEnumField("VM_APPLY", _("VM 集群部署"), register_iam=False)
+    VM_SCALE_UP = TicketEnumField("VM_SCALE_UP", _("VM 集群扩容"), _("集群管理"))
+    VM_SHRINK = TicketEnumField("VM_SHRINK", _("VM 集群缩容"), _("集群管理"))
+    VM_REBOOT = TicketEnumField("VM_REBOOT", _("VM 实例重启"), _("集群管理"))
+    VM_REPLACE = TicketEnumField("VM_REPLACE", _("VM 集群替换"), _("集群管理"))
+    VM_ENABLE = TicketEnumField("VM_ENABLE", _("VM 集群启用"), register_iam=False)
+    VM_DISABLE = TicketEnumField("VM_DISABLE", _("VM 集群禁用"), register_iam=False)
+    VM_DESTROY = TicketEnumField("VM_DESTROY", _("VM 集群删除"), _("集群管理"))
+
 
 class FlowType(str, StructuredEnum):
     """流程类型枚举"""

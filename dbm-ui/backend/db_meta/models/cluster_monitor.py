@@ -92,6 +92,16 @@ INSTANCE_MONITOR_PLUGINS = {
         MachineType.DORIS_FOLLOWER: {"name": "doris", "plugin_id": "dbm_doris_exporter", "func_name": "java"},
         MachineType.DORIS_BACKEND: {"name": "doris", "plugin_id": "dbm_doris_exporter", "func_name": "doris"},
     },
+    DBType.Vm: {
+        MachineType.VM_STORAGE: {
+            "name": "vmstorage",
+            "plugin_id": "dbm_vmstorage_bkpull",
+            "func_name": "vmstorage-prod",
+        },
+        MachineType.VM_SELECT: {"name": "vmselect", "plugin_id": "dbm_vmselect_bkpull", "func_name": "vmselect-prod"},
+        MachineType.VM_INSERT: {"name": "vminsert", "plugin_id": "dbm_vminsert_bkpull", "func_name": "vminsert-prod"},
+        MachineType.VM_AUTH: {"name": "vmauth", "plugin_id": "dbm_vmauth_bkpull", "func_name": "vmauth-prod"},
+    },
 }
 
 SET_NAME_TEMPLATE = "db.{db_type}.{monitor_plugin_name}"

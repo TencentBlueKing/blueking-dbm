@@ -80,6 +80,12 @@ class InstanceRole(str, StructuredEnum):
     # Riak
     RIAK_NODE = EnumField("riak_node", _("Riak"))
 
+    # VM
+    VM_STORAGE = EnumField("vmstorage", _("vmstorage"))
+    VM_INSERT = EnumField("vminsert", _("vminsert"))
+    VM_SELECT = EnumField("vmselect", _("vmselect"))
+    VM_AUTH = EnumField("vmauth", _("vmauth"))
+
 
 class TenDBClusterSpiderRole(str, StructuredEnum):
     # 主集群的接入层
