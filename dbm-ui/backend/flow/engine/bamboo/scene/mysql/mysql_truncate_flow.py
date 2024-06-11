@@ -32,6 +32,7 @@ from backend.flow.plugins.components.collections.mysql.filter_database_table_fro
 from backend.flow.plugins.components.collections.mysql.general_check_db_in_using import GeneralCheckDBInUsingComponent
 from backend.flow.plugins.components.collections.mysql.generate_drop_stage_db_sql import (
     GenerateDropStageDBSqlComponent,
+    GenerateDropStageDBSqlService,
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.truncate_data_confirm_empty import (
@@ -97,7 +98,9 @@ class MySQLTruncateFlow(object):
         if dup_cluster_ids:
             raise DBMetaException(message="duplicate clusters found: {}".format(dup_cluster_ids))
 
-        truncate_pipeline = Builder(
+        # TODO 目前bamboo-engine存在bug，不能正常给trans_data初始化值，先用流程套子流程方式来避开这个问题
+        pipeline = Builder(root_id=self.root_id, data=self.data)
+        truncate_pipeline = SubBuilder(
             root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
         )
         cluster_pipes = []
@@ -212,12 +215,13 @@ class MySQLTruncateFlow(object):
                 instance_pipe.add_act(
                     act_name=_("生成删除备份库sql"),
                     act_component_code=GenerateDropStageDBSqlComponent.code,
-                    kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
+                    kwargs={
+                        "bk_cloud_id": cluster_obj.bk_cloud_id,
+                        "cluster_type": cluster_obj.cluster_type,
+                        "cluster": cluster_obj.simple_desc,
+                        "trans_func": GenerateDropStageDBSqlService.write_drop_sql.__name__,
+                    },
                 )
-
-                # ToDo kio 在这后面根据上下文中的 trans_data.drop_stage_db_cmds 生成一个 sql 执行单据
-                # drop_stage_db_cmds 是一个字符串数组
-                # ["drop database if exists STAGEDB1", "drop database if exists STAGEDB1", ..]
 
                 instance_pipes.append(
                     instance_pipe.build_sub_process(
@@ -229,5 +233,14 @@ class MySQLTruncateFlow(object):
             cluster_pipes.append(cluster_pipe.build_sub_process(sub_name=_("{} 清档".format(cluster_obj.immute_domain))))
 
         truncate_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
+
+        truncate_pipeline.add_act(
+            act_name=_("生成删除备份库变更SQL单据"),
+            act_component_code=GenerateDropStageDBSqlComponent.code,
+            kwargs={"trans_func": GenerateDropStageDBSqlService.generate_dropsql_ticket.__name__},
+        )
+
+        pipeline.add_sub_pipeline(sub_flow=truncate_pipeline.build_sub_process(sub_name=_("集群清档")))
+
         logger.info(_("构建清档流程成功"))
-        truncate_pipeline.run_pipeline(init_trans_data_class=MySQLTruncateDataContext(), is_drop_random_user=True)
+        pipeline.run_pipeline(init_trans_data_class=MySQLTruncateDataContext(), is_drop_random_user=True)

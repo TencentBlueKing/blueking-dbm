@@ -43,3 +43,13 @@ FLASHBACK_CHECK_DATA = [
     },
     {"cluster_id": 63, "databases": [], "databases_ignore": [], "tables": [], "tables_ignore": [], "message": ""},
 ]
+
+WEBCONSOLE_QUERY_DATA = [
+    {
+        "delay_sec": "0",
+        "master_server_id": "26169568",
+        "master_time": "2024-06-14 20:43:03",
+        "slave_server_id": "26169568",
+        "slave_time": "2024-06-14 20:43:03",
+    }
+]

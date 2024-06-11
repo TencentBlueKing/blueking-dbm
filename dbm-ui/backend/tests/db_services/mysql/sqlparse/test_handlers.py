@@ -634,3 +634,31 @@ class TestSQLParseHandler:
             "table_name": "PIMSCS.ESTAGIOS,PIMSCS.FORNECS,PIMSCS.HISTPREPRO,PIMSCS.OCORTEMD_DE,PIMSCS.OCORTEMD_HE,PIMSCS.QUEIMA_DE,PIMSCS.QUEIMA_HE,PIMSCS.SAFRUPNIV3,PIMSCS.TIPO_MATURAC,PIMSCS.UPNIVEL1,PIMSCS.UPNIVEL3,PIMSCS.VARIEDADES",  # noqa
             "query_length": 11057,
         }
+
+    @staticmethod
+    def test_sql_select_stat():
+        sql_no_limit = """
+        SELECT e.employee_id, e.employee_name,
+        (SELECT COUNT(*) FROM projects p WHERE p.employee_id = e.employee_id LIMIT 3) AS project_count, e.salary
+        FROM employees e
+        WHERE e.department_id IN (SELECT department_id FROM departments LIMIT) ORDER BY project_count DESC
+        """
+        assert not SQLParseHandler.parse_select_statement(sql_no_limit, raise_exception=False)
+
+        sql_no_select = """
+        UPDATE employees e
+        SET bonus = CASE
+            WHEN e.salary > (SELECT AVG(salary) FROM employees WHERE department_id = e.department_id)
+            THEN e.bonus * 1.2
+            ELSE e.bonus * 1.1
+        END
+        WHERE e.employee_id IN (SELECT DISTINCT employee_id FROM projects WHERE project_status = 'completed');
+        """
+        assert not SQLParseHandler.parse_select_statement(sql_no_select, raise_exception=False)
+
+        correct_sql = """
+        SELECT e.employee_id, e.employee_name,
+        FROM employees e
+        WHERE e.department_id NOT IN (1,2,3) ORDER BY project_count LIMIT 10
+        """
+        assert SQLParseHandler.parse_select_statement(correct_sql, raise_exception=False)

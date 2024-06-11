@@ -1063,6 +1063,7 @@ class UserName(str, StructuredEnum):
     OS_MYSQL = EnumField("mysql", _("MYSQL系统账号"))
     REPL = EnumField("repl", _("MYSQL实例同步账号"))
     YW = EnumField("yw", _("MYSQL实例只读账号"))
+    PARTITION = EnumField("partition_yw", _("MYSQL分区运维账号"))
     PROXY = EnumField("proxy", _("PROXY实例账号"))
     REDIS_DEFAULT = EnumField("default", _("REDIS默认账号"))
     HDFS_DEFAULT = EnumField("root", _("HDFS默认账号"))

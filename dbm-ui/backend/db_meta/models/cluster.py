@@ -86,6 +86,7 @@ class Cluster(AuditedModel):
             [
                 "id",
                 "name",
+                "bk_biz_id",
                 "bk_cloud_id",
                 "region",
                 "cluster_type",

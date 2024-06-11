@@ -91,7 +91,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(cluster_infos)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询集群通用信息"),
+        operation_summary=_("查询业务下集群通用信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=CommonQueryClusterSerializer(),
         responses={status.HTTP_200_OK: CommonQueryClusterResponseSerializer()},
@@ -104,7 +104,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(cluster_infos)
 
     @common_swagger_auto_schema(
-        operation_summary=_("根据过滤条件查询集群详细信息"),
+        operation_summary=_("根据过滤条件查询业务下集群详细信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=ClusterFilterSerializer(),
         tags=[SWAGGER_TAG],

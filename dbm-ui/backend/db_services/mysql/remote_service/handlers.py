@@ -15,8 +15,10 @@ from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
+from backend.db_meta.models import Cluster
 from backend.db_services.mysql.constants import QUERY_SCHEMA_DBS_SQL, QUERY_SCHEMA_TABLES_SQL, QUERY_TABLES_FROM_DB_SQL
 from backend.db_services.mysql.remote_service.exceptions import RemoteServiceBaseException
+from backend.db_services.mysql.sqlparse.handlers import SQLParseHandler
 from backend.flow.consts import SYSTEM_DBS
 
 
@@ -263,3 +265,24 @@ class RemoteServiceHandler:
             databases = self.show_database_with_pattern(info["cluster_id"], info["dbs"], info["ignore_dbs"])
             cluster_databases_infos.append({"cluster_id": info["cluster_id"], "databases": databases})
         return cluster_databases_infos
+
+    def webconsole_rpc(self, cluster_id: int, sql: str):
+        """
+        执行webconsole命令，只支持select语句
+        @param cluster_id: 集群ID
+        @param sql: 执行命令
+        """
+
+        # 校验select语句
+        SQLParseHandler.parse_select_statement(sql)
+
+        cluster = Cluster.objects.get(id=cluster_id)
+        bk_cloud_id = cluster.bk_cloud_id
+        __, remote_address = self._get_cluster_address(cluster_id__role_map={}, cluster_id=cluster.id)
+
+        # 获取rpc结果
+        rpc_results = DRSApi.webconsole_rpc({"bk_cloud_id": bk_cloud_id, "addresses": [remote_address], "cmds": [sql]})
+        if rpc_results[0]["error_msg"]:
+            raise Exception(_("DRS调用失败，错误信息: {}").format(rpc_results[0]["error_msg"]))
+
+        return rpc_results["cmd_results"][0]["table_data"]

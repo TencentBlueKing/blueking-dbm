@@ -136,6 +136,7 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
 def create_ticket_permission(ticket_type: TicketType) -> List[IAMPermission]:
     action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
     if not action:
+        return []
         raise ActionNotExistError(_("单据动作ID:{} 不存在").format(action))
     if len(action.related_resource_types) <= 1:
         return [CreateTicketOneResourcePermission(ticket_type=ticket_type)]

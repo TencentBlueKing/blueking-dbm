@@ -19,6 +19,7 @@ from backend.db_services.mysql.remote_service.mock_data import (
     SHOW_DATABASES_REQUEST_DATA,
     SHOW_DATABASES_RESPONSE_DATA,
     SHOW_TABLES_RESPONSE_DATA,
+    WEBCONSOLE_QUERY_DATA,
 )
 from backend.ticket.builders.mysql.base import DBTableField
 
@@ -100,3 +101,13 @@ class ShowDBWithPatternsSerializer(serializers.Serializer):
 class ShowDBWithPatternsResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": SHOW_DATABASES_RESPONSE_DATA}
+
+
+class WebConsoleSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    sql = serializers.CharField(help_text=_("sql语句"))
+
+
+class WebConsoleResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": WEBCONSOLE_QUERY_DATA}

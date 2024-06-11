@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 
-from backend.db_proxy.constants import ExtensionType
+from backend.db_proxy.constants import ExtensionAccountEnum, ExtensionType
 from backend.db_proxy.models import DBExtension
 from backend.flow.consts import CloudDBHATypeEnum
 from backend.ticket import builders
@@ -52,17 +52,15 @@ class BaseServiceOperateFlowParamBuilder(builders.FlowParamBuilder):
         # 如果是替换情况，目前替换只考虑替换单台组件的情况
         if old_ext_id_key in ticket_data and new_ext_key in ticket_data:
             # 获取替换组件的index序
-            extension_id__extension_index_map = {ext["id"]: index for index, ext in enumerate(present_host_infos)}
-            old_ext_index = extension_id__extension_index_map[ticket_data.pop(old_ext_id_key)]
-
+            host_id__index_map = {ext["id"]: index for index, ext in enumerate(present_host_infos)}
+            old_host_info = copy.deepcopy(present_host_infos[host_id__index_map[ticket_data.pop(old_ext_id_key)]])
             # 获取旧组件信息，并暂存到old_ext/host_infos下
-            extension_info[f"old_{extension_type}"]["host_infos"] = [copy.deepcopy(present_host_infos[old_ext_index])]
-
+            extension_info[f"old_{extension_type}"]["host_infos"] = [old_host_info]
             # 将新的组件信息覆盖旧的组件信息
-            new_ext_info = ticket_data.pop(new_ext_key)["host_infos"][0]
-            new_ext_info = {**present_host_infos[old_ext_index], **new_ext_info}
+            new_host_info = ticket_data.pop(new_ext_key)["host_infos"][0]
+            new_host_info = {**old_host_info, **new_host_info}
             present_host_infos.clear()
-            present_host_infos.append(new_ext_info)
+            present_host_infos.append(new_host_info)
 
         # 如果是新增情况，则直接将新增机器录入到host_infos中
         elif new_ext_key in ticket_data:
@@ -90,7 +88,8 @@ class BaseServiceOperateFlowParamBuilder(builders.FlowParamBuilder):
         ticket_data.update(extension_info)
         return ticket_data
 
-    def padding_account_info(self, bk_cloud_id, host_infos, extension_type):
+    @classmethod
+    def padding_account_info(cls, bk_cloud_id, host_infos, extension_type):
         """
         给主机填充原有的账号和密码，
         主要用drs和dbha的新增场景
@@ -99,9 +98,9 @@ class BaseServiceOperateFlowParamBuilder(builders.FlowParamBuilder):
             extension_type = ExtensionType.DBHA
 
         ext = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=extension_type)
-        user, pwd = ext.details["user"], ext.details["pwd"]
+        account_info = ExtensionAccountEnum.get_account_in_info(ext.details)
         for host in host_infos:
-            host.update({"user": user, "pwd": pwd})
+            host.update(account_info)
 
     @classmethod
     def padding_dbha_type(cls, ticket_data):

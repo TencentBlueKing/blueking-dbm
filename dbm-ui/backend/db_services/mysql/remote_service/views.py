@@ -27,6 +27,8 @@ from backend.db_services.mysql.remote_service.serializers import (
     ShowDBWithPatternsSerializer,
     ShowTablesRequestSerializer,
     ShowTablesResponseSerializer,
+    WebConsoleResponseSerializer,
+    WebConsoleSerializer,
 )
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
@@ -110,3 +112,14 @@ class RemoteServiceViewSet(viewsets.SystemViewSet):
     def show_databases_with_patterns(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
         return Response(RemoteServiceHandler(bk_biz_id=bk_biz_id).show_databases_with_db_patterns(data["infos"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("webconsole查询"),
+        request_body=WebConsoleSerializer(),
+        responses={status.HTTP_200_OK: WebConsoleResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=WebConsoleSerializer)
+    def webconsole(self, request, bk_biz_id):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(RemoteServiceHandler(bk_biz_id=bk_biz_id).webconsole_rpc(**data))

@@ -48,8 +48,8 @@ class MysqlForceSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
 
     def patch_ticket_detail(self):
         # 上传sql文件
-        sql_content = self.ticket.details.pop("execute_sql_content")
-        sql_files = self.ticket.details.pop("execute_sql_files")
+        sql_content = self.ticket.details.pop("execute_sql_content", None)
+        sql_files = self.ticket.details.pop("execute_sql_files", None)
         execute_sql_files = SQLHandler.upload_sql_file(BKREPO_SQLFILE_PATH, sql_content, sql_files)
 
         # 获取sql执行体结构

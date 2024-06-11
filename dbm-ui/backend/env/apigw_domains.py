@@ -25,7 +25,6 @@ BKNODEMAN_APIGW_DOMAIN = get_type_env(key="BKNODEMAN_APIGW_DOMAIN", _type=str)
 BKMONITORV3_APIGW_DOMAIN = get_type_env(key="BKMONITORV3_APIGW_DOMAIN", _type=str)
 
 DRS_APIGW_DOMAIN = get_type_env(key="DRS_APIGW_DOMAIN", _type=str)
-WEBCONSOLERS_APIGW_DOMAIN = get_type_env(key="WEBCONSOLERS_APIGW_DOMAIN", _type=str)
 NAMESERVICE_APIGW_DOMAIN = get_type_env(key="NAMESERVICE_APIGW_DOMAIN", _type=str)
 
 DBCONFIG_APIGW_DOMAIN = get_type_env(key="DBCONFIG_APIGW_DOMAIN", _type=str, default="http://bk-dbm-dbconfig")

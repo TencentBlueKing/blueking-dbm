@@ -9,11 +9,16 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
 import re
 
 import sqlparse
+from django.utils.translation import gettext as _
 
+from backend.db_services.mysql.sqlparse.exceptions import SQLParseBaseException
 from backend.utils.md5 import count_md5
+
+logger = logging.getLogger("root")
 
 
 class SQLParseHandler:
@@ -89,3 +94,34 @@ class SQLParseHandler:
             "table_name": ",".join(sorted(self.tables)),
             "query_length": len(sql),
         }
+
+    @classmethod
+    def parse_select_statement(cls, sql: str, need_keywords: list = None, raise_exception: bool = True):
+        """判断并解析select语句"""
+        # 默认select语句要有limit
+        need_keywords = need_keywords or ["LIMIT"]
+
+        parsed_sqls = sqlparse.parse(sql)
+        if len(parsed_sqls) > 1:
+            raise SQLParseBaseException(_("请保证一次只解析一条select语句"))
+
+        def parse_select_tokens(tokens):
+            is_select: bool = False
+            keywords: list = []
+            for token in tokens:
+                # 解析是否包含select和对应的keyword
+                # 这里只用检查外层包含keyword. 子查询可以忽略，因为不体现最后的输出数据
+                if token.ttype is sqlparse.tokens.DML and token.value.upper() == "SELECT":
+                    is_select = True
+                elif token.ttype is sqlparse.tokens.Keyword:
+                    keywords.append(token.value.upper())
+
+            is_contain_keywords = set(keywords).issuperset(set(need_keywords))
+            return is_select, is_contain_keywords
+
+        valid = all(parse_select_tokens(parsed_sqls[0].tokens))
+
+        if raise_exception and not valid:
+            raise SQLParseBaseException(_("SQL语句不为select，或者不包含{}命令").format(need_keywords))
+
+        return valid
