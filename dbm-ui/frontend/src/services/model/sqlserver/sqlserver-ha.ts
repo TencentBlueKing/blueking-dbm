@@ -24,9 +24,9 @@ export default class SqlServerHaCluster extends DateTime {
   static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
   static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
   static operationIconMap = {
-    [SqlServerHaCluster.SQLSERVER_ENABLE]: 'qiyongzhong',
-    [SqlServerHaCluster.SQLSERVER_DISABLE]: 'jinyongzhong',
-    [SqlServerHaCluster.SQLSERVER_DESTROY]: 'shanchuzhong',
+    [SqlServerHaCluster.SQLSERVER_ENABLE]: t('启用中'),
+    [SqlServerHaCluster.SQLSERVER_DISABLE]: t('禁用中'),
+    [SqlServerHaCluster.SQLSERVER_DESTROY]: t('删除中'),
   };
   static operationTextMap = {
     [SqlServerHaCluster.SQLSERVER_DESTROY]: t('删除任务执行中'),

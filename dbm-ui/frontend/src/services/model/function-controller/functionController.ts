@@ -21,7 +21,7 @@ export type RedisFunctions =
   | 'PredixyRedisCluster'
   | 'RedisInstance'
   | 'toolbox';
-export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak';
+export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak' | 'doris';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
 export type MongoFunctions = 'mongodb' | 'MongoReplicaSet' | 'MongoShardedCluster';
 export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha' | 'sqlserver_tool';

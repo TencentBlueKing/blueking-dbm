@@ -117,6 +117,8 @@
     proxy: 'Proxy',
     slave: 'Slave',
     bookkeeper: 'Bookkeeper',
+    follower: 'Follower',
+    observer: 'Observer',
   };
   const isScaleUp = props.ticketDetails.ticket_type.includes('SCALE_UP');
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
