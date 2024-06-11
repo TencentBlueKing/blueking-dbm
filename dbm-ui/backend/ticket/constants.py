@@ -166,8 +166,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_MASTER_FAIL_OVER = TicketEnumField("MYSQL_MASTER_FAIL_OVER", _("MySQL 主库故障切换"), _("集群维护"))
     MYSQL_HA_APPLY = TicketEnumField("MYSQL_HA_APPLY", _("MySQL 高可用部署"), register_iam=False)
     MYSQL_IMPORT_SQLFILE = TicketEnumField("MYSQL_IMPORT_SQLFILE", _("MySQL 变更SQL执行"), _("SQL 任务"))
-    MYSQL_FORCE_IMPORT_SQLFILE = TicketEnumField("MYSQL_FORCE_IMPORT_SQLFILE",
-                                                 _("MySQL 强制变更SQL执行"), _("SQL 任务"), register_iam=False)  # noqa
+    MYSQL_FORCE_IMPORT_SQLFILE = TicketEnumField("MYSQL_FORCE_IMPORT_SQLFILE", _("MySQL 强制变更SQL执行"), _("SQL 任务"), register_iam=False)  # noqa
     MYSQL_SEMANTIC_CHECK = TicketEnumField("MYSQL_SEMANTIC_CHECK", _("MySQL 模拟执行"), register_iam=False)
     MYSQL_PROXY_ADD = TicketEnumField("MYSQL_PROXY_ADD", _("MySQL 添加Proxy"), _("集群维护"))
     MYSQL_PROXY_SWITCH = TicketEnumField("MYSQL_PROXY_SWITCH", _("MySQL 替换Proxy"), _("集群维护"))

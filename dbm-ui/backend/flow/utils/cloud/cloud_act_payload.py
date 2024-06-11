@@ -159,6 +159,8 @@ class CloudServiceActPayload(object):
             "drs_port": self.kwargs["exec_ip"]["drs_port"],
             "drs_user": self.kwargs["plain_user"],
             "drs_password": self.kwargs["plain_pwd"],
+            "drs_webconsole_user": self.kwargs["plain_webconsole_user"],
+            "drs_webconsole_password": self.kwargs["plain_webconsole_pwd"],
             "dns_nameserver": dns_nameserver_str,
             "proxy_password": DBPasswordHandler.query_proxy_password(),
         }

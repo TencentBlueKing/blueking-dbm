@@ -20,6 +20,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
@@ -39,6 +40,8 @@ from backend.db_services.dbbase.serializers import (
     QueryBizClusterAttrsResponseSerializer,
     QueryBizClusterAttrsSerializer,
     ResourceAdministrationSerializer,
+    WebConsoleResponseSerializer,
+    WebConsoleSerializer,
 )
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -91,7 +94,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(cluster_infos)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询业务集群通用信息"),
+        operation_summary=_("查询业务下集群通用信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=CommonQueryClusterSerializer(),
         responses={status.HTTP_200_OK: CommonQueryClusterResponseSerializer()},
@@ -104,7 +107,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(cluster_infos)
 
     @common_swagger_auto_schema(
-        operation_summary=_("根据过滤条件查询业务集群详细信息"),
+        operation_summary=_("根据过滤条件查询业务下集群详细信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=ClusterFilterSerializer(),
         tags=[SWAGGER_TAG],
@@ -231,3 +234,20 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         serializer = self.get_serializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("webconsole查询"),
+        request_body=WebConsoleSerializer(),
+        responses={status.HTTP_200_OK: WebConsoleResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=WebConsoleSerializer)
+    def webconsole(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        cluster = Cluster.objects.get(id=data["cluster_id"])
+        # mysql / tendbcluster
+        if ClusterType.cluster_type_to_db_type(cluster.cluster_type) in [DBType.MySQL, DBType.TenDBCluster]:
+            from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
+
+            return Response(RemoteServiceHandler(bk_biz_id=cluster.bk_biz_id).webconsole_rpc(**data))
+        # TODO: redis / mongo / sqlserver待补充

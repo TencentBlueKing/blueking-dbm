@@ -2,8 +2,8 @@ package rpc_core
 
 import (
 	"context"
-	"time"
 	"log/slog"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
