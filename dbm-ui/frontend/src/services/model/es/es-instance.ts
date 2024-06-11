@@ -17,7 +17,7 @@ export default class EsInstance {
   static ES_REBOOT = 'ES_REBOOT';
 
   static operationIconMap = {
-    [EsInstance.ES_REBOOT]: 'zhongqizhong',
+    [EsInstance.ES_REBOOT]: t('重启中'),
   };
 
   static operationTextMap = {

@@ -110,10 +110,13 @@
 <script
   setup
   lang="tsx"
-  generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | InfluxDBInstanceModel">
+  generic="
+    T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | InfluxDBInstanceModel | DorisNodeModel
+  ">
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type DorisNodeModel from '@services/model/doris/doris-node';
   import type EsNodeModel from '@services/model/es/es-node';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
   import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';

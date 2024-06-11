@@ -169,15 +169,15 @@
       showOverflowTooltip: true,
     },
     {
-      label: t('管控区域'),
-      field: 'bk_cloud_name',
-      width: 140,
-      showOverflowTooltip: true,
-    },
-    {
       label: t('所属模块'),
       field: 'db_module_name',
       width: 130,
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_name',
+      width: 140,
       showOverflowTooltip: true,
     },
     {

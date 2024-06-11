@@ -192,6 +192,7 @@ export const useTreeData = (treeState: TreeState) => {
           ClusterTypes.INFLUXDB,
           ClusterTypes.PULSAE,
           ClusterTypes.RIAK,
+          ClusterTypes.DORIS,
         ].includes(value);
         fetchBusinessTopoTree(isBigdata ? 'bigdata' : dbType);
       }

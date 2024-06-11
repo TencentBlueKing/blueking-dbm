@@ -131,7 +131,7 @@
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
@@ -349,34 +349,47 @@
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
-      render: ({ data }: {data: KafkaModel}) => (
+      render: ({ data }: { data: KafkaModel }) => (
         <TextOverflowLayout>
           {{
             default: () => (
               <div>
-                <div>
-                  <div>
-                    {data.cluster_name}
-                  </div>
-                  <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
-                </div>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                <db-icon
-                  v-show={!data.isOnline && !data.isStarting}
-                  svg
-                  type="yijinyong"
-                  style="width: 38px; height: 16px; margin-left: 4px;" />
-                {data.isNew && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />}
+                <span>
+                  {data.cluster_name}
+                </span >
+                <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
               </div>
             ),
             append: () => (
-              <db-icon
-                class="mt-2"
-                v-bk-tooltips={t('复制集群名称')}
-                type="copy"
-                onClick={() => copy(data.cluster_name)} />
+              <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
+                <db-icon
+                  v-bk-tooltips={t('复制集群名称')}
+                  type="copy"
+                  class="mt-2"
+                  onClick={() => copy(data.cluster_name)} />
+              </>
             )
           }}
         </TextOverflowLayout>

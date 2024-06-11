@@ -173,6 +173,11 @@
       label: 'Riak',
       name: ClusterTypes.RIAK,
     },
+    {
+      moduleId: 'bigdata',
+      label: 'Doris',
+      name: ClusterTypes.DORIS,
+    },
   ];
 
   const funControllerStore = useFunController();

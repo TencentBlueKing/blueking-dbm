@@ -95,6 +95,11 @@
       label: 'Riak',
       name: DBTypes.RIAK,
     },
+    {
+      moduleId: 'bigdata',
+      label: 'Doris',
+      name: DBTypes.DORIS,
+    },
   ];
 
   const funControllerStore = useFunController();

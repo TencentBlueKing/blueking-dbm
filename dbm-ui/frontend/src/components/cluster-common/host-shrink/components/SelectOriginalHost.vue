@@ -57,7 +57,10 @@
     </template>
   </BkDialog>
 </template>
-<script setup lang="tsx" generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel">
+<script
+  setup
+  lang="tsx"
+  generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
   import  {
     computed,
     shallowRef,
@@ -65,10 +68,11 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type EsNodeModel from '@services/model/es/es-node';
+  import DorisNodeModel from '@services/model/doris/doris-node'
+  import EsNodeModel from '@services/model/es/es-node';
   import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
+  import KafkaNodeModel from '@services/model/kafka/kafka-node';
+  import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 
   import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';

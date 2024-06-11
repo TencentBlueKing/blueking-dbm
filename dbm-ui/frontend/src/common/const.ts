@@ -28,6 +28,7 @@ export enum DBTypes {
   INFLUXDB = 'influxdb',
   SPIDER = 'spider',
   RIAK = 'riak',
+  DORIS = 'doris',
 }
 export type DBTypesValues = `${DBTypes}`;
 
@@ -61,6 +62,7 @@ export enum ClusterTypes {
   PULSAE = 'pulsar',
   INFLUXDB = 'influxdb',
   RIAK = 'riak',
+  DORIS = 'doris',
 }
 
 // 机器类型
@@ -148,6 +150,9 @@ export const clusterTypeInfos = {
   },
   [ClusterTypes.SQLSERVER_SINGLE]: {
     dbType: DBTypes.SQLSERVER,
+  },
+  [ClusterTypes.DORIS]: {
+    dbType: DBTypes.DORIS,
   },
 };
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;
@@ -336,6 +341,14 @@ export enum TicketTypes {
   REDIS_INSTANCE_PROXY_OPEN = 'REDIS_INSTANCE_PROXY_OPEN', // redis 主从集群启用
   REDIS_INSTANCE_PROXY_CLOSE = 'REDIS_INSTANCE_PROXY_CLOSE', // redis 主从集群禁用
   REDIS_INSTANCE_DESTROY = 'REDIS_INSTANCE_DESTROY', // redis 主从集群删除
+  DORIS_APPLY = 'DORIS_APPLY', // doris 部署
+  DORIS_ENABLE = 'DORIS_ENABLE', // doris 启用
+  DORIS_DISABLE = 'DORIS_DISABLE', // doris 禁用
+  DORIS_DESTROY = 'DORIS_DESTROY', // doris 删除
+  DORIS_REBOOT = 'DORIS_REBOOT', // doris 重启
+  DORIS_REPLACE = 'DORIS_REPLACE', // doris 替换
+  DORIS_SCALE_UP = 'DORIS_SCALE_UP', // doris 扩容
+  DORIS_SHRINK = 'DORIS_SHRINK', // doris 缩容
   MYSQL_DUMP_DATA = 'MYSQL_DUMP_DATA', // 数据导出
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
@@ -433,6 +446,11 @@ export const bigDataType = {
     id: TicketTypes.RIAK_CLUSTER_APPLY,
     name: t('Riak集群部署'),
     type: ClusterTypes.RIAK,
+  },
+  [TicketTypes.DORIS_APPLY]: {
+    id: TicketTypes.DORIS_APPLY,
+    name: t('Doris集群部署'),
+    type: ClusterTypes.DORIS,
   },
 };
 
@@ -534,6 +552,7 @@ export enum UserPersonalSettings {
   REDIS_HA_INSTANCE_SETTINGS = 'REDIS_HA_INSTANCE_SETTINGS',
   SQLSERVER_TOOLBOX_MENUS = 'SQLSERVER_TOOLBOX_MENUS',
   SQLSERVER_TOOLBOX_FAVOR = 'SQLSERVER_TOOLBOX_FAVOR',
+  DORIS_TABLE_SETTINGS = 'DORIS_TABLE_SETTINGS',
 }
 
 /**
