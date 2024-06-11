@@ -145,7 +145,7 @@
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import RenderNodeInstance from '@views/db-manage/common/RenderNodeInstance.vue';
-  import RenderOperationTag from '@views/db-manage/common/RenderOperationTag.vue';
+  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterExpansion from '@views/db-manage/elastic-search/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/elastic-search/common/shrink/Index.vue';
@@ -414,11 +414,15 @@
           {
             data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
           }
-          <db-icon
-            v-show={!data.isOnline && !data.isStarting}
-            svg
-            type="yijinyong"
-            style="width: 38px; height: 16px; margin-left: 4px;" />
+          {
+            !data.isOnline && !data.isStarting && (
+              <bk-tag
+                class="ml-4"
+                size="small">
+                {t('已禁用')}
+              </bk-tag>
+            )
+          }
           {
             isRecentDays(data.create_at, 24 * 3)
             && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />

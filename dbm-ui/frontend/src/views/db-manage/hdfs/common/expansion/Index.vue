@@ -121,6 +121,7 @@
         spec_id: 0,
         count: 0,
       },
+      tagText: t('存储层')
     },
   });
 

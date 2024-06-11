@@ -139,7 +139,22 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-manage/mongodb/replica-set-apply/Index.vue'),
       },
-
+      {
+        name: 'DorisApply',
+        path: 'doris',
+        meta: {
+          navName: t('申请Doris集群部署'),
+        },
+        component: () => import('@views/db-manage/doris/apply/Index.vue'),
+      },
+      {
+        name: 'SelfServiceCreateDbModule',
+        path: 'create-db-module/:type/:bk_biz_id/',
+        meta: {
+          navName: t('新建模块'),
+        },
+        component: () => import('@views/service-apply/create-db-module/Index.vue'),
+      },
       {
         name: 'SelfServiceBindDbModule',
         path: 'bind-db-module/:type/:bk_biz_id/:db_module_id',

@@ -81,6 +81,22 @@
       color: '#FE9C00',
       background: '#FFF1DB',
     },
+    [t('替换中')]: {
+      color: '#29AAE8',
+      background: '#EDFBFF',
+    },
+    [t('扩容中')]: {
+      color: '#14A568',
+      background: '#E4FAF0',
+    },
+    [t('重启中')]: {
+      color: '#3A84FF',
+      background: '#EDF4FF',
+    },
+    [t('缩容中')]: {
+      color: '#8E3AFF',
+      background: '#F2EDFF',
+    },
   };
 
   const rootRef = ref();
@@ -146,6 +162,7 @@
       padding: 0 4px;
       line-height: 16px;
       cursor: pointer;
+      border-radius: 2px;
 
       .icon-text {
         display: inline-block;

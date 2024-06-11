@@ -111,6 +111,7 @@
       // targetDisk: 0,
       shrinkDisk: 0,
       minHost: 0,
+      tagText: t('存储层')
     },
     cold: {
       label: t('冷节点'),
@@ -120,6 +121,7 @@
       // targetDisk: 0,
       shrinkDisk: 0,
       minHost: 0,
+      tagText: t('存储层')
     },
     client: {
       label: 'Client',
@@ -129,6 +131,7 @@
       // targetDisk: 0,
       shrinkDisk: 0,
       minHost: 0,
+      tagText: t('接入层')
     },
   });
 

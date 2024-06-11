@@ -48,11 +48,14 @@
 <script
   setup
   lang="ts"
-  generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | InfluxdbInstanceModel">
+  generic="
+    T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | InfluxdbInstanceModel | DorisNodeModel
+  ">
   import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type DorisNodeModel from '@services/model/doris/doris-node';
   import type EsNodeModel from '@services/model/es/es-node';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
   import InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';

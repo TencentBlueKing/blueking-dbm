@@ -24,9 +24,9 @@ export default class SqlServerSingleCluster extends DateTime {
   static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
   static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
   static operationIconMap = {
-    [SqlServerSingleCluster.SQLSERVER_ENABLE]: 'qiyongzhong',
-    [SqlServerSingleCluster.SQLSERVER_DISABLE]: 'jinyongzhong',
-    [SqlServerSingleCluster.SQLSERVER_DESTROY]: 'shanchuzhong',
+    [SqlServerSingleCluster.SQLSERVER_ENABLE]: t('启用中'),
+    [SqlServerSingleCluster.SQLSERVER_DISABLE]: t('禁用中'),
+    [SqlServerSingleCluster.SQLSERVER_DESTROY]: t('删除中'),
   };
   static operationTextMap = {
     [SqlServerSingleCluster.SQLSERVER_DESTROY]: t('删除任务执行中'),

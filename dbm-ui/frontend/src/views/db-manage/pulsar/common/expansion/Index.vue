@@ -134,6 +134,7 @@
         spec_id: 0,
         count: 0,
       },
+      tagText: t('接入层')
     },
     bookkeeper: {
       label: 'Bookkeeper',
@@ -151,6 +152,7 @@
         spec_id: 0,
         count: 0,
       },
+      tagText: t('存储层')
     },
   });
 

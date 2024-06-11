@@ -514,7 +514,11 @@
             }
             {
               !data.isOnline && !data.isStarting && (
-                <bk-tag size="small">{t('已禁用')}</bk-tag>
+                <bk-tag
+                  class="ml-4"
+                  size="small">
+                  {t('已禁用')}
+                </bk-tag>
               )
             }
             {

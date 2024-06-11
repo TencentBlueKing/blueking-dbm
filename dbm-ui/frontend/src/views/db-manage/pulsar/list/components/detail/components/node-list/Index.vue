@@ -165,10 +165,12 @@
       :show-footer="false"
       :title="t('节点详情')"
       :width="960">
-      <InstanceDetail
+      <BigdataInstanceDetail
         v-if="operationNodeData"
         :cluster-id="clusterId"
-        :data="operationNodeData" />
+        :cluster-type="ClusterTypes.PULSAR"
+        :data="operationNodeData"
+        @close="handleClose" />
     </DbSideslider>
   </div>
 </template>
@@ -191,6 +193,7 @@
 
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
+  import BigdataInstanceDetail from '@views/db-manage/common/bigdata-instance-detail/Index.vue';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderClusterRole from '@views/db-manage/common/RenderRole.vue';
   import ClusterExpansion from '@views/db-manage/pulsar/common/expansion/Index.vue';
@@ -204,7 +207,7 @@
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  import InstanceDetail from './components/InstanceDetail.vue';
+  // import InstanceDetail from './components/InstanceDetail.vue';
 
   interface Props {
     clusterId: number;
@@ -664,6 +667,10 @@
   const handleShowDetail = (data: PulsarNodeModel) => {
     isShowDetail.value = true;
     operationNodeData.value = data;
+  };
+
+  const handleClose = () => {
+    isShowDetail.value = false;
   };
 </script>
 <style lang="less">

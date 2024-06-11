@@ -13,8 +13,13 @@
 
 <template>
   <div class="bi-data-cluster-expansion-node-box">
-    <div class="header">
-      {{ data.label }}
+    <div class="header-box">
+      <span class="header-label">{{ data.label }}</span>
+      <BkTag
+        class="ml-8"
+        theme="info">
+        {{ data.tagText }}
+      </BkTag>
     </div>
     <BkForm form-type="vertical">
       <BkFormItem>
@@ -133,11 +138,14 @@
       font-weight: bold;
     }
 
-    .header {
+    .header-box {
       padding: 10px 0;
       font-size: 14px;
-      font-weight: bold;
       color: #313238;
+
+      .header-box-label {
+        font-weight: bold;
+      }
     }
 
     .target-content-box {

@@ -23,16 +23,16 @@ export default class Redis {
   static REDIS_PROXY_CLOSE = 'REDIS_PROXY_CLOSE';
   static REDIS_PROXY_OPEN = 'REDIS_PROXY_OPEN';
   static REDIS_INSTANCE_DESTROY = 'REDIS_INSTANCE_DESTROY';
-  static REDIS_INSTANCE_CLOSE = 'REDIS_INSTANCE_CLOSE';
-  static REDIS_INSTANCE_OPEN = 'REDIS_INSTANCE_OPEN';
+  static REDIS_INSTANCE_PROXY_CLOSE = 'REDIS_INSTANCE_PROXY_CLOSE';
+  static REDIS_INSTANCE_PROXY_OPEN = 'REDIS_INSTANCE_PROXY_OPEN';
 
   static operationIconMap = {
-    [Redis.REDIS_PROXY_OPEN]: 'qiyongzhong',
-    [Redis.REDIS_PROXY_CLOSE]: 'jinyongzhong',
-    [Redis.REDIS_DESTROY]: 'shanchuzhong',
-    [Redis.REDIS_INSTANCE_OPEN]: 'qiyongzhong',
-    [Redis.REDIS_INSTANCE_CLOSE]: 'jinyongzhong',
-    [Redis.REDIS_INSTANCE_DESTROY]: 'shanchuzhong',
+    [Redis.REDIS_PROXY_OPEN]: t('启用中'),
+    [Redis.REDIS_PROXY_CLOSE]: t('禁用中'),
+    [Redis.REDIS_DESTROY]: t('删除中'),
+    [Redis.REDIS_INSTANCE_PROXY_OPEN]: t('启用中'),
+    [Redis.REDIS_INSTANCE_PROXY_CLOSE]: t('禁用中'),
+    [Redis.REDIS_INSTANCE_DESTROY]: t('删除中'),
   };
 
   static operationTextMap = {
@@ -40,8 +40,8 @@ export default class Redis {
     [Redis.REDIS_PROXY_CLOSE]: t('禁用任务执行中'),
     [Redis.REDIS_PROXY_OPEN]: t('启用任务执行中'),
     [Redis.REDIS_INSTANCE_DESTROY]: t('删除任务执行中'),
-    [Redis.REDIS_INSTANCE_CLOSE]: t('禁用任务执行中'),
-    [Redis.REDIS_INSTANCE_OPEN]: t('启用任务执行中'),
+    [Redis.REDIS_INSTANCE_PROXY_CLOSE]: t('禁用任务执行中'),
+    [Redis.REDIS_INSTANCE_PROXY_OPEN]: t('启用任务执行中'),
   };
 
   bk_biz_id: number;

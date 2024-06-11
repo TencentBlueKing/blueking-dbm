@@ -153,6 +153,13 @@
       flex: 0 0 auto;
     }
 
+    .unfinished-tips {
+      margin-left: auto;
+      font-weight: normal;
+      color: #ea3636;
+      flex: 0 0 auto;
+    }
+
     .disk-tips {
       margin-left: auto;
       font-weight: normal;

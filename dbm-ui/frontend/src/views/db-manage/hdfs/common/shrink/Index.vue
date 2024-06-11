@@ -104,6 +104,7 @@
       shrinkDisk: 0,
       // 最小主机数
       minHost: 2,
+      tagText: t('存储层')
     },
   });
 

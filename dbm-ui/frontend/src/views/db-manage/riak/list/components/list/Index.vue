@@ -112,7 +112,7 @@
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import RenderNodeInstance from '@views/db-manage/common/RenderNodeInstance.vue';
-  import RenderOperationTag from '@views/db-manage/common/RenderOperationTag.vue';
+  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
   import {
     getMenuListSearch,
@@ -299,10 +299,11 @@
                 }
                 {
                   data.isDisabled && (
-                    <db-icon
-                      svg
-                      type="yijinyong"
-                      class="disabled-tag" />
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
                   )
                 }
               </>

@@ -215,7 +215,7 @@
     import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
     import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
     import RenderInstances from '@views/db-manage/common/render-instances/RenderInstances.vue';
-    import RenderOperationTag from '@views/db-manage/common/RenderOperationTag.vue';
+    import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
     import RedisBackup from '@views/db-manage/redis/common/cluster-oprations/Backup.vue';
     import ClusterPassword from '@views/db-manage/redis/common/cluster-oprations/ClusterPassword.vue';
     import DeleteKeys from '@views/db-manage/redis/common/cluster-oprations/DeleteKeys.vue';

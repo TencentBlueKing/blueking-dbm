@@ -85,6 +85,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { getDorisTopoGraph } from '@services/source/doris';
   import { getEsTopoGraph } from '@services/source/es';
   import { getHdfsTopoGraph } from '@services/source/hdfs';
   import { getKafkaTopoGraph } from '@services/source/kafka';
@@ -137,6 +138,7 @@
     mongodb: getMongoClustersTopoGraph,
     sqlserver_ha: getHaClusterTopoGraph,
     sqlserver_single: getSingleClusterTopoGraph,
+    doris: getDorisTopoGraph,
   };
 
   /** 拓扑功能 */

@@ -13,8 +13,13 @@
 
 <template>
   <div class="big-data-cluster-shrink-node-box">
-    <div class="header">
-      {{ data.label }}
+    <div class="header-box">
+      <span class="header-label">{{ data.label }}</span>
+      <BkTag
+        class="ml-8"
+        theme="info">
+        {{ data.tagText }}
+      </BkTag>
     </div>
     <BkAlert
       v-if="isDisabled"
@@ -86,18 +91,17 @@
       @change="handleSelectChange" />
   </div>
 </template>
-<script setup lang="tsx" generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel">
-  import {
-    computed,
-    ref,
-    shallowRef,
-  } from 'vue';
+<script
+  setup
+  lang="tsx"
+  generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
   import { useI18n } from 'vue-i18n';
 
-  import type EsNodeModel from '@services/model/es/es-node';
-  import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
+  import DorisNodeModel from '@services/model/doris/doris-node'
+  import EsNodeModel from '@services/model/es/es-node';
+  import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
+  import KafkaNodeModel from '@services/model/kafka/kafka-node';
+  import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
@@ -118,6 +122,8 @@
     shrinkDisk: number,
     // 改节点所需的最少主机数
     minHost: number,
+    // 节点类型 tag 文本
+    tagText: string;
   }
 
   interface Props {
@@ -213,11 +219,14 @@
       color: #63656e;
     }
 
-    .header {
+    .header-box {
       padding: 10px 0;
       font-size: 14px;
-      font-weight: bold;
       color: #313238;
+
+      .header-box-label {
+        font-weight: bold;
+      }
     }
 
     .target-content-box {

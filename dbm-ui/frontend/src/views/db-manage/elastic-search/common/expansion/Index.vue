@@ -139,6 +139,7 @@
         count: 0,
         instance_num: 1,
       },
+      tagText: t('存储层')
     },
     cold: {
       label: '冷节点',
@@ -156,6 +157,7 @@
         count: 0,
         instance_num: 1,
       },
+      tagText: t('存储层')
     },
     client: {
       label: 'Client 节点',
@@ -173,6 +175,7 @@
         count: 0,
         instance_num: 1,
       },
+      tagText: t('接入层')
     },
   });
 

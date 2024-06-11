@@ -166,9 +166,10 @@
       :show-footer="false"
       :title="t('节点详情')"
       :width="960">
-      <InstanceDetail
+      <BigdataInstanceDetail
         v-if="operationNodeData"
         :cluster-id="clusterId"
+        :cluster-type="ClusterTypes.KAFKA"
         :data="operationNodeData"
         @close="handleClose" />
     </DbSideslider>
@@ -189,10 +190,11 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const'
 
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
+  import BigdataInstanceDetail from '@views/db-manage/common/bigdata-instance-detail/Index.vue';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderClusterRole from '@views/db-manage/common/RenderRole.vue';
   import ClusterExpansion from '@views/db-manage/kafka/common/expansion/Index.vue';
@@ -207,7 +209,7 @@
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  import InstanceDetail from './components/InstanceDetail.vue';
+  // import InstanceDetail from './components/InstanceDetail.vue';
 
   interface Props {
     clusterId: number;

@@ -170,7 +170,7 @@
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderInstanceStatus from '@views/db-manage/common/RenderInstanceStatus.vue';
-  import RenderOperationTag from '@views/db-manage/common/RenderOperationTag.vue';
+  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
   import {
     getMenuListSearch,
@@ -335,12 +335,15 @@
                   {
                     data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
                   }
-                  <db-icon
-                    v-show={!data.isOnline && !data.isStarting}
-                    class="cluster-tag"
-                    svg
-                    type="yijinyong"
-                    style="width: 38px; height: 16px;" />
+                  {
+                    !data.isOnline && !data.isStarting && (
+                      <bk-tag
+                        class="ml-4"
+                        size="small">
+                        {t('已禁用')}
+                      </bk-tag>
+                    )
+                  }
                   {
                     data.isNew && (
                       <span class="glob-new-tag cluster-tag" data-text="NEW" />

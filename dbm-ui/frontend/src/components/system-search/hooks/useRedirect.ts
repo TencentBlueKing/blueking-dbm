@@ -36,6 +36,7 @@ export const useRedirect = () => {
     sqlserver_single: 'SqlServerSingle',
     MongoShardedCluster: 'MongoDBSharedClusterList',
     MongoReplicaSet: 'MongoDBReplicaSetList',
+    doris: 'DorisList',
   } as Record<string, string>;
 
   return (clusterType: string, queryParams: Record<string, any>, bizId: number) => {
