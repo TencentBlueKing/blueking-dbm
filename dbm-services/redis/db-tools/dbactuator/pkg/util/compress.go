@@ -128,7 +128,7 @@ func SplitLargeFile(file, splitTargetSize string, rmOrigin bool) (splitedFiles [
 // 参数: tarSaveDir 为 /tmp/
 // 返回值: tarFile 为  /tmp/REDIS-FULL-rocksdb-1.1.1.1-30000.tar
 func TarADir(originDir, tarSaveDir string, rmOrigin bool) (tarFile string, err error) {
-	var tarCmd string
+	var tarCmd, rmCmd string
 	basename := filepath.Base(originDir)
 	baseDir := filepath.Dir(originDir)
 	if tarSaveDir == "" {
@@ -137,12 +137,28 @@ func TarADir(originDir, tarSaveDir string, rmOrigin bool) (tarFile string, err e
 	tarFile = filepath.Join(tarSaveDir, basename+".tar")
 
 	if rmOrigin {
-		tarCmd = fmt.Sprintf(`tar --remove-files  -cf %s  -C %s %s`, tarFile, baseDir, basename)
+		tarCmd = fmt.Sprintf(`cd %s && tar --remove-files  -cf %s  %s && rm -rf %s`,
+			baseDir, filepath.Base(tarFile), basename, basename)
+		rmCmd = fmt.Sprintf("rm -f %s", tarFile)
 	} else {
-		tarCmd = fmt.Sprintf(`tar -cf %s  -C %s %s`, tarFile, baseDir, basename)
+		tarCmd = fmt.Sprintf(`cd %s && tar -cf %s %s`, baseDir, filepath.Base(tarFile), basename)
+		rmCmd = fmt.Sprintf("rm -f %s", tarFile)
 	}
 	mylog.Logger.Info(tarCmd)
-	_, err = RunBashCmd(tarCmd, "", nil, 6*time.Hour)
+	maxRetryTimes := 5
+	for maxRetryTimes >= 0 {
+		maxRetryTimes--
+		err = nil
+		_, err = RunBashCmd(tarCmd, "", nil, 6*time.Hour)
+		if err != nil {
+			// 如果报错则删除tar文件然后重试
+			mylog.Logger.Info(rmCmd)
+			RunBashCmd(rmCmd, "", nil, 10*time.Minute)
+			continue
+		}
+		// tar命令成功了,则退出
+		break
+	}
 	if err != nil {
 		return
 	}
