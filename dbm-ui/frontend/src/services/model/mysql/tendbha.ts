@@ -40,12 +40,12 @@ export default class Tendbha {
   static MYSQL_SINGLE_ENABLE = 'MYSQL_SINGLE_ENABLE';
 
   static operationIconMap = {
-    [Tendbha.MYSQL_HA_ENABLE]: 'qiyongzhong',
-    [Tendbha.MYSQL_HA_DISABLE]: 'jinyongzhong',
-    [Tendbha.MYSQL_HA_DESTROY]: 'shanchuzhong',
-    [Tendbha.MYSQL_SINGLE_ENABLE]: 'qiyongzhong',
-    [Tendbha.MYSQL_SINGLE_DISABLE]: 'jinyongzhong',
-    [Tendbha.MYSQL_SINGLE_DESTROY]: 'shanchuzhong',
+    [Tendbha.MYSQL_HA_ENABLE]: t('启用中'),
+    [Tendbha.MYSQL_HA_DISABLE]: t('禁用中'),
+    [Tendbha.MYSQL_HA_DESTROY]: t('删除中'),
+    [Tendbha.MYSQL_SINGLE_ENABLE]: t('启用中'),
+    [Tendbha.MYSQL_SINGLE_DISABLE]: t('禁用中'),
+    [Tendbha.MYSQL_SINGLE_DESTROY]: t('删除中'),
   };
 
   static operationTextMap = {

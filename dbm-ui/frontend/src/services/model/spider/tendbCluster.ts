@@ -68,11 +68,11 @@ export default class TendbCluster {
   static TENDBCLUSTER_CHECKSUM = 'TENDBCLUSTER_CHECKSUM';
 
   static operationIconMap = {
-    [TendbCluster.TENDBCLUSTER_SPIDER_ADD_NODES]: 'kuorongzhong',
-    [TendbCluster.TENDBCLUSTER_SPIDER_REDUCE_NODES]: 'suorongzhong',
-    [TendbCluster.TENDBCLUSTER_ENABLE]: 'qiyongzhong',
-    [TendbCluster.TENDBCLUSTER_DISABLE]: 'jinyongzhong',
-    [TendbCluster.TENDBCLUSTER_DESTROY]: 'shanchuzhong',
+    [TendbCluster.TENDBCLUSTER_SPIDER_ADD_NODES]: t('扩容中'),
+    [TendbCluster.TENDBCLUSTER_SPIDER_REDUCE_NODES]: t('缩容中'),
+    [TendbCluster.TENDBCLUSTER_ENABLE]: t('启用中'),
+    [TendbCluster.TENDBCLUSTER_DISABLE]: t('禁用中'),
+    [TendbCluster.TENDBCLUSTER_DESTROY]: t('删除中'),
   };
 
   static operationTextMap = {

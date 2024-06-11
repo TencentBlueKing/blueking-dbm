@@ -69,12 +69,12 @@ export default class Redis {
   static REDIS_INSTANCE_PROXY_OPEN = 'REDIS_INSTANCE_PROXY_OPEN';
 
   static operationIconMap = {
-    [Redis.REDIS_PROXY_OPEN]: 'qiyongzhong',
-    [Redis.REDIS_PROXY_CLOSE]: 'jinyongzhong',
-    [Redis.REDIS_DESTROY]: 'shanchuzhong',
-    [Redis.REDIS_INSTANCE_PROXY_OPEN]: 'qiyongzhong',
-    [Redis.REDIS_INSTANCE_PROXY_CLOSE]: 'jinyongzhong',
-    [Redis.REDIS_INSTANCE_DESTROY]: 'shanchuzhong',
+    [Redis.REDIS_PROXY_OPEN]: t('启用中'),
+    [Redis.REDIS_PROXY_CLOSE]: t('禁用中'),
+    [Redis.REDIS_DESTROY]: t('删除中'),
+    [Redis.REDIS_INSTANCE_PROXY_OPEN]: t('启用中'),
+    [Redis.REDIS_INSTANCE_PROXY_CLOSE]: t('禁用中'),
+    [Redis.REDIS_INSTANCE_DESTROY]: t('删除中'),
   };
 
   static operationTextMap = {
