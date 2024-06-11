@@ -200,7 +200,7 @@ class QueryOperationListSerializer(serializers.Serializer):
     ticket_types = serializers.CharField(help_text=_("过滤的单据类型列表"), required=False)
     task_ids = serializers.CharField(help_text=_("过滤的任务ID列表"), required=False)
     ip_list = serializers.CharField(help_text=_("过滤IP列表"), required=False)
-    ordering = serializers.CharField(max_length=255, help_text=_("排序字段"), default="update_time")
+    ordering = serializers.CharField(max_length=255, help_text=_("排序字段"), default="-update_time")
 
     operator = serializers.CharField(help_text=_("操作者"), required=False)
     begin_time = DBTimezoneField(help_text=_("操作开始时间"), required=False)
