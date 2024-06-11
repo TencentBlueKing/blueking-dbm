@@ -8,7 +8,7 @@
     </div>
   </BkLoading>
   <BkDialog
-    v-model:isShow="isShow"
+    v-model:is-show="isShow"
     class="navigation-database-module-config-dialog"
     :width="940">
     <div class="content-wrapper">
@@ -171,6 +171,11 @@
         name: 'HDFS',
         value: 'hdfs',
         icon: 'hdfs',
+      },
+      {
+        name: 'Doris',
+        value: 'doris',
+        icon: 'doris',
       },
     ],
   };

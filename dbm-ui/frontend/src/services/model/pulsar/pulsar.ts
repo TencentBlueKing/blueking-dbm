@@ -42,13 +42,13 @@ export default class Pulsar {
   static PULSAR_REBOOT = 'PULSAR_REBOOT';
 
   static operationIconMap = {
-    [Pulsar.PULSAR_SCALE_UP]: 'kuorongzhong',
-    [Pulsar.PULSAR_SHRINK]: 'suorongzhong',
-    [Pulsar.PULSAR_REPLACE]: 'tihuanzong',
-    [Pulsar.PULSAR_ENABLE]: 'qiyongzhong',
-    [Pulsar.PULSAR_DISABLE]: 'jinyongzhong',
-    [Pulsar.PULSAR_DESTROY]: 'shanchuzhong',
-    [Pulsar.PULSAR_REBOOT]: 'zhongqizhong',
+    [Pulsar.PULSAR_SCALE_UP]: t('扩容中'),
+    [Pulsar.PULSAR_SHRINK]: t('缩容中'),
+    [Pulsar.PULSAR_REPLACE]: t('替换中'),
+    [Pulsar.PULSAR_ENABLE]: t('启用中'),
+    [Pulsar.PULSAR_DISABLE]: t('禁用中'),
+    [Pulsar.PULSAR_DESTROY]: t('删除中'),
+    [Pulsar.PULSAR_REBOOT]: t('重启中'),
   };
 
   static operationTextMap = {

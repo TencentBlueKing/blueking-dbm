@@ -229,6 +229,13 @@ export enum TicketTypes {
 }
 export enum TicketTypes {
   DORIS_APPLY = 'DORIS_APPLY', // Doris 集群申请
+  DORIS_ENABLE = 'DORIS_ENABLE', // doris 启用
+  DORIS_DISABLE = 'DORIS_DISABLE', // doris 禁用
+  DORIS_DESTROY = 'DORIS_DESTROY', // doris 删除
+  DORIS_REBOOT = 'DORIS_REBOOT', // doris 重启
+  DORIS_REPLACE = 'DORIS_REPLACE', // doris 替换
+  DORIS_SCALE_UP = 'DORIS_SCALE_UP', // doris 扩容
+  DORIS_SHRINK = 'DORIS_SHRINK', // doris 缩容
 }
 
 export type TicketTypesStrings = keyof typeof TicketTypes;

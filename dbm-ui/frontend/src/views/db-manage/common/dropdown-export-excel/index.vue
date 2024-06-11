@@ -32,6 +32,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { exportDorisClusterToExcel, exportDorisInstanceToExcel } from '@services/source/doris';
   import { exportEsClusterToExcel, exportEsInstanceToExcel } from '@services/source/es';
   import { exportHdfsClusterToExcel, exportHdfsInstanceToExcel } from '@services/source/hdfs';
   import { exportInfluxdbClusterToExcel, exportInfluxdbInstanceToExcel } from '@services/source/influxdb';
@@ -63,7 +64,8 @@
       | 'riak'
       | 'mongodb'
       | 'sqlserver_ha'
-      | 'sqlserver_single';
+      | 'sqlserver_single'
+      | 'doris';
     ids?: number[];
     exportType?: 'cluster' | 'instance';
   }
@@ -132,6 +134,10 @@
     },
     sqlserver_single: {
       cluster: exportSqlServerSingleClusterToExcel,
+    },
+    doris: {
+      cluster: exportDorisClusterToExcel,
+      instance: exportDorisInstanceToExcel,
     },
   };
 

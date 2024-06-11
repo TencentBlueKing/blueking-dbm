@@ -13,8 +13,13 @@
 
 <template>
   <div class="es-cluster-expansion-node-box">
-    <div class="header">
-      {{ data.label }}
+    <div class="header-box">
+      <span class="header-label">{{ data.label }}</span>
+      <BkTag
+        class="ml-8"
+        theme="info">
+        {{ data.tagText }}
+      </BkTag>
     </div>
     <BkForm form-type="vertical">
       <BkFormItem :label="t('期望容量')">
@@ -69,7 +74,7 @@
           </div>
         </div>
       </BkFormItem>
-      <BkFormItem :label="t('服务器')">
+      <BkFormItem>
         <ResourcePoolSelector
           v-if="ipSource === 'resource_pool'"
           ref="resourcePoolSelectorRef"
@@ -123,6 +128,8 @@
       count: number;
       instance_num: number;
     };
+    // 节点类型 tag 文本
+    tagText: string;
   }
 
   interface Props {
@@ -155,7 +162,7 @@
   const resourcePoolSelectorRef = ref<InstanceType<typeof ResourcePoolSelector>>();
 
   const handleTargetDiskChange = (value: TExpansionNode['targetDisk']) => {
-    targetDisk.value = ~~value;
+    targetDisk.value = Math.floor(value);
     window.changeConfirm = true;
     if (props.ipSource === 'resource_pool') {
       resourcePoolSelectorRef.value!.triggerLatestValue();
@@ -195,11 +202,14 @@
       font-weight: bold;
     }
 
-    .header {
+    .header-box {
       padding: 10px 0;
       font-size: 14px;
-      font-weight: bold;
       color: #313238;
+
+      .header-box-label {
+        font-weight: bold;
+      }
     }
 
     .target-content-box {

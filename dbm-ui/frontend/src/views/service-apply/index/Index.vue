@@ -281,6 +281,13 @@
           name: bigDataType[TicketTypes.HDFS_APPLY].name,
           icon: 'hdfs',
         },
+        {
+          controllerId: 'doris',
+          routeName: 'DorisApply',
+          id: bigDataType[TicketTypes.DORIS_APPLY].id,
+          name: bigDataType[TicketTypes.DORIS_APPLY].name,
+          icon: 'doris',
+        },
       ],
     },
     {

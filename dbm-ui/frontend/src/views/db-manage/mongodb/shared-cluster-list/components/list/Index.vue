@@ -145,7 +145,7 @@
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import RenderInstances from '@views/db-manage/common/render-instances/RenderInstances.vue';
-  import RenderOperationTag from '@views/db-manage/common/RenderOperationTag.vue';
+  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
   import {
     getMenuListSearch,
@@ -312,11 +312,12 @@
               ))
             }
             {
-              data.isDisabled && (
-                <db-icon
-                  svg
-                  type="yijinyong"
-                  class="disabled-tag" />
+              data.isOffline && (
+                <bk-tag
+                  class="ml-4"
+                  size="small">
+                  {t('已禁用')}
+                </bk-tag>
               )
             }
           </>
