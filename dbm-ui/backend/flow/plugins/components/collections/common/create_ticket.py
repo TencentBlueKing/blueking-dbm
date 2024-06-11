@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from dataclasses import asdict, is_dataclass
+
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
@@ -24,6 +26,8 @@ class CreateTicket(BaseService):
         trans_data = data.get_one_of_inputs("trans_data")
         kwargs = data.get_one_of_inputs("kwargs")
 
+        if is_dataclass(trans_data):
+            trans_data = asdict(trans_data)
         # 表示没有加载上下文内容
         if trans_data is None or trans_data == "${trans_data}":
             trans_data = {}

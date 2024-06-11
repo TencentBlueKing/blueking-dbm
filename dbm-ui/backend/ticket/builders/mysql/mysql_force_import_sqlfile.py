@@ -48,8 +48,8 @@ class MysqlForceSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
 
     def patch_ticket_detail(self):
         # 上传sql文件
-        sql_content = self.ticket.details.pop("execute_sql_content")
-        sql_files = self.ticket.details.pop("execute_sql_files")
+        sql_content = self.ticket.details.pop("execute_sql_content", None)
+        sql_files = self.ticket.details.pop("execute_sql_files", None)
         execute_sql_files = SQLHandler.upload_sql_file(BKREPO_SQLFILE_PATH, sql_content, sql_files)
 
         # 获取sql执行体结构
@@ -72,6 +72,16 @@ class MysqlForceSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
         """
         flows = []
         mode = self.ticket.details["ticket_mode"]["mode"]
+
+        if self.need_itsm:
+            flows.append(
+                Flow(
+                    ticket=self.ticket,
+                    flow_type=FlowType.BK_ITSM.value,
+                    details=builders.ItsmParamBuilder(self.ticket).get_params(),
+                    flow_alias=_("单据审批"),
+                )
+            )
 
         if mode == SQLExecuteTicketMode.MANUAL.value:
             flows.append(Flow(ticket=self.ticket, flow_type=FlowType.PAUSE.value, flow_alias=_("人工确认执行")))

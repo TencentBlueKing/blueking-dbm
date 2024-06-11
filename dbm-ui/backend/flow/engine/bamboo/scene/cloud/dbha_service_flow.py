@@ -8,12 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from dataclasses import asdict
 from typing import Dict, List, Tuple, Union
 
 from bamboo_engine.builder import SubProcess
 from django.utils.translation import ugettext as _
 
 from backend import env
+from backend.db_proxy.constants import ExtensionAccountEnum
 from backend.flow.consts import CloudDBHATypeEnum, CloudServiceName
 from backend.flow.engine.bamboo.scene.cloud.base_service_flow import CloudBaseServiceFlow
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -122,7 +124,7 @@ class CloudDBHAServiceFlow(CloudBaseServiceFlow):
             pipeline=dbha_pipeline,
             proxy_func_name=CloudDBProxy.cloud_dbha_apply.__name__,
             host_infos=[*self.data["dbha"]["agent"], *self.data["dbha"]["gm"]],
-            host_kwargs={"user": dbha_kwargs.user, "pwd": dbha_kwargs.pwd},
+            host_kwargs=ExtensionAccountEnum.get_account_in_info(asdict(dbha_kwargs)),
         )
 
         dbha_pipeline.run_pipeline()
@@ -151,7 +153,6 @@ class CloudDBHAServiceFlow(CloudBaseServiceFlow):
             pipeline=dbha_pipeline,
             proxy_func_name=CloudDBProxy.cloud_dbha_apply.__name__,
             host_infos=[*agent_add_host_infos, *gm_add_host_infos],
-            host_kwargs={"user": dbha_kwargs.user, "pwd": dbha_kwargs.pwd},
         )
 
         dbha_pipeline.run_pipeline()
@@ -202,7 +203,6 @@ class CloudDBHAServiceFlow(CloudBaseServiceFlow):
             pipeline=dbha_pipeline,
             proxy_func_name=CloudDBProxy.cloud_dbha_replace.__name__,
             host_infos=[*self.data["dbha"]["agent"], *self.data["dbha"]["gm"]],
-            host_kwargs={"user": dbha_kwargs.user, "pwd": dbha_kwargs.pwd},
             extra_kwargs={
                 "old_gm": self.data["old_gm"]["host_infos"],
                 "old_agent": self.data["old_agent"]["host_infos"],

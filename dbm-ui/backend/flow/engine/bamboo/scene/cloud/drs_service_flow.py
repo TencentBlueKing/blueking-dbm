@@ -9,12 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from dataclasses import asdict
 from typing import List, Union
 
 from bamboo_engine.builder import SubProcess
 from django.utils.translation import ugettext as _
 
-from backend.db_proxy.constants import ExtensionType
+from backend.db_proxy.constants import ExtensionAccountEnum, ExtensionType
 from backend.db_proxy.models import DBExtension
 from backend.flow.consts import CloudServiceName
 from backend.flow.engine.bamboo.scene.cloud.base_service_flow import CloudBaseServiceFlow
@@ -62,8 +63,7 @@ class CloudDRSServiceFlow(CloudBaseServiceFlow):
             pipeline=drs_pipeline,
             proxy_func_name=CloudDBProxy.cloud_drs_apply.__name__,
             host_infos=drs_apply_host_infos,
-            host_kwargs={"user": drs_kwargs.user, "pwd": drs_kwargs.pwd},
-            extra_kwargs=None,
+            host_kwargs=ExtensionAccountEnum.get_account_in_info(asdict(drs_kwargs)),
         )
 
         drs_pipeline.run_pipeline()
@@ -88,7 +88,9 @@ class CloudDRSServiceFlow(CloudBaseServiceFlow):
 
         # 更新dbproxy信息
         drs_pipeline = self.add_dbproxy_act(
-            pipeline=drs_pipeline, proxy_func_name=CloudDBProxy.cloud_drs_apply.__name__, host_infos=drs_add_host_infos
+            pipeline=drs_pipeline,
+            proxy_func_name=CloudDBProxy.cloud_drs_apply.__name__,
+            host_infos=drs_add_host_infos,
         )
 
         # 重启nginx, 注意这里需要把原来的drs加入更新
@@ -168,7 +170,6 @@ class CloudDRSServiceFlow(CloudBaseServiceFlow):
             pipeline=drs_pipeline,
             proxy_func_name=CloudDBProxy.cloud_drs_replace.__name__,
             host_infos=new_drs_host_infos,
-            host_kwargs={"user": drs_kwargs.user, "pwd": drs_kwargs.pwd},
             extra_kwargs={"old_drs": old_drs_host_infos},
         )
 

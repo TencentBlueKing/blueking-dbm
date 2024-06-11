@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 
 from backend.configuration.constants import DBType
+from backend.flow.consts import CloudServiceName
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 SWAGGER_TAG = _("透传服务(proxypass)")
@@ -31,8 +32,6 @@ class ExtensionType(str, StructuredEnum):
     DRS = EnumField("DRS", _("SQL 远程执行服务"))
     DBHA = EnumField("DBHA", _("数据库高可用服务"))
     REDIS_DTS = EnumField("REDIS_DTS", _("Redis DTS服务"))
-    WEBCONSOLERS = EnumField("WEBCONSOLERS", _("WebConsole"))
-    PARTITION_YW = EnumField("PARTITION_YW", _("分区管理服务"))
 
 
 class ExtensionServiceStatus(str, StructuredEnum):
@@ -50,6 +49,29 @@ class ClusterServiceType(str, StructuredEnum):
     KAFKA_MANAGER = EnumField("kafka_manager", _("kafka_manager-Kafka管理端"))
     HAPROXY = EnumField("ha_proxy", _("haproxy-HDFS管理端"))
     PULSAR_MANAGER = EnumField("pulsar_manager", _("pulsar_manager管理端"))
+
+
+class ExtensionAccountEnum(str, StructuredEnum):
+    """组件内置账号枚举类型"""
+
+    USER = EnumField("user", _("user"))
+    PWD = EnumField("pwd", _("pwd"))
+    WEBCONSOLE_USER = EnumField("webconsole_user", _("webconsole_user"))
+    WEBCONSOLE_PWD = EnumField("webconsole_pwd", _("webconsole_pwd"))
+
+    @classmethod
+    def get_account_in_info(cls, info):
+        """从info中获取存在的账号/密码信息"""
+        account = {value: info[value] for value in cls.get_values() if value in info}
+        return account
+
+    @classmethod
+    def get_account_tuple_with_service(cls, service: CloudServiceName):
+        """获取不同组件包含的账号枚举类"""
+        account_tuples = [(cls.USER.value, cls.PWD.value)]
+        if service == CloudServiceName.DRS:
+            account_tuples.append((cls.WEBCONSOLE_USER, cls.WEBCONSOLE_PWD))
+        return account_tuples
 
 
 CLUSTER__SERVICE_MAP = {

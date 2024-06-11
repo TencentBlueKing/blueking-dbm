@@ -108,6 +108,11 @@ class CloudDRSKwargs:
     plain_user: str = ""  # 超级账户的用户名-明文
     plain_pwd: str = ""  # 超级账户的密码-明文
 
+    webconsole_user: str = ""  # webconsole账户的用户名 -- 只有只读权限
+    webconsole_pwd: str = ""  # webconsole账户的密码
+    plain_webconsole_user: str = ""  # webconsole账户的用户名-明文
+    plain_webconsole_pwd: str = ""  # webconsole账户的密码-明文
+
 
 @dataclass()
 class CloudServiceDetail:
@@ -140,6 +145,8 @@ class CloudDRSDetail(CloudServiceDetail):
     drs_port: str = ""  # 部署drs服务的机器port
     user: str = ""  # 加密后的用户
     pwd: str = ""  # 加密后的密码
+    webconsole_user: str = ""  # 加密后的webconsole用户
+    webconsole_pwd: str = ""  # 加密后的webconsole密码
 
 
 @dataclass()
