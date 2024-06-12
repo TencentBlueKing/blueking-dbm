@@ -328,6 +328,9 @@
           .finally(() => {
             isSubmitting.value = false;
           });
+      })
+      .catch(() => {
+        isSubmitting.value = false;
       });
   };
 

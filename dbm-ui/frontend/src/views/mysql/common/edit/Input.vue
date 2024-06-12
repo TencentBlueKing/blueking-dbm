@@ -223,6 +223,7 @@
     if (!selection || !selection.rangeCount) return false;
     selection.deleteFromDocument();
     selection.getRangeAt(0).insertNode(document.createTextNode(paste));
+    paste = `${localValue.value}${paste}`;
     localValue.value = paste;
     event.preventDefault();
     if (!props.multiInput) {

@@ -142,5 +142,9 @@
         line-height: unset !important;
       }
     }
+
+    .bk-radio-button-label {
+      font-size: 14px;
+    }
   }
 </style>

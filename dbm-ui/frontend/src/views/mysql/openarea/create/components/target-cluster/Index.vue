@@ -27,7 +27,7 @@
       @change="handleBatchInput" />
     <ClusterSelector
       v-model:is-show="isShowBatchSelector"
-      :cluster-types="[ClusterTypes.TENDBHA]"
+      :cluster-types="[clusterType]"
       :selected="selectedClusters"
       @change="handelClusterChange" />
   </div>
@@ -46,6 +46,7 @@
   import RenderDataRow, { createRowData, type IData, type IDataRow } from './components/Row.vue';
 
   interface Props {
+    clusterType: ClusterTypes;
     variableList: string[];
   }
   interface Exposes {
@@ -71,6 +72,7 @@
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({
     [ClusterTypes.TENDBHA]: [],
+    [ClusterTypes.TENDBSINGLE]: [],
   });
 
   const tableData = ref<IDataRow[]>([createRowData()]);
@@ -106,7 +108,7 @@
   // 批量选择
   const handelClusterChange = (selected: { [key: string]: Array<TendbhaModel> }) => {
     selectedClusters.value = selected;
-    const list = selected[ClusterTypes.TENDBHA];
+    const list = Object.keys(selected).reduce((list: TendbhaModel[], key) => list.concat(...selected[key]), []);
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {

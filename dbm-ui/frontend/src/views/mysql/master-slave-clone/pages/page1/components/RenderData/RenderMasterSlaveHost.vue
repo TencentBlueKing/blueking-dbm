@@ -12,28 +12,17 @@
 -->
 
 <template>
-  <div
-    class="render-master-slave-box"
-    :class="{
-      'is-repeat': isRepeat,
-    }">
-    <TableEditInput
-      ref="inputRef"
-      v-model="localIpText"
-      :disabled="disabled"
-      :placeholder="$t('请输入2台IP_英文逗号或换行分隔')"
-      :rules="rules"
-      textarea />
-    <div
-      v-if="isRepeat"
-      class="repeat-flag">
-      {{ $t('重复') }}
-    </div>
-  </div>
+  <TableEditInput
+    ref="inputRef"
+    v-model="localIpText"
+    :disabled="disabled"
+    :placeholder="t('请输入2台IP_英文逗号或换行分隔')"
+    :rules="rules"
+    textarea />
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, ref, watch } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getHostTopoInfos } from '@services/source/ipchooser';
@@ -84,14 +73,14 @@
   const rules = [
     {
       validator: (value: string) => {
-        const ipList = _.filter(value.split(splitReg), (item) => _.trim(item)) as Array<string>;
+        const ipList = value.split(splitReg);
         return ipList.length === 2;
       },
       message: t('请输入2台IP'),
     },
     {
       validator: (value: string) => {
-        const ipList = value.split(splitReg) as Array<string>;
+        const ipList = value.split(splitReg);
         return _.every(ipList, (item) => ipv4.test(_.trim(item)));
       },
       message: t('IP格式不正确'),
@@ -168,14 +157,6 @@
     },
   ];
 
-  const isRepeat = computed(() => {
-    if (!localIpText.value) {
-      return false;
-    }
-    const [fisrt, last] = localIpText.value.split(splitReg);
-    return _.trim(fisrt) === _.trim(last);
-  });
-
   // 同步外部主从机器
   watch(
     () => [props.masterHost, props.slaveHost],
@@ -211,56 +192,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-master-slave-box {
-    position: relative;
-
-    &.is-repeat {
-      .input-error {
-        display: none;
-      }
-    }
-
-    .repeat-flag,
-    .conflict-flag {
-      position: absolute;
-      top: 50%;
-      right: 0;
-      display: flex;
-      height: 20px;
-      padding: 0 5px;
-      font-size: 12px;
-      line-height: 20px;
-      color: #fff;
-      background-color: #ea3636;
-      border-radius: 2px;
-      align-self: center;
-      transform: scale(0.8) translateY(-50%);
-    }
-  }
-
-  .master-slave-clone-conflict-host-popover {
-    padding: 9px 7px;
-
-    .popover-header {
-      margin-bottom: 8px;
-      font-size: 12px;
-      font-weight: bold;
-      line-height: 16px;
-      color: #313238;
-    }
-
-    .popover-content {
-      max-height: 300px;
-      overflow: auto;
-    }
-
-    .popover-host-item {
-      padding: 2px 20px 2px 0;
-
-      &:nth-child(n + 2) {
-        border-top: 1px solid #dcdee5;
-      }
-    }
-  }
-</style>

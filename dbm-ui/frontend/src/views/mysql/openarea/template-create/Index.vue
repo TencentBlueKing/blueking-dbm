@@ -27,17 +27,15 @@
           <BkFormItem
             :label="t('源集群')"
             required>
-            <BkSelect
-              v-model="formData.source_cluster_id"
-              filterable
-              :input-search="false"
-              style="width: 560px">
-              <BkOption
-                v-for="item in clusterList"
-                :id="item.id"
-                :key="item.id"
-                :name="`${item.immute_domain} (${item.id})`" />
-            </BkSelect>
+            <span :class="{ 'mr-8': currentCluster.name !== '' }">
+              {{ currentCluster.name }}
+            </span>
+            <BkButton @click="handleShowClusterSelector">
+              <DbIcon
+                style="margin-right: 3px"
+                type="add" />
+              <span>{{ t('选择源集群') }}</span>
+            </BkButton>
           </BkFormItem>
           <BkFormItem
             :label="t('克隆的规则')"
@@ -49,6 +47,13 @@
           </BkFormItem>
         </DbCard>
       </BkForm>
+      <ClusterSelector
+        v-model:is-show="isShowClusterSelector"
+        :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+        only-one-type
+        :selected="clusterSelectorValue"
+        :tab-list-config="tabListConfig"
+        @change="handelClusterChange" />
       <template #action>
         <BkButton
           class="w-88"
@@ -72,10 +77,14 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import { queryAllTypeCluster } from '@services/dbbase';
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/openarea';
 
   import { useGlobalBizs } from '@stores';
+
+  import { ClusterTypes } from '@common/const';
+
+  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -101,18 +110,29 @@
   const configRuleRef = ref<InstanceType<typeof ConfigRule>>();
   const formRef = ref<InstanceType<typeof Form>>();
   const isSubmiting = ref(false);
+  const isShowClusterSelector = ref(false);
+  const currentCluster = ref({
+    name: '',
+    type: 'tendbha',
+  });
+
+  const clusterSelectorValue = shallowRef<Record<string, TendbhaModel[]>>({
+    [ClusterTypes.TENDBHA]: [],
+    [ClusterTypes.TENDBSINGLE]: [],
+  });
 
   const formData = reactive(genDefaultValue());
 
-  const { data: clusterList } = useRequest(queryAllTypeCluster, {
-    defaultParams: [
-      {
-        bk_biz_id: currentBizId,
-        cluster_types: 'tendbha,tendbsingle',
-        phase: 'online',
-      },
-    ],
-  });
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: {
+      showPreviewResultTitle: true,
+      multiple: false,
+    },
+    [ClusterTypes.TENDBSINGLE]: {
+      showPreviewResultTitle: true,
+      multiple: false,
+    },
+  } as Record<string, TabConfig>;
 
   // 编辑态获取模版详情
   const { loading: isDetailLoading, run: fetchTemplateDetail } = useRequest(getDetail, {
@@ -130,6 +150,22 @@
     });
   }
 
+  const handleShowClusterSelector = () => {
+    isShowClusterSelector.value = true;
+  };
+
+  const handelClusterChange = (selected: Record<string, TendbhaModel[]>) => {
+    const selectList = Object.keys(selected).reduce((list: TendbhaModel[], key) => list.concat(...selected[key]), []);
+    clusterSelectorValue.value = selected;
+
+    const { id, master_domain: domain, cluster_type: clusterType } = selectList[0];
+    formData.source_cluster_id = id;
+    currentCluster.value = {
+      name: `${domain} (${id})`,
+      type: clusterType,
+    };
+  };
+
   const handleSubmit = () => {
     isSubmiting.value = true;
     Promise.all([
@@ -142,7 +178,7 @@
           bk_biz_id: currentBizId,
           ...formData,
           config_rules: configRule,
-          cluster_type: 'tendbha',
+          cluster_type: currentCluster.value.type,
         };
         if (isEditMode) {
           params.id = Number(route.params.id);

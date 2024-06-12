@@ -10,8 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import _ from 'lodash';
-
 import type { MySQLProxySwitchDetails } from '@services/model/ticket/details/mysql';
 import TicketModel from '@services/model/ticket/ticket';
 
@@ -19,21 +17,21 @@ import { random } from '@utils';
 
 // MySQL 替换Proxy
 export function generateMysqlProxyReplaceCloneData(ticketData: TicketModel<MySQLProxySwitchDetails>) {
-  const {
-    force,
-    infos,
-  } = ticketData.details;
-  const tableDataList = _.flatMap(infos.map(item => item.cluster_ids.map(clusterId => ({
-    rowKey: random(),
-    originProxyIp: {
-      ...item.origin_proxy,
-      port: item.origin_proxy.port!,
-      cluster_id: clusterId,
-      instance_address: `${item.origin_proxy.ip}:${item.origin_proxy.port}`
-    },
-    targetProxyIp: item.target_proxy,
-  }))));
-  
+  const { force, infos } = ticketData.details;
+  const tableDataList = infos.map((item) => {
+    const clusterId = item.cluster_ids[0];
+    return {
+      rowKey: random(),
+      originProxyIp: {
+        ...item.origin_proxy,
+        port: item.origin_proxy.port!,
+        cluster_id: clusterId,
+        instance_address: `${item.origin_proxy.ip}:${item.origin_proxy.port}`,
+      },
+      targetProxyIp: item.target_proxy,
+    };
+  });
+
   return Promise.resolve({
     force,
     tableDataList,

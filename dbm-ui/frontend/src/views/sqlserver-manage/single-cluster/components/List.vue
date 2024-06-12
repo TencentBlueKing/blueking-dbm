@@ -5,7 +5,7 @@
         <BkButton
           theme="primary"
           @click="handleApply">
-          {{ t('实例申请') }}
+          {{ t('申请实例') }}
         </BkButton>
         <BkDropdown
           class="ml-8"

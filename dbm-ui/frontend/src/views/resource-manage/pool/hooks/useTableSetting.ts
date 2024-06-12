@@ -47,6 +47,10 @@ export default function () {
         disabled: true,
       },
       {
+        label: t('机架'),
+        field: 'rack_id',
+      },
+      {
         label: t('机型'),
         field: 'device_class',
       },
@@ -81,6 +85,7 @@ export default function () {
       'agent_status',
       'for_bizs',
       'resource_types',
+      'rack_id',
       'device_class',
       'city',
       'sub_zone',
