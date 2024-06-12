@@ -139,6 +139,8 @@ func init() {
 	supportedClusterType[consts.TendisTypeTwemproxyTendisSSDInstance] = struct{}{}
 	supportedClusterType[consts.TendisTypeTwemproxyRedisInstance] = struct{}{}
 	supportedClusterType[consts.TendisTypePredixyTendisplusCluster] = struct{}{}
+	supportedClusterType[consts.TendisTypePredixyRedisCluster] = struct{}{}
+	supportedClusterType[consts.TendisTypeRedisCluster] = struct{}{}
 }
 
 // Init 初始化
@@ -336,7 +338,8 @@ func (job *RedisSwitch) doTendisStorageSwitch4Twemproxy(storagePair InstanceSwit
 			rst, err := util.DoSwitchTwemproxyBackends(addrx[0], port,
 				fmt.Sprintf("%s:%d", storagePair.MasterInfo.IP, storagePair.MasterInfo.Port),
 				fmt.Sprintf("%s:%d", storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port))
-			if err != nil || !strings.Contains(rst, "success") {
+			if err != nil || (!strings.Contains(rst, "success") &&
+				!strings.Contains(rst, "exits in server pool nosqlproxy")) {
 				errCh <- fmt.Errorf("[%s:%d]switch proxy [%s] to:%s:%d result:%s,err:%+v",
 					storagePair.MasterInfo.IP, storagePair.MasterInfo.Port, proxy,
 					storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port, rst, err)
