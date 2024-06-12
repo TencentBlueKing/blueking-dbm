@@ -69,6 +69,20 @@ func init() {
 		GetSwitchInstanceInformation: redis.TendisplusClusterNewSwitchIns,
 	}
 
+	//DetectRedisInstance tendis_instance used
+	DBCallbackMap[constvar.DetectRedisInstance] = Callback{
+		FetchDBCallback:              redis.RedisInstanceNewIns,
+		DeserializeCallback:          redis.RedisInstanceDeserialize,
+		GetSwitchInstanceInformation: redis.RedisInstanceNewSwitchIns,
+	}
+
+	//DetectPredixyRedisCluster used
+	DBCallbackMap[constvar.DetectPredixyRedisCluster] = Callback{
+		FetchDBCallback:              redis.TendisplusClusterNewIns,
+		DeserializeCallback:          redis.TendisplusClusterDeserialize,
+		GetSwitchInstanceInformation: redis.TendisplusClusterNewSwitchIns,
+	}
+
 	DBCallbackMap[constvar.Riak] = Callback{
 		FetchDBCallback:              riak.NewRiakInstanceByCmDB,
 		DeserializeCallback:          riak.DeserializeRiak,

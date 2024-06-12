@@ -24,6 +24,10 @@ const (
 	TenDBHA = "tendbha"
 	// TenDBCluster cluster with spider, mysql component
 	TenDBCluster = "tendbcluster"
+	// RedisInstance ("RedisInstance", "RedisCache主从版"),
+	RedisInstance = "RedisInstance"
+	// PredixyRedisCluster EnumField("PredixyRedisCluster", _("Redis集群"))
+	PredixyRedisCluster = "PredixyRedisCluster"
 	// RedisCluster cluster with twemproxy component
 	RedisCluster = "TwemproxyRedisInstance"
 	// TendisplusCluster cluster with predixy component
@@ -83,6 +87,10 @@ const (
 	// DetectTenDBCluster detect TenDBCluster
 	DetectTenDBCluster = "tendbcluster"
 
+	// RedisInstance ("RedisInstance", "RedisCache主从版"),
+	DetectRedisInstance = "RedisInstance"
+	// DetectPredixyRedisCluster EnumField("PredixyRedisCluster", _("Redis集群"))
+	DetectPredixyRedisCluster = "PredixyRedisCluster"
 	// DetectTendisCache detect tendiscache and twemproxy
 	DetectTendisCache = "TwemproxyRedisInstance"
 	// DetectTendisplus detect tendisplus and predixy
