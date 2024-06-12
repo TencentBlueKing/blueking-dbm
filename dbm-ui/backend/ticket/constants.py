@@ -313,7 +313,7 @@ class TicketType(str, StructuredEnum):
     REDIS_DTS_ONLINE_SWITCH = TicketEnumField("REDIS_DTS_ONLINE_SWITCH", _("Redis DTS在线切换"))
     REDIS_TENDIS_META_MITRATE = TicketEnumField("REDIS_TENDIS_META_MITRATE", _("Redis 数据迁移"), register_iam=False)
     REDIS_SLOTS_MIGRATE = TicketEnumField("REDIS_SLOTS_MIGRATE", _("Redis slots 迁移"), register_iam=False)
-    REDIS_CLUSTER_VERSION_UPDATE_ONLINE = TicketEnumField("REDIS_CLUSTER_VERSION_UPDATE_ONLINE", _("Redis 集群版本升级"))  # noqa
+    REDIS_VERSION_UPDATE_ONLINE = TicketEnumField("REDIS_VERSION_UPDATE_ONLINE", _("Redis 集群版本升级"))  # noqa
     REDIS_CLUSTER_REINSTALL_DBMON = TicketEnumField("REDIS_CLUSTER_REINSTALL_DBMON", _("Redis 集群重装DBMON"))  # noqa
     REDIS_PREDIXY_CONFIG_SERVERS_REWRITE = TicketEnumField("REDIS_PREDIXY_CONFIG_SERVERS_REWRITE", _("predixy配置重写"), register_iam=False)  # noqa
     REDIS_CLUSTER_PROXYS_UPGRADE = TicketEnumField("REDIS_CLUSTER_PROXYS_UPGRADE", _("Redis 集群proxys版本升级")) # noqa

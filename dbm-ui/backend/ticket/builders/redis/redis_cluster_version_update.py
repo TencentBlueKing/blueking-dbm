@@ -38,7 +38,7 @@ class RedisVersionUpdateFlowParamBuilder(builders.FlowParamBuilder):
         pass
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_VERSION_UPDATE_ONLINE)
+@builders.BuilderFactory.register(TicketType.REDIS_VERSION_UPDATE_ONLINE)
 class RedisVersionUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisVersionUpdateDetailSerializer
     inner_flow_builder = RedisVersionUpdateFlowParamBuilder

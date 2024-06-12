@@ -217,6 +217,7 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
             )
             return data
         else:
+            headers = {"bk_username": user}
             params = {
                 "app": app,
                 "app_id": app_detail["appid"],
@@ -239,7 +240,7 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
             if module_name_list:
                 params["module_name_list"] = module_name_list
 
-            data = GcsApi.cloud_privileges_asyn_bydbname(params)
+            data = GcsApi.cloud_privileges_asyn_bydbname(params, headers=headers)
             task_id = str(data["job_id"])
             return {"task_id": task_id, "platform": "gcs", "job_id": task_id}
 
