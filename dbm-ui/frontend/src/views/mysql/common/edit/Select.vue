@@ -16,12 +16,15 @@
     ref="rootRef"
     class="table-edit-select"
     :class="{
+      'table-edit-select-plain': isPlain,
       'is-focused': isShowPop,
       'is-error': Boolean(errorMessage),
       'is-disabled': disabled,
       'is-seleced': !!localValue,
     }">
-    <div class="select-result-text">
+    <div
+      v-overflow-tips
+      class="select-result-text">
       <span>{{ renderText }}</span>
     </div>
     <DbIcon
@@ -62,20 +65,30 @@
         </div>
         <div class="options-list">
           <div
-            v-for="item in renderList"
+            v-for="(item, index) in renderList"
             :key="item.id"
             class="option-item"
             :class="{
               active: item.id === localValue,
+              disabled: !!item.disabled,
             }"
             @click="handleSelect(item)">
-            <span>{{ item.name }}</span>
+            <slot
+              v-if="slots.default"
+              :index="index"
+              :item="item" />
+            <span v-else>{{ item.name }}</span>
           </div>
         </div>
         <div
           v-if="renderList.length < 1"
           style="color: #63656e; text-align: center">
           数据为空
+        </div>
+        <div
+          v-if="slots.footer"
+          class="option-footer">
+          <slot name="footer" />
         </div>
       </div>
     </div>
@@ -84,7 +97,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+  import { computed, onBeforeUnmount, onMounted, ref, useSlots, watch } from 'vue';
 
   import { useDebouncedRef } from '@hooks';
 
@@ -94,9 +107,10 @@
 
   type IKey = string | number;
 
-  interface IListItem {
+  export interface IListItem {
     id: IKey;
     name: string;
+    disabled?: boolean;
   }
 
   interface Props {
@@ -106,6 +120,8 @@
     rules?: Rules;
     disabled?: boolean;
     clearable?: boolean;
+    popWidth?: number;
+    isPlain?: boolean;
   }
   interface Emits {
     (e: 'update:modelValue', value: IKey): void;
@@ -118,11 +134,13 @@
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: '',
-    placeholder: '请输入',
+    placeholder: '请选择',
     textarea: false,
     rules: () => [],
     disabled: false,
     clearable: false,
+    popWidth: 0,
+    isPlain: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -136,6 +154,7 @@
   const isShowPop = ref(false);
   const isError = ref(false);
 
+  const slots = useSlots();
   const searchKey = useDebouncedRef('');
 
   const renderList = computed(() =>
@@ -166,6 +185,9 @@
 
   // 选择
   const handleSelect = (item: IListItem) => {
+    if (item.disabled) {
+      return;
+    }
     localValue.value = item.id;
     tippyIns.hide();
 
@@ -186,11 +208,15 @@
   };
 
   onMounted(() => {
+    const theme = ['table-edit-select', 'light'];
+    if (slots.footer) {
+      theme.push('table-edit-select-footer');
+    }
     tippyIns = tippy(rootRef.value as SingleTarget, {
       content: popRef.value,
       placement: 'bottom',
       appendTo: () => document.body,
-      theme: 'table-edit-select light',
+      theme: theme.join(' '),
       maxWidth: 'none',
       trigger: 'click',
       interactive: true,
@@ -199,7 +225,7 @@
       onShow: () => {
         const { width } = rootRef.value.getBoundingClientRect();
         Object.assign(popRef.value.style, {
-          width: `${width}px`,
+          width: `${props.popWidth ? Math.max(props.popWidth, width) : width}px`,
         });
         isShowPop.value = true;
         isError.value = false;
@@ -230,6 +256,7 @@
   .table-edit-select {
     position: relative;
     display: flex;
+    width: 100%;
     height: 42px;
     overflow: hidden;
     color: #63656e;
@@ -338,6 +365,34 @@
     }
   }
 
+  .table-edit-select-plain {
+    &.table-edit-select {
+      height: 22px;
+      border-bottom: 1px solid #c4c6cc;
+
+      &:hover {
+        background-color: #fafbfd;
+        border: 1px solid transparent;
+        border-bottom: 1px solid #a3c5fd;
+      }
+
+      &.is-focused {
+        border: 1px solid transparent;
+        border-bottom: 1px solid #3a84ff;
+      }
+
+      .select-result-text {
+        margin-left: 2px;
+        line-height: 22px;
+      }
+
+      .select-placeholder {
+        top: 0;
+        left: 2px;
+      }
+    }
+  }
+
   .tippy-box[data-theme~='table-edit-select'] {
     .tippy-content {
       padding: 8px 0;
@@ -396,6 +451,18 @@
         word-break: keep-all;
         white-space: nowrap;
       }
+
+      .option-footer {
+        height: 40px;
+        background-color: #fafbfd;
+        border-top: 1px solid #dcdee5;
+      }
+    }
+  }
+
+  .tippy-box[data-theme~='table-edit-select-footer'] {
+    .tippy-content {
+      padding: 8px 0 0;
     }
   }
 </style>
