@@ -111,6 +111,7 @@ http {
         listen {{dbm_port}};
         server_name {{nginx_internal_domain}};
         resolver ${DNS_LIST[@]};
+        client_max_body_size 500M;
         proxy_connect;
         proxy_connect_allow 443 563;
 
