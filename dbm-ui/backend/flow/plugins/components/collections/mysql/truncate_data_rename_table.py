@@ -35,54 +35,35 @@ class TruncateDataRenameTableService(BaseService):
 
         for db in trans_data.targets:
             new_db_name = old_new_map[db]
-            # 每次一张表, 结合 processed 状态
-            # 可以让这个步骤反复执行
-            for table_name in trans_data.targets[db]:
-                processed = trans_data.targets[db][table_name]
-                if processed:
-                    self.log_info("{} {} had been processed".format(db, table_name))
-                    continue
+            rename_sqls = []
 
-                rename_db_res = DRSApi.rpc(
-                    {
-                        "addresses": ["{}{}{}".format(ip, IP_PORT_DIVIDER, port)],
-                        "cmds": [
-                            "rename table `{}`.`{}` to `{}`.`{}`".format(db, table_name, new_db_name, table_name)
-                        ],
-                        "force": False,
-                        "bk_cloud_id": kwargs["bk_cloud_id"],
-                    }
-                )
-                self.log_info(
-                    "[{}] rename table {}.{} to {}.{} on {}{}{} response: {}".format(
+            for table_name in trans_data.targets[db]:
+                sql = "RENAME TABLE `{}`.`{}` TO `{}`.`{}`".format(db, table_name, new_db_name, table_name)
+                rename_sqls.append(sql)
+                trans_data.targets[db][table_name] = True  # 没啥用了
+
+            self.log_info("[{}] rename {} table sqls: {}".format(kwargs["node_name"], db, rename_sqls))
+
+            rename_db_res = DRSApi.rpc(
+                {
+                    "addresses": ["{}{}{}".format(ip, IP_PORT_DIVIDER, port)],
+                    "cmds": rename_sqls,
+                    "force": True,
+                    "bk_cloud_id": kwargs["bk_cloud_id"],
+                }
+            )
+            if rename_db_res[0]["error_msg"]:
+                self.log_error(
+                    "[{}] rename table on {}{}{} failed: {}".format(
                         kwargs["node_name"],
-                        db,
-                        table_name,
-                        new_db_name,
-                        table_name,
                         ip,
                         IP_PORT_DIVIDER,
                         port,
-                        rename_db_res,
+                        rename_db_res[0]["error_msg"],
                     )
                 )
-                if rename_db_res[0]["error_msg"]:
-                    self.log_error(
-                        "[{}] rename table {}.{} to {}.{} on {}{}{} failed: {}".format(
-                            kwargs["node_name"],
-                            db,
-                            table_name,
-                            new_db_name,
-                            table_name,
-                            ip,
-                            IP_PORT_DIVIDER,
-                            port,
-                            rename_db_res[0]["error_msg"],
-                        )
-                    )
-                    return False
-
-                trans_data.targets[db][table_name] = True
+                return False
+            self.log_info("[{}] rename {} tables finish".format(kwargs["node_name"], db))
 
         self.log_info(_("[{}] 备份清档表完成").format(kwargs["node_name"]))
         data.outputs["trans_data"] = trans_data
