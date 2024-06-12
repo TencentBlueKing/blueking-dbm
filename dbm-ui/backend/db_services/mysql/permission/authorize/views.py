@@ -30,7 +30,7 @@ from backend.db_services.mysql.permission.authorize.serializers import (
     IntegrationGrantSerializer,
 )
 from backend.db_services.mysql.permission.db_account.handlers import MySQLAccountHandler
-from backend.exceptions import ApiResultError
+from backend.exceptions import ApiError, ApiResultError
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 logger = logging.getLogger("root")
@@ -109,14 +109,15 @@ class DBAuthorizeViewSet(BaseDBAuthorizeViewSet):
                 db_name,
                 client_hosts,
                 db_hosts,
+                bk_biz_id=bk_biz_id,
                 privileges=data["privileges"],
                 client_version=client_version,
                 password=password,
                 operator=request.user.username,
             )
-        except ApiResultError as err:
+        except ApiError as err:
             msg = f"authorize_apply[user:{username}, db_name:{db_name}, client_hosts:{client_hosts}] error, {err}"
             logger.error(msg)
-            return JsonResponse({"msg": "", "job_id": -1, "code": 1})
+            return JsonResponse({"msg": msg, "job_id": -1, "code": 1})
         # 兼容老接口
         return JsonResponse({"msg": "", "job_id": grant_result["job_id"], "code": 0})

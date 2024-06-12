@@ -157,13 +157,14 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
             if not app_detail:
                 raise DBPermissionBaseException(_("无法查询app: {}相关信息，请检查app输入是否合法。").format(app))
             app_detail = app_detail[0]
+            bk_biz_id = app_detail["ccId"]
 
         # 域名存在，则走dbm的授权方式，否则走gcs的授权方式
         domain, __ = parse_domain(target_instance)
         cluster = Cluster.objects.filter(
             clusterentry__entry=domain, clusterentry__cluster_entry_type=ClusterEntryType.DNS.value
         )
-        bk_biz_id = int(bk_biz_id or app_detail["ccId"])
+        bk_biz_id = int(bk_biz_id)
         if cluster.exists():
             if not bk_biz_id:
                 raise DBPermissionBaseException(_("授权集群: [{}]。业务信息bk_biz_id为空请检查。").format(target_instance))
