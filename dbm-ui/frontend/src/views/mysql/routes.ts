@@ -173,6 +173,14 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/mysql/data-migrate/Index.vue'),
   },
+  {
+    name: 'MySQLVersionUpgrade',
+    path: 'version-upgrade/:page?',
+    meta: {
+      navName: t('版本升级'),
+    },
+    component: () => import('@views/mysql/version-upgrade/Index.vue'),
+  },
 ];
 
 const singleRoutes: RouteRecordRaw[] = [
@@ -227,7 +235,7 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
   },
 ];
 
-const dumperDataSubscription =  {
+const dumperDataSubscription = {
   name: 'DumperDataSubscription',
   path: 'dumper-data-subscribe/:dumperId(\\d+)?',
   meta: {

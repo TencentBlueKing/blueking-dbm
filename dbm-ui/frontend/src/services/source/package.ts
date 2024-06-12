@@ -25,9 +25,9 @@ export function getPackages(
   params: {
     pkg_type: string;
     db_type: string;
-    keyword: string;
-    limit: number;
-    offset: number;
+    keyword?: string;
+    limit?: number;
+    offset?: number;
   },
   payload = {} as IRequestPayload,
 ) {

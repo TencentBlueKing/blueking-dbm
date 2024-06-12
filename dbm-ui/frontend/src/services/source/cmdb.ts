@@ -89,6 +89,27 @@ export function getModules(params: { bk_biz_id: number; cluster_type: string }) 
       bk_biz_id: number;
       db_module_id: number;
       name: string;
+      db_module_info: {
+        version: string;
+        name: string;
+        description: string;
+        updated_at: string;
+        updated_by: string;
+        conf_items: {
+          conf_name: string;
+          conf_value: string;
+          description: string;
+          flag_disable: number;
+          flag_locked: number;
+          stage: number;
+          level_name: string;
+          level_value: string;
+          op_type: string;
+          value_allowed: string;
+          need_restart: number;
+          value_type_sub: string;
+        }[];
+      };
       permission: {
         dbconfig_view: boolean;
       };

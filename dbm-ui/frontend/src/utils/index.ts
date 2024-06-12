@@ -16,6 +16,7 @@ export * from './calcTextWidth';
 export * from './charRelate';
 export * from './checkDbConsole';
 export * from './classes';
+export * from './compareVersions';
 export * from './deepMerge';
 export * from './dom';
 export * from './downloadFile';
