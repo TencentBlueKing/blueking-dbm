@@ -18,8 +18,12 @@ from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 class TendbOpenAreaConfigListFilter(filters.FilterSet):
     config_name = filters.CharFilter(field_name="config_name", lookup_expr="icontains", label=_("模板名称"))
     bk_biz_id = filters.NumberFilter(field_name="bk_biz_id", label=_("业务ID"))
-    cluster_type = filters.CharFilter(field_name="cluster_type", lookup_expr="exact", label=_("集群名称"))
+    cluster_type = filters.CharFilter(field_name="cluster_type", method="filter_cluster_type", label=_("集群类型"))
+    ticket_types = filters.CharFilter(field_name="ticket__ticket_type", method="filter_ticket_types", label=_("单据类型"))
 
     class Meta:
         model = TendbOpenAreaConfig
         fields = ["config_name", "bk_biz_id"]
+
+    def filter_cluster_type(self, queryset, name, value):
+        return queryset.filter(cluster_type__in=value.split(","))
