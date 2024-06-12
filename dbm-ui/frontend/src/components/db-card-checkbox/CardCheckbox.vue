@@ -13,6 +13,10 @@
 
 <template>
   <div
+    v-bk-tooltips="{
+      disabled: !disabled,
+      content: disabledTooltips,
+    }"
     class="card-checkbox"
     :class="statusClass"
     @click="handleChange">
@@ -38,6 +42,7 @@
     falseValue?: boolean | string;
     modelValue?: boolean | string;
     checked?: boolean;
+    disabledTooltips?: string;
   }
 
   interface Emits {
@@ -53,6 +58,7 @@
     falseValue: false,
     checked: false,
     modelValue: false,
+    disabledTooltips: '',
   });
 
   const emits = defineEmits<Emits>();
