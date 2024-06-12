@@ -62,10 +62,6 @@ func initConfig(confFile string, v interface{}) error {
 		executableDir := filepath.Dir(executable)
 		defaultConfigDir := filepath.Join(executableDir, "./")
 		viper.AddConfigPath(defaultConfigDir)
-
-		// // default: /home/user/xxx dir
-		// home, _ := homedir.Dir()
-		// viper.AddConfigPath(home)
 	}
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("read config failed: %v", err)
