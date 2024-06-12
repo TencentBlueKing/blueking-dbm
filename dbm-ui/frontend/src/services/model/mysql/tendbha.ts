@@ -28,6 +28,7 @@ interface TendbhaInstance {
   port: number;
   spec_config: Record<'id', number>;
   status: string;
+  version: string;
 }
 
 export default class Tendbha {
