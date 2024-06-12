@@ -89,6 +89,9 @@ func CheckMongoVersion(binDir string, mongoName string) (string, error) {
 		filepath.Join(binDir, "mongodb", "bin", mongoName))
 	getVersion, err := util.RunBashCmd(cmd, "", nil, 10*time.Second)
 	getVersion = strings.Replace(getVersion, "\n", "", -1)
+	if strings.Contains(getVersion, "-") {
+		getVersion = strings.Split(getVersion, "-")[0]
+	}
 	if err != nil {
 		return "", err
 	}
@@ -629,4 +632,22 @@ func SetProfilingLevel(mongoBin string, ip string, port int, username string, pa
 		return err
 	}
 	return nil
+}
+
+// GetFCV 获取FCV
+func GetFCV(mongoBin string, ip string, port int, username string, password string) (string, error) {
+	cmd := fmt.Sprintf(
+		"%s  -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )\" admin",
+		mongoBin, username, password, ip, port)
+	fcvInfo, err := util.RunBashCmd(
+		cmd,
+		"", nil,
+		10*time.Second)
+	if err != nil {
+		return "", err
+	}
+	fcvInfo = strings.TrimSpace(fcvInfo)
+	fcv := GetFcv{}
+	_ = json.Unmarshal([]byte(fcvInfo), &fcv)
+	return fcv.FeatureCompatibilityVersion, nil
 }
