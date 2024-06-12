@@ -19,7 +19,7 @@
         action-id="mysql_apply"
         theme="primary"
         @click="handleApply">
-        {{ t('实例申请') }}
+        {{ t('申请实例') }}
       </AuthButton>
       <span
         v-bk-tooltips="{

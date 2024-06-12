@@ -14,6 +14,7 @@ import { utcDisplayTime } from '@utils';
 
 export default class Opeanarea {
   bk_biz_id: number;
+  cluster_type: string;
   config_name: string;
   config_rules: {
     data_tblist: string[];
@@ -46,6 +47,7 @@ export default class Opeanarea {
 
   constructor(payload = {} as Opeanarea) {
     this.bk_biz_id = payload.bk_biz_id;
+    this.cluster_type = payload.cluster_type;
     this.config_name = payload.config_name;
     this.config_rules = payload.config_rules || [];
     this.create_at = payload.create_at;

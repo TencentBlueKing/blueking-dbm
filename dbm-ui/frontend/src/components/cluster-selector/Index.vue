@@ -93,6 +93,7 @@
             :custom-colums="activePanelObj.customColums"
             :disabled-row-config="activePanelObj.disabledRowConfig"
             :get-resource-list="activePanelObj.getResourceList"
+            :multiple="activePanelObj.multiple"
             :search-placeholder="activePanelObj.searchPlaceholder"
             :search-select-list="activePanelObj.searchSelectList"
             :selected="selectedArr"
@@ -256,6 +257,7 @@
           tip: t('集群已禁用'),
         },
       ],
+      multiple: true,
       getResourceList: getTendbhaList,
       tableContent: TendbhaTable,
       resultContent: ResultPreview,
@@ -263,6 +265,12 @@
     [ClusterTypes.MONGO_REPLICA_SET]: {
       id: ClusterTypes.MONGO_REPLICA_SET,
       name: t('集群选择'),
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
       multiple: true,
       getResourceList: getMongoList,
       tableContent: MongoTable,
@@ -271,6 +279,12 @@
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       id: ClusterTypes.MONGO_SHARED_CLUSTER,
       name: t('集群选择'),
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
       multiple: true,
       getResourceList: getMongoList,
       tableContent: MongoTable,
@@ -309,6 +323,7 @@
           tip: t('集群已禁用'),
         },
       ],
+      multiple: true,
       getResourceList: getTendbsingleList,
       tableContent: TendbSingleTable,
       resultContent: ResultPreview,
