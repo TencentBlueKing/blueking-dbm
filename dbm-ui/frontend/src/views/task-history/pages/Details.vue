@@ -97,6 +97,49 @@
             <div
               class="flow-tools"
               @click.stop>
+              <BkPopover
+                v-if="flowState.details.flow_info?.status === 'FAILED'"
+                ext-cls="task-history-fail-nodes"
+                :height="245"
+                placement="bottom"
+                theme="light"
+                :width="300">
+                <template #content>
+                  <div class="fail-title">{{ t('失败节点（n）', { n: failNodesCount }) }}</div>
+                  <BkTree
+                    children="children"
+                    class="fail-node-tree-main"
+                    :data="failNodesTreeData"
+                    label="name"
+                    selectable
+                    :show-node-type-icon="false"
+                    @node-click="handleFailNodeClick">
+                    <template #node="item">
+                      <div class="custom-tree-node">
+                        <div class="file-icon">
+                          <DbIcon type="file" />
+                        </div>
+                        <span
+                          v-overflow-tips
+                          class="node-name text-overflow">
+                          {{ item.name }}
+                        </span>
+                      </div>
+                    </template>
+                  </BkTree>
+                </template>
+                <span
+                  v-bk-tooltips="t('失败节点列表')"
+                  class="task-history-fail-num-tip">
+                  <I18nT
+                    keypath="失败n"
+                    tag="span">
+                    <span class="number-display">
+                      {{ failNodesCount }}
+                    </span>
+                  </I18nT>
+                </span>
+              </BkPopover>
               <i
                 v-bk-tooltips="t('放大')"
                 class="flow-tools-icon db-icon-plus-circle"
@@ -220,7 +263,52 @@
           class="mission-detail-status-info">
           <span class="mr-8">{{ t('状态') }}: </span>
           <span>
-            <BkTag :theme="getStatusTheme(true)">{{ statusText }}</BkTag>
+            <BkPopover
+              v-if="flowState.details.flow_info?.status === 'FAILED'"
+              ext-cls="task-history-fail-nodes"
+              :height="245"
+              placement="bottom"
+              theme="light"
+              :width="300">
+              <template #content>
+                <div class="fail-title">{{ t('失败节点（n）', { n: failNodesCount }) }}</div>
+                <BkTree
+                  children="children"
+                  class="fail-node-tree-main"
+                  :data="failNodesTreeData"
+                  label="name"
+                  selectable
+                  :show-node-type-icon="false"
+                  @node-click="handleFailNodeClick">
+                  <template #node="item">
+                    <div class="custom-tree-node">
+                      <div class="file-icon">
+                        <DbIcon type="file" />
+                      </div>
+                      <span
+                        v-overflow-tips
+                        class="node-name text-overflow">
+                        {{ item.name }}
+                      </span>
+                    </div>
+                  </template>
+                </BkTree>
+              </template>
+              <span class="task-history-fail-num-tip">
+                <I18nT
+                  keypath="执行失败n"
+                  tag="span">
+                  <span class="number-display">
+                    {{ failNodesCount }}
+                  </span>
+                </I18nT>
+              </span>
+            </BkPopover>
+            <BkTag
+              v-else
+              :theme="getStatusTheme(true)"
+              >{{ statusText }}</BkTag
+            >
           </span>
         </div>
         <div class="mission-detail-status-info">
@@ -228,7 +316,7 @@
           <CostTimer
             :is-timing="flowState.details?.flow_info?.status === 'RUNNING'"
             :start-time="utcTimeToSeconds(flowState.details?.flow_info?.created_at)"
-            :value="(flowState.details?.flow_info?.cost_time || 0)" />
+            :value="flowState.details?.flow_info?.cost_time || 0" />
         </div>
         <BkPopConfirm
           v-if="isShowRevokePipelineButton"
@@ -306,6 +394,9 @@
 
   import { TicketTypes, type TicketTypesStrings } from '@/common/const';
 
+  type TaskflowDetails = ServiceReturnType<typeof getTaskflowDetails>;
+  type FailTaskflowList = TaskflowDetails['activities'][string][];
+
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
@@ -329,10 +420,12 @@
   const tippyInstances = ref<Instance[]>([]);
   const skippInstances = ref<Instance[]>([]);
   const forceFailInstances = ref<Instance[]>([]);
+  const failNodesTreeData = ref<FailTaskflowList>([]);
+  const failNodesCount = ref(0);
 
   const flowState = reactive({
     flowSelectorId: generateId('mission_flow_'),
-    details: {} as ServiceReturnType<typeof getTaskflowDetails>,
+    details: {} as TaskflowDetails,
     flowData: {
       locations: [] as GraphNode[],
       lines: [] as GraphLine[],
@@ -387,6 +480,30 @@
     isShow: false,
     node: {} as GraphNode,
   });
+
+  const generateFailNodesTree = (activities: TaskflowDetails['activities'] ) => {
+    const flowList: FailTaskflowList = []
+    Object.values(activities).forEach(item  => {
+      if (item.status === 'FAILED') {
+        flowList.push(item);
+        if (item.pipeline) {
+          Object.assign(item, {
+            children: generateFailNodesTree(item.pipeline.activities),
+          });
+        } else {
+          failNodesCount.value = failNodesCount.value + 1;
+        }
+      }
+    })
+    return flowList;
+  }
+
+  watch(() => flowState.details, () => {
+    failNodesCount.value = 0;
+    if (flowState.details.activities) {
+      failNodesTreeData.value = generateFailNodesTree(flowState.details.activities);
+    }
+  })
 
   const rootId = computed(() => route.params.root_id as string);
 
@@ -511,6 +628,28 @@
   }, {
     immediate: true,
   });
+
+  // 定位失败节点
+  const handleFailNodeClick = (node: GraphNode) => {
+    // eslint-disable-next-line no-underscore-dangle
+    const { scale } = flowState.instance.flowInstance._diagramInstance._canvasTransform;
+    const graphNode = flowState.instance.graphData.locations.find((item: GraphNode) => item.data.id === node.id);
+    // 展开父节点
+    if (node.children && node.children.length > 0) {
+      if (!expandNodes.includes(node.id)) {
+        expandNodes.push(node.id);
+        renderNodes();
+      }
+    } else {
+      handleShowLog(graphNode);
+    }
+
+    setTimeout(() => {
+      const x = ((flowRef.value!.clientWidth / 2) - graphNode.x) * scale;
+      const y = ((flowRef.value!.clientHeight / 2) - graphNode.y - 128) * scale;
+      flowState.instance?.translate(x, y);
+    })
+  };
 
   const getStatusTheme = (isTag = false) => {
     const value = baseInfo.value.status;
@@ -690,10 +829,6 @@
     logState.isShow = true;
     logState.node = node;
   };
-  onUnmounted(() => {
-    pause();
-    flowState.instance?.destroy();
-  });
 
   /**
    * 拓扑操作
@@ -924,6 +1059,11 @@
         return;
       }
     };
+  });
+
+  onUnmounted(() => {
+    pause();
+    flowState.instance?.destroy();
   });
 
   defineExpose({
@@ -1329,6 +1469,75 @@
       .db-icon-refresh {
         margin-right: 4px;
         font-size: 20px;
+      }
+    }
+  }
+
+  .task-history-fail-num-tip {
+    display: inline-block;
+    height: 22px;
+    line-height: 22px;
+    padding: 0 8px;
+    background: #ffeeee;
+    border-radius: 11px;
+    font-size: 12px;
+    color: #ea3536;
+
+    .number-display {
+      height: 16px;
+      background: #ea3636;
+      border-radius: 8px;
+      color: #ffffff;
+      line-height: 20px;
+      margin-left: 5px;
+      padding: 0 5px;
+    }
+  }
+
+  .task-history-fail-nodes {
+    padding: 12px 0 !important;
+    z-index: 999 !important;
+
+    .fail-title {
+      font-weight: 700;
+      font-size: 12px;
+      color: #313238;
+      margin: 0 0 12px 12px;
+    }
+
+    .fail-node-tree-main {
+      height: calc(100% - 25px) !important;
+
+      .bk-node-row {
+        padding: 0 12px;
+
+        &.is-selected {
+          .bk-node-prefix {
+            color: #3a84ff;
+          }
+        }
+      }
+
+      .custom-tree-node {
+        width: 100%;
+        display: flex;
+        align-items: center;
+
+        .file-icon {
+          height: 16px;
+          width: 16px;
+          background: #ffdddd;
+          border-radius: 2px;
+          color: #ea3636;
+          margin-right: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          .db-icon-file {
+            font-size: 10px;
+          }
+        }
       }
     }
   }
