@@ -191,6 +191,17 @@ class RedisClusterSpecFilter(RedisSpecFilter):
     # 支持简单阔缩容倍数（非DTS方式/Slot迁移扩容方式）
     SCALE_MULITPLE = 4
 
+    def calc_machine_pair(self):
+        """计算每种规格所需的机器组数和集群总容量: 目标容量 / 规格容量"""
+        for spec in self.specs:
+            spec["capacity"] = spec["mem"]["min"]
+            # 至少是三组机器
+            spec["machine_pair"] = max(math.ceil(self.capacity / spec["capacity"]), self.MIN_MACHINE_PAIR)
+            # 集群容量：机器组数 * 规格容量；集群qps：机器组数 * 规格qps的min
+            spec["cluster_capacity"] = spec["machine_pair"] * spec["capacity"]
+            if self.qps:
+                spec["cluster_qps"] = spec["machine_pair"] * spec["qps"]["min"]
+
     def calc_cluster_shard_num(self):
         self.future_capacity = int(self.future_capacity)
         self.capacity = int(self.capacity)
@@ -224,8 +235,6 @@ class RedisClusterSpecFilter(RedisSpecFilter):
                 avaiable_specs.append(self.specs[spec_cnt - 2])
 
         for spec_new in avaiable_specs:
-            # 至少是三组机器
-            spec_new["machine_pair"] = max(math.ceil(self.capacity / spec["capacity"]), self.MIN_MACHINE_PAIR)
 
             # 一定要保证集群总分片数是机器组数的整数倍，
             cluster_shard_num = math.ceil(max_capcity / instance_cap)
