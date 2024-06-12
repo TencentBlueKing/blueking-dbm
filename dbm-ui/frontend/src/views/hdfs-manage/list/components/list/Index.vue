@@ -77,6 +77,7 @@
     </DbSideslider>
     <BkDialog
       v-model:is-show="isShowPassword"
+      render-directive="if"
       :title="t('获取访问方式')"
       :width="500">
       <RenderPassword
