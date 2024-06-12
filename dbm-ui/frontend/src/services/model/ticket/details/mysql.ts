@@ -508,3 +508,61 @@ export interface MySQLExportData {
   dump_data: boolean; // 是否导出表数据
   dump_schema: boolean; // 是否导出表结构
 }
+
+/**
+ * MySQL Proxy 升级
+ */
+export interface MySQLProxyUpgradeDetails {
+  clusters: DetailClusters;
+  infos: {
+    pkg_id: string;
+    cluster_ids: number[];
+    display_info: {
+      current_version: string;
+    };
+  }[];
+}
+
+/**
+ * MySQL 原地升级
+ */
+export interface MySQLLocalUpgradeDetails {
+  clusters: DetailClusters;
+  infos: {
+    pkg_id: number;
+    cluster_ids: number[];
+    display_info: {
+      cluster_type: string;
+      current_version: string;
+      current_package: string;
+      target_package: string;
+      charset: string;
+      current_module_name: string;
+    };
+  }[];
+}
+
+/**
+ * MySQL 迁移升级
+ */
+export interface MySQLMigrateUpgradeDetails {
+  clusters: DetailClusters;
+  ip_source: string;
+  backup_source: string;
+  infos: {
+    cluster_ids: number[];
+    new_db_module_id: number;
+    pkg_id: string;
+    new_master: MysqlIpItem;
+    new_slave: MysqlIpItem;
+    display_info: {
+      current_version: string;
+      target_version: string;
+      current_package: string;
+      target_package: string;
+      charset: string;
+      current_module_name: string;
+      target_module_name: string;
+    };
+  }[];
+}
