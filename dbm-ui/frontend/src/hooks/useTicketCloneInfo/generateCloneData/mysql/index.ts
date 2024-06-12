@@ -21,3 +21,6 @@ export * from './restoreSlave';
 export * from './rollback';
 export * from './singleApply';
 export * from './slaveAdd';
+export * from './versionLocalUpgrade';
+export * from './versionMigrateUpgrade';
+export * from './versionProxyUpgrade';
