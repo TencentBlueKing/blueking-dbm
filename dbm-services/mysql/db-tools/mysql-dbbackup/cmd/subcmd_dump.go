@@ -10,6 +10,7 @@ package cmd
 
 import (
 	"fmt"
+	"math"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -102,6 +103,13 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 			errList = append(errList, errors.WithMessage(err, f))
 			logger.Log.Error("Create Dbbackup: fail to parse ", f)
 			continue
+		}
+		// 如果本机是 master 且设置了 master 限速，则覆盖默认限速
+		if cnf.Public.IOLimitMasterFactor > 0.0001 && cnf.Public.MysqlRole == cst.RoleMaster {
+			cnf.Public.IOLimitMBPerSec = int(math.Max(10,
+				cnf.Public.IOLimitMasterFactor*float64(cnf.Public.IOLimitMBPerSec)))
+			cnf.PhysicalBackup.Throttle = int(math.Max(1,
+				cnf.Public.IOLimitMasterFactor*float64(cnf.PhysicalBackup.Throttle)))
 		}
 
 		err := backupData(&cnf)
