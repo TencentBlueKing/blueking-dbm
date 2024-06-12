@@ -123,6 +123,9 @@
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: 'spiderMasterSlaveClone', // spider 迁移主从
     [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: 'spiderSlaveRebuild', // spider 重建从库-原地重建
     [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: 'spiderSlaveRebuild', // spider 重建从库-新机重建
+    [TicketTypes.MYSQL_PROXY_UPGRADE]: 'MySQLVersionUpgrade', // MySQL Proxy 升级
+    [TicketTypes.MYSQL_LOCAL_UPGRADE]: 'MySQLVersionUpgrade', // MySQL 原地升级
+    [TicketTypes.MYSQL_MIGRATE_UPGRADE]: 'MySQLVersionUpgrade', // MySQL 迁移升级
     [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区
   };
 

@@ -26,6 +26,9 @@ import {
   generateMysqlRollbackCloneData,
   generateMysqlSingleApplyCloneData,
   generateMysqlSlaveAddCloneData,
+  generateMysqlVersionLocalUpgradeCloneData,
+  generateMysqlVersionMigrateUpgradeCloneData,
+  generateMysqlVersionProxyUpgradeCloneData,
 } from './mysql';
 import {
   generateRedisApplyCloneData,
@@ -131,6 +134,9 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: generateSpiderSlaveRebuildNewCloneData, // spider 重建从库-新机重建
   [TicketTypes.MYSQL_OPEN_AREA]: generateMysqlOpenAreaCloneData, // Mysql 开区
   [TicketTypes.MYSQL_DATA_MIGRATE]: generateMysqlDataMigrateCloneData, // Mysql DB克隆
+  [TicketTypes.MYSQL_PROXY_UPGRADE]: generateMysqlVersionProxyUpgradeCloneData, // MySQL Proxy 升级
+  [TicketTypes.MYSQL_LOCAL_UPGRADE]: generateMysqlVersionLocalUpgradeCloneData, // MySQL 原地升级
+  [TicketTypes.MYSQL_MIGRATE_UPGRADE]: generateMysqlVersionMigrateUpgradeCloneData, // MySQL 迁移升级
   [TicketTypes.TENDBCLUSTER_OPEN_AREA]: generateMysqlOpenAreaCloneData, // Spider 开区
 };
 
