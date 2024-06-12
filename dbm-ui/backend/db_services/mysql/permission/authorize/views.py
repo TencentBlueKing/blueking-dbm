@@ -10,9 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from django.http import JsonResponse
 from django.utils.translation import ugettext as _
 from rest_framework.decorators import action
-from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import DBPrivManagerApi
@@ -102,15 +102,21 @@ class DBAuthorizeViewSet(BaseDBAuthorizeViewSet):
             logger.error(f"add_account_rule[user:{username}, db_name:{db_name}] error, {err}")
 
         # 3. 进行授权
-        MySQLAuthorizeHandler(bk_biz_id, request.user.username).authorize_apply(
-            request,
-            username,
-            db_name,
-            client_hosts,
-            db_hosts,
-            privileges=data["privileges"],
-            client_version=client_version,
-            password=password,
-            operator=request.user.username,
-        )
-        return Response({})
+        try:
+            grant_result = MySQLAuthorizeHandler(bk_biz_id, request.user.username).authorize_apply(
+                request,
+                username,
+                db_name,
+                client_hosts,
+                db_hosts,
+                privileges=data["privileges"],
+                client_version=client_version,
+                password=password,
+                operator=request.user.username,
+            )
+        except ApiResultError as err:
+            msg = f"authorize_apply[user:{username}, db_name:{db_name}, client_hosts:{client_hosts}] error, {err}"
+            logger.error(msg)
+            return JsonResponse({"msg": "", "job_id": -1, "code": 1})
+        # 兼容老接口
+        return JsonResponse({"msg": "", "job_id": grant_result["job_id"], "code": 0})
