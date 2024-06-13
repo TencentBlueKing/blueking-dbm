@@ -30,6 +30,7 @@ import (
 	"dbm-services/mysql/db-simulation/model"
 
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -131,8 +132,11 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 			Labels:    k.BaseInfo.Lables,
 		},
 		Spec: v1.PodSpec{
-			NodeSelector: config.GAppConfig.SimulationNodeLables,
-			Tolerations:  k.getToleration(),
+			NodeSelector: lo.SliceToMap(config.GAppConfig.SimulationNodeLables, func(item config.LabelItem) (k, v string) {
+				return item.Key,
+					item.Value
+			}),
+			Tolerations: k.getToleration(),
 			Containers: []v1.Container{
 				{
 					Name: "backend",
@@ -280,9 +284,9 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 // getToleration special  node
 func (k *DbPodSets) getToleration() []v1.Toleration {
 	ts := []v1.Toleration{}
-	for key, _ := range config.GAppConfig.SimulationNodeLables {
+	for _, item := range config.GAppConfig.SimulationNodeLables {
 		ts = append(ts, v1.Toleration{
-			Key:      key,
+			Key:      item.Key,
 			Operator: v1.TolerationOpExists,
 		})
 	}
@@ -334,8 +338,11 @@ func (k *DbPodSets) CreateMySQLPod() (err error) {
 			Labels:    k.BaseInfo.Lables,
 		},
 		Spec: v1.PodSpec{
-			NodeSelector: config.GAppConfig.SimulationNodeLables,
-			Tolerations:  k.getToleration(),
+			NodeSelector: lo.SliceToMap(config.GAppConfig.SimulationNodeLables, func(item config.LabelItem) (k, v string) {
+				return item.Key,
+					item.Value
+			}),
+			Tolerations: k.getToleration(),
 			Containers: []v1.Container{{
 				Resources: k.getResourceLimit(),
 				Name:      app.MySQL,
