@@ -35,7 +35,7 @@ export const create = function (params: {
     target_db_pattern: string;
   }[];
   source_cluster_id: number;
-  cluster_type?: 'tendbha' | 'tendbcluster';
+  cluster_type?: string;
 }) {
   return http.post(`${path}/${currentBizId}/openarea/`, params);
 };
@@ -103,7 +103,7 @@ export const update = function (params: {
     target_db_pattern: string;
   }[];
   source_cluster_id: number;
-  cluster_type?: 'tendbha' | 'tendbcluster';
+  cluster_type?: string;
 }) {
   const realParams = { ...params } as { id?: number };
   delete realParams.id;

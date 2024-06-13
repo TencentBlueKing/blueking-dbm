@@ -28,7 +28,6 @@ from backend.flow.consts import (
     DEFAULT_DB_MODULE_ID,
     ConfigFileEnum,
     ConfigTypeEnum,
-    MediumEnum,
     MongoDBActuatorActionEnum,
     MongoDBDfaultAuthDB,
     MongoDBInstanceType,
@@ -63,6 +62,10 @@ class ActKwargs:
         self.cluster_type: str = None
         # db大版本
         self.db_main_version: str = None
+        # db发行版本
+        self.db_release_version: str = None
+        # db发行
+        self.db_release: str = None
         # 备份所在目录
         self.file_path: str = None
         # db配置
@@ -189,8 +192,14 @@ class ActKwargs:
 
         # 集群类型
         self.cluster_type = self.payload["cluster_type"]
-        # db大版本
-        self.db_main_version = str(self.payload["db_version"].split(".")[0])
+        # # db大版本
+        self.db_main_version = str(self.payload["db_version"].split("-")[1].split(".")[0])
+        # db发行版本
+        self.db_release_version = self.payload["db_version"]
+        # db发行
+        self.db_release = self.payload["db_version"].split("-")[0]
+        # db版本
+        self.payload["db_version"] = self.payload["db_version"].split("-")[1]
 
     def get_mongodb_conf(self):
         """获取db配置信息"""
@@ -249,7 +258,7 @@ class ActKwargs:
 
     def get_pkg(self):
         self.pkg = Package.get_latest_package(
-            version=self.payload["db_version"], pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
+            version=self.payload["db_version"], pkg_type=self.db_release, db_type=DBType.MongoDB
         )
 
     @staticmethod
@@ -270,11 +279,23 @@ class ActKwargs:
         media_type: actuator 仅actuator介质
         """
 
+        if self.payload.get("db_version") and not self.db_release and not self.db_release_version:
+            # db大版本
+            self.db_main_version = str(self.payload["db_version"].split("-")[1].split(".")[0])
+            # db发行版本
+            self.db_release_version = self.payload["db_version"]
+            # db发行
+            self.db_release = self.payload["db_version"].split("-")[0]
+            # db版本
+            self.payload["db_version"] = self.payload["db_version"].split("-")[1]
+
         file_list = []
         if media_type == "actuator":
             file_list = GetFileList(db_type=DBType.MongoDB).mongodb_actuator_pkg()
         elif media_type == "all":
-            file_list = GetFileList(db_type=DBType.MongoDB).mongodb_pkg(db_version=self.payload["db_version"])
+            file_list = GetFileList(db_type=DBType.MongoDB).mongodb_pkg(
+                db_version=self.payload["db_version"], release_info=self.db_release
+            )
         ip_list = self.payload["hosts"]
         exec_ips = [host["ip"] for host in ip_list]
         return {
@@ -461,7 +482,7 @@ class ActKwargs:
 
         info = {
             "bk_biz_id": self.payload["bk_biz_id"],
-            "major_version": self.payload["db_version"],
+            "major_version": self.db_release_version,
             "creator": self.payload["created_by"],
             "region": self.payload["city"],
             "db_module_id": 0,
@@ -657,6 +678,16 @@ class ActKwargs:
             set_name = "{}-{}".format(self.payload["app"], self.replicaset_info["set_id"])
         else:
             set_name = ""
+        if float(".".join(self.payload["db_version"].split(".")[0:2])) < 2.6:
+            privileges = [
+                MongoDBUserPrivileges.UserAdminAnyDatabaseRole.value,
+                MongoDBUserPrivileges.DbAdminAnyDatabaseRole.value,
+                MongoDBUserPrivileges.ReadWriteAnyDatabaseRole.value,
+                MongoDBUserPrivileges.ClusterAdminRole.value,
+            ]
+        else:
+            privileges = [MongoDBUserPrivileges.RootRole.value]
+
         return {
             "create_manager_user": True,
             "set_trans_data_dataclass": CommonContext.__name__,
@@ -679,7 +710,7 @@ class ActKwargs:
                     "dbsPrivileges": [
                         {
                             "db": "admin",
-                            "privileges": [MongoDBUserPrivileges.RootRole.value],
+                            "privileges": privileges,
                         }
                     ],
                 },
@@ -735,8 +766,7 @@ class ActKwargs:
         self.payload["port"] = port
         self.payload["instance_type"] = instance_type
         self.payload["admin_password"] = password
-        # db大版本
-        self.db_main_version = str(self.payload["db_version"].split(".")[0])
+        self.payload["region"] = cluster_info.region
         # 获取file_path
         self.get_file_path()
 
@@ -821,6 +851,17 @@ class ActKwargs:
                     "repoPath": self.payload["rules"][self.payload["cluster_ids"].index(cluster_id)]["path"],
                 },
             },
+        }
+
+    def get_set_dns_resolv_kwargs(self) -> dict:
+        """机器设置dns解析"""
+
+        return {
+            "force": True,
+            "ip": self.payload["hosts"][0]["ip"],
+            "bk_biz_id": str(self.payload["bk_biz_id"]),
+            "bk_cloud_id": str(self.payload["hosts"][0]["bk_cloud_id"]),
+            "bk_city": self.payload["region"],
         }
 
     def get_hosts_deinstall(self):
@@ -1043,7 +1084,6 @@ class ActKwargs:
                     instances.append(
                         {
                             "cluster_id": info["cluster_id"],
-                            "db_version": info["db_version"],
                             "port": info["port"],
                             "role": info["role"],
                         }
@@ -1114,7 +1154,6 @@ class ActKwargs:
             hosts.append({"ip": info["target"]["ip"], "bk_cloud_id": info["target"]["bk_cloud_id"]})
             # db版本
             self.payload["db_version"] = info["instances"][0]["db_version"]
-            self.db_main_version = self.payload["db_version"].split(".")[0]
 
         elif mongodb_type == ClusterType.MongoShardedCluster.value:
             for mongos in info["mongos"]:
@@ -1139,7 +1178,6 @@ class ActKwargs:
                 self.payload["db_version"] = info["mongo_config"][0]["instances"][0]["db_version"]
             elif info["mongodb"]:
                 self.payload["db_version"] = info["mongodb"][0]["instances"][0]["db_version"]
-            self.db_main_version = self.payload["db_version"].split(".")[0]
 
         self.payload["hosts"] = hosts
 
@@ -1426,7 +1464,7 @@ class ActKwargs:
                 )
                 # db版本
             self.payload["db_version"] = self.payload["instance_relationships"][0]["instances"][0]["db_version"]
-            self.db_main_version = self.payload["db_version"].split(".")[0]
+            self.db_main_version = self.payload["db_version"].split("-")[1].split(".")[0]
 
         elif mongodb_type == ClusterType.MongoShardedCluster.value:
             hosts_set = set()
@@ -1438,7 +1476,7 @@ class ActKwargs:
             for host in hosts_set:
                 hosts.append({"ip": host, "bk_cloud_id": bk_cloud_id})
             self.payload["db_version"] = info["db_version"]
-            self.db_main_version = self.payload["db_version"].split(".")[0]
+            self.db_main_version = self.payload["db_version"].split("-")[1].split(".")[0]
         self.payload["hosts"] = hosts
 
     def get_scale_change_meta(self, info: dict, instance: dict) -> dict:
@@ -1471,7 +1509,7 @@ class ActKwargs:
             hosts.append({"ip": host["ip"], "bk_cloud_id": host["bk_cloud_id"]})
         # db版本
         self.payload["db_version"] = info["db_version"]
-        self.db_main_version = self.payload["db_version"].split(".")[0]
+        self.db_main_version = self.payload["db_version"].split("-")[1].split(".")[0]
         self.payload["hosts"] = hosts
 
     def calc_increase_node(self, info: dict):
@@ -1512,7 +1550,7 @@ class ActKwargs:
                     "port": port,
                     "domain": domain,
                     "spec_id": info["resource_spec"]["shard_nodes"]["spec_id"],
-                    "spec_config": info["resource_spec"]["shard_nodes"]["spec_config"],
+                    "sepc_config": info["resource_spec"]["shard_nodes"],
                     "reuse_machine": reuse_machine,
                 }
                 self.payload["replicaset_set"].append(db_instance)
@@ -1568,7 +1606,7 @@ class ActKwargs:
                                 "port": port,
                                 "domain": "",
                                 "spec_id": info["resource_spec"]["shard_nodes"]["spec_id"],
-                                "spec_config": info["resource_spec"]["shard_nodes"]["spec_config"],
+                                "sepc_config": info["resource_spec"]["shard_nodes"],
                                 "reuse_machine": reuse_machine,
                             }
                         )

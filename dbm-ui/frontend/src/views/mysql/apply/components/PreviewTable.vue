@@ -115,26 +115,31 @@
         label: t('主访问入口'),
         field: 'domain',
         showOverflowTooltip: true,
+        minWidth: 240,
       },
       {
         label: t('从访问入口'),
         field: 'slaveDomain',
         showOverflowTooltip: true,
+        minWidth: 240,
       },
       {
         label: t('部署架构'),
         field: 'deployStructure',
         showOverflowTooltip: true,
+        width: 100,
       },
       {
         label: t('数据库版本'),
         field: 'version',
         showOverflowTooltip: true,
+        width: 120,
       },
       {
         label: t('字符集'),
         field: 'charset',
         showOverflowTooltip: true,
+        width: 100,
       },
     ];
 
@@ -142,7 +147,7 @@
       haColumns.push(...[{
         label: 'Proxy IP',
         field: 'proxy',
-        minWidth: 300,
+        width: 300,
         rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
         render: () => {
           const hosts = props.nodes.proxy;
@@ -170,7 +175,7 @@
       }, {
         label: 'Master / Slave IP',
         field: 'backend',
-        minWidth: 300,
+        width: 300,
         rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
         render: () => {
           const hosts = props.nodes.backend;

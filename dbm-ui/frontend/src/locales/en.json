@@ -572,7 +572,7 @@
   "复制从访问入口": "Copy",
   "复制集群名称": "Copy",
   "实例_域名_IP_端口_状态": "Instance/domain/IP/port/status",
-  "实例申请": "Apply for instance",
+  "申请实例": "Apply for instance",
   "导入": "Import",
   "批量授权": "Multi-grant",
   "授权": "Grant",

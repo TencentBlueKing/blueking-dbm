@@ -62,6 +62,8 @@ type Public struct {
 	TarSizeThreshold uint64 `ini:"TarSizeThreshold" validate:"required,gte=128"`
 	// IOLimitMBPerSec tar speed, mb/s. 0 means no limit
 	IOLimitMBPerSec int `ini:"IOLimitMBPerSec"`
+	// IOLimitMasterFactor master机器专用限速因子，master io限速 = IOLimitMBPerSec * IOLimitMasterFactor
+	IOLimitMasterFactor float64 `ini:"IOLimitMasterFactor"`
 	//ResultReportPath string `ini:"ResultReportPath" validate:"required"`
 	StatusReportPath string `ini:"StatusReportPath" validate:"required"`
 	ReportPath       string `ini:"ReportPath" validate:"required"`

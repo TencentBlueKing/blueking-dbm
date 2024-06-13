@@ -108,7 +108,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
   import {
     computed,
     nextTick,
@@ -157,7 +156,7 @@
 
   const copy = useCopy();
 
-  const columns: InstanceType<typeof Table>['$props']['columns'] = [
+  const columns = [
     {
       label: t('实例'),
       field: 'instance_address',

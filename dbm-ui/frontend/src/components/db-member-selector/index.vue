@@ -14,7 +14,7 @@
 <template>
   <div
     class="db-member-selector-wrapper"
-    :class="{'is-focus': isFocous}">
+    :class="{ 'is-focus': isFocous }">
     <BkTagInput
       v-model="modelValue"
       allow-auto-match
@@ -22,6 +22,7 @@
       :create-tag-validator="createTagValidator"
       has-delete-icon
       :list="peopleList"
+      v-bind="listeners"
       @input="remoteFilter" />
     <DbIcon
       v-bk-tooltips="t('复制')"
@@ -36,7 +37,7 @@
 
   import { getUserList } from '@services/source/user';
 
-  import { useCopy } from '@hooks';
+  import { useCopy, useListeners } from '@hooks';
 
   type GetUsesParams = ServiceParameters<typeof getUserList>;
 
@@ -44,17 +45,21 @@
     default: () => [],
   });
 
+  const listeners = useListeners();
+
   const copy = useCopy();
   const { t } = useI18n();
 
-  const peopleList = ref<{
-    id: string,
-    name: string,
-  }[]>([]);
+  const peopleList = ref<
+    {
+      id: string;
+      name: string;
+    }[]
+  >([]);
 
   const isFocous = ref(false);
 
-  const createTagValidator = (tag: string) => !!peopleList.value.find(item => item.name === tag);
+  const createTagValidator = (tag: string) => !!peopleList.value.find((item) => item.name === tag);
 
   /**
    * 获取人员列表
@@ -62,10 +67,12 @@
   const fetchUseList = async (params: GetUsesParams = {}) => {
     await getUserList(params).then((res) => {
       // 过滤已经选中的用户
-      peopleList.value = res.results.filter(item => !modelValue.value?.includes(item.username)).map(item => ({
-        id: item.username,
-        name: item.username,
-      }));
+      peopleList.value = res.results
+        .filter((item) => !modelValue.value?.includes(item.username))
+        .map((item) => ({
+          id: item.username,
+          name: item.username,
+        }));
     });
   };
   // 初始化加载

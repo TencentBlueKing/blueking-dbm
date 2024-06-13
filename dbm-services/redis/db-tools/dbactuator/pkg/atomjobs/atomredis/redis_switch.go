@@ -231,7 +231,7 @@ func (job *RedisSwitch) Run() (err error) {
 func (job *RedisSwitch) enableWrite4Slave(ip string, port int, pass string) error {
 	newMasterAddr := fmt.Sprintf("%s:%d", ip, port)
 	newMasterConn, err := myredis.NewRedisClientWithTimeout(newMasterAddr,
-		pass, 0, job.params.ClusterMeta.ClusterType, time.Second)
+		pass, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
 	if err != nil {
 		return err
 	}
@@ -252,7 +252,7 @@ func (job *RedisSwitch) enableWrite4Slave(ip string, port int, pass string) erro
 func (job *RedisSwitch) doSlaveOfNoOne4NewMaster(ip string, port int, pass string) error {
 	newMasterAddr := fmt.Sprintf("%s:%d", ip, port)
 	newMasterConn, err := myredis.NewRedisClientWithTimeout(newMasterAddr,
-		pass, 1, job.params.ClusterMeta.ClusterType, time.Second)
+		pass, 1, job.params.ClusterMeta.ClusterType, time.Second*10)
 	if err != nil {
 		return fmt.Errorf("[%s] conn new master failed :%+v", newMasterAddr, err)
 	}
@@ -278,7 +278,7 @@ func (job *RedisSwitch) doSlaveOfNoOne4NewMaster(ip string, port int, pass strin
 func (job *RedisSwitch) doTendisStorageSwitch4Cluster(storagePair InstanceSwitchParam) error {
 	newMasterAddr := fmt.Sprintf("%s:%d", storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port)
 	newMasterConn, err := myredis.NewRedisClientWithTimeout(newMasterAddr,
-		job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second)
+		job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
 	if err != nil {
 		return err
 	}
@@ -472,7 +472,7 @@ func (job *RedisSwitch) precheckStorageSync() error {
 			// oldMasterAddr := fmt.Sprintf("%s:%d", storagePair.MasterInfo.IP, storagePair.MasterInfo.Port)
 			newMasterAddr := fmt.Sprintf("%s:%d", storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port)
 			newMasterConn, err := myredis.NewRedisClientWithTimeout(newMasterAddr,
-				job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second)
+				job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
 			if err != nil {
 				job.errChan <- fmt.Errorf("[%s]new master node, err:%+v", newMasterAddr, err)
 				return
@@ -536,7 +536,7 @@ func (job *RedisSwitch) checkReplicationDetail(
 			storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port, realIP, realPort)
 	} else if job.params.SyncCondition.InstanceSyncType == "msms" {
 		oldSlaveConn, err := myredis.NewRedisClientWithTimeout(fmt.Sprintf("%s:%s", realIP, realPort),
-			job.params.ClusterMeta.StoragePassword, 1, job.params.ClusterMeta.ClusterType, time.Second)
+			job.params.ClusterMeta.StoragePassword, 1, job.params.ClusterMeta.ClusterType, time.Second*10)
 		if err != nil {
 			return fmt.Errorf("[%s:%d] conn addr:%s:%s,err:%+v",
 				storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port, realIP, realPort, err)
@@ -699,7 +699,7 @@ func (job *RedisSwitch) precheckProxyLogin() error {
 
 // precheckLogin 检查 proxy/redis 可以登录
 func (job *RedisSwitch) precheckLogin(addr, pass, clusterType string) error {
-	rconn, err := myredis.NewRedisClientWithTimeout(addr, pass, 0, clusterType, time.Second)
+	rconn, err := myredis.NewRedisClientWithTimeout(addr, pass, 0, clusterType, time.Second*10)
 	if err != nil {
 		return fmt.Errorf("conn redis %s failed:%+v", addr, err)
 	}

@@ -74,6 +74,7 @@
       id: oldSlave.bkCloudId,
       name: oldSlave.bkCloudName,
     }"
+    :os-types="[OSTypes.Linux]"
     service-mode="all"
     :show-view="false"
     single-host-select
@@ -85,6 +86,8 @@
   import type { HostDetails } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
+
+  import { OSTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 

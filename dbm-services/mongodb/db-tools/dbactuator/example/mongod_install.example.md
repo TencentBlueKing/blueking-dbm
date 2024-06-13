@@ -2,9 +2,9 @@
 初始化新机器:
 
 ```json
-./dbactuator_redis  --uid={{uid}} --root_id={{root_id}} --node_id={{node_id}} --version_id={{version_id}} --atom-job-list="mongod_install" --data_dir=/path/to/data  --backup_dir=/path/to/backup --user="xxx"  --group="xxx" --payload='{{payload_base64}}'
+./dbactuator_redis  --uid={{uid}} --root_id={{root_id}} --node_id={{node_id}} --version_id={{version_id}} --atom-job-list="mongod_install" --data_dir=/path/to/data  --backup_dir=/path/to/backup  --payload='{{payload_base64}}'
 ```
---data_dir、--backup_dir 可以留空. --user启动进程用户名，--group启动进程用户名的属组，如果为空默认都为mysql。
+
 
 原始payload
 
@@ -19,9 +19,8 @@
   "port":27001,
   "dbVersion":"3.4.20",
   "instanceType":"mongod",
-  "app":"test",
-  "areaId":"test1",
   "setId":"s1",
+  "keyFile": "xxx",
   "auth": true,
   "clusterRole":"shardsvr",
   "dbConfig":{
@@ -45,9 +44,8 @@
   "port":27002,
   "dbVersion":"3.4.20",
   "instanceType":"mongod",
-  "app":"test",
-  "areaId":"test1",
   "setId":"conf",
+  "keyFile": "xxx",
   "auth": true,
   "clusterRole":"configsvr",
   "dbConfig":{

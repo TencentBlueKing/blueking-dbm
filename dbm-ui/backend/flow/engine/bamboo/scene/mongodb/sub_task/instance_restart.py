@@ -35,7 +35,6 @@ def instance_restart(
 
     # 介质下发
     sub_get_kwargs.get_file_path()
-    sub_get_kwargs.payload["db_version"] = instances_info["instances"][0]["db_version"]
     sub_get_kwargs.payload["hosts"] = instances_info["hosts"]
     kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="actuator")
     sub_pipeline.add_act(

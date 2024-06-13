@@ -164,7 +164,7 @@
     background: #fff;
 
     .result-list {
-      max-height: 505px;
+      max-height: 540px;
       padding: 8px 0;
       overflow: hidden;
       color: #63656e;

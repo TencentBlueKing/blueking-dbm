@@ -240,10 +240,7 @@ func (p *PackageFile) tarballDir() error {
 // update indexFile
 // destFile has is full path file
 func (p *PackageFile) splitTarFile(destFile string) error {
-	splitSpeed := int64(300) // default: 300MB/s
-	if p.cnf.PhysicalBackup.SplitSpeed != 0 {
-		splitSpeed = p.cnf.PhysicalBackup.SplitSpeed
-	}
+	splitSpeed := int64(p.cnf.Public.IOLimitMBPerSec)
 	logger.Log.Infof("Splitting Package: Tar file %s with iolimit %d MB/s", p.dstTarFile, splitSpeed)
 	fileInfo, err := os.Stat(destFile)
 	if err != nil {

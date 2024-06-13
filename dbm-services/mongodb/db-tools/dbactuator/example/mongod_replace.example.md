@@ -24,6 +24,7 @@
   "targetHidden":""
 }
 ```
+
 "sourceDown" 源端是否已down机
 "targetPriority"可以指定替换节点的优先级
 "targetHidden"可以指定替换节点是否为隐藏节点

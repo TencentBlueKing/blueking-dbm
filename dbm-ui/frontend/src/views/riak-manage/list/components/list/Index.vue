@@ -106,7 +106,7 @@
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
     getMenuListSearch,
@@ -241,44 +241,47 @@
       minWidth: 240,
       fixed: 'left',
       showOverflowTooltip: false,
-      render: ({ data }: { data: RiakModel }) => {
-        const content = <>
-          {
-            data.isNewRow && (
-             <MiniTag
-                content='NEW'
-                theme='success'
-                class='new-tag'>
-              </MiniTag>
+      render: ({ data }: { data: RiakModel }) => (
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <auth-button
+                action-id="riak_view"
+                permission={data.permission.riak_view}
+                resource={data.id}
+                text
+                theme="primary"
+                onClick={() => handleToDetail(data.id)}>
+                { data.cluster_name }
+              </auth-button>
+            ),
+            append: () => (
+              <>
+                {
+                  data.isNewRow && (
+                  <MiniTag
+                      content='NEW'
+                      theme='success'
+                      class='new-tag'>
+                    </MiniTag>
+                  )
+                }
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="ml-4" data={item}/>)
+                }
+                {
+                  data.isDisabled && (
+                    <db-icon
+                      svg
+                      type="yijinyong"
+                      class="disabled-tag" />
+                  )
+                }
+              </>
             )
-          }
-          {
-            data.operationTagTips.map(item => <RenderOperationTag class="ml-4" data={item}/>)
-          }
-          {
-            data.isDisabled && (
-              <db-icon
-                svg
-                type="yijinyong"
-                class="disabled-tag" />
-            )
-          }
-        </>;
-
-        return (
-        <>
-          <RenderTextEllipsisOneLine
-            text={data.cluster_name}
-            textStyle={{
-              fontWeight: '700',
-            }}
-            onClick={() => toDetail(data.id)}>
-            {content}
-          </RenderTextEllipsisOneLine>
-          <span style='color: #C4C6CC;'>{data.cluster_alias || '--'}</span>
-        </>
-        );
-      },
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('版本'),
@@ -409,7 +412,7 @@
                   class="ml-16"
                   theme="primary"
                   disabled={data.operationDisabled}
-                  onclick={() => handlDisabled(data)}
+                  onClick={() => handlDisabled(data)}
                 >
                   { t('禁用') }
                 </auth-button>
@@ -424,7 +427,7 @@
                   text
                   theme="primary"
                   disabled={data.isStarting}
-                  onclick={() => handleEnabled(data)}
+                  onClick={() => handleEnabled(data)}
                 >
                   { t('启用') }
                 </auth-button>
@@ -438,7 +441,7 @@
                   class="ml-16"
                   theme="primary"
                   disabled={Boolean(data.operationTicketId)}
-                  onclick={() => handleDelete(data)}
+                  onClick={() => handleDelete(data)}
                 >
                   { t('删除') }
                 </auth-button>
@@ -510,7 +513,7 @@
     selected.value = list as RiakModel[];
   };
 
-  const toDetail = (id: number) => {
+  const handleToDetail = (id: number) => {
     stretchLayoutSplitScreen();
     clusterId.value = id;
   };
@@ -641,7 +644,7 @@
 
   onMounted(() => {
     if (!clusterId.value && route.query.id) {
-      toDetail(Number(route.query.id));
+      handleToDetail(Number(route.query.id));
     }
   });
 

@@ -20,6 +20,7 @@ from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class TenDBClusterAppendDeployCTLDetailSerializer(TendbBaseOperateDetailSerializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), default=0)
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"))
     use_stream = serializers.BooleanField(help_text=_("是否使用mydumper流式备份迁移"), required=False, default=False)
@@ -71,7 +72,6 @@ class TenDBClusterAppendDeployCTLFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_APPEND_DEPLOY_CTL)
 class TenDBClusterAppendDeployCTLFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TenDBClusterAppendDeployCTLDetailSerializer
-    # serializer = TenDBClusterAppendCTLSerializer  # TenDBClusterAppendDeployCTLDetailSerializer
     inner_flow_builder = TenDBClusterAppendDeployCTLFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 追加部署中控")
     retry_type = FlowRetryType.MANUAL_RETRY

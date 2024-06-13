@@ -15,7 +15,7 @@ func generalHandler(rpcEmbed rpc_core.RPCEmbedInterface) func(*gin.Context) {
 	return func(c *gin.Context) {
 		req := queryRequest{
 			ConnectTimeout: 2,
-			QueryTimeout:   30,
+			QueryTimeout:   600, // 默认超时时间 10 分钟
 			Force:          false,
 		}
 

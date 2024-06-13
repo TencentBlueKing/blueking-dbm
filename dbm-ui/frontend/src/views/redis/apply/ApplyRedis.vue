@@ -131,6 +131,7 @@
                   :data="state.formdata.details.nodes.proxy"
                   :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.proxy"
                   :disable-host-method="proxyDisableHostMethod"
+                  :os-types="[OSTypes.Linux]"
                   @change="handleProxyIpChange">
                   <template #desc>
                     {{ t('至少n台', { n: 2 }) }}
@@ -176,6 +177,7 @@
                   :data="state.formdata.details.nodes.master"
                   :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.master"
                   :disable-host-method="masterDisableHostMethod"
+                  :os-types="[OSTypes.Linux]"
                   @change="handleMasterIpChange">
                   <template #desc>
                     {{ t('至少1台_且机器数要和Slave相等') }}
@@ -202,6 +204,7 @@
                   :data="state.formdata.details.nodes.slave"
                   :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.slave"
                   :disable-host-method="slaveDisableHostMethod"
+                  :os-types="[OSTypes.Linux]"
                   @change="handleSlaveIpChange">
                   <template #desc>
                     {{ t('至少1台_且机器数要和Master相等') }}
@@ -352,7 +355,7 @@
 
   import { useFunController } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, OSTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';

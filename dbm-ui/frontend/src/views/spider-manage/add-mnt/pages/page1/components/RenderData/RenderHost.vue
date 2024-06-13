@@ -78,6 +78,7 @@
       name: clusterData.bkCloudName,
     }"
     :data="localHostList"
+    :os-types="[OSTypes.Linux]"
     service-mode="all"
     :show-view="false"
     @change="handleHostChange" />
@@ -87,6 +88,8 @@
 
   import { checkHost } from '@services/source/ipchooser';
   import type { HostDetails } from '@services/types';
+
+  import { OSTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 

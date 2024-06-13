@@ -80,6 +80,7 @@
               }"
               :data="formData.nodes"
               :disable-dialog-submit-method="disableHostSubmitMethods"
+              :os-types="[OSTypes.Linux]"
               @change="handleProxyIpChange">
               <template #desc>
                 {{ t('至少n台', { n: 1 }) }}
@@ -112,7 +113,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, OSTypes, TicketTypes } from '@common/const';
 
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';

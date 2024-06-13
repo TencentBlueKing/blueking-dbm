@@ -80,6 +80,7 @@
                 :biz-id="formdata.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formdata.details.nodes.influxdb"
+                :os-types="[OSTypes.Linux]"
                 required
                 style="display: inline-block"
                 @change="handleIpChange">
@@ -175,6 +176,8 @@
   import type { BizItem } from '@services/types';
 
   import { useApplyBase } from '@hooks';
+
+  import { OSTypes } from '@common/const';
 
   // import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';

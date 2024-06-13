@@ -1,4 +1,4 @@
-### mongod_replace
+### cluster_balancer
 初始化新机器:
 
 ```json

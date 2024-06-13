@@ -2,15 +2,16 @@ package rpc_core
 
 import (
 	"context"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
 
 // executeCmd TODO
 // func executeCmd(db *sqlx.DB, cmd string, timeout int) (int64, error) {
-func executeCmd(conn *sqlx.Conn, cmd string, ctx context.Context) (int64, error) {
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
-	// defer cancel()
+func executeCmd(conn *sqlx.Conn, cmd string, timeout time.Duration) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
 	result, err := conn.ExecContext(ctx, cmd)
 	if err != nil {
@@ -22,9 +23,9 @@ func executeCmd(conn *sqlx.Conn, cmd string, ctx context.Context) (int64, error)
 
 // queryCmd TODO
 // func queryCmd(db *sqlx.DB, cmd string, timeout int) (tableDataType, error) {
-func queryCmd(conn *sqlx.Conn, cmd string, ctx context.Context) (tableDataType, error) {
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
-	// defer cancel()
+func queryCmd(conn *sqlx.Conn, cmd string, timeout time.Duration) (tableDataType, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
 	rows, err := conn.QueryxContext(ctx, cmd)
 	if err != nil {

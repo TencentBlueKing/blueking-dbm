@@ -148,6 +148,10 @@
     });
   };
 
+  onBeforeUnmount(() => {
+    delete instanceAddreddMemo[instanceKey]
+  })
+
   defineExpose<Exposes>({
     getValue() {
       const {

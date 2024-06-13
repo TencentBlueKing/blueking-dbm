@@ -7,7 +7,7 @@
         <BkButton
           class="dropdown-button"
           :class="{ active: isInstanceDropdown }">
-          {{ t('实例申请') }}
+          {{ t('申请实例') }}
           <DbIcon type="up-big dropdown-button-icon" />
         </BkButton>
         <template #content>

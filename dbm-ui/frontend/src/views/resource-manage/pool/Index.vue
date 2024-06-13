@@ -169,6 +169,11 @@
       },
     },
     {
+      label: t('机架'),
+      field: 'rack_id',
+      render: ({ data }: {data: DbResourceModel}) => data.rack_id || '--',
+    },
+    {
       label: t('机型'),
       field: 'device_class',
       render: ({ data }: {data: DbResourceModel}) => data.device_class || '--',

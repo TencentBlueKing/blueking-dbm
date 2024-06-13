@@ -143,6 +143,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    columns: () => [],
     fixedPagination: false,
     clearSelection: true,
     paginationExtra: () => ({}),

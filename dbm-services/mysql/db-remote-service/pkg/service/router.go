@@ -10,7 +10,6 @@ import (
 func RegisterRouter(engine *gin.Engine) {
 	mysqlGroup := engine.Group("/mysql")
 	mysqlGroup.POST("/rpc", handler_rpc.MySQLRPCHandler)
-	//mysqlGroup.POST("/parser", parseHandler)
 
 	proxyGroup := engine.Group("/proxy-admin")
 	proxyGroup.POST("/rpc", handler_rpc.ProxyRPCHandler)
@@ -21,9 +20,9 @@ func RegisterRouter(engine *gin.Engine) {
 	twemproxyGroup := engine.Group("/twemproxy")
 	twemproxyGroup.POST("/rpc", handler_rpc.TwemproxyRPCHandler)
 
-	// predixyGroup := engine.Group("/predixy")
-	// predixyGroup.POST("/rpc", handler_rpc.RedisRPCHandler)
-
 	sqlserverGroup := engine.Group("/sqlserver")
 	sqlserverGroup.POST("/rpc", handler_rpc.SqlserverRPCHandler)
+
+	webConsoleGroup := engine.Group("/webconsole")
+	webConsoleGroup.POST("/rpc", handler_rpc.WebConsoleRPCHandler)
 }

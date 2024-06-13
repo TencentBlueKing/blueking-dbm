@@ -17,10 +17,10 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.models import ExtraProcessInstance
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ResourceEnum
-from backend.iam_app.exceptions import ActionNotExistError
 from backend.iam_app.handlers.drf_perm.base import (
     IAMPermission,
     MoreResourceActionPermission,
+    RejectPermission,
     ResourceActionPermission,
 )
 from backend.ticket.builders import BuilderFactory
@@ -136,7 +136,9 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
 def create_ticket_permission(ticket_type: TicketType) -> List[IAMPermission]:
     action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
     if not action:
-        raise ActionNotExistError(_("单据动作ID:{} 不存在").format(action))
+        # 对于未注册到iam的单据动作，默认只开放给superuser
+        logger.warning(_("单据动作ID:{} 不存在").format(action))
+        return [RejectPermission()]
     if len(action.related_resource_types) <= 1:
         return [CreateTicketOneResourcePermission(ticket_type=ticket_type)]
     else:

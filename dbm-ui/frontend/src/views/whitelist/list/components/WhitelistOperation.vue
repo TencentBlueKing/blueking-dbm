@@ -161,6 +161,7 @@
         }
         return ipv4.test(text)
           || text === 'localhost'
+          || text === '%'
           || /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){0,2}(\.%)$/.test(text)
       }),
       message: t('ip中存在格式错误'),
