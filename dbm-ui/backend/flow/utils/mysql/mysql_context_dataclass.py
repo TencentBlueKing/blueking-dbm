@@ -332,3 +332,12 @@ class TenDBClusterImportMetadataContext:
 @dataclass()
 class TenDBSingleImportMetadataContext:
     cluster_ids: List = None
+
+
+@dataclass()
+class SystemInfoContext:
+    """
+    获取操作系统参数的通用结构体
+    """
+
+    system_info: dict = field(default_factory=dict)
