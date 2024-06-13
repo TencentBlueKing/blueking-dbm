@@ -228,7 +228,7 @@ class ResourceQueryHelper:
             "scope_list": scope_list,
         }
         try:
-            status_map = BKNodeManApi.ipchooser_host_details(request_params)
+            status_map = BKNodeManApi.ipchooser_host_details(request_params, use_admin=True)
             for status in status_map:
                 # agent在线状态，0为不在线，1为在线
                 cc_hosts[host_map[str(status["host_id"])]][fill_key] = status["alive"]
