@@ -123,13 +123,12 @@ def delete(machines: Optional[List], bk_cloud_id: int):
         return
     bk_biz_id = machines[0].bk_biz_id
     bk_host_ids = list(machines.values_list("bk_host_id", flat=True))
-    machines.delete()
-
     # 获取machines包含的cluster_type
     cluster_types = machines.values_list("cluster_type", flat=True).distinct()
     cluster_types_list = list(cluster_types)
     for cluster_type in cluster_types_list:
         CcManage(bk_biz_id, cluster_type).recycle_host(bk_host_ids)
+    machines.delete()
 
 
 @transaction.atomic
