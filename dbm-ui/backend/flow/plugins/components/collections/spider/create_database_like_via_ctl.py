@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import re
+
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
@@ -27,6 +29,8 @@ class CreateDatabaseLikeViaCtlService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
         global_data = data.get_one_of_inputs("global_data")
+
+        reg = re.compile(re.escape("create table"), re.IGNORECASE)
 
         ctl_primary = global_data["ctl_primary"]
 
@@ -86,7 +90,12 @@ class CreateDatabaseLikeViaCtlService(BaseService):
                 self.log_info(
                     "[{}] {}.{} create table cmd: {}".format(kwargs["node_name"], old_db, table_name, create_table_cmd)
                 )
-                sql_cmds += ["use {}".format(new_db), create_table_cmd]
+
+                rewrite_create_table_cmd = reg.sub("CREATE TABLE IF EXISTS", create_table_cmd)
+                self.log_info(
+                    "[{}] rewrite create table cmd: {}".format(kwargs["node_name"], rewrite_create_table_cmd)
+                )
+                sql_cmds += ["use {}".format(new_db), rewrite_create_table_cmd]
 
         create_stage_db_table_res = DRSApi.rpc(
             {
