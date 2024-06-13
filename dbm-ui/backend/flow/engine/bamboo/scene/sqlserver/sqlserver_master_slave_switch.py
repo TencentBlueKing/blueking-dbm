@@ -15,6 +15,7 @@ from dataclasses import asdict
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import SqlserverSyncModeMaps
@@ -42,6 +43,7 @@ from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPaylo
 from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
+from backend.flow.utils.sqlserver.validate import SqlserverInstance
 
 logger = logging.getLogger("flow")
 
@@ -91,12 +93,16 @@ class SqlserverSwitchFlow(BaseFlow):
                 cluster = Cluster.objects.get(id=cluster_id)
                 old_master = cluster.storageinstance_set.get(machine__ip=info["master"]["ip"])
                 new_master = cluster.storageinstance_set.get(machine__ip=info["slave"]["ip"])
+                other_slaves = cluster.storageinstance_set.filter(is_stand_by=False)
 
                 # 判断传入slave的is_stand_by是否为true
                 if not new_master.is_stand_by:
                     raise Exception(
-                        f"The [{info['slave']}]'s is_stand_by is false and cannot be used as the new master"
+                        f"The [{new_master.ip_port}]'s is_stand_by is false and cannot be used as the new master"
                     )
+
+                if old_master.instance_role != InstanceRole.BACKEND_MASTER:
+                    raise Exception(f"The [{old_master.ip_port}] in cluster [{cluster.immute_domain}] is not master")
 
                 # 获取集群数据库同步模式
                 sync_mode = SqlserverSyncModeMaps[
@@ -110,6 +116,17 @@ class SqlserverSwitchFlow(BaseFlow):
                 cluster_context["master_port"] = old_master.port
                 cluster_context["port"] = new_master.port
                 cluster_context["sync_mode"] = sync_mode
+                cluster_context["other_slaves"] = [
+                    asdict(
+                        SqlserverInstance(
+                            host=i.machine.ip,
+                            port=i.port,
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            is_new=False,
+                        )
+                    )
+                    for i in other_slaves
+                ]
 
                 # 启动子流程
                 cluster_pipeline = SubBuilder(root_id=self.root_id, data=cluster_context)
@@ -134,6 +151,7 @@ class SqlserverSwitchFlow(BaseFlow):
                             root_id=self.root_id,
                             check_host=Host(ip=old_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
                             check_port=old_master.port,
+                            cluster_id=cluster_id,
                         )
                     )
 
