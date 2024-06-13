@@ -28,8 +28,10 @@ import (
 
 // DbWorker TODO
 type DbWorker struct {
-	Dsn string
-	Db  *sql.DB
+	Dsn  string
+	Db   *sql.DB
+	Host string
+	Port int
 }
 
 type InstanceInfo struct {
@@ -55,7 +57,9 @@ func NewDbWorker(user string, pass string, server string, port int) (dbw *DbWork
 		server, port, user, pass,
 	)
 	dbw = &DbWorker{
-		Dsn: dsn,
+		Dsn:  dsn,
+		Host: server,
+		Port: port,
 	}
 	dbw.Db, err = sql.Open("sqlserver", dbw.Dsn)
 	if err != nil {

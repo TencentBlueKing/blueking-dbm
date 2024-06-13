@@ -188,6 +188,7 @@ class SqlserverActPayload(PayloadHandler):
                     "master_port": self.global_data["master_port"],
                     "force": self.global_data["force"],
                     "sync_mode": self.global_data["sync_mode"],
+                    "other_slaves": self.global_data["other_slaves"],
                 },
             },
         }
