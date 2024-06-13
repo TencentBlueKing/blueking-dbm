@@ -27,6 +27,7 @@ from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
+from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
@@ -108,7 +109,7 @@ class TenDBClusterAddNodesFlow(object):
             raise NormalSpiderFlowException(message=_("build spider-add-nodes-pipeline failed"))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline(is_drop_random_user=True)
+        pipeline.run_pipeline(is_drop_random_user=True, init_trans_data_class=SystemInfoContext())
 
     def add_spider_master_notes(self, sub_flow_context: dict, cluster: Cluster):
         """
