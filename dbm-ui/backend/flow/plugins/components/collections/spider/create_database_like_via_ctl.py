@@ -91,7 +91,7 @@ class CreateDatabaseLikeViaCtlService(BaseService):
                     "[{}] {}.{} create table cmd: {}".format(kwargs["node_name"], old_db, table_name, create_table_cmd)
                 )
 
-                rewrite_create_table_cmd = reg.sub("CREATE TABLE IF EXISTS", create_table_cmd)
+                rewrite_create_table_cmd = reg.sub("CREATE TABLE IF NOT EXISTS", create_table_cmd)
                 self.log_info(
                     "[{}] rewrite create table cmd: {}".format(kwargs["node_name"], rewrite_create_table_cmd)
                 )
