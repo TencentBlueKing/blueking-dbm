@@ -1188,7 +1188,7 @@ class RedisDBMeta(object):
                     exists_insts.append("{}#{}".format(row["ip"], row["port"]))
                 # 先删除
                 if exists_insts:
-                    dns_manage.recycle_domain_record(del_instance_list=exists_insts)
+                    dns_manage.remove_domain_ip(domain=cluster_entry.entry, del_instance_list=exists_insts)
                 # 再添加
                 inst_ips = set()
                 for row in cluster.storageinstance_set.all():
@@ -1202,7 +1202,7 @@ class RedisDBMeta(object):
                 for row in dns_manage.get_domain(domain_name=nodes_domain):
                     exists_insts.append("{}#{}".format(row["ip"], row["port"]))
                 if exists_insts:
-                    dns_manage.recycle_domain_record(del_instance_list=exists_insts)
+                    dns_manage.remove_domain_ip(domain=nodes_domain, del_instance_list=exists_insts)
 
     @transaction.atomic
     def redis_cluster_rename_domain(self):
