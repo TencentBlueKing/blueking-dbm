@@ -140,7 +140,6 @@ class TenDBRollBackDataFlow(object):
                 )
             )
 
-            spd_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             cluster = {"proxy_status": InstanceStatus.RUNNING.value, "proxy_ids": [target_spider.id]}
             spd_sub_pipeline.add_act(
                 act_name=_("写入初始化实例的db_meta元信息"),
@@ -215,7 +214,6 @@ class TenDBRollBackDataFlow(object):
                     root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster=shd_cluster
                 )
             )
-            ins_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             cluster = {
                 "storage_status": InstanceStatus.RUNNING.value,
                 "storage_ids": [target_slave.id, target_master.id],
