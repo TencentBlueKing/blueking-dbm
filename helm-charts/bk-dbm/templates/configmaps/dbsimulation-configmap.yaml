@@ -17,10 +17,14 @@ data:
     
     {{- if index .Values "db-simulation" "simulationNodeLables" }}
     simulationNodeLables: "{{ index .Values "db-simulation" "simulationNodeLables" }}"
+      - key: "{{ index .Values "db-simulation" "simulationNodeLables" "key" }}"
+        value: "{{ index .Values "db-simulation" "simulationNodeLables" "value" }}"
     {{- end }}
 
     {{- if index .Values "db-simulation" "simulationtaintLables" }}
     simulationtaintLables:: "{{ index .Values "db-simulation" "simulationtaintLables" }}"
+      - key: "{{ index .Values "db-simulation" "simulationtaintLables" "key" }}"
+        value: "{{ index .Values "db-simulation" "simulationtaintLables" "value" }}"
     {{- end }}
 
     bkrepo:
