@@ -2150,6 +2150,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "tables_ignore": self.ticket_data.get("tables_ignore"),
                         "where": self.ticket_data.get("where"),
                         "dump_data": self.ticket_data["dump_data"],
+                        "dump_schema": self.ticket_data["dump_schema"],
                     },
                     "zip_file_name": f"{self.cluster['dbconsole_dump_file_name']}.zip",
                     "one_db_one_file": False,

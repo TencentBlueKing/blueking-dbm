@@ -59,7 +59,8 @@ type DbConsoleDumpDetail struct {
 	// 执行dump条件
 	Where string `json:"where"`
 	// 决定导出数据还是表结构
-	DumpData bool `json:"dump_data"`
+	DumpData   bool `json:"dump_data"`
+	DumpSchema bool `json:"dump_schema"`
 }
 
 type consoleRunTimeCtx struct {
@@ -225,7 +226,8 @@ func (c *DbConsoleDumpComp) Run() (err error) {
 	backupfiles := []string{}
 
 	dumpOption := mysqlutil.MySQLDumpOption{
-		NoData:       !c.Params.DumpDetail.DumpData,
+		DumpSchema:   c.Params.DumpDetail.DumpSchema,
+		DumpData:     c.Params.DumpDetail.DumpData,
 		AddDropTable: true,
 		DumpRoutine:  true,
 		DumpTrigger:  true,
