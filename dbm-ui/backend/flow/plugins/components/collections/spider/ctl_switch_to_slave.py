@@ -142,7 +142,7 @@ class CtlSwitchToSlaveService(BaseService):
         reduce_port = reduce_ctl_primary.split(":")[1]
         server_name = "test_name"
         select_sql = [
-            "set tc_admin = 1",
+            "set tc_admin = 0",
             f"select Server_name from mysql.servers where host = '{reduce_ip}' and port = {reduce_port}",
         ]
         rpc_params["cmds"] = select_sql
@@ -155,6 +155,14 @@ class CtlSwitchToSlaveService(BaseService):
             self.log_warning(f"Node [{reduce_ctl_primary}] no longer has routing information")
         else:
             server_name = res[0]["cmd_results"][1]["table_data"][0]["Server_name"]
+
+        # 新primary需要执行reset slave, 避免提升主报错
+        rpc_params["cmds"] = ["set tc_admin=0", " reset slave all;"]
+        res = DRSApi.rpc(rpc_params)
+        if res[0]["error_msg"]:
+            raise CtlSwitchToSlaveFailedException(
+                message=_("exec reset-slave-all failed: {}".format(res[0]["error_msg"]))
+            )
 
         # 提升新主节点
         exec_sql = ["set tc_admin=1", f"TDBCTL DROP NODE IF EXISTS {server_name}", "TDBCTL ENABLE PRIMARY"]
@@ -215,7 +223,7 @@ class CtlSwitchToSlaveService(BaseService):
             res = DRSApi.rpc(
                 {
                     "addresses": [f"{secondary.machine.ip}{IP_PORT_DIVIDER}{secondary.admin_port}"],
-                    "cmds": ["set tc_admin = 0", repl_sql],
+                    "cmds": ["set tc_admin = 0", repl_sql, "start slave;"],
                     "force": False,
                     "bk_cloud_id": cluster.bk_cloud_id,
                 }
