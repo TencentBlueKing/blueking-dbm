@@ -20,7 +20,7 @@ func TestDumpTogether(t *testing.T) {
 			DumpCmdFile:  "/usr/local/mysql/bin/mysqldump",
 			Charset:      "utf8",
 			MySQLDumpOption: mysqlutil.MySQLDumpOption{
-				NoData:       true,
+				// NoData:       true,
 				AddDropTable: true,
 				DumpRoutine:  true,
 				DumpTrigger:  false,
