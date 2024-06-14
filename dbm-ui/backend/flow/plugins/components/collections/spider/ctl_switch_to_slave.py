@@ -204,7 +204,7 @@ class CtlSwitchToSlaveService(BaseService):
         # 基于GTID建立同步
         for secondary in other_secondary:
             repl_sql = (
-                f"CHANGE MASTER TO"
+                f"CHANGE MASTER TO "
                 f"MASTER_HOST ='{new_primary.split(':')[0]}',"
                 f"MASTER_PORT={new_primary.split(':')[1]},"
                 f"MASTER_USER ='{data['repl_user']}',"
