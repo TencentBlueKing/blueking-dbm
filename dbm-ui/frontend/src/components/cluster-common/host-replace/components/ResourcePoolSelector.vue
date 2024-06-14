@@ -106,6 +106,7 @@
       {
         spec_cluster_type: props.data.specClusterType,
         spec_machine_type: props.data.specMachineType,
+        limit: -1,
       },
     ],
     onSuccess(data) {
