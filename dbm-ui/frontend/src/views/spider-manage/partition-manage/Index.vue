@@ -390,8 +390,8 @@
     fetchData();
   };
 
-  const handleTableSelection = (payload: number[]) => {
-    selectionList.value = payload;
+  const handleTableSelection = (payload: string[]) => {
+    selectionList.value = payload.map(item => Number(item));
   };
 
   // 清空搜索

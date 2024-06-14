@@ -27,15 +27,17 @@
           <BkFormItem
             :label="t('源集群')"
             required>
-            <span :class="{ 'mr-8': currentCluster.name !== '' }">
-              {{ currentCluster.name }}
-            </span>
             <BkButton @click="handleShowClusterSelector">
               <DbIcon
                 style="margin-right: 3px"
                 type="add" />
               <span>{{ t('选择源集群') }}</span>
             </BkButton>
+            <DbOriginalTable
+              v-if="targetClusterList.length > 0"
+              class="mt-16"
+              :columns="colums"
+              :data="targetClusterList" />
           </BkFormItem>
           <BkFormItem
             :label="t('克隆的规则')"
@@ -71,19 +73,23 @@
     </SmartAction>
   </BkLoading>
 </template>
-<script setup lang="ts">
+<script setup lang="tsx">
   import { Form } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/openarea';
+  import { getTendbhaList } from '@services/source/tendbha';
+  import { getTendbsingleList } from '@services/source/tendbsingle';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
+  import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   import { messageSuccess } from '@utils';
@@ -111,15 +117,14 @@
   const formRef = ref<InstanceType<typeof Form>>();
   const isSubmiting = ref(false);
   const isShowClusterSelector = ref(false);
-  const currentCluster = ref({
-    name: '',
-    type: 'tendbha',
-  });
+  const currentClusterType = ref('tendbha');
 
   const clusterSelectorValue = shallowRef<Record<string, TendbhaModel[]>>({
     [ClusterTypes.TENDBHA]: [],
     [ClusterTypes.TENDBSINGLE]: [],
   });
+
+  const targetClusterList = shallowRef<TendbhaModel[]>([]);
 
   const formData = reactive(genDefaultValue());
 
@@ -134,13 +139,52 @@
     },
   } as Record<string, TabConfig>;
 
+  const colums = [
+    {
+      label: t('集群'),
+      field: 'master_domain',
+    },
+    {
+      label: t('类型'),
+      field: 'cluster_type',
+      render: ({ data }: {data: TendbhaModel}) => (data.cluster_type === 'tendbha' ? t('主从') : t('单节点')),
+    },
+    {
+      label: t('状态'),
+      render: ({ data }: {data: TendbhaModel}) => (
+        <RenderClusterStatus data={data.status} />
+      ),
+    },
+    {
+      label: t('操作'),
+      width: '100',
+      field: 'action',
+      render: ({ data }: {data: TendbhaModel}) => (
+        <bk-button
+          theme="primary"
+          text
+          onClick={() => handleRemove(data)}>
+          { t('删除') }
+        </bk-button>
+      ),
+    },
+  ];
+
   // 编辑态获取模版详情
   const { loading: isDetailLoading, run: fetchTemplateDetail } = useRequest(getDetail, {
     manual: true,
-    onSuccess(data) {
+    async onSuccess(data) {
       formData.config_name = data.config_name;
       formData.source_cluster_id = data.source_cluster_id;
       formData.config_rules = data.config_rules;
+
+      if (data.source_cluster.cluster_type === 'tendbha') {
+        const listResult = await getTendbhaList({ cluster_ids: [data.source_cluster_id]});
+        targetClusterList.value = listResult.results
+      } else {
+        const listResult = await getTendbsingleList({ cluster_ids: [data.source_cluster_id]});
+        targetClusterList.value = listResult.results as TendbhaModel[]
+      }
     },
   });
 
@@ -150,20 +194,35 @@
     });
   }
 
+  const handleRemove = (clusterData: TendbhaModel) => {
+    const result = targetClusterList.value.reduce((result, item) => {
+      if (item.id !== clusterData.id) {
+        result.push(item);
+      }
+      return result;
+    }, [] as TendbhaModel[]);
+
+    targetClusterList.value = result;
+
+    // ClusterSelector 的值回填
+    clusterSelectorValue.value = {
+      [ClusterTypes.TENDBHA]: _.filter(result, item => item.cluster_type === 'tendbha'),
+      [ClusterTypes.TENDBSINGLE]: _.filter(result, item => item.cluster_type === 'tendbsingle'),
+    };
+  };
+
   const handleShowClusterSelector = () => {
     isShowClusterSelector.value = true;
   };
 
   const handelClusterChange = (selected: Record<string, TendbhaModel[]>) => {
     const selectList = Object.keys(selected).reduce((list: TendbhaModel[], key) => list.concat(...selected[key]), []);
+    targetClusterList.value = selectList;
     clusterSelectorValue.value = selected;
 
-    const { id, master_domain: domain, cluster_type: clusterType } = selectList[0];
+    const { id, cluster_type: clusterType } = selectList[0];
     formData.source_cluster_id = id;
-    currentCluster.value = {
-      name: `${domain} (${id})`,
-      type: clusterType,
-    };
+    currentClusterType.value = clusterType
   };
 
   const handleSubmit = () => {
@@ -178,7 +237,7 @@
           bk_biz_id: currentBizId,
           ...formData,
           config_rules: configRule,
-          cluster_type: currentCluster.value.type,
+          cluster_type: currentClusterType.value,
         };
         if (isEditMode) {
           params.id = Number(route.params.id);
