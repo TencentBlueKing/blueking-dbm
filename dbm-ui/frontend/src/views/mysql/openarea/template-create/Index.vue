@@ -178,6 +178,8 @@
       formData.source_cluster_id = data.source_cluster_id;
       formData.config_rules = data.config_rules;
 
+      currentClusterType.value = data.cluster_type;
+
       if (data.source_cluster.cluster_type === 'tendbha') {
         const listResult = await getTendbhaList({ cluster_ids: [data.source_cluster_id]});
         targetClusterList.value = listResult.results
