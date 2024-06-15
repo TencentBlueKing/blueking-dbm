@@ -93,6 +93,7 @@
       v-model:is-show="isShowSettings"
       class="settings-sideslider"
       quick-close
+      render-directive="if"
       :title="t('查看访问配置')"
       :width="960">
       <ClusterSettings

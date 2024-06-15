@@ -27,6 +27,7 @@
     <BkSideslider
       v-model:isShow="sideState.isShow"
       quick-close
+      render-directive="if"
       :width="960">
       <template #header>
         <div class="custom-slider-header">

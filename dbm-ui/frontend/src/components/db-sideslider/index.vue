@@ -16,6 +16,7 @@
     v-bind="attrs"
     :before-close="beforeCloseCallback"
     :is-show="isShow"
+    render-directive="if"
     @update:is-show="handleUpdateShow">
     <template
       v-if="slots.header"

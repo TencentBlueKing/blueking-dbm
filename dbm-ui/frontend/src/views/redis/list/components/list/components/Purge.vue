@@ -15,6 +15,7 @@
   <BkSideslider
     :before-close="handleBeforeClose"
     :is-show="isShow"
+    render-directive="if"
     :width="960"
     @closed="handleClose">
     <template #header>
