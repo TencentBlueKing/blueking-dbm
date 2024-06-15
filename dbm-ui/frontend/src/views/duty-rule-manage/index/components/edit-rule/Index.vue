@@ -16,6 +16,7 @@
     :before-close="handleClose"
     class="rotate-setting-edit-rule"
     :is-show="isShow"
+    render-directive="if"
     :width="960"
     @closed="handleClose">
     <template #header>

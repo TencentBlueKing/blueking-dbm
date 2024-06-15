@@ -1,6 +1,7 @@
 <template>
   <BkSideslider
     v-model:is-show="modelValue"
+    render-directive="if"
     :title="t('失败的从库实例详情')"
     :width="1100">
     <BkLoading :loading="isLoading">

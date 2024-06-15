@@ -72,6 +72,7 @@
   <BkSideslider
     v-model:is-show="specOperationState.isShow"
     :before-close="handleBeforeClose"
+    render-directive="if"
     :width="960">
     <template #header>
       <template v-if="specOperationState.type === 'edit'">

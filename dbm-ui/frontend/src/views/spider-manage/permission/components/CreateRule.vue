@@ -14,6 +14,7 @@
 <template>
   <BkSideslider
     :is-show="isShow"
+    render-directive="if"
     :title="t('添加授权规则')"
     :width="840"
     @closed="handleClose">
