@@ -140,6 +140,7 @@ class OpenAreaHandler:
                 "user": user,
                 "source_ips": data["authorize_ips"],
                 "target_instances": [cluster_id__cluster[data["cluster_id"]].immute_domain],
+                "access_dbs": user__dbs_rules[user],
                 "account_rules": [
                     {"bk_biz_id": config.bk_biz_id, "dbname": dbname} for dbname in user__dbs_rules[user]
                 ],
