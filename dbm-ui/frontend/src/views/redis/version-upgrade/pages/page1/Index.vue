@@ -187,7 +187,7 @@
 
     const params = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_CLUSTER_VERSION_UPDATE_ONLINE,
+      ticket_type: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
       details: {
         infos,
       },
