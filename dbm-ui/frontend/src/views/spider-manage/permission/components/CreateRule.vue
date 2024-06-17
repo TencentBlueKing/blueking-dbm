@@ -121,11 +121,6 @@
                   :disabled="checkAllPrivileges"
                   :label="option">
                   {{ option }}
-                  <span
-                    v-if="ddlSensitiveWords.includes(option)"
-                    class="sensitive-tip">
-                    {{ t('敏感') }}
-                  </span>
                 </BkCheckbox>
               </BkCheckboxGroup>
             </div>
@@ -190,7 +185,7 @@
         @cancel="handleVerifyCancel"
         @confirm="handleVerifyConfirm">
         <BkButton
-          class="mr-8"
+          class="w-88 mr-8"
           :loading="isSubmitting"
           theme="primary"
           @click="handleSubmit">
@@ -198,6 +193,7 @@
         </BkButton>
       </BkPopConfirm>
       <BkButton
+        class="w-88"
         :disabled="isSubmitting"
         @click="handleClose">
         {{ t('取消') }}
@@ -228,7 +224,7 @@
 
   import { AccountTypes } from '@common/const';
 
-  import { dbOperations, ddlSensitiveWords } from '../common/consts';
+  import { dbOperations } from '../common/consts';
 
   type AuthItemKey = keyof typeof dbOperations;
 
@@ -454,13 +450,15 @@
           return;
         }
         createAccountRuleRun(params);
+      }).finally(() => {
+        isSubmitting.value = false;
       });
   };
 </script>
 
 <style lang="less" scoped>
   .rule-form {
-    padding: 24px 40px 40px;
+    padding: 24px 40px 32px;
 
     .rule-setting-box {
       padding: 16px 0 16px 16px;
