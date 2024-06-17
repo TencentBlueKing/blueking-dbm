@@ -262,7 +262,8 @@ class Permission(object):
         multi_request = self.make_multi_request(actions)
         batch_permission = {}
         try:
-            if self.check_resource_is_local(resources_list[0]):
+            # TODO: 暂时屏蔽跨资源类型鉴权，SDK问题待排查
+            if len(resources_list[0]) == 1 and self.check_resource_is_local(resources_list[0]):
                 batch_permission = self._iam.batch_resource_multi_actions_allowed(multi_request, resources_list)
             # 如果资源不属于本系统，则只能单次调用allowed
             else:
