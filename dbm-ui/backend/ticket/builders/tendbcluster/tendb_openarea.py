@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 
 from backend.ticket import builders
-from backend.ticket.builders.mysql.mysql_openarea import MysqlOpenAreaParamBuilder, MysqlOpenAreaDetailSerializer
+from backend.ticket.builders.mysql.mysql_openarea import MysqlOpenAreaDetailSerializer, MysqlOpenAreaParamBuilder
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
