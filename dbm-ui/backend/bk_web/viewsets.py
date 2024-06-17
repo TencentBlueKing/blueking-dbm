@@ -192,7 +192,7 @@ class ExternalProxyViewSet(viewsets.ViewSet):
             data = response.json()["data"]
             data["apply_url"] = env.IAM_APP_URL
             return Response(data)
-        # 业务列表只展示有权限
+        # 业务列表只展示有权限的业务
         if "/cmdb/list_bizs/" in request.path:
             data = response.json()["data"]
             biz_list = [d for d in data if d["permission"][ActionEnum.DB_MANAGE.id]]

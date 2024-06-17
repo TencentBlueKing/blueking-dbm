@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import datetime
+import json
 import logging
 import re
 
@@ -26,6 +27,8 @@ from backend import env
 from backend.bk_web.constants import NON_EXTERNAL_PROXY_ROUTING, ROUTING_WHITELIST_PATTERNS
 from backend.bk_web.exceptions import ExternalProxyBaseException, ExternalRouteInvalidException
 from backend.bk_web.handlers import _error
+from backend.ticket.constants import TicketType
+from backend.ticket.views import TicketViewSet
 from backend.utils.local import local
 from backend.utils.string import str2bool
 
@@ -146,6 +149,21 @@ class ExternalProxyMiddleware(MiddlewareMixin):
         self.routing_patterns.append(request.path)
         return True
 
+    def __check_specific_request_params(self, request):
+        """校验特殊接口的参数是否满足要求"""
+
+        def check_create_ticket():
+            data = json.loads(request.body.decode("utf-8"))
+            # 目前只放开数据导出
+            access_ticket_types = [TicketType.MYSQL_DUMP_DATA, TicketType.TENDBCLUSTER_DUMP_DATA]
+            if data["ticket_type"] not in access_ticket_types:
+                raise ExternalRouteInvalidException(_("单据类型[{}]非法，未开通白名单").format(data["ticket_type"]))
+
+        check_action_func_map = {f"{TicketViewSet.__name__}.{TicketViewSet.create.__name__}": check_create_ticket}
+        func = resolve(request.path).func
+        action = func.actions.get(request.method.lower())
+        check_action_func_map.get(f"{func.cls.__name__}.{action}", lambda: None)()
+
     def __verify_request_url(self, request):
         """校验外部请求路由是否允许被转发"""
         # 外部请求路由属于转发白名单，则校验通过
@@ -176,6 +194,7 @@ class ExternalProxyMiddleware(MiddlewareMixin):
         if self.__check_non_proxy_routing(request):
             return
         self.__verify_request_url(request)
+        self.__check_specific_request_params(request)
         request.path = f"/external/{request.path.lstrip('/')}"
         request.path_info = request.path
         setattr(request, "_dont_enforce_csrf_checks", True)
