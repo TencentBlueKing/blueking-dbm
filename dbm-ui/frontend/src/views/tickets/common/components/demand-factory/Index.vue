@@ -269,6 +269,8 @@
     TicketTypes.REDIS_INSTANCE_DESTROY,
   ];
 
+  const openareaTypes = [TicketTypes.MYSQL_OPEN_AREA, TicketTypes.TENDBCLUSTER_OPEN_AREA];
+
   // 单一情况映射表
   const SingleDemandMap = {
     [TicketTypes.ES_APPLY]: DetailsES,
@@ -288,7 +290,6 @@
     [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: MySQLRestoreLocalSlave,
     [TicketTypes.MYSQL_HA_FULL_BACKUP]: MySQLFullBackup,
     [TicketTypes.MYSQL_CHECKSUM]: MySQLChecksum,
-    [TicketTypes.MYSQL_OPEN_AREA]: MysqlOpenArea,
     [TicketTypes.MYSQL_ADD_SLAVE]: MySQLAddSlave,
     [TicketTypes.MYSQL_DATA_MIGRATE]: MySQLDataMigrate,
     [TicketTypes.TBINLOGDUMPER_INSTALL]: DumperInstall,
@@ -308,7 +309,7 @@
     [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: RedisClusterTypeUpdate,
     [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: RedisDataCheckAndRepair,
     [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: RedisRollbackDataCopy,
-    [TicketTypes.REDIS_CLUSTER_VERSION_UPDATE_ONLINE]: RedisVersionUpgrade,
+    [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: RedisVersionUpgrade,
     [TicketTypes.TENDBCLUSTER_APPLY]: DetailsSpider,
     [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: SpiderAddNodes,
     [TicketTypes.TENDBCLUSTER_CHECKSUM]: SpiderCheckSum,
@@ -445,6 +446,10 @@
     // Redis 主从集群启停删
     if (redisHaOperationTypes.includes(ticketType)) {
       return RedisHaClusterOperation;
+    }
+    // 开区
+    if (openareaTypes.includes(ticketType)) {
+      return MysqlOpenArea;
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];

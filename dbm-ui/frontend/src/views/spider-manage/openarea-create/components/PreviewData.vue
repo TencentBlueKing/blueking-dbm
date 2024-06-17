@@ -130,7 +130,7 @@
   defineExpose<Expose>({
     submit() {
       return createTicket({
-        ticket_type: 'MYSQL_OPEN_AREA',
+        ticket_type: 'TENDBCLUSTER_OPEN_AREA',
         remark: '',
         details: {
           force: false,
