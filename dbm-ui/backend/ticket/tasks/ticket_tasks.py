@@ -79,6 +79,7 @@ class TicketTask(object):
         # 例行时间校验默认间隔一天
         now = datetime.now(timezone.utc)
         start_time, end_time = now - timedelta(days=1), now
+        # TODO: 目前这个esquery_search最多支持10000条查询，后续可以改造成scroll进行查询
         resp = BKLogApi.esquery_search(
             {
                 "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.mysql_checksum_result",
@@ -86,7 +87,7 @@ class TicketTask(object):
                 "end_time": datetime2str(end_time),
                 "query_string": "*",
                 "start": 0,
-                "size": 1000,
+                "size": 10000,
                 "sort_list": [["dtEventTimeStamp", "asc"], ["gseIndex", "asc"], ["iterationIndex", "asc"]],
             }
         )
@@ -187,8 +188,8 @@ class TicketTask(object):
                 "is_ticket_consistent": False,
                 "checksum_table": MYSQL_CHECKSUM_TABLE,
                 "trigger_type": MySQLDataRepairTriggerMode.ROUTINE.value,
-                "start_time": start_time,
-                "end_time": end_time,
+                "start_time": datetime2str(start_time),
+                "end_time": datetime2str(end_time),
                 "infos": [
                     {
                         "cluster_id": cluster_id,
@@ -203,6 +204,7 @@ class TicketTask(object):
                 ticket_type = TicketType.TENDBCLUSTER_DATA_REPAIR
             cls._create_ticket(
                 ticket_type=ticket_type,
+                # TODO: 这里可以设置一个自动提单人，但是todo确认可以增加DBA
                 creator=cluster.creator,
                 bk_biz_id=cluster.bk_biz_id,
                 remark=_("集群{}存在数据不一致，自动创建的数据修复单据").format(cluster.name),
