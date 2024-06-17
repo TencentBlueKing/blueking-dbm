@@ -17,6 +17,7 @@ import type { MySQLFunctions } from '@services/model/function-controller/functio
 
 import { useFunController } from '@stores';
 
+// import { checkDbConsole } from '@utils';
 import { t } from '@locales/index';
 
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
@@ -226,6 +227,16 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
   },
 ];
 
+// const dumperDataSubscription =  {
+//   name: 'DumperDataSubscription',
+//   path: 'dumper-data-subscribe/:dumperId(\\d+)?',
+//   meta: {
+//     navName: t('数据订阅'),
+//     fullscreen: true,
+//   },
+//   component: () => import('@views/mysql/dumper/Index.vue'),
+// };
+
 const commonRouters: RouteRecordRaw[] = [
   {
     name: 'MysqlManage',
@@ -313,6 +324,10 @@ export default function getRoutes() {
   if (!renderRoutes) {
     return commonRouters;
   }
+
+  // if (checkDbConsole(funControllerData, 'mysql.dataSubscription')) {
+  //   commonRouters[0].children!.push(dumperDataSubscription);
+  // }
 
   if (controller.tendbsingle) {
     renderRoutes.children?.push(...singleRoutes);
