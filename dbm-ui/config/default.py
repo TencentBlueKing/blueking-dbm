@@ -165,7 +165,6 @@ MIDDLEWARE = (
 
 AUTHENTICATION_BACKENDS = [
     *AUTHENTICATION_BACKENDS,
-    "backend.bk_web.middleware.ExternalUserModelBackend",
     "apigw_manager.apigw.authentication.UserModelBackend",
 ]
 
