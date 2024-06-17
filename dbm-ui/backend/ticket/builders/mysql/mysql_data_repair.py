@@ -46,3 +46,4 @@ class MySQLDataRepairFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLDataRepairDetailSerializer
     inner_flow_builder = MySQLDataRepairFlowParamBuilder
     inner_flow_name = _("数据修复执行")
+    default_need_itsm = False

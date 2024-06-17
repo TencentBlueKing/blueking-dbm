@@ -33,3 +33,4 @@ class TendbDataRepairFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbDataRepairDetailSerializer
     inner_flow_builder = TendbDataRepairFlowParamBuilder
     inner_flow_name = _("Tendb Cluster 数据修复执行")
+    default_need_itsm = False
