@@ -151,7 +151,7 @@ class ExternalProxyMiddleware(MiddlewareMixin):
 
     def __check_specific_request_params(self, request):
         """校验特殊接口的参数是否满足要求"""
-
+        # 单据创建校验函数
         def check_create_ticket():
             data = json.loads(request.body.decode("utf-8"))
             # 目前只放开数据导出
@@ -160,9 +160,14 @@ class ExternalProxyMiddleware(MiddlewareMixin):
                 raise ExternalRouteInvalidException(_("单据类型[{}]非法，未开通白名单").format(data["ticket_type"]))
 
         check_action_func_map = {f"{TicketViewSet.__name__}.{TicketViewSet.create.__name__}": check_create_ticket}
-        func = resolve(request.path).func
-        action = func.actions.get(request.method.lower())
-        check_action_func_map.get(f"{func.cls.__name__}.{action}", lambda: None)()
+        # 根据请求的视图 + 动作判断是否特殊接口，以及接口参数是否合法
+        try:
+            func = resolve(request.path).func
+            action = func.actions.get(request.method.lower())
+            check_action_func_map.get(f"{func.cls.__name__}.{action}", lambda: None)()
+        except AttributeError:
+            # 对无法解析func或者func action的接口忽略，不在特殊接口参数校验范围
+            return
 
     def __verify_request_url(self, request):
         """校验外部请求路由是否允许被转发"""
