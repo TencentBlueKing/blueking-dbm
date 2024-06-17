@@ -89,7 +89,7 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.action == "list":
+        if self.action in ["list", "list_group_name", "list_default_group"]:
             # 1. 在指定业务和平台业务的告警组中过滤
             bk_biz_id = self.request.query_params.get("bk_biz_id", PLAT_BIZ_ID)
             queryset = queryset.filter(bk_biz_id__in=(PLAT_BIZ_ID, bk_biz_id))
