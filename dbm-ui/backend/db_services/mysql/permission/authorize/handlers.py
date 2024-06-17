@@ -16,7 +16,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
-from backend.components.gcs.client import GcsApi
+from backend.components.gcs.client import GcsApi, GcsDirectApi
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.components.scr.client import ScrApi
 from backend.configuration.constants import DBType
@@ -203,7 +203,7 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
             return {"task_id": task_id, "platform": "dbm", "job_id": task_id}
         elif privileges:
             # 调用老接口进行授权
-            data = GcsApi.blueking_grant(
+            data = GcsDirectApi.blueking_grant(
                 {
                     "client_hosts": source_ips,
                     "client_version": client_version,
@@ -212,10 +212,10 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
                     "user_name": user,
                     "password": password,
                     "privileges": privileges,
-                }
+                },
+                raw=True,
             )
-            task_id = data["job_id"]
-            return {"task_id": task_id, "platform": "gcs", "job_id": task_id}
+            return data
         else:
             params = {
                 "app": app,
