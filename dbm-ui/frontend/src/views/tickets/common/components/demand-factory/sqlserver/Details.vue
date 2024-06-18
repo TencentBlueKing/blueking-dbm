@@ -52,11 +52,14 @@
   } = props.ticketDetails;
   const {
     ip_source: ipSource,
-    resource_spec: resourceSpec
+    resource_spec: resourceSpec,
+    nodes,
   } = details
   const isSingleType = ticketType === TicketTypes.SQLSERVER_SINGLE_APPLY;
+  const applyType = isSingleType ? ClusterTypes.SQLSERVER_SINGLE : ClusterTypes.SQLSERVER_HA
   const isFromResourcePool = ipSource === 'resource_pool';
-  const backendSpec = resourceSpec[isSingleType ? ClusterTypes.SQLSERVER_SINGLE : ClusterTypes.SQLSERVER_HA];
+  const backendSpec = resourceSpec?.[applyType];
+  const nodeList = nodes?.[applyType]
 
   const config: DemandInfoConfig[] = [
     {
@@ -101,47 +104,15 @@
           render: () => isFromResourcePool ? t('自动从资源池匹配') : t('业务空闲机')
         },
         {
-          label: t('后端存储规格'),
-          render: () => (
-            <bk-popover
-              placement="top"
-              theme="light">
-              {{
-                default: () => (
-                  <span
-                    class="pb-2"
-                    style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
-                    {backendSpec.spec_name }（{ `${backendSpec.count} ${t('台')}`}）
-                  </span>
-                ),
-                content: () => <SpecInfos data={backendSpec} />,
-              }}
-            </bk-popover>
-          ),
-        },
-        {
           label: t('备注'),
           key: 'remark',
-        },
-        {
-          label: t('集群设置'),
-          isTable: true,
-          render: () => (
-            <PreviewTable
-              data={tableData.value}
-              is-show-nodes={!isFromResourcePool}
-              is-single-type={isSingleType}
-              max-height={240}
-              min-height={0}
-              nodes={props.ticketDetails.details.nodes || []} />
-          ),
         },
       ],
     },
   ];
 
   if (!isSingleType) {
-    config.splice(1, 0,     {
+    config.splice(1, 0, {
       title: t('数据库部署信息'),
       list: [
         {
@@ -153,7 +124,45 @@
           key: 'details.start_mssql_port',
         },
       ],
-    },)
+    })
+  }
+
+  if (backendSpec) {
+    config[2].list.splice(3, 0, {
+      label: t('后端存储规格'),
+      render: () => (
+        <bk-popover
+          placement="top"
+          theme="light">
+          {{
+            default: () => (
+              <span
+                class="pb-2"
+                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
+                {backendSpec.spec_name }（{ `${backendSpec.count} ${t('台')}`}）
+              </span>
+            ),
+            content: () => <SpecInfos data={backendSpec} />,
+          }}
+        </bk-popover>
+      ),
+    })
+  }
+
+  if (nodeList) {
+    config[2].list.splice(3, 0, {
+      label: t('集群设置'),
+      isTable: true,
+      render: () => (
+        <PreviewTable
+          data={tableData.value}
+          is-show-nodes={!isFromResourcePool}
+          is-single-type={isSingleType}
+          max-height={240}
+          min-height={0}
+          nodeList={nodeList} />
+      ),
+    })
   }
 
   const cityName = ref('--');
