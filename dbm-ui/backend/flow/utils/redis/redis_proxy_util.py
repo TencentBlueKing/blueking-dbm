@@ -41,6 +41,7 @@ from backend.flow.consts import (
     MediumEnum,
 )
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.redis.redis_util import version_ge
 
 logger = logging.getLogger("flow")
 
@@ -403,6 +404,34 @@ def get_storage_version_names_by_cluster_type(cluster_type: str, trimSuffix: boo
     return versions
 
 
+def get_cluster_storage_versions_for_upgrade(cluster_id: int) -> list:
+    """
+    获取集群可升级到的存储版本
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    online_redis_ver = get_cluster_redis_version(cluster_id=cluster_id)
+    versions = []
+    if is_redis_instance_type(cluster.cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Redis.value).values_list(
+            "name", flat=True
+        )
+        for version in ret:
+            if version_ge(version, online_redis_ver):
+                versions.append(version)
+    elif is_tendisplus_instance_type(cluster.cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisPlus.value).values_list(
+            "name", flat=True
+        )
+        for version in ret:
+            if version_ge(version, online_redis_ver):
+                versions.append(version)
+    elif is_tendisssd_instance_type(cluster.cluster_type):
+        versions.append(online_redis_ver)
+    versions = [version.replace(".tar.gz", "") for version in versions]
+    versions = [version.replace(".tgz", "") for version in versions]
+    return versions
+
+
 def get_major_version_by_version_name(name: str) -> str:
     """
     根据 name 返回对应主版本
@@ -453,6 +482,14 @@ def get_proxy_version_names_by_cluster_type(cluster_type: str, trimSuffix: bool 
         versions = [version.replace(".tar.gz", "") for version in versions]
         versions = [version.replace(".tgz", "") for version in versions]
     return versions
+
+
+def get_cluster_proxy_version_for_upgrade(cluster_id: int) -> list:
+    """
+    获取集群可升级到的proxy版本
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    return get_proxy_version_names_by_cluster_type(cluster.cluster_type)
 
 
 def get_twemproxy_cluster_hash_tag(cluster_type: str, cluster_id: int) -> str:
@@ -547,7 +584,7 @@ def get_online_redis_version(ip: str, port: int, bk_cloud_id: int, redis_passwor
         return ""
     result = resp[0].get("result")
     version_str = re.search(r"redis_version:(.*)\r\n", result).group(1)
-    if version_str.find("-Tredis-") > 0:
+    if version_str.find("-TRedis-") > 0:
         version_str = version_str.replace("TRedis", "rocksdb")
         return "redis-" + version_str
     elif version_str.find("-rocksdb-") > 0:
