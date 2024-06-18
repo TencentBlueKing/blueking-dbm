@@ -150,10 +150,10 @@ class CtlSwitchToSlaveService(BaseService):
             raise CtlSwitchToSlaveFailedException(
                 message=_("select mysql.servers failed: {}".format(res[0]["error_msg"]))
             )
-        if not res[0]["cmd_results"][0]["table_data"]:
+        if not res[0]["cmd_results"][1]["table_data"]:
             self.log_warning(f"Node [{reduce_ctl_primary}] no longer has routing information")
         else:
-            server_name = res[0]["cmd_results"][0]["table_data"][0]["Server_name"]
+            server_name = res[0]["cmd_results"][1]["table_data"][0]["Server_name"]
 
         # 新primary需要执行reset slave, 避免提升主报错
         rpc_params["cmds"] = ["set tc_admin=0", "reset slave all;"]
