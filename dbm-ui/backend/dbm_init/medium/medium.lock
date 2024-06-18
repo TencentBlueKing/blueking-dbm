@@ -135,6 +135,10 @@ redis:
     buildPath: /toolkit/redis_dts.tar.gz
     name: redis_dts.tar.gz
     version: 1.0.0
+- tools:
+    buildPath: /toolkit/dbtools.tar.gz
+    name: dbtools.tar.gz
+    version: 1.0.0
 mongodb:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbactuator/build/mongo-dbactuator

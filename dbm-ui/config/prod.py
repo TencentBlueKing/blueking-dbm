@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from .default import *  # pylint: disable=wildcard-import
 from corsheaders.defaults import default_headers
 
-DEBUG = True
+DEBUG = False
 
 LOGGING = get_logging_config(os.path.join(BK_LOG_DIR, APP_CODE), "INFO")
 
