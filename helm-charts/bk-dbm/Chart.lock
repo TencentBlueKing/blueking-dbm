@@ -28,7 +28,7 @@ dependencies:
   version: 0.1.33
 - name: dbpartition
   repository: file://charts/dbpartition
-  version: 0.1.13
+  version: 0.1.14
 - name: db-simulation
   repository: file://charts/db-simulation
   version: 0.1.11
@@ -56,5 +56,5 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:ae650cea366c4e8836aa05a8031d52dd3f38ef591c929b0f881e9b7e4281ec23
-generated: "2024-06-17T10:56:27.830979+08:00"
+digest: sha256:e56a681e3ebe67f7b7f6920622586a25a5f7dcfb600c5c162bfd3cbe1dbb4a17
+generated: "2024-06-18T16:01:58.028796+08:00"
